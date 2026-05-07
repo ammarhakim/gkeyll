@@ -77,9 +77,9 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   gkyl_create_grid_ranges(&grid, ghost, &range_ext, &range);
 
   // Host arrays: used for initialization and result verification.
-  struct gkyl_array *f      = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  struct gkyl_array *dfdt   = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  struct gkyl_array *f_adv  = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  struct gkyl_array *dfdt = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  struct gkyl_array *f_adv = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
   struct gkyl_array *dfdt_adv = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
 
   // Device arrays: input/output for the GPU operator.
@@ -97,22 +97,24 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
     double *fc = gkyl_array_fetch(f, lidx);
     double *dfdtc = gkyl_array_fetch(dfdt, lidx);
 
-    if (lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_QUAD || lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_AVG) {
+    if (lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_QUAD ||
+      lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_AVG) {
       fc[0] = c0;
       dfdtc[0] = -c0 * (0.9 + 0.32 * (double)iter.idx[0] / num_cells);
 
-      double slope = - 0.64 * (double)iter.idx[0] / num_cells;
+      double slope = -0.64 * (double)iter.idx[0] / num_cells;
       fc[1] = slope;
       for (int k = 2; k < basis.num_basis; ++k) {
         fc[k] = 0.0;
         dfdtc[k] = 0.0;
       }
     }
-    else if (lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD || lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG) {
-      fc[0] = c0 * (1.0 - (double)iter.idx[0]/16);
-      dfdtc[0] = -c0 * cos(4 * GKYL_PI * (double)iter.idx[0]/num_cells);
+    else if (lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD ||
+      lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG) {
+      fc[0] = c0 * (1.0 - (double)iter.idx[0] / 16);
+      dfdtc[0] = -c0* cos(4 * GKYL_PI * (double)iter.idx[0] / num_cells);
 
-      double slope = - 0.64 * (double)iter.idx[0] / num_cells;
+      double slope = -0.64 * (double)iter.idx[0] / num_cells;
       fc[1] = slope;
       for (int k = 2; k < basis.num_basis; ++k) {
         fc[k] = 0.0;
@@ -185,7 +187,8 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
         basis.modal_to_quad_nodal(dfdt_before, dfdt_quad_before, k);
         if (fquad_before[k] >= 0.0) {
           // If f was positive at this quadrature point before, it should have been updated maximally
-          TEST_CHECK(gkyl_compare_double(fquad_after[k], fquad_before[k] + dfdt_quad_before[k] * dt, 1e-13));
+          TEST_CHECK(gkyl_compare_double(fquad_after[k], fquad_before[k] + dfdt_quad_before[k] * dt,
+            1e-13));
         }
         else {
           // If f was negative at this quadrature point, then it should not have been made more negative
@@ -195,15 +198,15 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
     }
   }
 
-  char file_name[256];
-  sprintf(file_name, "ctest_positivity_fdot_restrict_f_input.gkyl");
-  gkyl_grid_sub_array_write(&grid, &range, 0, f, file_name);
-  sprintf(file_name, "ctest_positivity_fdot_restrict_f_output.gkyl");
-  gkyl_grid_sub_array_write(&grid, &range, 0, f_adv, file_name);
-  sprintf(file_name, "ctest_positivity_fdot_restrict_dfdt_input.gkyl");
-  gkyl_grid_sub_array_write(&grid, &range, 0, dfdt, file_name);
-  sprintf(file_name, "ctest_positivity_fdot_restrict_dfdt_output.gkyl");
-  gkyl_grid_sub_array_write(&grid, &range, 0, dfdt_adv, file_name);
+  // char file_name[256];
+  // sprintf(file_name, "ctest_positivity_fdot_restrict_f_input.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &range, 0, f, file_name);
+  // sprintf(file_name, "ctest_positivity_fdot_restrict_f_output.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &range, 0, f_adv, file_name);
+  // sprintf(file_name, "ctest_positivity_fdot_restrict_dfdt_input.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &range, 0, dfdt, file_name);
+  // sprintf(file_name, "ctest_positivity_fdot_restrict_dfdt_output.gkyl");
+  // gkyl_grid_sub_array_write(&grid, &range, 0, dfdt_adv, file_name);
 
   if (use_gpu) {
     gkyl_array_release(f_dev);
@@ -489,20 +492,28 @@ TEST_LIST = {
   { "test_6d_p1_ser_fdot_restrict_diode_quad_cu", test_6d_p1_ser_fdot_restrict_diode_quad_cu },
   { "test_2d_p1_gkhybrid_fdot_restrict_avg_cu", test_2d_p1_gkhybrid_fdot_restrict_avg_cu },
   { "test_2d_p1_gkhybrid_fdot_restrict_quad_cu", test_2d_p1_gkhybrid_fdot_restrict_quad_cu },
-  { "test_2d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_2d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
-  { "test_2d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_2d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+  { "test_2d_p1_gkhybrid_fdot_restrict_diode_avg_cu",
+    test_2d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_2d_p1_gkhybrid_fdot_restrict_diode_quad_cu",
+    test_2d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
   { "test_3d_p1_gkhybrid_fdot_restrict_avg_cu", test_3d_p1_gkhybrid_fdot_restrict_avg_cu },
   { "test_3d_p1_gkhybrid_fdot_restrict_quad_cu", test_3d_p1_gkhybrid_fdot_restrict_quad_cu },
-  { "test_3d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_3d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
-  { "test_3d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_3d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+  { "test_3d_p1_gkhybrid_fdot_restrict_diode_avg_cu",
+    test_3d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_3d_p1_gkhybrid_fdot_restrict_diode_quad_cu",
+    test_3d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
   { "test_4d_p1_gkhybrid_fdot_restrict_avg_cu", test_4d_p1_gkhybrid_fdot_restrict_avg_cu },
   { "test_4d_p1_gkhybrid_fdot_restrict_quad_cu", test_4d_p1_gkhybrid_fdot_restrict_quad_cu },
-  { "test_4d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_4d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
-  { "test_4d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_4d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+  { "test_4d_p1_gkhybrid_fdot_restrict_diode_avg_cu",
+    test_4d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_4d_p1_gkhybrid_fdot_restrict_diode_quad_cu",
+    test_4d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
   { "test_5d_p1_gkhybrid_fdot_restrict_avg_cu", test_5d_p1_gkhybrid_fdot_restrict_avg_cu },
   { "test_5d_p1_gkhybrid_fdot_restrict_quad_cu", test_5d_p1_gkhybrid_fdot_restrict_quad_cu },
-  { "test_5d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_5d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
-  { "test_5d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_5d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+  { "test_5d_p1_gkhybrid_fdot_restrict_diode_avg_cu",
+    test_5d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_5d_p1_gkhybrid_fdot_restrict_diode_quad_cu",
+    test_5d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
 #endif // GKYL_HAVE_CUDA
   { NULL, NULL },
 };
