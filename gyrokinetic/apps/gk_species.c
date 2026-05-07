@@ -63,9 +63,16 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
       m0_max[0] = gks->m0_max[0];
     }
     m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
+
+    double time_dilation_scale_const = 1.0;
+    for (int i = 0; i < gks->num_fdot_mult; ++i) {
+      if (gks->fdot_mult[i].time_dilation_scale_const) {
+        time_dilation_scale_const *= gks->fdot_mult[i].time_dilation_scale_const;
+      }
+    }
   
     double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf
-      * gks->time_dilation_scale_const;
+      * time_dilation_scale_const;
 
     return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
   }

@@ -1117,8 +1117,7 @@ struct gk_species {
   void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
 
-  double dt_omegaH; // dt_omegaH. Recorded at the end of the rhs evaluation.
-  double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time.
+  double dt_omegaH; // Recorded at the end of the rhs evaluation.
   double *omega_cfl; // Maximum Omega_CFL in this MPI process.
   double *dt_cfl_global_ho; // Global maximum Omega_CFL across all MPI processes.
   double *m0_max; // Maximum number density in this MPI process.
