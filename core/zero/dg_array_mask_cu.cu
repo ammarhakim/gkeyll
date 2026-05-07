@@ -338,7 +338,6 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
   mask->ref_count = gkyl_ref_count_init(gkyl_dg_array_mask_free);
 
   mask->advance_func_cu = advance_cu_none;
-  mask->advance_threshold_func_cu = advance_threshold_none;
 
   // Set GPU advance function pointer based on mask type
   switch (mask->type) {
@@ -353,11 +352,9 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
       mask->advance_func_cu = advance_cu_less_than;
-      mask->advance_threshold_func_cu = advance_threshold_frac;
       break;
     case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
       mask->advance_func_cu = advance_cu_greater_than;
-      mask->advance_threshold_func_cu = advance_threshold_frac;
       break;
     case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
       mask->advance_func_cu = advance_cu_less_than_frac_conf;
