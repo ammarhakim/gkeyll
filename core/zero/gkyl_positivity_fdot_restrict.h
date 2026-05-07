@@ -6,15 +6,17 @@
 
 typedef struct gkyl_positivity_fdot_restrict gkyl_positivity_fdot_restrict;
 
-enum gkyl_positivity_fdot_restrict_mode {
+enum gkyl_positivity_fdot_restrict_type {
   GKYL_POSITIVITY_FDOT_RESTRICT_QUAD, // Restrict df/dt at quadrature points.
   GKYL_POSITIVITY_FDOT_RESTRICT_AVG, // Restrict df/dt at cell average (modal coefficient 0).
+  GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at quadrature points.
+  GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at cell average.
 };
 
 struct gkyl_positivity_fdot_restrict_inp {
   struct gkyl_basis basis; // Basis functions for the discretization.
-  enum gkyl_positivity_fdot_restrict_mode mode; // Mode of restriction (quad or avg).
-  double safety_factor; // Safety factor (0 < safety_factor < 1) for target floor in restriction.
+  enum gkyl_positivity_fdot_restrict_type mode; // Mode of restriction (quad or avg).
+  double safety_factor; // Safety factor (0 < safety_factor < 1) for target floor in restriction. 0 means no safety factor (i.e. target floor = 0).
 };
 
 /**

@@ -935,6 +935,8 @@ struct gk_positivity {
     struct gk_positivity *pos, double tm);
   void (*write_integrated_diags_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
     struct gk_positivity *pos);
+  void (*fdot_restriction_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+    struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
   // Neutral species methods (MF 2025/10/29: to get rid of when we unify species types).
   void (*apply_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
     struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout);
@@ -948,6 +950,8 @@ struct gk_positivity {
     struct gk_positivity *pos, double tm);
   void (*write_integrated_diags_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
     struct gk_positivity *pos);
+  void (*fdot_restriction_func_neut)(gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+    struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
 };
 
 // Species data.
@@ -1718,10 +1722,10 @@ void gk_neut_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
  * @param fout Output rate of change (to be restricted).
  * @param dt Timestep.
  */
-void gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+void gk_species_positivity_fdot_restriction_apply(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
   const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
 
-void gk_neut_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+void gk_neut_species_positivity_fdot_restriction_apply(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
   const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
 
 /** gk_species_lte API */

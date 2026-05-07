@@ -13,12 +13,8 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
   struct gkyl_positivity_fdot_restrict *up = gkyl_malloc(sizeof(*up));
   
   up->basis = inp.basis;
-  up->mode = inp.mode;
+  up->type = inp.mode;
   up->safety_factor = inp.safety_factor;
-  up->num_basis = inp.basis.num_basis;
-  
-  // Allocate temporary array for quadrature values.
-  up->fquad = gkyl_malloc(sizeof(double[up->num_basis]));
   
   return up;
 }
@@ -32,21 +28,10 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
 static void
 restrict_fdot_avg(struct gkyl_positivity_fdot_restrict *up,
   const double *f, double *dfdt, double dt)
-{
-  // Cell average is stored in modal coefficient 0.
-  double f_avg = f[0];
-  double dfdt_avg = dfdt[0];
-  
-  // Predict: f_pred = f_avg + dt * dfdt_avg
-  double f_pred = f_avg + dt * dfdt_avg;
-  
-  // If prediction would be negative, clamp dfdt_avg to reach safety floor.
-  if (f_pred < 0.0 && f_avg > 0.0) {
-    // Target floor: safety_factor * f_avg
-    // We want: f_avg + dt * dfdt_new = safety_factor * f_avg
-    // So: dfdt_new = (safety_factor * f_avg - f_avg) / dt = (safety_factor - 1) * f_avg / dt
-    double dfdt_new = (up->safety_factor - 1.0) * f_avg / dt;
-    dfdt[0] = dfdt_new;
+{ 
+  double f_pred = f[0] + dt * dfdt[0]; // Euler step
+  if (f_pred < 0.0) {
+    dfdt[0] = (up->safety_factor - 1.0) * f[0] / dt; // Push towards zero with safety factor
   }
 }
 
@@ -61,39 +46,79 @@ static void
 restrict_fdot_quad(struct gkyl_positivity_fdot_restrict *up,
   const double *f, double *dfdt, double dt)
 {
-  const int nbasis = up->num_basis;
+  const int nquad = up->basis.num_quad;
   const double safety_factor = up->safety_factor;
   bool reproject = false;
   
-  // Temporary array to store dfdt values at quadrature nodes
-  double dfdt_quad[nbasis];
+  double fquad[nquad];
+  double dfdt_quad[nquad];
   
   // Evaluate dfdt at all quadrature nodes
-  for (int k = 0; k < nbasis; ++k) {
+  for (int k = 0; k < nquad; ++k) {
     up->basis.modal_to_quad_nodal(dfdt, dfdt_quad, k);
-  }
-  
-  // Check and restrict dfdt at each quadrature node
-  for (int k = 0; k < nbasis; ++k) {
-    // Evaluate f at quadrature node k
-    up->basis.modal_to_quad_nodal(f, up->fquad, k);
-    double f_q = up->fquad[k];
-    double dfdt_q = dfdt_quad[k];
+    up->basis.modal_to_quad_nodal(f, fquad, k);
     
-    // Predict at this node: f_pred = f + dt * dfdt
-    double f_pred_q = f_q + dt * dfdt_q;
+    double f_pred_q = fquad[k] + dt * dfdt_quad[k]; // Euler step
     
-    // If prediction would be negative, restrict dfdt at this node
-    if (f_pred_q < 0.0 && f_q > 0.0) {
-      double dfdt_new_q = (safety_factor - 1.0) * f_q / dt;
-      dfdt_quad[k] = dfdt_new_q;
+    if (f_pred_q < 0.0) {
+      dfdt_quad[k] = (safety_factor - 1.0) * fquad[k] / dt;
       reproject = true;
     }
   }
   
-  // Project restricted dfdt back to modal space using L2-projection only if needed
+  // Project restricted dfdt only if needed
   if (reproject) {
-    for (int k = 0; k < nbasis; ++k) {
+    for (int k = 0; k < nquad; ++k) {
+      up->basis.quad_nodal_to_modal(dfdt_quad, dfdt, k);
+    }
+  }
+}
+
+/**
+ * Diode mode at cell average: set df/dt=0 if both f<0 and df/dt<0.
+ * 
+ * This acts like a diode that blocks outflow when the distribution is already negative.
+ */
+static void
+restrict_fdot_diode_avg(struct gkyl_positivity_fdot_restrict *up,
+  const double *f, double *dfdt, double dt)
+{ 
+  // If both cell average f and dfdt are negative, set cell average dfdt to 0.
+  if (f[0] < 0.0 && dfdt[0] < 0.0) {
+    dfdt[0] = 0.0;
+  }
+}
+
+/**
+ * Diode mode at quadrature nodes: set df/dt=0 if both f<0 and df/dt<0.
+ * 
+ * This acts like a diode at each quadrature point that blocks outflow
+ * when the distribution is already negative.
+ */
+static void
+restrict_fdot_diode_quad(struct gkyl_positivity_fdot_restrict *up,
+  const double *f, double *dfdt, double dt)
+{ 
+  const int nquad = up->basis.num_quad;
+  bool reproject = false;
+  
+  double dfdt_quad[nquad];
+  double f_quad[nquad];
+  
+  for (int k = 0; k < nquad; ++k) {
+    up->basis.modal_to_quad_nodal(f, f_quad, k);
+    up->basis.modal_to_quad_nodal(dfdt, dfdt_quad, k);
+    
+    // If both f and dfdt are negative, set dfdt=0 (block outflow).
+    if (f_quad[k] < 0.0 && dfdt_quad[k] < 0.0) {
+      dfdt_quad[k] = 0.0;
+      reproject = true;
+    }
+  }
+  
+  // Project modified dfdt back to modal space only if needed
+  if (reproject) {
+    for (int k = 0; k < nquad; ++k) {
       up->basis.quad_nodal_to_modal(dfdt_quad, dfdt, k);
     }
   }
@@ -107,7 +132,7 @@ gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict* up,
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);
   
-  if (up->mode == GKYL_POSITIVITY_FDOT_RESTRICT_QUAD) {
+  if (up->type == GKYL_POSITIVITY_FDOT_RESTRICT_QUAD) {
     // Quadrature mode: restrict at each quadrature node.
     while (gkyl_range_iter_next(&iter)) {
       long idx = gkyl_range_idx(range, iter.idx);
@@ -116,7 +141,7 @@ gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict* up,
       
       restrict_fdot_quad(up, f_ptr, dfdt_ptr, dt);
     }
-  } else {
+  } else if (up->type == GKYL_POSITIVITY_FDOT_RESTRICT_AVG) {
     // Cell-average mode: restrict only the modal average.
     gkyl_range_iter_init(&iter, range);
     while (gkyl_range_iter_next(&iter)) {
@@ -126,6 +151,26 @@ gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict* up,
       
       restrict_fdot_avg(up, f_ptr, dfdt_ptr, dt);
     }
+  } else if (up->type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD) {
+    // Diode mode at quadrature points.
+    gkyl_range_iter_init(&iter, range);
+    while (gkyl_range_iter_next(&iter)) {
+      long idx = gkyl_range_idx(range, iter.idx);
+      const double *f_ptr = gkyl_array_cfetch(f, idx);
+      double *dfdt_ptr = gkyl_array_fetch(dfdt, idx);
+      
+      restrict_fdot_diode_quad(up, f_ptr, dfdt_ptr, dt);
+    }
+  } else if (up->type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG) {
+    // Diode mode at cell average.
+    gkyl_range_iter_init(&iter, range);
+    while (gkyl_range_iter_next(&iter)) {
+      long idx = gkyl_range_idx(range, iter.idx);
+      const double *f_ptr = gkyl_array_cfetch(f, idx);
+      double *dfdt_ptr = gkyl_array_fetch(dfdt, idx);
+      
+      restrict_fdot_diode_avg(up, f_ptr, dfdt_ptr, dt);
+    }
   }
 }
 
@@ -133,7 +178,6 @@ void
 gkyl_positivity_fdot_restrict_release(gkyl_positivity_fdot_restrict* up)
 {
   if (up) {
-    gkyl_free(up->fquad);
     gkyl_free(up);
   }
 }

@@ -326,6 +326,8 @@ enum gkyl_gyrokinetic_positivity_type {
   GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
   GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD, // Restrict df/dt at quadrature points to maintain positivity.
   GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG, // Restrict df/dt (cell-average) to maintain positivity.
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at quadrature points.
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at cell average.
 };
 
 struct gkyl_gyrokinetic_positivity {

@@ -188,6 +188,25 @@ gks_pos_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
 }
 
+static void
+gks_pos_fdot_restriction_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  // Do nothing.
+}
+
+static void
+gks_pos_fdot_restriction_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  struct timespec wtm = gkyl_wall_clock();
+  
+  // Apply the df/dt restriction to maintain positivity over the timestep.
+  gkyl_positivity_fdot_restrict_advance(pos->fdot_restrict_op, &gks->local, fin, fout, *dt);
+  
+  app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
+}
+
 void
 gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos)
@@ -200,27 +219,16 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   pos->write_diags_func = gks_pos_write_diags_disabled;
   pos->calc_integrated_diags_func = gks_pos_calc_integrated_diags_disabled;
   pos->write_integrated_diags_func = gks_pos_write_integrated_diags_disabled;
+  pos->fdot_restriction_func = gks_pos_fdot_restriction_disabled;
 
-  if (pos->type) {
+  // SHIFT and MRS_LIMITER modes: allocate memory, set up shift operator, and diagnostics.
+  if (pos->type == GKYL_GK_POSITIVITY_SHIFT || pos->type == GKYL_GK_POSITIVITY_MRS_LIMITER) {
 
     pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     // Positivity shift updater.
     pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
       gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
-
-    // df/dt restriction updater (for FDOT_RESTRICT modes).
-    if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD ||
-        pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG) {
-      struct gkyl_positivity_fdot_restrict_inp fdot_inp = {
-        .basis = gks->basis,
-        .mode = (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD) 
-          ? GKYL_POSITIVITY_FDOT_RESTRICT_QUAD : GKYL_POSITIVITY_FDOT_RESTRICT_AVG,
-        .safety_factor = (gks->info.positivity.safety_factor > 0.0) 
-          ? gks->info.positivity.safety_factor : 0.9, // Use input value or default to 0.9.
-      };
-      pos->fdot_restrict_op = gkyl_positivity_fdot_restrict_new(fdot_inp);
-    }
 
     // Methods chosen at runtime.
     pos->apply_func = gks_pos_apply_enabled;
@@ -251,6 +259,7 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       pos->write_integrated_diags_func = gks_pos_write_integrated_diags_enabled;
     }
 
+    // Quasineutrality enforcement only for SHIFT/MRS_LIMITER methods.
     if (app->post_positivity_quasineut) {
       // Set pointers to total ion/electron Delta m0, used to enforce quasineutrality.
       if (gks->info.charge > 0.0) {
@@ -264,6 +273,31 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     }
 
   }
+  // FDOT_RESTRICT modes: only initialize the df/dt restriction operator.
+  else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD ||
+           pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG ||
+           pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD ||
+           pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG) {
+    
+    enum gkyl_positivity_fdot_restrict_type mode;
+    if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD)
+      mode = GKYL_POSITIVITY_FDOT_RESTRICT_QUAD;
+    else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG)
+      mode = GKYL_POSITIVITY_FDOT_RESTRICT_AVG;
+    else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD)
+      mode = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD;
+    else
+      mode = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG;
+    
+    struct gkyl_positivity_fdot_restrict_inp fdot_inp = {
+      .basis = gks->basis,
+      .mode = mode,
+      .safety_factor = (gks->info.positivity.safety_factor > 0.0) 
+        ? gks->info.positivity.safety_factor : 0.9,
+    };
+    pos->fdot_restrict_op = gkyl_positivity_fdot_restrict_new(fdot_inp);
+    pos->fdot_restriction_func = gks_pos_fdot_restriction_enabled;
+  }
 }
 
 void
@@ -271,6 +305,20 @@ gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout)
 {
   pos->apply_func(app, gks, pos, fbuffer, fout);
+}
+
+void
+gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  pos->fdot_restriction_func(app, gks, pos, fin, fout, dt);
+}
+
+void
+gk_species_positivity_fdot_restriction_apply(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  gk_species_positivity_fdot_restriction(app, gks, &gks->positivity, fin, fout, dt);
 }
 
 void
@@ -297,11 +345,11 @@ gk_species_positivity_write_integrated_diags(gkyl_gyrokinetic_app *app, struct g
 void
 gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos)
 {
-  if (pos->type) {
-
+  if (pos->type == GKYL_GK_POSITIVITY_SHIFT || pos->type == GKYL_GK_POSITIVITY_MRS_LIMITER) {
+    // Release resources allocated for SHIFT/MRS_LIMITER modes.
     gkyl_array_release(pos->delta_m0);
     gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
-    gkyl_positivity_fdot_restrict_release(pos->fdot_restrict_op);
+    
     if (app->post_positivity_quasineut) {
       gkyl_array_release(pos->delta_m0s_tot);
       gkyl_array_release(pos->delta_m0r_tot);
@@ -320,7 +368,13 @@ gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const stru
         gkyl_free(pos->red_integ_diag_global);
       }
     }
-
+  }
+  else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD ||
+           pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG ||
+           pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD ||
+           pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG) {
+    // Release resources allocated for FDOT_RESTRICT modes.
+    gkyl_positivity_fdot_restrict_release(pos->fdot_restrict_op);
   }
 }
 
@@ -332,55 +386,21 @@ gk_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
 
   gks->info.positivity = pos_inp;
 
-  int num_quasineut_rescale = gk_species_positivity_num_species_in_quasineut(app);
-  if (app->post_positivity_quasineut) {
-    if (num_quasineut_rescale < 2)
-      gyrokinetic_post_positivity_quasineut_release(app);
-  }
-  else
-    gyrokinetic_post_positivity_quasineut_init(app);
-
   gk_species_positivity_init(app, gks, pos);
 
-  if (pos_inp.type) {
+  // Quasineutrality enforcement only for SHIFT/MRS_LIMITER methods.
+  if (pos_inp.type == GKYL_GK_POSITIVITY_SHIFT || pos_inp.type == GKYL_GK_POSITIVITY_MRS_LIMITER) {
+    int num_quasineut_rescale = gk_species_positivity_num_species_in_quasineut(app);
+    if (app->post_positivity_quasineut) {
+      if (num_quasineut_rescale < 2)
+        gyrokinetic_post_positivity_quasineut_release(app);
+    }
+    else
+      gyrokinetic_post_positivity_quasineut_init(app);
+
     if (pos->integ_diag_file_exists) {
       pos->is_first_integ_write_call = false;
       pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_calc;
     }
   }
 }
-
-void
-gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
-{
-  struct gk_positivity *pos = &gks->positivity;
-  
-  if (!pos->fdot_restrict_op)
-    return; // No fdot restriction configured.
-  
-  struct timespec wtm = gkyl_wall_clock();
-  
-  // Apply the df/dt restriction to maintain positivity over the timestep.
-  gkyl_positivity_fdot_restrict_advance(pos->fdot_restrict_op, &gks->local, fin, fout, *dt);
-  
-  app->stat.species_pos_fdot_restrict_tm += gkyl_time_diff_now_sec(wtm);
-}
-
-void
-gk_neut_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
-{
-  struct gk_positivity *pos = &gkns->positivity;
-  
-  if (!pos->fdot_restrict_op)
-    return; // No fdot restriction configured.
-  
-  struct timespec wtm = gkyl_wall_clock();
-  
-  // Apply the df/dt restriction to maintain positivity over the timestep.
-  gkyl_positivity_fdot_restrict_advance(pos->fdot_restrict_op, &gkns->local, fin, fout, *dt);
-  
-  app->stat.neut_species_pos_fdot_restrict_tm += gkyl_time_diff_now_sec(wtm);
-}
-
