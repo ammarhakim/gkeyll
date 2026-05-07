@@ -2909,6 +2909,15 @@ void gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, st
  const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
 
 /**
+ * Get the constant time dilation scale factor, if applicable.
+ * 
+ * @param app gyrokinetic app object.
+ * @param gks Species object.
+ * @param time_dilation_scale_const On output, the constant time dilation scale factor. Set to 1.0 if not applicable.
+ */
+void gk_fdot_multiplier_get_time_dilation_scale_const(gkyl_gyrokinetic_app *app, struct gk_species *gks, double *time_dilation_scale_const)
+
+/**
  * Write damping diagnostics.
  *
  * @param app gyrokinetic app object.

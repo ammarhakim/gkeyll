@@ -531,6 +531,17 @@ gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app,
 }
 
 void
+gk_fdot_multiplier_get_time_dilation_scale_const(gkyl_gyrokinetic_app *app, struct gk_species *gks, double *time_dilation_scale_const)
+{
+  *time_dilation_scale_const = 1.0;
+  for (int i = 0; i < gks->num_fdot_mult; ++i) {
+    if (gks->fdot_mult[i].time_dilation_scale_const) {
+      *time_dilation_scale_const *= gks->fdot_mult[i].time_dilation_scale_const;
+    }
+  }
+}
+
+void
 gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
   int frame)
 {
