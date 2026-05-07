@@ -13,7 +13,7 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
   struct gkyl_positivity_fdot_restrict *up = gkyl_malloc(sizeof(*up));
   
   up->basis = inp.basis;
-  up->type = inp.mode;
+  up->type = inp.type;
   up->safety_factor = inp.safety_factor;
   
   return up;

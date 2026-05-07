@@ -15,7 +15,7 @@ enum gkyl_positivity_fdot_restrict_type {
 
 struct gkyl_positivity_fdot_restrict_inp {
   struct gkyl_basis basis; // Basis functions for the discretization.
-  enum gkyl_positivity_fdot_restrict_type mode; // Mode of restriction (quad or avg).
+  enum gkyl_positivity_fdot_restrict_type type; // Mode of restriction (quad or avg).
   double safety_factor; // Safety factor (0 < safety_factor < 1) for target floor in restriction. 0 means no safety factor (i.e. target floor = 0).
 };
 

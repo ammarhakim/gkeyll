@@ -918,8 +918,7 @@ struct gk_positivity {
   gkyl_dynvec integ_diag; // Integrated moments of the positivity shift.
   bool is_first_integ_write_call; // Flag first time writing integ_diag.
   bool integ_diag_file_exists; // Whether the integrated diagnostics file exists.
-  
-  // df/dt restriction updater (for FDOT_RESTRICT modes).
+
   struct gkyl_positivity_fdot_restrict *fdot_restrict_op;
  
   // Methods chosen at runtime.

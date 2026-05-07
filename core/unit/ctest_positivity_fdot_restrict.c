@@ -117,7 +117,7 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
 
   struct gkyl_positivity_fdot_restrict_inp inp = {
     .basis = basis,
-    .mode = lim_type,
+    .type = lim_type,
     .safety_factor = 0.0
   };
 
