@@ -11,7 +11,19 @@ struct gkyl_positivity_fdot_restrict {
 
   void (*fdot_restriction_func)(struct gkyl_positivity_fdot_restrict *up,
     const double *f, double *dfdt, double dt);
+
+  void (*advance_cu_func)(struct gkyl_positivity_fdot_restrict *up,
+    const struct gkyl_range *range, const struct gkyl_array *f,
+    struct gkyl_array *dfdt, double dt);
 };
+
+#ifdef GKYL_HAVE_CUDA
+/**
+ * Set CUDA kernel launcher function pointers based on restriction type.
+ * Called at init time so advance_cu dispatches without runtime branching.
+ */
+void gkyl_positivity_fdot_restrict_cu_set_ptrs(struct gkyl_positivity_fdot_restrict *up);
+#endif
 
 /**
  * Restrict df/dt at cell average to maintain positivity.

@@ -33,8 +33,10 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
   }
 
 #ifdef GKYL_HAVE_CUDA
+  up->advance_cu_func = NULL;
   up->on_dev = NULL;
   if (up->use_gpu) {
+    gkyl_positivity_fdot_restrict_cu_set_ptrs(up);
     up->on_dev = gkyl_cu_malloc(sizeof(*up));
     gkyl_cu_memcpy(up->on_dev, up, sizeof(*up), GKYL_CU_MEMCPY_H2D);
   }
