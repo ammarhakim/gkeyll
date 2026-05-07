@@ -64,10 +64,11 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   double *upper = gkyl_malloc(ndim * sizeof(double));
   int *cells = gkyl_malloc(ndim * sizeof(int));
   int *ghost = gkyl_malloc(ndim * sizeof(int));
+  int num_cells = 4;
   for (int d = 0; d < ndim; ++d) {
     lower[d] = 0.0;
     upper[d] = 1.0;
-    cells[d] = 32;
+    cells[d] = num_cells;
     ghost[d] = 0;
   }
 
@@ -92,9 +93,9 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
 
     if (lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_QUAD || lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_AVG) {
       fc[0] = c0;
-      dfdtc[0] = -c0 * (0.9 + 0.01 * (double)iter.idx[0]);
+      dfdtc[0] = -c0 * (0.9 + 0.32 * (double)iter.idx[0] / num_cells);
 
-      double slope = - 0.02 * (double)iter.idx[0];
+      double slope = - 0.64 * (double)iter.idx[0] / num_cells;
       fc[1] = slope;
       for (int k = 2; k < basis.num_basis; ++k) {
         fc[k] = 0.0;
@@ -103,9 +104,9 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
     }
     else if (lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD || lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG) {
       fc[0] = c0 * (1.0 - (double)iter.idx[0]/16);
-      dfdtc[0] = -c0 * cos(4 * GKYL_PI * (double)iter.idx[0]/32); 
+      dfdtc[0] = -c0 * cos(4 * GKYL_PI * (double)iter.idx[0]/num_cells); 
 
-      double slope = - 0.02 * (double)iter.idx[0];
+      double slope = - 0.64 * (double)iter.idx[0] / num_cells;
       fc[1] = slope;
       for (int k = 2; k < basis.num_basis; ++k) {
         fc[k] = 0.0;
@@ -300,49 +301,49 @@ TEST_LIST = {
   { "test_2d_p2_ser_fdot_restrict_quad", test_2d_p2_ser_fdot_restrict_quad },
   { "test_2d_p2_ser_fdot_restrict_diode_avg", test_2d_p2_ser_fdot_restrict_diode_avg },
   { "test_2d_p2_ser_fdot_restrict_diode_quad", test_2d_p2_ser_fdot_restrict_diode_quad },
-  // { "test_3d_p1_ser_fdot_restrict_avg", test_3d_p1_ser_fdot_restrict_avg },
-  // { "test_3d_p1_ser_fdot_restrict_quad", test_3d_p1_ser_fdot_restrict_quad },
-  // { "test_3d_p1_ser_fdot_restrict_diode_avg", test_3d_p1_ser_fdot_restrict_diode_avg },
-  // { "test_3d_p1_ser_fdot_restrict_diode_quad", test_3d_p1_ser_fdot_restrict_diode_quad },
-  // { "test_3d_p2_ser_fdot_restrict_avg", test_3d_p2_ser_fdot_restrict_avg },
-  // { "test_3d_p2_ser_fdot_restrict_quad", test_3d_p2_ser_fdot_restrict_quad },
-  // { "test_3d_p2_ser_fdot_restrict_diode_avg", test_3d_p2_ser_fdot_restrict_diode_avg },
-  // { "test_3d_p2_ser_fdot_restrict_diode_quad", test_3d_p2_ser_fdot_restrict_diode_quad },
-  // { "test_4d_p1_ser_fdot_restrict_avg", test_4d_p1_ser_fdot_restrict_avg },
-  // { "test_4d_p1_ser_fdot_restrict_quad", test_4d_p1_ser_fdot_restrict_quad },
-  // { "test_4d_p1_ser_fdot_restrict_diode_avg", test_4d_p1_ser_fdot_restrict_diode_avg },
-  // { "test_4d_p1_ser_fdot_restrict_diode_quad", test_4d_p1_ser_fdot_restrict_diode_quad },
-  // { "test_4d_p2_ser_fdot_restrict_avg", test_4d_p2_ser_fdot_restrict_avg },
-  // { "test_4d_p2_ser_fdot_restrict_quad", test_4d_p2_ser_fdot_restrict_quad },
-  // { "test_4d_p2_ser_fdot_restrict_diode_avg", test_4d_p2_ser_fdot_restrict_diode_avg },
-  // { "test_4d_p2_ser_fdot_restrict_diode_quad", test_4d_p2_ser_fdot_restrict_diode_quad },
-  // { "test_5d_p1_ser_fdot_restrict_avg", test_5d_p1_ser_fdot_restrict_avg },
-  // { "test_5d_p1_ser_fdot_restrict_quad", test_5d_p1_ser_fdot_restrict_quad },
-  // { "test_5d_p1_ser_fdot_restrict_diode_avg", test_5d_p1_ser_fdot_restrict_diode_avg },
-  // { "test_5d_p1_ser_fdot_restrict_diode_quad", test_5d_p1_ser_fdot_restrict_diode_quad },
-  // { "test_5d_p2_ser_fdot_restrict_avg", test_5d_p2_ser_fdot_restrict_avg },
-  // { "test_5d_p2_ser_fdot_restrict_quad", test_5d_p2_ser_fdot_restrict_quad },
-  // { "test_5d_p2_ser_fdot_restrict_diode_avg", test_5d_p2_ser_fdot_restrict_diode_avg },
-  // { "test_5d_p2_ser_fdot_restrict_diode_quad", test_5d_p2_ser_fdot_restrict_diode_quad },
-  // { "test_6d_p1_ser_fdot_restrict_avg", test_6d_p1_ser_fdot_restrict_avg },
-  // { "test_6d_p1_ser_fdot_restrict_quad", test_6d_p1_ser_fdot_restrict_quad },
-  // { "test_6d_p1_ser_fdot_restrict_diode_avg", test_6d_p1_ser_fdot_restrict_diode_avg },
-  // { "test_6d_p1_ser_fdot_restrict_diode_quad", test_6d_p1_ser_fdot_restrict_diode_quad },
-  // { "test_2d_p1_gkhybrid_fdot_restrict_avg", test_2d_p1_gkhybrid_fdot_restrict_avg },
-  // { "test_2d_p1_gkhybrid_fdot_restrict_quad", test_2d_p1_gkhybrid_fdot_restrict_quad },
-  // { "test_2d_p1_gkhybrid_fdot_restrict_diode_avg", test_2d_p1_gkhybrid_fdot_restrict_diode_avg },
-  // { "test_2d_p1_gkhybrid_fdot_restrict_diode_quad", test_2d_p1_gkhybrid_fdot_restrict_diode_quad },
-  // { "test_3d_p1_gkhybrid_fdot_restrict_avg", test_3d_p1_gkhybrid_fdot_restrict_avg },
-  // { "test_3d_p1_gkhybrid_fdot_restrict_quad", test_3d_p1_gkhybrid_fdot_restrict_quad },
-  // { "test_3d_p1_gkhybrid_fdot_restrict_diode_avg", test_3d_p1_gkhybrid_fdot_restrict_diode_avg },
-  // { "test_3d_p1_gkhybrid_fdot_restrict_diode_quad", test_3d_p1_gkhybrid_fdot_restrict_diode_quad },
-  // { "test_4d_p1_gkhybrid_fdot_restrict_avg", test_4d_p1_gkhybrid_fdot_restrict_avg },
-  // { "test_4d_p1_gkhybrid_fdot_restrict_quad", test_4d_p1_gkhybrid_fdot_restrict_quad },
-  // { "test_4d_p1_gkhybrid_fdot_restrict_diode_avg", test_4d_p1_gkhybrid_fdot_restrict_diode_avg },
-  // { "test_4d_p1_gkhybrid_fdot_restrict_diode_quad", test_4d_p1_gkhybrid_fdot_restrict_diode_quad },
-  // { "test_5d_p1_gkhybrid_fdot_restrict_avg", test_5d_p1_gkhybrid_fdot_restrict_avg },
-  // { "test_5d_p1_gkhybrid_fdot_restrict_quad", test_5d_p1_gkhybrid_fdot_restrict_quad },
-  // { "test_5d_p1_gkhybrid_fdot_restrict_diode_avg", test_5d_p1_gkhybrid_fdot_restrict_diode_avg },
-  // { "test_5d_p1_gkhybrid_fdot_restrict_diode_quad", test_5d_p1_gkhybrid_fdot_restrict_diode_quad },
+  { "test_3d_p1_ser_fdot_restrict_avg", test_3d_p1_ser_fdot_restrict_avg },
+  { "test_3d_p1_ser_fdot_restrict_quad", test_3d_p1_ser_fdot_restrict_quad },
+  { "test_3d_p1_ser_fdot_restrict_diode_avg", test_3d_p1_ser_fdot_restrict_diode_avg },
+  { "test_3d_p1_ser_fdot_restrict_diode_quad", test_3d_p1_ser_fdot_restrict_diode_quad },
+  { "test_3d_p2_ser_fdot_restrict_avg", test_3d_p2_ser_fdot_restrict_avg },
+  { "test_3d_p2_ser_fdot_restrict_quad", test_3d_p2_ser_fdot_restrict_quad },
+  { "test_3d_p2_ser_fdot_restrict_diode_avg", test_3d_p2_ser_fdot_restrict_diode_avg },
+  { "test_3d_p2_ser_fdot_restrict_diode_quad", test_3d_p2_ser_fdot_restrict_diode_quad },
+  { "test_4d_p1_ser_fdot_restrict_avg", test_4d_p1_ser_fdot_restrict_avg },
+  { "test_4d_p1_ser_fdot_restrict_quad", test_4d_p1_ser_fdot_restrict_quad },
+  { "test_4d_p1_ser_fdot_restrict_diode_avg", test_4d_p1_ser_fdot_restrict_diode_avg },
+  { "test_4d_p1_ser_fdot_restrict_diode_quad", test_4d_p1_ser_fdot_restrict_diode_quad },
+  { "test_4d_p2_ser_fdot_restrict_avg", test_4d_p2_ser_fdot_restrict_avg },
+  { "test_4d_p2_ser_fdot_restrict_quad", test_4d_p2_ser_fdot_restrict_quad },
+  { "test_4d_p2_ser_fdot_restrict_diode_avg", test_4d_p2_ser_fdot_restrict_diode_avg },
+  { "test_4d_p2_ser_fdot_restrict_diode_quad", test_4d_p2_ser_fdot_restrict_diode_quad },
+  { "test_5d_p1_ser_fdot_restrict_avg", test_5d_p1_ser_fdot_restrict_avg },
+  { "test_5d_p1_ser_fdot_restrict_quad", test_5d_p1_ser_fdot_restrict_quad },
+  { "test_5d_p1_ser_fdot_restrict_diode_avg", test_5d_p1_ser_fdot_restrict_diode_avg },
+  { "test_5d_p1_ser_fdot_restrict_diode_quad", test_5d_p1_ser_fdot_restrict_diode_quad },
+  { "test_5d_p2_ser_fdot_restrict_avg", test_5d_p2_ser_fdot_restrict_avg },
+  { "test_5d_p2_ser_fdot_restrict_quad", test_5d_p2_ser_fdot_restrict_quad },
+  { "test_5d_p2_ser_fdot_restrict_diode_avg", test_5d_p2_ser_fdot_restrict_diode_avg },
+  { "test_5d_p2_ser_fdot_restrict_diode_quad", test_5d_p2_ser_fdot_restrict_diode_quad },
+  { "test_6d_p1_ser_fdot_restrict_avg", test_6d_p1_ser_fdot_restrict_avg },
+  { "test_6d_p1_ser_fdot_restrict_quad", test_6d_p1_ser_fdot_restrict_quad },
+  { "test_6d_p1_ser_fdot_restrict_diode_avg", test_6d_p1_ser_fdot_restrict_diode_avg },
+  { "test_6d_p1_ser_fdot_restrict_diode_quad", test_6d_p1_ser_fdot_restrict_diode_quad },
+  { "test_2d_p1_gkhybrid_fdot_restrict_avg", test_2d_p1_gkhybrid_fdot_restrict_avg },
+  { "test_2d_p1_gkhybrid_fdot_restrict_quad", test_2d_p1_gkhybrid_fdot_restrict_quad },
+  { "test_2d_p1_gkhybrid_fdot_restrict_diode_avg", test_2d_p1_gkhybrid_fdot_restrict_diode_avg },
+  { "test_2d_p1_gkhybrid_fdot_restrict_diode_quad", test_2d_p1_gkhybrid_fdot_restrict_diode_quad },
+  { "test_3d_p1_gkhybrid_fdot_restrict_avg", test_3d_p1_gkhybrid_fdot_restrict_avg },
+  { "test_3d_p1_gkhybrid_fdot_restrict_quad", test_3d_p1_gkhybrid_fdot_restrict_quad },
+  { "test_3d_p1_gkhybrid_fdot_restrict_diode_avg", test_3d_p1_gkhybrid_fdot_restrict_diode_avg },
+  { "test_3d_p1_gkhybrid_fdot_restrict_diode_quad", test_3d_p1_gkhybrid_fdot_restrict_diode_quad },
+  { "test_4d_p1_gkhybrid_fdot_restrict_avg", test_4d_p1_gkhybrid_fdot_restrict_avg },
+  { "test_4d_p1_gkhybrid_fdot_restrict_quad", test_4d_p1_gkhybrid_fdot_restrict_quad },
+  { "test_4d_p1_gkhybrid_fdot_restrict_diode_avg", test_4d_p1_gkhybrid_fdot_restrict_diode_avg },
+  { "test_4d_p1_gkhybrid_fdot_restrict_diode_quad", test_4d_p1_gkhybrid_fdot_restrict_diode_quad },
+  { "test_5d_p1_gkhybrid_fdot_restrict_avg", test_5d_p1_gkhybrid_fdot_restrict_avg },
+  { "test_5d_p1_gkhybrid_fdot_restrict_quad", test_5d_p1_gkhybrid_fdot_restrict_quad },
+  { "test_5d_p1_gkhybrid_fdot_restrict_diode_avg", test_5d_p1_gkhybrid_fdot_restrict_diode_avg },
+  { "test_5d_p1_gkhybrid_fdot_restrict_diode_quad", test_5d_p1_gkhybrid_fdot_restrict_diode_quad },
   { NULL, NULL },
 };
