@@ -390,7 +390,6 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 // Parameters for a chain of df/dt multipliers. Components are applied in order.
 struct gkyl_gyrokinetic_fdot_multipliers {
   int num_multipliers;
-  double omega_H_scale_const; // A constant which multipliers the omegaH frequency
   struct gkyl_gyrokinetic_fdot_multiplier multiplier[GKYL_MAX_FDOT_MUL];
 };
 

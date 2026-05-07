@@ -740,8 +740,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     ghost[cdim+d] = 0; // No ghost-cells in velocity space.
   }
   gks->dt_omegaH = DBL_MIN;
-  gks->time_dilation_scale_const = gks->info.time_rate_multipliers.omega_H_scale_const ?
-    gks->info.time_rate_multipliers.omega_H_scale_const : 1.0;
 
   // Allocate distribution function arrays.
   gks->f1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
