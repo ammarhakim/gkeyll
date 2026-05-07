@@ -42,7 +42,7 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp);
  * @param dt Timestep to use for prediction.
  */
 void
-gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict* up,
+gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict *up,
   const struct gkyl_range *range, const struct gkyl_array *f,
   struct gkyl_array *dfdt, double dt);
 
@@ -52,4 +52,4 @@ gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict* up,
  * @param up Updater to release.
  */
 void
-gkyl_positivity_fdot_restrict_release(gkyl_positivity_fdot_restrict* up);
+gkyl_positivity_fdot_restrict_release(gkyl_positivity_fdot_restrict *up);

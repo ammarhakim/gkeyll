@@ -11,7 +11,7 @@ struct gkyl_positivity_fdot_restrict*
 gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
 {
   struct gkyl_positivity_fdot_restrict *up = gkyl_malloc(sizeof(*up));
-  
+
   up->basis = inp.basis; // Pass device basis
   up->type = inp.type;
   up->safety_factor = inp.safety_factor;
@@ -41,12 +41,11 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
     gkyl_cu_memcpy(up->on_dev, up, sizeof(*up), GKYL_CU_MEMCPY_H2D);
   }
 #endif
-  
   return up;
 }
 
 void
-gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict* up,
+gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict *up,
   const struct gkyl_range *range, const struct gkyl_array *f,
   struct gkyl_array *dfdt, double dt)
 {
@@ -66,7 +65,7 @@ gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict* up,
 }
 
 void
-gkyl_positivity_fdot_restrict_release(gkyl_positivity_fdot_restrict* up)
+gkyl_positivity_fdot_restrict_release(gkyl_positivity_fdot_restrict *up)
 {
   if (up) {
 #ifdef GKYL_HAVE_CUDA

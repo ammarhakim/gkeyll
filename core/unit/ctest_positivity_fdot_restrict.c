@@ -43,8 +43,6 @@ static void
 test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   bool use_gpu, enum gkyl_positivity_fdot_restrict_type lim_type)
 {
-  (void)use_gpu;
-
   struct gkyl_basis basis;
   switch (basis_type) {
     case SERENDIPITY:
@@ -78,11 +76,19 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   struct gkyl_range range, range_ext;
   gkyl_create_grid_ranges(&grid, ghost, &range_ext, &range);
 
-  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  struct gkyl_array *dfdt = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  struct gkyl_array *f_adv = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  // Host arrays: used for initialization and result verification.
+  struct gkyl_array *f      = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  struct gkyl_array *dfdt   = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  struct gkyl_array *f_adv  = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
   struct gkyl_array *dfdt_adv = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range.volume);
-  
+
+  // Device arrays: input/output for the GPU operator.
+  struct gkyl_array *f_dev = NULL, *dfdt_adv_dev = NULL;
+  if (use_gpu) {
+    f_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+    dfdt_adv_dev = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, range.volume);
+  }
+
   const double c0 = pow(sqrt(2.0), ndim);
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -104,7 +110,7 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
     }
     else if (lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD || lim_type == GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG) {
       fc[0] = c0 * (1.0 - (double)iter.idx[0]/16);
-      dfdtc[0] = -c0 * cos(4 * GKYL_PI * (double)iter.idx[0]/num_cells); 
+      dfdtc[0] = -c0 * cos(4 * GKYL_PI * (double)iter.idx[0]/num_cells);
 
       double slope = - 0.64 * (double)iter.idx[0] / num_cells;
       fc[1] = slope;
@@ -118,18 +124,29 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   struct gkyl_positivity_fdot_restrict_inp inp = {
     .basis = basis,
     .type = lim_type,
-    .safety_factor = 0.0
+    .safety_factor = 0.0,
+    .use_gpu = use_gpu,
   };
 
   struct gkyl_positivity_fdot_restrict *up = gkyl_positivity_fdot_restrict_new(inp);
   double dt = 1.0;
-  gkyl_array_copy(dfdt_adv, dfdt);
-  gkyl_positivity_fdot_restrict_advance(up, &range, f, dfdt_adv, dt);
-  
+
+  if (use_gpu) {
+    // Copy initialized host data to device, run restriction on GPU, copy result back.
+    gkyl_array_copy(f_dev, f);
+    gkyl_array_copy(dfdt_adv_dev, dfdt);
+    gkyl_positivity_fdot_restrict_advance(up, &range, f_dev, dfdt_adv_dev, dt);
+    gkyl_array_copy(dfdt_adv, dfdt_adv_dev);
+  }
+  else {
+    gkyl_array_copy(dfdt_adv, dfdt);
+    gkyl_positivity_fdot_restrict_advance(up, &range, f, dfdt_adv, dt);
+  }
+
   // Compute the Euler stepped solution (f + dt*dfdt) to check positivity.
   gkyl_array_copy(f_adv, f);
   gkyl_array_accumulate(f_adv, 1.0, gkyl_array_scale(dfdt_adv, dt));
-  
+
   gkyl_range_iter_init(&iter, &range);
   while (gkyl_range_iter_next(&iter)) {
     long lidx = gkyl_range_idx(&range, iter.idx);
@@ -188,6 +205,10 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   sprintf(file_name, "ctest_positivity_fdot_restrict_dfdt_output.gkyl");
   gkyl_grid_sub_array_write(&grid, &range, 0, dfdt_adv, file_name);
 
+  if (use_gpu) {
+    gkyl_array_release(f_dev);
+    gkyl_array_release(dfdt_adv_dev);
+  }
   gkyl_positivity_fdot_restrict_release(up);
   gkyl_array_release(f_adv);
   gkyl_array_release(f);
@@ -200,7 +221,7 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   gkyl_free(ghost);
 }
 
-// All combinations of 
+// All combinations of
 // 1d, 2d, 3d, 4d, 5d, 6d
 // p1, p2
 // serendipity, gkhybrid (only p1, 2d-5d)
@@ -281,8 +302,84 @@ void test_5d_p1_gkhybrid_fdot_restrict_quad(void){test_ndim_poly_order(5, 1, GKH
 void test_5d_p1_gkhybrid_fdot_restrict_diode_avg(void){test_ndim_poly_order(5, 1, GKHYBRID, false, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
 void test_5d_p1_gkhybrid_fdot_restrict_diode_quad(void){test_ndim_poly_order(5, 1, GKHYBRID, false, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
 
+#ifdef GKYL_HAVE_CUDA
 
+void test_1d_p1_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(1, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_1d_p1_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(1, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_1d_p1_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(1, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_1d_p1_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(1, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
 
+void test_1d_p2_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(1, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_1d_p2_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(1, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_1d_p2_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(1, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_1d_p2_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(1, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_2d_p1_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(2, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_2d_p1_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(2, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_2d_p1_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(2, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_2d_p1_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(2, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_2d_p2_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(2, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_2d_p2_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(2, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_2d_p2_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(2, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_2d_p2_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(2, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_3d_p1_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(3, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_3d_p1_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(3, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_3d_p1_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(3, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_3d_p1_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(3, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_3d_p2_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(3, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_3d_p2_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(3, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_3d_p2_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(3, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_3d_p2_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(3, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_4d_p1_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(4, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_4d_p1_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(4, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_4d_p1_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(4, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_4d_p1_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(4, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_4d_p2_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(4, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_4d_p2_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(4, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_4d_p2_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(4, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_4d_p2_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(4, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_5d_p1_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(5, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_5d_p1_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(5, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_5d_p1_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(5, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_5d_p1_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(5, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_5d_p2_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(5, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_5d_p2_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(5, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_5d_p2_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(5, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_5d_p2_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(5, 2, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_6d_p1_ser_fdot_restrict_avg_cu(void){test_ndim_poly_order(6, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_6d_p1_ser_fdot_restrict_quad_cu(void){test_ndim_poly_order(6, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_6d_p1_ser_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(6, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_6d_p1_ser_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(6, 1, SERENDIPITY, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_2d_p1_gkhybrid_fdot_restrict_avg_cu(void){test_ndim_poly_order(2, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_2d_p1_gkhybrid_fdot_restrict_quad_cu(void){test_ndim_poly_order(2, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_2d_p1_gkhybrid_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(2, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_2d_p1_gkhybrid_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(2, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_3d_p1_gkhybrid_fdot_restrict_avg_cu(void){test_ndim_poly_order(3, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_3d_p1_gkhybrid_fdot_restrict_quad_cu(void){test_ndim_poly_order(3, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_3d_p1_gkhybrid_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(3, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_3d_p1_gkhybrid_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(3, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_4d_p1_gkhybrid_fdot_restrict_avg_cu(void){test_ndim_poly_order(4, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_4d_p1_gkhybrid_fdot_restrict_quad_cu(void){test_ndim_poly_order(4, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_4d_p1_gkhybrid_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(4, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_4d_p1_gkhybrid_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(4, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+void test_5d_p1_gkhybrid_fdot_restrict_avg_cu(void){test_ndim_poly_order(5, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_AVG);}
+void test_5d_p1_gkhybrid_fdot_restrict_quad_cu(void){test_ndim_poly_order(5, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_QUAD);}
+void test_5d_p1_gkhybrid_fdot_restrict_diode_avg_cu(void){test_ndim_poly_order(5, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);}
+void test_5d_p1_gkhybrid_fdot_restrict_diode_quad_cu(void){test_ndim_poly_order(5, 1, GKHYBRID, true, GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD);}
+
+#endif // GKYL_HAVE_CUDA
 
 TEST_LIST = {
   { "test_1d_p1_ser_fdot_restrict_avg", test_1d_p1_ser_fdot_restrict_avg },
@@ -345,5 +442,67 @@ TEST_LIST = {
   { "test_5d_p1_gkhybrid_fdot_restrict_quad", test_5d_p1_gkhybrid_fdot_restrict_quad },
   { "test_5d_p1_gkhybrid_fdot_restrict_diode_avg", test_5d_p1_gkhybrid_fdot_restrict_diode_avg },
   { "test_5d_p1_gkhybrid_fdot_restrict_diode_quad", test_5d_p1_gkhybrid_fdot_restrict_diode_quad },
+#ifdef GKYL_HAVE_CUDA
+  { "test_1d_p1_ser_fdot_restrict_avg_cu", test_1d_p1_ser_fdot_restrict_avg_cu },
+  { "test_1d_p1_ser_fdot_restrict_quad_cu", test_1d_p1_ser_fdot_restrict_quad_cu },
+  { "test_1d_p1_ser_fdot_restrict_diode_avg_cu", test_1d_p1_ser_fdot_restrict_diode_avg_cu },
+  { "test_1d_p1_ser_fdot_restrict_diode_quad_cu", test_1d_p1_ser_fdot_restrict_diode_quad_cu },
+  { "test_1d_p2_ser_fdot_restrict_avg_cu", test_1d_p2_ser_fdot_restrict_avg_cu },
+  { "test_1d_p2_ser_fdot_restrict_quad_cu", test_1d_p2_ser_fdot_restrict_quad_cu },
+  { "test_1d_p2_ser_fdot_restrict_diode_avg_cu", test_1d_p2_ser_fdot_restrict_diode_avg_cu },
+  { "test_1d_p2_ser_fdot_restrict_diode_quad_cu", test_1d_p2_ser_fdot_restrict_diode_quad_cu },
+  { "test_2d_p1_ser_fdot_restrict_avg_cu", test_2d_p1_ser_fdot_restrict_avg_cu },
+  { "test_2d_p1_ser_fdot_restrict_quad_cu", test_2d_p1_ser_fdot_restrict_quad_cu },
+  { "test_2d_p1_ser_fdot_restrict_diode_avg_cu", test_2d_p1_ser_fdot_restrict_diode_avg_cu },
+  { "test_2d_p1_ser_fdot_restrict_diode_quad_cu", test_2d_p1_ser_fdot_restrict_diode_quad_cu },
+  { "test_2d_p2_ser_fdot_restrict_avg_cu", test_2d_p2_ser_fdot_restrict_avg_cu },
+  { "test_2d_p2_ser_fdot_restrict_quad_cu", test_2d_p2_ser_fdot_restrict_quad_cu },
+  { "test_2d_p2_ser_fdot_restrict_diode_avg_cu", test_2d_p2_ser_fdot_restrict_diode_avg_cu },
+  { "test_2d_p2_ser_fdot_restrict_diode_quad_cu", test_2d_p2_ser_fdot_restrict_diode_quad_cu },
+  { "test_3d_p1_ser_fdot_restrict_avg_cu", test_3d_p1_ser_fdot_restrict_avg_cu },
+  { "test_3d_p1_ser_fdot_restrict_quad_cu", test_3d_p1_ser_fdot_restrict_quad_cu },
+  { "test_3d_p1_ser_fdot_restrict_diode_avg_cu", test_3d_p1_ser_fdot_restrict_diode_avg_cu },
+  { "test_3d_p1_ser_fdot_restrict_diode_quad_cu", test_3d_p1_ser_fdot_restrict_diode_quad_cu },
+  { "test_3d_p2_ser_fdot_restrict_avg_cu", test_3d_p2_ser_fdot_restrict_avg_cu },
+  { "test_3d_p2_ser_fdot_restrict_quad_cu", test_3d_p2_ser_fdot_restrict_quad_cu },
+  { "test_3d_p2_ser_fdot_restrict_diode_avg_cu", test_3d_p2_ser_fdot_restrict_diode_avg_cu },
+  { "test_3d_p2_ser_fdot_restrict_diode_quad_cu", test_3d_p2_ser_fdot_restrict_diode_quad_cu },
+  { "test_4d_p1_ser_fdot_restrict_avg_cu", test_4d_p1_ser_fdot_restrict_avg_cu },
+  { "test_4d_p1_ser_fdot_restrict_quad_cu", test_4d_p1_ser_fdot_restrict_quad_cu },
+  { "test_4d_p1_ser_fdot_restrict_diode_avg_cu", test_4d_p1_ser_fdot_restrict_diode_avg_cu },
+  { "test_4d_p1_ser_fdot_restrict_diode_quad_cu", test_4d_p1_ser_fdot_restrict_diode_quad_cu },
+  { "test_4d_p2_ser_fdot_restrict_avg_cu", test_4d_p2_ser_fdot_restrict_avg_cu },
+  { "test_4d_p2_ser_fdot_restrict_quad_cu", test_4d_p2_ser_fdot_restrict_quad_cu },
+  { "test_4d_p2_ser_fdot_restrict_diode_avg_cu", test_4d_p2_ser_fdot_restrict_diode_avg_cu },
+  { "test_4d_p2_ser_fdot_restrict_diode_quad_cu", test_4d_p2_ser_fdot_restrict_diode_quad_cu },
+  { "test_5d_p1_ser_fdot_restrict_avg_cu", test_5d_p1_ser_fdot_restrict_avg_cu },
+  { "test_5d_p1_ser_fdot_restrict_quad_cu", test_5d_p1_ser_fdot_restrict_quad_cu },
+  { "test_5d_p1_ser_fdot_restrict_diode_avg_cu", test_5d_p1_ser_fdot_restrict_diode_avg_cu },
+  { "test_5d_p1_ser_fdot_restrict_diode_quad_cu", test_5d_p1_ser_fdot_restrict_diode_quad_cu },
+  { "test_5d_p2_ser_fdot_restrict_avg_cu", test_5d_p2_ser_fdot_restrict_avg_cu },
+  { "test_5d_p2_ser_fdot_restrict_quad_cu", test_5d_p2_ser_fdot_restrict_quad_cu },
+  { "test_5d_p2_ser_fdot_restrict_diode_avg_cu", test_5d_p2_ser_fdot_restrict_diode_avg_cu },
+  { "test_5d_p2_ser_fdot_restrict_diode_quad_cu", test_5d_p2_ser_fdot_restrict_diode_quad_cu },
+  { "test_6d_p1_ser_fdot_restrict_avg_cu", test_6d_p1_ser_fdot_restrict_avg_cu },
+  { "test_6d_p1_ser_fdot_restrict_quad_cu", test_6d_p1_ser_fdot_restrict_quad_cu },
+  { "test_6d_p1_ser_fdot_restrict_diode_avg_cu", test_6d_p1_ser_fdot_restrict_diode_avg_cu },
+  { "test_6d_p1_ser_fdot_restrict_diode_quad_cu", test_6d_p1_ser_fdot_restrict_diode_quad_cu },
+  { "test_2d_p1_gkhybrid_fdot_restrict_avg_cu", test_2d_p1_gkhybrid_fdot_restrict_avg_cu },
+  { "test_2d_p1_gkhybrid_fdot_restrict_quad_cu", test_2d_p1_gkhybrid_fdot_restrict_quad_cu },
+  { "test_2d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_2d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_2d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_2d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+  { "test_3d_p1_gkhybrid_fdot_restrict_avg_cu", test_3d_p1_gkhybrid_fdot_restrict_avg_cu },
+  { "test_3d_p1_gkhybrid_fdot_restrict_quad_cu", test_3d_p1_gkhybrid_fdot_restrict_quad_cu },
+  { "test_3d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_3d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_3d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_3d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+  { "test_4d_p1_gkhybrid_fdot_restrict_avg_cu", test_4d_p1_gkhybrid_fdot_restrict_avg_cu },
+  { "test_4d_p1_gkhybrid_fdot_restrict_quad_cu", test_4d_p1_gkhybrid_fdot_restrict_quad_cu },
+  { "test_4d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_4d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_4d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_4d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+  { "test_5d_p1_gkhybrid_fdot_restrict_avg_cu", test_5d_p1_gkhybrid_fdot_restrict_avg_cu },
+  { "test_5d_p1_gkhybrid_fdot_restrict_quad_cu", test_5d_p1_gkhybrid_fdot_restrict_quad_cu },
+  { "test_5d_p1_gkhybrid_fdot_restrict_diode_avg_cu", test_5d_p1_gkhybrid_fdot_restrict_diode_avg_cu },
+  { "test_5d_p1_gkhybrid_fdot_restrict_diode_quad_cu", test_5d_p1_gkhybrid_fdot_restrict_diode_quad_cu },
+#endif // GKYL_HAVE_CUDA
   { NULL, NULL },
 };
