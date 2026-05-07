@@ -74,16 +74,6 @@ static struct { void (*n2m[4])(const double *fnodal, double *fmodal); } n2m_list
   { NULL, nodal_to_modal_3x1v_hyb_p1, nodal_to_modal_3x2v_hyb_p1, nodal_to_modal_3x3v_hyb_p1 },
 };
 
-
-// Number of quadrature nodes: num_quad_list[ndim].count[poly_order]
-GKYL_CU_D
-static struct { int count[4]; } num_quad_list[] = {
-  { 0, 0, 0, 0 },
-  { 0, 6, 16, 40 },
-  { 0, 12, 36, 108 },
-  { 0, 24, 72, 215 },
-};
-
 // Gauss-Legendre quadrature nodes nodal basis -> modal basis conversion functions: ev_list[ndim].ev[poly_order]
 GKYL_CU_D
 static struct { void (*n2m[4])(const double *fquad, double *fmodal, long linc2); } qn2m_list[] = {
@@ -91,6 +81,15 @@ static struct { void (*n2m[4])(const double *fquad, double *fmodal, long linc2);
   { NULL, quad_to_modal_1x1v_hyb_p1, quad_to_modal_1x2v_hyb_p1, quad_to_modal_1x3v_hyb_p1 },
   { NULL, quad_to_modal_2x1v_hyb_p1, quad_to_modal_2x2v_hyb_p1, quad_to_modal_2x3v_hyb_p1 },
   { NULL, quad_to_modal_3x1v_hyb_p1, quad_to_modal_3x2v_hyb_p1, quad_to_modal_3x3v_hyb_p1 },
+};
+
+// Number of quadrature nodes: num_quad_list[ndim].count[poly_order]
+GKYL_CU_D
+static struct { int count[4]; } num_quad_list[] = {
+  { 0, 0, 0, 0 },
+  { 0, 6, 18, 54 },
+  { 0, 12, 36, 108 },
+  { 0, 24, 72, 216 },
 };
 
 // modal basis -> Gauss-Legendre quadrature nodes nodal basis conversion functions: ev_list[ndim].ev[poly_order]
