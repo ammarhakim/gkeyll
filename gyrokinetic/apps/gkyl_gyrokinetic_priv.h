@@ -2939,7 +2939,7 @@ void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, 
  * @param fdot_mult_inp New input struct for the fdot_multiplier.
  */
 void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
-  struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp);
+  struct gkyl_gyrokinetic_fdot_multiplier_array fdot_mult_inp);
 
 /** gk_anomalous_diff API */
 

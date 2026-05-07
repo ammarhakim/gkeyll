@@ -577,7 +577,7 @@ gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
 
 void
 gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app *app, double tm, struct gk_species *gks,
-  struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp)
+  struct gkyl_gyrokinetic_fdot_multiplier_array fdot_mult_inp)
 {
   for (int i = 0; i < gks->num_fdot_mult; ++i) {
     gk_species_fdot_multiplier_release(app, &gks->fdot_mult[i]);
