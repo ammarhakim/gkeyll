@@ -149,7 +149,7 @@ test_fixed_z()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -222,7 +222,7 @@ test_shaped_plate()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -296,7 +296,7 @@ test_lower()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -369,7 +369,7 @@ test_middle()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -442,7 +442,7 @@ test_upper()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
