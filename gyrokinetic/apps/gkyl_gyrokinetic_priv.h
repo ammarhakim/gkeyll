@@ -2880,9 +2880,7 @@ void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const st
  * @param s Species object.
  * @param fdmul Species df/dt multiplier object.
  */
-void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul,
-  const struct gkyl_gyrokinetic_fdot_multiplier *fdot_mult_inp, int component_id);
+void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gks);
 
 /**
  * Multiply the CFL rate.
@@ -2894,8 +2892,8 @@ void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_specie
  * @param f Current distribution function.
  * @param out CFL rate to multiply.
  */
-void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
+void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
 
 /**
  * Multiply df/dt.
@@ -2907,8 +2905,8 @@ void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, con
  * @param f Current distribution function.
  * @param out df/dt to multiply.
  */
-void gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
+void gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+ const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
 
 /**
  * Write damping diagnostics.
@@ -2926,7 +2924,7 @@ void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_speci
  * @param app gyrokinetic app object.
  * @param fdmul Species df/dt multiplier object.
  */
-void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier *fdmul);
+void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species *gks);
 
 /**
  * Reset the df/dt multiplier operator.

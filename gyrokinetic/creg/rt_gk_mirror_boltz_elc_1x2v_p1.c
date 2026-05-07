@@ -643,7 +643,6 @@ int main(int argc, char **argv)
         .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX,
         .cellwise_const = true,
         .write_diagnostics = true,
-        // .time_dilation_scale_const = 0.05,
         .cfl_factor_times_omega_max = 0.1,
       },
     },
