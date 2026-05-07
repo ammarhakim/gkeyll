@@ -24,6 +24,10 @@ struct gkyl_positivity_fdot_restrict {
  * Called at init time so advance_cu dispatches without runtime branching.
  */
 void gkyl_positivity_fdot_restrict_cu_set_ptrs(struct gkyl_positivity_fdot_restrict *up);
+
+void gkyl_positivity_fdot_restrict_advance_cu(gkyl_positivity_fdot_restrict *up,
+  const struct gkyl_range *range, const struct gkyl_array *f,
+  struct gkyl_array *dfdt, double dt);
 #endif
 
 /**
@@ -50,7 +54,6 @@ restrict_fdot_avg(struct gkyl_positivity_fdot_restrict *up,
  * to ensure predictions stay non-negative at those points, then project back
  * to modal space using L2-projection only if restrictions were needed.
  */
-GKYL_CU_DH
 static void
 restrict_fdot_quad(struct gkyl_positivity_fdot_restrict *up,
   const double *f, double *dfdt, double dt)
@@ -105,7 +108,6 @@ restrict_fdot_diode_avg(struct gkyl_positivity_fdot_restrict *up,
  * This acts like a diode at each quadrature point that blocks outflow
  * when the distribution is already negative.
  */
-GKYL_CU_DH
 static void
 restrict_fdot_diode_quad(struct gkyl_positivity_fdot_restrict *up,
   const double *f, double *dfdt, double dt)

@@ -1,15 +1,17 @@
+extern "C" {
 #include <gkyl_positivity_fdot_restrict.h>
 #include <gkyl_positivity_fdot_restrict_priv.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_range.h>
+}
 
 #include <float.h>
 #include <math.h>
 
 // 1D kernel for AVG-type restrictions: one thread per cell.
 __global__ static void
-gkyl_positivity_fdot_restrict_avg_cu_kern(const gkyl_positivity_fdot_restrict* up,
+gkyl_positivity_fdot_restrict_avg_cu_kern(gkyl_positivity_fdot_restrict* up,
   const struct gkyl_range *range, const struct gkyl_array *f,
   struct gkyl_array *dfdt, double dt)
 {
