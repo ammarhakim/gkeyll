@@ -1721,10 +1721,10 @@ void gk_neut_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
  * @param fout Output rate of change (to be restricted).
  * @param dt Timestep.
  */
-void gk_species_positivity_fdot_restriction_apply(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+void gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos,
   const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
 
-void gk_neut_species_positivity_fdot_restriction_apply(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
+void gk_neut_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, struct gk_positivity *pos,
   const struct gkyl_array *fin, struct gkyl_array *fout, double *dt);
 
 /** gk_species_lte API */

@@ -310,17 +310,10 @@ gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
 }
 
 void
-gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_positivity *pos,
-  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
 {
   pos->fdot_restriction_func(app, gks, pos, fin, fout, dt);
-}
-
-void
-gk_species_positivity_fdot_restriction_apply(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
-{
-  gk_species_positivity_fdot_restriction(app, gks, &gks->positivity, fin, fout, dt);
 }
 
 void

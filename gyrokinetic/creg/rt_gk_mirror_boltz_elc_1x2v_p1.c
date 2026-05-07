@@ -663,7 +663,7 @@ int main(int argc, char **argv)
     },
 
     .positivity = {
-      .type = GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD,
+      .type = GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG,
       .safety_factor = 0.1,
     },
 

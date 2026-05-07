@@ -290,6 +290,13 @@ gk_neut_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_neut_speci
 }
 
 void
+gk_neut_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns, 
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  pos->fdot_restriction_func_neut(app, gkns, pos, fin, fout, dt);
+}
+
+void
 gk_neut_species_positivity_write_diags(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
   struct gk_positivity *pos, double tm, int frame)
 {
@@ -362,19 +369,4 @@ gk_neut_species_positivity_reset(gkyl_gyrokinetic_app* app, double tm,
       pos->deltaf_integ_moms_func_neut = gkns_pos_deltaf_integ_moms_calc;
     }
   }
-}
-
-void
-gk_neut_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
-{
-  struct gk_positivity *pos = &gkns->positivity;
-  pos->fdot_restriction_func_neut(app, gkns, pos, fin, fout, dt);
-}
-
-void
-gk_neut_species_positivity_fdot_restriction_apply(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *gkns,
-  const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
-{
-  gk_neut_species_positivity_fdot_restriction(app, gkns, fin, fout, dt);
 }
