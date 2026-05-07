@@ -158,137 +158,37 @@ void evalFunc_consteps_dirichletx_neumannx_2x(double t, const double *xn, double
   fout[0] *= (1.+kz*z);
 }
 
-void
-test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
-{
-  double epsilon_0 = 1.0;
-  double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
-  if (   (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
-      || (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
-      || (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) )
-  {
-    lower[0] = 0.;  upper[0] = 1.;
-  }
-  int dim = sizeof(lower)/sizeof(lower[0]);
-  int dim_perp = dim-1; 
-
-  // Grids.
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
-
-  // Basis functions.
+// Persistent objects created by consteps test.
+struct fem_poisson_perp_consteps_objs {
+  struct gkyl_fem_poisson_perp *poisson;
+  struct gkyl_array *eps;
+  struct gkyl_array *rho;
+  struct gkyl_array *phi;
+  struct gkyl_array *phisol_ho;
+  struct gkyl_array *rho_ho;
+  struct gkyl_array *phi_ho;
+  struct gkyl_range localRange, localRange_ext;
   struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+};
 
-  int ghost[] = { 1, 1 };
-  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
-  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+void
+fem_poisson_perp_consteps_objs_release(struct fem_poisson_perp_consteps_objs *objs)
+{
+  gkyl_fem_poisson_perp_release(objs->poisson);
+  gkyl_array_release(objs->eps);
+  gkyl_array_release(objs->rho);
+  gkyl_array_release(objs->phi);
+  gkyl_array_release(objs->phisol_ho);
+  gkyl_array_release(objs->rho_ho);
+  gkyl_array_release(objs->phi_ho);
+  gkyl_free(objs);
+}
 
-  // Projection updater for DG field.
-  gkyl_proj_on_basis *projob, *projob_sol;
-  if (bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_periodicx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_periodicx_sol_2x, NULL);
-  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_sol_2x, NULL);
-  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_sol_2x, NULL);
-  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
-    projob = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_2x, NULL);
-    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
-      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_sol_2x, NULL);
-  }
-
-  // Create DG field we wish to make continuous.
-  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  // Create array holding continuous field we'll compute.
-  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  // Create DG field for permittivity tensor.
-  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
-  struct gkyl_array *eps = mkarr(use_gpu, epsnum*basis.num_basis, localRange_ext.volume);
-  // Analytic solution.
-  struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
-  // Device copies:
-  struct gkyl_array *rho_ho, *phi_ho;
-  if (use_gpu) {
-    rho_ho = mkarr(false, rho->ncomp, rho->size);
-    phi_ho = mkarr(false, phi->ncomp, phi->size);
-  }
-  else {
-    rho_ho = gkyl_array_acquire(rho);
-    phi_ho = gkyl_array_acquire(phi);
-  }
-
-  // Project RHS charge density on basis.
-  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
-  gkyl_array_copy(rho, rho_ho);
-
-  // Project the permittivity onto the basis.
-  double dg0norm = pow(sqrt(2.),dim);
-  gkyl_array_shiftc(eps, epsilon_0*dg0norm, 0*basis.num_basis);
-
-  // Project the analytic solution.
-  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
-
-  // FEM poisson solver.
-  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, eps, NULL, use_gpu);
-
-//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
-//  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
-//  gkyl_fem_parproj_solve  (smooth_op, rho);
-
-  // Set the RHS source.
-  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
-
-  // Solve the problem.
-  gkyl_fem_poisson_perp_solve(poisson, phi);
-  gkyl_array_copy(phi_ho, phi);
-
-//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
-//  gkyl_fem_parproj_solve  (smooth_op, phi);
-//  gkyl_fem_parproj_release(smooth_op);
-
-  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
-    // Subtract the volume averaged sol from the numerical and analytic solutions.
-    // This is not strictly necessary, as the potential is only known up to 
-    // constant shift, but it makes unit testing more robust across CPU/GPU.
-    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, localRange_ext.volume);
-    double sol_avg[1];
-    // Factor accounting for normalization when subtracting a constant from a
-    // DG field and the 1/N to properly compute the volume averaged RHS.
-    double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
-    // Subtract the volume averaged sol from the sol.
-    gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi_ho, localRange);
-    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
-      struct gkyl_range perp_range;
-      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
-      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
-    }
-    // Now do the same to the analytic solution.
-    gkyl_array_clear(sol_cellavg, 0.0);
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phisol_ho, localRange);
-    for (int kIdx=0; kIdx<cells[2]; kIdx++) {
-      struct gkyl_range perp_range;
-      gkyl_range_deflate(&perp_range, &localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
-      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
-      gkyl_array_shiftc_range(phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
-    }
-    gkyl_array_release(sol_cellavg);
-  }
-
-//  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
-//  printf("error L2 norm = %g\n",errL2);
+void
+fem_poisson_perp_consteps_2x_check(struct fem_poisson_perp_consteps_objs *objs,
+  int poly_order, struct gkyl_poisson_bc bcs, double scale_fac)
+{
+  // Check results in fem_poisson_perp_consteps_2x test.
 
   if (poly_order == 1) {
     if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC && bcs.up_type[0] == GKYL_POISSON_PERIODIC) {
@@ -297,14 +197,14 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
 //      };
 //      long i = 0;
 //      struct gkyl_range_iter iter;
-//      gkyl_range_iter_init(&iter, &localRange);
+//      gkyl_range_iter_init(&iter, &objs->localRange);
 //      while (gkyl_range_iter_next(&iter)) {
-//        long loc = gkyl_range_idx(&localRange, iter.idx);
+//        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
 //        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
 //        // Only check one cell in z:
-//        for (int m=0; m<basis.num_basis; m++) {
-//          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+//        for (int m=0; m<objs->basis.num_basis; m++) {
+//          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+//          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
 //          TEST_MSG("Produced: %.13e", phi_p[m]);
 //          i += 1;
 //        }
@@ -386,14 +286,14 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
       };
       long i = 0;
       struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
+      gkyl_range_iter_init(&iter, &objs->localRange);
       while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(objs->phi_ho, loc);
         // Only check one cell in z:
-        for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+        for (int m=0; m<objs->basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
           i += 1;
         }
@@ -475,14 +375,14 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
       };
       long i = 0;
       struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &localRange);
+      gkyl_range_iter_init(&iter, &objs->localRange);
       while (gkyl_range_iter_next(&iter)) {
-        long loc = gkyl_range_idx(&localRange, iter.idx);
-        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(objs->phi_ho, loc);
         // Only check one cell in z:
-        for (int m=0; m<basis.num_basis; m++) {
-          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
-          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+        for (int m=0; m<objs->basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
           TEST_MSG("Produced: %.13e", phi_p[m]);
           i += 1;
         }
@@ -554,6 +454,561 @@ test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_
         -0.4848575121360577, -0.0474260541948943, -0.0293231266236291, -0.0028682244940153,
         
          0.2779969376054876,  0.0077857556587993, -0.0360392619648284, -0.00100933805314  ,
+         0.153153272024753 ,  0.0042893060786969, -0.0360392619648284, -0.00100933805314  ,
+         0.0283096064440184,  0.0007928564985946, -0.0360392619648283, -0.00100933805314  ,
+        -0.0965340591367161, -0.0027035930815078, -0.0360392619648283, -0.00100933805314  ,
+        -0.2213777247174507, -0.0062000426616102, -0.0360392619648283, -0.00100933805314  ,
+        -0.346221390298185 , -0.0096964922417126, -0.0360392619648284, -0.00100933805314  ,
+        -0.4710650558789197, -0.013192941821815 , -0.0360392619648282, -0.00100933805314  ,
+        -0.5959087214596538, -0.0166893914019173, -0.0360392619648285, -0.00100933805314  ,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &objs->localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&objs->localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(objs->phi_ho, loc);
+        // Only check one cell in z:
+        for (int m=0; m<objs->basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i]*scale_fac, phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i]*scale_fac, iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+          i += 1;
+        }
+      };
+    } else {
+      TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+      TEST_MSG("This BC combination is not available");
+    }
+  } else {
+    TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+    TEST_MSG("This poly_order is not available");
+  }
+
+}
+
+struct fem_poisson_perp_consteps_objs*
+test_fem_poisson_perp_consteps_2x_objs(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
+  if (   (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) )
+  {
+    lower[0] = 0.;  upper[0] = 1.;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim-1; 
+
+  struct fem_poisson_perp_consteps_objs *objs = gkyl_malloc(sizeof(*objs));
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  gkyl_cart_modal_serendip(&objs->basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  gkyl_create_grid_ranges(&grid, ghost, &objs->localRange_ext, &objs->localRange);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob, *projob_sol;
+  if (bcs.lo_type[0]==GKYL_POISSON_PERIODIC && bcs.up_type[0]==GKYL_POISSON_PERIODIC) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_periodicx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_periodicx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
+    projob = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &objs->basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_sol_2x, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  objs->rho = mkarr(use_gpu, objs->basis.num_basis, objs->localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  objs->phi = mkarr(use_gpu, objs->basis.num_basis, objs->localRange_ext.volume);
+  // Create DG field for permittivity tensor.
+  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
+  objs->eps = mkarr(use_gpu, epsnum*objs->basis.num_basis, objs->localRange_ext.volume);
+  // Analytic solution.
+  objs->phisol_ho = mkarr(false, objs->basis.num_basis, objs->localRange_ext.volume);
+  // Device copies:
+  if (use_gpu) {
+    objs->rho_ho = mkarr(false, objs->rho->ncomp, objs->rho->size);
+    objs->phi_ho = mkarr(false, objs->phi->ncomp, objs->phi->size);
+  }
+  else {
+    objs->rho_ho = gkyl_array_acquire(objs->rho);
+    objs->phi_ho = gkyl_array_acquire(objs->phi);
+  }
+
+  // Project RHS charge density on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &objs->localRange, objs->rho_ho);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_array_copy(objs->rho, objs->rho_ho);
+
+  // Project the permittivity onto the basis.
+  double dg0norm = pow(sqrt(2.),dim);
+  gkyl_array_shiftc(objs->eps, epsilon_0*dg0norm, 0*objs->basis.num_basis);
+
+  // Project the analytic solution.
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &objs->localRange, objs->phisol_ho);
+  gkyl_proj_on_basis_release(projob_sol);
+
+  // FEM poisson solver.
+  objs->poisson = gkyl_fem_poisson_perp_new(&objs->localRange, &grid, objs->basis, &bcs, NULL, objs->eps, NULL, use_gpu);
+
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&objs->localRange, &grid,
+//    &objs->localRange_ext, &objs->basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, NULL, NULL, use_gpu);
+//  gkyl_fem_parproj_set_rhs(smooth_op, objs->rho, objs->rho);
+//  gkyl_fem_parproj_solve  (smooth_op, objs->rho);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+  gkyl_array_copy(objs->phi_ho, objs->phi);
+
+//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
+//  gkyl_fem_parproj_solve  (smooth_op, phi);
+//  gkyl_fem_parproj_release(smooth_op);
+
+  if (bcs.lo_type[0] == GKYL_POISSON_PERIODIC) {
+    // Subtract the volume averaged sol from the numerical and analytic solutions.
+    // This is not strictly necessary, as the potential is only known up to 
+    // constant shift, but it makes unit testing more robust across CPU/GPU.
+    struct gkyl_array *sol_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, objs->localRange_ext.volume);
+    double sol_avg[1];
+    // Factor accounting for normalization when subtracting a constant from a
+    // DG field and the 1/N to properly compute the volume averaged RHS.
+    double mavgfac = -pow(sqrt(2.),dim); // /perpRange.volume;
+    // Subtract the volume averaged sol from the sol.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(objs->basis, 0, sol_cellavg, 0, objs->phi_ho, objs->localRange);
+    for (int kIdx=0; kIdx<cells[1]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &objs->localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(objs->phi_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+    }
+    // Now do the same to the analytic solution.
+    gkyl_array_clear(sol_cellavg, 0.0);
+    gkyl_dg_calc_average_range(objs->basis, 0, sol_cellavg, 0, objs->phisol_ho, objs->localRange);
+    for (int kIdx=0; kIdx<cells[1]; kIdx++) {
+      struct gkyl_range perp_range;
+      gkyl_range_deflate(&perp_range, &objs->localRange, (int[]){0,0,1}, (int[]){0,0,kIdx+1});
+      gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &perp_range);
+      gkyl_array_shiftc_range(objs->phisol_ho, mavgfac*sol_avg[0]/perp_range.volume, 0, &perp_range);
+    }
+    gkyl_array_release(sol_cellavg);
+  }
+
+//  double errL2 = error_L2norm(grid, objs->localRange, objs->basis, phi, phisol);
+//  printf("error L2 norm = %g\n",errL2);
+
+  // Check results for correctness.
+  fem_poisson_perp_consteps_2x_check(objs, poly_order, bcs, 1.0);
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, objs->rho_ho, "ctest_fem_poisson_perp_2x_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, objs->phi_ho, "ctest_fem_poisson_perp_2x_phi_8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, objs->phisol_ho, "ctest_fem_poisson_perp_2x_phisol_8x8_p1.gkyl");
+
+  return objs;
+}
+
+void
+test_fem_poisson_perp_consteps_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  struct fem_poisson_perp_consteps_objs *objs = test_fem_poisson_perp_consteps_2x_objs(poly_order, cells, bcs, use_gpu);
+  fem_poisson_perp_consteps_objs_release(objs);
+}
+
+void
+test_fem_poisson_perp_consteps_2x_update(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  // Run the first test.
+  struct fem_poisson_perp_consteps_objs *objs = test_fem_poisson_perp_consteps_2x_objs(poly_order, cells, bcs, use_gpu);
+
+  // Now update the LHS matrix. Multiply it by a constant so the solution should be the same as before but divided by that constant.
+  double prob_fac = 1.3;
+  gkyl_array_scale(objs->eps, prob_fac);
+  gkyl_fem_poisson_perp_update_lhs(objs->poisson, objs->eps, NULL);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+  gkyl_array_copy(objs->phi_ho, objs->phi);
+
+  // Check results for correctness.
+  fem_poisson_perp_consteps_2x_check(objs, poly_order, bcs, 1.0/prob_fac);
+
+  // Release persistent objects. 
+  fem_poisson_perp_consteps_objs_release(objs);
+}
+
+void
+test_fem_poisson_perp_consteps_2x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double lower[] = {-M_PI,-M_PI}, upper[] = {M_PI,M_PI};
+  if (   (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET)
+      || (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) )
+  {
+    lower[0] = 0.;  upper[0] = 1.;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim-1; 
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob, *projob_sol;
+  if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_NEUMANN && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_neumannx_dirichletx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_neumannx_dirichletx_sol_2x, NULL);
+  } else if (bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_NEUMANN) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_neumannx_2x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_neumannx_sol_2x, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create DG field for permittivity tensor.
+  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
+  struct gkyl_array *eps = mkarr(use_gpu, epsnum*basis.num_basis, localRange_ext.volume);
+  // Analytic solution.
+  struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  // Device copies:
+  struct gkyl_array *rho_ho, *phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr(false, rho->ncomp, rho->size);
+    phi_ho = mkarr(false, phi->ncomp, phi->size);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
+  }
+
+  // Project RHS charge density on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  // Project the permittivity onto the basis.
+  double dg0norm = pow(sqrt(2.),dim);
+  gkyl_array_shiftc(eps, epsilon_0*dg0norm, 0*basis.num_basis);
+
+  // Project the analytic solution.
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
+
+  // Specify the bias:
+  struct gkyl_poisson_bias_line bias = {
+    .perp_dirs = {0, 1},
+    .perp_coords = {0.5, -M_PI}, // Location of the plane in the 'dir' dimension.
+    .val = 0., // Biasing value.
+  };
+  struct gkyl_poisson_bias_line_list bll = {
+    .num_bias_line = 1, // Number of bias lines.
+    .bl = &bias,
+  };
+
+  // FEM poisson solver.
+  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, &bll, eps, NULL, use_gpu);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(poisson, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+//  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
+//  printf("error L2 norm = %g\n",errL2);
+
+  if (poly_order == 1) {
+    if (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) {
+      // Solution; checked convergence:
+      const double sol[256] = {
+         0.0523071668741079,  0.0301995568753129,  0.0043898894860765,  0.0025345038764989,
+         0.0326575388702468,  0.0188548388578077, -0.0076848087077184, -0.004436826376072 ,
+         0.0060365806138147,  0.0034852214423708, -0.0076848087077184, -0.004436826376072 ,
+        -0.0205843776426173, -0.011884395973066 , -0.0076848087077184, -0.004436826376072 ,
+        -0.0472053358990496, -0.0272540133885028, -0.0076848087077183, -0.004436826376072 ,
+        -0.0738262941554814, -0.0426236308039397, -0.0076848087077184, -0.004436826376072 ,
+        -0.1004472524119136, -0.0579932482193765, -0.0076848087077186, -0.004436826376072 ,
+        -0.1270682106683453, -0.0733628656348134, -0.0076848087077185, -0.004436826376072 ,
+                                                                       
+         0.1305913158241592,  0.0149978175942799,  0.0165830888926301,  0.0045052430831576,
+         0.0834668670525276,  0.0104799404455762, -0.0196410056887545, -0.0024660871694134,
+         0.0154284275231832,  0.0019371638989408, -0.0196410056887545, -0.0024660871694134,
+        -0.0526100120061611, -0.0066056126476946, -0.0196410056887545, -0.0024660871694134,
+        -0.1206484515355057, -0.0151483891943299, -0.0196410056887544, -0.0024660871694134,
+        -0.1886868910648499, -0.0236911657409653, -0.0196410056887545, -0.0024660871694134,
+        -0.2567253305941943, -0.0322339422876006, -0.0196410056887547, -0.0024660871694134,
+        -0.3247637701235385, -0.040776718834236 , -0.0196410056887545, -0.0024660871694134,
+                                                                       
+         0.1587769509960808,  0.0012751664595096,  0.0352710125851786,  0.0062842346913305,
+         0.1066760663456682,  0.0029198970139942, -0.0251024783837957, -0.0006870955612404,
+         0.0197185304324009,  0.0005397281705472, -0.0251024783837957, -0.0006870955612404,
+        -0.0672390054808664, -0.0018404406728998, -0.0251024783837957, -0.0006870955612404,
+        -0.1541965413941337, -0.0042206095163468, -0.0251024783837957, -0.0006870955612405,
+        -0.2411540773074009, -0.0066007783597938, -0.0251024783837957, -0.0006870955612404,
+        -0.3281116132206683, -0.0089809472032408, -0.0251024783837958, -0.0006870955612404,
+        -0.4150691491339354, -0.0113611160466878, -0.0251024783837957, -0.0006870955612404,
+                                                                       
+         0.1436956879050723, -0.0099823377648229,  0.0595680163429045,  0.0077436469686939,
+         0.1060487906890969, -0.0032820547831718, -0.0249548710136595,  0.000772316716123 ,
+         0.0196025817051248, -0.0006066711994523, -0.0249548710136594,  0.000772316716123 ,
+        -0.0668436272788473,  0.0020687123842672, -0.0249548710136594,  0.000772316716123 ,
+        -0.1532898362628194,  0.0047440959679867, -0.0249548710136594,  0.000772316716123 ,
+        -0.2397360452467914,  0.0074194795517062, -0.0249548710136595,  0.000772316716123 ,
+        -0.3261822542307636,  0.0100948631354257, -0.0249548710136595,  0.000772316716123 ,
+        -0.4126284632147356,  0.0127702467191452, -0.0249548710136594,  0.000772316716123 ,
+                                                                       
+         0.1095376103290749, -0.0097388375186793,  0.0639962374469919, -0.0051870123222179,
+         0.0872305209919558, -0.0075826782921555, -0.020526649909572 ,  0.0017843179303531,
+         0.0161241198868402, -0.0014016196677002, -0.020526649909572 ,  0.0017843179303531,
+        -0.0549822812182755,  0.0047794389567552, -0.020526649909572 ,  0.0017843179303531,
+        -0.1260886823233912,  0.0109604975812106, -0.020526649909572 ,  0.0017843179303531,
+        -0.1971950834285068,  0.017141556205666 , -0.020526649909572 ,  0.0017843179303531,
+        -0.2683014845336226,  0.0233226148301214, -0.020526649909572 ,  0.0017843179303531,
+        -0.3394078856387381,  0.0295036734545768, -0.020526649909572 ,  0.0017843179303531,
+                                                                       
+         0.0699659492984875, -0.013107871629611 ,  0.0467843874558059, -0.0047502539034449,
+         0.0577485651331015, -0.0094387368591906, -0.0135891035131684,  0.0022210763491261,
+         0.0106745297048609, -0.0017447026908387, -0.0135891035131683,  0.0022210763491261,
+        -0.0363995057233797,  0.0059493314775132, -0.0135891035131683,  0.0022210763491261,
+        -0.0834735411516203,  0.0136433656458652, -0.0135891035131683,  0.0022210763491261,
+        -0.1305475765798609,  0.0213373998142171, -0.0135891035131683,  0.0022210763491261,
+        -0.1776216120081016,  0.0290314339825691, -0.0135891035131684,  0.0022210763491261,
+        -0.2246956474363422,  0.036725468150921 , -0.0135891035131683,  0.0022210763491261,
+                                                                       
+         0.0281170830961668, -0.0110535825375795,  0.0298677522048923, -0.0050165700124528,
+         0.0270120579611045, -0.0083069938305107, -0.0063563423764922,  0.0019547602401182,
+         0.0049930420683294, -0.0015355057255103, -0.0063563423764922,  0.0019547602401182,
+        -0.0170259738244458,  0.0052359823794901, -0.0063563423764922,  0.0019547602401182,
+        -0.0390449897172209,  0.0120074704844905, -0.0063563423764922,  0.0019547602401182,
+        -0.0610640056099961,  0.0187789585894908, -0.0063563423764922,  0.0019547602401182,
+        -0.0830830215027712,  0.0255504466944912, -0.0063563423764922,  0.0019547602401182,
+        -0.1051020373955464,  0.0323219347994916, -0.0063563423764922,  0.0019547602401182,
+                                                                       
+         0.0044858582677115, -0.0025899114784098,  0.0105893990317988, -0.0061137923815654,
+         0.0063119612942494, -0.0036442125523494, -0.001485299161996 ,  0.0008575378710055,
+         0.0011667340682163, -0.0006736142283574, -0.001485299161996 ,  0.0008575378710055,
+        -0.0039784931578168,  0.0022969840956346, -0.001485299161996 ,  0.0008575378710055,
+        -0.0091237203838499,  0.0052675824196266, -0.001485299161996 ,  0.0008575378710055,
+        -0.014268947609883 ,  0.0082381807436186, -0.001485299161996 ,  0.0008575378710055,
+        -0.0194141748359161,  0.0112087790676106, -0.001485299161996 ,  0.0008575378710055,
+        -0.0245594020619492,  0.0141793773916026, -0.001485299161996 ,  0.0008575378710055,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        // Only check one cell in z:
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+          i += 1;
+        }
+      }
+    } else if (bcs.lo_type[0] == GKYL_POISSON_NEUMANN && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) {
+      // Solution; checked convergence:
+      const double sol[256] = {
+         0.2947281302116576, -0.0077857556587993, -0.0650185376299358,  0.00100933805314  ,
+         0.153153272024753 , -0.0042893060786969, -0.0360392619648284,  0.00100933805314  ,
+         0.0283096064440185, -0.0007928564985946, -0.0360392619648283,  0.00100933805314  ,
+        -0.0965340591367159,  0.0027035930815078, -0.0360392619648281,  0.00100933805314  ,
+        -0.2213777247174505,  0.0062000426616102, -0.0360392619648281,  0.00100933805314  ,
+        -0.346221390298185 ,  0.0096964922417126, -0.0360392619648282,  0.00100933805314  ,
+        -0.4710650558789194,  0.0131929418218149, -0.0360392619648277,  0.00100933805314  ,
+        -0.5959087214596539,  0.0166893914019174, -0.0360392619648275,  0.00100933805314  ,
+                                                                                           
+         0.2429217125547281, -0.0221246935211791, -0.0583024022887365,  0.0028682244940153,
+         0.1246122296507558, -0.0121888724188829, -0.0293231266236291,  0.0028682244940153,
+         0.0230339393529535, -0.0022530513165867, -0.029323126623629 ,  0.0028682244940153,
+        -0.0785443509448487,  0.0076827697857095, -0.0293231266236288,  0.0028682244940153,
+        -0.180122641242651 ,  0.0176185908880057, -0.0293231266236288,  0.0028682244940153,
+        -0.2817009315404533,  0.027554411990302 , -0.0293231266236289,  0.0028682244940153,
+        -0.3832792218382556,  0.0374902330925981, -0.0293231266236285,  0.0028682244940153,
+        -0.4848575121360578,  0.0474260541948944, -0.0293231266236283,  0.0028682244940153,
+                                                                                           
+         0.1478483966348686, -0.0327659110179021, -0.0459771868823598,  0.0042477419386764,
+         0.0722347123270466, -0.0180513013074449, -0.0169979112172524,  0.0042477419386764,
+         0.0133522206253946, -0.0033366915969877, -0.0169979112172523,  0.0042477419386764,
+        -0.0455302710762573,  0.0113779181134696, -0.0169979112172521,  0.0042477419386764,
+        -0.1044127627779092,  0.0260925278239268, -0.0169979112172521,  0.0042477419386764,
+        -0.1632952544795612,  0.040807137534384 , -0.0169979112172522,  0.0042477419386764,
+        -0.2221777461812131,  0.0555217472448413, -0.0169979112172518,  0.0042477419386764,
+        -0.2810602378828649,  0.0702363569552985, -0.0169979112172516,  0.0042477419386764,
+                                                                                           
+         0.0265872212400777, -0.0372442612385308, -0.0302570019628494,  0.0048283110563137,
+         0.0054298549021959, -0.0205185011099672, -0.001277726297742 ,  0.0048283110563137,
+         0.0010036811704842, -0.0037927409814036, -0.0012777262977419,  0.0048283110563137,
+        -0.0034224925612274,  0.0129330191471601, -0.0012777262977417,  0.0048283110563136,
+        -0.0078486662929391,  0.0296587792757237, -0.0012777262977417,  0.0048283110563136,
+        -0.0122748400246508,  0.0463845394042873, -0.0012777262977418,  0.0048283110563137,
+        -0.0167010137563625,  0.0631102995328509, -0.0012777262977415,  0.0048283110563136,
+        -0.0211271874880741,  0.0798360596614145, -0.0012777262977413,  0.0048283110563136,
+                                                                                           
+        -0.0973346545234177, -0.0343020670920067, -0.0108406039001324,  0.0063817515918889,
+        -0.0616886403509404, -0.0182323801920337,  0.0145162623068366,  0.0042903525161177,
+        -0.0114028326480642, -0.0033701631114402,  0.0145162623068367,  0.0042903525161177,
+         0.038882975054812 ,  0.0114920539691533,  0.0145162623068368,  0.0042903525161176,
+         0.0891687827576881,  0.0263542710497468,  0.0145162623068368,  0.0042903525161176,
+         0.1394545904605643,  0.0412164881303402,  0.0145162623068367,  0.0042903525161176,
+         0.1897403981634405,  0.0560787052109337,  0.014516262306837 ,  0.0042903525161176,
+         0.2400262058663167,  0.0709409222915272,  0.0145162623068371,  0.0042903525161176,
+                                                                                           
+        -0.1897591530796203, -0.0190592420291331,  0.0078437862017036,  0.0044056860630501,
+        -0.1103025037352214, -0.0098348469192286,  0.0259558334923958,  0.0023142869872789,
+        -0.0203888590119662, -0.0018179216287036,  0.0259558334923959,  0.0023142869872789,
+         0.0695247857112891,  0.0061990036618213,  0.025955833492396 ,  0.0023142869872788,
+         0.1594384304345443,  0.0142159289523463,  0.025955833492396 ,  0.0023142869872788,
+         0.2493520751577995,  0.0222328542428713,  0.0259558334923959,  0.0023142869872789,
+         0.3392657198810548,  0.0302497795333963,  0.0259558334923961,  0.0023142869872788,
+         0.42917936460431  ,  0.0382667048239213,  0.0259558334923963,  0.0023142869872788,
+                                                                                           
+        -0.2058972783827619,  0.0097418910411483,  0.0166384825044111,  0.000671934214759 ,
+        -0.1168888981292207,  0.006032190342864 ,  0.0275057108788265, -0.0014194648610122,
+        -0.0216063206483658,  0.0011150198252003,  0.0275057108788265, -0.0014194648610122,
+         0.0736762568324892, -0.0038021506924635,  0.0275057108788265, -0.0014194648610122,
+         0.1689588343133442, -0.0087193212101273,  0.0275057108788266, -0.0014194648610122,
+         0.2642414117941991, -0.013636491727791 ,  0.0275057108788265, -0.0014194648610122,
+         0.3595239892750541, -0.0185536622454548,  0.0275057108788266, -0.0014194648610123,
+         0.4548065667559091, -0.0234708327631186,  0.0275057108788267, -0.0014194648610123,
+                                                                                           
+        -0.0945119140688464,  0.0545664790292753,  0.0089011533518588, -0.0051390832837939,
+        -0.053220418987227 ,  0.0307268232286602,  0.0125235628099973, -0.0072304823595651,
+        -0.0098375248298362,  0.0056796976086655,  0.0125235628099973, -0.0072304823595651,
+         0.0335453693275546, -0.0193674280113291,  0.0125235628099973, -0.0072304823595651,
+         0.0769282634849454, -0.0444145536313237,  0.0125235628099973, -0.0072304823595651,
+         0.1203111576423362, -0.0694616792513183,  0.0125235628099973, -0.0072304823595651,
+         0.163694051799727 , -0.0945088048713129,  0.0125235628099974, -0.0072304823595652,
+         0.2070769459571177, -0.1195559304913075,  0.0125235628099974, -0.0072304823595652,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        // Only check one cell in z:
+        for (int m=0; m<basis.num_basis; m++) {
+          TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+          TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+          TEST_MSG("Produced: %.13e", phi_p[m]);
+          i += 1;
+        }
+      };
+    } else if (bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_NEUMANN) {
+      // Solution; checked convergence:
+      const double sol[256] = {
+        -0.0945119140688464, -0.0545664790292753,  0.0089011533518588,  0.0051390832837939,
+        -0.053220418987227 , -0.0307268232286602,  0.0125235628099973,  0.0072304823595651,
+        -0.0098375248298362, -0.0056796976086655,  0.0125235628099973,  0.0072304823595651,
+         0.0335453693275545,  0.0193674280113291,  0.0125235628099973,  0.0072304823595651,
+         0.0769282634849452,  0.0444145536313237,  0.0125235628099971,  0.0072304823595651,
+         0.1203111576423362,  0.0694616792513183,  0.0125235628099974,  0.0072304823595651,
+         0.1636940517997271,  0.0945088048713129,  0.0125235628099971,  0.0072304823595652,
+         0.2070769459571174,  0.1195559304913075,  0.0125235628099976,  0.0072304823595651,
+                                                                       
+        -0.2058972783827619, -0.0097418910411483,  0.0166384825044111, -0.000671934214759 ,
+        -0.1168888981292208, -0.0060321903428641,  0.0275057108788265,  0.0014194648610122,
+        -0.0216063206483658, -0.0011150198252003,  0.0275057108788265,  0.0014194648610122,
+         0.0736762568324891,  0.0038021506924635,  0.0275057108788265,  0.0014194648610122,
+         0.168958834313344 ,  0.0087193212101273,  0.0275057108788263,  0.0014194648610122,
+         0.2642414117941991,  0.013636491727791 ,  0.0275057108788266,  0.0014194648610122,
+         0.3595239892750542,  0.0185536622454548,  0.0275057108788264,  0.0014194648610122,
+         0.4548065667559088,  0.0234708327631186,  0.0275057108788267,  0.0014194648610122,
+                                                                       
+        -0.1897591530796203,  0.0190592420291331,  0.0078437862017036, -0.0044056860630501,
+        -0.1103025037352215,  0.0098348469192286,  0.0259558334923959, -0.0023142869872789,
+        -0.0203888590119662,  0.0018179216287036,  0.0259558334923959, -0.0023142869872789,
+         0.069524785711289 , -0.0061990036618213,  0.0259558334923959, -0.0023142869872789,
+         0.1594384304345441, -0.0142159289523463,  0.0259558334923958, -0.0023142869872788,
+         0.2493520751577995, -0.0222328542428713,  0.0259558334923959, -0.0023142869872789,
+         0.3392657198810548, -0.0302497795333963,  0.0259558334923958, -0.0023142869872789,
+         0.4291793646043098, -0.0382667048239212,  0.0259558334923961, -0.0023142869872789,
+                                                                       
+        -0.0973346545234177,  0.0343020670920067, -0.0108406039001325, -0.0063817515918889,
+        -0.0616886403509405,  0.0182323801920337,  0.0145162623068366, -0.0042903525161177,
+        -0.0114028326480643,  0.0033701631114402,  0.0145162623068367, -0.0042903525161177,
+         0.0388829750548119, -0.0114920539691533,  0.0145162623068367, -0.0042903525161177,
+         0.0891687827576879, -0.0263542710497468,  0.0145162623068366, -0.0042903525161176,
+         0.1394545904605643, -0.0412164881303402,  0.0145162623068367, -0.0042903525161177,
+         0.1897403981634405, -0.0560787052109337,  0.0145162623068366, -0.0042903525161176,
+         0.2400262058663166, -0.0709409222915272,  0.0145162623068367, -0.0042903525161177,
+                                                                       
+         0.0265872212400778,  0.0372442612385308, -0.0302570019628495, -0.0048283110563137,
+         0.0054298549021959,  0.0205185011099672, -0.0012777262977419, -0.0048283110563137,
+         0.0010036811704842,  0.0037927409814036, -0.0012777262977419, -0.0048283110563137,
+        -0.0034224925612275, -0.0129330191471601, -0.0012777262977419, -0.0048283110563137,
+        -0.0078486662929393, -0.0296587792757237, -0.001277726297742 , -0.0048283110563136,
+        -0.0122748400246508, -0.0463845394042873, -0.0012777262977419, -0.0048283110563137,
+        -0.0167010137563626, -0.063110299532851 , -0.0012777262977419, -0.0048283110563136,
+        -0.0211271874880741, -0.0798360596614145, -0.0012777262977419, -0.0048283110563137,
+                                                                       
+         0.1478483966348688,  0.0327659110179022, -0.04597718688236  , -0.0042477419386764,
+         0.0722347123270465,  0.0180513013074449, -0.0169979112172524, -0.0042477419386764,
+         0.0133522206253946,  0.0033366915969877, -0.0169979112172523, -0.0042477419386764,
+        -0.0455302710762574, -0.0113779181134696, -0.0169979112172523, -0.0042477419386764,
+        -0.1044127627779095, -0.0260925278239268, -0.0169979112172524, -0.0042477419386764,
+        -0.1632952544795612, -0.040807137534384 , -0.0169979112172523, -0.0042477419386764,
+        -0.2221777461812133, -0.0555217472448413, -0.0169979112172523, -0.0042477419386764,
+        -0.2810602378828649, -0.0702363569552985, -0.0169979112172524, -0.0042477419386764,
+                                                                       
+         0.2429217125547283,  0.0221246935211791, -0.0583024022887367, -0.0028682244940153,
+         0.1246122296507557,  0.0121888724188829, -0.0293231266236291, -0.0028682244940153,
+         0.0230339393529534,  0.0022530513165867, -0.029323126623629 , -0.0028682244940153,
+        -0.0785443509448489, -0.0076827697857095, -0.029323126623629 , -0.0028682244940153,
+        -0.1801226412426513, -0.0176185908880057, -0.029323126623629 , -0.0028682244940153,
+        -0.2817009315404534, -0.0275544119903019, -0.0293231266236291, -0.0028682244940153,
+        -0.3832792218382559, -0.0374902330925982, -0.029323126623629 , -0.0028682244940153,
+        -0.4848575121360577, -0.0474260541948943, -0.0293231266236291, -0.0028682244940153,
+                                                                       
+         0.2947281302116578,  0.0077857556587993, -0.065018537629936 , -0.00100933805314  ,
          0.153153272024753 ,  0.0042893060786969, -0.0360392619648284, -0.00100933805314  ,
          0.0283096064440184,  0.0007928564985946, -0.0360392619648283, -0.00100933805314  ,
         -0.0965340591367161, -0.0027035930815078, -0.0360392619648283, -0.00100933805314  ,
@@ -984,9 +1439,10 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
   gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
 
   // FEM poisson solver.
-  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, eps, NULL, use_gpu);
+  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, NULL, eps, NULL, use_gpu);
 
-//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &localRange_ext, &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, use_gpu);
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &grid, &localRange_ext,
+//    &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, NULL, NULL, use_gpu);
 //  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
 //  gkyl_fem_parproj_solve  (smooth_op, rho);
 
@@ -3111,6 +3567,457 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
   gkyl_array_release(phi_ho);
 }
 
+void
+test_fem_poisson_perp_consteps_3x_bias(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_gpu)
+{
+  double epsilon_0 = 1.0;
+  double lower[] = {-M_PI,-M_PI,-M_PI}, upper[] = {M_PI,M_PI,M_PI};
+  if (   ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+          (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) 
+     )
+  {
+    lower[0] = 0.;  upper[0] = 1.;
+    lower[1] = 0.;  upper[1] = 1.;
+  } else if ( ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+               (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) 
+            )
+  {
+    lower[0] = 0.;  upper[0] = 1.;
+  }
+  int dim = sizeof(lower)/sizeof(lower[0]);
+  int dim_perp = dim-1; 
+
+  // Grids.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, dim, lower, upper, cells);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+
+  int ghost[] = { 1, 1, 1 };
+  struct gkyl_range localRange, localRange_ext; // local, local-ext ranges.
+  gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
+
+  // Projection updater for DG field.
+  gkyl_proj_on_basis *projob, *projob_sol;
+  if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+      (bcs.lo_type[1]==GKYL_POISSON_DIRICHLET && bcs.up_type[1]==GKYL_POISSON_DIRICHLET)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_dirichlety_3x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_dirichlety_sol_3x, NULL);
+  } else if ((bcs.lo_type[0]==GKYL_POISSON_DIRICHLET && bcs.up_type[0]==GKYL_POISSON_DIRICHLET) &&
+             (bcs.lo_type[1]==GKYL_POISSON_PERIODIC && bcs.up_type[1]==GKYL_POISSON_PERIODIC)) {
+    projob = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evalFunc_consteps_dirichletx_periodicy_3x, NULL);
+    projob_sol = gkyl_proj_on_basis_new(&grid, &basis,
+      2*(poly_order+1), 1, evalFunc_consteps_dirichletx_periodicy_sol_3x, NULL);
+  }
+
+  // Create DG field we wish to make continuous.
+  struct gkyl_array *rho = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create array holding continuous field we'll compute.
+  struct gkyl_array *phi = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
+  // Create DG field for permittivity tensor.
+  int epsnum = dim_perp+ceil((pow(3.,dim_perp-1)-dim_perp)/2);
+  struct gkyl_array *eps = mkarr(use_gpu, epsnum*basis.num_basis, localRange_ext.volume);
+  // Analytic solution.
+  struct gkyl_array *phisol_ho = mkarr(false, basis.num_basis, localRange_ext.volume);
+  // Device copies:
+  struct gkyl_array *rho_ho, *phi_ho;
+  if (use_gpu) {
+    rho_ho = mkarr(false, rho->ncomp, rho->size);
+    phi_ho = mkarr(false, phi->ncomp, phi->size);
+  }
+  else {
+    rho_ho = gkyl_array_acquire(rho);
+    phi_ho = gkyl_array_acquire(phi);
+  }
+
+  // Project RHS charge density on basis.
+  gkyl_proj_on_basis_advance(projob, 0.0, &localRange, rho_ho);
+  gkyl_array_copy(rho, rho_ho);
+
+  // Project the permittivity onto the basis.
+  double dg0norm = pow(sqrt(2.),dim);
+  gkyl_array_shiftc(eps, epsilon_0*dg0norm, 0*basis.num_basis);
+  gkyl_array_shiftc(eps,        0.*dg0norm, 1*basis.num_basis);
+  gkyl_array_shiftc(eps, epsilon_0*dg0norm, 2*basis.num_basis);
+
+  // Project the analytic solution.
+  gkyl_proj_on_basis_advance(projob_sol, 0.0, &localRange, phisol_ho);
+
+  // Specify the bias:
+  struct gkyl_poisson_bias_line bias = {
+    .perp_dirs = {0, 2},
+    .perp_coords = {0.5, -M_PI}, // Location of the plane in the 'dir' dimension.
+    .val = 0., // Biasing value.
+  };
+  struct gkyl_poisson_bias_line_list bll = {
+    .num_bias_line = 1, // Number of bias lines.
+    .bl = &bias,
+  };
+
+  // FEM poisson solver.
+  struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, &bll, eps, NULL, use_gpu);
+
+//  struct gkyl_fem_parproj* smooth_op = gkyl_fem_parproj_new(&localRange, &grid, &localRange_ext,
+//    &basis, GKYL_FEM_PARPROJ_DIRICHLET, NULL, NULL, NULL, use_gpu);
+//  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
+//  gkyl_fem_parproj_solve  (smooth_op, rho);
+
+  // Set the RHS source.
+  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+
+  // Solve the problem.
+  gkyl_fem_poisson_perp_solve(poisson, phi);
+  gkyl_array_copy(phi_ho, phi);
+
+//  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
+//  gkyl_fem_parproj_solve  (smooth_op, phi);
+//  gkyl_fem_parproj_release(smooth_op);
+
+//  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
+//  printf("error L2 norm = %g\n",errL2);
+
+  if (poly_order == 1) {
+    if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+        (bcs.lo_type[1] == GKYL_POISSON_DIRICHLET && bcs.up_type[1] == GKYL_POISSON_DIRICHLET)) {
+      // Solution; checked convergence:
+      const double sol[512] = {
+        -4.4041922402994508e-03, -2.5427615754988948e-03, -1.0665671304152860e-04,  3.7718620629148253e-05,
+        -6.1578281985007731e-05,  2.1776855773916784e-05, -1.6454514526474550e-05, -9.5000183910323872e-06,
+        -2.6096743371754640e-03, -1.5066961810654262e-03, -6.9169901643607081e-05,  6.1409551253443335e-04,
+        -3.9935261333768437e-05,  3.5454820946981773e-04,  1.6276715296146205e-05,  9.3973659577225150e-06,
+        -4.8238508035630792e-04, -2.7850515599675828e-04, -1.2785705897272424e-05,  6.1409551253432623e-04,
+        -7.3818307414892410e-06,  3.5454820946985161e-04,  1.6276715296142577e-05,  9.3973659577230299e-06,
+         1.6449041764628515e-03,  9.4968586907191971e-04,  4.3598489849228317e-05,  6.1409551253429771e-04,
+         2.5171599850703604e-05,  3.5454820946987070e-04,  1.6276715296122763e-05,  9.3973659577310852e-06,
+         3.7721934332819408e-03,  2.1778768941405919e-03,  9.9982685595574256e-05,  6.1409551253416305e-04,
+         5.7725030442970594e-05,  3.5454820946990772e-04,  1.6276715296088936e-05,  9.3973659577540534e-06,
+         5.8994826901014163e-03,  3.4060679192091698e-03,  1.5636688134197224e-04,  6.1409551253423353e-04,
+         9.0278461035230045e-05,  3.5454820946988067e-04,  1.6276715296172321e-05,  9.3973659576982136e-06,
+         8.0267719469204173e-03,  4.6342589442779272e-03,  2.1275107708848732e-04,  6.1409551253416761e-04,
+         1.2283189162741587e-04,  3.5454820946994730e-04,  1.6276715296031209e-05,  9.3973659577826543e-06,
+         1.0154061203738809e-02,  5.8624499693468073e-03,  2.6913527283490597e-04,  6.1409551253420447e-04,
+         1.5538532221965102e-04,  3.5454820946989601e-04,  1.6276715296035092e-05,  9.3973659577696252e-06,
+                                                         
+        -1.1018979264020300e-02, -1.2762874932783809e-03, -2.6494102141839070e-04, -2.8994604615678344e-04,
+        -2.9807206064867279e-05, -2.1095413934670354e-04, -5.7460710141012667e-05, -1.4174919685463714e-05,
+        -6.6613512061697421e-03, -8.3254054991779977e-04, -1.7752438980077028e-04,  1.5675158485682092e-03,
+        -2.2623231571673787e-05,  1.9590927819014637e-04,  4.1774151505839880e-05,  5.3235857015895280e-06,
+        -1.2313170233906152e-03, -1.5389090291880844e-04, -3.2814484098407900e-05,  1.5675158485681827e-03,
+        -4.1817897444755747e-06,  1.9590927819015892e-04,  4.1774151505836052e-05,  5.3235857015888046e-06,
+         4.1987171593885252e-03,  5.2475874408017883e-04,  1.1189542160396868e-04,  1.5675158485681906e-03,
+         1.4259652082721208e-05,  1.9590927819016068e-04,  4.1774151505830529e-05,  5.3235857015890257e-06,
+         9.6287513421676133e-03,  1.2034083910791829e-03,  2.5660532730632313e-04,  1.5675158485681483e-03,
+         3.2701093909920751e-05,  1.9590927819017681e-04,  4.1774151505832115e-05,  5.3235857015865329e-06,
+         1.5058785524946838e-02,  1.8820580380781381e-03,  4.0131523300871499e-04,  1.5675158485681689e-03,
+         5.1142535737119170e-05,  1.9590927819017611e-04,  4.1774151505820053e-05,  5.3235857015869310e-06,
+         2.0488819707725963e-02,  2.5607076850771271e-03,  5.4602513871109741e-04,  1.5675158485682298e-03,
+         6.9583977564318124e-05,  1.9590927819018239e-04,  4.1774151505813304e-05,  5.3235857015801149e-06,
+         2.5918853890504821e-02,  3.2393573320761929e-03,  6.9073504441345018e-04,  1.5675158485681817e-03,
+         8.8025419391506493e-05,  1.9590927819018424e-04,  4.1774151505804312e-05,  5.3235857015857799e-06,
+                                                         
+        -1.3366720692763396e-02, -7.9181652594083197e-05, -3.2014002221508991e-04, -1.5665805187687065e-03,
+        -2.0619519041054335e-06, -5.2611111707254622e-04, -1.0875897838019112e-04, -1.5442149291387570e-05,
+        -8.4983155591709623e-03, -2.2803131377920161e-04, -2.2803131377920622e-04,  1.9997811123959363e-03,
+        -6.5369545832163292e-06,  5.3659188242116111e-05,  5.3659188242125605e-05,  1.5382434574337128e-06,
+        -1.5708705777981867e-03, -4.2150433122697153e-05, -4.2150433122704234e-05,  1.9997811123959380e-03,
+        -1.2083229378424886e-06,  5.3659188242120123e-05,  5.3659188242120949e-05,  1.5382434574338455e-06,
+         5.3565744035745932e-03,  1.4373044753380644e-04,  1.4373044753380633e-04,  1.9997811123959493e-03,
+         4.1203087075293580e-06,  5.3659188242120502e-05,  5.3659188242116450e-05,  1.5382434574343029e-06,
+         1.2284019384947355e-02,  3.2961132819031189e-04,  3.2961132819030463e-04,  1.9997811123959436e-03,
+         9.4489403529038885e-06,  5.3659188242125564e-05,  5.3659188242113645e-05,  1.5382434574343915e-06,
+         1.9211464366320145e-02,  5.1549220884680247e-04,  5.1549220884683142e-04,  1.9997811123959662e-03,
+         1.4777571998274944e-05,  5.3659188242126635e-05,  5.3659188242104951e-05,  1.5382434574354242e-06,
+         2.6138909347692911e-02,  7.0137308950330574e-04,  7.0137308950334932e-04,  1.9997811123960299e-03,
+         2.0106203643644923e-05,  5.3659188242122142e-05,  5.3659188242088599e-05,  1.5382434574373129e-06,
+         3.3066354329065621e-02,  8.8725397015985226e-04,  8.8725397015982602e-04,  1.9997811123959944e-03,
+         2.5434835289019607e-05,  5.3659188242128064e-05,  5.3659188242090029e-05,  1.5382434574371947e-06,
+                                                         
+        -1.1772420545074049e-02,  9.9965127203158893e-04, -2.9771347337083224e-04, -4.1374953013227720e-03,
+         1.5009925916331957e-05, -9.5820722469863165e-04, -1.4619029680330181e-04, -6.1688324763178938e-06,
+        -8.4328227495495626e-03,  2.6584360504410145e-04, -2.2754565363904947e-04,  1.9843696720032210e-03,
+         6.8173505958705989e-06, -6.2556987501449985e-05,  5.3544905127008731e-05, -1.6042248447103262e-06,
+        -1.5587645637327799e-03,  4.9139843602173047e-05, -4.2060661306196192e-05,  1.9843696720032301e-03,
+         1.2601527202690473e-06, -6.2556987501449782e-05,  5.3544905127005309e-05, -1.6042248447096918e-06,
+         5.3152936220840080e-03, -1.6756391783975450e-04,  1.4342433102665958e-04,  1.9843696720032410e-03,
+        -4.2970451553338836e-06, -6.2556987501450744e-05,  5.3544905127002904e-05, -1.6042248447089394e-06,
+         1.2189351807900777e-02, -3.8426767928168319e-04,  3.2890932335951224e-04,  1.9843696720032457e-03,
+        -9.8542430309342842e-06, -6.2556987501449619e-05,  5.3544905127001169e-05, -1.6042248447085263e-06,
+         1.9063409993717553e-02, -6.0097144072361120e-04,  5.1439431569237854e-04,  1.9843696720032670e-03,
+        -1.5411440906539592e-05, -6.2556987501451611e-05,  5.3544905126996466e-05, -1.6042248447072574e-06,
+         2.5937468179534327e-02, -8.1767520216553769e-04,  6.9987930802523882e-04,  1.9843696720033108e-03,
+        -2.0968638782141884e-05, -6.2556987501459797e-05,  5.3544905126988287e-05, -1.6042248447047786e-06,
+         3.2811526365351132e-02, -1.0343789636074571e-03,  8.8536430035807004e-04,  1.9843696720032926e-03,
+        -2.6525836657742338e-05, -6.2556987501455094e-05,  5.3544905126988287e-05, -1.6042248447056049e-06,
+                                                         
+        -9.0272890314765722e-03,  5.8525114630483929e-04, -2.2574513915869974e-04, -4.4933715731932363e-03,
+         2.6541011214171422e-05,  7.5274196333601873e-04, -1.5552020407559827e-04,  7.8220800114296213e-07,
+        -6.9204828041277604e-03,  6.0730626955139981e-04, -1.8789706627799494e-04,  1.6284934001327706e-03,
+         1.6073771990022628e-05, -1.4290827386115464e-04,  4.4214997854705820e-05, -3.7823996304681823e-06,
+        -1.2792161864866225e-03,  1.1225748725241897e-04, -3.4731820796203245e-05,  1.6284934001327780e-03,
+         2.9711553210232943e-06, -1.4290827386115610e-04,  4.4214997854704085e-05, -3.7823996304676809e-06,
+         4.3620504311545211e-03, -3.8279129504656216e-04,  1.1843342468558873e-04,  1.6284934001327851e-03,
+        -1.0131461347976333e-05, -1.4290827386115716e-04,  4.4214997854703523e-05, -3.7823996304675407e-06,
+         1.0003317048795649e-02, -8.7784007734554280e-04,  2.7159867016738124e-04,  1.6284934001327919e-03,
+        -2.3234078016975833e-05, -1.4290827386115735e-04,  4.4214997854702446e-05, -3.7823996304672675e-06,
+         1.5644583666436781e-02, -1.3728888596445214e-03,  4.2476391564917615e-04,  1.6284934001328049e-03,
+        -3.6336694685976650e-05, -1.4290827386115966e-04,  4.4214997854700812e-05, -3.7823996304667661e-06,
+         2.1285850284077916e-02, -1.8679376419435008e-03,  5.7792916113097177e-04,  1.6284934001328227e-03,
+        -4.9439311354977518e-05, -1.4290827386116670e-04,  4.4214997854699179e-05, -3.7823996304657628e-06,
+         2.6927116901719089e-02, -2.3629864242424841e-03,  7.3109440661274961e-04,  1.6284934001328183e-03,
+        -6.2541928023973379e-05, -1.4290827386116294e-04,  4.4214997854697953e-05, -3.7823996304655858e-06,
+                                                         
+        -6.2247900453550730e-03,  1.0327723977360613e-03, -1.3371278969370395e-04, -2.4924537019540933e-03,
+         2.6593890523597406e-05,  4.0248850825023367e-04, -1.3292722975764579e-04,  1.2261851803121024e-05,
+        -4.5637037010479806e-03,  7.5338078003219552e-04, -1.2532535988959181e-04,  1.0739079292105612e-03,
+         2.0052019536976041e-05, -1.7728179706443800e-04,  2.9490936864655919e-05, -4.7185409457015368e-06,
+        -8.4357750896041491e-04,  1.3925862048674964e-04, -2.3165757864813873e-05,  1.0739079292105657e-03,
+         3.7065142258784086e-06, -1.7728179706443867e-04,  2.9490936864655435e-05, -4.7185409457013454e-06,
+         2.8765486831271551e-03, -4.7486353905869716e-04,  7.8993844159963767e-05,  1.0739079292105696e-03,
+        -1.2638991085219166e-05, -1.7728179706443922e-04,  2.9490936864655282e-05, -4.7185409457013344e-06,
+         6.5966748752147126e-03, -1.0889856986041411e-03,  1.8115344618474199e-04,  1.0739079292105755e-03,
+        -2.8984496396316930e-05, -1.7728179706443943e-04,  2.9490936864654591e-05, -4.7185409457010650e-06,
+         1.0316801067302282e-02, -1.7031078581495856e-03,  2.8331304820951964e-04,  1.0739079292105826e-03,
+        -4.5330001707415101e-05, -1.7728179706444065e-04,  2.9490936864654490e-05, -4.7185409457012421e-06,
+         1.4036927259389841e-02, -2.3172300176950325e-03,  3.8547265023429852e-04,  1.0739079292105855e-03,
+        -6.1675507018512700e-05, -1.7728179706444239e-04,  2.9490936864654900e-05, -4.7185409457009464e-06,
+         1.7757053451477430e-02, -2.9313521772404848e-03,  4.8763225225907262e-04,  1.0739079292105883e-03,
+        -7.8021012329608367e-05, -1.7728179706444209e-04,  2.9490936864654080e-05, -4.7185409457005339e-06,
+                                                         
+        -2.7685660836065627e-03,  9.6267943695907572e-04, -5.1302926806916285e-05, -1.3595218641067415e-03,
+         2.0985465997969670e-05,  2.5160999330443233e-04, -8.5156552130073984e-05,  1.5318561784528383e-05,
+        -2.1160573442293054e-03,  6.5976850295807366e-04, -5.9827506156292608e-05,  4.9794003061817010e-04,
+         1.7763183947286998e-05, -1.5525342423246231e-04,  1.4078309516760695e-05, -4.1799436025251460e-06,
+        -3.9114247992314439e-04,  1.2195486531873465e-04, -1.1058811420875967e-05,  4.9794003061817314e-04,
+         3.2834345625935113e-06, -1.5525342423246226e-04,  1.4078309516760042e-05, -4.1799436025254264e-06,
+         1.3337723843830172e-03, -4.1585877232060533e-04,  3.7709883314540850e-05,  4.9794003061817682e-04,
+        -1.1196314822099668e-05, -1.5525342423246185e-04,  1.4078309516759505e-05, -4.1799436025257211e-06,
+         3.0586872486891748e-03, -9.5367240995994330e-04,  8.6478578049958005e-05,  4.9794003061818224e-04,
+        -2.5676064206792951e-05, -1.5525342423246198e-04,  1.4078309516758496e-05, -4.1799436025261192e-06,
+         4.7836021129953393e-03, -1.4914860475992832e-03,  1.3524727278537308e-04,  4.9794003061818745e-04,
+        -4.0155813591486747e-05, -1.5525342423246160e-04,  1.4078309516757525e-05, -4.1799436025265182e-06,
+         6.5085169773014956e-03, -2.0292996852386224e-03,  1.8401596752079196e-04,  4.9794003061818853e-04,
+        -5.4635562976179490e-05, -1.5525342423246120e-04,  1.4078309516757781e-05, -4.1799436025266952e-06,
+         8.2334318416076614e-03, -2.5671133228779642e-03,  2.3278466225620765e-04,  4.9794003061819168e-04,
+        -6.9115312360872741e-05, -1.5525342423246101e-04,  1.4078309516756759e-05, -4.1799436025271077e-06,
+                                                         
+        -5.5057819369581863e-04,  3.1787646834022232e-04, -7.4775167389616631e-06, -4.6186028600569848e-04,
+         4.3171463021096952e-06,  2.6665516045338905e-04, -2.9312012410193478e-05,  1.6923298255515372e-05,
+        -4.8665238793613104e-04,  2.8096888717670101e-04, -1.4530384527701296e-05,  1.1451660589924915e-04,
+         8.3891214184953722e-06, -6.6116193242614837e-05,  3.4192174122083424e-06, -1.9740860933551212e-06,
+        -8.9955228480437954e-05,  5.1935675378195315e-05, -2.6858679675683887e-06,  1.1451660589925117e-04,
+         1.5506865940831339e-06, -6.6116193242615583e-05,  3.4192174122070139e-06, -1.9740860933552669e-06,
+         3.0674193097525530e-04, -1.7709753642030946e-04,  9.1586485925635640e-06,  1.1451660589925462e-04,
+        -5.2877482303300981e-06, -6.6116193242616098e-05,  3.4192174122056849e-06, -1.9740860933554109e-06,
+         7.0343909043094825e-04, -4.0613074821881383e-04,  2.1003165152696916e-05,  1.1451660589925732e-04,
+        -1.2126183054742609e-05, -6.6116193242617480e-05,  3.4192174122050653e-06, -1.9740860933548040e-06,
+         1.1001362498866394e-03, -6.3516396001732215e-04,  3.2847681712829456e-05,  1.1451660589926117e-04,
+        -1.8964617879153966e-05, -6.6116193242618767e-05,  3.4192174122030078e-06, -1.9740860933549811e-06,
+         1.4968334093423308e-03, -8.6419717181582527e-04,  4.4692198272961002e-05,  1.1451660589926484e-04,
+        -2.5803052703569116e-05, -6.6116193242617331e-05,  3.4192174122015514e-06, -1.9740860933558666e-06,
+         1.8935305687980254e-03, -1.0932303836143303e-03,  5.6536714833096980e-05,  1.1451660589926414e-04,
+        -3.2641487527979211e-05, -6.6116193242619960e-05,  3.4192174122038129e-06, -1.9740860933535500e-06,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        if (iter.idx[1] == 3) {
+          // Only check one cell in z:
+          for (int m=0; m<basis.num_basis; m++) {
+            TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+            i += 1;
+          }
+        }
+      }
+    } else if ((bcs.lo_type[0] == GKYL_POISSON_DIRICHLET && bcs.up_type[0] == GKYL_POISSON_DIRICHLET) &&
+               (bcs.lo_type[1] == GKYL_POISSON_PERIODIC && bcs.up_type[1] == GKYL_POISSON_PERIODIC)) {
+      // Solution; checked convergence:
+      const double sol[512] = {
+        -4.4584195633810733e-02, -2.5740697350783534e-02, -2.5740697350783579e-02, -1.8124746495123774e-03,
+        -1.4861398544603536e-02, -1.0464327267955061e-03, -1.0464327267952910e-03, -6.0415821650423960e-04,
+        -2.7172476676301741e-02, -1.5688036723611624e-02, -1.5688036723611940e-02,  6.3940913062058213e-03,
+        -9.0574922254338681e-03,  3.6916303368608886e-03,  3.6916303368611492e-03,  2.1313637687352016e-03,
+        -5.0226946551364480e-03, -2.8998541112002685e-03, -2.8998541112003865e-03,  6.3940913062057042e-03,
+        -1.6742315517121146e-03,  3.6916303368608925e-03,  3.6916303368609532e-03,  2.1313637687352198e-03,
+         1.7127087366028894e-02,  9.8883285012110831e-03,  9.8883285012111924e-03,  6.3940913062055550e-03,
+         5.7090291220096342e-03,  3.6916303368608968e-03,  3.6916303368608166e-03,  2.1313637687352294e-03,
+         3.9276869387194165e-02,  2.2676511113622431e-02,  2.2676511113622465e-02,  6.3940913062055810e-03,
+         1.3092289795731417e-02,  3.6916303368608795e-03,  3.6916303368607927e-03,  2.1313637687352285e-03,
+         6.1426651408359283e-02,  3.5464693726033808e-02,  3.5464693726033690e-02,  6.3940913062052454e-03,
+         2.0475550469453228e-02,  3.6916303368609051e-03,  3.6916303368603937e-03,  2.1313637687352597e-03,
+         8.3576433429524880e-02,  4.8252876338445126e-02,  4.8252876338445223e-02,  6.3940913062050780e-03,
+         2.7858811143174983e-02,  3.6916303368609116e-03,  3.6916303368605278e-03,  2.1313637687352407e-03,
+         1.0572621545068980e-01,  6.1041058950856514e-02,  6.1041058950856819e-02,  6.3940913062048828e-03,
+         3.5242071816896710e-02,  3.6916303368609302e-03,  3.6916303368602554e-03,  2.1313637687352754e-03,
+                                                          
+        -1.1102433537931264e-01, -1.2618535216278336e-02, -6.4099929917845411e-02, -8.9682417343014686e-03,
+        -7.2853147038970641e-03, -3.0849513258657400e-03, -5.1778167794565748e-03, -1.7810974784254808e-03,
+        -6.9196949126305612e-02, -8.5748037579501200e-03, -3.9950877205173575e-02,  1.6283079974463717e-02,
+        -4.9506652579006920e-03,  2.0177799327709633e-03,  9.4010406064929421e-03,  1.1649657873507272e-03,
+        -1.2790705487349173e-02, -1.5850090338456765e-03, -7.3847172562463191e-03,  1.6283079974463602e-02,
+        -9.1510539235878645e-04,  2.0177799327709620e-03,  9.4010406064927929e-03,  1.1649657873507361e-03,
+         4.3615538151607305e-02,  5.4047856902587656e-03,  2.5181442692680946e-02,  1.6283079974463464e-02,
+         3.1204544731831146e-03,  2.0177799327709646e-03,  9.4010406064926819e-03,  1.1649657873507419e-03,
+         1.0002178179056370e-01,  1.2394580414363204e-02,  5.7747602641608005e-02,  1.6283079974463429e-02,
+         7.1560143387250389e-03,  2.0177799327709498e-03,  9.4010406064926472e-03,  1.1649657873507367e-03,
+         1.5642802542952000e-01,  1.9384375138467660e-02,  9.0313762590535099e-02,  1.6283079974463169e-02,
+         1.1191574204266976e-02,  2.0177799327709732e-03,  9.4010406064923436e-03,  1.1649657873507619e-03,
+         2.1283426906847663e-01,  2.6374169862572072e-02,  1.2287992253946231e-01,  1.6283079974463037e-02,
+         1.5227134069808879e-02,  2.0177799327709767e-03,  9.4010406064924355e-03,  1.1649657873507486e-03,
+         2.6924051270743282e-01,  3.3363964586676544e-02,  1.5544608248838956e-01,  1.6283079974462881e-02,
+         1.9262693935350784e-02,  2.0177799327709745e-03,  9.4010406064922517e-03,  1.1649657873507658e-03,
+                                                          
+        -1.3411820617565154e-01, -7.1471730461837319e-04, -7.7433182438742088e-02, -2.3541399004220864e-02,
+        -4.1264222821590300e-04, -5.3288649468649753e-03, -1.3591633052187288e-02, -3.0766216115476501e-03,
+        -8.7959388364324778e-02, -2.2576955867742456e-03, -5.0783376549897868e-02,  2.0698163334151001e-02,
+        -1.3034811547723213e-03,  5.3126963343912994e-04,  1.1950090172702994e-02,  3.0672866587834431e-04,
+        -1.6258847328107777e-02, -4.1732359150410962e-04, -9.3870498815960927e-03,  2.0698163334150890e-02,
+        -2.4094188789407537e-04,  5.3126963343912972e-04,  1.1950090172702871e-02,  3.0672866587835244e-04,
+         5.5441693708109245e-02,  1.4230484037660233e-03,  3.2009276786705683e-02,  2.0698163334150758e-02,
+         8.2159737898417041e-04,  5.3126963343913048e-04,  1.1950090172702781e-02,  3.0672866587835640e-04,
+         1.2714223474432620e-01,  3.2634203990361591e-03,  7.3405603455007323e-02,  2.0698163334150685e-02,
+         1.8841366458624319e-03,  5.3126963343912452e-04,  1.1950090172702732e-02,  3.0672866587835499e-04,
+         1.9884277578054310e-01,  5.1037923943063040e-03,  1.1480193012330903e-01,  2.0698163334150494e-02,
+         2.9466759127406974e-03,  5.3126963343914316e-04,  1.1950090172702516e-02,  3.0672866587837911e-04,
+         2.7054331681676019e-01,  6.9441643895764137e-03,  1.5619825679161076e-01,  2.0698163334150376e-02,
+         4.0092151796189430e-03,  5.3126963343914295e-04,  1.1950090172702569e-02,  3.0672866587836512e-04,
+         3.4224385785297706e-01,  8.7845363848465582e-03,  1.9759458345991249e-01,  2.0698163334150217e-02,
+         5.0717544464971807e-03,  5.3126963343913763e-04,  1.1950090172702404e-02,  3.0672866587837380e-04,
+                                                          
+        -1.1928578703942408e-01,  9.2782184856526548e-03, -6.8869681257707843e-02, -4.6181363305459550e-02,
+         5.3567819402917122e-03, -7.7423245368986879e-03, -2.6662822535950936e-02, -4.4700331555318972e-03,
+        -8.6910597817874607e-02,  2.8632150910907813e-03, -5.0177857045581288e-02,  2.0451367188368066e-02,
+         1.6530780035890727e-03, -6.7375745464186710e-04,  1.1807602351500225e-02, -3.8899404780600724e-04,
+        -1.6064983708874006e-02,  5.2925080425480250e-04, -9.2751226688453908e-03,  2.0451367188367962e-02,
+         3.0556309430533808e-04, -6.7375745464186331e-04,  1.1807602351500130e-02, -3.8899404780599808e-04,
+         5.4780630400126623e-02, -1.8047134825811763e-03,  3.1627611707890503e-02,  2.0451367188367844e-02,
+        -1.0419518149783942e-03, -6.7375745464185745e-04,  1.1807602351500053e-02, -3.8899404780599412e-04,
+         1.2562624450912718e-01, -4.1386777694171518e-03,  7.2530346084626315e-02,  2.0451367188367760e-02,
+        -2.3894667242621149e-03, -6.7375745464186157e-04,  1.1807602351499998e-02, -3.8899404780599623e-04,
+         1.9647185861812774e-01, -6.4726420562531166e-03,  1.1343308046136219e-01,  2.0451367188367618e-02,
+        -3.7369816335458337e-03, -6.7375745464185604e-04,  1.1807602351499856e-02, -3.8899404780597677e-04,
+         2.6731747272712841e-01, -8.8066063430890917e-03,  1.5433581483809802e-01,  2.0451367188367504e-02,
+        -5.0844965428295582e-03, -6.7375745464184748e-04,  1.1807602351499857e-02, -3.8899404780599114e-04,
+         3.3816308683612889e-01, -1.1140570629925068e-02,  1.9523854921483388e-01,  2.0451367188367358e-02,
+        -6.4320114521133013e-03, -6.7375745464184401e-04,  1.1807602351499738e-02, -3.8899404780597807e-04,
+                                                          
+        -9.0256922639355669e-02,  7.4816041899959870e-03, -5.2109858582059222e-02, -4.9944638029515029e-02,
+         4.3195061930644124e-03,  5.5695968619307399e-03, -2.8835550210918881e-02,  3.2156082475134026e-03,
+        -7.0918099467613696e-02,  6.3700581364470044e-03, -4.0944583818043473e-02,  1.6688092464312621e-02,
+         3.6777547798312509e-03, -1.4989702203260580e-03,  9.6348746765322780e-03, -8.6543086021248668e-04,
+        -1.3108851408420578e-02,  1.1774729751721309e-03, -7.5683988894184482e-03,  1.6688092464312531e-02,
+         6.7981433917914131e-04, -1.4989702203260537e-03,  9.6348746765322121e-03, -8.6543086021248039e-04,
+         4.4700396650772564e-02, -4.0151121861027438e-03,  2.5807786039206568e-02,  1.6688092464312434e-02,
+        -2.3181261014729678e-03, -1.4989702203260457e-03,  9.6348746765321479e-03, -8.6543086021247551e-04,
+         1.0250964470996564e-01, -9.2076973473776153e-03,  5.9183970967831553e-02,  1.6688092464312344e-02,
+        -5.3160665421250692e-03, -1.4989702203260431e-03,  9.6348746765320993e-03, -8.6543086021247031e-04,
+         1.6031889276915876e-01, -1.4400282508652482e-02,  9.2560155896456567e-02,  1.6688092464312219e-02,
+        -8.3140069827771709e-03, -1.4989702203260405e-03,  9.6348746765320039e-03, -8.6543086021246185e-04,
+         2.1812814082835194e-01, -1.9592867669927353e-02,  1.2593634082508157e-01,  1.6688092464312139e-02,
+        -1.1311947423429281e-02, -1.4989702203260298e-03,  9.6348746765319727e-03, -8.6543086021246326e-04,
+         2.7593738888754493e-01, -2.4785452831202218e-02,  1.5931252575370652e-01,  1.6688092464312014e-02,
+        -1.4309887864081385e-02, -1.4989702203260164e-03,  9.6348746765319068e-03, -8.6543086021245220e-04,
+                                                          
+        -5.8558107995076741e-02,  1.0819714977870510e-02, -3.3808539414192727e-02, -3.3336939184891466e-02,
+         6.2467653550285626e-03,  4.0188625366329098e-03, -1.9247090812355247e-02,  2.3202913673611098e-03,
+        -4.6332036744757193e-02,  7.8247117949072180e-03, -2.6749813886689226e-02,  1.0902623153480511e-02,
+         4.5175994611209259e-03, -1.8412720436711764e-03,  6.2946324125350284e-03, -1.0630589100648897e-03,
+        -8.5642422695474067e-03,  1.4463583345179297e-03, -4.9445675797283829e-03,  1.0902623153480446e-02,
+         8.3505537377858677e-04, -1.8412720436711710e-03,  6.2946324125349841e-03, -1.0630589100648835e-03,
+         2.9203552205662404e-02, -4.9319951258713617e-03,  1.6860678727232462e-02,  1.0902623153480373e-02,
+        -2.8474887135637528e-03, -1.8412720436711636e-03,  6.2946324125349408e-03, -1.0630589100648780e-03,
+         6.6971346680872179e-02, -1.1310348586260647e-02,  3.8665925034193284e-02,  1.0902623153480289e-02,
+        -6.5300328009060870e-03, -1.8412720436711597e-03,  6.2946324125349000e-03, -1.0630589100648752e-03,
+         1.0473914115608197e-01, -1.7688702046649935e-02,  6.0471171341154130e-02,  1.0902623153480199e-02,
+        -1.0212576888248429e-02, -1.8412720436711517e-03,  6.2946324125348506e-03, -1.0630589100648624e-03,
+         1.4250693563129183e-01, -2.4067055507039227e-02,  8.2276417648114969e-02,  1.0902623153480149e-02,
+        -1.3895120975590763e-02, -1.8412720436711443e-03,  6.2946324125348081e-03, -1.0630589100648648e-03,
+         1.8027473010650152e-01, -3.0445408967428502e-02,  1.0408166395507577e-01,  1.0902623153480041e-02,
+        -1.7577665062933099e-02, -1.8412720436711389e-03,  6.2946324125347829e-03, -1.0630589100648566e-03,
+                                                          
+        -2.3652444410766166e-02,  9.3330792887737161e-03, -1.3655745147548512e-02, -2.0295051641274243e-02,
+         5.3884558397416238e-03,  3.5108747474153165e-03, -1.1717353528307028e-02,  2.0270044805112890e-03,
+        -2.1062278650861084e-02,  6.7647898429604248e-03, -1.2160312248821570e-02,  4.9562700674910870e-03,
+         3.9056532368444519e-03, -1.5918565112213788e-03,  2.8615038576424623e-03, -9.1905878526492464e-04,
+        -3.8932555050065249e-03,  1.2504371313709281e-03, -2.2477721138395197e-03,  4.9562700674910401e-03,
+         7.2194021440171005e-04, -1.5918565112213727e-03,  2.8615038576424393e-03, -9.1905878526491835e-04,
+         1.3275767640848053e-02, -4.2639155802185694e-03,  7.6647680211425293e-03,  4.9562700674909976e-03,
+        -2.4617728080410309e-03, -1.5918565112213643e-03,  2.8615038576424133e-03, -9.1905878526491358e-04,
+         3.0444790786702609e-02, -9.7782682918080652e-03,  1.7577308156124568e-02,  4.9562700674909361e-03,
+        -5.6454858304837699e-03, -1.5918565112213565e-03,  2.8615038576423899e-03, -9.1905878526490664e-04,
+         4.7613813932557182e-02, -1.5292621003397559e-02,  2.7489848291106629e-02,  4.9562700674908727e-03,
+        -8.8291988529265123e-03, -1.5918565112213502e-03,  2.8615038576423760e-03, -9.1905878526489938e-04,
+         6.4782837078411787e-02, -2.0806973714987066e-02,  3.7402388426088666e-02,  4.9562700674908502e-03,
+        -1.2012911875369252e-02, -1.5918565112213396e-03,  2.8615038576423270e-03, -9.1905878526489797e-04,
+         8.1951860224266287e-02, -2.6321326426576551e-02,  4.7314928561070724e-02,  4.9562700674907565e-03,
+        -1.5196624897811980e-02, -1.5918565112213333e-03,  2.8615038576423326e-03, -9.1905878526488875e-04,
+                                                          
+        -3.7435384457706450e-03,  2.1613329293873962e-03, -2.1613329293874040e-03, -7.1070190998701816e-03,
+         1.2478461485902145e-03,  4.1032393904458621e-03, -4.1032393904458613e-03,  2.3690063666233913e-03,
+        -4.6726594701638740e-03,  2.6977612029305646e-03, -2.6977612029305677e-03,  1.0995468558481671e-03,
+         1.5575531567212943e-03, -6.3482367321053882e-04,  6.3482367321053459e-04, -3.6651561861605436e-04,
+        -8.6371743090069562e-04,  4.9866749123429245e-04, -4.9866749123429516e-04,  1.0995468558481431e-03,
+         2.8790581030023514e-04, -6.3482367321053210e-04,  6.3482367321053307e-04, -3.6651561861604824e-04,
+         2.9452246083624873e-03, -1.7004262204619832e-03,  1.7004262204619765e-03,  1.0995468558481299e-03,
+        -9.8174153612082390e-04, -6.3482367321052331e-04,  6.3482367321052440e-04, -3.6651561861604314e-04,
+         6.7541666476256586e-03, -3.8995199321582566e-03,  3.8995199321582427e-03,  1.0995468558480971e-03,
+        -2.2513888825418833e-03, -6.3482367321051475e-04,  6.3482367321052418e-04, -3.6651561861603663e-04,
+         1.0563108686888851e-02, -6.0986136438545271e-03,  6.0986136438545184e-03,  1.0995468558480518e-03,
+        -3.5210362289629427e-03, -6.3482367321051041e-04,  6.3482367321053936e-04, -3.6651561861602774e-04,
+         1.4372050726152056e-02, -8.2977073555508037e-03,  8.2977073555507794e-03,  1.0995468558480691e-03,
+        -4.7906835753840022e-03, -6.3482367321049816e-04,  6.3482367321049653e-04, -3.6651561861602606e-04,
+         1.8180992765415183e-02, -1.0496801067247074e-02,  1.0496801067247093e-02,  1.0995468558479870e-03,
+        -6.0603309218050499e-03, -6.3482367321049653e-04,  6.3482367321053340e-04, -3.6651561861601522e-04,
+      };
+      long i = 0;
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &localRange);
+      while (gkyl_range_iter_next(&iter)) {
+        long loc = gkyl_range_idx(&localRange, iter.idx);
+        const double *phi_p = gkyl_array_cfetch(phi_ho, loc);
+        if (iter.idx[1] == 3) {
+          // Only check one cell in z:
+          for (int m=0; m<basis.num_basis; m++) {
+            TEST_CHECK( gkyl_compare(sol[i], phi_p[m], 1e-10) );
+            TEST_MSG("Expected: %.13e in cell (%d,%d,%d)", sol[i], iter.idx[0], iter.idx[1], iter.idx[2]);
+            TEST_MSG("Produced: %.13e", phi_p[m]);
+            i += 1;
+          }
+        }
+      }
+    } else {
+      TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+      TEST_MSG("This BC combination is not available");
+    }
+  } else {
+    TEST_CHECK( gkyl_compare(1., 2., 1e-10) );
+    TEST_MSG("This poly_order is not available");
+  }
+
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, rho_ho, "ctest_fem_poisson_perp_3x_rho_1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phi_ho, "ctest_fem_poisson_perp_3x_phi_8x8x8_p1.gkyl");
+//  gkyl_grid_sub_array_write(&grid, &localRange, 0, phisol_ho, "ctest_fem_poisson_perp_3x_phisol_8x8x8_p1.gkyl");
+
+  gkyl_fem_poisson_perp_release(poisson);
+  gkyl_proj_on_basis_release(projob);
+  gkyl_proj_on_basis_release(projob_sol);
+  gkyl_array_release(rho);
+  gkyl_array_release(eps);
+  gkyl_array_release(phi);
+  gkyl_array_release(phisol_ho);
+  gkyl_array_release(rho_ho);
+  gkyl_array_release(phi_ho);
+}
+
 void test_2x_p1_periodic_consteps() {
   int cells[] = {8,8};
   struct gkyl_poisson_bc bc_tv;
@@ -3147,6 +4054,46 @@ void test_2x_p1_dirichletx_neumannx_consteps() {
   bc_tv.lo_value[0].v[0] = 0.;
   bc_tv.up_value[0].v[0] = 0.;
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_neumannx_dirichletx_consteps_update() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_update(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_dirichletx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_neumannx_dirichletx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, false);
+}
+
+void test_2x_p1_dirichletx_neumannx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, false);
 }
 
 void test_3x_p1_periodicx_periodicy_consteps() {
@@ -3265,6 +4212,32 @@ void test_3x_p1_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, false);
+}
+
+void test_3x_p1_dirichletx_dirichlety_consteps_bias() {
+  int cells[] = {8,8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, false);
+}
+
+void test_3x_p1_dirichletx_periodicy_consteps_bias() {
+  int cells[] = {8,8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, false);
 }
 
 void test_3x_p2_periodicx_periodicy_consteps() {
@@ -3424,6 +4397,46 @@ void gpu_test_2x_p1_dirichletx_neumannx_consteps() {
   test_fem_poisson_perp_consteps_2x(1, cells, bc_tv, true);
 }
 
+void gpu_test_2x_p1_neumannx_dirichletx_consteps_update() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_update(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_dirichletx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_neumannx_dirichletx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
+}
+
+void gpu_test_2x_p1_dirichletx_neumannx_consteps_bias() {
+  int cells[] = {8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_NEUMANN;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_2x_bias(1, cells, bc_tv, true);
+}
+
 void gpu_test_3x_p1_periodicx_periodicy_consteps() {
   int cells[] = {8,8,8};
   struct gkyl_poisson_bc bc_tv;
@@ -3540,6 +4553,32 @@ void gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps() {
   bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_fem_poisson_perp_consteps_3x(1, cells, bc_tv, true);
+}
+
+void gpu_test_3x_p1_dirichletx_dirichlety_consteps_bias() {
+  int cells[] = {8,8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
+  bc_tv.up_value[1].v[0] = 0.;
+  test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, true);
+}
+
+void gpu_test_3x_p1_dirichletx_periodicy_consteps_bias() {
+  int cells[] = {8,8,8};
+  struct gkyl_poisson_bc bc_tv;
+  bc_tv.lo_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.up_type[0] = GKYL_POISSON_DIRICHLET;
+  bc_tv.lo_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.up_type[1] = GKYL_POISSON_PERIODIC;
+  bc_tv.lo_value[0].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  test_fem_poisson_perp_consteps_3x_bias(1, cells, bc_tv, true);
 }
 
 void gpu_test_3x_p2_periodicx_periodicy_consteps() {
@@ -3667,6 +4706,10 @@ TEST_LIST = {
   { "test_2x_p1_dirichletx", test_2x_p1_dirichletx_consteps },
   { "test_2x_p1_neumannx_dirichletx", test_2x_p1_neumannx_dirichletx_consteps },
   { "test_2x_p1_dirichletx_neumannx", test_2x_p1_dirichletx_neumannx_consteps },
+  { "test_2x_p1_neumannx_dirichletx_update", test_2x_p1_neumannx_dirichletx_consteps_update },
+  { "test_2x_p1_dirichletx_bias", test_2x_p1_dirichletx_consteps_bias },
+  { "test_2x_p1_neumannx_dirichletx_bias", test_2x_p1_neumannx_dirichletx_consteps_bias },
+  { "test_2x_p1_dirichletx_neumannx_bias", test_2x_p1_dirichletx_neumannx_consteps_bias },
 
   { "test_3x_p1_periodicx_periodicy", test_3x_p1_periodicx_periodicy_consteps },
   { "test_3x_p1_dirichletx_dirichlety", test_3x_p1_dirichletx_dirichlety_consteps },
@@ -3677,6 +4720,8 @@ TEST_LIST = {
   { "test_3x_p1_neumannx_dirichletx_dirichlety", test_3x_p1_neumannx_dirichletx_dirichlety_consteps },
   { "test_3x_p1_dirichletx_neumannx_dirichlety", test_3x_p1_dirichletx_neumannx_dirichlety_consteps },
   { "test_3x_p1_neumannx_dirichletx_periodicy", test_3x_p1_neumannx_dirichletx_periodicy_consteps },
+  { "test_3x_p1_dirichletx_dirichlety_bias", test_3x_p1_dirichletx_dirichlety_consteps_bias },
+  { "test_3x_p1_dirichletx_periodicy_bias", test_3x_p1_dirichletx_periodicy_consteps_bias },
 //  { "test_3x_p2_periodicx_periodicy", test_3x_p2_periodicx_periodicy_consteps },
 //  { "test_3x_p2_dirichletx_dirichlety", test_3x_p2_dirichletx_dirichlety_consteps },
 //  { "test_3x_p2_dirichletx_periodicy", test_3x_p2_dirichletx_periodicy_consteps },
@@ -3691,9 +4736,12 @@ TEST_LIST = {
   { "gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx_consteps },
   { "gpu_test_2x_p1_neumannx_dirichletx", gpu_test_2x_p1_neumannx_dirichletx_consteps },
   { "gpu_test_2x_p1_dirichletx_neumannx", gpu_test_2x_p1_dirichletx_neumannx_consteps },
+  { "gpu_test_2x_p1_neumannx_dirichletx_update", gpu_test_2x_p1_neumannx_dirichletx_consteps_update },
+  { "gpu_test_2x_p1_dirichletx_bias", gpu_test_2x_p1_dirichletx_consteps_bias },
+  { "gpu_test_2x_p1_neumannx_dirichletx_bias", gpu_test_2x_p1_neumannx_dirichletx_consteps_bias },
+  { "gpu_test_2x_p1_dirichletx_neumannx_bias", gpu_test_2x_p1_dirichletx_neumannx_consteps_bias },
 
   { "gpu_test_3x_p1_periodicx_periodicy", gpu_test_3x_p1_periodicx_periodicy_consteps },
-  { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
   { "gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps },
   { "gpu_test_3x_p1_dirichletx_periodicy", gpu_test_3x_p1_dirichletx_periodicy_consteps },
   { "gpu_test_3x_p1_periodicx_dirichlety", gpu_test_3x_p1_periodicx_dirichlety_consteps },
@@ -3702,6 +4750,8 @@ TEST_LIST = {
   { "gpu_test_3x_p1_neumannx_dirichletx_dirichlety", gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps },
   { "gpu_test_3x_p1_dirichletx_neumannx_dirichlety", gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps },
   { "gpu_test_3x_p1_neumannx_dirichletx_periodicy", gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps },
+  { "gpu_test_3x_p1_dirichletx_dirichlety_bias", gpu_test_3x_p1_dirichletx_dirichlety_consteps_bias },
+  { "gpu_test_3x_p1_dirichletx_periodicy_bias", gpu_test_3x_p1_dirichletx_periodicy_consteps_bias },
 //  { "gpu_test_3x_p2_periodicx_periodicy", gpu_test_3x_p2_periodicx_periodicy_consteps },
 //  { "gpu_test_3x_p2_dirichletx_dirichlety", gpu_test_3x_p2_dirichletx_dirichlety_consteps },
 //  { "gpu_test_3x_p2_dirichletx_periodicy", gpu_test_3x_p2_dirichletx_periodicy_consteps },
