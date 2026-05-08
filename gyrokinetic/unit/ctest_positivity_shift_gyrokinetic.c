@@ -9,6 +9,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_util.h>
 #include <gkyl_array_rio.h>
@@ -53,6 +54,12 @@ void eval_bfield_1x(double t, const double *xn, double* restrict fout, void *ctx
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = B0;
+}
+
+void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  struct test_ctx *tctx = ctx;
+  fout[0] = tctx->B0;
 }
 
 void eval_distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
@@ -149,7 +156,7 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu)
     bmag_ho = mkarr(false, bmag->ncomp, bmag->size);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
+    poly_order+1, 1, eval_bmag_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
@@ -164,6 +171,8 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -172,6 +181,7 @@ test_1x2v(int poly_order, bool use_gpu)
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -280,6 +290,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   gkyl_array_release(bmag);
   gkyl_array_release(distf);
+  gkyl_array_release(deltaf);
   gkyl_array_release(intmom_grid);
   gkyl_array_release(ps_intmom_grid);
   gkyl_array_release(ps_delta_m0);
@@ -297,6 +308,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_positivity_shift_gyrokinetic_release(pos_shift);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void test_1x2v_ho()

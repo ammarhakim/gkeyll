@@ -221,14 +221,31 @@ local function query_action(args, name)
       return true
    end
 
-   if tonumber(args.test) > 0 then
-      -- Print the full run log for a single test.
-      local tidx = math.min(args.test, #dbData)
-      print("=== ")
-      print(string.format("=== Log for test %s [%s]",
-         dbData[tidx].name, dbData[tidx].test_type))
-      print("=== ")
-      print(dbData[tidx].runlog)
+   if args.test and args.test ~= "" then
+      -- --test accepts either a row number (integer) or a name / substring.
+      local matches = {}
+      local asNum = tonumber(args.test)
+      if asNum and asNum > 0 then
+         -- Numeric: index directly into the result list.
+         local tidx = math.min(asNum, #dbData)
+         matches = { dbData[tidx] }
+      else
+         -- Name / substring: collect all tests whose stored name contains the value.
+         for _, d in ipairs(dbData) do
+            if string.find(d.name, args.test, 1, true) then
+               table.insert(matches, d)
+            end
+         end
+         if #matches == 0 then
+            print(string.format("No test matching '%s' found in run %d.", args.test, args.id))
+         end
+      end
+      for _, d in ipairs(matches) do
+         print("=== ")
+         print(string.format("=== Log for test %s [%s]", d.name, d.test_type))
+         print("=== ")
+         print(d.runlog)
+      end
    elseif args.comma_list then
       -- Comma-separated list of matching test names.
       for _, d in pairs(dbData) do
@@ -363,7 +380,9 @@ c_query:flag("-p --pass-only", "Show only passed tests", false)
 c_query:flag("-g --gpu-fail-only",
    "Show only tests where GPU failed but CPU passed", false)
 c_query:flag("-l --comma-list", "Output test names as a comma-separated list", false)
-c_query:option("-t --test", "Print the full run log for this test number", 0)
+c_query:option("-t --test",
+   "Print the full run log for a test. Accepts a row number (from the ID column)\n"
+   .. "or a name / substring (e.g. rt_gk_sheath_2x2v_p1).", "")
 c_query:flag("--net-time", "Print total wall-clock time for the run", false)
 
 -- 'delete' command.

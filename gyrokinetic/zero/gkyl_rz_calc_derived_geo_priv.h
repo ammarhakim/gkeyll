@@ -3,7 +3,9 @@
 #include <gkyl_rz_calc_derived_geo_kernels.h>
 #include <assert.h>
 
-typedef void (*rz_derived_geo_kernel)(const double *gij, const double *bmag, const double *J, double *Jinv, double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *gxxJ, double *gxyJ, double *gyyJ, double *gxzJ, double *eps2);
+typedef void (*rz_derived_geo_kernel)(const double *gij, const double *bmag, const double *J, double *Jinv,
+  double *grij, double *bi, double *cmag, double *Jtot, double *Jtotinv, double *gxxJ, double *gxyJ, double *gyyJ,
+  double *gxzJ, double *eps2);
 
 typedef struct { rz_derived_geo_kernel kernels[3]; } rz_derived_geo_kernel_list;  // For use in kernel tables.
 typedef struct { rz_derived_geo_kernel_list list[4]; } rz_derived_geo_node_list;  // For use in kernel tables.

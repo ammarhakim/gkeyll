@@ -29,7 +29,7 @@ typedef struct gkyl_fem_poisson gkyl_fem_poisson;
  * @param grid Grid object
  * @param basis Basis functions of the DG field.
  * @param bcs Boundary conditions.
- * @param bias List of points (1D), lines (2D), planes (3D) to bias.
+ * @param bias_plane_list List of points (1D), lines (2D), planes (3D) to bias.
  * @param epsilon_var Permittivity tensor. Defined over the extended range.
  * @param kSq Squared wave number (factor multiplying phi in Helmholtz eq).
  * @param is_epsilon_const =true if permittivity is constant in space.
