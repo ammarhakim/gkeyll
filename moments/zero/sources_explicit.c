@@ -3281,6 +3281,7 @@ explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em, doub
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
     const double q = mom_em->param[i].charge;
+    const double m = mom_em->param[i].mass;
 
     double rho = f[0];
 
@@ -3295,9 +3296,9 @@ explicit_e_field_source_update_euler(const gkyl_moment_em_coupling* mom_em, doub
       double vy = uy / gamma;
       double vz = uz / gamma;
 
-      e_field_new[0] += dt * (-(1.0 / epsilon0) * q * rho * vx);
-      e_field_new[1] += dt * (-(1.0 / epsilon0) * q * rho * vy);
-      e_field_new[2] += dt * (-(1.0 / epsilon0) * q * rho * vz);
+      e_field_new[0] += dt * (-(1.0 / epsilon0) * (q/m) * rho * vx);
+      e_field_new[1] += dt * (-(1.0 / epsilon0) * (q/m) * rho * vy);
+      e_field_new[2] += dt * (-(1.0 / epsilon0) * (q/m) * rho * vz);
     }
   }
 }

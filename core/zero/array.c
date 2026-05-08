@@ -41,6 +41,7 @@ g_array_free(void* ptr)
 // size in bytes for various data-types
 static const size_t array_elem_size[] = {
   [GKYL_INT] = sizeof(int),
+  [GKYL_LONG] = sizeof(long),
   [GKYL_FLOAT] = sizeof(float),
   [GKYL_DOUBLE] = sizeof(double),
   [GKYL_USER] = 1,
@@ -109,6 +110,10 @@ array_new(enum gkyl_elem_type type, size_t ncomp, size_t size, bool is_alloc_ext
     // Zero out array elements (not for user-defined type).
     if (type == GKYL_INT) {
       int *dat_p = arr->data;
+      set_arr_dat_zero_ho(arr, dat_p);
+    }
+    else if (type == GKYL_LONG) {
+      long *dat_p = arr->data;
       set_arr_dat_zero_ho(arr, dat_p);
     }
     else if (type == GKYL_FLOAT) {
@@ -297,6 +302,11 @@ gkyl_array_cu_dev_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
     set_arr_dat_zero_dev(arr, data_ho);
     gkyl_free(data_ho);
   }
+  else if (type == GKYL_LONG) {
+    long *data_ho = gkyl_malloc(arr->size*arr->esznc);
+    set_arr_dat_zero_dev(arr, data_ho);
+    gkyl_free(data_ho);
+  }
   else if (type == GKYL_FLOAT) {
     float *data_ho = gkyl_malloc(arr->size*arr->esznc);
     set_arr_dat_zero_dev(arr, data_ho);
@@ -342,6 +352,10 @@ gkyl_array_cu_host_new(enum gkyl_elem_type type, size_t ncomp, size_t size)
   // Zero out array elements (not for user-defined type).
   if (type == GKYL_INT) {
     int *dat_p = arr->data;
+    set_arr_dat_zero_ho(arr, dat_p);
+  }
+  else if (type == GKYL_LONG) {
+    long *dat_p = arr->data;
     set_arr_dat_zero_ho(arr, dat_p);
   }
   else if (type == GKYL_FLOAT) {

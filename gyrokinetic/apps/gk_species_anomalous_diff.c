@@ -40,13 +40,14 @@ gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species 
   struct gkyl_array *arrout, struct gkyl_array *arrout_host)
 {
   // Write out a conf-space array.
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = stime,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", stime);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
   // Construct the file handles for collision frequency and primitive moments.
   const char *fmt = "%s-%s_%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, file_suffix, frame);
@@ -71,7 +72,7 @@ gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species 
   }
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_ho, fileNm);
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   gkyl_array_release(arr_ho);
 }
 
@@ -120,11 +121,36 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
     int num_periodic_dir = app->num_periodic_dir;
     gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
       num_periodic_dir, app->periodic_dirs, gkad->diffD); 
+    // ABSORB and FIXED_FUNC BCs need to fill the ghost cell. MF 2025/11/03: The
+    // only sensible way to fill the ghost cell is to use the value at the
+    // boundary.
+    for (int b=0; b<2; ++b) {
+      if ((b == 0 && ((gks->lower_bc[0].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) || (gks->lower_bc[0].type == GKYL_BC_GK_SPECIES_ABSORB))) || 
+          (b == 1 && ((gks->upper_bc[0].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) || (gks->upper_bc[0].type == GKYL_BC_GK_SPECIES_ABSORB))) ) {
+        int dir = 0;
+        enum gkyl_edge_loc edge = b==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
+        struct gkyl_range *skin_r = b==0? &app->local_lower_skin[dir] : &app->local_upper_skin[dir];
+        struct gkyl_range *ghost_r = b==0? &app->local_lower_ghost[dir] : &app->local_upper_ghost[dir];
+
+        long vol = skin_r->volume;
+        long buff_sz = 1;
+        buff_sz = buff_sz > vol ? buff_sz : vol;
+        struct gkyl_array *bc_buffer = mkarr(app->use_gpu, app->basis.num_basis, buff_sz);
+
+        struct gkyl_bc_basic_gyrokinetic *gfss_bc_op = gkyl_bc_basic_gyrokinetic_new(dir, edge,
+          GKYL_BC_GK_FIELD_BOUNDARY_VALUE, app->basis_on_dev, skin_r, ghost_r, app->basis.num_basis, app->cdim, app->use_gpu);
+        gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, bc_buffer, gkad->diffD);
+        gkyl_bc_basic_gyrokinetic_advance(gfss_bc_op, bc_buffer, app->gk_geom->geo_int.jacobgeo_inv);
+
+        gkyl_bc_basic_gyrokinetic_release(gfss_bc_op);
+        gkyl_array_release(bc_buffer);
+      }
+    }
     gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, gkad->diffD);
 
     // Create solver.
     gkad->slvr = gkyl_dg_updater_gk_anomalous_diffusion_new(&gks->grid, &gks->basis, &app->basis,
-      &app->local, gks->lower_bc[0].type, gks->upper_bc[0].type, gks->info.skip_cell_threshold,
+      &app->local, gks->lower_bc[0].type, gks->upper_bc[0].type,
       gkad->diffD, app->gk_geom->geo_int.jacobgeo_inv, app->use_gpu);
 
     if (gkad->write_diagnostics) {

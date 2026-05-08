@@ -18,7 +18,6 @@ gkyl_gk_anomalous_diffusion_free(const struct gkyl_ref_count *ref)
     struct gk_anomalous_diffusion *diffusion = container_of(base->on_dev, struct gk_anomalous_diffusion, eqn);
     gkyl_cu_free(diffusion);
   }
-  
   struct gk_anomalous_diffusion *diffusion = container_of(base, struct gk_anomalous_diffusion, eqn);
   gkyl_free(diffusion);
 }
@@ -40,12 +39,11 @@ gkyl_gk_anomalous_diffusion_set_auxfields(const struct gkyl_dg_eqn *eqn, struct 
 
 struct gkyl_dg_eqn*
 gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper,
-  double skip_cell_threshold, bool use_gpu)
+  const struct gkyl_range *conf_range, enum gkyl_gyrokinetic_bc_type bc_x_lower, enum gkyl_gyrokinetic_bc_type bc_x_upper, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper, skip_cell_threshold);
+    return gkyl_gk_anomalous_diffusion_cu_dev_new(basis, cbasis, conf_range, bc_x_lower, bc_x_upper);
 #endif
   
   struct gk_anomalous_diffusion *diffusion = gkyl_malloc(sizeof(struct gk_anomalous_diffusion));
@@ -54,11 +52,6 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
   int vdim = basis->ndim - cdim;
   int pdim = cdim + vdim;
   int poly_order = cbasis->poly_order;
-
-  if (skip_cell_threshold > 0.0)
-    diffusion->skip_cell_thresh = skip_cell_threshold * pow(sqrt(2.0), cdim + vdim);
-  else
-    diffusion->skip_cell_thresh = -1.0;
 
   const gkyl_gk_anomalous_diffusion_vol_kern_list *vol_kernels;
   const gkyl_gk_anomalous_diffusion_surf_kern_list *surfx_kernels;
@@ -70,22 +63,20 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
   //   boundary_diag: local or recovery
   // MF 2025/09/10: as of now these options are meant for (here
   // N/A means not applicable):
-  //            bound_surf  bound_diag  hyper_dg-zero_flux
-  // SKIP:      N/A         recovery    no
-  // PERIODIC:  N/A         N/A         no
-  // ZERO_FLUX: zero_flux   N/A         yes
-  // ELSE:      local       local       yes
+  //             bound_surf  bound_diag  hyper_dg-zero_flux
+  // SKIP:       N/A         recovery    no
+  // ABSORB:     N/A         N/A         no
+  // PERIODIC:   N/A         N/A         no
+  // FIXED_FUNC: N/A         N/A         no
+  // ZERO_FLUX:  zero_flux   N/A         yes
+  // ELSE:       local       local       yes
 
   switch (cbasis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels            = ser_vol_kernels;
       surfx_kernels          = ser_gyrokinetic_surfx_kernels;
-      if (bc_x_lower == GKYL_BC_GK_SKIP) {
-        // Boundary surf kernel not used.
-        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
-        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
-      }
-      else if (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC) {
+      if ((bc_x_lower == GKYL_BC_GK_SKIP) ||
+          (bc_x_lower == GKYL_BC_GK_SPECIES_PERIODIC)) {
         // Boundary surf and diag kernels not used.
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
@@ -95,17 +86,19 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
         // Boundary diag kernel not used.
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
       }
+      else if ((bc_x_lower == GKYL_BC_GK_SPECIES_ABSORB) ||
+               (bc_x_lower == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
+        // Boundary surf kernel not used.
+        boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_zeroflux_kernels;
+        boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundrecovery_kernels;
+      }
       else {
         boundary_surfx_lower_kernels = ser_gyrokinetic_boundary_surfx_lower_boundlocal_kernels;
         boundary_diagx_lower_kernels = ser_gyrokinetic_boundary_diagx_lower_boundlocal_kernels;
       }
 
-      if (bc_x_upper == GKYL_BC_GK_SKIP) {
-        // Boundary surf kernel not used.
-        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
-        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
-      }
-      else if (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC) {
+      if ((bc_x_upper == GKYL_BC_GK_SKIP) ||
+          (bc_x_upper == GKYL_BC_GK_SPECIES_PERIODIC)) {
         // Boundary surf and diag kernels not used.
         boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
         boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
@@ -113,6 +106,12 @@ gkyl_gk_anomalous_diffusion_new(const struct gkyl_basis *basis, const struct gky
       else if (bc_x_upper == GKYL_BC_GK_SPECIES_ZERO_FLUX) {
         boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
         // Boundary diag kernel not used.
+        boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
+      }
+      else if ((bc_x_upper == GKYL_BC_GK_SPECIES_ABSORB) ||
+               (bc_x_upper == GKYL_BC_GK_SPECIES_FIXED_FUNC)) {
+        // Boundary surf kernel not used.
+        boundary_surfx_upper_kernels = ser_gyrokinetic_boundary_surfx_upper_zeroflux_kernels;
         boundary_diagx_upper_kernels = ser_gyrokinetic_boundary_diagx_upper_boundrecovery_kernels;
       }
       else {

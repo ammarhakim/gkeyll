@@ -326,7 +326,6 @@ main(int argc, char **argv)
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
-    .name = "gk_leaky_bag_1x2v_p1",
 
     .cdim = ctx.cdim,
     .lower = { -ctx.Lz/2.0 },
@@ -338,7 +337,7 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = { 0.0, 0.0 },
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
@@ -361,6 +360,8 @@ main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
@@ -373,7 +374,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

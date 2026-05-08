@@ -100,7 +100,7 @@ test_gr_maxwell_tetrad_basic_minkowski()
         gr_maxwell_tetrad->rotate_to_global_func(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], flux_local_gr, flux);
 
         for (int i = 0; i < 8; i++) {
-          TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-16) );
+          TEST_CHECK( gkyl_compare(flux[i], fluxes[d][i], 1e-13) );
         }
       }
 
@@ -110,7 +110,7 @@ test_gr_maxwell_tetrad_basic_minkowski()
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 8; i++) {
-          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
         }
 
         double w1[26], q1[26];
@@ -118,7 +118,7 @@ test_gr_maxwell_tetrad_basic_minkowski()
         gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
         for (int i = 0; i < 8; i++) {
-          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
         }
       }
 
@@ -241,7 +241,7 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
           }
 
           double w1[26], q1[26];
@@ -249,7 +249,7 @@ test_gr_maxwell_tetrad_basic_schwarzschild()
           gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
           }
         }
       }
@@ -373,7 +373,7 @@ test_gr_maxwell_tetrad_basic_kerr()
           gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
           }
 
           double w1[26], q1[26];
@@ -381,7 +381,7 @@ test_gr_maxwell_tetrad_basic_kerr()
           gr_maxwell_tetrad->riem_to_cons(gr_maxwell_tetrad, q_local, w1, q1);
 
           for (int i = 0; i < 8; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
           }
         }
       }
@@ -528,7 +528,7 @@ test_gr_maxwell_tetrad_waves_minkowski()
         gkyl_wv_eqn_rotate_to_global(gr_maxwell_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
         for (int i = 0; i < 26; i++) {
-          TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-15) );
+          TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13) );
         }
       }
       

@@ -10,6 +10,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
@@ -205,14 +206,17 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0, 0.0},
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
     .bfield_func = bfield_func_3x, // magnetic field magnitude
     .bfield_ctx = &ctx,
+    .position_map = pmap,
     .grid = grid_conf,
     .local = local_conf,
     .local_ext = local_ext_conf,
@@ -379,10 +383,12 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   if (use_gpu) {
     gkyl_cu_free(bmag_max);
+    gkyl_cu_free(bmag_max_loc);
     gkyl_cu_free(phi_m);
   }
   else {
     gkyl_free(bmag_max);
+    gkyl_free(bmag_max_loc);
     gkyl_free(phi_m);
   }
   gkyl_array_release(phi); 
@@ -393,6 +399,7 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_loss_cone_mask_gyrokinetic_release(proj_mask);
   gkyl_velocity_map_release(gvm);
   gkyl_gk_geometry_release(gk_geom);
+  gkyl_position_map_release(pmap);
 
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {

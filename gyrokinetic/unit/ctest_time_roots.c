@@ -187,7 +187,7 @@ compare_quad_and_cub(void)
   double cpu_time_used;
 
   struct gkyl_efit_inp inp  = {
-    .filepath = "core/data/eqdsk/wham.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect =  true,
@@ -262,6 +262,7 @@ compare_quad_and_cub(void)
   double ratio = cubic_time/quad_time;
   //printf("Ratio of cubic to quadratic time = %g\n", ratio);
 
+  gkyl_proj_on_basis_release(projCub);
   gkyl_array_release(psi_cubic_DG);
   gkyl_efit_release(efit);
 

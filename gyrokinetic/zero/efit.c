@@ -14,14 +14,16 @@
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
+#include <ctype.h>
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
-  gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
+  gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
   up->filepath = inp->filepath;
+  get_stripped_filename(up->filepath, up->name);
 
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
   gkyl_cart_modal_serendip(&up->fluxbasis, 1, inp->flux_poly_order);
@@ -29,33 +31,51 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   
   // Check if file exists using gkyl_check_file_exists and handle error only on rank 0.
   if (!gkyl_check_file_exists(up->filepath)) {
-    fprintf(stderr, "Failed to open the eqdsk file: %s\n", up->filepath);
+    fprintf(stderr, "efit.c: Failed to open the eqdsk file: %s\n", up->filepath);
     assert(false);
   }
 
   FILE *ptr = fopen(up->filepath,"r"); 
 
-  // Get the dimensions
-  size_t status;
+  // Read the last two ints in the first line, assuming they are N_R and N_Z.
+  const int MAX_LINE_LENGTH = 256;
+  char first_line[MAX_LINE_LENGTH];
+  char *token;
+  if (fgets(first_line, sizeof(first_line), ptr) != NULL) {
+    // Remove potential newline character from the end of the line.
+    first_line[strcspn(first_line, "\n")] = 0;
 
-  char header[49];   // case in eqdsk header
-  int idum; // idum in eqdsk header
-  status = fscanf(ptr, "%48c%4d%4d%4d", header, &idum, &up->nr, &up->nz);
-  
-  // If the first 48 characters of the eqdsk file contain a newline, then the EQDSK file lacks a header.
-  if(strchr(header,'\n')!=NULL)
-  {
-      fprintf(stderr, "Warning: %s likely lacks a header on the first line and may not be parsed correctly. Parsed dimensions are (nr=%s,nz=%s)\n", up->filepath, up->nr, up->nz);
+    // Tokenize the string based on whitespace.
+    char temp_line[MAX_LINE_LENGTH];
+    strcpy(temp_line, first_line);
+    token = strtok(temp_line, " \t\r\n");
+    while (token != NULL) {
+      // Check if the token is a number.
+      int is_number = 1;
+      for (int i = 0; i < strlen(token); i++) {
+        if (!isdigit((unsigned char)token[i])) {
+          is_number = 0;
+          break;
+        }
+      }
+
+      if (is_number) {
+        // Store the last two integers.
+        up->nr = up->nz;
+        up->nz = atoi(token);
+      }
+
+      // Get the next token.
+      token = strtok(NULL, " \t\r\n");
+    }
   }
-  
+
   // Read the non-array parameters, all are doubles:
   // rdim,zdim,rcentr,rleft,zmid;
   // rmaxis,zmaxis,simag,sibry,bcentr;
   // current,simag,xdum,rmaxis,xdum;
   // zmaxis,xdum,sibry,xdum,xdum;
-  //double rdim, zdim, rcentr, rleft, zmid, rmaxis, zmaxis, simag, sibry, bcentr, current, xdum;
-
-  status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", 
+  size_t status = fscanf(ptr,"%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf%lf", 
     &up->rdim, &up->zdim, &up->rcentr, &up->rleft, &up->zmid, &up-> rmaxis, &up->zmaxis, 
     &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
     &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
@@ -235,10 +255,21 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
  
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
-  for (int i = up->nr-1; i>=0; i--){
-    fidx[0] = i;
-    double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
-    status = fscanf(ptr,"%lf", q_n);
+  int geqdsk_sign_convention = up->sibry > up->simag ? 0 : 1;
+  if (geqdsk_sign_convention) {
+    // psi increases toward magnetic axis.
+    for (int i = up->nr-1; i>=0; i--) {
+      fidx[0] = i;
+      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", q_n);
+    }
+  } else {
+    // psi increases away from magnetic axis.
+    for (int i = 0; i<up->nr; i++) {
+      fidx[0] = i;
+      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", q_n);
+    }
   }
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
     &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux, false);
@@ -346,8 +377,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   double Zxpt[num_max_xpts];
 
   up->num_xpts = find_xpts(up, Rxpt, Zxpt);
-  up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-  up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
+  up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
   for (int i = 0; i < up->num_xpts; i++) {
     up->Rxpt[i] = Rxpt[i];
     up->Zxpt[i] = Zxpt[i];
@@ -356,8 +387,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
-  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
-  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
+  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
   for (int i = 0; i < up->num_xpts_cubic; i++) {
     up->Rxpt_cubic[i] = Rxpt[i];
     up->Zxpt_cubic[i] = Zxpt[i];

@@ -54,7 +54,7 @@ test_map_1(void)
   TEST_CHECK( mpack_node_i64(fr_node) == 100 );
 
   mpack_node_t bs_node = mpack_node_map_cstr(root, "basis");
-  char *basis_str = mpack_node_cstr_alloc(bs_node, 128);
+  char *basis_str = mpack_node_cstr_alloc(bs_node, mpack_node_strlen(bs_node)+1);
   TEST_CHECK( strcmp("ms", basis_str) == 0 );
   MPACK_FREE(basis_str);
 

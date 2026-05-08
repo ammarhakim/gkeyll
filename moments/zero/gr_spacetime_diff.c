@@ -760,6 +760,25 @@ gkyl_gr_spatial_weyl_tensor_fd(const struct gkyl_gr_spacetime* spacetime, const 
       }
     }
   }
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        gkyl_free(spatial_riemann_tensor[i][j][k]);
+        gkyl_free(covariant_spatial_riemann_tensor[i][j][k]);
+      }
+      gkyl_free(spatial_riemann_tensor[i][j]);
+      gkyl_free(covariant_spatial_riemann_tensor[i][j]);
+    }
+    gkyl_free(spatial_riemann_tensor[i]);
+    gkyl_free(covariant_spatial_riemann_tensor[i]);
+    gkyl_free(spatial_metric_tensor[i]);
+    gkyl_free(spatial_ricci_tensor[i]);
+  }
+  gkyl_free(spatial_riemann_tensor);
+  gkyl_free(covariant_spatial_riemann_tensor);
+  gkyl_free(spatial_metric_tensor);
+  gkyl_free(spatial_ricci_tensor);
 }
 
 void
@@ -827,6 +846,25 @@ gkyl_gr_spacetime_weyl_tensor_fd(const struct gkyl_gr_spacetime* spacetime, cons
       }
     }
   }
+
+  for (int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      for (int k = 0; k < 4; k++) {
+        gkyl_free(spacetime_riemann_tensor[i][j][k]);
+        gkyl_free(covariant_spacetime_riemann_tensor[i][j][k]);
+      }
+      gkyl_free(spacetime_riemann_tensor[i][j]);
+      gkyl_free(covariant_spacetime_riemann_tensor[i][j]);
+    }
+    gkyl_free(spacetime_riemann_tensor[i]);
+    gkyl_free(covariant_spacetime_riemann_tensor[i]);
+    gkyl_free(spacetime_metric_tensor[i]);
+    gkyl_free(spacetime_ricci_tensor[i]);
+  }
+  gkyl_free(spacetime_riemann_tensor);
+  gkyl_free(covariant_spacetime_riemann_tensor);
+  gkyl_free(spacetime_metric_tensor);
+  gkyl_free(spacetime_ricci_tensor);
 }
 
 void

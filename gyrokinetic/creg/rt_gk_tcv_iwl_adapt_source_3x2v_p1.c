@@ -14,34 +14,34 @@
 
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
-    int cdim, vdim;
-    // Geometry and magnetic field parameters
-    double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Bref, x_LCFS;
-    // Plasma parameters
-    int num_species;
-    double me, qe, mi, qi, n0, Te0, Ti0;
-    // Collision parameters
-    double nuFrac, nuElc, nuIon;
-    // Source parameters
-    int num_sources;
-    bool adapt_energy_srcCORE, adapt_particle_srcCORE; 
-    double center_srcCORE[3], sigma_srcCORE[3];
-    double energy_srcCORE, particle_srcCORE;
-    double floor_srcCORE;
-    bool adapt_energy_srcRECY, adapt_particle_srcRECY;
-    double center_srcRECY[3], sigma_srcRECY[3];
-    double energy_srcRECY, particle_srcRECY;
-    double floor_srcRECY;
-    // Grid parameters
-    double Lx, Ly, Lz;
-    double x_min, x_max, y_min, y_max, z_min, z_max;
-    int num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu;
-    int cells[GKYL_MAX_DIM], poly_order;
-    double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
-    // Simulation control parameters
-    double final_time, write_phase_freq;
-    int num_frames, int_diag_calc_num, num_failures_max;
-    double dt_failure_tol;
+  int cdim, vdim;
+  // Geometry and magnetic field parameters
+  double a_shift, Z_axis, R_axis, R0, a_mid, x_inner, r0, B0, kappa, delta, q0, Cy, Bref, x_LCFS;
+  // Plasma parameters
+  int num_species;
+  double me, qe, mi, qi, n0, Te0, Ti0;
+  // Collision parameters
+  double nuFrac, nuElc, nuIon;
+  // Source parameters
+  int num_sources;
+  bool adapt_energy_srcCORE, adapt_particle_srcCORE; 
+  double center_srcCORE[3], sigma_srcCORE[3];
+  double energy_srcCORE, particle_srcCORE;
+  double floor_srcCORE;
+  bool adapt_energy_srcRECY, adapt_particle_srcRECY;
+  double center_srcRECY[3], sigma_srcRECY[3];
+  double energy_srcRECY, particle_srcRECY;
+  double floor_srcRECY;
+  // Grid parameters
+  double Lx, Ly, Lz;
+  double x_min, x_max, y_min, y_max, z_min, z_max;
+  int num_cell_x, num_cell_y, num_cell_z, num_cell_vpar, num_cell_mu;
+  int cells[GKYL_MAX_DIM], poly_order;
+  double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
+  // Simulation control parameters
+  double final_time, write_phase_freq;
+  int num_frames, int_diag_calc_num, num_failures_max;
+  double dt_failure_tol;
 };
 
 // Geometry related functions 
@@ -125,6 +125,15 @@ double integrand(double t, void *int_ctx)
   return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
 }
 
+double Bphi(double R, void *ctx)
+{
+  // Toroidal magnetic field.
+  struct gk_app_ctx *app = ctx;
+  double B0 = app->B0;
+  double R0 = app->R0;
+  return B0*R0/R;
+}
+
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -132,10 +141,10 @@ double dPsidr(double r, double theta, void *ctx)
   struct gkyl_qr_res integral;
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
-  double R = R_rtheta(r, 0.0, ctx);
-  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
+  double R_omp = R_rtheta(r,0.0,ctx);
+  return ( R*Bt/(2.*M_PI*qprofile(R_omp)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -154,19 +163,10 @@ double alpha(double r, double theta, double phi, void *ctx)
     integral.res = -integral.res;
   }
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return phi - B0*R_axis*integral.res/dPsidr(r,theta,ctx);
-}
-
-double Bphi(double R, void *ctx)
-{
-  // Toroidal magnetic field.
-  struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-  return B0*R0/R;
+  return phi - R*Bt*integral.res/dPsidr(r,theta,ctx);
 }
 
 double gradr(double r, double theta, void *ctx)
@@ -224,16 +224,19 @@ void temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
+
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
   double a_mid = app->a_mid;
   double x_inner = app->x_inner;
+  double Cy = app->Cy;
+
   double r = r_x(x,a_mid,x_inner);
+
   // Map to cylindrical (R, Z, phi) coordinates.
   double R = R_rtheta(r, z, ctx);
   double Z = Z_rtheta(r, z, ctx);
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
+
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -280,8 +283,7 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double x = xc[0], y = xc[1], z = xc[2];
   struct gk_app_ctx *app = ctx;
   double a_mid = app->a_mid;
-  double r0 = app->r0;
-  double q0 = app->q0;
+  double Cy = app->Cy;
   double x_inner = app->x_inner;
   double r = r_x(x,a_mid,x_inner);
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
@@ -292,34 +294,47 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   double R = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = -(B_r * cos(phi) - Bt * sin(phi));
-  fout[1] = -(B_r * sin(phi) + Bt * cos(phi));
-  fout[2] = -B_z;
+  fout[0] = B_r * cos(phi) + Bt * sin(phi);
+  fout[1] = B_r * sin(phi) - Bt * cos(phi);
+  fout[2] = B_z;
 }
 
 void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double r = r_x(x, app->a_mid, app->x_inner);
 
-  fout[0] = -app->r0/app->q0*alpha(r, -app->Lz/2.0, 0.0, ctx);
+  double a_mid = app->a_mid;
+  double x_inner = app->x_inner;
+  double Cy = app->Cy;
+  double z_min = app->z_min;
+  double z_max = app->z_max;
+
+  double r = r_x(x, a_mid, x_inner);
+
+  fout[0] = Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double r = r_x(x, app->a_mid, app->x_inner);
 
-  fout[0] = -app->r0/app->q0*alpha(r, app->Lz/2.0, 0.0, ctx);
+  double a_mid = app->a_mid;
+  double x_inner = app->x_inner;
+  double Cy = app->Cy;
+  double z_min = app->z_min;
+  double z_max = app->z_max;
+
+  double r = r_x(x, a_mid, x_inner);
+
+  fout[0] = -Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
 }
-
 
 struct gk_app_ctx create_ctx(void)
 {
@@ -341,9 +356,12 @@ struct gk_app_ctx create_ctx(void)
   double Rmid_min = R_LCFSmid - x_inner; // Minimum midplane major radius of simulation box [m].
   double Rmid_max = R_LCFSmid + x_outer; // Maximum midplane major radius of simulation box [m].
   double R0 = 0.5*(Rmid_min+Rmid_max); // Major radius of the simulation box [m].
-  double a_mid = R_LCFSmid-R_axis; // Minor radius at outboard midplane [m].
-  // Redefine a_mid with Shafranov shift, to ensure LCFS radial location.
-  a_mid = R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
+
+  // Minor radius at outboard midplane [m]. Redefine it with
+  // Shafranov shift, to ensure LCFS radial location.
+  double a_mid = fabs(a_shift)<1e-13? R_LCFSmid-R_axis :
+    R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
+
   double r0 = R0-R_axis; // Minor radius of the simulation box [m].
   double B0 = B_axis*(R_axis/R0); // Magnetic field magnitude in the simulation box [T].
   double kappa = 1.4; // Elongation (=1 for no elongation).
@@ -370,11 +388,12 @@ struct gk_app_ctx create_ctx(void)
   double x_max = Lx;
   double x_LCFS = R_LCFSmid - Rmid_min; // Radial location of the last closed flux surface.
   double q0 = qprofile(R0); // Safety factor in the center of domain.
+  double Cy = r0/q0; // Normalization in binormal coordinate.
 
   double Ly = 150*rho_s; // Domain size along y.
   // Adjust the domain size along y to have integer toroidal mode number.
-  // We need: 2*pi*Cy/Ly = integer (Cy = r0/q0)
-  Ly = 2.*M_PI*r0/q0/round(2.*M_PI*r0/q0/Ly); 
+  // We need: 2*pi*Cy/Ly = integer.
+  Ly = 2.*M_PI*Cy/round(2.*M_PI*Cy/Ly); 
   double y_min = -Ly/2.;
   double y_max =  Ly/2.;
 
@@ -396,7 +415,7 @@ struct gk_app_ctx create_ctx(void)
   // Source parameters
   int num_sources = 2;
   double P_exp = 0.34e6; // P_sol measured [W]
-  double vol_frac = 1.0/(2.*M_PI*r0/q0/Ly); // Volume fraction of the simulation box (=0.5 here).
+  double vol_frac = 1.0/(2.*M_PI*Cy/Ly); // Volume fraction of the simulation box (=0.5 here).
   double P_inj = P_exp * vol_frac / num_species; // Injection power normalized to the volume fraction and per species [W]
   // Core source:
   // - Injects energy only in the core region (0.25MW per species).
@@ -451,6 +470,7 @@ struct gk_app_ctx create_ctx(void)
     .kappa = kappa,
     .delta = delta,
     .q0 = q0,
+    .Cy = Cy,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -768,15 +788,22 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  struct gkyl_poisson_bias_plane target_corner_bc = {
-    .dir = 0, // Direction perpendicular to the plane.
-    .loc = ctx.x_LCFS, // Location of the plane in the 'dir' dimension.
-    .val = 0.0, // Biasing value.
+  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
+     .val = 0.0, // Biasing value.
+    },
   };
   
-  struct gkyl_poisson_bias_plane_list bias_plane_list = {
-    .num_bias_plane = 1,
-    .bp = &target_corner_bc,
+  struct gkyl_poisson_bias_line_list bias_line_list = {
+    .num_bias_line = 2,
+    .bl = target_corner_bcs,
   };
 
   // field
@@ -787,13 +814,13 @@ main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
-    .bias_plane_list = &bias_plane_list,
+    .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };
   
   // Geometry
   struct gkyl_gyrokinetic_geometry geometry = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.},
     .mapc2p = mapc2p, // mapping of cCOREutational to physical space
     .c2p_ctx = &ctx,
@@ -812,7 +839,6 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_tcv_iwl_adapt_source_3x2v_p1",
 
     .cfl_frac_omegaH = 1.0e9,
     .cfl_frac = 1.0,
@@ -837,6 +863,8 @@ main(int argc, char **argv)
     .parallelism = parallelism
   };
   
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
@@ -849,7 +877,7 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    }
+    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);

@@ -29,7 +29,8 @@ struct gkyl_position_map_inp {
   // xnu' = xnu * s + xc * (1-s)
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum. A number > 1. Hard limits on cell sizes
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum. A number > 1. Hard limits on cell sizes
-  double moving_average_width; // The width of the moving average for the map to smooth it. Units of normalized field line length
+  double gaussian_std; // The width of the moving average for the map to smooth it. Units of normalized field line length
+  double gaussian_max_integration_width; // The maximum width to integrate the Gaussian filter. Units of normalized field line length
   double compression_factor; // For PMAP_XPT_Compression. Specifies how much smaller the cells are
                              // near the X-point
   double radial_compression_factor; // Factor by which cells are compressed radially near xpt
@@ -53,7 +54,6 @@ struct gkyl_position_map {
   struct gkyl_range local, local_ext, global, global_ext; // Local & extended local position-space range.
   struct gkyl_basis basis;  // Basis for position mapping.
   struct gkyl_array *mc2nu; // Position mapping in each position direction.
-  uint32_t flags;
   struct gkyl_ref_count ref_count;
   bool to_optimize; // Whether to optimize the position map for constant B mapping.
   bool use_map_derivs; // Whether to use analytical derivatives of the mapping
@@ -77,7 +77,8 @@ struct gkyl_position_map_const_B_ctx {
   bool enable_maximum_slope_limits_at_max_B; // Whether to enable the maximum slope limits at a magnetic field maximum
   double maximum_slope_at_min_B; // The maximum slope of the mapping at a magnetic field minimum
   double maximum_slope_at_max_B; // The maximum slope of the mapping at a magnetic field maximum
-  double moving_average_width; // The width of the moving average for the map to smooth it
+  double gaussian_std; // The standard deviation of the Gaussian filter used for smoothing the mapping
+  double gaussian_max_integration_width; // The maximum width to integrate the Gaussian filter
 
   // Polynomial-based mapping
   double theta_throat, Bmag_throat; // The theta and Bmag values at the throat of the magnetic field
@@ -102,7 +103,6 @@ struct gkyl_position_map_xpt_ctx {
   double w; // Radial width of domain in psi
   double psisep; // Separatrix psi value
 };
-
 
 /**
  * Create a new position map object. A position map is a function that maps 
