@@ -40,7 +40,6 @@ init_node_values(int ndim, const struct gkyl_basis *basis,
   return num_nodes;
 }
 
-
 struct gkyl_loss_cone_mask_gyrokinetic*
 gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokinetic_inp *inp)
 {
