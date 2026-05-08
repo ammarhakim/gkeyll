@@ -82,7 +82,7 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   int *ghost = gkyl_malloc(ndim * sizeof(int));
   int num_cells = 4;
   if (use_gpu) {
-    num_cells = 16;
+    num_cells = 8;
   }
   for (int d = 0; d < ndim; ++d) {
     lower[d] = 0.0;

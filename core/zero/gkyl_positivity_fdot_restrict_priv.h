@@ -3,7 +3,7 @@
 #include <gkyl_positivity_fdot_restrict.h>
 
 struct gkyl_positivity_fdot_restrict {
-  struct gkyl_basis basis;
+  const struct gkyl_basis *basis;
   enum gkyl_positivity_fdot_restrict_type type;
   double safety_factor;
   bool use_gpu;
@@ -38,13 +38,13 @@ static void
 restrict_fdot_quad(struct gkyl_positivity_fdot_restrict *up,
   const double *f, double *dfdt, double dt, double *fq, double *dfdtq)
 {
-  const int nquad = up->basis.num_quad;
+  const int nquad = up->basis->num_quad;
   const double safety_factor = up->safety_factor;
   bool reproject = false;
 
   for (int k = 0; k < nquad; ++k) {
-    up->basis.modal_to_quad_nodal(dfdt, dfdtq, k);
-    up->basis.modal_to_quad_nodal(f, fq, k);
+    up->basis->modal_to_quad_nodal(dfdt, dfdtq, k);
+    up->basis->modal_to_quad_nodal(f, fq, k);
 
     if (fq[k] + dt * dfdtq[k] < 0.0) {
       dfdtq[k] = (safety_factor - 1.0) * fq[k] / dt;
@@ -54,7 +54,7 @@ restrict_fdot_quad(struct gkyl_positivity_fdot_restrict *up,
 
   if (reproject) {
     for (int k = 0; k < nquad; ++k)
-      up->basis.quad_nodal_to_modal(dfdtq, dfdt, k);
+      up->basis->quad_nodal_to_modal(dfdtq, dfdt, k);
   }
 }
 
@@ -72,12 +72,12 @@ static void
 restrict_fdot_diode_quad(struct gkyl_positivity_fdot_restrict *up,
   const double *f, double *dfdt, double dt, double *fq, double *dfdtq)
 {
-  const int nquad = up->basis.num_quad;
+  const int nquad = up->basis->num_quad;
   bool reproject = false;
 
   for (int k = 0; k < nquad; ++k) {
-    up->basis.modal_to_quad_nodal(f, fq, k);
-    up->basis.modal_to_quad_nodal(dfdt, dfdtq, k);
+    up->basis->modal_to_quad_nodal(f, fq, k);
+    up->basis->modal_to_quad_nodal(dfdt, dfdtq, k);
 
     if (fq[k] < 0.0 && dfdtq[k] < 0.0) {
       dfdtq[k] = 0.0;
@@ -87,6 +87,6 @@ restrict_fdot_diode_quad(struct gkyl_positivity_fdot_restrict *up,
 
   if (reproject) {
     for (int k = 0; k < nquad; ++k)
-      up->basis.quad_nodal_to_modal(dfdtq, dfdt, k);
+      up->basis->quad_nodal_to_modal(dfdtq, dfdt, k);
   }
 }
