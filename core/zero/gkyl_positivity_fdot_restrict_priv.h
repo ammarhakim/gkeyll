@@ -36,6 +36,19 @@ restrict_fdot_avg(struct gkyl_positivity_fdot_restrict *up,
 
 GKYL_CU_DH
 static void
+restrict_fdot_avg_all_comp(struct gkyl_positivity_fdot_restrict *up,
+  const double *f, double *dfdt, double dt, double *fq, double *dfdtq)
+{
+  double f_pred = f[0] + dt * dfdt[0];
+  if (f_pred < 0.0) {
+    dfdt[0] = (up->safety_factor - 1.0) * f[0] / dt;
+    for (int k = 1; k < up->basis->num_basis; ++k)
+      dfdt[k] = 0.0;
+  }
+}
+
+GKYL_CU_DH
+static void
 restrict_fdot_quad(struct gkyl_positivity_fdot_restrict *up,
   const double *f, double *dfdt, double dt, double *fq, double *dfdtq)
 {
@@ -66,6 +79,18 @@ restrict_fdot_diode_avg(struct gkyl_positivity_fdot_restrict *up,
 {
   if (f[0] < 0.0 && dfdt[0] < 0.0)
     dfdt[0] = 0.0;
+}
+
+
+GKYL_CU_DH
+static void
+restrict_fdot_diode_avg_all_comp(struct gkyl_positivity_fdot_restrict *up,
+  const double *f, double *dfdt, double dt, double *fq, double *dfdtq)
+{
+  if (f[0] < 0.0 && dfdt[0] < 0.0) {
+    for (int k = 0; k < up->basis->num_basis; ++k)
+       dfdt[k] = 0.0;
+  }
 }
 
 GKYL_CU_DH

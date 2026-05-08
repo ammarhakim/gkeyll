@@ -9,8 +9,10 @@ typedef struct gkyl_positivity_fdot_restrict gkyl_positivity_fdot_restrict;
 enum gkyl_positivity_fdot_restrict_type {
   GKYL_POSITIVITY_FDOT_RESTRICT_QUAD, // Restrict df/dt at quadrature points.
   GKYL_POSITIVITY_FDOT_RESTRICT_AVG, // Restrict df/dt at cell average (modal coefficient 0).
+  GKYL_POSITIVITY_FDOT_RESTRICT_AVG_ALL_COMP, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at cell average.
   GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at quadrature points.
   GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at cell average.
+  GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG_ALL_COMP, // Diode mode: set df/dt=0 if f<0 and df/dt<0 at cell average.
 };
 
 struct gkyl_positivity_fdot_restrict_inp {
