@@ -43,7 +43,7 @@ static void
 test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   bool use_gpu, enum gkyl_positivity_fdot_restrict_type lim_type)
 {
-  struct gkyl_basis basis, basis_on_dev;
+  struct gkyl_basis basis, *basis_on_dev;
   switch (basis_type) {
     case SERENDIPITY:
       gkyl_cart_modal_serendip(&basis, ndim, poly_order);
@@ -60,20 +60,20 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   if (use_gpu) {
     switch (basis_type) {
       case SERENDIPITY:
-        gkyl_cart_modal_serendip_cu_dev(&basis_on_dev, ndim, poly_order);
+        basis_on_dev = gkyl_cart_modal_serendip_cu_dev_new(ndim, poly_order);
         break;
       case GKHYBRID:
         if (ndim == 2) {
-          gkyl_cart_modal_gkhybrid_cu_dev(&basis_on_dev, 1, 1);
+          basis_on_dev = gkyl_cart_modal_gkhybrid_cu_dev_new(1, 1);
         }
         else {
-          gkyl_cart_modal_gkhybrid_cu_dev(&basis_on_dev, ndim - 2, 2);
+          basis_on_dev = gkyl_cart_modal_gkhybrid_cu_dev_new(ndim - 2, 2);
         }
         break;
     }
   }
   else {
-    basis_on_dev = basis;
+    basis_on_dev = &basis;
   }
 
   double *lower = gkyl_malloc(ndim * sizeof(double));
@@ -232,6 +232,7 @@ test_ndim_poly_order(int ndim, int poly_order, enum test_basis_type basis_type,
   if (use_gpu) {
     gkyl_array_release(f_dev);
     gkyl_array_release(dfdt_adv_dev);
+    gkyl_cart_modal_basis_release_cu(basis_on_dev);
   }
   gkyl_positivity_fdot_restrict_release(up);
   gkyl_array_release(f_adv);

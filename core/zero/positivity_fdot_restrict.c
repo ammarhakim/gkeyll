@@ -13,13 +13,13 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
 {
   struct gkyl_positivity_fdot_restrict *up = gkyl_malloc(sizeof(*up));
 
-  up->basis = inp.basis;
+  up->basis = *inp.basis;
   up->type = inp.type;
   up->safety_factor = inp.safety_factor;
   up->use_gpu = inp.use_gpu;
 
-  up->fquad = gkyl_malloc(inp.basis.num_quad * sizeof(double));
-  up->dfdt_quad = gkyl_malloc(inp.basis.num_quad * sizeof(double));
+  up->fquad = gkyl_malloc(inp.basis->num_quad * sizeof(double));
+  up->dfdt_quad = gkyl_malloc(inp.basis->num_quad * sizeof(double));
 
   switch (inp.type) {
     case GKYL_POSITIVITY_FDOT_RESTRICT_QUAD:
