@@ -36,6 +36,12 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
     case GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG:
       up->fdot_restriction_func = restrict_fdot_diode_avg;
       break;
+    case GKYL_POSITIVITY_FDOT_RESTRICT_AVG_ALL_COMP:
+      up->fdot_restriction_func = restrict_fdot_avg_all_comp;
+      break;
+    case GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG_ALL_COMP:
+      up->fdot_restriction_func = restrict_fdot_diode_avg_all_comp;
+      break;
   }
 
 #ifdef GKYL_HAVE_CUDA
