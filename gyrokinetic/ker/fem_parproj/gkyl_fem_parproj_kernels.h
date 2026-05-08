@@ -35,14 +35,18 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p1_upx_dirichletx(const double *wei
 
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_lox_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_lox_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_upx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p1_upx_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_lox_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_lox_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_upx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p1_upx_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_1x_ser_p1(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
 
@@ -67,14 +71,18 @@ void fem_parproj_lhs_stencil_weighted_1x_ser_p2_upx_dirichletx(const double *wei
 
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_inx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_lox_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_lox_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_upx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_1x_ser_p2_upx_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_inx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_lox_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_lox_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_upx_nondirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichletx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_ghostx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_1x_ser_p2_upx_dirichlet_skinx(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_1x_ser_p2(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
 
@@ -101,19 +109,34 @@ void fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_nondirichlety(const double *
 void fem_parproj_lhs_stencil_weighted_2x_ser_p1_upy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri);
 
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_iny_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_iny_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_iny_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_iny_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_loy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_loy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_upy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p1_upy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_iny_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_iny_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_iny_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_iny_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_loy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_loy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p1_upy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_2x_ser_p1(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_iny_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_iny_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_upy_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p1_upy_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_iny_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_iny_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_upy_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p1_upy_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
 
 long fem_parproj_num_nodes_global_2x_ser_p2_periodicy(int numCellsPar);
 long fem_parproj_num_nodes_global_2x_ser_p2_nonperiodicy(int numCellsPar);
@@ -137,19 +160,34 @@ void fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_nondirichlety(const double *
 void fem_parproj_lhs_stencil_weighted_2x_ser_p2_upy_dirichlety(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri);
 
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_iny_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_iny_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_iny_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_iny_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_loy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_loy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_upy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_2x_ser_p2_upy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_iny_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_iny_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_iny_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_iny_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_loy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_loy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_nondirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlety(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_ghosty(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_2x_ser_p2_upy_dirichlet_skiny(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_2x_ser_p2(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_iny_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_iny_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_upy_periodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_2x_ser_p2_upy_nonperiodicy(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_iny_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_iny_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_upy_periodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_2x_ser_p2_upy_nonperiodicy(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
 
 
 long fem_parproj_num_nodes_global_3x_ser_p1_periodicz(int numCellsPar);
@@ -174,19 +212,34 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_nondirichletz(const double *
 void fem_parproj_lhs_stencil_weighted_3x_ser_p1_upz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri);
 
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_inz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_inz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_inz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_inz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_loz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_loz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_upz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p1_upz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_inz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_inz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_inz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_inz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_loz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_loz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p1_upz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_3x_ser_p1(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_inz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_inz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_upz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p1_upz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_inz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_inz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_upz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p1_upz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
 
 long fem_parproj_num_nodes_global_3x_ser_p2_periodicz(int numCellsPar);
 long fem_parproj_num_nodes_global_3x_ser_p2_nonperiodicz(int numCellsPar);
@@ -210,19 +263,34 @@ void fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_nondirichletz(const double *
 void fem_parproj_lhs_stencil_weighted_3x_ser_p2_upz_dirichletz(const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri);
 
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_inz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_inz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_inz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_inz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_loz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_upz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_inz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_inz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_inz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_inz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_loz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_loz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_nondirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
-GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichletz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_ghostz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_src_stencil_weighted_3x_ser_p2_upz_dirichlet_skinz(const double *weight, const double *rho, const double *phiBC, long nodeOff, const long *globalIdxs, double *bsrc);
 
 GKYL_CU_DH void fem_parproj_sol_stencil_3x_ser_p2(const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
+
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_inz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_inz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_upz_periodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_lhs_3x_ser_p2_upz_nonperiodicz(const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_inz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_inz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_upz_periodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
+GKYL_CU_DH void fem_parproj_bias_line_src_3x_ser_p2_upz_nonperiodicz(const int *edge, const int *perp_dirs, double val, long nodeOff, const long *globalIdxs, double *bsrc);
 
 
 EXTERN_C_END 

@@ -597,7 +597,7 @@ implicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
     fluid_rhs[i][0] = rho + (0.5 * dt * rho_rhs);
     fluid_rhs[i][1] = mom_x + (0.5 * dt * mom_x_rhs);
     fluid_rhs[i][2] = mom_y + (0.5 * dt * mom_y_rhs);
-    fluid_rhs[i][3] = mom_z + (0.5 * dt * mom_x_rhs);
+    fluid_rhs[i][3] = mom_z + (0.5 * dt * mom_z_rhs);
 
     if (mom_em->param[i].type == GKYL_EQN_EULER) {
       double energy = f[4];

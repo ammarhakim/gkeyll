@@ -99,6 +99,8 @@ struct gkyl_tok_geo {
   // Flag and functions to specify the plate location/shape in RZ coordinates
   // The functions should specify R(s) and Z(s) on the plate where s is a parameter \in [0,1]
   // For single null, the "lower" plate is the outboard plate and the "upper plate" is the inboard plate
+  // For IWL, when s=0, the plate function must return the coordinates of the corner of the limiter plate
+  // at the inboard midplane which lies on the LCFS.
   bool plate_spec;
   plate_func plate_func_lower;
   plate_func plate_func_upper;
@@ -190,7 +192,7 @@ struct gkyl_tok_geo *gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const str
  * @param dR on output, dR/dZ
  */
 int gkyl_tok_geo_R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
-  double *R, double *dR);
+  double *R, double *dRdZ, double *dR, double *dZ);
 
 /**
  * Integrate along a specified psi countour and return its length. The
