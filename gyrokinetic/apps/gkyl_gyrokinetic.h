@@ -328,6 +328,8 @@ enum gkyl_gyrokinetic_positivity_type {
   GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG, // Limit cell average df/dt
   GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD, // At quadrature points, set df/dt=0 if f<0 and df/dt<0
   GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG, // Set cell average df/dt=0 if f<0 and df/dt<0 at cell average.
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG_ALL_COMP, // Limit all components of dfdt based on cell average positivity.
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG_ALL_COMP // Limit all components of dfdt based on cell average positivity, set to 0 if f<0 and df/dt<0 at cell average.
 };
   
 struct gkyl_gyrokinetic_positivity {
