@@ -217,7 +217,9 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
     bool is_fdot_mode = (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD ||
                          pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG ||
                          pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD ||
-                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG_ALL_COMP ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG_ALL_COMP);
 
     // ===== SHIFT modes: allocate shift updater and resources for diagnostics =====
     if (is_shift_mode) {
@@ -266,6 +268,10 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
         type = GKYL_POSITIVITY_FDOT_RESTRICT_AVG;
       else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD)
         type = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD;
+      else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG_ALL_COMP)
+        type = GKYL_POSITIVITY_FDOT_RESTRICT_AVG_ALL_COMP;
+      else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG_ALL_COMP)
+        type = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG_ALL_COMP;
       else
         type = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG;
       
@@ -326,7 +332,9 @@ gk_neut_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const
     bool is_fdot_mode = (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD ||
                          pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG ||
                          pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD ||
-                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG_ALL_COMP ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG_ALL_COMP);
 
     if (is_shift_mode) {
       gkyl_array_release(pos->delta_m0);
