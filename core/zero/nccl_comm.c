@@ -83,10 +83,6 @@ comm_state_release(struct gkyl_comm_state *state)
 static void
 comm_state_wait(struct gkyl_comm_state *state)
 {
-  ncclResult_t nstat;
-  do {
-    checkNCCL(ncclCommGetAsyncError(*(state->ncomm), &nstat));
-  } while(nstat == ncclInProgress);
   checkCuda(cudaStreamSynchronize(*(state->custream)));
 }
 
@@ -94,27 +90,8 @@ comm_state_wait(struct gkyl_comm_state *state)
 static inline void
 wait_for_nccl_collective(struct nccl_comm *nccl, ncclResult_t status)
 {
-  if (status == ncclInProgress) {
-    ncclResult_t async_stat = status;
-    do {
-      checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &async_stat));
-    } while (async_stat == ncclInProgress);
-    status = async_stat;
-  }
-
   checkNCCL(status);
-
-  // NCCL operations enqueue GPU work on the provided stream. Wait here so that
-  // the result is ready for immediate consumption by callers expecting
-  // synchronous semantics.
   checkCuda(cudaStreamSynchronize(nccl->custream));
-
-  // Surface any asynchronous errors that occurred during execution.
-  ncclResult_t final_stat = ncclSuccess;
-  do {
-    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &final_stat));
-  } while (final_stat == ncclInProgress);
-  checkNCCL(final_stat);
 }
 
 static void
@@ -171,10 +148,6 @@ static int
 barrier(struct gkyl_comm *comm)
 {
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
-  ncclResult_t nstat;
-  do {
-    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
-  } while(nstat == ncclInProgress);
   checkCuda(cudaStreamSynchronize(nccl->custream));
   MPI_Barrier(nccl->mcomm);
   return 0;
@@ -205,10 +178,7 @@ array_send(struct gkyl_array *array, int dest, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->ncomp*array->size;
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
-  ncclResult_t nstat = ncclSend(array->data, vol, g2_nccl_datatype[array->type], dest, nccl->ncomm, nccl->custream);
-  do {
-    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
-  } while(nstat == ncclInProgress);
+  checkNCCL(ncclSend(array->data, vol, g2_nccl_datatype[array->type], dest, nccl->ncomm, nccl->custream));
   checkCuda(cudaStreamSynchronize(nccl->custream));
   return 0;
 }
@@ -218,10 +188,7 @@ array_recv(struct gkyl_array *array, int src, int tag, struct gkyl_comm *comm)
 {
   size_t vol = array->ncomp*array->size;
   struct nccl_comm *nccl = container_of(comm, struct nccl_comm, priv_comm.pub_comm);
-  ncclResult_t nstat = ncclRecv(array->data, vol, g2_nccl_datatype[array->type], src, nccl->ncomm, nccl->custream);
-  do {
-    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
-  } while(nstat == ncclInProgress);
+  checkNCCL(ncclRecv(array->data, vol, g2_nccl_datatype[array->type], src, nccl->ncomm, nccl->custream));
   checkCuda(cudaStreamSynchronize(nccl->custream));
   return 0;
 }
@@ -441,10 +408,6 @@ array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
   checkNCCL(ncclGroupEnd());
 
   // Phase 4: Complete sends and recvs.
-  ncclResult_t nstat;
-  do {
-    checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
-  } while(nstat == ncclInProgress);
   checkCuda(cudaStreamSynchronize(nccl->custream));
 
   // Phase 5: Copy received data into ghost-cells.
@@ -597,10 +560,6 @@ array_per_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
     checkNCCL(ncclGroupEnd());
 
     // Phase 3: Complete all sends and recvs.
-    ncclResult_t nstat;
-    do {
-      checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
-    } while(nstat == ncclInProgress);
     checkCuda(cudaStreamSynchronize(nccl->custream));
   }
 
@@ -730,17 +689,12 @@ nccl_comm_new(const struct gkyl_nccl_comm_inp *inp,
   else
     nccl->custream = inp->custream;
 
-  // Initialize NCCL comm
+  // Initialize NCCL comm in blocking mode. Nonblocking only defers host-side
+  // enqueue (forcing ncclCommGetAsyncError polling) and does NOT enable
+  // compute/comm overlap; that requires separate CUDA streams plus events.
   ncclConfig_t config = NCCL_CONFIG_INITIALIZER;
-  config.blocking = 0;  // Nonblocking (doesn't block at NCCL calls).
-  ncclResult_t nstat = ncclCommInitRankConfig(&nccl->ncomm, nccl->size, nId, nccl->rank, &config);
-  if (config.blocking == 0) {
-    do {
-      checkNCCL(ncclCommGetAsyncError(nccl->ncomm, &nstat));
-    } while(nstat == ncclInProgress);
-  } else {
-    checkNCCL(nstat);
-  }
+  config.blocking = 1;
+  checkNCCL(ncclCommInitRankConfig(&nccl->ncomm, nccl->size, nId, nccl->rank, &config));
   checkCuda(cudaStreamSynchronize(nccl->custream));
 
   nccl->sync_corners = inp->sync_corners;
