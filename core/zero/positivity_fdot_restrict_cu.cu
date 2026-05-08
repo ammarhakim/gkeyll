@@ -21,7 +21,7 @@ gkyl_positivity_fdot_restrict_set_func_cu_kern(gkyl_positivity_fdot_restrict *up
   }
 }
 
-// Upper bound on quadrature nodes for per-thread stack scratch (serendipity 5D p2 = 3^5 = 243).
+// Upper bound on quadrature nodes. GPUs cannot dynamically allocate memory
 #define GKYL_POS_FDOT_MAX_QUAD 243
 
 __global__ static void

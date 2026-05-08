@@ -9,8 +9,9 @@ struct gkyl_positivity_fdot_restrict {
   bool use_gpu;
   struct gkyl_positivity_fdot_restrict *on_dev;
 
-  double *fquad;      // scratch: CPU=num_quad doubles; device on_dev=range_vol*num_quad doubles
-  double *dfdt_quad;  // scratch: same convention
+  // Arrays for quadrature point evaluations (CPU)
+  double *fquad;
+  double *dfdt_quad;
 
   void (*fdot_restriction_func)(struct gkyl_positivity_fdot_restrict *up,
     const double *f, double *dfdt, double dt, double *fq, double *dfdtq);

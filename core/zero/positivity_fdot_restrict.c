@@ -18,7 +18,6 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
   up->safety_factor = inp.safety_factor;
   up->use_gpu = inp.use_gpu;
 
-
   if (!up->use_gpu) {
     up->fquad = gkyl_malloc(inp.basis->num_quad * sizeof(double));
     up->dfdt_quad = gkyl_malloc(inp.basis->num_quad * sizeof(double));
@@ -40,7 +39,6 @@ gkyl_positivity_fdot_restrict_new(struct gkyl_positivity_fdot_restrict_inp inp)
   }
 
 #ifdef GKYL_HAVE_CUDA
-  up->on_dev = NULL;
   if (up->use_gpu) {
     up->on_dev = gkyl_cu_malloc(sizeof(*up));
     gkyl_cu_memcpy(up->on_dev, up, sizeof(*up), GKYL_CU_MEMCPY_H2D);
@@ -73,13 +71,13 @@ gkyl_positivity_fdot_restrict_advance(gkyl_positivity_fdot_restrict *up,
 void
 gkyl_positivity_fdot_restrict_release(gkyl_positivity_fdot_restrict *up)
 {
-  if (up) {
 #ifdef GKYL_HAVE_CUDA
-    if (up->on_dev)
-      gkyl_cu_free(up->on_dev);
+  if (up->use_gpu)
+    gkyl_cu_free(up->on_dev);
 #endif
+  if (!up->use_gpu) {
     gkyl_free(up->fquad);
     gkyl_free(up->dfdt_quad);
-    gkyl_free(up);
   }
+  gkyl_free(up);
 }
