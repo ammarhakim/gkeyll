@@ -14,12 +14,20 @@
 
 #include <stdbool.h>
 
-struct gkyl_gyrokinetic_projection_moment_import {
-  enum gkyl_ic_import_type type;
-  char file_name[128];
-};
 
 // Parameters for projection
+struct gkyl_gyrokinetic_ic_import {
+  // Inputs to initialize the species with the distribution from a file (f_in)
+  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
+  enum gkyl_ic_import_type type;
+  char file_name[128]; // Name of file that contains IC, J*f_in.
+  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
+  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
+  bool enforce_positivity; // =true sets f to 0 where it was negative.
+  void *conf_scale_ctx;
+  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
+};
+
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
   enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
@@ -49,11 +57,13 @@ struct gkyl_gyrokinetic_projection {
       void *ctx_tempperp;
 
       // Optionally read primitive moments from files.
-      struct gkyl_gyrokinetic_projection_moment_import density_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import upar_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import temp_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import temppar_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import tempperp_from_file;
+      struct gkyl_gyrokinetic_ic_import maxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import bimaxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import density_import;
+      struct gkyl_gyrokinetic_ic_import upar_import;
+      struct gkyl_gyrokinetic_ic_import temp_import;
+      struct gkyl_gyrokinetic_ic_import temppar_import;
+      struct gkyl_gyrokinetic_ic_import tempperp_import;
 
       // For kinetic neutrals, specify density, drift velocity (udrift) and
       // temperature, and their context, if projecting a Maxwellian.
@@ -302,19 +312,6 @@ struct gkyl_gyrokinetic_flr {
                // it'll use B in the center of the domain.
 };
 
-struct gkyl_gyrokinetic_ic_import {
-  // Inputs to initialize the species with the distribution from a file (f_in)
-  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
-  enum gkyl_ic_import_type type;
-  char file_name[128]; // Name of file that contains IC, J*f_in.
-  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
-  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
-  bool enforce_positivity; // =true sets f to 0 where it was negative.
-  void *conf_scale_ctx;
-  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
-  struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
-};
-
 struct gkyl_gyrokinetic_correct_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
   double iter_eps; // error tolerance for moment fixes (density is always exact)
@@ -327,12 +324,17 @@ enum gkyl_gyrokinetic_positivity_type {
   GKYL_GK_POSITIVITY_NONE = 0, // Do not enforce positivity (default).
   GKYL_GK_POSITIVITY_SHIFT, // Shift f to zero if <0 at Gauss-Legendre nodes.
   GKYL_GK_POSITIVITY_MRS_LIMITER, // Use the More-Rossmanith-Seal limiter, and shift when needed.
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD, // Limit df/dt at quadrature points
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG, // Limit cell average df/dt
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD, // At quadrature points, set df/dt=0 if f<0 and df/dt<0
+  GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG, // Set cell average df/dt=0 if f<0 and df/dt<0 at cell average.
 };
-
+  
 struct gkyl_gyrokinetic_positivity {
   enum gkyl_gyrokinetic_positivity_type type; // Type of positivity enforcement algorithm.
   bool quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
   bool write_diagnostics; // Whether to output diagnostics.
+  double safety_factor; // Restricts dfdt to push f to f*saftey_factor instead of 0 to improve stability (only for FDOT_RESTRICT modes).
 };
 
 enum gkyl_gyrokinetic_damping_type {
@@ -534,7 +536,7 @@ struct gkyl_gyrokinetic_field {
   bool is_static; // =true field does not change in time.
   bool zero_init_field; // =true doesn't compute the initial field.
 
-  double polarization_bmag; 
+  double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
 
   // parameters for adiabatic electrons simulations
@@ -547,7 +549,7 @@ struct gkyl_gyrokinetic_field {
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
-  struct gkyl_gyrokinetic_ic_import polarization_potential_init_from_file;
+  struct gkyl_gyrokinetic_ic_import polarization_potential_import;
 
   // Interface to read a potential from file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
@@ -566,7 +568,7 @@ struct gkyl_gyrokinetic_field {
   void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
   bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
 
-  struct gkyl_poisson_bias_plane_list *bias_plane_list; // store possible biased plane that will constrain the solution
+  struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
 
 // Top-level app parameters
@@ -1368,6 +1370,16 @@ void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
  * @param app App to release.
  */
 void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
+
+/**
+ * Reset the CFL factor for the omega_H frequency.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param cfl_frac_omegaH New CFL factor to use for the omega_H mode.
+ */
+void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
+  double cfl_frac_omegaH);
 
 /**
  * Reset the df/dt multiplier operator for a given species.

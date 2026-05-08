@@ -188,6 +188,25 @@ gks_pos_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
 }
 
+static void
+gks_pos_fdot_restriction_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  // Do nothing.
+}
+
+static void
+gks_pos_fdot_restriction_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  struct timespec wtm = gkyl_wall_clock();
+  
+  // Apply the df/dt restriction to maintain positivity over the timestep.
+  gkyl_positivity_fdot_restrict_advance(pos->fdot_restrict_op, &gks->local, fin, fout, *dt);
+  
+  app->stat.species_pos_shift_tm += gkyl_time_diff_now_sec(wtm);
+}
+
 void
 gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos)
@@ -200,54 +219,84 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   pos->write_diags_func = gks_pos_write_diags_disabled;
   pos->calc_integrated_diags_func = gks_pos_calc_integrated_diags_disabled;
   pos->write_integrated_diags_func = gks_pos_write_integrated_diags_disabled;
+  pos->fdot_restriction_func = gks_pos_fdot_restriction_disabled;
 
   if (pos->type) {
+    bool is_shift_mode = (pos->type == GKYL_GK_POSITIVITY_SHIFT ||
+                          pos->type == GKYL_GK_POSITIVITY_MRS_LIMITER);
+    bool is_fdot_mode = (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);
 
-    pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    if (is_shift_mode) {
+      pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-    // Positivity shift updater.
-    pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
-      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
-
-    // Methods chosen at runtime.
-    pos->apply_func = gks_pos_apply_enabled;
-
-    if (pos->write_diagnostics) {
-      // Allocate data for diagnostic moments.
-      gk_species_moment_init(app, gks, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
-
-      // Integrated moments of delta f.
-      gk_species_moment_init(app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
-
-      if (app->use_gpu) {
-        pos->red_integ_diag = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
-        pos->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
-      } 
-      else {
-        pos->red_integ_diag = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
-        pos->red_integ_diag_global = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
-      }
-      pos->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, pos->integ_moms.num_mom);
-      pos->is_first_integ_write_call = true;
+      // Positivity shift updater.
+      pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
+        gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
       // Methods chosen at runtime.
-      pos->deltaf_moms_func = gks_pos_deltaf_moms_clear;
-      pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_clear;
-      pos->write_diags_func = gks_pos_write_diags_enabled;
-      pos->calc_integrated_diags_func = gks_pos_calc_integrated_diags_enabled;
-      pos->write_integrated_diags_func = gks_pos_write_integrated_diags_enabled;
+      pos->apply_func = gks_pos_apply_enabled;
+
+      if (pos->write_diagnostics) {
+        // Allocate data for diagnostic moments.
+        gk_species_moment_init(app, gks, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
+
+        // Integrated moments of delta f.
+        gk_species_moment_init(app, gks, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+
+        if (app->use_gpu) {
+          pos->red_integ_diag = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
+          pos->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));
+        } 
+        else {
+          pos->red_integ_diag = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
+          pos->red_integ_diag_global = gkyl_malloc(sizeof(double[pos->integ_moms.num_mom]));
+        }
+        pos->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, pos->integ_moms.num_mom);
+        pos->is_first_integ_write_call = true;
+
+        // Methods chosen at runtime.
+        pos->deltaf_moms_func = gks_pos_deltaf_moms_clear;
+        pos->deltaf_integ_moms_func = gks_pos_deltaf_integ_moms_clear;
+        pos->write_diags_func = gks_pos_write_diags_enabled;
+        pos->calc_integrated_diags_func = gks_pos_calc_integrated_diags_enabled;
+        pos->write_integrated_diags_func = gks_pos_write_integrated_diags_enabled;
+      }
+
+      if (app->post_positivity_quasineut) {
+        // Set pointers to total ion/electron Delta m0, used to enforce quasineutrality.
+        if (gks->info.charge > 0.0) {
+          pos->delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
+          pos->delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
+        }
+        else {
+          pos->delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
+          pos->delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
+        }
+      }
     }
 
-    if (app->post_positivity_quasineut) {
-      // Set pointers to total ion/electron Delta m0, used to enforce quasineutrality.
-      if (gks->info.charge > 0.0) {
-        pos->delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
-        pos->delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
-      }
-      else {
-        pos->delta_m0s_tot = gkyl_array_acquire(app->ps_delta_m0_elcs);
-        pos->delta_m0r_tot = gkyl_array_acquire(app->ps_delta_m0_ions);
-      }
+    if (is_fdot_mode) {
+      enum gkyl_positivity_fdot_restrict_type type;
+      if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD)
+        type = GKYL_POSITIVITY_FDOT_RESTRICT_QUAD;
+      else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG)
+        type = GKYL_POSITIVITY_FDOT_RESTRICT_AVG;
+      else if (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD)
+        type = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD;
+      else
+        type = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG;
+      
+      struct gkyl_positivity_fdot_restrict_inp fdot_inp = {
+        .basis = gks->basis_on_dev,
+        .type = type,
+        .safety_factor = (gks->info.positivity.safety_factor > 0.0) 
+          ? gks->info.positivity.safety_factor : 0.9, // Use input value or default to 0.9.
+      };
+      pos->fdot_restrict_op = gkyl_positivity_fdot_restrict_new(fdot_inp);
+      pos->fdot_restriction_func = gks_pos_fdot_restriction_enabled;
     }
 
   }
@@ -258,6 +307,13 @@ gk_species_positivity_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
   struct gk_positivity *pos, struct gkyl_array *fbuffer, struct gkyl_array *fout)
 {
   pos->apply_func(app, gks, pos, fbuffer, fout);
+}
+
+void
+gk_species_positivity_fdot_restriction(struct gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_positivity *pos, const struct gkyl_array *fin, struct gkyl_array *fout, double *dt)
+{
+  pos->fdot_restriction_func(app, gks, pos, fin, fout, dt);
 }
 
 void
@@ -285,26 +341,38 @@ void
 gk_species_positivity_release(const struct gkyl_gyrokinetic_app *app, const struct gk_positivity *pos)
 {
   if (pos->type) {
+    bool is_shift_mode = (pos->type == GKYL_GK_POSITIVITY_SHIFT ||
+                          pos->type == GKYL_GK_POSITIVITY_MRS_LIMITER);
+    bool is_fdot_mode = (pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_QUAD ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_AVG ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_QUAD ||
+                         pos->type == GKYL_GK_POSITIVITY_FDOT_RESTRICT_DIODE_AVG);
 
-    gkyl_array_release(pos->delta_m0);
-    gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
-    if (app->post_positivity_quasineut) {
-      gkyl_array_release(pos->delta_m0s_tot);
-      gkyl_array_release(pos->delta_m0r_tot);
+    if (is_shift_mode) {
+      gkyl_array_release(pos->delta_m0);
+      gkyl_positivity_shift_gyrokinetic_release(pos->shift_op_gk);
+
+      if (pos->write_diagnostics) {
+        gk_species_moment_release(app, &pos->moms);
+        gk_species_moment_release(app, &pos->integ_moms); 
+        gkyl_dynvec_release(pos->integ_diag);
+        if (app->use_gpu) {
+          gkyl_cu_free(pos->red_integ_diag);
+          gkyl_cu_free(pos->red_integ_diag_global);
+        }
+        else {
+          gkyl_free(pos->red_integ_diag);
+          gkyl_free(pos->red_integ_diag_global);
+        }
+      }
+      if (app->post_positivity_quasineut) {
+        gkyl_array_release(pos->delta_m0s_tot);
+        gkyl_array_release(pos->delta_m0r_tot);
+      }
     }
 
-    if (pos->write_diagnostics) {
-      gk_species_moment_release(app, &pos->moms);
-      gk_species_moment_release(app, &pos->integ_moms); 
-      gkyl_dynvec_release(pos->integ_diag);
-      if (app->use_gpu) {
-        gkyl_cu_free(pos->red_integ_diag);
-        gkyl_cu_free(pos->red_integ_diag_global);
-      }
-      else {
-        gkyl_free(pos->red_integ_diag);
-        gkyl_free(pos->red_integ_diag_global);
-      }
+    if (is_fdot_mode) {
+      gkyl_positivity_fdot_restrict_release(pos->fdot_restrict_op);
     }
 
   }
