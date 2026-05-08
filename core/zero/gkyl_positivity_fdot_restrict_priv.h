@@ -54,7 +54,7 @@ restrict_fdot_quad(struct gkyl_positivity_fdot_restrict *up,
   }
 
   if (reproject) {
-    for (int k = 0; k < nquad; ++k)
+    for (int k = 0; k < up->basis->num_basis; ++k)
       up->basis->quad_nodal_to_modal(dfdtq, dfdt, k);
   }
 }
@@ -87,7 +87,7 @@ restrict_fdot_diode_quad(struct gkyl_positivity_fdot_restrict *up,
   }
 
   if (reproject) {
-    for (int k = 0; k < nquad; ++k)
+    for (int k = 0; k < up->basis->num_basis; ++k)
       up->basis->quad_nodal_to_modal(dfdtq, dfdt, k);
   }
 }
