@@ -270,7 +270,7 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
         type = GKYL_POSITIVITY_FDOT_RESTRICT_DIODE_AVG;
       
       struct gkyl_positivity_fdot_restrict_inp fdot_inp = {
-        .basis = gkns->basis,
+        .basis = gkns->basis_on_dev,
         .type = type,
         .safety_factor = (gkns->info.positivity.safety_factor > 0.0) 
           ? gkns->info.positivity.safety_factor : 0.9, // Use input value or default to 0.9.
