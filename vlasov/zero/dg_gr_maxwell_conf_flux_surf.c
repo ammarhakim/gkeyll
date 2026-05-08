@@ -96,12 +96,13 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
   const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *det_h, 
-  const struct gkyl_array *field_no_J_con, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
+  const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, 
+  struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(conf_flux_surf)) {
     return gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu(up, conf_range, conf_range_ext, lapse, shift, 
-      h_ij, det_h, field_no_J_con, cflrate, conf_flux_surf);
+      h_ij, det_h, field_con, field_no_J_con, cflrate, conf_flux_surf);
   }
 #endif
   int cdim = up->cdim;
@@ -118,6 +119,7 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
     gkyl_rect_grid_cell_center(&up->conf_grid, idx, xcC);
 
     const double *field_no_J_con_c = gkyl_array_cfetch(field_no_J_con, cidx); 
+    const double *field_con_c = gkyl_array_cfetch(field_con, cidx); 
     double *cflrate_d = gkyl_array_fetch(cflrate, cidx);
     double *flux = gkyl_array_fetch(conf_flux_surf, cidx); 
 
@@ -155,6 +157,7 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
       idx_l[dir] = idx_l[dir]-1;
       long cidx_l = gkyl_range_idx(conf_range, idx_l); 
       const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_con, cidx_l);
+      const double *field_con_l = gkyl_array_cfetch(field_con, cidx_l);
 
       // For Points not along the domain-edge in theta, compute the left hand surface 
       // conf-flux.
@@ -166,7 +169,8 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
       }
 
       cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, theta_pole,
-        lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, flux);     
+        lapse_d, shift_d, h_ij_d, det_h_d, field_con_l, field_con_c,
+         field_no_J_con_l, field_no_J_con_c, flux);     
 
       // If at the right boundary compute flux owned by the point in the ghost cell
       if (idx[dir] == conf_range->upper[dir]) {
@@ -177,6 +181,7 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
         long cidx_r = gkyl_range_idx(conf_range_ext, idx_r); 
 
         const double *field_no_J_con_r = gkyl_array_cfetch(field_no_J_con, cidx_r);
+        const double *field_con_r = gkyl_array_cfetch(field_con, cidx_r);
         double *flux_r = gkyl_array_fetch(conf_flux_surf, cidx_r); 
         double *cflrate_d_r = gkyl_array_fetch(cflrate, cidx_r);
 
@@ -205,7 +210,8 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
         cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, theta_pole,
-        lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_c, field_no_J_con_r, flux_r);
+        lapse_d, shift_d, h_ij_d, det_h_d, field_con_c, field_con_r,
+        field_no_J_con_c, field_no_J_con_r, flux_r);
       }
     }
   }

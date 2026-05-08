@@ -52,8 +52,9 @@ gkyl_dg_gr_maxwell_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_co
  * @param lapse Lapse (ADM alpha) at the nodal surface points. 
  * @param shift shift (ADM \beta^i - contravaraint) at the nodal surface points. 
  * @param h_ij Spatial metric (ADM h_ij - covariant) at the nodal surface points. 
- * @param det_h Spatial metric Jacobian (Jc = det_h = sqrt(det(h_ij))) at the nodal surface points.   
- * @param field_no_J_con Input contravariant (D,B) field components (without determinant factor Jc) function.
+ * @param det_h Spatial metric Jacobian (Jc = det_h = sqrt(det(h_ij))) at the nodal surface points.  
+ * @param field_con Input contravariant (JD,JB) field components. 
+ * @param field_no_J_con Input contravariant (D,B) field components (without determinant factor Jc) Used for edges.
  * @param cflrate Input cflrate. Accumulated to from maximum alpha_v at quadrature points.  
  * @param conf_flux_surf Output modal configuration-space fluxes. 
  */
@@ -62,7 +63,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_flux_su
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
   const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *det_h, 
-  const struct gkyl_array *field_no_J_con, struct gkyl_array *cflrate, 
+  const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, struct gkyl_array *cflrate, 
   struct gkyl_array *conf_flux_surf);
 
  /**
@@ -73,7 +74,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu(struct gkyl_dg_gr_maxwell_conf_flux
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
   const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *det_h,
-  const struct gkyl_array *field_no_J_con, struct gkyl_array *cflrate, 
+  const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, struct gkyl_array *cflrate, 
   struct gkyl_array *conf_flux_surf);
 
 void

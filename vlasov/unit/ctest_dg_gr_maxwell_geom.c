@@ -665,10 +665,13 @@ test_ks_r_theta_2x_geom_p1()
     field_with_J_radial_init, field_no_J_radial_init, false);
 
   struct gkyl_array *field_no_J_fixed = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
+  struct gkyl_array *field_with_J_fixed = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *field_no_J_fixed_copy = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
   struct gkyl_array *bc_buffer = mkarr(field_no_J_con->ncomp, bc_buff_sz);
   struct gkyl_array *bc_buffer_lo_fixed = mkarr(field_no_J_con->ncomp, conf_skin_ghost.lower_ghost[0].volume);
   struct gkyl_array *bc_buffer_up_fixed = mkarr(field_no_J_con->ncomp, conf_skin_ghost.upper_ghost[0].volume);
+  struct gkyl_array *bc_buffer_lo_fixed_with_J = mkarr(field_no_J_con->ncomp, conf_skin_ghost.lower_ghost[0].volume);
+  struct gkyl_array *bc_buffer_up_fixed_with_J = mkarr(field_no_J_con->ncomp, conf_skin_ghost.upper_ghost[0].volume);
   struct gkyl_bc_basic *bc_lo[GKYL_MAX_DIM] = { 0 }, *bc_up[GKYL_MAX_DIM] = { 0 };
 
   // Compute the boundary updaters. Radial boundaries are fixed from the initial field,
@@ -688,16 +691,21 @@ test_ks_r_theta_2x_geom_p1()
     &conf_skin_ghost.lower_skin[0], &conf_skin_ghost.lower_ghost[0], field_no_J_con->ncomp, cdim, false);
 
   gkyl_array_copy(field_no_J_fixed, field_no_J_con);
+  gkyl_array_copy(field_with_J_fixed, field_with_J_con);
   gkyl_array_copy(field_no_J_fixed_copy, field_no_J_con);
 
   // Seed the fixed-function radial buffers from the projected radial ghost data
-  // with the configuration-space Jacobian divided out.
+  // in both primitive and conservative variables.
   gkyl_array_copy_to_buffer(bc_buffer_lo_fixed->data, field_no_J_radial_init, &radial_ghost_lo);
   gkyl_array_copy_to_buffer(bc_buffer_up_fixed->data, field_no_J_radial_init, &radial_ghost_up);
+  gkyl_array_copy_to_buffer(bc_buffer_lo_fixed_with_J->data, field_with_J_radial_init, &radial_ghost_lo);
+  gkyl_array_copy_to_buffer(bc_buffer_up_fixed_with_J->data, field_with_J_radial_init, &radial_ghost_up);
 
   // Update the boundary.
   gkyl_bc_basic_advance(bc_lo[0], bc_buffer_lo_fixed, field_no_J_fixed);
   gkyl_bc_basic_advance(bc_up[0], bc_buffer_up_fixed, field_no_J_fixed);
+  gkyl_bc_basic_advance(bc_lo[0], bc_buffer_lo_fixed_with_J, field_with_J_fixed);
+  gkyl_bc_basic_advance(bc_up[0], bc_buffer_up_fixed_with_J, field_with_J_fixed);
   gkyl_bc_basic_advance(bc_lo[1], bc_buffer, field_no_J_fixed);
   gkyl_bc_basic_advance(bc_up[1], bc_buffer, field_no_J_fixed);
   gkyl_bc_basic_advance(bc_lo_copy[0], bc_buffer, field_no_J_fixed_copy);
@@ -721,6 +729,22 @@ test_ks_r_theta_2x_geom_p1()
           int k = c*confBasis.num_basis + m;
           //printf("  %s mode %d: fixed_bc=% .16e, expected_init_no_J=% .16e\n",
           //  em_comp_names[c], m, actual[k], expected[k]);
+          TEST_CHECK(gkyl_compare_double(actual[k], expected[k], 1e-12));
+        }
+      }
+    }
+  }
+
+  for (int rg=0; rg<2; ++rg) {
+    gkyl_range_iter_init(&iter, radial_ghost_ranges[rg]);
+    while (gkyl_range_iter_next(&iter)) {
+      long lidx = gkyl_range_idx(&confLocal_ext, iter.idx);
+      const double *expected = gkyl_array_cfetch(field_with_J_radial_init, lidx);
+      const double *actual = gkyl_array_cfetch(field_with_J_fixed, lidx);
+
+      for (int c=0; c<8; ++c) {
+        for (int m=0; m<confBasis.num_basis; ++m) {
+          int k = c*confBasis.num_basis + m;
           TEST_CHECK(gkyl_compare_double(actual[k], expected[k], 1e-12));
         }
       }
@@ -753,6 +777,9 @@ test_ks_r_theta_2x_geom_p1()
   gkyl_array_release(field_no_J_radial_init);
   gkyl_array_release(bc_buffer_lo_fixed);
   gkyl_array_release(bc_buffer_up_fixed);
+  gkyl_array_release(bc_buffer_lo_fixed_with_J);
+  gkyl_array_release(bc_buffer_up_fixed_with_J);
+  gkyl_array_release(field_with_J_fixed);
 
   gkyl_bc_basic_release(bc_lo_copy[0]);
   for (int d=0; d<cdim; ++d) {
@@ -846,17 +873,17 @@ test_ks_r_theta_2x_geom_p1()
       // Compute the fluxes in the first two directions
       if (dir == 0) { 
         dg_gr_maxwell_alpha_quad_x_2x_ser_p1(xcC, confGrid.dx, theta_pole,
-          lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_x, A_minus_dQ_x, flux_l_x, flux_r_x, alpha_quad_x);
+          lapse_d, shift_d, h_ij_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_x, A_minus_dQ_x, flux_l_x, flux_r_x, alpha_quad_x);
           
-        double cflrate = lax_flux_x_2x_ser_p1(confGrid.dx, det_h_d, flux_l_x, flux_r_x, alpha_quad_x,
-          field_no_J_con_l, field_no_J_con_c, flux); 
+        double cflrate = lax_flux_x_2x_ser_p1(confGrid.dx, theta_pole, det_h_d, flux_l_x, flux_r_x, alpha_quad_x,
+          field_con_l, field_con_c, flux); 
       }
       else if (dir == 1) { 
         dg_gr_maxwell_alpha_quad_y_2x_ser_p1(xcC, confGrid.dx, theta_pole,
-          lapse_d, shift_d, h_ij_d, det_h_d, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_y, A_minus_dQ_y, flux_l_y, flux_r_y, alpha_quad_y);
+          lapse_d, shift_d, h_ij_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_y, A_minus_dQ_y, flux_l_y, flux_r_y, alpha_quad_y);
           
-        double cflrate = lax_flux_y_2x_ser_p1(confGrid.dx, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
-          field_no_J_con_l, field_no_J_con_c, flux); 
+        double cflrate = lax_flux_y_2x_ser_p1(confGrid.dx, theta_pole, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
+          field_con_l, field_con_c, flux); 
       }
 
       // Dir = 1 comparison, for Jumps in quantities at the theta edges 
@@ -1096,7 +1123,7 @@ test_ks_r_theta_2x_geom_p1()
         // after applying the same regularity condition as the flux kernel.
         if (theta_pole) {
           for (int j = 0; j<12; ++j) {
-            printf("(theta-pole): dU[%d] %1.16e, Ur: %1.16e, Ul: %1.16e\n", j, dU[j], Ur[j], Ul[j]);
+            //printf("(theta-pole): dU[%d] %1.16e, Ur: %1.16e, Ul: %1.16e\n", j, dU[j], Ur[j], Ul[j]);
             TEST_CHECK(gkyl_compare_double(dU[j], 0.0, 1e-12));
             TEST_CHECK(gkyl_compare_double(A_plus_dQ_y[j], 0.0, 1e-12));
             TEST_CHECK(gkyl_compare_double(A_minus_dQ_y[j], 0.0, 1e-12));

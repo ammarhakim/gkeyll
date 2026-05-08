@@ -13,11 +13,12 @@
 
 typedef void (*dg_gr_maxwell_alpha_quad_conf_t)(const double *w, const double *dxv, const int geom_edge, const double *lapse, 
   const double *shift, const double *h_ij, const double *det_h,   
+  const double *field_con_l, const double *field_con_r, 
   const double *field_no_J_con_l, const double *field_no_J_con_r, 
   double* GKYL_RESTRICT A_plus_dQ, double* GKYL_RESTRICT A_minus_dQ,
   double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT alpha_quad); 
 
-typedef double (*lax_flux_t)(const double *dxv, const double *det_h, const double *flux_l, 
+typedef double (*lax_flux_t)(const double *dxv, const int geom_edge, const double *det_h, const double *flux_l, 
   const double *flux_r, const double *alpha_quad, const double *field_no_J_con_l, 
   const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf); 
 
@@ -27,7 +28,8 @@ typedef double (*roe_flux_t)(const double *dxv,
 
 typedef double (*conf_flux_surf_t)(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse,
-  const double *shift, const double *h_ij, const double *det_h, const double *field_no_J_con_l, 
+  const double *shift, const double *h_ij, const double *det_h, const double *field_con_l, 
+  const double *field_con_r, const double *field_no_J_con_l, 
   const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf); 
 
 // for use in kernel tables
@@ -52,28 +54,18 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf {
   struct gkyl_dg_gr_maxwell_conf_flux_surf *on_dev; // pointer to itself or device data.  
 };
 
-// Empty function pointers for cases where these forces do not exist. 
-GKYL_CU_DH
-static void 
-no_dg_gr_maxwell_alpha_quad(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse, 
-  const double *shift, const double *h_ij, const double *det_h,   
-  const double *field_no_J_con_l, const double *field_no_J_con_r, 
-  double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT alpha_quad)
-{
-}
-
 GKYL_CU_DH
 static void inline
 conf_flux_surf_alpha_quad(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse, 
   const double *shift, const double *h_ij, const double *det_h,   
+  const double *field_con_l, const double *field_con_r,
   const double *field_no_J_con_l, const double *field_no_J_con_r, 
   double* GKYL_RESTRICT A_plus_dQ, double* GKYL_RESTRICT A_minus_dQ,
   double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT alpha_quad)
 {
   up->dg_gr_maxwell_alpha_quad[dir](w, dxv, geom_edge, lapse, shift, 
-    h_ij, det_h, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad);  
+    h_ij, det_h, field_con_l, field_con_r, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad);  
 }
 
 // Configuration-space flux computation.
@@ -82,7 +74,8 @@ GKYL_CU_DH
 static double 
 conf_flux_surf_1x_p1(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse,
-  const double *shift, const double *h_ij, const double *det_h, const double *field_no_J_con_l,
+  const double *shift, const double *h_ij, const double *det_h,const double *field_con_l,
+   const double *field_con_r, const double *field_no_J_con_l,
    const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf)
 {
   // 1 quadrature node on a 1x surface, 6 field components.
@@ -94,13 +87,14 @@ conf_flux_surf_1x_p1(struct gkyl_dg_gr_maxwell_conf_flux_surf *up,
 
   // Compute the maximum eigenvalue at each quadrature point and retrun the fluxes.  
   conf_flux_surf_alpha_quad(up, dir, w, dxv, geom_edge, lapse, shift, 
-    h_ij, det_h, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
+    h_ij, det_h, field_con_l, field_con_r, field_no_J_con_l, field_no_J_con_r,
+     A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
 
   double cflrate;   
   if (up->use_lax) {
     // Compute nodal Lax-Friedrichs flux 
-    cflrate = up->lax_flux[dir](dxv, det_h, flux_l, flux_r, alpha_quad,
-      field_no_J_con_l, field_no_J_con_r, conf_flux_surf); 
+    cflrate = up->lax_flux[dir](dxv, geom_edge,det_h, flux_l, flux_r, alpha_quad,
+      field_con_l, field_con_r, conf_flux_surf); 
   }
   else {
     // Compute nodal Roe flux 
@@ -115,7 +109,8 @@ GKYL_CU_DH
 static double 
 conf_flux_surf_1x_p2(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse,
-  const double *shift, const double *h_ij, const double *det_h, const double *field_no_J_con_l,
+  const double *shift, const double *h_ij, const double *det_h,const double *field_con_l,
+   const double *field_con_r, const double *field_no_J_con_l,
    const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf)
 {
   // 1 quadrature node on a 1x surface, 6 field components.
@@ -127,13 +122,14 @@ conf_flux_surf_1x_p2(struct gkyl_dg_gr_maxwell_conf_flux_surf *up,
 
   // Compute the maximum eigenvalue at each quadrature point and retrun the fluxes.    
   conf_flux_surf_alpha_quad(up, dir, w, dxv, geom_edge, lapse, shift, 
-    h_ij, det_h, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
+    h_ij, det_h, field_con_l, field_con_r, field_no_J_con_l, field_no_J_con_r,
+     A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
 
   double cflrate;   
   if (up->use_lax) {
     // Compute nodal Lax-Friedrichs flux 
-    cflrate = up->lax_flux[dir](dxv, det_h, flux_l, flux_r, alpha_quad,
-      field_no_J_con_l, field_no_J_con_r, conf_flux_surf); 
+    cflrate = up->lax_flux[dir](dxv, geom_edge,det_h, flux_l, flux_r, alpha_quad,
+      field_con_l, field_con_r, conf_flux_surf); 
   }
   else {
     // Compute nodal Roe flux 
@@ -148,7 +144,8 @@ GKYL_CU_DH
 static double 
 conf_flux_surf_2x_p1(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse,
-  const double *shift, const double *h_ij, const double *det_h, const double *field_no_J_con_l,
+  const double *shift, const double *h_ij, const double *det_h,const double *field_con_l,
+   const double *field_con_r, const double *field_no_J_con_l,
    const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf)
 {
   // 2 quadrature nodes on a 2x surface, 6 field components.
@@ -160,13 +157,14 @@ conf_flux_surf_2x_p1(struct gkyl_dg_gr_maxwell_conf_flux_surf *up,
 
   // Compute the maximum eigenvalue at each quadrature point and retrun the fluxes.    
   conf_flux_surf_alpha_quad(up, dir, w, dxv, geom_edge, lapse, shift, 
-    h_ij, det_h, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
+    h_ij, det_h, field_con_l, field_con_r, field_no_J_con_l, field_no_J_con_r,
+     A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
 
   double cflrate;   
   if (up->use_lax) {
     // Compute nodal Lax-Friedrichs flux 
-    cflrate = up->lax_flux[dir](dxv, det_h, flux_l, flux_r, alpha_quad,
-      field_no_J_con_l, field_no_J_con_r, conf_flux_surf); 
+    cflrate = up->lax_flux[dir](dxv, geom_edge,det_h, flux_l, flux_r, alpha_quad,
+      field_con_l, field_con_r, conf_flux_surf); 
   }
   else {
     // Compute nodal Roe flux 
@@ -181,7 +179,8 @@ GKYL_CU_DH
 static double 
 conf_flux_surf_2x_p2(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse,
-  const double *shift, const double *h_ij, const double *det_h, const double *field_no_J_con_l,
+  const double *shift, const double *h_ij, const double *det_h,const double *field_con_l,
+   const double *field_con_r, const double *field_no_J_con_l,
    const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf)
 {
   // 3 quadrature nodes on a 2x p2 surface, 6 field components.
@@ -193,13 +192,14 @@ conf_flux_surf_2x_p2(struct gkyl_dg_gr_maxwell_conf_flux_surf *up,
 
   // Compute the maximum eigenvalue at each quadrature point and retrun the fluxes.    
   conf_flux_surf_alpha_quad(up, dir, w, dxv, geom_edge, lapse, shift, 
-    h_ij, det_h, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
+    h_ij, det_h, field_con_l, field_con_r, field_no_J_con_l, field_no_J_con_r,
+     A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
 
   double cflrate;   
   if (up->use_lax) {
     // Compute nodal Lax-Friedrichs flux 
-    cflrate = up->lax_flux[dir](dxv, det_h, flux_l, flux_r, alpha_quad,
-      field_no_J_con_l, field_no_J_con_r, conf_flux_surf); 
+    cflrate = up->lax_flux[dir](dxv, geom_edge,det_h, flux_l, flux_r, alpha_quad,
+      field_con_l, field_con_r, conf_flux_surf); 
   }
   else {
     // Compute nodal Roe flux 
@@ -214,7 +214,8 @@ GKYL_CU_DH
 static double 
 conf_flux_surf_3x_p1(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse,
-  const double *shift, const double *h_ij, const double *det_h, const double *field_no_J_con_l,
+  const double *shift, const double *h_ij, const double *det_h,const double *field_con_l,
+   const double *field_con_r, const double *field_no_J_con_l,
    const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf)
 {
   // 4 quadrature nodes on a 3x surface, 6 field components.
@@ -226,13 +227,14 @@ conf_flux_surf_3x_p1(struct gkyl_dg_gr_maxwell_conf_flux_surf *up,
 
   // Compute the maximum eigenvalue at each quadrature point and retrun the fluxes.    
   conf_flux_surf_alpha_quad(up, dir, w, dxv, geom_edge, lapse, shift, 
-    h_ij, det_h, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
+    h_ij, det_h, field_con_l, field_con_r, field_no_J_con_l, field_no_J_con_r,
+     A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
 
   double cflrate;   
   if (up->use_lax) {
     // Compute nodal Lax-Friedrichs flux 
-    cflrate = up->lax_flux[dir](dxv, det_h, flux_l, flux_r, alpha_quad,
-      field_no_J_con_l, field_no_J_con_r, conf_flux_surf); 
+    cflrate = up->lax_flux[dir](dxv, geom_edge,det_h, flux_l, flux_r, alpha_quad,
+      field_con_l, field_con_r, conf_flux_surf); 
   }
   else {
     // Compute nodal Roe flux 
@@ -247,7 +249,8 @@ GKYL_CU_DH
 static double 
 conf_flux_surf_3x_p2(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int geom_edge, const double *lapse,
-  const double *shift, const double *h_ij, const double *det_h, const double *field_no_J_con_l,
+  const double *shift, const double *h_ij, const double *det_h,const double *field_con_l,
+   const double *field_con_r, const double *field_no_J_con_l,
    const double *field_no_J_con_r, double* GKYL_RESTRICT conf_flux_surf)
 {
   // 4 quadrature nodes on a 3x surface, 6 field components.
@@ -259,13 +262,14 @@ conf_flux_surf_3x_p2(struct gkyl_dg_gr_maxwell_conf_flux_surf *up,
 
   // Compute the maximum eigenvalue at each quadrature point and retrun the fluxes.    
   conf_flux_surf_alpha_quad(up, dir, w, dxv, geom_edge, lapse, shift, 
-    h_ij, det_h, field_no_J_con_l, field_no_J_con_r, A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
+    h_ij, det_h, field_con_l, field_con_r, field_no_J_con_l, field_no_J_con_r,
+     A_plus_dQ, A_minus_dQ, flux_l, flux_r, alpha_quad); 
 
   double cflrate;   
   if (up->use_lax) {
     // Compute nodal Lax-Friedrichs flux 
-    cflrate = up->lax_flux[dir](dxv, det_h, flux_l, flux_r, alpha_quad,
-      field_no_J_con_l, field_no_J_con_r, conf_flux_surf); 
+    cflrate = up->lax_flux[dir](dxv, geom_edge,det_h, flux_l, flux_r, alpha_quad,
+      field_con_l, field_con_r, conf_flux_surf); 
   }
   else {
     // Compute nodal Roe flux 

@@ -8,8 +8,8 @@ local Vlasov = G0.Vlasov
 pi = math.pi
 
 -- Simulation parameters.
-Nr = 48 -- Cell count (r-direction).
-Ntheta = 48 -- Cell count (theta-direction).
+Nr = 192 -- Cell count (r-direction).
+Ntheta = 192 -- Cell count (theta-direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -53,8 +53,8 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.9, 0 },
-  upper = { 4.0, math.pi },
+  lower = { 1.5, 0 },
+  upper = { 5.0, math.pi },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
     
@@ -73,6 +73,7 @@ vlasovApp = Vlasov.App.new {
 
     -- Use GR field ID
     fieldID = G0.FieldModel.GR,
+    useLax = true,
 
     -- Initial conditions function.
     init = function (t, xn)
@@ -98,6 +99,7 @@ vlasovApp = Vlasov.App.new {
       local r6 = r3*r3
 
       local rho_sq = r2 + a2*ct2
+      local rho = math.sqrt( r2 + a2*ct2 )
       local sqrt_fac = math.sqrt(1.0 + 2.0*M*r/rho_sq)
       local denom_root = math.sqrt(2.0*M*r + rho_sq)
 
@@ -105,51 +107,39 @@ vlasovApp = Vlasov.App.new {
       local Dr =
         -(B_0*M*a*sqrt_fac*(st2 - 2.0)*(a2*st2 - a2 + r2)*
           (a4 - a4*st2 + r4 + 2.0*a2*r2 - a2*r2*st2 + 2.0*M*a2*r*st2))/
-        ((rho_sq^3)*(2.0*M*r + rho_sq))
+        ((rho_sq * rho_sq * rho_sq)*(2.0*M*r + rho_sq))
         -(2.0*B_0*M*a*r*st2*sqrt_fac*
           (r5 + 2.0*a2*r3*ct2 + 2.0*M*a2*r2 - M*a4*ct2 - M*a4*ct2*ct2 + a4*r*ct2*ct2 - M*a2*r2*st2))/
-        ((rho_sq^3)*(2.0*M*r + rho_sq))
+        ((rho_sq * rho_sq * rho_sq)*(2.0*M*r + rho_sq))
 
       local Dtheta =
-        -(2.0*B_0*M*a^3*r*ct*st*sqrt_fac*(ct2 + 1.0))/
-        ((rho_sq^2)*(2.0*M*r + rho_sq))
+        -(2.0*B_0*M*a*a*a*r*ct*st*sqrt_fac*(ct2 + 1.0))/
+        ((rho_sq * rho_sq)*(2.0*M*r + rho_sq))
 
       local Dphi =
-        -(B_0*M*a2*sqrt_fac*(st2 - 2.0)*(a2*st2 - a2 + r2))/(rho_sq^3)
+        -(B_0*M*a2*sqrt_fac*(st2 - 2.0)*(a2*st2 - a2 + r2))/(rho_sq * rho_sq * rho_sq)
         -(2.0*B_0*M*r*sqrt_fac*
           (r5 + 2.0*a2*r3*ct2 + 2.0*M*a2*r2 - M*a4*ct2 - M*a4*ct2*ct2 + a4*r*ct2*ct2 - M*a2*r2*st2))/
-        ((rho_sq^2)*(a2 - a2*st2 + r2)*(2.0*M*r + rho_sq))
+        ((rho_sq * rho_sq)*(a2 - a2*st2 + r2)*(2.0*M*r + rho_sq))
 
       -- B^i contravariant components: (Br, Btheta, Bphi)
       local Br =
         -(B_0*ct*
           (a6*ct2*ct2 + r6 + a2*r4 + 2.0*a2*r4*ct2 + 2.0*a4*r2*ct2 + a4*r2*ct2*ct2
           - 2.0*M*a4*r - 2.0*M*a4*r*ct2*ct2 - 4.0*M*a2*r3*ct2))/
-        ((rho_sq^(2.5))*denom_root)
+        ((rho_sq * rho_sq * rho)*denom_root)
 
       local Btheta =
         (B_0*st*
           (r5 + 2.0*a2*r3*ct2 + 2.0*M*a2*r2 - M*a4*ct2 - M*a4*ct2*ct2 + a4*r*ct2*ct2 - M*a2*r2*st2))/
-        ((rho_sq^(2.5))*denom_root)
+        ((rho_sq * rho_sq * rho)*denom_root)
 
       local Bphi =
         -(B_0*a*ct*(a4*ct2*ct2 + 2.0*M*r3 + r4 + 2.0*a2*r2*ct2 - 2.0*M*a2*r))/
-        ((rho_sq^(2.5))*denom_root)
+        ((rho_sq * rho_sq * rho)*denom_root)
 
-      -- Must return conserved variables
-      local rho = math.sqrt(r * r + spinBH * spinBH * math.cos(theta) * math.cos(theta) )
-      local metric_det = rho * math.sqrt(2*massBH*r + rho * rho) * math.sin(theta) 
-      
-      -- Compute Jc * D^i and Jc * B^i
-      local JDr = metric_det * Dr
-      local JDtheta = metric_det * Dtheta
-      local JDphi = metric_det * Dphi
-      local JBr = metric_det * Br
-      local JBtheta = metric_det * Btheta
-      local JBphi = metric_det * Bphi
-
-      -- Hand off the conserved varaibles (J * Q^\xi)
-      return JDr, JDtheta, JDphi, JBr, JBtheta, JBphi, 0.0, 0.0
+      -- Hand off the primative variables (U^\xi)
+      return Dr, Dtheta, Dphi, Br, Btheta, Bphi, 0.0, 0.0
     end,
 
     -- Copy boundary conditions in r are sufficient. Theta requries theta-pole BCs

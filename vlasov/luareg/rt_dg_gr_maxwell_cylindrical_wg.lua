@@ -105,19 +105,8 @@ vlasovApp = Vlasov.App.new {
       local Bphi = 0.0 -- Total magnetic field (phi-direction).
       local Bz = 0.0 -- Total magnetic field (z-direction).
 
-      -- Must return conserved variables
-      local metric_det = r 
-      
-      -- Compute Jc * D^i and Jc * B^i
-      local JDr = metric_det * Dr
-      local JDphi = metric_det * Dphi
-      local JDz = metric_det * Dz
-      local JBr = metric_det * Br
-      local JBphi = metric_det * Bphi
-      local JBz = metric_det * Bz
-
-      -- Hand off the conserved varaibles (Q^\xi = J * U^\xi)
-      return JDr, JDphi, JDz, JBr, JBphi, JBz, 0.0, 0.0
+      -- Hand off the primative variables (U^\xi)
+      return Dr, Dphi, Dz, Br, Bphi, Bz, 0.0, 0.0
     end,
 
     bcx = { G0.FieldBc.bcPECWall, G0.FieldBc.bcPECWall }, -- boundary conditions (r-direction).

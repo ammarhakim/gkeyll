@@ -10,7 +10,7 @@ pi = math.pi
 -- Simulation parameters.
 Nr = 24 -- Cell count (r-direction).
 Ntheta = 48 -- Cell count (theta-direction).
-poly_order = 2 -- Polynomial order.
+poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
@@ -106,20 +106,9 @@ vlasovApp = Vlasov.App.new {
       local Br = 0.0 -- Total magnetic field (r-direction).
       local Btheta = 0.0 -- Total magnetic field (theta-direction).
       local Bphi = 0.0 -- Total magnetic field (phi-direction).
-
-      -- Must return conserved variables
-      local metric_det = r * r * math.sin(theta)
       
-      -- Compute Jc * D^i and Jc * B^i
-      local JDr = metric_det * Dr
-      local JDtheta = metric_det * Dtheta
-      local JDphi = metric_det * Dphi
-      local JBr = metric_det * Br
-      local JBtheta = metric_det * Btheta
-      local JBphi = metric_det * Bphi
-
-      -- Hand off the conserved varaibles (Q^\xi = J * U^\xi)
-      return JDr, JDtheta, JDphi, JBr, JBtheta, JBphi, 0.0, 0.0
+      -- Hand off the primative varaibles (U^\xi)
+      return Dr, Dtheta, Dphi, Br, Btheta, Bphi, 0.0, 0.0
     end,
 
     bcx = { G0.FieldBc.bcPECWall, G0.FieldBc.bcPECWall }, -- boundary conditions (r-direction).

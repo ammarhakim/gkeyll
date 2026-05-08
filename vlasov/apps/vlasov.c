@@ -952,12 +952,15 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // Fixed-function field BCs are frozen from the initial conditions, so seed
+    // those buffers before the local solution is overwritten by restart data.
+    gkyl_vlasov_app_apply_ic_field(app, 0.0);
+
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(app->field->em, app->field->em_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      vm_field_buffer_fixed_func_bc(app, app->field);
       vm_field_apply_bc(app, app->field, app->field->em);
     }
   }

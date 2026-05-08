@@ -671,6 +671,7 @@ struct vm_field {
   struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
   bool use_lax; // Boolean for determining if we are using lax fluxes for dg-gr-maxwell
   struct gkyl_array *em_no_J; // arrays for storing em field without Jc
+  struct gkyl_array *em_no_J_host; // host copy of primitive GR fields for I/O
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
   struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
   struct gkyl_dg_gr_maxwell_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 

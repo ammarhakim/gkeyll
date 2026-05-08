@@ -8,8 +8,8 @@ local Vlasov = G0.Vlasov
 pi = math.pi
 
 -- Simulation parameters.
-Nr = 48 -- Cell count (r-direction).
-Ntheta = 48 -- Cell count (theta-direction).
+Nr = 192 -- Cell count (r-direction).
+Ntheta = 192 -- Cell count (theta-direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
@@ -53,7 +53,7 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 1.5 * massBH, 0 },
+  lower = { 2.0001 * massBH, 0 },
   upper = { 5.0 * massBH, math.pi },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
@@ -89,20 +89,8 @@ vlasovApp = Vlasov.App.new {
       local Btheta = B_0 * math.sin(theta) / ( r * math.sqrt( 1.0 + 2.0 * massBH / r ) ) -- Total magnetic field (theta-direction).
       local Bphi = 0.0 -- Total magnetic field (phi-direction).
 
-      -- Must return conserved variables
-      local rho = math.sqrt(r * r + spinBH * spinBH * math.cos(theta) * math.cos(theta) )
-      local metric_det = rho * math.sqrt(2*massBH*r + rho * rho) * math.sin(theta) 
-      
-      -- Compute Jc * D^i and Jc * B^i
-      local JDr = metric_det * Dr
-      local JDtheta = metric_det * Dtheta
-      local JDphi = metric_det * Dphi
-      local JBr = metric_det * Br
-      local JBtheta = metric_det * Btheta
-      local JBphi = metric_det * Bphi
-
-      -- Hand off the conserved varaibles (J * Q^\xi)
-      return JDr, JDtheta, JDphi, JBr, JBtheta, JBphi, 0.0, 0.0
+      -- Hand off the primative variables (U^\xi)
+      return Dr, Dtheta, Dphi, Br, Btheta, Bphi, 0.0, 0.0
     end,
 
     -- Copy boundary conditions in r are sufficient. Theta requries theta-pole BCs
