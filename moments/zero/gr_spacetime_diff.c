@@ -866,3 +866,123 @@ gkyl_gr_spacetime_weyl_tensor_fd(const struct gkyl_gr_spacetime* spacetime, cons
   gkyl_free(spacetime_metric_tensor);
   gkyl_free(spacetime_ricci_tensor);
 }
+
+void
+gkyl_gr_conformal_factor_diff(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** conformal_factor_diff)
+{
+  double conformal_factor_x_forward;
+  double conformal_factor_y_forward;
+  double conformal_factor_z_forward;
+
+  double conformal_factor_x_backward;
+  double conformal_factor_y_backward;
+  double conformal_factor_z_backward;
+
+  spacetime->conformal_factor_func(spacetime, t, x + (0.5 * dx), y, z, &conformal_factor_x_forward);
+  spacetime->conformal_factor_func(spacetime, t, x, y + (0.5 * dy), z, &conformal_factor_y_forward);
+  spacetime->conformal_factor_func(spacetime, t, x, y, z + (0.5 * dz), &conformal_factor_z_forward);
+
+  spacetime->conformal_factor_func(spacetime, t, x - (0.5 * dx), y, z, &conformal_factor_x_backward);
+  spacetime->conformal_factor_func(spacetime, t, x, y - (0.5 * dy), z, &conformal_factor_y_backward);
+  spacetime->conformal_factor_func(spacetime, t, x, y, z - (0.5 * dz), &conformal_factor_z_backward);
+
+  (*conformal_factor_diff)[0] = (1.0 / dx) * (conformal_factor_x_forward - conformal_factor_x_backward);
+  (*conformal_factor_diff)[1] = (1.0 / dy) * (conformal_factor_y_forward - conformal_factor_y_backward);
+  (*conformal_factor_diff)[2] = (1.0 / dz) * (conformal_factor_z_forward - conformal_factor_z_backward);
+}
+
+void
+gkyl_gr_bssn_conformal_factor_diff(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** bssn_conformal_factor_diff)
+{
+  double bssn_conformal_factor_x_forward;
+  double bssn_conformal_factor_y_forward;
+  double bssn_conformal_factor_z_forward;
+
+  double bssn_conformal_factor_x_backward;
+  double bssn_conformal_factor_y_backward;
+  double bssn_conformal_factor_z_backward;
+
+  spacetime->bssn_conformal_factor_func(spacetime, t, x + (0.5 * dx), y, z, &bssn_conformal_factor_x_forward);
+  spacetime->bssn_conformal_factor_func(spacetime, t, x, y + (0.5 * dy), z, &bssn_conformal_factor_y_forward);
+  spacetime->bssn_conformal_factor_func(spacetime, t, x, y, z + (0.5 * dz), &bssn_conformal_factor_z_forward);
+
+  spacetime->bssn_conformal_factor_func(spacetime, t, x - (0.5 * dx), y, z, &bssn_conformal_factor_x_backward);
+  spacetime->bssn_conformal_factor_func(spacetime, t, x, y - (0.5 * dy), z, &bssn_conformal_factor_y_backward);
+  spacetime->bssn_conformal_factor_func(spacetime, t, x, y, z - (0.5 * dz), &bssn_conformal_factor_z_backward);
+
+  (*bssn_conformal_factor_diff)[0] = (1.0 / dx) * (bssn_conformal_factor_x_forward - bssn_conformal_factor_x_backward);
+  (*bssn_conformal_factor_diff)[1] = (1.0 / dy) * (bssn_conformal_factor_y_forward - bssn_conformal_factor_y_backward);
+  (*bssn_conformal_factor_diff)[2] = (1.0 / dz) * (bssn_conformal_factor_z_forward - bssn_conformal_factor_z_backward);
+}
+
+void
+gkyl_gr_conformal_factor_diff2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** conformal_factor_diff2)
+{
+  double* conformal_factor_der_x_forward = gkyl_malloc(sizeof(double[3]));
+  double* conformal_factor_der_y_forward = gkyl_malloc(sizeof(double[3]));
+  double* conformal_factor_der_z_forward = gkyl_malloc(sizeof(double[3]));
+
+  double* conformal_factor_der_x_backward = gkyl_malloc(sizeof(double[3]));
+  double* conformal_factor_der_y_backward = gkyl_malloc(sizeof(double[3]));
+  double* conformal_factor_der_z_backward = gkyl_malloc(sizeof(double[3]));
+
+  spacetime->conformal_factor_der_func(spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &conformal_factor_der_x_forward);
+  spacetime->conformal_factor_der_func(spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &conformal_factor_der_y_forward);
+  spacetime->conformal_factor_der_func(spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &conformal_factor_der_z_forward);
+
+  spacetime->conformal_factor_der_func(spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &conformal_factor_der_x_backward);
+  spacetime->conformal_factor_der_func(spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &conformal_factor_der_y_backward);
+  spacetime->conformal_factor_der_func(spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &conformal_factor_der_z_backward);
+
+  for (int i = 0; i < 3; i++) {
+    (*conformal_factor_diff2)[0][i] = (1.0 / dx) * (conformal_factor_der_x_forward[i] - conformal_factor_der_x_backward[i]);
+    (*conformal_factor_diff2)[1][i] = (1.0 / dy) * (conformal_factor_der_y_forward[i] - conformal_factor_der_y_backward[i]);
+    (*conformal_factor_diff2)[2][i] = (1.0 / dz) * (conformal_factor_der_z_forward[i] - conformal_factor_der_z_backward[i]);
+  }
+
+  gkyl_free(conformal_factor_der_x_forward);
+  gkyl_free(conformal_factor_der_y_forward);
+  gkyl_free(conformal_factor_der_z_forward);
+
+  gkyl_free(conformal_factor_der_x_backward);
+  gkyl_free(conformal_factor_der_y_backward);
+  gkyl_free(conformal_factor_der_z_backward);
+}
+
+void
+gkyl_gr_bssn_conformal_factor_diff2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** bssn_conformal_factor_diff2)
+{
+  double* bssn_conformal_factor_der_x_forward = gkyl_malloc(sizeof(double[3]));
+  double* bssn_conformal_factor_der_y_forward = gkyl_malloc(sizeof(double[3]));
+  double* bssn_conformal_factor_der_z_forward = gkyl_malloc(sizeof(double[3]));
+
+  double* bssn_conformal_factor_der_x_backward = gkyl_malloc(sizeof(double[3]));
+  double* bssn_conformal_factor_der_y_backward = gkyl_malloc(sizeof(double[3]));
+  double* bssn_conformal_factor_der_z_backward = gkyl_malloc(sizeof(double[3]));
+
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x + (0.5 * dx), y, z, dx, dy, dz, &bssn_conformal_factor_der_x_forward);
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y + (0.5 * dy), z, dx, dy, dz, &bssn_conformal_factor_der_y_forward);
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y, z + (0.5 * dz), dx, dy, dz, &bssn_conformal_factor_der_z_forward);
+
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x - (0.5 * dx), y, z, dx, dy, dz, &bssn_conformal_factor_der_x_backward);
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y - (0.5 * dy), z, dx, dy, dz, &bssn_conformal_factor_der_y_backward);
+  spacetime->bssn_conformal_factor_der_func(spacetime, t, x, y, z - (0.5 * dz), dx, dy, dz, &bssn_conformal_factor_der_z_backward);
+
+  for (int i = 0; i < 3; i++) {
+    (*bssn_conformal_factor_diff2)[0][i] = (1.0 / dx) * (bssn_conformal_factor_der_x_forward[i] - bssn_conformal_factor_der_x_backward[i]);
+    (*bssn_conformal_factor_diff2)[1][i] = (1.0 / dy) * (bssn_conformal_factor_der_y_forward[i] - bssn_conformal_factor_der_y_backward[i]);
+    (*bssn_conformal_factor_diff2)[2][i] = (1.0 / dz) * (bssn_conformal_factor_der_z_forward[i] - bssn_conformal_factor_der_z_backward[i]);
+  }
+
+  gkyl_free(bssn_conformal_factor_der_x_forward);
+  gkyl_free(bssn_conformal_factor_der_y_forward);
+  gkyl_free(bssn_conformal_factor_der_z_forward);
+
+  gkyl_free(bssn_conformal_factor_der_x_backward);
+  gkyl_free(bssn_conformal_factor_der_y_backward);
+  gkyl_free(bssn_conformal_factor_der_z_backward);
+}
