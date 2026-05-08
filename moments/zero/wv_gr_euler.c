@@ -106,9 +106,9 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
   spatial_metric_der[1][1][0] = q[52]; spatial_metric_der[1][1][1] = q[53]; spatial_metric_der[1][1][2] = q[54];
   spatial_metric_der[1][2][0] = q[55]; spatial_metric_der[1][2][1] = q[56]; spatial_metric_der[1][2][2] = q[57];
 
-  spatial_metric_der[0][0][0] = q[58]; spatial_metric_der[0][0][1] = q[59]; spatial_metric_der[0][0][2] = q[60];
-  spatial_metric_der[0][1][0] = q[61]; spatial_metric_der[0][1][1] = q[62]; spatial_metric_der[0][1][2] = q[63];
-  spatial_metric_der[0][2][0] = q[64]; spatial_metric_der[0][2][1] = q[65]; spatial_metric_der[0][2][2] = q[66];
+  spatial_metric_der[2][0][0] = q[58]; spatial_metric_der[2][0][1] = q[59]; spatial_metric_der[2][0][2] = q[60];
+  spatial_metric_der[2][1][0] = q[61]; spatial_metric_der[2][1][1] = q[62]; spatial_metric_der[2][1][2] = q[63];
+  spatial_metric_der[2][2][0] = q[64]; spatial_metric_der[2][2][1] = q[65]; spatial_metric_der[2][2][2] = q[66];
 
   double evol_param = q[67];
   double x = q[68];
@@ -1631,9 +1631,9 @@ gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
   spatial_metric_der[1][1][0] = v[52]; spatial_metric_der[1][1][1] = v[53]; spatial_metric_der[1][1][2] = v[54];
   spatial_metric_der[1][2][0] = v[55]; spatial_metric_der[1][2][1] = v[56]; spatial_metric_der[1][2][2] = v[57];
 
-  spatial_metric_der[0][0][0] = v[58]; spatial_metric_der[0][0][1] = v[59]; spatial_metric_der[0][0][2] = v[60];
-  spatial_metric_der[0][1][0] = v[61]; spatial_metric_der[0][1][1] = v[62]; spatial_metric_der[0][1][2] = v[63];
-  spatial_metric_der[0][2][0] = v[64]; spatial_metric_der[0][2][1] = v[65]; spatial_metric_der[0][2][2] = v[66];
+  spatial_metric_der[2][0][0] = v[58]; spatial_metric_der[2][0][1] = v[59]; spatial_metric_der[2][0][2] = v[60];
+  spatial_metric_der[2][1][0] = v[61]; spatial_metric_der[2][1][1] = v[62]; spatial_metric_der[2][1][2] = v[63];
+  spatial_metric_der[2][2][0] = v[64]; spatial_metric_der[2][2][1] = v[65]; spatial_metric_der[2][2][2] = v[66];
 
   double **stress_energy = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
