@@ -357,7 +357,7 @@ gkyl_nodal_ops_m2n_surface(const struct gkyl_nodal_ops *nodal_ops,
 
     for (int i=0; i<num_comp; ++i) {
       // transform to modal expansion
-      for (int k=0; k<num_basis; ++k){
+      for (int k=0; k<cbasis->num_quad; ++k){
         cbasis->modal_to_quad_nodal(&arr_p[num_basis*i], fnodal, k);
       }
       // copy so nodal values for each return value are contiguous
@@ -513,7 +513,7 @@ gkyl_nodal_ops_m2n_interior(const struct gkyl_nodal_ops *nodal_ops,
 
     for (int i=0; i<num_comp; ++i) {
       // transform to modal expansion
-      for (int k=0; k<num_basis; ++k){
+      for (int k=0; k<cbasis->num_quad; ++k){
         cbasis->modal_to_quad_nodal(&arr_p[num_basis*i], fnodal, k);
       }
       // copy so nodal values for each return value are contiguous
