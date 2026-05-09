@@ -9,6 +9,14 @@
 #include <float.h>
 #include <time.h>
 
+// Forward declarations for the per-field-type energy diagnostic
+// implementations defined later in this file. Wired into the function
+// pointers in vm_field_new.
+static void vm_field_calc_integrated_energy_flat(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+static void vm_field_calc_integrated_energy_GR(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+static void calc_field_energy_density_flat(gkyl_vlasov_app *app, const struct vm_field *field);
+static void calc_field_energy_density_GR(gkyl_vlasov_app *app, const struct vm_field *field);
+
 static bool
 vm_field_is_fixed_func_bc(const struct vm_field *field, int d)
 {
@@ -91,14 +99,22 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->em_host = app->use_gpu ? mkarr(false, f->em->ncomp, f->em->size)
                             : gkyl_array_acquire(f->em);
 
-  f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);                            
+  f->em_energy = mkarr(app->use_gpu, 6, app->local_ext.volume);
   if (app->use_gpu) {
     f->em_energy_red = gkyl_cu_malloc(sizeof(double[6]));
   }
 
+  // Per-cell spatial field-energy density diagnostic. Two components:
+  // [0] energy density per cell (½(E²+B²) for flat, ½J_c h_ij(D^iD^j+B^iB^j) for GR);
+  // [1] g_tt sign per cell (always 0 for flat; -1/0/+1 for GR — sign of g_tt
+  //     where +1 marks ergoregion/indefinite-energy zone).
+  f->em_energy_density = mkarr(app->use_gpu, 2, app->local_ext.volume);
+  gkyl_array_clear(f->em_energy_density, 0.0);
+  f->is_first_field_energy_write_call = true;
+
   // Duplicate copy of EM data in case time step fails.
-  // Needed because of implicit source split which modifies solution and 
-  // is always successful, so if a time step fails due to the SSP RK3 
+  // Needed because of implicit source split which modifies solution and
+  // is always successful, so if a time step fails due to the SSP RK3
   // we must restore the old solution before restarting the time step
   f->em_dup = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
 
@@ -178,13 +194,40 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   struct gkyl_dg_eqn *eqn;
 
-  // Allocate nodal surface expansion of Configuration space flux array. 
+  // Allocate nodal surface expansion of Configuration space flux array.
   if ( f->field_id == GKYL_FIELD_GR_D_B ){
 
     // Compute the number of configuration space nodes, with case for hybrid-tensor.
     f->num_surf_conf_nodes = pow(app->poly_order+1,app->cdim - 1);
 
-    // 
+    // Determine which (dir, edge) pairs use the characteristic-based outflow
+    // BC. Done here (rather than via f->lower_bc/upper_bc, which are resolved
+    // further down) so the conf_flux_surf updater can be configured at
+    // construction time. Outflow only applies on non-periodic directions.
+    int outflow_lo_init[3] = {0, 0, 0};
+    int outflow_up_init[3] = {0, 0, 0};
+    {
+      int is_np_local[3] = {1, 1, 1};
+      for (int d=0; d<app->num_periodic_dir; ++d) {
+        is_np_local[app->periodic_dirs[d]] = 0;
+      }
+      for (int dir=0; dir<app->cdim; ++dir) {
+        if (!is_np_local[dir]) continue;
+        const enum gkyl_field_bc_type *bc;
+        if (dir == 0)      bc = f->info.bcx;
+        else if (dir == 1) bc = f->info.bcy;
+        else               bc = f->info.bcz;
+        if (bc[0] == GKYL_FIELD_OUTFLOW) outflow_lo_init[dir] = 1;
+        if (bc[1] == GKYL_FIELD_OUTFLOW) outflow_up_init[dir] = 1;
+      }
+    }
+    // [INSTRUMENTATION] Confirm the outflow flags are being set as expected
+    // from the user input. Prints once per app initialization.
+    fprintf(stderr, "[GR-Maxwell outflow plumbing] resolved flags: "
+      "outflow_lo = {%d, %d, %d}, outflow_up = {%d, %d, %d} (cdim=%d)\n",
+      outflow_lo_init[0], outflow_lo_init[1], outflow_lo_init[2],
+      outflow_up_init[0], outflow_up_init[1], outflow_up_init[2], app->cdim);
+
     f->conf_flux_surf = mkarr(app->use_gpu, app->cdim*8*f->num_surf_conf_nodes, app->local_ext.volume);
     struct gkyl_dg_gr_maxwell_conf_flux_surf_inp inp_conf_flux = {
       .conf_basis = &app->basis,
@@ -192,10 +235,13 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .field_id = f->field_id,
       .theta_pole_lo = app->vm_geom->theta_pole_lo,
       .theta_pole_up = app->vm_geom->theta_pole_up,
+      .outflow_lo = outflow_lo_init,
+      .outflow_up = outflow_up_init,
       .use_lax = f->info.use_lax,
+      .use_curved_norm = f->info.use_curved_norm,
       .use_gpu = app->use_gpu,
-    }; 
-    f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 
+    };
+    f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux);
   }
    
   // Input structure for building the dg eqn object
@@ -294,6 +340,12 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_FIXED_FUNC;
     else if (f->lower_bc[d] == GKYL_FIELD_THETA_POLE)
       bctype = GKYL_BC_MAXWELL_THETA_POLE;
+    else if (f->lower_bc[d] == GKYL_FIELD_OUTFLOW)
+      bctype = GKYL_BC_COPY; // placeholder: outflow ghost is unused by the
+                             // GR Maxwell surface flux kernel (which calls
+                             // outflow_flux_<dir> with skin only), so any
+                             // ghost-fill is harmless; COPY keeps the array
+                             // in a sane state for downstream code.
 
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev,
       &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
@@ -311,6 +363,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_FIXED_FUNC;
     else if (f->upper_bc[d] == GKYL_FIELD_THETA_POLE)
       bctype = GKYL_BC_MAXWELL_THETA_POLE;
+    else if (f->upper_bc[d] == GKYL_FIELD_OUTFLOW)
+      bctype = GKYL_BC_COPY; // see lower-edge comment
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev,
       &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
 
@@ -329,6 +383,16 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   gkyl_dg_eqn_release(eqn);
+
+  // Forward declarations for the per-field-type energy diagnostic
+  // implementations are below in this file. We resolve them via field_id.
+  if (f->field_id == GKYL_FIELD_GR_D_B) {
+    f->calc_integrated_field_energy_func = vm_field_calc_integrated_energy_GR;
+    f->calc_field_energy_func = calc_field_energy_density_GR;
+  } else {
+    f->calc_integrated_field_energy_func = vm_field_calc_integrated_energy_flat;
+    f->calc_field_energy_func = calc_field_energy_density_flat;
+  }
 
   return f;
 }
@@ -470,9 +534,12 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
        em, field->em_no_J, app->use_gpu); 
 
     // Apply BCs after dividing out J so ghost cells are populated
-    // for conf_flux_surf which references the ghost cells for the flux
+    // for conf_flux_surf which references the ghost cells for the flux.
+    // The cast drops const because vm_field_apply_bc writes the ghost-cell
+    // region of `em`; the interior (skin) data is left unchanged, so `em`
+    // is conceptually still input from vm_field_rhs's contract.
     vm_field_apply_bc(app, field, field->em_no_J);
-    vm_field_apply_bc(app, field, em);
+    vm_field_apply_bc(app, field, (struct gkyl_array *)em);
 
     // Compute the surface expansion of the phase space flux in configuration space. 
     gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 
@@ -643,48 +710,258 @@ vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
     }
   }
   
-  vlasov_array_meta_release(mt); 
+  vlasov_array_meta_release(mt);
+
+  // Per-frame spatial-energy diagnostic. The dispatched implementation
+  // populates app->field->em_energy_density (flat-space ½(E²+B²) for
+  // standard Maxwell, curved-space ½J_c h_ij(D^iD^j+B^iB^j) plus per-cell
+  // ergosphere flag for GR_D_B), which then gets written as its own frame.
+  vm_field_calc_field_energy(app, app->field);
+  vm_field_write_field_energy(app, tm, frame);
 
   app->stat.field_io_tm += gkyl_time_diff_now_sec(wst);
-  app->stat.n_field_io += 1;  
+  app->stat.n_field_io += 1;
 }
 
-void
-vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field)
+// ---- Integrated field energy (flat) — existing behavior. ----
+// Uses gkyl_dg_calc_l2_range to compute the L2 norm² of each EM modal
+// component on each cell (giving the per-cell flat-space ½(E²+B²) integral
+// up to the cell-volume factor), reduces, and appends to integ_energy.
+static void
+vm_field_calc_integrated_energy_flat(gkyl_vlasov_app *app, double tm,
+  const struct vm_field *field)
 {
-  struct timespec wst = gkyl_wall_clock();  
-
-  for (int i=0; i<6; ++i) {
+  for (int i = 0; i < 6; ++i) {
     gkyl_dg_calc_l2_range(app->basis, i, field->em_energy, i, field->em, app->local);
   }
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
-  
+
   double energy[6] = { 0.0 };
   if (app->use_gpu) {
     gkyl_array_reduce_range(field->em_energy_red, field->em_energy, GKYL_SUM, &app->local);
     gkyl_cu_memcpy(energy, field->em_energy_red, sizeof(double[6]), GKYL_CU_MEMCPY_D2H);
-  }
-  else { 
+  } else {
     gkyl_array_reduce_range(energy, field->em_energy, GKYL_SUM, &app->local);
   }
-
   double energy_global[6] = { 0.0 };
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
-  
   gkyl_dynvec_append(field->integ_energy, tm, energy_global);
+}
 
+// ---- Per-cell modal-to-nodal evaluation for 2D ser_p1 ----
+// Tabulates the 4 quadrature node values of one modal-coefficient block
+// {1, sqrt(3)*xi, sqrt(3)*eta, 3*xi*eta}/2 (Gkeyll's normalization) at the
+// 2x2 Gauss nodes (xi, eta) ∈ {±1/sqrt(3)}². Sign table follows the layout
+// the production volume kernel uses (see gr_maxwell_vol_2x_ser_p1.c).
+static inline void
+modes_to_nodes_2x_ser_p1(const double *c, double out[4])
+{
+  static const double s_xi[4]  = { -1.0, -1.0,  1.0, 1.0 };
+  static const double s_eta[4] = { -1.0,  1.0, -1.0, 1.0 };
+  for (int m = 0; m < 4; ++m) {
+    out[m] = 0.5 * (c[0] + s_xi[m]*c[1] + s_eta[m]*c[2] + s_xi[m]*s_eta[m]*c[3]);
+  }
+}
+
+// ---- Per-cell curved-space energy density ----
+// Returns a 2-element struct: [cell-integrated energy, ergo flag].
+//   cell_E = ∫_cell ½ J_c h_ij (D^i D^j + B^i B^j) d²x,
+//     evaluated by 2D 2-point Gauss quadrature using the same nodal lapse,
+//     shift, h_ij, det_h that the production kernels use.
+//   ergo  = +1 if any quadrature node has g_tt > 0 (timelike Killing vector
+//           becomes spacelike → indefinite stationary energy);
+//           -1 if all nodes have g_tt < 0; 0 if mixed (boundary).
+// h_ij_vol layout: 6 components × 4 nodes = [h_xx*4, h_xy*4, h_xz*4, h_yy*4, h_yz*4, h_zz*4].
+// shift_vol layout: 3 components × 4 nodes = [β^x*4, β^y*4, β^z*4]. lapse_vol, det_h_vol: 4 doubles each.
+static void
+gr_curved_energy_per_cell(const double *em_no_J,
+  const double *lapse_vol, const double *shift_vol,
+  const double *h_ij_vol, const double *det_h_vol,
+  double dx, double dy, double *out_cell_E, double *out_ergo_flag)
+{
+  // Evaluate D^i, B^i at each quadrature node from modal expansion.
+  double Dx_n[4], Dy_n[4], Dz_n[4];
+  double Bx_n[4], By_n[4], Bz_n[4];
+  modes_to_nodes_2x_ser_p1(&em_no_J[0*4],  Dx_n);
+  modes_to_nodes_2x_ser_p1(&em_no_J[1*4],  Dy_n);
+  modes_to_nodes_2x_ser_p1(&em_no_J[2*4],  Dz_n);
+  modes_to_nodes_2x_ser_p1(&em_no_J[3*4],  Bx_n);
+  modes_to_nodes_2x_ser_p1(&em_no_J[4*4],  By_n);
+  modes_to_nodes_2x_ser_p1(&em_no_J[5*4],  Bz_n);
+
+  double E_total = 0.0;
+  int n_pos_gtt = 0, n_neg_gtt = 0;
+  for (int m = 0; m < 4; ++m) {
+    double h_xx = h_ij_vol[0*4 + m];
+    double h_xy = h_ij_vol[1*4 + m];
+    double h_xz = h_ij_vol[2*4 + m];
+    double h_yy = h_ij_vol[3*4 + m];
+    double h_yz = h_ij_vol[4*4 + m];
+    double h_zz = h_ij_vol[5*4 + m];
+    double Jc = det_h_vol[m];
+    double alpha = lapse_vol[m];
+    double bx = shift_vol[0*4 + m], by = shift_vol[1*4 + m], bz = shift_vol[2*4 + m];
+
+    // h_ij V^i V^j for V = D and V = B.
+    double DhD =
+      h_xx*Dx_n[m]*Dx_n[m] + 2.0*h_xy*Dx_n[m]*Dy_n[m] + 2.0*h_xz*Dx_n[m]*Dz_n[m] +
+      h_yy*Dy_n[m]*Dy_n[m] + 2.0*h_yz*Dy_n[m]*Dz_n[m] +
+      h_zz*Dz_n[m]*Dz_n[m];
+    double BhB =
+      h_xx*Bx_n[m]*Bx_n[m] + 2.0*h_xy*Bx_n[m]*By_n[m] + 2.0*h_xz*Bx_n[m]*Bz_n[m] +
+      h_yy*By_n[m]*By_n[m] + 2.0*h_yz*By_n[m]*Bz_n[m] +
+      h_zz*Bz_n[m]*Bz_n[m];
+    E_total += 0.5 * Jc * (DhD + BhB);
+
+    // g_tt = -(α² - h_ij β^i β^j). g_tt > 0 means inside ergosphere.
+    double bsq =
+      h_xx*bx*bx + 2.0*h_xy*bx*by + 2.0*h_xz*bx*bz +
+      h_yy*by*by + 2.0*h_yz*by*bz + h_zz*bz*bz;
+    double g_tt = -(alpha*alpha) + bsq;
+    if (g_tt > 0.0) n_pos_gtt++;
+    else if (g_tt < 0.0) n_neg_gtt++;
+  }
+  E_total *= dx * dy / 4.0;
+  *out_cell_E = E_total;
+  if      (n_pos_gtt == 4) *out_ergo_flag =  1.0;
+  else if (n_neg_gtt == 4) *out_ergo_flag = -1.0;
+  else                      *out_ergo_flag = 0.0; // boundary cell of ergosphere
+}
+
+// ---- Integrated field energy (curved-space, GR_D_B) ----
+// Loops cells, computes per-cell integrated curved energy via the helper,
+// stores into em_energy_density[0] (so the spatial diagnostic gets the same
+// values for free), reduces, and appends total to integ_energy. The
+// integ_energy dynvec keeps its existing 6-component shape; only entries
+// 0..1 are filled (total_energy, ergosphere_volume_fraction) and 2..5 stay
+// zero, so downstream tooling that reads "channel 0" still works.
+static void
+vm_field_calc_integrated_energy_GR(gkyl_vlasov_app *app, double tm,
+  const struct vm_field *field)
+{
+  // CPU-only path for now (the diagnostic kernels are inline math; GPU port
+  // is a follow-up if profiling shows it's needed).
+  double dx = app->grid.dx[0], dy = app->grid.dx[1];
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  double cell_E_sum = 0.0;
+  double ergo_volume = 0.0;
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx = gkyl_range_idx(&app->local, iter.idx);
+    const double *em_no_J = gkyl_array_cfetch(field->em_no_J, cidx);
+    const double *lapse_d = gkyl_array_cfetch(app->vm_geom->lapse->nodal_arr_vol, cidx);
+    const double *shift_d = gkyl_array_cfetch(app->vm_geom->shift->nodal_arr_vol, cidx);
+    const double *h_ij_d  = gkyl_array_cfetch(app->vm_geom->h_ij->nodal_arr_vol, cidx);
+    const double *det_h_d = gkyl_array_cfetch(app->vm_geom->det_h->nodal_arr_vol, cidx);
+
+    double cell_E = 0.0, ergo_flag = 0.0;
+    gr_curved_energy_per_cell(em_no_J, lapse_d, shift_d, h_ij_d, det_h_d,
+      dx, dy, &cell_E, &ergo_flag);
+
+    double *cell_density = gkyl_array_fetch(field->em_energy_density, cidx);
+    cell_density[0] = cell_E;
+    cell_density[1] = ergo_flag;
+
+    cell_E_sum += cell_E;
+    if (ergo_flag > 0.0) ergo_volume += dx*dy;
+  }
+  // MPI reduce.
+  double local_pair[2]  = { cell_E_sum, ergo_volume };
+  double global_pair[2] = { 0.0, 0.0 };
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2, local_pair, global_pair);
+
+  // Pack into the 6-element dynvec slot for compatibility with the existing
+  // -field-energy.gkyl reader. Channel 0 = curved-space integrated energy,
+  // channel 1 = volume of the ergosphere zone (constant for this geometry,
+  // but written each diagnostic call so the dynvec stays in lockstep).
+  double energy_global[6] = { global_pair[0], global_pair[1], 0.0, 0.0, 0.0, 0.0 };
+  gkyl_dynvec_append(field->integ_energy, tm, energy_global);
+}
+
+// Public dispatcher.
+void
+vm_field_calc_integrated_energy(gkyl_vlasov_app *app, double tm,
+  const struct vm_field *field)
+{
+  struct timespec wst = gkyl_wall_clock();
+  field->calc_integrated_field_energy_func(app, tm, field);
+  app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
+}
+
+// ---- Per-cell field energy (spatial map) ----
+// Flat-space variant: writes ½(E²+B²) per cell into channel 0 of
+// em_energy_density and 0 into channel 1 (no indefiniteness for flat space).
+// The cell-average is the modal coefficient 0 of each component, divided by
+// 2 (the basis normalization 1/2). For piecewise-constant data this is
+// exact; for higher-order modes it is the cell-average — which is what the
+// spatial diagnostic should show.
+static void
+calc_field_energy_density_flat(gkyl_vlasov_app *app, const struct vm_field *field)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx = gkyl_range_idx(&app->local, iter.idx);
+    const double *em = gkyl_array_cfetch(field->em, cidx);
+    int nb = app->basis.num_basis;
+    double sum = 0.0;
+    for (int c = 0; c < 6; ++c) {
+      // L2 norm squared of the modal expansion = sum of coefficient squares
+      // (since the basis is L²-orthonormal). Divide by cell volume to get
+      // density.
+      const double *cf = &em[c*nb];
+      for (int m = 0; m < nb; ++m) sum += cf[m]*cf[m];
+    }
+    double *out = gkyl_array_fetch(field->em_energy_density, cidx);
+    out[0] = 0.5 * sum;
+    out[1] = 0.0;
+  }
+}
+
+// Curved-space variant: vm_field_calc_integrated_energy_GR already populates
+// em_energy_density as a side effect (so the spatial map is in sync with the
+// integrated total). This implementation just re-runs the per-cell helper to
+// guarantee em_energy_density is current even if the integrated diagnostic
+// was not called first.
+static void
+calc_field_energy_density_GR(gkyl_vlasov_app *app, const struct vm_field *field)
+{
+  double dx = app->grid.dx[0], dy = app->grid.dx[1];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx = gkyl_range_idx(&app->local, iter.idx);
+    const double *em_no_J = gkyl_array_cfetch(field->em_no_J, cidx);
+    const double *lapse_d = gkyl_array_cfetch(app->vm_geom->lapse->nodal_arr_vol, cidx);
+    const double *shift_d = gkyl_array_cfetch(app->vm_geom->shift->nodal_arr_vol, cidx);
+    const double *h_ij_d  = gkyl_array_cfetch(app->vm_geom->h_ij->nodal_arr_vol, cidx);
+    const double *det_h_d = gkyl_array_cfetch(app->vm_geom->det_h->nodal_arr_vol, cidx);
+    double cell_E = 0.0, ergo_flag = 0.0;
+    gr_curved_energy_per_cell(em_no_J, lapse_d, shift_d, h_ij_d, det_h_d,
+      dx, dy, &cell_E, &ergo_flag);
+    double *out = gkyl_array_fetch(field->em_energy_density, cidx);
+    out[0] = cell_E;
+    out[1] = ergo_flag;
+  }
+}
+
+void
+vm_field_calc_field_energy(gkyl_vlasov_app *app, const struct vm_field *field)
+{
+  struct timespec wst = gkyl_wall_clock();
+  field->calc_field_energy_func(app, field);
   app->stat.field_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 }
 
 void
-vm_field_write_energy(gkyl_vlasov_app *app)
+vm_field_write_integrated_energy(gkyl_vlasov_app *app)
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Write out integrated field energy. 
   const char *fmt = "%s-field-energy.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name);
-  char fileNm[sz+1]; // Ensures no buffer overflow.
+  char fileNm[sz+1];
   snprintf(fileNm, sizeof fileNm, fmt, app->name);
 
   int rank;
@@ -692,19 +969,45 @@ vm_field_write_energy(gkyl_vlasov_app *app)
 
   if (rank == 0) {
     if (app->field->is_first_energy_write_call) {
-      // Write to a new file (this ensure previous output is removed).
       gkyl_dynvec_write(app->field->integ_energy, fileNm);
       app->field->is_first_energy_write_call = false;
-    }
-    else {
-      // Append to existing file.
+    } else {
       gkyl_dynvec_awrite(app->field->integ_energy, fileNm);
     }
   }
-  gkyl_dynvec_clear(app->field->integ_energy);  
+  gkyl_dynvec_clear(app->field->integ_energy);
 
   app->stat.n_field_diag_io += 1;
-  app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);  
+  app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+vm_field_write_field_energy(gkyl_vlasov_app *app, double tm, int frame)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // File name: <app>-field_energy_<frame>.gkyl, parallel to em fields.
+  const char *fmt = "%s-field_energy_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, frame);
+  char fileNm[sz+1];
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
+
+  // Pack tm into msgpack metadata so the frame is time-tagged.
+  struct vlasov_output_meta meta = {
+    .frame = frame, .stime = tm, .poly_order = app->poly_order,
+    .basis_type = app->basis.id,
+  };
+  struct gkyl_msgpack_data *mt = vlasov_array_meta_new(meta);
+
+  // Write the per-cell energy density array. The grid here is the conf grid
+  // (spatial, no velocity); range is the local interior.
+  gkyl_grid_sub_array_write(&app->grid, &app->local, mt,
+    app->field->em_energy_density, fileNm);
+
+  vlasov_array_meta_release(mt);
+
+  app->stat.n_field_diag_io += 1;
+  app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
 // release resources for field
@@ -726,6 +1029,7 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->bc_buffer);
   gkyl_array_release(f->cflrate);
   gkyl_array_release(f->em_energy);
+  gkyl_array_release(f->em_energy_density);
   gkyl_dynvec_release(f->integ_energy);
 
   gkyl_array_release(f->sigma);

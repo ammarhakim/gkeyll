@@ -17,8 +17,11 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf_inp {
   enum gkyl_field_id field_id; // enum to determine what type of Maxwell model (e.g., curved space non-relativistic vs. relativistic). 
   const int *theta_pole_lo; // (lower edge) Default zeros, but 1 if any directions use theta-pole BC's.
   const int *theta_pole_up; // (upper edge) Default zeros, but 1 if any directions use theta-pole BC's.
+  const int *outflow_lo; // (lower edge) Default zeros, 1 if direction uses characteristic-based outflow BC.
+  const int *outflow_up; // (upper edge) Default zeros, 1 if direction uses characteristic-based outflow BC.
   bool use_lax; // bool to determine if we are using lax flux option.
-  bool use_gpu; // bool to determine if on GPU. 
+  bool use_curved_norm; // when true (and use_lax true): use curved-norm LLF flux (h_ij-weighted dissipation).
+  bool use_gpu; // bool to determine if on GPU.
 };
 
 /**

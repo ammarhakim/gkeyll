@@ -1495,6 +1495,12 @@ vlasov_field_lw_new(lua_State *L)
   bool use_lax = glua_tbl_get_bool(L, "useLax", false);
   vm_field.use_lax = use_lax;
 
+  // Curved-norm LLF flux: replaces flat-L^2 dissipation with spatial-3-metric
+  // (h_ij)-weighted dissipation. Required for stable GR Maxwell simulations
+  // that include the ergoregion. Only effective when useLax = true.
+  bool use_curved_norm = glua_tbl_get_bool(L, "useCurvedNorm", false);
+  vm_field.use_curved_norm = use_curved_norm;
+
   with_lua_tbl_tbl(L, "bcx") { 
     int nbc = glua_objlen(L);
 

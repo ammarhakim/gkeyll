@@ -53,7 +53,7 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 1.0, 0 },
+  lower = { 1.5, 0 },
   upper = { 5.0, math.pi },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
@@ -73,7 +73,7 @@ vlasovApp = Vlasov.App.new {
 
     -- Use GR field ID
     fieldID = G0.FieldModel.GR,
-    useLax = true,
+    useLax = false,
 
     -- Initial conditions function.
     init = function (t, xn)
@@ -142,8 +142,13 @@ vlasovApp = Vlasov.App.new {
       return Dr, Dtheta, Dphi, Br, Btheta, Bphi, 0.0, 0.0
     end,
 
-    -- Copy boundary conditions in r are sufficient. Theta requries theta-pole BCs
-    bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- boundary conditions (r-direction).
+    -- Characteristic-based one-sided outflow BCs at both radial boundaries:
+    -- the GR Maxwell surface flux uses A^outgoing . U_skin at the boundary
+    -- face (negative-eigenvalue projection at lower-r, positive-eigenvalue
+    -- projection at upper-r), bypassing the ghost cell entirely. Tests
+    -- whether the bomb-cavity interpretation accounts for the unstable mode
+    -- observed in rt_dg_gr_maxwell_wald_kerr.lua.
+    bcx = { G0.FieldBc.bcOutflow, G0.FieldBc.bcOutflow }, -- characteristic outflow (r-direction)
     bcy = { G0.FieldBc.bcThetaPole, G0.FieldBc.bcThetaPole } -- boundary conditions (theta-direction).
   }
 }

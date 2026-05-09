@@ -696,6 +696,21 @@ struct vm_field {
 
   gkyl_dynvec integ_energy; // integrated energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time
+
+  // ---- Energy-diagnostic dispatch ----
+  // Function pointers set in vm_field_new based on field_id, so the right
+  // computation (flat-space vs curved-space) runs for each field type.
+  void (*calc_integrated_field_energy_func)(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+  void (*calc_field_energy_func)(gkyl_vlasov_app *app, const struct vm_field *field);
+
+  // ---- Spatial-map field-energy diagnostic ----
+  // Per-cell scalar (and per-cell quadratic-form sign for curved space).
+  // For flat-space fields:    1 component (½(E²+B²) per cell)
+  // For GR_D_B fields:        2 components: [½J_c h_ij(D^iD^j+B^iB^j),
+  //                                          sign of g_tt indefiniteness]
+  // Output as a frame each time the field is written.
+  struct gkyl_array *em_energy_density;
+  bool is_first_field_energy_write_call;
 };
 
 struct vm_fluid_source {
@@ -1804,20 +1819,41 @@ void vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field,
 void vm_field_write(gkyl_vlasov_app* app, double tm, int frame);
 
 /**
- * Compute field energy diagnostic.
+ * Compute integrated field energy diagnostic. Dispatches to flat-space or
+ * curved-space (GR) implementation via the function pointer set in
+ * vm_field_new based on field_id.
  *
  * @param app Vlasov app object
  * @param tm Time at which diagnostic is computed
  * @param field Pointer to field
  */
-void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
+void vm_field_calc_integrated_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
 
 /**
- * Write out electromagnetic field energy.
+ * Write out integrated electromagnetic field energy time series.
  *
  * @param app Vlasov app object
- */  
-void vm_field_write_energy(gkyl_vlasov_app* app);
+ */
+void vm_field_write_integrated_energy(gkyl_vlasov_app* app);
+
+/**
+ * Compute the spatial (per-cell) field-energy diagnostic. Dispatches to the
+ * appropriate flat-space or curved-space implementation. Result is stored in
+ * field->em_energy_density.
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ */
+void vm_field_calc_field_energy(gkyl_vlasov_app *app, const struct vm_field *field);
+
+/**
+ * Write out the per-cell field-energy diagnostic as a .gkyl frame.
+ *
+ * @param app Vlasov app object
+ * @param tm Time tag for the frame
+ * @param frame Frame index (used in the file name)
+ */
+void vm_field_write_field_energy(gkyl_vlasov_app* app, double tm, int frame);
 
 /**
  * Release resources allocated by field

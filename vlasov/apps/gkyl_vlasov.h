@@ -308,6 +308,12 @@ struct gkyl_vlasov_field {
   bool external_potentials_evolve; // Set to true if external potentials are time dependent.
 
   bool use_lax; // Boolean for using lax fluxes in dg-gr-maxwell.
+  bool use_curved_norm; // When true (and use_lax true), use curved-norm LLF flux:
+                        // dissipation matrix is the spatial 3-metric h_ij,
+                        // positive-definite on the spatial slice. Required for
+                        // stable GR Maxwell simulations that include the
+                        // ergoregion (where standard flat-norm LLF dissipation
+                        // leaves a real-positive interior eigenvalue).
 };
 
 // Parameter for Vlasov fluid species

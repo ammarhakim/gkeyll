@@ -242,9 +242,9 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       app->field_ext_em_calc = vm_field_calc_ext_em;
       app->field_app_current_calc = vm_field_calc_app_current;
       app->field_ext_pot_calc = vm_field_calc_ext_pot;
-      app->field_energy_calc = vm_field_calc_energy;
+      app->field_energy_calc = vm_field_calc_integrated_energy;
       app->field_write = vm_field_write;
-      app->field_energy_write = vm_field_write_energy; 
+      app->field_energy_write = vm_field_write_integrated_energy;
     }
   }
 

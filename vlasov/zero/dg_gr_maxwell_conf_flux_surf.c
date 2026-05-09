@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -27,6 +28,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
   up->use_gpu = inp->use_gpu; 
   up->conf_grid = *inp->conf_grid;
   up->use_lax = inp->use_lax;
+  up->use_curved_norm = inp->use_curved_norm;
    
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -40,10 +42,23 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
       up->roe_flux[1] = ser_roe_flux_y_kernels[cdim-1].kernels[poly_order];
       up->roe_flux[2] = ser_roe_flux_z_kernels[cdim-1].kernels[poly_order];
 
-      // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
+      // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i.
       up->dg_gr_maxwell_alpha_quad[0] = ser_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
       up->dg_gr_maxwell_alpha_quad[1] = ser_dg_gr_maxwell_alpha_quad_y_kernels[cdim-1].kernels[poly_order];
       up->dg_gr_maxwell_alpha_quad[2] = ser_dg_gr_maxwell_alpha_quad_z_kernels[cdim-1].kernels[poly_order];
+
+      // Kernels for one-sided characteristic-based outflow BC (may be NULL if
+      // no outflow boundaries are configured for this basis/order — checked
+      // against outflow_lo/up below).
+      up->outflow_flux[0] = ser_outflow_flux_x_kernels[cdim-1].kernels[poly_order];
+      up->outflow_flux[1] = ser_outflow_flux_y_kernels[cdim-1].kernels[poly_order];
+      up->outflow_flux[2] = ser_outflow_flux_z_kernels[cdim-1].kernels[poly_order];
+
+      // Curved-norm LLF kernels (NULL if not implemented for this basis/order;
+      // wrapper falls back to standard LLF in that case).
+      up->lax_flux_curved[0] = ser_lax_flux_curved_x_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux_curved[1] = ser_lax_flux_curved_y_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux_curved[2] = ser_lax_flux_curved_z_kernels[cdim-1].kernels[poly_order];
 
       break;
 
@@ -58,18 +73,28 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
       up->roe_flux[1] = ten_roe_flux_y_kernels[cdim-1].kernels[poly_order];
       up->roe_flux[2] = ten_roe_flux_z_kernels[cdim-1].kernels[poly_order];
 
-      // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
+      // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i.
       up->dg_gr_maxwell_alpha_quad[0] = ten_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
       up->dg_gr_maxwell_alpha_quad[1] = ten_dg_gr_maxwell_alpha_quad_y_kernels[cdim-1].kernels[poly_order];
       up->dg_gr_maxwell_alpha_quad[2] = ten_dg_gr_maxwell_alpha_quad_z_kernels[cdim-1].kernels[poly_order];
 
-      break;      
+      // Outflow kernels: only ser_p1 currently implemented; tensor entries NULL.
+      up->outflow_flux[0] = ten_outflow_flux_x_kernels[cdim-1].kernels[poly_order];
+      up->outflow_flux[1] = ten_outflow_flux_y_kernels[cdim-1].kernels[poly_order];
+      up->outflow_flux[2] = ten_outflow_flux_z_kernels[cdim-1].kernels[poly_order];
+
+      // Curved-norm LLF (tensor entries NULL).
+      up->lax_flux_curved[0] = ten_lax_flux_curved_x_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux_curved[1] = ten_lax_flux_curved_y_kernels[cdim-1].kernels[poly_order];
+      up->lax_flux_curved[2] = ten_lax_flux_curved_z_kernels[cdim-1].kernels[poly_order];
+
+      break;
 
     default:
       assert(false);
-      break;    
-  } 
-  // Set assembly functions for computing fluxes. 
+      break;
+  }
+  // Set assembly functions for computing fluxes.
   up->conf_flux_surf = conf_flux_surf_kernels[cdim-1].kernels[poly_order];
 
   // Set the theta direction pole bc flags
@@ -78,11 +103,23 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
     up->theta_pole_up[i] = inp->theta_pole_up[i];
   }
 
+  // Set the outflow BC flags. NULL outflow_lo/up arrays mean no direction uses
+  // the outflow BC for this updater (preserves the existing call-site convention).
+  for (int i=0; i<cdim; ++i) {
+    up->outflow_lo[i] = (inp->outflow_lo) ? inp->outflow_lo[i] : 0;
+    up->outflow_up[i] = (inp->outflow_up) ? inp->outflow_up[i] : 0;
+  }
+
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
     assert(up->lax_flux[i]);
     assert(up->roe_flux[i]);
     assert(up->dg_gr_maxwell_alpha_quad[i]);
+    // outflow_flux[i] is allowed to be NULL if no outflow is configured for
+    // direction i; only require non-NULL when actually used.
+    if (up->outflow_lo[i] || up->outflow_up[i]) {
+      assert(up->outflow_flux[i]);
+    }
   }
 
   up->flags = 0;
@@ -159,7 +196,7 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
       const double *field_no_J_con_l = gkyl_array_cfetch(field_no_J_con, cidx_l);
       const double *field_con_l = gkyl_array_cfetch(field_con, cidx_l);
 
-      // For Points not along the domain-edge in theta, compute the left hand surface 
+      // For Points not along the domain-edge in theta, compute the left hand surface
       // conf-flux.
       int theta_pole = 0;
 
@@ -168,9 +205,26 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
         theta_pole = 1;
       }
 
-      cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, theta_pole,
-        lapse_d, shift_d, h_ij_d, det_h_d, field_con_l, field_con_c,
-         field_no_J_con_l, field_no_J_con_c, flux);     
+      // Outflow BC at the lower edge of this direction: bypass the standard
+      // ghost+skin LLF/Roe flux and instead apply A^outgoing . U_skin via a
+      // characteristic-projection kernel. The ghost cell is not read.
+      if (idx[dir] == conf_range->lower[dir] && up->outflow_lo[dir]) {
+        // [INSTRUMENTATION] One-time per (dir,edge) confirmation that the
+        // outflow dispatch is reached. Static counters keep output bounded.
+        static int dbg_count_lo[3] = {0, 0, 0};
+        if (dbg_count_lo[dir] < 1) {
+          fprintf(stderr, "[GR-Maxwell outflow dispatch] LOWER-edge outflow "
+            "ENTERED at dir=%d (cell idx[dir]=%d, lower=%d)\n",
+            dir, idx[dir], conf_range->lower[dir]);
+          dbg_count_lo[dir]++;
+        }
+        cflrate_d[0] += up->outflow_flux[dir](up->conf_grid.dx, /*edge=*/0,
+          lapse_d, shift_d, h_ij_d, det_h_d, field_con_c, flux);
+      } else {
+        cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, theta_pole,
+          lapse_d, shift_d, h_ij_d, det_h_d, field_con_l, field_con_c,
+          field_no_J_con_l, field_no_J_con_c, flux);
+      }
 
       // If at the right boundary compute flux owned by the point in the ghost cell
       if (idx[dir] == conf_range->upper[dir]) {
@@ -209,9 +263,24 @@ void gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_fl
         }
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
-        cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, theta_pole,
-        lapse_d, shift_d, h_ij_d, det_h_d, field_con_c, field_con_r,
-        field_no_J_con_c, field_no_J_con_r, flux_r);
+        // Outflow BC at the upper edge: skin is the *current* (rightmost
+        // interior) cell, so we pass field_con_c (NOT field_con_r, which is
+        // the ghost). Edge flag = 1 selects the upper-edge sign of "outgoing".
+        if (idx[dir] == conf_range->upper[dir] && up->outflow_up[dir]) {
+          static int dbg_count_up[3] = {0, 0, 0};
+          if (dbg_count_up[dir] < 1) {
+            fprintf(stderr, "[GR-Maxwell outflow dispatch] UPPER-edge outflow "
+              "ENTERED at dir=%d (cell idx[dir]=%d, upper=%d)\n",
+              dir, idx[dir], conf_range->upper[dir]);
+            dbg_count_up[dir]++;
+          }
+          cflrate_d_r[0] += up->outflow_flux[dir](up->conf_grid.dx, /*edge=*/1,
+            lapse_d, shift_d, h_ij_d, det_h_d, field_con_c, flux_r);
+        } else {
+          cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, theta_pole,
+            lapse_d, shift_d, h_ij_d, det_h_d, field_con_c, field_con_r,
+            field_no_J_con_c, field_no_J_con_r, flux_r);
+        }
       }
     }
   }

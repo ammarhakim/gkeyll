@@ -13,10 +13,15 @@ Ntheta = 192 -- Cell count (theta-direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
-cfl_frac = 1.0 -- CFL coefficient.
+-- Curved-norm LLF dissipation has eigenvalues scaling with alpha * h_max,
+-- which is ~10x larger than the characteristic speeds returned by the
+-- alpha_quad kernel (the cflrate the time-stepper uses). dgeev shows
+-- max |lambda| ~ 16x larger with curved-norm vs standard LLF, so we need
+-- cfl_frac scaled down by the same factor for stable RK3 time-stepping.
+cfl_frac = 0.05 -- CFL coefficient (reduced for curved-norm LLF, with safety margin).
 
-t_end = 5.0 -- Final simulation time.
-num_frames = 30 -- Number of output frames.
+t_end = 10.0 -- Final simulation time.
+num_frames = 60 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -53,7 +58,7 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 1.0, 0 },
+  lower = { 1.5, 0 },
   upper = { 5.0, math.pi },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
@@ -74,6 +79,13 @@ vlasovApp = Vlasov.App.new {
     -- Use GR field ID
     fieldID = G0.FieldModel.GR,
     useLax = true,
+    -- Curved-norm LLF flux: replaces standard LLF's flat-L^2 dissipation
+    -- |alpha_max|*(U_R - U_L) with spatial-3-metric h_ij-weighted dissipation
+    -- |alpha_max|*h_ij*(U_R - U_L)^j. Positive-definite on the spatial slice
+    -- (h_ij is Riemannian even when g_{tt} becomes spacelike in the ergoregion).
+    -- dgeev at N=12 shows this collapses the operator's interior unstable
+    -- spectrum from max Re(lambda) ~ 0.05 to ~4e-13 with this BC config.
+    useCurvedNorm = true,
 
     -- Initial conditions function.
     init = function (t, xn)
@@ -143,7 +155,7 @@ vlasovApp = Vlasov.App.new {
     end,
 
     -- Copy boundary conditions in r are sufficient. Theta requries theta-pole BCs
-    bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- boundary conditions (r-direction).
+    bcx = { G0.FieldBc.bcFixedFunc, G0.FieldBc.bcFixedFunc }, -- production reflective r BCs (analytic Wald in ghost).
     bcy = { G0.FieldBc.bcThetaPole, G0.FieldBc.bcThetaPole } -- boundary conditions (theta-direction).
   }
 }

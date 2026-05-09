@@ -66,6 +66,9 @@ enum gkyl_field_bc_type {
   GKYL_FIELD_DIRICHLET, // Dirichlet boundary conditions
   GKYL_FIELD_NEUMANN, // Nemann boundary conditions
   GKYL_FIELD_THETA_POLE, // Specialized BCs for theta=0 and theta=pi in spherical and spherical-like coordinates
+  GKYL_FIELD_OUTFLOW, // Characteristic-based one-sided outflow for GR Maxwell: ghost is unused; the
+                      // boundary numerical flux is set to A^outgoing * U_skin via A_dQ_<dir>_calc
+                      // with outgoing-only eigenvalues.
   GKYL_FIELD_NONE, // Do not apply any boundary conditions
 };
 

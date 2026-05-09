@@ -73,7 +73,7 @@ vlasovApp = Vlasov.App.new {
 
     -- Use GR field ID
     fieldID = G0.FieldModel.GR,
-    useLax = true,
+    useLax = false, -- Roe flux instead of Lax-Friedrichs (Stage 0.1 of checkerboard-mode debugging plan).
 
     -- Initial conditions function.
     init = function (t, xn)
@@ -143,7 +143,7 @@ vlasovApp = Vlasov.App.new {
     end,
 
     -- Copy boundary conditions in r are sufficient. Theta requries theta-pole BCs
-    bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- boundary conditions (r-direction).
+    bcx = { G0.FieldBc.bcFixedFunc, G0.FieldBc.bcFixedFunc }, -- boundary conditions (r-direction).
     bcy = { G0.FieldBc.bcThetaPole, G0.FieldBc.bcThetaPole } -- boundary conditions (theta-direction).
   }
 }
