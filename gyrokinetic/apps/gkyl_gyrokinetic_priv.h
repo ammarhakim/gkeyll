@@ -1320,6 +1320,13 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
+  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
+  struct gkyl_range bc_ts_global_ext, bc_ts_global; // Higher resolution ranges for TS BC.
+  struct gkyl_range bc_ts_global_lower_skin_par, bc_ts_global_upper_skin_par; // Parallel skin for TS BC.
+  struct gkyl_range bc_ts_global_lower_ghost_par, bc_ts_global_upper_ghost_par; // Parallel ghost for TS BC.
+  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
+  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
+  struct gkyl_range bc_ts_global_par_ext; // Range extended in parallel direction for TS BC.
   struct gkyl_bc_twistshift *bc_ts_lo; // Fills lower core z-ghost with TS BC.
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
