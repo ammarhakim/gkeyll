@@ -20,7 +20,8 @@ gkyl_cart_modal_gkhybrid_cu_dev_kern(struct gkyl_basis *basis, int cdim, int vdi
   basis->ndim = cdim+vdim;
   basis->poly_order = 1;
   basis->num_basis = num_basis_list[ndim].count[1];
-  basis->b_type = GKYL_BASIS_MODAL_GKHYBRID;  
+  basis->num_quad = num_quad_list[ndim].count[1];
+  basis->b_type = GKYL_BASIS_MODAL_GKHYBRID;
   
   // function pointers
   basis->eval = ev_list[ndim].ev[1];
