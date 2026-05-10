@@ -20,8 +20,8 @@ time_stepper = "rk3" -- Time integrator.
 -- cfl_frac scaled down by the same factor for stable RK3 time-stepping.
 cfl_frac = 0.05 -- CFL coefficient (reduced for curved-norm LLF, with safety margin).
 
-t_end = 10.0 -- Final simulation time.
-num_frames = 60 -- Number of output frames.
+t_end = 50.0 -- Final simulation time.
+num_frames = 300 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.

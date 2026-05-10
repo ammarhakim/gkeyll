@@ -5,29 +5,22 @@
 //
 // Standard lax_flux_x_2x_ser_p1 uses
 //     F*[k] = 0.5*(F_l[k] + F_r[k]) - 0.5*|alpha_max| * (Q_r[k] - Q_l[k])
-// where the dissipation is a per-component diagonal jump term — i.e.,
-// dissipation in the flat L^2 norm on modal coefficients. That choice
-// happens to be positive-definite in the flat norm but does NOT provide
-// guaranteed damping in the curved-space energy norm
-//     E = (1/2) * J_c * h_ij (D^i D^j + B^i B^j)
-// which is what the GR Maxwell scheme actually conserves modulo source
-// terms. The flat-norm dissipation can leave a real-positive eigenvalue
-// in the operator's spectrum inside the ergoregion (verified by the
-// Phase 2C BC + flux scan: max Re(lambda) ~ 1.7 at N=12 with Roe).
+// — flat-L^2 dissipation. That can leave a real-positive eigenvalue in
+// the operator's spectrum inside the ergoregion.
 //
-// This curved-norm variant uses
-//     F*[k] = 0.5*(F_l[k] + F_r[k]) - 0.5*|alpha_max| * sum_j h_{kj}*(Q_r-Q_l)[j]
-// so the dissipation matrix is the spatial 3-metric h_{ij}, block-diagonal
-// between D-components (k,j in {0,1,2}) and B-components (k,j in {3,4,5}).
-// h_{ij} is positive-definite on the spatial slice (only the spacetime
-// 4-metric becomes indefinite in the ergoregion via g_{tt}); the
-// dissipation is therefore positive-definite in the spatial 3-norm and
-// provides structural damping in the curved-space sense.
+// This curved-norm variant uses h_{ij} (the spatial 3-metric) as the
+// dissipation weight:
+//     F*[k] = 0.5*(F_l[k] + F_r[k]) - 0.5*|alpha_max| * h_{kj} * (Q_r-Q_l)[j]
+// h_{kj} is positive-definite on the spatial slice (only the spacetime
+// 4-metric becomes indefinite in the ergoregion via g_{tt}). Block-
+// diagonal between D-components (k,j in {0,1,2}) and B-components
+// (k,j in {3,4,5}).
 //
-// At the theta pole we leave the dissipation zero, matching the existing
-// theta_pole=1 path (the pole is a coordinate singularity, not a wave
-// reflector, and the regularity sign-flip on the ghost makes the jump
-// vanish anyway).
+// We tested also a J_c * alpha * h_ij weighting (full volumetric energy
+// kernel) at N=24: it gave 40% lower max Re(lambda) but lost the machine-
+// zero result at N=12, with the same N^3.8 power-law scaling. The simpler
+// h_ij-only form is kept because it produces a cleaner low-N spectrum and
+// neither variant eliminates the high-N residual.
 GKYL_CU_DH double
 lax_flux_x_2x_ser_p1_curved(const double *dxv, const int theta_pole,
       const double *h_ij_nodal, const double *J_c,
@@ -66,6 +59,8 @@ lax_flux_x_2x_ser_p1_curved(const double *dxv, const int theta_pole,
   }
 
   // Step 2: build metric-weighted dissipation per quad node and write output.
+  // Dissipation weight per quad node: J_c * alpha * h_ij. The face nodal
+  // J_c is the det_h argument; alpha is the lapse_nodal argument.
   for (int n = 0; n < 2; ++n) {
     alpha_max = fmax(alpha_max, fabs(max_alpha_quad[n]));
 

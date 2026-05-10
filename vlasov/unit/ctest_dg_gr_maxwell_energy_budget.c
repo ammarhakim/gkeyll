@@ -116,6 +116,11 @@ struct budget_bench {
   // diagnosing whether the theta-pole reflection is what's driving the
   // unstable spectrum (vs ergoregion-interior).
   int zero_theta_pole_flux;
+  // Diagnostic flag: when set, the volume kernel is NOT called in
+  // apply_full_L. The assembled L matrix then represents only surface-flux
+  // contributions. Used to test whether the residual high-N unstable
+  // spectrum comes from the volume term or from the surface-flux structure.
+  int skip_volume;
   // Conf-flux-surf updater (we use up->conf_flux_surf directly per face).
   struct gkyl_dg_gr_maxwell_conf_flux_surf *conf_flux_up;
   // State arrays. dQ is the perturbation we apply L to.
@@ -416,25 +421,54 @@ partition_inner(struct budget_bench *bench, partition_t which)
 //                      Setting outflow_theta=1 implies theta_pole_active=0.
 static void
 bench_init_full_v2(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
-  int theta_pole_active, int outflow_r, int outflow_theta, bool use_curved_norm);
+  int theta_pole_active, int outflow_r, int outflow_theta, bool use_curved_norm,
+  bool use_tetrad_flux);
+
+static void
+bench_init_full_v4(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
+  int theta_pole_active, int outflow_r, int outflow_theta, bool use_curved_norm,
+  bool use_tetrad_flux, bool flat_metric, double spin_bh);
+
+static void
+bench_init_full_v3(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
+  int theta_pole_active, int outflow_r, int outflow_theta, bool use_curved_norm,
+  bool use_tetrad_flux, bool flat_metric)
+{
+  bench_init_full_v4(bench, nr, ntheta, use_lax,
+    theta_pole_active, outflow_r, outflow_theta, use_curved_norm, use_tetrad_flux,
+    flat_metric, /*spin_bh=*/SPIN_BH);
+}
 
 static void
 bench_init_full(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
   int theta_pole_active, int outflow_r, int outflow_theta)
 {
-  bench_init_full_v2(bench, nr, ntheta, use_lax,
-    theta_pole_active, outflow_r, outflow_theta, /*use_curved_norm=*/false);
+  bench_init_full_v4(bench, nr, ntheta, use_lax,
+    theta_pole_active, outflow_r, outflow_theta,
+    /*use_curved_norm=*/false, /*use_tetrad_flux=*/false, /*flat_metric=*/false,
+    /*spin_bh=*/SPIN_BH);
 }
 
 static void
 bench_init_full_v2(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
-  int theta_pole_active, int outflow_r, int outflow_theta, bool use_curved_norm)
+  int theta_pole_active, int outflow_r, int outflow_theta, bool use_curved_norm,
+  bool use_tetrad_flux)
+{
+  bench_init_full_v4(bench, nr, ntheta, use_lax,
+    theta_pole_active, outflow_r, outflow_theta, use_curved_norm, use_tetrad_flux,
+    /*flat_metric=*/false, /*spin_bh=*/SPIN_BH);
+}
+
+static void
+bench_init_full_v4(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
+  int theta_pole_active, int outflow_r, int outflow_theta, bool use_curved_norm,
+  bool use_tetrad_flux, bool flat_metric, double spin_bh)
 {
   bench->use_lax = use_lax;
   bench->nr = nr;
   bench->ntheta = ntheta;
   bench->geom_ctx.mass_bh = MASS_BH;
-  bench->geom_ctx.spin_bh = SPIN_BH;
+  bench->geom_ctx.spin_bh = spin_bh;  // SPIN_BH default; v4 caller can override.
 
   // Grid + basis.
   double lower[2] = { R_LOWER, THETA_LOWER };
@@ -463,6 +497,7 @@ bench_init_full_v2(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
   // reflective dissipation-zeroing; effectively removes the perfect
   // reflection while keeping the pole numerically stable.
   bench->zero_theta_pole_flux = outflow_theta ? 1 : 0;
+  bench->skip_volume = 0; // default: include volume term
   bench->theta_pole_lo[0] = 0;
   bench->theta_pole_lo[1] = theta_pole_active ? 1 : 0;
   bench->theta_pole_up[0] = 0;
@@ -472,8 +507,14 @@ bench_init_full_v2(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
   bench->outflow_lo[1] = 0; // see note above; we don't use outflow_flux_y at the pole
   bench->outflow_up[1] = 0;
 
-  // Geometry projection at vol+surf nodes.
-  enum gkyl_triad_preset_geom_type t = GKYL_TRIAD_GR_KERR_SCHILD_RTHETA;
+  // Geometry projection at vol+surf nodes. When flat_metric is set, swap to
+  // a Cartesian-flat metric (h = delta, alpha = 1, beta = 0) on the same
+  // (r, theta) grid; this is purely a diagnostic to disentangle whether
+  // unstable spectrum modes are driven by the curved-metric structure or
+  // by the boundary conditions / scheme structure alone.
+  enum gkyl_triad_preset_geom_type t = flat_metric
+    ? GKYL_TRIAD_FLAT
+    : GKYL_TRIAD_GR_KERR_SCHILD_RTHETA;
   bool use_gpu = false;
 
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes *p;
@@ -512,6 +553,7 @@ bench_init_full_v2(struct budget_bench *bench, int nr, int ntheta, bool use_lax,
     .outflow_up = bench->outflow_up,
     .use_lax = use_lax,
     .use_curved_norm = use_curved_norm,
+    .use_tetrad_flux = use_tetrad_flux,
     .use_gpu = use_gpu,
   };
   bench->conf_flux_up = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp);
@@ -863,9 +905,12 @@ apply_full_L(struct budget_bench *bench, const struct gkyl_array *in,
   recompute_dQ_no_J(bench);
   apply_theta_pole_bc(bench, bench->dQ_no_J);
 
-  // Volume.
+  // Volume. Optionally skipped: when bench->skip_volume is set, the
+  // assembled L matrix represents only surface-flux contributions. Used
+  // to localize whether the residual unstable spectrum at high N is
+  // driven by the volume term or by the surface-flux structure.
   zero_array(bench->RHS);
-  apply_volume_to_RHS(bench);
+  if (!bench->skip_volume) apply_volume_to_RHS(bench);
 
   // Surface (all faces in one pass via the production updater).
   zero_array(bench->conf_flux_surf);
@@ -1264,6 +1309,71 @@ build_explicit_L_matrix(struct budget_bench *bench, double *L_mat)
   return N_total;
 }
 
+// Build only the basis-0 sub-block L_00 of the assembled DG operator: the
+// projection of L onto the cell-average subspace.
+//
+// In our DG (serendipity p=1), the cell-average mode is basis index 0 and
+// the volume kernel does NOT contribute to it (verified directly in
+// gr_maxwell_vol_2x_ser_p1.c: the kernel writes only to outJD/B*[1..3]).
+// So L_00 represents the surface-flux operator restricted to cell averages
+// alone, with no slope coupling. Its spectrum tells us whether the
+// surface-flux scheme has *intrinsically stable* cell-average dynamics in
+// isolation.
+//
+// L_00 dimensions: N_avg x N_avg, where N_avg = N_cells * NUM_FIELD_COMPS.
+// For N=24, N_avg = 576*8 = 4608, dgeev runtime ~1-2 min. About 64x faster
+// than the full L diagonalization.
+//
+// Each column j is computed by setting a basis-0 unit vector at (cell, comp)
+// and applying L; we read out only the basis-0 entries of L*e_j (basis-1,2,3
+// outputs are discarded since L_00 is the projection onto basis 0).
+static int
+build_cell_avg_L_matrix(struct budget_bench *bench, double *L_mat_00)
+{
+  int Nr = bench->nr, Nt = bench->ntheta;
+  int N_cells = Nr * Nt;
+  int N_avg = N_cells * NUM_FIELD_COMPS;
+
+  struct gkyl_array *unit  = mkarr(NUM_FIELD_COMPS*NUM_BASIS, bench->local_ext.volume);
+  struct gkyl_array *L_unit = mkarr(NUM_FIELD_COMPS*NUM_BASIS, bench->local_ext.volume);
+
+  long *cell_lidx = gkyl_malloc(sizeof(long) * N_cells);
+  int idx_count = 0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &bench->local);
+  while (gkyl_range_iter_next(&iter)) {
+    cell_lidx[idx_count++] = gkyl_range_idx(&bench->local, iter.idx);
+  }
+
+  for (int j = 0; j < N_avg; ++j) {
+    int target_cell = j / NUM_FIELD_COMPS;
+    int target_comp = j % NUM_FIELD_COMPS;
+    // target_mode = 0 always (basis-0, cell-average)
+
+    gkyl_array_clear(unit, 0.0);
+    double *q = gkyl_array_fetch(unit, cell_lidx[target_cell]);
+    q[target_comp*NUM_BASIS + 0] = 1.0;
+
+    apply_full_L(bench, unit, L_unit);
+
+    // Read column j of L_00: only the basis-0 entries of the output.
+    int row = 0;
+    for (int c = 0; c < N_cells; ++c) {
+      const double *out = gkyl_array_cfetch(L_unit, cell_lidx[c]);
+      for (int comp = 0; comp < NUM_FIELD_COMPS; ++comp) {
+        L_mat_00[row + j*N_avg] = out[comp*NUM_BASIS + 0];
+        ++row;
+      }
+    }
+  }
+
+  gkyl_free(cell_lidx);
+  gkyl_array_release(unit);
+  gkyl_array_release(L_unit);
+
+  return N_avg;
+}
+
 // Diagonalize L via dgeev_ and print the top-K eigenvalues by Re(lambda) AND
 // the top-K by |lambda|. The first ranking tells us whether the operator has
 // real-positive eigenvalues (a true discrete-artifact unstable mode). The
@@ -1503,7 +1613,7 @@ test_explicit_spectrum_bc_scan(void)
     struct budget_bench bench;
     bench_init_full_v2(&bench, N, N, configs[idx].use_lax,
       configs[idx].theta_pole, configs[idx].outflow_r, configs[idx].outflow_theta,
-      configs[idx].use_curved_norm);
+      configs[idx].use_curved_norm, /*use_tetrad_flux=*/false);
 
     int N_total = N*N * NUM_FIELD_COMPS * NUM_BASIS;
     double *L_mat = gkyl_malloc(sizeof(double) * (long)N_total * (long)N_total);
@@ -1549,6 +1659,1152 @@ test_explicit_spectrum_bc_scan(void)
   printf("                          only from the BCs.\n");
 }
 
+// ---- Phase 2D: Resolution scan for the Lax-family fluxes only ----
+//
+// Builds the assembled L matrix and diagonalizes via dgeev for the four
+// LLF-relevant configurations:
+//   A_LLF       : ref r BC, standard LLF
+//   A_LLFcurved : ref r BC, curved-norm LLF
+//   B_LLF       : outflow r BC, standard LLF + standard outflow
+//   B_LLFcurved : outflow r BC, curved-norm LLF + curved-norm outflow
+// theta-pole BC is always production-reflective. At N=12 each dgeev takes
+// about 30 s; at N=24 each takes ~35 min. Total wall time ~ 2.5 hours.
+//
+// Decision criterion: production is at N=192. We want to see whether
+// max Re(lambda) of the curved configs stays at machine zero (or scales like
+// machine epsilon * N_total) as N grows, vs whether it scales up (which
+// would indicate residual divergence beyond the curved-norm fix). The
+// standard-LLF columns provide the baseline against which the curved-norm
+// reduction is measured at each N.
+static void
+test_spectrum_lax_n_scan(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg { int outflow_r; bool use_curved_norm; const char *name; };
+  static const struct cfg configs[] = {
+    { 0, false, "A_LLF      : ref r + LLF" },
+    { 0, true,  "A_LLFcurved: ref r + LLF curved-norm" },
+    { 1, false, "B_LLF      : outflow r + LLF" },
+    { 1, true,  "B_LLFcurved: outflow r + LLF curved-norm + curved outflow" },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  // Storage: rows = N, columns = config.
+  double max_re[8][8] = {{0}};
+  double max_ab[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v2(&bench, N, N, /*use_lax=*/true,
+        /*theta_pole_active=*/1, configs[idx].outflow_r, /*outflow_theta=*/0,
+        configs[idx].use_curved_norm, /*use_tetrad_flux=*/false);
+
+      int N_total = N*N * NUM_FIELD_COMPS * NUM_BASIS;
+      double *L_mat = gkyl_malloc(sizeof(double) * (long)N_total * (long)N_total);
+      build_explicit_L_matrix(&bench, L_mat);
+
+      double trace = 0.0;
+      for (int i = 0; i < N_total; ++i) trace += L_mat[i + i*N_total];
+      printf("  trace(L) = %+1.6e\n", trace);
+      fflush(stdout);
+
+      diagonalize_and_print_spectrum(L_mat, N_total, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &max_ab[iN][idx], &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2D summary: Lax-family resolution scan ===\n");
+  printf("  Config                                                              ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-65s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Ratios max Re(lambda)(N=%d) / max Re(lambda)(N=%d):\n", N_list[1], N_list[0]);
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    double r = (max_re[0][idx] != 0.0) ? max_re[1][idx]/max_re[0][idx] : 0.0;
+    printf("    %-65s  ratio = %1.3e\n", configs[idx].name, r);
+  }
+  printf("\n  Reading the result:\n");
+  printf("    - Curved configs giving max Re ~ 1e-12-1e-13 at both N -> machine\n");
+  printf("      noise floor; operator is structurally stable; the time-domain\n");
+  printf("      growth seen in production must be from a different mechanism.\n");
+  printf("    - Curved configs growing with N -> there's still some residual\n");
+  printf("      destabilizing structure not removed by the curved-norm patches.\n");
+}
+
+// ---- Phase 2E: Volume-term hypothesis ----
+//
+// At N=24 the curved-norm LLF (h_ij weight) leaves a tower of ~38 unstable
+// real-positive eigenvalues with max Re(lambda) ~ 0.17 — much smaller than
+// standard LLF but not zero. The flux-level dissipation patches alone do
+// not eliminate the high-N residual.
+//
+// One candidate cause is the volume term: the gr_maxwell_vol kernel
+// applies the curl-form spatial-derivative flux divergence inside each
+// cell, using a metric projection at quadrature nodes. If that operator
+// has its own real-positive eigenvalues that no surface-flux dissipation
+// can reach, removing the volume contribution should cleanly drop max
+// Re(lambda) to numerical zero.
+//
+// Test: build the assembled L matrix at N=12 and N=24 with
+//   1) production: volume + curved-LLF surface, ref r + ref theta-pole
+//   2) volume-off: curved-LLF surface only (volume kernel skipped)
+// If (2) gives max Re(lambda) ~ machine epsilon at both N, the volume
+// term is the source of the high-N residual instability.
+//
+// dgeev runtime: N=12 ~30 s each, N=24 ~35 min each. 4 dgeev calls,
+// total wallclock ~ 75 minutes.
+static void
+test_volume_term_hypothesis(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg { int skip_volume; const char *name; };
+  static const struct cfg configs[] = {
+    { 0, "Volume ON  (production: volume + curved-LLF)" },
+    { 1, "Volume OFF (surface-flux only, curved-LLF)"   },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v2(&bench, N, N, /*use_lax=*/true,
+        /*theta_pole_active=*/1, /*outflow_r=*/0, /*outflow_theta=*/0,
+        /*use_curved_norm=*/true, /*use_tetrad_flux=*/false);
+      bench.skip_volume = configs[idx].skip_volume;
+
+      int N_total = N*N * NUM_FIELD_COMPS * NUM_BASIS;
+      double *L_mat = gkyl_malloc(sizeof(double) * (long)N_total * (long)N_total);
+      build_explicit_L_matrix(&bench, L_mat);
+
+      double trace = 0.0;
+      for (int i = 0; i < N_total; ++i) trace += L_mat[i + i*N_total];
+      printf("  trace(L) = %+1.6e\n", trace);
+      fflush(stdout);
+
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat, N_total, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2E summary: Volume-term hypothesis ===\n");
+  printf("  Config                                                    ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Reading the result:\n");
+  printf("    - Volume OFF gives max Re ~ machine epsilon at both N -> the\n");
+  printf("      volume term is the source of the high-N unstable residual.\n");
+  printf("      The fix path is then in the volume kernel, not the surface flux.\n");
+  printf("    - Volume OFF still has substantial max Re at N=24 -> the residual\n");
+  printf("      lives in the surface flux structure (e.g., LLF dissipation form,\n");
+  printf("      modal-to-nodal projection, or characteristic decomposition).\n");
+}
+
+// ---- Phase 2F: Modal-content analysis of dominant unstable eigenvectors ----
+//
+// The volume-term hypothesis test showed that with Volume ON + curved-LLF,
+// at N=24 we have 38 unstable eigenvalues with max Re ~ 0.17. We want to
+// know whether those eigenvectors are dominated by the cell-average mode
+// (basis index 0: the "1" basis function) or the slope modes (basis indices
+// 1,2,3 = xi, eta, xi*eta). If the unstable modes live in the slope modes,
+// a characteristic-based slope limiter — e.g. limiting on Roe-decomposed
+// jumps — is the natural mitigation. If they live in the cell-average mode,
+// limiting won't help and we'd need a different fix (modified dissipation,
+// post-projection, etc.).
+//
+// Strategy:
+//   1. Build L at N=24 with curved-LLF + production (theta-pole reflective)
+//      BCs and Volume ON — the same configuration that exhibits 38 unstable
+//      modes in volume_term_hypothesis.
+//   2. Diagonalize with dgeev requesting right eigenvectors (JOBVR='V').
+//   3. For each of the top K unstable eigenvectors (by Re(lambda)), compute
+//      the L^2 norm fraction supported on each basis index, summed over
+//      cells and components. dgeev encodes complex pairs as (real, imag)
+//      columns of VR; use |v|^2 = re^2 + im^2.
+//   4. Print a per-mode breakdown:
+//        basis 0 fraction (cell-average), 1 (xi=r-slope), 2 (eta=th-slope),
+//        3 (xi*eta=cross), and a per-component summary (D vs B; r/th/phi).
+//
+// dgeev with JOBVR='V' costs ~2x the matrix memory (VR is N x N) and ~2x
+// the flop count vs JOBVR='N'. At N=24, that's roughly 70 minutes wallclock
+// and ~5.4 GB peak memory.
+static void
+test_eigenvector_modal_content(void)
+{
+  const int N = 24;
+  const int top_K = 12;        // print breakdown for this many unstable modes
+  const double re_threshold = 1.0e-3;
+
+  printf("\n--- N=%d  modal-content analysis (curved-LLF, production BCs, Volume ON) ---\n", N);
+  fflush(stdout);
+
+  struct budget_bench bench;
+  bench_init_full_v2(&bench, N, N, /*use_lax=*/true,
+    /*theta_pole_active=*/1, /*outflow_r=*/0, /*outflow_theta=*/0,
+    /*use_curved_norm=*/true, /*use_tetrad_flux=*/false);
+  bench.skip_volume = 0; // Volume ON: production configuration
+
+  int N_total = N*N * NUM_FIELD_COMPS * NUM_BASIS;
+  printf("  N_total = %d  (matrix size %d x %d, ~%.2f GB each for L and VR)\n",
+    N_total, N_total, N_total,
+    (double)N_total*(double)N_total*8.0/(1024.0*1024.0*1024.0));
+  fflush(stdout);
+
+  double *L_mat = gkyl_malloc(sizeof(double) * (long)N_total * (long)N_total);
+  build_explicit_L_matrix(&bench, L_mat);
+
+  double trace = 0.0;
+  for (int i = 0; i < N_total; ++i) trace += L_mat[i + i*N_total];
+  printf("  trace(L) = %+1.6e\n", trace);
+  fflush(stdout);
+
+  // dgeev with right eigenvectors: JOBVR = "V". VR is column-major with
+  // leading dim N_total. Real eigenvalue at index j: column j of VR is the
+  // (real) eigenvector. Complex conjugate pair (WI[j] > 0, WI[j+1] < 0):
+  // columns j and j+1 hold the real and imaginary parts; eigvec_j = u + i*v,
+  // eigvec_{j+1} = u - i*v. We collapse to |v|^2 = re^2 + im^2 modally.
+  double *WR = gkyl_malloc(sizeof(double) * N_total);
+  double *WI = gkyl_malloc(sizeof(double) * N_total);
+  double VL_dummy = 0.0;
+  int LDVL = 1;
+  int LDA = N_total, LDVR = N_total;
+  double *VR = gkyl_malloc(sizeof(double) * (long)N_total * (long)N_total);
+  int INFO = 0;
+
+  printf("  dgeev workspace query...\n"); fflush(stdout);
+  double work_query = 0.0;
+  int lwork_query = -1;
+  dgeev_("N", "V", &N_total, L_mat, &LDA, WR, WI,
+    &VL_dummy, &LDVL, VR, &LDVR, &work_query, &lwork_query, &INFO);
+  TEST_CHECK(INFO == 0);
+  int LWORK = (int)work_query;
+  double *WORK = gkyl_malloc(sizeof(double) * LWORK);
+  printf("  dgeev LWORK = %d\n", LWORK); fflush(stdout);
+
+  printf("  dgeev_ (this is the slow part)...\n"); fflush(stdout);
+  dgeev_("N", "V", &N_total, L_mat, &LDA, WR, WI,
+    &VL_dummy, &LDVL, VR, &LDVR, WORK, &LWORK, &INFO);
+  TEST_CHECK(INFO == 0);
+  if (INFO != 0) {
+    printf("  dgeev_ failed with INFO=%d; aborting.\n", INFO);
+    gkyl_free(WORK); gkyl_free(WR); gkyl_free(WI);
+    gkyl_free(VR); gkyl_free(L_mat);
+    bench_release(&bench);
+    return;
+  }
+  printf("  dgeev_ done. Sorting and analyzing...\n"); fflush(stdout);
+
+  // Sort indices by Re(lambda) descending.
+  int *order_re = gkyl_malloc(sizeof(int) * N_total);
+  for (int i = 0; i < N_total; ++i) order_re[i] = i;
+  for (int k = 0; k < top_K && k < N_total; ++k) {
+    int best = k;
+    for (int i = k+1; i < N_total; ++i) {
+      if (WR[order_re[i]] > WR[order_re[best]]) best = i;
+    }
+    int tmp = order_re[k]; order_re[k] = order_re[best]; order_re[best] = tmp;
+  }
+
+  // Count total unstable.
+  int n_unstable = 0;
+  for (int i = 0; i < N_total; ++i) if (WR[i] > re_threshold) n_unstable++;
+  printf("  Unstable modes (Re > %.0e): %d / %d\n", re_threshold, n_unstable, N_total);
+
+  // Component labels for the per-component breakdown.
+  // Field components: 0=JD^r, 1=JD^th, 2=JD^ph, 3=JB^r, 4=JB^th, 5=JB^ph,
+  //                   6=phi (E divergence cleaning), 7=psi (B divergence cleaning).
+  static const char *comp_name[NUM_FIELD_COMPS] = {
+    "JD^r","JD^th","JD^ph","JB^r","JB^th","JB^ph","phi","psi"
+  };
+  // Basis indices for serendipity p=1 in 2D: 0=1, 1=xi, 2=eta, 3=xi*eta.
+  static const char *basis_name[NUM_BASIS] = { "1", "xi", "eta", "xi*eta" };
+
+  // Helper: pull |v|^2 at element (cell, comp, mode) from VR for eigenvector
+  // at sort-rank k (column j = order_re[k]). For complex pair (WI[j] != 0):
+  // real part is column j, imag part is column j+1 if WI[j] > 0, else j-1.
+  //
+  // dgeev guarantees that conjugate pairs are stored in consecutive columns
+  // with WI[j] > 0 followed by WI[j+1] = -WI[j].
+  printf("\n  Top %d unstable eigenmodes — modal-content breakdown:\n", top_K);
+  printf("  rank   Re(lambda)    Im(lambda)     basis 0       basis 1       basis 2       basis 3      D-frac    B-frac    aux\n");
+  printf("                                       (1 cell-avg) (xi r-slope) (eta th-slope) (xi*eta)\n");
+  for (int k = 0; k < top_K; ++k) {
+    int j = order_re[k];
+    double lr = WR[j], li = WI[j];
+    if (lr <= re_threshold) {
+      printf("  %4d   below threshold (Re=%+1.4e); stopping.\n", k, lr);
+      break;
+    }
+
+    // Determine columns to combine: pair (j_re, j_im) for complex eigenvector.
+    int j_re = j, j_im = -1;
+    if (li > 0.0)      j_im = j + 1;
+    else if (li < 0.0) j_im = j - 1;
+
+    // Per-(comp, mode) energy and total norm.
+    double e_cm[NUM_FIELD_COMPS][NUM_BASIS] = {{0}};
+    double total = 0.0;
+    int N_cells = bench.nr * bench.ntheta;
+    for (int row = 0; row < N_total; ++row) {
+      double re_v = VR[row + (long)j_re*N_total];
+      double im_v = (j_im >= 0) ? VR[row + (long)j_im*N_total] : 0.0;
+      double e = re_v*re_v + im_v*im_v;
+      // row layout (per build_explicit_L_matrix): for cell c (in iter order),
+      //   row = c*(NUM_FIELD_COMPS*NUM_BASIS) + comp*NUM_BASIS + m
+      int comp = (row / NUM_BASIS) % NUM_FIELD_COMPS;
+      int mode = row % NUM_BASIS;
+      e_cm[comp][mode] += e;
+      total += e;
+    }
+    (void)N_cells;
+    if (total <= 0.0) total = 1.0; // shouldn't happen; guard divide
+
+    // Aggregate by basis index.
+    double frac_basis[NUM_BASIS] = {0};
+    for (int m = 0; m < NUM_BASIS; ++m) {
+      double s = 0.0;
+      for (int c = 0; c < NUM_FIELD_COMPS; ++c) s += e_cm[c][m];
+      frac_basis[m] = s / total;
+    }
+    // D vs B vs aux fractions.
+    double frac_D = 0.0, frac_B = 0.0, frac_aux = 0.0;
+    for (int m = 0; m < NUM_BASIS; ++m) {
+      for (int c = 0; c <= 2; ++c) frac_D   += e_cm[c][m];
+      for (int c = 3; c <= 5; ++c) frac_B   += e_cm[c][m];
+      for (int c = 6; c <= 7; ++c) frac_aux += e_cm[c][m];
+    }
+    frac_D   /= total;
+    frac_B   /= total;
+    frac_aux /= total;
+
+    printf("  %4d  %+1.4e  %+1.4e   %1.4e   %1.4e   %1.4e   %1.4e   %1.4f   %1.4f   %1.4f\n",
+      k, lr, li,
+      frac_basis[0], frac_basis[1], frac_basis[2], frac_basis[3],
+      frac_D, frac_B, frac_aux);
+
+    // For the very top mode also print per-component, per-basis breakdown
+    // — useful to confirm the mode is B^phi-dominated as the simulation suggests.
+    if (k < 3) {
+      printf("    detail (rank %d): per-component fraction by basis index\n", k);
+      printf("      comp     %-12s%-12s%-12s%-12s   total\n",
+        basis_name[0], basis_name[1], basis_name[2], basis_name[3]);
+      for (int c = 0; c < NUM_FIELD_COMPS; ++c) {
+        double s_c = 0.0;
+        for (int m = 0; m < NUM_BASIS; ++m) s_c += e_cm[c][m];
+        printf("      %-7s %1.4e   %1.4e   %1.4e   %1.4e   %1.4e\n",
+          comp_name[c],
+          e_cm[c][0]/total, e_cm[c][1]/total,
+          e_cm[c][2]/total, e_cm[c][3]/total,
+          s_c/total);
+      }
+    }
+  }
+
+  printf("\n  Reading the result:\n");
+  printf("    - basis 0 fraction high (~1) -> mode lives in cell-average; slope\n");
+  printf("      limiting will NOT help.\n");
+  printf("    - basis 1+2+3 fraction high (~1) -> mode lives in slopes;\n");
+  printf("      a characteristic-based slope limiter (e.g. Roe-decomposed jump\n");
+  printf("      limiting) is the natural mitigation.\n");
+  printf("    - aux (phi/psi) fraction non-negligible -> divergence-cleaning\n");
+  printf("      modes are participating; check the cleaning damping rate kappa.\n");
+
+  gkyl_free(order_re);
+  gkyl_free(WORK); gkyl_free(WR); gkyl_free(WI);
+  gkyl_free(VR); gkyl_free(L_mat);
+  bench_release(&bench);
+}
+
+// ---- Phase 2G: Tetrad-frame Roe on the radial face — spectrum comparison ----
+//
+// Drop-in test of the tetrad-Roe surface flux on the r-direction (dir=0).
+// At each face GL node the kernel transforms (J D, J B) jumps into the local
+// orthonormal tetrad with M^a_i, decomposes them into the 6 flat-Maxwell
+// eigenwaves of paper eq. 57 (eigenvectors mutually orthogonal -> trivial
+// inner-product wave strengths), applies a moving-interface correction
+// tilde beta^x/alpha to the eigenvalues (eigenvectors unchanged), assembles
+// the Roe dissipation, and back-transforms with M^{-1}. The centered flux
+// uses the existing precomputed coord-basis flux_l, flux_r unchanged
+// (M F^coord = F^x_total in tetrad, so the centered piece round-trips).
+//
+// An earlier "tetrad LLF" prototype (alpha_quad override only, dispatching
+// to standard Euclidean LLF) was strictly worse than curved-LLF at N=12
+// (4 unstable modes, max Re ~ 5e-2 vs baseline machine zero) because the
+// dissipation in coord basis collapsed to a scalar * unweighted jump.
+// Tetrad-Roe does not collapse: the flat-Maxwell eigenvectors back-transform
+// into specific coord-basis directions and the kernel does the tetrad math.
+//
+// Running at N=12 and N=24 with two configs (now that tetrad-Roe is available
+// on BOTH r and theta directions):
+//   (1) curved-LLF on both r and theta                       (existing baseline)
+//   (2) tetrad-Roe on BOTH r and theta                       (full tetrad-first)
+//
+// Earlier scans included tetrad-Roe-on-r-only (with curved-LLF or standard-LLF
+// on theta) and showed tetrad-Roe similar to curved-LLF in N-scaling: both
+// have refinement-driven mode proliferation. With tetrad-Roe now wired on
+// the theta direction (via the new lax_flux_y_2x_ser_p1_tetrad_roe.c, with a
+// theta-pole reflective fallback), this final scan tests whether having the
+// full tetrad-first scheme on both directions changes the picture.
+//
+// dgeev runtime: ~30s per config at N=12, ~35 min per config at N=24.
+// Total wallclock ~ 60s + 70 min = ~71 min for the 2-config scan.
+static void
+test_tetrad_radial_spectrum(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg {
+    bool use_curved_norm;
+    bool use_tetrad_flux;
+    const char *name;
+  };
+  static const struct cfg configs[] = {
+    { true,  false, "curved-LLF on both r and theta (baseline)" },
+    { true,  true,  "tetrad-Roe on BOTH r and theta            " },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v2(&bench, N, N, /*use_lax=*/true,
+        /*theta_pole_active=*/1, /*outflow_r=*/0, /*outflow_theta=*/0,
+        configs[idx].use_curved_norm, configs[idx].use_tetrad_flux);
+
+      int N_total = N*N * NUM_FIELD_COMPS * NUM_BASIS;
+      double *L_mat = gkyl_malloc(sizeof(double) * (long)N_total * (long)N_total);
+      build_explicit_L_matrix(&bench, L_mat);
+
+      double trace = 0.0;
+      for (int i = 0; i < N_total; ++i) trace += L_mat[i + i*N_total];
+      printf("  trace(L) = %+1.6e\n", trace);
+      fflush(stdout);
+
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat, N_total, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2G summary: tetrad-radial-LLF spectrum scan ===\n");
+  printf("  Config                                              ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Reading the result:\n");
+  printf("    - All three configs at machine zero -> tetrad-Roe on r is at least\n");
+  printf("      not making things worse at N=12. Run N=24 (~35 min/config) to test\n");
+  printf("      whether it kills the 38 unstable modes the baseline curved-LLF has.\n");
+  printf("    - Tetrad-Roe configs have substantially WORSE max Re than baseline at\n");
+  printf("      N=12 -> a bug in the kernel (likely sign/index or eigenvector ordering\n");
+  printf("      in lax_flux_x_2x_ser_p1_tetrad_roe.c).\n");
+}
+
+// ---- Phase 2H: Cell-average-only sub-operator spectrum across surface-flux configs ----
+//
+// The volume kernel does not contribute to cell-average mode evolution
+// (gr_maxwell_vol_2x_ser_p1.c writes only to basis indices 1, 2, 3). So the
+// cell-average sub-operator L_00 reflects the surface-flux scheme alone in
+// isolation from any slope coupling. If L_00 has positive real eigenvalues,
+// the surface-flux scheme has *intrinsically* unstable cell-average dynamics
+// even before any slope-mode contamination — that scheme should be discarded
+// regardless of how clever the slope-limiter on top might be.
+//
+// Configs to compare (each tested at N=12 and N=24):
+//   (1) curved-LLF on both r and theta                       (current baseline)
+//   (2) standard-LLF on both r and theta (Euclidean dissip.) (use_curved_norm=false)
+//   (3) Roe on both r and theta (use_lax=false)              (existing Roe path)
+//   (4) tetrad-Roe on r + curved-LLF on theta                (new hybrid)
+//
+// Per-config runtime at N=24: ~30s build + ~60s dgeev = ~1.5 min.
+// 4 configs x 2 N values = 8 runs ~ 12 min total wallclock.
+static void
+test_cell_avg_only_spectrum(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg {
+    bool use_lax;
+    bool use_curved_norm;
+    bool use_tetrad_flux;
+    const char *name;
+  };
+  static const struct cfg configs[] = {
+    { true,  true,  false, "curved-LLF (both directions)             "  },
+    { true,  false, false, "standard-LLF (both directions, Euclidean)"  },
+    { false, false, false, "Roe (both directions, curved Maxwell)    "  },
+    { true,  true,  true,  "tetrad-Roe on BOTH r and theta           "  },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v2(&bench, N, N, configs[idx].use_lax,
+        /*theta_pole_active=*/1, /*outflow_r=*/0, /*outflow_theta=*/0,
+        configs[idx].use_curved_norm, configs[idx].use_tetrad_flux);
+
+      int N_cells = N*N;
+      int N_avg = N_cells * NUM_FIELD_COMPS;
+      printf("  Building L_00 (N_avg = %d)...\n", N_avg);
+      fflush(stdout);
+
+      double *L_mat_00 = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+      build_cell_avg_L_matrix(&bench, L_mat_00);
+
+      double trace = 0.0;
+      for (int i = 0; i < N_avg; ++i) trace += L_mat_00[i + i*N_avg];
+      printf("  trace(L_00) = %+1.6e\n", trace);
+      fflush(stdout);
+
+      printf("  Diagonalizing L_00...\n");
+      fflush(stdout);
+
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat_00, N_avg, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat_00);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2H summary: cell-average-only sub-operator spectrum ===\n");
+  printf("(L_00 reflects surface flux alone, restricted to basis-0 modes;\n");
+  printf(" volume kernel does not touch cell averages by construction)\n\n");
+  printf("  Config                                                ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Reading the result:\n");
+  printf("    - max Re ~ machine epsilon at all N -> cell-avg dynamics is stable\n");
+  printf("      in isolation. Any unstable spectrum in the FULL operator must\n");
+  printf("      come from cross-coupling (volume->slopes->cell-avg via surface flux).\n");
+  printf("      A slope limiter is the natural follow-on.\n");
+  printf("    - max Re grows with N -> intrinsic cell-avg instability in this scheme.\n");
+  printf("      Discard this scheme; no slope limiter alone will fix it.\n");
+  printf("    - max Re finite but flat with N -> intrinsic instability whose magnitude\n");
+  printf("      doesn't grow with refinement; tractable but still requires a fix.\n");
+}
+
+// ---- Phase 2I: Diagnose the +0.034 cell-avg instability of tetrad-Roe ----
+//
+// Three probes (A/B/C) to isolate whether the small unstable cell-avg modes
+// in tetrad-Roe-on-both at N=24 are:
+//   - boundary-condition driven (reflective theta-pole + Roe rest-mode neutrality)
+//   - structurally driven by curved-metric coupling
+//   - or genuinely a kernel bug.
+//
+// Test A: extract eigenvectors of the top unstable cell-avg modes and report
+//         spatial localization. Pole-localized -> BC issue.
+// Test B: replace reflective theta-pole BC with the bench's "no-flux" cap
+//         (theta_pole_active=0, outflow_theta=1). If unstable modes vanish,
+//         reflective BC is the culprit.
+// Test C: replace curved Kerr-Schild metric with flat Cartesian (h=delta,
+//         alpha=1, beta=0) on the same grid + same reflective BCs. If the
+//         modes vanish, curved-metric structure is participating; if they
+//         persist, it's purely BC + Roe-rest-mode interaction.
+
+// Test A: localization analysis of the unstable cell-avg eigenvectors.
+static void
+test_cell_avg_eigenvector_localization(void)
+{
+  int N = 24;
+  printf("\n--- N=%d  Tetrad-Roe-both, eigenvector localization analysis ---\n", N);
+  fflush(stdout);
+
+  struct budget_bench bench;
+  bench_init_full_v2(&bench, N, N, /*use_lax=*/true,
+    /*theta_pole_active=*/1, /*outflow_r=*/0, /*outflow_theta=*/0,
+    /*use_curved_norm=*/true, /*use_tetrad_flux=*/true);
+
+  int N_cells = N*N;
+  int N_avg = N_cells * NUM_FIELD_COMPS;
+  printf("  Building L_00 (N_avg = %d)...\n", N_avg); fflush(stdout);
+
+  double *L_mat_00 = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+  build_cell_avg_L_matrix(&bench, L_mat_00);
+
+  // dgeev with right eigenvectors. JOBVR='V'.
+  double *WR = gkyl_malloc(sizeof(double) * N_avg);
+  double *WI = gkyl_malloc(sizeof(double) * N_avg);
+  double *VR = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+  double VL_dummy = 0.0;
+  int LDA = N_avg, LDVL = 1, LDVR = N_avg;
+  int INFO = 0;
+
+  double work_query = 0.0; int lwork_query = -1;
+  dgeev_("N", "V", &N_avg, L_mat_00, &LDA, WR, WI,
+    &VL_dummy, &LDVL, VR, &LDVR, &work_query, &lwork_query, &INFO);
+  TEST_CHECK(INFO == 0);
+  int LWORK = (int)work_query;
+  double *WORK = gkyl_malloc(sizeof(double) * LWORK);
+  printf("  dgeev_ (with eigenvectors)..."); fflush(stdout);
+  dgeev_("N", "V", &N_avg, L_mat_00, &LDA, WR, WI,
+    &VL_dummy, &LDVL, VR, &LDVR, WORK, &LWORK, &INFO);
+  printf(" done.\n"); fflush(stdout);
+  TEST_CHECK(INFO == 0);
+
+  // Sort indices by Re descending.
+  int *order = gkyl_malloc(sizeof(int) * N_avg);
+  for (int i = 0; i < N_avg; ++i) order[i] = i;
+  for (int k = 0; k < 8 && k < N_avg; ++k) {
+    int best = k;
+    for (int i = k+1; i < N_avg; ++i) {
+      if (WR[order[i]] > WR[order[best]]) best = i;
+    }
+    int t = order[k]; order[k] = order[best]; order[best] = t;
+  }
+
+  // Examine the top 4 modes.
+  int Nr = bench.nr, Nt = bench.ntheta;
+  for (int rank = 0; rank < 4; ++rank) {
+    int j = order[rank];
+    double lr = WR[j], li = WI[j];
+    if (lr < 1e-4) {
+      printf("  rank %d: Re = %+1.4e (below threshold; stop)\n", rank, lr);
+      break;
+    }
+    int j_re = j, j_im = -1;
+    if (li > 0.0)      j_im = j + 1;
+    else if (li < 0.0) j_im = j - 1;
+
+    // Per-cell L^2 norm of the eigenvector (sum over components in that cell).
+    double *per_cell = gkyl_malloc(sizeof(double) * N_cells);
+    for (int c = 0; c < N_cells; ++c) per_cell[c] = 0.0;
+    double total = 0.0;
+    for (int row = 0; row < N_avg; ++row) {
+      double re_v = VR[row + (long)j_re*N_avg];
+      double im_v = (j_im >= 0) ? VR[row + (long)j_im*N_avg] : 0.0;
+      double e = re_v*re_v + im_v*im_v;
+      int cell = row / NUM_FIELD_COMPS;
+      per_cell[cell] += e;
+      total += e;
+    }
+
+    // Find max-amplitude cell.
+    int max_cell = 0;
+    double max_val = per_cell[0];
+    for (int c = 1; c < N_cells; ++c) {
+      if (per_cell[c] > max_val) { max_val = per_cell[c]; max_cell = c; }
+    }
+    double mean_val = total / N_cells;
+    int max_ir = max_cell / Nt;
+    int max_it = max_cell % Nt;
+
+    printf("\n  rank %d: Re = %+1.4e Im = %+1.4e\n", rank, lr, li);
+    printf("    max |V|^2 cell: (i_r=%d, i_theta=%d) value = %1.4e\n",
+      max_ir, max_it, max_val);
+    printf("    mean |V|^2 per cell:                  %1.4e\n", mean_val);
+    printf("    localization ratio max/mean:          %1.2f\n", max_val/mean_val);
+    printf("    max_it position relative to N_theta=%d: ", Nt);
+    if (max_it == 0)            printf("AT LOWER POLE (theta=0)\n");
+    else if (max_it == 1)        printf("ONE CELL FROM LOWER POLE\n");
+    else if (max_it == Nt-1)     printf("AT UPPER POLE (theta=pi)\n");
+    else if (max_it == Nt-2)     printf("ONE CELL FROM UPPER POLE\n");
+    else                          printf("INTERIOR (cell %d of %d)\n", max_it, Nt);
+
+    // Theta-distribution profile: integrate |V|^2 over r at each theta-slab.
+    double per_theta[64] = {0};
+    for (int ir = 0; ir < Nr; ++ir) {
+      for (int it = 0; it < Nt; ++it) {
+        per_theta[it] += per_cell[ir*Nt + it];
+      }
+    }
+    printf("    theta-slab profile (sum_r |V|^2 vs i_theta):\n      ");
+    for (int it = 0; it < Nt; ++it) printf("%7.1e ", per_theta[it]);
+    printf("\n");
+
+    gkyl_free(per_cell);
+  }
+
+  gkyl_free(order);
+  gkyl_free(WORK); gkyl_free(WR); gkyl_free(WI);
+  gkyl_free(VR); gkyl_free(L_mat_00);
+  bench_release(&bench);
+}
+
+// Test B: same cell-avg-only spectrum but with theta_pole_active=0 (no
+// reflective sign-flip BC). Replaces the reflective theta-pole BC with
+// the bench's no-flux cap (zero_theta_pole_flux). Compares against the
+// reflective baseline by also re-running curved-LLF in the no-flux config.
+static void
+test_cell_avg_bc_ablation(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  // outflow_theta=1 in this bench means theta_pole_active=0 + zero_theta_pole_flux=1.
+  // (The bench applies the flag this way because the actual outflow-flux-y kernel
+  // would NaN at the pole; the post-process zero-out gives a clean no-flux cap.)
+  struct cfg {
+    bool use_lax, use_curved_norm, use_tetrad_flux;
+    const char *name;
+  };
+  static const struct cfg configs[] = {
+    { true, true,  false, "curved-LLF (no-flux theta cap)        " },
+    { true, true,  true,  "tetrad-Roe-both (no-flux theta cap)   " },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v2(&bench, N, N, configs[idx].use_lax,
+        /*theta_pole_active=*/0, /*outflow_r=*/0, /*outflow_theta=*/1,
+        configs[idx].use_curved_norm, configs[idx].use_tetrad_flux);
+
+      int N_avg = N*N * NUM_FIELD_COMPS;
+      double *L_mat_00 = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+      build_cell_avg_L_matrix(&bench, L_mat_00);
+
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat_00, N_avg, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat_00);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2I.B summary: cell-avg spectrum with no-flux theta cap ===\n");
+  printf("  Config                                                ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Compare to test_cell_avg_only_spectrum (reflective BC):\n");
+  printf("    curved-LLF: was 0/0 reflective, now ?\n");
+  printf("    tetrad-Roe-both: was 0/+0.034 reflective, now ?\n");
+  printf("    If tetrad-Roe Re drops to 0 here -> reflective BC was the culprit.\n");
+  printf("    If it stays similar -> BC isn't the issue.\n");
+}
+
+// Test C: same cell-avg-only spectrum but with FLAT Cartesian metric
+// (h = delta, alpha = 1, beta = 0) on the same grid + same reflective
+// theta-pole BCs. Disentangles curved-metric structure from BC + Roe.
+static void
+test_cell_avg_flat_metric(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg {
+    bool use_lax, use_curved_norm, use_tetrad_flux;
+    const char *name;
+  };
+  static const struct cfg configs[] = {
+    { true, true,  false, "curved-LLF (FLAT metric, reflective)  " },
+    { true, true,  true,  "tetrad-Roe-both (FLAT metric, reflective)" },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v3(&bench, N, N, configs[idx].use_lax,
+        /*theta_pole_active=*/1, /*outflow_r=*/0, /*outflow_theta=*/0,
+        configs[idx].use_curved_norm, configs[idx].use_tetrad_flux,
+        /*flat_metric=*/true);
+
+      int N_avg = N*N * NUM_FIELD_COMPS;
+      double *L_mat_00 = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+      build_cell_avg_L_matrix(&bench, L_mat_00);
+
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat_00, N_avg, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat_00);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2I.C summary: cell-avg spectrum with FLAT metric ===\n");
+  printf("  Config                                                ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Reading the result:\n");
+  printf("    - tetrad-Roe-both Re drops to 0 in flat -> curved-metric is participating.\n");
+  printf("    - tetrad-Roe-both Re still ~+0.03 in flat -> purely BC + Roe-rest-mode.\n");
+}
+
+// Test D: hypothesis check. The +0.034 cell-avg instability in tetrad-Roe-
+// both (Tests A/B/C) was diagnosed as a curved-metric-amplified rest-mode
+// wave at the inner-r boundary driven by zero-ghost BC + Roe's non-dissipation
+// on rest modes. The fix: use characteristic OUTFLOW at the inner-r boundary
+// (and the outer-r too for symmetry). The outflow kernel zeros incoming
+// waves and applies A^outgoing . U_skin, so it doesn't inject energy into the
+// rest-mode channel that Roe can't damp.
+//
+// Uses the newly-added tetrad-Roe outflow kernel
+// (outflow_flux_x_2x_ser_p1_tetrad_roe.c), dispatched automatically when
+// use_tetrad_flux=true and outflow_r=1.
+static void
+test_cell_avg_outflow_inner_r(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg {
+    bool use_lax, use_curved_norm, use_tetrad_flux;
+    const char *name;
+  };
+  static const struct cfg configs[] = {
+    { true, true, false, "curved-LLF + outflow at both r (baseline)" },
+    { true, true, true,  "tetrad-Roe-both + outflow at both r       " },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v2(&bench, N, N, configs[idx].use_lax,
+        /*theta_pole_active=*/1, /*outflow_r=*/1, /*outflow_theta=*/0,
+        configs[idx].use_curved_norm, configs[idx].use_tetrad_flux);
+
+      int N_avg = N*N * NUM_FIELD_COMPS;
+      double *L_mat_00 = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+      build_cell_avg_L_matrix(&bench, L_mat_00);
+
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat_00, N_avg, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat_00);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2I.D summary: cell-avg spectrum with OUTFLOW at both r ===\n");
+  printf("  Config                                                ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Hypothesis check (compare to zero-ghost BC results):\n");
+  printf("    - tetrad-Roe-both at N=24 was +0.034 with zero-ghost BC.\n");
+  printf("    - With outflow at inner-r: if drops to machine zero, hypothesis confirmed.\n");
+  printf("    - curved-LLF baseline expected to remain at machine zero (already stable).\n");
+}
+
+// ---- Three-Lax-flux cell-avg spectrum at high N ----
+//
+// Compares the three Lax-flux variants on the cell-average sub-operator L_00,
+// at progressively higher resolution, to see whether any "stable at moderate
+// N" variant *eventually* picks up cell-avg modes as the grid is refined.
+// The cleanest variant by this test is the one whose max Re(L_00) stays at
+// machine zero across all N. BCs match the production sim:
+//   reflective theta-pole (theta_pole_active=1)
+//   outflow at both r boundaries (outflow_r=1)
+//
+// Cost: dgeev on L_00 is O((6 N^2)^3). Total time also includes the L_00
+// build itself (one RHS per row). Each (N, config) pair is timed and
+// printed so future runs can pick a sensible N for their wallclock budget.
+static void
+test_cell_avg_lax_variants_high_N(void)
+{
+  // N values to scan. Sized comfortably; the loop is open-coded so the user
+  // can edit this list directly without rebuilding any kernels.
+  static const int N_list[] = { 12, 24, 48 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg {
+    bool use_lax, use_curved_norm, use_tetrad_flux;
+    const char *name;
+  };
+  static const struct cfg configs[] = {
+    { true, false, false, "Euclidean-LLF (use_lax)                  " },
+    { true, true,  false, "curved-norm LLF (use_curved_norm)        " },
+    { true, true,  true,  "tetrad-Roe (use_tetrad_flux)             " },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+  double build_sec[8][8] = {{0}};
+  double dgeev_sec[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct timespec t_init = gkyl_wall_clock();
+      struct budget_bench bench;
+      bench_init_full_v2(&bench, N, N, configs[idx].use_lax,
+        /*theta_pole_active=*/1, /*outflow_r=*/1, /*outflow_theta=*/0,
+        configs[idx].use_curved_norm, configs[idx].use_tetrad_flux);
+
+      int N_avg = N*N * NUM_FIELD_COMPS;
+      printf("  Building L_00 (N_avg = %d)...\n", N_avg); fflush(stdout);
+
+      double *L_mat_00 = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+      struct timespec t_build = gkyl_wall_clock();
+      build_cell_avg_L_matrix(&bench, L_mat_00);
+      build_sec[iN][idx] = gkyl_time_diff_now_sec(t_build);
+      printf("  L_00 build: %.2f s\n", build_sec[iN][idx]); fflush(stdout);
+
+      printf("  Diagonalizing L_00...\n"); fflush(stdout);
+      struct timespec t_dgeev = gkyl_wall_clock();
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat_00, N_avg, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      dgeev_sec[iN][idx] = gkyl_time_diff_now_sec(t_dgeev);
+      printf("  dgeev: %.2f s   (init+build+dgeev total: %.2f s)\n",
+        dgeev_sec[iN][idx], gkyl_time_diff_now_sec(t_init));
+      fflush(stdout);
+
+      gkyl_free(L_mat_00);
+      bench_release(&bench);
+    }
+  }
+
+  // ---- Summary tables ----
+  printf("\n=== Three-Lax-flux cell-avg spectrum (production BCs: reflective theta-pole + outflow radial) ===\n\n");
+
+  printf("  max Re(L_00):\n");
+  printf("  Config                                              ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    N=%-3d   ", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.3e", max_re[iN][idx]);
+    printf("\n");
+  }
+
+  printf("\n  # modes with Re > 1e-3:\n");
+  printf("  Config                                              ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    N=%-3d   ", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %-9d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+
+  printf("\n  Wallclock per (N, config) [seconds: L_00 build / dgeev]:\n");
+  printf("  Config                                              ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    N=%-3d            ", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN)
+      printf("    %7.1f / %7.1f", build_sec[iN][idx], dgeev_sec[iN][idx]);
+    printf("\n");
+  }
+
+  printf("\n  Reading the result:\n");
+  printf("    - max Re stays at machine epsilon at all N -> cell-avg dynamics is\n");
+  printf("      genuinely stable under this Lax variant. Best candidate.\n");
+  printf("    - max Re grows with N -> intrinsic cell-avg mode at fine grid; this\n");
+  printf("      Lax variant is on borrowed time, refinement will surface it eventually.\n");
+  printf("    - max Re bounded but non-zero -> finite-amplitude weakness that a\n");
+  printf("      slope limiter alone won't suppress (limiter only touches slopes).\n");
+}
+
+// Test E (Schwarzschild ablation): the +0.034 / +0.088 cell-avg instability
+// of tetrad-Roe was localized at the inner-r equator -- precisely where the
+// spherical Kerr-Schild off-diagonal h_rphi = -a(1+2Mr/rho^2)sin^2(theta)
+// peaks (max at equator, large inside the ergoregion). The paper's FV
+// tetrad-Roe scheme runs in CARTESIAN Kerr-Schild where the off-diagonal
+// structure differs and doesn't have this equatorial amplification.
+//
+// Hypothesis: setting spin a=0 (Schwarzschild) makes h_rphi vanish identically.
+// If this removes the +0.034 instability, the spin-driven off-diagonal h_rphi
+// is confirmed as the source. If the instability persists, it's something
+// else (perhaps the diagonal h_phi_phi ~ sin^2(theta) structure or just the
+// curved metric in general).
+static void
+test_cell_avg_schwarzschild(void)
+{
+  static const int N_list[] = { 12, 24 };
+  const int n_N = (int)(sizeof(N_list)/sizeof(N_list[0]));
+
+  struct cfg {
+    bool use_lax, use_curved_norm, use_tetrad_flux;
+    double spin;
+    const char *name;
+  };
+  static const struct cfg configs[] = {
+    { true, true,  false, 0.0,        "curved-LLF (Schwarzschild a=0, reflective)" },
+    { true, true,  true,  0.0,        "tetrad-Roe-both (Schwarzschild a=0)        " },
+    { true, true,  true,  0.95,       "tetrad-Roe-both (Kerr a=0.95, reference)   " },
+  };
+  const int n_cfg = (int)(sizeof(configs)/sizeof(configs[0]));
+
+  double max_re[8][8] = {{0}};
+  int    n_unstable[8][8] = {{0}};
+
+  for (int iN = 0; iN < n_N; ++iN) {
+    int N = N_list[iN];
+    for (int idx = 0; idx < n_cfg; ++idx) {
+      printf("\n--- N=%d  Config %s ---\n", N, configs[idx].name);
+      fflush(stdout);
+
+      struct budget_bench bench;
+      bench_init_full_v4(&bench, N, N, configs[idx].use_lax,
+        /*theta_pole_active=*/1, /*outflow_r=*/0, /*outflow_theta=*/0,
+        configs[idx].use_curved_norm, configs[idx].use_tetrad_flux,
+        /*flat_metric=*/false, /*spin_bh=*/configs[idx].spin);
+
+      int N_avg = N*N * NUM_FIELD_COMPS;
+      double *L_mat_00 = gkyl_malloc(sizeof(double) * (long)N_avg * (long)N_avg);
+      build_cell_avg_L_matrix(&bench, L_mat_00);
+
+      double m_ab = 0.0;
+      diagonalize_and_print_spectrum(L_mat_00, N_avg, /*top_K=*/8,
+        /*re_threshold=*/1.0e-3,
+        &max_re[iN][idx], &m_ab, &n_unstable[iN][idx]);
+      fflush(stdout);
+      gkyl_free(L_mat_00);
+
+      bench_release(&bench);
+    }
+  }
+
+  printf("\n=== Phase 2I.E summary: cell-avg spectrum, Schwarzschild ablation ===\n");
+  printf("(spin a=0 sets h_rphi=0 identically; isolates spin contribution to the\n");
+  printf(" curved-metric structure inside the ergoregion.)\n\n");
+  printf("  Config                                                ");
+  for (int iN = 0; iN < n_N; ++iN) printf("    max Re@N=%-2d", N_list[iN]);
+  for (int iN = 0; iN < n_N; ++iN) printf("    #Re>1e-3@N=%-2d", N_list[iN]);
+  printf("\n");
+  for (int idx = 0; idx < n_cfg; ++idx) {
+    printf("  %-50s", configs[idx].name);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %+1.4e", max_re[iN][idx]);
+    for (int iN = 0; iN < n_N; ++iN) printf("    %d", n_unstable[iN][idx]);
+    printf("\n");
+  }
+  printf("\n  Hypothesis:\n");
+  printf("    - tetrad-Roe-both at N=24 in Schwarzschild ~ machine zero -> spin-driven\n");
+  printf("      h_rphi confirmed as source. Paper's FV ergoregion stability is then\n");
+  printf("      compatible because Cartesian KS has different off-diagonal structure.\n");
+  printf("    - tetrad-Roe-both at N=24 in Schwarzschild still ~+0.03 -> spin not the\n");
+  printf("      sole source; further investigation needed.\n");
+}
+
 TEST_LIST = {
   { "bench_smoke", test_bench_smoke },
   { "seeded_sweep", test_seeded_sweep },
@@ -1556,5 +2812,16 @@ TEST_LIST = {
   { "resolution_scan", test_resolution_scan },
   { "explicit_spectrum", test_explicit_spectrum },
   { "spectrum_bc_scan", test_explicit_spectrum_bc_scan },
+  { "spectrum_lax_n_scan", test_spectrum_lax_n_scan },
+  { "volume_term_hypothesis", test_volume_term_hypothesis },
+  { "eigenvector_modal_content", test_eigenvector_modal_content },
+  { "tetrad_radial_spectrum", test_tetrad_radial_spectrum },
+  { "cell_avg_only_spectrum", test_cell_avg_only_spectrum },
+  { "cell_avg_eigenvector_localization", test_cell_avg_eigenvector_localization },
+  { "cell_avg_bc_ablation",              test_cell_avg_bc_ablation },
+  { "cell_avg_flat_metric",              test_cell_avg_flat_metric },
+  { "cell_avg_outflow_inner_r",          test_cell_avg_outflow_inner_r },
+  { "cell_avg_lax_variants_high_N",      test_cell_avg_lax_variants_high_N },
+  { "cell_avg_schwarzschild",            test_cell_avg_schwarzschild },
   { NULL, NULL },
 };

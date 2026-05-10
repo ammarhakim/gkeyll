@@ -141,6 +141,7 @@ vlasovApp = Vlasov.App.new {
       -- Hand off the primative variables (U^\xi)
       return Dr, Dtheta, Dphi, Br, Btheta, Bphi, 0.0, 0.0
     end,
+    --limitField = true, 
 
     -- Characteristic-based one-sided outflow BCs at both radial boundaries:
     -- the GR Maxwell surface flux uses A^outgoing . U_skin at the boundary

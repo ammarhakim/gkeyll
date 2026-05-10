@@ -36,6 +36,7 @@
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
 #include <gkyl_dg_gr_maxwell_divide_Jc.h>
 #include <gkyl_dg_gr_maxwell_geom.h>
+#include <gkyl_dg_gr_maxwell_slope_limiter.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_gaussian_filter.h>
@@ -673,8 +674,9 @@ struct vm_field {
   struct gkyl_array *em_no_J; // arrays for storing em field without Jc
   struct gkyl_array *em_no_J_host; // host copy of primitive GR fields for I/O
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
-  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
-  struct gkyl_dg_gr_maxwell_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
+  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces.
+  struct gkyl_dg_gr_maxwell_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf).
+  struct gkyl_dg_gr_maxwell_slope_limiter *calc_slope_limiter; // Tetrad-frame characteristic slope limiter (GR_D_B only).
 
   bool has_ext_em; // flag to indicate there are external electromagnetic fields (E, B)
   bool ext_em_evolve; // flag to indicate external electromagnetic fields are time dependent

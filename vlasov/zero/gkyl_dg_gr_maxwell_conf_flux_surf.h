@@ -21,6 +21,14 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf_inp {
   const int *outflow_up; // (upper edge) Default zeros, 1 if direction uses characteristic-based outflow BC.
   bool use_lax; // bool to determine if we are using lax flux option.
   bool use_curved_norm; // when true (and use_lax true): use curved-norm LLF flux (h_ij-weighted dissipation).
+  bool use_tetrad_flux; // when true (and use_lax true): use tetrad-frame LLF in the radial (dir=0) direction.
+                        // The radial-face Gram-Schmidt tetrad has a closed-form M whose entries are regular
+                        // at the GL face nodes (no theta-pole singularity for r-faces). The dissipation
+                        // back-transforms to a SCALAR a_tetrad * (Q_R - Q_L) in the coord basis, so we
+                        // simply override alpha_quad with the tetrad wave speed and dispatch to the standard
+                        // (Euclidean) lax_flux kernel. No new lax-flux kernel needed. y/z directions fall
+                        // back to use_curved_norm/standard behavior (the theta-pole face has M_phi_phi -> 0
+                        // and would need a separate pole treatment).
   bool use_gpu; // bool to determine if on GPU.
 };
 

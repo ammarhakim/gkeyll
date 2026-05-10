@@ -221,12 +221,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
         if (bc[1] == GKYL_FIELD_OUTFLOW) outflow_up_init[dir] = 1;
       }
     }
-    // [INSTRUMENTATION] Confirm the outflow flags are being set as expected
-    // from the user input. Prints once per app initialization.
-    fprintf(stderr, "[GR-Maxwell outflow plumbing] resolved flags: "
-      "outflow_lo = {%d, %d, %d}, outflow_up = {%d, %d, %d} (cdim=%d)\n",
-      outflow_lo_init[0], outflow_lo_init[1], outflow_lo_init[2],
-      outflow_up_init[0], outflow_up_init[1], outflow_up_init[2], app->cdim);
 
     f->conf_flux_surf = mkarr(app->use_gpu, app->cdim*8*f->num_surf_conf_nodes, app->local_ext.volume);
     struct gkyl_dg_gr_maxwell_conf_flux_surf_inp inp_conf_flux = {
@@ -242,6 +236,20 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .use_gpu = app->use_gpu,
     };
     f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux);
+
+    // Tetrad-frame characteristic slope limiter. Reuses info.limit_em /
+    // info.limiter_fac controls (same user-facing flags as the flat-Maxwell
+    // limiter). The updater is always constructed; vm_field_limiter checks
+    // info.limit_em before calling advance.
+    struct gkyl_dg_gr_maxwell_slope_limiter_inp inp_slope_limiter = {
+      .conf_grid = &app->grid,
+      .conf_basis = &app->basis,
+      .limiter_fac = f->info.limiter_fac,
+      .theta_pole_lo = app->vm_geom->theta_pole_lo,
+      .theta_pole_up = app->vm_geom->theta_pole_up,
+      .use_gpu = app->use_gpu,
+    };
+    f->calc_slope_limiter = gkyl_dg_gr_maxwell_slope_limiter_inew(&inp_slope_limiter);
   }
    
   // Input structure for building the dg eqn object
@@ -507,6 +515,23 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
 void
 vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
 {
+  if (field->field_id == GKYL_FIELD_GR_D_B) {
+    if (field->info.limit_em) {
+      // Tetrad-frame characteristic slope limiter (paper eq. 57 wave
+      // decomposition in the locally flat tetrad; per-cell 3-arg minmod on
+      // characteristic variables). Operates in-place on `em` (= J*D, J*B).
+      // BCs must be applied after, to refill ghost cells in case the limiter
+      // changed cells adjacent to the boundary.
+      gkyl_dg_gr_maxwell_slope_limiter_advance(field->calc_slope_limiter,
+        &app->local,
+        field->geom->lapse, field->geom->shift,
+        field->geom->h_ij, field->geom->det_h,
+        em);
+      vm_field_apply_bc(app, field, em);
+    }
+    return;
+  }
+
   if (field->limit_em) {
     // Limit the slopes of the solution
     gkyl_dg_calc_em_vars_limiter(field->calc_em_vars, &app->local, em);
@@ -1021,6 +1046,7 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
     gkyl_array_release(f->em_no_J);
     gkyl_array_release(f->em_no_J_host);
     gkyl_dg_gr_maxwell_conf_flux_surf_release(f->calc_conf_flux);
+    gkyl_dg_gr_maxwell_slope_limiter_release(f->calc_slope_limiter);
     gkyl_array_release(f->conf_flux_surf);
   }
   gkyl_array_release(f->em_host);
