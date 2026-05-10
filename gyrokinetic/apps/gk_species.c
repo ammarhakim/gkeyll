@@ -65,7 +65,7 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
     m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
 
     double time_dilation_scale_const = 1.0;
-    gk_fdot_multiplier_get_time_dilation_scale_const(app, gks, &time_dilation_scale_const);
+    gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult, &time_dilation_scale_const);
   
     double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf
       * time_dilation_scale_const;
@@ -122,8 +122,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
 
   // Multiply CFL rate by the df/dt multiplier.
-  gk_species_fdot_multiplier_advance_times_cfl(app, species, app->field->phi_smooth, 
-    fin, species->cflrate);
+  gk_species_fdot_multiplier_advance_times_cfl(app, species, &species->fdot_mult,
+    app->field->phi_smooth, fin, species->cflrate);
 
   // Reduce the CFL frequency and compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
@@ -1511,7 +1511,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Function multiplying df/dt.
-  gk_species_fdot_multiplier_init(app, gks);
+  gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
 
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
@@ -1917,7 +1917,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   gk_species_damping_release(app, &gks->damping);
 
-  gk_species_fdot_multiplier_release(app, gks);
+  gk_species_fdot_multiplier_release(app, &gks->fdot_mult);
 
   gk_species_lbo_release(app, &gks->lbo);
 

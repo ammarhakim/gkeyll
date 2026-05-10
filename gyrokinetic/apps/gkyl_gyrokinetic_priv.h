@@ -849,7 +849,7 @@ struct gk_damping {
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 };
 
-struct gk_fdot_multiplier {
+struct gk_fdot_multiplier_comp {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
   int component_id; // Index of this multiplier in the chain.
   bool write_diagnostics; // Whether to write diagnostics out.
@@ -880,13 +880,18 @@ struct gk_fdot_multiplier {
 
   // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
-    struct gk_fdot_multiplier *fdmul, double tm, int frame);
+    struct gk_fdot_multiplier_comp *fdmul, double tm, int frame);
   void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
+    struct gk_fdot_multiplier_comp *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
     struct gkyl_array *cflrate);
   void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-    struct gk_fdot_multiplier *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
+    struct gk_fdot_multiplier_comp *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
     struct gkyl_array *cflrate);
+};
+
+struct gk_fdot_multiplier {
+  int num_multipliers; // Number of active df/dt multipliers in chain.
+  struct gk_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL]; // Array of df/dt multipliers.
 };
 
 struct gk_heating {
@@ -1061,8 +1066,7 @@ struct gk_species {
 
   struct gk_damping damping; // Damping term: -nu(z)*f.
 
-  int num_fdot_mult; // Number of active df/dt multipliers in chain.
-  struct gk_fdot_multiplier fdot_mult[GKYL_MAX_FDOT_MUL]; // Functions multiplying df/dt.
+  struct gk_fdot_multiplier fdot_mult; // Functions multiplying df/dt.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
@@ -2880,7 +2884,8 @@ void gk_species_damping_release(const struct gkyl_gyrokinetic_app *app, const st
  * @param s Species object.
  * @param fdmul Species df/dt multiplier object.
  */
-void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gks);
+void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdot_mult);
 
 /**
  * Multiply the CFL rate.
@@ -2893,7 +2898,8 @@ void gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_specie
  * @param out CFL rate to multiply.
  */
 void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
+  struct gk_fdot_multiplier *fdot_mult, const struct gkyl_array *phi,
+  const struct gkyl_array *f, struct gkyl_array *out);
 
 /**
  * Multiply df/dt.
@@ -2906,7 +2912,8 @@ void gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app, str
  * @param out df/dt to multiply.
  */
 void gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, struct gk_species *gks,
- const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *out);
+  struct gk_fdot_multiplier *fdot_mult, const struct gkyl_array *phi,
+  const struct gkyl_array *f, struct gkyl_array *out);
 
 /**
  * Get the constant time dilation scale factor, if applicable.
@@ -2915,7 +2922,8 @@ void gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app, st
  * @param gks Species object.
  * @param time_dilation_scale_const On output, the constant time dilation scale factor. Set to 1.0 if not applicable.
  */
-void gk_fdot_multiplier_get_time_dilation_scale_const(gkyl_gyrokinetic_app *app, struct gk_species *gks, double *time_dilation_scale_const);
+void gk_fdot_multiplier_get_time_dilation_scale_const(gkyl_gyrokinetic_app *app,
+  const struct gk_fdot_multiplier *fdot_mult, double *time_dilation_scale_const);
 
 /**
  * Write damping diagnostics.
@@ -2925,7 +2933,8 @@ void gk_fdot_multiplier_get_time_dilation_scale_const(gkyl_gyrokinetic_app *app,
  * @param tm Time for damping diagnostic.
  * @param frame Output frame.
  */
-void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
+void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdot_mult, double tm, int frame);
 
 /**
  * Release species damping object.
@@ -2933,7 +2942,8 @@ void gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app* app, struct gk_speci
  * @param app gyrokinetic app object.
  * @param fdmul Species df/dt multiplier object.
  */
-void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, const struct gk_species *gks);
+void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app,
+  const struct gk_fdot_multiplier *fdot_mult);
 
 /**
  * Reset the df/dt multiplier operator.
@@ -2945,6 +2955,7 @@ void gk_species_fdot_multiplier_release(const struct gkyl_gyrokinetic_app *app, 
  * @param fdot_mult_inp New input struct for the fdot_multiplier.
  */
 void gk_species_fdot_multiplier_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdot_mult,
   struct gkyl_gyrokinetic_fdot_multiplier_array fdot_mult_inp);
 
 /** gk_anomalous_diff API */
