@@ -28,6 +28,7 @@ struct gk_app_ctx {
   double energy_srcCORE, particle_srcCORE;
   double floor_srcCORE;
   bool adapt_energy_srcRECY, adapt_particle_srcRECY;
+  double adapt_energy_fraction_srcRECY, adapt_particle_fraction_srcRECY;
   double center_srcRECY[2], sigma_srcRECY[2];
   double energy_srcRECY, particle_srcRECY;
   double floor_srcRECY;
@@ -396,6 +397,7 @@ struct gk_app_ctx create_ctx(void)
   // - Energy is free to leave the system.
   bool adapt_energy_srcRECY = false;
   bool adapt_particle_srcRECY = true;
+  double adapt_particle_fraction_srcRECY = 1.0; // Adjusts recycling rate to 100%.
   double energy_srcRECY = 0.0; // [W]
   double particle_srcRECY = 0.0; // [1/s]
   double center_srcRECY[2] = {0.5*x_LCFS, M_PI};
@@ -453,6 +455,7 @@ struct gk_app_ctx create_ctx(void)
     .floor_srcCORE = floor_srcCORE,
     .adapt_energy_srcRECY = adapt_energy_srcRECY,
     .adapt_particle_srcRECY = adapt_particle_srcRECY,
+    .adapt_particle_fraction_srcRECY = adapt_particle_fraction_srcRECY,
     .center_srcRECY = {center_srcRECY[0], center_srcRECY[1]},
     .sigma_srcRECY = {sigma_srcRECY[0], sigma_srcRECY[1]},
     .energy_srcRECY = energy_srcRECY, .particle_srcRECY = particle_srcRECY,
@@ -562,6 +565,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
     .adapt_to_species = "ion", // Adapt to ion losses to maintain ambipolarity.
     .adapt_particle = ctx.adapt_particle_srcRECY,
+    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
     .num_boundaries = 3, // Outer radial boundary and both z boundaries.
     .dir = {0, 1, 1},
@@ -570,6 +574,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_i = {
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
+    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
     .num_boundaries = 3, // Outer radial boundary and both z boundaries.
     .dir = {0, 1, 1},
