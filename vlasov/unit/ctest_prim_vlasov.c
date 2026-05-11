@@ -308,6 +308,9 @@ test_func(int cdim, int vdim, int poly_order,
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf);
 
+  gkyl_proj_on_basis_release(projNu);
+  gkyl_array_release(nu);
+
   gkyl_array_release(u); gkyl_array_release(vth);
   gkyl_array_release(prim_moms);
   gkyl_prim_lbo_calc_release(primcalc);

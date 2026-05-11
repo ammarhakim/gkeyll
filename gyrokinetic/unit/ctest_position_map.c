@@ -433,9 +433,7 @@ test_position_polynomial_map_optimize_1x()
   gkyl_proj_on_basis *projB = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, bmag_func, 0);
   gkyl_proj_on_basis_advance(projB, 0.0, &localRange, bmag_global);
   gkyl_proj_on_basis_release(projB);
-
-  gkyl_position_map_set_bmag(pos_map, NULL, bmag_global);
-
+  
   struct gkyl_rect_grid grid3D;
   double lower3D[] = {0.4, -0.1, lower[0]}, upper3D[] = {0.6, 0.1, upper[0]};
   int cells3D[] = { 1, 1, cells[0]};
@@ -444,6 +442,8 @@ test_position_polynomial_map_optimize_1x()
   struct gkyl_range localRange3D, localRange3D_ext; // local, local-ext ranges.
   gkyl_create_grid_ranges(&grid3D, ghost3D, &localRange3D_ext, &localRange3D);
 
+  gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
+  gkyl_position_map_set_bmag(pos_map, NULL, bmag_global);
   gkyl_position_map_optimize(pos_map, grid3D, localRange3D);
 
   TEST_CHECK(pos_map->to_optimize == true);

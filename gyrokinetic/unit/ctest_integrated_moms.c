@@ -293,7 +293,11 @@ test_2x_option(bool use_gpu)
 
   if (use_gpu) {
     gkyl_array_release(m0_dev);
-    gkyl_array_release(prim_moms_dev);   
+    gkyl_array_release(prim_moms_dev);
+    gkyl_cu_free(red_integ_diag_global);
+  }
+  else {
+    gkyl_free(red_integ_diag_global);
   }
 
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);

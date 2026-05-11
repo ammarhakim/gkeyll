@@ -1,5 +1,3 @@
-![Mac Build](https://github.com/ammarhakim/gkeyll/actions/workflows/osx-build.yml/badge.svg)
-
 # About
 
 This is the main repository for `Gkeyll`: a multi-scale, multi-physics simulation

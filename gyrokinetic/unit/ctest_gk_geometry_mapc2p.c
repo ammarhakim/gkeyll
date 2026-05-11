@@ -315,8 +315,8 @@ test_3x_p1()
   gkyl_array_release(bmag_nodal);
   gkyl_array_release(gij_nodal);
   gkyl_nodal_ops_release(n2m);
-  gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
+  gkyl_gk_geometry_release(gk_geom);
 }
 
 void
@@ -499,6 +499,7 @@ test_3x_p1_pmap()
   // Release memory
   gkyl_array_release(jacobgeo_nodal);
   gkyl_array_release(mapc2p_nodal);
+  gkyl_array_release(mapc2p_nodal_interior);
   gkyl_array_release(bmag_nodal);
   gkyl_nodal_ops_release(n2m);
   gkyl_position_map_release(pos_map);

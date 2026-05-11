@@ -1,0 +1,52 @@
+name: Mac Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event.pull_request.draft == false
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: install-superlu
+        run: |
+          cd install-deps; ./mkdeps.sh  --build-superlu=yes; cd ..
+
+      # Core module
+      - name: Build core-unit
+        run: make -j 3 core-unit
+      - name: Build core-regression
+        run: make -j 3 core-regression
+
+      # Moments module
+      - name: Build moments-unit
+        run: make -j 3 moments-unit
+      - name: Build moments-regression
+        run: make -j 3 moments-regression
+
+      # Vlasov module
+      - name: Build vlasov-unit
+        run: make -j 3 vlasov-unit
+      - name: Build vlasov-regression
+        run: make -j 3 vlasov-regression
+
+      # Gyrokinetic module
+      - name: Build gyrokinetic-unit
+        run: make -j 3 gyrokinetic-unit
+      - name: Build gyrokinetic-regression
+        run: make -j 3 gyrokinetic-regression
+
+      # PKPM module
+      - name: Build pkpm-regression
+        run: make -j 3 pkpm-regression
