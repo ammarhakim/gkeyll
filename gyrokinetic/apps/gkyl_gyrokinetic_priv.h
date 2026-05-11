@@ -1030,6 +1030,14 @@ struct gk_species {
   struct gkyl_range local_upper_skin_par_sol , local_upper_ghost_par_sol;
   // GK IWL sims need a core range extended in z, and a TS BC updater.
   struct gkyl_range local_par_ext_core; // Core range extended in parallel direction.
+  // Objects used in IWL simulations and TS BCs.
+  struct gkyl_rect_grid bc_ts_grid; // Higher resolution grid for TS BC.
+  struct gkyl_range bc_ts_local_ext, bc_ts_local; // Higher resolution ranges for TS BC.
+  struct gkyl_range bc_ts_local_lower_skin_par, bc_ts_local_upper_skin_par; // Parallel skin for TS BC.
+  struct gkyl_range bc_ts_local_lower_ghost_par, bc_ts_local_upper_ghost_par; // Parallel ghost for TS BC.
+  struct gkyl_dg_interpolate *bc_ts_prolong, *bc_ts_coarsen; // Interpolation operators for TS BC.
+  struct gkyl_array *bc_ts_buffer_fine, *bc_ts_buffer_coar; // Buffer for TS BCs.
+  struct gkyl_range bc_ts_local_par_ext; // Range extended in parallel direction for TS BC.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
 
   struct gk_proj proj_init; // Projector for initial conditions.
