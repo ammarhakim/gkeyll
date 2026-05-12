@@ -676,100 +676,110 @@ gk_species_write_L2norm_static(gkyl_gyrokinetic_app* app, struct gk_species *gks
 }
 
 static void
-gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_species *s)
+gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_species *gks)
 {
   // Release various arrays and objects for a dynamic species.
-  gkyl_array_release(s->f1);
-  gkyl_array_release(s->fnew);
-  gkyl_array_release(s->bc_buffer);
-  gkyl_array_release(s->bc_buffer_lo_fixed);
-  gkyl_array_release(s->bc_buffer_up_fixed);
+  gkyl_array_release(gks->f1);
+  gkyl_array_release(gks->fnew);
+  gkyl_array_release(gks->bc_buffer);
+  gkyl_array_release(gks->bc_buffer_lo_fixed);
+  gkyl_array_release(gks->bc_buffer_up_fixed);
 
-  if (s->info.write_omega_cfl) {
-    gkyl_array_release(s->cflrate_ho);
+  if (gks->info.write_omega_cfl) {
+    gkyl_array_release(gks->cflrate_ho);
+  }
+
+  int par_dir = app->cdim-1; // Parallel direction index.
+  if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT &&
+      gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+    // Release objects used for TS BCs.
+    gkyl_array_release(gks->bc_ts_buffer_fine);
+    gkyl_array_release(gks->bc_ts_buffer_coar);
+    gkyl_dg_interpolate_release(gks->bc_ts_prolong);
+    gkyl_dg_interpolate_release(gks->bc_ts_coarsen);
   }
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
-    if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
+    if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
+      gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_lo);
     }
-    else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) { 
-      gkyl_bc_twistshift_release(s->bc_ts_lo);
+    else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) { 
+      gkyl_bc_twistshift_release(gks->bc_ts_lo);
     }
-    else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) { 
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
+    else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) { 
+      gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_lo);
       if (app->cdim == 3) {
-        gkyl_bc_twistshift_release(s->bc_ts_lo);
+        gkyl_bc_twistshift_release(gks->bc_ts_lo);
       }
     }
-    else if ( (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
-              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
-              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
-              (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
-      gkyl_bc_basic_gyrokinetic_release(s->bc_lo[d]);
+    else if ( (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
+              (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+              (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
+      gkyl_bc_basic_gyrokinetic_release(gks->bc_lo[d]);
     }
     
-    if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
+    if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
+      gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_up);
     }
-    else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
-      gkyl_bc_twistshift_release(s->bc_ts_up);
+    else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+      gkyl_bc_twistshift_release(gks->bc_ts_up);
     }
-    else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
+    else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
+      gkyl_bc_sheath_gyrokinetic_release(gks->bc_sheath_up);
       if (app->cdim == 3) {
-        gkyl_bc_twistshift_release(s->bc_ts_up);
+        gkyl_bc_twistshift_release(gks->bc_ts_up);
       }
     }
-    else if ( (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
-              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
-              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
-              (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
-      gkyl_bc_basic_gyrokinetic_release(s->bc_up[d]);
+    else if ( (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
+              (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
+              (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
+              (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
+      gkyl_bc_basic_gyrokinetic_release(gks->bc_up[d]);
     }
   }
   
   if (app->use_gpu) {
-    gkyl_cu_free(s->omega_cfl);
-    gkyl_cu_free(s->m0_max);
+    gkyl_cu_free(gks->omega_cfl);
+    gkyl_cu_free(gks->m0_max);
   }
   else {
-    gkyl_free(s->omega_cfl);
-    gkyl_free(s->m0_max);
+    gkyl_free(gks->omega_cfl);
+    gkyl_free(gks->m0_max);
   }
 
   // Release integrated moment memory.
-  gk_species_moment_release(app, &s->integ_moms); 
+  gk_species_moment_release(app, &gks->integ_moms); 
 
   // Release integrated diag memory.
-  gkyl_dynvec_release(s->integ_diag);
+  gkyl_dynvec_release(gks->integ_diag);
   if (app->use_gpu) {
-    gkyl_cu_free(s->red_integ_diag);
-    gkyl_cu_free(s->red_integ_diag_global);
+    gkyl_cu_free(gks->red_integ_diag);
+    gkyl_cu_free(gks->red_integ_diag_global);
   }
   else {
-    gkyl_free(s->red_integ_diag);
-    gkyl_free(s->red_integ_diag_global);
+    gkyl_free(gks->red_integ_diag);
+    gkyl_free(gks->red_integ_diag_global);
   }
 
   // Release L2 norm memory.
-  gkyl_array_integrate_release(s->integ_wfsq_op);
-  gkyl_dynvec_release(s->L2norm);
+  gkyl_array_integrate_release(gks->integ_wfsq_op);
+  gkyl_dynvec_release(gks->L2norm);
   if (app->use_gpu) {
-    gkyl_cu_free(s->L2norm_local);
-    gkyl_cu_free(s->L2norm_global);
+    gkyl_cu_free(gks->L2norm_local);
+    gkyl_cu_free(gks->L2norm_global);
   }
   else {
-    gkyl_free(s->L2norm_local);
-    gkyl_free(s->L2norm_global);
+    gkyl_free(gks->L2norm_local);
+    gkyl_free(gks->L2norm_global);
   }
 
-  if (s->info.time_rate_diagnostics) {
+  if (gks->info.time_rate_diagnostics) {
     // Free df/dt diagnostics memory.
-    gkyl_array_release(s->fdot_mom_old);
-    gkyl_array_release(s->fdot_mom_new);
-    gkyl_dynvec_release(s->fdot_integ_diag);
+    gkyl_array_release(gks->fdot_mom_old);
+    gkyl_array_release(gks->fdot_mom_new);
+    gkyl_dynvec_release(gks->fdot_integ_diag);
   }
 }
 
