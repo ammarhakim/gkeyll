@@ -365,6 +365,12 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
             const double *phil = gkyl_array_cfetch(phi, lidx);
             const double *phir = gkyl_array_cfetch(phi, ridx);
 
+            // Inform the equation of the interface's bracketing cell indices
+            // before any per-interface callbacks fire. NULL for equations
+            // that don't need per-cell auxfield lookup.
+            if (wv->equation->set_interface_idx_func)
+              wv->equation->set_interface_idx_func(wv->equation, idxl, idxr);
+
             gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinl, ql_local);
             gkyl_wv_eqn_rotate_to_local(wv->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], qinr, qr_local);
 
@@ -504,6 +510,9 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           for (int i=loidx_c; i<=upidx_c; ++i) {
             idxl[dir] = i;
             const double *qt = gkyl_array_cfetch(qout, gkyl_range_idx(update_range, idxl));
+            // Per-cell setter for single-state callbacks.
+            if (wv->equation->set_cell_idx_func)
+              wv->equation->set_cell_idx_func(wv->equation, idxl);
             if (!gkyl_wv_eqn_check_inv(wv->equation, qt)) {
 
               double *redo_fluct_l = gkyl_array_fetch(wv->redo_fluct, gkyl_ridx(slice_range, i));
@@ -614,6 +623,9 @@ gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_
       double dx = wv->grid.dx[dir];
 
       const double *q = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, iter.idx));
+      // Per-cell setter so the equation can fetch auxfields if needed.
+      if (wv->equation->set_cell_idx_func)
+        wv->equation->set_cell_idx_func(wv->equation, iter.idx);
       double maxs = gkyl_wv_eqn_max_speed(wv->equation, q);
       max_dt = fmin(max_dt, wv->cfl*dx/maxs);
     }

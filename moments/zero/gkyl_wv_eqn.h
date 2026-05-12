@@ -60,6 +60,22 @@ typedef void (*wv_cons_to_diag)(const struct gkyl_wv_eqn *eqn,
 // Function pointer to compute the forcing/source term vector.
 typedef void (*wv_source_func_t)(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
+// Optional function pointers used by wave_prop (and similar drivers) to
+// inform the equation object of the relevant cell index before each callback
+// fires. Equations that need to fetch per-cell auxfield data implement these;
+// others leave them NULL.
+//
+// set_interface_idx_func: called once per interface before the rotate/waves/
+// qfluct/flux_jump callbacks, supplying both bracketing cells so the equation
+// can keep left- and right-side auxfields available.
+typedef void (*wv_set_interface_idx_t)(const struct gkyl_wv_eqn* eqn,
+  const int* idxl, const int* idxr);
+
+// set_cell_idx_func: called once per cell before single-state callbacks
+// (check_inv, max_speed, source, cons_to_diag).
+typedef void (*wv_set_cell_idx_t)(const struct gkyl_wv_eqn* eqn,
+  const int* idx);
+
 struct gkyl_wv_eqn {
   enum gkyl_eqn_type type; // Equation type
   int num_equations; // number of equations in system
@@ -86,6 +102,12 @@ struct gkyl_wv_eqn {
   wv_cons_to_diag cons_to_diag; // function for diagnostic variables
 
   wv_source_func_t source_func; // function for computing the forcing/source term vector.
+
+  // Optional setters invoked by wave_prop (and similar drivers) before each
+  // callback to communicate the relevant cell index/indices. NULL for
+  // equations that do not need per-cell auxfield lookup.
+  wv_set_interface_idx_t set_interface_idx_func;
+  wv_set_cell_idx_t set_cell_idx_func;
 
   struct gkyl_wv_embed_geo *embed_geo;
 
