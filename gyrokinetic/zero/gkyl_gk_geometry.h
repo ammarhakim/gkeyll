@@ -185,6 +185,8 @@ struct gk_geometry {
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
   struct gk_geometry *on_dev; // Pointer to itself or device object.
+
+  bool tess_secret_option; // sshhhhhh
 };
 
 
@@ -240,6 +242,7 @@ struct gkyl_gk_geometry_inp {
   struct gkyl_range global_ext;
   struct gkyl_basis basis;
 
+  bool tess_secret_option; // sshhhhhh
 };
 
 /**

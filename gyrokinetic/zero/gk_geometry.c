@@ -34,6 +34,7 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->global = geometry_inp->global;
   up->global_ext = geometry_inp->global_ext;
   up->grid = geometry_inp->grid;
+  up->tess_secret_option = geometry_inp->tess_secret_option;
   gk_geometry_set_nodal_ranges(up) ;
 
   up->has_LCFS = geometry_inp->has_LCFS;

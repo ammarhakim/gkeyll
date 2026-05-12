@@ -367,6 +367,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->grid = geometry_inp->geo_grid;
 
   up->geqdsk_sign_convention = 0;
+  up->tess_secret_option = geometry_inp->tess_secret_option;
 
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
