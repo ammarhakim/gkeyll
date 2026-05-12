@@ -321,10 +321,11 @@ struct gk_collisionless {
     struct gk_collisionless *gkcls, double tm, int frame);
 };
 
-struct gk_lbo_collisions {  
+struct gk_lbo_collisions {
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
-  bool not_in_dfdt; // Whether to not add collision contribution to df/dt 
+  bool write_cross_diagnostics; // Whether to write per-cross-species diagnostics (prim_moms_sr, nu_sr).
+  bool not_in_dfdt; // Whether to not add collision contribution to df/dt
 
   struct gkyl_array *self_nu; // Self-collision frequency.
   struct gkyl_array *boundary_corrections; // LBO boundary corrections.
@@ -350,8 +351,8 @@ struct gk_lbo_collisions {
   double delta_sr; // Free parameter in relationship between alpha_E and nu_sr.
   double other_m[GKYL_MAX_SPECIES]; // Masses of species colliding with.
   struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
-  struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // Cross-primitive moments.
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // Cross-species collision frequencies.
+  struct gkyl_array *cross_nu_host[GKYL_MAX_SPECIES]; // Host arrays for I/O.
   struct gkyl_array *cross_nu_prim_moms; // Weak multiplication of collision frequency and primitive moments.
   struct gkyl_array *alpha_E; // Morse's alpha_E factor.
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator
