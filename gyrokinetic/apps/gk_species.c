@@ -209,12 +209,12 @@ gk_species_apply_ts_bc_interp(gkyl_gyrokinetic_app *app, const struct gk_species
   // Copy skin to ghost and apply TSBC.
   if (edge == GKYL_LOWER_EDGE) {
     gkyl_array_copy_range_to_range(gks->bc_ts_buffer_fine, gks->bc_ts_buffer_fine, 
-      &gks->bc_ts_local_lower_ghost_par, &gks->bc_ts_local_upper_skin_par);
+      &gks->bc_ts_local_lower_ghost_par, &gks->bc_ts_local_lower_skin_par);
     gkyl_bc_twistshift_advance(gks->bc_ts_lo, gks->bc_ts_buffer_fine, gks->bc_ts_buffer_fine);
   }
   else if (edge == GKYL_UPPER_EDGE) {
     gkyl_array_copy_range_to_range(gks->bc_ts_buffer_fine, gks->bc_ts_buffer_fine, 
-      &gks->bc_ts_local_upper_ghost_par, &gks->bc_ts_local_lower_skin_par);
+      &gks->bc_ts_local_upper_ghost_par, &gks->bc_ts_local_upper_skin_par);
     gkyl_bc_twistshift_advance(gks->bc_ts_up, gks->bc_ts_buffer_fine, gks->bc_ts_buffer_fine);
   }
 
@@ -979,9 +979,11 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_LOWER_EDGE,
         .cdim = cdim,
+//        .bcdir_ext_update_r = gks->local_par_ext,
         .bcdir_ext_update_r = gks->bc_ts_local_par_ext,
         .num_ghost = num_ghost,
         .basis = gks->basis,
+//        .grid = gks->grid,
         .grid = gks->bc_ts_grid,
         .shift_func = gks->lower_bc[d].aux_profile,
         .shift_func_ctx = gks->lower_bc[d].aux_ctx,
@@ -1059,9 +1061,11 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_UPPER_EDGE,
         .cdim = cdim,
+//        .bcdir_ext_update_r = gks->local_par_ext,
         .bcdir_ext_update_r = gks->bc_ts_local_par_ext,
         .num_ghost = num_ghost,
         .basis = gks->basis,
+//        .grid = gks->grid,
         .grid = gks->bc_ts_grid,
         .shift_func = gks->upper_bc[d].aux_profile,
         .shift_func_ctx = gks->upper_bc[d].aux_ctx,
