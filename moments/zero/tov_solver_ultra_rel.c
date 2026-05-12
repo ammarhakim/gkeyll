@@ -315,6 +315,7 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
 void
 gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q)
 {
+  double e_before = 0.0;
   double m_before = 0.0;
   double phi_before = 0.0;
 
@@ -332,9 +333,9 @@ gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncel
     double beta = 0.25 * (2.0 - gas_gamma);
     double p_term = beta * beta * (PI + PHI) * (PI + PHI) + (gas_gamma - 1.0) * PI * PHI;
     double p = -beta * (PI + PHI) + sqrt(fmax(0.0, p_term));
-    bool in_atmosphere = False;
+    bool in_atmosphere = false;
     if (p_atm > 0.0 && p <= (1.0 + 1.0e-12) * p_atm) {
-        in_atmosphere = True;
+        in_atmosphere = true;
     }
     double p_geom = 0.0;
     if (p_atm > 0.0) {
@@ -344,7 +345,7 @@ gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncel
         p_geom = p;
     }
 
-    double rho = p_geom / (gas_gamma - 1.0);
+    double e_geom = p_geom / (gas_gamma - 1.0);
 
     double vel = 0.0;
     double denom = PI + PHI + 2.0 * p;
@@ -352,14 +353,32 @@ gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncel
       vel = (PI - PHI) / denom;
 
     double W = 1.0 / sqrt(fmax(1.0e-8, 1.0 - vel * vel));
-    double Etot = ((rho + p) * W * W) - p;
-    double mom_r = ((rho + p) * W * W) * vel;
-
-    double m = qi[4];
+    double Etot = ((e_geom + p) * W * W) - p;
+    double mom_r = ((e_geom + p) * W * W) * vel;
 
     if (in_atmosphere && surface_idx == ncells - 1) {
       surface_idx = i > 0 ? i - 1 : 0;
     }
+
+    // double m = qi[4];
+    // for refreshing m start:
+    double m = 0.0;
+    if (!in_atmosphere) {
+      double dm_dr = 4.0 * M_PI * r * r * e_geom;
+      if (i == 0) {
+        m = (4.0 / 3.0) * M_PI * e_geom * r * r * r;
+      }
+      else {
+        double dm_dr_before = 4.0 * M_PI * r_before * r_before * e_before;
+        double dr = r - r_before;
+        m = m_before + 0.5 * dr * (dm_dr_before + dm_dr);
+      }
+    }
+    else {
+      m = m_before;
+    }
+    qi[4] = m;
+    // for refreshing m stop
 
     double dphi_dr = 0.0;
     if (!in_atmosphere && r > 0.0 && r - 2.0 * m > 0.0) {
@@ -379,6 +398,7 @@ gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncel
     qi[3] = phi;
 
     r_before = r;
+    e_before = e_geom;
     m_before = m;
     phi_before = phi;
     dphi_dr_before = dphi_dr;

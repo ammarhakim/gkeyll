@@ -205,8 +205,9 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
   gkyl_gr_tov_flux(gas_gamma, kappa, ql, f1l, f2l);
   gkyl_gr_tov_flux(gas_gamma, kappa, qr, f1r, f2r);
 
-  double rl = ql[5];
-  double rr = qr[5];
+  // for getting the 1/r^2 factor:
+  double rl = ql[5]; //radius stored in the left state
+  double rr = qr[5]; //radius stored in the right state
   double rl2 = rl * rl;
   double rr2 = rr * rr;
 
