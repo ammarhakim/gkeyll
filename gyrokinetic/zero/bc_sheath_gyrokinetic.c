@@ -79,7 +79,7 @@ void bc_gksheath_update_vcut_fact_surrogate_disabled(const struct gkyl_bc_sheath
 struct gkyl_bc_sheath_gyrokinetic*
 gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map,
-  int cdim, double q2Dm, bool use_surrogate, bool use_surrogate_conv_check, bool use_gpu)
+  int cdim, double q2Dm, bool use_surrogate, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -89,7 +89,6 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->cdim = cdim;
   up->edge = edge;
   up->use_surrogate = use_surrogate;
-  up->use_surrogate_conv_check = use_surrogate_conv_check;
   up->use_gpu = use_gpu;
   up->q2Dm = q2Dm;
   up->basis = basis;
@@ -141,14 +140,12 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
     gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis, edge, up->kernels_cu);
     if (use_surrogate)
-      gkyl_bc_gksheath_choose_surrogate_kernel_cu(basis, edge, 
-        use_surrogate_conv_check, up->kernels_cu);
+      gkyl_bc_gksheath_choose_surrogate_kernel_cu(basis, edge,up->kernels_cu);
   } else {
     up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
     assert(up->kernels->reflectedf);
     if (use_surrogate) {
-      up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge,
-        use_surrogate_conv_check);
+      up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
       assert(up->kernels->surrogate);
     }
     up->kernels_cu = up->kernels;
@@ -157,8 +154,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
   assert(up->kernels->reflectedf);
   if (use_surrogate) {
-    up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge,
-      use_surrogate_conv_check);
+    up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
     assert(up->kernels->surrogate);
   }
   up->kernels_cu = up->kernels;

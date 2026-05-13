@@ -511,13 +511,6 @@ GKYL_CU_DH  int bc_sheath_gyrokinetic_srgrz_project(double alpha, double gamma, 
     return converged;
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_norm(const double *mu_new, int n, double mu_ref, double alpha, double gamma, double phi, double *out)
-{
-    double vcut[SRGRZ_N_MU];
-    bc_sheath_gyrokinetic_srgrz_predict(alpha, gamma, phi, vcut);
-    bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, mu_ref, out);
-}
-
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_fact(const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
@@ -526,73 +519,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_fact(const double *mu_new,  int
     double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
 
-    bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
-
+    double vcut[SRGRZ_N_MU];
+    bc_sheath_gyrokinetic_srgrz_predict(alpha, gamma, phinorm, vcut);
+    bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, muref, out);
     for (int i = 0; i < n; i++)
       out[i] = fmax(0.0, pow(out[i],2) / (2*phinorm));
-}
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval_norm(const double *mu_new, int n, double mu_ref,
-    double alpha, double gamma, double phi, double *out)
-{
-    double xp[3];
-    bc_sheath_gyrokinetic_srgrz_project(alpha, gamma, phi, &xp[0], &xp[1], &xp[2]);
-    bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, mu_ref, xp[0], xp[1], xp[2], out);
-}
-
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, double phi, double phi_wall, double density,
-    double temperature, double bmag, double impact_angle, double *out)
-{
-    double muref = temperature / bmag;
-    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
-    double alpha = impact_angle * 180/GKYL_PI;
-    if (phinorm > SRG_PHI_THRESHOLD) {
-      bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
-    } else {
-      for (int i = 0; i < n; i++)
-        out[i] = 1.0;
-    }
-}
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_conv_eval_fact(const double *mu_new,  int n, double phi, double phi_wall,
-    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
-{
-    double muref = temperature / bmag;
-    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
-    double alpha = impact_angle * 180/GKYL_PI;
-
-    if (phinorm > SRG_PHI_THRESHOLD && bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm)) {
-      bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
-
-      for (int i = 0; i < n; i++)
-        out[i] = pow(out[i],2) / (2*phinorm);
-    } else {
-      for (int i = 0; i < n; i++)
-        out[i] = 1.0;
-    }
-}
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval_fact(const double *mu_new, int n, double phi, double phi_wall,
-    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
-{
-    double gamma = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
-    double alpha = impact_angle * 180/GKYL_PI;
-    double muref = temperature / bmag;
-
-    if (phinorm > SRG_PHI_THRESHOLD) {
-      if (!bc_sheath_gyrokinetic_srgrz_converged(alpha, gamma, phinorm)) {
-        double xp[3];
-        bc_sheath_gyrokinetic_srgrz_project(alpha, gamma, phinorm, &xp[0], &xp[1], &xp[2]);
-        alpha = xp[0];
-        gamma = xp[1];
-        phinorm = xp[2];
-      }
-      bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
-
-      for (int i = 0; i < n; i++)
-        out[i] = pow(out[i],2) / (2*phinorm);
-    } else {
-      for (int i = 0; i < n; i++)
-        out[i] = 1.0;
-    }
 }

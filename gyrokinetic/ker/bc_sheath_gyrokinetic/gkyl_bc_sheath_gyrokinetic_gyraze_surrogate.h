@@ -79,55 +79,6 @@ GKYL_CU_DH int bc_sheath_gyrokinetic_srgrz_project(double alpha, double gamma, d
                              double *alpha_proj, double *gamma_proj, double *phi_proj);
 
 /**
- * Returns the prediction of a custom mu grid of size n taking normalized input.
- *
- * @param mu_new:  input array of size n containing the new mu points
- * @param n:       number of points in mu_new and out
- * @param mu_ref:  reference mu value for normalisation (e.g. temperature / Bmag)
- * @param alpha:   impact angle in degrees
- * @param gamma:   normalised plasma density parameter
- * @param phi:     normalised sheath potential drop (e * (phi - phi_wall) / T_e)
- * @param out:     output array of size n where interpolated values are written
- */
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_norm(const double *mu_new, int n, double mu_ref, double alpha, double gamma, double phi, double *out);
-
-/**
- * Like bc_sheath_gyrokinetic_srgrz_eval_norm, but projects (alpha, gamma, phi) onto the nearest
- * convergent point in parameter space when GYRAZE is predicted not to converge.
- * The projection minimises svm_score(x)^2 + 1e-3*||x-x0||^2 via gradient
- * descent with Armijo backtracking (mirrors find_nearest() in surrogate_proj.py).
- *
- * @param mu_new:  input array of size n containing the new mu points
- * @param n:       number of points in mu_new and out
- * @param mu_ref:  reference mu value for normalisation (e.g. temperature / Bmag)
- * @param alpha:   impact angle in degrees
- * @param gamma:   normalised plasma density parameter
- * @param phi:     normalised sheath potential drop (e * (phi - phi_wall) / T_e)
- * @param out:     output array of size n where interpolated values are written
- */
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval_norm(const double *mu_new, int n, double mu_ref,
-    double alpha, double gamma, double phi, double *out);
-
-/**
- * Same as bc_sheath_gyrokinetic_srgrz_eval_norm, but uses physical parameters and evaluates on a custom mu grid.
- * Conversion formulas:
- *   munorm  = mu*Bmag / temperature
- *   gamma   = (1/Bmag) * sqrt(m_e * density / eps0)
- *   phinorm = e * phi / temperature
- *
- * @param mu_new:  input array of size n containing the new mu points
- * @param n:       number of points in mu_new and out
- * @param phi:     sheath potential (V)
- * @param phi_wall: wall potential (V)
- * @param density:  electron density (m^-3)
- * @param temperature:  electron temperature (eV)
- * @param bmag:    magnetic field strength (T)
- * @param impact_angle: magnetic impact angle (radians)
- */
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, double phi, double phi_wall,
-    double density, double temperature, double bmag, double impact_angle, double *out);
-
-/**
  * Same as bc_sheath_gyrokinetic_srgrz_eval, but normalises output by sqrt(2 * e * (phi - phi_wall) / mass)
  *
  * @param mu_new:  input array of size n containing the new mu points
@@ -141,38 +92,6 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, do
  * @param impact_angle: magnetic impact angle (radians)
  */
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_fact(const double *mu_new, int n, double phi, double phi_wall,
-    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
-
-/**
- * Same as bc_sheath_gyrokinetic_srgrz_eval, but returns 0 if gyraze is not converging.
- *
- * @param mu_new:  input array of size n containing the new mu points
- * @param n:       number of points in mu_new and out
- * @param phi:     sheath potential (V)
- * @param phi_wall: wall potential (V)
- * @param density:  electron density (m^-3)
- * @param temperature:  electron temperature (eV)
- * @param q2Dm:     2 x charge-to-mass ratio (C/kg)
- * @param bmag:    magnetic field strength (T)
- * @param impact_angle: magnetic impact angle (radians)
- */
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_conv_eval_fact(const double *mu_new, int n, double phi, double phi_wall,
-    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
-
-/**
- * Same as bc_sheath_gyrokinetic_srgrz_eval_fact, but projects onto nearest convergent point if not converging.
- *
- * @param mu_new:  input array of size n containing the new mu points
- * @param n:       number of points in mu_new and out
- * @param phi:     sheath potential (V)
- * @param phi_wall: wall potential (V)
- * @param density:  electron density (m^-3)
- * @param temperature:  electron temperature (eV)
- * @param q2Dm:     2 x charge-to-mass ratio (C/kg)
- * @param bmag:    magnetic field strength (T)
- * @param impact_angle: magnetic impact angle (radians)
- */
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval_fact(const double *mu_new, int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
 
 EXTERN_C_END
