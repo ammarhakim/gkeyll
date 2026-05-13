@@ -1,5 +1,5 @@
 /*
- * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ a5777e5
+ * gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h  -  GYRAZE surrogate model public API generated from gkeyll_sheath_ai @ 5459dfb
  * Sources:
  *   nn model      : gkeyll_sheath_ai/model/nn_model_conv_MPE.pth
  *   normalization : gkeyll_sheath_ai/model/normalization_conv_MPE.npz
@@ -144,7 +144,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_fact(const double *mu_new, int 
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
 
 /**
- * Same as bc_sheath_gyrokinetic_srgrz_eval, but normalises return 0 if gyraze is not converging.
+ * Same as bc_sheath_gyrokinetic_srgrz_eval, but returns 0 if gyraze is not converging.
  *
  * @param mu_new:  input array of size n containing the new mu points
  * @param n:       number of points in mu_new and out
@@ -160,7 +160,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_conv_eval_fact(const double *mu_new,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
 
 /**
- * Same as bc_sheath_gyrokinetic_srgrz_eval_fact, but normalises return 0 if gyraze is not converging.
+ * Same as bc_sheath_gyrokinetic_srgrz_eval_fact, but projects onto nearest convergent point if not converging.
  *
  * @param mu_new:  input array of size n containing the new mu points
  * @param n:       number of points in mu_new and out

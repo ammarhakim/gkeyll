@@ -1,5 +1,5 @@
 /*
- * bc_sheath_gyrokinetic_gyraze_surrogate.c  –  GYRAZE surrogate model generated from gkeyll_sheath_ai @ a5777e5
+ * bc_sheath_gyrokinetic_gyraze_surrogate.c  –  GYRAZE surrogate model generated from gkeyll_sheath_ai @ 5459dfb
  * Sources:
  *   nn model      : gkeyll_sheath_ai/model/nn_model_conv_MPE.pth
  *   normalization : gkeyll_sheath_ai/model/normalization_conv_MPE.npz
@@ -518,6 +518,19 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_norm(const double *mu_new, int 
     bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, mu_ref, out);
 }
 
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_fact(const double *mu_new,  int n, double phi, double phi_wall,
+    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
+{
+    double muref = temperature / bmag;
+    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
+    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
+    double alpha = impact_angle * 180/GKYL_PI;
+
+    bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
+
+    for (int i = 0; i < n; i++)
+      out[i] = fmax(0.0, pow(out[i],2) / (2*phinorm));
+}
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_proj_eval_norm(const double *mu_new, int n, double mu_ref,
     double alpha, double gamma, double phi, double *out)
 {
@@ -539,19 +552,6 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(const double *mu_new, int n, do
       for (int i = 0; i < n; i++)
         out[i] = 1.0;
     }
-}
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_fact(const double *mu_new,  int n, double phi, double phi_wall,
-    double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
-{
-    double muref = temperature / bmag;
-    double gamma   = (1.0 / bmag) * sqrt(GKYL_ELECTRON_MASS * density / GKYL_EPSILON0);
-    double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
-    double alpha = impact_angle * 180/GKYL_PI;
-
-    bc_sheath_gyrokinetic_srgrz_eval_norm(mu_new, n, muref, alpha, gamma, phinorm, out);
-
-    for (int i = 0; i < n; i++)
-      out[i] = pow(out[i],2) / (2*phinorm);
 }
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_conv_eval_fact(const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
