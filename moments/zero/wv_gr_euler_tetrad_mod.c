@@ -372,6 +372,247 @@ gkyl_gr_euler_tetrad_mod_max_abs_speed(double gas_gamma, const double q[5],
 }
 
 // ---------------------------------------------------------------------------
+// Modular tetrad-Roe pipeline. See header doc in
+// gkyl_wv_gr_euler_tetrad_mod_priv.h for the contracts of each piece.
+// ---------------------------------------------------------------------------
+
+void
+gkyl_gr_euler_tetrad_mod_build_triad(const double g_ij[3][3],
+  double L[3][3], double L_inv[3][3])
+{
+  // Cholesky decomposition: γ = L L^T with L lower triangular.
+  L[0][0] = sqrt(g_ij[0][0]);
+  L[1][0] = g_ij[1][0] / L[0][0];
+  L[1][1] = sqrt(g_ij[1][1] - L[1][0]*L[1][0]);
+  L[2][0] = g_ij[2][0] / L[0][0];
+  L[2][1] = (g_ij[2][1] - L[2][0]*L[1][0]) / L[1][1];
+  L[2][2] = sqrt(g_ij[2][2] - L[2][0]*L[2][0] - L[2][1]*L[2][1]);
+  L[0][1] = L[0][2] = L[1][2] = 0.0;
+
+  // Invert L by forward substitution (lower triangular).
+  L_inv[0][0] = 1.0 / L[0][0];
+  L_inv[1][1] = 1.0 / L[1][1];
+  L_inv[2][2] = 1.0 / L[2][2];
+  L_inv[1][0] = -L[1][0] * L_inv[0][0] / L[1][1];
+  L_inv[2][1] = -L[2][1] * L_inv[1][1] / L[2][2];
+  L_inv[2][0] = -(L[2][0] * L_inv[0][0] + L[2][1] * L_inv[1][0]) / L[2][2];
+  L_inv[0][1] = L_inv[0][2] = L_inv[1][2] = 0.0;
+}
+
+void
+gkyl_gr_euler_tetrad_mod_q_to_tetrad(const double q_GR[5],
+  double sqrt_det, const double L[3][3], double q_tet[5])
+{
+  // Contravariant-momentum convention: q_GR[i+1] = √γ · ρhW² · v^i.
+  // The tetrad-frame contravariant momentum is v^a = E^a_i · v^i where
+  // E = ε^{-1} = L^T (since ε = (L^{-1})^T for γ = L L^T Cholesky).
+  // So q_tet[a+1] = L[i][a] · (q_GR[i+1] / √γ).
+  q_tet[0] = q_GR[0] / sqrt_det;
+  q_tet[4] = q_GR[4] / sqrt_det;
+
+  for (int a = 0; a < 3; a++) {
+    q_tet[a+1] = (L[0][a]*q_GR[1] + L[1][a]*q_GR[2] + L[2][a]*q_GR[3]) / sqrt_det;
+  }
+}
+
+void
+gkyl_gr_euler_tetrad_mod_wave_to_curved(const double w_tet[5],
+  double sqrt_det, const double L_inv[3][3], double w_GR[5])
+{
+  // Contravariant-momentum convention. The triad ε = (L^{-1})^T maps
+  // tetrad-frame contravariant momentum back to coord-frame contravariant:
+  //   v^i = ε^i_a · v^a = L_inv[a][i] · v^a
+  // So w_GR[i+1] = √γ · L_inv[a][i] · w_tet[a+1].
+  w_GR[0] = sqrt_det * w_tet[0];
+  for (int i = 0; i < 3; i++) {
+    w_GR[i+1] = sqrt_det * (L_inv[0][i]*w_tet[1]
+                          + L_inv[1][i]*w_tet[2]
+                          + L_inv[2][i]*w_tet[3]);
+  }
+  w_GR[4] = sqrt_det * w_tet[4];
+}
+
+double
+gkyl_gr_euler_tetrad_mod_speed_to_curved(double s_tet,
+  double lapse, double shift_x, const double L_inv[3][3])
+{
+  // ε^1_(1) = (L^{-1})[0][0] is the (1,1) entry of the orthonormal triad
+  // in the rotated frame. See derivation in priv.h.
+  return (lapse * L_inv[0][0] * s_tet) - shift_x;
+}
+
+double
+gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
+  const double ql_tet[5], const double qr_tet[5],
+  double waves_tet[3 * 5], double speeds[3])
+{
+  // Pure Minkowski SR Roe. Inputs are tetrad-frame conserved variables
+  // (Cartesian, no √γ). The metric is η^μν = diag(−1, +1, +1, +1).
+  //
+  // Recover primitives from each side. For Minkowski, prim_vars reduces
+  // to the SR primitive-variable recovery (no √γ, no metric in v² norm).
+  // We inline the recovery here rather than going through the auxfields
+  // pipeline because q_tet doesn't correspond to any prods row.
+  double D_l = ql_tet[0], D_r = qr_tet[0];
+  double Sx_l = ql_tet[1], Sx_r = qr_tet[1];
+  double Sy_l = ql_tet[2], Sy_r = qr_tet[2];
+  double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
+  double tau_l = ql_tet[4], tau_r = qr_tet[4];
+
+  // Newton recovery for primitives — same algorithm as
+  // gkyl_gr_euler_tetrad_mod_prim_vars, but with √γ=1 and γ_ij=δ_ij.
+  double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
+  double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
+  {
+    double s_sq_l = ((tau_l + D_l)*(tau_l + D_l)) - (Sx_l*Sx_l + Sy_l*Sy_l + Sz_l*Sz_l);
+    double C, C0;
+    if (s_sq_l < pow(10.0, -8.0)) {
+      C  = D_l / sqrt(pow(10.0, -8.0));
+      C0 = (D_l + tau_l) / sqrt(pow(10.0, -8.0));
+    } else {
+      C  = D_l / sqrt(s_sq_l);
+      C0 = (D_l + tau_l) / sqrt(s_sq_l);
+    }
+    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
+    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
+    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
+      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+    double alpha4 = (C0*C0) - 1.0;
+    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+    double guess = 1.0;
+    for (int it = 0; it < 100; it++) {
+      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
+                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
+      double poly_der = alpha1 + (2.0 * alpha2 * guess)
+                      + (4.0 * alpha4 * guess*guess*guess)
+                      - (3.0 * eta * alpha4 * guess*guess);
+      double guess_new = guess - poly/poly_der;
+      if (fabs(guess - guess_new) < pow(10.0, -8.0)) { guess = guess_new; break; }
+      guess = guess_new;
+    }
+    W_l = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
+      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
+    h_l = 1.0 / (C * guess);
+    rho_l = D_l / W_l;
+    vx_l = Sx_l / (rho_l * h_l * W_l*W_l);
+    vy_l = Sy_l / (rho_l * h_l * W_l*W_l);
+    vz_l = Sz_l / (rho_l * h_l * W_l*W_l);
+    p_l  = (rho_l * h_l * W_l*W_l) - D_l - tau_l;
+    if (rho_l < pow(10.0, -8.0)) rho_l = pow(10.0, -8.0);
+    if (p_l   < pow(10.0, -8.0)) p_l   = pow(10.0, -8.0);
+  }
+  {
+    double s_sq_r = ((tau_r + D_r)*(tau_r + D_r)) - (Sx_r*Sx_r + Sy_r*Sy_r + Sz_r*Sz_r);
+    double C, C0;
+    if (s_sq_r < pow(10.0, -8.0)) {
+      C  = D_r / sqrt(pow(10.0, -8.0));
+      C0 = (D_r + tau_r) / sqrt(pow(10.0, -8.0));
+    } else {
+      C  = D_r / sqrt(s_sq_r);
+      C0 = (D_r + tau_r) / sqrt(s_sq_r);
+    }
+    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
+    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
+    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
+      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+    double alpha4 = (C0*C0) - 1.0;
+    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+    double guess = 1.0;
+    for (int it = 0; it < 100; it++) {
+      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
+                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
+      double poly_der = alpha1 + (2.0 * alpha2 * guess)
+                      + (4.0 * alpha4 * guess*guess*guess)
+                      - (3.0 * eta * alpha4 * guess*guess);
+      double guess_new = guess - poly/poly_der;
+      if (fabs(guess - guess_new) < pow(10.0, -8.0)) { guess = guess_new; break; }
+      guess = guess_new;
+    }
+    W_r = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
+      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
+    h_r = 1.0 / (C * guess);
+    rho_r = D_r / W_r;
+    vx_r = Sx_r / (rho_r * h_r * W_r*W_r);
+    vy_r = Sy_r / (rho_r * h_r * W_r*W_r);
+    vz_r = Sz_r / (rho_r * h_r * W_r*W_r);
+    p_r  = (rho_r * h_r * W_r*W_r) - D_r - tau_r;
+    if (rho_r < pow(10.0, -8.0)) rho_r = pow(10.0, -8.0);
+    if (p_r   < pow(10.0, -8.0)) p_r   = pow(10.0, -8.0);
+  }
+
+  // Eulderink-Mellema Roe averages, Minkowski version (γ_ij = δ_ij so
+  // D+τ+p = ρhW² and K = √(ρh)).
+  double eps_l = p_l / (rho_l * h_l);
+  double eps_r = p_r / (rho_r * h_r);
+  double K_l = sqrt(D_l + tau_l + p_l) / W_l;
+  double K_r = sqrt(D_r + tau_r + p_r) / W_r;
+  double K_avg = 1.0 / (K_l + K_r);
+
+  double v0 = ((K_l * W_l)        + (K_r * W_r))        * K_avg;
+  double v1 = ((K_l * W_l * vx_l) + (K_r * W_r * vx_r)) * K_avg;
+  double v2 = ((K_l * W_l * vy_l) + (K_r * W_r * vy_r)) * K_avg;
+  double v3 = ((K_l * W_l * vz_l) + (K_r * W_r * vz_r)) * K_avg;
+  double v4 = ((K_l * eps_l)      + (K_r * eps_r))      * K_avg;
+
+  double c_minus = 1.0 - ((gas_gamma / (gas_gamma - 1.0)) * v4);
+  double c_plus  = 1.0 + ((gas_gamma / (gas_gamma - 1.0)) * v4);
+
+  double v_alpha_sq = -(v0*v0) + (v1*v1) + (v2*v2) + (v3*v3);
+  double s_sq = (0.5 * gas_gamma * v4 * (1.0 - v_alpha_sq))
+              - (0.5 * (gas_gamma - 1.0) * (1.0 + v_alpha_sq));
+  double energy = (v0*v0) - (v1*v1);
+  double y = sqrt(((1.0 - (gas_gamma * v4)) * energy) + s_sq);
+
+  // Wave amplitudes (corrected basis with τ-slot rest-mass terms).
+  double delta[5];
+  for (int i = 0; i < 5; i++) delta[i] = qr_tet[i] - ql_tet[i];
+  double sum04 = delta[0] + delta[4];
+  double A_sum  = ((v0 * sum04) - (v1 * delta[1])) / energy;
+  double B_diff = y * ((v0 * delta[1]) - (v1 * sum04)) / (sqrt(s_sq) * energy);
+
+  double a4 = delta[2] - (v2 * A_sum);
+  double a5 = delta[3] - (v3 * A_sum);
+  double a3 = ((gas_gamma - 1.0) / s_sq) *
+              (delta[0] - (A_sum * c_minus) + (c_plus * ((v2 * a4) + (v3 * a5))));
+  double a1 = 0.5 * (A_sum - a3 - B_diff);
+  double a2 = 0.5 * (A_sum - a3 + B_diff);
+
+  for (int i = 0; i < 5 * 3; i++) waves_tet[i] = 0.0;
+
+  double *wv;
+  wv = &waves_tet[0 * 5];
+  wv[0] = a1 * c_minus;
+  wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
+  wv[2] = a1 * v2;
+  wv[3] = a1 * v3;
+  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y) - c_minus);
+  speeds[0] = (((1.0 - (gas_gamma * v4)) * v0 * v1) - (sqrt(s_sq) * y))
+            / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
+
+  wv = &waves_tet[1 * 5];
+  wv[0] = (a3 * (c_minus + (s_sq / (gas_gamma - 1.0))))
+        - (a4 * c_plus * v2) - (a5 * c_plus * v3);
+  wv[1] = a3 * v1;
+  wv[2] = (a3 * v2) + a4;
+  wv[3] = (a3 * v3) + a5;
+  wv[4] = (a3 * (v0 - c_minus - (s_sq / (gas_gamma - 1.0))))
+        + (a4 * c_plus * v2) + (a5 * c_plus * v3);
+  speeds[1] = v1 / v0;
+
+  wv = &waves_tet[2 * 5];
+  wv[0] = a2 * c_minus;
+  wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
+  wv[2] = a2 * v2;
+  wv[3] = a2 * v3;
+  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y) - c_minus);
+  speeds[2] = (((1.0 - (gas_gamma * v4)) * v0 * v1) + (sqrt(s_sq) * y))
+            / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
+
+  double max_s = fmax(fabs(speeds[0]), fmax(fabs(speeds[1]), fabs(speeds[2])));
+  return max_s;
+}
+
+// ---------------------------------------------------------------------------
 // Riemann-variable conversions and Cartesian-frame rotations.
 // ---------------------------------------------------------------------------
 
@@ -520,142 +761,75 @@ static double
 wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   const double *qr, double *waves, double *s)
 {
-  // Identical to the regular mod variant's wave_roe: the special-relativistic
-  // Roe decomposition operates only on the hydro slice and never sees the
-  // spacetime block, so the tetrad split has no effect here.
+  // True tetrad-Roe pipeline: compose the four modular helpers declared in
+  // gkyl_wv_gr_euler_tetrad_mod_priv.h. Each piece is independently unit-
+  // tested (see ctest_wv_gr_euler_tetrad_mod's modular helper tests).
+  //
+  //   1. Build orthonormal triad from the INTERFACE γ_ij (arithmetic mean
+  //      of left and right side spatial metrics — symmetric under L↔R swap).
+  //   2. Transform q_GR_L and q_GR_R to tetrad frame (using each side's own
+  //      √γ to strip; momentum gets raised by interface γ^{-1} and rotated
+  //      by interface L^{-1}). The result is two SR-conserved states in a
+  //      common Minkowski frame.
+  //   3. Run pure Minkowski SR Roe on the tetrad-frame states. The
+  //      Eulderink-Mellema construction satisfies A_SR · ∆q_tet = ∆f_SR
+  //      exactly, so wave-sum and flux-jump identities both hold to
+  //      floating-point precision in the tetrad frame.
+  //   4. Back-transform waves (×√γ + L) and speeds (×α/L[0][0] − β^1) to
+  //      the curved coord frame for wave_prop's consumption.
+  (void)delta;  // Roe constructs its own delta = qr_tet − ql_tet in tetrad frame.
+
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
   double gas_gamma = grm->gas_gamma;
 
-  double vl[5], vr[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, ql, grm->prodl_local, vl);
-  gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, qr, grm->prodr_local, vr);
-
-  double rho_l = vl[0], vx_l = vl[1], vy_l = vl[2], vz_l = vl[3], p_l = vl[4];
-  double rho_r = vr[0], vx_r = vr[1], vy_r = vr[2], vz_r = vr[3], p_r = vr[4];
-
-  double Etot_l = ql[4];
-  double Etot_r = qr[4];
-  (void)Etot_l; (void)Etot_r;
-
-  double W_l = 1.0 / sqrt(1.0 - ((vx_l*vx_l) + (vy_l*vy_l) + (vz_l*vz_l)));
-  double W_r = 1.0 / sqrt(1.0 - ((vx_r*vx_r) + (vy_r*vy_r) + (vz_r*vz_r)));
-
-  // Eulderink–Mellema (1995) Roe averaging weights. K_i² = ρ_i h_i W_i² is
-  // built from SR-conserved quantities; the conserved state ql/qr carries an
-  // explicit sqrt(γ) prefactor for any spacetime, so we strip it off here
-  // before forming K. This keeps the τ-convention (q[4] = ρhW² − p − ρW with
-  // rest mass subtracted, so the non-rel limit τ → p/(γ−1) + ½ρ|v|² is
-  // smooth) consistent with how K reconstructs ρhW²: explicitly add D and p
-  // back rather than carrying √γ-coupled terms around the algebra.
-  //
-  // With this K, the Roe-averaged primitives
-  //   ṽ_α = (K_L z_α,L + K_R z_α,R) / (K_L + K_R)
-  // for z = (W, Wu, Wv, Ww, ε) with ε = p/(ρh) yield an A_Roe(ṽ) satisfying
-  // A_Roe·∆q = ∆f exactly (the defining Roe property). The previous code
-  // used K = sqrt(τ+p)/W and v4 = avg(p/K), neither matching EM, which broke
-  // both the wave-sum and flux-jump identities (verified empirically; see
-  // the Roe-properties test before/after this fix).
-  double h_l = 1.0 + ((p_l / rho_l) * gas_gamma / (gas_gamma - 1.0));
-  double h_r = 1.0 + ((p_r / rho_r) * gas_gamma / (gas_gamma - 1.0));
-  double eps_l = p_l / (rho_l * h_l);
-  double eps_r = p_r / (rho_r * h_r);
-
+  // Step 1: interface metric = arithmetic mean of left and right γ_ij;
+  // similarly mean of lapse, shift, inv_g. √γ_interface from det of mean γ.
+  double g_iface[3][3], inv_g_iface[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
+                           + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
+      inv_g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_INV_GIJ + 3*i + j]
+                              + grm->prodr_local[GKYL_GR_SP_INV_GIJ + 3*i + j]);
+    }
+  double alpha_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
+                            + grm->prodr_local[GKYL_GR_SP_LAPSE]);
+  double shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
+                              + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
+  // For √γ we use the average of the two sides' own √γ rather than √(det
+  // of mean γ) — both are O(∆γ)-equivalent and the former matches how
+  // each side stripped its √γ when forming q.
   double sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
   double sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
-  double D_sr_l   = ql[0] / sqrt_det_l;             // = ρW (SR rest-mass)
-  double D_sr_r   = qr[0] / sqrt_det_r;
-  double tau_sr_l = ql[4] / sqrt_det_l;             // = ρhW² − p − ρW (SR τ)
-  double tau_sr_r = qr[4] / sqrt_det_r;
+  double sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
 
-  // Paper Eq. (10.3): K² = √(−g) ρh. For Minkowski √(−g)=1, so K = √(ρh).
-  // Since D + τ + p = ρhW² (rest-mass-subtracted τ + D + p collapses to
-  // the full energy density), we have K = √((D+τ+p)/W²) = √(D+τ+p) / W.
-  double K_l = sqrt(D_sr_l + tau_sr_l + p_l) / W_l;
-  double K_r = sqrt(D_sr_r + tau_sr_r + p_r) / W_r;
-  double K_avg = 1.0 / (K_l + K_r);
+  double L[3][3], L_inv[3][3];
+  gkyl_gr_euler_tetrad_mod_build_triad(g_iface, L, L_inv);
 
-  double v0 = ((K_l * W_l)        + (K_r * W_r))        * K_avg;
-  double v1 = ((K_l * W_l * vx_l) + (K_r * W_r * vx_r)) * K_avg;
-  double v2 = ((K_l * W_l * vy_l) + (K_r * W_r * vy_r)) * K_avg;
-  double v3 = ((K_l * W_l * vz_l) + (K_r * W_r * vz_r)) * K_avg;
-  double v4 = ((K_l * eps_l)      + (K_r * eps_r))      * K_avg;
+  // Step 2: forward transform each side to the (common) tetrad frame.
+  // Each side uses its own √γ to strip; the inverse triad uses the
+  // interface γ.
+  (void)inv_g_iface;  // not needed for the contravariant momentum convention
+  double ql_tet[5], qr_tet[5];
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad(ql, sqrt_det_l, L, ql_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad(qr, sqrt_det_r, L, qr_tet);
 
-  double c_minus = 1.0 - ((gas_gamma / (gas_gamma - 1.0)) * v4);
-  double c_plus  = 1.0 + ((gas_gamma / (gas_gamma - 1.0)) * v4);
+  // Step 3: pure Minkowski SR Roe.
+  double waves_tet[3 * 5], speeds_tet[3];
+  double maxs_tet = gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(
+    gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
 
-  double v_alpha_sq = -(v0*v0) + (v1*v1) + (v2*v2) + (v3*v3);
-  double s_sq = (0.5 * gas_gamma * v4 * (1.0 - v_alpha_sq))
-              - (0.5 * (gas_gamma - 1.0) * (1.0 + v_alpha_sq));
-  double energy = (v0*v0) - (v1*v1);
-  double y = sqrt(((1.0 - (gas_gamma * v4)) * energy) + s_sq);
+  // Step 4: back-transform waves and speeds.
+  for (int k = 0; k < 3; k++) {
+    gkyl_gr_euler_tetrad_mod_wave_to_curved(&waves_tet[k * 5],
+      sqrt_det_iface, L_inv, &waves[k * 5]);
+    s[k] = gkyl_gr_euler_tetrad_mod_speed_to_curved(
+      speeds_tet[k], alpha_iface, shift_x_iface, L_inv);
+  }
 
-  // Wave amplitudes derived from inverting the 5×5 eigenvector basis with
-  // the corrected eigenvector forms (see derivation in
-  // wv_gr_euler_roe_derivation.md, sections "Translated to code ordering"
-  // and "Corrected wave amplitudes"). The eigenvectors below carry the
-  // rest-mass-subtraction terms in the τ slot that the original code
-  // omitted; the amplitudes here are the unique solutions of
-  // Σ a_k r_k = ∆q for that basis.
-  //
-  // The combined Row-0 + Row-4 of the inverse system collapses (the τ
-  // slot cancels the D slot's c_-, a3·s²/(Γ−1) and c_+·(a4 v_2 + a5 v_3)
-  // contributions) into the paper's E-slot equation:
-  //   v^0 A + (s/y) v^1 B = δ[0] + δ[4]
-  // paired with Row 1 (Sx):
-  //   v^1 A + (s/y) v^0 B = δ[1]
-  // gives A = a1+a2+a3, B = a2−a1.
-  double sum04 = delta[0] + delta[4];
-  double A_sum  = ((v0 * sum04) - (v1 * delta[1])) / energy;
-  double B_diff = y * ((v0 * delta[1]) - (v1 * sum04)) / (sqrt(s_sq) * energy);
-
-  double a4 = delta[2] - (v2 * A_sum);
-  double a5 = delta[3] - (v3 * A_sum);
-
-  double a3 = ((gas_gamma - 1.0) / s_sq) *
-              (delta[0] - (A_sum * c_minus) + (c_plus * ((v2 * a4) + (v3 * a5))));
-
-  double a1 = 0.5 * (A_sum - a3 - B_diff);
-  double a2 = 0.5 * (A_sum - a3 + B_diff);
-
-  for (int i = 0; i < 5 * 3; i++) waves[i] = 0.0;
-
-  // Eigenvectors with the rest-mass-subtraction τ-slot terms (EM 1995
-  // Eq. 10.15 translated from (D, E, Sx, Sy, Sz) into the code ordering
-  // (D, Sx, Sy, Sz, τ) via τ = E − D). See wv_gr_euler_roe_derivation.md.
-  // The previous implementation kept the bare paper components in the τ
-  // slot, which broke the flux-jump identity.
-  double *wv;
-  wv = &waves[0 * 5];
-  wv[0] = a1 * c_minus;
-  wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
-  wv[2] = a1 * v2;
-  wv[3] = a1 * v3;
-  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y) - c_minus);
-  s[0] = (((1.0 - (gas_gamma * v4)) * v0 * v1) - (sqrt(s_sq) * y))
-       / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
-
-  wv = &waves[1 * 5];
-  wv[0] = (a3 * (c_minus + (s_sq / (gas_gamma - 1.0))))
-        - (a4 * c_plus * v2) - (a5 * c_plus * v3);
-  wv[1] = a3 * v1;
-  wv[2] = (a3 * v2) + a4;
-  wv[3] = (a3 * v3) + a5;
-  wv[4] = (a3 * (v0 - c_minus - (s_sq / (gas_gamma - 1.0))))
-        + (a4 * c_plus * v2) + (a5 * c_plus * v3);
-  s[1] = v1 / v0;
-
-  wv = &waves[2 * 5];
-  wv[0] = a2 * c_minus;
-  wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
-  wv[2] = a2 * v2;
-  wv[3] = a2 * v3;
-  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y) - c_minus);
-  s[2] = (((1.0 - (gas_gamma * v4)) * v0 * v1) + (sqrt(s_sq) * y))
-       / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
-
-  return (((1.0 - (gas_gamma * v4)) * v0 * fabs(v1)) + (sqrt(s_sq) * y))
-       / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
+  return gkyl_gr_euler_tetrad_mod_speed_to_curved(
+    maxs_tet, alpha_iface, shift_x_iface, L_inv);
 }
 
 static void

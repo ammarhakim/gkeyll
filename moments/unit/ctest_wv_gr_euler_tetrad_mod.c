@@ -668,21 +668,27 @@ run_roe_properties(struct gkyl_gr_spacetime *spacetime)
         if (res > max_wsum_res) max_wsum_res = res;
       }
 
-      // ---- (2) Flux-jump consistency: ∑ s_k · w_k = √γ · ∆f_SR ----
-      // SR Roe satisfies A_Roe · ∆q_SR = ∆f_SR by construction. In the
-      // tetrad framework the conserved state vector carries an explicit
-      // √γ prefactor (D = √γ·ρW, τ = √γ·(ρhW²−p−ρW)), so the Roe
-      // decomposition operates on √γ-scaled deltas:
-      //   ∆q_GR = √γ · ∆q_SR  ⇒  ∑ s_k · w_k_GR = √γ · ∆f_SR.
-      // gkyl_gr_euler_tetrad_mod_flux returns the bare flat-space SR flux
-      // (no √γ), so we scale it by √γ here before the comparison. In
-      // Minkowski √γ=1 and the scaling is a no-op.
+      // ---- (2) Flux-jump consistency: ∑ s_k · w_k = ∆f_GR ----
+      // With the modular tetrad-Roe pipeline (build_triad → q_to_tetrad →
+      // sr_roe_minkowski → wave_to_curved + speed_to_curved), the SR Roe
+      // identity in the tetrad frame becomes the GR flux-jump identity in
+      // the curved frame, because the back-transform converts SR fluxes
+      // (which Roe linearizes exactly) into the full GR flux (which is
+      // what wave_prop uses). The relevant reference flux is therefore
+      // the CORRECTED GR flux from gkyl_gr_euler_tetrad_mod_flux_correction
+      // applied to the flat-formula flux — the same flux Lax/HLL use.
+      // In Minkowski α=1, √γ=1, β=0 and the correction is identity, so
+      // this reduces to the flat-flux comparison.
       double fl_sr[5], fr_sr[5];
       gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql_local, grm->prodl_local, fl_sr);
       gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr_local, grm->prodr_local, fr_sr);
-      double sqrt_det_test = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
+      double fl_gr[5], fr_gr[5];
+      gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql_local,
+        grm->prodl_local, fl_sr, fl_gr);
+      gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr_local,
+        grm->prodr_local, fr_sr, fr_gr);
       double df_sr[5];
-      for (int i = 0; i < 5; i++) df_sr[i] = sqrt_det_test * (fr_sr[i] - fl_sr[i]);
+      for (int i = 0; i < 5; i++) df_sr[i] = fr_gr[i] - fl_gr[i];
 
       // Informational only — the implementation does NOT satisfy this.
       double sw[5] = {0};
@@ -731,7 +737,7 @@ run_roe_properties(struct gkyl_gr_spacetime *spacetime)
   TEST_CHECK_( max_wsum_res < 1e-10,
     "Roe wave-sum residual:   max |∑ w_k − ∆q|        = %.3e", max_wsum_res );
   TEST_CHECK_( max_fj_res < 1e-9,
-    "Roe flux-jump residual:  max |∑ s_k·w_k − ∆f_SR| = %.3e", max_fj_res );
+    "Roe flux-jump residual:  max |∑ s_k·w_k − ∆f_GR| = %.3e", max_fj_res );
 
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(gr_mod);
@@ -892,26 +898,21 @@ run_full_tetrad_chain_validation(struct gkyl_gr_spacetime *spacetime)
       double hl = 1.0 + (pl / rho_l) * (gas_gamma / (gas_gamma - 1.0));
       double hr = 1.0 + (pr / rho_r) * (gas_gamma / (gas_gamma - 1.0));
 
-      // Curved-frame conserved (S_i is lowered with γ_ij).
-      double Sl_lower[3], Sr_lower[3];
-      for (int i = 0; i < 3; i++) {
-        Sl_lower[i] = 0.0;
-        Sr_lower[i] = 0.0;
-        for (int j = 0; j < 3; j++) {
-          Sl_lower[i] += g_ij[i][j] * vell[j];
-          Sr_lower[i] += g_ij[i][j] * velr[j];
-        }
-        Sl_lower[i] *= sqrt_det * rho_l * hl * (Wl*Wl);
-        Sr_lower[i] *= sqrt_det * rho_r * hr * (Wr*Wr);
-      }
+      // Curved-frame conserved with CONTRAVARIANT momentum (matches the
+      // rest of the test file and the code's prim_vars convention; see
+      // gkyl_wv_gr_euler_tetrad_mod_priv.h q_to_tetrad doc).
       double ql_GR[5] = {
         sqrt_det * rho_l * Wl,
-        Sl_lower[0], Sl_lower[1], Sl_lower[2],
+        sqrt_det * rho_l * hl * (Wl*Wl) * ul,
+        sqrt_det * rho_l * hl * (Wl*Wl) * vl,
+        sqrt_det * rho_l * hl * (Wl*Wl) * wl,
         sqrt_det * ((rho_l * hl * (Wl*Wl)) - pl - (rho_l * Wl))
       };
       double qr_GR[5] = {
         sqrt_det * rho_r * Wr,
-        Sr_lower[0], Sr_lower[1], Sr_lower[2],
+        sqrt_det * rho_r * hr * (Wr*Wr) * ur,
+        sqrt_det * rho_r * hr * (Wr*Wr) * vr,
+        sqrt_det * rho_r * hr * (Wr*Wr) * wr,
         sqrt_det * ((rho_r * hr * (Wr*Wr)) - pr - (rho_r * Wr))
       };
 
@@ -941,42 +942,15 @@ run_full_tetrad_chain_validation(struct gkyl_gr_spacetime *spacetime)
       }
 
       // Step 2: transform q_GR → q_tet at the cell center.
-      // D_tet = D_GR / √γ;   τ_tet = τ_GR / √γ
-      // S^a_tet = E^a_i (γ^ij S_j_GR / √γ)
-      //   In curved-coord with S_i_GR = √γ · ρhW² · v_i  (covariant),
-      //   the SR S^i = γ^ij · S_j_GR/√γ = ρhW² v^i (contravariant).
-      //   The tetrad S^a_tet = E^a_i · ρhW² v^i = ρhW² v^a.
-      double inv_g[3][3];
-      // Compute γ^ij from γ_ij directly (assumes 3×3 SPD; consistent
-      // with what cholesky_3x3 wants).
-      {
-        double det_g = g_ij[0][0]*(g_ij[1][1]*g_ij[2][2] - g_ij[1][2]*g_ij[2][1])
-                     - g_ij[0][1]*(g_ij[1][0]*g_ij[2][2] - g_ij[1][2]*g_ij[2][0])
-                     + g_ij[0][2]*(g_ij[1][0]*g_ij[2][1] - g_ij[1][1]*g_ij[2][0]);
-        inv_g[0][0] =  (g_ij[1][1]*g_ij[2][2] - g_ij[1][2]*g_ij[2][1]) / det_g;
-        inv_g[0][1] = -(g_ij[0][1]*g_ij[2][2] - g_ij[0][2]*g_ij[2][1]) / det_g;
-        inv_g[0][2] =  (g_ij[0][1]*g_ij[1][2] - g_ij[0][2]*g_ij[1][1]) / det_g;
-        inv_g[1][0] = inv_g[0][1];
-        inv_g[1][1] =  (g_ij[0][0]*g_ij[2][2] - g_ij[0][2]*g_ij[2][0]) / det_g;
-        inv_g[1][2] = -(g_ij[0][0]*g_ij[1][2] - g_ij[0][2]*g_ij[1][0]) / det_g;
-        inv_g[2][0] = inv_g[0][2];
-        inv_g[2][1] = inv_g[1][2];
-        inv_g[2][2] =  (g_ij[0][0]*g_ij[1][1] - g_ij[0][1]*g_ij[1][0]) / det_g;
+      // CONTRAVARIANT-momentum convention: q_GR[i+1] = √γ · ρhW² · v^i.
+      // Tetrad-frame contravariant momentum: v^a = E^a_i · v^i = L^T[a][i] · v^i.
+      // So S^a_tet = L^T · (q_GR / √γ).
+      // In components: q_tet[a+1] = L[i][a] · q_GR[i+1] / √γ.
+      double Sl_tet[3], Sr_tet[3];
+      for (int a = 0; a < 3; a++) {
+        Sl_tet[a] = (L[0][a]*ql_GR[1] + L[1][a]*ql_GR[2] + L[2][a]*ql_GR[3]) / sqrt_det;
+        Sr_tet[a] = (L[0][a]*qr_GR[1] + L[1][a]*qr_GR[2] + L[2][a]*qr_GR[3]) / sqrt_det;
       }
-
-      // Raise momentum, then apply E.
-      double Sl_upper[3], Sr_upper[3], Sl_tet[3], Sr_tet[3];
-      double Sl_lower_SR[3], Sr_lower_SR[3];
-      for (int i = 0; i < 3; i++) {
-        Sl_lower_SR[i] = ql_GR[i+1] / sqrt_det;
-        Sr_lower_SR[i] = qr_GR[i+1] / sqrt_det;
-      }
-      for (int i = 0; i < 3; i++) {
-        Sl_upper[i] = inv_g[i][0]*Sl_lower_SR[0] + inv_g[i][1]*Sl_lower_SR[1] + inv_g[i][2]*Sl_lower_SR[2];
-        Sr_upper[i] = inv_g[i][0]*Sr_lower_SR[0] + inv_g[i][1]*Sr_lower_SR[1] + inv_g[i][2]*Sr_lower_SR[2];
-      }
-      mat_vec_3x3(E, Sl_upper, Sl_tet);
-      mat_vec_3x3(E, Sr_upper, Sr_tet);
 
       double ql_tet[5] = {
         ql_GR[0] / sqrt_det,
@@ -999,13 +973,12 @@ run_full_tetrad_chain_validation(struct gkyl_gr_spacetime *spacetime)
       gr_mink->waves_func(gr_mink, GKYL_WV_HIGH_ORDER_FLUX,
         delta_B, ql_loc_B, qr_loc_B, 1.0, 1.0, waves_tet, speeds_tet);
 
-      // Step 4: transform w_tet → w_back.
+      // Step 4: transform w_tet → w_back (contravariant convention).
       //   w_back[0] (D)   = √γ · w_tet[0]
-      //   w_back[i+1] (S_i, lowered, with √γ): the tetrad wave momentum
-      //     components live in tetrad-frame slots Sx_tet, Sy_tet, Sz_tet.
-      //     Map back: S_i_GR_wave = √γ · γ_ij · ε^j_a · w_tet[a+1]
-      //                          = √γ · (γ ε)^a_i · w_tet[a+1]
-      //                          = √γ · L_i^a · w_tet[a+1]   (since γ ε = L)
+      //   w_back[i+1] (S^i, contravariant, with √γ):
+      //     The triad ε^i_a = (L^{-1})^T maps tetrad-frame contravariant
+      //     momentum back to coord-frame contravariant.
+      //     w_back[i+1] = √γ · L_inv[a][i] · w_tet[a+1]
       //   w_back[4] (τ)   = √γ · w_tet[4]
       double waves_back[3 * 5];
       for (int k = 0; k < 3; k++) {
@@ -1013,8 +986,9 @@ run_full_tetrad_chain_validation(struct gkyl_gr_spacetime *spacetime)
         double *w_back      = &waves_back[k * 5];
         w_back[0] = sqrt_det * w_tet[0];
         for (int i = 0; i < 3; i++) {
-          // S_i_back = √γ · L_i^a w_tet[a+1]
-          w_back[i+1] = sqrt_det * (L[i][0]*w_tet[1] + L[i][1]*w_tet[2] + L[i][2]*w_tet[3]);
+          w_back[i+1] = sqrt_det * (Linv[0][i]*w_tet[1]
+                                  + Linv[1][i]*w_tet[2]
+                                  + Linv[2][i]*w_tet[3]);
         }
         w_back[4] = sqrt_det * w_tet[4];
       }
