@@ -114,10 +114,15 @@ gklbo_calc_cross_prim_moms(gkyl_gyrokinetic_app *app, const struct gk_species *g
   struct gk_lbo_collisions *lbo, int coll_idx)
 {
   lbo->alpha_E_func(app, gks, lbo, coll_idx);
+
+  // Multiply moments and boundary corrections by cross nu.
   for (int d=0; d<3; d++)
     gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[coll_idx]);
   for (int d=0; d<2; d++)
     gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[coll_idx]);
+    
+  // Compute cross primitive moments.
+  // Recycle the boundary_corrections array because we don't need those anymore.
   gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E,
     gks->info.mass, lbo->nu_moms, lbo->prim_moms,
     lbo->other_m[coll_idx], lbo->collide_with[coll_idx]->lbo.moms.marr, lbo->other_prim_moms[coll_idx],
