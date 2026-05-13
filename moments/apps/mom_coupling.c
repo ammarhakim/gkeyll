@@ -197,6 +197,56 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
 
+  // Spacetime coupling for modular GR fluids. Only constructed when at
+  // least one species is a GR-mod variant; otherwise spacetime_slvr stays
+  // NULL and the spacetime path costs nothing.
+  src->spacetime_slvr = NULL;
+  if (app->has_spacetime) {
+    bool any_mod = false;
+    for (int i = 0; i < app->num_species; i++) {
+      enum gkyl_eqn_type t = app->species[i].eqn_type;
+      if (t == GKYL_EQN_GR_EULER_MOD || t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+        any_mod = true;
+        break;
+      }
+    }
+    if (any_mod) {
+      struct gkyl_moment_spacetime_coupling_inp st_inp = {
+        .grid               = &app->grid,
+        .nfluids            = app->num_species,
+        .is_static          = app->spacetime.is_static,
+        .has_tetrad         = app->spacetime.has_tetrad,
+        .analytic_spacetime = app->spacetime.analytic_spacetime,
+        .spacetime_gauge    = app->spacetime.spacetime_gauge,
+        .reinit_freq        = app->spacetime.reinit_freq,
+        .einstein_eqn       = app->spacetime.einstein_eqn,
+      };
+      for (int i = 0; i < app->num_species; i++) {
+        enum gkyl_eqn_type t = app->species[i].eqn_type;
+        if (t == GKYL_EQN_GR_EULER_MOD) {
+          st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
+            .type = t,
+            .gas_gamma = gkyl_wv_gr_euler_mod_gas_gamma(app->species[i].equation),
+          };
+        } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+          // Tetrad mod equation lands in Phase C; for now we just pass the
+          // type through and a default gas_gamma — the coupling will skip
+          // species it does not yet know how to integrate sources for.
+          st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
+            .type = t, .gas_gamma = 0.0,
+          };
+        } else {
+          // Non-mod species: leave the entry in a benign-default state; the
+          // coupling's advance loop skips non-mod types.
+          st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
+            .type = t, .gas_gamma = 0.0,
+          };
+        }
+      }
+      src->spacetime_slvr = gkyl_moment_spacetime_coupling_new(st_inp);
+    }
+  }
+
   for (int n=0; n<app->num_species; ++n) {
     int meqn = app->species[n].num_equations;
     src->pr_rhs[n] = mkarr(false, meqn, app->local_ext.volume);
@@ -361,16 +411,26 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
   if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
-      fluids, app_accels, pr_rhs_const, 
+      fluids, app_accels, pr_rhs_const,
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
-      app->field.app_current2, app->field.ext_em, 
+      app->field.app_current2, app->field.ext_em,
       nT_sources, app->field.app_current_proj,nstrang);
   }
   else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
-      fluids, app_accels, pr_rhs_const, 
-      app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
+      fluids, app_accels, pr_rhs_const,
+      app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em,
       nT_sources);
+  }
+
+  // Spacetime coupling: integrate GR source terms on modular GR fluids.
+  // For Phase A (static-analytic) the products array was filled once at IC
+  // and stays valid for the simulation lifetime, so no derive_products call
+  // is needed here. For Phase B (dynamic Bona-Masso) we will bracket this
+  // call with derive_products invocations (TODO).
+  if (src->spacetime_slvr) {
+    gkyl_moment_spacetime_coupling_explicit_advance(src->spacetime_slvr,
+      tcurr, dt, &app->local, fluids, app->spacetime.prods);
   }
 
   for (int i=0; i<app->num_species; ++i) {
@@ -403,5 +463,7 @@ moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_c
   }
   if (app->has_braginskii)
     gkyl_moment_braginskii_release(src->brag_slvr);
+  if (src->spacetime_slvr)
+    gkyl_moment_spacetime_coupling_release(src->spacetime_slvr);
 }
 

@@ -362,12 +362,12 @@ gkyl_gr_ultra_rel_euler_stress_energy_tensor(double gas_gamma, const double q[70
     double inv_spacetime_metric[4][4];
     inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
     for (int i = 0; i < 3; i++) {
-      inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
-      inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[0][i + 1] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i + 1][0] = (1.0 / (lapse * lapse)) * shift[i];
     }
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+        inv_spacetime_metric[i + 1][j + 1] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
       }
     }
 

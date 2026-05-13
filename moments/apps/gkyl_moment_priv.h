@@ -28,6 +28,8 @@
 #include <gkyl_moment.h>
 #include <gkyl_moment_braginskii.h>
 #include <gkyl_moment_em_coupling.h>
+#include <gkyl_moment_spacetime_coupling.h>
+#include <gkyl_moment_spacetime_products.h>
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -40,6 +42,7 @@
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_embed_geo.h>
+#include <gkyl_wv_gr_euler_mod.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>
@@ -241,6 +244,45 @@ struct moment_field {
   bool is_first_energy_write_call; // flag for dynvec written first time
 };
 
+// Spacetime data — parallel to moment_field but for the Bona-Masso /
+// analytic GR background that drives the modular GR fluids. Owns the
+// products array that mod-fluid equation objects read via auxfields.
+struct moment_spacetime {
+  int ndim;
+  bool is_static;
+  bool has_tetrad;
+  bool has_einstein_eqn;        // true when einstein_eqn != NULL
+  int prods_ncomp;              // GKYL_GR_SP_NCOMP_BASE or *_NCOMP_TETRAD
+
+  // Backend handles (exactly one is non-NULL).
+  struct gkyl_wv_eqn *einstein_eqn;
+  struct gkyl_gr_spacetime *analytic_spacetime;
+
+  // Static-analytic gauge controls (mirrors packed wv_gr_euler).
+  enum gkyl_spacetime_gauge spacetime_gauge;
+  int reinit_freq;
+
+  // Hyperbolic-update plumbing for the dynamic case. NULL in Phase A; the
+  // wave_prop solvers are constructed only when einstein_eqn is non-NULL.
+  gkyl_wave_prop *slvr[3];
+  struct gkyl_array *fdup;
+  struct gkyl_array *f[4];      // Einstein state arrays (f[0] = current)
+  struct gkyl_array *fcurr;     // pointer into f[]
+  void *ctx;                    // user IC context
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  // The shared spacetime-products array. Mod fluid equation objects
+  // acquire pointers into this via gkyl_gr_euler_mod_set_auxfields. The
+  // coupling object that fills this array and integrates GR sources lives
+  // on struct moment_coupling (see A6 wiring).
+  struct gkyl_array *prods;
+
+  // BCs (dynamic case).
+  enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
+  gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
+  struct gkyl_array *bc_buffer;
+};
+
 // Source data
 struct moment_coupling {
   // grid for braginskii variables (braginskii variables located at cell nodes)  
@@ -269,6 +311,13 @@ struct moment_coupling {
   struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
 
   gkyl_moment_em_coupling *slvr; // source solver function
+
+  // Spacetime-coupling object for modular GR fluids. Non-NULL only when at
+  // least one species is a GR-mod variant. Drives both derive_products
+  // (which fills app->spacetime.prods) and the GR source-term integration
+  // on the mod species. The EM-coupling solver above continues to handle
+  // packed GR fluids; mod and packed are mutually exclusive per species.
+  gkyl_moment_spacetime_coupling *spacetime_slvr;
 };
 
 struct mhd_src {
@@ -316,6 +365,9 @@ struct gkyl_moment_app {
 
   int has_field; // flag to indicate if we have a field
   struct moment_field field; // field data
+
+  int has_spacetime; // flag to indicate if we have a spacetime component
+  struct moment_spacetime spacetime; // spacetime data (GR mod fluids)
 
   // species data
   int num_species;
@@ -469,6 +521,28 @@ double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
 
 // Release the EM field object
 void moment_field_release(const struct moment_field *fld);
+
+/** moment_spacetime API */
+
+// Initialize spacetime component.
+void moment_spacetime_init(const struct gkyl_moment *mom,
+  const struct gkyl_moment_spacetime *mom_st,
+  struct gkyl_moment_app *app, struct moment_spacetime *sp);
+
+// Apply BCs to Einstein state array (dynamic case only).
+void moment_spacetime_apply_bc(gkyl_moment_app *app, double tcurr,
+  const struct moment_spacetime *sp, struct gkyl_array *f);
+
+// Maximum stable dt for the Einstein hyperbolic step (dynamic case).
+double moment_spacetime_max_dt(const gkyl_moment_app *app,
+  const struct moment_spacetime *sp);
+
+// Advance the Einstein state by dt; no-op when is_static.
+struct gkyl_update_status moment_spacetime_update(gkyl_moment_app *app,
+  const struct moment_spacetime *sp, double tcurr, double dt);
+
+// Release the spacetime object.
+void moment_spacetime_release(const struct moment_spacetime *sp);
 
 /** moment_coupling API */
 

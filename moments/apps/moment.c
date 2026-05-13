@@ -179,6 +179,14 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   // Initialize a (potentially null) field object for safety.
   moment_field_init(mom, &mom->field, app, &app->field);
 
+  // Are we running with a spacetime component? Exactly one of the two
+  // backends must be set in the input struct. Skip otherwise.
+  app->has_spacetime = 0;
+  if (mom->spacetime.analytic_spacetime != NULL || mom->spacetime.einstein_eqn != NULL) {
+    app->has_spacetime = 1;
+    moment_spacetime_init(mom, &mom->spacetime, app, &app->spacetime);
+  }
+
   // Are we running with Braginskii transport?
   app->has_braginskii = mom->has_braginskii;
   app->coll_fac = mom->coll_fac;
@@ -189,6 +197,24 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   // create species
   for (int i=0; i<ns; ++i) {
     moment_species_init(mom, &mom->species[i], app, &app->species[i]);
+  }
+
+  // Wire mod species to the shared spacetime-products array, and inform
+  // them of the app's configuration range. The conf_range must be
+  // local_ext (with ghosts), not local, because wave_prop reads into
+  // ghost cells at boundary interfaces and the prods array is sized to
+  // the same extended range. Both pointers are stable for the app
+  // lifetime, so these setters only need to fire once.
+  if (app->has_spacetime) {
+    for (int i = 0; i < ns; i++) {
+      enum gkyl_eqn_type t = app->species[i].eqn_type;
+      if (t == GKYL_EQN_GR_EULER_MOD) {
+        gkyl_gr_euler_mod_set_conf_range(app->species[i].equation, &app->local_ext);
+        gkyl_gr_euler_mod_set_auxfields(app->species[i].equation,
+          (struct gkyl_wv_gr_euler_mod_auxfields){ .prods = app->spacetime.prods });
+      }
+      // GKYL_EQN_GR_EULER_TETRAD_MOD: Phase C — will get its own setter.
+    }
   }
 
   // specify collision parameters in the exposed app
@@ -250,11 +276,14 @@ double
 gkyl_moment_app_max_dt(gkyl_moment_app* app)
 {
   double max_dt = DBL_MAX;
-  for (int i=0;  i<app->num_species; ++i) 
+  for (int i=0;  i<app->num_species; ++i)
     max_dt = fmin(max_dt, moment_species_max_dt(app, &app->species[i]));
 
   if (app->has_field)
     max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
+
+  if (app->has_spacetime)
+    max_dt = fmin(max_dt, moment_spacetime_max_dt(app, &app->spacetime));
 
   double max_dt_global;
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &max_dt, &max_dt_global);
@@ -267,6 +296,10 @@ gkyl_moment_app_apply_ic(gkyl_moment_app* app, double t0)
 {
   app->tcurr = t0;
   gkyl_moment_app_apply_ic_field(app, t0);
+  // Spacetime IC must happen before species IC so that any species init
+  // function which queries the spacetime (e.g. for converting primitives
+  // to conserved variables) reads the correct lapse / metric / etc.
+  gkyl_moment_app_apply_ic_spacetime(app, t0);
   for (int i=0;  i<app->num_species; ++i)
     gkyl_moment_app_apply_ic_species(app, i, t0);
 }
@@ -291,6 +324,96 @@ gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
   }
 
   moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
+}
+
+void
+gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
+{
+  if (!app->has_spacetime) return;
+
+  app->tcurr = t0;
+
+  // For the dynamic Bona-Masso backend, project the user-supplied IC into
+  // the Einstein state array (analogous to gkyl_moment_app_apply_ic_field).
+  if (app->spacetime.has_einstein_eqn && app->spacetime.init) {
+    int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
+    int ncomp = app->spacetime.einstein_eqn->num_equations;
+    gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, ncomp,
+      app->spacetime.init, app->spacetime.ctx);
+    gkyl_fv_proj_advance(proj, t0, &app->local, app->spacetime.fcurr);
+    gkyl_fv_proj_release(proj);
+    moment_spacetime_apply_bc(app, t0, &app->spacetime, app->spacetime.fcurr);
+  }
+
+  // Fill the products array over the extended range (interior + ghost
+  // cells), because wave_prop reads spacetime via the equation's auxfields
+  // at every interface — including those that touch the boundary ghost
+  // cells. For the static-analytic backend this is the only time it ever
+  // gets called; for the dynamic backend the orchestrator refreshes it
+  // each step (Phase B).
+  if (app->update_sources && app->sources.spacetime_slvr) {
+    gkyl_moment_spacetime_coupling_derive_products(app->sources.spacetime_slvr,
+      t0, &app->local_ext,
+      app->spacetime.has_einstein_eqn ? app->spacetime.fcurr : NULL,
+      app->spacetime.prods);
+
+    // Match packed's effective boundary semantic for the spacetime block:
+    // packed's bcCopy/bcWall/bcFunc functions all copy q[5..66] from skin
+    // to ghost, and then impose_gauge re-evaluates the spacetime at the
+    // (now-interior) q[68..70] coords stored in the ghost cell — so the
+    // ghost spacetime ends up equal to the interior spacetime. We achieve
+    // the same effect for the products array by mirror-copying skin →
+    // ghost on each non-periodic boundary: skin cell at offset k from the
+    // boundary (k = 1, 2, ...) maps to ghost cell at offset −k. This
+    // matches the mirror pairing in gkyl_wv_apply_bc_advance which packed
+    // uses for all of its species BC functions (bcCopy, bcWall, bcFunc;
+    // they only differ in how they modify hydro components, the spacetime
+    // block is always copied across).
+    int num_periodic_dir = app->num_periodic_dir;
+    int is_non_periodic[3] = { 1, 1, 1 };
+    for (int d = 0; d < num_periodic_dir; d++)
+      is_non_periodic[app->periodic_dirs[d]] = 0;
+    int nghost = 2;  // matches mom_field/mom_species; conservatively > minimum.
+    long ncomp = app->spacetime.prods_ncomp;
+    for (int d = 0; d < app->ndim; d++) {
+      if (!is_non_periodic[d]) continue;
+      // Lower edge: mirror skin (iy = lower .. lower+nghost-1) → ghost
+      // (iy = lower-1 .. lower-nghost), with the k-th skin layer going to
+      // the k-th ghost layer (closest-to-boundary → closest-to-boundary).
+      int lo = app->local.lower[d], up = app->local.upper[d];
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &app->skin_ghost.lower_skin[d]);
+      while (gkyl_range_iter_next(&iter)) {
+        int skin_idx[GKYL_MAX_DIM];
+        gkyl_copy_int_arr(app->ndim, iter.idx, skin_idx);
+        int ghost_idx[GKYL_MAX_DIM];
+        gkyl_copy_int_arr(app->ndim, iter.idx, ghost_idx);
+        ghost_idx[d] = 2 * lo - skin_idx[d] - 1;  // mirror across lo - 0.5
+        long sloc = gkyl_range_idx(&app->local_ext, skin_idx);
+        long gloc = gkyl_range_idx(&app->local_ext, ghost_idx);
+        memcpy(gkyl_array_fetch(app->spacetime.prods, gloc),
+               gkyl_array_cfetch(app->spacetime.prods, sloc),
+               ncomp * sizeof(double));
+      }
+      // Upper edge: same idea, mirror across up + 0.5.
+      gkyl_range_iter_init(&iter, &app->skin_ghost.upper_skin[d]);
+      while (gkyl_range_iter_next(&iter)) {
+        int skin_idx[GKYL_MAX_DIM];
+        gkyl_copy_int_arr(app->ndim, iter.idx, skin_idx);
+        int ghost_idx[GKYL_MAX_DIM];
+        gkyl_copy_int_arr(app->ndim, iter.idx, ghost_idx);
+        ghost_idx[d] = 2 * up - skin_idx[d] + 1;  // mirror across up + 0.5
+        long sloc = gkyl_range_idx(&app->local_ext, skin_idx);
+        long gloc = gkyl_range_idx(&app->local_ext, ghost_idx);
+        memcpy(gkyl_array_fetch(app->spacetime.prods, gloc),
+               gkyl_array_cfetch(app->spacetime.prods, sloc),
+               ncomp * sizeof(double));
+      }
+      (void)nghost; (void)up;  // silence unused warnings if dim is partial
+    }
+    gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+      num_periodic_dir, app->periodic_dirs, app->spacetime.prods);
+  }
 }
 
 void
@@ -884,6 +1007,9 @@ gkyl_moment_app_release(gkyl_moment_app* app)
   gkyl_free(app->species);
 
   moment_field_release(&app->field);
+
+  if (app->has_spacetime)
+    moment_spacetime_release(&app->spacetime);
 
   if (app->update_mhd_source)
     mhd_src_release(&app->mhd_source);

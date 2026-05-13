@@ -21,10 +21,19 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   // Do we need to update source terms for this fluid?
   // Sources can be electromagnetic fields, closure-related, applied accelerations
-  // volume expansion, friction, reactivity, etc. 
-  sp->update_sources = false; 
+  // volume expansion, friction, reactivity, etc.
+  sp->update_sources = false;
   if (app->has_field) {
-    sp->update_sources = true; 
+    sp->update_sources = true;
+  }
+  // Modular GR equation types always require source integration through the
+  // spacetime-coupling object — turn sources on regardless of the rest of
+  // the species configuration. Note: mod species deliberately do NOT set
+  // the legacy `has_gr_euler` flag, so the EM-coupling object's GR-source
+  // path naturally skips them; the spacetime-coupling object owns them.
+  if (sp->eqn_type == GKYL_EQN_GR_EULER_MOD ||
+      sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+    sp->update_sources = true;
   }
 
   sp->k0 = 0.0;
@@ -467,6 +476,16 @@ moment_species_update(gkyl_moment_app *app,
   double max_speed = 0.0;
   struct gkyl_wave_prop_status stat;
 
+  // Scrub hydro to zero inside the excision region for mod GR species. This
+  // mirrors packed gr_euler_impose_gauge which actively zeroes q[0..66] in
+  // excised cells (level_set.c:389-394). Without this scrub mod cells that
+  // are inside the excision region but whose IC projection averaged in
+  // non-zero hydro from the adjacent non-excised quadrature points would
+  // retain that small but non-zero hydro forever, drifting from packed.
+  bool scrub_excised = (sp->eqn_type == GKYL_EQN_GR_EULER_MOD ||
+                        sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD_MOD)
+                       && app->has_spacetime;
+
   for (int d=0; d<ndim; ++d) {
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->embed_mask, sp->f[d], sp->f[d+1]);
 
@@ -478,9 +497,22 @@ moment_species_update(gkyl_moment_app *app,
         .success = false,
         .dt_suggested = stat.dt_suggested
       };
-    
+
     dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
+
+    if (scrub_excised) {
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, &app->local);
+      while (gkyl_range_iter_next(&iter)) {
+        long cidx = gkyl_range_idx(&app->local, iter.idx);
+        const double *prods_row = gkyl_array_cfetch(app->spacetime.prods, cidx);
+        if (prods_row[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
+          double *q = gkyl_array_fetch(sp->f[d+1], cidx);
+          for (int k = 0; k < sp->num_equations; k++) q[k] = 0.0;
+        }
+      }
+    }
   }
 
   for (int d=0; d<ndim; ++d) {

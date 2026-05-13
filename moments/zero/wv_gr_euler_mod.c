@@ -45,6 +45,14 @@ gkyl_gr_euler_mod_set_auxfields(const struct gkyl_wv_eqn *eqn,
   grm->auxfields.prods = auxin.prods;
 }
 
+void
+gkyl_gr_euler_mod_set_conf_range(const struct gkyl_wv_eqn *eqn,
+  const struct gkyl_range *conf_range)
+{
+  struct wv_gr_euler_mod *grm = container_of(eqn, struct wv_gr_euler_mod, eqn);
+  grm->conf_range = *conf_range;
+}
+
 // ---------------------------------------------------------------------------
 // Rotation of the spacetime products array from global to local
 // tangent-normal frame. Mirrors the spacetime portion of the packed
@@ -645,16 +653,13 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       double gl = pl[GKYL_GR_SP_GIJ + 3*i + j];
-      double gr_ = pr[GKYL_GR_SP_GIJ + 3*i + j];
+      double gr = pr[GKYL_GR_SP_GIJ + 3*i + j];
       if (i == j) {
-        if (fabs(gl - 1.0)  > pow(10.0, -8.0)) curved_l = true;
-        if (fabs(gr_ - 1.0) > pow(10.0, -8.0)) curved_r = true;
+        if (fabs(gl - 1.0) > pow(10.0, -8.0)) curved_l = true;
+        if (fabs(gr - 1.0) > pow(10.0, -8.0)) curved_r = true;
       } else {
-        if (fabs(gl) > pow(10.0, -8.0))  curved_l = true;
-        // NOTE: mirrors a packed quirk at wv_gr_euler.c:1333 where the
-        // right-side curved-spacetime off-diagonal check reads the LEFT
-        // metric. Preserved here so mod stays bit-equivalent to packed.
-        if (fabs(gl) > pow(10.0, -8.0))  curved_r = true;
+        if (fabs(gl) > pow(10.0, -8.0)) curved_l = true;
+        if (fabs(gr) > pow(10.0, -8.0)) curved_r = true;
       }
     }
   }
@@ -704,15 +709,12 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
       if (fabs(fast_l) > max_eig_l) max_eig_l = fabs(fast_l);
       if (fabs(slow_l) > max_eig_l) max_eig_l = fabs(slow_l);
 
-      // NOTE: mirrors packed quirk at wv_gr_euler.c:1418/1421 — the
-      // right-side acoustic eigenvalue uses c_sl (left sound speed) rather
-      // than c_sr. Preserved for bit-equivalence with packed.
       double mat_r  = (lapse_r * vel_r[i]) - shift_r[i];
-      double com_r  = lapse_r / (1.0 - (vsq_r * c_sl * c_sl));
-      double rad_r  = (1.0 - vsq_r) * (inv_ii_r * (1.0 - (vsq_r * c_sl * c_sl)) -
-                       (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)));
-      double fast_r = com_r * ((vel_r[i] * (1.0 - c_sl*c_sl)) + (c_sl * sqrt(rad_r))) - shift_r[i];
-      double slow_r = com_r * ((vel_r[i] * (1.0 - c_sl*c_sl)) - (c_sl * sqrt(rad_r))) - shift_r[i];
+      double com_r  = lapse_r / (1.0 - (vsq_r * c_sr * c_sr));
+      double rad_r  = (1.0 - vsq_r) * (inv_ii_r * (1.0 - (vsq_r * c_sr * c_sr)) -
+                       (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)));
+      double fast_r = com_r * ((vel_r[i] * (1.0 - c_sr*c_sr)) + (c_sr * sqrt(rad_r))) - shift_r[i];
+      double slow_r = com_r * ((vel_r[i] * (1.0 - c_sr*c_sr)) - (c_sr * sqrt(rad_r))) - shift_r[i];
       if (fabs(mat_r)  > max_eig_r) max_eig_r = fabs(mat_r);
       if (fabs(fast_r) > max_eig_r) max_eig_r = fabs(fast_r);
       if (fabs(slow_r) > max_eig_r) max_eig_r = fabs(slow_r);

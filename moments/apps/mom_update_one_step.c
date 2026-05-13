@@ -17,6 +17,7 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
     POST_UPDATE,
     FIRST_COUPLING_UPDATE,
     FIELD_UPDATE,
+    SPACETIME_UPDATE,
     SPECIES_UPDATE,
     SECOND_COUPLING_UPDATE,
     UPDATE_REDO,
@@ -27,12 +28,14 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
     switch (state) {
       case PRE_UPDATE:
         state = FIRST_COUPLING_UPDATE; // next state
-          
+
         // copy old solution in case we need to redo this step
         for (int i=0; i<ns; ++i)
           gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
         if (app->has_field)
           gkyl_array_copy(app->field.fdup, app->field.f[0]);
+        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static)
+          gkyl_array_copy(app->spacetime.fdup, app->spacetime.f[0]);
 
         break;
           
@@ -61,7 +64,7 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
         break;
 
       case FIELD_UPDATE:
-        state = SPECIES_UPDATE; // next state
+        state = SPACETIME_UPDATE; // next state
 
         if (app->has_field) {
           struct timespec fl_tm = gkyl_wall_clock();
@@ -72,11 +75,37 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
             state = UPDATE_REDO;
             break;
           }
-            
+
           dt_suggested = fmin(dt_suggested, s.dt_suggested);
           app->stat.field_tm += gkyl_time_diff_now_sec(fl_tm);
         }
-          
+
+        break;
+
+      case SPACETIME_UPDATE:
+        state = SPECIES_UPDATE; // next state
+
+        // No-op in Phase A (static spacetime). For the dynamic Bona-Masso
+        // backend, advance the Einstein state, then refresh the products
+        // array so the upcoming species hyperbolic update reads the
+        // locally-rotated spacetime at the new time.
+        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static) {
+          struct gkyl_update_status s =
+            moment_spacetime_update(app, &app->spacetime, tcurr, dt);
+          if (!s.success) {
+            app->stat.nfail += 1;
+            dt = s.dt_suggested;
+            state = UPDATE_REDO;
+            break;
+          }
+          dt_suggested = fmin(dt_suggested, s.dt_suggested);
+          if (app->update_sources && app->sources.spacetime_slvr) {
+            gkyl_moment_spacetime_coupling_derive_products(
+              app->sources.spacetime_slvr, tcurr, &app->local_ext,
+              app->spacetime.fcurr, app->spacetime.prods);
+          }
+        }
+
         break;
 
       case SPECIES_UPDATE:
@@ -126,21 +155,25 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           else // only copy in case no nans, so old solution can be written out
             gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
         }
-        
+
         if (app->has_field)
           gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
-          
+        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static)
+          gkyl_array_copy(app->spacetime.f[0], app->spacetime.f[ndim]);
+
         break;
 
       case UPDATE_REDO:
         state = PRE_UPDATE; // start all-over again
-          
+
         // restore solution and retake step
         for (int i=0; i<ns; ++i)
           gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
         if (app->has_field)
           gkyl_array_copy(app->field.f[0], app->field.fdup);
-          
+        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static)
+          gkyl_array_copy(app->spacetime.f[0], app->spacetime.fdup);
+
         break;
 
       case UPDATE_DONE: // unreachable code! (suppresses warning)

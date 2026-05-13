@@ -347,12 +347,12 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[71], double 
     double inv_spacetime_metric[4][4];
     inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
     for (int i = 0; i < 3; i++) {
-      inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
-      inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[0][i + 1] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i + 1][0] = (1.0 / (lapse * lapse)) * shift[i];
     }
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+        inv_spacetime_metric[i + 1][j + 1] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
       }
     }
 
@@ -1330,7 +1330,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
         }
       }
       else {
-        if (fabs(spatial_metric_l[i][j]) > pow(10.0, -8.0)) {
+        if (fabs(spatial_metric_r[i][j]) > pow(10.0, -8.0)) {
           curved_spacetime_r = true;
         }
       }
@@ -1415,11 +1415,11 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     for (int i = 0; i < 3; i++) {
       material_eigs_r[i] = (lapse_r * vel_r[i]) - shift_r[i];
 
-      fast_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) +
-        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
-      
-      slow_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) -
-        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
+      fast_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sr * c_sr)))) * ((vel_r[i] * (1.0 - (c_sr * c_sr))) +
+        (c_sr * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sr * c_sr))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)))))) - shift_r[i];
+
+      slow_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sr * c_sr)))) * ((vel_r[i] * (1.0 - (c_sr * c_sr))) -
+        (c_sr * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sr * c_sr))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)))))) - shift_r[i];
     }
 
     double max_eig_r = 0.0;

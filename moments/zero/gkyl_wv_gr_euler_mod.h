@@ -38,6 +38,15 @@ void
 gkyl_gr_euler_mod_set_auxfields(const struct gkyl_wv_eqn *eqn,
   struct gkyl_wv_gr_euler_mod_auxfields auxin);
 
+// Update the configuration-space range used to convert cell indices into
+// offsets in the auxfields products array. The standard Lua flow constructs
+// the equation before the app's range is known and calls this setter once
+// the app's range is built. Tests that drive the equation directly normally
+// pass the right range at construction time and never call this setter.
+void
+gkyl_gr_euler_mod_set_conf_range(const struct gkyl_wv_eqn *eqn,
+  const struct gkyl_range *conf_range);
+
 // Read back the adiabatic index from a modular GR Euler equation object.
 double
 gkyl_wv_gr_euler_mod_gas_gamma(const struct gkyl_wv_eqn *eqn);

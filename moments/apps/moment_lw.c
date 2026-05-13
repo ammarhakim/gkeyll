@@ -28,6 +28,7 @@
 #include <gkyl_wv_gr_ultra_rel_euler.h>
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad.h>
 #include <gkyl_wv_gr_euler.h>
+#include <gkyl_wv_gr_euler_mod.h>
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
 #include <gkyl_wv_vacuum_einstein.h>
@@ -209,7 +210,8 @@ enum moment_magic_ids {
   MOMENT_SPECIES_DEFAULT = 100, // Fluid species.
   MOMENT_FIELD_DEFAULT, // Maxwell equations.
   MOMENT_EQN_DEFAULT, // Equation object.
-  MOMENT_SPACETIME_DEFAULT, // Spacetime object.
+  MOMENT_SPACETIME_DEFAULT, // Spacetime sub-object (BlackHole, NeutronStar, ...).
+  MOMENT_SPACETIME_COMP_DEFAULT, // Spacetime app component (Moments.Spacetime.new).
 };
 
 // Edge-splitting -> enum map.
@@ -1233,6 +1235,65 @@ static struct luaL_Reg eqn_gr_euler_ctor[] = {
   { 0, 0 }
 };
 
+/* ******************************************* */
+/* Modular General Relativistic Euler Equations */
+/* ******************************************* */
+
+// GREulerMod.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
+// Same signature as GREuler, but produces the modular equation object that
+// reads its spacetime from the shared spacetime-products array attached at
+// app-construction time via gkyl_gr_euler_mod_set_auxfields. The user is
+// expected to declare a separate Moments.Spacetime { ... } component in the
+// same App table that supplies the spacetime backend.
+static int
+eqn_gr_euler_mod_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_euler_mod_lw = gkyl_malloc(sizeof(*gr_euler_mod_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(
+    gr_euler_rp_type, rp_str, WV_GR_EULER_RP_HLL);
+
+  // The real conf_range is populated by gkyl_gr_euler_mod_set_conf_range
+  // inside gkyl_moment_app_new once the app's local range exists. Build
+  // the equation now with a placeholder 1-cell range so the equation
+  // object is well-formed.
+  int lower[1] = { 0 };
+  int upper[1] = { 0 };
+  struct gkyl_range conf_range;
+  gkyl_range_init(&conf_range, 1, lower, upper);
+
+  gr_euler_mod_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_euler_mod_lw->eqn = gkyl_wv_gr_euler_mod_inew(
+    &(struct gkyl_wv_gr_euler_mod_inp) {
+      .gas_gamma  = gas_gamma,
+      .conf_range = conf_range,
+      .rp_type    = rp_type,
+      .use_gpu    = false,
+    });
+  gr_euler_mod_lw->has_nn        = false;
+  gr_euler_mod_lw->ann           = 0;
+  gr_euler_mod_lw->has_spacetime = false;  // spacetime lives on the app component
+  gr_euler_mod_lw->spacetime     = 0;
+
+  // Create Lua userdata.
+  struct wv_eqn_lw **l_gr_euler_mod_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_euler_mod_lw = gr_euler_mod_lw;
+
+  // Set metatable.
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static struct luaL_Reg eqn_gr_euler_mod_ctor[] = {
+  { "new", eqn_gr_euler_mod_lw_new },
+  { 0, 0 }
+};
+
 /* ************************************************************************************ */
 /* General Relativistic Euler Equations in the Tetrad Basis (General Equation of State) */
 /* ************************************************************************************ */
@@ -1881,6 +1942,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEuler", eqn_gr_ultra_rel_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEulerTetrad", eqn_gr_ultra_rel_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
+  luaL_register(L, "G0.Moments.Eq.GREulerMod", eqn_gr_euler_mod_ctor);
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
   luaL_register(L, "G0.Moments.Eq.VacuumEinstein", eqn_vacuum_einstein_ctor);
@@ -5095,6 +5157,148 @@ static struct luaL_Reg mom_field_ctor[] = {
   { 0, 0 }
 };
 
+/* ******************************** */
+/* Spacetime app-component userdata */
+/* ******************************** */
+
+// Metatable name for the app-level Spacetime component, distinct from the
+// existing MOMENT_SPACETIME_METATABLE_NM used by gr_spacetime objects
+// (BlackHole, NeutronStar, Minkowski, ...) — those are sub-objects supplied
+// as the `equation` field below.
+#define MOMENT_SPACETIME_COMP_METATABLE_NM "GkeyllZero.App.Moments.SpacetimeComponent"
+
+struct moment_spacetime_lw {
+  int magic;  // First element: MOMENT_SPACETIME_COMP_DEFAULT.
+  bool evolve;
+  struct gkyl_moment_spacetime mom_spacetime;
+  struct lua_func_ctx init_ctx;  // IC func for the dynamic backend; unused for static.
+  bool has_init;
+
+  // We hold an acquired reference to whichever backend the user supplied;
+  // the __gc method releases it. This insulates the app construction flow
+  // from the lifetime of the user's original userdata.
+  bool owns_analytic_spacetime;
+  struct gkyl_gr_spacetime *analytic_spacetime_ref;
+  bool owns_einstein_eqn;
+  struct gkyl_wv_eqn *einstein_eqn_ref;
+};
+
+static int
+moment_spacetime_lw_gc(lua_State *L)
+{
+  struct moment_spacetime_lw *mst_lw = GKYL_CHECK_UDATA(L, MOMENT_SPACETIME_COMP_METATABLE_NM);
+  if (mst_lw->owns_analytic_spacetime && mst_lw->analytic_spacetime_ref)
+    gkyl_gr_spacetime_release(mst_lw->analytic_spacetime_ref);
+  if (mst_lw->owns_einstein_eqn && mst_lw->einstein_eqn_ref)
+    gkyl_wv_eqn_release(mst_lw->einstein_eqn_ref);
+  return 0;
+}
+
+static int
+moment_spacetime_lw_new(lua_State *L)
+{
+  struct gkyl_moment_spacetime mom_st = { 0 };
+
+  bool evolve = glua_tbl_get_bool(L, "evolve", false);
+  mom_st.is_static  = !evolve;
+  mom_st.has_tetrad = glua_tbl_get_bool(L, "hasTetrad", false);
+  mom_st.limiter    = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
+  mom_st.spacetime_gauge = glua_tbl_get_integer(L, "spacetimeGauge", GKYL_STATIC_GAUGE);
+  mom_st.reinit_freq     = glua_tbl_get_integer(L, "reinitFreq", 100);
+
+  // Boundary conditions on the Einstein state (dynamic case). Defaults to
+  // zero (which downstream code reads as "not set" and skips).
+  with_lua_tbl_tbl(L, "bcx") {
+    int nbc = glua_objlen(L);
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++)
+      mom_st.bcx[i] = glua_tbl_iget_integer(L, i + 1, 0);
+  }
+  with_lua_tbl_tbl(L, "bcy") {
+    int nbc = glua_objlen(L);
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++)
+      mom_st.bcy[i] = glua_tbl_iget_integer(L, i + 1, 0);
+  }
+  with_lua_tbl_tbl(L, "bcz") {
+    int nbc = glua_objlen(L);
+    for (int i = 0; i < (nbc > 2 ? 2 : nbc); i++)
+      mom_st.bcz[i] = glua_tbl_iget_integer(L, i + 1, 0);
+  }
+
+  // Optional IC function for the dynamic backend.
+  int init_ref = LUA_NOREF;
+  bool has_init = false;
+  if (glua_tbl_get_func(L, "init")) {
+    init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
+    has_init = true;
+  }
+
+  // Resolve the `equation` field: either a gr_spacetime userdata (analytic
+  // backend) or a wv_eqn userdata (dynamic Bona-Masso). Both struct types
+  // start with `int magic`, so we peek at that to dispatch.
+  bool owns_analytic = false, owns_einstein = false;
+  struct gkyl_gr_spacetime *analytic = NULL;
+  struct gkyl_wv_eqn *einstein_eqn = NULL;
+  with_lua_tbl_key(L, "equation") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      void *raw = lua_touserdata(L, -1);
+      int magic = **(int **)raw;
+      if (magic == MOMENT_SPACETIME_DEFAULT) {
+        struct gr_spacetime_lw *gr = *(struct gr_spacetime_lw **)raw;
+        analytic = gkyl_gr_spacetime_acquire(gr->spacetime);
+        owns_analytic = true;
+      } else if (magic == MOMENT_EQN_DEFAULT) {
+        struct wv_eqn_lw *wv = *(struct wv_eqn_lw **)raw;
+        einstein_eqn = gkyl_wv_eqn_acquire(wv->eqn);
+        owns_einstein = true;
+      } else {
+        return luaL_error(L,
+          "Moments.Spacetime.new: `equation` must be a Moments.Spacetime.* "
+          "object (analytic backend) or a Moments.Eq.VacuumEinstein* object "
+          "(dynamic Bona-Masso backend).");
+      }
+    } else {
+      return luaL_error(L, "Moments.Spacetime.new: missing `equation` field.");
+    }
+  }
+
+  mom_st.analytic_spacetime = analytic;
+  mom_st.einstein_eqn       = einstein_eqn;
+
+  // Static-analytic must indeed be static; we surface this rather than
+  // letting the assert in moment_spacetime_init bite later.
+  if (owns_analytic && !mom_st.is_static) {
+    return luaL_error(L,
+      "Moments.Spacetime.new: analytic backend requires evolve = false "
+      "(the analytic backend supplies the spacetime at fixed coords).");
+  }
+
+  struct moment_spacetime_lw *mst_lw = lua_newuserdata(L, sizeof(*mst_lw));
+  mst_lw->magic         = MOMENT_SPACETIME_COMP_DEFAULT;
+  mst_lw->evolve        = evolve;
+  mst_lw->mom_spacetime = mom_st;
+  mst_lw->has_init      = has_init;
+  mst_lw->init_ctx = (struct lua_func_ctx) {
+    .func_ref = init_ref,
+    .ndim     = 0,  // populated in mom_app_new when cdim is known
+    .nret     = 0,  // populated in mom_app_new based on einstein_eqn->num_equations
+    .L        = L,
+  };
+  mst_lw->owns_analytic_spacetime = owns_analytic;
+  mst_lw->analytic_spacetime_ref  = analytic;
+  mst_lw->owns_einstein_eqn       = owns_einstein;
+  mst_lw->einstein_eqn_ref        = einstein_eqn;
+
+  luaL_getmetatable(L, MOMENT_SPACETIME_COMP_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static struct luaL_Reg mom_spacetime_ctor[] = {
+  { "new", moment_spacetime_lw_new },
+  { 0, 0 }
+};
+
 /* *********** */
 /* App methods */
 /* *********** */
@@ -5115,6 +5319,8 @@ struct moment_app_lw {
   struct lua_func_ctx field_init_ctx; // Function context for field initial conditions.
   struct lua_func_ctx external_field_func_ctx; // Function context for external field.
   struct lua_func_ctx applied_current_func_ctx; // Function context for applied current.
+
+  struct lua_func_ctx spacetime_init_ctx; // Function context for spacetime IC (dynamic backend).
   
   double t_start, t_end; // Start and end times of simulation.
   int num_frames; // Number of data frames to write.
@@ -5325,11 +5531,32 @@ mom_app_new(lua_State *L)
     }
   }
 
+  // Set spacetime input (mirrors the field lookup below). The component is
+  // resolved before the field so that any species init function that fires
+  // can see a valid spacetime configuration in the moment input struct.
+  with_lua_tbl_key(L, "spacetime") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct moment_spacetime_lw *mst = lua_touserdata(L, -1);
+      if (mst->magic == MOMENT_SPACETIME_COMP_DEFAULT) {
+        mom.spacetime = mst->mom_spacetime;
+        if (mst->has_init) {
+          mst->init_ctx.ndim = cdim;
+          // The Einstein-state IC returns one value per evolved component.
+          mst->init_ctx.nret = mst->mom_spacetime.einstein_eqn
+            ? mst->mom_spacetime.einstein_eqn->num_equations : 0;
+          app_lw->spacetime_init_ctx = mst->init_ctx;
+          mom.spacetime.init = gkyl_lw_eval_cb;
+          mom.spacetime.ctx  = &app_lw->spacetime_init_ctx;
+        }
+      }
+    }
+  }
+
   // Set field input.
   with_lua_tbl_key(L, "field") {
     if (lua_type(L, -1) == LUA_TUSERDATA) {
       struct moment_field_lw *momf = lua_touserdata(L, -1);
-      
+
       if (momf->magic == MOMENT_FIELD_DEFAULT) {
         momf->init_ctx.ndim = cdim;
         
@@ -6263,6 +6490,19 @@ app_openlibs(lua_State *L)
   do {
     luaL_newmetatable(L, MOMENT_FIELD_METATABLE_NM);
     luaL_register(L, "G0.Moments.Field", mom_field_ctor);
+  }
+  while (0);
+
+  // Register the Spacetime app component. The "G0.Moments.Spacetime" Lua
+  // table is shared with the existing gr_spacetime sub-objects (BlackHole,
+  // NeutronStar, ...) registered later; adding the .new method here just
+  // attaches a method to the same parent table without touching children.
+  do {
+    luaL_newmetatable(L, MOMENT_SPACETIME_COMP_METATABLE_NM);
+    lua_pushstring(L, "__gc");
+    lua_pushcfunction(L, moment_spacetime_lw_gc);
+    lua_settable(L, -3);
+    luaL_register(L, "G0.Moments.Spacetime", mom_spacetime_ctor);
   }
   while (0);
 

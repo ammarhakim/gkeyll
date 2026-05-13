@@ -138,6 +138,42 @@ struct gkyl_moment_field {
   wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 };
 
+// Spacetime component: parallel to gkyl_moment_field, but for the
+// Bona-Masso / analytic GR background that drives the modular GR fluids
+// (wv_gr_euler_mod, etc.). Exactly one of analytic_spacetime and
+// einstein_eqn must be non-NULL.
+//
+//   analytic_spacetime: static background where the spacetime callbacks
+//     (lapse, shift, gij, K, derivatives, ...) supply the spacetime at
+//     each cell. is_static must be true in this case.
+//   einstein_eqn: dynamic Bona-Masso evolver (Phase B). Carries an init
+//     function (returns 64 or 77 evolved Einstein-state components) and
+//     supports a hyperbolic update through moment_spacetime_update.
+struct gkyl_moment_spacetime {
+  bool is_static;     // skip the Einstein hyperbolic update each step
+  bool has_tetrad;    // size the products array with the tetrad add-on
+
+  // Choice of underlying evolver. Exactly one is non-NULL.
+  struct gkyl_gr_spacetime *analytic_spacetime;
+  struct gkyl_wv_eqn *einstein_eqn;
+
+  // Initial-condition function for the dynamic-spacetime case. Ignored
+  // when analytic_spacetime is in use.
+  void *ctx;
+  void (*init)(double t, const double *xn, double *fout, void *ctx);
+
+  enum gkyl_wave_limiter limiter;
+
+  // Boundary conditions on the Einstein state array (dynamic case).
+  enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
+
+  // Gauge controls for the static-analytic case (mirrors the same fields
+  // on packed wv_gr_euler).
+  enum gkyl_spacetime_gauge spacetime_gauge;
+  int reinit_freq;
+};
+
 // Choices of schemes to use in the fluid solver
 enum gkyl_moment_scheme {
   GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
@@ -179,6 +215,7 @@ struct gkyl_moment {
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
+  struct gkyl_moment_spacetime spacetime; // spacetime object (for GR mod fluids)
 
   bool has_collision; // has collisions
   // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
@@ -268,6 +305,15 @@ void gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0);
  * @param t0 Time for initial conditions
  */
 void gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0);
+
+/**
+ * Initialize spacetime: project Einstein-state IC (dynamic backend) and
+ * fill the shared spacetime-products array via the coupling object.
+ *
+ * @param app App object.
+ * @param t0 Time for initial conditions
+ */
+void gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0);
 
 /**
  * Initialize embedded geometry.
