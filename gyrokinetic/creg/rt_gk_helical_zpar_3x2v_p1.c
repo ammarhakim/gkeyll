@@ -462,8 +462,10 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+        .use_sheath_surrogate = true, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+        .use_sheath_surrogate = true, },
     },
 
     .num_diag_moments = 9,
@@ -538,8 +540,10 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+        .use_sheath_surrogate = false, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+        .use_sheath_surrogate = false, },
     },
 
     .num_diag_moments = 9,
@@ -573,7 +577,7 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
 
     .cfl_frac_omegaH = 1.0,
-    .cfl_frac = 0.9,
+    .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,
     .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
