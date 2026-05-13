@@ -200,16 +200,10 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 
   if (species->alloc_srg_aux_var) {
     // Advance the Maxwellian moment computation to get density and temperature for surrogate BCs.
-    // We can later optimize this by calling it for upper and lower skin cells.
+    // We can later optimize this by calling it for upper and lower skin cell range only.
     gkyl_gk_maxwellian_moments_advance(species->maxwell_mom, &species->local, &app->local, f, species->maxmom);
-    
-    // Overwrite the density with the polarization density
-    // gkyl_array_set_range(species->dens_sheath, 1.0, species->maxmom, &app->local);
-    gkyl_array_clear(species->dens_sheath, 0.0);
-    gkyl_array_shiftc(species->dens_sheath, species->info.polarization_density * pow(sqrt(2.0),app->cdim), 0);
-
-    int num_conf_basis = app->basis.num_basis;
-    gkyl_array_set_offset_range(species->temp_sheath, species->info.mass, species->maxmom, 2*num_conf_basis, &app->local);
+    gkyl_array_set_offset_range(species->dens_sheath, 1.0, species->maxmom, 0, &app->local);
+    gkyl_array_set_offset_range(species->temp_sheath, species->info.mass, species->maxmom, 2*app->basis.num_basis, &app->local);
   }
   
   for (int d=0; d<cdim; ++d) {
