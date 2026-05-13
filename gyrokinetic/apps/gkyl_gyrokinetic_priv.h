@@ -353,7 +353,6 @@ struct gk_lbo_collisions {
   struct gkyl_array *other_prim_moms[GKYL_MAX_SPECIES]; // Self-primitive moments of species colliding with.
   struct gkyl_array *cross_prim_moms[GKYL_MAX_SPECIES]; // Cross-primitive moments.
   struct gkyl_array *cross_nu[GKYL_MAX_SPECIES]; // Cross-species collision frequencies.
-  struct gkyl_array *cross_nu_host[GKYL_MAX_SPECIES]; // Host arrays for I/O.
   struct gkyl_array *cross_nu_prim_moms; // Weak multiplication of collision frequency and primitive moments.
   struct gkyl_array *alpha_E; // Morse's alpha_E factor.
   gkyl_prim_lbo_cross_calc *cross_calc; // LBO cross-primitive moment calculator

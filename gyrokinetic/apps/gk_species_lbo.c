@@ -238,18 +238,19 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
       gklbo_calc_cross_prim_moms(app, gks, &gks->lbo, i);
       struct gkyl_array *cross_prim_moms_scratch = gks->lbo.nu_boundary_corrections;
 
-      struct gkyl_array *cross_prim_moms_io;
+      struct gkyl_array *cross_prim_moms_io, *cross_nu_io;
       if (app->use_gpu) {
         gkyl_array_copy(gks->lbo.nu_prim_moms_host, cross_prim_moms_scratch);
         cross_prim_moms_io = gks->lbo.nu_prim_moms_host;
-        gkyl_array_copy(gks->lbo.cross_nu_host[i], gks->lbo.cross_nu[i]);
+        gkyl_array_copy(gks->lbo.nu_sum_host, gks->lbo.cross_nu[i]);
       }
       else {
         cross_prim_moms_io = cross_prim_moms_scratch;
+        cross_nu_io = gks->lbo.cross_nu[i];
       }
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, cross_prim_moms_io, fileNm_cprim);
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.cross_nu_host[i], fileNm_cnu);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, cross_nu_io, fileNm_cnu);
       app->stat.n_diag_io += 2;
     }
   }
@@ -419,17 +420,6 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
         lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
       }
 
-      if (lbo->write_cross_diagnostics) {
-        for (int i=0; i<lbo->num_cross_collisions; ++i) {
-          if (app->use_gpu) {
-            lbo->cross_nu_host[i] = mkarr(false, lbo->cross_nu[i]->ncomp, lbo->cross_nu[i]->size);
-          }
-          else {
-            lbo->cross_nu_host[i] = lbo->cross_nu[i];
-          }
-        }
-      }
-
       double nu_frac = gks->info.collisions.nu_frac ? gks->info.collisions.nu_frac : 1.0;
 
       // Compute the time-independent part of alpha_E.
@@ -559,11 +549,6 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
         gkyl_array_release(lbo->cross_nu[i]);
 
       gkyl_array_release(lbo->alpha_E);
-
-      if (lbo->write_cross_diagnostics && app->use_gpu) {
-        for (int i=0; i<lbo->num_cross_collisions; ++i)
-          gkyl_array_release(lbo->cross_nu_host[i]);
-      }
     }
 
     gkyl_dg_updater_lbo_gyrokinetic_release(lbo->coll_slvr);
