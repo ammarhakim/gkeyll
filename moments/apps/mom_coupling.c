@@ -229,11 +229,9 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
             .gas_gamma = gkyl_wv_gr_euler_mod_gas_gamma(app->species[i].equation),
           };
         } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
-          // Tetrad mod equation lands in Phase C; for now we just pass the
-          // type through and a default gas_gamma — the coupling will skip
-          // species it does not yet know how to integrate sources for.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
-            .type = t, .gas_gamma = 0.0,
+            .type = t,
+            .gas_gamma = gkyl_wv_gr_euler_tetrad_mod_gas_gamma(app->species[i].equation),
           };
         } else {
           // Non-mod species: leave the entry in a benign-default state; the

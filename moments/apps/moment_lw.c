@@ -1294,6 +1294,59 @@ static struct luaL_Reg eqn_gr_euler_mod_ctor[] = {
   { 0, 0 }
 };
 
+/* ************************************************************** */
+/* Modular General Relativistic Euler Equations (Tetrad Basis)    */
+/* ************************************************************** */
+
+// GREulerTetradMod.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
+// Tetrad-basis sibling of GREulerMod. Reads the same shared spacetime-products
+// array; the only difference vs GREulerMod is the flux factorization
+// (flat-space SR flux + GR correction). See wv_gr_euler_tetrad_mod.c.
+static int
+eqn_gr_euler_tetrad_mod_lw_new(lua_State *L)
+{
+  struct wv_eqn_lw *gr_euler_tetrad_mod_lw = gkyl_malloc(sizeof(*gr_euler_tetrad_mod_lw));
+
+  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+
+  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
+  enum gkyl_wv_gr_euler_tetrad_rp rp_type = gkyl_search_str_int_pair_by_str(
+    gr_euler_tetrad_rp_type, rp_str, WV_GR_EULER_TETRAD_RP_HLL);
+
+  // Placeholder range overwritten by gkyl_gr_euler_tetrad_mod_set_conf_range
+  // once gkyl_moment_app_new builds the app's local_ext range.
+  int lower[1] = { 0 };
+  int upper[1] = { 0 };
+  struct gkyl_range conf_range;
+  gkyl_range_init(&conf_range, 1, lower, upper);
+
+  gr_euler_tetrad_mod_lw->magic = MOMENT_EQN_DEFAULT;
+  gr_euler_tetrad_mod_lw->eqn = gkyl_wv_gr_euler_tetrad_mod_inew(
+    &(struct gkyl_wv_gr_euler_tetrad_mod_inp) {
+      .gas_gamma  = gas_gamma,
+      .conf_range = conf_range,
+      .rp_type    = rp_type,
+      .use_gpu    = false,
+    });
+  gr_euler_tetrad_mod_lw->has_nn        = false;
+  gr_euler_tetrad_mod_lw->ann           = 0;
+  gr_euler_tetrad_mod_lw->has_spacetime = false;
+  gr_euler_tetrad_mod_lw->spacetime     = 0;
+
+  struct wv_eqn_lw **l_gr_euler_tetrad_mod_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
+  *l_gr_euler_tetrad_mod_lw = gr_euler_tetrad_mod_lw;
+
+  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
+  lua_setmetatable(L, -2);
+
+  return 1;
+}
+
+static struct luaL_Reg eqn_gr_euler_tetrad_mod_ctor[] = {
+  { "new", eqn_gr_euler_tetrad_mod_lw_new },
+  { 0, 0 }
+};
+
 /* ************************************************************************************ */
 /* General Relativistic Euler Equations in the Tetrad Basis (General Equation of State) */
 /* ************************************************************************************ */
@@ -1944,6 +1997,7 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GREulerMod", eqn_gr_euler_mod_ctor);
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
+  luaL_register(L, "G0.Moments.Eq.GREulerTetradMod", eqn_gr_euler_tetrad_mod_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
   luaL_register(L, "G0.Moments.Eq.VacuumEinstein", eqn_vacuum_einstein_ctor);
   luaL_register(L, "G0.Moments.Eq.VacuumEinsteinConformal", eqn_vacuum_einstein_conformal_ctor);

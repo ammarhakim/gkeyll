@@ -1385,7 +1385,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
         }
       }
       else {
-        if (fabs(spatial_metric_l[i][j]) > pow(10.0, -8.0)) {
+        if (fabs(spatial_metric_r[i][j]) > pow(10.0, -8.0)) {
           curved_spacetime_r = true;
         }
       }
@@ -1470,11 +1470,11 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     for (int i = 0; i < 3; i++) {
       material_eigs_r[i] = (lapse_r * vel_r[i]) - shift_r[i];
 
-      fast_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) +
-        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
-      
-      slow_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) -
-        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
+      fast_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sr * c_sr)))) * ((vel_r[i] * (1.0 - (c_sr * c_sr))) +
+        (c_sr * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sr * c_sr))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)))))) - shift_r[i];
+
+      slow_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sr * c_sr)))) * ((vel_r[i] * (1.0 - (c_sr * c_sr))) -
+        (c_sr * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sr * c_sr))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)))))) - shift_r[i];
     }
 
     double max_eig_r = 0.0;

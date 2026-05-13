@@ -43,6 +43,7 @@
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_gr_euler_mod.h>
+#include <gkyl_wv_gr_euler_tetrad_mod.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
 #include <gkyl_wv_mhd.h>

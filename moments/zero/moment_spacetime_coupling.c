@@ -417,8 +417,10 @@ gkyl_moment_spacetime_coupling_explicit_advance(
 
     for (int s = 0; s < nfluids; s++) {
       enum gkyl_eqn_type type = st->fluid_param[s].type;
-      // Phase A covers only GR Euler mod; tetrad mod uses the same source
-      // math (only the wave structure differs) and will be added later.
+      // The geometric source terms are identical for the curved and tetrad
+      // mod variants — only the wave-structure (flat-flux + GR-correction
+      // factorization) differs there, not the ADM source contributions to D,
+      // S_i, τ.
       if (type != GKYL_EQN_GR_EULER_MOD && type != GKYL_EQN_GR_EULER_TETRAD_MOD)
         continue;
 

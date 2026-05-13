@@ -212,8 +212,11 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
         gkyl_gr_euler_mod_set_conf_range(app->species[i].equation, &app->local_ext);
         gkyl_gr_euler_mod_set_auxfields(app->species[i].equation,
           (struct gkyl_wv_gr_euler_mod_auxfields){ .prods = app->spacetime.prods });
+      } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+        gkyl_gr_euler_tetrad_mod_set_conf_range(app->species[i].equation, &app->local_ext);
+        gkyl_gr_euler_tetrad_mod_set_auxfields(app->species[i].equation,
+          (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = app->spacetime.prods });
       }
-      // GKYL_EQN_GR_EULER_TETRAD_MOD: Phase C — will get its own setter.
     }
   }
 
