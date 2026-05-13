@@ -1128,21 +1128,43 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double vz_r = vr[3];
   double p_r = vr[4];
 
-  double Etot_l = ql[4];
-  double Etot_r = qr[4];
-
   double W_l = 1.0 / sqrt(1.0 - ((vx_l * vx_l) + (vy_l * vy_l) + (vz_l * vz_l)));
   double W_r = 1.0 / sqrt(1.0 - ((vx_r * vx_r) + (vy_r * vy_r) + (vz_r * vz_r)));
 
-  double K_l = sqrt(Etot_l + p_l) / W_l;
-  double K_r = sqrt(Etot_r + p_r) / W_r;
+  // Eulderink–Mellema (1995) Roe averaging weights. K² = √(−g) ρh; for the
+  // 3+1 split (D = √γ ρW, τ = √γ (ρhW²−p−ρW)) this gives K = √(D+τ+p)/W
+  // after stripping the √γ prefactor from D and τ. The previous formulation
+  // K = √(τ+p)/W and v₄ = avg(p/K) does not match EM and breaks both Roe
+  // wave-sum and flux-jump identities; see wv_gr_euler_roe_derivation.md.
+  //
+  // Compute spatial_det inline from the packed spacetime block (q[9..17]).
+  double sdet_l = (ql[9]*(ql[13]*ql[17] - ql[16]*ql[14])
+                 - ql[10]*(ql[12]*ql[17] - ql[15]*ql[14])
+                 + ql[11]*(ql[12]*ql[16] - ql[15]*ql[13]));
+  double sdet_r = (qr[9]*(qr[13]*qr[17] - qr[16]*qr[14])
+                 - qr[10]*(qr[12]*qr[17] - qr[15]*qr[14])
+                 + qr[11]*(qr[12]*qr[16] - qr[15]*qr[13]));
+  double sqrt_det_l = sqrt(sdet_l);
+  double sqrt_det_r = sqrt(sdet_r);
+  double D_sr_l   = ql[0] / sqrt_det_l;
+  double D_sr_r   = qr[0] / sqrt_det_r;
+  double tau_sr_l = ql[4] / sqrt_det_l;
+  double tau_sr_r = qr[4] / sqrt_det_r;
+
+  double h_l = 1.0 + ((p_l / rho_l) * gas_gamma / (gas_gamma - 1.0));
+  double h_r = 1.0 + ((p_r / rho_r) * gas_gamma / (gas_gamma - 1.0));
+  double eps_l = p_l / (rho_l * h_l);
+  double eps_r = p_r / (rho_r * h_r);
+
+  double K_l = sqrt(D_sr_l + tau_sr_l + p_l) / W_l;
+  double K_r = sqrt(D_sr_r + tau_sr_r + p_r) / W_r;
   double K_avg = 1.0 / (K_l + K_r);
 
-  double v0 = ((K_l * W_l) + (K_r * W_r)) * K_avg;
+  double v0 = ((K_l * W_l)        + (K_r * W_r))        * K_avg;
   double v1 = ((K_l * W_l * vx_l) + (K_r * W_r * vx_r)) * K_avg;
   double v2 = ((K_l * W_l * vy_l) + (K_r * W_r * vy_r)) * K_avg;
   double v3 = ((K_l * W_l * vz_l) + (K_r * W_r * vz_r)) * K_avg;
-  double v4 = ((p_l / K_l) + (p_r / K_r)) * K_avg;
+  double v4 = ((K_l * eps_l)      + (K_r * eps_r))      * K_avg;
 
   double c_minus = 1.0 - ((gas_gamma / (gas_gamma - 1.0)) * v4);
   double c_plus = 1.0 + ((gas_gamma / (gas_gamma - 1.0)) * v4);
@@ -1152,25 +1174,36 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double energy = (v0 * v0) - (v1 * v1);
   double y = sqrt(((1.0 - (gas_gamma * v4)) * energy) + s_sq);
 
-  double k = (v0 * delta[4]) - (v1 * delta[1]);
-  double v_delta = (-v0 * delta[4]) + (v1 * delta[1]) + (v2 * delta[2]) + (v3 * delta[3]);
-  double a1 = -((s_sq * k) + (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[4])) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) / (2.0 * energy * s_sq);
-  double a2 = -((s_sq * k) - (sqrt(s_sq) * y * ((v0 * delta[1]) - (v1 * delta[4])) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta))))) / (2.0 * energy * s_sq);
-  double a3 = ((2.0 * s_sq * k) + ((gas_gamma - 1.0) * energy * (delta[0] + (c_plus * v_delta)))) / (energy * s_sq);
-  double a4 = delta[2] - ((k * v2) / energy);
-  double a5 = delta[3] - ((k * v3) / energy);
+  // Wave amplitudes from inverting the corrected 5×5 eigenvector system.
+  // See wv_gr_euler_roe_derivation.md for the Row-0+Row-4 collapse that
+  // yields A = a1+a2+a3 = [v⁰(δ₀+δ₄) − v¹δ₁] / E and B = a2−a1.
+  double sum04 = delta[0] + delta[4];
+  double A_sum  = ((v0 * sum04) - (v1 * delta[1])) / energy;
+  double B_diff = y * ((v0 * delta[1]) - (v1 * sum04)) / (sqrt(s_sq) * energy);
+
+  double a4 = delta[2] - (v2 * A_sum);
+  double a5 = delta[3] - (v3 * A_sum);
+
+  double a3 = ((gas_gamma - 1.0) / s_sq) *
+              (delta[0] - (A_sum * c_minus) + (c_plus * ((v2 * a4) + (v3 * a5))));
+
+  double a1 = 0.5 * (A_sum - a3 - B_diff);
+  double a2 = 0.5 * (A_sum - a3 + B_diff);
 
   for (int i = 0; i < 71 * 3; i++) {
     waves[i] = 0;
   }
 
+  // Eigenvectors with the rest-mass-subtraction τ-slot terms (paper Eq.
+  // 10.15 translated from (D, E, Sx, Sy, Sz) to (D, Sx, Sy, Sz, τ) via
+  // τ = E − D). Original code was missing the −c_- / +c_+·v_i terms.
   double *wv;
   wv = &waves[0 * 71];
   wv[0] = a1 * c_minus;
   wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
   wv[2] = a1 * v2;
   wv[3] = a1 * v3;
-  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y));
+  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y) - c_minus);
   s[0] = (((1.0 - (gas_gamma * v4)) * v0 * v1) - (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
 
   wv = &waves[1 * 71];
@@ -1178,7 +1211,8 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   wv[1] = a3 * v1;
   wv[2] = (a3 * v2) + a4;
   wv[3] = (a3 * v3) + a5;
-  wv[4] = a3 * v0;
+  wv[4] = (a3 * (v0 - c_minus - (s_sq / (gas_gamma - 1.0))))
+        + (a4 * c_plus * v2) + (a5 * c_plus * v3);
   s[1] = v1 / v0;
 
   wv = &waves[2 * 71];
@@ -1186,7 +1220,7 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
   wv[2] = a2 * v2;
   wv[3] = a2 * v3;
-  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y));
+  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y) - c_minus);
   s[2] = (((1.0 - (gas_gamma * v4)) * v0 * v1) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
 
   return (((1.0 - (gas_gamma * v4)) * v0 * fabs(v1)) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);

@@ -683,6 +683,170 @@ test_gr_euler_mod_roe_kerr()
   gkyl_gr_spacetime_release(spacetime);
 }
 
+// Roe-property tests for the *regular* mod variant. The key difference vs
+// the tetrad mod variant: the flux returned by gkyl_gr_euler_mod_flux is
+// the FULL curved-space GR flux (with α, √γ, β^i factors), not the flat-
+// space SR flux. The Roe eigenstructure is SR-Roe (same as tetrad mod);
+// what differs is what the algorithm expects ∑ s_k·w_k to equal.
+//
+// In Minkowski (α=1, β=0, √γ=1) the GR flux coincides with the SR flat
+// flux, so the Roe identity ∑ s_k·w_k = ∆f holds at floating-point
+// precision. In curved spacetime, the SR-Roe linearization only
+// reproduces ∆f_SR — it cannot reproduce the α/β/√γ-corrected GR flux,
+// since the linearization is on the SR Jacobian. The residual is then
+// approximately |∆f_GR − √γ · ∆f_SR_flat|.
+//
+// This is the structural argument for the tetrad framework: it factors
+// the GR flux into (flat SR flux) × (geometric correction), letting Roe
+// linearize the part it actually can.
+static void
+run_roe_properties_mod(struct gkyl_gr_spacetime *spacetime)
+{
+  double gas_gamma = 5.0 / 3.0;
+
+  int lower[1] = { 0 }, upper[1] = { 0 };
+  struct gkyl_range conf_range;
+  gkyl_range_init(&conf_range, 1, lower, upper);
+  struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
+    GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
+
+  struct gkyl_wv_eqn *gr_mod = gkyl_wv_gr_euler_mod_inew(
+    &(struct gkyl_wv_gr_euler_mod_inp){
+      .gas_gamma = gas_gamma,
+      .conf_range = conf_range,
+      .rp_type = WV_GR_EULER_RP_ROE,
+      .use_gpu = false,
+    });
+  gkyl_gr_euler_mod_set_auxfields(gr_mod,
+    (struct gkyl_wv_gr_euler_mod_auxfields){ .prods = prods });
+
+  struct wv_gr_euler_mod *grm = container_of(gr_mod,
+    struct wv_gr_euler_mod, eqn);
+
+  double norm[3] = { 1.0, 0.0, 0.0 };
+  double tau1[3] = { 0.0, 1.0, 0.0 };
+  double tau2[3] = { 0.0, 0.0, 1.0 };
+
+  double max_wsum_res = 0.0;
+  double max_fj_res   = 0.0;
+
+  for (int x_ind = -5; x_ind < 6; x_ind++) {
+    for (int y_ind = -5; y_ind < 6; y_ind++) {
+      double x = 0.1 * x_ind;
+      double y = 0.1 * y_ind;
+
+      double q_seed[71];
+      double *prods_row = gkyl_array_fetch(prods, 0);
+      fill_spacetime(spacetime, x, y, 0.0, q_seed, prods_row);
+      if (q_seed[27] < 0.0) continue;
+
+      double rho_l = 1.0, ul = 0.10, vl = 0.20, wl = 0.30, pl = 1.5;
+      double rho_r = 0.5, ur = 0.05, vr = 0.10, wr = 0.15, pr = 0.7;
+
+      double spatial_det = prods_row[GKYL_GR_SP_SPATIAL_DET];
+      double vell[3] = { ul, vl, wl }, velr[3] = { ur, vr, wr };
+      double vsq_l = 0.0, vsq_r = 0.0;
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) {
+          vsq_l += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * vell[i] * vell[j];
+          vsq_r += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * velr[i] * velr[j];
+        }
+      double Wl = 1.0 / sqrt(1.0 - vsq_l);
+      double Wr = 1.0 / sqrt(1.0 - vsq_r);
+      double hl = 1.0 + (pl / rho_l) * (gas_gamma / (gas_gamma - 1.0));
+      double hr = 1.0 + (pr / rho_r) * (gas_gamma / (gas_gamma - 1.0));
+
+      double ql_mod[5], qr_mod[5];
+      ql_mod[0] = sqrt(spatial_det) * rho_l * Wl;
+      ql_mod[1] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * ul;
+      ql_mod[2] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * vl;
+      ql_mod[3] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * wl;
+      ql_mod[4] = sqrt(spatial_det) * ((rho_l * hl * (Wl*Wl)) - pl - (rho_l * Wl));
+      qr_mod[0] = sqrt(spatial_det) * rho_r * Wr;
+      qr_mod[1] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * ur;
+      qr_mod[2] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * vr;
+      qr_mod[3] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * wr;
+      qr_mod[4] = sqrt(spatial_det) * ((rho_r * hr * (Wr*Wr)) - pr - (rho_r * Wr));
+
+      int idx_l[1] = { 0 }, idx_r[1] = { 0 };
+      gr_mod->set_interface_idx_func(gr_mod, idx_l, idx_r);
+      double ql_local[5], qr_local[5];
+      gr_mod->rotate_to_local_func(gr_mod, tau1, tau2, norm, ql_mod, ql_local);
+      gr_mod->rotate_to_local_func(gr_mod, tau1, tau2, norm, qr_mod, qr_local);
+
+      double delta[5];
+      for (int i = 0; i < 5; i++) delta[i] = qr_local[i] - ql_local[i];
+
+      double waves[3 * 5], speeds[3];
+      gr_mod->waves_func(gr_mod, GKYL_WV_HIGH_ORDER_FLUX,
+        delta, ql_local, qr_local, 1.0, 1.0, waves, speeds);
+
+      for (int i = 0; i < 5; i++) {
+        double sum = 0.0;
+        for (int k = 0; k < 3; k++) sum += waves[k * 5 + i];
+        double res = fabs(sum - delta[i]);
+        if (res > max_wsum_res) max_wsum_res = res;
+      }
+
+      // Compare against the FULL curved-space GR flux returned by
+      // gkyl_gr_euler_mod_flux (already includes α·√γ and (vx − βˣ/α)
+      // factors). In Minkowski this collapses to the flat flux.
+      double fl_gr[5], fr_gr[5];
+      gkyl_gr_euler_mod_flux(gas_gamma, ql_local, grm->prodl_local, fl_gr);
+      gkyl_gr_euler_mod_flux(gas_gamma, qr_local, grm->prodr_local, fr_gr);
+      double df_gr[5];
+      for (int i = 0; i < 5; i++) df_gr[i] = fr_gr[i] - fl_gr[i];
+
+      double sw[5] = {0};
+      for (int k = 0; k < 3; k++)
+        for (int i = 0; i < 5; i++)
+          sw[i] += speeds[k] * waves[k * 5 + i];
+      for (int i = 0; i < 5; i++) {
+        double res = fabs(sw[i] - df_gr[i]);
+        if (res > max_fj_res) max_fj_res = res;
+      }
+    }
+  }
+
+  // Wave-sum holds always (it's pure linear algebra on the eigenvector
+  // basis). Flux-jump only holds in Minkowski (no curvature corrections);
+  // in curved spacetime ∑ s w − ∆f_GR is the residual α/β/√γ correction
+  // that the SR Roe linearization cannot reproduce.
+  TEST_CHECK_( max_wsum_res < 1e-10,
+    "Roe wave-sum residual:   max |∑ w_k − ∆q|        = %.3e", max_wsum_res );
+  TEST_CHECK_( max_fj_res < 1e-9,
+    "Roe flux-jump residual:  max |∑ s_k·w_k − ∆f_GR| = %.3e", max_fj_res );
+
+  gkyl_array_release(prods);
+  gkyl_wv_eqn_release(gr_mod);
+}
+
+void
+test_gr_euler_mod_roe_properties_minkowski()
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  run_roe_properties_mod(spacetime);
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_mod_roe_properties_schwarzschild()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_roe_properties_mod(spacetime);
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_mod_roe_properties_kerr()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_roe_properties_mod(spacetime);
+  gkyl_gr_spacetime_release(spacetime);
+}
+
 TEST_LIST = {
   { "gr_euler_mod_construction",           test_gr_euler_mod_construction },
   { "gr_euler_mod_rotation_minkowski",     test_gr_euler_mod_rotation_minkowski },
@@ -697,5 +861,8 @@ TEST_LIST = {
   { "gr_euler_mod_roe_minkowski",          test_gr_euler_mod_roe_minkowski },
   { "gr_euler_mod_roe_schwarzschild",      test_gr_euler_mod_roe_schwarzschild },
   { "gr_euler_mod_roe_kerr",               test_gr_euler_mod_roe_kerr },
+  { "gr_euler_mod_roe_properties_minkowski",     test_gr_euler_mod_roe_properties_minkowski },
+  { "gr_euler_mod_roe_properties_schwarzschild", test_gr_euler_mod_roe_properties_schwarzschild },
+  { "gr_euler_mod_roe_properties_kerr",          test_gr_euler_mod_roe_properties_kerr },
   { NULL, NULL },
 };

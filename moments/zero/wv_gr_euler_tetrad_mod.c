@@ -568,8 +568,11 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   double tau_sr_l = ql[4] / sqrt_det_l;             // = ρhW² − p − ρW (SR τ)
   double tau_sr_r = qr[4] / sqrt_det_r;
 
-  double K_l = sqrt(D_sr_l + tau_sr_l + p_l);       // = W_l · sqrt(ρ_l h_l)
-  double K_r = sqrt(D_sr_r + tau_sr_r + p_r);
+  // Paper Eq. (10.3): K² = √(−g) ρh. For Minkowski √(−g)=1, so K = √(ρh).
+  // Since D + τ + p = ρhW² (rest-mass-subtracted τ + D + p collapses to
+  // the full energy density), we have K = √((D+τ+p)/W²) = √(D+τ+p) / W.
+  double K_l = sqrt(D_sr_l + tau_sr_l + p_l) / W_l;
+  double K_r = sqrt(D_sr_r + tau_sr_r + p_r) / W_r;
   double K_avg = 1.0 / (K_l + K_r);
 
   double v0 = ((K_l * W_l)        + (K_r * W_r))        * K_avg;
@@ -587,26 +590,24 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   double energy = (v0*v0) - (v1*v1);
   double y = sqrt(((1.0 - (gas_gamma * v4)) * energy) + s_sq);
 
-  // Wave amplitudes derived by inverting the eigenvector matrix
-  //   columns = { r_left, r_contact_p, r_contact_y, r_contact_z, r_right }
-  // with the eigenvectors as written in the wave-construction block below.
-  // Rows 2 (Sx) and 5 (τ) of the inverse system fix
-  //   A   ≡ a1 + a2 + a3 = k / E
-  //   B   ≡ a2 − a1      = y·(v0·δ1 − v1·δ4) / (√s²·E)
-  // rows 3 (Sy) and 4 (Sz) fix a4 and a5 as transverse contact amplitudes,
-  // and row 1 (D) closes the system for a3. The acoustic amplitudes a1, a2
-  // are then (A − a3 ∓ B)/2.
+  // Wave amplitudes derived from inverting the 5×5 eigenvector basis with
+  // the corrected eigenvector forms (see derivation in
+  // wv_gr_euler_roe_derivation.md, sections "Translated to code ordering"
+  // and "Corrected wave amplitudes"). The eigenvectors below carry the
+  // rest-mass-subtraction terms in the τ slot that the original code
+  // omitted; the amplitudes here are the unique solutions of
+  // Σ a_k r_k = ∆q for that basis.
   //
-  // This replaces an earlier formulation in which a1, a2, a3 carried an
-  // extra (γ−1)·E·(δ0 + c⁺·v_delta) term and a3 included a stray 2·k/E.
-  // That formulation produced O(1) residuals in BOTH the wave-sum
-  // (∑ w_k − ∆q) and flux-jump (∑ s_k·w_k − ∆f_SR) Roe identities even on
-  // Minkowski; the form below restores both identities to floating-point
-  // precision (verified by ctest_wv_gr_euler_tetrad_mod's
-  // gr_euler_tetrad_mod_roe_properties_* tests).
-  double k = (v0 * delta[4]) - (v1 * delta[1]);
-  double A_sum  = k / energy;
-  double B_diff = y * ((v0 * delta[1]) - (v1 * delta[4])) / (sqrt(s_sq) * energy);
+  // The combined Row-0 + Row-4 of the inverse system collapses (the τ
+  // slot cancels the D slot's c_-, a3·s²/(Γ−1) and c_+·(a4 v_2 + a5 v_3)
+  // contributions) into the paper's E-slot equation:
+  //   v^0 A + (s/y) v^1 B = δ[0] + δ[4]
+  // paired with Row 1 (Sx):
+  //   v^1 A + (s/y) v^0 B = δ[1]
+  // gives A = a1+a2+a3, B = a2−a1.
+  double sum04 = delta[0] + delta[4];
+  double A_sum  = ((v0 * sum04) - (v1 * delta[1])) / energy;
+  double B_diff = y * ((v0 * delta[1]) - (v1 * sum04)) / (sqrt(s_sq) * energy);
 
   double a4 = delta[2] - (v2 * A_sum);
   double a5 = delta[3] - (v3 * A_sum);
@@ -619,13 +620,18 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
 
   for (int i = 0; i < 5 * 3; i++) waves[i] = 0.0;
 
+  // Eigenvectors with the rest-mass-subtraction τ-slot terms (EM 1995
+  // Eq. 10.15 translated from (D, E, Sx, Sy, Sz) into the code ordering
+  // (D, Sx, Sy, Sz, τ) via τ = E − D). See wv_gr_euler_roe_derivation.md.
+  // The previous implementation kept the bare paper components in the τ
+  // slot, which broke the flux-jump identity.
   double *wv;
   wv = &waves[0 * 5];
   wv[0] = a1 * c_minus;
   wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
   wv[2] = a1 * v2;
   wv[3] = a1 * v3;
-  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y));
+  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y) - c_minus);
   s[0] = (((1.0 - (gas_gamma * v4)) * v0 * v1) - (sqrt(s_sq) * y))
        / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
 
@@ -635,7 +641,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   wv[1] = a3 * v1;
   wv[2] = (a3 * v2) + a4;
   wv[3] = (a3 * v3) + a5;
-  wv[4] = a3 * v0;
+  wv[4] = (a3 * (v0 - c_minus - (s_sq / (gas_gamma - 1.0))))
+        + (a4 * c_plus * v2) + (a5 * c_plus * v3);
   s[1] = v1 / v0;
 
   wv = &waves[2 * 5];
@@ -643,7 +650,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
   wv[2] = a2 * v2;
   wv[3] = a2 * v3;
-  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y));
+  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y) - c_minus);
   s[2] = (((1.0 - (gas_gamma * v4)) * v0 * v1) + (sqrt(s_sq) * y))
        / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
 
