@@ -2,11 +2,8 @@ local Moments = G0.Moments
 local VacuumEinstein = G0.Moments.Eq.VacuumEinstein
 local Minkowski = G0.Moments.Spacetime.Minkowski
 
--- Mathematical constants (dimensionless).
-pi = math.pi
-
 -- Physical constants (using normalized code units).
-amp = math.pow(10.0, -8.0) -- Wave amplitude.
+amp = math.pow(10.0, -10.0) -- Perturbation amplitude.
 
 -- Evolution parameters.
 excision_threshold = 0.3 -- Excision threshold (lapse).
@@ -15,10 +12,14 @@ spacetime_evolution = G0.SpacetimeEvolution.Einstein -- Spacetime evolution syst
 
 -- Simulation parameters.
 Nx = 50 -- Cell count (x-direction).
+Ny = 5 -- Cell count (y-direction).
+Nz = 5 -- Cell count (z-direction).
 Lx = 1.0 -- Domain size (x-direction).
+Ly = 0.1 -- Domain size (y-direction).
+Lz = 0.1 -- Domain size (z-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
-t_end = 1000.0 -- Final simulation time.
+t_end = 50.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -33,16 +34,16 @@ momentApp = Moments.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { -0.5 * Lx },
-  upper = { 0.5 * Lx },
-  cells = { Nx },
+  lower = { -0.5 * Lx, -0.5 * Ly, -0.5 * Lz },
+  upper = { 0.5 * Lx, 0.5 * Ly, 0.5 * Lz },
+  cells = { Nx, Ny, Nz },
   cflFrac = cfl_frac,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1, 1, 1 }, -- Cuts in each coodinate direction (x-, y-, and z-directions).
   
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
+  periodicDirs = { 1, 2, 3 }, -- Periodic directions (x-, y-, and z-directions).
 
   -- Fluid.
   fluid = Moments.Species.new {
@@ -59,33 +60,19 @@ momentApp = Moments.App.new {
   
     -- Initial conditions function.
     init = function (t, xn)
-      local x, y = xn[1], xn[2]
+      local x, y, z = xn[1], xn[2], xn[3]
 
-      local lapse = Minkowski.lapseFunction(0.0, x, 0.0, 0.0)
-      local shift = Minkowski.shiftVector(0.0, x, 0.0, 0.0)
-      local spatial_metric = Minkowski.spatialMetricTensor(0.0, x, 0.0, 0.0)
-      local inv_spatial_metric = Minkowski.invSpatialMetricTensor(0.0, x, 0.0, 0.0)
-      local spatial_det = Minkowski.spatialMetricDeterminant(0.0, x, 0.0, 0.0)
-      local extrinsic_curvature = Minkowski.extrinsicCurvatureTensor(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
-      local in_excision_region = Minkowski.excisionRegion(0.0, x, 0.0, 0.0)
+      local lapse = Minkowski.lapseFunction(0.0, x, y, z)
+      local shift = Minkowski.shiftVector(0.0, x, y, z)
+      local spatial_metric = Minkowski.spatialMetricTensor(0.0, x, y, z)
+      local inv_spatial_metric = Minkowski.invSpatialMetricTensor(0.0, x, y, z)
+      local spatial_det = Minkowski.spatialMetricDeterminant(0.0, x, y, z)
+      local extrinsic_curvature = Minkowski.extrinsicCurvatureTensor(0.0, x, y, z, 1.0, 1.0, 1.0)
+      local in_excision_region = Minkowski.excisionRegion(0.0, x, y, z)
 
-      local lapse_der = Minkowski.lapseFunctionDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
-      local shift_der = Minkowski.shiftVectorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
-      local spatial_metric_der = Minkowski.spatialMetricTensorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
-
-      local b = amp * math.sin(2.0 * pi * x)
-      spatial_metric[2][2] = 1.0 + b
-      spatial_metric[3][3] = 1.0 - b
-
-      extrinsic_curvature[2][2] = -amp * pi * math.cos(2.0 * pi * x)
-      extrinsic_curvature[3][3] = amp * pi * math.cos(2.0 * pi * x)
-
-      spatial_metric_der[1][2][2] = 2.0 * amp * pi * math.cos(2.0 * pi * x)
-      spatial_metric_der[1][3][3] = -2.0 * amp * pi * math.cos(2.0 * pi * x)
-
-      spatial_det = 1.0 - (b * b)
-      inv_spatial_metric[2][2] = 1.0 / (1.0 + b)
-      inv_spatial_metric[3][3] = 1.0 / (1.0 + b)
+      local lapse_der = Minkowski.lapseFunctionDer(0.0, x, y, z, 1.0, 1.0, 1.0)
+      local shift_der = Minkowski.shiftVectorDer(0.0, x, y, z, 1.0, 1.0, 1.0)
+      local spatial_metric_der = Minkowski.spatialMetricTensorDer(0.0, x, y, z, 1.0, 1.0, 1.0)
 
       for i = 1, 3 do
         for j = 1, 3 do
@@ -148,6 +135,26 @@ momentApp = Moments.App.new {
           aux_vect[i] = aux_vect[i] - spatial_metric_der_raised1[s][s][i]
         end
       end
+
+      math.randomseed(0)
+
+      for i = 1, 3 do
+        for j = 1, 3 do
+          spatial_metric[i][j] = spatial_metric[i][j] + (2.0 * amp * math.random()) - amp
+          extrinsic_curvature[i][j] = extrinsic_curvature[i][j] + (2.0 * amp * math.random()) - amp
+          shift_der[i][j] = shift_der[i][j] + (2.0 * amp * math.random()) - amp
+
+          for k = 1, 3 do
+            spatial_metric_der[i][j][k] = spatial_metric_der[i][j][k] + (2.0 * amp * math.random()) - amp
+          end
+        end
+
+        lapse_der[i] = lapse_der[i] + (2.0 * amp * math.random()) - amp
+        aux_vect[i] = aux_vect[i] + (2.0 * amp * math.random()) - amp
+        shift[i] = shift[i] + (2.0 * amp * math.random()) - amp
+      end
+
+      lapse = lapse + (2.0 * amp * math.random()) - amp
 
       local excision = 0.0
       if in_excision_region then

@@ -6,7 +6,7 @@ local Minkowski = G0.Moments.Spacetime.Minkowski
 pi = math.pi
 
 -- Physical constants (using normalized code units).
-amp = math.pow(10.0, -8.0) -- Wave amplitude.
+amp = math.pow(10.0, -2.0) -- Wave amplitude.
 
 -- Evolution parameters.
 excision_threshold = 0.3 -- Excision threshold (lapse).
@@ -14,11 +14,11 @@ spacetime_slicing = G0.SpacetimeSlicing.Harmonic -- Spacetime slicing condition.
 spacetime_evolution = G0.SpacetimeEvolution.Einstein -- Spacetime evolution system.
 
 -- Simulation parameters.
-Nx = 50 -- Cell count (x-direction).
+Nx = 200 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
-t_end = 1000.0 -- Final simulation time.
+t_end = 10.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -73,19 +73,21 @@ momentApp = Moments.App.new {
       local shift_der = Minkowski.shiftVectorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
       local spatial_metric_der = Minkowski.spatialMetricTensorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
 
-      local b = amp * math.sin(2.0 * pi * x)
-      spatial_metric[2][2] = 1.0 + b
-      spatial_metric[3][3] = 1.0 - b
+      local H = 1.0 + (amp * math.sin(2.0 * pi * x))
+      spatial_metric[1][1] = H
+      spatial_metric[2][2] = 1.0
+      spatial_metric[3][3] = 1.0
 
-      extrinsic_curvature[2][2] = -amp * pi * math.cos(2.0 * pi * x)
-      extrinsic_curvature[3][3] = amp * pi * math.cos(2.0 * pi * x)
+      extrinsic_curvature[1][1] = -(pi * amp) * (math.cos(2.0 * pi * x) / math.sqrt(1.0 + (amp * math.sin(2.0 * pi * x))))
+      spatial_metric_der[1][1][1] = 2.0 * amp * pi * math.cos(2.0 * pi * x)
 
-      spatial_metric_der[1][2][2] = 2.0 * amp * pi * math.cos(2.0 * pi * x)
-      spatial_metric_der[1][3][3] = -2.0 * amp * pi * math.cos(2.0 * pi * x)
+      spatial_det = H
+      inv_spatial_metric[1][1] = 1.0 / H
+      inv_spatial_metric[2][2] = 1.0
+      inv_spatial_metric[3][3] = 1.0
 
-      spatial_det = 1.0 - (b * b)
-      inv_spatial_metric[2][2] = 1.0 / (1.0 + b)
-      inv_spatial_metric[3][3] = 1.0 / (1.0 + b)
+      lapse = math.sqrt(1.0 + (amp * math.sin(2.0 * pi * x)))
+      lapse_der[1] = (amp * pi * math.cos(2.0 * pi * x)) / math.sqrt(1.0 + (amp * math.sin(2.0 * pi * x)))
 
       for i = 1, 3 do
         for j = 1, 3 do

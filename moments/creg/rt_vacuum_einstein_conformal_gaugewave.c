@@ -18,7 +18,7 @@
 
 #include <rt_arg_parse.h>
 
-struct einstein_conformal_linearwave_ctx
+struct einstein_conformal_gaugewave_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -47,14 +47,14 @@ struct einstein_conformal_linearwave_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct einstein_conformal_linearwave_ctx
+struct einstein_conformal_gaugewave_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
 
   // Physical constants (using normalized code units).
-  double amp = pow(10.0, -8.0); // Wave amplitude.
+  double amp = pow(10.0, -2.0); // Wave amplitude.
 
   // Pointer to spacetime metric.
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -65,18 +65,18 @@ create_ctx(void)
   enum gkyl_spacetime_evolution spacetime_evolution = GKYL_EINSTEIN_EVOLUTION; // Spacetime evolution system.
 
   // Simulation parameters.
-  int Nx = 50; // Cell count (x-direction).
+  int Nx = 200; // Cell count (x-direction).
   double Lx = 1.0; // Domain size (x-direction).
   double cfl_frac = 0.95; // CFL coefficient.
 
-  double t_end = 1000.0; // Final simulation time.
+  double t_end = 10.0; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct einstein_conformal_linearwave_ctx ctx = {
+  struct einstein_conformal_gaugewave_ctx ctx = {
     .pi = pi,
     .amp = amp,
     .spacetime = spacetime,
@@ -101,7 +101,7 @@ void
 evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct einstein_conformal_linearwave_ctx *app = ctx;
+  struct einstein_conformal_gaugewave_ctx *app = ctx;
 
   double pi = app->pi;
   double amp = app->amp;
@@ -168,25 +168,25 @@ evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn, double
   spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &conformal_spatial_metric_der);
 
-  double b = amp * sin(2.0 * pi * x);
-  conformal_spatial_det = 1.0 - (b * b);
+  double H = 1.0 + (amp * sin(2.0 * pi * x));
+  conformal_spatial_det = H;
   conformal_fact = pow(conformal_spatial_det, 1.0 / 12.0);
-  conformal_fact_der[0] = ((amp * amp) * pi * cos(2.0 * pi * x) * sin(2.0 * pi * x)) / (3.0 * pow(1.0 - ((amp * amp) * (sin(2.0 * pi * x) * sin(2.0 * pi * x))), 11.0 / 12.0));
+  conformal_fact_der[0] = (amp * pi * cos(2.0 * pi * x)) / (6.0 * pow(1.0 + (amp * sin(2.0 * pi * x)), 11.0 / 12.0));
   bssn_conformal_fact = 1.0 / (conformal_fact * conformal_fact);
 
-  conformal_spatial_metric[0][0] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric[1][1] = (1.0 + b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  conformal_spatial_metric[2][2] = (1.0 - b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric[0][0] = H / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric[1][1] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_spatial_metric[2][2] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-  conformal_extrinsic_curvature[1][1] = -amp * pi * cos(2.0 * pi * x);
-  conformal_extrinsic_curvature[2][2] = amp * pi * cos(2.0 * pi * x);
+  conformal_extrinsic_curvature[0][0] = -(pi * amp) * (cos(2.0 * pi * x) / sqrt(1.0 + (amp * sin(2.0 * pi * x))));
+  conformal_spatial_metric_der[0][0][0] = 2.0 * amp * pi * cos(2.0 * pi * x);
 
-  conformal_spatial_metric_der[0][1][1] = 2.0 * amp * pi * cos(2.0 * pi * x);
-  conformal_spatial_metric_der[0][2][2] = -2.0 * amp * pi * cos(2.0 * pi * x);
+  inv_conformal_spatial_metric[0][0] = (1.0 / H) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  inv_conformal_spatial_metric[1][1] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  inv_conformal_spatial_metric[2][2] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-  inv_conformal_spatial_metric[0][0] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  inv_conformal_spatial_metric[1][1] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-  inv_conformal_spatial_metric[2][2] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+  conformal_lapse = sqrt(1.0 + (amp * sin(2.0 * pi * x)));
+  conformal_lapse_der[0] = (amp * pi * cos(2.0 * pi * x)) / sqrt(1.0 + (amp * sin(2.0 * pi * x)));
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -371,7 +371,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct einstein_conformal_linearwave_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct einstein_conformal_gaugewave_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
@@ -460,7 +460,7 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "vacuum_einstein_conformal_linearwave",
+    .name = "vacuum_einstein_conformal_gaugewave",
 
     .ndim = 1,
     .lower = { -0.5 * ctx.Lx },

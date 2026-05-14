@@ -6,7 +6,7 @@ local Minkowski = G0.Moments.Spacetime.Minkowski
 pi = math.pi
 
 -- Physical constants (using normalized code units).
-amp = math.pow(10.0, -8.0) -- Wave amplitude.
+amp = math.pow(10.0, -2.0) -- Wave amplitude.
 
 -- Evolution parameters.
 excision_threshold = 0.3 -- Excision threshold (lapse).
@@ -14,11 +14,11 @@ spacetime_slicing = G0.SpacetimeSlicing.Harmonic -- Spacetime slicing condition.
 spacetime_evolution = G0.SpacetimeEvolution.Einstein -- Spacetime evolution system.
 
 -- Simulation parameters.
-Nx = 50 -- Cell count (x-direction).
+Nx = 200 -- Cell count (x-direction).
 Lx = 1.0 -- Domain size (x-direction).
 cfl_frac = 0.95 -- CFL coefficient.
 
-t_end = 1000.0 -- Final simulation time.
+t_end = 10.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -80,25 +80,25 @@ momentApp = Moments.App.new {
       local bssn_conformal_fact_der = Minkowski.bssnConformalFactorDer(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
       local bssn_conformal_fact_der2 = Minkowski.bssnConformalFactorDer2(0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0)
 
-      local b = amp * math.sin(2.0 * pi * x)
-      conformal_spatial_det = 1.0 - (b * b)
+      local H = 1.0 + (amp * math.sin(2.0 * pi * x))
+      conformal_spatial_det = H
       conformal_fact = math.pow(conformal_spatial_det, 1.0 / 12.0)
-      conformal_fact_der[1] = ((amp * amp) * pi * math.cos(2.0 * pi * x) * math.sin(2.0 * pi * x)) / (3.0 * math.pow(1.0 - ((amp * amp) * (math.sin(2.0 * pi * x) * math.sin(2.0 * pi * x))), 11.0 / 12.0))
+      conformal_fact_der[1] = (amp * pi * math.cos(2.0 * pi * x)) / (6.0 * math.pow(1.0 + (amp * math.sin(2.0 * pi * x)), 11.0 / 12.0))
       bssn_conformal_fact = 1.0 / (conformal_fact * conformal_fact)
 
-      conformal_spatial_metric[1][1] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
-      conformal_spatial_metric[2][2] = (1.0 + b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
-      conformal_spatial_metric[3][3] = (1.0 - b) / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
+      conformal_spatial_metric[1][1] = H / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
+      conformal_spatial_metric[2][2] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
+      conformal_spatial_metric[3][3] = 1.0 / (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
 
-      conformal_extrinsic_curvature[2][2] = -amp * pi * math.cos(2.0 * pi * x)
-      conformal_extrinsic_curvature[3][3] = amp * pi * math.cos(2.0 * pi * x)
+      conformal_extrinsic_curvature[1][1] = -(pi * amp) * (math.cos(2.0 * pi * x) / math.sqrt(1.0 + (amp * math.sin(2.0 * pi * x))))
+      conformal_spatial_metric_der[1][1][1] = 2.0 * amp * pi * math.cos(2.0 * pi * x)
 
-      conformal_spatial_metric_der[1][2][2] = 2.0 * amp * pi * math.cos(2.0 * pi * x)
-      conformal_spatial_metric_der[1][3][3] = -2.0 * amp * pi * math.cos(2.0 * pi * x)
+      inv_conformal_spatial_metric[1][1] = (1.0 / H) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
+      inv_conformal_spatial_metric[2][2] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
+      inv_conformal_spatial_metric[3][3] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
 
-      inv_conformal_spatial_metric[1][1] = 1.0 * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
-      inv_conformal_spatial_metric[2][2] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
-      inv_conformal_spatial_metric[3][3] = (1.0 / (1.0 + b)) * (conformal_fact * conformal_fact * conformal_fact * conformal_fact)
+      conformal_lapse = math.sqrt(1.0 + (amp * math.sin(2.0 * pi * x)))
+      conformal_lapse_der[1] = (amp * pi * math.cos(2.0 * pi * x)) / math.sqrt(1.0 + (amp * math.sin(2.0 * pi * x)))
 
       for i = 1, 3 do
         for j = 1, 3 do
