@@ -7,7 +7,11 @@
 #include <time.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_array.h>
 #include <gkyl_moment.h>
+#include <gkyl_moment_priv.h>
+#include <gkyl_range.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_tov.h>
 #include "tov_solver_ultra_rel.h"
@@ -204,6 +208,75 @@ calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+static void
+write_energy_exact_error_norms(const struct gr_tov_static_ctx *ctx, gkyl_moment_app *app, double t_curr, const char *fname)
+{
+  struct gkyl_array *q = gkyl_moment_app_get_write_array_species(app, 0);
+  double dx = app->grid.dx[0];
+
+  double l1_local = 0.0;
+  double l2sq_local = 0.0;
+  double linf_local = 0.0;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+    const double *qnum = gkyl_array_cfetch(q, loc);
+
+    double xc[GKYL_MAX_DIM] = { 0.0 };
+    double qexact[8] = { 0.0 };
+    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xc);
+    evalGRTovInit(0.0, xc, qexact, (void*) ctx);
+
+    double etot_num = 0.5 * (qnum[1] + qnum[2]);
+    double etot_exact = 0.5 * (qexact[1] + qexact[2]);
+    double err = etot_num - etot_exact;
+    double abs_err = fabs(err);
+
+    l1_local += dx * abs_err;
+    l2sq_local += dx * err * err;
+    linf_local = fmax(linf_local, abs_err);
+  }
+
+  double sum_local[2] = { l1_local, l2sq_local };
+  double sum_global[2] = { 0.0, 0.0 };
+  double linf_global = 0.0;
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2, sum_local, sum_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &linf_local, &linf_global);
+
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0) {
+    bool write_header = false;
+    FILE *check = fopen(fname, "r");
+    if (check == NULL) {
+      write_header = true;
+    }
+    else {
+      fclose(check);
+    }
+
+    FILE *fp = fopen(fname, "a");
+    if (fp == NULL) {
+      fprintf(stderr, "Could not open %s for convergence diagnostics.\n", fname);
+      return;
+    }
+
+    if (write_header) {
+      fprintf(fp, "# kind nx nx_fine time L1 L2 Linf\n");
+    }
+    fprintf(fp, "exact %d 0 %.16e %.16e %.16e %.16e\n",
+      app->grid.cells[0], t_curr, sum_global[0], sqrt(sum_global[1]), linf_global);
+    fclose(fp);
+
+    printf("\nFinal Etot exact-error norms written to %s:\n", fname);
+    printf("  NX = %d, t = %.16e\n", app->grid.cells[0], t_curr);
+    printf("  L1 = %.16e, L2 = %.16e, Linf = %.16e\n",
+      sum_global[0], sqrt(sum_global[1]), linf_global);
   }
 }
 
@@ -437,6 +510,7 @@ main(int argc, char **argv)
   calc_field_energy(&fe_trig, app, t_curr, false);
   calc_integrated_mom(&im_trig, app, t_curr, false);
   write_data(&io_trig, app, t_curr, false);
+  write_energy_exact_error_norms(&ctx, app, t_curr, "gr_tov_static_energy_conv.dat");
   gkyl_moment_app_stat_write(app);
 
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);

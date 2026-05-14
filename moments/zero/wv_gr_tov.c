@@ -115,6 +115,22 @@ gkyl_gr_tov_flux_total(double gas_gamma, double kappa, const double q[8], double
   flux[2] += f1[2] / r2;
 }
 
+static void
+gkyl_gr_tov_flux_at_radius(double gas_gamma, double kappa, const double q[8], double r, double flux[8])
+{
+  double f1[8], f2[8];
+  gkyl_gr_tov_flux(gas_gamma, kappa, q, f1, f2);
+
+  double r2 = r * r;
+  
+  for (int i = 0; i < 8; i++) {
+    flux[i] = 0.0;
+  }
+
+  flux[1] = f2[1] + f1[1] / r2;
+  flux[2] = f2[2] + f1[2] / r2;
+}
+
 static inline void
 cons_to_riem(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* qin, double* wout)
 {
@@ -172,9 +188,13 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double sr = gkyl_gr_tov_max_abs_speed(gas_gamma, qr);
   double amax = fmax(sl, sr);
 
+  // The only change was to the physical flux used to construct the waves: 
+  // instead of using a single flux f(q), I used the Appendix-B split spherical flux evaluated at the interface
+  // => the waves are now built from the split flux at r_face instead of the old total flux using each state’s own q[5]
+  double r_face = 0.5 * (ql[5] + qr[5]);
   double fl[8], fr[8];
-  gkyl_gr_tov_flux_total(gas_gamma, kappa, ql, fl);
-  gkyl_gr_tov_flux_total(gas_gamma, kappa, qr, fr);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, ql, r_face, fl);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, qr, r_face, fr);
 
   double *w0 = &waves[0], *w1 = &waves[8];
   for (int i = 0; i < 8; i++) {
@@ -197,41 +217,13 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const struct wv_gr_tov *gr_tov = container_of(eqn, struct wv_gr_tov, eqn);
-  double gas_gamma = gr_tov->gas_gamma;
-  double kappa = gr_tov->kappa;
-
-  double f1l[8], f2l[8], f1r[8], f2r[8];
-  gkyl_gr_tov_flux(gas_gamma, kappa, ql, f1l, f2l);
-  gkyl_gr_tov_flux(gas_gamma, kappa, qr, f1r, f2r);
-
-  // for getting the 1/r^2 factor:
-  double rl = ql[5]; //radius stored in the left state
-  double rr = qr[5]; //radius stored in the right state
-  double rl2 = rl * rl;
-  double rr2 = rr * rr;
-
-  double amax = fmax(fabs(s[0]), fabs(s[1]));
+  const double *w0 = &waves[0], *w1 = &waves[8];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
   for (int i = 0; i < 8; i++) {
-    amdq[i] = 0.0;
-    apdq[i] = 0.0;
-  }
-
-  double dq_mom = 0.5 * ((qr[1] - qr[2]) - (ql[1] - ql[2]));
-  double dq_diff[8] = { 0.0 };
-  dq_diff[1] = dq_mom;
-  dq_diff[2] = -dq_mom;
-
-  for (int i = 1; i <= 2; i++) {
-    double df1 = f1r[i] - f1l[i];
-    double df2 = f2r[i] - f2l[i];
-
-    double df_l = (df1 / rl2) + df2;
-    double df_r = (df1 / rr2) + df2;
-
-    amdq[i] = 0.5 * (df_l - amax * dq_diff[i]);
-    apdq[i] = 0.5 * (df_r + amax * dq_diff[i]);
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
   }
 }
 
@@ -249,6 +241,109 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 }
 
 static double
+wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_gr_tov *gr_tov = container_of(eqn, struct wv_gr_tov, eqn);
+  double gas_gamma = gr_tov->gas_gamma;
+  double kappa = gr_tov->kappa;
+
+  double vl[8], vr[8];
+  gkyl_gr_tov_prim_vars(gas_gamma, ql, vl);
+  gkyl_gr_tov_prim_vars(gas_gamma, qr, vr);
+
+  double c_sl = sqrt(gas_gamma - 1.0);
+  double c_sr = sqrt(gas_gamma - 1.0);
+  double vel_l = vl[7];
+  double vel_r = vr[7];
+
+  double lapse_l = exp(ql[3]);
+  double lapse_r = exp(qr[3]);
+  double a_l = 1.0 / sqrt(1.0 - (2.0 * ql[4] / ql[5]));
+  double a_r = 1.0 / sqrt(1.0 - (2.0 * qr[4] / qr[5]));
+  double metric_speed_l = lapse_l / a_l;
+  double metric_speed_r = lapse_r / a_r;
+
+  // vel is the locally measured radial velocity
+  double slow_acoustic_eig_l = metric_speed_l * (vel_l - c_sl) / (1.0 - (vel_l * c_sl));
+  double fast_acoustic_eig_l = metric_speed_l * (vel_l + c_sl) / (1.0 + (vel_l * c_sl));
+  double slow_acoustic_eig_r = metric_speed_r * (vel_r - c_sr) / (1.0 - (vel_r * c_sr));
+  double fast_acoustic_eig_r = metric_speed_r * (vel_r + c_sr) / (1.0 + (vel_r * c_sr));
+
+  double sl = fmin(slow_acoustic_eig_l, slow_acoustic_eig_r); //most negative wave speed (after the acoustic eigenvalues estiamtion)
+  double sr = fmax(fast_acoustic_eig_l, fast_acoustic_eig_r); //most postivie wave speed
+  if (sr <= sl) {
+    double amax = fmax(gkyl_gr_tov_max_abs_speed(gas_gamma, ql), gkyl_gr_tov_max_abs_speed(gas_gamma, qr));
+    sl = -amax;
+    sr = amax;
+  }
+
+  double fl[8], fr[8];
+  double r_face = 0.5 * (ql[5] + qr[5]);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, ql, r_face, fl);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, qr, r_face, fr);
+
+  double qm[8];
+  for (int i = 0; i < 8; i++) {
+    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
+  }
+
+  double *w0 = &waves[0], *w1 = &waves[8];
+  for (int i = 0; i < 8; i++) {
+    w0[i] = qm[i] - ql[i];
+    w1[i] = qr[i] - qm[i];
+  }
+  for (int i = 0; i < 8; i++) {
+    if (i != 1 && i != 2) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
+  }
+
+  s[0] = sl;
+  s[1] = sr;
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+static void
+qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+{
+  const double *w0 = &waves[0], *w1 = &waves[8];
+  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
+  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
+
+  for (int i = 0; i < 8; i++) {
+    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
+    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+  }
+}
+
+static double
+wave_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_hll(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+
+  return 0.0;
+}
+
+static void
+qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* ql, const double* qr, const double phil, const double phir, const double* waves, const double* s,
+  double* amdq, double* apdq)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return qfluct_hll(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+  else {
+    return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
+  }
+}
+
+static double
 flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, double* flux_jump)
 {
   const struct wv_gr_tov *gr_tov = container_of(eqn, struct wv_gr_tov, eqn);
@@ -256,8 +351,11 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   double kappa = gr_tov->kappa;
 
   double fr[8], fl[8];
-  gkyl_gr_tov_flux_total(gas_gamma, kappa, ql, fl);
-  gkyl_gr_tov_flux_total(gas_gamma, kappa, qr, fr);
+  //gkyl_gr_tov_flux_total(gas_gamma, kappa, ql, fl);
+  //gkyl_gr_tov_flux_total(gas_gamma, kappa, qr, fr);
+  double r_face = 0.5 * (ql[5] + qr[5]);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, ql, r_face, fl);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, qr, r_face, fr);
 
   for (int m = 0; m < 8; m++) {
     flux_jump[m] = fr[m] - fl[m];
@@ -329,7 +427,7 @@ gkyl_wv_gr_tov_new(double gas_gamma, double kappa, bool use_gpu)
   return gkyl_wv_gr_tov_inew(&(struct gkyl_wv_gr_tov_inp) {
       .gas_gamma = gas_gamma,
       .kappa = kappa,
-      .rp_type = WV_GR_TOV_RP_LAX,
+      .rp_type = WV_GR_TOV_RP_HLL,//WV_GR_TOV_RP_LAX,
       .use_gpu = use_gpu,
     }
   );
@@ -351,6 +449,11 @@ gkyl_wv_gr_tov_inew(const struct gkyl_wv_gr_tov_inp* inp)
     gr_tov->eqn.num_waves = 2;
     gr_tov->eqn.waves_func = wave_lax_l;
     gr_tov->eqn.qfluct_func = qfluct_lax_l;
+  }
+  else if (inp->rp_type == WV_GR_TOV_RP_HLL) {
+    gr_tov->eqn.num_waves = 2;
+    gr_tov->eqn.waves_func = wave_hll_l;
+    gr_tov->eqn.qfluct_func = qfluct_hll_l;
   }
 
   gr_tov->eqn.flux_jump = flux_jump;

@@ -6,6 +6,7 @@
 enum gkyl_wv_gr_tov_rp {
   WV_GR_TOV_RP_LAX = 0, // Default (Lax fluxes).
   WV_GR_TOV_RP_ROE,
+  WV_GR_TOV_RP_HLL,
 };
 
 // Input context, packaged as a struct.
