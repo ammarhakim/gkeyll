@@ -859,6 +859,8 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
         &gks->local_lower_skin[d], &gks->local_lower_ghost[d], gks->vel_map,
         cdim, 2.0*(gks->info.charge/gks->info.mass), gks->lower_bc[d].use_sheath_surrogate, app->use_gpu);
+      if (gks->lower_bc[d].use_sheath_surrogate && gks->lower_bc[d].surrogate_model_path)
+        gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(gks->lower_bc[d].surrogate_model_path);
     }
     else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
@@ -919,6 +921,8 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
         &gks->local_upper_skin[d], &gks->local_upper_ghost[d], gks->vel_map,
         cdim, 2.0*(gks->info.charge/gks->info.mass), gks->upper_bc[d].use_sheath_surrogate, app->use_gpu);
+      if (gks->upper_bc[d].use_sheath_surrogate && gks->upper_bc[d].surrogate_model_path)
+        gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(gks->upper_bc[d].surrogate_model_path);
     }
     else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 

@@ -26,6 +26,17 @@ typedef struct {
 EXTERN_C_BEG
 
 /**
+ * Set the path to the KANN surrogate model file at runtime.
+ * Must be called before the first prediction; the simulation will abort
+ * with an error if a prediction is attempted without a path having been set.
+ * Can be called again to switch models (the currently loaded model is released
+ * and reloaded from the new path on the next prediction).
+ *
+ * @param path Absolute or relative path to the .kann file.
+ */
+void bc_sheath_gyrokinetic_srgrz_set_model_path(const char *path);
+
+/**
  * Returns 1 if GYRAZE is predicted to converge, 0 otherwise.
  *
  * @param alpha: impact angle in degrees

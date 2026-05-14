@@ -115,3 +115,13 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
  */
 void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new,  int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
+
+/**
+ * Set the path to the KANN surrogate model file.
+ * Must be called before the first call to gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate;
+ * the simulation will abort if a prediction is attempted without a path having been set.
+ * Can be called again to switch models.
+ *
+ * @param path Absolute or relative path to the .kann file.
+ */
+void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(const char *path);

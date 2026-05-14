@@ -257,6 +257,11 @@ void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_ne
   return bc_sheath_gyrokinetic_srgrz_eval_fact(mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
 }
 
+void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(const char *path)
+{
+  bc_sheath_gyrokinetic_srgrz_set_model_path(path);
+}
+
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   // Release memory associated with this updater.
