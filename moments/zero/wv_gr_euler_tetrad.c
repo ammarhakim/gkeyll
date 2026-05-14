@@ -5,6 +5,14 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_euler_tetrad_priv.h>
+// Reuse the tetrad-first Roe pipeline helpers (build_triad, q_to_tetrad,
+// sr_roe_minkowski, wave_to_curved, speed_to_curved) from the modular
+// implementation. They are pure-math, state-free routines parameterized on
+// γ_ij / α / β / L / L_inv, so the packed equation can call them directly
+// — only the source of the spacetime data differs (q[5..27] here vs. the
+// prods row in mod). Keeping packed and mod on a single set of helpers
+// means there is exactly one tetrad-Roe algorithm in the codebase.
+#include <gkyl_wv_gr_euler_tetrad_mod_priv.h>
 
 void
 gkyl_gr_euler_tetrad_flux(double gas_gamma, const double q[71], double flux[71])
@@ -185,11 +193,20 @@ gkyl_gr_euler_tetrad_prim_vars(double gas_gamma, const double q[71], double v[71
     double momz = q[3] / sqrt(spatial_det);
     double Etot = q[4] / sqrt(spatial_det);
 
-    double C = D / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    if (((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)) < pow(10.0, -8.0)) {
-      C = D / sqrt(pow(10.0, -8.0));
-      C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
+    // |S|² = γ_ij·S^i·S^j. The slot stores contravariant momentum
+    // S^i := ρhW²·v^i, so the Lorentz scalar contracts with γ_ij.
+    double mom_sq = (spatial_metric[0][0] * momx*momx)
+                  + (spatial_metric[1][1] * momy*momy)
+                  + (spatial_metric[2][2] * momz*momz)
+                  + 2.0 * (spatial_metric[0][1] * momx*momy
+                         + spatial_metric[0][2] * momx*momz
+                         + spatial_metric[1][2] * momy*momz);
+
+    double C = D / sqrt(((Etot + D) * (Etot + D)) - mom_sq);
+    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - mom_sq);
+    if (((Etot + D) * (Etot + D)) - mom_sq < pow(10.0, -10.0)) {
+      C = D / sqrt(pow(10.0, -10.0));
+      C0 = (D + Etot) / sqrt(pow(10.0, -10.0));
     }
 
     double alpha0 = -1.0 / (gas_gamma * gas_gamma);
@@ -207,7 +224,10 @@ gkyl_gr_euler_tetrad_prim_vars(double gas_gamma, const double q[71], double v[71
 
       double guess_new = guess - (poly / poly_der);
 
-      if (fabs(guess - guess_new) < pow(10.0, -8.0)) {
+      // Converge to machine precision; accept the latest iterate so the
+      // closed-form W expression below uses the converged value.
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) {
+        guess = guess_new;
         iter = 100;
       }
       else {
@@ -1167,31 +1187,31 @@ qfluct_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
 static double
 wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
 {
-  const struct wv_gr_euler_tetrad *gr_euler_tetrad = container_of(eqn, struct wv_gr_euler_tetrad, eqn);
-  double vl[71], vr[71];
+  // Tetrad-first Roe pipeline, identical algorithm to the modular variant:
+  //   1. Average the left and right cell γ_ij / α / β / √γ at the interface.
+  //   2. Cholesky-on-γ → triad (L, L_inv).
+  //   3. Forward-transform hydro states ql, qr to the tetrad frame.
+  //   4. Pure-SR Eulderink-Mellema Roe in the tetrad frame.
+  //   5. Back-transform waves with L_inv, speeds with α·L_inv[0][0] − β^x.
+  // The `delta` parameter is unused — step 4 reconstructs its own delta in
+  // the tetrad frame.
+  (void)delta;
+
+  const struct wv_gr_euler_tetrad *gr_euler_tetrad =
+    container_of(eqn, struct wv_gr_euler_tetrad, eqn);
   double gas_gamma = gr_euler_tetrad->gas_gamma;
-  
-  gkyl_gr_euler_tetrad_prim_vars(gas_gamma, ql, vl);
-  gkyl_gr_euler_tetrad_prim_vars(gas_gamma, qr, vr);
 
-  double rho_l = vl[0];
-  double vx_l = vl[1];
-  double vy_l = vl[2];
-  double vz_l = vl[3];
-  double p_l = vl[4];
+  // Step 1: interface metric = arithmetic mean of left and right γ_ij.
+  // Same convention as wv_gr_euler_tetrad_mod.c::wave_roe.
+  double g_iface[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      g_iface[i][j] = 0.5 * (ql[9 + 3*i + j] + qr[9 + 3*i + j]);
+  double alpha_iface   = 0.5 * (ql[5] + qr[5]);
+  double shift_x_iface = 0.5 * (ql[6] + qr[6]);
 
-  double rho_r = vr[0];
-  double vx_r = vr[1];
-  double vy_r = vr[2];
-  double vz_r = vr[3];
-  double p_r = vr[4];
-
-  double W_l = 1.0 / sqrt(1.0 - ((vx_l * vx_l) + (vy_l * vy_l) + (vz_l * vz_l)));
-  double W_r = 1.0 / sqrt(1.0 - ((vx_r * vx_r) + (vy_r * vy_r) + (vz_r * vz_r)));
-
-  // Eulderink–Mellema Roe averaging (paper Eq. 10.2-10.7) plus rest-mass-
-  // subtraction in eigenvector τ slot and corrected wave amplitudes. See
-  // wv_gr_euler_roe_derivation.md for the full mapping from EM to the code.
+  // det γ from cofactor expansion of each cell's γ_ij; √γ averaged so each
+  // side strips the same factor as it did when it formed q.
   double sdet_l = (ql[9]*(ql[13]*ql[17] - ql[16]*ql[14])
                  - ql[10]*(ql[12]*ql[17] - ql[15]*ql[14])
                  + ql[11]*(ql[12]*ql[16] - ql[15]*ql[13]));
@@ -1200,93 +1220,89 @@ wave_roe(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
                  + qr[11]*(qr[12]*qr[16] - qr[15]*qr[13]));
   double sqrt_det_l = sqrt(sdet_l);
   double sqrt_det_r = sqrt(sdet_r);
-  double D_sr_l   = ql[0] / sqrt_det_l;
-  double D_sr_r   = qr[0] / sqrt_det_r;
-  double tau_sr_l = ql[4] / sqrt_det_l;
-  double tau_sr_r = qr[4] / sqrt_det_r;
+  double sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
 
-  double h_l = 1.0 + ((p_l / rho_l) * gas_gamma / (gas_gamma - 1.0));
-  double h_r = 1.0 + ((p_r / rho_r) * gas_gamma / (gas_gamma - 1.0));
-  double eps_l = p_l / (rho_l * h_l);
-  double eps_r = p_r / (rho_r * h_r);
+  // Steps 2–3: Cholesky-on-γ triad, then forward q_to_tetrad on the 5-comp
+  // hydro slice of each cell. The helpers live in wv_gr_euler_tetrad_mod.c.
+  double L[3][3], L_inv[3][3];
+  gkyl_gr_euler_tetrad_mod_build_triad(g_iface, L, L_inv);
 
-  double K_l = sqrt(D_sr_l + tau_sr_l + p_l) / W_l;
-  double K_r = sqrt(D_sr_r + tau_sr_r + p_r) / W_r;
-  double K_avg = 1.0 / (K_l + K_r);
+  double ql_hydro[5] = { ql[0], ql[1], ql[2], ql[3], ql[4] };
+  double qr_hydro[5] = { qr[0], qr[1], qr[2], qr[3], qr[4] };
+  double ql_tet[5], qr_tet[5];
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad(ql_hydro, sqrt_det_l, L, ql_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad(qr_hydro, sqrt_det_r, L, qr_tet);
 
-  double v0 = ((K_l * W_l)        + (K_r * W_r))        * K_avg;
-  double v1 = ((K_l * W_l * vx_l) + (K_r * W_r * vx_r)) * K_avg;
-  double v2 = ((K_l * W_l * vy_l) + (K_r * W_r * vy_r)) * K_avg;
-  double v3 = ((K_l * W_l * vz_l) + (K_r * W_r * vz_r)) * K_avg;
-  double v4 = ((K_l * eps_l)      + (K_r * eps_r))      * K_avg;
+  // Step 4: pure Minkowski SR Roe in the tetrad frame.
+  double waves_tet[3 * 5], speeds_tet[3];
+  gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(
+    gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
 
-  double c_minus = 1.0 - ((gas_gamma / (gas_gamma - 1.0)) * v4);
-  double c_plus = 1.0 + ((gas_gamma / (gas_gamma - 1.0)) * v4);
+  // Zero the full 71-comp wave buffer up front so the spacetime slots
+  // (waves[k * 71 + 5..70]) carry no contribution into the wave-prop update.
+  // This is what keeps the metric components clean under Roe — Lax/HLL in
+  // packed do diffuse them (∆q on those slots flows into both w0 and w1),
+  // but Roe leaves them untouched.
+  for (int i = 0; i < 71 * 3; i++) waves[i] = 0.0;
 
-  double v_alpha_sq = -(v0 * v0) + (v1 * v1) + (v2 * v2) + (v3 * v3);
-  double s_sq = (0.5 * gas_gamma * v4 * (1.0 - v_alpha_sq)) - (0.5 * (gas_gamma - 1.0) * (1.0 + v_alpha_sq));
-  double energy = (v0 * v0) - (v1 * v1);
-  double y = sqrt(((1.0 - (gas_gamma * v4)) * energy) + s_sq);
-
-  double sum04 = delta[0] + delta[4];
-  double A_sum  = ((v0 * sum04) - (v1 * delta[1])) / energy;
-  double B_diff = y * ((v0 * delta[1]) - (v1 * sum04)) / (sqrt(s_sq) * energy);
-
-  double a4 = delta[2] - (v2 * A_sum);
-  double a5 = delta[3] - (v3 * A_sum);
-
-  double a3 = ((gas_gamma - 1.0) / s_sq) *
-              (delta[0] - (A_sum * c_minus) + (c_plus * ((v2 * a4) + (v3 * a5))));
-
-  double a1 = 0.5 * (A_sum - a3 - B_diff);
-  double a2 = 0.5 * (A_sum - a3 + B_diff);
-
-  for (int i = 0; i < 71 * 3; i++) {
-    waves[i] = 0;
+  // Step 5: back-transform waves and speeds to the curved coord frame.
+  // Hydro slots [k*71 + 0..4] get the back-transformed wave; spacetime
+  // slots stay zero. CFL uses the max curved-frame |s_k|, NOT the back-
+  // transform of the max tetrad-frame speed (the two differ when β^x ≠ 0).
+  double maxs_curved = 0.0;
+  for (int k = 0; k < 3; k++) {
+    double w_GR[5];
+    gkyl_gr_euler_tetrad_mod_wave_to_curved(&waves_tet[k * 5],
+      sqrt_det_iface, L_inv, w_GR);
+    double *wv = &waves[k * 71];
+    wv[0] = w_GR[0];
+    wv[1] = w_GR[1];
+    wv[2] = w_GR[2];
+    wv[3] = w_GR[3];
+    wv[4] = w_GR[4];
+    s[k] = gkyl_gr_euler_tetrad_mod_speed_to_curved(
+      speeds_tet[k], alpha_iface, shift_x_iface, L_inv);
+    if (fabs(s[k]) > maxs_curved) maxs_curved = fabs(s[k]);
   }
-
-  double *wv;
-  wv = &waves[0 * 71];
-  wv[0] = a1 * c_minus;
-  wv[1] = a1 * (v1 - ((sqrt(s_sq) * v0) / y));
-  wv[2] = a1 * v2;
-  wv[3] = a1 * v3;
-  wv[4] = a1 * (v0 - ((sqrt(s_sq) * v1) / y) - c_minus);
-  s[0] = (((1.0 - (gas_gamma * v4)) * v0 * v1) - (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
-
-  wv = &waves[1 * 71];
-  wv[0] = (a3 * (c_minus + (s_sq / (gas_gamma - 1.0)))) - (a4 * c_plus * v2) - (a5 * c_plus * v3);
-  wv[1] = a3 * v1;
-  wv[2] = (a3 * v2) + a4;
-  wv[3] = (a3 * v3) + a5;
-  wv[4] = (a3 * (v0 - c_minus - (s_sq / (gas_gamma - 1.0))))
-        + (a4 * c_plus * v2) + (a5 * c_plus * v3);
-  s[1] = v1 / v0;
-
-  wv = &waves[2 * 71];
-  wv[0] = a2 * c_minus;
-  wv[1] = a2 * (v1 + ((sqrt(s_sq) * v0) / y));
-  wv[2] = a2 * v2;
-  wv[3] = a2 * v3;
-  wv[4] = a2 * (v0 + ((sqrt(s_sq) * v1) / y) - c_minus);
-  s[2] = (((1.0 - (gas_gamma * v4)) * v0 * v1) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
-
-  return (((1.0 - (gas_gamma * v4)) * v0 * fabs(v1)) + (sqrt(s_sq) * y)) / (((1.0 - (gas_gamma * v4)) * v0 * v0) + s_sq);
+  return maxs_curved;
 }
 static void
-qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
+qfluct_roe(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr,
+  const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double* w0 = &waves[0 * 71];
-  const double* w1 = &waves[1 * 71];
-  const double* w2 = &waves[2 * 71];
+  // Central-flux + Roe-dissipation form, parallel to qfluct_lax and qfluct_hll:
+  //   F_face = (F_L + F_R)/2 − (1/2) · Σ_k |s_k| · w_k
+  //   amdq   = F_face − F_L  = (1/2) · ΔF − (1/2) · Σ |s_k| · w_k
+  //   apdq   = F_R − F_face  = (1/2) · ΔF + (1/2) · Σ |s_k| · w_k
+  //
+  // This makes amdq + apdq = ΔF by construction, so the wave-prop face flux
+  // is consistent across the interface even when the tetrad-Roe wave
+  // decomposition does not strictly satisfy Σ s·w = ΔF in curved γ. The
+  // Roe waves enter only as the upwind dissipation magnitude; the central
+  // flux comes from the exact Banyuls flux (flux + flux_correction) on each
+  // side, identical to what Lax and HLL use.
+  const struct wv_gr_euler_tetrad *gr_euler_tetrad =
+    container_of(eqn, struct wv_gr_euler_tetrad, eqn);
+  double gas_gamma = gr_euler_tetrad->gas_gamma;
 
-  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
-  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+  double fl_sr[71], fr_sr[71];
+  gkyl_gr_euler_tetrad_flux(gas_gamma, ql, fl_sr);
+  gkyl_gr_euler_tetrad_flux(gas_gamma, qr, fr_sr);
+  double fl[71], fr[71];
+  gkyl_gr_euler_tetrad_flux_correction(gas_gamma, ql, fl_sr, fl);
+  gkyl_gr_euler_tetrad_flux_correction(gas_gamma, qr, fr_sr, fr);
+
+  const double *w0 = &waves[0 * 71], *w1 = &waves[1 * 71], *w2 = &waves[2 * 71];
+  double abs_s0 = fabs(s[0]), abs_s1 = fabs(s[1]), abs_s2 = fabs(s[2]);
 
   for (int i = 0; i < 5; i++) {
-    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
-    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
+    double df   = fr[i] - fl[i];
+    double diss = abs_s0 * w0[i] + abs_s1 * w1[i] + abs_s2 * w2[i];
+    amdq[i] = 0.5 * (df - diss);
+    apdq[i] = 0.5 * (df + diss);
   }
+  // Spacetime slots: fl = fr = 0 and waves are zero on these slots, so amdq
+  // and apdq are zero too — no diffusion of γ_ij / α / β / K_ij via Roe.
   for (int i = 5; i < 71; i++) {
     amdq[i] = 0.0;
     apdq[i] = 0.0;

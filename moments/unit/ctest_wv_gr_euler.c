@@ -6,6 +6,8 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
+#include "prim_vars_stringent_data.h"
+
 void
 test_gr_euler_basic_minkowski()
 {
@@ -330,11 +332,11 @@ test_gr_euler_basic_schwarzschild()
         double prims[71];
         gkyl_gr_euler_prim_vars(gas_gamma, q, prims);
         
-        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[2], v, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[3], w, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[4], p, 1e-1) );
+        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[1], u, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[2], v, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[3], w, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[4], p, 1e-12) );
 
         double fluxes[3][5] = {
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
@@ -541,11 +543,11 @@ test_gr_euler_basic_kerr()
         double prims[71];
         gkyl_gr_euler_prim_vars(gas_gamma, q, prims);
         
-        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[2], v, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[3], w, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[4], p, 1e-1) );
+        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[1], u, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[2], v, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[3], w, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[4], p, 1e-12) );
 
         double fluxes[3][5] = {
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
@@ -1427,6 +1429,440 @@ test_gr_euler_waves_kerr()
   gkyl_gr_spacetime_release(spacetime);
 }
 
+// Stringent prim_vars roundtrip stress-test. Sweeps a parameter grid of
+// primitive states (varying ρ, p over 5+ orders of magnitude, |v| from low
+// to relativistic) at a fixed set of sample positions including explicit
+// near-horizon points where γ_ij deviates strongly from δ_ij and β^i is
+// large from frame-dragging. For each (state, position) tuple, builds the
+// conserved q via Convention-B (q[i+1] = √γ·ρhW²·v^i), calls prim_vars,
+// and records the worst-case RELATIVE error per component. Test data lives
+// in prim_vars_stringent_data.h so all four GR Euler ctest files exercise
+// the same regime.
+static void
+run_prim_vars_stringent(struct gkyl_gr_spacetime *spacetime, const char *label)
+{
+  double gas_gamma = 5.0 / 3.0;
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(
+    gas_gamma, GKYL_STATIC_GAUGE, 0, spacetime, false);
+
+  double max_rel_rho = 0.0, max_rel_u = 0.0, max_rel_v = 0.0;
+  double max_rel_w   = 0.0, max_rel_p = 0.0;
+  int    worst_s = -1, worst_p = -1;
+  int    n_samples = 0, n_skipped_excise = 0, n_skipped_super = 0;
+
+  const double rel_floor = STRINGENT_REL_FLOOR;
+
+  for (int sx = 0; sx < N_STRINGENT_STATES; sx++) {
+    for (int px = 0; px < N_STRINGENT_POSITIONS; px++) {
+      double rho_in = stringent_states[sx].rho;
+      double p_in   = stringent_states[sx].p;
+      double u_in   = stringent_states[sx].vx;
+      double v_in   = stringent_states[sx].vy;
+      double w_in   = stringent_states[sx].vz;
+      double x = stringent_positions[px][0];
+      double y = stringent_positions[px][1];
+      double z = stringent_positions[px][2];
+
+      double spatial_det, lapse;
+      double *shift = gkyl_malloc(sizeof(double[3]));
+      bool in_excision_region;
+      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+      double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+      double *lapse_der = gkyl_malloc(sizeof(double[3]));
+      double **shift_der = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) shift_der[i] = gkyl_malloc(sizeof(double[3]));
+      double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+      for (int i = 0; i < 3; i++) {
+        spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+        for (int j = 0; j < 3; j++) spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+      }
+
+      spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, z, &spatial_det);
+      spacetime->lapse_function_func(spacetime, 0.0, x, y, z, &lapse);
+      spacetime->shift_vector_func(spacetime, 0.0, x, y, z, &shift);
+      spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
+      spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &extrinsic_curvature);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &lapse_der);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &shift_der);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &spatial_metric_der);
+
+      bool skip = false;
+      if (in_excision_region) { n_skipped_excise++; skip = true; }
+      double v_sq = 0.0;
+      if (!skip) {
+        double vel[3] = { u_in, v_in, w_in };
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++)
+            v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+        if (v_sq >= 1.0 - 1.0e-6) { n_skipped_super++; skip = true; }
+      }
+
+      if (!skip) {
+        double W = 1.0 / sqrt(1.0 - v_sq);
+        double h = 1.0 + ((p_in / rho_in) * (gas_gamma / (gas_gamma - 1.0)));
+
+        double q[71];
+        q[0] = sqrt(spatial_det) * rho_in * W;
+        q[1] = sqrt(spatial_det) * rho_in * h * (W*W) * u_in;
+        q[2] = sqrt(spatial_det) * rho_in * h * (W*W) * v_in;
+        q[3] = sqrt(spatial_det) * rho_in * h * (W*W) * w_in;
+        q[4] = sqrt(spatial_det) * ((rho_in * h * (W*W)) - p_in - (rho_in * W));
+        q[5] = lapse;
+        q[6] = shift[0]; q[7] = shift[1]; q[8] = shift[2];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++) q[9 + 3*i + j] = spatial_metric[i][j];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++) q[18 + 3*i + j] = extrinsic_curvature[i][j];
+        q[27] = 1.0;
+        q[28] = lapse_der[0]; q[29] = lapse_der[1]; q[30] = lapse_der[2];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++) q[31 + 3*i + j] = shift_der[i][j];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++)
+            for (int k = 0; k < 3; k++) q[40 + 9*i + 3*j + k] = spatial_metric_der[i][j][k];
+        q[67] = 0.0; q[68] = x; q[69] = y; q[70] = z;
+
+        double prims[71];
+        gkyl_gr_euler_prim_vars(gas_gamma, q, prims);
+
+        double rel_rho = fabs(prims[0] - rho_in) / fmax(fabs(rho_in), rel_floor);
+        double rel_u   = fabs(prims[1] - u_in)   / fmax(fabs(u_in),   rel_floor);
+        double rel_v   = fabs(prims[2] - v_in)   / fmax(fabs(v_in),   rel_floor);
+        double rel_w   = fabs(prims[3] - w_in)   / fmax(fabs(w_in),   rel_floor);
+        double rel_p   = fabs(prims[4] - p_in)   / fmax(fabs(p_in),   rel_floor);
+
+        if (rel_rho > max_rel_rho) { max_rel_rho = rel_rho; worst_s = sx; worst_p = px; }
+        if (rel_u   > max_rel_u)   { max_rel_u   = rel_u;   }
+        if (rel_v   > max_rel_v)   { max_rel_v   = rel_v;   }
+        if (rel_w   > max_rel_w)   { max_rel_w   = rel_w;   }
+        if (rel_p   > max_rel_p)   { max_rel_p   = rel_p;   }
+        n_samples++;
+      }
+
+      for (int i = 0; i < 3; i++) { gkyl_free(spatial_metric[i]); gkyl_free(extrinsic_curvature[i]); gkyl_free(shift_der[i]); }
+      for (int i = 0; i < 3; i++) { for (int j = 0; j < 3; j++) gkyl_free(spatial_metric_der[i][j]); gkyl_free(spatial_metric_der[i]); }
+      gkyl_free(spatial_metric); gkyl_free(extrinsic_curvature); gkyl_free(lapse_der);
+      gkyl_free(shift_der); gkyl_free(spatial_metric_der); gkyl_free(shift);
+    }
+  }
+
+  double worst_rel = fmax(fmax(max_rel_rho, fmax(max_rel_u, max_rel_v)),
+                          fmax(max_rel_w, max_rel_p));
+  TEST_CHECK_( worst_rel < STRINGENT_REL_TOL,
+    "[%s] n=%d (skip excise=%d super=%d) "
+    "max rel: Δρ=%.3e Δu=%.3e Δv=%.3e Δw=%.3e Δp=%.3e   worst state=%d pos=%d",
+    label, n_samples, n_skipped_excise, n_skipped_super,
+    max_rel_rho, max_rel_u, max_rel_v, max_rel_w, max_rel_p, worst_s, worst_p);
+
+  gkyl_wv_eqn_release(gr_euler);
+}
+
+void
+test_prim_vars_stringent_minkowski()
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  run_prim_vars_stringent(spacetime, "Minkowski");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_prim_vars_stringent_schwarzschild()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent(spacetime, "Schwarzschild a=0");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_prim_vars_stringent_kerr_mild()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent(spacetime, "Kerr a=0.5");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_prim_vars_stringent_kerr_extreme()
+{
+  // a=0.99 puts the outer horizon at r_+ ≈ M·(1 + sqrt(1−0.9801)) ≈ 0.114
+  // for M=0.1. Frame-dragging is strong; β^i is large near the horizon.
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.99, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent(spacetime, "Kerr a=0.99");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+#include <stdio.h>
+
+// Fill q[5..70] with the spacetime data at (x,y,z) from the given spacetime
+// callbacks. Returns the excision flag (positive = not excised).
+static double
+fill_spacetime_block_71(struct gkyl_gr_spacetime *spacetime,
+  double x, double y, double z, double q[71])
+{
+  double spatial_det, lapse;
+  bool in_excision_region;
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+  }
+  double *lapse_der = gkyl_malloc(sizeof(double[3]));
+  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) shift_der[i] = gkyl_malloc(sizeof(double[3]));
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+    for (int j = 0; j < 3; j++) spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, z, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, y, z, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, z, &shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
+  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z,
+    pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &extrinsic_curvature);
+  spacetime->lapse_function_der_func(spacetime, 0.0, x, y, z,
+    pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &lapse_der);
+  spacetime->shift_vector_der_func(spacetime, 0.0, x, y, z,
+    pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &shift_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z,
+    pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &spatial_metric_der);
+
+  q[5] = lapse;
+  q[6] = shift[0]; q[7] = shift[1]; q[8] = shift[2];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) q[9 + 3*i + j] = spatial_metric[i][j];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) q[18 + 3*i + j] = extrinsic_curvature[i][j];
+  q[27] = in_excision_region ? -1.0 : 1.0;
+  q[28] = lapse_der[0]; q[29] = lapse_der[1]; q[30] = lapse_der[2];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) q[31 + 3*i + j] = shift_der[i][j];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      for (int k = 0; k < 3; k++) q[40 + 9*i + 3*j + k] = spatial_metric_der[i][j][k];
+  q[67] = 0.0; q[68] = x; q[69] = y; q[70] = z;
+
+  double flag = q[27];
+  // Also expose spatial_det and metric via the caller using q[9..17].
+  (void)spatial_det;  // q[9..17] carries γ_ij; det is derivable.
+
+  for (int i = 0; i < 3; i++) { gkyl_free(spatial_metric[i]); gkyl_free(extrinsic_curvature[i]); gkyl_free(shift_der[i]); }
+  for (int i = 0; i < 3; i++) { for (int j = 0; j < 3; j++) gkyl_free(spatial_metric_der[i][j]); gkyl_free(spatial_metric_der[i]); }
+  gkyl_free(spatial_metric); gkyl_free(extrinsic_curvature); gkyl_free(lapse_der);
+  gkyl_free(shift_der); gkyl_free(spatial_metric_der); gkyl_free(shift);
+  return flag;
+}
+
+// Combined 3D ultra-stress sweep of prim_vars recovery. Sweeps the full
+// cross-product of W × ρ × (p/ρ) from prim_vars_stringent_data.h at a
+// specified spacetime cell — Minkowski origin for the clean reference,
+// near-horizon Schwarzschild and Kerr to confirm the recovery also works
+// in strong-field γ.
+//
+// Velocity is constructed in the direction (1,1,1) (in coord components)
+// and scaled by 1/√(γ_ij·δ^i·δ^j) so the resulting γ-norm hits the target
+// |v|² = 1 − 1/W². The scaling stays well-conditioned for high W because
+// 1/W² is small even at W=1e4.
+//
+// W²·ε scaling. The (τ+D)² − |S|² discriminant in the Eulderink-Mellema
+// recovery polynomial loses ~2·log₁₀(W) digits of precision because the
+// leading W⁴ terms cancel. Empirically: rel_err ≈ W²·machine_ε. At W=1e4
+// this is ~1e-8 for moderate p/ρ. The ceiling clamps W to 1e4 in
+// flux/max_abs_speed (the 1e-8 v_sq floor) which keeps the production
+// code in the reliable regime.
+static void
+run_ultra_combined(struct gkyl_gr_spacetime *spacetime, const char *label,
+  double x, double y, double z)
+{
+  double gas_gamma = 5.0 / 3.0;
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_new(
+    gas_gamma, GKYL_STATIC_GAUGE, 0, spacetime, false);
+
+  // Populate the spacetime block at the test position.
+  double q[71] = { 0 };
+  double excision_flag = fill_spacetime_block_71(spacetime, x, y, z, q);
+  TEST_CHECK_( excision_flag > 0.0,
+    "[%s] test position (%.3f, %.3f, %.3f) is inside the excision region; "
+    "choose a position outside the horizon", label, x, y, z );
+  if (excision_flag <= 0.0) {
+    gkyl_wv_eqn_release(gr_euler);
+    return;
+  }
+
+  // Extract γ_ij at the cell and compute the velocity-direction scaling.
+  // We pick the contravariant velocity direction (1,1,1) in coord components,
+  // then scale by 1/sqrt(γ_ij·(1,1,1)^i·(1,1,1)^j) so |v|²_γ = 1 − 1/W² for
+  // any target W.
+  double g[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      g[i][j] = q[9 + 3*i + j];
+  double g_sum = 0.0;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      g_sum += g[i][j];
+  double spatial_det =
+    (g[0][0] * (g[1][1]*g[2][2] - g[2][1]*g[1][2]))
+  - (g[0][1] * (g[1][0]*g[2][2] - g[1][2]*g[2][0]))
+  + (g[0][2] * (g[1][0]*g[2][1] - g[1][1]*g[2][0]));
+
+  const double PRIM_FLOOR = 1.0e-8;
+
+  int n_total = 0, n_skipped_floor = 0;
+  double max_rel_overall = 0.0;
+  struct { double W, rho, p, rel; } top_failures[5];
+  for (int i = 0; i < 5; i++) top_failures[i].rel = 0.0;
+
+  fprintf(stdout,
+    "\n[Combined ultra W×ρ×p/ρ sweep — %s @ (%.3f,%.3f,%.3f)]"
+    "  %d × %d × %d = %d points\n",
+    label, x, y, z,
+    N_ULTRA_COMBINED_W, N_ULTRA_COMBINED_RHO, N_ULTRA_COMBINED_PR,
+    N_ULTRA_COMBINED_W * N_ULTRA_COMBINED_RHO * N_ULTRA_COMBINED_PR);
+  fprintf(stdout,
+    "       W         ρ           p          rel ρ      rel v      rel p      rel W      worst\n");
+
+  for (int wi = 0; wi < N_ULTRA_COMBINED_W; wi++) {
+    double W_in = ultra_combined_W[wi];
+    double v_sq_target = 1.0 - 1.0 / (W_in * W_in);   // well-conditioned
+    double scale = sqrt(v_sq_target / g_sum);
+    double v_x = scale, v_y = scale, v_z = scale;     // contravariant v^i
+
+    for (int ri = 0; ri < N_ULTRA_COMBINED_RHO; ri++) {
+      double rho_in = ultra_combined_rho[ri];
+      for (int pi = 0; pi < N_ULTRA_COMBINED_PR; pi++) {
+        double p_in = rho_in * ultra_combined_p_over_rho[pi];
+
+        if (rho_in < PRIM_FLOOR || p_in < PRIM_FLOOR) {
+          n_skipped_floor++;
+          fprintf(stdout, "  %8.1e %10.1e %12.1e    SKIP (below %.0e floor)\n",
+            W_in, rho_in, p_in, PRIM_FLOOR);
+          continue;
+        }
+
+        double h_in = 1.0 + (p_in / rho_in) * (gas_gamma / (gas_gamma - 1.0));
+        double rhW2 = rho_in * h_in * (W_in * W_in);
+        double sqrt_det = sqrt(spatial_det);
+
+        // Convention B: q[i+1] := √γ · ρhW² · v^i.
+        q[0] = sqrt_det * rho_in * W_in;
+        q[1] = sqrt_det * rhW2 * v_x;
+        q[2] = sqrt_det * rhW2 * v_y;
+        q[3] = sqrt_det * rhW2 * v_z;
+        q[4] = sqrt_det * (rhW2 - p_in - (rho_in * W_in));
+
+        double prims[71];
+        gkyl_gr_euler_prim_vars(gas_gamma, q, prims);
+
+        // Recovered W from recovered velocity via the curved γ-norm.
+        double v_sq_rec = 0.0;
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++)
+            v_sq_rec += g[i][j] * prims[1 + i] * prims[1 + j];
+        if (v_sq_rec >= 1.0) v_sq_rec = 1.0 - 1.0e-300;
+        double W_rec = 1.0 / sqrt(1.0 - v_sq_rec);
+
+        double rel_rho = fabs(prims[0] - rho_in) / rho_in;
+        double rel_v   = fabs(prims[1] - v_x)    / v_x;
+        double rel_p   = fabs(prims[4] - p_in)   / p_in;
+        double rel_W   = fabs(W_rec    - W_in)   / W_in;
+        double worst   = fmax(fmax(rel_rho, rel_v), fmax(rel_p, rel_W));
+
+        fprintf(stdout,
+          "  %8.1e %10.1e %12.1e   %8.2e  %8.2e  %8.2e  %8.2e   %8.2e\n",
+          W_in, rho_in, p_in, rel_rho, rel_v, rel_p, rel_W, worst);
+
+        n_total++;
+        if (worst > max_rel_overall) max_rel_overall = worst;
+
+        for (int t = 0; t < 5; t++) {
+          if (worst > top_failures[t].rel) {
+            for (int s = 4; s > t; s--) top_failures[s] = top_failures[s-1];
+            top_failures[t].W   = W_in;
+            top_failures[t].rho = rho_in;
+            top_failures[t].p   = p_in;
+            top_failures[t].rel = worst;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  fprintf(stdout, "\n  Summary (%s):\n", label);
+  fprintf(stdout, "    γ_xx=%.3f  γ_yy=%.3f  γ_zz=%.3f  α=%.3f  √γ=%.3f\n",
+    g[0][0], g[1][1], g[2][2], q[5], sqrt(spatial_det));
+  fprintf(stdout, "    %d total points, %d skipped (below %.0e floor)\n",
+    N_ULTRA_COMBINED_W * N_ULTRA_COMBINED_RHO * N_ULTRA_COMBINED_PR,
+    n_skipped_floor, PRIM_FLOOR);
+  fprintf(stdout, "    Max relative recovery error: %.3e\n", max_rel_overall);
+  fprintf(stdout, "    Top failures:\n");
+  for (int t = 0; t < 5; t++) {
+    if (top_failures[t].rel > 0.0) {
+      fprintf(stdout, "      W=%8.1e ρ=%10.1e p=%12.1e  rel=%.3e\n",
+        top_failures[t].W, top_failures[t].rho, top_failures[t].p,
+        top_failures[t].rel);
+    }
+  }
+  fprintf(stdout, "\n");
+
+  // Empirical reliability at W ≤ 1e4 (with the s² floor at 1e-10):
+  //   - "well-conditioned" combos (p/ρ ≥ 1e-3): ≤ 1e-5 worst case
+  //   - extreme p/ρ = 1e-6 at W=1e4: ~1.3% (algorithmic-cancellation limit)
+  // The previous low-ρ × low-p × low-W corner pathology (rel ~35×) was the
+  // s² floor at 1e-8 activating spuriously; tightening to 1e-10 eliminated
+  // it across all spacetimes.
+  TEST_CHECK( isfinite(max_rel_overall) );
+  TEST_CHECK_( max_rel_overall < 2.0e-2,
+    "[%s] max relative recovery error %.3e exceeds 2%% threshold", label, max_rel_overall );
+
+  gkyl_wv_eqn_release(gr_euler);
+}
+
+void
+test_prim_vars_ultra_combined_minkowski()
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  run_ultra_combined(spacetime, "Minkowski origin", 0.0, 0.0, 0.0);
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_prim_vars_ultra_combined_schwarzschild_near_horizon()
+{
+  // Schwarzschild M=0.1: r_+ = 2M = 0.2. Sample at r ≈ 0.27 (just outside)
+  // off-axis so γ has off-diagonal entries in Cartesian Kerr-Schild.
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_ultra_combined(spacetime, "Schwarzschild near-horizon", 0.25, 0.10, 0.0);
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_prim_vars_ultra_combined_kerr_near_horizon()
+{
+  // Kerr M=0.1, a=0.9: r_+ ≈ 0.144. Sample at r ≈ 0.27 (close to ergosphere
+  // boundary, large β^i from frame-dragging).
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
+  run_ultra_combined(spacetime, "Kerr a=0.9 near-horizon", 0.25, 0.10, 0.0);
+  gkyl_gr_spacetime_release(spacetime);
+}
+
 TEST_LIST = {
   { "gr_euler_basic_minkowski", test_gr_euler_basic_minkowski },
   { "gr_euler_basic_schwarzschild", test_gr_euler_basic_schwarzschild },
@@ -1434,5 +1870,12 @@ TEST_LIST = {
   { "gr_euler_waves_minkowski", test_gr_euler_waves_minkowski },
   { "gr_euler_waves_schwarzschild", test_gr_euler_waves_schwarzschild },
   { "gr_euler_waves_kerr", test_gr_euler_waves_kerr },
+  { "prim_vars_stringent_minkowski", test_prim_vars_stringent_minkowski },
+  { "prim_vars_stringent_schwarzschild", test_prim_vars_stringent_schwarzschild },
+  { "prim_vars_stringent_kerr_mild", test_prim_vars_stringent_kerr_mild },
+  { "prim_vars_stringent_kerr_extreme", test_prim_vars_stringent_kerr_extreme },
+  { "prim_vars_ultra_combined_minkowski",                  test_prim_vars_ultra_combined_minkowski },
+  { "prim_vars_ultra_combined_schwarzschild_near_horizon", test_prim_vars_ultra_combined_schwarzschild_near_horizon },
+  { "prim_vars_ultra_combined_kerr_near_horizon",          test_prim_vars_ultra_combined_kerr_near_horizon },
   { NULL, NULL },
 };

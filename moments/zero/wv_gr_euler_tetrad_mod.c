@@ -165,11 +165,17 @@ gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
     double momz = q[3] / sqrt(spatial_det);
     double Etot = q[4] / sqrt(spatial_det);
 
-    double s_sq = ((Etot + D) * (Etot + D)) - ((momx*momx) + (momy*momy) + (momz*momz));
+    // |S|² = γ_ij·S^i·S^j. The slot stores contravariant momentum
+    // S^i := ρhW²·v^i, so the Lorentz scalar contracts with γ_ij.
+    const double *g = &prods[GKYL_GR_SP_GIJ];
+    double mom_sq = g[0]*momx*momx + g[4]*momy*momy + g[8]*momz*momz
+                  + 2.0*(g[1]*momx*momy + g[2]*momx*momz + g[5]*momy*momz);
+
+    double s_sq = ((Etot + D) * (Etot + D)) - mom_sq;
     double C, C0;
-    if (s_sq < pow(10.0, -8.0)) {
-      C  = D / sqrt(pow(10.0, -8.0));
-      C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
+    if (s_sq < pow(10.0, -10.0)) {
+      C  = D / sqrt(pow(10.0, -10.0));
+      C0 = (D + Etot) / sqrt(pow(10.0, -10.0));
     } else {
       C  = D / sqrt(s_sq);
       C0 = (D + Etot) / sqrt(s_sq);
@@ -190,7 +196,10 @@ gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
       double poly_der = alpha1 + (2.0 * alpha2 * guess) +
         (4.0 * alpha4 * (guess*guess*guess)) - (3.0 * eta * alpha4 * (guess*guess));
       double guess_new = guess - (poly / poly_der);
-      if (fabs(guess - guess_new) < pow(10.0, -8.0)) {
+      // Converge to machine precision; accept the latest iterate so the
+      // closed-form W expression below uses the converged value.
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) {
+        guess = guess_new;
         iter = 100;
       } else {
         iter += 1;
@@ -203,6 +212,8 @@ gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
     double h = 1.0 / (C * guess);
 
     v[0] = D / W;
+    // v^i = mom^i / (ρhW²). Naive division — no γ-raise needed since the
+    // slot already stores contravariant momentum.
     v[1] = momx / (v[0] * h * (W*W));
     v[2] = momy / (v[0] * h * (W*W));
     v[3] = momz / (v[0] * h * (W*W));
@@ -249,10 +260,16 @@ void
 gkyl_gr_euler_tetrad_mod_flux_correction(double gas_gamma, const double q[5],
   const double *prods, const double flux_sr[5], double flux_gr[5])
 {
+  // Mirrors gkyl_gr_euler_tetrad_flux_correction in the packed implementation:
+  // scales the flat SR flux by the W_curved / W_flat ratios that arise when
+  // mapping the tetrad-frame flux back into the coord frame, plus the α·√γ
+  // densitization and shift correction. We deliberately keep this byte-for-
+  // byte equivalent to packed so the *only* algorithmic difference between
+  // packed and mod-tetrad lives in the Roe solve. See wv_gr_euler_tetrad.c
+  // for the parallel implementation.
   double v[5];
   gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, q, prods, v);
   double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
-  (void)vy; (void)vz;  // used via vel[] below
 
   double lapse        = prods[GKYL_GR_SP_LAPSE];
   double shift_x      = prods[GKYL_GR_SP_SHIFT + 0];
@@ -264,13 +281,12 @@ gkyl_gr_euler_tetrad_mod_flux_correction(double gas_gamma, const double q[5],
   }
 
   if (!in_excision_region) {
-    double vel[3] = { v[1], v[2], v[3] };
     double v_sq = 0.0;
     for (int i = 0; i < 3; i++)
       for (int j = 0; j < 3; j++)
-        v_sq += prods[GKYL_GR_SP_GIJ + 3*i + j] * vel[i] * vel[j];
+        v_sq += prods[GKYL_GR_SP_GIJ + 3*i + j] * v[i+1] * v[j+1];
 
-    double v_dot = (v[1]*v[1]) + (v[2]*v[2]) + (v[3]*v[3]);
+    double v_dot = (vx*vx) + (vy*vy) + (vz*vz);
     double W_flat = 1.0 / sqrt(1.0 - v_dot);
     if (v_dot > 1.0 - pow(10.0, -8.0)) W_flat = 1.0 / sqrt(pow(10.0, -8.0));
 
@@ -380,7 +396,19 @@ void
 gkyl_gr_euler_tetrad_mod_build_triad(const double g_ij[3][3],
   double L[3][3], double L_inv[3][3])
 {
-  // Cholesky decomposition: γ = L L^T with L lower triangular.
+  // Cholesky factor of γ: γ = L L^T, L lower triangular. L_inv is the
+  // inverse Cholesky factor. With these, the orthonormal triad ε^i_a =
+  // (L^{-1})^T_{ia} satisfies γ_ij ε^i_a ε^j_b = δ_ab.
+  //
+  // We tried the alternative J.10 construction (Cholesky of γ^{-1}) — it
+  // gives a different but equivalent tetrad with similar properties and
+  // similar residual in off-diagonal-γ tests. Neither construction
+  // eliminates the off-diagonal-γ flux-jump residual: that residual is a
+  // structural limitation of 1D-sweep tetrad-Roe with non-diagonal coord-
+  // frame γ. The SR Roe solves a 1D problem along the tetrad e_0 direction,
+  // and the back-transformed flux F^0_coord depends on contributions from
+  // tangent directions through γ_0j coupling, which a single 1D solve
+  // cannot capture. See priv.h doc for the full analysis.
   L[0][0] = sqrt(g_ij[0][0]);
   L[1][0] = g_ij[1][0] / L[0][0];
   L[1][1] = sqrt(g_ij[1][1] - L[1][0]*L[1][0]);
@@ -403,15 +431,19 @@ void
 gkyl_gr_euler_tetrad_mod_q_to_tetrad(const double q_GR[5],
   double sqrt_det, const double L[3][3], double q_tet[5])
 {
-  // Contravariant-momentum convention: q_GR[i+1] = √γ · ρhW² · v^i.
-  // The tetrad-frame contravariant momentum is v^a = E^a_i · v^i where
-  // E = ε^{-1} = L^T (since ε = (L^{-1})^T for γ = L L^T Cholesky).
-  // So q_tet[a+1] = L[i][a] · (q_GR[i+1] / √γ).
+  // Forward transform: S_a_tet = L^T[a][i] · (q_GR[i+1] / √γ)
+  //                           = L[i][a] · (q_GR[i+1] / √γ)   (sum over i)
+  //
+  // Derivation: forward of contravariant momentum needs M with M^T M = γ so
+  // that |S_tet|² = γ_ij S^i S^j is preserved as the Cartesian sum in tetrad
+  // indices. With γ = L L^T (Cholesky), M^T M = L L^T ⇒ M = L^T.
   q_tet[0] = q_GR[0] / sqrt_det;
   q_tet[4] = q_GR[4] / sqrt_det;
 
   for (int a = 0; a < 3; a++) {
-    q_tet[a+1] = (L[0][a]*q_GR[1] + L[1][a]*q_GR[2] + L[2][a]*q_GR[3]) / sqrt_det;
+    q_tet[a+1] = (L[0][a]*q_GR[1]
+                + L[1][a]*q_GR[2]
+                + L[2][a]*q_GR[3]) / sqrt_det;
   }
 }
 
@@ -419,10 +451,13 @@ void
 gkyl_gr_euler_tetrad_mod_wave_to_curved(const double w_tet[5],
   double sqrt_det, const double L_inv[3][3], double w_GR[5])
 {
-  // Contravariant-momentum convention. The triad ε = (L^{-1})^T maps
-  // tetrad-frame contravariant momentum back to coord-frame contravariant:
-  //   v^i = ε^i_a · v^a = L_inv[a][i] · v^a
-  // So w_GR[i+1] = √γ · L_inv[a][i] · w_tet[a+1].
+  // Back-transform is the inverse of forward S_tet = L^T · S^GR:
+  //   S^i_GR = L_inv[a][i] · S_a_tet  (sum over a)
+  // So w_GR[i+1] = √γ · L_inv[a][i] · w_tet[a+1]. With L_inv lower
+  // triangular, the i=0 (coord-x momentum) slot picks up all three tetrad
+  // waves via the first column of L_inv; the i=2 (coord-z) slot only sees
+  // tetrad-z. This cross-coupling carries the off-diagonal-γ contributions
+  // back into each momentum component.
   w_GR[0] = sqrt_det * w_tet[0];
   for (int i = 0; i < 3; i++) {
     w_GR[i+1] = sqrt_det * (L_inv[0][i]*w_tet[1]
@@ -436,8 +471,9 @@ double
 gkyl_gr_euler_tetrad_mod_speed_to_curved(double s_tet,
   double lapse, double shift_x, const double L_inv[3][3])
 {
-  // ε^1_(1) = (L^{-1})[0][0] is the (1,1) entry of the orthonormal triad
-  // in the rotated frame. See derivation in priv.h.
+  // The tetrad x-axis basis vector in coord components has ε^0_0 =
+  // L_inv[0][0] (= 1/√γ_xx for diagonal γ). A wave at tetrad x-velocity
+  // s_tet has coord motion dx^0 = α · L_inv[0][0] · s_tet · dt − β^0 · dt.
   return (lapse * L_inv[0][0] * s_tet) - shift_x;
 }
 
@@ -487,7 +523,7 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
                       + (4.0 * alpha4 * guess*guess*guess)
                       - (3.0 * eta * alpha4 * guess*guess);
       double guess_new = guess - poly/poly_der;
-      if (fabs(guess - guess_new) < pow(10.0, -8.0)) { guess = guess_new; break; }
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
       guess = guess_new;
     }
     W_l = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
@@ -525,7 +561,7 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
                       + (4.0 * alpha4 * guess*guess*guess)
                       - (3.0 * eta * alpha4 * guess*guess);
       double guess_new = guess - poly/poly_der;
-      if (fabs(guess - guess_new) < pow(10.0, -8.0)) { guess = guess_new; break; }
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
       guess = guess_new;
     }
     W_r = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
@@ -776,74 +812,95 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   //      exactly, so wave-sum and flux-jump identities both hold to
   //      floating-point precision in the tetrad frame.
   //   4. Back-transform waves (×√γ + L) and speeds (×α/L[0][0] − β^1) to
-  //      the curved coord frame for wave_prop's consumption.
-  (void)delta;  // Roe constructs its own delta = qr_tet − ql_tet in tetrad frame.
+  //      the curved coord frame for wave_prop's consumption. The `delta`
+  //      parameter is unused — Roe reconstructs its own delta in the tetrad
+  //      frame from qr_tet − ql_tet.
 
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
   double gas_gamma = grm->gas_gamma;
 
   // Step 1: interface metric = arithmetic mean of left and right γ_ij;
-  // similarly mean of lapse, shift, inv_g. √γ_interface from det of mean γ.
-  double g_iface[3][3], inv_g_iface[3][3];
+  // similarly mean of lapse, shift. √γ_interface from average of √γ.
+  // (Cholesky-on-γ doesn't need γ^{-1}, so we don't compute it here.)
+  double g_iface[3][3];
   for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++) {
+    for (int j = 0; j < 3; j++)
       g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
                            + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
-      inv_g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_INV_GIJ + 3*i + j]
-                              + grm->prodr_local[GKYL_GR_SP_INV_GIJ + 3*i + j]);
-    }
   double alpha_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
                             + grm->prodr_local[GKYL_GR_SP_LAPSE]);
   double shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
                               + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
-  // For √γ we use the average of the two sides' own √γ rather than √(det
-  // of mean γ) — both are O(∆γ)-equivalent and the former matches how
-  // each side stripped its √γ when forming q.
+  // Average of the two sides' own √γ rather than √(det of mean γ) — both
+  // are O(∆γ)-equivalent and the former matches how each side stripped its
+  // √γ when forming q.
   double sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
   double sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
   double sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
 
+  // Cholesky-of-γ construction: L L^T = γ, L lower triangular. For Convention B
+  // (q[i+1] := √γ·ρhW²·v^i, contravariant velocity in each slot) the forward
+  // transform on momentum uses L^T (so |S_tet|² = γ_ij S^i S^j is preserved
+  // as the Cartesian sum in tetrad indices). The back-transform on waves then
+  // uses L_inv (inverse of L^T).
   double L[3][3], L_inv[3][3];
   gkyl_gr_euler_tetrad_mod_build_triad(g_iface, L, L_inv);
 
   // Step 2: forward transform each side to the (common) tetrad frame.
-  // Each side uses its own √γ to strip; the inverse triad uses the
-  // interface γ.
-  (void)inv_g_iface;  // not needed for the contravariant momentum convention
+  // Forward uses L^T (S_a_tet = L[i][a]·(q[i+1]/√γ), summed over i).
   double ql_tet[5], qr_tet[5];
   gkyl_gr_euler_tetrad_mod_q_to_tetrad(ql, sqrt_det_l, L, ql_tet);
   gkyl_gr_euler_tetrad_mod_q_to_tetrad(qr, sqrt_det_r, L, qr_tet);
 
-  // Step 3: pure Minkowski SR Roe.
+  // Step 3: pure Minkowski SR Roe. The tetrad-frame max-speed return value
+  // is discarded — CFL must use the curved-frame max computed in step 4,
+  // because back-transform doesn't commute with abs-max when β^x ≠ 0.
   double waves_tet[3 * 5], speeds_tet[3];
-  double maxs_tet = gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(
+  gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(
     gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
 
-  // Step 4: back-transform waves and speeds.
+  // Step 4: back-transform waves (using L_inv, w_GR[i+1] = √γ·L_inv[a][i]·w_tet[a+1])
+  // and speeds (using L_inv[0][0] = ε^0_0 = 1/√γ_xx for diagonal γ, which is
+  // convention-independent for the geometric basis vector).
+  double maxs_curved = 0.0;
   for (int k = 0; k < 3; k++) {
     gkyl_gr_euler_tetrad_mod_wave_to_curved(&waves_tet[k * 5],
       sqrt_det_iface, L_inv, &waves[k * 5]);
     s[k] = gkyl_gr_euler_tetrad_mod_speed_to_curved(
       speeds_tet[k], alpha_iface, shift_x_iface, L_inv);
+    if (fabs(s[k]) > maxs_curved) maxs_curved = fabs(s[k]);
   }
-
-  return gkyl_gr_euler_tetrad_mod_speed_to_curved(
-    maxs_tet, alpha_iface, shift_x_iface, L_inv);
+  return maxs_curved;
 }
 
 static void
 qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   const double *waves, const double *s, double *amdq, double *apdq)
 {
-  const double *w0 = &waves[0 * 5];
-  const double *w1 = &waves[1 * 5];
-  const double *w2 = &waves[2 * 5];
-  double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
-  double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]), s2p = fmax(0.0, s[2]);
+  // Central-flux + Roe-dissipation form, parallel to qfluct_lax and qfluct_hll
+  // (see wv_gr_euler_tetrad.c::qfluct_roe for the full docstring). amdq +
+  // apdq = ΔF by construction even when the tetrad-Roe wave decomposition
+  // does not strictly satisfy Σ s·w = ΔF in curved γ.
+  struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
+    struct wv_gr_euler_tetrad_mod, eqn);
+  double gas_gamma = grm->gas_gamma;
+
+  double fl_sr[5], fr_sr[5];
+  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql, grm->prodl_local, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr, grm->prodr_local, fr_sr);
+  double fl[5], fr[5];
+  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql, grm->prodl_local, fl_sr, fl);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr, grm->prodr_local, fr_sr, fr);
+
+  const double *w0 = &waves[0 * 5], *w1 = &waves[1 * 5], *w2 = &waves[2 * 5];
+  double abs_s0 = fabs(s[0]), abs_s1 = fabs(s[1]), abs_s2 = fabs(s[2]);
+
   for (int i = 0; i < 5; i++) {
-    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]) + (s2m * w2[i]);
-    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]) + (s2p * w2[i]);
+    double df   = fr[i] - fl[i];
+    double diss = abs_s0 * w0[i] + abs_s1 * w1[i] + abs_s2 * w2[i];
+    amdq[i] = 0.5 * (df - diss);
+    apdq[i] = 0.5 * (df + diss);
   }
 }
 

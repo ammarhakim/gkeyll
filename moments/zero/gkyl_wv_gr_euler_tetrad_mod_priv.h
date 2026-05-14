@@ -2,6 +2,21 @@
 
 // Private header for the modular tetrad-basis GR Euler equation object.
 // Not for direct inclusion in user-facing code.
+//
+// Conserved-variable convention (shared with wv_gr_euler.c, wv_gr_euler_mod.c,
+// wv_gr_euler_tetrad.c):
+//
+//   q[0]   = √γ · ρW
+//   q[i+1] = √γ · ρhW² · v^i           ← contravariant velocity in slot i
+//   q[4]   = √γ · (ρhW² − p − ρW)
+//
+// The "i" in q[i+1] is a slot label and the stored quantity is contravariant
+// momentum density. For static γ_ij this is algebraically equivalent to the
+// standard Banyuls covariant-momentum form: the metric is folded into the
+// conserved-variable definition, and the flux is written so that v^i appears
+// directly in the j-th momentum slot (no metric raise/lower at flux time).
+// The recovery polynomial uses the Lorentz scalar |S|² = γ_ij·S^i·S^j; see
+// gkyl_gr_euler_tetrad_mod_prim_vars in the .c file.
 
 #include <math.h>
 #include <gkyl_array.h>
@@ -92,32 +107,33 @@ gkyl_gr_euler_tetrad_mod_max_abs_speed(double gas_gamma, const double q[5],
 // averages happens inside sr_roe_minkowski; it's a different thing.
 // ---------------------------------------------------------------------------
 
-// Build the lower-triangular Cholesky factor L of a symmetric positive-
-// definite γ_ij: γ_ij = L_ik L_jk. Also computes its inverse L^{-1}. From
-// these the orthonormal triad ε^i_a = (L^{-1})^T satisfies
-// γ_ij ε^i_a ε^j_b = δ_ab. We keep both because:
-//   forward q_GR → q_tet  uses  S^a_tet = (L^{-1})^a_i (S_i_GR / √γ)
-//   back    w_tet → w_GR   uses  w_i_GR_momentum = √γ · L_i^a · w^a_tet
-// Caller's responsibility to skip excised cells (where γ_ij may be 0).
+// Build the lower-triangular Cholesky factor L of γ: γ = L L^T, plus L^{-1}.
+// This is the "Cholesky-on-γ" decomposition, matching the J.6 construction
+// in the GR Kinetics notes (which uses h_ij directly for the momentum
+// mapping p_i = √h_rr · p̂_r etc. in eq 915-917). The alternative J.10
+// construction (V V^T = γ^{-1}) gives a geometrically equivalent tetrad
+// with the same off-diagonal-γ flux-jump residual — that residual is a
+// 1D-sweep limitation independent of the triad construction (see the
+// wave_to_curved docstring below).
+//
+// Caller's responsibility to skip excised cells.
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_build_triad(const double g_ij[3][3],
   double L[3][3], double L_inv[3][3]);
 
-// Transform a curved-frame conserved state q_GR (5-component, with √γ
-// baked into D, momentum, τ) to a tetrad-frame conserved state q_tet
-// (5-component, no √γ, momentum in the orthonormal-triad basis).
+// Transform a curved-frame conserved state q_GR to a tetrad-frame conserved
+// state q_tet (5-component, no √γ, momentum in the orthonormal-triad basis).
 //
-// The code's conserved momentum is CONTRAVARIANT (q[i+1] = √γ · ρhW² · v^i),
-// confirmed by inspection: v_sq = γ_ij · v[i+1] · v[j+1] in prim_vars is the
-// curved norm, which requires v[1..3] to be v^i (raised). So the forward
-// transform is the inverse-triad applied to the contravariant momentum:
+// Forward transform uses L^T (transpose of the Cholesky factor of γ):
 //   D_tet     = q_GR[0] / √γ
 //   τ_tet     = q_GR[4] / √γ
-//   S^a_tet   = E^a_i · (q_GR[i+1] / √γ)   where  E = L^T (inverse of triad)
+//   S_a_tet   = L[i][a] · (q_GR[i+1] / √γ)   (sum over i)
 //
-// In components: q_tet[a+1] = L[i][a] · q_GR[i+1] / √γ.
-// L is the Cholesky factor from build_triad (same metric).
+// Derivation: forward of contravariant momentum needs M with M^T M = γ so
+// that Σ_a (Mv)_a² = γ_ij v^i v^j is preserved. With γ = L L^T (Cholesky),
+// M = L^T. The invariant Σ_a (S_a_tet)² = γ_ij·S^i·S^j (with S^i = ρhW²·v^i)
+// then holds in the tetrad frame.
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_q_to_tetrad(const double q_GR[5],
@@ -140,33 +156,35 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[3 * 5], double speeds[3]);
 
-// Transform a single tetrad-frame wave w_tet (5-component) back to the
-// curved frame. With the contravariant-momentum convention (see
-// q_to_tetrad), the back-transform is the triad ε = (L^{-1})^T applied
-// to the tetrad-frame momentum:
-//   w_GR[0]   = √γ · w_tet[0]                 (D-slot)
-//   w_GR[i+1] = √γ · L_inv[a][i] · w_tet[a+1] (momentum: tetrad→coord-contra)
-//   w_GR[4]   = √γ · w_tet[4]                 (τ-slot)
-// L_inv is the inverse Cholesky factor from build_triad (same metric).
+// Back-transform: inverse of forward S_tet = L^T · S^GR. With L_inv = L^{-1}:
+//   w_GR[0]   = √γ · w_tet[0]                  (D-slot)
+//   w_GR[i+1] = √γ · L_inv[a][i] · w_tet[a+1]  (sum over a)
+//   w_GR[4]   = √γ · w_tet[4]                  (τ-slot)
+// With L_inv lower triangular, the coord-x momentum slot picks up all three
+// tetrad waves through the first column of L_inv; the coord-z slot only sees
+// tetrad-z. This cross-coupling carries the off-diagonal-γ contributions
+// back into each coord-frame momentum component.
+//
+// The strict flux-jump identity ∑ s·w = Δf_GR does not hold in curved γ for
+// this 1D-sweep tetrad-Roe — see Gorard, Hakim, Juno, TenBarge 2025
+// (arXiv:2410.02549) Sec. 4 for the structural argument.
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_wave_to_curved(const double w_tet[5],
   double sqrt_det, const double L_inv[3][3], double w_GR[5]);
 
 // Transform a tetrad-frame wave speed to a coord-frame wave speed.
-// For a wave propagating in the local x-direction (after rotate_to_local):
-//   s_coord = α · (L^{-1})[0][0] · s_tet − β^1
-// where (L^{-1})[0][0] = ε^1_(1) is the (1,1) entry of the orthonormal
-// triad in the rotated frame, α is the lapse, and β^1 is the
-// normal-component of the shift in the rotated frame.
+// For a wave propagating along the local-x cell normal:
+//   s_coord = α · L_inv[0][0] · s_tet − β^1
+// where L_inv[0][0] = 1/√γ_xx for diagonal γ is the (0,0) entry of the
+// inverse Cholesky factor (= ε^0_0, the basis-vector scaling of e_0
+// along ∂_0).
 //
-// Derivation: the tetrad-frame worldline of a wave at speed s_tet is
-//   x_tet = s_tet · τ_tet
-// Converting to coord-frame coords (Eulerian observer with proper time
-// τ_tet = α dt, position dx_coord = ε^1_(1) dx_tet − β^1 dt):
-//   dx_coord/dt = ε^1_(1) · (dx_tet/dτ_tet) · (dτ_tet/dt) − β^1
-//              = ε^1_(1) · s_tet · α − β^1
-// For Minkowski (α=1, β=0, ε=I): s_coord = s_tet ✓.
+// Derivation: the tetrad-frame worldline of a wave at speed s_tet has
+// coord motion dx^i = α · ε^i_0 · s_tet · dt − β^i dt. For i=0,
+// ε^0_0 = L_inv[0][0] is the only nonzero entry (L_inv lower triangular),
+// giving dx^0/dt = α · L_inv[0][0] · s_tet − β^0.
+// For Minkowski (α=1, β=0, L_inv=I): s_coord = s_tet ✓.
 GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_mod_speed_to_curved(double s_tet,

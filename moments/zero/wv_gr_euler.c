@@ -131,11 +131,20 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
     double momz = q[3] / sqrt(spatial_det);
     double Etot = q[4] / sqrt(spatial_det);
 
-    double C = D / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    if (((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)) < pow(10.0, -8.0)) {
-      C = D / sqrt(pow(10.0, -8.0));
-      C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
+    // |S|² = γ_ij·S^i·S^j. The slot stores contravariant momentum
+    // S^i := ρhW²·v^i, so the Lorentz scalar contracts with γ_ij.
+    double mom_sq = (spatial_metric[0][0] * momx*momx)
+                  + (spatial_metric[1][1] * momy*momy)
+                  + (spatial_metric[2][2] * momz*momz)
+                  + 2.0 * (spatial_metric[0][1] * momx*momy
+                         + spatial_metric[0][2] * momx*momz
+                         + spatial_metric[1][2] * momy*momz);
+
+    double C = D / sqrt(((Etot + D) * (Etot + D)) - mom_sq);
+    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - mom_sq);
+    if (((Etot + D) * (Etot + D)) - mom_sq < pow(10.0, -10.0)) {
+      C = D / sqrt(pow(10.0, -10.0));
+      C0 = (D + Etot) / sqrt(pow(10.0, -10.0));
     }
 
     double alpha0 = -1.0 / (gas_gamma * gas_gamma);
@@ -153,7 +162,10 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
 
       double guess_new = guess - (poly / poly_der);
 
-      if (fabs(guess - guess_new) < pow(10.0, -8.0)) {
+      // Converge to machine precision; accept the latest iterate so the
+      // closed-form W expression below uses the converged value.
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) {
+        guess = guess_new;
         iter = 100;
       }
       else {

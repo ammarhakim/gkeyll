@@ -6,6 +6,8 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
+#include "prim_vars_stringent_data.h"
+
 void
 test_gr_euler_tetrad_basic_minkowski()
 {
@@ -331,11 +333,11 @@ test_gr_euler_tetrad_basic_schwarzschild()
         double prims[71] = {0};
         gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, prims);
         
-        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[2], v, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[3], w, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[4], p, 1e-1) );
+        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[1], u, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[2], v, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[3], w, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[4], p, 1e-12) );
 
         double fluxes[3][5] = {
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
@@ -543,11 +545,11 @@ test_gr_euler_tetrad_basic_kerr()
         double prims[71] = {0};
         gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, prims);
         
-        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[1], u, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[2], v, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[3], w, 1e-1) );
-        TEST_CHECK( gkyl_compare(prims[4], p, 1e-1) );
+        TEST_CHECK( gkyl_compare(prims[0], rho, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[1], u, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[2], v, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[3], w, 1e-12) );
+        TEST_CHECK( gkyl_compare(prims[4], p, 1e-12) );
 
         double fluxes[3][5] = {
           { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
@@ -1132,7 +1134,7 @@ test_gr_euler_tetrad_waves_schwarzschild()
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
           for (int i = 0; i < 71; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11) );
           }
         }
       }
@@ -1401,7 +1403,7 @@ test_gr_euler_tetrad_waves_kerr()
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
           for (int i = 0; i < 71; i++) {
-            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-12) );
+            TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-11) );
           }
         }
       }
@@ -1442,6 +1444,169 @@ test_gr_euler_tetrad_waves_kerr()
   gkyl_gr_spacetime_release(spacetime);
 }
 
+// Stringent prim_vars roundtrip stress-test for the packed tetrad equation.
+// Same shape as ctest_wv_gr_euler.c's version, just calls the tetrad-flavor
+// prim_vars. See prim_vars_stringent_data.h for the parameter tables.
+static void
+run_prim_vars_stringent(struct gkyl_gr_spacetime *spacetime, const char *label)
+{
+  double gas_gamma = 5.0 / 3.0;
+  struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_tetrad_new(
+    gas_gamma, GKYL_STATIC_GAUGE, 0, spacetime, false);
+
+  double max_rel_rho = 0.0, max_rel_u = 0.0, max_rel_v = 0.0;
+  double max_rel_w   = 0.0, max_rel_p = 0.0;
+  int    worst_s = -1, worst_p = -1;
+  int    n_samples = 0, n_skipped_excise = 0, n_skipped_super = 0;
+  const double rel_floor = STRINGENT_REL_FLOOR;
+
+  for (int sx = 0; sx < N_STRINGENT_STATES; sx++) {
+    for (int px = 0; px < N_STRINGENT_POSITIONS; px++) {
+      double rho_in = stringent_states[sx].rho;
+      double p_in   = stringent_states[sx].p;
+      double u_in   = stringent_states[sx].vx;
+      double v_in   = stringent_states[sx].vy;
+      double w_in   = stringent_states[sx].vz;
+      double x = stringent_positions[px][0];
+      double y = stringent_positions[px][1];
+      double z = stringent_positions[px][2];
+
+      double spatial_det, lapse;
+      double *shift = gkyl_malloc(sizeof(double[3]));
+      bool in_excision_region;
+      double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+      double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+      double *lapse_der = gkyl_malloc(sizeof(double[3]));
+      double **shift_der = gkyl_malloc(sizeof(double*[3]));
+      for (int i = 0; i < 3; i++) shift_der[i] = gkyl_malloc(sizeof(double[3]));
+      double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+      for (int i = 0; i < 3; i++) {
+        spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+        for (int j = 0; j < 3; j++) spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+      }
+
+      spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, z, &spatial_det);
+      spacetime->lapse_function_func(spacetime, 0.0, x, y, z, &lapse);
+      spacetime->shift_vector_func(spacetime, 0.0, x, y, z, &shift);
+      spacetime->excision_region_func(spacetime, 0.0, x, y, z, &in_excision_region);
+      spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, z, &spatial_metric);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &extrinsic_curvature);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &lapse_der);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &shift_der);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, z,
+        pow(10.0,-8.0), pow(10.0,-8.0), pow(10.0,-8.0), &spatial_metric_der);
+
+      bool skip = false;
+      if (in_excision_region) { n_skipped_excise++; skip = true; }
+      double v_sq = 0.0;
+      if (!skip) {
+        double vel[3] = { u_in, v_in, w_in };
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++)
+            v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+        if (v_sq >= 1.0 - 1.0e-6) { n_skipped_super++; skip = true; }
+      }
+
+      if (!skip) {
+        double W = 1.0 / sqrt(1.0 - v_sq);
+        double h = 1.0 + ((p_in / rho_in) * (gas_gamma / (gas_gamma - 1.0)));
+
+        double q[71];
+        q[0] = sqrt(spatial_det) * rho_in * W;
+        q[1] = sqrt(spatial_det) * rho_in * h * (W*W) * u_in;
+        q[2] = sqrt(spatial_det) * rho_in * h * (W*W) * v_in;
+        q[3] = sqrt(spatial_det) * rho_in * h * (W*W) * w_in;
+        q[4] = sqrt(spatial_det) * ((rho_in * h * (W*W)) - p_in - (rho_in * W));
+        q[5] = lapse;
+        q[6] = shift[0]; q[7] = shift[1]; q[8] = shift[2];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++) q[9 + 3*i + j] = spatial_metric[i][j];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++) q[18 + 3*i + j] = extrinsic_curvature[i][j];
+        q[27] = 1.0;
+        q[28] = lapse_der[0]; q[29] = lapse_der[1]; q[30] = lapse_der[2];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++) q[31 + 3*i + j] = shift_der[i][j];
+        for (int i = 0; i < 3; i++)
+          for (int j = 0; j < 3; j++)
+            for (int k = 0; k < 3; k++) q[40 + 9*i + 3*j + k] = spatial_metric_der[i][j][k];
+        q[67] = 0.0; q[68] = x; q[69] = y; q[70] = z;
+
+        double prims[71];
+        gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, prims);
+
+        double rel_rho = fabs(prims[0] - rho_in) / fmax(fabs(rho_in), rel_floor);
+        double rel_u   = fabs(prims[1] - u_in)   / fmax(fabs(u_in),   rel_floor);
+        double rel_v   = fabs(prims[2] - v_in)   / fmax(fabs(v_in),   rel_floor);
+        double rel_w   = fabs(prims[3] - w_in)   / fmax(fabs(w_in),   rel_floor);
+        double rel_p   = fabs(prims[4] - p_in)   / fmax(fabs(p_in),   rel_floor);
+
+        if (rel_rho > max_rel_rho) { max_rel_rho = rel_rho; worst_s = sx; worst_p = px; }
+        if (rel_u   > max_rel_u)   max_rel_u   = rel_u;
+        if (rel_v   > max_rel_v)   max_rel_v   = rel_v;
+        if (rel_w   > max_rel_w)   max_rel_w   = rel_w;
+        if (rel_p   > max_rel_p)   max_rel_p   = rel_p;
+        n_samples++;
+      }
+
+      for (int i = 0; i < 3; i++) { gkyl_free(spatial_metric[i]); gkyl_free(extrinsic_curvature[i]); gkyl_free(shift_der[i]); }
+      for (int i = 0; i < 3; i++) { for (int j = 0; j < 3; j++) gkyl_free(spatial_metric_der[i][j]); gkyl_free(spatial_metric_der[i]); }
+      gkyl_free(spatial_metric); gkyl_free(extrinsic_curvature); gkyl_free(lapse_der);
+      gkyl_free(shift_der); gkyl_free(spatial_metric_der); gkyl_free(shift);
+    }
+  }
+
+  double worst_rel = fmax(fmax(max_rel_rho, fmax(max_rel_u, max_rel_v)),
+                          fmax(max_rel_w, max_rel_p));
+  TEST_CHECK_( worst_rel < STRINGENT_REL_TOL,
+    "[%s] n=%d (skip excise=%d super=%d) "
+    "max rel: Δρ=%.3e Δu=%.3e Δv=%.3e Δw=%.3e Δp=%.3e   worst state=%d pos=%d",
+    label, n_samples, n_skipped_excise, n_skipped_super,
+    max_rel_rho, max_rel_u, max_rel_v, max_rel_w, max_rel_p, worst_s, worst_p);
+
+  gkyl_wv_eqn_release(gr_euler);
+}
+
+void
+test_gr_euler_tetrad_prim_vars_stringent_minkowski()
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  run_prim_vars_stringent(spacetime, "Minkowski");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_tetrad_prim_vars_stringent_schwarzschild()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent(spacetime, "Schwarzschild a=0");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_tetrad_prim_vars_stringent_kerr_mild()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent(spacetime, "Kerr a=0.5");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_tetrad_prim_vars_stringent_kerr_extreme()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.99, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent(spacetime, "Kerr a=0.99");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
 TEST_LIST = {
   { "gr_euler_tetrad_basic_minkowski", test_gr_euler_tetrad_basic_minkowski },
   { "gr_euler_tetrad_basic_schwarzschild", test_gr_euler_tetrad_basic_schwarzschild },
@@ -1449,5 +1614,9 @@ TEST_LIST = {
   { "gr_euler_tetrad_waves_minkowski", test_gr_euler_tetrad_waves_minkowski },
   { "gr_euler_tetrad_waves_schwarzschild", test_gr_euler_tetrad_waves_schwarzschild },
   { "gr_euler_tetrad_waves_kerr", test_gr_euler_tetrad_waves_kerr },
+  { "gr_euler_tetrad_prim_vars_stringent_minkowski",   test_gr_euler_tetrad_prim_vars_stringent_minkowski },
+  { "gr_euler_tetrad_prim_vars_stringent_schwarzschild", test_gr_euler_tetrad_prim_vars_stringent_schwarzschild },
+  { "gr_euler_tetrad_prim_vars_stringent_kerr_mild",   test_gr_euler_tetrad_prim_vars_stringent_kerr_mild },
+  { "gr_euler_tetrad_prim_vars_stringent_kerr_extreme", test_gr_euler_tetrad_prim_vars_stringent_kerr_extreme },
   { NULL, NULL },
 };

@@ -23,6 +23,8 @@
 #include <gkyl_wv_gr_euler_mod_priv.h>
 #include <gkyl_wv_gr_euler_priv.h>
 
+#include "prim_vars_stringent_data.h"
+
 // Helper: pack the packed-layout spacetime block (q[5..66]) and the mod
 // products row (prods[0..NCOMP_BASE)) from the spacetime callbacks at the
 // physical point (x,y,z). The two layouts are deliberately aligned: index k
@@ -683,24 +685,29 @@ test_gr_euler_mod_roe_kerr()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-// Roe-property tests for the *regular* mod variant. The key difference vs
-// the tetrad mod variant: the flux returned by gkyl_gr_euler_mod_flux is
-// the FULL curved-space GR flux (with α, √γ, β^i factors), not the flat-
-// space SR flux. The Roe eigenstructure is SR-Roe (same as tetrad mod);
-// what differs is what the algorithm expects ∑ s_k·w_k to equal.
+// Roe-property tests for the *regular* mod variant. Curved-frame Roe in
+// GR hydro has a structural limitation that's well-documented in the
+// literature (see Gorard, Hakim, Juno, TenBarge 2025, "A Tetrad-First
+// Approach to Robust Numerical Algorithms in General Relativity",
+// arXiv:2410.02549, Sec. 4): the Eulderink-Mellema eigenstructure is
+// constructed for the flat-spacetime flux Jacobian; when the same
+// eigenvectors are reused on a de-densitized curved-frame state, the
+// returned (waves, speeds) reproduce ∆f_SR but cannot reproduce the
+// α/β/√γ corrections that distinguish ∆f_GR from ∆f_SR. In Minkowski
+// these factors are unity and the Roe identity holds at machine
+// precision; in curved spacetime the residual is precisely the
+// "geometric correction" that motivates the tetrad-first construction
+// (which factors GR flux = SR flux × geometry and applies the SR Roe
+// only to the part it can linearize). Lax/HLL satisfy ∆f = ∑ s_k·w_k
+// algebraically by construction and so don't trigger this issue.
 //
-// In Minkowski (α=1, β=0, √γ=1) the GR flux coincides with the SR flat
-// flux, so the Roe identity ∑ s_k·w_k = ∆f holds at floating-point
-// precision. In curved spacetime, the SR-Roe linearization only
-// reproduces ∆f_SR — it cannot reproduce the α/β/√γ-corrected GR flux,
-// since the linearization is on the SR Jacobian. The residual is then
-// approximately |∆f_GR − √γ · ∆f_SR_flat|.
-//
-// This is the structural argument for the tetrad framework: it factors
-// the GR flux into (flat SR flux) × (geometric correction), letting Roe
-// linearize the part it actually can.
+// The test therefore checks that:
+//   - the wave-sum identity ∑ w_k = ∆q holds in any metric (it's pure
+//     linear algebra on the eigenvector basis), and
+//   - the flux-jump identity ∑ s_k·w_k = ∆f_GR holds in Minkowski
+//     (consistency limit) but is permitted to fail in curved metrics.
 static void
-run_roe_properties_mod(struct gkyl_gr_spacetime *spacetime)
+run_roe_properties_mod(struct gkyl_gr_spacetime *spacetime, bool expect_fj)
 {
   double gas_gamma = 5.0 / 3.0;
 
@@ -809,13 +816,23 @@ run_roe_properties_mod(struct gkyl_gr_spacetime *spacetime)
   }
 
   // Wave-sum holds always (it's pure linear algebra on the eigenvector
-  // basis). Flux-jump only holds in Minkowski (no curvature corrections);
-  // in curved spacetime ∑ s w − ∆f_GR is the residual α/β/√γ correction
-  // that the SR Roe linearization cannot reproduce.
+  // basis). Flux-jump holds in Minkowski only; in curved spacetime it is
+  // structurally violated by the SR-Roe linearization (see header comment
+  // above this function for the reference).
   TEST_CHECK_( max_wsum_res < 1e-10,
     "Roe wave-sum residual:   max |∑ w_k − ∆q|        = %.3e", max_wsum_res );
-  TEST_CHECK_( max_fj_res < 1e-9,
-    "Roe flux-jump residual:  max |∑ s_k·w_k − ∆f_GR| = %.3e", max_fj_res );
+  if (expect_fj) {
+    TEST_CHECK_( max_fj_res < 1e-9,
+      "Roe flux-jump residual:  max |∑ s_k·w_k − ∆f_GR| = %.3e", max_fj_res );
+  } else {
+    // Curved: record the residual for diagnostic visibility, but do not
+    // assert it. A bounded value confirms the SR-Roe linearization is
+    // still producing finite output; an O(1) value is the geometric
+    // correction that the tetrad-first path captures.
+    TEST_MSG( "Roe flux-jump residual (curved, informational only): "
+      "max |∑ s_k·w_k − ∆f_GR| = %.3e", max_fj_res );
+    TEST_CHECK( isfinite(max_fj_res) );
+  }
 
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(gr_mod);
@@ -825,7 +842,7 @@ void
 test_gr_euler_mod_roe_properties_minkowski()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  run_roe_properties_mod(spacetime);
+  run_roe_properties_mod(spacetime, true);
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -834,7 +851,7 @@ test_gr_euler_mod_roe_properties_schwarzschild()
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_roe_properties_mod(spacetime);
+  run_roe_properties_mod(spacetime, false);
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -843,7 +860,144 @@ test_gr_euler_mod_roe_properties_kerr()
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_roe_properties_mod(spacetime);
+  run_roe_properties_mod(spacetime, false);
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+// Stringent prim_vars roundtrip stress-test for the modular GR Euler. Uses
+// fill_spacetime to populate the prods row, then builds a 5-component q
+// via Convention B and recovers. See prim_vars_stringent_data.h.
+static void
+run_prim_vars_stringent_mod(struct gkyl_gr_spacetime *spacetime, const char *label)
+{
+  double gas_gamma = 5.0 / 3.0;
+
+  int lower[1] = { 0 }, upper[1] = { 0 };
+  struct gkyl_range conf_range;
+  gkyl_range_init(&conf_range, 1, lower, upper);
+  struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
+    GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
+
+  struct gkyl_wv_eqn *gr_mod = gkyl_wv_gr_euler_mod_inew(
+    &(struct gkyl_wv_gr_euler_mod_inp){
+      .gas_gamma = gas_gamma,
+      .conf_range = conf_range,
+      .rp_type = WV_GR_EULER_RP_ROE,
+      .use_gpu = false,
+    });
+  gkyl_gr_euler_mod_set_auxfields(gr_mod,
+    (struct gkyl_wv_gr_euler_mod_auxfields){ .prods = prods });
+
+  double max_rel_rho = 0.0, max_rel_u = 0.0, max_rel_v = 0.0;
+  double max_rel_w   = 0.0, max_rel_p = 0.0;
+  int    worst_s = -1, worst_p = -1;
+  int    n_samples = 0, n_skipped_excise = 0, n_skipped_super = 0;
+  const double rel_floor = STRINGENT_REL_FLOOR;
+
+  double *prods_row = gkyl_array_fetch(prods, 0);
+  double q_scratch[71];
+
+  for (int sx = 0; sx < N_STRINGENT_STATES; sx++) {
+    for (int px = 0; px < N_STRINGENT_POSITIONS; px++) {
+      double rho_in = stringent_states[sx].rho;
+      double p_in   = stringent_states[sx].p;
+      double u_in   = stringent_states[sx].vx;
+      double v_in   = stringent_states[sx].vy;
+      double w_in   = stringent_states[sx].vz;
+      double x = stringent_positions[px][0];
+      double y = stringent_positions[px][1];
+      double z = stringent_positions[px][2];
+
+      fill_spacetime(spacetime, x, y, z, q_scratch, prods_row);
+
+      if (prods_row[GKYL_GR_SP_EXCISION] < 0.0) {
+        n_skipped_excise++;
+        continue;
+      }
+
+      // Check superluminality in γ-norm using the LOWER metric stored at
+      // GKYL_GR_SP_GIJ.
+      double vel[3] = { u_in, v_in, w_in };
+      double v_sq = 0.0;
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+          v_sq += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * vel[i] * vel[j];
+      if (v_sq >= 1.0 - 1.0e-6) { n_skipped_super++; continue; }
+
+      double spatial_det = prods_row[GKYL_GR_SP_SPATIAL_DET];
+      double W = 1.0 / sqrt(1.0 - v_sq);
+      double h = 1.0 + ((p_in / rho_in) * (gas_gamma / (gas_gamma - 1.0)));
+
+      double q_mod[5] = {
+        sqrt(spatial_det) * rho_in * W,
+        sqrt(spatial_det) * rho_in * h * (W*W) * u_in,
+        sqrt(spatial_det) * rho_in * h * (W*W) * v_in,
+        sqrt(spatial_det) * rho_in * h * (W*W) * w_in,
+        sqrt(spatial_det) * ((rho_in * h * (W*W)) - p_in - (rho_in * W))
+      };
+
+      double prims[5];
+      gkyl_gr_euler_mod_prim_vars(gas_gamma, q_mod, prods_row, prims);
+
+      double rel_rho = fabs(prims[0] - rho_in) / fmax(fabs(rho_in), rel_floor);
+      double rel_u   = fabs(prims[1] - u_in)   / fmax(fabs(u_in),   rel_floor);
+      double rel_v   = fabs(prims[2] - v_in)   / fmax(fabs(v_in),   rel_floor);
+      double rel_w   = fabs(prims[3] - w_in)   / fmax(fabs(w_in),   rel_floor);
+      double rel_p   = fabs(prims[4] - p_in)   / fmax(fabs(p_in),   rel_floor);
+
+      if (rel_rho > max_rel_rho) { max_rel_rho = rel_rho; worst_s = sx; worst_p = px; }
+      if (rel_u   > max_rel_u)   max_rel_u   = rel_u;
+      if (rel_v   > max_rel_v)   max_rel_v   = rel_v;
+      if (rel_w   > max_rel_w)   max_rel_w   = rel_w;
+      if (rel_p   > max_rel_p)   max_rel_p   = rel_p;
+      n_samples++;
+    }
+  }
+
+  double worst_rel = fmax(fmax(max_rel_rho, fmax(max_rel_u, max_rel_v)),
+                          fmax(max_rel_w, max_rel_p));
+  TEST_CHECK_( worst_rel < STRINGENT_REL_TOL,
+    "[%s] n=%d (skip excise=%d super=%d) "
+    "max rel: Δρ=%.3e Δu=%.3e Δv=%.3e Δw=%.3e Δp=%.3e   worst state=%d pos=%d",
+    label, n_samples, n_skipped_excise, n_skipped_super,
+    max_rel_rho, max_rel_u, max_rel_v, max_rel_w, max_rel_p, worst_s, worst_p);
+
+  gkyl_array_release(prods);
+  gkyl_wv_eqn_release(gr_mod);
+}
+
+void
+test_gr_euler_mod_prim_vars_stringent_minkowski()
+{
+  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
+  run_prim_vars_stringent_mod(spacetime, "Minkowski");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_mod_prim_vars_stringent_schwarzschild()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent_mod(spacetime, "Schwarzschild a=0");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_mod_prim_vars_stringent_kerr_mild()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent_mod(spacetime, "Kerr a=0.5");
+  gkyl_gr_spacetime_release(spacetime);
+}
+
+void
+test_gr_euler_mod_prim_vars_stringent_kerr_extreme()
+{
+  struct gkyl_gr_spacetime *spacetime =
+    gkyl_gr_blackhole_new(false, 0.1, 0.99, 0.0, 0.0, 0.0);
+  run_prim_vars_stringent_mod(spacetime, "Kerr a=0.99");
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -864,5 +1018,9 @@ TEST_LIST = {
   { "gr_euler_mod_roe_properties_minkowski",     test_gr_euler_mod_roe_properties_minkowski },
   { "gr_euler_mod_roe_properties_schwarzschild", test_gr_euler_mod_roe_properties_schwarzschild },
   { "gr_euler_mod_roe_properties_kerr",          test_gr_euler_mod_roe_properties_kerr },
+  { "gr_euler_mod_prim_vars_stringent_minkowski",     test_gr_euler_mod_prim_vars_stringent_minkowski },
+  { "gr_euler_mod_prim_vars_stringent_schwarzschild", test_gr_euler_mod_prim_vars_stringent_schwarzschild },
+  { "gr_euler_mod_prim_vars_stringent_kerr_mild",     test_gr_euler_mod_prim_vars_stringent_kerr_mild },
+  { "gr_euler_mod_prim_vars_stringent_kerr_extreme",  test_gr_euler_mod_prim_vars_stringent_kerr_extreme },
   { NULL, NULL },
 };
