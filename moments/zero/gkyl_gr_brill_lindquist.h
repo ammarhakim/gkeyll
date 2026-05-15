@@ -460,6 +460,108 @@ brill_lindquist_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* space
   const double dx, const double dy, const double dz, double*** extrinsic_curvature_tensor);
 
 /**
+* Compute the conformal factor at a given point in a Brill-Lindquist binary black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param conformal_factor Conformal factor (output).
+*/
+GKYL_CU_D
+static void
+brill_lindquist_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  double* conformal_factor);
+
+/**
+* Compute the BSSN conformal factor at a given point in a Brill-Lindquist binary black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param bssn_conformal_factor BSSN conformal factor (output).
+*/
+GKYL_CU_D
+static void
+brill_lindquist_bssn_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  double* bssn_conformal_factor);
+
+/**
+* Compute the rank-1 (spatial) partial derivative of the conformal factor at a given point in a Brill-Lindquist binary black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param conformal_factor_der Rank-1 partial derivative of the conformal factor (output).
+*/
+GKYL_CU_D
+static void
+brill_lindquist_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** conformal_factor_der);
+
+/**
+* Compute the rank-1 (spatial) partial derivative of the BSSN conformal factor at a given point in a Brill-Lindquist binary black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param bssn_conformal_factor_der Rank-1 partial derivative of the BSSN conformal factor (output).
+*/
+GKYL_CU_D
+static void
+brill_lindquist_bssn_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** bssn_conformal_factor_der);
+
+/**
+* Compute the rank-2 (spatial) second partial derivative of the conformal factor at a given point in a Brill-Lindquist binary black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param conformal_factor_der2 Rank-2 second partial derivative of the conformal factor (output).
+*/
+GKYL_CU_D
+static void
+brill_lindquist_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** conformal_factor_der2);
+
+/**
+* Compute the rank-2 (spatial) second partial derivative of the BSSN conformal factor at a given point in a Brill-Lindquist binary black hole spacetime.
+*
+* @param spacetime Base spacetime object.
+* @param t Time coordinate.
+* @param x Spatial coordinate (x-direction).
+* @param y Spatial coordinate (y-direction).
+* @param z Spatial coordinate (z-direction).
+* @param dx Spatial coordinate spacing (x-direction).
+* @param dy Spatial coordinate spacing (y-direction).
+* @param dz Spatial coordinate spacing (z-direction).
+* @param bssn_conformal_factor_der2 Rank-2 second partial derivative of the BSSN conformal factor (output).
+*/
+GKYL_CU_D
+static void
+brill_lindquist_bssn_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** bssn_conformal_factor_der2);
+
+/**
 * Determine whether a given point in a Brill-Lindquist binary black hole spacetime lies within an excision region.
 *
 * @param spacetime Base spacetime object.

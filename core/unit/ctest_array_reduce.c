@@ -164,8 +164,8 @@ void test_cu_array_reduce_max_big()
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
   for (unsigned k=0; k<numComp; ++k) {
     // Make print statements to manually check the comparison
-    printf("a1max[%d] = %g\n", k, a1max[k]);
-    printf("numCells-1+(double)k*0.10 = %g\n", (double)(numCells-1)+(double)k*0.10);
+    // printf("a1max[%d] = %g\n", k, a1max[k]);
+    // printf("numCells-1+(double)k*0.10 = %g\n", (double)(numCells-1)+(double)k*0.10);
     TEST_CHECK( gkyl_compare(a1max[k], (double)(numCells-1)+(double)k*0.10, 1e-14) );
   }
 
@@ -341,8 +341,8 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
     gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &range);
   double red_tm = gkyl_time_diff_now_sec(tm);
 
-  printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY,
-    red_tm);
+  // printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY,
+    // red_tm);
 
   gkyl_free(a1max);
   gkyl_cu_free(a1max_cu);

@@ -1471,6 +1471,13 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   s[0] = sl;
   s[1] = sr;
 
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(inv_spatial_metric_l[i]);
+    gkyl_free(inv_spatial_metric_r[i]);
+  }
+  gkyl_free(inv_spatial_metric_l);
+  gkyl_free(inv_spatial_metric_r);
+
   return fmax(fabs(sl), fabs(sr));
 }
 
