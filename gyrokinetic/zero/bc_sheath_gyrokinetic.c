@@ -33,22 +33,24 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
+  // dimensions of vcut_fact array, i.e. config space perp directions -1 + mu.
+  int vcut_fact_dim = up->cdim - 1 + up->basis->ndim - 1;
+
   // Create a special phase space basis and range for the vcut_fact array.
   // Function of perpendicular config space coordinates and magnetic moment, i.e. 
   // [mu],[x,mu],[x,y,mu] for 1x2v, 2x2v, 3x2v respectively. 
-  // (we set cdim because it is pdim-2, could be set to cdim-1 + vdim-1 as well).
-  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(cdim, basis->poly_order);
+  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(vcut_fact_dim, basis->poly_order);
 
   // Initialize the vcut fact range.
-  int lower[cdim], upper[cdim];
+  int lower[vcut_fact_dim], upper[vcut_fact_dim];
   // Perpendicular config space directions.
-  for (int d=0; d < cdim-1; d++) {
+  for (int d=0; d < vcut_fact_dim-1; d++) {
     lower[d] = skin_r->lower[d];
     upper[d] = skin_r->upper[d];
   } 
   // The last direction is mu.
-  lower[cdim-1] = skin_r->lower[skin_r->ndim-1];
-  upper[cdim-1] = skin_r->upper[skin_r->ndim-1];
+  lower[vcut_fact_dim-1] = skin_r->lower[skin_r->ndim-1];
+  upper[vcut_fact_dim-1] = skin_r->upper[skin_r->ndim-1];
   gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis->ndim, lower, upper);
 
   up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
@@ -120,8 +122,9 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
     
-    for (int d=0; d<up->cdim-1; d++) vcut_fact_idx[d] = iter.idx[d]; // config space perp directions.
-    vcut_fact_idx[up->cdim-1] = iter.idx[pdim-1]; // mu direction.
+    int vcut_fact_dim = up->vcut_fact_local.ndim;
+    for (int d=0; d<vcut_fact_dim-1; d++) vcut_fact_idx[d] = iter.idx[d]; // config space perp directions.
+    vcut_fact_idx[vcut_fact_dim-1] = iter.idx[pdim-1]; // mu direction.
     long vcut_fact_loc = gkyl_range_idx(&up->vcut_fact_local, vcut_fact_idx);
     const double *vcut_fact_p = (const double*) gkyl_array_cfetch(up->vcut_fact, vcut_fact_loc);
 
@@ -143,7 +146,7 @@ void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyroki
   gkyl_array_copy_range(up->vcut_fact, vcut_fact, &up->vcut_fact_local);
 }
 
-struct gkyl_array* gkyl_bc_sheath_gyrokinetic_get_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up)
+struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   return gkyl_array_acquire(up->vcut_fact);
 }
