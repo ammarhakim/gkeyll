@@ -190,10 +190,10 @@ check_function(double phi_mpe, double phi_wall, double charge, double mass, int 
     }
   }
   // Uncomment for debugging.
-  printf("\n");
-  printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
-    edge == GKYL_LOWER_EDGE? "lower" : "upper", charge, delta_phi);
-  printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
+  // printf("\n");
+  // printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
+  //   edge == GKYL_LOWER_EDGE? "lower" : "upper", charge, delta_phi);
+  // printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
 }
 
 void write_out_fields(int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,
