@@ -366,8 +366,8 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
 };
 
-// Input parameters for the df/dt multiplier.
-struct gkyl_gyrokinetic_fdot_multiplier {
+// Input parameters for a single component of the df/dt multiplier chain.
+struct gkyl_gyrokinetic_fdot_multiplier_comp {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplier (see enum comments above).
 
   // For USER_INPUT type: function pointer defining M(z).
@@ -388,9 +388,9 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 };
 
 // Parameters for a chain of df/dt multipliers. Components are applied in order.
-struct gkyl_gyrokinetic_fdot_multiplier_array {
+struct gkyl_gyrokinetic_fdot_multiplier {
   int num_multipliers;
-  struct gkyl_gyrokinetic_fdot_multiplier multiplier[GKYL_MAX_FDOT_MUL];
+  struct gkyl_gyrokinetic_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL];
 };
 
 // Parameters for gk species.
@@ -414,7 +414,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Ordered list of phase-space fields multiplying df/dt.
-  struct gkyl_gyrokinetic_fdot_multiplier_array time_rate_multipliers;
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
@@ -1379,7 +1379,7 @@ void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, doubl
  * @param fdot_mult_inp Input struct for the fdot_multiplier.
  */
 void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier_array fdot_mult_inp);
+  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
 
 /**
  * Reset the collisionless multiplier for a given species.

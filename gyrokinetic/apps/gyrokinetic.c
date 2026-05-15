@@ -3096,7 +3096,7 @@ gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
 
 void
 gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
-  const char* species_name, struct gkyl_gyrokinetic_fdot_multiplier_array fdot_mult_inp)
+  const char* species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp)
 {
   struct gk_species *gks = gk_find_species(app, species_name);
   gk_species_fdot_multiplier_reset(app, tm, gks, &gks->fdot_mult, fdot_mult_inp);
