@@ -10,9 +10,7 @@
 
 #if !defined(__CUDA_ARCH__)
 #include <kann.h>
-#include <pthread.h>
 #include <stdlib.h>
-#include <string.h>
 #endif
 
 /* host copy – visible in the __host__ pass */
@@ -62,65 +60,29 @@ __device__ static const srgrz_weights_t srgrz_weights_d = {
 #endif
 
 #if !defined(__CUDA_ARCH__)
-static pthread_mutex_t srgrz_kann_mtx = PTHREAD_MUTEX_INITIALIZER;
-static bool srgrz_kann_init_done = false;
-static kann_t *srgrz_kann_model = 0;
-static char srgrz_kann_model_path[4096];
+#include <gkyl_util.h>
+
+/* Active KANN model — set once at construction via bc_sheath_gyrokinetic_srgrz_set_model(). */
+static kann_t *srgrz_model = NULL;
 
 void
-bc_sheath_gyrokinetic_srgrz_set_model_path(const char *path)
+bc_sheath_gyrokinetic_srgrz_set_model(kann_t *model)
 {
-    pthread_mutex_lock(&srgrz_kann_mtx);
-    if (srgrz_kann_init_done && srgrz_kann_model) {
-        kann_delete(srgrz_kann_model);
-        srgrz_kann_model = 0;
-        srgrz_kann_init_done = false;
-    }
-    strncpy(srgrz_kann_model_path, path, sizeof(srgrz_kann_model_path) - 1);
-    srgrz_kann_model_path[sizeof(srgrz_kann_model_path) - 1] = '\0';
-    pthread_mutex_unlock(&srgrz_kann_mtx);
-}
-
-static void
-srgrz_kann_cleanup(void)
-{
-    if (srgrz_kann_model) {
-        kann_delete(srgrz_kann_model);
-        srgrz_kann_model = 0;
-    }
-}
-
-static void
-srgrz_kann_ensure_loaded(void)
-{
-    if (srgrz_kann_init_done)
-        return;
-
-    srgrz_kann_model = kann_load(srgrz_kann_model_path);
-    if (srgrz_kann_model == 0)
-        gkyl_exit("Failed to load sheath surrogate KANN model; check the path set via bc_sheath_gyrokinetic_srgrz_set_model_path()");
-
-    if (kann_dim_in(srgrz_kann_model) != 3 || kann_dim_out(srgrz_kann_model) != SRGRZ_N_MU)
-        gkyl_exit("Loaded sheath surrogate KANN model has unexpected input/output dimensions");
-
-    (void) atexit(srgrz_kann_cleanup);
-    srgrz_kann_init_done = true;
+    srgrz_model = model;
 }
 
 static void
 srgrz_kann_predict(double alpha, double gamma, double phi, double out[SRGRZ_N_MU])
 {
+    if (srgrz_model == NULL)
+        gkyl_exit("bc_sheath_gyrokinetic_srgrz_predict: no model set; pass a valid surrogate_model_path to gkyl_bc_sheath_gyrokinetic_new()");
     float input_data[3];
     input_data[0] = (float)alpha;
     input_data[1] = (float)gamma;
     input_data[2] = (float)phi;
-
-    pthread_mutex_lock(&srgrz_kann_mtx);
-    srgrz_kann_ensure_loaded();
-    const float *pred = kann_apply1(srgrz_kann_model, input_data);
+    const float *pred = kann_apply1(srgrz_model, input_data);
     for (int i = 0; i < SRGRZ_N_MU; i++)
         out[i] = pred[i] < 0.0f ? 0.0 : (double)pred[i];
-    pthread_mutex_unlock(&srgrz_kann_mtx);
 }
 #endif
 

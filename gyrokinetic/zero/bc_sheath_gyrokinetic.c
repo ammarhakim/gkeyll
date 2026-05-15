@@ -2,6 +2,7 @@
 #include "gkyl_bc_sheath_gyrokinetic_priv.h"
 #include "gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h"
 #include <gkyl_alloc.h>
+#include <kann.h>
 #include <assert.h>
 
 static struct gkyl_array*
@@ -79,7 +80,7 @@ void bc_gksheath_update_vcut_fact_surrogate_disabled(const struct gkyl_bc_sheath
 struct gkyl_bc_sheath_gyrokinetic*
 gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map,
-  int cdim, double q2Dm, bool use_surrogate, bool use_gpu)
+  int cdim, double q2Dm, bool use_surrogate, const char *surrogate_model_path, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -95,6 +96,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
+  up->kann_model = NULL;
   int vdim = skin_r->ndim - cdim;
 
   // Sheath physics surrogate setup.
@@ -130,6 +132,14 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
     assert(vdim > 1);
     assert(q2Dm == -2*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS); // The surrogate is only valid for electrons.
     up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
+    up->kann_model = kann_load(surrogate_model_path);
+    if (up->kann_model == NULL)
+      gkyl_exit("gkyl_bc_sheath_gyrokinetic_new: failed to load KANN model; check surrogate_model_path");
+    if (kann_dim_in(up->kann_model) != 3 || kann_dim_out(up->kann_model) != SRGRZ_N_MU) {
+      kann_delete(up->kann_model);
+      gkyl_exit("gkyl_bc_sheath_gyrokinetic_new: loaded KANN model has unexpected input/output dimensions");
+    }
+    bc_sheath_gyrokinetic_srgrz_set_model(up->kann_model);
   }
   
   // Choose the kernels that does the reflection/no reflection/partial reflection, 
@@ -251,15 +261,19 @@ void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_
   return up->update_vcut_fact(up, phi, phi_wall, dens, temp, bmag, bimpact_angle, conf_r);
 }
 
-void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new,  int n, double phi, double phi_wall,
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new, int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out)
 {
-  return bc_sheath_gyrokinetic_srgrz_eval_fact(mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
+  bc_sheath_gyrokinetic_srgrz_eval_fact(mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
 }
 
-void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(const char *path)
+void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(struct gkyl_bc_sheath_gyrokinetic *up, const char *path)
 {
-  bc_sheath_gyrokinetic_srgrz_set_model_path(path);
+  kann_delete(up->kann_model);
+  up->kann_model = kann_load(path);
+  if (up->kann_model == NULL)
+    gkyl_exit("gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path: failed to load KANN model");
+  bc_sheath_gyrokinetic_srgrz_set_model(up->kann_model);
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
@@ -270,6 +284,8 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
     gkyl_cu_free(up->kernels_cu);
   }
 #endif
+  kann_delete(up->kann_model);
+  bc_sheath_gyrokinetic_srgrz_set_model(NULL);
   gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->vcut_fact);
   gkyl_free(up->kernels);

@@ -67,6 +67,7 @@ struct test_sheath_ctx {
   double sigmay; // Width of distribution in y.
   double sigmaz; // Width of distribution in z.
   bool use_surrogate; // Whether to use surrogate model for vcut factor.
+  const char *surrogate_model_path; // Path to the .kann model file (NULL if not using surrogate).
   bool verbose; // Whether to print detailed output.
 };
 
@@ -77,7 +78,8 @@ eval_func_vcut_fact(double t, const double *xn, double* GKYL_RESTRICT fout, void
   double mu = xn[pars->cdim-1]; // Mu is the last dimension.
 
   if (pars->use_surrogate) {
-    gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(&mu, 1, pars->phi_mpe, pars->phi_wall, pars->dens, 
+    gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(
+      &mu, 1, pars->phi_mpe, pars->phi_wall, pars->dens, 
       pars->temp, 2*pars->charge/pars->mass, pars->B0, pars->impact_angle, fout);
       fout[0] = fout[0];
   } else {
@@ -414,7 +416,7 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -651,7 +653,7 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -894,7 +896,7 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
   // Create the BC updater.
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path, use_gpu);
 
   // Build the vcut_fact DG array to make vpar cut vary.
   struct gkyl_basis vcut_fact_basis = gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(bcsheath);
@@ -995,7 +997,6 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 void test_bc_sheath_gk_1x2v_ho()
 {
   if (!srgrz_test_enabled || !srgrz_model_path) return;
-  gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(srgrz_model_path);
   bool write_fields;
 
   struct test_sheath_ctx pars = {
@@ -1013,6 +1014,7 @@ void test_bc_sheath_gk_1x2v_ho()
     .z0 = 0.0,
     .sigmaz = 1.0,
     .use_surrogate = true,
+    .surrogate_model_path = srgrz_model_path,
     .verbose = false,
   };
 
@@ -1096,7 +1098,6 @@ void test_bc_sheath_gk_2x2v_ho()
 void test_bc_sheath_gk_3x2v_ho()
 {
   if (!srgrz_test_enabled || !srgrz_model_path) return;
-  gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(srgrz_model_path);
   bool write_fields;
 
   struct test_sheath_ctx pars = {
@@ -1118,6 +1119,7 @@ void test_bc_sheath_gk_3x2v_ho()
     .z0 = 0.0,
     .sigmaz = 1.0,
     .use_surrogate = true,
+    .surrogate_model_path = srgrz_model_path,
     .verbose = false,
   };
 

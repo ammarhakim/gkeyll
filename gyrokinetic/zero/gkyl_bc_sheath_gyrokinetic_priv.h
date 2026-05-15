@@ -5,6 +5,7 @@
 #include "gkyl_bc_sheath_gyrokinetic.h"
 #include "gkyl_bc_sheath_gyrokinetic_kernels.h"
 #include <assert.h>
+#include <kann.h>
 
 // Function pointer type for sheath reflection kernels.
 typedef void (*sheath_reflectedf_t)(const double *vmap, const double q2Dm,
@@ -88,6 +89,7 @@ struct gkyl_bc_sheath_gyrokinetic {
     const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
     const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcut_fact array.
   srgrz_eval_t surrogate_eval; // Function pointer for direct surrogate interface.
+  kann_t *kann_model; // Loaded KANN model for the surrogate (CPU only; NULL on GPU or when not using surrogate).
 };
 
 void

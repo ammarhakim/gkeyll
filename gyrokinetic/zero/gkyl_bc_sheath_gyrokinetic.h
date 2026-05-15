@@ -21,12 +21,14 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param cdim Configuration space dimensions.
  * @param q2Dm charge-to-mass ratio times 2.
  * @param use_surrogate Boolean to indicate whether to use surrogate model for vcut.
+ * @param surrogate_model_path Path to the .kann surrogate model file (NULL if not using surrogate).
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
-  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_surrogate, bool use_gpu);
+  const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_surrogate,
+  const char *surrogate_model_path, bool use_gpu);
 
 /**
  * Apply the sheath BC with the bc_sheath_gyrokinetic object.
@@ -113,15 +115,14 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
  * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
  * @param out Pointer to array to store surrogate model output (vcut factor) corresponding to input mu values.
  */
-void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new,  int n, double phi, double phi_wall,
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new, int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
 
 /**
- * Set the path to the KANN surrogate model file.
- * Must be called before the first call to gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate;
- * the simulation will abort if a prediction is attempted without a path having been set.
- * Can be called again to switch models.
+ * Set (or replace) the surrogate KANN model on an existing updater.
+ * The old model (if any) is freed and a new one is loaded from the given path.
  *
+ * @param up BC updater.
  * @param path Absolute or relative path to the .kann file.
  */
-void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(const char *path);
+void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(struct gkyl_bc_sheath_gyrokinetic *up, const char *path);

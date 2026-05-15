@@ -9,6 +9,7 @@
 
 #include <gkyl_const.h>
 #include <gkyl_util.h>
+#include <kann.h>
 
 /* Number of points in the fixed mu-grid. */
 #define SRGRZ_N_MU 20
@@ -26,15 +27,13 @@ typedef struct {
 EXTERN_C_BEG
 
 /**
- * Set the path to the KANN surrogate model file at runtime.
- * Must be called before the first prediction; the simulation will abort
- * with an error if a prediction is attempted without a path having been set.
- * Can be called again to switch models (the currently loaded model is released
- * and reloaded from the new path on the next prediction).
+ * Set the active KANN model used by all subsequent srgrz_predict / srgrz_eval_fact calls.
+ * Call once at construction with the loaded model, and again with NULL at destruction.
+ * The caller retains ownership of the model.
  *
- * @param path Absolute or relative path to the .kann file.
+ * @param model Pointer to a loaded kann_t, or NULL to clear.
  */
-void bc_sheath_gyrokinetic_srgrz_set_model_path(const char *path);
+void bc_sheath_gyrokinetic_srgrz_set_model(kann_t *model);
 
 /**
  * Returns 1 if GYRAZE is predicted to converge, 0 otherwise.
