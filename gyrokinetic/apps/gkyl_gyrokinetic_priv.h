@@ -888,8 +888,15 @@ struct gk_fdot_multiplier {
   struct gkyl_array *multiplier; // Combined product of all component multipliers.
   struct gkyl_array *multiplier_host; // Host copy for I/O and projecting.
   bool write_diagnostics; // Whether to write the combined multiplier as a diagnostic.
+  // Functions chosen at runtime.
   void (*write_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_fdot_multiplier *fdot_mult, double tm, int frame);
+  void (*advance_times_cfl_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+    struct gk_fdot_multiplier *fdot_mult, const struct gkyl_array *phi,
+    const struct gkyl_array *f, struct gkyl_array *cflrate);
+  void (*advance_times_rate_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+    struct gk_fdot_multiplier *fdot_mult, const struct gkyl_array *phi,
+    const struct gkyl_array *f, struct gkyl_array *rhs);
 };
 
 struct gk_heating {

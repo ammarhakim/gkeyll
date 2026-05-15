@@ -446,17 +446,21 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
   struct gk_fdot_multiplier *fdot_mult)
 {
   fdot_mult->num_multipliers = gks->info.time_rate_multiplier.num_multipliers;
+  fdot_mult->write_func = gk_species_fdot_multiplier_write_disabled;
+  fdot_mult->advance_times_cfl_func = gk_fdot_multiplier_advance_times_cfl_disabled;
+  fdot_mult->advance_times_rate_func = gk_fdot_multiplier_advance_times_rate_disabled;
+
   if (fdot_mult->num_multipliers == 0) {
-    fdot_mult->write_func = gk_species_fdot_multiplier_write_disabled;
     return;
   }
 
-  // Determine if any component requests diagnostics.
+  // Initialize multiplier components and determine if any component requests diagnostics.
   fdot_mult->write_diagnostics = false;
   for (int i = 0; i < fdot_mult->num_multipliers; ++i) {
+    gk_species_fdot_multiplier_init_comp(app, gks, &fdot_mult->comp[i],
+      &gks->info.time_rate_multiplier.multiplier[i]);
     if (gks->info.time_rate_multiplier.multiplier[i].write_diagnostics) {
       fdot_mult->write_diagnostics = true;
-      break;
     }
   }
 
@@ -467,24 +471,25 @@ gk_species_fdot_multiplier_init(gkyl_gyrokinetic_app *app, struct gk_species *gk
     fdot_mult->multiplier_host = app->use_gpu ?
       mkarr(false, fdot_mult->multiplier->ncomp, fdot_mult->multiplier->size) :
       gkyl_array_acquire(fdot_mult->multiplier);
+    fdot_mult->write_func = gk_species_fdot_multiplier_write_enabled;
   }
 
-  for (int i = 0; i < fdot_mult->num_multipliers; ++i) {
-    gk_species_fdot_multiplier_init_comp(app, gks, &fdot_mult->comp[i],
-      &gks->info.time_rate_multiplier.multiplier[i]);
-  }
-
-  fdot_mult->write_func = fdot_mult->write_diagnostics ?
-    gk_species_fdot_multiplier_write_enabled : gk_species_fdot_multiplier_write_disabled;
+  fdot_mult->advance_times_cfl_func = gk_fdot_multiplier_advance_times_cfl_enabled;
+  fdot_mult->advance_times_rate_func = gk_fdot_multiplier_advance_times_rate_enabled;
 }
 
-void
-gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app,
+static void
+gk_fdot_multiplier_advance_times_cfl_disabled(gkyl_gyrokinetic_app *app,
   struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
   const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *cflrate)
 {
-  if (fdot_mult->num_multipliers == 0) return;
+}
 
+static void
+gk_fdot_multiplier_advance_times_cfl_enabled(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
+  const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *cflrate)
+{
   struct timespec wst = gkyl_wall_clock();
 
   // Reset combined to 1; each component multiplies its contribution in.
@@ -498,18 +503,46 @@ gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app,
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void
-gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app,
+static void
+gk_fdot_multiplier_advance_times_rate_disabled(gkyl_gyrokinetic_app *app,
   struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
   const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *rhs)
 {
-  if (fdot_mult->num_multipliers == 0) return;
+}
 
+static void
+gk_fdot_multiplier_advance_times_rate_enabled(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
+  const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *rhs)
+{
   struct timespec wst = gkyl_wall_clock();
 
   gkyl_array_scale_by_cell(rhs, fdot_mult->multiplier);
 
   app->stat.species_fdot_mult_tm += gkyl_time_diff_now_sec(wst);
+}
+
+void
+gk_species_fdot_multiplier_advance_times_cfl(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
+  const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *cflrate)
+{
+  fdot_mult->advance_times_cfl_func(app, gks, fdot_mult, phi, f, cflrate);
+}
+
+void
+gk_species_fdot_multiplier_advance_times_rate(gkyl_gyrokinetic_app *app,
+  struct gk_species *gks, struct gk_fdot_multiplier *fdot_mult,
+  const struct gkyl_array *phi, const struct gkyl_array *f, struct gkyl_array *rhs)
+{
+  fdot_mult->advance_times_rate_func(app, gks, fdot_mult, phi, f, rhs);
+}
+
+void
+gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  struct gk_fdot_multiplier *fdot_mult, double tm, int frame)
+{
+  fdot_mult->write_func(app, gks, fdot_mult, tm, frame);
 }
 
 double
@@ -523,13 +556,6 @@ gk_fdot_multiplier_get_time_dilation_scale_const(gkyl_gyrokinetic_app *app,
     }
   }
   return result;
-}
-
-void
-gk_species_fdot_multiplier_write(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_fdot_multiplier *fdot_mult, double tm, int frame)
-{
-  fdot_mult->write_func(app, gks, fdot_mult, tm, frame);
 }
 
 static void
