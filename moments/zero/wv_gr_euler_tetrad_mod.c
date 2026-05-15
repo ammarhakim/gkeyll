@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <math.h>
+#include <stdio.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_wv_gr_euler_prim_priv.h>
 #include <gkyl_wv_gr_euler_tetrad_mod.h>
 #include <gkyl_wv_gr_euler_tetrad_mod_priv.h>
 
@@ -165,62 +167,25 @@ gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
     double momz = q[3] / sqrt(spatial_det);
     double Etot = q[4] / sqrt(spatial_det);
 
-    // |S|² = γ_ij·S^i·S^j. The slot stores contravariant momentum
-    // S^i := ρhW²·v^i, so the Lorentz scalar contracts with γ_ij.
-    const double *g = &prods[GKYL_GR_SP_GIJ];
-    double mom_sq = g[0]*momx*momx + g[4]*momy*momy + g[8]*momz*momz
-                  + 2.0*(g[1]*momx*momy + g[2]*momx*momz + g[5]*momy*momz);
+    // Convention A: q[1..3] is genuine covariant momentum S_i. Recovery
+    // contracts |S|² with γ^{ij} and raises the velocity with γ^{ij};
+    // both lookups go through the shared helper which is the single
+    // source of truth for the Banyuls Newton solve.
+    const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+    double inv_g[3][3] = {
+      { ig[0], ig[1], ig[2] },
+      { ig[3], ig[4], ig[5] },
+      { ig[6], ig[7], ig[8] },
+    };
+    struct gkyl_gr_euler_prim prim;
+    gkyl_gr_euler_recover_primitives(gas_gamma,
+      D, momx, momy, momz, Etot, inv_g, &prim);
 
-    double s_sq = ((Etot + D) * (Etot + D)) - mom_sq;
-    double C, C0;
-    if (s_sq < pow(10.0, -10.0)) {
-      C  = D / sqrt(pow(10.0, -10.0));
-      C0 = (D + Etot) / sqrt(pow(10.0, -10.0));
-    } else {
-      C  = D / sqrt(s_sq);
-      C0 = (D + Etot) / sqrt(s_sq);
-    }
-
-    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
-    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
-    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
-      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
-    double alpha4 = (C0*C0) - 1.0;
-    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
-
-    double guess = 1.0;
-    int iter = 0;
-    while (iter < 100) {
-      double poly = (alpha4 * (guess*guess*guess) * (guess - eta)) +
-        (alpha2 * (guess*guess)) + (alpha1 * guess) + alpha0;
-      double poly_der = alpha1 + (2.0 * alpha2 * guess) +
-        (4.0 * alpha4 * (guess*guess*guess)) - (3.0 * eta * alpha4 * (guess*guess));
-      double guess_new = guess - (poly / poly_der);
-      // Converge to machine precision; accept the latest iterate so the
-      // closed-form W expression below uses the converged value.
-      if (fabs(guess - guess_new) < pow(10.0, -14.0)) {
-        guess = guess_new;
-        iter = 100;
-      } else {
-        iter += 1;
-        guess = guess_new;
-      }
-    }
-
-    double W = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) *
-      ((1.0 - (C * guess)) / ((C0*C0) * (guess*guess))))));
-    double h = 1.0 / (C * guess);
-
-    v[0] = D / W;
-    // v^i = mom^i / (ρhW²). Naive division — no γ-raise needed since the
-    // slot already stores contravariant momentum.
-    v[1] = momx / (v[0] * h * (W*W));
-    v[2] = momy / (v[0] * h * (W*W));
-    v[3] = momz / (v[0] * h * (W*W));
-    v[4] = (v[0] * h * (W*W)) - D - Etot;
-
-    if (v[0] < pow(10.0, -8.0)) v[0] = pow(10.0, -8.0);
-    if (v[4] < pow(10.0, -8.0)) v[4] = pow(10.0, -8.0);
+    v[0] = prim.rho;
+    v[1] = prim.v[0];
+    v[2] = prim.v[1];
+    v[3] = prim.v[2];
+    v[4] = prim.p;
   } else {
     for (int i = 0; i < 5; i++) v[i] = 0.0;
   }
@@ -298,16 +263,28 @@ gkyl_gr_euler_tetrad_mod_flux_correction(double gas_gamma, const double q[5],
       vx = (vx > 0.0) ? pow(10.0, -8.0) : -pow(10.0, -8.0);
     }
 
+    // Convention A momentum flux: F^x[S_i] = α√γ·(S_i·v̂^x + p·δ_i^x)
+    // with S_i·v̂^x = ρhW²·v_l[i]·v̂^x and v_l[i] = γ_ij·v^j (lowered
+    // contravariant velocity). Reconstruct ρhW²_curved from flux_sr[1] =
+    // (ρhW²_flat·v^x·v^x + p) so the D and τ slots can keep the existing
+    // factorization while the momentum slots use the explicit Banyuls
+    // form.
+    double v_l[3];
+    for (int i = 0; i < 3; i++) {
+      v_l[i] = prods[GKYL_GR_SP_GIJ + 3*i + 0]*vx
+             + prods[GKYL_GR_SP_GIJ + 3*i + 1]*vy
+             + prods[GKYL_GR_SP_GIJ + 3*i + 2]*vz;
+    }
+    double rhohW2_c = ((flux_sr[1] - p) * (W_curved * W_curved))
+                    / ((vx * vx) * (W_flat * W_flat));
+
     double prefac = lapse * sqrt(spatial_det);
     double vmsh   = vx - (shift_x / lapse);
 
     flux_gr[0] = prefac * ((flux_sr[0] * vmsh * W_curved) / (vx * W_flat));
-    flux_gr[1] = prefac * ((((flux_sr[1] - p) * vmsh * (W_curved*W_curved))
-                         / (vx * (W_flat*W_flat))) + p);
-    flux_gr[2] = prefac * ((flux_sr[2] * vmsh * (W_curved*W_curved))
-                         / (vx * (W_flat*W_flat)));
-    flux_gr[3] = prefac * ((flux_sr[3] * vmsh * (W_curved*W_curved))
-                         / (vx * (W_flat*W_flat)));
+    flux_gr[1] = prefac * (rhohW2_c * v_l[0] * vmsh + p);
+    flux_gr[2] = prefac * (rhohW2_c * v_l[1] * vmsh);
+    flux_gr[3] = prefac * (rhohW2_c * v_l[2] * vmsh);
     flux_gr[4] = prefac * (((((flux_sr[4] + (rho * vx * W_flat)) * (W_curved*W_curved))
                           / (vx * (W_flat*W_flat))) - p - (rho * W_curved)) * vmsh + (p * vx));
   } else {
@@ -427,42 +404,180 @@ gkyl_gr_euler_tetrad_mod_build_triad(const double g_ij[3][3],
   L_inv[0][1] = L_inv[0][2] = L_inv[1][2] = 0.0;
 }
 
+// Build an orthonormal triad whose FIRST basis vector is aligned with the
+// CONTRAVARIANT x-direction (∂^x = γ^{xj}·∂_j) rather than the coordinate
+// x-direction. The other two basis vectors come from Gram-Schmidt-in-γ
+// starting from (0,1,0) and (0,0,1). This eliminates the v_tet^x ↔ v^y,v^z
+// mixing seen with Cholesky-on-γ for non-diagonal γ.
+//
+// Outputs:
+//   M[i][a]    = e_a^i  (matrix of basis-vector components; columns = e_a)
+//   M_inv[a][i] = (e^a)_i = γ_ij · M[j][a]  (dual co-vector components)
+//
+// Properties:
+//   γ_ij·M[i][a]·M[j][b] = δ_ab          (orthonormality)
+//   M_inv·M = M·M_inv = I (matrix product)
+//   M[i][0] = γ^{xi}/√γ^{xx}              (contravariant x alignment)
+//   M_inv[0][i] = δ^x_i/√γ^{xx} = (1/√γ^{xx}, 0, 0)
+//
+// For diagonal γ this reduces to the Cholesky construction.
+void
+gkyl_gr_euler_tetrad_mod_build_triad_contravariant_x(
+  const double g_ij[3][3], const double inv_g[3][3],
+  double M[3][3], double M_inv[3][3])
+{
+  // First basis vector: contravariant x-direction, normalized in γ.
+  //   e_0^i = γ^{xi} / √γ^{xx}
+  double sqrt_inv_gxx = sqrt(inv_g[0][0]);
+  for (int i = 0; i < 3; i++) M[i][0] = inv_g[0][i] / sqrt_inv_gxx;
+
+  // Helper: γ-inner-product of two contravariant vectors.
+  // <u, v>_γ = γ_ij · u^i · v^j
+  #define GAMMA_DOT(u, v)                                              \
+    (g_ij[0][0]*(u)[0]*(v)[0] + g_ij[1][1]*(u)[1]*(v)[1]               \
+   + g_ij[2][2]*(u)[2]*(v)[2]                                          \
+   + g_ij[0][1]*((u)[0]*(v)[1] + (u)[1]*(v)[0])                        \
+   + g_ij[0][2]*((u)[0]*(v)[2] + (u)[2]*(v)[0])                        \
+   + g_ij[1][2]*((u)[1]*(v)[2] + (u)[2]*(v)[1]))
+
+  // Second basis vector: Gram-Schmidt-in-γ of (0,1,0) against e_0.
+  double e0[3] = { M[0][0], M[1][0], M[2][0] };
+  double f1[3] = { 0.0, 1.0, 0.0 };
+  double c01 = GAMMA_DOT(f1, e0);  // projection coefficient
+  double e1[3] = { f1[0] - c01*e0[0], f1[1] - c01*e0[1], f1[2] - c01*e0[2] };
+  double norm1 = sqrt(GAMMA_DOT(e1, e1));
+  for (int i = 0; i < 3; i++) M[i][1] = e1[i] / norm1;
+
+  // Third basis vector: Gram-Schmidt of (0,0,1) against e_0 and e_1.
+  double e1_norm[3] = { M[0][1], M[1][1], M[2][1] };
+  double f2[3] = { 0.0, 0.0, 1.0 };
+  double c02 = GAMMA_DOT(f2, e0);
+  double c12 = GAMMA_DOT(f2, e1_norm);
+  double e2[3] = {
+    f2[0] - c02*e0[0] - c12*e1_norm[0],
+    f2[1] - c02*e0[1] - c12*e1_norm[1],
+    f2[2] - c02*e0[2] - c12*e1_norm[2],
+  };
+  double norm2 = sqrt(GAMMA_DOT(e2, e2));
+  for (int i = 0; i < 3; i++) M[i][2] = e2[i] / norm2;
+
+  #undef GAMMA_DOT
+
+  // M_inv = M^T · γ (since γ-orthonormality says M^T·γ·M = I, so
+  // M^{-1} = M^T·γ).
+  for (int a = 0; a < 3; a++) {
+    for (int i = 0; i < 3; i++) {
+      M_inv[a][i] = M[0][a]*g_ij[0][i]
+                  + M[1][a]*g_ij[1][i]
+                  + M[2][a]*g_ij[2][i];
+    }
+  }
+}
+
+// Forward transform of covariant momentum (Convention A) onto the
+// contravariant-x-aligned tetrad. S_tet^a = M_inv[a][i]·γ^{ij}·S_j_curved.
+// For a=0 this simplifies to (1/√γ^{xx})·S^x_curved, so v_tet^0 = v^x/√γ^{xx}
+// (no metric mixing).
+void
+gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(const double q_GR[5],
+  double sqrt_det, const double inv_g[3][3], const double M_inv[3][3],
+  double q_tet[5])
+{
+  q_tet[0] = q_GR[0] / sqrt_det;
+  q_tet[4] = q_GR[4] / sqrt_det;
+
+  // Raise the index: S^i = γ^{ij}·S_j. Then project: S_tet^a = M_inv[a][i]·S^i.
+  // We fold both steps to write S_tet^a = (M_inv · γ^{-1})[a][j] · S_j.
+  // For efficiency, compute S^i first.
+  double Sup[3];
+  for (int i = 0; i < 3; i++) {
+    Sup[i] = (inv_g[i][0]*q_GR[1] + inv_g[i][1]*q_GR[2]
+            + inv_g[i][2]*q_GR[3]) / sqrt_det;
+  }
+  for (int a = 0; a < 3; a++) {
+    q_tet[a+1] = M_inv[a][0]*Sup[0] + M_inv[a][1]*Sup[1] + M_inv[a][2]*Sup[2];
+  }
+}
+
+// Back-transform of waves from the contravariant-x-aligned tetrad to
+// curved-frame Convention A (covariant momentum). The wave amplitude on
+// the i-th coord-momentum slot is:
+//   w_GR[i+1] = √γ · γ_ij · M[j][a] · w_tet[a+1]
+//             = √γ · M_inv^T[a][i] · w_tet[a+1]
+// because M_inv[a][i] = γ_ij·M[j][a], so M_inv^T[i][a] = γ_ij·M[j][a].
+//
+// For the normal (i=0) momentum slot, M_inv^T[0][a] = M_inv[a][0]. And
+// M_inv[0][0] = 1/√γ^{xx}, M_inv[a][0] for a>0 = 0 (by construction —
+// the only "covariant-x" content lives in e_0, since e_1, e_2 are
+// γ-orthogonal to e_0). So the back-transform for coord-x momentum is
+//   w_GR[1] = √γ · (1/√γ^{xx}) · w_tet[1]
+// clean: only the a=0 tetrad wave contributes to S_x. (This is the
+// mirror of the forward-clean property in Cholesky for Convention A.)
+void
+gkyl_gr_euler_tetrad_mod_wave_to_curved_contra(const double w_tet[5],
+  double sqrt_det, const double M_inv[3][3], double w_GR[5])
+{
+  w_GR[0] = sqrt_det * w_tet[0];
+  w_GR[4] = sqrt_det * w_tet[4];
+
+  // w_GR[i+1] = √γ · M_inv^T[a][i] · w_tet[a+1] = √γ · M_inv[a][i] · w_tet[a+1]
+  // (with sum over a).
+  for (int i = 0; i < 3; i++) {
+    w_GR[i+1] = sqrt_det * (M_inv[0][i]*w_tet[1]
+                          + M_inv[1][i]*w_tet[2]
+                          + M_inv[2][i]*w_tet[3]);
+  }
+}
+
+// Speed back-transform for the contravariant-x triad. The wave at tetrad
+// speed s_tet propagates in the e_0 direction; the coord-frame x-speed
+// is α·(e_0^x)·s_tet − β^x where e_0^x = M[0][0] = γ^{xx}/√γ^{xx} =
+// √γ^{xx}.
+//   s_coord = α · √γ^{xx} · s_tet − β^x
+// For diagonal γ, √γ^{xx} = 1/√γ_xx = L_inv[0][0]_Cholesky, so the formula
+// reduces to the Cholesky speed_to_curved.
+double
+gkyl_gr_euler_tetrad_mod_speed_to_curved_contra(double s_tet,
+  double lapse, double shift_x, double inv_gxx)
+{
+  return (lapse * sqrt(inv_gxx) * s_tet) - shift_x;
+}
+
 void
 gkyl_gr_euler_tetrad_mod_q_to_tetrad(const double q_GR[5],
-  double sqrt_det, const double L[3][3], double q_tet[5])
+  double sqrt_det, const double L_inv[3][3], double q_tet[5])
 {
-  // Forward transform: S_a_tet = L^T[a][i] · (q_GR[i+1] / √γ)
-  //                           = L[i][a] · (q_GR[i+1] / √γ)   (sum over i)
-  //
-  // Derivation: forward of contravariant momentum needs M with M^T M = γ so
-  // that |S_tet|² = γ_ij S^i S^j is preserved as the Cartesian sum in tetrad
-  // indices. With γ = L L^T (Cholesky), M^T M = L L^T ⇒ M = L^T.
+  // Convention A forward transform: project covariant momentum onto the
+  // orthonormal triad basis ε^i_a = L_inv[a][i] (so γ_ij·ε^i_a·ε^j_b =
+  // δ_ab). For a covariant vector S_i,
+  //   S_a_tet = ε^i_a · S_i = L_inv[a][i] · (q_GR[i+1]/√γ)
+  // and |S_tet|² = δ^{ab} S_a S_b = γ^{ij}·S_i·S_j matches the Lorentz
+  // scalar in the curved frame.
   q_tet[0] = q_GR[0] / sqrt_det;
   q_tet[4] = q_GR[4] / sqrt_det;
 
   for (int a = 0; a < 3; a++) {
-    q_tet[a+1] = (L[0][a]*q_GR[1]
-                + L[1][a]*q_GR[2]
-                + L[2][a]*q_GR[3]) / sqrt_det;
+    q_tet[a+1] = (L_inv[a][0]*q_GR[1]
+                + L_inv[a][1]*q_GR[2]
+                + L_inv[a][2]*q_GR[3]) / sqrt_det;
   }
 }
 
 void
 gkyl_gr_euler_tetrad_mod_wave_to_curved(const double w_tet[5],
-  double sqrt_det, const double L_inv[3][3], double w_GR[5])
+  double sqrt_det, const double L[3][3], double w_GR[5])
 {
-  // Back-transform is the inverse of forward S_tet = L^T · S^GR:
-  //   S^i_GR = L_inv[a][i] · S_a_tet  (sum over a)
-  // So w_GR[i+1] = √γ · L_inv[a][i] · w_tet[a+1]. With L_inv lower
-  // triangular, the i=0 (coord-x momentum) slot picks up all three tetrad
-  // waves via the first column of L_inv; the i=2 (coord-z) slot only sees
-  // tetrad-z. This cross-coupling carries the off-diagonal-γ contributions
-  // back into each momentum component.
+  // Inverse of the forward transform S_a_tet = L_inv[a][i]·S_i:
+  //   S_i = L[i][a]·S_a_tet   (sum over a)
+  // so w_GR[i+1] = √γ·L[i][a]·w_tet[a+1]. With L lower triangular the
+  // i=0 slot only sees tetrad-x; i=1 picks up tetrad-x and -y; i=2 all
+  // three tetrad axes. This cross-coupling carries the off-diagonal-γ
+  // contributions back into the covariant momentum slots.
   w_GR[0] = sqrt_det * w_tet[0];
   for (int i = 0; i < 3; i++) {
-    w_GR[i+1] = sqrt_det * (L_inv[0][i]*w_tet[1]
-                          + L_inv[1][i]*w_tet[2]
-                          + L_inv[2][i]*w_tet[3]);
+    w_GR[i+1] = sqrt_det * (L[i][0]*w_tet[1]
+                          + L[i][1]*w_tet[2]
+                          + L[i][2]*w_tet[3]);
   }
   w_GR[4] = sqrt_det * w_tet[4];
 }
@@ -648,6 +763,320 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
   return max_s;
 }
 
+// Pure Minkowski SR HLL with Davis/Einfeldt wave-speed estimate. Inputs
+// are tetrad-frame conserved variables (Cartesian, no √γ). The metric is
+// η^μν = diag(−1, +1, +1, +1).
+//
+// Properties (provable in flat-space SR Euler):
+//   - sl ≤ every characteristic ≤ sr (Davis precondition)
+//   - q_HLL = (sr·qr − sl·ql + fl − fr)/(sr − sl) is admissible
+//     (Mignone-Bodo 2005)
+//   - cell update with CFL bound preserves admissibility
+//
+// Tetrad-first composition: this is the SR core; the curved-frame
+// pipeline transforms states/fluxes into the tetrad frame, calls this,
+// and back-transforms waves and speeds.
+double
+gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(double gas_gamma,
+  const double ql_tet[5], const double qr_tet[5],
+  double waves_tet[2 * 5], double speeds[2])
+{
+  double D_l = ql_tet[0], D_r = qr_tet[0];
+  double Sx_l = ql_tet[1], Sx_r = qr_tet[1];
+  double Sy_l = ql_tet[2], Sy_r = qr_tet[2];
+  double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
+  double tau_l = ql_tet[4], tau_r = qr_tet[4];
+
+  // Newton recovery of primitives (Banyuls flat). Mirrors the body of
+  // gkyl_gr_euler_tetrad_mod_sr_roe_minkowski.
+  double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
+  double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
+  {
+    double s_sq_l = ((tau_l + D_l)*(tau_l + D_l)) - (Sx_l*Sx_l + Sy_l*Sy_l + Sz_l*Sz_l);
+    double C, C0;
+    if (s_sq_l < pow(10.0, -10.0)) {
+      C  = D_l / sqrt(pow(10.0, -10.0));
+      C0 = (D_l + tau_l) / sqrt(pow(10.0, -10.0));
+    } else {
+      C  = D_l / sqrt(s_sq_l);
+      C0 = (D_l + tau_l) / sqrt(s_sq_l);
+    }
+    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
+    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
+    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
+      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+    double alpha4 = (C0*C0) - 1.0;
+    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+    double guess = 1.0;
+    for (int it = 0; it < 100; it++) {
+      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
+                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
+      double poly_der = alpha1 + (2.0 * alpha2 * guess)
+                      + (4.0 * alpha4 * guess*guess*guess)
+                      - (3.0 * eta * alpha4 * guess*guess);
+      double guess_new = guess - poly/poly_der;
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
+      guess = guess_new;
+    }
+    W_l = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
+      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
+    h_l = 1.0 / (C * guess);
+    rho_l = D_l / W_l;
+    vx_l = Sx_l / (rho_l * h_l * W_l*W_l);
+    vy_l = Sy_l / (rho_l * h_l * W_l*W_l);
+    vz_l = Sz_l / (rho_l * h_l * W_l*W_l);
+    p_l  = (rho_l * h_l * W_l*W_l) - D_l - tau_l;
+    if (rho_l < pow(10.0, -8.0)) rho_l = pow(10.0, -8.0);
+    if (p_l   < pow(10.0, -8.0)) p_l   = pow(10.0, -8.0);
+  }
+  {
+    double s_sq_r = ((tau_r + D_r)*(tau_r + D_r)) - (Sx_r*Sx_r + Sy_r*Sy_r + Sz_r*Sz_r);
+    double C, C0;
+    if (s_sq_r < pow(10.0, -10.0)) {
+      C  = D_r / sqrt(pow(10.0, -10.0));
+      C0 = (D_r + tau_r) / sqrt(pow(10.0, -10.0));
+    } else {
+      C  = D_r / sqrt(s_sq_r);
+      C0 = (D_r + tau_r) / sqrt(s_sq_r);
+    }
+    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
+    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
+    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
+      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+    double alpha4 = (C0*C0) - 1.0;
+    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+    double guess = 1.0;
+    for (int it = 0; it < 100; it++) {
+      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
+                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
+      double poly_der = alpha1 + (2.0 * alpha2 * guess)
+                      + (4.0 * alpha4 * guess*guess*guess)
+                      - (3.0 * eta * alpha4 * guess*guess);
+      double guess_new = guess - poly/poly_der;
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
+      guess = guess_new;
+    }
+    W_r = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
+      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
+    h_r = 1.0 / (C * guess);
+    rho_r = D_r / W_r;
+    vx_r = Sx_r / (rho_r * h_r * W_r*W_r);
+    vy_r = Sy_r / (rho_r * h_r * W_r*W_r);
+    vz_r = Sz_r / (rho_r * h_r * W_r*W_r);
+    p_r  = (rho_r * h_r * W_r*W_r) - D_r - tau_r;
+    if (rho_r < pow(10.0, -8.0)) rho_r = pow(10.0, -8.0);
+    if (p_r   < pow(10.0, -8.0)) p_r   = pow(10.0, -8.0);
+  }
+
+  // Sound speeds (relativistic ideal-gas).
+  double c_sl = sqrt((gas_gamma * p_l) / (rho_l * h_l));
+  double c_sr = sqrt((gas_gamma * p_r) / (rho_r * h_r));
+
+  // Davis/Einfeldt wave-speed estimate in tetrad frame: per-side
+  // relativistic acoustic eigenvalues with velocity addition, then
+  // min/max across both sides. Guarantees sl ≤ smin, sr ≥ smax.
+  double lambda_minus_l = (vx_l - c_sl) / (1.0 - vx_l * c_sl);
+  double lambda_plus_l  = (vx_l + c_sl) / (1.0 + vx_l * c_sl);
+  double lambda_minus_r = (vx_r - c_sr) / (1.0 - vx_r * c_sr);
+  double lambda_plus_r  = (vx_r + c_sr) / (1.0 + vx_r * c_sr);
+  double sl = fmin(lambda_minus_l, lambda_minus_r);
+  double sr = fmax(lambda_plus_l, lambda_plus_r);
+
+  // Banyuls fluxes in Minkowski (α=1, √γ=1, β=0):
+  //   F[D]    = D · vx
+  //   F[S_i]  = S_i · vx + p · δ_i^x  (with covariant S_i = Cartesian S^i in flat)
+  //   F[τ]    = (τ + p) · vx
+  double fl[5], fr[5];
+  fl[0] = D_l  * vx_l;
+  fl[1] = Sx_l * vx_l + p_l;
+  fl[2] = Sy_l * vx_l;
+  fl[3] = Sz_l * vx_l;
+  fl[4] = (tau_l + p_l) * vx_l;
+  fr[0] = D_r  * vx_r;
+  fr[1] = Sx_r * vx_r + p_r;
+  fr[2] = Sy_r * vx_r;
+  fr[3] = Sz_r * vx_r;
+  fr[4] = (tau_r + p_r) * vx_r;
+
+  // HLL intermediate state: q_HLL = (sr·qR − sl·qL + fl − fr)/(sr − sl).
+  // For Mignone-Bodo admissible inputs and Davis bracket, q_HLL is itself
+  // admissible. Waves are conservative-state jumps from qL → q_HLL → qR.
+  double qm[5];
+  double denom = sr - sl;
+  if (fabs(denom) < 1.0e-14) {
+    // Degenerate (qL = qR or both supersonic in the same direction).
+    // Fall back to zero waves; qfluct's central form recovers ΔF.
+    for (int i = 0; i < 2 * 5; i++) waves_tet[i] = 0.0;
+    speeds[0] = sl;
+    speeds[1] = sr;
+    return fmax(fabs(sl), fabs(sr));
+  }
+  for (int i = 0; i < 5; i++) {
+    qm[i] = (sr * qr_tet[i] - sl * ql_tet[i] + fl[i] - fr[i]) / denom;
+  }
+
+  double *w0 = &waves_tet[0 * 5];
+  double *w1 = &waves_tet[1 * 5];
+  for (int i = 0; i < 5; i++) {
+    w0[i] = qm[i] - ql_tet[i];
+    w1[i] = qr_tet[i] - qm[i];
+  }
+  speeds[0] = sl;
+  speeds[1] = sr;
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+// Pure Minkowski SR Lax-Friedrichs. Symmetric envelope ±amax with
+// amax = max over both sides of |λ|_max. Like HLL but with a symmetric
+// (broader) speed bracket — more diffusive but still admissibility-
+// preserving on admissible inputs.
+//
+// Tetrad-first composition: same role as sr_hll_minkowski but symmetric
+// in speed. The curved-frame wave_lax pipeline transforms states into
+// the tetrad frame, calls this, and back-transforms waves/speeds.
+double
+gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(double gas_gamma,
+  const double ql_tet[5], const double qr_tet[5],
+  double waves_tet[2 * 5], double speeds[2])
+{
+  double D_l = ql_tet[0], D_r = qr_tet[0];
+  double Sx_l = ql_tet[1], Sx_r = qr_tet[1];
+  double Sy_l = ql_tet[2], Sy_r = qr_tet[2];
+  double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
+  double tau_l = ql_tet[4], tau_r = qr_tet[4];
+
+  // Banyuls Newton recovery (Minkowski flat) on each side.
+  double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
+  double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
+  {
+    double s_sq_l = ((tau_l + D_l)*(tau_l + D_l)) - (Sx_l*Sx_l + Sy_l*Sy_l + Sz_l*Sz_l);
+    double C, C0;
+    if (s_sq_l < pow(10.0, -10.0)) {
+      C  = D_l / sqrt(pow(10.0, -10.0));
+      C0 = (D_l + tau_l) / sqrt(pow(10.0, -10.0));
+    } else {
+      C  = D_l / sqrt(s_sq_l);
+      C0 = (D_l + tau_l) / sqrt(s_sq_l);
+    }
+    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
+    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
+    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
+      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+    double alpha4 = (C0*C0) - 1.0;
+    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+    double guess = 1.0;
+    for (int it = 0; it < 100; it++) {
+      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
+                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
+      double poly_der = alpha1 + (2.0 * alpha2 * guess)
+                      + (4.0 * alpha4 * guess*guess*guess)
+                      - (3.0 * eta * alpha4 * guess*guess);
+      double guess_new = guess - poly/poly_der;
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
+      guess = guess_new;
+    }
+    W_l = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
+      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
+    h_l = 1.0 / (C * guess);
+    rho_l = D_l / W_l;
+    vx_l = Sx_l / (rho_l * h_l * W_l*W_l);
+    vy_l = Sy_l / (rho_l * h_l * W_l*W_l);
+    vz_l = Sz_l / (rho_l * h_l * W_l*W_l);
+    p_l  = (rho_l * h_l * W_l*W_l) - D_l - tau_l;
+    if (rho_l < pow(10.0, -8.0)) rho_l = pow(10.0, -8.0);
+    if (p_l   < pow(10.0, -8.0)) p_l   = pow(10.0, -8.0);
+  }
+  {
+    double s_sq_r = ((tau_r + D_r)*(tau_r + D_r)) - (Sx_r*Sx_r + Sy_r*Sy_r + Sz_r*Sz_r);
+    double C, C0;
+    if (s_sq_r < pow(10.0, -10.0)) {
+      C  = D_r / sqrt(pow(10.0, -10.0));
+      C0 = (D_r + tau_r) / sqrt(pow(10.0, -10.0));
+    } else {
+      C  = D_r / sqrt(s_sq_r);
+      C0 = (D_r + tau_r) / sqrt(s_sq_r);
+    }
+    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
+    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
+    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
+      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+    double alpha4 = (C0*C0) - 1.0;
+    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+    double guess = 1.0;
+    for (int it = 0; it < 100; it++) {
+      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
+                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
+      double poly_der = alpha1 + (2.0 * alpha2 * guess)
+                      + (4.0 * alpha4 * guess*guess*guess)
+                      - (3.0 * eta * alpha4 * guess*guess);
+      double guess_new = guess - poly/poly_der;
+      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
+      guess = guess_new;
+    }
+    W_r = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
+      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
+    h_r = 1.0 / (C * guess);
+    rho_r = D_r / W_r;
+    vx_r = Sx_r / (rho_r * h_r * W_r*W_r);
+    vy_r = Sy_r / (rho_r * h_r * W_r*W_r);
+    vz_r = Sz_r / (rho_r * h_r * W_r*W_r);
+    p_r  = (rho_r * h_r * W_r*W_r) - D_r - tau_r;
+    if (rho_r < pow(10.0, -8.0)) rho_r = pow(10.0, -8.0);
+    if (p_r   < pow(10.0, -8.0)) p_r   = pow(10.0, -8.0);
+  }
+
+  // Sound speeds and per-side max-abs characteristic speed in tetrad.
+  double c_sl = sqrt((gas_gamma * p_l) / (rho_l * h_l));
+  double c_sr = sqrt((gas_gamma * p_r) / (rho_r * h_r));
+
+  double lam_minus_l = (vx_l - c_sl) / (1.0 - vx_l * c_sl);
+  double lam_plus_l  = (vx_l + c_sl) / (1.0 + vx_l * c_sl);
+  double lam_minus_r = (vx_r - c_sr) / (1.0 - vx_r * c_sr);
+  double lam_plus_r  = (vx_r + c_sr) / (1.0 + vx_r * c_sr);
+
+  double max_l = fmax(fabs(lam_minus_l), fabs(lam_plus_l));
+  double max_r = fmax(fabs(lam_minus_r), fabs(lam_plus_r));
+  double amax = fmax(max_l, max_r);
+
+  // Banyuls fluxes in flat tetrad: F[D] = D·vx, F[S_i] = S_i·vx + p·δ_i^x,
+  // F[τ] = (τ+p)·vx.
+  double fl[5], fr[5];
+  fl[0] = D_l  * vx_l;
+  fl[1] = Sx_l * vx_l + p_l;
+  fl[2] = Sy_l * vx_l;
+  fl[3] = Sz_l * vx_l;
+  fl[4] = (tau_l + p_l) * vx_l;
+  fr[0] = D_r  * vx_r;
+  fr[1] = Sx_r * vx_r + p_r;
+  fr[2] = Sy_r * vx_r;
+  fr[3] = Sz_r * vx_r;
+  fr[4] = (tau_r + p_r) * vx_r;
+
+  // Lax wave decomposition: symmetric ±amax envelope.
+  //   w_0 = 0.5·(Δq − ΔF/amax)
+  //   w_1 = 0.5·(Δq + ΔF/amax)
+  // Then Σ s·w = amax·(w_1 − w_0) = ΔF (flux jump exact in tetrad).
+  if (!(amax > 0.0)) {
+    for (int k = 0; k < 2 * 5; k++) waves_tet[k] = 0.0;
+    speeds[0] = -pow(10.0, -8.0);
+    speeds[1] =  pow(10.0, -8.0);
+    return pow(10.0, -8.0);
+  }
+  double *w0 = &waves_tet[0 * 5];
+  double *w1 = &waves_tet[1 * 5];
+  for (int i = 0; i < 5; i++) {
+    double dq = qr_tet[i] - ql_tet[i];
+    double df = fr[i] - fl[i];
+    w0[i] = 0.5 * (dq - df / amax);
+    w1[i] = 0.5 * (dq + df / amax);
+  }
+  speeds[0] = -amax;
+  speeds[1] = +amax;
+
+  return amax;
+}
+
 // ---------------------------------------------------------------------------
 // Riemann-variable conversions and Cartesian-frame rotations.
 // ---------------------------------------------------------------------------
@@ -726,42 +1155,76 @@ rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
 // flat-flux + correction step used inside wave_lax / wave_hll / flux_jump.
 // ---------------------------------------------------------------------------
 
+// Tetrad-first Lax-Friedrichs. Mirrors the wave_hll pipeline:
+//   1. Build Gram-Schmidt-on-γ⁻¹ triad from the interface metric.
+//   2. Forward-transform qL, qR into the (flat) tetrad frame.
+//   3. Run pure SR Lax in the tetrad: symmetric ±amax envelope.
+//   4. Back-transform waves and speeds to the curved coord frame.
+//
+// With the Gram-Schmidt triad, flux jump (Σ s·w = ΔF_Banyuls) holds
+// exactly in the curved frame and positivity is preserved. The pure
+// wave-based qfluct (used by qfluct_lax) then ties conservation and
+// flux-jump together.
 static double
 wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   const double *qr, double *waves, double *s)
 {
+  (void)delta;
+
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
   double gas_gamma = grm->gas_gamma;
 
-  double sl = gkyl_gr_euler_tetrad_mod_max_abs_speed(gas_gamma, ql, grm->prodl_local);
-  double sr = gkyl_gr_euler_tetrad_mod_max_abs_speed(gas_gamma, qr, grm->prodr_local);
-  double amax = fmax(sl, sr);
-
-  double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql, grm->prodl_local, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr, grm->prodr_local, fr_sr);
-
-  double fl_gr[5], fr_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql, grm->prodl_local, fl_sr, fl_gr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr, grm->prodr_local, fr_sr, fr_gr);
-
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-
-  double *w0 = &waves[0], *w1 = &waves[5];
-  if (!excise_l && !excise_r) {
-    for (int i = 0; i < 5; i++) {
-      w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr_gr[i] - fl_gr[i]) / amax);
-      w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr_gr[i] - fl_gr[i]) / amax);
-    }
-  } else {
-    for (int i = 0; i < 5; i++) { w0[i] = 0.0; w1[i] = 0.0; }
+  if (excise_l || excise_r) {
+    for (int k = 0; k < 2 * 5; k++) waves[k] = 0.0;
+    s[0] = -pow(10.0, -8.0);
+    s[1] =  pow(10.0, -8.0);
+    return pow(10.0, -8.0);
   }
 
-  s[0] = -amax;
-  s[1] =  amax;
-  return s[1];
+  // Step 1: interface metric (arithmetic mean of L and R).
+  double g_iface[3][3], inv_g_iface[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
+                           + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
+      inv_g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_INV_GIJ + 3*i + j]
+                               + grm->prodr_local[GKYL_GR_SP_INV_GIJ + 3*i + j]);
+    }
+  double alpha_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
+                            + grm->prodr_local[GKYL_GR_SP_LAPSE]);
+  double shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
+                              + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
+  double sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
+
+  double M[3][3], M_inv[3][3];
+  gkyl_gr_euler_tetrad_mod_build_triad_contravariant_x(
+    g_iface, inv_g_iface, M, M_inv);
+
+  // Step 2: forward transform onto the contravariant-x triad.
+  double ql_tet[5], qr_tet[5];
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_l, inv_g_iface, M_inv, ql_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_r, inv_g_iface, M_inv, qr_tet);
+
+  // Step 3: SR Lax in tetrad with symmetric ±amax envelope.
+  double waves_tet[2 * 5], speeds_tet[2];
+  gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(
+    gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
+
+  // Step 4: back-transform waves and speeds.
+  double maxs_curved = 0.0;
+  for (int k = 0; k < 2; k++) {
+    gkyl_gr_euler_tetrad_mod_wave_to_curved_contra(&waves_tet[k * 5],
+      sqrt_det_iface, M_inv, &waves[k * 5]);
+    s[k] = gkyl_gr_euler_tetrad_mod_speed_to_curved_contra(
+      speeds_tet[k], alpha_iface, shift_x_iface, inv_g_iface[0][0]);
+    if (fabs(s[k]) > maxs_curved) maxs_curved = fabs(s[k]);
+  }
+  return maxs_curved;
 }
 
 static void
@@ -839,19 +1302,17 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   double sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
   double sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
 
-  // Cholesky-of-γ construction: L L^T = γ, L lower triangular. For Convention B
-  // (q[i+1] := √γ·ρhW²·v^i, contravariant velocity in each slot) the forward
-  // transform on momentum uses L^T (so |S_tet|² = γ_ij S^i S^j is preserved
-  // as the Cartesian sum in tetrad indices). The back-transform on waves then
-  // uses L_inv (inverse of L^T).
+  // Cholesky-of-γ construction: L L^T = γ, L lower triangular. Under
+  // Convention A the slot stores genuine covariant momentum S_i, so the
+  // forward transform projects with L_inv (S_a_tet = L_inv[a][i]·S_i) and
+  // the back-transform of waves uses L (w_GR[i+1] = √γ·L[i][a]·w_tet[a+1]).
   double L[3][3], L_inv[3][3];
   gkyl_gr_euler_tetrad_mod_build_triad(g_iface, L, L_inv);
 
   // Step 2: forward transform each side to the (common) tetrad frame.
-  // Forward uses L^T (S_a_tet = L[i][a]·(q[i+1]/√γ), summed over i).
   double ql_tet[5], qr_tet[5];
-  gkyl_gr_euler_tetrad_mod_q_to_tetrad(ql, sqrt_det_l, L, ql_tet);
-  gkyl_gr_euler_tetrad_mod_q_to_tetrad(qr, sqrt_det_r, L, qr_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad(ql, sqrt_det_l, L_inv, ql_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad(qr, sqrt_det_r, L_inv, qr_tet);
 
   // Step 3: pure Minkowski SR Roe. The tetrad-frame max-speed return value
   // is discarded — CFL must use the curved-frame max computed in step 4,
@@ -860,13 +1321,13 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(
     gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
 
-  // Step 4: back-transform waves (using L_inv, w_GR[i+1] = √γ·L_inv[a][i]·w_tet[a+1])
-  // and speeds (using L_inv[0][0] = ε^0_0 = 1/√γ_xx for diagonal γ, which is
-  // convention-independent for the geometric basis vector).
+  // Step 4: back-transform waves (using L) and speeds (using L_inv[0][0] =
+  // ε^0_0 = 1/√γ_xx for diagonal γ, which is convention-independent for
+  // the geometric basis vector).
   double maxs_curved = 0.0;
   for (int k = 0; k < 3; k++) {
     gkyl_gr_euler_tetrad_mod_wave_to_curved(&waves_tet[k * 5],
-      sqrt_det_iface, L_inv, &waves[k * 5]);
+      sqrt_det_iface, L, &waves[k * 5]);
     s[k] = gkyl_gr_euler_tetrad_mod_speed_to_curved(
       speeds_tet[k], alpha_iface, shift_x_iface, L_inv);
     if (fabs(s[k]) > maxs_curved) maxs_curved = fabs(s[k]);
@@ -922,6 +1383,20 @@ qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
+// Tetrad-first HLL pipeline (mirrors wave_roe):
+//   1. Build orthonormal triad ε^i_a from interface γ_ij via Cholesky.
+//   2. Forward-transform qL, qR to the tetrad (Minkowski) frame.
+//   3. Run pure-SR HLL with Davis bracket — provably admissible q_HLL.
+//   4. Back-transform waves (via L) and speeds (via α·L_inv[0][0] − β^x).
+//
+// The flat-space SR HLL proof (Mignone-Bodo 2005) guarantees the
+// tetrad-frame intermediate state q_HLL_tet is admissible. Because the
+// tetrad transform is a valid change of orthonormal basis of the
+// covariant momentum, admissibility (D > 0, τ ≥ 0, |S|_γ < D+τ)
+// transfers to the curved frame state-by-state. This is the analog of
+// wave_roe but exempt from the off-diagonal-γ structural residual,
+// because HLL has only two waves and uses the curved-frame ΔF via
+// qfluct's central+dissipation form for conservation.
 static double
 wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   const double *qr, double *waves, double *s)
@@ -929,148 +1404,102 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
   double gas_gamma = grm->gas_gamma;
-  const double *pl = grm->prodl_local;
-  const double *pr = grm->prodr_local;
 
-  double vl[5], vr[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, ql, pl, vl);
-  gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, qr, pr, vr);
+  // Excision short-circuit (mirrors wave_roe).
+  bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  if (excise_l || excise_r) {
+    for (int k = 0; k < 2 * 5; k++) waves[k] = 0.0;
+    s[0] = 0.0;
+    s[1] = 0.0;
+    return pow(10.0, -8.0);
+  }
 
-  double rho_l = vl[0], vx_l = vl[1], vy_l = vl[2], vz_l = vl[3], p_l = vl[4];
-  double rho_r = vr[0], vx_r = vr[1], vy_r = vr[2], vz_r = vr[3], p_r = vr[4];
-
-  double lapse_l   = pl[GKYL_GR_SP_LAPSE];
-  double shift_xl  = pl[GKYL_GR_SP_SHIFT + 0];
-  double shift_yl  = pl[GKYL_GR_SP_SHIFT + 1];
-  double shift_zl  = pl[GKYL_GR_SP_SHIFT + 2];
-  double lapse_r   = pr[GKYL_GR_SP_LAPSE];
-  double shift_xr  = pr[GKYL_GR_SP_SHIFT + 0];
-  double shift_yr  = pr[GKYL_GR_SP_SHIFT + 1];
-  double shift_zr  = pr[GKYL_GR_SP_SHIFT + 2];
-
-  bool excise_l = pl[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-  bool excise_r = pr[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-
-  bool curved_l = false, curved_r = false;
-  for (int i = 0; i < 3; i++) {
+  // Interface metric (arithmetic mean of L and R γ_ij, γ^{ij}).
+  double g_iface[3][3], inv_g_iface[3][3];
+  for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++) {
-      double gl = pl[GKYL_GR_SP_GIJ + 3*i + j];
-      double gr = pr[GKYL_GR_SP_GIJ + 3*i + j];
-      if (i == j) {
-        if (fabs(gl - 1.0) > pow(10.0, -8.0)) curved_l = true;
-        if (fabs(gr - 1.0) > pow(10.0, -8.0)) curved_r = true;
-      } else {
-        if (fabs(gl) > pow(10.0, -8.0)) curved_l = true;
-        if (fabs(gr) > pow(10.0, -8.0)) curved_r = true;
-      }
+      g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
+                           + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
+      inv_g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_INV_GIJ + 3*i + j]
+                               + grm->prodr_local[GKYL_GR_SP_INV_GIJ + 3*i + j]);
     }
-  }
-  if (fabs(lapse_l - 1.0) > pow(10.0, -8.0) ||
-      fabs(shift_xl) > pow(10.0, -8.0) || fabs(shift_yl) > pow(10.0, -8.0) ||
-      fabs(shift_zl) > pow(10.0, -8.0))
-    curved_l = true;
-  if (fabs(lapse_r - 1.0) > pow(10.0, -8.0) ||
-      fabs(shift_xr) > pow(10.0, -8.0) || fabs(shift_yr) > pow(10.0, -8.0) ||
-      fabs(shift_zr) > pow(10.0, -8.0))
-    curved_r = true;
+  double alpha_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
+                            + grm->prodr_local[GKYL_GR_SP_LAPSE]);
+  double shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
+                              + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
+  double sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
 
-  double c_sl = sqrt((gas_gamma * p_l / rho_l) /
-                     (1.0 + (p_l / rho_l) * gas_gamma / (gas_gamma - 1.0)));
-  double c_sr = sqrt((gas_gamma * p_r / rho_r) /
-                     (1.0 + (p_r / rho_r) * gas_gamma / (gas_gamma - 1.0)));
+  // Step 1: Gram-Schmidt-on-γ⁻¹ triad. First basis vector is the
+  // contravariant x-direction (γ^{xi}/√γ^{xx}); the other two come from
+  // Gram-Schmidt-in-γ. This eliminates the v_tet^x ↔ v^y, v^z mixing
+  // seen with Cholesky for non-diagonal γ.
+  double M[3][3], M_inv[3][3];
+  gkyl_gr_euler_tetrad_mod_build_triad_contravariant_x(
+    g_iface, inv_g_iface, M, M_inv);
 
-  double vx_avg = 0.5 * (vx_l + vx_r);
-  double cs_avg = 0.5 * (c_sl + c_sr);
+  // Step 2: forward transform Convention-A covariant momentum onto the
+  // contravariant-x triad. v_tet^x = v^x/√γ^{xx} (clean — no mixing).
+  double ql_tet[5], qr_tet[5];
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_l, inv_g_iface, M_inv, ql_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_r, inv_g_iface, M_inv, qr_tet);
 
-  double sl, sr;
-  if (curved_l || curved_r) {
-    double vel_l[3] = { vx_l, vy_l, vz_l };
-    double vel_r[3] = { vx_r, vy_r, vz_r };
-    double shift_l[3] = { shift_xl, shift_yl, shift_zl };
-    double shift_r[3] = { shift_xr, shift_yr, shift_zr };
+  // Step 3: pure Minkowski SR HLL with Davis bracket.
+  double waves_tet[2 * 5], speeds_tet[2];
+  gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(
+    gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
 
-    double vsq_l = 0.0, vsq_r = 0.0;
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++) {
-        vsq_l += pl[GKYL_GR_SP_GIJ + 3*i + j] * vel_l[i] * vel_l[j];
-        vsq_r += pr[GKYL_GR_SP_GIJ + 3*i + j] * vel_r[i] * vel_r[j];
-      }
-
-    double max_eig_l = 0.0, max_eig_r = 0.0;
-    for (int i = 0; i < 3; i++) {
-      double inv_ii_l = pl[GKYL_GR_SP_INV_GIJ + 3*i + i];
-      double inv_ii_r = pr[GKYL_GR_SP_INV_GIJ + 3*i + i];
-
-      double mat_l  = (lapse_l * vel_l[i]) - shift_l[i];
-      double com_l  = lapse_l / (1.0 - (vsq_l * c_sl * c_sl));
-      double rad_l  = (1.0 - vsq_l) * (inv_ii_l * (1.0 - (vsq_l * c_sl * c_sl)) -
-                       (vel_l[i] * vel_l[i]) * (1.0 - (c_sl * c_sl)));
-      double fast_l = com_l * ((vel_l[i] * (1.0 - c_sl*c_sl)) + (c_sl * sqrt(rad_l))) - shift_l[i];
-      double slow_l = com_l * ((vel_l[i] * (1.0 - c_sl*c_sl)) - (c_sl * sqrt(rad_l))) - shift_l[i];
-      if (fabs(mat_l)  > max_eig_l) max_eig_l = fabs(mat_l);
-      if (fabs(fast_l) > max_eig_l) max_eig_l = fabs(fast_l);
-      if (fabs(slow_l) > max_eig_l) max_eig_l = fabs(slow_l);
-
-      double mat_r  = (lapse_r * vel_r[i]) - shift_r[i];
-      double com_r  = lapse_r / (1.0 - (vsq_r * c_sr * c_sr));
-      double rad_r  = (1.0 - vsq_r) * (inv_ii_r * (1.0 - (vsq_r * c_sr * c_sr)) -
-                       (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)));
-      double fast_r = com_r * ((vel_r[i] * (1.0 - c_sr*c_sr)) + (c_sr * sqrt(rad_r))) - shift_r[i];
-      double slow_r = com_r * ((vel_r[i] * (1.0 - c_sr*c_sr)) - (c_sr * sqrt(rad_r))) - shift_r[i];
-      if (fabs(mat_r)  > max_eig_r) max_eig_r = fabs(mat_r);
-      if (fabs(fast_r) > max_eig_r) max_eig_r = fabs(fast_r);
-      if (fabs(slow_r) > max_eig_r) max_eig_r = fabs(slow_r);
-    }
-
-    double max_eig_avg = 0.5 * (max_eig_l + max_eig_r);
-    sl = (vx_avg - max_eig_avg) / (1.0 - (vx_avg * max_eig_avg));
-    sr = (vx_avg + max_eig_avg) / (1.0 + (vx_avg * max_eig_avg));
-  } else {
-    sl = (vx_avg - cs_avg) / (1.0 - (vx_avg * cs_avg));
-    sr = (vx_avg + cs_avg) / (1.0 + (vx_avg * cs_avg));
+  // Step 4: back-transform waves and speeds with the new triad. The
+  // coord-x momentum slot receives only the a=0 tetrad wave (mirror of
+  // forward-clean property).
+  double maxs_curved = 0.0;
+  for (int k = 0; k < 2; k++) {
+    gkyl_gr_euler_tetrad_mod_wave_to_curved_contra(&waves_tet[k * 5],
+      sqrt_det_iface, M_inv, &waves[k * 5]);
+    s[k] = gkyl_gr_euler_tetrad_mod_speed_to_curved_contra(
+      speeds_tet[k], alpha_iface, shift_x_iface, inv_g_iface[0][0]);
+    if (fabs(s[k]) > maxs_curved) maxs_curved = fabs(s[k]);
   }
 
-  // Tetrad split: compute flat-space SR fluxes, then apply GR correction.
-  double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql, pl, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr, pr, fr_sr);
-
-  double fl[5], fr[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql, pl, fl_sr, fl);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr, pr, fr_sr, fr);
-
-  double qm[5];
-  for (int i = 0; i < 5; i++)
-    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
-
-  double *w0 = &waves[0], *w1 = &waves[5];
-  if (!excise_l && !excise_r) {
-    for (int i = 0; i < 5; i++) {
-      w0[i] = qm[i] - ql[i];
-      w1[i] = qr[i] - qm[i];
-    }
-  } else {
-    for (int i = 0; i < 5; i++) { w0[i] = 0.0; w1[i] = 0.0; }
-  }
-
-  s[0] = sl;
-  s[1] = sr;
-  return fmax(fabs(sl), fabs(sr));
+  return maxs_curved;
 }
 
+// Pure wave-based qfluct: amdq = Σ min(0, s_k)·w_k, apdq = Σ max(0, s_k)·w_k.
+// Conservation `amdq + apdq = Σ s·w` is identical to the flux-jump
+// identity by construction. With the Gram-Schmidt-on-γ⁻¹ triad, flux
+// jump `Σ s_curved · w_curved = ΔF_Banyuls` holds exactly in curved
+// spacetime, so this form simultaneously gives strict conservation AND
+// the convex-combination property needed for positivity preservation.
 static void
 qfluct_hll(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   const double *waves, const double *s, double *amdq, double *apdq)
 {
-  const double *w0 = &waves[0], *w1 = &waves[5];
+  (void)eqn; (void)ql; (void)qr;
+  const double *w0 = &waves[0 * 5], *w1 = &waves[1 * 5];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
   for (int i = 0; i < 5; i++) {
-    amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
-    apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
+    amdq[i] = s0m * w0[i] + s1m * w1[i];
+    apdq[i] = s0p * w0[i] + s1p * w1[i];
   }
 }
 
+// POSITIVITY_SWEEP fallback policy: HIGH_ORDER uses HLL (the production
+// flux); LOW_ORDER (the second-pass sweep on cells flagged inadmissible)
+// falls back to Lax. Even though tetrad-first HLL is admissibility-
+// preserving in isolation, observation shows that HLL on the BHL
+// bow-shock leaves substantial momentum overshoot (s² close to (D+τ)²)
+// that propagates pathological local solution quality even when the
+// admissibility constraints are nominally satisfied. Lax is more
+// diffusive, smears these states, and leaves a much cleaner solution
+// at the cost of additional viscosity. The mixed HIGH-then-LOW pattern
+// is fine here: POSITIVITY_SWEEP resets qout to qin and recomputes
+// fluctuations at flagged interfaces only; the unflagged interfaces
+// retain their FIRST_SWEEP HLL values. The mixed cell-update is no
+// worse than a CFL-constrained Lax pass for the flagged cells, and
+// HLL elsewhere keeps the bulk solution sharp.
 static double
 wave_hll_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr,
@@ -1120,21 +1549,98 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
   return fmax(amaxl, amaxr);
 }
 
+// Strict admissibility predicate (Convention A): D > 0, τ ≥ 0, and
+// s² = (D+τ)² − γ^{ij}·S_i·S_j > 0. Returns true iff the cell lies in
+// the convex set the Banyuls inversion can reach without floors firing.
+//
+// The previous test relied on `v[0] < 0 || v[4] < 0` AFTER floors had
+// already pushed those positive — it never fired. Routing through
+// gkyl_gr_euler_check_admissibility (which inspects the pre-floor
+// conservatives directly) is what makes the test meaningful.
 static bool
 check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  if (!grm->auxfields.prods) {
-    return q[0] >= 0.0;
-  }
+  if (!grm->auxfields.prods) return q[0] >= 0.0;
+
   long cidx = gkyl_range_idx(&grm->conf_range, grm->cur_cell_idx);
   const double *prods = gkyl_array_cfetch(grm->auxfields.prods, cidx);
 
-  double v[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(grm->gas_gamma, q, prods, v);
-  if (v[0] < 0.0 || v[4] < 0.0) return false;
-  return true;
+  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) return true;
+
+  double spatial_det = prods[GKYL_GR_SP_SPATIAL_DET];
+  if (!(spatial_det > 0.0)) return false;
+
+  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+  double inv_g[3][3] = {
+    { ig[0], ig[1], ig[2] },
+    { ig[3], ig[4], ig[5] },
+    { ig[6], ig[7], ig[8] },
+  };
+  double sd  = sqrt(spatial_det);
+  double D   = q[0] / sd;
+  double Sx  = q[1] / sd;
+  double Sy  = q[2] / sd;
+  double Sz  = q[3] / sd;
+  double tau = q[4] / sd;
+
+  return gkyl_gr_euler_check_admissibility(D, Sx, Sy, Sz, tau, inv_g)
+    == GR_EULER_ADM_OK;
+}
+
+// One-iteration projection onto the convex admissibility set. Caller
+// loops (check_inv → repair_state → check_inv) up to a small bounded
+// number of passes; each call fixes the first failing constraint
+// (D, then τ, then s²).
+static void
+repair_state(const struct gkyl_wv_eqn *eqn, double *q)
+{
+  struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
+    struct wv_gr_euler_tetrad_mod, eqn);
+  if (!grm->auxfields.prods) return;
+
+  long cidx = gkyl_range_idx(&grm->conf_range, grm->cur_cell_idx);
+  const double *prods = gkyl_array_cfetch(grm->auxfields.prods, cidx);
+  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) return;
+
+  double spatial_det = prods[GKYL_GR_SP_SPATIAL_DET];
+  if (!(spatial_det > 0.0)) return;
+
+  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+  double inv_g[3][3] = {
+    { ig[0], ig[1], ig[2] },
+    { ig[3], ig[4], ig[5] },
+    { ig[6], ig[7], ig[8] },
+  };
+  double sd  = sqrt(spatial_det);
+  double D   = q[0] / sd;
+  double Sx  = q[1] / sd;
+  double Sy  = q[2] / sd;
+  double Sz  = q[3] / sd;
+  double tau = q[4] / sd;
+
+  unsigned int fixed =
+    gkyl_gr_euler_repair_admissibility_cascade(inv_g, &D, &Sx, &Sy, &Sz, &tau);
+
+  // Per-constraint independent tallies, split by call-site context. A
+  // non-zero wave_prop count means the post-positivity-sweep low-order
+  // (Lax/HLL) flux failed to produce an admissible state — which our
+  // unit tests say should never happen. Source counts dominate when
+  // the SSP-RK3 forward-Euler pushes already-admissible cells across
+  // an admissibility boundary inside a stage.
+  uint64_t *cnt = (eqn->cur_repair_ctx == 1)
+    ? grm->repair_count_wave_prop
+    : grm->repair_count_source;
+  if (fixed & GR_EULER_REPAIR_D)   cnt[GR_EULER_ADM_BAD_D]   += 1;
+  if (fixed & GR_EULER_REPAIR_TAU) cnt[GR_EULER_ADM_BAD_TAU] += 1;
+  if (fixed & GR_EULER_REPAIR_S2)  cnt[GR_EULER_ADM_BAD_S2]  += 1;
+
+  q[0] = D   * sd;
+  q[1] = Sx  * sd;
+  q[2] = Sy  * sd;
+  q[3] = Sz  * sd;
+  q[4] = tau * sd;
 }
 
 static double
@@ -1173,6 +1679,39 @@ gkyl_gr_euler_tetrad_mod_free(const struct gkyl_ref_count *ref)
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_gr_euler_tetrad_mod *grm = container_of(base,
     struct wv_gr_euler_tetrad_mod, eqn);
+
+  // Per-constraint independent counts, split by call site. A non-zero
+  // wave_prop count would mean the low-order POSITIVITY_SWEEP flux did
+  // not preserve admissibility — the unit tests assert this never
+  // happens for Lax/HLL on admissible inputs, so any nonzero here is a
+  // signal that the positivity-sweep mechanism itself is broken.
+  uint64_t total_source =
+      grm->repair_count_source[GR_EULER_ADM_BAD_D]
+    + grm->repair_count_source[GR_EULER_ADM_BAD_TAU]
+    + grm->repair_count_source[GR_EULER_ADM_BAD_S2];
+  uint64_t total_wave_prop =
+      grm->repair_count_wave_prop[GR_EULER_ADM_BAD_D]
+    + grm->repair_count_wave_prop[GR_EULER_ADM_BAD_TAU]
+    + grm->repair_count_wave_prop[GR_EULER_ADM_BAD_S2];
+  if (total_source + total_wave_prop > 0) {
+    fprintf(stderr,
+      "[gr_euler_tetrad_mod] cascade-repair fix totals: %llu fixes "
+      "(source: %llu, wave_prop: %llu)\n",
+      (unsigned long long)(total_source + total_wave_prop),
+      (unsigned long long)total_source,
+      (unsigned long long)total_wave_prop);
+    fprintf(stderr,
+      "  source     — D<=0: %llu, tau<0: %llu, s^2<=0: %llu\n",
+      (unsigned long long)grm->repair_count_source[GR_EULER_ADM_BAD_D],
+      (unsigned long long)grm->repair_count_source[GR_EULER_ADM_BAD_TAU],
+      (unsigned long long)grm->repair_count_source[GR_EULER_ADM_BAD_S2]);
+    fprintf(stderr,
+      "  wave_prop  — D<=0: %llu, tau<0: %llu, s^2<=0: %llu\n",
+      (unsigned long long)grm->repair_count_wave_prop[GR_EULER_ADM_BAD_D],
+      (unsigned long long)grm->repair_count_wave_prop[GR_EULER_ADM_BAD_TAU],
+      (unsigned long long)grm->repair_count_wave_prop[GR_EULER_ADM_BAD_S2]);
+  }
+
   gkyl_free(grm);
 }
 
@@ -1209,6 +1748,11 @@ gkyl_wv_gr_euler_tetrad_mod_inew(
     grm->cur_idxr[d] = 0;
     grm->cur_cell_idx[d] = 0;
   }
+  for (int k = 0; k < 4; k++) {
+    grm->repair_count_source[k]    = 0;
+    grm->repair_count_wave_prop[k] = 0;
+  }
+  grm->eqn.cur_repair_ctx = 0;
 
   if (inp->rp_type == WV_GR_EULER_TETRAD_RP_LAX) {
     grm->eqn.num_waves = 2;
@@ -1241,6 +1785,7 @@ gkyl_wv_gr_euler_tetrad_mod_inew(
 
   grm->eqn.set_interface_idx_func = gr_euler_tetrad_mod_set_interface_idx;
   grm->eqn.set_cell_idx_func = gr_euler_tetrad_mod_set_cell_idx;
+  grm->eqn.repair_state_func = repair_state;
 
   grm->eqn.embed_geo = NULL;
   grm->eqn.flags = 0;

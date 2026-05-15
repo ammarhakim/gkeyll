@@ -25,6 +25,12 @@ struct gkyl_moment_spacetime_coupling_inp {
   int nfluids;                         // Number of fluid species.
   struct gkyl_moment_spacetime_coupling_data fluid_param[GKYL_MAX_SPECIES];
 
+  // Per-species equation objects. The coupling acquires a ref on each
+  // (via gkyl_wv_eqn_acquire) at construction so it can call equation
+  // function pointers (set_cell_idx_func, check_inv_func, repair_state_func)
+  // from the source-update loop. Entries for non-mod species may be NULL.
+  struct gkyl_wv_eqn *eqn[GKYL_MAX_SPECIES];
+
   bool is_static;       // True when the spacetime never evolves; the app
                         // calls derive_products once at IC and never again.
   bool has_tetrad;      // True when at least one species needs the tetrad

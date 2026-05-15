@@ -18,6 +18,11 @@ struct gkyl_moment_spacetime_coupling {
   int nfluids;
   struct gkyl_moment_spacetime_coupling_data fluid_param[GKYL_MAX_SPECIES];
 
+  // Acquired refs on per-species equation objects. Used by the source-
+  // update loop to invoke set_cell_idx_func, check_inv_func, and
+  // repair_state_func. NULL for non-mod species.
+  struct gkyl_wv_eqn *eqn[GKYL_MAX_SPECIES];
+
   bool is_static;
   bool has_tetrad;
 

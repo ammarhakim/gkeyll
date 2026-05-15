@@ -228,17 +228,20 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
             .type = t,
             .gas_gamma = gkyl_wv_gr_euler_mod_gas_gamma(app->species[i].equation),
           };
+          st_inp.eqn[i] = app->species[i].equation;
         } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
             .type = t,
             .gas_gamma = gkyl_wv_gr_euler_tetrad_mod_gas_gamma(app->species[i].equation),
           };
+          st_inp.eqn[i] = app->species[i].equation;
         } else {
           // Non-mod species: leave the entry in a benign-default state; the
           // coupling's advance loop skips non-mod types.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
             .type = t, .gas_gamma = 0.0,
           };
+          st_inp.eqn[i] = NULL;
         }
       }
       src->spacetime_slvr = gkyl_moment_spacetime_coupling_new(st_inp);

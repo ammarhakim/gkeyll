@@ -76,6 +76,15 @@ typedef void (*wv_set_interface_idx_t)(const struct gkyl_wv_eqn* eqn,
 typedef void (*wv_set_cell_idx_t)(const struct gkyl_wv_eqn* eqn,
   const int* idx);
 
+// repair_state_func: optional last-resort hook called by wave_prop (after
+// the positivity-redo) and by moment_spacetime_coupling (after each
+// forward-Euler source stage) when a cell remains outside the convex
+// admissibility set. The equation projects q in-place onto the boundary of
+// the admissibility set, fixing one constraint per call. Callers iterate
+// (check_inv → repair_state → check_inv) up to a small bounded number of
+// passes. NULL for equations that do not implement state repair.
+typedef void (*wv_repair_state_t)(const struct gkyl_wv_eqn* eqn, double* q);
+
 struct gkyl_wv_eqn {
   enum gkyl_eqn_type type; // Equation type
   int num_equations; // number of equations in system
@@ -108,6 +117,19 @@ struct gkyl_wv_eqn {
   // equations that do not need per-cell auxfield lookup.
   wv_set_interface_idx_t set_interface_idx_func;
   wv_set_cell_idx_t set_cell_idx_func;
+
+  // Optional last-resort state-repair hook. NULL for equations that do
+  // not implement it; callers must check before invoking.
+  wv_repair_state_t repair_state_func;
+
+  // Diagnostic context hint set by the caller before invoking
+  // repair_state_func. Lets equations that maintain per-call-site repair
+  // counters dispatch to the right tally. Convention:
+  //   0 = source-step (or unspecified)
+  //   1 = wave_prop post-positivity-sweep
+  // Equations that don't track per-context stats can ignore this field.
+  // Mutable because callers reach in through const struct gkyl_wv_eqn*.
+  int cur_repair_ctx;
 
   struct gkyl_wv_embed_geo *embed_geo;
 
@@ -320,6 +342,21 @@ static inline void
 gkyl_wv_eqn_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 {
   eqn->source_func(eqn, qin, sout);
+}
+
+/**
+ * Apply the equation's state-repair hook in place. Caller is responsible
+ * for first checking that eqn->repair_state_func is non-NULL — equations
+ * without a meaningful repair operation leave the slot NULL.
+ *
+ * @param eqn Equation object
+ * @param q   Conserved variables (modified in place)
+ */
+GKYL_CU_DH
+static inline void
+gkyl_wv_eqn_repair_state(const struct gkyl_wv_eqn *eqn, double *q)
+{
+  eqn->repair_state_func(eqn, q);
 }
 
 /**

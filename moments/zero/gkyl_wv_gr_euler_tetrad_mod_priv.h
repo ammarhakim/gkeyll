@@ -3,22 +3,22 @@
 // Private header for the modular tetrad-basis GR Euler equation object.
 // Not for direct inclusion in user-facing code.
 //
-// Conserved-variable convention (shared with wv_gr_euler.c, wv_gr_euler_mod.c,
-// wv_gr_euler_tetrad.c):
+// Convention-A conserved variables (genuine covariant momentum):
 //
-//   q[0]   = √γ · ρW
-//   q[i+1] = √γ · ρhW² · v^i           ← contravariant velocity in slot i
-//   q[4]   = √γ · (ρhW² − p − ρW)
+//   q[0]   = √γ · ρW                     (D, scalar rest-mass current)
+//   q[i+1] = √γ · γ_ij · ρhW² · v^j      (S_i, covariant momentum density)
+//   q[4]   = √γ · (ρhW² − p − ρW)        (τ, energy minus rest-mass)
 //
-// The "i" in q[i+1] is a slot label and the stored quantity is contravariant
-// momentum density. For static γ_ij this is algebraically equivalent to the
-// standard Banyuls covariant-momentum form: the metric is folded into the
-// conserved-variable definition, and the flux is written so that v^i appears
-// directly in the j-th momentum slot (no metric raise/lower at flux time).
-// The recovery polynomial uses the Lorentz scalar |S|² = γ_ij·S^i·S^j; see
-// gkyl_gr_euler_tetrad_mod_prim_vars in the .c file.
+// The Banyuls inversion uses |S|² = γ^{ij}·S_i·S_j and recovers the
+// contravariant velocity v^i = γ^{ij}·S_j / (ρhW²); both lookups go
+// through gkyl_gr_euler_recover_primitives in
+// gkyl_wv_gr_euler_prim_priv.h. The packed-tetrad path
+// (wv_gr_euler_tetrad.c) and the non-tetrad mod path (wv_gr_euler_mod.c)
+// remain on the contravariant-momentum convention; only the modular
+// tetrad path defined here uses Convention A.
 
 #include <math.h>
+#include <stdint.h>
 #include <gkyl_array.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_moment_spacetime_products.h>
@@ -52,6 +52,14 @@ struct wv_gr_euler_tetrad_mod {
   double prodl_local[GKYL_GR_SP_NCOMP_BASE];
   double prodr_local[GKYL_GR_SP_NCOMP_BASE];
   int rot_call_parity;
+
+  // Diagnostic counters for repair_state — split by call-site context
+  // (eqn->cur_repair_ctx: 0 = source-step, 1 = wave_prop). Indexed by
+  // gkyl_gr_euler_admissibility_status value (entries 1..3 used; entry 0
+  // is OK and never incremented). Mutable because callers reach in
+  // through a const struct gkyl_wv_eqn*.
+  uint64_t repair_count_source[4];
+  uint64_t repair_count_wave_prop[4];
 };
 
 // Free function for the reference-count callback.
@@ -122,22 +130,24 @@ void
 gkyl_gr_euler_tetrad_mod_build_triad(const double g_ij[3][3],
   double L[3][3], double L_inv[3][3]);
 
-// Transform a curved-frame conserved state q_GR to a tetrad-frame conserved
-// state q_tet (5-component, no √γ, momentum in the orthonormal-triad basis).
+// Transform a curved-frame conserved state q_GR (Convention A: q[1..3] is
+// genuine covariant momentum S_i) to a tetrad-frame conserved state q_tet
+// (5-component, no √γ, momentum in the orthonormal-triad basis).
 //
-// Forward transform uses L^T (transpose of the Cholesky factor of γ):
+// Forward transform uses L_inv = L^{-1} (inverse Cholesky factor):
 //   D_tet     = q_GR[0] / √γ
 //   τ_tet     = q_GR[4] / √γ
-//   S_a_tet   = L[i][a] · (q_GR[i+1] / √γ)   (sum over i)
+//   S_a_tet   = L_inv[a][i] · (q_GR[i+1] / √γ)   (sum over i)
 //
-// Derivation: forward of contravariant momentum needs M with M^T M = γ so
-// that Σ_a (Mv)_a² = γ_ij v^i v^j is preserved. With γ = L L^T (Cholesky),
-// M = L^T. The invariant Σ_a (S_a_tet)² = γ_ij·S^i·S^j (with S^i = ρhW²·v^i)
-// then holds in the tetrad frame.
+// Derivation: with the orthonormal triad basis vectors ε^i_a = L_inv[a][i]
+// satisfying γ_ij·ε^i_a·ε^j_b = δ_ab, the projection of a covariant
+// momentum onto the triad is S_a_tet = ε^i_a·S_i = L_inv[a][i]·S_i. Then
+// Σ_a (S_a_tet)² = γ^{ij}·S_i·S_j matches the Lorentz scalar in the
+// curved frame.
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_q_to_tetrad(const double q_GR[5],
-  double sqrt_det, const double L[3][3], double q_tet[5]);
+  double sqrt_det, const double L_inv[3][3], double q_tet[5]);
 
 // Run a pure SR (Minkowski) Roe wave decomposition in the tetrad frame.
 // Inputs: gas_gamma, ql_tet, qr_tet (tetrad-frame conserved variables —
@@ -156,14 +166,65 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[3 * 5], double speeds[3]);
 
-// Back-transform: inverse of forward S_tet = L^T · S^GR. With L_inv = L^{-1}:
+// Pure Minkowski SR HLL with Davis/Einfeldt wave-speed bracket.
+// Returns the two-wave decomposition with q_HLL as the intermediate
+// state. Provably admissibility-preserving in flat space (Mignone-Bodo).
+GKYL_CU_D
+double
+gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(double gas_gamma,
+  const double ql_tet[5], const double qr_tet[5],
+  double waves_tet[2 * 5], double speeds[2]);
+
+// Pure Minkowski SR Lax-Friedrichs with symmetric ±amax envelope. More
+// diffusive than HLL but admissibility-preserving on admissible inputs.
+GKYL_CU_D
+double
+gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(double gas_gamma,
+  const double ql_tet[5], const double qr_tet[5],
+  double waves_tet[2 * 5], double speeds[2]);
+
+// Build a Gram-Schmidt-on-γ⁻¹ triad: e_0 aligned with the contravariant
+// x-direction, e_1, e_2 orthogonalized in γ. M[i][a] = e_a^i, M_inv =
+// M^T·γ. Eliminates the v_tet^x ↔ v^y, v^z mixing seen with Cholesky
+// for non-diagonal γ — see SESSION_NOTES_2.md §12.
+GKYL_CU_D
+void
+gkyl_gr_euler_tetrad_mod_build_triad_contravariant_x(
+  const double g_ij[3][3], const double inv_g[3][3],
+  double M[3][3], double M_inv[3][3]);
+
+// Forward transform of Convention-A covariant momentum onto the
+// contravariant-x triad: S_tet^a = M_inv[a][i]·γ^{ij}·S_j/√γ. For a=0
+// this gives (1/√γ^{xx})·S^x, so v_tet^0 = v^x/√γ^{xx} (clean).
+GKYL_CU_D
+void
+gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(const double q_GR[5],
+  double sqrt_det, const double inv_g[3][3], const double M_inv[3][3],
+  double q_tet[5]);
+
+// Back-transform of waves to curved-frame Convention A. The coord-x
+// momentum slot receives only the a=0 tetrad wave (mirror of the
+// forward-clean property in the contravariant-x construction).
+GKYL_CU_D
+void
+gkyl_gr_euler_tetrad_mod_wave_to_curved_contra(const double w_tet[5],
+  double sqrt_det, const double M_inv[3][3], double w_GR[5]);
+
+// Speed back-transform: s_coord = α·√γ^{xx}·s_tet − β^x.
+GKYL_CU_D
+double
+gkyl_gr_euler_tetrad_mod_speed_to_curved_contra(double s_tet,
+  double lapse, double shift_x, double inv_gxx);
+
+// Back-transform: inverse of forward S_a_tet = L_inv[a][i]·S_i. With
+// γ = L L^T:
 //   w_GR[0]   = √γ · w_tet[0]                  (D-slot)
-//   w_GR[i+1] = √γ · L_inv[a][i] · w_tet[a+1]  (sum over a)
+//   w_GR[i+1] = √γ · L[i][a] · w_tet[a+1]      (sum over a)
 //   w_GR[4]   = √γ · w_tet[4]                  (τ-slot)
-// With L_inv lower triangular, the coord-x momentum slot picks up all three
-// tetrad waves through the first column of L_inv; the coord-z slot only sees
-// tetrad-z. This cross-coupling carries the off-diagonal-γ contributions
-// back into each coord-frame momentum component.
+// With L lower triangular, the coord-x momentum slot only sees tetrad-x;
+// coord-y picks up tetrad-x and -y; coord-z all three tetrad axes. This
+// cross-coupling carries the off-diagonal-γ contributions back into the
+// covariant momentum slots.
 //
 // The strict flux-jump identity ∑ s·w = Δf_GR does not hold in curved γ for
 // this 1D-sweep tetrad-Roe — see Gorard, Hakim, Juno, TenBarge 2025
@@ -171,7 +232,7 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_wave_to_curved(const double w_tet[5],
-  double sqrt_det, const double L_inv[3][3], double w_GR[5]);
+  double sqrt_det, const double L[3][3], double w_GR[5]);
 
 // Transform a tetrad-frame wave speed to a coord-frame wave speed.
 // For a wave propagating along the local-x cell normal:

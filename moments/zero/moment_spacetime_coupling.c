@@ -10,6 +10,12 @@
 #include <gkyl_moment_spacetime_products.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wv_gr_euler_prim_priv.h>
+
+// Single-call cascade: each repair_state invocation fixes all three
+// admissibility constraints (D > 0, τ ≥ 0, s² > 0) in safe order, so the
+// post-call state is always admissible. No iteration needed.
 
 // ---------------------------------------------------------------------------
 // Internal helpers.
@@ -155,90 +161,54 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
   gkyl_free(lapse_der);
 }
 
-// Per-cell forward-Euler source step for the modular GR Euler equation.
-// Mirrors explicit_gr_euler_source_update_euler in sources_explicit.c
-// (lines 767-988), substituting reads of fluid_old[5..66] with reads of the
-// per-cell products row. Operates entirely on 5-element hydro state.
-void
-gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-  double gas_gamma, double t_curr, double dt,
-  const double *prods,
-  const double fluid_old[5], double fluid_new[5])
+// Compute the geometric source rate vector S(q) for the modular GR Euler
+// equation. dq/dt = S(q) for the Banyuls source terms; integrators wrap
+// this to take a time step. Excised cells return zero.
+//
+// Returns the rate of change of the densitized conservative state
+// d(√γ·U)/dt = α√γ·S(w), so callers get the same scaling the original
+// inlined source step used.
+static void
+compute_source_rate(double gas_gamma, const double *prods,
+  const double q[5], double S_rate[5])
 {
-  (void)t_curr;  // Source math is time-independent; t_curr matches packed signature.
+  bool in_excision_region = prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  if (in_excision_region) {
+    for (int i = 0; i < 5; i++) S_rate[i] = 0.0;
+    return;
+  }
 
   double lapse   = prods[GKYL_GR_SP_LAPSE];
   double shift_x = prods[GKYL_GR_SP_SHIFT + 0];
   double shift_y = prods[GKYL_GR_SP_SHIFT + 1];
   double shift_z = prods[GKYL_GR_SP_SHIFT + 2];
-
-  bool in_excision_region = prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-
-  // Inside the excision region the source contribution is zero — just pass
-  // the hydro state through.
-  if (in_excision_region) {
-    for (int i = 0; i < 5; i++) fluid_new[i] = fluid_old[i];
-    return;
-  }
-
   double spatial_det = prods[GKYL_GR_SP_SPATIAL_DET];
 
-  // Primitive recovery (port of the Newton iteration in packed lines
-  // 840-891). The same iteration is used by gkyl_gr_euler_mod_prim_vars,
-  // but inlined here so the source step stays a single self-contained
-  // function — matching packed structure for an apples-to-apples diff.
-  double D    = fluid_old[0] / sqrt(spatial_det);
-  double momx = fluid_old[1] / sqrt(spatial_det);
-  double momy = fluid_old[2] / sqrt(spatial_det);
-  double momz = fluid_old[3] / sqrt(spatial_det);
-  double Etot = fluid_old[4] / sqrt(spatial_det);
+  // Convention A primitive recovery via the shared helper.
+  double D    = q[0] / sqrt(spatial_det);
+  double momx = q[1] / sqrt(spatial_det);
+  double momy = q[2] / sqrt(spatial_det);
+  double momz = q[3] / sqrt(spatial_det);
+  double Etot = q[4] / sqrt(spatial_det);
 
-  double s_sq = ((Etot + D) * (Etot + D)) - ((momx*momx) + (momy*momy) + (momz*momz));
-  double C, C0;
-  if (s_sq < pow(10.0, -8.0)) {
-    C  = D / sqrt(pow(10.0, -8.0));
-    C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
-  } else {
-    C  = D / sqrt(s_sq);
-    C0 = (D + Etot) / sqrt(s_sq);
-  }
+  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+  double inv_g[3][3] = {
+    { ig[0], ig[1], ig[2] },
+    { ig[3], ig[4], ig[5] },
+    { ig[6], ig[7], ig[8] },
+  };
 
-  double alpha0 = -1.0 / (gas_gamma * gas_gamma);
-  double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
-  double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
-    (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
-  double alpha4 = (C0*C0) - 1.0;
-  double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+  struct gkyl_gr_euler_prim prim;
+  gkyl_gr_euler_recover_primitives(gas_gamma,
+    D, momx, momy, momz, Etot, inv_g, &prim);
 
-  double guess = 1.0;
-  int iter = 0;
-  while (iter < 100) {
-    double poly = (alpha4 * (guess*guess*guess) * (guess - eta))
-                + (alpha2 * (guess*guess)) + (alpha1 * guess) + alpha0;
-    double poly_der = alpha1 + (2.0 * alpha2 * guess)
-                    + (4.0 * alpha4 * (guess*guess*guess))
-                    - (3.0 * eta * alpha4 * (guess*guess));
-    double guess_new = guess - (poly / poly_der);
-    if (fabs(guess - guess_new) < pow(10.0, -8.0)) {
-      iter = 100;
-    } else {
-      iter += 1;
-      guess = guess_new;
-    }
-  }
-
-  double W = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) *
-    ((1.0 - (C * guess)) / ((C0*C0) * (guess*guess))))));
-  double h = 1.0 / (C * guess);
-
-  double rho = D / W;
-  double vx = momx / (rho * h * (W*W));
-  double vy = momy / (rho * h * (W*W));
-  double vz = momz / (rho * h * (W*W));
-  double p = (rho * h * (W*W)) - D - Etot;
-
-  if (rho < pow(10.0, -8.0)) rho = pow(10.0, -8.0);
-  if (p   < pow(10.0, -8.0)) p   = pow(10.0, -8.0);
+  double rho = prim.rho;
+  double vx  = prim.v[0];
+  double vy  = prim.v[1];
+  double vz  = prim.v[2];
+  double p   = prim.p;
+  double W   = prim.W;
+  double h   = prim.h;
 
   // Spacetime 4-velocity and contravariant 4-metric.
   double u4[4];
@@ -273,15 +243,11 @@ gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
     prods[GKYL_GR_SP_DALPHA + 2],
   };
 
-  // For non-symmetric tensors the products layout follows the packed
-  // convention: ∂_j β^i is stored row-major as q[31 + 3*j + i] in packed,
-  // i.e. prods[GKYL_GR_SP_DBETA + 3*j + i]. shift_der[j][i] mirrors that.
   double shift_der[3][3];
   for (int j = 0; j < 3; j++)
     for (int i = 0; i < 3; i++)
       shift_der[j][i] = prods[GKYL_GR_SP_DBETA + 3*j + i];
 
-  // ∂_k γ_ij is stored row-major as q[40 + 9*k + 3*i + j] in packed.
   double spatial_metric_der[3][3][3];
   for (int k = 0; k < 3; k++)
     for (int i = 0; i < 3; i++)
@@ -293,46 +259,63 @@ gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
     for (int j = 0; j < 3; j++)
       extrinsic_curvature[i][j] = prods[GKYL_GR_SP_KIJ + 3*i + j];
 
-  // Three-momentum, matching packed line 945-947. Packed uses (rho + p) here
-  // rather than the canonical rho*h; preserving the expression keeps mod
-  // bit-equivalent to the existing packed path. If/when packed is removed
-  // this should be revisited.
-  double mom[3];
-  mom[0] = (rho + p) * (W * W) * vx;
-  mom[1] = (rho + p) * (W * W) * vy;
-  mom[2] = (rho + p) * (W * W) * vz;
+  const double *g_ij = &prods[GKYL_GR_SP_GIJ];
 
-  // Initial copy: density and spacetime are unchanged; only momentum and
-  // energy receive source contributions.
-  for (int i = 0; i < 5; i++) fluid_new[i] = fluid_old[i];
+  double shift_lower[3] = { 0.0, 0.0, 0.0 };
+  for (int m = 0; m < 3; m++)
+    for (int k = 0; k < 3; k++)
+      shift_lower[m] += g_ij[3*m + k] * shift[k];
 
-  // Energy density source — port of packed lines 953-963.
+  for (int i = 0; i < 5; i++) S_rate[i] = 0.0;
+
+  double prefac = sqrt(spatial_det) * lapse;  // = α√γ = √(-g)
+
+  // Energy density source — see source_euler for derivation.
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      fluid_new[4] += dt * (T[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
-      fluid_new[4] += dt * (2.0 * T[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
-      fluid_new[4] += dt * (T[i + 1][j + 1] * extrinsic_curvature[i][j]);
+      S_rate[4] += prefac * (T[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
+      S_rate[4] += prefac * (2.0 * T[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+      S_rate[4] += prefac * (T[i + 1][j + 1] * extrinsic_curvature[i][j]);
     }
-    fluid_new[4] -= dt * (T[0][0] * shift[i] * lapse_der[i]);
-    fluid_new[4] -= dt * (T[0][i + 1] * lapse_der[i]);
+    S_rate[4] -= prefac * (T[0][0] * shift[i] * lapse_der[i]);
+    S_rate[4] -= prefac * (T[0][i + 1] * lapse_der[i]);
   }
 
-  // Momentum density sources — port of packed lines 965-981.
+  // Momentum density sources — full Banyuls (1/2)·T^{μν}·∂_j g_{μν}
+  // expansion. See source_euler for the per-term key.
   for (int j = 0; j < 3; j++) {
-    fluid_new[1 + j] -= dt * (T[0][0] * lapse * lapse_der[j]);
+    S_rate[1 + j] -= prefac * (T[0][0] * lapse * lapse_der[j]);
 
     for (int k = 0; k < 3; k++) {
       for (int l = 0; l < 3; l++) {
-        fluid_new[1 + j] += dt * (0.5 * T[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
-        fluid_new[1 + j] += dt * (0.5 * T[k + 1][l + 1] * spatial_metric_der[j][k][l]);
+        S_rate[1 + j] += prefac * (0.5 * T[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+        S_rate[1 + j] += prefac * (0.5 * T[k + 1][l + 1] * spatial_metric_der[j][k][l]);
       }
-      fluid_new[1 + j] += dt * ((mom[k] / lapse) * shift_der[j][k]);
+      S_rate[1 + j] += prefac * (T[0][0] * shift_lower[k] * shift_der[j][k]);
 
       for (int i = 0; i < 3; i++) {
-        fluid_new[1 + j] += dt * (T[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
+        S_rate[1 + j] += prefac * (T[0][i + 1] * g_ij[3*i + k] * shift_der[j][k]);
+        S_rate[1 + j] += prefac * (T[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
       }
     }
   }
+}
+
+// Per-cell forward-Euler source step for the modular GR Euler equation.
+// Thin wrapper over compute_source_rate: q_new = q_old + dt·S(q_old).
+void
+gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+  double gas_gamma, double t_curr, double dt,
+  const double *prods,
+  const double fluid_old[5], double fluid_new[5])
+{
+  (void)t_curr;  // Source math is time-independent.
+
+  double S_rate[5];
+  compute_source_rate(gas_gamma, prods, fluid_old, S_rate);
+
+  for (int i = 0; i < 5; i++)
+    fluid_new[i] = fluid_old[i] + dt * S_rate[i];
 }
 
 // ---------------------------------------------------------------------------
@@ -352,6 +335,13 @@ gkyl_moment_spacetime_coupling_new(struct gkyl_moment_spacetime_coupling_inp inp
   st->nfluids = inp.nfluids;
   for (int i = 0; i < inp.nfluids; i++)
     st->fluid_param[i] = inp.fluid_param[i];
+
+  // Acquire refs on per-species equation objects so repair_state and
+  // check_inv can be driven from the source-update loop.
+  for (int i = 0; i < GKYL_MAX_SPECIES; i++) st->eqn[i] = NULL;
+  for (int i = 0; i < inp.nfluids; i++) {
+    if (inp.eqn[i]) st->eqn[i] = gkyl_wv_eqn_acquire(inp.eqn[i]);
+  }
 
   st->is_static  = inp.is_static;
   st->has_tetrad = inp.has_tetrad;
@@ -428,25 +418,56 @@ gkyl_moment_spacetime_coupling_explicit_advance(
 
       double *f = gkyl_array_fetch(fluid[s], cidx);
 
-      // SSP-RK3 mirroring explicit_gr_euler_source_update (sources_explicit.c
-      // line 990). Spacetime products do not change across stages (they are
-      // either static or refreshed externally between source halves).
+      // Per-cell setter so check_inv / repair_state can fetch the cell's
+      // row in the auxfields products array. Tag the repair context as
+      // "source-step" so per-call-site counters in the equation tally
+      // here rather than into the wave_prop bucket.
+      const struct gkyl_wv_eqn *eqn = st->eqn[s];
+      bool can_repair = eqn && eqn->repair_state_func && eqn->check_inv_func;
+      if (can_repair) {
+        if (eqn->set_cell_idx_func) eqn->set_cell_idx_func(eqn, iter.idx);
+        ((struct gkyl_wv_eqn *)eqn)->cur_repair_ctx = 0;
+      }
+
+      // Single check + cascade-repair call. The cascade walks all three
+      // admissibility constraints in safe order (D, then τ, then S²) in
+      // one shot, so a single repair_state call always converges to
+      // admissible — no loop needed. Convex-combo updates (f_stage2,
+      // final f) do NOT need their own repair pass because the
+      // admissibility set is convex (sum of convex constraints, with
+      // |S|_γ a norm), so a convex combination of admissible states is
+      // automatically admissible. Repair only fires after the three
+      // forward-Euler stages.
+      #define REPAIR_ONCE(qbuf) do {                                     \
+        if (can_repair && !gkyl_wv_eqn_check_inv(eqn, (qbuf)))           \
+          gkyl_wv_eqn_repair_state(eqn, (qbuf));                         \
+      } while (0)
+
+      // SSP-RK3: three forward Euler stages, repair after each one. The
+      // two convex combinations (f_stage2, final f) are guaranteed
+      // admissible by convexity of the admissibility set, so no repair
+      // pass is needed there.
       double f_old[5], f_new[5], f_stage1[5], f_stage2[5];
       for (int j = 0; j < 5; j++) f_old[j] = f[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         gas_gamma, t_curr, dt, prods_row, f_old, f_new);
+      REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++) f_stage1[j] = f_new[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         gas_gamma, t_curr + dt, dt, prods_row, f_stage1, f_new);
+      REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++)
         f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         gas_gamma, t_curr + 0.5 * dt, dt, prods_row, f_stage2, f_new);
+      REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++)
         f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+
+      #undef REPAIR_ONCE
     }
   }
 }
@@ -454,5 +475,8 @@ gkyl_moment_spacetime_coupling_explicit_advance(
 void
 gkyl_moment_spacetime_coupling_release(gkyl_moment_spacetime_coupling *st)
 {
+  for (int i = 0; i < GKYL_MAX_SPECIES; i++) {
+    if (st->eqn[i]) gkyl_wv_eqn_release(st->eqn[i]);
+  }
   gkyl_free(st);
 }
