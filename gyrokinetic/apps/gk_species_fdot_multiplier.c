@@ -101,8 +101,8 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
 // Compute cell-wise clamp factor min(1, omega_max/cflrate)*scale into combined_multiplier.
 // Hopkins, P. F., & Most, E. R. (2025). Time-Dilation Methods for Extreme Multiscale Timestepping Problems. arXiv:2510.09756.
 static double
-compute_global_array_max(const gkyl_gyrokinetic_app *app, const struct gk_fdot_multiplier_comp *fdmul,
-  const struct gkyl_array *array)
+compute_global_array_max(const gkyl_gyrokinetic_app *app,
+  const struct gk_fdot_multiplier_comp *fdmul, const struct gkyl_array *array)
 {
   double local_max;
   if (app->use_gpu) {
@@ -162,9 +162,9 @@ gk_species_fdot_multiplier_advance_time_dilation_cfl_dt_set_by_species(gkyl_gyro
 }
 
 static void
-gk_species_fdot_multiplier_advance_time_dilation_cfl_factor_user_specified(gkyl_gyrokinetic_app *app,
-  const struct gk_species *gks, struct gk_fdot_multiplier_comp *fdmul, const struct gkyl_array *phi,
-  const struct gkyl_array *f, const struct gkyl_array *cflrate,
+gk_species_fdot_multiplier_advance_time_dilation_cfl_factor_user_specified(
+  gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_fdot_multiplier_comp *fdmul,
+  const struct gkyl_array *phi, const struct gkyl_array *f, const struct gkyl_array *cflrate,
   struct gkyl_array *combined_multiplier)
 {
   double omega_max = compute_global_array_max(app, fdmul, cflrate);
@@ -268,8 +268,9 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, scratch_host);
       gkyl_proj_on_basis_release(projup);
 
-      if (basis_mult.poly_order == 0)
-        gkyl_array_scale_range(scratch_host, 1.0/pow(sqrt(2.0),gks->grid.ndim), &gks->local);
+      if (basis_mult.poly_order == 0) {
+        gkyl_array_scale_range(scratch_host, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
+      }
 
       gkyl_array_copy(fdmul->scratch, scratch_host);
       gkyl_array_release(scratch_host);
