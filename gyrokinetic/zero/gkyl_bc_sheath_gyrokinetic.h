@@ -64,7 +64,7 @@ struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcut_fact(struct gkyl_bc_s
  * @param up BC updater.
  * @return The basis of the vcut_fact array used in the sheath BC.
  */
-struct gkyl_basis* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up);
+struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Get the range of the vcut_fact array used in the sheath BC.

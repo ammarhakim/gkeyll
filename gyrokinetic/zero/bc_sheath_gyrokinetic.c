@@ -32,34 +32,36 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->skin_r = skin_r;
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
+  int vdim = skin_r->ndim - cdim;
 
-  // dimensions of vcut_fact array, i.e. config space perp directions -1 + mu.
-  int vcut_fact_dim = up->cdim - 1 + up->basis->ndim - 1;
+  up->vcut_fact_dim = cdim-1 + vdim-1;
 
-  // Create a special phase space basis and range for the vcut_fact array.
-  // Function of perpendicular config space coordinates and magnetic moment, i.e. 
-  // [mu],[x,mu],[x,y,mu] for 1x2v, 2x2v, 3x2v respectively. 
-  up->vcut_fact_basis = gkyl_cart_modal_serendip_new(vcut_fact_dim, basis->poly_order);
+  // Get polynomial order
+  int poly_order;
+  if (use_gpu) {
+    struct gkyl_basis *basis_ho;
+    basis_ho = gkyl_malloc(sizeof(struct gkyl_basis));
+    gkyl_cu_memcpy(basis_ho, basis, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_D2H);
+    poly_order = basis_ho->poly_order;
+    gkyl_free(basis_ho);
+  } else {
+    poly_order = basis->poly_order;
+  }
+  gkyl_cart_modal_serendip(&up->vcut_fact_basis, up->vcut_fact_dim, poly_order);
 
-  // Initialize the vcut fact range.
-  int lower[vcut_fact_dim], upper[vcut_fact_dim];
-  // Perpendicular config space directions.
-  for (int d=0; d < vcut_fact_dim-1; d++) {
+  int lower[up->vcut_fact_dim], upper[up->vcut_fact_dim];
+  for (int d=0; d < cdim-1; d++) {
     lower[d] = skin_r->lower[d];
     upper[d] = skin_r->upper[d];
   } 
-  // The last direction is mu.
-  lower[vcut_fact_dim-1] = skin_r->lower[skin_r->ndim-1];
-  upper[vcut_fact_dim-1] = skin_r->upper[skin_r->ndim-1];
-  gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis->ndim, lower, upper);
-
-  up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis->num_basis, up->vcut_fact_local.volume);
-  // Set the vcut_fact array to 1 by default (constant vcut).
-  double dg_norm = pow(sqrt(2), up->vcut_fact_basis->ndim);
+  lower[up->vcut_fact_dim-1] = skin_r->lower[skin_r->ndim-1];
+  upper[up->vcut_fact_dim-1] = skin_r->upper[skin_r->ndim-1];
+  gkyl_range_init(&up->vcut_fact_local, up->vcut_fact_basis.ndim, lower, upper);
+  up->vcut_fact = mkarr(use_gpu, up->vcut_fact_basis.num_basis, up->vcut_fact_local.volume);
+  double dg_norm = pow(sqrt(2), up->vcut_fact_basis.ndim);
   gkyl_array_shiftc_range(up->vcut_fact, dg_norm, 0, &up->vcut_fact_local);
 
-  // Choose the kernel that does the reflection/no reflection/partial
-  // reflection.
+  // Choose the kernels that does the reflection/no reflection/partial reflection, 
   up->kernels = gkyl_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -151,7 +153,7 @@ struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcut_fact(struct gkyl_bc_s
   return gkyl_array_acquire(up->vcut_fact);
 }
 
-struct gkyl_basis* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up)
+struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   return up->vcut_fact_basis;
 }
@@ -171,7 +173,6 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
 #endif
   gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->vcut_fact);
-  gkyl_cart_modal_basis_release(up->vcut_fact_basis);
   gkyl_free(up->kernels);
   gkyl_free(up);
 }
