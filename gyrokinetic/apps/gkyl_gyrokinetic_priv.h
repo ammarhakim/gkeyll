@@ -324,7 +324,6 @@ struct gk_collisionless {
 struct gk_lbo_collisions {
   enum gkyl_collision_id collision_id; // type of collisions
   bool write_diagnostics; // Whether to write diagnostics out.
-  bool write_cross_diagnostics; // Whether to write per-cross-species diagnostics (prim_moms_sr, nu_sr).
   bool not_in_dfdt; // Whether to not add collision contribution to df/dt
 
   struct gkyl_array *self_nu; // Self-collision frequency.

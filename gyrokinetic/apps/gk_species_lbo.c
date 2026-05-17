@@ -207,7 +207,7 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   app->stat.n_diag_io += 2;
 
   // Per-cross-species diagnostics: unscaled cross primitive moments and cross-nu.
-  if (gks->lbo.write_cross_diagnostics) {
+  if (gks->lbo.write_diagnostics) {
     // Self primitive moments (u_par_s, vtsq_s) before any cross-species contribution.
     const char *fmt_prim = "%s-%s_lbo_self_prim_moms_%d.gkyl";
     int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, gks->info.name, frame);
@@ -264,7 +264,6 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
 {
   lbo->collision_id = gks->info.collisions.collision_id;
   lbo->write_diagnostics = gks->info.collisions.write_diagnostics;
-  lbo->write_cross_diagnostics = gks->info.collisions.write_cross_diagnostics;
 
   // Empty methods.
   lbo->moms_func = gklbo_moms_disabled;
