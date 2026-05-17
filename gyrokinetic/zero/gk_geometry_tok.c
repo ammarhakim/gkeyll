@@ -32,7 +32,6 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
   up->has_LCFS = geometry_inp->has_LCFS;
-  up->tess_secret_option = geometry_inp->tess_secret_option;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;
     // Check that the split happens within the domain.

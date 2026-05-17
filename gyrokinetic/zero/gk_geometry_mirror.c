@@ -22,7 +22,6 @@ gk_geometry_mirror_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->global_ext = geometry_inp->geo_global_ext;
   up->grid = geometry_inp->geo_grid;
   up->geqdsk_sign_convention = 0.0; // Hardcoded 0. Means psi increases from axis. Always true for mirror geometry.
-  up->tess_secret_option = geometry_inp->tess_secret_option;
   up->has_LCFS = false; // MF 2025/09/19: Hardcodded for now.
 
   // Initialize nodal ranges for corner, interior, and surface geometry

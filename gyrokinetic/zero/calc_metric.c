@@ -71,8 +71,7 @@ static inline void cross(const double a[3], const double b[3], double c[3]) {
 }
 
 static inline void
-check_orthonormality(const double tan[9], const double dual[9], bool exit_at_check, bool tess_secret_option) {
-  if (tess_secret_option) return;
+check_orthonormality(const double tan[9], const double dual[9], bool exit_at_check) {
   // Check that the coordinate system has tangent/dual vectors
   // satisfying orthonormality.
 
@@ -95,8 +94,7 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
 }
 
 static inline void
-check_right_handed(const double tan[9], const double dual[9], bool exit_at_check, bool tess_secret_option) {
-  if (tess_secret_option) return;
+check_right_handed(const double tan[9], const double dual[9], bool exit_at_check) {
   // Check that the coordinate system is right handed.
   const double *e1 = &tan[0];
   const double *e2 = &tan[3];
@@ -118,8 +116,7 @@ check_right_handed(const double tan[9], const double dual[9], bool exit_at_check
 }
 
 static inline void
-check_parallel(double *v1, double *v2, bool exit_at_check, bool tess_secret_option) {
-  if (tess_secret_option) return;
+check_parallel(double *v1, double *v2, bool exit_at_check) {
   // Check v1 and v2 are parallel by checking that:
   //   |v1 x v2 | < eps 
   //   |v1 . v2 - 1| < eps
@@ -141,8 +138,7 @@ check_parallel(double *v1, double *v2, bool exit_at_check, bool tess_secret_opti
 }
 
 static inline void
-check_axisymmetric(struct gkyl_array* arr, struct gkyl_range *range, bool exit_at_check, bool tess_secret_option) {
-  if (tess_secret_option) return;
+check_axisymmetric(struct gkyl_array* arr, struct gkyl_range *range, bool exit_at_check) {
   const double rel_tol = 1e-6;
   const double abs_tol = 1e-11;
   double reldiff;
@@ -503,8 +499,8 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
-        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -697,8 +693,8 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
-        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -1450,15 +1446,15 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
-        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         // Check if bhat and e_3 are parallel.
         double bhat_vec[3] = {bhat_n[X_IDX], bhat_n[Y_IDX], bhat_n[Z_IDX]};
         double e_3_norm[3] = {tanvecFld_n[6]/sqrt(gFld_n[5]),
                               tanvecFld_n[7]/sqrt(gFld_n[5]),
                               tanvecFld_n[8]/sqrt(gFld_n[5])};
-        check_parallel(bhat_vec, e_3_norm, up->exit_at_checks, gk_geom->tess_secret_option);
+        check_parallel(bhat_vec, e_3_norm, up->exit_at_checks);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -1523,7 +1519,7 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
     }
   }
 
-  check_axisymmetric(gk_geom->geo_int.g_ij_nodal, &gk_geom->nrange_int, up->exit_at_checks, gk_geom->tess_secret_option);
+  check_axisymmetric(gk_geom->geo_int.g_ij_nodal, &gk_geom->nrange_int, up->exit_at_checks);
 
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 6, gk_geom->geo_int.g_ij_nodal, gk_geom->geo_int.g_ij, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9, gk_geom->geo_int.dxdz_nodal, gk_geom->geo_int.dxdz, true);
@@ -1699,8 +1695,8 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
-        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
-        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks, gk_geom->tess_secret_option);
+        check_orthonormality(tanvecFld_n, dualFld_n, up->exit_at_checks);
+        check_right_handed(tanvecFld_n, dualFld_n, up->exit_at_checks);
 
         double norm1 = sqrt(dualFld_n[0]*dualFld_n[0] + dualFld_n[1]*dualFld_n[1] + dualFld_n[2]*dualFld_n[2]);
         double norm2 = sqrt(dualFld_n[3]*dualFld_n[3] + dualFld_n[4]*dualFld_n[4] + dualFld_n[5]*dualFld_n[5]);
@@ -1750,7 +1746,7 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
     }
   }
 
-  check_axisymmetric(gk_geom->geo_surf[dir].g_ij_nodal, &gk_geom->nrange_surf[dir], up->exit_at_checks, gk_geom->tess_secret_option);
+  check_axisymmetric(gk_geom->geo_surf[dir].g_ij_nodal, &gk_geom->nrange_surf[dir], up->exit_at_checks);
 }
 
 void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange,
