@@ -17,7 +17,6 @@ BUILD_OPENMPI=no
 BUILD_LUAJIT=no
 BUILD_TCC=no
 BUILD_CUDSS=no
-BUILD_SOLPS=no
 BUILD_EIRENE_COUPLING=no
 
 # by default, download as well as build packages
@@ -169,10 +168,6 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADAS="$value"
       ;;
-   --build-solps)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_SOLPS="$value"
-      ;;   
    --build-eirene-coupling)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_EIRENE_COUPLING="$value"
@@ -271,14 +266,6 @@ build_adas() {
     fi
 }
 
-build_solps() {
-    if [ "$BUILD_SOLPS" = "yes" ]
-    then
-	echo "Building SOLPS for neutral evolution"
-	./build-solps.sh
-    fi
-}
-
 build_eirene_coupling() {
     if [ "$BUILD_EIRENE_COUPLING" = "yes" ]
     then
@@ -296,5 +283,4 @@ build_openblas
 build_superlu
 build_cudss
 build_adas
-build_solps
 build_eirene_coupling
