@@ -328,7 +328,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_disabled;
   src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_disabled;
 
-  if (src->source_bgk_id == GKYL_SOURCE_BGK_DEFAULT) {
+  if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
     int vdim_phys = gks->info.vdim == 1? 1 : 3;
     src->norm_power = 2.0*gks->info.source_bgk.power/(vdim_phys*gks->info.mass);
 
@@ -487,7 +487,7 @@ gk_species_source_bgk_write_integrated_diags(gkyl_gyrokinetic_app *app, struct g
 void
 gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source_bgk *src)
 {
-  if (src->source_bgk_id == GKYL_SOURCE_BGK_DEFAULT) {
+  if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
     gkyl_array_release(src->rate);
     gkyl_array_release(src->Jrate);
     gkyl_array_release(src->vtsq_shape);
