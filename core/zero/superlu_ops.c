@@ -75,6 +75,8 @@ gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs)
   // A subsequent dgssvx with SamePattern and equed='B' would then treat those
   // raw values as already-scaled, factoring the wrong matrix. With Equil=NO,
   // equed stays 'N' across all calls so SamePattern works correctly.
+  // Note that this may increase the condition number of A but it yields the same
+  // result as the one observed on GPU see issue #1015.
   prob->options.Equil = NO;
 
   // Initialize the statistics variables.
