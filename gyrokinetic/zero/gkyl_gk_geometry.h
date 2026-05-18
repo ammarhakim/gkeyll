@@ -204,6 +204,7 @@ struct gkyl_mirror_geo_grid_inp {
 // Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
+  char geometry_path[128]; // Path to geometry files
 
   void *c2p_ctx; // Context for mapc2p function.
   // Pointer to mapc2p function: xc are the computational space

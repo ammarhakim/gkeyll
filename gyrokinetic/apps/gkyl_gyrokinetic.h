@@ -217,6 +217,7 @@ struct gkyl_gyrokinetic_bc {
 
 struct gkyl_gyrokinetic_geometry {
   enum gkyl_geometry_id geometry_id;
+  char geometry_path[128]; // Path to geometry files
 
   // Pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
@@ -1275,7 +1276,7 @@ gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app);
  *
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app *app);
+void gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app *app, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Initialize field from file
