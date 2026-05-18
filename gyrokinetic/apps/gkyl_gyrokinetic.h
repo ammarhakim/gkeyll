@@ -185,11 +185,11 @@ struct gkyl_gyrokinetic_source_bgk {
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
-  double coupling_time; // Coupling time for external source model
-                        // nu(x) = 1/coupling time
-  double damping_factor; // For external source model
-                         // n_s = max(n_s, damping factor*n)
-                         // to prevent driving n negative
+  double injection_time;  // Injection time for external source model
+                          // nu(x) = 1/coupling time
+  double damping_factor;  // For external source model
+                          // n_s = max(n_s, damping factor*n)
+                          // to prevent driving n negative
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
@@ -546,7 +546,7 @@ struct gkyl_gyrokinetic_field {
 struct gkyl_gyrokinetic_eirene {
   char input_data_path[128]; // Path to EIRENE data
   char output_data_path[128]; // Path to EIRENE data
-  double coupling_time[GKYL_MAX_SPECIES]; // Coupling time (electrons)
+  double injection_time[GKYL_MAX_SPECIES]; // Injection time for each species
   double damping_factor[GKYL_MAX_SPECIES]; // Damping Factor
   double core_coll_factor[GKYL_MAX_SPECIES]; // core rate is increased by this factor
   int num_coupling_species; // number of species to couple

@@ -175,7 +175,7 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
     else if (gyrokinetic_str_ends_in_b1011(app->name)) {
       coll_factor = eirene->info.core_coll_factor[i];
     }
-    eirene->bgk_src[i].coupling_time = eirene->info.coupling_time[i]/coll_factor;
+    eirene->bgk_src[i].injection_time = eirene->info.injection_time[i]/coll_factor;
     eirene->bgk_src[i].damping_factor = eirene->info.damping_factor[i];
     eirene->bgk_src[i].source_bgk_id = GKYL_SOURCE_BGK_EXTERNAL;
     eirene->bgk_src[i].write_diagnostics = true;

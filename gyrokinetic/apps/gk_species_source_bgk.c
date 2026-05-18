@@ -403,7 +403,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
     // source_bgk rate.
     src->rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(src->rate, pow(sqrt(2.0),app->cdim)/src->coupling_time, 0); // Sets rate = 1/coupling_time
+    gkyl_array_shiftc(src->rate, pow(sqrt(2.0),app->cdim)/src->injection_time, 0); // Sets rate = 1/injection_time
 
     // Multiply the rate by the conf-space Jacobian.
     src->Jrate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

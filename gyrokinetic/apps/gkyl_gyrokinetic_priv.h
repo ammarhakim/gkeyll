@@ -882,7 +882,7 @@ struct gk_source_bgk {
   double *volint_local, *volint_global; // Local and global volume integrals.
   struct gkyl_array *M0dot, *M1dot, *M2dot; // Source rates for external sourcing
   struct gkyl_array *M0dot_host, *M1dot_host, *M2dot_host; // Host source rates for external sourcing
-  double coupling_time; // Coupling time for external heating model
+  double injection_time; // Injection time for external heating model
   double damping_factor; // Damping factor used to prevent negative densities
   double vtsq_amplitude; // Amplitude of squared thermal speed.
   struct gkyl_bgk_collisions *bgk_op; // BGK operator.
