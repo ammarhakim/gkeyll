@@ -236,6 +236,7 @@ test_1x2v(int poly_order, bool use_gpu)
   TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 2.09905432920501e+01);
 
   gkyl_array_release(distf);
+  gkyl_array_release(deltaf);
   gkyl_array_release(intmom_grid);
   gkyl_array_release(ps_intmom_grid);
   gkyl_array_release(ps_delta_m0);
