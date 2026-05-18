@@ -551,7 +551,6 @@ struct gkyl_gyrokinetic_eirene {
   double core_coll_factor[GKYL_MAX_SPECIES]; // core rate is increased by this factor
   int num_coupling_species; // number of species to couple
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
-  bool half_domain; // True if a half-domain (lower half of double null)
 };
 
 // Top-level app parameters

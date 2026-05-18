@@ -75,7 +75,16 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   }
 
   // Store metadata for I/O.
-  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK || up->geometry_id == GKYL_GEOMETRY_MIRROR) {
+  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    struct gkyl_msgpack_map_elem io_meta[] = {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+      { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+      { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
+    };
+    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+  }
+  else if (up->geometry_id == GKYL_GEOMETRY_MIRROR) {
     struct gkyl_msgpack_map_elem io_meta[] = {
       { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
       { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
@@ -112,6 +121,31 @@ void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       // Element list doesn't have this key. Create a new list with it.
       struct gkyl_msgpack_map_elem io_meta_new[] = {
         { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+      };
+      int io_meta_new_len = sizeof(io_meta_new)/sizeof(io_meta_new[0]);
+
+      struct gkyl_msgpack_map_elem *io_meta_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_len, up->io_meta);
+      int io_meta_buffer_len = up->io_meta_len;
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, up->io_meta); 
+
+      int io_meta_list_len[] = {io_meta_new_len, io_meta_buffer_len};
+      const struct gkyl_msgpack_map_elem* io_meta_list[] = {io_meta_new, io_meta_buffer};
+      up->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_list_len)/sizeof(int),
+        io_meta_list_len, io_meta_list, &up->io_meta_len);
+
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, io_meta_buffer); 
+    }
+  }
+
+  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if (gkyl_msgpack_map_elem_has_key(up->io_meta_len, up->io_meta, "half_domain")) {
+      // Element list has this key. Update its value.
+      gkyl_msgpack_map_elem_set_uint(up->io_meta_len, up->io_meta, "half_domain", up->half_domain);
+    }
+    else {
+      // Element list doesn't have this key. Create a new list with it.
+      struct gkyl_msgpack_map_elem io_meta_new[] = {
+        { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
       };
       int io_meta_new_len = sizeof(io_meta_new)/sizeof(io_meta_new[0]);
 
@@ -422,6 +456,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     up->num_surf_basis = 1;
   }
   up->geqdsk_sign_convention = up_3d->geqdsk_sign_convention;
+  up->half_domain = up_3d->half_domain;
   up->has_LCFS = up_3d->has_LCFS;
   up->x_LCFS = up_3d->x_LCFS;
   up->idx_LCFS_lo = up_3d->idx_LCFS_lo;

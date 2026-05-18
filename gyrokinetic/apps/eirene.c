@@ -169,7 +169,7 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
     double coll_factor = 1.0;
-    if (gyrokinetic_str_ends_in_b67(app->name) && eirene->info.half_domain) {
+    if (gyrokinetic_str_ends_in_b67(app->name) && app->gk_geom->half_domain) {
       coll_factor = eirene->info.core_coll_factor[i];
     }
     else if (gyrokinetic_str_ends_in_b1011(app->name)) {

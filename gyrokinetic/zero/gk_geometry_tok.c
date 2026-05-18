@@ -65,6 +65,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   ginp.cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
   up->geqdsk_sign_convention = geo->efit->sibry > geo->efit->simag ? 0 : 1;
+  up->half_domain = ginp.half_domain ? 1 : 0;
 
   // Allocate nodal and modal arrays for corner, interior, and surface geo
   gk_geometry_corn_alloc_nodal(up);
@@ -115,6 +116,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
     { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
     { .key = "geqdsk_name", .elem_type = GKYL_MP_STRING, .cval = geo->efit->name},
+    { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
   };
   up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
   up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);

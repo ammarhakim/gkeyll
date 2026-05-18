@@ -2794,6 +2794,20 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app)
         elem_list_numeq, "geqdsk_sign_convention");
     }
 
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+      // Read other metadata for numerical equilibrium from header.
+      struct gkyl_msgpack_map_elem elem_list_numeq[] = {
+        { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      };
+      int elem_list_numeq_len = sizeof(elem_list)/sizeof(elem_list[0]);
+      gkyl_msgpack_to_map_elem_list(&(struct gkyl_msgpack_data) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }, elem_list_numeq_len, elem_list_numeq);
+      app->gk_geom->half_domain = gkyl_msgpack_map_elem_get_uint(elem_list_numeq_len,
+        elem_list_numeq, "half_domain");
+    }
+
     gkyl_grid_sub_array_header_release(&hdr);
   }
 
