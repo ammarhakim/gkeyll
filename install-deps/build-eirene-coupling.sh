@@ -21,6 +21,8 @@ echo ">>> Installation of coupling library complete."
 # ==============================================================================
 # SOLPS-ITER Automated Installer for NERSC Perlmutter
 # ==============================================================================
+# Note that the automation of the SOLPS-ITER installation below
+# used assistance from an LLM (Gemini).
 
 # Stop on error
 set -e
