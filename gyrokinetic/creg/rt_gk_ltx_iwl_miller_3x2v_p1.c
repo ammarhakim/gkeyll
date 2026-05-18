@@ -436,7 +436,7 @@ int main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_IWL,
+    .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
     .rleft= 0.1,
     .rright = 0.7,
     .rmin = 0.1,
@@ -459,12 +459,12 @@ int main(int argc, char **argv)
 
     .geometry = {
       .world = {0.0},
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
       //.has_LCFS = true,
       //.x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
-      .sync_numerical_shift=true,
+      .sync_numerical_shift = true,
     },
 
     .num_periodic_dir = 1,

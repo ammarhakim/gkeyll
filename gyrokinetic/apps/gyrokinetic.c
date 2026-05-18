@@ -374,6 +374,25 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_gk_dg_geom_release(gk_dg_geom_dev);
   }
 
+  // Basic metadata for I/O.
+  const char* build_id = GIT_COMMIT_ID;
+  const char* build_date = GKYL_BUILD_DATE;
+  struct gkyl_msgpack_map_elem io_meta_basic[] = {
+   { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
+   { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
+   { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+   { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  app->io_meta_basic_len = sizeof(io_meta_basic)/sizeof(io_meta_basic[0]);
+  app->io_meta_basic = gkyl_msgpack_map_elem_clone(app->io_meta_basic_len, io_meta_basic);
+  // Metadata for GK app.
+  struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id }
+  };
+  app->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  app->io_meta = gkyl_msgpack_map_elem_clone(app->io_meta_len, io_meta);
+
   // Sync the numerical shift if requested.
   if (geometry_inp.sync_numerical_shift) {
     int par_dir = app->cdim-1;
@@ -1067,7 +1086,6 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
-
 
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
