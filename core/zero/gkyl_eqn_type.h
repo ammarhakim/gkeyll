@@ -41,7 +41,7 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 4, // Electrostatic field.
   GKYL_GK_FIELD_ES_IWL = 5, // Electromagnetic field with inner-wall limited BCs.
   GKYL_GK_FIELD_EM = 6, // To force electromagnetic field solve (even if no species is EM).
-  GKYL_GK_FIELD_EM_IWL = 7, // As above but for IWL.
+  GKYL_GK_FIELD_EM_IWL = 7, // Electromagnetic field with inner-wall limited BCs, even if no species is EM.
 };
 
 // Identifiers for specific field object types.
