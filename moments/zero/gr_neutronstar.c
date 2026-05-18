@@ -753,7 +753,7 @@ static void
 neutronstar_spatial_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double***** spatial_weyl_tensor)
 {
-  gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dx, spatial_weyl_tensor);
+  gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_weyl_tensor);
 }
 
 static void

@@ -60,7 +60,7 @@ dg_arrayMax_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int co
 
   long nCells = inp->size;
   size_t nComp = inp->ncomp;
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
   const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
 
   const double *inp_d = (const double*) inp->data;
@@ -101,7 +101,7 @@ dg_arrayMax_range_blockRedAtomic_cub(const struct gkyl_array* inp, double* out,
   __shared__ typename BlockReduceT::TempStorage temp;
 
   long nCells = range.volume;
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
   const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
 
   int idx[GKYL_MAX_DIM];
@@ -166,7 +166,7 @@ dg_arrayMin_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int co
 
   long nCells = inp->size;
   size_t nComp = inp->ncomp;
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
   const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
 
   const double *inp_d = (const double*) inp->data;
@@ -207,7 +207,7 @@ dg_arrayMin_range_blockRedAtomic_cub(const struct gkyl_array* inp, double* out,
   __shared__ typename BlockReduceT::TempStorage temp;
 
   long nCells = range.volume;
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
   const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
 
   int idx[GKYL_MAX_DIM];
@@ -272,7 +272,7 @@ dg_arraySum_blockRedAtomic_cub(const struct gkyl_array* inp, double* out, int co
 
   long nCells = inp->size;
   size_t nComp = inp->ncomp;
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
   const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
 
   const double *inp_d = (const double*) inp->data;
@@ -312,7 +312,7 @@ int comp, const struct gkyl_basis *basis, struct gkyl_range range)
   __shared__ typename BlockReduceT::TempStorage temp;
 
   long nCells = range.volume;
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
   const int num_nodes_max = 27; // MF 2025/01/15: hard coded to p=2 3x for now.
 
   int idx[GKYL_MAX_DIM];

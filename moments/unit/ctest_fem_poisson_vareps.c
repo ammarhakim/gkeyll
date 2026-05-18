@@ -1517,8 +1517,8 @@ void test_2x_p1_dirichletx_neumanny_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_NEUMANN;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(1, cells, bc_tv, false);
 }
@@ -1531,8 +1531,8 @@ void test_2x_p1_neumannx_dirichletx_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(1, cells, bc_tv, false);
 }
@@ -1593,8 +1593,8 @@ void test_2x_p2_dirichletx_neumanny_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_NEUMANN;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(2, cells, bc_tv, false);
 }
@@ -1607,8 +1607,8 @@ void test_2x_p2_neumannx_dirichletx_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(2, cells, bc_tv, false);
 }
