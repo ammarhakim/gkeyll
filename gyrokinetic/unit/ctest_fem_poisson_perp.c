@@ -577,13 +577,15 @@ test_fem_poisson_perp_consteps_2x_objs(int poly_order, const int *cells, struct 
 //  gkyl_fem_parproj_set_rhs(smooth_op, objs->rho, objs->rho);
 //  gkyl_fem_parproj_solve  (smooth_op, objs->rho);
 
-  // Set the RHS source.
-  gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
+  // Check that the solver can be called multiple times without issue.
+  for (int i=0; i<2; i++) {
+    // Set the RHS source.
+    gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
 
-  // Solve the problem.
-  gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+    // Solve the problem.
+    gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+  }
   gkyl_array_copy(objs->phi_ho, objs->phi);
-
 //  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
 //  gkyl_fem_parproj_solve  (smooth_op, phi);
 //  gkyl_fem_parproj_release(smooth_op);
@@ -644,20 +646,26 @@ test_fem_poisson_perp_consteps_2x_update(int poly_order, const int *cells, struc
   // Run the first test.
   struct fem_poisson_perp_consteps_objs *objs = test_fem_poisson_perp_consteps_2x_objs(poly_order, cells, bcs, use_gpu);
 
-  // Now update the LHS matrix. Multiply it by a constant so the solution should be the same as before but divided by that constant.
-  double prob_fac = 1.3;
-  gkyl_array_scale(objs->eps, prob_fac);
-  gkyl_fem_poisson_perp_update_lhs(objs->poisson, objs->eps, NULL);
+  double global_fac = 1.0;
+  // Check that the solver can be called multiple times without issue.
+  for (int i=0; i<2; i++) {
+    // Now update the LHS matrix. Multiply it by a constant so the solution should be the same as before but divided by that constant.
+    double prob_fac = 1.3;
+    gkyl_array_scale(objs->eps, prob_fac);
+    gkyl_fem_poisson_perp_update_lhs(objs->poisson, objs->eps, NULL);
 
-  // Set the RHS source.
-  gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
+    // Set the RHS source.
+    gkyl_fem_poisson_perp_set_rhs(objs->poisson, objs->rho);
 
-  // Solve the problem.
-  gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+    // Solve the problem.
+    gkyl_fem_poisson_perp_solve(objs->poisson, objs->phi);
+
+    global_fac *= prob_fac;
+  }
   gkyl_array_copy(objs->phi_ho, objs->phi);
 
   // Check results for correctness.
-  fem_poisson_perp_consteps_2x_check(objs, poly_order, bcs, 1.0/prob_fac);
+  fem_poisson_perp_consteps_2x_check(objs, poly_order, bcs, 1.0/global_fac);
 
   // Release persistent objects. 
   fem_poisson_perp_consteps_objs_release(objs);
@@ -753,11 +761,14 @@ test_fem_poisson_perp_consteps_2x_bias(int poly_order, const int *cells, struct 
   // FEM poisson solver.
   struct gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&localRange, &grid, basis, &bcs, &bll, eps, NULL, use_gpu);
 
-  // Set the RHS source.
-  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+  // Check that the solver can be called multiple times without issue.
+  for (int i=0; i<2; i++) {
+    // Set the RHS source.
+    gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
-  // Solve the problem.
-  gkyl_fem_poisson_perp_solve(poisson, phi);
+    // Solve the problem.
+    gkyl_fem_poisson_perp_solve(poisson, phi);
+  }
   gkyl_array_copy(phi_ho, phi);
 
 //  double errL2 = error_L2norm(grid, localRange, basis, phi, phisol);
@@ -1446,11 +1457,14 @@ test_fem_poisson_perp_consteps_3x(int poly_order, const int *cells, struct gkyl_
 //  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
 //  gkyl_fem_parproj_solve  (smooth_op, rho);
 
-  // Set the RHS source.
-  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+  // Check that the solver can be called multiple times without issue.
+  for (int i=0; i<2; i++) {
+    // Set the RHS source.
+    gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
-  // Solve the problem.
-  gkyl_fem_poisson_perp_solve(poisson, phi);
+    // Solve the problem.
+    gkyl_fem_poisson_perp_solve(poisson, phi);
+  }
   gkyl_array_copy(phi_ho, phi);
 
 //  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
@@ -3667,11 +3681,14 @@ test_fem_poisson_perp_consteps_3x_bias(int poly_order, const int *cells, struct 
 //  gkyl_fem_parproj_set_rhs(smooth_op, rho, rho);
 //  gkyl_fem_parproj_solve  (smooth_op, rho);
 
-  // Set the RHS source.
-  gkyl_fem_poisson_perp_set_rhs(poisson, rho);
+  // Check that the solver can be called multiple times without issue.
+  for (int i=0; i<2; i++) {
+    // Set the RHS source.
+    gkyl_fem_poisson_perp_set_rhs(poisson, rho);
 
-  // Solve the problem.
-  gkyl_fem_poisson_perp_solve(poisson, phi);
+    // Solve the problem.
+    gkyl_fem_poisson_perp_solve(poisson, phi);
+  }
   gkyl_array_copy(phi_ho, phi);
 
 //  gkyl_fem_parproj_set_rhs(smooth_op, phi, phi);
