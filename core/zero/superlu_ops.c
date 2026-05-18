@@ -70,6 +70,12 @@ gkyl_superlu_prob_new(int nprob, int mrow, int ncol, int nrhs)
   // Set the default input options.
   set_default_options(&prob->options);
   prob->options.ColPerm = NATURAL;
+  // Disable equilibration: dgssvx would scale A in-place (equed='B'), but
+  // gkyl_superlu_amat_update_from_triples writes raw values back into A's nzval.
+  // A subsequent dgssvx with SamePattern and equed='B' would then treat those
+  // raw values as already-scaled, factoring the wrong matrix. With Equil=NO,
+  // equed stays 'N' across all calls so SamePattern works correctly.
+  prob->options.Equil = NO;
 
   // Initialize the statistics variables.
   StatInit(&prob->stat);
