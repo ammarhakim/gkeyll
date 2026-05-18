@@ -880,21 +880,24 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double r_lcfs = nr_lcfs == 1 ? R_lcfs[0] : choose_closest(arc_ctx->rleft, R_lcfs, R_lcfs, nr_lcfs);
     double rz_lcfs[2];
 
-    geo->plate_func_upper(0.0, rz_lcfs);
-    if(fabs(rz_lcfs[0] - r_lcfs) > 1e-6) {
-      fprintf(stderr, "The upper plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, %1.16f). \n", R_lcfs[0], geo->efit->zmaxis);
-      assert(false);
-    }
-    geo->plate_func_lower(0.0, rz_lcfs);
-    if(fabs(rz_lcfs[0] - r_lcfs) > 1e-6) {
-      fprintf(stderr, "The lower plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, %1.16f). \n", R_lcfs[0], geo->efit->zmaxis);
-      assert(false);
-    }
-
     double rmin_old = geo->rmin;
-    if (geo->plate_spec && ( (arc_ctx->psi >= geo->efit->sibry && geo->efit->sibry >= geo->efit->simag) || (arc_ctx->psi <= geo->efit->sibry && geo->efit->sibry <= geo->efit->simag) )){
-      set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
-      set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+    if (geo->plate_spec) {
+      geo->plate_func_upper(0.0, rz_lcfs);
+      if(fabs(rz_lcfs[0] - r_lcfs) > 1e-6) {
+        fprintf(stderr, "The upper plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, %1.16f). \n", R_lcfs[0], geo->efit->zmaxis);
+        assert(false);
+      }
+      geo->plate_func_lower(0.0, rz_lcfs);
+      if(fabs(rz_lcfs[0] - r_lcfs) > 1e-6) {
+        fprintf(stderr, "The lower plate function has an error. It must return (R(s=0),Z(s=0)) = (%1.16f, %1.16f). \n", R_lcfs[0], geo->efit->zmaxis);
+        assert(false);
+      }
+  
+      if ( (arc_ctx->psi >= geo->efit->sibry && geo->efit->sibry >= geo->efit->simag) ||
+           (arc_ctx->psi <= geo->efit->sibry && geo->efit->sibry <= geo->efit->simag) ) {
+        set_upper_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+        set_lower_iwl_plate(geo, arc_ctx, pctx, arc_ctx->psi);
+      }
     }
     else {
       arc_ctx->zmin_iwl_plate = geo->zmaxis;
