@@ -107,7 +107,7 @@ gks_src_bgk_rhs_accumulate_maxwellian(gkyl_gyrokinetic_app *app, struct gk_speci
   gkyl_array_scale(src->Jrate_mom, 1.0/3.0);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
   // Apply the cap so we don't drive the temperature negative
-  gkyl_array_ceil_range(src->Jrate_mom, src->Jrate_cap, &app->local);
+  gkyl_array_max_by_cell_per_cell_avg_range(src->Jrate_mom, src->Jrate_cap, &app->local);
   // Set the temperature
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 2*app->basis.num_basis);
 

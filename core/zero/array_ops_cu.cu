@@ -586,7 +586,7 @@ gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array 
 }
 
 __global__ void
-gkyl_array_ceil_range_cu_kernel(struct gkyl_array *out,
+gkyl_array_max_by_cell_per_cell_avg_range_cu_kernel(struct gkyl_array *out,
   const struct gkyl_array* inp, struct gkyl_range range)
 {
   long outnc = NCOM(out), inpnc = NCOM(inp);
@@ -801,10 +801,10 @@ gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
 }
 
 void
-gkyl_array_ceil_range_cu(struct gkyl_array *out,
+gkyl_array_max_by_cell_per_cell_avg_range_cu(struct gkyl_array *out,
   const struct gkyl_array* inp, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, 1);
-  gkyl_array_ceil_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, inp->on_dev, *range);
+  gkyl_array_max_by_cell_per_cell_avg_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, inp->on_dev, *range);
 }

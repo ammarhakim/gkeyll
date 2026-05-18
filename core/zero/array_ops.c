@@ -625,14 +625,14 @@ gkyl_array_diff(const struct gkyl_array *arr1, const struct gkyl_array *arr2, co
 }
 
 struct gkyl_array*
-gkyl_array_ceil_range(struct gkyl_array* out, const struct gkyl_array* inp, struct gkyl_range *range)
+gkyl_array_max_by_cell_per_cell_avg_range(struct gkyl_array* out, const struct gkyl_array* inp, struct gkyl_range *range)
 {
   assert(out->type == GKYL_DOUBLE);
   assert(out->size == inp->size && out->elemsz == inp->elemsz);
 
 #ifdef GKYL_HAVE_CUDA
   assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
-  if (gkyl_array_is_cu_dev(out) && gkyl_array_is_cu_dev(inp)) { gkyl_array_ceil_range_cu(out, inp, range); return out; }
+  if (gkyl_array_is_cu_dev(out) && gkyl_array_is_cu_dev(inp)) { gkyl_array_max_by_cell_per_cell_avg_range_cu(out, inp, range); return out; }
 #endif
 
   long nc = NCOM(out);
