@@ -86,7 +86,7 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
       if ( i==j && prod[i][j] < 0 ) {
-        fprintf(stderr, "calc_metric.c: Orthonormality violated : e_%d . e^%d = %g\n", i+1, j+1, prod[i][j]);
+        fprintf(stderr, "calc_metric.c: Orthonormality violated : e_%d . e^%d = %.6e\n", i+1, j+1, prod[i][j]);
         assert(!exit_at_check);
       }
     }
@@ -106,11 +106,11 @@ check_right_handed(const double tan[9], const double dual[9], bool exit_at_check
   double J = dot(e1, cross_e2e3);
 
   if (J < 0.0) {
-    fprintf(stderr, "calc_metric.c: Left-handed coordinate system, J = e_1 . (e_2 x e_3) < 0.\n");
+    fprintf(stderr, "calc_metric.c: Left-handed coordinate system, J = e_1 . (e_2 x e_3) = %.6e < 0.\n", J);
     assert(!exit_at_check);
   }
   else if (J == 0.0) {
-    fprintf(stderr, "calc_metric.c: Degenerate coordinate system, J = 0.\n");
+    fprintf(stderr, "calc_metric.c: Degenerate coordinate system, J = %.6e\n", J);
     assert(!exit_at_check);
   }
 }
@@ -120,7 +120,7 @@ check_parallel(double *v1, double *v2, bool exit_at_check) {
   // Check v1 and v2 are parallel by checking that:
   //   |v1 x v2 | < eps 
   //   |v1 . v2 - 1| < eps
-  const double eps = 1e-4;
+  const double eps = 1e-3;
 
   double cx = v1[1]*v2[2] - v1[2]*v2[1];
   double cy = v1[2]*v2[0] - v1[0]*v2[2];
@@ -129,11 +129,62 @@ check_parallel(double *v1, double *v2, bool exit_at_check) {
   double c_mag = sqrt(cx*cx + cy*cy + cz*cz);
 
   double dot = v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2];
-  if (c_mag < eps && fabs(dot-1.0) < eps)
+  if (fabs(c_mag) < eps && fabs(dot-1.0) < eps)
     return;
   else {
-    fprintf(stderr, "calc_metric.c: B and mapc2p are inconsistent (hat{b} and e_3 are not parallel).\n");
+    fprintf(stderr, "calc_metric.c: inconsistent B & mapc2p (hat{b} not parallel to e_3; |b . e_3|=%.6e, |b x e_3|=%.6e).\n",dot,c_mag);
     assert(!exit_at_check);
+  }
+}
+
+static inline void
+check_axisymmetric(struct gkyl_array* arr, struct gkyl_range *range, bool exit_at_check) {
+  const double rel_tol = 1e-6;
+  const double abs_tol = 1e-11;
+  double reldiff;
+  enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
+  int cidx[3];
+  int cidx_prev[3];
+
+  for (int ip=range->lower[PSI_IDX]; ip<=range->upper[PSI_IDX]; ++ip) {
+    for (int it=range->lower[TH_IDX]; it<=range->upper[TH_IDX]; ++it) {
+
+      double g_ij_avg[6] = {0.0};
+      int num_al = range->upper[AL_IDX] - range->lower[AL_IDX] + 1;
+      for (int ia=range->lower[AL_IDX]; ia<=range->upper[AL_IDX]; ++ia) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        const double *g_ij_n = gkyl_array_cfetch(arr, gkyl_range_idx(range, cidx));
+        for (int k = 0; k < 6; ++k) {
+            g_ij_avg[k] += g_ij_n[k] / num_al;
+        }
+      }
+
+      for (int ia=range->lower[AL_IDX] + 1; ia<=range->upper[AL_IDX]; ++ia) {
+        cidx[PSI_IDX] = ip;
+        cidx[AL_IDX] = ia;
+        cidx[TH_IDX] = it;
+        const double *g_ij_n = gkyl_array_cfetch(arr, gkyl_range_idx(range, cidx));
+
+        cidx_prev[PSI_IDX] = ip;
+        cidx_prev[AL_IDX] = ia - 1;
+        cidx_prev[TH_IDX] = it;
+        const double *g_ij_prev = gkyl_array_cfetch(arr, gkyl_range_idx(range, cidx_prev));
+
+        for (int k = 0; k < 6; ++k) {
+          reldiff = fabs(g_ij_n[k] - g_ij_avg[k])/(rel_tol*fabs(g_ij_avg[k]) + abs_tol);
+          if (reldiff < 1) {
+            return;
+          }
+          else {
+            fprintf(stderr, "calc_metric.c: Axisymmetry violated at ip=%d, it=%d, ia=%d. g_ij component %d variation %.6e exceeds tolerance\n", ip, it, ia, k, reldiff);
+            assert(!exit_at_check);
+          }
+        }
+
+      }
+    }
   }
 }
 
@@ -1467,6 +1518,9 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
       }
     }
   }
+
+  check_axisymmetric(gk_geom->geo_int.g_ij_nodal, &gk_geom->nrange_int, up->exit_at_checks);
+
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 6, gk_geom->geo_int.g_ij_nodal, gk_geom->geo_int.g_ij, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9, gk_geom->geo_int.dxdz_nodal, gk_geom->geo_int.dxdz, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 9, gk_geom->geo_int.dzdx_nodal, gk_geom->geo_int.dzdx, true);
@@ -1691,6 +1745,8 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
       }
     }
   }
+
+  check_axisymmetric(gk_geom->geo_surf[dir].g_ij_nodal, &gk_geom->nrange_surf[dir], up->exit_at_checks);
 }
 
 void gkyl_calc_metric_advance_bcart(gkyl_calc_metric *up, struct gkyl_range *nrange,

@@ -507,7 +507,7 @@ main(int argc, char **argv)
   };
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
-    .ftype = GKYL_DN_SOL_OUT,     // type of geometry
+    .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT,     // type of geometry
     .rclose = 6.2,                // closest R to region of interest
     .rright = 6.2,                // Closest R to outboard SOL
     .rleft = 2.0,                 // closest R to inboard SOL
@@ -520,7 +520,6 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_step_out_2x2v_p1",
 
     .cdim = ctx.cdim,
     .lower = { ctx.lower_x, -ctx.Lz/2.0 },
@@ -533,7 +532,7 @@ main(int argc, char **argv)
 
     .geometry = {
       .world = {0.0},
-      .geometry_id = GKYL_TOKAMAK,
+      .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
     },
@@ -553,6 +552,8 @@ main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

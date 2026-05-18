@@ -142,7 +142,7 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   }
 
   // Set z dir grid extents based on tokamak global normalization
-  if (bgi->geometry.geometry_id == GKYL_TOKAMAK || bgi->geometry.geometry_id == GKYL_GEOMETRY_FROMFILE) {
+  if (bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK || bgi->geometry.geometry_id == GKYL_GEOMETRY_FROMFILE) {
     gkyl_gk_geometry_tok_set_grid_extents(bgi->geometry.efit_info, bgi->geometry.tok_grid_info, &app_inp.lower[cdim-1], &app_inp.upper[cdim-1]);
     gkyl_gk_block_geom_reset_block_extents(mbapp->gk_block_geom, bid, app_inp.lower, app_inp.upper);
   }
@@ -787,8 +787,8 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
       struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
       jacs[b] = geo_surf.jacobgeo_ratio;
-      gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->lower_skin[d]);
-      gkyl_array_copy_range_to_range(jacs[b], geo_surf.jacobgeo, &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
+      gkyl_array_copy_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_lower_skin[d]);
+      gkyl_array_copy_range_to_range(jacs[b], geo_surf.jacobgeo, &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
     }
     gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
       mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, jacs, jacs);
@@ -799,17 +799,17 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       struct gkyl_array *jacgeo = mkarr(mbapp->use_gpu, geo_surf.jacobgeo_ratio->ncomp, geo_surf.jacobgeo_ratio->size);
 
       // Compute 1/jacobgeo in ghost cells.
-      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->lower_ghost[d]);
-      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->upper_ghost[d]);
-      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->lower_ghost[d]);
-      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->upper_ghost[d]);
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
+      gkyl_array_set_range(jacgeo, 1.0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
+      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_lower_ghost[d]);
+      gkyl_dg_inv_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio, 0, jacgeo, &sbapp->local_upper_ghost[d]);
       // Multiply by the Jacobian of this block.
-      gkyl_array_copy_range_to_range(jacgeo, geo_surf.jacobgeo, &sbapp->lower_ghost[d], &sbapp->lower_skin[d]);
-      gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->upper_ghost[d]);
+      gkyl_array_copy_range_to_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_lower_ghost[d], &sbapp->local_lower_skin[d]);
+      gkyl_array_copy_range(jacgeo, geo_surf.jacobgeo, &sbapp->local_upper_ghost[d]);
       gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
-        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->lower_ghost[d]);
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_lower_ghost[d]);
       gkyl_dg_mul_op_range(sbapp->gk_geom->surf_basis, 0, geo_surf.jacobgeo_ratio,
-        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->upper_ghost[d]);
+        0, jacgeo, 0, geo_surf.jacobgeo_ratio, &sbapp->local_upper_ghost[d]);
       // Set the ratio to 1 in the interior (shouldn't be in use).
       gkyl_array_clear_range(geo_surf.jacobgeo_ratio, 0.0, &sbapp->local);
       gkyl_array_shiftc_range(geo_surf.jacobgeo_ratio, pow(sqrt(2.0),sbapp->cdim), 0, &sbapp->local);
@@ -828,7 +828,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
         struct gk_geom_surf geo_surf = sbapp->gk_geom->geo_surf[d];
         deltats[b] = geo_surf.deltats;
-        gkyl_array_copy_range_to_range(deltats[b], deltats[b], &sbapp->upper_skin[d], &sbapp->upper_ghost[d]);
+        gkyl_array_copy_range_to_range(deltats[b], deltats[b], &sbapp->local_upper_skin[d], &sbapp->local_upper_ghost[d]);
       }
       gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
         mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, deltats, deltats);
@@ -840,11 +840,11 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       struct gkyl_array *delta_ts = sbapp->gk_geom->geo_surf[par_dir].deltats;
       struct gkyl_array *buffer = mkarr(sbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
 
-      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->upper_skin[par_dir], &sbapp->upper_ghost[par_dir]);
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->upper_skin[par_dir]);
+      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->local_upper_skin[par_dir], &sbapp->local_upper_ghost[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_upper_skin[par_dir]);
 
-      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->lower_skin[par_dir], &sbapp->lower_ghost[par_dir]);
-      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->lower_skin[par_dir]);
+      gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->local_lower_skin[par_dir], &sbapp->local_lower_ghost[par_dir]);
+      gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_lower_skin[par_dir]);
 
       gkyl_array_release(buffer);
     }

@@ -35,8 +35,6 @@ gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis
  * @param cmagFld DG representation of C factor in field-line following coordinate formulation
  * @param jtotFld DG representation of total Jacobian (jacobgeo*bmag)
  * @param jtotinvFld DG represenation of inverse of the total Jacobian (1/(jacobgeo*B))
- * @param bmaginvFld DG represenation of the inverse of the magnetic field magnitude (1/B)
- * @param bmaginvsqFld DG representation of the inverse of the magnetic field magnitude squared (1/B^2)
  * @param gxxJFld DG representation of gxx*J (appears in Poisson and diffusion equation)
  * @param gxyJFld DG representation of gxy*J (appears in Poisson equation)
  * @param gyyJFld DG representation of gyy*J (appears in Poisson equation)
@@ -47,9 +45,8 @@ gkyl_calc_derived_geo* gkyl_calc_derived_geo_new(const struct gkyl_basis *cbasis
 void gkyl_calc_derived_geo_advance(const gkyl_calc_derived_geo *up, const struct gkyl_range *crange,
   struct gkyl_array *gFld, struct gkyl_array *bmagFld, struct gkyl_array *jFld, struct gkyl_array *jinvFld,
   struct gkyl_array *grFld, struct gkyl_array *biFld, struct gkyl_array *cmagFld, struct gkyl_array *jtotFld, 
-  struct gkyl_array *jtotinvFld, struct gkyl_array *bmaginvFld, struct gkyl_array *bmaginvsqFld, 
-  struct gkyl_array *gxxJFld,  struct gkyl_array *gxyJFld, struct gkyl_array *gyyJFld, struct gkyl_array *gxzJFld, 
-  struct gkyl_array *eps2Fld);
+  struct gkyl_array *jtotinvFld, struct gkyl_array *gxxJFld,  struct gkyl_array *gxyJFld,
+  struct gkyl_array *gyyJFld, struct gkyl_array *gxzJFld, struct gkyl_array *eps2Fld);
 
 /**
  * Delete updater.

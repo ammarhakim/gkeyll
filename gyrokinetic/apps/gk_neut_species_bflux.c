@@ -464,13 +464,12 @@ gk_neut_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *species
 {
   const struct gk_neut_species *gkns = species;
 
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   int rank, comm_size;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -488,24 +487,20 @@ gk_neut_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *species
     if ((edi == 0 && rank == 0) || (edi == 1 && rank == comm_size-1)) {
       for (int m=0; m<num_diag_mom; ++m) {
         struct timespec wst = gkyl_wall_clock();
-        // For now copy the moment to the skin ghost and write it out.
         int mom_idx = bflux->diag_mom_idx[m];
-        gkyl_array_copy_range_to_range(bflux->moms_op[mom_idx].marr, bflux->moms_op[mom_idx].marr,
+        struct gkyl_array *mom_arr = bflux->f[b*bflux->num_calc_moms+mom_idx];
+
+        // For now copy the moment to the skin ghost and write it out.
+        gkyl_array_copy_range_to_range(mom_arr, mom_arr,
           bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
 
-        // Rescale moment by inverse of Jacobian. 
-        // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
-        // the density (the 0th component).
-        gkyl_dg_div_op_range(bflux->moms_op[mom_idx].mem_geo, app->basis, 
-          0, bflux->moms_op[mom_idx].marr, 0, bflux->moms_op[mom_idx].marr, 0, 
-          app->gk_geom->geo_int.jacobgeo, &app->local);  // It fails if one uses the skin range here.
         // Rescale by dx/2 in the direction of the boundary to account for the
         // normalization in the boundary surf kernels.
-        gkyl_array_scale_range(bflux->moms_op[mom_idx].marr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
+        gkyl_array_scale_range(mom_arr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
         app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
           
         const char *fmt = "%s-%s_bflux_%s%s_%s_%d.gkyl";
-        const char *mom_name = gkyl_distribution_moments_strs[gkns->info.boundary_flux_diagnostics.diag_moments[m]];
+        const char *mom_name = gkyl_distribution_moments_strs[gkns->info.boundary_flux_diagnostics.diag_moments[mom_idx]];
         int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, vars[dir], edge[edi], mom_name, frame);
         char fileNm[sz+1]; // ensures no buffer overflow
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name, vars[dir], edge[edi], mom_name, frame);
@@ -515,8 +510,8 @@ gk_neut_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *species
           struct timespec wst = gkyl_wall_clock();
           // Project the moment down to lower dimensions.
           int num_mom_comp = bflux->moms_op[mom_idx].num_mom;
-          gkyl_translate_dim_advance(bflux->transdim[b], bflux->boundaries_conf_skin[b], &bflux->surf_local[dir],
-            bflux->moms_op[mom_idx].marr, num_mom_comp, bflux->mom_surf[b*num_diag_mom+m]);
+          gkyl_translate_dim_advance(bflux->transdim[b], bflux->boundaries_conf_skin_fullx[b], &bflux->surf_local[dir],
+            mom_arr, num_mom_comp, bflux->mom_surf[b*num_diag_mom+m]);
           app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
           struct timespec wtm = gkyl_wall_clock();
@@ -531,10 +526,11 @@ gk_neut_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *species
           // Don't project down to 0D; the infrastructure doesn't make it easy to do so.
           struct timespec wtm = gkyl_wall_clock();
           if (app->use_gpu)
-            gkyl_array_copy(bflux->moms_op[mom_idx].marr_host, bflux->moms_op[mom_idx].marr);
+            gkyl_array_copy(bflux->moms_op[mom_idx].marr_host, mom_arr);
   
           gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
             bflux->moms_op[mom_idx].marr_host, fileNm);
+
           app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
         }
   
@@ -543,7 +539,7 @@ gk_neut_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *species
     }
   }
 
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 }
 
 static void
@@ -632,9 +628,9 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
               (e == 1 && gkns->upper_bc[d].type != GKYL_BC_GK_SPECIES_ZERO_FLUX)) ) {
           bflux->boundaries_dir[bflux->num_boundaries] = d;
           bflux->boundaries_edge[bflux->num_boundaries] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-          bflux->boundaries_conf_skin[bflux->num_boundaries] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
-          bflux->boundaries_conf_ghost[bflux->num_boundaries] = e==0? &app->lower_ghost[d] : &app->upper_ghost[d];
-          bflux->boundaries_phase_ghost[bflux->num_boundaries] = e==0? &gkns->lower_ghost[d] : &gkns->upper_ghost[d];
+          bflux->boundaries_conf_skin[bflux->num_boundaries] = e==0? &app->local_lower_skin[d] : &app->local_upper_skin[d];
+          bflux->boundaries_conf_ghost[bflux->num_boundaries] = e==0? &app->local_lower_ghost[d] : &app->local_upper_ghost[d];
+          bflux->boundaries_phase_ghost[bflux->num_boundaries] = e==0? &gkns->local_lower_ghost[d] : &gkns->local_upper_ghost[d];
           bflux->num_boundaries++;
         }
       }
@@ -654,10 +650,12 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
     // Allocate updater that computes boundary fluxes.
     for (int b=0; b<bflux->num_boundaries; ++b) {
       int dir = bflux->boundaries_dir[b];
-      struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_skin[dir] : &gkns->upper_skin[dir];
-      struct gkyl_range *ghost_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_ghost[dir] : &gkns->upper_ghost[dir];
+      struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->local_lower_skin[dir]
+                                                                            : &gkns->local_upper_skin[dir];
+      struct gkyl_range *ghost_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->local_lower_ghost[dir]
+                                                                             : &gkns->local_upper_ghost[dir];
       bflux->flux_slvr[b] = gkyl_boundary_flux_new(dir, bflux->boundaries_edge[b], &gkns->grid,
-        skin_r, ghost_r, bflux->num_eqns, bflux->eqns, -1.0, app->use_gpu);
+        skin_r, ghost_r, bflux->num_eqns, bflux->eqns, app->use_gpu);
     }
 
     // Create a ghost range that the flux lives on, and allocate the array that stores the flux.
@@ -728,8 +726,8 @@ gk_neut_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
       long buff_sz = 0;
       for (int b=0; b<bflux->num_boundaries; ++b) {
         int dir = bflux->boundaries_dir[b];
-        struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->lower_skin[dir]
-                                                                              : &gkns->upper_skin[dir];
+        struct gkyl_range *skin_r = bflux->boundaries_edge[b]==GKYL_LOWER_EDGE? &gkns->local_lower_skin[dir]
+                                                                              : &gkns->local_upper_skin[dir];
     
         // MF 2025/09/29: The option `GKYL_BC_GK_SPECIES_REFLECT` here is a
         // just a place holder and almost certainly wrong. Currently REFLECT is

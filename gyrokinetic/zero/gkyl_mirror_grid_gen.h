@@ -31,8 +31,8 @@ struct gkyl_mirror_grid_gen {
 
 // flag to indicate what field-line coordinate to use
 enum gkyl_mirror_grid_gen_field_line_coord {
-  GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // use psi and Cartesian Z coordinate
-  GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // use sqrt(psi) and Cartesian Z coordinate
+  GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, // use psi and Cartesian Z coordinate
+  GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // use sqrt(psi) and Cartesian Z coordinate
 };
 
 // input struct to construct the mirror geometry

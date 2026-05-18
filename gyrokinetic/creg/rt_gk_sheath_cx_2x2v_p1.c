@@ -674,7 +674,6 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_sheath_cx_2x2v_p1",
 
     .cdim = ctx.cdim,
     .lower = { ctx.R - (0.5 * ctx.Lx), -0.5 * ctx.Lz },
@@ -685,7 +684,7 @@ main(int argc, char **argv)
     .cfl_frac = 0.4,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func,
@@ -708,6 +707,8 @@ main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

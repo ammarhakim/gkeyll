@@ -479,8 +479,7 @@ main(int argc, char **argv)
   }
 
   // pkpm app
-  struct gkyl_pkpm pkpm = {
-    .name = "pkpm_kaw_2x_p1",
+  struct gkyl_pkpm app_inp = {
 
     .cdim = 2, .vdim = 1,
     .lower = { 0.0, 0.0 },
@@ -504,7 +503,9 @@ main(int argc, char **argv)
   };
 
   // create app object
-  gkyl_pkpm_app *app = gkyl_pkpm_app_new(&pkpm);
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  gkyl_pkpm_app *app = gkyl_pkpm_app_new(&app_inp);
 
   // start, end and initial time-step
   double tcurr = 0.0, tend = ctx.tend;

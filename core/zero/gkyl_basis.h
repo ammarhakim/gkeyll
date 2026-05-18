@@ -15,7 +15,7 @@ typedef void (*node_quad_surf_list_t)(double *node_coords);
  * Basis function object
  */
 struct gkyl_basis {
-  unsigned ndim, poly_order, num_basis;
+  unsigned ndim, poly_order, num_basis, num_quad;
   char id[64]; // "serendipity", "tensor", "hybrid, "gkhybrid"
   enum gkyl_basis_type b_type; // identifier for basis function
     

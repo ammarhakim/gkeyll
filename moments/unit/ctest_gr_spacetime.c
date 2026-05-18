@@ -279,6 +279,7 @@ test_gr_minkowski()
       gkyl_free(spatial_metric_der);
       gkyl_free(spatial_christoffel);
       gkyl_free(extrinsic_curvature);
+      gkyl_free(shift_vector);
       gkyl_free(shift_vector_der);
       gkyl_free(lapse_function_der);
       gkyl_free(spatial_riemann_tensor);
