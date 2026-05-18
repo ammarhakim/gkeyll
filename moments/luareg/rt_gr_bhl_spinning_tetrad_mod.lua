@@ -30,7 +30,7 @@ Nx = 256
 Ny = 256
 Lx = 5.0
 Ly = 5.0
-cfl_frac = 0.95 -- CFL coefficient (Lax path; match packed tetrad cfl).
+cfl_frac = 0.5 -- Strict 2D directional-splitting CFL (cfla_x + cfla_y ≤ 1.0)
 
 reinit_freq = 100
 

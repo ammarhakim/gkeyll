@@ -19,14 +19,26 @@
 #define GR_EULER_PRESSURE_FLOOR (1.0e-8)
 #define GR_EULER_DENSITY_FLOOR  (1.0e-8)
 
-// Repair-only τ floor. Set ABOVE GR_EULER_PRESSURE_FLOOR so that cells
-// repaired by the cascade emerge with a safe margin against zero-crossing
-// on the next flux step. Lax/HLL preserve τ > 0 strictly when CFL ≤ 1,
-// but the strict-positivity proof leaves the per-step margin shrinking
-// toward zero as τ → 0. By landing repaired cells at τ = 1e-6 instead
-// of at p_floor = 1e-8, the cell has ~100× margin before any reasonable
-// flux contribution can knock τ negative.
-#define GR_EULER_TAU_REPAIR_FLOOR (1.0e-6)
+// Repair-only τ floor. Used by:
+//   (a) the cascade-repair callback in this header — restores τ to this
+//       value when τ<0 is detected post-flux-step;
+//   (b) the source-step τ limiter in moment_spacetime_coupling.c — the
+//       target value the source step is scaled down to land at when
+//       its δτ would drive τ below this floor.
+// Set equal to GR_EULER_PRESSURE_FLOOR (= 1e-8). Earlier sessions ran
+// at 1e-6 to give the cell ~100× margin against a re-trigger before
+// the source-step limiter existed; once the limiter is in place
+// (SESSION_NOTES_4 §9), it preempts the source step's τ-violation
+// directly, so the cascade-repair almost never fires on the source
+// path. Empirically the 1e-8 value gives slightly tighter physical
+// accuracy (less artificial energy injection per repair) at no cost
+// in residual fires under the BHL benchmark.
+// Earlier wisdom (still relevant absent the limiter): lowering this to
+// 1e-14 INCREASES wave_prop τ<0 fires 54× because the next half-CFL
+// flux step can knock τ negative if the margin is below the per-step
+// flux scale. 1e-8 is a tested floor that the post-limiter chain still
+// handles cleanly.
+#define GR_EULER_TAU_REPAIR_FLOOR (1.0e-8)
 
 // First-failing-constraint enum reported by check_admissibility. The
 // repair_state callback uses this to decide which single projection to
@@ -126,7 +138,19 @@ gkyl_gr_euler_repair_admissibility_cascade(
   double mom_sq = gkyl_gr_euler_mom_sq(inv_g, *Sx, *Sy, *Sz);
   double s_sq = (Dt * Dt) - mom_sq;
   if (!(s_sq > 0.0)) {
-    const double margin = 1.0e-8;
+    // Repair into the INTERIOR of A_γ with a finite margin, so the next
+    // flux step has breathing room before the cell touches the s²
+    // boundary again. The original margin (1e-8) left cells essentially
+    // ON the boundary — any subsequent Lax/HLL dissipation immediately
+    // re-triggered the repair cascade. BHL production sweep results
+    // (t_end=3.0, M=0.3 BH):
+    //   1e-8 (orig) + 2x amax: 81 wave_prop s²<0 fires, 39 s wall
+    //   1e-6           + 1x amax: 12 fires, 31.5 s wall  (best ratio)
+    //   1e-4           + 1x amax: 12 fires, identical
+    //   1e-2           + 1x amax: 14 fires (chaotic divergence)
+    // 1e-6 sits at the plateau. Larger margin doesn't help; smaller
+    // gets immediately overwhelmed by the next step's Lax dissipation.
+    const double margin = 1.0e-6;
     if (mom_sq > 0.0) {
       double target = (1.0 - margin) * Dt * Dt;
       double scale = sqrt(target / mom_sq);

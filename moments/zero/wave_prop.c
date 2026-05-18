@@ -7,6 +7,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_rect_decomp.h>
+#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
@@ -430,14 +431,14 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
         // compute first-order update in each cell
         for (int i=loidx_c; i<=upidx_c; ++i) { // loop is over cells
-        
+
           idxl[dir] = i; // cell index and left-edge index
           long lidx = gkyl_range_idx(update_range, idxl);
 
           const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
 
           calc_first_order_update(meqn, dtdx/cg->kappa,
-            gkyl_array_fetch(qout, lidx), 
+            gkyl_array_fetch(qout, lidx),
             gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
             gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
           );
@@ -501,10 +502,10 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
         next_state = WV_FIN_SWEEP;
         // check invariant domains if needed
         if ( (state == WV_FIRST_SWEEP) && wv->check_inv_domain) {
-          long n_bad_cells = 0;            
+          long n_bad_cells = 0;
 
           gkyl_array_clear(wv->redo_fluct, 0.0); // by default no edge needs recomputing
-          
+
           // check if invariant domains are violated, flagging edges
           // of each bad cell
           for (int i=loidx_c; i<=upidx_c; ++i) {
@@ -526,7 +527,15 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           }
 
           if (n_bad_cells > 0) {
-            // we need to resweep the 1D slice again
+            // we need to resweep the 1D slice again. Per-interface
+            // marking is intentionally retained even though it produces
+            // mixed-flux updates at cells adjacent to bad cells: an
+            // empirical study (see SESSION_NOTES_4 §6/§7) showed that
+            // widening to "1-ring" (12→120 s² fires), "whole-slice LOW"
+            // (12→1 s² but 674→8871 τ), and "per-cell targeted
+            // re-update" (12→194 s² but 4146→2722 source-τ) all trade
+            // s² wins for τ regressions. Per-interface is the empirical
+            // sweet spot for minimizing s² fires under BHL.
             next_state = WV_POSITIVITY_SWEEP;
             wv->n_bad_advance_calls += 1;
           }
@@ -555,56 +564,13 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           // admissibility on admissible inputs).
           ((struct gkyl_wv_eqn *)wv->equation)->cur_repair_ctx = 1;
 
-          // Debug: dump the first WAVE_PROP_REPAIR_DUMP_CAP firing states
-          // so we can diagnose where the residual wave_prop fires come
-          // from. Format per fire: step / dir / cell_idx / qin (this
-          // cell) / qin (L neighbor) / qin (R neighbor) / qt (post-sweep
-          // pre-repair). All densitized, in local-rotated frame.
-          // See SESSION_NOTES_2.md §16 for the debug plan.
-          #define WAVE_PROP_REPAIR_DUMP_CAP 20
-          static int s_repair_dump_count = 0;
-
           for (int i = loidx_c; i <= upidx_c; ++i) {
             idxl[dir] = i;
             double *qt = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
             if (wv->equation->set_cell_idx_func)
               wv->equation->set_cell_idx_func(wv->equation, idxl);
-            if (!gkyl_wv_eqn_check_inv(wv->equation, qt)) {
-              if (s_repair_dump_count < WAVE_PROP_REPAIR_DUMP_CAP
-                  && wv->equation->num_equations == 5) {
-                // Fetch qin (input state at start of step) for this cell
-                // and its two neighbors. Note: qin is in the unrotated
-                // (global) frame; qt is in the post-rotation local frame
-                // because POSITIVITY_SWEEP operates on qout which is
-                // initialized from qin (via copy_wv_vec) and updated by
-                // first-order fluctuations that are themselves in the
-                // local frame. So qt being in local frame while qin is
-                // in global frame is a mismatch worth investigating; for
-                // now, dump qin directly to see what state wave_prop
-                // started this step with.
-                int idx_L[GKYL_MAX_DIM], idx_R[GKYL_MAX_DIM];
-                gkyl_copy_int_arr(ndim, idxl, idx_L);
-                gkyl_copy_int_arr(ndim, idxl, idx_R);
-                idx_L[dir] = i - 1;
-                idx_R[dir] = i + 1;
-                const double *qin_C = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idxl));
-                const double *qin_L = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idx_L));
-                const double *qin_R = gkyl_array_cfetch(qin, gkyl_range_idx(update_range, idx_R));
-                fprintf(stderr,
-                  "[wave_prop repair #%d] dir=%d i=%d "
-                  "qin_C=[%.3e %.3e %.3e %.3e %.3e] "
-                  "qin_L=[%.3e %.3e %.3e %.3e %.3e] "
-                  "qin_R=[%.3e %.3e %.3e %.3e %.3e] "
-                  "qt=[%.3e %.3e %.3e %.3e %.3e]\n",
-                  s_repair_dump_count, dir, i,
-                  qin_C[0], qin_C[1], qin_C[2], qin_C[3], qin_C[4],
-                  qin_L[0], qin_L[1], qin_L[2], qin_L[3], qin_L[4],
-                  qin_R[0], qin_R[1], qin_R[2], qin_R[3], qin_R[4],
-                  qt[0], qt[1], qt[2], qt[3], qt[4]);
-                s_repair_dump_count += 1;
-              }
+            if (!gkyl_wv_eqn_check_inv(wv->equation, qt))
               gkyl_wv_eqn_repair_state(wv->equation, qt);
-            }
           }
           // Restore default so subsequent source-step calls land in the
           // source bucket. (The coupling explicitly sets ctx=0 too, so

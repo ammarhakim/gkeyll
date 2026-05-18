@@ -8,6 +8,7 @@ enum gkyl_wv_gr_euler_tetrad_rp {
   WV_GR_EULER_TETRAD_RP_HLL = 0, // Default (HLL fluxes).
   WV_GR_EULER_TETRAD_RP_ROE,
   WV_GR_EULER_TETRAD_RP_LAX,
+  WV_GR_EULER_TETRAD_RP_HLLC,    // Mignone-Bodo 2005 SR HLLC, tetrad-first.
 };
 
 // Input context, packaged as a struct.

@@ -3,6 +3,8 @@
 // Private header for moment_spacetime_coupling. Not for direct inclusion in
 // user-facing code.
 
+#include <stdint.h>
+
 #include <gkyl_array.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_gr_spacetime.h>
@@ -56,3 +58,15 @@ gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
   double gas_gamma, double t_curr, double dt,
   const double *prods,
   const double fluid_old[5], double fluid_new[5]);
+
+// Diagnostic: count of times the τ-positivity limiter has scaled down
+// a source step to keep τ ≥ 0. Reset is not exposed (process-lifetime
+// monotonic counter).
+uint64_t
+gkyl_moment_spacetime_coupling_tau_limiter_fires(void);
+
+// Diagnostic: count of times the s²-positivity limiter has scaled down
+// a source step (further than the τ-limiter would have) to keep
+// s²(q_new) ≥ margin·(D+τ)² in the curved metric.
+uint64_t
+gkyl_moment_spacetime_coupling_s2_limiter_fires(void);

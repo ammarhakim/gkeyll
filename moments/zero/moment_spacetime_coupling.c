@@ -301,8 +301,146 @@ compute_source_rate(double gas_gamma, const double *prods,
   }
 }
 
-// Per-cell forward-Euler source step for the modular GR Euler equation.
-// Thin wrapper over compute_source_rate: q_new = q_old + dt·S(q_old).
+// Per-cell forward-Euler source step for the modular GR Euler equation
+// with TAU + S² POSITIVITY LIMITERS.
+//
+// Naive forward Euler: q_new = q_old + dt·S(q_old).
+//
+// The limiters compute the largest α ∈ [0, 1] such that
+//   τ_new = τ + α·dt·S_τ ≥ 0
+// AND
+//   s²(q_new) = (D+τ + α·δDτ)² − γ^{ij}(S_i + α δS_i)(S_j + α δS_j)
+//             ≥ margin · (D+τ + α·δDτ)²
+// (where δ = dt·S). Both constraints reduce to picking a scalar α; the
+// final α = min(α_τ, α_s²) is applied uniformly to ALL components.
+// The cell gets a partial, physically-directed source contribution
+// rather than a hard clamp.
+//
+// SSP-RK3 compatibility: the outer integrator applies convex
+// combinations of (q_old, q_stage1, q_stage2). A_γ is convex, so a
+// convex combination of admissible states is admissible. Per-substage
+// limiting is safe.
+//
+// Counters: separate tallies for τ and s² limiter activations.
+static uint64_t s_tau_limiter_fires = 0;
+static uint64_t s_s2_limiter_fires = 0;
+
+uint64_t
+gkyl_moment_spacetime_coupling_tau_limiter_fires(void)
+{
+  return s_tau_limiter_fires;
+}
+
+uint64_t
+gkyl_moment_spacetime_coupling_s2_limiter_fires(void)
+{
+  return s_s2_limiter_fires;
+}
+
+// Compute the largest α ∈ [0, 1] such that
+//   (1-ε)(a + αb)² − (P + 2αQ + α²R) ≥ 0
+// where a = D+τ, b = δD+δτ, P = γ^{ij}·S_i·S_j, Q = γ^{ij}·S_i·δS_j,
+// R = γ^{ij}·δS_i·δS_j. Equivalently:
+//   A α² + 2 B α + C ≥ 0
+// with A = (1-ε)b² − R, B = (1-ε)ab − Q, C = (1-ε)a² − P. Assumes
+// C ≥ 0 (input state q already satisfies the margin); if not, returns
+// 1.0 to let the cascade-repair handle it downstream.
+static double
+compute_s2_limiter_alpha(const double *prods, double dt,
+  const double fluid_old[5], const double S_rate[5])
+{
+  const double margin = 1.0e-6;
+
+  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) return 1.0;
+  double sd = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
+  if (!(sd > 0.0)) return 1.0;
+  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+
+  // Undensitize q and δq (where δq = dt·S_rate).
+  double D    = fluid_old[0] / sd;
+  double Sx   = fluid_old[1] / sd;
+  double Sy   = fluid_old[2] / sd;
+  double Sz   = fluid_old[3] / sd;
+  double tau  = fluid_old[4] / sd;
+  double dD   = dt * S_rate[0] / sd;
+  double dSx  = dt * S_rate[1] / sd;
+  double dSy  = dt * S_rate[2] / sd;
+  double dSz  = dt * S_rate[3] / sd;
+  double dtau = dt * S_rate[4] / sd;
+
+  double a = D + tau;
+  double b = dD + dtau;
+
+  // P, Q, R via curved metric contraction (symmetric inv_g).
+  double S_v[3]  = { Sx, Sy, Sz };
+  double dS_v[3] = { dSx, dSy, dSz };
+  double P = 0.0, Q = 0.0, R = 0.0;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      double inv_g_ij = ig[3*i + j];
+      P += inv_g_ij * S_v[i]  * S_v[j];
+      Q += inv_g_ij * S_v[i]  * dS_v[j];
+      R += inv_g_ij * dS_v[i] * dS_v[j];
+    }
+
+  double A = (1.0 - margin) * b * b - R;
+  double B = (1.0 - margin) * a * b - Q;
+  double C = (1.0 - margin) * a * a - P;
+
+  if (C < 0.0) return 1.0;  // q already fails margin; let repair handle
+
+  // Linear-coefficient case.
+  if (fabs(A) < 1.0e-30) {
+    if (B >= 0.0) return 1.0;  // f non-decreasing, always ≥ 0 from C≥0
+    double alpha_root = -0.5 * C / B;
+    return fmin(1.0, fmax(0.0, alpha_root));
+  }
+
+  double disc = B*B - A*C;
+  if (disc < 0.0) {
+    // No real roots. f has the sign of A everywhere. If A > 0, f > 0
+    // always; if A < 0, f < 0 always — but C ≥ 0 already rules that out.
+    return 1.0;
+  }
+  double sd_disc = sqrt(disc);
+
+  // Safety pullback: scale the computed α by (1 - SAFETY_PULLBACK) so
+  // s²_new lands strictly inside the boundary rather than exactly on
+  // it. Floating-point error around the boundary would otherwise drop
+  // s²_new by ±ε, half the time triggering cascade-repair. With
+  // pullback, s²_new lands at (margin + SAFETY_PULLBACK·(D+τ)²)·(D+τ)²
+  // worth of slack, comfortably above the cascade threshold.
+  // Sweep results (BHL t=15, M=0.3) for source-s² fires (and wp s² in
+  // parens), holding the cascade-margin at 1e-6:
+  //   1e-4  → 4,897 (2,874)
+  //   1e-6  → 4,165 (2,818)
+  //   1e-8  → 3,791 (2,472)
+  //   1e-10 → 2,587 (1,757)  ← optimum
+  //   1e-12 → 4,770 (2,810)
+  //   1e-14 → 4,378 (2,312)
+  // Below 1e-10 the floating-point landing noise around the cascade
+  // boundary dominates the small benefit from a tighter pullback.
+  const double SAFETY_PULLBACK = 1.0e-10;
+
+  if (A > 0.0) {
+    // Parabola opens up; f < 0 strictly between roots. With C ≥ 0 and
+    // A > 0, both roots have the same sign as -B/A's sign. If α_- > 0,
+    // both roots > 0 and we cap at α_-. Otherwise both ≤ 0 and α=1 OK.
+    double alpha_minus = (-B - sd_disc) / A;
+    if (alpha_minus > 0.0)
+      return fmin(1.0, alpha_minus * (1.0 - SAFETY_PULLBACK));
+    return 1.0;
+  } else {
+    // A < 0; parabola opens down. f ≥ 0 in [α_lo, α_hi]. With C ≥ 0,
+    // 0 ∈ [α_lo, α_hi] so α_lo ≤ 0 ≤ α_hi. Max valid α = min(1, α_hi).
+    double r1 = (-B - sd_disc) / A;
+    double r2 = (-B + sd_disc) / A;
+    double a_hi = fmax(r1, r2);
+    if (a_hi <= 0.0) return 1.0;  // shouldn't happen given C ≥ 0
+    return fmin(1.0, a_hi * (1.0 - SAFETY_PULLBACK));
+  }
+}
+
 void
 gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
   double gas_gamma, double t_curr, double dt,
@@ -314,8 +452,37 @@ gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
   double S_rate[5];
   compute_source_rate(gas_gamma, prods, fluid_old, S_rate);
 
+  // TAU-POSITIVITY LIMITER. δτ = dt·S_τ. Target τ_new = TAU_TARGET
+  // (the same floor cascade-repair restores to) so that limited cells
+  // land strictly inside A_γ — well-separated from the floating-point
+  // ±ε region around 0 that would re-trigger cascade-repair.
+  //   α_τ = (τ_old - TAU_TARGET) / -δτ  when δτ < 0 and τ_old > TAU_TARGET
+  // If τ_old ≤ TAU_TARGET (already at or below floor), α=0 (no update).
+  // If δτ ≥ 0 or τ_new_unlimited ≥ TAU_TARGET, no limit needed.
+  const double TAU_TARGET = GR_EULER_TAU_REPAIR_FLOOR;
+  double alpha = 1.0;
+  double delta_tau = dt * S_rate[4];
+  double tau_new_unlimited = fluid_old[4] + delta_tau;
+  if (tau_new_unlimited < TAU_TARGET && delta_tau < 0.0) {
+    double headroom = fluid_old[4] - TAU_TARGET;
+    double alpha_tau = (headroom > 0.0) ? (headroom / -delta_tau) : 0.0;
+    if (alpha_tau < 0.0) alpha_tau = 0.0;
+    if (alpha_tau > 1.0) alpha_tau = 1.0;
+    alpha = fmin(alpha, alpha_tau);
+    s_tau_limiter_fires += 1;
+  }
+
+  // S²-POSITIVITY LIMITER. Solve the quadratic for max α s.t. the
+  // limited source step keeps s²(q_new) ≥ margin·(D+τ)².
+  double alpha_s2 = compute_s2_limiter_alpha(prods, dt, fluid_old, S_rate);
+  if (alpha_s2 < alpha) {
+    alpha = alpha_s2;
+    s_s2_limiter_fires += 1;
+  }
+
+  double dt_eff = alpha * dt;
   for (int i = 0; i < 5; i++)
-    fluid_new[i] = fluid_old[i] + dt * S_rate[i];
+    fluid_new[i] = fluid_old[i] + dt_eff * S_rate[i];
 }
 
 // ---------------------------------------------------------------------------

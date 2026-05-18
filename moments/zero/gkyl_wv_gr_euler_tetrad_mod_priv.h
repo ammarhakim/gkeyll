@@ -183,6 +183,64 @@ gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(double gas_gamma,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[2 * 5], double speeds[2]);
 
+// Pure Minkowski SR HLLC (Mignone & Bodo 2005, MNRAS 364, 126). Three
+// waves (left acoustic, contact, right acoustic) with star-state
+// construction. Restores the contact wave that HLL averages over,
+// giving sharper resolution of contact discontinuities AND restoring
+// τ-positivity from admissible left/right inputs (which HLL does NOT
+// guarantee in the τ/D ≪ 1 regime — see SESSION_NOTES_2.md §17).
+//
+// Implementation notes for the production-grade variant:
+//   - Davis (1988) wave-speed bracket per side (eqs 21-23 of MB05).
+//   - Stable quadratic for λ* using citardauq form when −b > 0 to
+//     avoid catastrophic cancellation near uniform states.
+//   - p* from the corrected Rankine-Hugoniot relation
+//     p* = (A·λ* − B) / (1 − λ·λ*)  where A = λE − m_x, B = m_x(λ-v_x) − p.
+//     This differs from MB05 eq (17) as printed [denominator (1 + λλ*)]
+//     in the sign of the λλ* term; the corrected form satisfies
+//     p*_L = p*_R = p in the trivial Riemann limit ql = qr.
+//   - In degenerate cold-gas regimes (c_s ≈ 0 ⇒ λ_L ≈ λ_R) where the
+//     λ* quadratic returns a root outside [λ_L, λ_R] or arbitrarily
+//     close to an outer wave (1/(λ_R − λ*) blows up), gracefully
+//     degrade to HLL: collapse the contact wave to zero amplitude and
+//     let the two outer waves carry the entire HLL-averaged jump.
+//
+// Caveat: HLL itself is NOT τ-positivity-preserving in our setup
+// (verified empirically on the BHL bow-shock — see
+// SESSION_NOTES_2.md §17 and ctest test_small_tau_over_D_hll).
+// The HLL fallback degrades gracefully but inherits HLL's known
+// τ-positivity weakness in the τ/D ≪ 1 regime.
+// Diagnostic outparam for sr_hllc_minkowski. Pass NULL to ignore.
+// did_fallback: 1 if the cold-gas / degenerate-fan path triggered (HLLC
+//   degraded to HLL on this interface), 0 if the full HLLC star-state
+//   was used. Useful for diagnosing whether observed τ-violations stem
+//   from HLLC's own star-state construction or from the HLL fallback
+//   inheriting HLL's known weakness.
+// lambda_L, lambda_R: tetrad-frame Davis bracket bounds.
+// lambda_star: contact-wave speed (as computed by the quadratic, before
+//   the clamp/fallback decision; NaN if the computation never reached
+//   that point — e.g. lam_diff < 1e-14 short-circuit).
+// fallback_reason: 0 if no fallback, 1 if lam_diff degenerate, 2 if
+//   lambda_star not finite, 3 if |lambda_L − lambda_star| < tol
+//   (would blow up the U_L* RH inverse), 4 if |lambda_R − lambda_star|
+//   < tol (analogous for U_R*). Note 3/4 catch numerical proximity to
+//   the bracket edges, NOT lambda_star outside the bracket — the latter
+//   is normal for supersonic flow.
+struct gkyl_gr_euler_tetrad_mod_hllc_diag {
+  int did_fallback;
+  int fallback_reason;
+  double lambda_L;
+  double lambda_R;
+  double lambda_star;
+};
+
+GKYL_CU_D
+double
+gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(double gas_gamma,
+  const double ql_tet[5], const double qr_tet[5],
+  double waves_tet[3 * 5], double speeds[3],
+  struct gkyl_gr_euler_tetrad_mod_hllc_diag *diag);
+
 // Build a Gram-Schmidt-on-γ⁻¹ triad: e_0 aligned with the contravariant
 // x-direction, e_1, e_2 orthogonalized in γ. M[i][a] = e_a^i, M_inv =
 // M^T·γ. Eliminates the v_tet^x ↔ v^y, v^z mixing seen with Cholesky

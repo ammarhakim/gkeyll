@@ -250,6 +250,35 @@ void test_banyuls_flux_consistency_lax_kerr(void)
   gkyl_gr_spacetime_release(st);
 }
 
+// HLLC variants. Banyuls flux consistency depends only on
+// flux+flux_correction, so the rp choice is just a factory parameter
+// (the wave/qfluct callbacks aren't exercised). Still worth running
+// against HLLC as a smoke test that the dispatch wires up cleanly.
+void test_banyuls_flux_consistency_hllc_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_banyuls_flux_consistency(st, "Mink-HLLC", 0.3, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  gkyl_gr_spacetime_release(st);
+}
+void test_banyuls_flux_consistency_hllc_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_banyuls_flux_consistency(st, "Schw-HLLC", 0.3, 0.2, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  run_banyuls_flux_consistency(st, "Schw-HLLC", 0.5, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  run_banyuls_flux_consistency(st, "Schw-HLLC", 0.4, 0.4, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  gkyl_gr_spacetime_release(st);
+}
+void test_banyuls_flux_consistency_hllc_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.3, 0.2, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.5, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.4, 0.4, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  gkyl_gr_spacetime_release(st);
+}
+
 // ---------------------------------------------------------------------------
 // 2. Standard Riemann-solver property tests for Lax / HLL
 // ---------------------------------------------------------------------------
@@ -478,6 +507,269 @@ void test_riemann_properties_hll_kerr(void)
   gkyl_gr_spacetime_release(st);
 }
 
+// HLLC variants. The runner is parameterized by num_waves so the same
+// machinery works for HLLC (3 waves) as it does for Lax/HLL (2). The
+// flux-jump check is the key one for finite-β verification: it confirms
+// that the wave-based update reproduces the Banyuls flux exactly,
+// including the moving-interface β·U term that lives in the speed shift
+// (see SESSION_NOTES_BETA_FLUX_JUMP.md).
+void test_riemann_properties_hllc_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_riemann_properties_lax_hll(st, "Mink-HLLC", 0.3, 0.0, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_hllc_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.3, 0.2, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.5, 0.0, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.4, 0.4, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_hllc_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.3, 0.2, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.5, 0.0, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.4, 0.4, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  gkyl_gr_spacetime_release(st);
+}
+
+// ---------------------------------------------------------------------------
+// 2b. Excision-boundary absorbing BC (Lax, HLL)
+//
+// Verifies that the new excision policy (zero-state Riemann with active-cell
+// geometry — SESSION_NOTES_3.md §11.10–§11.13) gives correct one-sided upwind
+// behavior at the BH horizon. Three invariants per case:
+//   (i)   Wave-sum:   Σ w_k = q_R − q_L  (one side is zero)
+//   (ii)  Flux-jump:  Σ s_k·w_k = F(q_R) − F(q_L)  with F(q_excised) ≡ 0
+//   (iii) No spurious inflow into the active cell: under the wave_prop sign
+//         convention, the active cell's update via the excision interface
+//         (qL_new -= dt/dx · amdq if active on left, qR_new -= dt/dx · apdq
+//         if active on right) must NOT increase the active cell's D when
+//         matter is flowing into the BH.
+//
+// Setup: a 2-cell conf range with both cells filled from the same spacetime
+// point — only EXCISION flag differs. This isolates the excision logic from
+// any cross-cell metric variation.
+// ---------------------------------------------------------------------------
+
+static void
+run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
+  const char *spacetime_label,
+  enum gkyl_wv_gr_euler_tetrad_rp rp, int num_waves, const char *rp_label,
+  double x, double y, double z)
+{
+  double gas_gamma = 5.0 / 3.0;
+
+  // 2-cell conf range so we have distinct slots for active + excised.
+  struct gkyl_range conf_range;
+  int lower[1] = { 0 }, upper[1] = { 1 };
+  gkyl_range_init(&conf_range, 1, lower, upper);
+
+  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
+    GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
+  gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
+    (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = prods });
+
+  // Fill both cells at the same point. Active keeps the natural EXCISION
+  // flag from the spacetime; mock cell flips it to -1.
+  double *prods_active  = gkyl_array_fetch(prods, 0);
+  double *prods_excised = gkyl_array_fetch(prods, 1);
+  fill_prods_at(spacetime, x, y, z, prods_active);
+  fill_prods_at(spacetime, x, y, z, prods_excised);
+  if (prods_active[GKYL_GR_SP_EXCISION] < 0.0) {
+    // Sample point is itself excised — can't test from here.
+    gkyl_array_release(prods);
+    gkyl_wv_eqn_release(eqn);
+    return;
+  }
+  prods_excised[GKYL_GR_SP_EXCISION] = -1.0;
+
+  double sqrt_det = sqrt(prods_active[GKYL_GR_SP_SPATIAL_DET]);
+  (void)sqrt_det;
+
+  // Active state — matter with rightward velocity (i.e. when on the LEFT
+  // of an excised cell, this means matter flows INTO the BH).
+  double rho = 1.0, p = 0.5;
+  double v_into_excised[3] = { 0.4, 0.1, 0.0 };
+  double q_active_glob[5];
+  build_state_convA(gas_gamma, rho, v_into_excised, p, prods_active, q_active_glob);
+  double q_excised_glob[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+
+  int idx_active[1]  = { 0 };
+  int idx_excised[1] = { 1 };
+  double norm[3]  = { 1.0, 0.0, 0.0 };
+  double tau1v[3] = { 0.0, 1.0, 0.0 };
+  double tau2v[3] = { 0.0, 0.0, 1.0 };
+
+  // ---- Subtest 1: excised on RIGHT (matter into BH) ----
+  // L = active, R = excised. Matter flowing right (into BH).
+  eqn->set_interface_idx_func(eqn, idx_active, idx_excised);
+  double qL_loc[5], qR_loc[5];
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_active_glob,  qL_loc);  // → prodl_local (cell 0, active)
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_excised_glob, qR_loc);  // → prodr_local (cell 1, excised)
+
+  struct wv_gr_euler_tetrad_mod *grm = container_of(eqn,
+    struct wv_gr_euler_tetrad_mod, eqn);
+
+  double delta_R[5];
+  for (int i = 0; i < 5; i++) delta_R[i] = qR_loc[i] - qL_loc[i];
+
+  double waves_R[3 * 5], speeds_R[3];
+  double maxs_R = eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    delta_R, qL_loc, qR_loc, 1.0, 1.0, waves_R, speeds_R);
+  (void)maxs_R;
+
+  // (i) Wave sum: Σ w_k = Δq.
+  for (int i = 0; i < 5; i++) {
+    double sum = 0.0;
+    for (int k = 0; k < num_waves; k++) sum += waves_R[k * 5 + i];
+    TEST_CHECK_( fabs(sum - delta_R[i]) < 1.0e-12,
+      "[%s/%s/R-excised] wave sum: comp %d, |Σw − Δq| = %.3e",
+      spacetime_label, rp_label, i, fabs(sum - delta_R[i]) );
+  }
+
+  // (ii) Flux jump: Σ s·w = F(qR) − F(qL) with F(qR_excised) = 0.
+  //      Compute F(qL_active) via the production flux + flux_correction
+  //      using the active-cell prods.
+  double fL_sr[5], fL_gr[5];
+  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qL_loc, grm->prodl_local, fL_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qL_loc, grm->prodl_local, fL_sr, fL_gr);
+  double dF_R[5];
+  for (int i = 0; i < 5; i++) dF_R[i] = -fL_gr[i];
+
+  for (int i = 0; i < 5; i++) {
+    double sw = 0.0;
+    for (int k = 0; k < num_waves; k++) sw += speeds_R[k] * waves_R[k * 5 + i];
+    TEST_CHECK_( fabs(sw - dF_R[i]) < 1.0e-10,
+      "[%s/%s/R-excised] flux jump: comp %d, |Σs·w − ΔF| = %.3e",
+      spacetime_label, rp_label, i, fabs(sw - dF_R[i]) );
+  }
+
+  // (iii) No spurious inflow into the active cell (on LEFT of excision).
+  //       Cell L's update from this interface: qL_new -= dt/dx · amdq.
+  //       For matter flowing INTO BH, D should not grow on L → amdq[D] ≥ 0.
+  double amdq_R[5], apdq_R[5];
+  eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    qL_loc, qR_loc, 1.0, 1.0, waves_R, speeds_R, amdq_R, apdq_R);
+  TEST_CHECK_( amdq_R[0] >= -1.0e-12,
+    "[%s/%s/R-excised] spurious D inflow: amdq[D]=%.3e (should be ≥ 0)",
+    spacetime_label, rp_label, amdq_R[0] );
+
+  // Conservation: amdq + apdq = ΔF.
+  for (int i = 0; i < 5; i++) {
+    TEST_CHECK_( fabs(amdq_R[i] + apdq_R[i] - dF_R[i]) < 1.0e-10,
+      "[%s/%s/R-excised] fluct balance: comp %d, |amdq+apdq − ΔF| = %.3e",
+      spacetime_label, rp_label, i, fabs(amdq_R[i] + apdq_R[i] - dF_R[i]) );
+  }
+
+  // ---- Subtest 2: excised on LEFT (active state on right) ----
+  // L = excised, R = active. Active has v_x > 0 (now pointing away from BH).
+  // Matter cannot emerge from the BH; the wave decomposition with q=0 on left
+  // should not produce inflow into the active cell from the excised side.
+  eqn->set_interface_idx_func(eqn, idx_excised, idx_active);
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_excised_glob, qL_loc); // → prodl_local (excised)
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_active_glob,  qR_loc); // → prodr_local (active)
+
+  double delta_L[5];
+  for (int i = 0; i < 5; i++) delta_L[i] = qR_loc[i] - qL_loc[i];
+
+  double waves_L[3 * 5], speeds_L[3];
+  double maxs_L = eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    delta_L, qL_loc, qR_loc, 1.0, 1.0, waves_L, speeds_L);
+  (void)maxs_L;
+
+  for (int i = 0; i < 5; i++) {
+    double sum = 0.0;
+    for (int k = 0; k < num_waves; k++) sum += waves_L[k * 5 + i];
+    TEST_CHECK_( fabs(sum - delta_L[i]) < 1.0e-12,
+      "[%s/%s/L-excised] wave sum: comp %d, |Σw − Δq| = %.3e",
+      spacetime_label, rp_label, i, fabs(sum - delta_L[i]) );
+  }
+
+  double fR_sr[5], fR_gr[5];
+  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qR_loc, grm->prodr_local, fR_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qR_loc, grm->prodr_local, fR_sr, fR_gr);
+  double dF_L[5];
+  for (int i = 0; i < 5; i++) dF_L[i] = fR_gr[i];  // F(qR_active) − F(qL_excised=0)
+
+  for (int i = 0; i < 5; i++) {
+    double sw = 0.0;
+    for (int k = 0; k < num_waves; k++) sw += speeds_L[k] * waves_L[k * 5 + i];
+    TEST_CHECK_( fabs(sw - dF_L[i]) < 1.0e-10,
+      "[%s/%s/L-excised] flux jump: comp %d, |Σs·w − ΔF| = %.3e",
+      spacetime_label, rp_label, i, fabs(sw - dF_L[i]) );
+  }
+
+  // No spurious inflow into active cell (on RIGHT). Cell R's update from
+  // this interface: qR_new -= dt/dx · apdq. The "absorbing BC" principle
+  // is that matter cannot emerge from the BH (vacuum cannot be a SOURCE
+  // of matter for the active cell). So apdq[D] ≥ 0 is required — the
+  // active cell either stays put (apdq[D] = 0) or loses matter to the
+  // vacuum (apdq[D] > 0, e.g. via a left-going rarefaction when the
+  // active flow is subsonic outflow into vacuum). What's forbidden is
+  // apdq[D] < 0, which would have the BH spuriously supplying matter
+  // to the active cell.
+  double amdq_L[5], apdq_L[5];
+  eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    qL_loc, qR_loc, 1.0, 1.0, waves_L, speeds_L, amdq_L, apdq_L);
+  TEST_CHECK_( apdq_L[0] >= -1.0e-12,
+    "[%s/%s/L-excised] spurious D from BH: apdq[D]=%.3e (should be ≥ 0)",
+    spacetime_label, rp_label, apdq_L[0] );
+
+  for (int i = 0; i < 5; i++) {
+    TEST_CHECK_( fabs(amdq_L[i] + apdq_L[i] - dF_L[i]) < 1.0e-10,
+      "[%s/%s/L-excised] fluct balance: comp %d, |amdq+apdq − ΔF| = %.3e",
+      spacetime_label, rp_label, i, fabs(amdq_L[i] + apdq_L[i] - dF_L[i]) );
+  }
+
+  gkyl_array_release(prods);
+  gkyl_wv_eqn_release(eqn);
+}
+
+void test_excision_absorbing_lax_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_excision_absorbing_for_rp(st, "Mink", WV_GR_EULER_TETRAD_RP_LAX, 2, "Lax",
+    0.3, 0.0, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+void test_excision_absorbing_lax_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_excision_absorbing_for_rp(st, "Schw", WV_GR_EULER_TETRAD_RP_LAX, 2, "Lax",
+    0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+void test_excision_absorbing_hll_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_excision_absorbing_for_rp(st, "Mink", WV_GR_EULER_TETRAD_RP_HLL, 2, "HLL",
+    0.3, 0.0, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+void test_excision_absorbing_hll_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_excision_absorbing_for_rp(st, "Schw", WV_GR_EULER_TETRAD_RP_HLL, 2, "HLL",
+    0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
 // ---------------------------------------------------------------------------
 // 3. Positivity preservation sweep
 // ---------------------------------------------------------------------------
@@ -504,51 +796,65 @@ record_admissibility(const double inv_g[3][3],
   *S2_ok  = (s_sq > 0.0);
 }
 
+// Per-cell-metric positivity check. prods_L and prods_R are the
+// spacetime products rows for the LEFT and RIGHT cells (production
+// wave_prop pipes adjacent-cell metrics into prodl_local/prodr_local
+// independently). Each cell's conservatives are densitized with its
+// OWN √γ and admissibility-checked in its OWN inverse spatial metric,
+// matching what wave_prop does post-POSITIVITY_SWEEP.
 static void
 run_positivity_for_rp(struct gkyl_wv_eqn *eqn,
   struct wv_gr_euler_tetrad_mod *grm,
-  const double *prods,
+  const double *prods_L, const double *prods_R,
   const struct rp_case *rc,
   int *D_violations, int *S2_violations, int *tau_violations)
 {
   double gas_gamma = 5.0 / 3.0;
-  double sqrt_det = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
-  double inv_g[3][3] = {
-    { prods[GKYL_GR_SP_INV_GIJ + 0], prods[GKYL_GR_SP_INV_GIJ + 1], prods[GKYL_GR_SP_INV_GIJ + 2] },
-    { prods[GKYL_GR_SP_INV_GIJ + 3], prods[GKYL_GR_SP_INV_GIJ + 4], prods[GKYL_GR_SP_INV_GIJ + 5] },
-    { prods[GKYL_GR_SP_INV_GIJ + 6], prods[GKYL_GR_SP_INV_GIJ + 7], prods[GKYL_GR_SP_INV_GIJ + 8] },
+  double sqrt_det_L = sqrt(prods_L[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_R = sqrt(prods_R[GKYL_GR_SP_SPATIAL_DET]);
+  double inv_g_L[3][3] = {
+    { prods_L[GKYL_GR_SP_INV_GIJ + 0], prods_L[GKYL_GR_SP_INV_GIJ + 1], prods_L[GKYL_GR_SP_INV_GIJ + 2] },
+    { prods_L[GKYL_GR_SP_INV_GIJ + 3], prods_L[GKYL_GR_SP_INV_GIJ + 4], prods_L[GKYL_GR_SP_INV_GIJ + 5] },
+    { prods_L[GKYL_GR_SP_INV_GIJ + 6], prods_L[GKYL_GR_SP_INV_GIJ + 7], prods_L[GKYL_GR_SP_INV_GIJ + 8] },
+  };
+  double inv_g_R[3][3] = {
+    { prods_R[GKYL_GR_SP_INV_GIJ + 0], prods_R[GKYL_GR_SP_INV_GIJ + 1], prods_R[GKYL_GR_SP_INV_GIJ + 2] },
+    { prods_R[GKYL_GR_SP_INV_GIJ + 3], prods_R[GKYL_GR_SP_INV_GIJ + 4], prods_R[GKYL_GR_SP_INV_GIJ + 5] },
+    { prods_R[GKYL_GR_SP_INV_GIJ + 6], prods_R[GKYL_GR_SP_INV_GIJ + 7], prods_R[GKYL_GR_SP_INV_GIJ + 8] },
   };
 
-  // Build admissible L/R states.
+  // Build L/R states from primitives, each in its OWN metric. Same
+  // primitives → different densitized conservatives because
+  // build_state_convA uses √γ and γ_ij of the supplied prods row.
   double qL[5], qR[5];
-  build_state_convA(gas_gamma, rc->rho_L, rc->v_L, rc->p_L, prods, qL);
-  build_state_convA(gas_gamma, rc->rho_R, rc->v_R, rc->p_R, prods, qR);
+  build_state_convA(gas_gamma, rc->rho_L, rc->v_L, rc->p_L, prods_L, qL);
+  build_state_convA(gas_gamma, rc->rho_R, rc->v_R, rc->p_R, prods_R, qR);
 
-  // Sanity: both inputs admissible.
+  // Sanity: each cell admissible in its own metric.
   double qL_und[5], qR_und[5];
   for (int i = 0; i < 5; i++) {
-    qL_und[i] = qL[i] / sqrt_det;
-    qR_und[i] = qR[i] / sqrt_det;
+    qL_und[i] = qL[i] / sqrt_det_L;
+    qR_und[i] = qR[i] / sqrt_det_R;
   }
   bool d_ok, s_ok, t_ok;
-  record_admissibility(inv_g, qL_und, &d_ok, &s_ok, &t_ok);
+  record_admissibility(inv_g_L, qL_und, &d_ok, &s_ok, &t_ok);
   if (!(d_ok && s_ok && t_ok)) {
     fprintf(stderr, "  [positivity] WARNING: input qL inadmissible for case '%s' "
       "(D_ok=%d, S2_ok=%d, tau_ok=%d) — skipping\n", rc->name, d_ok, s_ok, t_ok);
     return;
   }
-  record_admissibility(inv_g, qR_und, &d_ok, &s_ok, &t_ok);
+  record_admissibility(inv_g_R, qR_und, &d_ok, &s_ok, &t_ok);
   if (!(d_ok && s_ok && t_ok)) {
     fprintf(stderr, "  [positivity] WARNING: input qR inadmissible for case '%s' "
       "(D_ok=%d, S2_ok=%d, tau_ok=%d) — skipping\n", rc->name, d_ok, s_ok, t_ok);
     return;
   }
 
-  // Compute waves and fluctuations at the interface. rotate_to_local
-  // has the side-effect of filling prodl_local / prodr_local, which
-  // wave_hll/wave_lax read. With norm = +x̂ this is a no-op rotation.
-  int idx[1] = { 0 };
-  eqn->set_interface_idx_func(eqn, idx, idx);
+  // Per-cell metric: idxl=0 → prods_L, idxr=1 → prods_R. rotate_to_local
+  // populates prodl_local/prodr_local via the parity flip; with norm=+x̂
+  // the rotation is a no-op on q components.
+  int idx_L[1] = { 0 }, idx_R[1] = { 1 };
+  eqn->set_interface_idx_func(eqn, idx_L, idx_R);
   double norm[3] = { 1.0, 0.0, 0.0 };
   double tau1[3] = { 0.0, 1.0, 0.0 };
   double tau2[3] = { 0.0, 0.0, 1.0 };
@@ -576,22 +882,24 @@ run_positivity_for_rp(struct gkyl_wv_eqn *eqn,
     qR_new[i] = qR_loc[i] - dt_dx * apdq[i];
   }
 
-  // Check both updated cells.
+  // Check each updated cell in its OWN metric.
   for (int side = 0; side < 2; side++) {
     const double *qn = (side == 0) ? qL_new : qR_new;
     const char *who  = (side == 0) ? "L" : "R";
+    double sqrt_det_s = (side == 0) ? sqrt_det_L : sqrt_det_R;
+    const double (*inv_g_s)[3] = (side == 0) ? inv_g_L : inv_g_R;
     double qn_und[5];
-    for (int i = 0; i < 5; i++) qn_und[i] = qn[i] / sqrt_det;
+    for (int i = 0; i < 5; i++) qn_und[i] = qn[i] / sqrt_det_s;
     bool D_ok, S2_ok, tau_ok;
-    record_admissibility(inv_g, qn_und, &D_ok, &S2_ok, &tau_ok);
+    record_admissibility(inv_g_s, qn_und, &D_ok, &S2_ok, &tau_ok);
     if (!D_ok)   { (*D_violations)++;   fprintf(stderr,
       "  [positivity] '%s' cell %s: D = %.3e\n", rc->name, who, qn_und[0]); }
     if (!S2_ok)  { (*S2_violations)++;  fprintf(stderr,
       "  [positivity] '%s' cell %s: s² = %.3e (D+τ = %.3e, |S|² = %.3e)\n",
       rc->name, who, (qn_und[0]+qn_und[4])*(qn_und[0]+qn_und[4])
-                       - gkyl_gr_euler_mom_sq(inv_g, qn_und[1], qn_und[2], qn_und[3]),
+                       - gkyl_gr_euler_mom_sq(inv_g_s, qn_und[1], qn_und[2], qn_und[3]),
       qn_und[0]+qn_und[4],
-      gkyl_gr_euler_mom_sq(inv_g, qn_und[1], qn_und[2], qn_und[3])); }
+      gkyl_gr_euler_mom_sq(inv_g_s, qn_und[1], qn_und[2], qn_und[3])); }
     if (!tau_ok) { (*tau_violations)++; fprintf(stderr,
       "  [positivity] '%s' cell %s: τ = %.3e (D = %.3e)\n",
       rc->name, who, qn_und[4], qn_und[0]); }
@@ -622,17 +930,37 @@ static const struct rp_case g_positivity_cases[] = {
   { "rel-shock",      5.0, 50.0, { 0.50, 0.0, 0.0 },  0.1, 0.01, { -0.50, 0.0, 0.0 } },
 };
 
-// Physical sample points for curved-spacetime positivity probes. Chosen
-// to span on-axis, mid-radius, and corner geometry (off-diagonal γ from
-// Kerr-Schild) without dipping into excision.
+// Physical sample points for curved-spacetime positivity probes.
+// Each point is the *interface centroid*: the test fills prods_L at
+// (x - dx/2, y, z) and prods_R at (x + dx/2, y, z), mirroring how
+// production wave_prop reads metrics from adjacent cells.
+//
+// Sample points span:
+//   - origin (Minkowski only — curved spacetimes' excision filters)
+//   - mid-radius axial / off-axis (γ_ij with off-diagonals from Kerr-Schild)
+//   - BHL bow-shock front (just outside r_h for M=0.3 — sharp √γ jump)
+//   - BHL inflow region (further out from horizon)
 struct positivity_point { double x, y, z; };
 static const struct positivity_point g_positivity_points[] = {
-  { 0.0, 0.0, 0.0 },  // origin — Minkowski only; curved spacetimes filter
-                       // via the in-excision-region check.
-  { 0.3, 0.2, 0.0 },
-  { 0.5, 0.0, 0.0 },
-  { 0.4, 0.4, 0.0 },
+  { 0.0,   0.0,   0.0 },
+  { 0.3,   0.2,   0.0 },
+  { 0.5,   0.0,   0.0 },
+  { 0.4,   0.4,   0.0 },
+  // BHL-production-relevant: M=0.3 → r_h=0.6 in Schw/Kerr. These points
+  // are valid for the M=0.3 case constructed below; Minkowski/Kerr-low-M
+  // tests use the same coords but the excision check filters them.
+  { 0.65,  0.0,   0.0 },   // axial, just outside r_h=0.6
+  {-0.05, -0.6,   0.0 },   // bow-shock front, sharp √γ variation
+  {-0.05,  0.6,   0.0 },   // mirror
+  { 1.0,   1.0,   0.0 },   // off-axis bulk (γ_xy nonzero)
 };
+
+// Spacing between L and R cell-center metric samples. Matches production
+// BHL grid (Lx=5, Nx=256 → dx≈0.0195). Small enough that √γ_L ≈ √γ_R
+// for smooth metrics, but large enough at sharp-curvature points (near
+// horizon) to expose the densitization mismatch hidden by single-cell
+// tests.
+#define GR_EULER_POSITIVITY_DX (0.01953)
 
 static void
 run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
@@ -641,8 +969,10 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
 {
   double gas_gamma = 5.0 / 3.0;
 
+  // 2-cell conf_range so set_interface_idx(0, 1) routes prods_L and
+  // prods_R to wave_lax_curved's prodl_local / prodr_local.
   struct gkyl_range conf_range;
-  int lower[1] = { 0 }, upper[1] = { 0 };
+  int lower[1] = { 0 }, upper[1] = { 1 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
   struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
@@ -660,24 +990,29 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
   int n_pts = sizeof(g_positivity_points) / sizeof(*g_positivity_points);
   int n_cases = sizeof(g_positivity_cases) / sizeof(*g_positivity_cases);
 
-  double *prods_row = gkyl_array_fetch(prods, 0);
+  double *prods_L = gkyl_array_fetch(prods, 0);
+  double *prods_R = gkyl_array_fetch(prods, 1);
 
   for (int pi = 0; pi < n_pts; pi++) {
     const struct positivity_point *pt = &g_positivity_points[pi];
-    fill_prods_at(spacetime, pt->x, pt->y, pt->z, prods_row);
-    if (prods_row[GKYL_GR_SP_EXCISION] < 0.0) continue;
+    // L cell at (x - dx/2, y, z); R cell at (x + dx/2, y, z).
+    double dx_half = 0.5 * GR_EULER_POSITIVITY_DX;
+    fill_prods_at(spacetime, pt->x - dx_half, pt->y, pt->z, prods_L);
+    fill_prods_at(spacetime, pt->x + dx_half, pt->y, pt->z, prods_R);
+    if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
+        prods_R[GKYL_GR_SP_EXCISION] < 0.0) continue;
 
     for (int c = 0; c < n_cases; c++) {
-      run_positivity_for_rp(eqn, grm, prods_row, &g_positivity_cases[c],
+      run_positivity_for_rp(eqn, grm, prods_L, prods_R, &g_positivity_cases[c],
         &D_violations, &S2_violations, &tau_violations);
       total_cells += 2;
     }
   }
 
   fprintf(stderr,
-    "[positivity %s] across %d cell-updates: "
+    "[positivity %s] across %d cell-updates (per-cell-metric, dx=%.4f): "
     "D<=0: %d (%.1f%%), s²<=0: %d (%.1f%%), τ<0: %d (%.1f%%)\n",
-    label, total_cells,
+    label, total_cells, GR_EULER_POSITIVITY_DX,
     D_violations,   100.0 * D_violations   / total_cells,
     S2_violations,  100.0 * S2_violations  / total_cells,
     tau_violations, 100.0 * tau_violations / total_cells);
@@ -734,6 +1069,60 @@ void test_positivity_hll_kerr(void)
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
   run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLL, "HLL-Kerr");
+  gkyl_gr_spacetime_release(st);
+}
+
+// HLLC positivity sweep — the headline test: HLLC's star-state
+// construction is supposed to give explicit τ-positivity from
+// admissible inputs (MB05 §3.1.2). If HLLC genuinely preserves
+// τ-positivity in regimes where Lax/HLL fail, we'll see zero
+// τ-violations in the sweep where Lax/HLL produce some.
+void test_positivity_hllc_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Mink");
+  gkyl_gr_spacetime_release(st);
+}
+void test_positivity_hllc_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Schw");
+  gkyl_gr_spacetime_release(st);
+}
+void test_positivity_hllc_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Kerr");
+  gkyl_gr_spacetime_release(st);
+}
+
+// BHL-production variants: M=0.3 (r_h=0.6) Schwarzschild matches the
+// rt_gr_bhl_static_tetrad_mod.lua input. The sample-point list in
+// g_positivity_points contains points just outside r_h=0.6 and on the
+// bow-shock front, which only become physical under the M=0.3 metric.
+// (Under M=0.1 those same points are deeper in the strong-field region
+// but the excision check filters anything inside r_h=0.2.)
+void test_positivity_lax_bhl(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
+  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_LAX, "Lax-BHL(M=0.3)");
+  gkyl_gr_spacetime_release(st);
+}
+void test_positivity_hll_bhl(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
+  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLL, "HLL-BHL(M=0.3)");
+  gkyl_gr_spacetime_release(st);
+}
+void test_positivity_hllc_bhl(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
+  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-BHL(M=0.3)");
   gkyl_gr_spacetime_release(st);
 }
 
@@ -922,6 +1311,10 @@ run_near_floor_sweep(enum gkyl_wv_gr_euler_tetrad_rp rp,
   gkyl_gr_spacetime_release(spacetime);
 }
 
+void test_near_floor_hllc(void)
+{
+  run_near_floor_sweep(WV_GR_EULER_TETRAD_RP_HLLC, "HLLC");
+}
 void test_near_floor_lax(void)
 {
   run_near_floor_sweep(WV_GR_EULER_TETRAD_RP_LAX, "Lax");
@@ -1337,6 +1730,26 @@ void test_bhl_regime_lax_kerr(void)
     WV_GR_EULER_TETRAD_RP_LAX, 2);
   gkyl_gr_spacetime_release(st);
 }
+void test_bhl_regime_hllc_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_bhl_regime_states(st, "Schw-HLLC", 0.3, 0.2, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  run_bhl_regime_states(st, "Schw-HLLC", 0.4, 0.4, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  gkyl_gr_spacetime_release(st);
+}
+void test_bhl_regime_hllc_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_bhl_regime_states(st, "Kerr-HLLC", 0.3, 0.2, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  run_bhl_regime_states(st, "Kerr-HLLC", 0.4, 0.4, 0.0,
+    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  gkyl_gr_spacetime_release(st);
+}
 void test_bhl_regime_hll_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
@@ -1417,9 +1830,10 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
     banyuls_delta_flux(gas_gamma, grm, qL, qR, dF);
 
     double max_fj = 0.0, max_fb = 0.0;
+    int nw = eqn->num_waves;
     for (int k = 0; k < 5; k++) {
       double sw = 0.0;
-      for (int w = 0; w < 2; w++) sw += speeds[w] * waves[w * 5 + k];
+      for (int w = 0; w < nw; w++) sw += speeds[w] * waves[w * 5 + k];
       double r = fabs(sw - dF[k]);
       if (r > max_fj) max_fj = r;
     }
@@ -1439,6 +1853,12 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
   gkyl_wv_eqn_release(eqn);
 }
 
+void test_floor_precision_hllc(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_floor_precision_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC");
+  gkyl_gr_spacetime_release(st);
+}
 void test_floor_precision_lax(void)
 {
   struct gkyl_gr_spacetime *st =
@@ -1592,6 +2012,17 @@ void test_small_tau_over_D_hll(void)
   run_small_tau_over_D_sweep(st, WV_GR_EULER_TETRAD_RP_HLL, "Mink-HLL");
   gkyl_gr_spacetime_release(st);
 }
+// HLLC: this is the headline τ-positivity test. Lax and HLL produce
+// τ-violations in the τ/D ≪ 1 regime (BHL bow-shock corner). HLLC's
+// star-state construction is *supposed* to make τ ≥ 0 from admissible
+// inputs; if it works here in Minkowski, that's strong evidence it will
+// fix the wave_prop violations on the BHL run as well.
+void test_small_tau_over_D_hllc(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_small_tau_over_D_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "Mink-HLLC");
+  gkyl_gr_spacetime_release(st);
+}
 
 // Direct-conservative variant: bypass `build_state_convA`'s primitive →
 // conserved map and set (D, S_i, τ) directly. In Minkowski (flat), the
@@ -1602,7 +2033,9 @@ void test_small_tau_over_D_hll(void)
 static void
 run_direct_state_sweep(struct gkyl_gr_spacetime *spacetime,
   const char *spacetime_label,
-  enum gkyl_wv_gr_euler_tetrad_rp rp, const char *rp_label)
+  enum gkyl_wv_gr_euler_tetrad_rp rp, const char *rp_label,
+  enum gkyl_wv_flux_type flux_type,
+  double sx, double sy, double sz)
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_range conf_range;
@@ -1614,9 +2047,10 @@ run_direct_state_sweep(struct gkyl_gr_spacetime *spacetime,
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
     (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = prods });
   double *prods_row = gkyl_array_fetch(prods, 0);
-  // Use (0.3, 0.2, 0) which is the same Schw sample point we've used
-  // throughout the convA tests.
-  fill_prods_at(spacetime, 0.3, 0.2, 0.0, prods_row);
+  // Sample point passed in by caller. Default canonical convA point is
+  // (0.3, 0.2, 0); use a near-horizon point (e.g. 0.08, 0.04, 0 for
+  // M=0.1 Schw with r_h=0.2) to test admissibility under extreme β/γ.
+  fill_prods_at(spacetime, sx, sy, sz, prods_row);
   if (prods_row[GKYL_GR_SP_EXCISION] < 0.0) {
     gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
     return;
@@ -1654,6 +2088,58 @@ run_direct_state_sweep(struct gkyl_gr_spacetime *spacetime,
       3.505, 2.969, -1.664, 0.000, 0.193,
       3.872, 2.574, 0.285, 0.000, 0.025,
       2.251, 2.424, -0.887, 0.000, 0.392 },
+    // BHL repair #2 dump from rpType=hll, τ_floor=1e-8 run. Production
+    // log shows qt[4]=+0.693 (τ>0) but s² ≈ −0.52 (failure mode is s²<0,
+    // not τ<0). All three input cells are admissible in Minkowski
+    // (s²_mink > 1 each). Use this case to isolate whether HLL HIGH
+    // can generate s²<0 from admissible inputs at CFL ≤ 1.
+    { "bhl-repair-s2-#2",
+      3.764, 3.765, -1.130, 0.000, 0.418,
+      3.245, 3.185, -1.073, 0.000, 0.332,
+      3.510, 2.847,  0.308, 0.000, 0.127 },
+    // Dump #10 from rpType=hll + curved Lax LOW (BHL bow-shock cell
+    // i=125 near the BH). Pure s²-only failure: all 3 inputs are
+    // admissible (s²_cart > 2.0 each), qt has τ=+1.86 (positive)
+    // but |S|²_cart = 32.25 > (D+τ)² = 30.78, so s²_cart = −1.47.
+    // This is the canonical case showing curved Lax DOES still leak
+    // s²-positivity on supersonic bow-shock cells with sharp gradients,
+    // even with admissible inputs.
+    { "bhl-repair-curvedLax-s2-#10",
+      4.313, 4.221,  0.779, 0.000, 1.084,
+      4.357, 4.743, -1.245, 0.000, 1.187,
+      1.778, 1.109,  0.346, 0.000, 0.067 },
+    // ----- Production fires from rpType="hll" + curved Lax LOW with
+    // full-3D amax (SESSION_NOTES_3 §17). 8749 wave_prop s²<0 fires
+    // remain even with the wider envelope, so the dominant mechanism is
+    // NOT off-diagonal-γ_xy with non-aligned momentum. Three new dumps
+    // exercise the residual pathology:
+    //
+    // full3d-s2-#10  dir=0 i=125 — large-D x-aligned (S_y ≈ 0 in qC) but
+    //   neighbors carry strong y-momentum (qin_L has S_y=-1.54). qt has
+    //   τ_local=+1.07 but s²_cart = -0.31. Pure x-sweep on a cell whose
+    //   neighbors have transverse momentum.
+    // full3d-s2-#12  dir=0 i=126 — moderate-D mixed momentum, qC has
+    //   strong x and modest y; qt has τ_local=+0.55 but s²_cart = -0.05.
+    // full3d-s2-#17  dir=1 i=92 — y-SWEEP (norm=(0,1,0))! qC has strong
+    //   y-momentum (S_y=-0.76) and even stronger x-momentum (S_x=2.6);
+    //   qt has τ_local=+0.42 but s²_cart = -0.04. Inputs entered into
+    //   the unit test in unrotated GLOBAL frame; the rotate_to_local in
+    //   the test below uses norm=(1,0,0) so this case effectively maps
+    //   a "y-sweep production state" onto an "x-sweep test state" —
+    //   inconsistent with the actual dir=1 sweep in production, but
+    //   still useful to check whether curved Lax fails on the raw state.
+    { "bhl-repair-full3d-s2-#10",
+      2.528, 2.695, -0.005, 0.000, 0.655,
+      3.578, 3.814, -1.539, 0.000, 0.987,
+      0.878, 0.670,  0.193, 0.000, 0.026 },
+    { "bhl-repair-full3d-s2-#12",
+      1.059, 0.935,  0.167, 0.000, 0.117,
+      2.364, 3.174, -0.673, 0.000, 0.934,
+      0.244, 0.182,  0.082, 0.000, 0.015 },
+    { "bhl-repair-full3d-s2-#17",
+      1.695, 2.594, -0.757, 0.000, 0.986,
+      1.194, 1.231, -0.184, 0.000, 0.303,
+      2.087, 2.902,  0.585, 0.000, 1.045 },
   };
 
   fprintf(stderr,
@@ -1697,10 +2183,10 @@ run_direct_state_sweep(struct gkyl_gr_spacetime *spacetime,
     double delta_LC[5];
     for (int i = 0; i < 5; i++) delta_LC[i] = qC_loc_LC[i] - qL_loc[i];
     double waves_LC[3 * 5], speeds_LC[3];
-    double maxs_LC = eqn->waves_func(eqn, GKYL_WV_LOW_ORDER_FLUX,
+    double maxs_LC = eqn->waves_func(eqn, flux_type,
       delta_LC, qL_loc, qC_loc_LC, 1.0, 1.0, waves_LC, speeds_LC);
     double amdq_LC[5], apdq_LC[5];
-    eqn->qfluct_func(eqn, GKYL_WV_LOW_ORDER_FLUX,
+    eqn->qfluct_func(eqn, flux_type,
       qL_loc, qC_loc_LC, 1.0, 1.0, waves_LC, speeds_LC, amdq_LC, apdq_LC);
 
     eqn->set_interface_idx_func(eqn, idx, idx);
@@ -1709,10 +2195,10 @@ run_direct_state_sweep(struct gkyl_gr_spacetime *spacetime,
     double delta_CR[5];
     for (int i = 0; i < 5; i++) delta_CR[i] = qR_loc[i] - qC_loc_CR[i];
     double waves_CR[3 * 5], speeds_CR[3];
-    double maxs_CR = eqn->waves_func(eqn, GKYL_WV_LOW_ORDER_FLUX,
+    double maxs_CR = eqn->waves_func(eqn, flux_type,
       delta_CR, qC_loc_CR, qR_loc, 1.0, 1.0, waves_CR, speeds_CR);
     double amdq_CR[5], apdq_CR[5];
-    eqn->qfluct_func(eqn, GKYL_WV_LOW_ORDER_FLUX,
+    eqn->qfluct_func(eqn, flux_type,
       qC_loc_CR, qR_loc, 1.0, 1.0, waves_CR, speeds_CR, amdq_CR, apdq_CR);
 
     double maxs = fmax(maxs_LC, maxs_CR);
@@ -1725,15 +2211,23 @@ run_direct_state_sweep(struct gkyl_gr_spacetime *spacetime,
     }
     double tau_C_new = qC_new[4] / sqrt_det;
 
+    // Also check s² invariant: s² = (D+τ)² − γ^{ij}·S_i·S_j (undensitized).
+    double qC_und[5];
+    for (int i = 0; i < 5; i++) qC_und[i] = qC_new[i] / sqrt_det;
+    double mom_sq_new = gkyl_gr_euler_mom_sq(inv_g, qC_und[1], qC_und[2], qC_und[3]);
+    double s_sq_new   = (qC_und[0] + qC_und[4]) * (qC_und[0] + qC_und[4]) - mom_sq_new;
+
     fprintf(stderr,
-      "  [%s/%-16s] τ_C/D_C = %.4f    τ_C_new = %+.3e   %s\n",
+      "  [%s/%-16s] τ_C/D_C = %.4f    τ_C_new = %+.3e %s   s²_new = %+.3e %s\n",
       rp_label, cases[c].name, tau_over_D, tau_C_new,
-      tau_C_new < 0.0 ? "** τ<0 VIOLATION **" : "");
+      tau_C_new < 0.0 ? "**τ<0**" : "      ",
+      s_sq_new,
+      s_sq_new <= 0.0 ? "**s²≤0**" : "       ");
 
     // Report-only TEST_MSG so the test PASSES while documenting the
     // pathology.
-    TEST_MSG( "[%s/%s] τ/D = %.4f, τ_new = %+.3e",
-      rp_label, cases[c].name, tau_over_D, tau_C_new );
+    TEST_MSG( "[%s/%s] τ/D = %.4f, τ_new = %+.3e, s²_new = %+.3e",
+      rp_label, cases[c].name, tau_over_D, tau_C_new, s_sq_new );
   }
 
   gkyl_array_release(prods);
@@ -1744,14 +2238,817 @@ void test_direct_state_lax(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_LAX, "Lax");
+  // LOW_ORDER call. wave_lax_l ignores type, so this exercises Lax.
+  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_LAX, "Lax",
+    GKYL_WV_LOW_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
+// HLLC fallback probe. Walks the same three BHL repair cases through
+// gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski directly with the
+// did_fallback outparam so we can see, per L-C and C-R interface,
+// whether HLLC's full star-state construction was used or the cold-gas
+// fallback to HLL kicked in. Helps disambiguate τ-positivity failures:
+// if a τ<0 case has fallback=1 on the violating interface, the failure
+// is HLL's known weakness; if fallback=0, the failure is HLLC's own
+// star-state construction interacting with the curved-frame back-
+// transform.
+//
+// The setup mirrors run_direct_state_sweep step-for-step so the inputs
+// are byte-identical: load a Schw spacetime at (0.3, 0.2, 0), build the
+// interface metric (mean of L+C and C+R), forward-transform to the
+// Gram-Schmidt-on-γ⁻¹ tetrad, and call sr_hllc_minkowski directly.
+static void
+run_direct_state_hllc_fallback_probe(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  double gas_gamma = 5.0 / 3.0;
+
+  struct gkyl_range conf_range;
+  int lower[1] = { 0 }, upper[1] = { 0 };
+  gkyl_range_init(&conf_range, 1, lower, upper);
+  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, WV_GR_EULER_TETRAD_RP_HLLC);
+  struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
+    GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
+  gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
+    (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = prods });
+  double *prods_row = gkyl_array_fetch(prods, 0);
+  fill_prods_at(st, 0.3, 0.2, 0.0, prods_row);
+  if (prods_row[GKYL_GR_SP_EXCISION] < 0.0) {
+    gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
+    gkyl_gr_spacetime_release(st);
+    return;
+  }
+
+  // Same three BHL cases as run_direct_state_sweep (verbatim wave_prop
+  // dumps). qC is the cell that fails in the BHL run; qL, qR neighbors.
+  // Values are DENSITIZED (in code form, as they came out of qin in
+  // wave_prop.c).
+  struct {
+    const char *name;
+    double D_C, Sx_C, Sy_C, Sz_C, tau_C;
+    double D_L, Sx_L, Sy_L, Sz_L, tau_L;
+    double D_R, Sx_R, Sy_R, Sz_R, tau_R;
+  } cases[] = {
+    { "bhl-repair-#0",
+      2.978, 2.499, 0.118, 0.000, 0.122,
+      2.541, 2.146, 0.045, 0.000, 0.136,
+      3.395, 2.827, 0.222, 0.000, 0.095 },
+    { "bhl-repair-#4",
+      3.407, 2.633, 0.209, 0.000, 0.021,
+      3.123, 2.165, 0.119, 0.000, 0.025,
+      3.009, 3.319, -0.766, 0.000, 0.526 },
+    { "bhl-repair-#19",
+      3.505, 2.969, -1.664, 0.000, 0.193,
+      3.872, 2.574, 0.285, 0.000, 0.025,
+      2.251, 2.424, -0.887, 0.000, 0.392 },
+  };
+
+  // Build the interface metric and triad ONCE. All three cases share
+  // the same prods row so γ_ij, α, β are uniform across the cells —
+  // i.e. the Gram-Schmidt triad is the same on the L-C and C-R
+  // interfaces and on every case. This is the same triad the HLLC
+  // wave_hllc dispatch builds at runtime.
+  double g_iface[3][3], inv_g_iface[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      g_iface[i][j]     = prods_row[GKYL_GR_SP_GIJ + 3*i + j];
+      inv_g_iface[i][j] = prods_row[GKYL_GR_SP_INV_GIJ + 3*i + j];
+    }
+  double sqrt_det = sqrt(prods_row[GKYL_GR_SP_SPATIAL_DET]);
+  double M[3][3], M_inv[3][3];
+  gkyl_gr_euler_tetrad_mod_build_triad_contravariant_x(
+    g_iface, inv_g_iface, M, M_inv);
+
+  fprintf(stderr,
+    "[hllc-fallback-probe Schw] case             L-C-fallback   C-R-fallback   notes\n");
+  for (size_t c = 0; c < sizeof(cases)/sizeof(*cases); c++) {
+    // Densitized states (as they live in code form). The state in the
+    // tetrad-frame solver is undensitized — q_to_tetrad_contra divides
+    // by √γ, so we pass densitized q as it expects.
+    double qL[5] = { cases[c].D_L, cases[c].Sx_L, cases[c].Sy_L, cases[c].Sz_L, cases[c].tau_L };
+    double qC[5] = { cases[c].D_C, cases[c].Sx_C, cases[c].Sy_C, cases[c].Sz_C, cases[c].tau_C };
+    double qR[5] = { cases[c].D_R, cases[c].Sx_R, cases[c].Sy_R, cases[c].Sz_R, cases[c].tau_R };
+
+    // Forward-transform to tetrad. (Same √γ for all sides since uniform
+    // background; matches the production dispatch's per-side strip.)
+    double qL_tet[5], qC_tet[5], qR_tet[5];
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qL, sqrt_det, inv_g_iface, M_inv, qL_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qC, sqrt_det, inv_g_iface, M_inv, qC_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qR, sqrt_det, inv_g_iface, M_inv, qR_tet);
+
+    // L-C interface.
+    double waves_LC[3 * 5], speeds_LC[3];
+    struct gkyl_gr_euler_tetrad_mod_hllc_diag diag_LC = {0};
+    gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
+      gas_gamma, qL_tet, qC_tet, waves_LC, speeds_LC, &diag_LC);
+
+    // C-R interface.
+    double waves_CR[3 * 5], speeds_CR[3];
+    struct gkyl_gr_euler_tetrad_mod_hllc_diag diag_CR = {0};
+    gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
+      gas_gamma, qC_tet, qR_tet, waves_CR, speeds_CR, &diag_CR);
+
+    // fallback_reason key (post tightening of the fallback policy):
+    //   1 = lam_diff < 1e-14 (degenerate Davis bracket — λ_L ≈ λ_R)
+    //   2 = λ* not finite (sqrt of negative discriminant; should be
+    //       caught by the disc<0 → 0 clamp inside, so rare)
+    //   3 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
+    //   4 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
+    // λ* outside [λ_L, λ_R] (e.g. supersonic flow) is NOT a fallback
+    // trigger — the wave decomposition is still conservative there.
+    static const char *reason_str[] = {
+      "—",                  // 0
+      "lam_diff~0",         // 1
+      "λ* not finite",      // 2
+      "|λ_L−λ*| < tol",     // 3
+      "|λ_R−λ*| < tol",     // 4
+    };
+    fprintf(stderr,
+      "  [%-16s] τ_C/D_C=%.4f\n", cases[c].name, cases[c].tau_C / cases[c].D_C);
+    fprintf(stderr,
+      "    L-C: fb=%d (%s)  λ_L=%+.4f  λ_R=%+.4f  λ*=%+.4f\n",
+      diag_LC.did_fallback, reason_str[diag_LC.fallback_reason],
+      diag_LC.lambda_L, diag_LC.lambda_R, diag_LC.lambda_star);
+    fprintf(stderr,
+      "    C-R: fb=%d (%s)  λ_L=%+.4f  λ_R=%+.4f  λ*=%+.4f\n",
+      diag_CR.did_fallback, reason_str[diag_CR.fallback_reason],
+      diag_CR.lambda_L, diag_CR.lambda_R, diag_CR.lambda_star);
+    TEST_MSG( "[%s] L-C fb=%d (reason %d), C-R fb=%d (reason %d)",
+      cases[c].name,
+      diag_LC.did_fallback, diag_LC.fallback_reason,
+      diag_CR.did_fallback, diag_CR.fallback_reason );
+  }
+
+  gkyl_array_release(prods);
+  gkyl_wv_eqn_release(eqn);
+  gkyl_gr_spacetime_release(st);
+}
+
+void test_direct_state_hllc_fallback_probe(void)
+{
+  run_direct_state_hllc_fallback_probe();
+}
+// HLLC LOW_ORDER. Post the wave_hllc_l fix (HIGH→HLLC, LOW→Lax), this
+// invokes Lax (the POSITIVITY_SWEEP cleanup branch). So it should give
+// identical τ_C_new to test_direct_state_lax — sanity-check that the
+// dispatch is wired up correctly.
+void test_direct_state_hllc(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-LOW",
+    GKYL_WV_LOW_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+// HLLC HIGH_ORDER. The production first-sweep behavior. wave_prop runs
+// HIGH_ORDER at the FIRST_SWEEP stage; if a cell fails admissibility,
+// POSITIVITY_SWEEP retries with LOW_ORDER (Lax). The composite
+// production behavior is the union of this test's pass-set with
+// test_direct_state_lax's pass-set: a cell passes overall iff at least
+// one of (HLLC HIGH, Lax LOW) gives an admissible result.
+void test_direct_state_hllc_high_order(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-HIGH",
+    GKYL_WV_HIGH_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
+// HLL HIGH_ORDER: this is what wave_prop runs in FIRST_SWEEP for rpType="hll".
+// In particular this should show what's responsible for the production
+// s²<0 wave_prop fires (when run in Mink, the bhl-repair-s2-#2 case mimics
+// dump #2 from the τ_floor=1e-8 production run almost exactly).
+void test_direct_state_hll_high_order(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_HLL, "HLL-HIGH",
+    GKYL_WV_HIGH_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
+// Same in Minkowski — pure flat SR baseline for the s²<0 question.
+// If HLL HIGH in Mink reproduces s²<0 on admissible inputs, that's a
+// real Mignone-Bodo invariant-domain violation. If not, the production
+// s²<0 fires likely come from MUSCL reconstruction or curved-metric
+// wrap, not the underlying SR HLL.
+void test_direct_state_hll_high_order_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_direct_state_sweep(st, "Mink", WV_GR_EULER_TETRAD_RP_HLL, "HLL-HIGH",
+    GKYL_WV_HIGH_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+void test_direct_state_lax_high_order_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_direct_state_sweep(st, "Mink", WV_GR_EULER_TETRAD_RP_LAX, "Lax-HIGH",
+    GKYL_WV_HIGH_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
+// HIGH_ORDER Lax on Schwarzschild = tetrad-first Lax (the path that
+// produced the production s²<0 dumps). Pairs with test_direct_state_lax
+// (which is LOW_ORDER → curved Lax) so the two together give an A/B
+// comparison: HIGH_ORDER row should show s²<0 on bhl-repair-s2-#2,
+// LOW_ORDER row should show s²>0 (the curved-frame Lax preserving A_γ).
+void test_direct_state_lax_high_order_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_LAX, "Lax-HIGH",
+    GKYL_WV_HIGH_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+// LOW_ORDER Lax on Schwarzschild = wave_lax_curved (the new direct
+// curved-frame Lax). After the wiring change, test_direct_state_lax
+// already exercises this — but make the contrast explicit with a
+// matching wrapper that has the new name baked in.
+void test_direct_state_lax_curved_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, 0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
+// Near-horizon sweep at multiple radii outside r_h = 2M = 0.2 for M=0.1
+// Schwarzschild. Tests whether wave_lax_curved leaks s²-positivity at
+// extreme β^x / inflated γ_xx regimes — the regime the BHL production
+// run actually has at the bow-shock cells immediately outside the BH
+// horizon.
+// ---------------------------------------------------------------------------
+// Per-cell-metric variant of run_direct_state_sweep
+// ---------------------------------------------------------------------------
+// run_direct_state_sweep uses a SINGLE metric for L, C, R cells (the
+// equation's conf_range has volume 1 and idxl=idxr=0). Production wave_prop
+// uses adjacent cells with DIFFERENT metrics: prodl_local comes from
+// idx_L=(i-1, j) and prodr_local from idx_R=(i, j). The curved-Banyuls
+// flux is F = α·√γ · (...), so F_L uses (α_L, √γ_L) and F_R uses
+// (α_R, √γ_R). The Lax envelope wraps Δq = q_R - q_L, where q_packed
+// is densitized with the cell's own √γ — so Δq is NOT just a state jump,
+// it includes a metric variation. This may break the Lax convex-
+// combination argument when √γ varies across the interface (the
+// "densitization tax" — SESSION_NOTES_3 §16.6).
+//
+// This wrapper sets up a 3-cell conf_range, fills prods at three
+// different sample points (centered at (sx,sy,sz) with x-offsets
+// ±dx_metric), and computes fluctuations with set_interface_idx(0,1)
+// and (1,2) so wave_lax_curved sees per-side metrics. If the same
+// dumps that PASS in run_direct_state_sweep (shared metric) FAIL here
+// (per-cell metric), the densitization tax is the production s²<0
+// mechanism.
+static void
+run_per_cell_metric_sweep(struct gkyl_gr_spacetime *spacetime,
+  const char *spacetime_label,
+  enum gkyl_wv_gr_euler_tetrad_rp rp, const char *rp_label,
+  enum gkyl_wv_flux_type flux_type,
+  double sx, double sy, double sz, double dx_metric)
+{
+  double gas_gamma = 5.0 / 3.0;
+  struct gkyl_range conf_range;
+  int lower[1] = { 0 }, upper[1] = { 2 };  // 3 cells: L=0, C=1, R=2
+  gkyl_range_init(&conf_range, 1, lower, upper);
+  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
+    GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
+  gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
+    (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = prods });
+
+  // Fill prods at three sample points along x: L at (sx-dx, sy, sz),
+  // C at (sx, sy, sz), R at (sx+dx, sy, sz).
+  double *prods_L = gkyl_array_fetch(prods, 0);
+  double *prods_C = gkyl_array_fetch(prods, 1);
+  double *prods_R = gkyl_array_fetch(prods, 2);
+  fill_prods_at(spacetime, sx - dx_metric, sy, sz, prods_L);
+  fill_prods_at(spacetime, sx,              sy, sz, prods_C);
+  fill_prods_at(spacetime, sx + dx_metric, sy, sz, prods_R);
+
+  // Skip if any cell is excised — the test needs all three active.
+  if (prods_L[GKYL_GR_SP_EXCISION] < 0.0
+   || prods_C[GKYL_GR_SP_EXCISION] < 0.0
+   || prods_R[GKYL_GR_SP_EXCISION] < 0.0) {
+    gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
+    return;
+  }
+
+  double sqrt_det_L = sqrt(prods_L[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_C = sqrt(prods_C[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_R = sqrt(prods_R[GKYL_GR_SP_SPATIAL_DET]);
+  double inv_g_C[3][3] = {
+    { prods_C[GKYL_GR_SP_INV_GIJ + 0], prods_C[GKYL_GR_SP_INV_GIJ + 1], prods_C[GKYL_GR_SP_INV_GIJ + 2] },
+    { prods_C[GKYL_GR_SP_INV_GIJ + 3], prods_C[GKYL_GR_SP_INV_GIJ + 4], prods_C[GKYL_GR_SP_INV_GIJ + 5] },
+    { prods_C[GKYL_GR_SP_INV_GIJ + 6], prods_C[GKYL_GR_SP_INV_GIJ + 7], prods_C[GKYL_GR_SP_INV_GIJ + 8] },
+  };
+
+  // Same dump cases as run_direct_state_sweep, copied for clarity.
+  struct {
+    const char *name;
+    double D_C, Sx_C, Sy_C, Sz_C, tau_C;
+    double D_L, Sx_L, Sy_L, Sz_L, tau_L;
+    double D_R, Sx_R, Sy_R, Sz_R, tau_R;
+  } cases[] = {
+    { "full3d-s2-#10",
+      2.528, 2.695, -0.005, 0.000, 0.655,
+      3.578, 3.814, -1.539, 0.000, 0.987,
+      0.878, 0.670,  0.193, 0.000, 0.026 },
+    { "full3d-s2-#12",
+      1.059, 0.935,  0.167, 0.000, 0.117,
+      2.364, 3.174, -0.673, 0.000, 0.934,
+      0.244, 0.182,  0.082, 0.000, 0.015 },
+    { "full3d-s2-#17",
+      1.695, 2.594, -0.757, 0.000, 0.986,
+      1.194, 1.231, -0.184, 0.000, 0.303,
+      2.087, 2.902,  0.585, 0.000, 1.045 },
+    { "curvedLax-s2-#10",
+      4.313, 4.221,  0.779, 0.000, 1.084,
+      4.357, 4.743, -1.245, 0.000, 1.187,
+      1.778, 1.109,  0.346, 0.000, 0.067 },
+  };
+
+  fprintf(stderr,
+    "[per-cell-metric %s/%s dx_metric=%.4f]  case        τ_C_new (sign+mag)\n",
+    spacetime_label, rp_label, dx_metric);
+  for (size_t c = 0; c < sizeof(cases)/sizeof(*cases); c++) {
+    // qin in GLOBAL frame, packed with EACH cell's own √γ. The dump qin
+    // values are already densitized in production using the source cell's
+    // √γ, so we apply the same per-cell densitization here.
+    double qL_glob[5] = { cases[c].D_L, cases[c].Sx_L, cases[c].Sy_L, cases[c].Sz_L, cases[c].tau_L };
+    double qC_glob[5] = { cases[c].D_C, cases[c].Sx_C, cases[c].Sy_C, cases[c].Sz_C, cases[c].tau_C };
+    double qR_glob[5] = { cases[c].D_R, cases[c].Sx_R, cases[c].Sy_R, cases[c].Sz_R, cases[c].tau_R };
+
+    int idx_L[1] = { 0 }, idx_C[1] = { 1 }, idx_R[1] = { 2 };
+    double norm[3] = { 1.0, 0.0, 0.0 };
+    double tau1v[3] = { 0.0, 1.0, 0.0 };
+    double tau2v[3] = { 0.0, 0.0, 1.0 };
+
+    // L-C interface: prodl from cell L, prodr from cell C
+    eqn->set_interface_idx_func(eqn, idx_L, idx_C);
+    double qL_loc[5], qC_loc_LC[5];
+    eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qL_glob, qL_loc);
+    eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qC_glob, qC_loc_LC);
+    double delta_LC[5];
+    for (int i = 0; i < 5; i++) delta_LC[i] = qC_loc_LC[i] - qL_loc[i];
+    double waves_LC[3 * 5], speeds_LC[3];
+    double maxs_LC = eqn->waves_func(eqn, flux_type,
+      delta_LC, qL_loc, qC_loc_LC, 1.0, 1.0, waves_LC, speeds_LC);
+    double amdq_LC[5], apdq_LC[5];
+    eqn->qfluct_func(eqn, flux_type,
+      qL_loc, qC_loc_LC, 1.0, 1.0, waves_LC, speeds_LC, amdq_LC, apdq_LC);
+
+    // C-R interface: prodl from cell C, prodr from cell R
+    eqn->set_interface_idx_func(eqn, idx_C, idx_R);
+    double qC_loc_CR[5], qR_loc[5];
+    eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qC_glob, qC_loc_CR);
+    eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qR_glob, qR_loc);
+    double delta_CR[5];
+    for (int i = 0; i < 5; i++) delta_CR[i] = qR_loc[i] - qC_loc_CR[i];
+    double waves_CR[3 * 5], speeds_CR[3];
+    double maxs_CR = eqn->waves_func(eqn, flux_type,
+      delta_CR, qC_loc_CR, qR_loc, 1.0, 1.0, waves_CR, speeds_CR);
+    double amdq_CR[5], apdq_CR[5];
+    eqn->qfluct_func(eqn, flux_type,
+      qC_loc_CR, qR_loc, 1.0, 1.0, waves_CR, speeds_CR, amdq_CR, apdq_CR);
+
+    double maxs = fmax(maxs_LC, maxs_CR);
+    if (!(maxs > 0.0)) { fprintf(stderr, "  [%s] degenerate\n", cases[c].name); continue; }
+    double dt_dx = 0.5 / maxs;
+
+    double qC_new[5];
+    for (int i = 0; i < 5; i++) {
+      qC_new[i] = qC_loc_CR[i] - dt_dx * (amdq_CR[i] + apdq_LC[i]);
+    }
+    // Undensitize qC_new with CENTER cell's √γ (POSITIVITY_SWEEP checks
+    // invariants in the cell's own undensitized coords).
+    double qC_und[5];
+    for (int i = 0; i < 5; i++) qC_und[i] = qC_new[i] / sqrt_det_C;
+    double tau_C_new = qC_und[4];
+    double mom_sq_new = gkyl_gr_euler_mom_sq(inv_g_C, qC_und[1], qC_und[2], qC_und[3]);
+    double s_sq_new   = (qC_und[0] + qC_und[4]) * (qC_und[0] + qC_und[4]) - mom_sq_new;
+
+    fprintf(stderr,
+      "  [%s/%-16s] √γ_L=%.4f √γ_C=%.4f √γ_R=%.4f   τ_C_new = %+.3e %s   s²_new = %+.3e %s\n",
+      rp_label, cases[c].name, sqrt_det_L, sqrt_det_C, sqrt_det_R,
+      tau_C_new,
+      tau_C_new < 0.0 ? "**τ<0**" : "      ",
+      s_sq_new,
+      s_sq_new <= 0.0 ? "**s²≤0**" : "       ");
+  }
+  gkyl_array_release(prods);
+  gkyl_wv_eqn_release(eqn);
+}
+
+// ---------------------------------------------------------------------------
+// Faithful production reproducer: takes verbatim wave_prop dump info
+// (per-cell coords + per-cell q values + dir) and reruns the curved-Lax
+// POSITIVITY_SWEEP step on cell C using the EXACT same per-cell metrics
+// that production used. Reports the resulting (qC_new) admissibility.
+//
+// The wave_prop dump format (after the §17 instrumentation upgrade) gives
+// us xcL, xcC, xcR and the dir of the sweep — everything we need to call
+// fill_prods_at at the exact production cell-centers and run the same
+// flux/fluctuation pipeline. If THIS reproducer fails to produce s²<0,
+// the production fire is NOT coming from wave_lax_curved on the dumped
+// qin inputs — it must be from a tier or transformation we haven't
+// instrumented yet (MUSCL HIGH inadmissible reconstruction, sweep
+// directional interaction, etc.).
+//
+// dir=0 → x-sweep (norm = +x̂)
+// dir=1 → y-sweep (norm = +ŷ, tau1 = -x̂, tau2 = +ẑ) — matches wave_geom
+//        convention for axis-aligned grids.
+struct dump_repro {
+  const char *name;
+  int dir;
+  double xL, yL, zL;
+  double xC, yC, zC;
+  double xR, yR, zR;
+  double qC[5];
+  double qL[5];
+  double qR[5];
+  // Production-dumped dt/dx — when nonzero, the reproducer uses this
+  // exact dt_dx instead of 0.5/maxs_local. Lets us match production
+  // exactly for cells where the global-vs-local CFL difference matters.
+  double dt;   // 0 means "use 0.5/maxs"
+  double dx;
+};
+
+static void
+run_dump_reproducer(struct gkyl_gr_spacetime *spacetime,
+  const char *spacetime_label,
+  enum gkyl_wv_gr_euler_tetrad_rp rp, const char *rp_label,
+  enum gkyl_wv_flux_type flux_type,
+  const struct dump_repro *d)
+{
+  double gas_gamma = 5.0 / 3.0;
+  struct gkyl_range conf_range;
+  int lower[1] = { 0 }, upper[1] = { 2 };  // 3 cells: L=0, C=1, R=2
+  gkyl_range_init(&conf_range, 1, lower, upper);
+  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
+    GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
+  gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
+    (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = prods });
+
+  double *prods_L = gkyl_array_fetch(prods, 0);
+  double *prods_C = gkyl_array_fetch(prods, 1);
+  double *prods_R = gkyl_array_fetch(prods, 2);
+  fill_prods_at(spacetime, d->xL, d->yL, d->zL, prods_L);
+  fill_prods_at(spacetime, d->xC, d->yC, d->zC, prods_C);
+  fill_prods_at(spacetime, d->xR, d->yR, d->zR, prods_R);
+
+  double sqrt_det_C = sqrt(prods_C[GKYL_GR_SP_SPATIAL_DET]);
+  double inv_g_C[3][3] = {
+    { prods_C[GKYL_GR_SP_INV_GIJ + 0], prods_C[GKYL_GR_SP_INV_GIJ + 1], prods_C[GKYL_GR_SP_INV_GIJ + 2] },
+    { prods_C[GKYL_GR_SP_INV_GIJ + 3], prods_C[GKYL_GR_SP_INV_GIJ + 4], prods_C[GKYL_GR_SP_INV_GIJ + 5] },
+    { prods_C[GKYL_GR_SP_INV_GIJ + 6], prods_C[GKYL_GR_SP_INV_GIJ + 7], prods_C[GKYL_GR_SP_INV_GIJ + 8] },
+  };
+
+  // Rotation triad keyed off dir. MUST match wave_geom (gkyl_wave_geom_priv.h
+  // calc_geom_2d_from_nodes) for production-faithful reproduction:
+  //   dir=0 (x-normal face): norm=+x̂, tau1=+ŷ, tau2=+ẑ
+  //   dir=1 (y-normal face): norm=+ŷ, tau1=+x̂, tau2=-ẑ  ← cross-product
+  //     ordering picks tau2=-ẑ so that norm = tau1 × tau2 = ŷ.
+  // (The basis only changes the local-frame components, not the
+  // physical answer, but matching production lets us cross-check the
+  // rotation pipeline as well.)
+  double norm[3], tau1v[3], tau2v[3];
+  switch (d->dir) {
+    case 0:
+      norm[0]=1; norm[1]=0; norm[2]=0;
+      tau1v[0]=0; tau1v[1]=1; tau1v[2]=0;
+      tau2v[0]=0; tau2v[1]=0; tau2v[2]=1;
+      break;
+    case 1:
+      norm[0]=0; norm[1]=1; norm[2]=0;
+      tau1v[0]=1; tau1v[1]=0; tau1v[2]=0;
+      tau2v[0]=0; tau2v[1]=0; tau2v[2]=-1;
+      break;
+    default:
+      norm[0]=0; norm[1]=0; norm[2]=1;
+      tau1v[0]=1; tau1v[1]=0; tau1v[2]=0;
+      tau2v[0]=0; tau2v[1]=1; tau2v[2]=0;
+      break;
+  }
+
+  double qL_glob[5], qC_glob[5], qR_glob[5];
+  for (int i = 0; i < 5; i++) {
+    qL_glob[i] = d->qL[i];
+    qC_glob[i] = d->qC[i];
+    qR_glob[i] = d->qR[i];
+  }
+
+  int idx_L[1] = { 0 }, idx_C[1] = { 1 }, idx_R[1] = { 2 };
+
+  // L-C interface: prodl from cell L, prodr from cell C
+  eqn->set_interface_idx_func(eqn, idx_L, idx_C);
+  double qL_loc[5], qC_loc_LC[5];
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qL_glob, qL_loc);
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qC_glob, qC_loc_LC);
+  double delta_LC[5];
+  for (int i = 0; i < 5; i++) delta_LC[i] = qC_loc_LC[i] - qL_loc[i];
+  double waves_LC[3 * 5], speeds_LC[3];
+  double maxs_LC = eqn->waves_func(eqn, flux_type,
+    delta_LC, qL_loc, qC_loc_LC, 1.0, 1.0, waves_LC, speeds_LC);
+  double amdq_LC[5], apdq_LC[5];
+  eqn->qfluct_func(eqn, flux_type,
+    qL_loc, qC_loc_LC, 1.0, 1.0, waves_LC, speeds_LC, amdq_LC, apdq_LC);
+
+  // C-R interface: prodl from cell C, prodr from cell R
+  eqn->set_interface_idx_func(eqn, idx_C, idx_R);
+  double qC_loc_CR[5], qR_loc[5];
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qC_glob, qC_loc_CR);
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, qR_glob, qR_loc);
+  double delta_CR[5];
+  for (int i = 0; i < 5; i++) delta_CR[i] = qR_loc[i] - qC_loc_CR[i];
+  double waves_CR[3 * 5], speeds_CR[3];
+  double maxs_CR = eqn->waves_func(eqn, flux_type,
+    delta_CR, qC_loc_CR, qR_loc, 1.0, 1.0, waves_CR, speeds_CR);
+  double amdq_CR[5], apdq_CR[5];
+  eqn->qfluct_func(eqn, flux_type,
+    qC_loc_CR, qR_loc, 1.0, 1.0, waves_CR, speeds_CR, amdq_CR, apdq_CR);
+
+  double maxs = fmax(maxs_LC, maxs_CR);
+  if (!(maxs > 0.0)) {
+    fprintf(stderr, "  [%s] degenerate (maxs<=0)\n", d->name);
+    gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
+    return;
+  }
+  // If the dump captured production's exact dt/dx, use it. Otherwise
+  // fall back to local CFL=0.5.
+  double dt_dx = (d->dt > 0.0 && d->dx > 0.0) ? d->dt / d->dx : 0.5 / maxs;
+
+  double qC_new[5];
+  for (int i = 0; i < 5; i++) {
+    qC_new[i] = qC_loc_CR[i] - dt_dx * (amdq_CR[i] + apdq_LC[i]);
+  }
+  // qC_new is in the LOCAL-rotated frame. The wave_prop check_inv test
+  // also looks at qt in the local frame (per the dump comment), so we
+  // check admissibility on qC_new directly without rotating back.
+  double qC_und[5];
+  for (int i = 0; i < 5; i++) qC_und[i] = qC_new[i] / sqrt_det_C;
+
+  // For per-cell metric in rotated frame: when norm=ŷ (dir=1), the
+  // rotated inv_g has γ^{yy} in the [0][0] slot. The cleanest way is
+  // to check in the ORIGINAL (unrotated) frame: rotate qC_new back to
+  // global, divide by √γ_C, check with the unrotated inv_g.
+  double qC_glob_new[5];
+  eqn->rotate_to_global_func(eqn, tau1v, tau2v, norm, qC_new, qC_glob_new);
+  double qC_glob_und[5];
+  for (int i = 0; i < 5; i++) qC_glob_und[i] = qC_glob_new[i] / sqrt_det_C;
+  double tau_new = qC_glob_und[4];
+  double mom_sq_new = gkyl_gr_euler_mom_sq(inv_g_C,
+    qC_glob_und[1], qC_glob_und[2], qC_glob_und[3]);
+  double s_sq_new = (qC_glob_und[0] + qC_glob_und[4]) * (qC_glob_und[0] + qC_glob_und[4]) - mom_sq_new;
+
+  fprintf(stderr,
+    "  [%s] %s/%s dir=%d  "
+    "xC=(%.3f,%.3f) dt/dx=%.4f √γ_C=%.4f   "
+    "qC_new_local=[%.6e %.6e %.6e %.6e %.6e]   "
+    "qC_new_glob=[%.6e %.6e %.6e %.6e %.6e]   "
+    "s²_new = %+.3e %s\n",
+    d->name, spacetime_label, rp_label, d->dir,
+    d->xC, d->yC, dt_dx, sqrt_det_C,
+    qC_new[0], qC_new[1], qC_new[2], qC_new[3], qC_new[4],
+    qC_glob_new[0], qC_glob_new[1], qC_glob_new[2], qC_glob_new[3], qC_glob_new[4],
+    s_sq_new,
+    s_sq_new <= 0.0 ? "**s²≤0**" : "       ");
+  (void)qC_und;
+
+  gkyl_array_release(prods);
+  gkyl_wv_eqn_release(eqn);
+}
+
+// Production dumps captured by the §17-instrumented wave_prop POSITIVITY
+// _SWEEP. Each entry is a verbatim reproducer: feeding these into
+// run_dump_reproducer should produce s²<0 in cell C if curved Lax is
+// genuinely the source of the production failure. If they all PASS in
+// isolation, the production fire is caused by something other than
+// wave_lax_curved on these inputs.
+//
+// Entries TBD — fill from the bhl_dump_with_coords.log after the run
+// completes.
+static const struct dump_repro g_production_dumps[] = {
+  // Verbatim dumps from BHL run with §17 instrumented wave_prop (M=0.3,
+  // r_h=0.6, BH at (2.5,2.5), dx=0.01953). Coords are in the GLOBAL
+  // grid frame; run_dump_reproducer shifts by (-2.5,-2.5,0) to feed
+  // into BH-relative spacetime API.
+  // dir=0 x-sweep s2-only fires:
+  { "repair#10-s2", 0,
+    /*L*/2.412109, 1.865234, 0.0,
+    /*C*/2.431641, 1.865234, 0.0,
+    /*R*/2.451172, 1.865234, 0.0,
+    /*qC*/ { 2.528, 2.695, -0.005315, 0.0, 0.6550 },
+    /*qL*/ { 3.578, 3.814, -1.539,    0.0, 0.9866 },
+    /*qR*/ { 0.8776, 0.6700, 0.1928,  0.0, 0.02617 } },
+  { "repair#13-s2", 0,
+    2.529297, 1.865234, 0.0,
+    2.548828, 1.865234, 0.0,
+    2.568359, 1.865234, 0.0,
+    { 0.1612, 0.2580,  0.06944, 0.0, 0.1378 },
+    { 0.3345, 0.6247,  0.06834, 0.0, 0.3298 },
+    { 0.03990, 0.04751, 0.04237, 0.0, 0.03538 } },
+  { "repair#16-s2", 0,
+    2.548828, 3.173828, 0.0,
+    2.568359, 3.173828, 0.0,
+    2.587891, 3.173828, 0.0,
+    { 0.9301, 1.117, -0.2134, 0.0, 0.3867 },
+    { 1.466,  1.809, -0.09216, 0.0, 0.4412 },
+    { 0.3511, 0.4189, -0.04190, 0.0, 0.1490 } },
+  // dir=1 y-sweep s2-only fires:
+  { "repair#17-s2", 1,
+    /*L*/2.529297, 1.767578, 0.0,
+    /*C*/2.529297, 1.787109, 0.0,
+    /*R*/2.529297, 1.806641, 0.0,
+    /*qC*/ { 1.695, 2.594, -0.7574, 0.0, 0.9862 },
+    /*qL*/ { 1.194, 1.231, -0.1838, 0.0, 0.3025 },
+    /*qR*/ { 2.087, 2.902,  0.5848, 0.0, 1.045 } },
+  { "repair#19-s2", 1,
+    2.548828, 1.767578, 0.0,
+    2.548828, 1.787109, 0.0,
+    2.548828, 1.806641, 0.0,
+    { 0.7084, 1.316, -0.2676, 0.0, 0.6415 },
+    { 0.2359, 0.4153, -0.02211, 0.0, 0.2145 },
+    { 1.204,  1.855,  0.01382, 0.0, 0.7738 } },
+  // dir=1 tau+s2 fires:
+  { "repair#21-taus2", 1,
+    2.626953, 1.689453, 0.0,
+    2.626953, 1.708984, 0.0,
+    2.626953, 1.728516, 0.0,
+    { 0.08045, 0.06253, -0.02530, 0.0, 0.003853 },
+    { 0.02293, 0.02563,  0.03113, 0.0, 0.02994 },
+    { 0.3296, 0.3375,   -0.1184,  0.0, 0.05345 } },
+  // === Residual dumps from margin=1e-6 + 1x amax (Stage A winner). ===
+  // 12 wave_prop s²<0 remain. Of the 10 dumped (5 mirror pairs), only
+  // these distinct physical events are added; mirrors omitted.
+  // m6-#10 (dir=1): ratio_cart=0.96 — near-boundary case, margin fix
+  //   couldn't fully protect.
+  { "m6-repair#10-s2", 1,
+    2.509766, 1.806641, 0.0,
+    2.509766, 1.826172, 0.0,
+    2.509766, 1.845703, 0.0,
+    { 0.9599, 1.999, -0.4613, 0.0, 1.128 },
+    { 0.5331, 0.4811,  0.1294, 0.0, 0.09473 },
+    { 1.802,  2.330,   0.5787, 0.0, 0.7766 } },
+  // m6-#12 (dir=1): ratio_cart=1.01 — beyond Cartesian, admissible only
+  //   in curved metric. Different physical event from #10 (later step).
+  { "m6-repair#12-s2", 1,
+    2.509766, 1.806641, 0.0,
+    2.509766, 1.826172, 0.0,
+    2.509766, 1.845703, 0.0,
+    { 1.158, 2.045, -0.5523, 0.0, 0.9492 },
+    { 0.6707, 0.6638, -0.02188, 0.0, 0.1875 },
+    { 1.649, 2.391,   0.6050,  0.0, 0.9514 } },
+  // m6-#14 (dir=0): high-precision dump. Production qt: D+τ=0.5444,
+  //   |S|²_cart=0.2974 → s²_cart=-0.0010 (real failure of magnitude 1e-3).
+  //   Input qin_C is well inside Cartesian boundary (ratio_cart=0.77)
+  //   but the sharp L/C gradient (qin_L much larger) drives the Lax
+  //   update toward the boundary in the curved frame.
+  { "m6-repair#14-s2", 0,
+    2.5488281250, 1.8457031250, 0.0,
+    2.5683593750, 1.8457031250, 0.0,
+    2.5878906250, 1.8457031250, 0.0,
+    { 2.210722125432e-01, 3.147104175096e-01, 3.089140027060e-02, 0.0, 1.421972464263e-01 },
+    { 5.639505503463e-01, 1.143098909165e+00, -5.529981844672e-02, 0.0, 5.887044319329e-01 },
+    { 6.785050901076e-02, 9.288799320179e-02, 3.444705579548e-02, 0.0, 6.077562973962e-02 },
+    6.403732456302e-03, 1.953125000000e-02 },
+  // m6-#15 (dir=0): high-precision dump. Production qt: D+τ=0.1693,
+  //   |S|²_cart=0.0290 → s²_cart=-0.0004. Very low absolute scale —
+  //   D=0.067, τ=0.061.
+  { "m6-repair#15-s2", 0,
+    2.5878906250, 1.8652343750, 0.0,
+    2.6074218750, 1.8652343750, 0.0,
+    2.6269531250, 1.8652343750, 0.0,
+    { 6.747470649607e-02, 9.495031964782e-02, 5.204785154879e-02, 0.0, 6.099348705102e-02 },
+    { 2.262458644598e-01, 2.933156770815e-01, -2.095106241374e-03, 0.0, 8.806511095333e-02 },
+    { 3.391654654402e-02, 4.068520153585e-02, 4.308902146394e-02, 0.0, 3.676802280504e-02 },
+    6.403732456302e-03, 1.953125000000e-02 },
+  // m6-#18 (dir=1): ratio_cart=1.02 — beyond Cartesian.
+  { "m6-repair#18-s2", 1,
+    2.568359, 1.826172, 0.0,
+    2.568359, 1.845703, 0.0,
+    2.568359, 1.865234, 0.0,
+    { 0.2595, 0.5448, 0.01668, 0.0, 0.2849 },
+    { 0.1358, 0.3683, -0.01390, 0.0, 0.2644 },
+    { 0.4606, 0.7802, 0.1149,  0.0, 0.3782 } },
+};
+
+void test_direct_state_lax_curved_production_reproducer(void)
+{
+  // Match BHL production: M=0.3, spin=0, BH center at (2.5, 2.5).
+  // The dumps log cell-center coords in the GLOBAL grid frame (origin
+  // at the grid lower-left), so we must shift to BH-centered coords
+  // before calling fill_prods_at.
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
+  const double bh_pos_x = 2.5, bh_pos_y = 2.5, bh_pos_z = 0.0;
+
+  fprintf(stderr, "\n[production reproducer — LAX (LOW): what wave_lax_curved would produce]\n");
+  size_t n_dumps = sizeof(g_production_dumps) / sizeof(*g_production_dumps);
+  for (size_t i = 0; i < n_dumps; i++) {
+    struct dump_repro d = g_production_dumps[i];
+    if (strcmp(d.name, "PLACEHOLDER") == 0) continue;
+    d.xL -= bh_pos_x; d.yL -= bh_pos_y; d.zL -= bh_pos_z;
+    d.xC -= bh_pos_x; d.yC -= bh_pos_y; d.zC -= bh_pos_z;
+    d.xR -= bh_pos_x; d.yR -= bh_pos_y; d.zR -= bh_pos_z;
+    run_dump_reproducer(st, "Schw(M=0.3)", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+      GKYL_WV_LOW_ORDER_FLUX, &d);
+  }
+
+  // Production s2-only dumps with redo_fluct=0/0 actually use HIGH HLL
+  // (first-order, no MUSCL) — POSITIVITY_SWEEP wholesale-resets qout=qin
+  // and the cell update uses stored FIRST_SWEEP amdq/apdq which are
+  // HIGH HLL first-order. The HIGH MUSCL second-order correction that
+  // kept the cell admissible in FIRST_SWEEP is gone. So to reproduce
+  // production qt for these cells, call with rp=HLL and flux=HIGH_ORDER.
+  fprintf(stderr, "\n[production reproducer — HLL HIGH first-order (no MUSCL):\n"
+                  "  reproduces production qt for cells with redo_fluct=0/0,\n"
+                  "  i.e., cells admissible after FIRST_SWEEP that POSITIVITY_SWEEP\n"
+                  "  re-updated with stored HIGH HLL fluxes without MUSCL]\n");
+  for (size_t i = 0; i < n_dumps; i++) {
+    struct dump_repro d = g_production_dumps[i];
+    if (strcmp(d.name, "PLACEHOLDER") == 0) continue;
+    d.xL -= bh_pos_x; d.yL -= bh_pos_y; d.zL -= bh_pos_z;
+    d.xC -= bh_pos_x; d.yC -= bh_pos_y; d.zC -= bh_pos_z;
+    d.xR -= bh_pos_x; d.yR -= bh_pos_y; d.zR -= bh_pos_z;
+    run_dump_reproducer(st, "Schw(M=0.3)", WV_GR_EULER_TETRAD_RP_HLL, "HLL-HIGH",
+      GKYL_WV_HIGH_ORDER_FLUX, &d);
+  }
+  gkyl_gr_spacetime_release(st);
+}
+
+void test_direct_state_lax_curved_per_cell_metric(void)
+{
+  // Match BHL production: M=0.3, r_h=0.6, dx_production = 5/256 ≈ 0.01953.
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
+  // Test at a few sample points with PRODUCTION-MATCHING dx_metric:
+  // (1) bow-shock front (-0.05, -0.6, 0): √γ varies sharply across an
+  //     x-interface here.
+  fprintf(stderr, "\n[per-cell-metric Schw/Lax-CURVED at (-0.05,-0.6,0), dx_metric=0.0195]\n");
+  run_per_cell_metric_sweep(st, "Schw-bow", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, -0.05, -0.6, 0.0, 0.01953);
+  // (2) Just outside r_h=0.6 on the x-axis
+  fprintf(stderr, "\n[per-cell-metric Schw/Lax-CURVED at (0.65,0,0), dx_metric=0.0195]\n");
+  run_per_cell_metric_sweep(st, "Schw-r0.65", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, 0.65, 0.0, 0.0, 0.01953);
+  // (3) Off-axis (1, 1, 0) — already failed with shared metric before §17
+  //     fix; check it now passes with per-cell metric too.
+  fprintf(stderr, "\n[per-cell-metric Schw/Lax-CURVED at (1,1,0), dx_metric=0.0195]\n");
+  run_per_cell_metric_sweep(st, "Schw-(1,1,0)", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, 1.0, 1.0, 0.0, 0.01953);
+  // (4) Exaggerated dx_metric: 10x production to amplify the metric jump
+  //     between L and R. If densitization tax is real, this should fail
+  //     more dramatically.
+  fprintf(stderr, "\n[per-cell-metric Schw/Lax-CURVED at (-0.05,-0.6,0), dx_metric=0.2 (10x exaggerated)]\n");
+  run_per_cell_metric_sweep(st, "Schw-bow-EXAGG", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, -0.05, -0.6, 0.0, 0.2);
+  gkyl_gr_spacetime_release(st);
+}
+
+void test_direct_state_lax_curved_near_horizon(void)
+{
+  // Match BHL production input (rt_gr_bhl_static_tetrad_mod.lua): M=0.3,
+  // spin=0 → r_h = 2M = 0.6 in Schwarzschild Kerr-Schild coords. Production
+  // setup is centered at (pos_x=2.5, pos_y=2.5); the spacetime API uses
+  // BH-relative coords so points (sx, sy, sz) here correspond to global
+  // cell positions (2.5+sx, 2.5+sy, sz).
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
+  // (1) On the x-axis just outside the horizon: R=0.65, sy=sz=0. Mostly β^x,
+  //     diagonal γ. Tests "pure radial outflow at horizon front".
+  fprintf(stderr, "\n[direct-state Schw/Lax-CURVED at (sx,sy,sz)=(0.65, 0, 0)  R=0.65]\n");
+  run_direct_state_sweep(st, "Schw-(0.65,0,0)", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, 0.65, 0.0, 0.0);
+  // (2) Production bow-shock front: x-sweep dump cell i=125 has x≈2.45,
+  //     so sx≈-0.05. The bow-shock sits at sqrt(sx²+sy²) ≈ r_h=0.6, which
+  //     puts sy ≈ ±0.6. γ_xy is nonzero here, and β has both x- and y-
+  //     components — a much harsher test than (0.65,0,0).
+  fprintf(stderr, "\n[direct-state Schw/Lax-CURVED at (sx,sy,sz)=(-0.05, -0.6, 0)  bow-shock front]\n");
+  run_direct_state_sweep(st, "Schw-bow(-,-)", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, -0.05, -0.6, 0.0);
+  fprintf(stderr, "\n[direct-state Schw/Lax-CURVED at (sx,sy,sz)=(-0.05, +0.6, 0)  bow-shock front (mirror)]\n");
+  run_direct_state_sweep(st, "Schw-bow(-,+)", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, -0.05, 0.6, 0.0);
+  // (3) Closer to horizon (just outside r=0.6 with both sx and sy contributions)
+  fprintf(stderr, "\n[direct-state Schw/Lax-CURVED at (sx,sy,sz)=(-0.05, -0.605, 0)  hugging horizon]\n");
+  run_direct_state_sweep(st, "Schw-hug(-,-)", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, -0.05, -0.605, 0.0);
+  // (4) Control: far from horizon
+  fprintf(stderr, "\n[direct-state Schw/Lax-CURVED at (sx,sy,sz)=(1.0, 1.0, 0)  control (far)]\n");
+  run_direct_state_sweep(st, "Schw-(1,1,0)", WV_GR_EULER_TETRAD_RP_LAX, "Lax-CURVED",
+    GKYL_WV_LOW_ORDER_FLUX, 1.0, 1.0, 0.0);
   gkyl_gr_spacetime_release(st);
 }
 void test_direct_state_hll(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_HLL, "HLL");
+  run_direct_state_sweep(st, "Schw", WV_GR_EULER_TETRAD_RP_HLL, "HLL-LOW",
+    GKYL_WV_LOW_ORDER_FLUX, 0.3, 0.2, 0.0);
   gkyl_gr_spacetime_release(st);
 }
 
@@ -1967,6 +3264,12 @@ run_three_cell_sweep(struct gkyl_gr_spacetime *spacetime,
   gkyl_wv_eqn_release(eqn);
 }
 
+void test_three_cell_hllc(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_three_cell_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC");
+  gkyl_gr_spacetime_release(st);
+}
 void test_three_cell_lax(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
@@ -1983,9 +3286,12 @@ void test_three_cell_hll(void)
 // ---------------------------------------------------------------------------
 
 TEST_LIST = {
-  { "banyuls_flux_consistency_lax_minkowski",     test_banyuls_flux_consistency_lax_minkowski },
-  { "banyuls_flux_consistency_lax_schwarzschild", test_banyuls_flux_consistency_lax_schwarzschild },
-  { "banyuls_flux_consistency_lax_kerr",          test_banyuls_flux_consistency_lax_kerr },
+  { "banyuls_flux_consistency_lax_minkowski",      test_banyuls_flux_consistency_lax_minkowski },
+  { "banyuls_flux_consistency_lax_schwarzschild",  test_banyuls_flux_consistency_lax_schwarzschild },
+  { "banyuls_flux_consistency_lax_kerr",           test_banyuls_flux_consistency_lax_kerr },
+  { "banyuls_flux_consistency_hllc_minkowski",     test_banyuls_flux_consistency_hllc_minkowski },
+  { "banyuls_flux_consistency_hllc_schwarzschild", test_banyuls_flux_consistency_hllc_schwarzschild },
+  { "banyuls_flux_consistency_hllc_kerr",          test_banyuls_flux_consistency_hllc_kerr },
 
   { "riemann_properties_lax_minkowski",     test_riemann_properties_lax_minkowski },
   { "riemann_properties_lax_schwarzschild", test_riemann_properties_lax_schwarzschild },
@@ -1993,6 +3299,14 @@ TEST_LIST = {
   { "riemann_properties_hll_minkowski",     test_riemann_properties_hll_minkowski },
   { "riemann_properties_hll_schwarzschild", test_riemann_properties_hll_schwarzschild },
   { "riemann_properties_hll_kerr",          test_riemann_properties_hll_kerr },
+  { "riemann_properties_hllc_minkowski",     test_riemann_properties_hllc_minkowski },
+  { "riemann_properties_hllc_schwarzschild", test_riemann_properties_hllc_schwarzschild },
+  { "riemann_properties_hllc_kerr",          test_riemann_properties_hllc_kerr },
+
+  { "excision_absorbing_lax_minkowski",     test_excision_absorbing_lax_minkowski },
+  { "excision_absorbing_lax_schwarzschild", test_excision_absorbing_lax_schwarzschild },
+  { "excision_absorbing_hll_minkowski",     test_excision_absorbing_hll_minkowski },
+  { "excision_absorbing_hll_schwarzschild", test_excision_absorbing_hll_schwarzschild },
 
   { "positivity_lax_minkowski",     test_positivity_lax_minkowski },
   { "positivity_lax_schwarzschild", test_positivity_lax_schwarzschild },
@@ -2000,9 +3314,16 @@ TEST_LIST = {
   { "positivity_hll_minkowski",     test_positivity_hll_minkowski },
   { "positivity_hll_schwarzschild", test_positivity_hll_schwarzschild },
   { "positivity_hll_kerr",          test_positivity_hll_kerr },
+  { "positivity_hllc_minkowski",     test_positivity_hllc_minkowski },
+  { "positivity_hllc_schwarzschild", test_positivity_hllc_schwarzschild },
+  { "positivity_hllc_kerr",          test_positivity_hllc_kerr },
+  { "positivity_lax_bhl",            test_positivity_lax_bhl },
+  { "positivity_hll_bhl",            test_positivity_hll_bhl },
+  { "positivity_hllc_bhl",           test_positivity_hllc_bhl },
 
-  { "near_floor_lax", test_near_floor_lax },
-  { "near_floor_hll", test_near_floor_hll },
+  { "near_floor_lax",  test_near_floor_lax },
+  { "near_floor_hll",  test_near_floor_hll },
+  { "near_floor_hllc", test_near_floor_hllc },
 
   { "round_trip_minkowski",     test_round_trip_minkowski },
   { "round_trip_schwarzschild", test_round_trip_schwarzschild },
@@ -2012,22 +3333,38 @@ TEST_LIST = {
   { "prim_consistency_schwarzschild", test_prim_consistency_schwarzschild },
   { "prim_consistency_kerr",          test_prim_consistency_kerr },
 
-  { "bhl_regime_lax_schwarzschild", test_bhl_regime_lax_schwarzschild },
-  { "bhl_regime_hll_schwarzschild", test_bhl_regime_hll_schwarzschild },
-  { "bhl_regime_lax_kerr",          test_bhl_regime_lax_kerr },
-  { "bhl_regime_hll_kerr",          test_bhl_regime_hll_kerr },
+  { "bhl_regime_lax_schwarzschild",  test_bhl_regime_lax_schwarzschild },
+  { "bhl_regime_hll_schwarzschild",  test_bhl_regime_hll_schwarzschild },
+  { "bhl_regime_lax_kerr",           test_bhl_regime_lax_kerr },
+  { "bhl_regime_hll_kerr",           test_bhl_regime_hll_kerr },
+  { "bhl_regime_hllc_schwarzschild", test_bhl_regime_hllc_schwarzschild },
+  { "bhl_regime_hllc_kerr",          test_bhl_regime_hllc_kerr },
 
-  { "floor_precision_lax", test_floor_precision_lax },
-  { "floor_precision_hll", test_floor_precision_hll },
+  { "floor_precision_lax",  test_floor_precision_lax },
+  { "floor_precision_hll",  test_floor_precision_hll },
+  { "floor_precision_hllc", test_floor_precision_hllc },
 
-  { "three_cell_lax", test_three_cell_lax },
-  { "three_cell_hll", test_three_cell_hll },
+  { "three_cell_lax",  test_three_cell_lax },
+  { "three_cell_hll",  test_three_cell_hll },
+  { "three_cell_hllc", test_three_cell_hllc },
 
-  { "small_tau_over_D_lax", test_small_tau_over_D_lax },
-  { "small_tau_over_D_hll", test_small_tau_over_D_hll },
+  { "small_tau_over_D_lax",  test_small_tau_over_D_lax },
+  { "small_tau_over_D_hll",  test_small_tau_over_D_hll },
+  { "small_tau_over_D_hllc", test_small_tau_over_D_hllc },
 
-  { "direct_state_lax", test_direct_state_lax },
-  { "direct_state_hll", test_direct_state_hll },
+  { "direct_state_lax",  test_direct_state_lax },
+  { "direct_state_hll",  test_direct_state_hll },
+  { "direct_state_hllc", test_direct_state_hllc },
+  { "direct_state_hllc_high_order", test_direct_state_hllc_high_order },
+  { "direct_state_hll_high_order",  test_direct_state_hll_high_order },
+  { "direct_state_hll_high_order_minkowski",  test_direct_state_hll_high_order_minkowski },
+  { "direct_state_lax_high_order_minkowski",  test_direct_state_lax_high_order_minkowski },
+  { "direct_state_lax_high_order_schwarzschild",  test_direct_state_lax_high_order_schwarzschild },
+  { "direct_state_lax_curved_schwarzschild",  test_direct_state_lax_curved_schwarzschild },
+  { "direct_state_lax_curved_near_horizon",  test_direct_state_lax_curved_near_horizon },
+  { "direct_state_lax_curved_per_cell_metric",  test_direct_state_lax_curved_per_cell_metric },
+  { "direct_state_lax_curved_production_reproducer",  test_direct_state_lax_curved_production_reproducer },
+  { "direct_state_hllc_fallback_probe", test_direct_state_hllc_fallback_probe },
 
   { NULL, NULL },
 };

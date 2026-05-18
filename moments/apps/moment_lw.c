@@ -291,6 +291,7 @@ static const struct gkyl_str_int_pair gr_euler_tetrad_rp_type[] = {
   { "hll", WV_GR_EULER_TETRAD_RP_HLL },
   { "roe", WV_GR_EULER_TETRAD_RP_ROE },
   { "lax", WV_GR_EULER_TETRAD_RP_LAX },
+  { "hllc", WV_GR_EULER_TETRAD_RP_HLLC },
   { 0, 0 }
 };
 

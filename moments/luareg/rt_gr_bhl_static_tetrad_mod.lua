@@ -69,7 +69,7 @@ momentApp = Moments.App.new {
   fluid = Moments.Species.new {
     equation = GREulerTetradMod.new {
       gasGamma = gas_gamma,
-      rpType = "lax",
+      rpType = "hll",
     },
 
     init = function (t, xn)
