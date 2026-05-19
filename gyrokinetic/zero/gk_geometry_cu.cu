@@ -117,7 +117,7 @@ gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   struct gkyl_array *cmag_nodal, struct gkyl_array *jacobtot_inv_nodal, struct gkyl_array *g_ij_nodal,
   struct gkyl_array *dxdz_nodal, struct gkyl_array *dzdx_nodal, struct gkyl_array *normals_nodal,
   struct gkyl_array *dualmag_nodal, struct gkyl_array *bcart_nodal, struct gkyl_array *B3_nodal,
-  struct gkyl_array *lenr_nodal, struct gkyl_array *deltats_nodal,
+  struct gkyl_array *lenr_nodal, struct gkyl_array *deltats_nodal
  )
 {
   // Expansions.
