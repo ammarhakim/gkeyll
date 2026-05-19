@@ -52,12 +52,12 @@ void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic 
 void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact);
 
 /**
- * Get the vcut_fact array used in the sheath BC.
+ * Acquire the vcut_fact array used in the sheath BC. The pointer needs to be released by the caller using gkyl_array_release.
  * 
  * @param up BC updater.
  * @return The vcut_fact array used in the sheath BC.
  */
-struct gkyl_array* gkyl_bc_sheath_gyrokinetic_get_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up);
+struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Get the basis of the vcut_fact array used in the sheath BC.

@@ -219,12 +219,11 @@ check_function(struct test_sheath_ctx *pars, struct gkyl_array *distf_ho, struct
       TEST_MSG( "Expected > %.9e | Got: %.9e at idx=%d,%d,%d\n", ref_val, cell_avg, idx_g[0], idx_g[1], idx_g[2]);
     }
   }
-  if (pars->verbose) {
-    printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
-      edge == GKYL_LOWER_EDGE? "lower" : "upper", pars->charge, delta_phi);
-    printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n",
-      num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
-  }
+  // Uncomment for debugging.
+  // printf("\n");
+  // printf("Edge: %s | Charge: %.1e | Delta phi: %.2e\n", 
+  //   edge == GKYL_LOWER_EDGE? "lower" : "upper", charge, delta_phi);
+  // printf("resulting zero cells = %d | fully outside cells = %d | crossing cells = %d | total cells = %d\n", num_zero_cells, num_zero_cells_expected, num_uknown_cells, num_cells);
 }
 
 void write_out_fields(struct test_sheath_ctx *pars, int cdim, int vdim, enum gkyl_edge_loc edge, bool use_gpu,

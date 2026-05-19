@@ -206,8 +206,9 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
     
-    for (int d=0; d<up->cdim-1; d++) vcut_fact_idx[d] = iter.idx[d]; // config space perp directions.
-    vcut_fact_idx[up->cdim-1] = iter.idx[pdim-1]; // mu direction.
+    int vcut_fact_dim = up->vcut_fact_local.ndim;
+    for (int d=0; d<vcut_fact_dim-1; d++) vcut_fact_idx[d] = iter.idx[d]; // config space perp directions.
+    vcut_fact_idx[vcut_fact_dim-1] = iter.idx[pdim-1]; // mu direction.
     long vcut_fact_loc = gkyl_range_idx(&up->vcut_fact_local, vcut_fact_idx);
     const double *vcut_fact_p = (const double*) gkyl_array_cfetch(up->vcut_fact, vcut_fact_loc);
 
@@ -229,7 +230,7 @@ void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyroki
   gkyl_array_copy_range(up->vcut_fact, vcut_fact, &up->vcut_fact_local);
 }
 
-struct gkyl_array* gkyl_bc_sheath_gyrokinetic_get_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up)
+struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up)
 {
   return gkyl_array_acquire(up->vcut_fact);
 }

@@ -104,8 +104,9 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
     const double *vmap_p = (const double*) gkyl_array_cfetch(vmap, vel_loc);
 
     // Get vcut factor.
-    for (int d=0; d<cdim-1; d++) vcut_fact_idx[d] = pidx[d]; // config space perp directions.
-    vcut_fact_idx[cdim-1] = pidx[pdim-1]; // mu direction.
+    int vcut_fact_dim = vcut_r.ndim;
+    for (int d=0; d<vcut_fact_dim-1; d++) vcut_fact_idx[d] = pidx[d]; // config space perp directions.
+    vcut_fact_idx[vcut_fact_dim-1] = pidx[pdim-1]; // mu direction.
     long vcut_fact_loc = gkyl_range_idx(&vcut_r, vcut_fact_idx);
     const double *vcut_fact_p = (const double*) gkyl_array_cfetch(vcut_fact, vcut_fact_loc);
 
