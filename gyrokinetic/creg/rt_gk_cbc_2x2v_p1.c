@@ -261,7 +261,8 @@ double rbar(double m, double q, double r, double theta, double vpar, double mu, 
 
   double rbar = r0 - rpsi - rvpar;
 
-  return rbar;
+  return r;
+  // return rbar;
 }
 
 // Density initial condition (like TCV exp profile)
@@ -313,13 +314,13 @@ double temp_init_ion(double x, void *ctx)
   return app->Ti0 * exp(-prof_factor * tanh(arg));
 }
 
-void
-diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct gk_app_ctx *app = ctx;
+// void
+// diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+// {
+//   struct gk_app_ctx *app = ctx;
 
-  fout[0] = 0.5; // Diffusivity [m^2/s].
-}
+//   fout[0] = 0.5; // Diffusivity [m^2/s].
+// }
 
 double maxellian(double m, double n, double T, double E)
 {
@@ -404,8 +405,8 @@ void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   vp[1] = mu_max_elc*pow(cmu,2);
 
   // Linear map for testing.
-  vp[0] = vpar_max_elc*cvpar;
-  vp[1] = mu_max_elc*cmu;
+  // vp[0] = vpar_max_elc*cvpar;
+  // vp[1] = mu_max_elc*cmu;
 }
 
 void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
@@ -425,8 +426,8 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   vp[1] = mu_max_ion*pow(cmu,2);
 
   // Linear map for testing.
-  vp[0] = vpar_max_ion*cvpar;
-  vp[1] = mu_max_ion*cmu;
+  // vp[0] = vpar_max_ion*cvpar;
+  // vp[1] = mu_max_ion*cmu;
 }
 
 struct gk_app_ctx create_ctx(void)
@@ -643,11 +644,11 @@ main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-    },
+    // .anomalous_diffusion = {
+    //   .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+    //   .D_profile = diffusion_D_func,
+    //   .D_profile_ctx = &ctx,
+    // },
 
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bc, },
@@ -697,12 +698,12 @@ main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-      .write_diagnostics = true,
-    },
+    // .anomalous_diffusion = {
+    //   .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+    //   .D_profile = diffusion_D_func,
+    //   .D_profile_ctx = &ctx,
+    //   .write_diagnostics = true,
+    // },
 
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_bc, },
@@ -751,6 +752,8 @@ main(int argc, char **argv)
   // GK app
   struct gkyl_gk app_inp = {
 
+    .name = "rt_gk_cbc_2x2v_p1",
+
     .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
 
@@ -775,7 +778,7 @@ main(int argc, char **argv)
   };
 
   // Set app output name from the executable name (argv[0]).
-  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  // snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
@@ -792,7 +795,7 @@ main(int argc, char **argv)
     .print_verbosity = {
       .disable_timings = true,
       .enabled = true,
-      .frequency = 100,
+      .frequency = 0.01,
     }
   };
 
