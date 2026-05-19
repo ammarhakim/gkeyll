@@ -1201,6 +1201,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
   gkyl_array_release(mc2p_global);
   gkyl_array_release(mc2p_global_ho);
+  gkyl_array_release(mc2pint_global);
+  gkyl_array_release(mc2pint_global_ho);
   gkyl_array_release(arr_ho1);
   gkyl_array_release(arr_hocdim);
   gkyl_array_release(arr_ho3);
@@ -2727,6 +2729,7 @@ gyrokinetic_app_geometry_read_and_copy(gkyl_gyrokinetic_app* app, struct gkyl_ar
         gkyl_array_rio_status_msg(rstat.io_status));
     assert(false);
   }
+  cstr_drop(&fileNm);
 }
 
 static void
@@ -2752,6 +2755,7 @@ gyrokinetic_app_geometry_read_and_copy_surf(gkyl_gyrokinetic_app* app, struct gk
         gkyl_array_rio_status_msg(rstat.io_status));
     assert(false);
   }
+  cstr_drop(&fileNm);
 }
 
 void
@@ -2811,6 +2815,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geo
 
     gkyl_grid_sub_array_header_release(&hdr);
   }
+  cstr_drop(&fileNm);
 
   gkyl_gk_geometry_reset_io_meta(app->gk_geom); // Update metadata inside geo object.
 

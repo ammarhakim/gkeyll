@@ -193,10 +193,13 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, st
 
   cstr fileNm = cstr_from_fmt("%s-%s_BGKM0dot_%d.gkyl", app->name, gks->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->M0dot_host, fileNm.str);
+  cstr_drop(&fileNm);
   fileNm = cstr_from_fmt("%s-%s_BGKM1dot_%d.gkyl", app->name, gks->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->M1dot_host, fileNm.str);
+  cstr_drop(&fileNm);
   fileNm = cstr_from_fmt("%s-%s_BGKM2dot_%d.gkyl", app->name, gks->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->M2dot_host, fileNm.str);
+  cstr_drop(&fileNm);
 
   gkyl_msgpack_data_release(mt); 
 }
@@ -411,12 +414,19 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
 
     // External source rates
-    src->M0dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    src->M1dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    src->M2dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    src->M0dot = app->use_gpu ? mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume) : gkyl_array_acquire(src->M0dot_host);
-    src->M1dot = app->use_gpu ? mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume) : gkyl_array_acquire(src->M1dot_host);
-    src->M2dot = app->use_gpu ? mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume) : gkyl_array_acquire(src->M2dot_host);
+    src->M0dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    src->M1dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    src->M2dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+    src->M0dot_host =  src->M0dot;
+    src->M1dot_host =  src->M1dot;
+    src->M2dot_host =  src->M2dot;
+
+    if(app->use_gpu) {
+      src->M0dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      src->M1dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      src->M2dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+    }
 
     // Rate times the Maxwellian.
     src->Jrate_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);

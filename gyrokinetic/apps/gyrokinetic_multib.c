@@ -1200,6 +1200,7 @@ gkyl_gyrokinetic_multib_app_write_eirene(gkyl_gyrokinetic_multib_app *app, doubl
     fprintf(fp, "%d\n", frame);
     fclose(fp);
   }
+  cstr_drop(&fileNm);
 }
 
 void
