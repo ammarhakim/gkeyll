@@ -110,7 +110,7 @@ __global__ static void
 gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_ratio,
   struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot_inv,
-  struct gkyl_array *B3, struct gkyl_array *normcurlbhat, struct gkyl_array *normals, struct gkyl_array *lenr, struct gkyl_array *deltats
+  struct gkyl_array *B3, struct gkyl_array *normcurlbhat, struct gkyl_array *normals, struct gkyl_array *lenr, struct gkyl_array *deltats,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal,
   struct gkyl_array *curlbhat_nodal, struct gkyl_array *normcurlbhat_nodal, struct gkyl_array *ddtheta_nodal, struct gkyl_array *ddpsi_nodal,
   struct gkyl_array *jacobgeo_nodal, struct gkyl_array *b_i_nodal, struct gkyl_array *b_i_nodal_fd,
