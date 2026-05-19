@@ -861,10 +861,14 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .num_ghost = ghost,
         .basis = gks->basis,
         .grid = gks->grid,
-        .shift_func = gks->lower_bc[d].aux_profile,
-        .shift_func_ctx = gks->lower_bc[d].aux_ctx,
         .use_gpu = app->use_gpu,
       };
+      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+        tsinp.shift_dg = app->delta_ts_x_lo,
+      else {
+        tsinp.shift_func = gks->lower_bc[d].aux_profile,
+        tsinp.shift_func_ctx = gks->lower_bc[d].aux_ctx,
+      }
 
       gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp);
       
@@ -886,10 +890,14 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
           .num_ghost = ghost,
           .basis = gks->basis,
           .grid = gks->grid,
-          .shift_func = gks->lower_bc[d].aux_profile,
-          .shift_func_ctx = gks->lower_bc[d].aux_ctx,
           .use_gpu = app->use_gpu,
         };
+        if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+          tsinp.shift_dg = app->delta_ts_x_lo,
+        else {
+          tsinp.shift_func = gks->lower_bc[d].aux_profile,
+          tsinp.shift_func_ctx = gks->lower_bc[d].aux_ctx,
+        }
 
         gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp);
       }
@@ -941,10 +949,14 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .num_ghost = ghost,
         .basis = gks->basis,
         .grid = gks->grid,
-        .shift_func = gks->upper_bc[d].aux_profile,
-        .shift_func_ctx = gks->upper_bc[d].aux_ctx,
         .use_gpu = app->use_gpu,
       };
+      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+        tsinp.shift_dg = app->delta_ts_x_up,
+      else {
+        tsinp.shift_func = gks->upper_bc[d].aux_profile,
+        tsinp.shift_func_ctx = gks->upper_bc[d].aux_ctx,
+      }
 
       gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp);
     }
@@ -965,10 +977,14 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
           .num_ghost = ghost,
           .basis = gks->basis,
           .grid = gks->grid,
-          .shift_func = gks->upper_bc[d].aux_profile,
-          .shift_func_ctx = gks->upper_bc[d].aux_ctx,
           .use_gpu = app->use_gpu,
         };
+        if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+          tsinp.shift_dg = app->delta_ts_x_up,
+        else {
+          tsinp.shift_func = gks->upper_bc[d].aux_profile,
+          tsinp.shift_func_ctx = gks->upper_bc[d].aux_ctx,
+        }
 
         gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp);
       }
