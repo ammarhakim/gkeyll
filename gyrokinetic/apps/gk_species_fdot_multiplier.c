@@ -102,13 +102,13 @@ gk_species_fdot_multiplier_advance_disabled(gkyl_gyrokinetic_app *app, const str
 {
 }
 
-// Advance: multiply combined_multiplier by this component's precomputed scratch array.
+// Advance: multiply combined_multiplier by this component's precomputed buffer array.
 static void
 gk_species_fdot_multiplier_advance_mult(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_fdot_multiplier_comp *fdmul, const struct gkyl_array *phi, const struct gkyl_array *f,
   const struct gkyl_array *cflrate, struct gkyl_array *combined_multiplier)
 {
-  gkyl_array_scale_by_cell(combined_multiplier, fdmul->scratch);
+  gkyl_array_scale_by_cell(combined_multiplier, fdmul->buffer);
 }
 
 // Advance: apply constant scale to combined_multiplier.
@@ -131,15 +131,15 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
     app->basis_on_dev, &app->grid, &app->local, fdmul->phi_m);
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, fdmul->phi_m, fdmul->phi_m_global);
 
-  // Project the loss cone mask into scratch.
+  // Project the loss cone mask into buffer.
   gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, fdmul->phi_m_global, fdmul->scratch);
+    phi, fdmul->phi_m_global, fdmul->buffer);
 
   // Apply constant scale factor.
-  gkyl_array_scale(fdmul->scratch, fdmul->time_dilation_scale_const);
+  gkyl_array_scale(fdmul->buffer, fdmul->time_dilation_scale_const);
 
   // Multiply into combined.
-  gkyl_array_scale_by_cell(combined_multiplier, fdmul->scratch);
+  gkyl_array_scale_by_cell(combined_multiplier, fdmul->buffer);
 }
 
 // Compute cell-wise clamp factor min(1, omega_max/cflrate)*scale into combined_multiplier.
@@ -167,12 +167,12 @@ static void
 clamp_cflrate_by_omega_max(const struct gk_fdot_multiplier_comp *fdmul, const double omega_max,
   const struct gkyl_array *cflrate, struct gkyl_array *combined_multiplier)
 {
-  // scratch = min(1, omega_max/cflrate) * time_dilation_scale_const
-  gkyl_array_invert_by_cell(fdmul->scratch, cflrate);
-  gkyl_array_scale(fdmul->scratch, omega_max);
-  gkyl_array_min_by_cell(fdmul->scratch, fdmul->scratch, 1.0);
-  gkyl_array_scale(fdmul->scratch, fdmul->time_dilation_scale_const);
-  gkyl_array_scale_by_cell(combined_multiplier, fdmul->scratch);
+  // buffer = min(1, omega_max/cflrate) * time_dilation_scale_const
+  gkyl_array_invert_by_cell(fdmul->buffer, cflrate);
+  gkyl_array_scale(fdmul->buffer, omega_max);
+  gkyl_array_min_by_cell(fdmul->buffer, fdmul->buffer, 1.0);
+  gkyl_array_scale(fdmul->buffer, fdmul->time_dilation_scale_const);
+  gkyl_array_scale_by_cell(combined_multiplier, fdmul->buffer);
 }
 
 static void
@@ -296,8 +296,8 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
-      fdmul->scratch = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
-      struct gkyl_array *scratch_host = mkarr(false, basis_mult.num_basis, gks->local_ext.volume);
+      fdmul->buffer = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
+      struct gkyl_array *buffer_ho = mkarr(false, basis_mult.num_basis, gks->local_ext.volume);
 
       gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
         .grid = &gks->grid,
@@ -309,20 +309,20 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
         .c2p_func = proj_on_basis_c2p_phase_func,
         .c2p_func_ctx = &fdmul->proj_on_basis_c2p_ctx,
       });
-      gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, scratch_host);
+      gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, buffer_ho);
       gkyl_proj_on_basis_release(projup);
 
       if (basis_mult.poly_order == 0) {
-        gkyl_array_scale_range(scratch_host, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
+        gkyl_array_scale_range(buffer_ho, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
       }
 
-      gkyl_array_copy(fdmul->scratch, scratch_host);
-      gkyl_array_release(scratch_host);
+      gkyl_array_copy(fdmul->buffer, buffer_ho);
+      gkyl_array_release(buffer_ho);
 
       fdmul->advance_func = gk_species_fdot_multiplier_advance_mult;
     }
     else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
-      fdmul->scratch = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
+      fdmul->buffer = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
 
       enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
       int num_quad = gks->basis.poly_order + 1;
@@ -412,7 +412,7 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
         fdmul->advance_func = gk_species_fdot_multiplier_advance_const;
       }
       else {
-        fdmul->scratch = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
+        fdmul->buffer = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
 
         if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA
@@ -565,10 +565,10 @@ gk_species_fdot_multiplier_release_comp(const struct gkyl_gyrokinetic_app *app,
   if (!fdmul->type) return;
 
   if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_USER_INPUT) {
-    gkyl_array_release(fdmul->scratch);
+    gkyl_array_release(fdmul->buffer);
   }
   else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
-    gkyl_array_release(fdmul->scratch);
+    gkyl_array_release(fdmul->buffer);
     if (app->use_gpu) {
       gkyl_cu_free(fdmul->bmag_max);
       gkyl_cu_free(fdmul->bmag_max_coord);
@@ -593,7 +593,7 @@ gk_species_fdot_multiplier_release_comp(const struct gkyl_gyrokinetic_app *app,
     (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD) ||
     (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL) ||
     (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL)) {
-    gkyl_array_release(fdmul->scratch);
+    gkyl_array_release(fdmul->buffer);
     gkyl_dg_array_mask_release(fdmul->cfl_mask);
     if (app->use_gpu) {
 #ifdef GKYL_HAVE_CUDA

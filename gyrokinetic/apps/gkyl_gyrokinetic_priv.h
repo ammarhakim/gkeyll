@@ -852,8 +852,8 @@ struct gk_damping {
 struct gk_fdot_multiplier_comp {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplicative function term.
   bool evolve; // Whether the multiplicative function is time dependent.
-  struct gkyl_array *scratch; // Per-component working storage.
-  struct gkyl_array *scratch_host; // Host copy for use in IO and projecting.
+  struct gkyl_array *buffer; // Per-component working storage.
+  struct gkyl_array *buffer_ho; // Host copy for use in IO and projecting.
   struct gk_proj_on_basis_c2p_func_ctx proj_on_basis_c2p_ctx; // c2p function context.
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
   double *bmag_max; // Maximum magnetic field amplitude.
