@@ -97,20 +97,17 @@ gyrokinetic_str_ends_in_bnum(const char *name)
 
   int i = (int)len - 1;
 
-  // Move backward over trailing digits
+  // Move backward over trailing digits.
   int digit_count = 0;
   while (i >= 0 && isdigit((unsigned char)name[i])) {
     i--;
     digit_count++;
   }
 
-  // Must have at least one digit and end with "_b"
-  if (digit_count > 0 &&
-    i >= 1 &&
-    name[i] == 'b' &&
-    name[i - 1] == '_') {
+  // Must have at least one digit and end with "_b".
+  if (digit_count > 0 && i >= 1 &&
+      name[i] == 'b' && name[i - 1] == '_')
     return true;
-  }
 
   return false;
 }
@@ -286,7 +283,6 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .comm = app->comm,
     .has_LCFS = gk->geometry.has_LCFS,
     .x_LCFS = gk->geometry.x_LCFS,
-    .sync_numerical_shift = gk->geometry.sync_numerical_shift,
   };
   for(int i = 0; i<3; i++)
     geometry_inp.world[i] = gk->geometry.world[i];

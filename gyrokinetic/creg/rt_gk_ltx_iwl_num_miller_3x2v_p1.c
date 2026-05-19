@@ -464,7 +464,6 @@ int main(int argc, char **argv)
       .tok_grid_info = grid_inp,
       //.has_LCFS = true,
       //.x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
-      .sync_numerical_shift = true,
     },
 
     .num_periodic_dir = 1,

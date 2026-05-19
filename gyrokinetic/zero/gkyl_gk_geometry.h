@@ -225,7 +225,6 @@ struct gkyl_gk_geometry_inp {
 
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x location of the LCFS.
-  bool sync_numerical_shift; // Whether to sync numerical shift function
 
   // 3D grid ranges and basis.
   struct gkyl_rect_grid geo_grid;
