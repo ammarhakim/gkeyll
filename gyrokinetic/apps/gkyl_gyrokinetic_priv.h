@@ -1404,7 +1404,7 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
   // Shift (for TS BC) as a function of x, and objects associated with it.
-  struct gkyl_range delta_ts_x_global, delta_ts_x_global_ext;
+  struct gkyl_range delta_ts_x_local, delta_ts_x_local_ext;
   struct gkyl_basis delta_ts_x_basis;
   struct gkyl_rect_grid delta_ts_x_grid;
   struct gkyl_array *delta_ts_x_lo, *delta_ts_x_up;
