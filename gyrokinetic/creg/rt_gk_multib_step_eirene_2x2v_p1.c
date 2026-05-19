@@ -582,8 +582,8 @@ create_ctx(void)
   int Nvpar = 16;
   int Nmu = 12;
 
-  double t_end = 15.0e-3; 
-  double num_frames = 1500;
+  double t_end = 2.0e-9;
+  double num_frames = 1;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-2; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
