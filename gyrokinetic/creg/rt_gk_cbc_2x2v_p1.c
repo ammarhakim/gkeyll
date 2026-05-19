@@ -24,7 +24,6 @@
 
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
-    char sim_name[128]; // Simulation name.
     int cdim, vdim;
     // Geometry and magnetic field parameters
     double a_shift, Z_axis, R_axis, R0, a_mid, r0, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
@@ -508,35 +507,34 @@ struct gk_app_ctx create_ctx(void)
   double rhostar = rho_s/a_mid;
   double inv_asp_ratio = a_mid/R0;
   
-  printf("-- Simulation parameters and info ---\n");
-  printf("vte = %1.2e, vti = %1.2e, c_s = %1.1e [m/s]\n", vte, vti, c_s);
-  printf("Lx = %1.2g, rho_s = %1.2g [m]\n", Lx, rho_s);
-  printf("x_min = %1.2g, x_max = %1.2g [m]\n", x_min, x_max);
-  printf("Ln = %1.2g, LTe = %1.2g, LTi = %1.2g [m]\n", Ln, LTe, LTi);
-  printf("q0 = %1.2g, qL = %1.2g, qR = %1.2g, s0 = %1.2g\n", q0, qL, qR, s0);
-  printf("ε = %1.2g, ⍴* = 1/%2.2g\n", inv_asp_ratio, 1/rhostar);
-  printf("R0/c_s = %1.2e [s]\n", t_unit);
+  // printf("-- Simulation parameters and info ---\n");
+  // printf("vte = %1.2e, vti = %1.2e, c_s = %1.1e [m/s]\n", vte, vti, c_s);
+  // printf("Lx = %1.2g, rho_s = %1.2g [m]\n", Lx, rho_s);
+  // printf("x_min = %1.2g, x_max = %1.2g [m]\n", x_min, x_max);
+  // printf("Ln = %1.2g, LTe = %1.2g, LTi = %1.2g [m]\n", Ln, LTe, LTi);
+  // printf("q0 = %1.2g, qL = %1.2g, qR = %1.2g, s0 = %1.2g\n", q0, qL, qR, s0);
+  // printf("ε = %1.2g, ⍴* = 1/%2.2g\n", inv_asp_ratio, 1/rhostar);
+  // printf("R0/c_s = %1.2e [s]\n", t_unit);
 
   // Grid parameters
   int num_cell_x = 8;
   int num_cell_z = 8;
-  int num_cell_vpar = 8;
-  int num_cell_mu = 8;
+  int num_cell_vpar = 4;
+  int num_cell_mu = 4;
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 4.*vte;
   double mu_max_elc = 7*Te0/B0;
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 7*Ti0/B0;
-  double final_time = 5*tau_itg;
-  int num_frames = 100;
-  double write_phase_freq = 0.1;
+  double final_time = 2.0*tau_itg;
+  int num_frames = 1;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct gk_app_ctx ctx = {
-    .sim_name = "gk_cbc_2x2v_p1",
     .cdim = cdim,
     .vdim = vdim,
     .a_shift = a_shift,
@@ -751,9 +749,6 @@ main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = {
-
-    .name = "rt_gk_cbc_2x2v_p1",
-
     .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
 
@@ -778,7 +773,7 @@ main(int argc, char **argv)
   };
 
   // Set app output name from the executable name (argv[0]).
-  // snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
