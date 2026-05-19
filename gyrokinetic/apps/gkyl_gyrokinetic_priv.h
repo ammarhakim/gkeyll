@@ -1020,6 +1020,7 @@ struct gk_species {
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_par_ext; // Range extended in parallel direction for TS BC.
   // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
   struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
@@ -1239,7 +1240,8 @@ struct gk_neut_species {
 struct gk_field {
   struct gkyl_gyrokinetic_field info; // Data for field.
 
-  enum gkyl_gkfield_id gkfield_id;
+  enum gkyl_gkfield_id gkfield_id; // Field solver ID.
+  enum gkyl_gyrokinetic_bc_type bc_par_phi; // Parallel BC to enforce on phi.
 
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
@@ -1368,6 +1370,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
+  // Range extended in parallel direction (for TS BCs).
+  struct gkyl_range global_par_ext, local_par_ext;
   // Core and SOL ranges for sims with a LCFS.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
   struct gkyl_range global_par_ext_core; // Core range extended in parallel direction.
