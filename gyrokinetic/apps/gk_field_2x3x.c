@@ -344,10 +344,14 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .num_ghost = ghost, // one ghost per config direction
       .basis = app->basis,
       .grid = app->grid,
-      .shift_func = par_lower_bc->aux_profile,
-      .shift_func_ctx = par_lower_bc->aux_ctx,
       .use_gpu = app->use_gpu,
     };
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+      T_LU_lo.shift_dg = app->delta_ts_x_lo;
+    else {
+      T_LU_lo.shift_func = par_lower_bc->aux_profile;
+      T_LU_lo.shift_func_ctx = par_lower_bc->aux_ctx;
+    }
     f->bc_ts_lo = gkyl_bc_twistshift_new(&T_LU_lo);
 
     long buff_sz = app->global_lower_ghost[par_dir].volume;
@@ -426,10 +430,14 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       .num_ghost = ghost, // one ghost per config direction
       .basis = app->basis,
       .grid = app->grid,
-      .shift_func = par_lower_bc->aux_profile,
-      .shift_func_ctx = par_lower_bc->aux_ctx,
       .use_gpu = app->use_gpu,
     };
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+      T_LU_lo.shift_dg = app->delta_ts_x_lo;
+    else {
+      T_LU_lo.shift_func = par_lower_bc->aux_profile;
+      T_LU_lo.shift_func_ctx = par_lower_bc->aux_ctx;
+    }
     f->bc_ts_lo = gkyl_bc_twistshift_new(&T_LU_lo);
 
     long buff_sz = GKYL_MAX2(app->global_lower_ghost_par_sol.volume, app->global_lower_ghost_par_core.volume);
