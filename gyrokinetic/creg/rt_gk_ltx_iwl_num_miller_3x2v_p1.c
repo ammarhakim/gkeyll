@@ -56,13 +56,13 @@ struct gk_app_ctx {
 };
 
 void pfunc_upper(double s, double* RZ){
-    RZ[0] = 0.14047;
-    RZ[1] = -(s-0.061)*0.6;
+  RZ[0] = 0.14047;
+  RZ[1] = -(s-0.061)*0.6;
 }
 
 void pfunc_lower(double s, double* RZ){
-    RZ[0] = 0.14047;
-    RZ[1] = (s-0.061)*0.6;
+  RZ[0] = 0.14047;
+  RZ[1] = (s-0.061)*0.6;
 }
 
 // Electron source profiles.

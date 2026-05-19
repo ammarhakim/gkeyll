@@ -536,7 +536,7 @@ struct gkyl_gyrokinetic_field {
 
 // Top-level app parameters
 struct gkyl_gk {
-  char name[128]; // Name of app: used as output prefix.
+  char name[128]; // Name of app: used as output prefix. Should not end in _b#.
 
   int cdim; // Configuration-space dimensions.
   double lower[3], upper[3]; // Lower, upper bounds of config-space.
