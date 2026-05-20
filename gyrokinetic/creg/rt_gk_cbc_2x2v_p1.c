@@ -364,6 +364,22 @@ void eval_canon_maxwellian_i(double t, const double* GKYL_RESTRICT xn, double* G
   fout[0] = maxellian(m, dens, temp, energy);
 }
 
+// Static BGK source term to maintain eq. profile at lower x boundary. 
+void bgk_source_rate_profile(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  struct gk_app_ctx *app = ctx;
+
+  double source_width = 0.25 * app->Lx;
+  double Bl = 0.06;
+  double Bs = 0.017635;
+  double nu = 1e6;
+
+  // See Eq. 49 of V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68
+  double Hbuff = 1 + 0.5 * (tanh((x - app->x_max + Bl*app->Lx)/(Bs*app->Lx)) - tanh((x - app->x_min - Bl*app->Lx)/(Bs*app->Lx)));
+  fout[0] = Hbuff * nu;
+}
+
 // Geometry evaluation functions for the gk app
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
@@ -642,6 +658,14 @@ main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
+    .source_bgk = {
+      .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
+      .rate_profile = bgk_source_rate_profile,
+      .rate_profile_ctx = &ctx,
+      .feq_shape = eval_canon_maxwellian_i,
+      .feq_shape_ctx = &ctx,
+    }
+
     // .anomalous_diffusion = {
     //   .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
     //   .D_profile = diffusion_D_func,
@@ -695,6 +719,14 @@ main(int argc, char **argv)
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
+
+    .source_bgk = {
+      .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
+      .rate_profile = bgk_source_rate_profile,
+      .rate_profile_ctx = &ctx,
+      .feq_shape = eval_canon_maxwellian_e,
+      .feq_shape_ctx = &ctx,
+    }
 
     // .anomalous_diffusion = {
     //   .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
