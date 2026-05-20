@@ -110,14 +110,14 @@ __global__ static void
 gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_ratio,
   struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot_inv,
-  struct gkyl_array *B3, struct gkyl_array *normcurlbhat, struct gkyl_array *normals, struct gkyl_array *lenr, struct gkyl_array *deltats
+  struct gkyl_array *B3, struct gkyl_array *normcurlbhat, struct gkyl_array *normals, struct gkyl_array *lenr, struct gkyl_array *deltats,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal,
   struct gkyl_array *curlbhat_nodal, struct gkyl_array *normcurlbhat_nodal, struct gkyl_array *ddtheta_nodal, struct gkyl_array *ddpsi_nodal,
   struct gkyl_array *jacobgeo_nodal, struct gkyl_array *b_i_nodal, struct gkyl_array *b_i_nodal_fd,
   struct gkyl_array *cmag_nodal, struct gkyl_array *jacobtot_inv_nodal, struct gkyl_array *g_ij_nodal,
   struct gkyl_array *dxdz_nodal, struct gkyl_array *dzdx_nodal, struct gkyl_array *normals_nodal,
   struct gkyl_array *dualmag_nodal, struct gkyl_array *bcart_nodal, struct gkyl_array *B3_nodal,
-  struct gkyl_array *lenr_nodal, struct gkyl_array *deltats_nodal,
+  struct gkyl_array *lenr_nodal, struct gkyl_array *deltats_nodal
  )
 {
   // Expansions.
@@ -196,7 +196,7 @@ gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_
   gk_geometry_set_surf_cu_kernel<<<1,1>>>(gk_geom, dir,
     geo_surf->bmag->on_dev, geo_surf->jacobgeo->on_dev, geo_surf->jacobgeo_ratio->on_dev,
     geo_surf->b_i->on_dev, geo_surf->cmag->on_dev, geo_surf->jacobtot_inv->on_dev, geo_surf->B3->on_dev,
-    geo_surf->normcurlbhat->on_dev, geo_surf->normals->on_dev, geo_surf->lenr->on_dev, geo_surf->deltats->on_dev
+    geo_surf->normcurlbhat->on_dev, geo_surf->normals->on_dev, geo_surf->lenr->on_dev, geo_surf->deltats->on_dev,
     geo_surf->mc2p_nodal_fd->on_dev, geo_surf->mc2p_nodal->on_dev, geo_surf->bmag_nodal->on_dev,
     geo_surf->curlbhat_nodal->on_dev, geo_surf->normcurlbhat_nodal->on_dev, geo_surf->ddtheta_nodal->on_dev, geo_surf->ddpsi_nodal->on_dev,
     geo_surf->jacobgeo_nodal->on_dev, geo_surf->b_i_nodal->on_dev, geo_surf->b_i_nodal_fd->on_dev,

@@ -824,9 +824,8 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   }
 
   if (cdim == 3) {
-    // Sync the surface deltats. Need top copy the upper ghost into the upper skin before syncing.
+    // Sync the surface deltats. Need to copy the upper ghost into the upper skin before syncing.
     for (int d = 0; d<cdim; d++) {
-      // Sync jacobgeo.
       struct gkyl_array *deltats[mbapp->num_local_blocks];
       for (int b=0; b<mbapp->num_local_blocks; ++b) {
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
@@ -851,6 +850,9 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_lower_skin[par_dir]);
 
       gkyl_array_release(buffer);
+
+      // Deflate delta_ts.
+      gyrokinetic_deflate_delta_ts(sbapp, delta_ts);
     }
   }
 

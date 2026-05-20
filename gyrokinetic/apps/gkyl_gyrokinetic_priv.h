@@ -1480,6 +1480,15 @@ void
 gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
 
 /**
+ * Deflate the shift used for twistshift BCs from 3D to 1D.
+ *
+ * @param app Gyrokinetic app object.
+ * @param delta_ts Shift in 3D array.
+ */
+void
+gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array *delta_ts);
+
+/**
  * Find species with given name.
  *
  * @param app Top-level app to look into
