@@ -12,7 +12,9 @@
 #include <assert.h>
 #include <time.h>
 
-static bool gyrokinetic_str_ends_in_b67(char *name){
+// Function to check whether we are in blocks 6 or 7
+// which are core blocks for half domain
+static bool gk_eirene_gyrokinetic_str_ends_in_b67(char *name){
   size_t len = strlen(name);
   int i = len - 1;
   int digit_count = 0;
@@ -35,7 +37,9 @@ static bool gyrokinetic_str_ends_in_b67(char *name){
   }
 }
 
-static bool gyrokinetic_str_ends_in_b1011(char *name){
+// Function to check whether we are in blocks 10 or 11
+// which are core blocks for full domain
+static bool gk_eirene_gyrokinetic_str_ends_in_b1011(char *name){
   size_t len = strlen(name);
   int i = len - 1;
   int digit_count = 0;
@@ -173,10 +177,10 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
     double coll_factor = 1.0;
-    if (gyrokinetic_str_ends_in_b67(app->name) && app->gk_geom->half_domain) {
+    if (gk_eirene_gyrokinetic_str_ends_in_b67(app->name) && app->gk_geom->half_domain) {
       coll_factor = eirene->info.core_coll_factor[i];
     }
-    else if (gyrokinetic_str_ends_in_b1011(app->name)) {
+    else if (gk_eirene_gyrokinetic_str_ends_in_b1011(app->name)) {
       coll_factor = eirene->info.core_coll_factor[i];
     }
     eirene->bgk_src[i].injection_time = eirene->info.injection_time[i]/coll_factor;
