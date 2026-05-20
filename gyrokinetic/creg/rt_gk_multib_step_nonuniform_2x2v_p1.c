@@ -1880,8 +1880,8 @@ main(int argc, char **argv)
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
-
   gkyl_gyrokinetic_comms_release(comm);
+  gkyl_free(app_inp);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)

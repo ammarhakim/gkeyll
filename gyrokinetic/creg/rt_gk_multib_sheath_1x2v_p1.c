@@ -794,6 +794,7 @@ main(int argc, char **argv)
 
   gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
+  gkyl_free(app_inp);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)
