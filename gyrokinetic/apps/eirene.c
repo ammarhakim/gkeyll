@@ -171,8 +171,9 @@ gk_eirene_init(struct gkyl_gyrokinetic_app *app, struct gkyl_gk *gk)
 
   eirene->info = gk->eirene;
 
-  for (int i=0; i<eirene->info.num_coupling_species; ++i)
+  for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     eirene->coupling_species[i] = gk_find_species(app, eirene->info.coupling_species[i]);
+  }
 
   for (int i=0; i<eirene->info.num_coupling_species; ++i) {
     struct gk_species *gks = eirene->coupling_species[i];
