@@ -30,7 +30,7 @@ gkyl_bgk_collisions* gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis,
  * @param crange Config-space range.
  * @param prange Phase-space range.
  * @param nu Sum of collision frequencies.
- * @param nufM Sum of collision frequencies times their respective Maxwellian.
+ * @param nufeq Sum of collision frequencies times their respective equilibrium distribution.
  * @param fin Input distribution function.
  * @param implicit_step  boolean of wheather or not to take an implicit step
  * @param dt timestep size used only in the implicit calc
@@ -39,7 +39,7 @@ gkyl_bgk_collisions* gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis,
  */
 void gkyl_bgk_collisions_advance(const gkyl_bgk_collisions *up,
   const struct gkyl_range *crange, const struct gkyl_range *prange,
-  const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
+  const struct gkyl_array *nu, const struct gkyl_array *nufeq, const struct gkyl_array *fin,
   bool implicit_step, double dt, struct gkyl_array *out, struct gkyl_array *cflfreq);
 
 /**

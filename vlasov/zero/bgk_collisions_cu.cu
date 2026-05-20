@@ -13,7 +13,7 @@ __global__ void
 gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned poly_order,
   unsigned pnum_basis, enum gkyl_basis_type b_type, double cellav_fac,
   struct gkyl_range crange, struct gkyl_range prange,
-  const struct gkyl_array* nu, const struct gkyl_array* nufM, const struct gkyl_array* fin,
+  const struct gkyl_array* nu, const struct gkyl_array* nufeq, const struct gkyl_array* fin,
   bool implicit_step, double dt, struct gkyl_array* out, struct gkyl_array* cflfreq)
 {
   mul_op_t mul_op = choose_mul_conf_phase_kern(b_type, cdim, vdim, poly_order);
@@ -34,7 +34,7 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
     long pstart = gkyl_range_idx(&prange, pidx);
     long cstart = gkyl_range_idx(&crange, pidx);
 
-    const double *nufM_d = (const double*) gkyl_array_cfetch(nufM, pstart);
+    const double *nufeq_d = (const double*) gkyl_array_cfetch(nufeq, pstart);
     const double *fin_d = (const double*) gkyl_array_cfetch(fin, pstart);
     double *out_d = (double*) gkyl_array_fetch(out, pstart);
 
@@ -44,7 +44,7 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
     if (implicit_step) {
 
       // Add nu*f_M.
-      array_acc1(pnum_basis, out_d, 1.0/(1.0 + nu_d[0]*cellav_fac*dt), nufM_d);
+      array_acc1(pnum_basis, out_d, 1.0/(1.0 + nu_d[0]*cellav_fac*dt), nufeq_d);
 
       // Calculate and add -nu*f.
       double incr[160]; // mul_op assigns, but need increment, so use a buffer.
@@ -55,7 +55,7 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
     } 
     else {
       // Add nu*f_M.
-      array_acc1(pnum_basis, out_d, 1., nufM_d);
+      array_acc1(pnum_basis, out_d, 1., nufeq_d);
 
       // Calculate -nu*f.
       double incr[160]; // mul_op assigns, but need increment, so use a buffer.
@@ -72,12 +72,12 @@ gkyl_bgk_collisions_advance_cu_kernel(unsigned cdim, unsigned vdim, unsigned pol
 void
 gkyl_bgk_collisions_advance_cu(const gkyl_bgk_collisions *up,
   const struct gkyl_range *crange, const struct gkyl_range *prange,
-  const struct gkyl_array *nu, const struct gkyl_array *nufM, const struct gkyl_array *fin,
+  const struct gkyl_array *nu, const struct gkyl_array *nufeq, const struct gkyl_array *fin,
   bool implicit_step, double dt, struct gkyl_array *out, struct gkyl_array *cflfreq)
 {
   int nblocks = prange->nblocks;
   int nthreads = prange->nthreads;
   gkyl_bgk_collisions_advance_cu_kernel<<<nblocks, nthreads>>>(up->cdim, up->vdim,
     up->poly_order, up->pnum_basis, up->pb_type, up->cellav_fac, *crange, *prange,
-    nu->on_dev, nufM->on_dev, fin->on_dev, implicit_step, dt, out->on_dev, cflfreq->on_dev);
+    nu->on_dev, nufeq->on_dev, fin->on_dev, implicit_step, dt, out->on_dev, cflfreq->on_dev);
 }
