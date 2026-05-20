@@ -1337,6 +1337,14 @@ struct gk_field {
   void (*accumulate_rhoc_func)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gk_species *s, struct gkyl_array **bflux);
   // Pointer to function that frees memory.
   void (*release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
+
+  struct gkyl_array_average *fs_avg; // Operator to compute the flux-surface average.
+  struct gkyl_basis fs_avg_basis; // Basis for flux-surface average.
+  struct gkyl_range fs_avg_local; // Local range for flux-surface average.
+  struct gkyl_range fs_avg_local_ext; // Local extended range for flux-surface average.
+  struct gkyl_array *fs_avg_phi; // Array to hold flux-surface averaged potential.
+  struct gk_species *elc; // Pointer to electron species.
+  int elc_idx; // Index of electron species in app->species.
 };
 
 // Gyrokinetic object: used as opaque pointer in user code.

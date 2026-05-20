@@ -340,14 +340,19 @@ gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *field,
 void gk_field_accumulate_rho_c_adiabatic(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gk_species *s, struct gkyl_array **bflux)
 {
-  // Gyroaverage the density if needed.
-  s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
-  gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
-  // Add the background (electron) charge density.
-  double n_s0 = field->info.electron_density;
-  double q_s = field->info.electron_charge;
-  double dg_norm = pow(sqrt(2.0), app->basis.ndim);
-  gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
+  if (strcmp(s->info.name, "elc") == 0) {
+    // For electrons, set rho_c to the background charge density.
+    double n_s0 = field->info.electron_density;
+    double T_s0 = field->info.electron_temp;
+    double q_s = field->info.electron_charge;
+    double dg_norm = pow(sqrt(2.0), app->basis.ndim);
+    gkyl_array_shiftc_range(field->rho_c, q_s * n_s0 * dg_norm, 0, &app->local);
+  } else {
+    assert(s->info.charge > 0.0); // Only ions should be calling here.
+    // Gyroaverage the density if needed.
+    s->gyroaverage(app, s, s->m0.marr, s->m0_gyroavg);
+    gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0_gyroavg, &app->local);
+  }
 }
 
 void gk_field_accumulate_rho_c_poisson(gkyl_gyrokinetic_app *app,

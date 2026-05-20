@@ -1,5 +1,6 @@
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_average.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_position_map.h>
 #include <gkyl_util.h>
@@ -537,6 +538,12 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   if (f->use_flr) {
     gk_field_flr_release(app, f);
   }
+
+  // Release adiabatic updaters.
+  if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    gkyl_array_release(f->fs_avg_phi);
+    gkyl_array_average_release(f->fs_avg);
+  }
 }
 
 void
@@ -567,6 +574,28 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   }
 
   if (f->gkfield_id == GKYL_GK_FIELD_ADIABATIC) {
+    // Setup updater for computing flux-surface averaged phi.
+    gkyl_range_init(&f->fs_avg_local, 1, &app->local.lower[0], &app->local.lower[0]);
+    gkyl_range_init(&f->fs_avg_local_ext, 1, &app->local_ext.lower[0], &app->local_ext.lower[0]);
+    gkyl_cart_modal_serendip(&f->fs_avg_basis, 1, app->basis.poly_order);
+    int fs_avg_dim[] = {0,1,1};
+    struct gkyl_array_average_inp inp_fs_avg = {
+      .grid = &app->grid,
+      .basis = app->basis,
+      .basis_avg = f->fs_avg_basis,
+      .local = &app->local,
+      .local_avg = &f->fs_avg_local,
+      .local_avg_ext = &f->fs_avg_local_ext,
+      .weight = app->gk_geom->geo_int.jacobgeo,
+      .avg_dim = fs_avg_dim,
+      .use_gpu = app->use_gpu
+    };    
+    f->fs_avg = gkyl_array_average_new(&inp_fs_avg);
+    f->fs_avg_phi = mkarr(app->use_gpu, f->fs_avg_basis.num_basis, f->fs_avg_local_ext.volume);
+    char elc_name[] = "elc";
+    f->elc = gk_find_species(app, elc_name);
+    assert(f->elc != NULL); // Make sure the electron species is found.
+    f->elc_idx = gk_find_species_idx(app, f->elc->info.name);
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_adiabatic;
   } else {
     f->accumulate_rhoc_func = gk_field_accumulate_rho_c_poisson;
