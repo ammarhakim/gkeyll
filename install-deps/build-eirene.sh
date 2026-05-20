@@ -25,6 +25,8 @@ echo ">>> Installation of coupling library complete."
 # ==============================================================================
 # Note that the automation of the SOLPS-ITER installation below
 # used assistance from an LLM (Gemini).
+# AS 5/20/26: At this time, we are using 
+# master branch commit 703210201feed52981aa26251a3d9562c7a014dd of SOLPS-ITER
 
 # Stop on error
 set -e
