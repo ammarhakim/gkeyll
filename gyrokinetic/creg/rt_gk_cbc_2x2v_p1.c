@@ -29,8 +29,6 @@ struct gk_app_ctx {
     double a_shift, Z_axis, R_axis, R0, a_mid, r0, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
     // Plasma parameters
     double me, qe, mi, qi, n0, Te0, Ti0;
-    int num_species;
-    enum gkyl_gkfield_id gkfield_id;
     bool static_elc; // Whether to use static electrons.
     // Collision parameters
     double nuFrac;
@@ -462,7 +460,7 @@ struct gk_app_ctx create_ctx(void)
   double n0  = 4.5e19; // [1/m^3] according to Fig 5 of Greenfield et al. 1997.
   double nuFrac = 1.0; // Collision factor.
 
-  bool adiabatic_electrons = true; // Whether to use adiabatic electrons.
+  bool static_elc = false; // Whether to use static electrons.
 
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
   double c_s = sqrt(Te0/mi);
@@ -504,11 +502,7 @@ struct gk_app_ctx create_ctx(void)
   double ky_itg_norm = 0.3; // Fig. 1 Dimits et al. 2000 (k*rho_i)
   double gamma_itg = gamma_itg_norm*vti/Ln;
   double ky_itg = ky_itg_norm/rho_i;
-  double t_itg = 2.*M_PI/gamma_itg;
-  double taue = Te0/Ti0;
-  // Eq. 2.9 from Sugama & Watanabe, JPP 2006.
-  double wgam_sw2007 = sqrt(7.0 + 4.0*taue)/2.0 * q0 * (vti/R0/q0) * sqrt(1.0 + 2.0*(23.0 + 16.0*taue + 4.0*taue*taue)/pow(q0*(7.0 + 4.0*taue), 2));
-  double t_gam = 2.*M_PI/wgam_sw2007;
+  double tau_itg = 1./gamma_itg;
 
   double rhostar = rho_s/a_mid;
   double inv_asp_ratio = a_mid/R0;
@@ -518,11 +512,9 @@ struct gk_app_ctx create_ctx(void)
   // printf("Lx = %1.2g, rho_s = %1.2g [m]\n", Lx, rho_s);
   // printf("x_min = %1.2g, x_max = %1.2g [m]\n", x_min, x_max);
   // printf("Ln = %1.2g, LTe = %1.2g, LTi = %1.2g [m]\n", Ln, LTe, LTi);
-  // printf("Cy = %1.2g, q0 = %1.2g, qL = %1.2g, qR = %1.2g, s0 = %1.2g\n", Cy, q0, qL, qR, s0);
+  // printf("q0 = %1.2g, qL = %1.2g, qR = %1.2g, s0 = %1.2g\n", q0, qL, qR, s0);
   // printf("ε = %1.2g, ⍴* = 1/%2.2g\n", inv_asp_ratio, 1/rhostar);
   // printf("R0/c_s = %1.2e [s]\n", t_unit);
-  // printf("t_itg = %1.2e [s], t_gam = %1.2e [s]\n", t_itg, t_gam);
-  // printf("t_itg c_s/R0 = %1.2e, t_gam c_s/R0 = %1.2e\n", t_itg/t_unit, t_gam/t_unit);
 
   // Grid parameters
   int num_cell_x = 8;
@@ -535,24 +527,14 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc = 7*Te0/B0;
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 7*Ti0/B0;
-  double final_time = 10.0*t_gam;
-  int num_frames = 100;
-  double write_phase_freq = 0.2;
+  double final_time = 2.0*tau_itg;
+  int num_frames = 1;
+  double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  bool static_elc = false; // Whether to use static electrons.
-  int num_species = 2; // Number of species to evolve. Will be set to 1 if using adiabatic electrons.
-  enum gkyl_gkfield_id gkfield_id = GKYL_GK_FIELD_ES; // Field solve type.
-  if (adiabatic_electrons) {
-    static_elc = true;
-    gkfield_id = GKYL_GK_FIELD_ADIABATIC;
-    // num_species = 1; // Only need to evolve ions if using adiabatic electrons.
-  }
-
   struct gk_app_ctx ctx = {
-    .num_species = num_species,
     .cdim = cdim,
     .vdim = vdim,
     .a_shift = a_shift,
@@ -579,7 +561,6 @@ struct gk_app_ctx create_ctx(void)
     .n0 = n0,  .Te0 = Te0,  .Ti0 = Ti0,
     .nuFrac = nuFrac,
     .static_elc = static_elc,
-    .gkfield_id = gkfield_id,
     .num_cell_x     = num_cell_x,
     .num_cell_z     = num_cell_z,
     .num_cell_vpar  = num_cell_vpar,
@@ -741,16 +722,12 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = ctx.gkfield_id,
+    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
     .time_rate_diagnostics = true,
-    .electron_mass = ctx.me, // Needed for adiabatic response.
-    .electron_charge = ctx.qe, // Needed for adiabatic response.
-    .electron_density = ctx.n0, // Needed for adiabatic response.
-    .electron_temp = ctx.Te0, // Needed for adiabatic response.
   };
 
   // Geometry
@@ -787,8 +764,8 @@ main(int argc, char **argv)
     .num_periodic_dir = 1,
     .periodic_dirs = {1},
 
-    .num_species = ctx.num_species,
-    .species = { ion, elc },
+    .num_species = 2,
+    .species = { elc, ion },
 
     .field = field,
 
