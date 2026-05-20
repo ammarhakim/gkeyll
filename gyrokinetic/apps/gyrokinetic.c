@@ -1257,6 +1257,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].normcurlbhat, arr_surf_ho1, arr_surf_ho2, "normcurlbhat", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].normals     , arr_surf_ho9, arr_surf_ho18, "normals", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].lenr        , arr_surf_ho1, arr_surf_ho2, "lenr", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].deltats        , arr_surf_ho1, arr_surf_ho2, "deltats", dir, mt);
   }
   if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     if (!gyrokinetic_str_ends_in_bnum(app->name)) {
