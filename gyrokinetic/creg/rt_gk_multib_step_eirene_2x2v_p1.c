@@ -1477,18 +1477,17 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_eirene  eirene = {
-    .input_data_path = "./gyrokinetic/data/eirene/gkeyll_text_input/",
-    .output_data_path = "./gyrokinetic/data/eirene/gkeyll_text_output/",
-    .num_coupling_species = 2,
-    .coupling_species = {"elc", "ion"},
-    .injection_time = {0.5e-3, 0.5e-3},
-    .core_coll_factor = {75.0, 75.0},
-    .damping_factor= {2.0e-1, 2.0e-1},
+    .input_data_path = "./gyrokinetic/data/eirene/gkeyll_text_input/",    // Place where text files with eirene sources will appear
+    .output_data_path = "./gyrokinetic/data/eirene/gkeyll_text_output/",  // Place where gkeyll will output the new data flag
+    .num_coupling_species = 2,          // Number of species with eirene sources
+    .coupling_species = {"elc", "ion"}, // List of species that have eirene sources 
+    .injection_time = {0.5e-3, 0.5e-3}, // Injection time sets the timescale or rate of the BGK operator
+    .core_coll_factor = {75.0, 75.0},   // Factor by which injection_time is reduced in the core
+    .damping_factor= {2.0e-1, 2.0e-1},  // temperature that the Maxwellian source can have
+                                        // Important for stability
   };
 
   struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "gk_multib_step_eirene_2x2v_p1",
-
     .cdim = ctx.cdim,
     .poly_order = 1,
     .basis_type = app_args.basis_type,
@@ -1508,6 +1507,8 @@ main(int argc, char **argv)
     .comm = comm
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = app_inp,

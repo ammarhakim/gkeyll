@@ -17,7 +17,7 @@ BUILD_OPENMPI=no
 BUILD_LUAJIT=no
 BUILD_TCC=no
 BUILD_CUDSS=no
-BUILD_EIRENE_COUPLING=no
+BUILD_EIRENE=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -58,6 +58,7 @@ The following flags specify the libraries to build.
 --build-cudss               [no] Should we build cuDSS?
 --build-tcc                 [no] Should we build tcc?
 --build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
+--build-eirene              [no] Should we build eirene?
 
 EOF
 }
@@ -168,9 +169,9 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADAS="$value"
       ;;
-   --build-eirene-coupling)
+   --build-eirene)
       [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_EIRENE_COUPLING="$value"
+      BUILD_EIRENE="$value"
       ;;
    *)
       die "Error: Unknown flag: $1"
@@ -266,11 +267,11 @@ build_adas() {
     fi
 }
 
-build_eirene_coupling() {
-    if [ "$BUILD_EIRENE_COUPLING" = "yes" ]
+build_eirene() {
+    if [ "$BUILD_EIRENE" = "yes" ]
     then
 	echo "Building EIRNE Coupling for neutral coupling"
-	./build-eirene-coupling.sh
+	./build-eirene.sh
     fi
 }
 
@@ -283,4 +284,4 @@ build_openblas
 build_superlu
 build_cudss
 build_adas
-build_eirene_coupling
+build_eirene
