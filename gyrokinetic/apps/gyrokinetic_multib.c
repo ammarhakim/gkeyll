@@ -165,6 +165,10 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // Copy parallelism input into app input.
   memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
 
+  app_inp.num_periodic_dir = mbinp->num_periodic_dir;
+  for(int i = 0; i < mbinp->cdim; i++)
+    app_inp.periodic_dirs[i] = mbinp->periodic_dirs[i];
+
   return gkyl_gyrokinetic_app_new_geom(&app_inp);
 }
 
