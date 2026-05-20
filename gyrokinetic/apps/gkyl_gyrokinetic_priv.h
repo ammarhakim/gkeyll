@@ -873,9 +873,9 @@ struct gk_source_bgk {
   double norm_power; // Normalized power, 2*P/(vdim_phys*m).
   struct gkyl_array *rate; // Sourcing rate.
   struct gkyl_array *Jrate; // Sourcing rate times the conf-space Jacobian.
-  struct gkyl_array *vtsq_shape; // Spatial profile of the Maxwellian's v_t^2.
+  struct gkyl_array *vtsq_shape; // Spatial profile of the eq. Maxwellian's v_t^2.
   struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
-  struct gkyl_array *Jrate_fmax; // Jrate times the Maxwellian.
+  struct gkyl_array *Jrate_feq; // Jrate times the eq. distribution.
   struct gkyl_array *Jrate_mom; // Jrate times a velocity moment.
   struct gkyl_array *Jrate_cap; // Max value for Jrate_mom.
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.

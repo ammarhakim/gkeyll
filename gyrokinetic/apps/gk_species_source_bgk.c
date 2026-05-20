@@ -23,7 +23,16 @@ gk_species_source_bgk_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species 
 }
 
 static void
-gk_species_source_bgk_rhs_default_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_source_bgk_rhs_feq_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  // add the term -nu * (f - feq) to the rhs.
+  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
+    src->rate, src->Jrate_feq, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+}
+
+static void
+gk_species_source_bgk_rhs_heating_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
 
@@ -51,12 +60,12 @@ gk_species_source_bgk_rhs_default_enabled(gkyl_gyrokinetic_app *app, struct gk_s
   gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
 
   // Multiply the Maxwellian by Jrate.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_fmax, 
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_feq, 
     src->Jrate, species->lte.f_lte, &app->local, &species->local);
 
   // Assemble the BGK-like term and add it to rhs.
   gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
-    src->rate, src->Jrate_fmax, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+    src->rate, src->Jrate_feq, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -124,18 +133,16 @@ static void
 gk_species_source_bgk_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkyl_array_clear(src->Jrate_fmax, 0.0);
+  gkyl_array_clear(src->Jrate_feq, 0.0);
 
-  gks_src_bgk_rhs_accumulate_maxwellian(app, species, src, fin, src->Jrate_fmax);
+  gks_src_bgk_rhs_accumulate_maxwellian(app, species, src, fin, src->Jrate_feq);
 
   // Multiply the Maxwellian by Jrate.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
-    src->Jrate, src->Jrate_fmax, &app->local, &species->local);
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_feq, 
+    src->Jrate, src->Jrate_feq, &app->local, &species->local);
   // Assemble the BGK-like term and add it to rhs.
-  gkyl_array_clear(src->Jrate_fmax, 0.0);
-  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, src->rate, species->lte.f_lte,
-    fin, src->implicit_step, src->dt_implicit, src->Jrate_fmax, species->cflrate);
-  gkyl_array_accumulate(rhs, 1.0, src->Jrate_fmax);
+  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, src->rate, src->Jrate_feq,
+    fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
 }
 
 static void
@@ -145,7 +152,7 @@ gk_species_source_bgk_write_diags_disabled(gkyl_gyrokinetic_app* app, struct gk_
 }
 
 static void
-gk_species_source_bgk_write_diags_default_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+gk_species_source_bgk_write_diags_heating_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_source_bgk *src, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -221,7 +228,7 @@ gks_src_bgk_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
   double avals_global[num_mom];
   
   // Compute integrated moments of source term.
-  gk_species_moment_calc(&src->integ_mom_op, gks->local, app->local, src->Jrate_fmax); 
+  gk_species_moment_calc(&src->integ_mom_op, gks->local, app->local, src->Jrate_feq); 
   app->stat.n_mom += 1;
 
   // Reduce (sum) over whole domain, append to diagnostics.
@@ -331,137 +338,176 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
   src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_disabled;
   src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_disabled;
 
-  if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
-    int vdim_phys = gks->info.vdim == 1? 1 : 3;
-    src->norm_power = 2.0*gks->info.source_bgk.power/(vdim_phys*gks->info.mass);
-
-    // source_bgk rate.
+  if (src->source_bgk_id){
+    // Collision rate
     src->rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    struct gkyl_array *rate_host = app->use_gpu? mkarr(false, src->rate->ncomp, src->rate->size)
-                                               : gkyl_array_acquire(src->rate);
-    gkyl_proj_on_basis *proj_rate = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-      app->poly_order+1, 1, gks->info.source_bgk.rate_profile, gks->info.source_bgk.rate_profile_ctx);
-
-    // Divide rate by 3 so we can group density, momentum and energy terms.
-    gkyl_array_scale_range(rate_host, 1.0/3.0, &app->local);
-
-    gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
-    gkyl_array_copy(src->rate, rate_host);
-    gkyl_proj_on_basis_release(proj_rate);
-    gkyl_array_release(rate_host);
-    // Multiply the rate by the conf-space Jacobian.
+    // Jacobian times the collision rate.
     src->Jrate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
-
-    // source_bgk rate.
-    src->vtsq_shape = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    struct gkyl_array *vtsq_shape_host = app->use_gpu? mkarr(false, src->vtsq_shape->ncomp, src->vtsq_shape->size)
-                                                     : gkyl_array_acquire(src->vtsq_shape);
-    gkyl_proj_on_basis *proj_vtsq_shape = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-      app->poly_order+1, 1, gks->info.source_bgk.temp_shape, gks->info.source_bgk.temp_shape_ctx);
-    gkyl_proj_on_basis_advance(proj_vtsq_shape, 0.0, &app->local, vtsq_shape_host);
-    gkyl_array_copy(src->vtsq_shape, vtsq_shape_host);
-    gkyl_proj_on_basis_release(proj_vtsq_shape);
-    gkyl_array_release(vtsq_shape_host);
-
-    // Multiply Jrate by the shape of v_t^2.
-    src->Jrate_vtsq_shape = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_vtsq_shape, 0, src->Jrate, 0, src->vtsq_shape, &app->local);
-
-    // Rate times the Maxwellian.
-    src->Jrate_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
-    // Rate times a velocity moment.
-    src->Jrate_mom = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-    // Volume integrator.
-    src->vol_integ_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
-    if (app->use_gpu) {
-      src->volint_local = gkyl_cu_malloc(sizeof(double));
-      src->volint_global = gkyl_cu_malloc(sizeof(double));
-    } 
-    else {
-      src->volint_local = gkyl_malloc(sizeof(double));
-      src->volint_global = gkyl_malloc(sizeof(double));
-    }
-
+    // Jrate times the equilibrium distribution function.
+    src->Jrate_feq = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
     // BGK operator.
     src->bgk_op = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
     src->implicit_step = false;
     src->dt_implicit = 1e9;
-
-    if (src->write_diagnostics) {
-      src->vtsq_amp_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
-      // Write out the source_bgk rate and vtsq shape.
-      gk_source_bgk_write_conf_array(app, gks, src, 0, 0.0, "source_bgk_rate", src->rate, 0);
-      gk_source_bgk_write_conf_array(app, gks, src, 0, 0.0, "source_bgk_temp_shape", src->vtsq_shape, 0);
-    }
-
     // Methods chosen at runtime.
-    src->rhs_func = gk_species_source_bgk_rhs_default_enabled;
     if (src->write_diagnostics) {
-      src->write_diags_func = gk_species_source_bgk_write_diags_default_enabled;
-    }
-  }
-
-  if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
-    // source_bgk rate.
-    src->rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_shiftc(src->rate, pow(sqrt(2.0),app->cdim)/src->injection_time, 0); // Sets rate = 1/injection_time
-
-    // Multiply the rate by the conf-space Jacobian.
-    src->Jrate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
-
-
-    // External source rates
-    src->M0dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    src->M1dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    src->M2dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-    src->M0dot_host =  src->M0dot;
-    src->M1dot_host =  src->M1dot;
-    src->M2dot_host =  src->M2dot;
-
-    if(app->use_gpu) {
-      src->M0dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      src->M1dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-      src->M2dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
-    }
-
-    // Rate times the Maxwellian.
-    src->Jrate_fmax = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
-    // Rate times a velocity moment.
-    src->Jrate_mom = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    src->Jrate_cap = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-
-    // BGK operator.
-    src->bgk_op = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
-    src->implicit_step = false;
-    src->dt_implicit = 1e9;
-
-    // Correction moments of the operator.
-    gk_species_moment_init(app, gks, &src->correct_mom_op, GKYL_F_MOMENT_M0M1M2, false);
-
-    // Integrated moments of the operator.
-    gk_species_moment_init(app, gks, &src->integ_mom_op, GKYL_F_MOMENT_M0M1M2, true);
-
-    if (app->use_gpu) {
-      src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-      src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-    } 
-    else {
-      src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-      src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-    }
-    src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_mom_op.num_mom);
-    src->is_first_diag_dynvec_write_call = true;
-
-    // Methods chosen at runtime.
-    src->rhs_func = gk_species_source_bgk_rhs_external_enabled;
-    if (src->write_diagnostics) {
-      src->write_diags_func = gk_species_source_bgk_write_diags_external_enabled;
       src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
       src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_enabled;
+    }
+
+    if (src->source_bgk_id == GKYL_SOURCE_BGK_STATIC) {
+      // source_bgk rate.
+      struct gkyl_array *rate_host = app->use_gpu? mkarr(false, src->rate->ncomp, src->rate->size)
+                                                : gkyl_array_acquire(src->rate);
+      gkyl_proj_on_basis *proj_rate = gkyl_proj_on_basis_new(&app->grid, &app->basis,
+        app->poly_order+1, 1, gks->info.source_bgk.rate_profile, gks->info.source_bgk.rate_profile_ctx);
+
+      gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
+      gkyl_array_copy(src->rate, rate_host);
+      gkyl_proj_on_basis_release(proj_rate);
+      gkyl_array_release(rate_host);
+      // Multiply the rate by the conf-space Jacobian.
+      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
+
+      // Project the user provided function.
+      struct gkyl_array *Jrate_fmax_host = app->use_gpu? mkarr(false, src->Jrate_feq->ncomp, src->Jrate_feq->size)
+                                                      : gkyl_array_acquire(src->Jrate_feq);
+      gkyl_proj_on_basis *proj_feq_shape = gkyl_proj_on_basis_new(&gks->grid, &gks->basis,
+        app->poly_order+1, 1, gks->info.source_bgk.feq_shape, gks->info.source_bgk.feq_shape_ctx);
+      gkyl_proj_on_basis_advance(proj_feq_shape, 0.0, &app->local, Jrate_fmax_host);
+      gkyl_array_copy(src->Jrate_feq, Jrate_fmax_host);
+      gkyl_proj_on_basis_release(proj_feq_shape);
+      gkyl_array_release(Jrate_fmax_host);
+
+      // Multiply the equilibrium distribution function by Jrate.
+      gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, src->Jrate_feq, 
+        src->Jrate, src->Jrate_feq, &app->local, &gks->local);
+
+      // BGK operator.
+      src->bgk_op = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
+      src->implicit_step = false;
+      src->dt_implicit = 1e9;
+
+      // Methods chosen at runtime.
+      src->rhs_func = gk_species_source_bgk_rhs_heating_enabled;
+    }
+
+    if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
+      int vdim_phys = gks->info.vdim == 1? 1 : 3;
+      src->norm_power = 2.0*gks->info.source_bgk.power/(vdim_phys*gks->info.mass);
+
+      // source_bgk rate.
+      struct gkyl_array *rate_host = app->use_gpu? mkarr(false, src->rate->ncomp, src->rate->size)
+                                                : gkyl_array_acquire(src->rate);
+      gkyl_proj_on_basis *proj_rate = gkyl_proj_on_basis_new(&app->grid, &app->basis,
+        app->poly_order+1, 1, gks->info.source_bgk.rate_profile, gks->info.source_bgk.rate_profile_ctx);
+
+      // Divide rate by 3 so we can group density, momentum and energy terms.
+      gkyl_array_scale_range(rate_host, 1.0/3.0, &app->local);
+
+      gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
+      gkyl_array_copy(src->rate, rate_host);
+      gkyl_proj_on_basis_release(proj_rate);
+      gkyl_array_release(rate_host);
+      // Multiply the rate by the conf-space Jacobian.
+      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
+
+      // source_bgk rate.
+      src->vtsq_shape = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      struct gkyl_array *vtsq_shape_host = app->use_gpu? mkarr(false, src->vtsq_shape->ncomp, src->vtsq_shape->size)
+                                                      : gkyl_array_acquire(src->vtsq_shape);
+      gkyl_proj_on_basis *proj_vtsq_shape = gkyl_proj_on_basis_new(&app->grid, &app->basis,
+        app->poly_order+1, 1, gks->info.source_bgk.temp_shape, gks->info.source_bgk.temp_shape_ctx);
+      gkyl_proj_on_basis_advance(proj_vtsq_shape, 0.0, &app->local, vtsq_shape_host);
+      gkyl_array_copy(src->vtsq_shape, vtsq_shape_host);
+      gkyl_proj_on_basis_release(proj_vtsq_shape);
+      gkyl_array_release(vtsq_shape_host);
+
+      // Multiply Jrate by the shape of v_t^2.
+      src->Jrate_vtsq_shape = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_vtsq_shape, 0, src->Jrate, 0, src->vtsq_shape, &app->local);
+
+      // Rate times a velocity moment.
+      src->Jrate_mom = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+      // Volume integrator.
+      src->vol_integ_op = gkyl_array_integrate_new(&app->grid, &app->basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, app->use_gpu);
+      if (app->use_gpu) {
+        src->volint_local = gkyl_cu_malloc(sizeof(double));
+        src->volint_global = gkyl_cu_malloc(sizeof(double));
+      } 
+      else {
+        src->volint_local = gkyl_malloc(sizeof(double));
+        src->volint_global = gkyl_malloc(sizeof(double));
+      }
+
+      if (src->write_diagnostics) {
+        src->vtsq_amp_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
+        // Write out the source_bgk rate and vtsq shape.
+        gk_source_bgk_write_conf_array(app, gks, src, 0, 0.0, "source_bgk_rate", src->rate, 0);
+        gk_source_bgk_write_conf_array(app, gks, src, 0, 0.0, "source_bgk_temp_shape", src->vtsq_shape, 0);
+      }
+
+      // Methods chosen at runtime.
+      src->rhs_func = gk_species_source_bgk_rhs_heating_enabled;
+      if (src->write_diagnostics) {
+        src->write_diags_func = gk_species_source_bgk_write_diags_heating_enabled;
+        // Why arren't we enabling integrted diagnostics like:
+        // src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
+        // src->write_diags_func = gk_species_source_bgk_write_diags_external_enabled;
+      }
+    }
+
+    if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
+      // source_bgk rate.
+      gkyl_array_shiftc(src->rate, pow(sqrt(2.0),app->cdim)/src->injection_time, 0); // Sets rate = 1/injection_time
+
+      // Multiply the rate by the conf-space Jacobian.
+      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
+
+      // External source rates
+      src->M0dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      src->M1dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      src->M2dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+      src->M0dot_host =  src->M0dot;
+      src->M1dot_host =  src->M1dot;
+      src->M2dot_host =  src->M2dot;
+
+      if(app->use_gpu) {
+        src->M0dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+        src->M1dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+        src->M2dot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      }
+
+      // Rate times a velocity moment.
+      src->Jrate_mom = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      src->Jrate_cap = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+      // Correction moments of the operator.
+      gk_species_moment_init(app, gks, &src->correct_mom_op, GKYL_F_MOMENT_M0M1M2, false);
+
+      // Integrated moments of the operator.
+      gk_species_moment_init(app, gks, &src->integ_mom_op, GKYL_F_MOMENT_M0M1M2, true);
+
+      if (app->use_gpu) {
+        src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+        src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+      } 
+      else {
+        src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+        src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+      }
+      src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_mom_op.num_mom);
+      src->is_first_diag_dynvec_write_call = true;
+
+      // Methods chosen at runtime.
+      src->rhs_func = gk_species_source_bgk_rhs_external_enabled;
+      if (src->write_diagnostics) {
+        src->write_diags_func = gk_species_source_bgk_write_diags_external_enabled;
+        src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
+        src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_enabled;
+      }
     }
   }
 }
@@ -497,58 +543,58 @@ gk_species_source_bgk_write_integrated_diags(gkyl_gyrokinetic_app *app, struct g
 void
 gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const struct gk_source_bgk *src)
 {
-  if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
+  if (src->source_bgk_id) {
     gkyl_array_release(src->rate);
     gkyl_array_release(src->Jrate);
-    gkyl_array_release(src->vtsq_shape);
-    gkyl_array_release(src->Jrate_vtsq_shape);
-    gkyl_array_release(src->Jrate_fmax);
-    gkyl_array_release(src->Jrate_mom);
-
-    gkyl_array_integrate_release(src->vol_integ_op);
-    if (app->use_gpu) {
-      gkyl_cu_free(src->volint_local);
-      gkyl_cu_free(src->volint_global);
-    }
-    else {
-      gkyl_free(src->volint_local);
-      gkyl_free(src->volint_global);
-    }
-
     gkyl_bgk_collisions_release(src->bgk_op);
+    if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
+      gkyl_array_release(src->vtsq_shape);
+      gkyl_array_release(src->Jrate_vtsq_shape);
+      gkyl_array_release(src->Jrate_feq);
+      gkyl_array_release(src->Jrate_mom);
 
-    if (src->write_diagnostics) {
-      gkyl_dynvec_release(src->vtsq_amp_diag);
-    }
-  }
-  if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
-    gkyl_array_release(src->rate);
-    gkyl_array_release(src->Jrate);
-    gkyl_array_release(src->Jrate_fmax);
-    gkyl_array_release(src->Jrate_mom);
-    gkyl_array_release(src->Jrate_cap);
+      gkyl_array_integrate_release(src->vol_integ_op);
+      if (app->use_gpu) {
+        gkyl_cu_free(src->volint_local);
+        gkyl_cu_free(src->volint_global);
+      }
+      else {
+        gkyl_free(src->volint_local);
+        gkyl_free(src->volint_global);
+      }
 
-    gkyl_array_release(src->M0dot);
-    gkyl_array_release(src->M1dot);
-    gkyl_array_release(src->M2dot);
-    if (app->use_gpu) {
-      gkyl_array_release(src->M0dot_host);
-      gkyl_array_release(src->M1dot_host);
-      gkyl_array_release(src->M2dot_host);
-    }
+      gkyl_bgk_collisions_release(src->bgk_op);
 
-    gkyl_bgk_collisions_release(src->bgk_op);
-    gk_species_moment_release(app, &src->integ_mom_op); 
-    gk_species_moment_release(app, &src->correct_mom_op); 
-    gkyl_dynvec_release(src->integ_diag);
-    if (app->use_gpu) {
-      gkyl_cu_free(src->red_integ_diag);
-      gkyl_cu_free(src->red_integ_diag_global);
-    }
-    else {
-      gkyl_free(src->red_integ_diag);
-      gkyl_free(src->red_integ_diag_global);
-    }
+      if (src->write_diagnostics) {
+        gkyl_dynvec_release(src->vtsq_amp_diag);
+      }
+    } 
+    else if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
+      gkyl_array_release(src->Jrate_feq);
+      gkyl_array_release(src->Jrate_mom);
+      gkyl_array_release(src->Jrate_cap);
 
+      gkyl_array_release(src->M0dot);
+      gkyl_array_release(src->M1dot);
+      gkyl_array_release(src->M2dot);
+      if (app->use_gpu) {
+        gkyl_array_release(src->M0dot_host);
+        gkyl_array_release(src->M1dot_host);
+        gkyl_array_release(src->M2dot_host);
+      }
+
+      gk_species_moment_release(app, &src->integ_mom_op); 
+      gk_species_moment_release(app, &src->correct_mom_op); 
+      gkyl_dynvec_release(src->integ_diag);
+      if (app->use_gpu) {
+        gkyl_cu_free(src->red_integ_diag);
+        gkyl_cu_free(src->red_integ_diag_global);
+      }
+      else {
+        gkyl_free(src->red_integ_diag);
+        gkyl_free(src->red_integ_diag_global);
+      }
+
+    }
   }
 }

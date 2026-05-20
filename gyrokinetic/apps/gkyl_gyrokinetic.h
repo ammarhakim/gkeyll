@@ -180,9 +180,11 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
 //    for external model
 struct gkyl_gyrokinetic_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
-  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x).
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x,y,z).
   void *rate_profile_ctx;
-  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x).
+  void (*feq_shape)(double t, const double *xn, double *fout, void *ctx); // F_eq(x,y,z,vpar,mu).
+  void *feq_shape_ctx;
+  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x,y,z).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
   double injection_time;  // Injection time for external source model
