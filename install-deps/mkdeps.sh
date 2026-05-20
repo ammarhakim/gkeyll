@@ -58,7 +58,7 @@ The following flags specify the libraries to build.
 --build-cudss               [no] Should we build cuDSS?
 --build-tcc                 [no] Should we build tcc?
 --build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
---build-eirene              [no] Should we build eirene?
+--build-eirene              [no] Should we build eirene? (includes installing SOLPS-ITER)
 
 EOF
 }

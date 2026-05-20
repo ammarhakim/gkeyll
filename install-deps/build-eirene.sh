@@ -1,15 +1,17 @@
 #!/bin/bash
 
+source ./build-opts.sh
+
 # ==============================================================================
 # Gk-Neutral_coupling Automated Installer
 # ==============================================================================
 
 echo ">>> Starting GK-Neutral_coupling Installation..."
-cd ../../gkylsoft/
+cd $GKYLSOFT
 
 if [ ! -d "GK-Neutral_coupling" ]; then
     echo ">>> Downloading GK-Neutral_coupling..."
-    wget https://github.com/jRoeltgen/GK-Neutral_coupling/archive/refs/tags/gkeyll.tar.gz
+    wget https://github.com/jRoeltgen/GK-Neutral_coupling/archive/refs/tags/gkeyll_v1.tar.gz
     mkdir GK-Neutral_coupling && tar -xzf gkeyll.tar.gz -C GK-Neutral_coupling --strip-components=1
     rm gkeyll.tar.gz
 else
