@@ -231,8 +231,8 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
 
   // Choose between constructing from Vierbeins or constructing from basis vectors
   if(inp_triad_geom.use_preset_geom) {
-    inp_triad_geom.eval_vierbein = choose_vierbein_kern(inp_triad_geom.triad_preset_geom_type, pgrid->ndim - cgrid->ndim);
-    inp_triad_geom.eval_vierbein_gradient = choose_vierbein_gradient_kern(inp_triad_geom.triad_preset_geom_type, pgrid->ndim - cgrid->ndim);
+    inp_triad_geom.eval_vierbein = choose_vierbein_kern(inp_triad_geom.triad_preset_geom_type, cgrid->ndim,  pgrid->ndim - cgrid->ndim);
+    inp_triad_geom.eval_vierbein_gradient = choose_vierbein_gradient_kern(inp_triad_geom.triad_preset_geom_type, cgrid->ndim,  pgrid->ndim - cgrid->ndim);
 
     // ensure non-NULL pointers, requested triad geometry is not currently supported
     assert(inp_triad_geom.eval_vierbein);

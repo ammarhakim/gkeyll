@@ -1185,6 +1185,79 @@ test_triad_3v_obl_sph_conf_pnt(int poly_order)
   gkyl_array_release(conf_poisson_tensor);
 }
 
+void
+test_triad_1x3v_cart_ks_flat_limit_conf(int poly_order)
+{
+  double lower[] = { 1.0, -5.0, -5.0, -5.0 };
+  double upper[] = { 2.0,  5.0,  5.0,  5.0 };
+  int cells[] = { 8, 12, 12, 12 };
+  int vdim = 3, cdim = 1;
+  int ndim = cdim+vdim;
+
+  double confLower[] = { lower[0] }, confUpper[] = { upper[0] };
+  int confCells[] = { cells[0] };
+
+  struct gkyl_rect_grid grid, confGrid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+  struct gkyl_basis basis, confBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+
+  int confGhost[] = { 1 };
+  struct gkyl_range confLocal, confLocal_ext;
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[] = { confGhost[0], 0, 0, 0 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct gkyl_triad_geom_ctx geom = {
+    .mass_bh = 0.0,
+    .spin_bh = 0.0,
+  };
+  struct gkyl_vlasov_triad_geom_inp inp_triad_geom = {
+    .use_preset_geom = true,
+    .triad_preset_geom_type = GKYL_TRIAD_CART_GR_KERR_SCHILD_3V,
+    .eval_vierbein_ctx = &geom,
+    .eval_vierbein_gradient_ctx = &geom,
+  };
+
+  int num_pt_indices[3] = { 1, 6, 18 };
+  struct gkyl_array *conf_poisson_tensor =
+    mkarr(confBasis.num_basis*num_pt_indices[vdim-1], confLocal_ext.volume);
+
+  gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis,
+    &grid, &local, basis, inp_triad_geom, conf_poisson_tensor);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &confLocal);
+  while (gkyl_range_iter_next(&iter)) {
+    const double *pt = gkyl_array_cfetch(conf_poisson_tensor,
+      gkyl_range_idx(&confLocal, iter.idx));
+
+    for (int k=0; k<num_pt_indices[vdim-1]; ++k) {
+      for (int m=0; m<confBasis.num_basis; ++m) {
+        int idx = k*confBasis.num_basis + m;
+        double expected = ((k == 0 || k == 4 || k == 8) && m == 0) ? sqrt(2.0) : 0.0;
+        TEST_CHECK(isfinite(pt[idx]));
+        TEST_CHECK(gkyl_compare_double(pt[idx], expected, 1e-12));
+      }
+    }
+  }
+
+  evalf_t hamil = gkyl_vlasov_triad_preset_hamil(cdim, vdim,
+    GKYL_TRIAD_CART_GR_KERR_SCHILD_3V);
+  double xn[] = { 1.0, 1.0, 2.0, 3.0 };
+  double hout[1];
+  hamil(0.0, xn, hout, &geom);
+  TEST_CHECK(isfinite(hout[0]));
+  TEST_CHECK(gkyl_compare_double(hout[0], sqrt(15.0), 1e-12));
+
+  gkyl_array_release(conf_poisson_tensor);
+}
+
 void test_triad_1v() { test_triad_math_1v(); }
 void test_triad_1x1v_flat() { test_triad_1x1v_flat_conf(2); }
 void test_triad_1x2v_flat() { test_triad_1x2v_flat_conf(2); }
@@ -1194,6 +1267,7 @@ void test_triad_3v() { test_triad_math_3v(); }
 void test_triad_2x2v_rphi_ks() { test_triad_2x2v_rphi_ks_pnt(2); }
 void test_triad_3v_obl_sph() { test_triad_3v_obl_sph_conf(2); }
 void test_triad_3v_obl_sph_pnt() { test_triad_3v_obl_sph_conf_pnt(2); }
+void test_triad_1x3v_cart_ks_flat_limit() { test_triad_1x3v_cart_ks_flat_limit_conf(1); }
 
 TEST_LIST = {
   { "test_triad_1v", test_triad_1v}, 
@@ -1205,5 +1279,6 @@ TEST_LIST = {
   { "test_triad_2x2v_rphi_ks", test_triad_2x2v_rphi_ks},
   { "test_triad_3v_obl_sph", test_triad_3v_obl_sph},
   { "test_triad_3v_obl_sph_pnt", test_triad_3v_obl_sph_pnt},
+  { "test_triad_1x3v_cart_ks_flat_limit", test_triad_1x3v_cart_ks_flat_limit},
   {NULL, NULL}
 };
