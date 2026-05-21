@@ -664,6 +664,7 @@ main(int argc, char **argv)
       .rate_profile_ctx = &ctx,
       .feq_shape = eval_canon_maxwellian_i,
       .feq_shape_ctx = &ctx,
+      .write_diagnostics = true,
     },
 
     // .anomalous_diffusion = {
@@ -726,6 +727,7 @@ main(int argc, char **argv)
       .rate_profile_ctx = &ctx,
       .feq_shape = eval_canon_maxwellian_e,
       .feq_shape_ctx = &ctx,
+      .write_diagnostics = true,
     },
 
     // .anomalous_diffusion = {

@@ -26,9 +26,11 @@ static void
 gk_species_source_bgk_rhs_feq_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  // add the term -nu * (f - feq) to the rhs.
+  // compute -nu * (f - feq) and add to the rhs.
+  gkyl_array_clear(src->Jrate_df, 0.0);
   gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
-    src->rate, src->Jrate_feq, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+    src->rate, species->lte.f_lte, fin, src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate);
+  gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
 }
 
 static void
@@ -56,16 +58,18 @@ gk_species_source_bgk_rhs_heating_enabled(gkyl_gyrokinetic_app *app, struct gk_s
   src->vtsq_amplitude = (src->norm_power + Jrate_M2thermal_int)/Jrate_vtsq_shape_M0_int;
   gkyl_array_set_offset_range(species->lte.moms.marr, src->vtsq_amplitude, src->vtsq_shape, 2*app->basis.num_basis, &app->local);
 
-  // Compute the Maxwellian.
+  // Compute the Maxwellian (this overwrite f_lte).
   gk_species_lte_from_moms(app, species, &species->lte, species->lte.moms.marr);
 
-  // Multiply the Maxwellian by Jrate.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_feq, 
+  // Multiply the Maxwellian by Jrate and keep it in lte.f_lte
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
     src->Jrate, species->lte.f_lte, &app->local, &species->local);
 
   // Assemble the BGK-like term and add it to rhs.
+  gkyl_array_clear(src->Jrate_df, 0.0);
   gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, 
-    src->rate, src->Jrate_feq, fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+    src->rate, species->lte.f_lte, fin, src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate);
+  gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
 
   app->stat.species_source_bgk_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -133,18 +137,18 @@ static void
 gk_species_source_bgk_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  gkyl_array_clear(src->Jrate_feq, 0.0);
+  gkyl_array_clear(src->Jrate_df, 0.0);
 
-  gks_src_bgk_rhs_accumulate_maxwellian(app, species, src, fin, src->Jrate_feq);
+  gks_src_bgk_rhs_accumulate_maxwellian(app, species, src, fin, src->Jrate_df);
 
   // Multiply the Maxwellian by Jrate.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
-    src->Jrate, src->Jrate_feq, &app->local, &species->local);
-  // Assemble the BGK-like term and add it to rhs.
-  gkyl_array_clear(src->Jrate_feq, 0.0);
+    src->Jrate, src->Jrate_df, &app->local, &species->local);
+  // Assemble the BGK-like term and add it to Jrate_feq to conserve -nu*(f-feq) term for use in diagnostics.
+  gkyl_array_clear(src->Jrate_df, 0.0);
   gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, src->rate, species->lte.f_lte,
-    fin, src->implicit_step, src->dt_implicit, src->Jrate_feq, species->cflrate);
-  gkyl_array_accumulate(rhs, 1.0, src->Jrate_feq);
+    fin, src->implicit_step, src->dt_implicit, src->Jrate_df, species->cflrate);
+  gkyl_array_accumulate(rhs, 1.0, src->Jrate_df);
 }
 
 static void
@@ -230,7 +234,7 @@ gks_src_bgk_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
   double avals_global[num_mom];
   
   // Compute integrated moments of source term.
-  gk_species_moment_calc(&src->integ_mom_op, gks->local, app->local, src->Jrate_feq); 
+  gk_species_moment_calc(&src->integ_mom_op, gks->local, app->local, src->Jrate_df); 
   app->stat.n_mom += 1;
 
   // Reduce (sum) over whole domain, append to diagnostics.
@@ -346,15 +350,26 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     // Jacobian times the collision rate.
     src->Jrate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     // Jrate times the equilibrium distribution function.
-    src->Jrate_feq = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
+    src->Jrate_df = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
     // BGK operator.
     src->bgk_op = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
     src->implicit_step = false;
     src->dt_implicit = 1e9;
-    // Methods chosen at runtime.
+    // Diagnostics.
     if (src->write_diagnostics) {
       src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
       src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_enabled;
+      gk_species_moment_init(app, gks, &src->integ_mom_op, GKYL_F_MOMENT_M0M1M2, true);
+      if (app->use_gpu) {
+        src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+        src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+      } 
+      else {
+        src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+        src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
+      }
+      src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_mom_op.num_mom);
+      src->is_first_diag_dynvec_write_call = true;
     }
 
     if (src->source_bgk_id == GKYL_SOURCE_BGK_STATIC) {
@@ -372,18 +387,18 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
 
       // Project the user provided function.
-      struct gkyl_array *Jrate_fmax_host = app->use_gpu? mkarr(false, src->Jrate_feq->ncomp, src->Jrate_feq->size)
-                                                      : gkyl_array_acquire(src->Jrate_feq);
+      struct gkyl_array *Jrate_fmax_host = app->use_gpu? mkarr(false, src->Jrate_df->ncomp, src->Jrate_df->size)
+                                                      : gkyl_array_acquire(src->Jrate_df);
       gkyl_proj_on_basis *proj_feq_shape = gkyl_proj_on_basis_new(&gks->grid, &gks->basis,
         app->poly_order+1, 1, gks->info.source_bgk.feq_shape, gks->info.source_bgk.feq_shape_ctx);
       gkyl_proj_on_basis_advance(proj_feq_shape, 0.0, &app->local, Jrate_fmax_host);
-      gkyl_array_copy(src->Jrate_feq, Jrate_fmax_host);
+      gkyl_array_copy(src->Jrate_df, Jrate_fmax_host);
       gkyl_proj_on_basis_release(proj_feq_shape);
       gkyl_array_release(Jrate_fmax_host);
 
       // Multiply the equilibrium distribution function by Jrate.
-      gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, src->Jrate_feq, 
-        src->Jrate, src->Jrate_feq, &app->local, &gks->local);
+      gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, src->Jrate_df, 
+        src->Jrate, src->Jrate_df, &app->local, &gks->local);
 
       // Methods chosen at runtime.
       src->rhs_func = gk_species_source_bgk_rhs_feq_enabled;
@@ -481,20 +496,6 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       // Correction moments of the operator.
       gk_species_moment_init(app, gks, &src->correct_mom_op, GKYL_F_MOMENT_M0M1M2, false);
 
-      // Integrated moments of the operator.
-      gk_species_moment_init(app, gks, &src->integ_mom_op, GKYL_F_MOMENT_M0M1M2, true);
-
-      if (app->use_gpu) {
-        src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-        src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-      } 
-      else {
-        src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-        src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-      }
-      src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_mom_op.num_mom);
-      src->is_first_diag_dynvec_write_call = true;
-
       // Methods chosen at runtime.
       src->rhs_func = gk_species_source_bgk_rhs_external_enabled;
       if (src->write_diagnostics) {
@@ -538,8 +539,21 @@ gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const stru
   if (src->source_bgk_id) {
     gkyl_array_release(src->rate);
     gkyl_array_release(src->Jrate);
-    gkyl_array_release(src->Jrate_feq);
+    gkyl_array_release(src->Jrate_df);
     gkyl_bgk_collisions_release(src->bgk_op);
+
+    if (src->write_diagnostics) {
+      gk_species_moment_release(app, &src->integ_mom_op); 
+      gkyl_dynvec_release(src->integ_diag);
+      if (app->use_gpu) {
+        gkyl_cu_free(src->red_integ_diag);
+        gkyl_cu_free(src->red_integ_diag_global);
+      }
+      else {
+        gkyl_free(src->red_integ_diag);
+        gkyl_free(src->red_integ_diag_global);
+      }
+    }
 
     if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
       gkyl_array_release(src->vtsq_shape);
@@ -573,18 +587,7 @@ gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const stru
         gkyl_array_release(src->M2dot_host);
       }
 
-      gk_species_moment_release(app, &src->integ_mom_op); 
       gk_species_moment_release(app, &src->correct_mom_op); 
-      gkyl_dynvec_release(src->integ_diag);
-      if (app->use_gpu) {
-        gkyl_cu_free(src->red_integ_diag);
-        gkyl_cu_free(src->red_integ_diag_global);
-      }
-      else {
-        gkyl_free(src->red_integ_diag);
-        gkyl_free(src->red_integ_diag_global);
-      }
-
     }
   }
 }

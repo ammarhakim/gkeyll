@@ -875,7 +875,7 @@ struct gk_source_bgk {
   struct gkyl_array *Jrate; // Sourcing rate times the conf-space Jacobian.
   struct gkyl_array *vtsq_shape; // Spatial profile of the eq. Maxwellian's v_t^2.
   struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
-  struct gkyl_array *Jrate_feq; // Jrate times the eq. distribution.
+  struct gkyl_array *Jrate_df; // Jrate times the difference between current and eq. distribution.
   struct gkyl_array *Jrate_mom; // Jrate times a velocity moment.
   struct gkyl_array *Jrate_cap; // Max value for Jrate_mom.
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
