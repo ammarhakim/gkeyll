@@ -82,6 +82,7 @@ static const struct gkyl_str_int_pair triad_geom_type[] = {
   { "GR_KS_r", GKYL_TRIAD_GR_KERR_SCHILD_R },
   { "GR_KS_rtheta", GKYL_TRIAD_GR_KERR_SCHILD_RTHETA },
   { "GR_KS_3V", GKYL_TRIAD_GR_KERR_SCHILD_3V },
+  { "GR_KS_Cart_3V", GKYL_TRIAD_CART_GR_KERR_SCHILD_3V },
   { 0, 0 }
 };
 

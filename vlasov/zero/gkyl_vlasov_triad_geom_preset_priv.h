@@ -397,6 +397,35 @@ eval_ks_vierbein_3v(double t, const double *xn, double* restrict fout, void *ctx
 }
 
 void 
+eval_ks_vierbein_cart_3v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  // Parameters
+  const struct gkyl_triad_geom_ctx *geom = ctx;
+  double a = geom->spin_bh;
+  double M = geom->mass_bh;
+
+  // Coordinates
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+
+  // Intermediate Variables
+
+  // Metric spatial covariant components
+
+  // Vierbein: e_i^a = g_i . sigma^a
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
+  fout[8] = 0.0;
+}
+
+void 
 eval_ks_vierbein_gradient_3v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   const struct gkyl_triad_geom_ctx *geom = ctx;
@@ -431,6 +460,54 @@ eval_ks_vierbein_gradient_3v(double t, const double *xn, double* restrict fout, 
   fout[15] = -(2.0 * a * cos(theta) * sin(theta) * (a * a * a * a * cos(theta) * cos(theta) * cos(theta) * cos(theta) + 2.0 * M * r * r * r + r * r * r * r + 2.0 * a * a * r * r * cos(theta) * cos(theta) + 2.0 * M * a * a * r * cos(theta) * cos(theta) + M * a * a * r * sin(theta) * sin(theta))) / (pow(rho_sq, 1.5) * sqrt(rho_sq + 2.0 * M * r));
   fout[16] = 0.0;
   fout[17] = (sin(4.0 * theta) * a * a + 2.0 * sin(2.0 * theta) * r * r) / (2.0 * sqrt(1.0 - cos(2.0 * theta)) * sqrt(a * a * cos(2.0 * theta) + a * a + 2.0 * r * r));
+
+  // Gradient w.r.t. theta: d(e_i^a)/dphi
+  fout[18] = 0.0;
+  fout[19] = 0.0;
+  fout[20] = 0.0;
+  fout[21] = 0.0;
+  fout[22] = 0.0;
+  fout[23] = 0.0;
+  fout[24] = 0.0;
+  fout[25] = 0.0;
+  fout[26] = 0.0;
+}
+
+
+void 
+eval_ks_vierbein_gradient_cart_3v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  const struct gkyl_triad_geom_ctx *geom = ctx;
+  double a = geom->spin_bh;
+  double M = geom->mass_bh;
+
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+
+  // Intermediate Variables
+
+  // Gradient w.r.t. r: d(e_i^a)/dr
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+  fout[3] = 0.0;
+  fout[4] = 0.0;
+  fout[5] = 0.0;
+  fout[6] = 0.0;
+  fout[7] = 0.0;
+  fout[8] = 0.0;
+
+  // Gradient w.r.t. theta: d(e_i^a)/dtheta
+  fout[9]  = 0.0;
+  fout[10] = 0.0;
+  fout[11] = 0.0;
+  fout[12] = 0.0;
+  fout[13] = 0.0;
+  fout[14] = 0.0;
+  fout[15] = 0.0;
+  fout[16] = 0.0;
+  fout[17] = 0.0;
 
   // Gradient w.r.t. theta: d(e_i^a)/dphi
   fout[18] = 0.0;
@@ -583,6 +660,29 @@ eval_ks_hamil_3x3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   fout[0] = H;
 }
 
+void
+eval_ks_hamil_cart_3x3v(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+
+  // Grab the geometry
+  const struct gkyl_triad_geom_ctx *geom = ctx;
+  double a = geom->spin_bh;
+  double M = geom->mass_bh;
+  
+  double x = xn[0];
+  double y = xn[1];
+  double z = xn[2];
+
+  double px_hat = xn[3];
+  double py_hat = xn[4];
+  double pz_hat = xn[5];
+
+  // Build the Hamiltonian for Kerr-Schild in 3D
+  double H = 0.0;
+
+  fout[0] = H;
+}
+
 // for use in kernel tables
 typedef struct { evalf_t kernels[3]; } hamil_kern_list;
 typedef struct { evalf_t kernels[3]; } vierbein_kern_list;
@@ -610,6 +710,12 @@ static const hamil_kern_list ks_hamil_3v_list[] = {
   { NULL, NULL, NULL },
   { NULL, NULL, NULL },
   { NULL, NULL, eval_ks_hamil_3x3v }
+};
+
+static const hamil_kern_list ks_hamil_cart_3v_list[] = {
+  { NULL, NULL, NULL },
+  { NULL, NULL, NULL },
+  { NULL, NULL, eval_ks_hamil_cart_3x3v }
 };
 
 static const vierbein_kern_list annulus_vierbein_list[] = {
@@ -666,10 +772,22 @@ static const vierbein_kern_list ks_vierbein_list[] = {
   { eval_ks_vierbein_3v  }
 };
 
+static const vierbein_kern_list ks_vierbein_cart_list[] = {
+  { NULL },
+  { NULL},
+  { eval_ks_vierbein_cart_3v  }
+};
+
 static const vierbein_gradient_kern_list ks_vierbein_gradient_list[] = {
   { NULL },
   { NULL },
   { eval_ks_vierbein_gradient_3v }
+};
+
+static const vierbein_gradient_kern_list ks_vierbein_gradient_cart_list[] = {
+  { NULL },
+  { NULL },
+  { eval_ks_vierbein_gradient_cart_3v }
 };
 
 static const vierbein_kern_list rz_cylindrical_vierbein_list[] = {
@@ -683,6 +801,8 @@ static const vierbein_gradient_kern_list rz_cylindrical_vierbein_gradient_list[]
   { NULL },
   { eval_rz_cylindrical_vierbein_gradient_3v }
 };
+
+
 
 static evalf_t
 choose_vierbein_kern(enum gkyl_triad_preset_geom_type type, int vdim)
@@ -705,6 +825,9 @@ choose_vierbein_kern(enum gkyl_triad_preset_geom_type type, int vdim)
       break;
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
       return ks_vierbein_list[vdim-1].kernels[0];
+      break;
+    case GKYL_TRIAD_CART_GR_KERR_SCHILD_3V:
+      return ks_vierbein_cart_list[vdim-1].kernels[0];
       break;
     default:
       assert(false);
@@ -733,6 +856,9 @@ choose_vierbein_gradient_kern(enum gkyl_triad_preset_geom_type type, int vdim)
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
       return ks_vierbein_gradient_list[vdim-1].kernels[0];
       break;
+    case GKYL_TRIAD_CART_GR_KERR_SCHILD_3V:
+      return ks_vierbein_gradient_cart_list[vdim-1].kernels[0];
+      break;
     default:
       assert(false);
   }
@@ -753,6 +879,9 @@ choose_hamil_kern(enum gkyl_triad_preset_geom_type type, int cdim, int vdim)
       break;
     case GKYL_TRIAD_GR_KERR_SCHILD_3V:
       return ks_hamil_3v_list[vdim-1].kernels[cdim-1];
+      break;
+    case GKYL_TRIAD_CART_GR_KERR_SCHILD_3V:
+      return ks_hamil_cart_3v_list[vdim-1].kernels[cdim-1];
       break;
     default:
       assert(false);

@@ -123,6 +123,7 @@ vlasovApp = Vlasov.App.new {
       local Btheta = 0.0
       local Bphi   = Bphi1 + Bphi2
 
+      -- Hand off the primative variables (U^\xi)
       return Dr, Dtheta, Dphi, Br, Btheta, Bphi, 0.0, 0.0
     end,
 

@@ -23,6 +23,7 @@ enum gkyl_triad_preset_geom_type {
   GKYL_TRIAD_GR_KERR_SCHILD_R,
   GKYL_TRIAD_GR_KERR_SCHILD_RTHETA,
   GKYL_TRIAD_GR_KERR_SCHILD_3V,
+  GKYL_TRIAD_CART_GR_KERR_SCHILD_3V,
 };
 
 struct gkyl_vlasov_triad_geom_inp {
