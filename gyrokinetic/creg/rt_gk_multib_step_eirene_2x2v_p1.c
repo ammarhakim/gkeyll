@@ -1497,6 +1497,8 @@ main(int argc, char **argv)
   app_inp->num_species = 2;
   app_inp->species[0] = elc;
   app_inp->species[1] = ion;
+  app_inp->num_neut_species = 0;
+  app_inp->eirene = eirene;
   app_inp->field = field;
   app_inp->comm = comm;
 
