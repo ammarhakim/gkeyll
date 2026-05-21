@@ -8,6 +8,7 @@ extern "C" {
 }
 
 #include <cassert>
+#include <cstdlib>
 
 #define CK(lst,cdim,poly_order) lst[cdim-1].kernels[poly_order]
 
@@ -114,19 +115,10 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
   struct gkyl_array *det_h_vol_nodes = 0;
   maxwell->use_conf_flux_surf = false;
   if (inp->field_id == GKYL_FIELD_GR_D_B) {
-    assert(inp->crange);
-    maxwell->use_conf_flux_surf = true;
-    maxwell->crange = *inp->crange;
-    conf_flux_surf = gkyl_array_acquire(inp->conf_flux_surf);
-    lapse_vol_nodes = gkyl_array_acquire(inp->lapse_vol_nodes);
-    shift_vol_nodes = gkyl_array_acquire(inp->shift_vol_nodes);
-    h_ij_vol_nodes = gkyl_array_acquire(inp->h_ij_vol_nodes);
-    det_h_vol_nodes = gkyl_array_acquire(inp->det_h_vol_nodes);
-    maxwell->conf_flux_surf = conf_flux_surf->on_dev; 
-    maxwell->lapse_vol_nodes = lapse_vol_nodes->on_dev; 
-    maxwell->shift_vol_nodes = shift_vol_nodes->on_dev; 
-    maxwell->h_ij_vol_nodes = h_ij_vol_nodes->on_dev; 
-    maxwell->det_h_vol_nodes = det_h_vol_nodes->on_dev; 
+    assert(!"GR DG Maxwell GPU equation object is incomplete");
+    gkyl_free(maxwell);
+    abort();
+    return 0;
   }
 
   // copy the host struct to device struct
