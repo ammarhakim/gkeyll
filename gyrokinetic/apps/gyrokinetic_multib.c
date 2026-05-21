@@ -824,7 +824,9 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   }
 
-  if (cdim == 3) {
+  const struct gkyl_gk_block_geom_info *bgi0 = gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, 0);
+
+  if (cdim > 1 && bgi0->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     // Sync the surface deltats. Need to copy the upper ghost into the upper skin before syncing.
     for (int d = 0; d<cdim; d++) {
       struct gkyl_array *deltats[mbapp->num_local_blocks];
@@ -842,7 +844,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       int par_dir = cdim-1;
       struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
       struct gkyl_array *delta_ts = sbapp->gk_geom->geo_surf[par_dir].deltats;
-      struct gkyl_array *buffer = mkarr(sbapp->use_gpu, sbapp->basis.num_basis, sbapp->local_ext.volume);
+      struct gkyl_array *buffer = mkarr(sbapp->use_gpu, delta_ts->ncomp, delta_ts->size);
 
       gkyl_array_copy_range_to_range(buffer, delta_ts, &sbapp->local_upper_skin[par_dir], &sbapp->local_upper_ghost[par_dir]);
       gkyl_array_accumulate_range(delta_ts, -1.0, buffer, &sbapp->local_upper_skin[par_dir]);
@@ -854,6 +856,9 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
       // Deflate delta_ts.
       gyrokinetic_deflate_delta_ts(sbapp, delta_ts);
+
+      // Write the twistshift shift.
+      gyrokinetic_app_write_ts_shift(sbapp);
     }
   }
 

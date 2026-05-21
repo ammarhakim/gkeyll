@@ -1502,8 +1502,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
  * @param gk Gyrokinetic input struct.
  * @param app Gyrokinetic app.
  */
-void
-gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
+void gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
 
 /**
  * Deflate the shift used for twistshift BCs from 3D to 1D.
@@ -1511,8 +1510,14 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
  * @param app Gyrokinetic app object.
  * @param delta_ts Shift in 3D array.
  */
-void
-gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array *delta_ts);
+void gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array *delta_ts);
+
+/**
+ * Write the twistshift shift.
+ *
+ * @param app Gyrokinetic app object.
+ */
+void gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app);
 
 /**
  * Find species with given name.

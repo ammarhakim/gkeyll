@@ -1184,6 +1184,49 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
 }
 
 void
+gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app)
+{
+  if (app->cdim > 1 && app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    int rank;
+    gkyl_comm_get_rank(app->comm, &rank);
+    int comm_sz;
+    gkyl_comm_get_size(app->comm, &comm_sz);
+
+    // Write the shift for TS BCs.
+    struct gkyl_array *delta_ts_x_ho = mkarr(false, app->delta_ts_x_lo->ncomp, app->delta_ts_x_lo->size);
+    gkyl_array_copy(delta_ts_x_ho, app->delta_ts_x_lo);
+
+    struct gkyl_msgpack_map_elem io_meta_x[] = {
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->delta_ts_x_basis.poly_order },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->delta_ts_x_basis.id }
+    };
+    int io_meta_x_len = sizeof(io_meta_x)/sizeof(io_meta_x[0]);
+
+    int io_meta_ts_len[] = {app->io_meta_basic_len, io_meta_x_len, app->gk_geom->io_meta_len};
+    const struct gkyl_msgpack_map_elem* io_meta_ts[] = {app->io_meta_basic, io_meta_x, app->gk_geom->io_meta};
+    struct gkyl_msgpack_data *mt_x = gkyl_msgpack_create_union(sizeof(io_meta_ts_len)/sizeof(int), io_meta_ts_len, io_meta_ts);
+
+    if (rank == 0) {
+      const char *fmt = "%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, "delta_ts_lo");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      sprintf(fileNm, fmt, app->name, "delta_ts_lo");
+      gkyl_grid_sub_array_write(&app->delta_ts_x_grid, &app->delta_ts_x_local, mt_x, app->delta_ts_x_lo, fileNm);
+    }
+
+    if (rank == comm_sz-1) {
+      const char *fmt = "%s-%s.gkyl";
+      int sz = gkyl_calc_strlen(fmt, app->name, "delta_ts_up");
+      char fileNm[sz+1]; // ensures no buffer overflow
+      sprintf(fileNm, fmt, app->name, "delta_ts_up");
+      gkyl_grid_sub_array_write(&app->delta_ts_x_grid, &app->delta_ts_x_local, mt_x, app->delta_ts_x_up, fileNm);
+    }
+    gkyl_msgpack_data_release(mt_x);
+    gkyl_array_release(delta_ts_x_ho);
+  }
+}
+
+void
 gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geometry_inp *geometry_inp)
 {
   // Package metadata.
@@ -1193,8 +1236,6 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  int comm_sz;
-  gkyl_comm_get_size(app->comm, &comm_sz);
   if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK && gyrokinetic_str_ends_in_b0(app->name))
     gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
 
@@ -1265,41 +1306,10 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].lenr        , arr_surf_ho1, arr_surf_ho2 , "lenr"        , dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].deltats     , arr_surf_ho1, arr_surf_ho2 , "deltats"     , dir, mt);
   }
-  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-    if (!gyrokinetic_str_ends_in_bnum(app->name)) {
-      // Write the shift for TS BCs.
-      struct gkyl_array *delta_ts_x_ho = mkarr(false, app->delta_ts_x_lo->ncomp, app->delta_ts_x_lo->size);
-      gkyl_array_copy(delta_ts_x_ho, app->delta_ts_x_lo);
 
-      struct gkyl_msgpack_map_elem io_meta_x[] = {
-        { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->delta_ts_x_basis.poly_order },
-        { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->delta_ts_x_basis.id }
-      };
-      int io_meta_x_len = sizeof(io_meta_x)/sizeof(io_meta_x[0]);
-
-      int io_meta_ts_len[] = {app->io_meta_basic_len, io_meta_x_len, app->gk_geom->io_meta_len};
-      const struct gkyl_msgpack_map_elem* io_meta_ts[] = {app->io_meta_basic, io_meta_x, app->gk_geom->io_meta};
-      struct gkyl_msgpack_data *mt_x = gkyl_msgpack_create_union(sizeof(io_meta_ts_len)/sizeof(int), io_meta_ts_len, io_meta_ts);
-
-      if (rank == 0) {
-        const char *fmt = "%s-%s.gkyl";
-        int sz = gkyl_calc_strlen(fmt, app->name, "delta_ts_lo");
-        char fileNm[sz+1]; // ensures no buffer overflow
-        sprintf(fileNm, fmt, app->name, "delta_ts_lo");
-        gkyl_grid_sub_array_write(&app->delta_ts_x_grid, &app->delta_ts_x_local, mt_x, app->delta_ts_x_lo, fileNm);
-      }
-
-      if (rank == comm_sz-1) {
-        const char *fmt = "%s-%s.gkyl";
-        int sz = gkyl_calc_strlen(fmt, app->name, "delta_ts_up");
-        char fileNm[sz+1]; // ensures no buffer overflow
-        sprintf(fileNm, fmt, app->name, "delta_ts_up");
-        gkyl_grid_sub_array_write(&app->delta_ts_x_grid, &app->delta_ts_x_local, mt_x, app->delta_ts_x_up, fileNm);
-      }
-      gkyl_msgpack_data_release(mt_x);
-      gkyl_array_release(delta_ts_x_ho);
-    }
-  }
+  // Write twistshift shift.
+  if (!gyrokinetic_str_ends_in_bnum(app->name))
+    gyrokinetic_app_write_ts_shift(app);
 
   // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
   struct gkyl_array *mc2p_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.mc2p->ncomp, app->global_ext.volume);
