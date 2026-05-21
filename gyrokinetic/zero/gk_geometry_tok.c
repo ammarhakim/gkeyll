@@ -65,6 +65,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   ginp.cbasis = up->basis;
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&inp, &ginp);
   up->geqdsk_sign_convention = geo->efit->sibry > geo->efit->simag ? 0 : 1;
+  up->half_domain = ginp.half_domain ? 1 : 0;
 
   // Allocate nodal and modal arrays for corner, interior, and surface geo
   gk_geometry_corn_alloc_nodal(up);
@@ -115,6 +116,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
     { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
     { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
     { .key = "geqdsk_name", .elem_type = GKYL_MP_STRING, .cval = geo->efit->name},
+    { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
   };
   up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
   up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
@@ -166,8 +168,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
       case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
         len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.lower[2];
-        zcut = len;
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ? geometry_inp->geo_grid.lower[2] + len/2.0 : geometry_inp->geo_grid.lower[2];
+        zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len/2.0 : len;
         break;
       case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
       case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
@@ -175,8 +177,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
       case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
       case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
         len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-        zcenter = geometry_inp->geo_grid.upper[2];
-        zcut = len;
+        zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ? geometry_inp->geo_grid.upper[2] - len/2.0 : geometry_inp->geo_grid.upper[2];
+        zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len/2.0 : len;
         break;
       default:
         break;
