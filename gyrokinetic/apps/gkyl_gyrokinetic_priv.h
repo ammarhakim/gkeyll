@@ -1333,7 +1333,7 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_ts_lo; // Fills lower core z-ghost with TS BC.
+  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
   
