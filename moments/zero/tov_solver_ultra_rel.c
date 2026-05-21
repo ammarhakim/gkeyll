@@ -326,13 +326,13 @@ gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncel
   for (int i = 0; i < ncells; ++i) {
     double *qi = &q[8*i];
 
-    double PI = qi[1];
-    double PHI = qi[2];
+    double Etot = qi[1];
+    double mom_r = qi[2];
     double r = qi[5];
 
     double beta = 0.25 * (2.0 - gas_gamma);
-    double p_term = beta * beta * (PI + PHI) * (PI + PHI) + (gas_gamma - 1.0) * PI * PHI;
-    double p = -beta * (PI + PHI) + sqrt(fmax(0.0, p_term));
+    double p_term = (4.0 * beta * beta * Etot * Etot) + ((gas_gamma - 1.0) * ((Etot * Etot) - (mom_r * mom_r)));
+    double p = -(2.0 * beta * Etot) + sqrt(fmax(0.0, p_term));
     bool in_atmosphere = false;
     if (p_atm > 0.0 && p <= (1.0 + 1.0e-12) * p_atm) {
         in_atmosphere = true;
@@ -348,13 +348,11 @@ gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncel
     double e_geom = p_geom / (gas_gamma - 1.0);
 
     double vel = 0.0;
-    double denom = PI + PHI + 2.0 * p;
+    double denom = Etot + p;
     if (denom > 0.0)
-      vel = (PI - PHI) / denom;
+      vel = mom_r / denom;
 
     double W = 1.0 / sqrt(fmax(1.0e-8, 1.0 - vel * vel));
-    double Etot = ((e_geom + p) * W * W) - p;
-    double mom_r = ((e_geom + p) * W * W) * vel;
 
     if (in_atmosphere && surface_idx == ncells - 1) {
       surface_idx = i > 0 ? i - 1 : 0;

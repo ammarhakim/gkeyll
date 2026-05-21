@@ -402,22 +402,22 @@ void
 explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double kappa, double t_curr,
   const double dt, double* fluid_old, double* fluid_new)
 {
-  double PI = fluid_old[1]; // tau + mom_r
-  double PHI = fluid_old[2]; // tau - mom_r
+  double Etot = fluid_old[1];
+  double mom_r = fluid_old[2];
   double Phi = fluid_old[3]; // potential (in the metric term dt)
   double m = fluid_old[4];
   double r = fluid_old[5];
 
   double beta = 0.25 * (2 - gas_gamma);
-  double p_term = (beta * beta * (PI + PHI) * (PI + PHI) + (gas_gamma - 1.0) * PI * PHI);
-  double p = - beta * (PI + PHI) + sqrt(fmax(0.0, p_term));
+  double p_term = (4.0 * beta * beta * Etot * Etot) + ((gas_gamma - 1.0) * ((Etot * Etot) - (mom_r * mom_r)));
+  double p = -(2.0 * beta * Etot) + sqrt(fmax(0.0, p_term));
 
   double rho = p / (gas_gamma - 1.0);
 
   double vel = 0.0; // v^r
-  double denom = PI + PHI + 2.0 * p;
+  double denom = Etot + p;
   if (denom > 0.0) {
-    vel = (PI - PHI) / denom;
+    vel = mom_r / denom;
   }
   else {
     vel = 0.0;
@@ -431,9 +431,6 @@ explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
     W = 1.0 / sqrt(1.0e-8);
   }
 
-  double Etot = ((rho + p) * W * W) - p;
-  double mom_r = ((rho + p) * W * W) * vel;
-
   double THETA = (mom_r * vel - Etot) * (8.0 * M_PI * lapse * a * r * p + lapse * a * (m / (r * r))) + (lapse * a * p * (m / (r * r)));
   //double SIGMA = THETA + 2.0 * lapse * p / ( a * r);
 
@@ -443,8 +440,8 @@ explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
   }
 
   fluid_new[0] += 0.0;
-  fluid_new[1] += dt * THETA;
-  fluid_new[2] -= dt * THETA;
+  fluid_new[1] += 0.0;
+  fluid_new[2] += dt * THETA;
   fluid_new[3] += 0.0;
   fluid_new[4] += 0.0;
   fluid_new[5] += 0.0;

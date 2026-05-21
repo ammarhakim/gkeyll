@@ -15,22 +15,22 @@ gkyl_gr_tov_prim_vars(double gas_gamma, const double q[8], double v[8])
   }
 
 
-  double PI = q[1]; // tau + mom_r
-  double PHI = q[2]; // tau - mom_r
+  double Etot = q[1];
+  double mom_r = q[2];
   double Phi = q[3]; // potential (in the metric term dt)
   double m = q[4];
   double r = q[5];
 
   double beta = 0.25 * (2 - gas_gamma);
-  double p_term = (beta * beta * (PI + PHI) * (PI + PHI) + (gas_gamma - 1.0) * PI * PHI);
-  double p = - beta * (PI + PHI) + sqrt(fmax(0.0, p_term));
+  double p_term = (4.0 * beta * beta * Etot * Etot) + ((gas_gamma - 1.0) * ((Etot * Etot) - (mom_r * mom_r)));
+  double p = -(2.0 * beta * Etot) + sqrt(fmax(0.0, p_term));
 
   double rho = p / (gas_gamma - 1.0);
 
   double vel = 0.0; // v^r
-  double denom = PI + PHI + 2.0 * p;
+  double denom = Etot + p;
   if (denom > 0.0) {
-    vel = (PI - PHI) / denom;
+    vel = mom_r / denom;
   }
   else {
     vel = 0.0;
@@ -38,8 +38,8 @@ gkyl_gr_tov_prim_vars(double gas_gamma, const double q[8], double v[8])
 
   v[0] = 0.0;
 
-  v[1] = PI; 
-  v[2] = PHI;
+  v[1] = Etot; 
+  v[2] = mom_r;
   v[3] = Phi; 
   v[4] = m;
   v[5] = r; 
@@ -75,8 +75,7 @@ gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[8], double flux1
   double v[8] = { 0.0 };
   gkyl_gr_tov_prim_vars(gas_gamma, q, v);
   
-  double PI = v[1];
-  double PHI = v[2];
+  double mom_r = v[2];
   double Phi = v[3];
   double m = v[4];
   double r = v[5]; 
@@ -90,12 +89,12 @@ gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[8], double flux1
   double a = 1.0 / sqrt(1.0 - (2.0 * m / r));
 
   flux1[0] = 0.0;
-  flux1[1] = r * r * (lapse / a ) * 0.5 * (PI - PHI) * (1 + vel); 
-  flux1[2] = r * r * (lapse / a ) * 0.5 * (PI - PHI) * (1 - vel);
+  flux1[1] = r * r * (lapse / a ) * mom_r;
+  flux1[2] = r * r * (lapse / a ) * mom_r * vel;
   flux1[3] = 0.0; // is there flux on Phi (lapse)?
 
-  flux2[1] = (lapse / a ) * p;
-  flux2[2] = - (lapse / a ) * p;
+  flux2[1] = 0.0;
+  flux2[2] = (lapse / a ) * p;
 }
 
 static void
@@ -116,19 +115,35 @@ gkyl_gr_tov_flux_total(double gas_gamma, double kappa, const double q[8], double
 }
 
 static void
-gkyl_gr_tov_flux_at_radius(double gas_gamma, double kappa, const double q[8], double r, double flux[8])
+gkyl_gr_tov_flux_at_radius(double gas_gamma, double kappa, const double q[8], double r_face, double flux[8])
 {
-  double f1[8], f2[8];
-  gkyl_gr_tov_flux(gas_gamma, kappa, q, f1, f2);
-
-  double r2 = r * r;
-  
   for (int i = 0; i < 8; i++) {
     flux[i] = 0.0;
   }
 
-  flux[1] = f2[1] + f1[1] / r2;
-  flux[2] = f2[2] + f1[2] / r2;
+  double v[8] = { 0.0 };
+  gkyl_gr_tov_prim_vars(gas_gamma, q, v);
+
+  double mom_r = v[2];
+  double Phi = v[3];
+  double m = v[4];
+  double r_cell = v[5];
+  double rho = v[6];
+  double vel = v[7];
+
+  double p = (gas_gamma - 1.0) * rho;
+  double lapse = exp(Phi);
+  double a = 1.0 / sqrt(1.0 - (2.0 * m / r_cell));
+  double X = lapse / a;
+  double r_face2 = r_face * r_face;
+
+  double f1_E = r_face2 * X * mom_r;
+  double f1_S = r_face2 * X * mom_r * vel;
+  double f2_E = 0.0;
+  double f2_S = X * p;
+
+  flux[1] = f2_E + f1_E / r_face2;
+  flux[2] = f2_S + f1_S / r_face2;
 }
 
 static inline void

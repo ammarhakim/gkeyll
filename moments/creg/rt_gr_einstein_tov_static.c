@@ -166,8 +166,8 @@ evalGRTovInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   //Evolved conservative variables: dummy for D, tau, momentum_r, lapse
 
   fout[0] = 0.0; // Set a dummy for D in the future non ultra-rel case
-  fout[1] = Etot + mom_r; // new conserved variable: PI.
-  fout[2] = Etot - mom_r; // new conserved variable: PHI
+  fout[1] = Etot;
+  fout[2] = mom_r;
   fout[3] = bl.Phi; // Set Phi appearing in dt metric term
   fout[4] = bl.m;
   fout[5] = r;
@@ -220,6 +220,10 @@ write_energy_exact_error_norms(const struct gr_tov_static_ctx *ctx, gkyl_moment_
   double l1_local = 0.0;
   double l2sq_local = 0.0;
   double linf_local = 0.0;
+  double l1_int_local = 0.0;
+  double l2sq_int_local = 0.0;
+  double linf_int_local = 0.0;
+  double r_int_cut = 0.8 * ctx->R_star;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
@@ -232,21 +236,31 @@ write_energy_exact_error_norms(const struct gr_tov_static_ctx *ctx, gkyl_moment_
     gkyl_rect_grid_cell_center(&app->grid, iter.idx, xc);
     evalGRTovInit(0.0, xc, qexact, (void*) ctx);
 
-    double etot_num = 0.5 * (qnum[1] + qnum[2]);
-    double etot_exact = 0.5 * (qexact[1] + qexact[2]);
+    double etot_num = qnum[1];
+    double etot_exact = qexact[1];
     double err = etot_num - etot_exact;
     double abs_err = fabs(err);
 
     l1_local += dx * abs_err;
     l2sq_local += dx * err * err;
     linf_local = fmax(linf_local, abs_err);
+    if (xc[0] <= r_int_cut) {
+      l1_int_local += dx * abs_err;
+      l2sq_int_local += dx * err * err;
+      linf_int_local = fmax(linf_int_local, abs_err);
+  }
   }
 
   double sum_local[2] = { l1_local, l2sq_local };
   double sum_global[2] = { 0.0, 0.0 };
   double linf_global = 0.0;
+  double sum_int_local[2] = { l1_int_local, l2sq_int_local };
+  double sum_int_global[2] = { 0.0, 0.0 };
+  double linf_int_global = 0.0;
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2, sum_local, sum_global);
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &linf_local, &linf_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 2, sum_int_local, sum_int_global);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &linf_int_local, &linf_int_global);
 
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -271,10 +285,17 @@ write_energy_exact_error_norms(const struct gr_tov_static_ctx *ctx, gkyl_moment_
     }
     fprintf(fp, "exact %d 0 %.16e %.16e %.16e %.16e\n",
       app->grid.cells[0], t_curr, sum_global[0], sqrt(sum_global[1]), linf_global);
+    fprintf(fp, "interior_exact %d 0 %.16e %.16e %.16e %.16e\n",
+      app->grid.cells[0], t_curr, sum_int_global[0], sqrt(sum_int_global[1]), linf_int_global);
     fclose(fp);
 
     printf("\nFinal Etot exact-error norms written to %s:\n", fname);
     printf("  NX = %d, t = %.16e\n", app->grid.cells[0], t_curr);
+    printf("  Global:   L1 = %.16e, L2 = %.16e, Linf = %.16e\n",
+      sum_global[0], sqrt(sum_global[1]), linf_global);
+    printf("  Interior r <= 0.8 R_star = %.16e:\n", r_int_cut);
+    printf("            L1 = %.16e, L2 = %.16e, Linf = %.16e\n",
+      sum_int_global[0], sqrt(sum_int_global[1]), linf_int_global);
     printf("  L1 = %.16e, L2 = %.16e, Linf = %.16e\n",
       sum_global[0], sqrt(sum_global[1]), linf_global);
   }
@@ -318,7 +339,7 @@ main(int argc, char **argv)
     .tov_p_atm = ctx.p_atm,
     .has_dynamic_lapse = false,
 
-    .force_low_order_flux = true,
+    .force_low_order_flux = false,
     .limiter = GKYL_ZERO,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
