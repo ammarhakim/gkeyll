@@ -359,6 +359,8 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Maximum stable time-step frequency (CFL rate) for this species at the current simulation time. Units: 1/time (SI: 1/s)." }
   };
   int mpe_cfl_len = sizeof(mpe_cfl)/sizeof(mpe_cfl[0]);
   // Update app basic metada with time/frame.
