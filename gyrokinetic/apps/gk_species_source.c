@@ -15,7 +15,7 @@ gk_species_source_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gk
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_source[] = {
-    { .key = "description", .elem_type = GKYL_MP_STRING,
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "J·B·S: source term S scaled by phase-space Jacobian (J) and magnetic field (B)" }
   };
   int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, 1};
@@ -75,7 +75,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
       gkyl_array_copy(gks->src.moms[m].marr_host, gks->src.moms[m].marr);
 
     struct gkyl_msgpack_map_elem io_meta_mom[] = {
-      { .key = "description", .elem_type = GKYL_MP_STRING,
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
         .cval = (char*)gkyl_gk_distribution_moments_source_descriptions[gks->info.source.diagnostics.diag_moments[m]] }
     };
     int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
