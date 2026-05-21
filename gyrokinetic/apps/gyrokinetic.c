@@ -1253,7 +1253,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
     struct gkyl_msgpack_map_elem io_meta_phi[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "φ: electrostatic potential [SI: V]" }
+        .cval = "phi: electrostatic potential" }
     };
     int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, io_meta_phi};

@@ -16,7 +16,7 @@ gk_species_source_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gk
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_source[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "J·B·S: source term S scaled by phase-space Jacobian (J) and magnetic field (B)" }
+      .cval = "J*B*S: source term S scaled by phase-space Jacobian (J) and magnetic field (B)" }
   };
   int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta, io_meta_source};

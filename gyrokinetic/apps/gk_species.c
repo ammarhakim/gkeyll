@@ -321,7 +321,7 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "J·B·f: distribution function (f) scaled by phase-space Jacobian (J) and magnetic field (B) (SI: T)" }
+      .cval = "J*B*f: distribution function (f) scaled by phase-space Jacobian (J) and magnetic field (B)" }
   };
   int io_meta_f_len = sizeof(io_meta_f)/sizeof(io_meta_f[0]);
   int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, io_meta_f_len};
