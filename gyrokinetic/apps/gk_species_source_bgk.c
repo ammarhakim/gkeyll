@@ -414,9 +414,6 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       gkyl_proj_on_basis *proj_rate = gkyl_proj_on_basis_new(&app->grid, &app->basis,
         app->poly_order+1, 1, gks->info.source_bgk.rate_profile, gks->info.source_bgk.rate_profile_ctx);
 
-      // Divide rate by 3 so we can group density, momentum and energy terms.
-      gkyl_array_scale_range(rate_host, 1.0/3.0, &app->local);
-
       gkyl_proj_on_basis_advance(proj_rate, 0.0, &app->local, rate_host);
       gkyl_array_copy(src->rate, rate_host);
       gkyl_proj_on_basis_release(proj_rate);

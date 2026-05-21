@@ -1,15 +1,17 @@
 #!/bin/bash
 
+source ./build-opts.sh
+
 # ==============================================================================
 # Gk-Neutral_coupling Automated Installer
 # ==============================================================================
 
 echo ">>> Starting GK-Neutral_coupling Installation..."
-cd ../../gkylsoft/
+cd $GKYLSOFT
 
 if [ ! -d "GK-Neutral_coupling" ]; then
     echo ">>> Downloading GK-Neutral_coupling..."
-    wget https://github.com/jRoeltgen/GK-Neutral_coupling/archive/refs/tags/gkeyll.tar.gz
+    wget https://github.com/jRoeltgen/GK-Neutral_coupling/archive/refs/tags/gkeyll_v1.tar.gz
     mkdir GK-Neutral_coupling && tar -xzf gkeyll.tar.gz -C GK-Neutral_coupling --strip-components=1
     rm gkeyll.tar.gz
 else
@@ -23,6 +25,8 @@ echo ">>> Installation of coupling library complete."
 # ==============================================================================
 # Note that the automation of the SOLPS-ITER installation below
 # used assistance from an LLM (Gemini).
+# AS 5/20/26: At this time, we are using 
+# master branch commit 703210201feed52981aa26251a3d9562c7a014dd of SOLPS-ITER
 
 # Stop on error
 set -e

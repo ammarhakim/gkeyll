@@ -1352,6 +1352,7 @@ struct gk_field {
   void (*release_func)(const struct gkyl_gyrokinetic_app* app, struct gk_field *field);
 };
 
+// Eirene data
 struct gk_eirene {
   struct gkyl_gyrokinetic_eirene info; // data for coupling
   struct gk_species *coupling_species[GKYL_MAX_SPECIES]; // pointers to species to couple
@@ -4119,11 +4120,55 @@ void gk_field_calc_energy_dt(gkyl_gyrokinetic_app *app, const struct gk_field *f
 void gk_field_release(const gkyl_gyrokinetic_app* app, struct gk_field *f);
 
 /** gk_eirene API */
+
+/**
+ * Initialize Eirene coupling object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gk Input gk data.
+ * @returns Eirene object
+ */
 struct gk_eirene* gk_eirene_init(gkyl_gyrokinetic_app *app, struct gkyl_gk *gk);
+
+/**
+ * Compute RHS for sources from eirene
+ *
+ * @param app Gyrokinetic app object.
+ * @param fin Array of distribution functions (one for each species) .
+ * @param fout Output array of distribution functions (one for each species).
+ */
 void gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct gkyl_array *rhs[]);
+
+/**
+ * Write moments of eirene sources
+ *
+ * @param app Gyrokinetic app object.
+ * @param tm simulation time.
+ * @param frame simulation frame.
+ */
 void gk_eirene_write(gkyl_gyrokinetic_app *app, double tm, int frame);
+
+/**
+* Compute integrated moments of eirene sources
+ *
+ * @param app Gyrokinetic app object.
+ * @param tm simulation time.
+ */
 void gk_eirene_calc_integrated_diagnostics(struct gkyl_gyrokinetic_app *app, double tm);
+
+/**
+* Write integrated moments of eirene sources
+ *
+ * @param app Gyrokinetic app object.
+ */
 void gk_eirene_write_integrated_diagnostics(struct gkyl_gyrokinetic_app *app);
+
+/**
+* Release gk_eirene object
+ *
+ * @param app Gyrokinetic app object.
+ * @param eirene Eirene object.
+ */
 void gk_eirene_release(gkyl_gyrokinetic_app *app, struct gk_eirene *eirene);
 
 /** Time stepping API */
