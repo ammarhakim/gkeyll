@@ -319,8 +319,13 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   // Metadata from app and geo object.
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  int io_meta_len[] = {app->io_meta_basic_len,gks->io_meta_len,app->gk_geom->io_meta_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic,gks->io_meta,app->gk_geom->io_meta};
+  struct gkyl_msgpack_map_elem io_meta_f[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "J*B*f: distribution function (f) scaled by phase-space Jacobian (J) and magnetic field (B). Units are particles per distance cubed (SI: T)" }
+  };
+  int io_meta_f_len = sizeof(io_meta_f)/sizeof(io_meta_f[0]);
+  int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, io_meta_f_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta, io_meta_f};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   const char *fmt = "%s-%s_%d.gkyl";
