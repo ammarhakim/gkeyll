@@ -664,7 +664,7 @@ main(int argc, char **argv)
       .rate_profile_ctx = &ctx,
       .feq_shape = eval_canon_maxwellian_i,
       .feq_shape_ctx = &ctx,
-    }
+    },
 
     // .anomalous_diffusion = {
     //   .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
@@ -726,7 +726,7 @@ main(int argc, char **argv)
       .rate_profile_ctx = &ctx,
       .feq_shape = eval_canon_maxwellian_e,
       .feq_shape_ctx = &ctx,
-    }
+    },
 
     // .anomalous_diffusion = {
     //   .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
