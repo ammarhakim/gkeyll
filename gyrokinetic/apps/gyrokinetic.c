@@ -1063,7 +1063,7 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
   snprintf(fileNm, sizeof fileNm, fmt, app->name, varNm, dir);
 
   struct gkyl_msgpack_map_elem desc_elem[] = {
-    { .key = "description", .elem_type = GKYL_MP_STRING, .cval = (char*)description }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char*)description }
   };
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_elem};
@@ -1251,8 +1251,12 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     // Package metadata.
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+    struct gkyl_msgpack_map_elem io_meta_phi[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
+        .cval = "φ: electrostatic potential [SI: V]" }
+    };
+    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, io_meta_phi};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-field_%d.gkyl";

@@ -35,6 +35,32 @@ static const char *gkyl_gk_distribution_moments_descriptions[] = {
   "Tij = ∫ vᵢvⱼ f d³v: stress-energy tensor divided by mass [SI: m⁻¹ s⁻²]",
 };
 
+// Same as gkyl_gk_distribution_moments_descriptions but for source terms S = ∂f/∂t|_source.
+// Units gain an extra s⁻¹ factor throughout since S has dimensions of f/time.
+static const char *gkyl_gk_distribution_moments_source_descriptions[] = {
+  "M0 = ∫ S d³v: source density flux [SI: m⁻³ s⁻¹]",
+  "M1 = ∫ v_∥ S d³v: source momentum flux n·u_∥ [SI: m⁻² s⁻²]",
+  "M2 = ∫ (v_∥² + 2μB/m) S d³v: total power of the source density divided by mass [SI: m⁻¹ s⁻³]",
+  "M2par = ∫ v_∥² S d³v: parallel power of the source density divided by mass [SI: m⁻¹ s⁻³]",
+  "M2perp = ∫ (2μB/m) S d³v: perpendicular power of the source density divided by mass [SI: m⁻¹ s⁻³]",
+  "M2ij = ∫ vᵢvⱼ S d³v: source momentum flux tensor divided by mass [SI: m⁻¹ s⁻³]",
+  "M3 = ∫ (v_∥² + 2μB/m)³/² S d³v: source of isotropic heat flux divided by mass [SI: s⁻⁴]",
+  "M3par = ∫ v_∥³ S d³v: source of parallel heat flux divided by mass [SI: s⁻⁴]",
+  "M3perp = ∫ (2μB/m)³/² S d³v: source of perpendicular heat flux divided by mass [SI: s⁻⁴]",
+  "M3ijk = ∫ vᵢvⱼvₖ S d³v: source of 3rd-order velocity tensor divided by mass [SI: s⁻⁴]",
+  "MaxwellianMoments: [n_s, u_∥, v_ts²] Maxwellian fit parameters for source S: source density flux, drift velocity, thermal speed squared [SI: m⁻³ s⁻¹, m s⁻¹, m² s⁻²]",
+  "BiMaxwellianMoments: [n_s, u_∥, v_ts∥², v_ts⊥²] bi-Maxwellian fit parameters for source S: source density flux, drift velocity, parallel and perpendicular thermal speeds squared [SI: m⁻³ s⁻¹, m s⁻¹, m² s⁻², m² s⁻²]",
+  "LTEMoments: [n_s, u_∥, v_ts²] LTE fit parameters for source S: source density flux, drift velocity, thermal speed squared [SI: m⁻³ s⁻¹, m s⁻¹, m² s⁻²]",
+  "M0M1M2: [M0, M1, M2] source density flux, source momentum flux, total power of the source density divided by mass [SI: m⁻³ s⁻¹, m⁻² s⁻², m⁻¹ s⁻³]",
+  "M0M1M2parM2perp: [M0, M1, M2par, M2perp] source density flux, source momentum flux, parallel and perpendicular power of the source density divided by mass [SI: m⁻³ s⁻¹, m⁻² s⁻², m⁻¹ s⁻³, m⁻¹ s⁻³]",
+  "HamiltonianMoments: [M0, M1, ∫ H S d³v] source density flux, source momentum flux, source Hamiltonian power density divided by mass [SI: m⁻³ s⁻¹, m⁻² s⁻², m⁻¹ s⁻³]",
+  "M1_from_H = ∫ (∂H/∂v_∥)/m_s S d³v: source momentum flux computed from the Hamiltonian gradient [SI: m⁻² s⁻²]",
+  "EnergyMoment = ∫ H S d³v, H = ½m_s v_∥² + μB + qφ: source Hamiltonian power density divided by mass [SI: m⁻¹ s⁻³]",
+  "M0EnergyM3: [M0, EnergyMoment, M3par] source density flux, source Hamiltonian power density divided by mass, source of parallel heat flux divided by mass [SI: m⁻³ s⁻¹, m⁻¹ s⁻³, s⁻⁴]",
+  "Ni: [M0, M1ᵢ] source density flux and source momentum flux vector [SI: m⁻³ s⁻¹, m⁻² s⁻²]",
+  "Tij = ∫ vᵢvⱼ S d³v: source stress-energy tensor divided by mass [SI: m⁻¹ s⁻³]",
+};
+
 /**
  * Create new gyrokinetic moment type object. Valid 'mom' strings are "M0",
  * "M1", "M2", "M2par", "M2perp", "M3par", "M3perp", "ThreeMoments",
