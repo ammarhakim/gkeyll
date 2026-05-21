@@ -1,9 +1,8 @@
 -- Gkyl ------------------------------------------------------------------------
 --
 -- Runs regression tests and compares with accepted results.
--- Restructured to support the hierarchical layer architecture:
---   core -> moments -> vlasov -> gyrokinetics -> pkpm
--- Each layer has its own luareg/ (Lua regression tests) and creg/
+-- Each layer (moments -> vlasov -> gyrokinetics -> pkpm) 
+-- has its own luareg/ (Lua regression tests) and creg/
 -- (C regression test sources).
 --
 -- Lua tests:  discovered from source_dir/<layer>/luareg/rt_*.lua.
@@ -28,11 +27,6 @@ if GKYL_HAVE_SQLITE3 == false then
    return 1
 end
 
--- Minimal set of requires needed by this tool.
--- File comparison (compareFiles) uses the G0.Zero Lua-C API registered by
--- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c).  The old LuaJIT
--- FFI modules (ZeroArray, ZeroArrayRio, ZeroRectCart, ZeroUtil) are no longer
--- needed and have been removed.
 local Logger = require "Lib.Logger"
 local Time = require "Lib.Time"
 local argparse = require "Lib.argparse"
@@ -107,6 +101,25 @@ do
    end
 end
 
+-- ---- Physical CPU count detection ------------------------------------------
+-- Used by --jobs 0 to auto-detect how many tests to run concurrently.
+-- Tries macOS sysctl (physical cores only), then Linux nproc, defaults to 1.
+local function physicalCpuCount()
+   local f = io.popen("sysctl -n hw.physicalcpu 2>/dev/null", "r")
+   if f then
+      local n = tonumber(f:read("*a"))
+      f:close()
+      if n and n > 0 then return n end
+   end
+   local f2 = io.popen("nproc 2>/dev/null", "r")
+   if f2 then
+      local n2 = tonumber(f2:read("*a"))
+      f2:close()
+      if n2 and n2 > 0 then return n2 end
+   end
+   return 1
+end
+
 -- ---- Layer pre-processing of command arguments ------------------------------
 -- The argparse library does not natively support positional sub-sub-command
 -- names that collide with free text (e.g. "run moments check"). We therefore
@@ -145,7 +158,28 @@ local isConfiguring = false
 local configVals    = nil
 
 -- Path of the configuration file written by 'configure' and read by 'run'.
-local confFile = os.getenv("HOME") .. "/runregression.config.lua"
+-- Preferred location: <prefix>/gkeyll-results/runregression.config.lua, derived
+-- from config.mak (same logic as prefix auto-detection in config_action).
+-- Falls back to ~/runregression.config.lua for backwards compatibility.
+local function computeConfFile()
+   local gkeyllDir = GKYL_EXEC_PATH and GKYL_EXEC_PATH:match("^(.+)/bin$")
+   if gkeyllDir then
+      local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
+      if mf then
+         for line in mf:lines() do
+            local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
+            if p then
+               mf:close()
+               return p .. "/gkeyll-results/runregression.config.lua",
+                      p .. "/gkeyll-results"
+            end
+         end
+         mf:close()
+      end
+   end
+   return os.getenv("HOME") .. "/runregression.config.lua", nil
+end
+local confFile, confFileResultsDir = computeConfFile()
 
 -- Per-layer SQLite database connections and prepared statements.
 -- Populated lazily by getLayerDB().
@@ -496,8 +530,18 @@ end
 local function loadConfigure(args)
    local f = loadfile(confFile)
    if not f then
-      log("Regression tests not configured! Run 'runregression configure' first.\n")
-      os.exit(1)
+      -- Try the legacy home-directory location as a fallback.
+      local legacyPath = os.getenv("HOME") .. "/runregression.config.lua"
+      f = loadfile(legacyPath)
+      if f then
+         log(string.format(
+            "NOTE: config loaded from legacy location %s.\n"
+            .. "Re-run 'runregression configure' to migrate it to gkeyll-results/.\n",
+            legacyPath))
+      else
+         log("Regression tests not configured! Run 'runregression configure' first.\n")
+         os.exit(1)
+      end
    end
    configVals = f()
 
@@ -523,32 +567,63 @@ local function loadConfigure(args)
    end
 
    -- Load per-layer ignore and MOAT lists.
-   -- The file format for ignoretests.lua is:
-   --   return { lua = {"path/to/test.lua", ...}, c = {"rt_testname", ...} }
-   -- The file format for moat.lua is:
-   --   return {"path/to/test1.lua", "path/to/test2.lua", ...}
+   -- ignore_lua_tests.lua (in luareg/): return { tests = {...}, gpu = {...} }
+   -- ignore_c_tests.lua   (in creg/):   return { tests = {...}, gpu = {...} }
+   -- moat.lua (in luareg/): return {"rt_test1", "rt_test2", ...}
    -- Missing files are silently treated as empty lists.
    for _, layer in ipairs(LAYERS) do
-      local ignFile  = configVals.source_dir .. "/" .. layer.src .. "/luareg/ignoretests.lua"
-      local moatFile = configVals.source_dir .. "/" .. layer.src .. "/luareg/moat.lua"
+      local srcBase    = configVals.source_dir .. "/" .. layer.src
+      local luaIgnFile = srcBase .. "/luareg/ignore_lua_tests.lua"
+      local cIgnFile   = srcBase .. "/creg/ignore_c_tests.lua"
+      local luaMoatFile = srcBase .. "/luareg/moat_lua.lua"
+      local cMoatFile   = srcBase .. "/creg/moat_c.lua"
 
-      local gi = loadfile(ignFile)
-      if gi then
-         ignoreTests[layer.name] = gi()
-      else
-         ignoreTests[layer.name] = { lua = {}, c = {} }
+      local luaIgn = { tests = {}, gpu = {} }
+      local cIgn   = { tests = {}, gpu = {} }
+
+      local gLua = loadfile(luaIgnFile)
+      if gLua then
+         local ok, loaded = pcall(gLua)
+         if ok and type(loaded) == "table" then luaIgn = loaded end
       end
 
-      local gm = loadfile(moatFile)
-      if gm then
-         moatTests[layer.name] = gm()
-      else
-         moatTests[layer.name] = {}
+      local gC = loadfile(cIgnFile)
+      if gC then
+         local ok, loaded = pcall(gC)
+         if ok and type(loaded) == "table" then cIgn = loaded end
+      end
+
+      ignoreTests[layer.name] = {
+         lua     = luaIgn.tests or {},
+         c       = cIgn.tests   or {},
+         gpu_lua = luaIgn.gpu   or {},
+         gpu_c   = cIgn.gpu     or {},
+      }
+
+      moatTests[layer.name] = { lua = {}, c = {} }
+      local gLuaMoat = loadfile(luaMoatFile)
+      if gLuaMoat then
+         local ok, t = pcall(gLuaMoat)
+         if ok and type(t) == "table" then moatTests[layer.name].lua = t end
+      end
+      local gCMoat = loadfile(cMoatFile)
+      if gCMoat then
+         local ok, t = pcall(gCMoat)
+         if ok and type(t) == "table" then moatTests[layer.name].c = t end
       end
 
       if args.all then
-         -- --all overrides the ignore list.
-         ignoreTests[layer.name] = { lua = {}, c = {} }
+         -- --all bypasses the ignore list for the test types that will actually run.
+         -- Combined with --lua-only, only the Lua ignore list is cleared (C skipped anyway).
+         -- Combined with --c-only, only the C ignore list is cleared (Lua skipped anyway).
+         if not args.c_only then
+            ignoreTests[layer.name].lua     = {}
+            ignoreTests[layer.name].gpu_lua = {}
+         end
+         if not args.lua_only then
+            ignoreTests[layer.name].c     = {}
+            ignoreTests[layer.name].gpu_c = {}
+         end
       end
    end
 
@@ -585,8 +660,6 @@ local function list_tests(activeLayers, args)
       layersToScan = LAYERS
    end
 
-   local appPrefix = args.app
-
    for _, layer in ipairs(layersToScan) do
       -- ---- Lua tests --------------------------------------------------------
       local luaregDir = configVals.source_dir .. "/" .. layer.src .. "/luareg"
@@ -601,14 +674,7 @@ local function list_tests(activeLayers, args)
                local luaregPath = "/" .. layer.src .. "/luareg/"
                if not string.find(fn, luaregPath, 1, true) then return end
             end
-            -- Filter by app prefix if requested.
-            if appPrefix then
-               if not string.find(fn, "/rt_" .. appPrefix .. "_[^/]+%.lua$") then
-                  return
-               end
-            else
-               if not isLuaRegressionTest(fn) then return end
-            end
+            if not isLuaRegressionTest(fn) then return end
             -- Skip tests in ignore list.  The lua table stores basenames
             -- (no path, no extension) so the file works on any machine.
             local ignLua = ignoreTests[layer.name] and ignoreTests[layer.name].lua or {}
@@ -623,9 +689,10 @@ local function list_tests(activeLayers, args)
          end
 
          if args.moat then
-            -- Only run the MOAT tests for this layer.
-            for _, t in ipairs(moatTests[layer.name] or {}) do
-               addLuaTest(t)
+            -- Only run the MOAT Lua tests for this layer (basenames from moat_lua.lua).
+            for _, t in ipairs(moatTests[layer.name].lua or {}) do
+               local candidate = luaregDir .. "/" .. t .. ".lua"
+               if lfs.attributes(candidate) then addLuaTest(candidate) end
             end
          elseif args.run_only then
             for _, ro in ipairs(splitList(args.run_only)) do
@@ -636,6 +703,10 @@ local function list_tests(activeLayers, args)
                   elseif a.mode == "directory" then
                      for dir, fn, _ in dirtree(ro) do addLuaTest(dir .. "/" .. fn) end
                   end
+               else
+                  -- Bare test name (e.g. "rt_euler_sodshock"): search this layer's luareg/.
+                  local candidate = luaregDir .. "/" .. ro .. ".lua"
+                  if lfs.attributes(candidate) then addLuaTest(candidate) end
                end
             end
          else
@@ -664,10 +735,6 @@ local function list_tests(activeLayers, args)
             -- Must match rt_*.c pattern.
             if not string.match(fn, "/rt_[^/]+%.c$") then return end
             local testname = stripext(basename(fn))
-            -- Filter by app prefix if requested.
-            if appPrefix and not string.find(testname, "^rt_" .. appPrefix .. "_") then
-               return
-            end
             -- Skip tests in ignore list (C ignores are stored as basenames without .c).
             local ignC = ignoreTests[layer.name] and ignoreTests[layer.name].c or {}
             if lume.find(ignC, testname) then return end
@@ -679,7 +746,13 @@ local function list_tests(activeLayers, args)
             })
          end
 
-         if args.run_only then
+         if args.moat then
+            -- Only run the MOAT C tests for this layer (basenames from moat_c.lua).
+            for _, t in ipairs(moatTests[layer.name].c or {}) do
+               local candidate = cregSrcDir .. "/" .. t .. ".c"
+               if lfs.attributes(candidate) then addCTest(candidate) end
+            end
+         elseif args.run_only then
             for _, ro in ipairs(splitList(args.run_only)) do
                local a = lfs.attributes(ro)
                if a then
@@ -690,6 +763,10 @@ local function list_tests(activeLayers, args)
                         if attr.mode == "file" then addCTest(dir .. "/" .. fn) end
                      end
                   end
+               else
+                  -- Bare test name (e.g. "rt_10m_sodshock"): search this layer's creg/.
+                  local candidate = cregSrcDir .. "/" .. ro .. ".c"
+                  if lfs.attributes(candidate) then addCTest(candidate) end
                end
             end
          else
@@ -723,73 +800,16 @@ end
 -- mode: "cpu" = force CPU via -G on a GPU build; "gpu" = use GPU (default on
 --       GPU build, no extra flag needed); nil = legacy behaviour (no mode flag).
 -- Returns: runtm, runlog, runDir, timedOut (boolean).
-local function runLuaTest(test, timeoutSecs, mode)
-   local testBasename = stripext(basename(test.file))
-   local runDir = configVals.results_dir .. "/" .. test.layer
-      .. "/luareg-runs/" .. testBasename
-
-   local modeTag = (mode == "gpu") and "[GPU-Lua]" or "[Lua]"
-   log(string.format("\n%s Running %s ...\n", modeTag, test.name))
-   mkdir(runDir)
-
-   -- Copy the Lua input file for reference / diffing.
-   os.execute(string.format("cp -f '%s' '%s/'", test.file, runDir))
-
-   -- Remove old output files to ensure a clean run.
-   os.execute(string.format("rm -f '%s'/*.gkyl 2>/dev/null", runDir))
-
-   local opts = {}
-   local fh = io.open(test.file, "r")
-   if fh then
-      local line1 = fh:read()
-      if line1 and string.find(line1, "--!") then
-         local r = string.sub(line1, 4, -1)
-         opts = loadstring("return " .. r)()
-      end
-      fh:close()
-   end
-
-   if opts.numProc then
-      -- Parallel tests via MPI are not yet supported in the spawned-process
-      -- model used here. Skip them and note in the log.
-      log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
-      return 0, "", runDir, false
-   end
-
-   -- Build the inner command (stderr merged into stdout via 2>&1 so that
-   -- everything is captured by io.popen).
-   -- On a GPU build, Lua tests (vlasov/gyrokinetic/pkpm) auto-run on GPU.
-   -- To force CPU mode, append -G AFTER the input file name; the layer's
-   -- *_lw.c wrapper reads this via GKYL_COMMANDS → coption parsing.
-   local gkylExec = GKYL_EXEC_PATH .. "/gkeyll"
-   local modeFlag = ""
-   if mode == "cpu" and GPU_BUILD then
-      modeFlag = " -G"
-   end
-   local innerCmd = string.format(
-      "cd '%s' && '%s' '%s'%s 2>&1", runDir, gkylExec, test.file, modeFlag)
-   local runCmd = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
-
-   local tmStart  = Time.clock()
-   local proc     = io.popen(runCmd, "r")
-   local rawOutput = proc:read("*a")
-   proc:close()
-   local runtm = Time.clock() - tmStart
-
-   -- wrapWithTimeout appends '; echo __EXIT__:$?' so we can detect timeout.
-   local exitCode = tonumber(rawOutput:match("__EXIT__:(%d+)%s*$")) or 0
-   local runlog   = rawOutput:gsub("\n?__EXIT__:%d+%s*$", "")
-   local timedOut = (exitCode == 124)
-
-   if timedOut then
-      log(string.format("... TIMED OUT after %g sec\n", runtm))
-   else
-      log(string.format("... completed in %g sec\n", runtm))
-   end
-   verboseLog(runlog)
-
-   return runtm, runlog, runDir, timedOut
-end
+-- ---- Parallel execution infrastructure -------------------------------------
+-- These three functions underpin both the serial (--jobs 1) and parallel
+-- (--jobs N) execution paths.
+--
+-- prepareLuaRun / prepareCRun: extract all setup work (mkdir, copy, compile)
+--   from runLuaTest / runCTest without calling io.popen for the test itself.
+--   They return a table describing the ready-to-run command.
+--
+-- executeBatch: given a list of such tables, runs them all concurrently using
+--   shell background jobs and collects the results.
 
 -- Compiles a single C regression test in its scratch directory.
 -- Copies test.src and the installed share/Makefile into scratchDir, then
@@ -829,51 +849,82 @@ local function compileCTest(test, scratchDir)
    return (exitCode == 0), compileLog
 end
 
--- Runs a single C regression test.
--- Workflow:
---   1. Create per-test scratch directory under creg-runs/<testname>/
---   2. Remove stale .gkyl output files
---   3. Compile the .c source on-the-fly via compileCTest (copies .c +
---      share/Makefile into scratch dir, runs 'make <testname>')
---   4. Run the freshly compiled binary from the scratch directory
---   5. Remove the compiled binary (keep .c, Makefile, .gkyl outputs)
--- mode: "gpu" = append '-g' to the binary invocation; nil = CPU (default).
--- skipCompile: true = binary already exists from a prior CPU run (used for the
---   GPU re-run), skip compilation and binary cleanup (caller handles cleanup).
--- keepBinary: true = do not delete the binary after running (needed when a
---   GPU re-run will follow the CPU run using the same compiled binary).
--- Returns: runtm, runlog, runDir, timedOut (bool), compileFailed (bool).
--- Status codes recorded in DB: -4=compile_fail, -3=timeout, 0=fail, 1=pass.
-local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
+-- prepareLuaRun(test, timeoutSecs, mode) → table
+-- Sets up the scratch dir and builds the run command, but does NOT execute it.
+-- Returns {cmd, runDir, test} normally, or {mpiSkip=true, runDir, test} for
+-- MPI-only tests (numProc set) that cannot be run via this framework.
+local function prepareLuaRun(test, timeoutSecs, mode)
+   local testBasename = stripext(basename(test.file))
+   local runDir = configVals.results_dir .. "/" .. test.layer
+      .. "/luareg-runs/" .. testBasename
+
+   mkdir(runDir)
+   os.execute(string.format("cp -f '%s' '%s/'", test.file, runDir))
+   os.execute(string.format("rm -f '%s'/*.gkyl 2>/dev/null", runDir))
+
+   local opts = {}
+   local fh = io.open(test.file, "r")
+   if fh then
+      local line1 = fh:read()
+      if line1 and string.find(line1, "--!") then
+         local r = string.sub(line1, 4, -1)
+         opts = loadstring("return " .. r)()
+      end
+      fh:close()
+   end
+
+   if opts.numProc then
+      return { mpiSkip = true, runDir = runDir, test = test }
+   end
+
+   local gkylExec = GKYL_EXEC_PATH .. "/gkeyll"
+   local modeFlag = ""
+   if mode == "cpu" and GPU_BUILD then modeFlag = " -G" end
+   local innerCmd = string.format(
+      "cd '%s' && '%s' '%s'%s 2>&1", runDir, gkylExec, test.file, modeFlag)
+   local cmd = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
+
+   return { cmd = cmd, runDir = runDir, test = test }
+end
+
+-- prepareCRun(test, timeoutSecs, mode, skipCompile) → table
+-- Creates the scratch dir, compiles the C test (unless skipCompile), creates
+-- the layer source symlink so tests can find data files by relative path, 
+-- and builds the run command.
+-- Returns {compileFailed=true, ...} on compile failure (no cmd field).
+-- Returns {compileFailed=false, cmd, runDir, test, compileLog, compileSecs} on success.
+local function prepareCRun(test, timeoutSecs, mode, skipCompile)
    local testname = stripext(basename(test.src))
    local runDir   = configVals.results_dir .. "/" .. test.layer
       .. "/creg-runs/" .. testname
 
-   local modeTag = (mode == "gpu") and "[GPU-C]" or "[C]"
-   log(string.format("\n%s   Running %s ...\n", modeTag, test.name))
    mkdir(runDir)
    os.execute(string.format("rm -f '%s'/*.gkyl 2>/dev/null", runDir))
 
-   -- Step 1: compile (skipped when re-running the same binary for GPU mode).
-   local compileLog = ""
+   local compileLog  = ""
+   local compileSecs = 0
    if not skipCompile then
-      log("... compiling ...\n")
-      local tmComp = Time.clock()
+      log(string.format("\n[C]   Compiling %s ...\n", test.name))
+      local tmComp   = Time.clock()
       local compileOk
       compileOk, compileLog = compileCTest(test, runDir)
-      local compileSecs = Time.clock() - tmComp
+      compileSecs = Time.clock() - tmComp
 
       if not compileOk then
          log(string.format("... COMPILE FAILED in %g sec\n", compileSecs))
          verboseLog(compileLog)
-         return compileSecs, "COMPILE FAILED:\n" .. compileLog, runDir, false, true
+         return {
+            compileFailed = true,
+            runDir        = runDir,
+            test          = test,
+            compileLog    = compileLog,
+            compileSecs   = compileSecs,
+         }
       end
       verboseLog(compileLog)
    end
 
-   -- Step 2: symlink the layer's source subdirectory into the run dir so that
-   -- tests opening data files with paths like "gyrokinetic/data/..." can find
-   -- them relative to CWD without hardcoding the source tree location.
+   -- Symlink the layer source dir so tests can find data files by relative path.
    if test.layer_src then
       local layerSrcPath = configVals.source_dir .. "/" .. test.layer_src
       local symlinkPath  = runDir .. "/" .. test.layer_src
@@ -884,26 +935,142 @@ local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
       end
    end
 
-   -- Step 3: run.
-   -- For GPU mode, append -g to the binary invocation (rt_arg_parse.h handles it).
    local binPath  = runDir .. "/" .. testname
    local gpuFlag  = (mode == "gpu") and " -g" or ""
    local innerCmd = string.format("cd '%s' && '%s'%s 2>&1", runDir, binPath, gpuFlag)
-   local runCmd   = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
+   local cmd      = wrapWithTimeout(innerCmd, timeoutSecs or 0, runDir)
 
-   local tmStart   = Time.clock()
-   local proc      = io.popen(runCmd, "r")
-   local rawOutput = proc:read("*a")
-   proc:close()
-   local runtm = Time.clock() - tmStart
+   return {
+      compileFailed = false,
+      cmd           = cmd,
+      runDir        = runDir,
+      test          = test,
+      compileLog    = compileLog,
+      compileSecs   = compileSecs,
+   }
+end
 
-   local exitCode = tonumber(rawOutput:match("__EXIT__:(%d+)%s*$")) or 0
-   local runlog   = rawOutput:gsub("\n?__EXIT__:%d+%s*$", "")
-   local timedOut = (exitCode == 124)
+-- executeBatch(items) → list of {runtm, runlog, timedOut}
+-- Runs all items concurrently via shell background jobs.  Each item must have
+-- {cmd, runDir}.  The function blocks until every job in the batch finishes.
+--
+-- Per-item timing uses __START__:epoch / __END__:epoch markers written around
+-- each command's execution; exit status comes from wrapWithTimeout's existing
+-- __EXIT__:N marker.  All output (stdout + stderr) goes to
+-- runDir/_parallel_out.txt.  The coordinator script is placed in results_dir
+-- and rewritten each call; per-item scripts go in their own runDir.
+local function executeBatch(items)
+   if #items == 0 then return {} end
 
-   -- Remove the compiled binary and macOS debug symbols dir; keep .c source,
-   -- Makefile, and .gkyl outputs.  When skipCompile or keepBinary is true the
-   -- caller is responsible for binary cleanup (the GPU re-run needs the binary).
+   -- Step 1: write a per-item wrapper script so we never have to embed
+   -- arbitrary command strings inside the coordinator (avoids quoting issues).
+   for _, item in ipairs(items) do
+      local sf = io.open(item.runDir .. "/_rr_batch_item.sh", "w")
+      sf:write("#!/bin/sh\n")
+      sf:write("echo __START__:$(date +%s)\n")
+      -- item.cmd already ends with '; echo __EXIT__:$?' from wrapWithTimeout.
+      sf:write(item.cmd .. "\n")
+      sf:write("echo __END__:$(date +%s)\n")
+      sf:close()
+   end
+
+   -- Step 2: write the batch coordinator script.
+   -- Use the first item's runDir (not results_dir) so concurrent runregression
+   -- processes (e.g. different layers running in parallel) never share a file.
+   local coordPath = items[1].runDir .. "/_rr_batch_coordinator.sh"
+   local cf = io.open(coordPath, "w")
+   cf:write("#!/bin/sh\n")
+   for _, item in ipairs(items) do
+      local itemScript = item.runDir .. "/_rr_batch_item.sh"
+      local outFile    = item.runDir .. "/_parallel_out.txt"
+      cf:write(string.format("sh '%s' > '%s' 2>&1 &\n", itemScript, outFile))
+   end
+   cf:write("wait\n")
+   cf:close()
+
+   -- Step 3: run the coordinator (blocks until all background jobs finish).
+   os.execute(string.format("sh '%s'", coordPath))
+
+   -- Step 4: collect results.
+   local results = {}
+   for _, item in ipairs(items) do
+      local rf = io.open(item.runDir .. "/_parallel_out.txt", "r")
+      local raw = rf and rf:read("*a") or ""
+      if rf then rf:close() end
+
+      local startEpoch = tonumber(raw:match("__START__:(%d+)"))
+      local endEpoch   = tonumber(raw:match("__END__:(%d+)"))
+      local runtm = (startEpoch and endEpoch) and (endEpoch - startEpoch) or 0
+
+      -- Strip timing markers first so they don't interfere with EXIT parsing.
+      local stripped = raw
+         :gsub("\n?__START__:%d+\n?", "\n")
+         :gsub("\n?__END__:%d+\n?",   "\n")
+      local exitCode = tonumber(stripped:match("__EXIT__:(%d+)%s*$")) or 0
+      local runlog   = stripped:gsub("\n?__EXIT__:%d+%s*$", "")
+
+      table.insert(results, {
+         runtm    = runtm,
+         runlog   = runlog,
+         timedOut = (exitCode == 124),
+      })
+   end
+
+   return results
+end
+
+local function runLuaTest(test, timeoutSecs, mode)
+   local modeTag = (mode == "gpu") and "[GPU-Lua]" or "[Lua]"
+   log(string.format("\n%s Running %s ...\n", modeTag, test.name))
+
+   local prep = prepareLuaRun(test, timeoutSecs, mode)
+   if prep.mpiSkip then
+      log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
+      return 0, "", prep.runDir, false
+   end
+
+   local results = executeBatch({ prep })
+   local r = results[1]
+
+   if r.timedOut then
+      log(string.format("... TIMED OUT after %g sec\n", r.runtm))
+   else
+      log(string.format("... completed in %g sec\n", r.runtm))
+   end
+   verboseLog(r.runlog)
+
+   return r.runtm, r.runlog, prep.runDir, r.timedOut
+end
+
+-- Runs a single C regression test (thin wrapper over prepareCRun + executeBatch).
+-- prepareCRun handles: scratch dir creation, stale-file removal, compilation, symlink 
+-- setup so tests can find data files by relative path, and run-command construction.
+-- mode: "gpu" = append '-g' to the binary invocation; nil/omitted = CPU.
+-- skipCompile: true = binary already exists (GPU re-run); skip compile phase.
+-- keepBinary: true = do not delete the binary after running (caller handles it).
+-- Returns: runtm, runlog, runDir, timedOut (bool), compileFailed (bool).
+local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
+   -- For GPU re-runs (skipCompile=true), prepareCRun does no logging, so we
+   -- announce the test here.  For normal CPU runs, prepareCRun logs
+   -- "\n[C]   Compiling X ..." which serves as the announcement.
+   if skipCompile then
+      local modeTag = (mode == "gpu") and "[GPU-C]" or "[C]"
+      log(string.format("\n%s   Running %s ...\n", modeTag, test.name))
+   end
+
+   local prep = prepareCRun(test, timeoutSecs, mode, skipCompile)
+   if prep.compileFailed then
+      return prep.compileSecs, "COMPILE FAILED:\n" .. prep.compileLog,
+             prep.runDir, false, true
+   end
+
+   local results = executeBatch({ prep })
+   local r       = results[1]
+   local testname = stripext(basename(test.src))
+   local runDir   = prep.runDir
+
+   -- Remove compiled binary (keep .c source, Makefile, .gkyl outputs).
+   -- When skipCompile or keepBinary is true the caller handles cleanup.
    if not skipCompile and not keepBinary then
       os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
          runDir, testname, runDir, testname))
@@ -911,28 +1078,40 @@ local function runCTest(test, timeoutSecs, mode, skipCompile, keepBinary)
          runDir, testname))
    end
 
-   if timedOut then
-      log(string.format("... TIMED OUT after %g sec\n", runtm))
+   if r.timedOut then
+      log(string.format("... TIMED OUT after %g sec\n", r.runtm))
    else
-      log(string.format("... completed in %g sec\n", runtm))
+      log(string.format("... completed in %g sec\n", r.runtm))
    end
-   verboseLog(runlog)
+   verboseLog(r.runlog)
 
-   return runtm, compileLog .. "\n" .. runlog, runDir, timedOut, false
+   return r.runtm, (prep.compileLog or "") .. "\n" .. r.runlog,
+          runDir, r.timedOut, false
 end
 
 -- ---- File comparison --------------------------------------------------------
+-- Returns a shortened version of an absolute path for display purposes.
+-- Strips the results_dir prefix so paths display as e.g.
+-- "moments/creg-accepted/rt_10m_sodshock/rt_10m_sodshock-0.gkyl".
+local function shortPath(p)
+   local rd = configVals.results_dir .. "/"
+   if p:sub(1, #rd) == rd then return p:sub(#rd + 1) end
+   return p
+end
+
 -- Compares two .gkyl files (field data or dynvector) element-by-element.
 -- absTol / relTol: optional absolute and relative tolerance thresholds.
---   Defaults to 1e-12 for both (original strict CPU comparison).
---   Pass looser values (e.g. 1e-8) for GPU-vs-accepted comparisons.
+--   Defaults to 1e-12 for both (strict CPU comparison).
+--   Pass looser values (e.g. 1e-7) for GPU-vs-accepted comparisons.
+-- File comparison uses the G0.Zero Lua-C API registered by
+-- gkyl_zero_lw_openlibs at startup (core/apps/zero_lw.c). 
 local function compareFiles(f1, f2, absTol, relTol)
    absTol = absTol or 1e-12
    relTol = relTol or 1e-12
-   verboseLog(string.format("Comparing %s %s ...\n", f1, f2))
+   verboseLog(string.format("  Comparing %s\n             %s ...\n", shortPath(f1), shortPath(f2)))
    if not lfs.attributes(f1) or not lfs.attributes(f2) then
       verboseLog(string.format(
-         " ... files %s and/or %s do not exist!\n", f1, f2))
+         "    ... files %s and/or %s do not exist!\n", shortPath(f1), shortPath(f2)))
       return false
    end
 
@@ -941,23 +1120,22 @@ local function compareFiles(f1, f2, absTol, relTol)
    -- those from aborting the entire regression run.  Note: C-level
    -- assertion failures (abort/SIGABRT) cannot be caught by pcall —
    -- tests that trigger those must be added to the ignore list.
-   local ok, result = pcall(function()
+   -- pcall returns (true, result, detail) on success or (false, errmsg) on throw.
+   local ok, result, detail = pcall(function()
       local f1type = G0.Zero.gkylFileType(f1)
       local f2type = G0.Zero.gkylFileType(f2)
 
       if f1type ~= f2type then
          verboseLog(string.format(
-            " ... files %s and %s are not of the same type!\n", f1, f2))
-         return false
+            "    ... type mismatch: %s vs %s\n", f1type, f2type))
+         return false, string.format("type mismatch: %s vs %s", f1type, f2type)
       end
 
       if f1type == "dynvector" then
          local diff = G0.Zero.dynvecDiff(f1, f2)
          if not diff.is_compatible then
-            verboseLog(string.format(
-               " ... dynvector files not compatible (size/type mismatch or read failure): %s %s\n",
-               f1, f2))
-            return false
+            verboseLog("    ... dynvector files not compatible (size/type mismatch or read failure)\n")
+            return false, "dynvec not compatible"
          end
          -- Combined tolerance: fail only when BOTH absolute and relative
          -- thresholds are exceeded.  This avoids false failures for near-zero
@@ -966,13 +1144,23 @@ local function compareFiles(f1, f2, absTol, relTol)
          -- condition short-circuits (handles the 0/0 → DBL_MAX rel case).
          if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
             verboseLog(string.format(
-               " ... dynvector max abs diff %g (threshold %g), max rel diff %g (threshold %g)\n",
+               "    ... dynvec max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
                diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
-            return false
+            return false, string.format("dynvec max_abs=%.3g max_rel=%.3g",
+               diff.max_abs_diff, diff.max_rel_diff)
          end
          if diff.tm_max_abs_diff > 1e-10 then
             verboseLog(string.format(
-               " ... dynvector timestamp max abs diff %g (informational)\n", diff.tm_max_abs_diff))
+               "    ... dynvec timestamp max abs diff %g (informational)\n", diff.tm_max_abs_diff))
+         end
+         return true
+      end
+
+      if f1type == "block-topology" then
+         local equal = G0.Zero.blockTopoCmp(f1, f2)
+         if not equal then
+            verboseLog("    ... block topology mismatch\n")
+            return false, "topology mismatch"
          end
          return true
       end
@@ -982,11 +1170,13 @@ local function compareFiles(f1, f2, absTol, relTol)
       local g2, a2 = G0.Zero.arrayNewFromFile(f2)
       if not g1 or not g2 then
          verboseLog(string.format(
-            " ... skipping %s (unsupported file format)\n", f1))
+            "    ... skipping %s (unsupported file format)\n", shortPath(f1)))
          return true
       end
 
-      if not G0.Zero.rectGridCmp(g1, g2) then return false end
+      if not G0.Zero.rectGridCmp(g1, g2) then
+         return false, "grid mismatch"
+      end
 
       local nghost = { 0, 0, 0, 0, 0, 0, 0 }
       local r1, er1 = G0.Zero.createGridRanges(g1, nghost)
@@ -994,7 +1184,7 @@ local function compareFiles(f1, f2, absTol, relTol)
 
       local diff = G0.Zero.arrayDiff(a1, a2, r1)
 
-      if not diff.is_compatible then return false end
+      if not diff.is_compatible then return false, "incompatible arrays" end
       -- Combined tolerance: fail only when BOTH absolute and relative thresholds
       -- are exceeded.  Near-zero values naturally have large relative differences
       -- (e.g. 1e-15 vs -1e-15 → rel=200%) but negligible absolute differences;
@@ -1004,23 +1194,25 @@ local function compareFiles(f1, f2, absTol, relTol)
       -- 0/0 → DBL_MAX rel case from gkyl_array_diff).
       if diff.max_abs_diff > absTol and diff.max_rel_diff > relTol then
          verboseLog(string.format(
-            " ... max abs diff %g (threshold %g), max rel diff %g (threshold %g)\n",
+            "    ... max abs diff %g (tol %g), max rel diff %g (tol %g)\n",
             diff.max_abs_diff, absTol, diff.max_rel_diff, relTol))
-         return false
+         return false, string.format("max_abs=%.3g max_rel=%.3g",
+            diff.max_abs_diff, diff.max_rel_diff)
       end
 
       return true
    end)
 
    if not ok then
+      -- result holds the error message when pcall catches a throw.
       verboseLog(string.format(
-         " ... comparison CRASHED for %s: %s\n", f1, tostring(result)))
+         "    ... comparison CRASHED: %s\n", tostring(result)))
       log(string.format(
          "WARNING: comparison crashed for %s (C-level error: %s)\n",
          basename(f1), tostring(result)))
-      return false
+      return false, "crash: " .. tostring(result)
    end
-   return result
+   return result, detail
 end
 
 -- ---- Post-run actions: create and check -------------------------------------
@@ -1058,35 +1250,73 @@ local function check_action(test, runDir, testType, absTol, relTol)
    local testPrefix = (testType == "lua") and stripext(basename(test.file)) or nil
 
    local passed, count = true, 0
-   -- Walk the scratch directory and compare each .gkyl file against the accepted baseline.
-   for fn in lfs.dir(runDir) do
-      local isGkyl   = (string.sub(fn, -5) == ".gkyl")
-      -- Skip topology/connectivity files (e.g. _btopo.gkyl): they are not
-      -- grid+array files and cannot be compared with gkyl_array_diff.
-      local isSkipped = string.find(fn, "_btopo%.gkyl$") ~= nil
-      local inScope  = isGkyl and not isSkipped and (
-         testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
-      if inScope then
-         count = count + 1
-         local runFile  = runDir  .. "/" .. fn
-         local accFile  = aDir    .. "/" .. fn
-         local ok = compareFiles(accFile, runFile, absTol, relTol)
-         passed = passed and ok
+   local failedFiles = {}
+   -- Walk the accepted directory (ground truth) and verify each file is present
+   -- in the run directory and matches within tolerance. Walking accepted (not run)
+   -- means a test that crashes before writing its last frame is correctly flagged:
+   -- the missing run file is detected rather than silently skipped.
+   if lfs.attributes(aDir) then
+      for fn in lfs.dir(aDir) do
+         local isGkyl  = (string.sub(fn, -5) == ".gkyl")
+         local inScope = isGkyl and (
+            testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
+         if inScope then
+            count = count + 1
+            local accFile = aDir   .. "/" .. fn
+            local runFile = runDir .. "/" .. fn
+            if not lfs.attributes(runFile) then
+               verboseLog(string.format("  MISSING run file: %s\n", fn))
+               table.insert(failedFiles, fn .. "  [MISSING]")
+               passed = false
+            else
+               local ok, detail = compareFiles(accFile, runFile, absTol, relTol)
+               if not ok then
+                  local entry = fn .. "  [DIFF]"
+                  if detail and detail ~= "" then entry = entry .. "  " .. detail end
+                  table.insert(failedFiles, entry)
+               end
+               passed = passed and ok
+            end
+         end
       end
    end
 
-   -- If no output files were produced, the test likely crashed. Treat as fail.
-   -- This preserves the original "HACK" comment intent: tests must produce output.
+   -- count == 0 means either no accepted files exist (create not yet run) or the
+   -- accepted directory itself is absent. Either way the check cannot pass.
    if count == 0 then passed = false end
 
+   -- Build the comparison log (stored in the DB so queryrdb can surface it later).
+   local checkLog = ""
    if passed then
       layerCounts[test.layer].passed = layerCounts[test.layer].passed + 1
       log("... passed.\n")
    else
       layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
       log(string.format("... %s FAILED!\n", test.name))
+      if #failedFiles > 0 then
+         -- Always log failing file names with diff magnitudes (not gated on verbose).
+         log(string.format("  Failing files (%d):\n", #failedFiles))
+         for _, ff in ipairs(failedFiles) do
+            log(string.format("    %s\n", ff))
+         end
+         log("  Legend: [DIFF] values exceed tolerance  [MISSING] file not produced by run\n")
+         -- Build checkLog for DB storage so queryrdb --test N surfaces magnitudes.
+         checkLog = "--- Comparison failures ---\n"
+            .. table.concat(failedFiles, "\n")
+         -- Write a machine-parseable failures file to the run directory.
+         local ffPath = runDir .. "/_rr_failures.txt"
+         local ffFile = io.open(ffPath, "w")
+         if ffFile then
+            ffFile:write(string.format("test: %s\n", test.name))
+            ffFile:write(string.format("accepted: %s\n", aDir))
+            ffFile:write(string.format("run: %s\n", runDir))
+            ffFile:write(string.format("failures: %d\n", #failedFiles))
+            for _, ff in ipairs(failedFiles) do ffFile:write(ff .. "\n") end
+            ffFile:close()
+         end
+      end
    end
-   return passed and 1 or 0
+   return passed and 1 or 0, checkLog
 end
 
 -- ---- GPU comparison helpers -------------------------------------------------
@@ -1099,15 +1329,22 @@ local function gpuCheck_vs_accepted(test, runDir, testType, gpuTol)
    local aDir = acceptedDir(test, testType)
    local testPrefix = (testType == "lua") and stripext(basename(test.file)) or nil
    local passed, count = true, 0
-   for fn in lfs.dir(runDir) do
-      local isGkyl   = (string.sub(fn, -5) == ".gkyl")
-      local isSkipped = string.find(fn, "_btopo%.gkyl$") ~= nil
-      local inScope  = isGkyl and not isSkipped and (
-         testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
-      if inScope then
-         count = count + 1
-         local ok = compareFiles(aDir .. "/" .. fn, runDir .. "/" .. fn, gpuTol, gpuTol)
-         passed = passed and ok
+   if lfs.attributes(aDir) then
+      for fn in lfs.dir(aDir) do
+         local isGkyl  = (string.sub(fn, -5) == ".gkyl")
+         local inScope = isGkyl and (
+            testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
+         if inScope then
+            count = count + 1
+            local accFile = aDir   .. "/" .. fn
+            local runFile = runDir .. "/" .. fn
+            if not lfs.attributes(runFile) then
+               passed = false
+            else
+               local ok = compareFiles(accFile, runFile, gpuTol, gpuTol)
+               passed = passed and ok
+            end
+         end
       end
    end
    if count == 0 then passed = false end
@@ -1121,8 +1358,7 @@ local function compareCpuGpu(test, cpuDir, gpuDir, testType, gpuTol)
    local passed, count = true, 0
    for fn in lfs.dir(gpuDir) do
       local isGkyl   = (string.sub(fn, -5) == ".gkyl")
-      local isSkipped = string.find(fn, "_btopo%.gkyl$") ~= nil
-      local inScope  = isGkyl and not isSkipped and (
+      local inScope  = isGkyl and (
          testPrefix == nil or string.find(fn, "^" .. testPrefix) ~= nil)
       if inScope then
          count = count + 1
@@ -1141,7 +1377,7 @@ local function compareCpuGpu(test, cpuDir, gpuDir, testType, gpuTol)
    return passed and 1 or 0
 end
 
--- ---- Unit test helpers (unchanged from original) ----------------------------
+-- ---- Unit test helpers ----------------------------
 local function runLuaUnitTest(test)
    log(string.format("\nRunning unit test %s ...\n", test))
    local gkylExec = GKYL_EXEC_PATH .. "/gkeyll"
@@ -1202,40 +1438,25 @@ end
 
 -- ---- Ignore-list updater ----------------------------------------------------
 -- Called after a run with --timeout when some tests exceeded the limit.
--- Merges the new timed-out test names into the layer's ignoretests.lua and
--- writes the file back so subsequent runs automatically skip them.
+-- Merges timed-out names into the layer's per-suite ignore files and writes
+-- them back so subsequent runs automatically skip those tests.
 --
--- 'layer'            - layer table ({name, src})
--- 'newLuaNames'      - list of Lua test basenames (CPU) that timed out
--- 'newCNames'        - list of C binary basenames (CPU) that timed out
--- 'newGpuLuaNames'   - list of Lua test basenames (GPU variant) that timed out
--- 'newGpuCNames'     - list of C binary basenames (GPU variant) that timed out
-local function updateIgnoreTests(layer, newLuaPaths, newCNames,
+-- Lua timeouts  → luareg/ignore_lua_tests.lua  (tests / gpu keys)
+-- C timeouts    → creg/ignore_c_tests.lua       (tests / gpu keys)
+--
+-- Re-reads each file from disk before writing: manual edits made after this
+-- process started are preserved.
+local function updateIgnoreTests(layer, newLuaNames, newCNames,
       newGpuLuaNames, newGpuCNames)
    newGpuLuaNames = newGpuLuaNames or {}
    newGpuCNames   = newGpuCNames   or {}
 
-   local ignFile = configVals.source_dir
-      .. "/" .. layer.src .. "/luareg/ignoretests.lua"
+   local srcBase    = configVals.source_dir .. "/" .. layer.src
+   local luaIgnFile = srcBase .. "/luareg/ignore_lua_tests.lua"
+   local cIgnFile   = srcBase .. "/creg/ignore_c_tests.lua"
 
-   -- Re-read the file from disk rather than using the in-memory table: the file
-   -- may have been edited manually after this process started, and we must not
-   -- lose those edits when writing back the updated timeout list.
-   local existing = { lua = {}, c = {}, gpu_lua = {}, gpu_c = {} }
-   local gi = loadfile(ignFile)
-   if gi then
-      local ok, loaded = pcall(gi)
-      if ok and type(loaded) == "table" then
-         existing = loaded
-      end
-   end
-   existing.lua     = existing.lua     or {}
-   existing.c       = existing.c       or {}
-   existing.gpu_lua = existing.gpu_lua or {}
-   existing.gpu_c   = existing.gpu_c   or {}
-
-   -- Generic merge helper: adds entries from 'newList' into 'existingList',
-   -- avoiding duplicates.  Returns the count of entries actually added.
+   -- Adds entries from newList into existingList (no duplicates).
+   -- Returns count of entries actually added.
    local function mergeList(existingList, newList)
       local set = {}
       for _, v in ipairs(existingList) do set[v] = true end
@@ -1250,40 +1471,72 @@ local function updateIgnoreTests(layer, newLuaPaths, newCNames,
       return added
    end
 
-   local addedLua    = mergeList(existing.lua,     newLuaPaths)
-   local addedC      = mergeList(existing.c,       newCNames)
-   local addedGpuLua = mergeList(existing.gpu_lua, newGpuLuaNames)
-   local addedGpuC   = mergeList(existing.gpu_c,   newGpuCNames)
-
-   if addedLua == 0 and addedC == 0 and addedGpuLua == 0 and addedGpuC == 0 then
-      return
+   -- Write { tests = {...}, gpu = {...} } to path with a header comment.
+   local function writeIgnoreFile(path, header, tbl)
+      local f = io.open(path, "w")
+      f:write(header)
+      f:write("return {\n")
+      f:write("   tests = {\n")
+      for _, v in ipairs(tbl.tests) do f:write(string.format("      %q,\n", v)) end
+      f:write("   },\n")
+      f:write("   gpu = {\n")
+      for _, v in ipairs(tbl.gpu)   do f:write(string.format("      %q,\n", v)) end
+      f:write("   },\n")
+      f:write("}\n")
+      f:close()
    end
 
-   -- Helper to write a single table of quoted strings.
-   local function writeTable(fh, key, list)
-      fh:write(string.format("   %s = {\n", key))
-      for _, v in ipairs(list) do
-         fh:write(string.format("      %q,\n", v))
+   -- ---- Lua ignore file ----
+   if #newLuaNames > 0 or #newGpuLuaNames > 0 then
+      local existing = { tests = {}, gpu = {} }
+      local gi = loadfile(luaIgnFile)
+      if gi then
+         local ok, loaded = pcall(gi)
+         if ok and type(loaded) == "table" then existing = loaded end
       end
-      fh:write("   },\n")
+      existing.tests = existing.tests or {}
+      existing.gpu   = existing.gpu   or {}
+
+      local addedTests = mergeList(existing.tests, newLuaNames)
+      local addedGpu   = mergeList(existing.gpu,   newGpuLuaNames)
+      if addedTests > 0 or addedGpu > 0 then
+         writeIgnoreFile(luaIgnFile,
+            "-- Tests skipped by the Lua regression suite.\n"
+            .. "-- Remove an entry manually to re-enable the test.\n"
+            .. "-- gpu: Lua tests whose GPU variant timed out"
+            .. " (CPU variant still runs).\n",
+            existing)
+         log(string.format(
+            "[ignore] Updated %s (+%d timed-out, +%d GPU timed-out)\n",
+            luaIgnFile, addedTests, addedGpu))
+      end
    end
 
-   -- Write the merged table back to the file.
-   local f = io.open(ignFile, "w")
-   f:write("-- Auto-updated by runregression: tests that exceeded the per-test timeout.\n")
-   f:write("-- Remove an entry manually to re-enable the test.\n")
-   f:write("-- gpu_lua / gpu_c: tests whose GPU variant timed out (CPU variant still runs).\n")
-   f:write("return {\n")
-   writeTable(f, "lua",     existing.lua)
-   writeTable(f, "c",       existing.c)
-   writeTable(f, "gpu_lua", existing.gpu_lua)
-   writeTable(f, "gpu_c",   existing.gpu_c)
-   f:write("}\n")
-   f:close()
+   -- ---- C ignore file ----
+   if #newCNames > 0 or #newGpuCNames > 0 then
+      local existing = { tests = {}, gpu = {} }
+      local gi = loadfile(cIgnFile)
+      if gi then
+         local ok, loaded = pcall(gi)
+         if ok and type(loaded) == "table" then existing = loaded end
+      end
+      existing.tests = existing.tests or {}
+      existing.gpu   = existing.gpu   or {}
 
-   log(string.format(
-      "[ignore] Updated %s (+%d Lua, +%d C, +%d GPU-Lua, +%d GPU-C timed-out tests)\n",
-      ignFile, addedLua, addedC, addedGpuLua, addedGpuC))
+      local addedTests = mergeList(existing.tests, newCNames)
+      local addedGpu   = mergeList(existing.gpu,   newGpuCNames)
+      if addedTests > 0 or addedGpu > 0 then
+         writeIgnoreFile(cIgnFile,
+            "-- Tests skipped by the C regression suite.\n"
+            .. "-- Remove an entry manually to re-enable the test.\n"
+            .. "-- gpu: C tests whose GPU variant timed out"
+            .. " (CPU variant still runs).\n",
+            existing)
+         log(string.format(
+            "[ignore] Updated %s (+%d timed-out, +%d GPU timed-out)\n",
+            cIgnFile, addedTests, addedGpu))
+      end
+   end
 end
 
 -- ---- Command action functions -----------------------------------------------
@@ -1292,10 +1545,35 @@ end
 local function config_action(args, name)
    isConfiguring = true
 
-   local prefix = args.config_prefix or (os.getenv("HOME") .. "/gkylsoft")
+   local prefix = args.config_prefix
+   if not prefix then
+      -- Auto-detect from the installed config.mak.
+      -- GKYL_EXEC_PATH is the bin dir (e.g. ~/gkylsoft/gkeyll/bin);
+      -- config.mak lives one level up in share/.
+      local gkeyllDir = GKYL_EXEC_PATH:match("^(.+)/bin$")
+      if gkeyllDir then
+         local mf = io.open(gkeyllDir .. "/share/config.mak", "r")
+         if mf then
+            for line in mf:lines() do
+               local p = line:match("^PREFIX%s*=%s*(.+)%s*$")
+               if p then prefix = p; break end
+            end
+            mf:close()
+         end
+      end
+      prefix = prefix or (os.getenv("HOME") .. "/gkylsoft")
+      log(string.format("Auto-detected prefix from config.mak: %s\n", prefix))
+   end
+
    local mpiexec = args.config_mpiexec
       or (os.getenv("HOME") .. "/gkylsoft/openmpi/bin/mpiexec")
-   local sourceDir = args.config_source_dir or lfs.currentdir()
+   local sourceDir = args.config_source_dir
+   if not sourceDir then
+      log("ERROR: --source-dir is required.\n"
+         .. "Example: gkeyll runregression configure"
+         .. " --source-dir /path/to/gkeyll\n")
+      os.exit(1)
+   end
 
    configure(prefix, mpiexec, sourceDir, args)
 end
@@ -1418,41 +1696,187 @@ local function run_action(args, name)
    end
 
    if GPU_BUILD then
-      log(string.format("GPU build: GPU tolerance = %g\n", gpuTol))
-      if args.no_gpu then log("--no-gpu: skipping GPU variants\n") end
+      if args.create then
+         log("Creating accepted results on CPU\n")
+      elseif args.check then
+         if args.no_gpu then
+            log("Only CPU tests requested (--no-gpu)\n")
+         else
+            log(string.format("GPU build: GPU tolerance = %g\n", gpuTol))
+         end
+      end
    end
-   log("Running regression tests ...\n\n")
+
+   -- Determine concurrency level.  0 = auto-detect physical core count.
+   local jobCount = args.jobs or 1
+   if jobCount == 0 then
+      jobCount = physicalCpuCount()
+      log(string.format("--jobs 0: auto-detected %d physical CPUs\n", jobCount))
+   end
+   if jobCount > 1 then
+      log(string.format("Running regression tests in parallel (--jobs %d) ...\n\n",
+         jobCount))
+   else
+      log("Running regression tests ...\n\n")
+   end
    local tmStart = Time.clock()
 
-   -- ---- Lua tests ----------------------------------------------------------
-   if not args.c_only then
-      for _, test in ipairs(luaTests) do
-         layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-         local doGpu = shouldDoGpu(test, "lua")
+   if jobCount <= 1 then
+      -- ================================================================
+      -- SERIAL PATH (default): one test at a time, preserving all
+      -- existing behaviour exactly.
+      -- ================================================================
 
-         -- On a GPU build for a GPU-capable layer, force CPU mode via -G.
-         -- For 'create', always force CPU to produce deterministic baselines.
-         local cpuMode = (GPU_BUILD and GPU_LAYERS[test.layer]) and "cpu" or nil
+      -- ---- Lua tests --------------------------------------------------------
+      if not args.c_only then
+         for _, test in ipairs(luaTests) do
+            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+            local doGpu = shouldDoGpu(test, "lua")
 
-         local runtm, runlog, runDir, timedOut = runLuaTest(test, timeoutSecs, cpuMode)
+            -- On a GPU build for a GPU-capable layer, force CPU mode via -G.
+            -- For 'create', always force CPU to produce deterministic baselines.
+            local cpuMode = (GPU_BUILD and GPU_LAYERS[test.layer]) and "cpu" or nil
 
-         if timedOut then
+            local runtm, runlog, runDir, timedOut = runLuaTest(test, timeoutSecs, cpuMode)
+
+            if timedOut then
+               table.insert(timedOutByLayer[test.layer].lua, stripext(basename(test.file)))
+               insertRegressionData(
+                  test.layer, runID, test.name, "lua", -3, runtm, "TIMED OUT")
+               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+            else
+               local status, checkLog = postRun(test, runDir, "lua")
+               checkLog = checkLog or ""
+
+               -- GPU variant: only on check or bare run, not on create.
+               local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
+               if doGpu and not args.create then
+                  layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
+
+                  gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
+                     test, runDir, "lua",
+                     runLuaTest, {test, timeoutSecs, "gpu"})
+
+                  if gpuStatus == -3 then
+                     table.insert(gpuTimedOutByLayer[test.layer].lua,
+                        stripext(basename(test.file)))
+                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+                  elseif gpuStatus == -5 or gpuStatus == 0 then
+                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+                  elseif gpuStatus == 1 then
+                     layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
+                  end
+               end
+
+               insertRegressionData(
+                  test.layer, runID, test.name, "lua",
+                  status, runtm,
+                  runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
+                  gpuStatus, gpuRuntime, cpuGpuDiff)
+            end
+         end
+      end
+
+      -- ---- C tests ----------------------------------------------------------
+      if not args.lua_only then
+         for _, test in ipairs(cTests) do
+            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+            local doGpu = shouldDoGpu(test, "c")
+
+            -- CPU run: compile + run (no -g flag = CPU mode by default).
+            -- When doGpu is true, keep the binary for the subsequent GPU re-run.
+            local runtm, runlog, runDir, timedOut, compileFailed =
+               runCTest(test, timeoutSecs, nil, false, doGpu)
+
+            if compileFailed then
+               insertRegressionData(
+                  test.layer, runID, test.name, "c", -4, runtm, runlog)
+               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+            elseif timedOut then
+               table.insert(timedOutByLayer[test.layer].c,
+                  stripext(basename(test.src)))
+               insertRegressionData(
+                  test.layer, runID, test.name, "c", -3, runtm, "TIMED OUT")
+               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+            else
+               local status, checkLog = postRun(test, runDir, "c")
+               checkLog = checkLog or ""
+
+               -- GPU variant: only on check or bare run, not on create.
+               local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
+               if doGpu and not args.create then
+                  layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
+
+                  -- Re-run the same binary with -g (skipCompile=true).
+                  gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
+                     test, runDir, "c",
+                     runCTest, {test, timeoutSecs, "gpu", true})
+
+                  if gpuStatus == -3 then
+                     table.insert(gpuTimedOutByLayer[test.layer].c,
+                        stripext(basename(test.src)))
+                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+                  elseif gpuStatus == -5 or gpuStatus == 0 then
+                     layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+                  elseif gpuStatus == 1 then
+                     layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
+                  end
+               end
+
+               -- Clean up the compiled C binary now that both CPU and GPU runs are done.
+               if doGpu then
+                  local testname = stripext(basename(test.src))
+                  os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
+                     runDir, testname, runDir, testname))
+                  os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null",
+                     runDir, testname))
+               end
+
+               insertRegressionData(
+                  test.layer, runID, test.name, "c",
+                  status, runtm,
+                  runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
+                  gpuStatus, gpuRuntime, cpuGpuDiff)
+            end
+         end
+      end -- if not args.lua_only
+
+   else
+      -- ================================================================
+      -- PARALLEL PATH: up to jobCount tests run concurrently per batch.
+      --
+      -- Phase 1 (C only): compile all C tests serially — fast, and avoids
+      --   Makefile conflicts.  Compile failures are recorded immediately
+      --   and excluded from the run batch.
+      -- Phase 2a (Lua): build prep list; handle mpiSkip tests inline.
+      --   Run in batches of jobCount via executeBatch.
+      -- Phase 2b (C): run compiled-OK tests in batches via executeBatch.
+      -- Collect phase (after each executeBatch): log results in original
+      --   order, call postRun, run GPU variants (always serial), record DB.
+      --
+      -- GPU variants stay serial to avoid GPU memory contention.
+      -- ================================================================
+
+      -- Helper: collect results for a single Lua test prep + batch result.
+      local function collectLua(prep, r)
+         local test = prep.test
+         if r.timedOut then
+            log(string.format("\n[Lua] %s TIMED OUT (%g sec)\n", test.name, r.runtm))
             table.insert(timedOutByLayer[test.layer].lua, stripext(basename(test.file)))
             insertRegressionData(
-               test.layer, runID, test.name, "lua", -3, runtm, "TIMED OUT")
+               test.layer, runID, test.name, "lua", -3, r.runtm, "TIMED OUT")
             layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
          else
-            local status = postRun(test, runDir, "lua")
-
-            -- GPU variant: only on check or bare run, not on create.
+            log(string.format("\n[Lua] %s completed (%g sec)\n", test.name, r.runtm))
+            verboseLog(r.runlog)
+            local status, checkLog = postRun(test, prep.runDir, "lua")
+            checkLog = checkLog or ""
             local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
-            if doGpu and not args.create then
+            if prep.doGpu and not args.create then
                layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
-
                gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
-                  test, runDir, "lua",
+                  test, prep.runDir, "lua",
                   runLuaTest, {test, timeoutSecs, "gpu"})
-
                if gpuStatus == -3 then
                   table.insert(gpuTimedOutByLayer[test.layer].lua,
                      stripext(basename(test.file)))
@@ -1463,74 +1887,128 @@ local function run_action(args, name)
                   layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
                end
             end
-
             insertRegressionData(
                test.layer, runID, test.name, "lua",
-               status, runtm, runlog, gpuStatus, gpuRuntime, cpuGpuDiff)
+               status, r.runtm,
+               r.runlog .. (checkLog ~= "" and "\n" .. checkLog or ""),
+               gpuStatus, gpuRuntime, cpuGpuDiff)
          end
       end
-   end
 
-   -- ---- C tests ------------------------------------------------------------
-   if not args.lua_only then
-   for _, test in ipairs(cTests) do
-      layerCounts[test.layer].total = layerCounts[test.layer].total + 1
-      local doGpu = shouldDoGpu(test, "c")
+      -- Helper: collect results for a single C test prep + batch result.
+      local function collectC(prep, r)
+         local test     = prep.test
+         local testname = stripext(basename(test.src))
+         local runDir   = prep.runDir
+         if r.timedOut then
+            log(string.format("\n[C] %s TIMED OUT (%g sec)\n", test.name, r.runtm))
+            table.insert(timedOutByLayer[test.layer].c, testname)
+            insertRegressionData(
+               test.layer, runID, test.name, "c", -3, r.runtm, "TIMED OUT")
+            layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
+         else
+            log(string.format("\n[C] %s completed (%g sec)\n", test.name, r.runtm))
+            verboseLog(r.runlog)
+            local status, checkLog = postRun(test, runDir, "c")
+            checkLog = checkLog or ""
+            local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
+            if prep.doGpu and not args.create then
+               layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
+               -- Re-run existing binary with -g (skipCompile=true).
+               gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
+                  test, runDir, "c",
+                  runCTest, {test, timeoutSecs, "gpu", true})
+               if gpuStatus == -3 then
+                  table.insert(gpuTimedOutByLayer[test.layer].c, testname)
+                  layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+               elseif gpuStatus == -5 or gpuStatus == 0 then
+                  layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
+               elseif gpuStatus == 1 then
+                  layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
+               end
+            end
+            local fullLog = (prep.compileLog or "") .. "\n" .. r.runlog
+               .. (checkLog ~= "" and "\n" .. checkLog or "")
+            insertRegressionData(
+               test.layer, runID, test.name, "c",
+               status, r.runtm, fullLog, gpuStatus, gpuRuntime, cpuGpuDiff)
+         end
+         -- Clean up binary after both CPU and (optional) GPU runs.
+         os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
+            runDir, testname, runDir, testname))
+         os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null",
+            runDir, testname))
+      end
 
-      -- CPU run: compile + run (no -g flag = CPU mode by default).
-      -- When doGpu is true, keep the binary for the subsequent GPU re-run.
-      local runtm, runlog, runDir, timedOut, compileFailed =
-         runCTest(test, timeoutSecs, nil, false, doGpu)
-
-      if compileFailed then
-         insertRegressionData(
-            test.layer, runID, test.name, "c", -4, runtm, runlog)
-         layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-      elseif timedOut then
-         table.insert(timedOutByLayer[test.layer].c,
-            stripext(basename(test.src)))
-         insertRegressionData(
-            test.layer, runID, test.name, "c", -3, runtm, "TIMED OUT")
-         layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
-      else
-         local status = postRun(test, runDir, "c")
-
-         -- GPU variant: only on check or bare run, not on create.
-         local gpuStatus, gpuRuntime, cpuGpuDiff = -1, 0, -1
-         if doGpu and not args.create then
-            layerCounts[test.layer].gpu_total = layerCounts[test.layer].gpu_total + 1
-
-            -- Re-run the same binary with -g (skipCompile=true).
-            gpuStatus, gpuRuntime, cpuGpuDiff = runGpuVariant(
-               test, runDir, "c",
-               runCTest, {test, timeoutSecs, "gpu", true})
-
-            if gpuStatus == -3 then
-               table.insert(gpuTimedOutByLayer[test.layer].c,
-                  stripext(basename(test.src)))
-               layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-            elseif gpuStatus == -5 or gpuStatus == 0 then
-               layerCounts[test.layer].gpu_failed = layerCounts[test.layer].gpu_failed + 1
-            elseif gpuStatus == 1 then
-               layerCounts[test.layer].gpu_passed = layerCounts[test.layer].gpu_passed + 1
+      -- Phase 1: compile all C tests serially.
+      local cPreps = {}
+      if not args.lua_only then
+         for _, test in ipairs(cTests) do
+            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+            local doGpu = shouldDoGpu(test, "c")
+            local prep  = prepareCRun(test, timeoutSecs, nil, false)
+            prep.doGpu  = doGpu
+            table.insert(cPreps, prep)
+            if prep.compileFailed then
+               insertRegressionData(
+                  test.layer, runID, test.name, "c", -4,
+                  prep.compileSecs, "COMPILE FAILED:\n" .. prep.compileLog)
+               layerCounts[test.layer].failed = layerCounts[test.layer].failed + 1
             end
          end
-
-         -- Clean up the compiled C binary now that both CPU and GPU runs are done.
-         if doGpu then
-            local testname = stripext(basename(test.src))
-            os.execute(string.format("rm -f '%s/%s' '%s/%s.d' 2>/dev/null",
-               runDir, testname, runDir, testname))
-            os.execute(string.format("rm -rf '%s/%s.dSYM' 2>/dev/null",
-               runDir, testname))
-         end
-
-         insertRegressionData(
-            test.layer, runID, test.name, "c",
-            status, runtm, runlog, gpuStatus, gpuRuntime, cpuGpuDiff)
       end
-   end
-   end -- if not args.lua_only
+
+      -- Phase 2a: prepare Lua preps and handle mpiSkip tests inline.
+      local luaPreps = {}
+      if not args.c_only then
+         for _, test in ipairs(luaTests) do
+            layerCounts[test.layer].total = layerCounts[test.layer].total + 1
+            local doGpu   = shouldDoGpu(test, "lua")
+            local cpuMode = (GPU_BUILD and GPU_LAYERS[test.layer]) and "cpu" or nil
+            local prep    = prepareLuaRun(test, timeoutSecs, cpuMode)
+            prep.doGpu    = doGpu
+            if prep.mpiSkip then
+               log(string.format("**** NOT RUNNING PARALLEL TEST %s\n", test.name))
+               insertRegressionData(test.layer, runID, test.name, "lua", -1, 0, "")
+            else
+               table.insert(luaPreps, prep)
+            end
+         end
+      end
+
+      -- Phase 2a continued: run Lua tests in batches.
+      for bStart = 1, #luaPreps, jobCount do
+         local batch = {}
+         for i = bStart, math.min(bStart + jobCount - 1, #luaPreps) do
+            table.insert(batch, luaPreps[i])
+         end
+         log(string.format("\n[Batch-Lua] Launching %d test(s) ...\n", #batch))
+         local bResults = executeBatch(batch)
+         for i, prep in ipairs(batch) do
+            collectLua(prep, bResults[i])
+         end
+      end
+
+      -- Phase 2b: run compiled-OK C tests in batches.
+      local cRunPreps = {}
+      for _, prep in ipairs(cPreps) do
+         if not prep.compileFailed then
+            table.insert(cRunPreps, prep)
+         end
+      end
+      for bStart = 1, #cRunPreps, jobCount do
+         local batch = {}
+         for i = bStart, math.min(bStart + jobCount - 1, #cRunPreps) do
+            table.insert(batch, cRunPreps[i])
+         end
+         log(string.format("\n[Batch-C] Launching %d test(s) ...\n", #batch))
+         local bResults = executeBatch(batch)
+         for i, prep in ipairs(batch) do
+            collectC(prep, bResults[i])
+         end
+      end
+
+   end -- if jobCount <= 1 / else
 
    log(string.format(
       "\nAll regression tests completed in %g secs\n", Time.clock() - tmStart))
@@ -1592,8 +2070,10 @@ end
 local parser = argparse()
    :name("runregression")
    :require_command(true)
+   :help_description_margin(30)
+   :help_vertical_space(1)
    :description [[
-Run Gkyl regression tests across the hierarchical layer architecture
+Run Gkeyll regression tests across the hierarchical layer architecture
 (moments -> vlasov -> gyrokinetic -> pkpm).
 
 Each layer has Lua regression tests (luareg/) and C regression tests (creg/).
@@ -1601,7 +2081,7 @@ Results are stored in per-layer SQLite databases under gkeyll-results/.
 
 Typical workflow:
   1. Build and install: make install -j4
-  2. Configure: gkeyll runregression configure --source-dir /path/to/src
+  2. Configure: gkeyll runregression configure --source-dir /absolute/path/to/gkeyll/
   3. Create baselines: gkeyll runregression run create --timeout 120
   4. Check results:    gkeyll runregression run check  --timeout 120
   5. Layer-specific:   gkeyll runregression run moments check
@@ -1612,65 +2092,89 @@ step is needed.
 ]]
 
 parser:flag("-v --verbose", "Print verbose messages as tests are run")
-parser:flag("-a --all", "Run all tests, ignoring ignoretests files")
 
 -- 'configure' command ---------------------------------------------------------
 -- Sets up directories, databases, and writes ~/runregression.config.lua.
 local c_conf = parser:command("configure", "Configure regression tests")
    :action(config_action)
 
-c_conf:option("-p --prefix", "Location to write gkeyll-results/ directory")
-   :target("config_prefix")
-c_conf:option("-m --mpiexec", "Full path to MPI executable")
-   :target("config_mpiexec")
 c_conf:option("-s --source-dir",
-   "Path to gkeyll source root (contains moments/, vlasov/, etc. with creg/ and luareg/ subdirs)")
+   "REQUIRED. Absolute path to gkeyll source root\n"
+   .. "(parent of moments/, vlasov/, gyrokinetic/, pkpm/).\n"
+   .. "Example: --source-dir /path/to/gkeyll")
    :target("config_source_dir")
+c_conf:option("-p --prefix",
+   "Where to write gkeyll-results/.\n"
+   .. "Auto-detected from config.mak if omitted.")
+   :target("config_prefix")
+c_conf:option("-m --mpiexec",
+   "Full path to MPI executable.\n"
+   .. "(MPI parallelism not yet implemented).")
+   :target("config_mpiexec")
 c_conf:flag("--drop-tables",
-   "Re-create all SQL tables (erases existing regression data)", false)
+   "Drop and re-create all SQL tables\n"
+   .. "(erases existing regression data).", false)
 
 -- 'list' command --------------------------------------------------------------
 -- Lists all regression tests that would be run (useful for inspection).
 local c_list = parser:command("list", "List all regression tests")
    :action(list_action)
 c_list:option("-r --run-only",
-   "Only list this test or all tests in this directory")
-c_list:option("-a --app",
-   "Only list tests for this app (prefix after rt_ in filename)")
-c_list:flag("-m --moat", "Only list MOAT regression tests")
+   "List only this test. Accepts a bare name (rt_foo), an absolute path, or a directory.")
+c_list:flag("-a --all",
+   "List all tests, bypassing ignore_lua_tests.lua / ignore_c_tests.lua.\n"
+   .. "Combine with --lua-only or --c-only to bypass only that suite's ignore list.")
+c_list:flag("-m --moat", "Only list MOAT (Mother Of All Tests) regression tests\n"
+   .. "A condensed suite of the most comprehensive regression tests.")
 c_list:flag("-c --c-only",   "Only list C regression tests (skip Lua tests)")
 c_list:flag("-l --lua-only", "Only list Lua regression tests (skip C tests)")
 
 -- 'run' command ---------------------------------------------------------------
 -- Runs regression tests. Layer is extracted from the command line BEFORE
 -- argparse (see the pre-processing block near the top of this file), so:
---   gkeyll runregression run check          → all layers, check
---   gkeyll runregression run moments check  → moments layer only, check
-local c_run = parser:command("run", "Run regression tests.")
+--   gkeyll runregression run check          -> all layers, check
+--   gkeyll runregression run moments check  -> moments layer only, check
+local c_run = parser:command("run",
+   "Run regression tests (check or create).\n"
+   .. "Prefix with a layer name to restrict: 'run moments check', 'run vlasov create'.\n"
+   .. "Without check/create, tests run but results are not saved or compared.")
    :require_command(false)
    :action(run_action)
 c_run:option("-r --run-only",
-   "Only run these tests or directories (comma-separated list)")
-c_run:option("-a --app",
-   "Only run tests for this app (prefix after rt_ in filename)")
-c_run:flag("-m --moat", "Only run MOAT regression tests")
+   "Run only these tests (comma-separated).\n"
+   .. "Accepts bare names (rt_foo), absolute paths, or directories.\n"
+   .. "Use --c-only/--lua-only to disambiguate when a C and Lua test share the same name.")
+c_run:flag("-a --all",
+   "Run all tests, bypassing ignore_lua_tests.lua / ignore_c_tests.lua.\n"
+   .. "Combine with --lua-only or --c-only to bypass only that suite's ignore list.")
+c_run:flag("-m --moat", "Only run MOAT (Mother Of All Tests) regression tests\n"
+   .. "A condensed suite of the most comprehensive regression tests.")
 c_run:flag("-c --c-only",   "Only run C regression tests (skip Lua tests)")
 c_run:flag("-l --lua-only", "Only run Lua regression tests (skip C tests)")
 c_run:option("-t --timeout",
-   "Per-test wall-clock timeout in seconds (0 = unlimited). "
-   .. "Tests that exceed this limit are added to ignoretests.lua automatically.")
+   "Per-test timeout in seconds (0 = unlimited).\n"
+   .. "Timed-out tests are added to ignoretests.lua automatically.")
    :convert(tonumber)
    :default(0)
 c_run:option("--gpu-tol",
-   "Tolerance for GPU-vs-accepted and CPU-vs-GPU comparison (default 1e-7). "
-   .. "Only relevant on GPU builds (CC=nvcc).")
+   "Tolerance for GPU-vs-accepted and CPU-vs-GPU comparisons (default 1e-7).\n"
+   .. "Only used on GPU builds (CC=nvcc).")
    :convert(tonumber)
    :default(1e-7)
 c_run:flag("--no-gpu",
-   "Skip GPU testing even on a GPU build (run CPU tests only)")
+   "Skip GPU testing even on a GPU build.")
+c_run:option("-j --jobs",
+   "Concurrent tests per batch (0 = physical core count, 1 = serial).\n"
+   .. "C compilation is always serial; GPU variants always run serially.")
+   :convert(tonumber)
+   :default(1)
 
-c_run:command("check",  "Check results against accepted baselines")
-c_run:command("create", "Create accepted baselines from current results")
+c_run:command("check",
+   "Compare test output against accepted baselines;\n"
+   .. "report pass/fail and write to the SQLite DB.")
+c_run:command("create",
+   "Run tests and save output as accepted baselines.\n"
+   .. "On GPU builds, create always runs in CPU mode so baselines are deterministic.")
 
 -- 'listunit' command ----------------------------------------------------------
 parser:command("listunit", "List all unit tests")

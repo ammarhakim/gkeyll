@@ -2226,6 +2226,34 @@ fem_poisson_choose_bias_src_kernels(const struct gkyl_basis* basis,
   }
 }
 
+GKYL_CU_DH
+static inline int idx_to_inup_ker(const int dim, const int *num_cells, const int *idx) {
+  // Return the index of the kernel (in the array of kernels) needed given the grid index.
+  // This function is for kernels that differentiate between upper cells and
+  // elsewhere.
+  int iout = 0;
+  for (int d=0; d<dim; d++) {
+    if (idx[d] == num_cells[d]) iout += (int)(pow(2,d)+0.5);
+  }
+  return iout;
+}
+
+GKYL_CU_DH
+static inline int idx_to_inloup_ker(const int dim, const int *num_cells, const int *idx) {
+  // Return the index of the kernel (in the array of kernels) needed given the grid index.
+  // This function is for kernels that differentiate between lower, interior
+  // and upper cells.
+  int iout = 0;
+  for (int d=0; d<dim; d++) {
+    if (idx[d] == 1) {
+      iout = 2*iout+(int)(pow(3,d)+0.5);
+    } else if (idx[d] == num_cells[d]) {
+      iout = 2*iout+(int)(pow(3,d)+0.5)+1;
+    }
+  }
+  return iout;
+}
+
 #ifdef GKYL_HAVE_CUDA
 /**
  * Assign the right-side vector on the device.
@@ -2244,7 +2272,7 @@ void gkyl_fem_poisson_set_rhs_cu(gkyl_fem_poisson* up, struct gkyl_array *rhsin,
  * @param rhsin DG field to set as RHS source.
  */
 void
-gkyl_fem_poisson_bias_src_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin);
+gkyl_fem_poisson_bias_src_enabled_cu(gkyl_fem_poisson *up, struct gkyl_array *rhsin);
 
 /**
  * Solve the linear problem on the device.

@@ -193,6 +193,7 @@ gkyl_deflated_dg_bin_ops_release(struct gkyl_deflated_dg_bin_ops* up)
   gkyl_nodal_ops_release(up->n2m_deflated);
   gkyl_deflate_zsurf_release(up->deflator_lo);
   gkyl_deflate_zsurf_release(up->deflator_up);
+  gkyl_dg_bin_op_mem_release(up->mem);
   int ctr = 0;
   for (int zidx = up->local.lower[up->cdim-1]; zidx <= up->local.upper[up->cdim-1] + 1; zidx++) {
     gkyl_array_release(up->d_bop_data[ctr].deflated_lop);

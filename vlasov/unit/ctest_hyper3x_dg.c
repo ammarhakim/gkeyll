@@ -206,7 +206,6 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   // check data in first non-ghost cell
   rhs_d = gkyl_array_fetch(rhs_h, linl);
 
-
   static const double expected_cell1[] = {
   3.7606327288427490e+00,  1.6013126194947759e+01, -5.6384122711121769e+00,  5.6678864833199523e+00,
  -6.5263272884274992e-01,  6.5263272884274881e-01,  3.7606327288427495e+00,  2.5412199393144888e+01,

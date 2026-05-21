@@ -18,6 +18,7 @@
 #include <gkyl_gk_geometry_priv.h>
 #include <gkyl_gk_geometry_tok.h>
 #include <gkyl_nodal_ops.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -37,6 +38,8 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_corn.mc2nu_pos, fileNm);
   sprintf(fileNm, fmt, name, "bmag_corn");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_corn.bmag, fileNm);
+  sprintf(fileNm, fmt, name, "bmag_inv_corn");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_corn.bmag_inv, fileNm);
   sprintf(fileNm, fmt, name, "bmag");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag, fileNm);
   sprintf(fileNm, fmt, name, "g_ij");
@@ -63,10 +66,6 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot_inv");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv_sq");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv_sq, fileNm);
   sprintf(fileNm, fmt, name, "gxxj");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxxj, fileNm);
   sprintf(fileNm, fmt, name, "gxyj");
@@ -77,7 +76,8 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxzj, fileNm);
   sprintf(fileNm, fmt, name, "eps2");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.eps2, fileNm);
-
+  sprintf(fileNm, fmt, name, "qprofile");
+  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.qprofile, fileNm);
 
   // Create Nodal Range and Grid and Write Nodal Coordinates
   struct gkyl_range nrange;
@@ -122,6 +122,7 @@ test_elliptical()
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
@@ -138,6 +139,7 @@ test_elliptical()
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -154,6 +156,7 @@ test_elliptical()
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -251,9 +254,11 @@ test_3x_p1_straight_cylinder()
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
-    .filepath = "core/data/eqdsk/straight_cylinder.geqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/straight_cylinder.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -271,6 +276,7 @@ test_3x_p1_straight_cylinder()
     .geometry_id = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = grid,
     .local = range,
     .local_ext = ext_range,
@@ -601,11 +607,145 @@ test_3x_p1_straight_cylinder()
   gkyl_array_release(mc2nu_pos_nodal);
   gkyl_array_release(normals_nodal);
   gkyl_nodal_ops_release(n2m);
+  gkyl_position_map_release(pmap);
+  gkyl_gk_geometry_release(gk_geom);
+}
+
+void
+test_asdex_qprofile_core()
+{
+  double clower[] = { -0.09, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.14975, 0.01, M_PI-1e-14 };
+  int ccells[] = { 16, 1, 4 };
+
+  int cpoly_order = 1;
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  struct gkyl_rect_grid cgrid;
+  struct gkyl_range clocal, clocal_ext;
+  struct gkyl_basis cbasis;
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+    .rmin = 0.0,
+    .rmax = 5.0,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.2,
+    .zmin_right = -1.0,
+  };
+  // Initialize geometry
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+
+  struct gk_geometry *gk_geom = gkyl_gk_geometry_tok_new(&geometry_input);
+  write_geometry(gk_geom, cgrid, clocal, "asdex_core");
+
+//  // Create Nodal Range and Grid and Write Nodal Coordinates
+//  struct gkyl_range nrange;
+//  gkyl_gk_geometry_init_nodal_range(&nrange, &clocal, cpoly_order);
+//  struct gkyl_array* mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, nrange.volume);
+//  struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&cbasis, &cgrid, false);
+//  gkyl_nodal_ops_m2n(n2m, &cbasis, &cgrid, &nrange, &clocal, 3, mc2p_nodal, gk_geom->geo_int.mc2p, true);
+//  gkyl_nodal_ops_release(n2m);
+//  struct gkyl_rect_grid ngrid;
+//  gkyl_gk_geometry_init_nodal_grid(&ngrid, &cgrid, &nrange);
+//
+//  gkyl_grid_sub_array_write(&ngrid, &nrange, 0,  mc2p_nodal, "asdex_core_nodes.gkyl");
+//  gkyl_array_release(mc2p_nodal);
+
+  gkyl_gk_geometry_release(gk_geom);
+}
+
+void
+test_asdex_qprofile_sol()
+{
+  double clower[] = { 0.16, -0.01, -M_PI+1e-14 };
+  double cupper[] = {0.17501, 0.01, M_PI-1e-14 };
+  int ccells[] = { 4, 1, 16 };
+
+  int cpoly_order = 1;
+  int cnghost[GKYL_MAX_CDIM] = { 1, 1, 1 };
+  struct gkyl_rect_grid cgrid;
+  struct gkyl_range clocal, clocal_ext;
+  struct gkyl_basis cbasis;
+  gkyl_rect_grid_init(&cgrid, 3, clower, cupper, ccells);
+  gkyl_create_grid_ranges(&cgrid, cnghost, &clocal_ext, &clocal);
+  gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
+  struct gkyl_efit_inp efit_inp = {
+    // psiRZ and related inputs
+    .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
+    .rz_poly_order = 2,
+    .flux_poly_order = 1,
+  };
+
+  struct gkyl_tok_geo_grid_inp ginp = {
+    .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
+    .rmin = 0.0,
+    .rmax = 5.0,
+    .rclose = 2.5,
+    .rright = 2.5,
+    .rleft = 0.7,
+    .zmin = -1.3,
+    .zmax = 1.0,
+    .zmin_left = -1.2,
+    .zmin_right = -1.0,
+  };
+
+  struct gkyl_gk_geometry_inp geometry_inp = {
+    .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
+    .efit_info = efit_inp,
+    .tok_grid_info = ginp,
+    .grid = cgrid,
+    .local = clocal,
+    .local_ext = clocal_ext,
+    .global = clocal,
+    .global_ext = clocal_ext,
+    .basis = cbasis,
+    .geo_grid = cgrid,
+    .geo_local = clocal,
+    .geo_local_ext = clocal_ext,
+    .geo_global = clocal,
+    .geo_global_ext = clocal_ext,
+    .geo_basis = cbasis,
+  };
+
+  struct gk_geometry* gk_geom = gkyl_gk_geometry_tok_new(&geometry_inp);
+  write_geometry(gk_geom, cgrid, clocal, "asdex_sol");
   gkyl_gk_geometry_release(gk_geom);
 }
 
 TEST_LIST = {
   { "test_elliptical", test_elliptical},
   { "test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder},
+  { "test_asdex_qprofile_core", test_asdex_qprofile_core},
+  { "test_asdex_qprofile_sol", test_asdex_qprofile_sol},
   { NULL, NULL },
 };

@@ -134,8 +134,6 @@ gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
   const struct gkyl_range *range, double expIn, const struct gkyl_array *fIn,
   struct gkyl_array *fOut)
 {
-  // Compute pow( sqrt(fIn), expIn ) via Gaussian quadrature.
-
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     return gkyl_proj_powsqrt_on_basis_advance_cu(up, range, expIn, fIn, fOut);
@@ -157,7 +155,7 @@ gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
       
       int qidx = gkyl_range_idx(&qrange, qiter.idx);
 
-      // Evaluate densities and thermal speeds (squared) at quad point.
+      // Evaluate input function f at quad point.
       const double *b_ord = gkyl_array_cfetch(up->basis_at_ords, qidx);
       double fIn_q=0.;
       for (int k=0; k<up->num_basis; ++k)
@@ -165,10 +163,11 @@ gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
 
       double *fOut_q = gkyl_array_fetch(up->fun_at_ords, qidx);
 
+      // Evaluate pow(sqrt()) at quad point.
       fOut_q[0] = (fIn_q < 0.) ? 1.e-40 : pow(sqrt(fIn_q), expIn);
     }
 
-    // compute expansion coefficients of Maxwellian on basis
+    // Compute expansion coefficients.
     proj_on_basis(up, up->fun_at_ords, gkyl_array_fetch(fOut, linidx));
   }
 

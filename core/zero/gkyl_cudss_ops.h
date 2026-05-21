@@ -33,6 +33,24 @@ struct gkyl_culinsolver_prob* gkyl_culinsolver_prob_new(int nprob, int mrow, int
 void gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri);
 
 /**
+ * Update the cuDSS matrix A in Ax=B problem using an array of values (on the device).
+ * NOTE: it assumes the sparsity pattern hasn't changed.
+ *
+ * @param prob cuDSS struct holding arrays used in problem.
+ * @param csr_values Array of new values in CSR format, on the device.
+ */
+void gkyl_culinsolver_amat_update(struct gkyl_culinsolver_prob *prob, double *csr_values);
+
+/**
+ * Update the cuDSS matrix A in Ax=B problem using values from a list of triples.
+ * NOTE: it assumes the sparsity pattern hasn't changed.
+ *
+ * @param prob cuDSS struct holding arrays used in problem.
+ * @param tri (array of) coordinates & values of non-zero entries in A matrix (triplets).
+ */
+void gkyl_culinsolver_amat_update_from_triples(struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri);
+
+/**
  * Initialize right-hand-side cuDSS matrix B in Ax=B problem from a list of
  * triples.
  *
@@ -71,6 +89,14 @@ void gkyl_culinsolver_sync(struct gkyl_culinsolver_prob *prob);
 void gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val);
 
 /**
+ * Clear the array holding (in CSR format) the nonzero values for the LHS matrix.
+ *
+ * @param prob cuDSS struct holding arrays used in problem.
+ * @param val value to set entries of the CSR values array to.
+ */
+void gkyl_culinsolver_clear_csr_values(struct gkyl_culinsolver_prob *prob, double val);
+
+/**
  * Get a pointer to the element of the RHS vector at a given location.
  *
  * @param prob cuDSS struct holding arrays used in problem.
@@ -93,10 +119,21 @@ double* gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long lo
 /**
  * Obtain the RHS value at location loc (a linear index into the RHS matrix).
  *
- * @param linear index into the RHS flattened array for the desired value.
+ * @param prob cuDSS struct holding arrays used in problem.
+ * @param loc linear index into the RHS flattened array for the desired value.
  * @return RHS value.
  */
 double gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc);
+
+/**
+ * Obtain the a pointer to the array where LHS matrix values at packed in CSR format, 
+ * with the pointer offset by @ loc.
+ *
+ * @param prob cuDSS struct holding arrays used in problem.
+ * @param loc linear index into the csr_val array.
+ * @return RHS value.
+ */
+double* gkyl_culinsolver_get_csr_values_ptr(struct gkyl_culinsolver_prob *prob, long loc);
 
 /**
  * Release cuDSS problem
