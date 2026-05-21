@@ -24,7 +24,7 @@ gkyl_bgk_collisions* gkyl_bgk_collisions_new(const struct gkyl_basis *cbasis,
   const struct gkyl_basis *pbasis, bool use_gpu);
 
 /**
- * Advance BGK operator (compute the BGK contribution to df/dt).
+ * Advance BGK operator (add the BGK contribution to df/dt).
  *
  * @param up Spizer collision frequency updater object.
  * @param crange Config-space range.
