@@ -138,11 +138,13 @@ gk_species_source_bgk_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_
   gks_src_bgk_rhs_accumulate_maxwellian(app, species, src, fin, src->Jrate_feq);
 
   // Multiply the Maxwellian by Jrate.
-  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, src->Jrate_feq, 
+  gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
     src->Jrate, src->Jrate_feq, &app->local, &species->local);
   // Assemble the BGK-like term and add it to rhs.
-  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, src->rate, src->Jrate_feq,
-    fin, src->implicit_step, src->dt_implicit, rhs, species->cflrate);
+  gkyl_array_clear(src->Jrate_feq, 0.0);
+  gkyl_bgk_collisions_advance(src->bgk_op, &app->local, &species->local, src->rate, species->lte.f_lte,
+    fin, src->implicit_step, src->dt_implicit, src->Jrate_feq, species->cflrate);
+  gkyl_array_accumulate(rhs, 1.0, src->Jrate_feq);
 }
 
 static void
@@ -383,13 +385,8 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks->basis, src->Jrate_feq, 
         src->Jrate, src->Jrate_feq, &app->local, &gks->local);
 
-      // BGK operator.
-      src->bgk_op = gkyl_bgk_collisions_new(&app->basis, &gks->basis, app->use_gpu);
-      src->implicit_step = false;
-      src->dt_implicit = 1e9;
-
       // Methods chosen at runtime.
-      src->rhs_func = gk_species_source_bgk_rhs_heating_enabled;
+      src->rhs_func = gk_species_source_bgk_rhs_feq_enabled;
     }
 
     if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
@@ -452,9 +449,6 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       src->rhs_func = gk_species_source_bgk_rhs_heating_enabled;
       if (src->write_diagnostics) {
         src->write_diags_func = gk_species_source_bgk_write_diags_heating_enabled;
-        // Why arren't we enabling integrted diagnostics like:
-        // src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
-        // src->write_diags_func = gk_species_source_bgk_write_diags_external_enabled;
       }
     }
 
@@ -505,8 +499,6 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       src->rhs_func = gk_species_source_bgk_rhs_external_enabled;
       if (src->write_diagnostics) {
         src->write_diags_func = gk_species_source_bgk_write_diags_external_enabled;
-        src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
-        src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_enabled;
       }
     }
   }
@@ -546,11 +538,12 @@ gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const stru
   if (src->source_bgk_id) {
     gkyl_array_release(src->rate);
     gkyl_array_release(src->Jrate);
+    gkyl_array_release(src->Jrate_feq);
     gkyl_bgk_collisions_release(src->bgk_op);
+
     if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
       gkyl_array_release(src->vtsq_shape);
       gkyl_array_release(src->Jrate_vtsq_shape);
-      gkyl_array_release(src->Jrate_feq);
       gkyl_array_release(src->Jrate_mom);
 
       gkyl_array_integrate_release(src->vol_integ_op);
@@ -563,14 +556,11 @@ gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const stru
         gkyl_free(src->volint_global);
       }
 
-      gkyl_bgk_collisions_release(src->bgk_op);
-
       if (src->write_diagnostics) {
         gkyl_dynvec_release(src->vtsq_amp_diag);
       }
     } 
     else if (src->source_bgk_id == GKYL_SOURCE_BGK_EXTERNAL) {
-      gkyl_array_release(src->Jrate_feq);
       gkyl_array_release(src->Jrate_mom);
       gkyl_array_release(src->Jrate_cap);
 
