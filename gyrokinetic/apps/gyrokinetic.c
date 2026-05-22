@@ -1293,9 +1293,6 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app)
     gkyl_comm_get_size(app->comm, &comm_size);
 
     // Write the shift for TS BCs.
-    struct gkyl_array *delta_ts_x_ho = mkarr(false, app->delta_ts_x_lo->ncomp, app->delta_ts_x_lo->size);
-    gkyl_array_copy(delta_ts_x_ho, app->delta_ts_x_lo);
-
     struct gkyl_msgpack_map_elem io_meta_x[] = {
       { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->delta_ts_x_basis.poly_order },
       { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->delta_ts_x_basis.id }
@@ -1333,18 +1330,21 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app)
     else
       delta_ts_x_grid_core = app->delta_ts_x_grid;
 
+    struct gkyl_array *delta_ts_x_ho = mkarr(false, app->delta_ts_x_lo->ncomp, app->delta_ts_x_lo->size);
     if (comm_rank == 0) {
+      gkyl_array_copy(delta_ts_x_ho, app->delta_ts_x_lo);
       int sz = gkyl_calc_strlen(fmt, app->name, vars[par_dir], edge[0]);
       char fileNm[sz+1]; // ensures no buffer overflow
       sprintf(fileNm, fmt, app->name, vars[par_dir], edge[0]);
-      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, app->delta_ts_x_lo, fileNm);
+      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, delta_ts_x_ho, fileNm);
     }
 
     if (comm_rank == comm_size-1) {
+      gkyl_array_copy(delta_ts_x_ho, app->delta_ts_x_up);
       int sz = gkyl_calc_strlen(fmt, app->name, vars[par_dir], edge[1]);
       char fileNm[sz+1]; // ensures no buffer overflow
       sprintf(fileNm, fmt, app->name, vars[par_dir], edge[1]);
-      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, app->delta_ts_x_up, fileNm);
+      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, delta_ts_x_ho, fileNm);
     }
     gkyl_msgpack_data_release(mt_x);
     gkyl_array_release(delta_ts_x_ho);
