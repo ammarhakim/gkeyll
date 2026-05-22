@@ -546,18 +546,11 @@ gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct
   for (int bI=0; bI<mbapp->num_local_blocks; bI++) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     struct gk_field *field = sbapp->field;
-    int bid = mbapp->local_blocks[bI];
-    const struct gkyl_gk_block_geom_info *bgi = gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
-    enum gkyl_tok_geo_type ftype = bgi->geometry.tok_grid_info.ftype;
     gkyl_comm_array_allgather(sbapp->comm, &sbapp->local, &sbapp->global, 
       arr_local[bI], arr_global_dg[bI]);
 
     // Apply TS BC in the lower parallel boundary, and
     // fill upper parallel boundary ghost with skin boundary value.
-    if (ftype==GKYL_GEOMETRY_TOKAMAK_CORE) {
-      gkyl_array_copy_range_to_range(arr_global_dg[bI], arr_global_dg[bI],
-        &sbapp->global_lower_ghost[par_dir], &sbapp->global_upper_skin[par_dir]);
-    }
     if (mbf->num_blocks_below[bI] > 0) {
       gkyl_bc_twistshift_advance(field->bc_ts_lo, arr_global_dg[bI], arr_global_dg[bI]);
     }
@@ -567,10 +560,6 @@ gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct
    
     // Apply TS BC in the upper parallel boundary, and
     // fill lower parallel boundary ghost with skin boundary value.
-    if (ftype==GKYL_GEOMETRY_TOKAMAK_CORE) {
-        gkyl_array_copy_range_to_range(arr_global_dg[bI], arr_global_dg[bI],
-          &sbapp->global_upper_ghost[par_dir], &sbapp->global_lower_skin[par_dir]);
-    }
     if (mbf->num_blocks_above[bI] > 0) {
       gkyl_bc_twistshift_advance(field->bc_ts_up, arr_global_dg[bI], arr_global_dg[bI]);
     }
@@ -721,9 +710,15 @@ gk_multib_field_release(struct gk_multib_field *mbf)
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
     gkyl_array_release(mbf->phi_local[bI]);
     gkyl_array_release(mbf->rho_c_local[bI]);
+    gkyl_array_release(mbf->rho_c_global_dg[bI]);
+    gkyl_array_release(mbf->phi_global_smooth[bI]);
+    gkyl_array_release(mbf->rho_c_global_smooth[bI]);
   }
   gkyl_free(mbf->phi_local);
   gkyl_free(mbf->rho_c_local);
+  gkyl_free(mbf->rho_c_global_dg);
+  gkyl_free(mbf->phi_global_smooth);
+  gkyl_free(mbf->rho_c_global_smooth);
 
   // Free memory allocated for parallel smoothing.
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
