@@ -619,7 +619,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_sub_range_init(&app->local_par_ext_core, &app->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
   }
 
-  if (app->cdim == 3 && app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+  if (app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+      (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P && 
+       app->gk_geom->parallel_lower_bc_shift_func && app->gk_geom->parallel_upper_bc_shift_func))) {
     // Create grid, range and basis on which the 1D shift will be defined.
     gkyl_rect_grid_init(&app->delta_ts_x_grid, 1, app->grid.lower, app->grid.upper, app->grid.cells);
     struct gkyl_range *ts_s_rng = gk->geometry.has_LCFS? &app->local_core : &app->local;
@@ -1195,8 +1197,6 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 {
   // Write the discretized shift (for TS BCs) to file for mapc2p geo.
   int par_dir = app->cdim-1;
-  bool has_LCFS = app->gk_geom->has_LCFS;
-  bool bc_has_twistshift = app->gk_geom->parallel_lower_bc_shift_func && app->gk_geom->parallel_upper_bc_shift_func;
 
   int comm_rank, comm_size;
   gkyl_comm_get_rank(app->comm, &comm_rank);
@@ -1229,6 +1229,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
     delta_ts_x = gkyl_bc_twistshift_get_shift_objects(bc_ts_op,
       &app->delta_ts_x_grid, &app->delta_ts_x_rng, &app->delta_ts_x_basis);
 
+    bool has_LCFS = app->gk_geom->has_LCFS;
     struct gkyl_rect_grid delta_ts_x_grid_core;
     if (has_LCFS) {
       // Twistshift updater stores the shift on a restricted range (the core)
@@ -1279,13 +1280,12 @@ void
 gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app)
 {
   int par_dir = app->cdim-1;
-  bool has_LCFS = app->gk_geom->has_LCFS;
-  bool bc_has_twistshift = app->gk_geom->parallel_lower_bc_shift_func && app->gk_geom->parallel_upper_bc_shift_func;
 
-  if (app->cdim < 3 || (!(bc_has_twistshift || has_LCFS)))
+  if (app->cdim < 3)
     return; // Nothing to write.
 
-  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P)
+  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
+      (app->gk_geom->parallel_lower_bc_shift_func && app->gk_geom->parallel_upper_bc_shift_func))
     gyrokinetic_app_write_ts_shift_mapc2p(app);
   else if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
     int comm_rank, comm_size;;
@@ -1310,6 +1310,7 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app)
     const char *edge[] = {"lower","upper"};
     const char *fmt = "%s-bc_%s%s_twistshift.gkyl";
 
+    bool has_LCFS = app->gk_geom->has_LCFS;
     struct gkyl_rect_grid delta_ts_x_grid_core;
     if (has_LCFS) {
       // Twistshift updater stores the shift on a restricted range (the core)
