@@ -411,7 +411,7 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
 }
 
 // Compute the electrostatic potential.
-void
+static void
 gk_multib_field_1x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
@@ -451,7 +451,7 @@ gk_multib_field_1x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_fiel
 }
 
 // Compute the electrostatic potential.
-void
+static void
 gk_multib_field_2x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
@@ -534,7 +534,8 @@ gk_multib_field_2x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_fiel
 
 
 void
-gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf, struct gkyl_array **arr_local, struct gkyl_array **arr_global_dg, struct gkyl_array **arr_global_smooth)
+gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  struct gkyl_array **arr_local, struct gkyl_array **arr_global_dg, struct gkyl_array **arr_global_smooth)
 {
   // There are three arrays:
   // 1) The local one (field->rho_c = rho_c_local[bI])
@@ -561,7 +562,7 @@ gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct
       gkyl_bc_twistshift_advance(field->bc_ts_lo, arr_global_dg[bI], arr_global_dg[bI]);
     }
     else{
-      gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, arr_global_dg[bI]);
+      gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_lo, field->bc_buffer, arr_global_dg[bI]);
     }
    
     // Apply TS BC in the upper parallel boundary, and
@@ -574,7 +575,7 @@ gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct
       gkyl_bc_twistshift_advance(field->bc_ts_up, arr_global_dg[bI], arr_global_dg[bI]);
     }
     else {
-      gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_lo, field->bc_buffer, arr_global_dg[bI]);
+      gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, arr_global_dg[bI]);
     }
 
     // Smooth the the DG array.
@@ -587,7 +588,7 @@ gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct
 }
 
 // Compute the electrostatic potential.
-void
+static void
 gk_multib_field_3x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
@@ -637,6 +638,15 @@ gk_multib_field_3x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_fiel
   //
   // Finished solving the perpendicular Poisson problem.
   //
+
+  // Now sync the charge density
+  struct gkyl_array *phis[mbapp->num_local_blocks];
+  for (int bI=0; bI<mbapp->num_local_blocks; bI++) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    phis[bI] = sbapp->field->phi_smooth;
+  }
+  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, phis, phis);
 
   // Now apply TS in place on phi for each block
   gk_multib_field_twistshift_and_smooth(mbapp, mbf, mbf->phi_local, mbf->rho_c_global_dg, mbf->phi_global_smooth);
