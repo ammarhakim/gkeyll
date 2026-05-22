@@ -50,6 +50,9 @@ struct gk_tcv_ctx {
   int cells_v[2]; // Number of cells in all directions.
   int num_blocks; // Number of blocks.
 
+  double parallel_compression_fac; // Compress cells near X-pt (0 to 1, 0 is full compression).
+  double radial_compression_fac; // Compress cells separatrix (0 to 1, 0 is full compression).
+
   // Physical velocity space limits
   double vpar_max_elc; // Parallel velocity extents for electrons.
   double mu_max_elc; // Maximum magnetic moment for electrons.
@@ -198,7 +201,13 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_spec = true,
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
-        }
+        },
+//        .position_map_info = {
+//          .id = GKYL_PMAP_XPT_COMPRESSION,
+//          .compress_divertor = true,
+//          .radial_compression_factor = params->radial_compression_fac,
+//          .compression_factor = params->parallel_compression_fac
+//        },
       },
 
       .connections[0] = { // x-direction.
@@ -240,7 +249,13 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_spec = true,
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
-        }
+        },
+//        .position_map_info = {
+//          .id = GKYL_PMAP_XPT_COMPRESSION,
+//          .compress_divertor = true,
+//          .radial_compression_factor = params->radial_compression_fac,
+//          .compression_factor = params->parallel_compression_fac
+//        },
       },
       
       .connections[0] = { // x-direction.
@@ -282,7 +297,13 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_spec = true,
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
-        }
+        },
+//        .position_map_info = {
+//          .id = GKYL_PMAP_XPT_COMPRESSION,
+//          .compress_divertor = true,
+//          .radial_compression_factor = params->radial_compression_fac,
+//          .compression_factor = params->parallel_compression_fac
+//        },
       },
       
       .connections[0] = { // x-direction.
@@ -324,7 +345,13 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_spec = true,
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
-        }
+        },
+//        .position_map_info = {
+//          .id = GKYL_PMAP_XPT_COMPRESSION,
+//          .compress_divertor = true,
+//          .radial_compression_factor = params->radial_compression_fac,
+//          .compression_factor = params->parallel_compression_fac
+//        },
       },
       
       .connections[0] = { // x-direction.
@@ -365,7 +392,13 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_spec = true,
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
-        }
+        },
+//        .position_map_info = {
+//          .id = GKYL_PMAP_XPT_COMPRESSION,
+//          .compress_divertor = true,
+//          .radial_compression_factor = params->radial_compression_fac,
+//          .compression_factor = params->parallel_compression_fac
+//        },
       },
 
       .connections[0] = { // x-direction.
@@ -402,7 +435,13 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rclose = 1.14,
           .rleft  = 0.618,
           .rright = 1.14,
-        }
+        },
+//        .position_map_info = {
+//          .id = GKYL_PMAP_XPT_COMPRESSION,
+//          .compress_divertor = true,
+//          .radial_compression_factor = params->radial_compression_fac,
+//          .compression_factor = params->parallel_compression_fac
+//        },
       },
 
       .connections[0] = { // x-direction.
@@ -673,11 +712,14 @@ create_ctx(void)
   int Npsi_sol = 4;
   int Npsi_pf = 2;
   int Npsi_core = 4;
-  int Ntheta_divertor = 2;
-  int Ntheta_sol = 6;
+  int Ntheta_divertor = 4;
+  int Ntheta_sol = 12;
   int Ny = 2;
   int Nvpar = 4; // Number of cells in vpar.
   int Nmu = 4; // Number of cells in mu.
+
+  double parallel_compression_fac = 0.5; // Compress cells near X-pt (0 to 1, 0 is full compression).
+  double radial_compression_fac = 0.0; // Compress cells separatrix (0 to 1, 0 is full compression).
 
 //  // Adjust psi_max_core to ensure that dx_core = dx_sol.
 //  // we need ((psi_sep-shift_fac_core * psi_max_core)/Npsi_core) / ((psi_min_sol-psi_sep)/Npsi_sol) = 1
@@ -795,6 +837,8 @@ create_ctx(void)
     .Nvpar = Nvpar,
     .Nmu = Nmu,
     .cells_v = {Nvpar, Nmu},
+    .parallel_compression_fac = parallel_compression_fac,
+    .radial_compression_fac   = radial_compression_fac,
     .t_end = t_end, 
     .num_frames = num_frames, 
     .write_phase_freq = write_phase_freq,
