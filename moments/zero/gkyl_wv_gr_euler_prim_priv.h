@@ -40,6 +40,92 @@
 // handles cleanly.
 #define GR_EULER_TAU_REPAIR_FLOOR (1.0e-8)
 
+// ---------------------------------------------------------------------------
+// Equation-of-state abstraction.
+//
+// All EOS-dependent math (specific enthalpy, sound speed, pressure recovery
+// in the Newton iteration) routes through the three eos_* helpers below.
+// The struct gkyl_gr_euler_eos is a POD bundle stored on the equation
+// object and passed by value through the primitive solve, the SR Riemann
+// cores, the flux helpers, and the source integrator.
+//
+//   IDEAL          — p = (γ-1)·ρ·ε  ⇒  h = 1 + γ/(γ-1)·p/ρ
+//   MATHEWS_TAUB   — (h - θ)(h - 4θ) = 1, θ = p/ρ. Convex Taub-Mathews
+//                    closure that interpolates between the non-relativistic
+//                    monatomic limit (Γ=5/3, c_s²=5p/(3ρ)) and the ultra-
+//                    relativistic limit (Γ=4/3, c_s²=1/3). Useful for
+//                    BHL/shock-heated flows where the gas spans both
+//                    regimes within one simulation.
+// ---------------------------------------------------------------------------
+
+enum gkyl_gr_euler_eos_type {
+  GR_EULER_EOS_IDEAL = 0,
+  GR_EULER_EOS_MATHEWS_TAUB = 1,
+};
+
+struct gkyl_gr_euler_eos {
+  enum gkyl_gr_euler_eos_type type;
+  double gas_gamma;  // adiabatic index (consulted only when type == IDEAL)
+};
+
+// Specific enthalpy h(ρ, p).
+//   IDEAL: h = 1 + γ/(γ-1)·p/ρ
+//   MATHEWS_TAUB: h(θ) = (5θ + sqrt(9θ² + 4))/2, θ = p/ρ
+static inline double
+gkyl_gr_euler_eos_enthalpy(struct gkyl_gr_euler_eos eos,
+  double rho, double p)
+{
+  if (eos.type == GR_EULER_EOS_IDEAL) {
+    return 1.0 + (p / rho) * (eos.gas_gamma / (eos.gas_gamma - 1.0));
+  }
+  double theta = p / rho;
+  return 0.5 * (5.0 * theta + sqrt(9.0 * theta * theta + 4.0));
+}
+
+// Pressure recovery p(ρ, h). This is the EOS-specific closing equation
+// for the Newton-in-pressure iteration in gkyl_gr_euler_recover_primitives.
+//   IDEAL: h = 1 + γ/(γ-1)·θ  ⇒  θ = (h-1)·(γ-1)/γ
+//   MATHEWS_TAUB: 4θ² − 5hθ + (h² − 1) = 0  ⇒  θ = (5h − sqrt(9h² + 16))/8
+static inline double
+gkyl_gr_euler_eos_pressure_from_rho_h(struct gkyl_gr_euler_eos eos,
+  double rho, double h)
+{
+  if (eos.type == GR_EULER_EOS_IDEAL) {
+    return rho * (h - 1.0) * (eos.gas_gamma - 1.0) / eos.gas_gamma;
+  }
+  double theta = 0.125 * (5.0 * h - sqrt(9.0 * h * h + 16.0));
+  return rho * theta;
+}
+
+// Sound speed squared c_s²(ρ, p, h). For ideal this is γp/(ρh). For
+// Mathews-Taub the closed form is c_s² = θ(5h − 8θ) / (3·h·(h − θ)) with
+// θ = p/ρ. Verified limits: θ→0 ⇒ c_s² → 5p/(3ρ)/h (matches Γ=5/3 ideal),
+// θ→∞ ⇒ c_s² → 1/3 (radiation-fluid asymptote).
+static inline double
+gkyl_gr_euler_eos_cs2(struct gkyl_gr_euler_eos eos,
+  double rho, double p, double h)
+{
+  if (eos.type == GR_EULER_EOS_IDEAL) {
+    return (eos.gas_gamma * p) / (rho * h);
+  }
+  double theta = p / rho;
+  double num = theta * (5.0 * h - 8.0 * theta);
+  double den = 3.0 * h * (h - theta);
+  return num / den;
+}
+
+// Convenience for the legacy IDEAL-only call sites (packed tetrad path,
+// older tests) that still hand in a bare gas_gamma. Constructs an IDEAL
+// eos bundle inline.
+static inline struct gkyl_gr_euler_eos
+gkyl_gr_euler_eos_ideal(double gas_gamma)
+{
+  return (struct gkyl_gr_euler_eos){
+    .type = GR_EULER_EOS_IDEAL,
+    .gas_gamma = gas_gamma,
+  };
+}
+
 // First-failing-constraint enum reported by check_admissibility. The
 // repair_state callback uses this to decide which single projection to
 // apply this iteration.
@@ -174,27 +260,27 @@ struct gkyl_gr_euler_prim {
   double v[3];    // contravariant 3-velocity v^i
   double p;       // pressure (post-floor)
   double W;       // Lorentz factor
-  double h;       // specific enthalpy h = 1 + γ·p / ((γ−1)·ρ)
+  double h;       // specific enthalpy (EOS-dependent closure)
   bool admissible; // true iff input lay in the strict admissibility set
                    // (D > 0, τ ≥ 0, s² > 0). check_inv consumes this; the
                    // floors below do NOT downgrade it.
 };
 
-// Banyuls primitive-variable recovery under Convention A. Inputs are
-// undensitized conservatives; inv_g is the 3×3 inverse spatial metric
-// γ^{ij} for this cell.
+// One Eulderink-Mellema quartic Newton pass at fixed γ. Recovers
+// (ρ, v^i, p, W, h) from undensitized (D, S_i, τ) and inv_g.
+//
+// The "guess" iterate is 1/(h·C), C = D/√s², which gives a 4th-order
+// polynomial residual that converges quadratically from guess=1.0 for
+// any admissible input. Outputs are pre-floor so callers can apply
+// floors / dispatch after refinement.
 static inline void
-gkyl_gr_euler_recover_primitives(
-  double gas_gamma,
+gkyl_gr_euler_em_newton_at_gamma(
+  double gas_gamma, double mom_sq,
   double D, double Sx, double Sy, double Sz, double tau,
   const double inv_g[3][3],
-  struct gkyl_gr_euler_prim *out)
+  double *rho_out, double *vx_out, double *vy_out, double *vz_out,
+  double *p_out, double *W_out, double *h_out)
 {
-  out->admissible =
-    gkyl_gr_euler_check_admissibility(D, Sx, Sy, Sz, tau, inv_g) == GR_EULER_ADM_OK;
-
-  // Lorentz scalar with covariant momentum: |S|² = γ^{ij} S_i S_j.
-  double mom_sq = gkyl_gr_euler_mom_sq(inv_g, Sx, Sy, Sz);
   double s_sq = ((tau + D) * (tau + D)) - mom_sq;
 
   double C, C0;
@@ -241,6 +327,97 @@ gkyl_gr_euler_recover_primitives(
   double vy = (inv_g[1][0]*Sx + inv_g[1][1]*Sy + inv_g[1][2]*Sz) / rhohW2;
   double vz = (inv_g[2][0]*Sx + inv_g[2][1]*Sy + inv_g[2][2]*Sz) / rhohW2;
   double p  = rhohW2 - D - tau;
+
+  *rho_out = rho; *vx_out = vx; *vy_out = vy; *vz_out = vz;
+  *p_out = p; *W_out = W; *h_out = h;
+}
+
+// Banyuls primitive-variable recovery under Convention A. Inputs are
+// undensitized conservatives; inv_g is the 3×3 inverse spatial metric
+// γ^{ij} for this cell.
+//
+// Dispatch by EOS:
+//   IDEAL         → Single Eulderink-Mellema (EM) quartic Newton pass at
+//                   eos.gas_gamma. Bit-identical to the pre-refactor
+//                   recover_primitives (used by the production BHL run).
+//
+//   MATHEWS_TAUB  → Picard iteration of EM Newton, where each pass uses a
+//                   γ_eff matched to the local h_TM. For any (ρ, p) there
+//                   is a unique γ_eff with h_IDEAL(γ_eff)(ρ, p) = h_TM(ρ, p):
+//                     f = (h_TM - 1)/θ,  θ = p/ρ
+//                     γ_eff = f/(f - 1)
+//                   γ_eff is monotone-decreasing in θ over its bounded
+//                   range (5/3 at θ→0, 4/3 at θ→∞), and is a smooth
+//                   contraction map of (ρ, p), so Picard converges in 2-3
+//                   outer iterations for any TM state. Each EM Newton pass
+//                   stays well-conditioned (the same quartic that production
+//                   IDEAL relies on), so TM inherits IDEAL's robust
+//                   floor-region behavior — unlike a Newton-in-Z formulation
+//                   whose iteration variable has poor scaling near low-p
+//                   floors and near v² → 1.
+//
+// Both paths recover the same convention (contravariant v^i, post-floor
+// ρ, p) and populate the same out struct.
+static inline void
+gkyl_gr_euler_recover_primitives(
+  struct gkyl_gr_euler_eos eos,
+  double D, double Sx, double Sy, double Sz, double tau,
+  const double inv_g[3][3],
+  struct gkyl_gr_euler_prim *out)
+{
+  out->admissible =
+    gkyl_gr_euler_check_admissibility(D, Sx, Sy, Sz, tau, inv_g) == GR_EULER_ADM_OK;
+
+  // Lorentz scalar with covariant momentum: |S|² = γ^{ij} S_i S_j.
+  double mom_sq = gkyl_gr_euler_mom_sq(inv_g, Sx, Sy, Sz);
+  if (mom_sq < 0.0) mom_sq = 0.0;  // defensive against floating-point noise
+
+  double rho, vx, vy, vz, p, W, h;
+
+  if (eos.type == GR_EULER_EOS_IDEAL) {
+    // Single EM Newton pass — bit-identical to pre-refactor.
+    gkyl_gr_euler_em_newton_at_gamma(
+      eos.gas_gamma, mom_sq, D, Sx, Sy, Sz, tau, inv_g,
+      &rho, &vx, &vy, &vz, &p, &W, &h);
+  }
+  else {
+    // Picard iteration: outer loop refines γ_eff to match h_TM at the
+    // current (ρ, p); inner loop is a full EM Newton at that γ_eff.
+    //
+    // Initial γ_eff = 5/3: this is the cold-flow TM limit and gives a
+    // converged answer in 1 outer iteration for any cell with θ ≪ 1.
+    // Hot cells converge in 2–3 outer iterations.
+    double gamma_eff = 5.0 / 3.0;
+    for (int picard = 0; picard < 20; picard++) {
+      gkyl_gr_euler_em_newton_at_gamma(
+        gamma_eff, mom_sq, D, Sx, Sy, Sz, tau, inv_g,
+        &rho, &vx, &vy, &vz, &p, &W, &h);
+
+      // Compute TM-matching γ_eff from the current (ρ, p). Guard against
+      // θ → 0 (where the matching identity has a 0/0 limit) — in that
+      // limit γ_eff = 5/3 exactly (TM cold-flow). Also guard against
+      // non-physical p ≤ 0 (recovered just below the floor) — treat as
+      // cold-flow.
+      double rho_safe = (rho > GR_EULER_DENSITY_FLOOR) ? rho : GR_EULER_DENSITY_FLOOR;
+      double p_safe   = (p   > GR_EULER_PRESSURE_FLOOR) ? p   : GR_EULER_PRESSURE_FLOOR;
+      double theta = p_safe / rho_safe;
+      double gamma_new;
+      if (theta < 1.0e-12) {
+        gamma_new = 5.0 / 3.0;
+      } else {
+        double h_tm = 0.5 * (5.0 * theta + sqrt(9.0 * theta * theta + 4.0));
+        double f = (h_tm - 1.0) / theta;
+        // f ∈ [5/2, 4) for TM ⇒ f − 1 ∈ [3/2, 3), bounded away from zero.
+        gamma_new = f / (f - 1.0);
+      }
+
+      if (fabs(gamma_new - gamma_eff) < 1.0e-14) {
+        gamma_eff = gamma_new;
+        break;
+      }
+      gamma_eff = gamma_new;
+    }
+  }
 
   if (rho < GR_EULER_DENSITY_FLOOR)  rho = GR_EULER_DENSITY_FLOOR;
   if (p   < GR_EULER_PRESSURE_FLOOR) p   = GR_EULER_PRESSURE_FLOOR;

@@ -151,8 +151,8 @@ rot_spacetime_to_local(const double *tau1, const double *tau2,
 // ---------------------------------------------------------------------------
 
 void
-gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
-  const double *prods, double v[5])
+gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, double v[5])
 {
   bool in_excision_region = false;
   if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
@@ -179,7 +179,7 @@ gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
       { ig[6], ig[7], ig[8] },
     };
     struct gkyl_gr_euler_prim prim;
-    gkyl_gr_euler_recover_primitives(gas_gamma,
+    gkyl_gr_euler_recover_primitives(eos,
       D, momx, momy, momz, Etot, inv_g, &prim);
 
     v[0] = prim.rho;
@@ -193,11 +193,11 @@ gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
 }
 
 void
-gkyl_gr_euler_tetrad_mod_flux(double gas_gamma, const double q[5],
+gkyl_gr_euler_tetrad_mod_flux(struct gkyl_gr_euler_eos eos, const double q[5],
   const double *prods, double flux_sr[5])
 {
   double v[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, q, prods, v);
+  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, v);
   double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
 
   bool in_excision_region = false;
@@ -210,7 +210,9 @@ gkyl_gr_euler_tetrad_mod_flux(double gas_gamma, const double q[5],
     double W = 1.0 / sqrt(1.0 - v_dot);
     if (v_dot > 1.0 - pow(10.0, -8.0)) W = 1.0 / sqrt(pow(10.0, -8.0));
 
-    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    // EOS dispatch: IDEAL → 1 + γ/(γ-1)·p/ρ;
+    //               MATHEWS_TAUB → (5θ + √(9θ²+4))/2, θ = p/ρ.
+    double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
 
     flux_sr[0] = rho * W * vx;
     flux_sr[1] = (rho * h * (W*W) * (vx * vx)) + p;
@@ -223,8 +225,9 @@ gkyl_gr_euler_tetrad_mod_flux(double gas_gamma, const double q[5],
 }
 
 void
-gkyl_gr_euler_tetrad_mod_flux_correction(double gas_gamma, const double q[5],
-  const double *prods, const double flux_sr[5], double flux_gr[5])
+gkyl_gr_euler_tetrad_mod_flux_correction(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, const double flux_sr[5],
+  double flux_gr[5])
 {
   // Mirrors gkyl_gr_euler_tetrad_flux_correction in the packed implementation:
   // scales the flat SR flux by the W_curved / W_flat ratios that arise when
@@ -233,8 +236,9 @@ gkyl_gr_euler_tetrad_mod_flux_correction(double gas_gamma, const double q[5],
   // byte equivalent to packed so the *only* algorithmic difference between
   // packed and mod-tetrad lives in the Roe solve. See wv_gr_euler_tetrad.c
   // for the parallel implementation.
+  (void)eos;  // Unused — flux_correction only needs prims + spacetime.
   double v[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, q, prods, v);
+  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, v);
   double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
 
   double lapse        = prods[GKYL_GR_SP_LAPSE];
@@ -294,11 +298,11 @@ gkyl_gr_euler_tetrad_mod_flux_correction(double gas_gamma, const double q[5],
 }
 
 double
-gkyl_gr_euler_tetrad_mod_max_abs_speed(double gas_gamma, const double q[5],
-  const double *prods)
+gkyl_gr_euler_tetrad_mod_max_abs_speed(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods)
 {
   double v[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, q, prods, v);
+  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, v);
   double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
 
   double lapse   = prods[GKYL_GR_SP_LAPSE];
@@ -306,9 +310,13 @@ gkyl_gr_euler_tetrad_mod_max_abs_speed(double gas_gamma, const double q[5],
   double shift_y = prods[GKYL_GR_SP_SHIFT + 1];
   double shift_z = prods[GKYL_GR_SP_SHIFT + 2];
 
-  double num = (gas_gamma * p) / rho;
-  double den = 1.0 + ((p / rho) * gas_gamma / (gas_gamma - 1.0));
-  double c_s = sqrt(num / den);
+  // Sound speed via EOS dispatch.
+  //   IDEAL: c_s² = γp / (ρh), h = 1 + γ/(γ-1)·p/ρ.
+  //   MATHEWS_TAUB: c_s² = θ(5h − 8θ) / (3h(h − θ)), θ = p/ρ.
+  double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
+  double cs2 = gkyl_gr_euler_eos_cs2(eos, rho, p, h);
+  if (cs2 < 0.0) cs2 = 0.0;
+  double c_s = sqrt(cs2);
 
   bool in_excision_region = false;
   if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
@@ -807,7 +815,7 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
 // pipeline transforms states/fluxes into the tetrad frame, calls this,
 // and back-transforms waves and speeds.
 double
-gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(double gas_gamma,
+gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[2 * 5], double speeds[2])
 {
@@ -817,100 +825,48 @@ gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(double gas_gamma,
   double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
   double tau_l = ql_tet[4], tau_r = qr_tet[4];
 
-  // Newton recovery of primitives (Banyuls flat). Mirrors the body of
-  // gkyl_gr_euler_tetrad_mod_sr_roe_minkowski. Each side independently
-  // short-circuits to vacuum primitives (ρ→tiny, v=0, p=0, W=1, h=1)
-  // when its conservative state is the all-zero excision state — see
-  // gkyl_gr_euler_tetrad_mod_is_zero_state. This makes the SR fluxes
-  // identically zero on that side and the Davis bracket trivially
-  // bounded by the active side's wave speeds.
+  // Banyuls primitive recovery via the shared helper (eos dispatch: IDEAL
+  // → Eulderink-Mellema quartic Newton; MATHEWS_TAUB → Newton-in-Z). The
+  // Minkowski tetrad frame has γ_ij = δ_ij, so inv_g = I and the shared
+  // helper's curved-frame contraction collapses to the Cartesian dot
+  // product the original inline Newton used.
+  //
+  // Each side short-circuits to vacuum primitives when fed the all-zero
+  // excision state (gkyl_gr_euler_tetrad_mod_is_zero_state). SR fluxes
+  // then identically zero on that side and the Davis bracket is bounded
+  // by the active side's wave speeds.
+  double inv_g_flat[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, 1.0, 0.0 },
+    { 0.0, 0.0, 1.0 },
+  };
   double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
   double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
   if (gkyl_gr_euler_tetrad_mod_is_zero_state(ql_tet)) {
     rho_l = 1.0e-30; vx_l = vy_l = vz_l = 0.0; p_l = 0.0; W_l = 1.0; h_l = 1.0;
   } else {
-    double s_sq_l = ((tau_l + D_l)*(tau_l + D_l)) - (Sx_l*Sx_l + Sy_l*Sy_l + Sz_l*Sz_l);
-    double C, C0;
-    if (s_sq_l < pow(10.0, -10.0)) {
-      C  = D_l / sqrt(pow(10.0, -10.0));
-      C0 = (D_l + tau_l) / sqrt(pow(10.0, -10.0));
-    } else {
-      C  = D_l / sqrt(s_sq_l);
-      C0 = (D_l + tau_l) / sqrt(s_sq_l);
-    }
-    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
-    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
-    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
-      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
-    double alpha4 = (C0*C0) - 1.0;
-    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
-    double guess = 1.0;
-    for (int it = 0; it < 100; it++) {
-      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
-                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
-      double poly_der = alpha1 + (2.0 * alpha2 * guess)
-                      + (4.0 * alpha4 * guess*guess*guess)
-                      - (3.0 * eta * alpha4 * guess*guess);
-      double guess_new = guess - poly/poly_der;
-      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
-      guess = guess_new;
-    }
-    W_l = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
-      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
-    h_l = 1.0 / (C * guess);
-    rho_l = D_l / W_l;
-    vx_l = Sx_l / (rho_l * h_l * W_l*W_l);
-    vy_l = Sy_l / (rho_l * h_l * W_l*W_l);
-    vz_l = Sz_l / (rho_l * h_l * W_l*W_l);
-    p_l  = (rho_l * h_l * W_l*W_l) - D_l - tau_l;
-    if (rho_l < pow(10.0, -8.0)) rho_l = pow(10.0, -8.0);
-    if (p_l   < pow(10.0, -8.0)) p_l   = pow(10.0, -8.0);
+    struct gkyl_gr_euler_prim pl;
+    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, &pl);
+    rho_l = pl.rho; vx_l = pl.v[0]; vy_l = pl.v[1]; vz_l = pl.v[2];
+    p_l   = pl.p;   W_l  = pl.W;    h_l  = pl.h;
   }
   if (gkyl_gr_euler_tetrad_mod_is_zero_state(qr_tet)) {
     rho_r = 1.0e-30; vx_r = vy_r = vz_r = 0.0; p_r = 0.0; W_r = 1.0; h_r = 1.0;
   } else {
-    double s_sq_r = ((tau_r + D_r)*(tau_r + D_r)) - (Sx_r*Sx_r + Sy_r*Sy_r + Sz_r*Sz_r);
-    double C, C0;
-    if (s_sq_r < pow(10.0, -10.0)) {
-      C  = D_r / sqrt(pow(10.0, -10.0));
-      C0 = (D_r + tau_r) / sqrt(pow(10.0, -10.0));
-    } else {
-      C  = D_r / sqrt(s_sq_r);
-      C0 = (D_r + tau_r) / sqrt(s_sq_r);
-    }
-    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
-    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
-    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
-      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
-    double alpha4 = (C0*C0) - 1.0;
-    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
-    double guess = 1.0;
-    for (int it = 0; it < 100; it++) {
-      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
-                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
-      double poly_der = alpha1 + (2.0 * alpha2 * guess)
-                      + (4.0 * alpha4 * guess*guess*guess)
-                      - (3.0 * eta * alpha4 * guess*guess);
-      double guess_new = guess - poly/poly_der;
-      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
-      guess = guess_new;
-    }
-    W_r = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
-      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
-    h_r = 1.0 / (C * guess);
-    rho_r = D_r / W_r;
-    vx_r = Sx_r / (rho_r * h_r * W_r*W_r);
-    vy_r = Sy_r / (rho_r * h_r * W_r*W_r);
-    vz_r = Sz_r / (rho_r * h_r * W_r*W_r);
-    p_r  = (rho_r * h_r * W_r*W_r) - D_r - tau_r;
-    if (rho_r < pow(10.0, -8.0)) rho_r = pow(10.0, -8.0);
-    if (p_r   < pow(10.0, -8.0)) p_r   = pow(10.0, -8.0);
+    struct gkyl_gr_euler_prim pr;
+    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, &pr);
+    rho_r = pr.rho; vx_r = pr.v[0]; vy_r = pr.v[1]; vz_r = pr.v[2];
+    p_r   = pr.p;   W_r  = pr.W;    h_r  = pr.h;
   }
 
-  // Sound speeds (relativistic ideal-gas). For vacuum-state side, ρ→tiny
-  // and p=0 give c_s = 0 — vacuum contributes no wave-speed bound.
-  double c_sl = sqrt((gas_gamma * p_l) / (rho_l * h_l));
-  double c_sr = sqrt((gas_gamma * p_r) / (rho_r * h_r));
+  // Sound speeds via EOS dispatch. Vacuum-state side gets c_s = 0 (p = 0
+  // ⇒ c_s² = 0 for any reasonable EOS).
+  double cs2_l = (p_l > 0.0) ? gkyl_gr_euler_eos_cs2(eos, rho_l, p_l, h_l) : 0.0;
+  double cs2_r = (p_r > 0.0) ? gkyl_gr_euler_eos_cs2(eos, rho_r, p_r, h_r) : 0.0;
+  if (cs2_l < 0.0) cs2_l = 0.0;
+  if (cs2_r < 0.0) cs2_r = 0.0;
+  double c_sl = sqrt(cs2_l);
+  double c_sr = sqrt(cs2_r);
 
   // Davis/Einfeldt wave-speed estimate in tetrad frame: per-side
   // relativistic acoustic eigenvalues with velocity addition, then
@@ -976,7 +932,7 @@ gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(double gas_gamma,
 // in speed. The curved-frame wave_lax pipeline transforms states into
 // the tetrad frame, calls this, and back-transforms waves/speeds.
 double
-gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(double gas_gamma,
+gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[2 * 5], double speeds[2])
 {
@@ -986,98 +942,40 @@ gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(double gas_gamma,
   double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
   double tau_l = ql_tet[4], tau_r = qr_tet[4];
 
-  // Banyuls Newton recovery (Minkowski flat) on each side. Each side
-  // independently short-circuits to vacuum primitives when its
-  // conservative state is the all-zero excision state. See
-  // gkyl_gr_euler_tetrad_mod_is_zero_state and the matching block in
-  // sr_hll_minkowski for the rationale.
+  // Banyuls primitive recovery via the shared helper (eos dispatch). See
+  // sr_hll_minkowski above for the rationale on identity inv_g and the
+  // zero-state short-circuit.
+  double inv_g_flat[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, 1.0, 0.0 },
+    { 0.0, 0.0, 1.0 },
+  };
   double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
   double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
   if (gkyl_gr_euler_tetrad_mod_is_zero_state(ql_tet)) {
     rho_l = 1.0e-30; vx_l = vy_l = vz_l = 0.0; p_l = 0.0; W_l = 1.0; h_l = 1.0;
   } else {
-    double s_sq_l = ((tau_l + D_l)*(tau_l + D_l)) - (Sx_l*Sx_l + Sy_l*Sy_l + Sz_l*Sz_l);
-    double C, C0;
-    if (s_sq_l < pow(10.0, -10.0)) {
-      C  = D_l / sqrt(pow(10.0, -10.0));
-      C0 = (D_l + tau_l) / sqrt(pow(10.0, -10.0));
-    } else {
-      C  = D_l / sqrt(s_sq_l);
-      C0 = (D_l + tau_l) / sqrt(s_sq_l);
-    }
-    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
-    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
-    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
-      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
-    double alpha4 = (C0*C0) - 1.0;
-    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
-    double guess = 1.0;
-    for (int it = 0; it < 100; it++) {
-      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
-                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
-      double poly_der = alpha1 + (2.0 * alpha2 * guess)
-                      + (4.0 * alpha4 * guess*guess*guess)
-                      - (3.0 * eta * alpha4 * guess*guess);
-      double guess_new = guess - poly/poly_der;
-      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
-      guess = guess_new;
-    }
-    W_l = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
-      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
-    h_l = 1.0 / (C * guess);
-    rho_l = D_l / W_l;
-    vx_l = Sx_l / (rho_l * h_l * W_l*W_l);
-    vy_l = Sy_l / (rho_l * h_l * W_l*W_l);
-    vz_l = Sz_l / (rho_l * h_l * W_l*W_l);
-    p_l  = (rho_l * h_l * W_l*W_l) - D_l - tau_l;
-    if (rho_l < pow(10.0, -8.0)) rho_l = pow(10.0, -8.0);
-    if (p_l   < pow(10.0, -8.0)) p_l   = pow(10.0, -8.0);
+    struct gkyl_gr_euler_prim pl;
+    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, &pl);
+    rho_l = pl.rho; vx_l = pl.v[0]; vy_l = pl.v[1]; vz_l = pl.v[2];
+    p_l   = pl.p;   W_l  = pl.W;    h_l  = pl.h;
   }
   if (gkyl_gr_euler_tetrad_mod_is_zero_state(qr_tet)) {
     rho_r = 1.0e-30; vx_r = vy_r = vz_r = 0.0; p_r = 0.0; W_r = 1.0; h_r = 1.0;
   } else {
-    double s_sq_r = ((tau_r + D_r)*(tau_r + D_r)) - (Sx_r*Sx_r + Sy_r*Sy_r + Sz_r*Sz_r);
-    double C, C0;
-    if (s_sq_r < pow(10.0, -10.0)) {
-      C  = D_r / sqrt(pow(10.0, -10.0));
-      C0 = (D_r + tau_r) / sqrt(pow(10.0, -10.0));
-    } else {
-      C  = D_r / sqrt(s_sq_r);
-      C0 = (D_r + tau_r) / sqrt(s_sq_r);
-    }
-    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
-    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
-    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
-      (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
-    double alpha4 = (C0*C0) - 1.0;
-    double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
-    double guess = 1.0;
-    for (int it = 0; it < 100; it++) {
-      double poly = (alpha4 * guess*guess*guess) * (guess - eta)
-                  + (alpha2 * guess*guess) + (alpha1 * guess) + alpha0;
-      double poly_der = alpha1 + (2.0 * alpha2 * guess)
-                      + (4.0 * alpha4 * guess*guess*guess)
-                      - (3.0 * eta * alpha4 * guess*guess);
-      double guess_new = guess - poly/poly_der;
-      if (fabs(guess - guess_new) < pow(10.0, -14.0)) { guess = guess_new; break; }
-      guess = guess_new;
-    }
-    W_r = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0)/gas_gamma) *
-      ((1.0 - C*guess) / (C0*C0 * guess*guess)))));
-    h_r = 1.0 / (C * guess);
-    rho_r = D_r / W_r;
-    vx_r = Sx_r / (rho_r * h_r * W_r*W_r);
-    vy_r = Sy_r / (rho_r * h_r * W_r*W_r);
-    vz_r = Sz_r / (rho_r * h_r * W_r*W_r);
-    p_r  = (rho_r * h_r * W_r*W_r) - D_r - tau_r;
-    if (rho_r < pow(10.0, -8.0)) rho_r = pow(10.0, -8.0);
-    if (p_r   < pow(10.0, -8.0)) p_r   = pow(10.0, -8.0);
+    struct gkyl_gr_euler_prim pr;
+    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, &pr);
+    rho_r = pr.rho; vx_r = pr.v[0]; vy_r = pr.v[1]; vz_r = pr.v[2];
+    p_r   = pr.p;   W_r  = pr.W;    h_r  = pr.h;
   }
 
-  // Sound speeds and per-side max-abs characteristic speed in tetrad.
-  // Vacuum-state side gets c_s = 0; doesn't widen the symmetric envelope.
-  double c_sl = sqrt((gas_gamma * p_l) / (rho_l * h_l));
-  double c_sr = sqrt((gas_gamma * p_r) / (rho_r * h_r));
+  // Sound speeds via EOS dispatch. Vacuum-state side gets c_s = 0.
+  double cs2_l = (p_l > 0.0) ? gkyl_gr_euler_eos_cs2(eos, rho_l, p_l, h_l) : 0.0;
+  double cs2_r = (p_r > 0.0) ? gkyl_gr_euler_eos_cs2(eos, rho_r, p_r, h_r) : 0.0;
+  if (cs2_l < 0.0) cs2_l = 0.0;
+  if (cs2_r < 0.0) cs2_r = 0.0;
+  double c_sl = sqrt(cs2_l);
+  double c_sr = sqrt(cs2_r);
 
   double lam_minus_l = (vx_l - c_sl) / (1.0 - vx_l * c_sl);
   double lam_plus_l  = (vx_l + c_sl) / (1.0 + vx_l * c_sl);
@@ -1173,7 +1071,7 @@ gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(double gas_gamma,
 //      weakness. Hopefully reaching the fallback is rare on actual
 //      problems.
 double
-gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(double gas_gamma,
+gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[3 * 5], double speeds[3],
   struct gkyl_gr_euler_tetrad_mod_hllc_diag *diag)
@@ -1198,8 +1096,8 @@ gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(double gas_gamma,
   };
 
   struct gkyl_gr_euler_prim pl, pr;
-  gkyl_gr_euler_recover_primitives(gas_gamma, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, &pl);
-  gkyl_gr_euler_recover_primitives(gas_gamma, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, &pr);
+  gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, &pl);
+  gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, &pr);
 
   double rho_l = pl.rho, vx_l = pl.v[0], vy_l = pl.v[1], vz_l = pl.v[2], p_l = pl.p, W_l = pl.W, h_l = pl.h;
   double rho_r = pr.rho, vx_r = pr.v[0], vy_r = pr.v[1], vz_r = pr.v[2], p_r = pr.p, W_r = pr.W, h_r = pr.h;
@@ -1207,11 +1105,16 @@ gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(double gas_gamma,
 
   // Davis (1988) wave-speed estimate, eq (21–23) of MB05.
   // σ_s = c_s² / (γ²(1 − c_s²)), λ_± = (v_x ± √(σ_s(1 − v_x² + σ_s))) / (1 + σ_s).
-  double cs2_l = (gas_gamma * p_l) / (pl.rho * h_l);
-  double cs2_r = (gas_gamma * p_r) / (pr.rho * h_r);
-  // Cap c_s² strictly below 1 so σ_s is finite (MB05 §2 notes c_s² < Γ−1 ≤ 1
-  // for any physical EOS with Γ ≤ 2; numerical near-saturation can still
-  // produce 1 − c_s² ≈ 0 in degenerate configurations).
+  // c_s² via EOS dispatch (IDEAL: γp/(ρh); MATHEWS_TAUB: θ(5h−8θ)/(3h(h−θ))).
+  double cs2_l = gkyl_gr_euler_eos_cs2(eos, pl.rho, p_l, h_l);
+  double cs2_r = gkyl_gr_euler_eos_cs2(eos, pr.rho, p_r, h_r);
+  if (cs2_l < 0.0) cs2_l = 0.0;
+  if (cs2_r < 0.0) cs2_r = 0.0;
+  // Cap c_s² strictly below 1 so σ_s is finite. For IDEAL with Γ ≤ 2 the
+  // analytic bound is c_s² < Γ−1 ≤ 1; for MATHEWS_TAUB the analytic upper
+  // bound is the radiation-fluid limit c_s² → 1/3 as θ → ∞ (well below 1).
+  // The clamp here catches numerical near-saturation in degenerate
+  // configurations of the IDEAL branch (Γ → 2, ultra-relativistic).
   if (cs2_l > 1.0 - 1.0e-12) cs2_l = 1.0 - 1.0e-12;
   if (cs2_r > 1.0 - 1.0e-12) cs2_r = 1.0 - 1.0e-12;
   double sigma_l = cs2_l / (W_l*W_l * (1.0 - cs2_l));
@@ -1509,7 +1412,8 @@ wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
 
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  double gas_gamma = grm->gas_gamma;
+  struct gkyl_gr_euler_eos eos = grm->eos;
+  double gas_gamma = eos.gas_gamma;
 
   // Excision policy (absorbing BC / one-sided upwind, SESSION_NOTES_3 §11):
   // when one side is excised, treat the excised side as a vacuum state
@@ -1586,7 +1490,7 @@ wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   // for whichever side is excised (no Newton blowup).
   double waves_tet[2 * 5], speeds_tet[2];
   gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(
-    gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
+    eos, ql_tet, qr_tet, waves_tet, speeds_tet);
 
   // Step 4: back-transform waves and speeds.
   double maxs_curved = 0.0;
@@ -1645,7 +1549,8 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
 
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  double gas_gamma = grm->gas_gamma;
+  struct gkyl_gr_euler_eos eos = grm->eos;
+  double gas_gamma = eos.gas_gamma;
 
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
@@ -1659,10 +1564,10 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
   // Per-side GR Banyuls fluxes. flux_correction zeros the flux on
   // excised cells, giving the absorbing-BC contribution automatically.
   double fl_sr[5], fr_sr[5], fl_gr[5], fr_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql, grm->prodl_local, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr, grm->prodr_local, fr_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql, grm->prodl_local, fl_sr, fl_gr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr, grm->prodr_local, fr_sr, fr_gr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, fl_sr, fl_gr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, fr_sr, fr_gr);
 
   // amax — full-3D max-abs characteristic speed (max over x/y/z). The
   // x-only variant was too tight in metrics with off-diagonal γ_xy and
@@ -1673,8 +1578,8 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
   // on bhl-repair-s2-#2 showed s²_new=-1.45e-1 (x-only) → +1.16
   // (full-3D). See SESSION_NOTES_3 §17 for the analysis. Excision
   // short-circuits to 1e-8.
-  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(gas_gamma, ql, grm->prodl_local);
-  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(gas_gamma, qr, grm->prodr_local);
+  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, ql, grm->prodl_local);
+  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, qr, grm->prodr_local);
   double amax = fmax(amaxl, amaxr);
   if (!(amax > 0.0)) {
     for (int k = 0; k < 2 * 5; k++) waves[k] = 0.0;
@@ -1779,7 +1684,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
 
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  double gas_gamma = grm->gas_gamma;
+  struct gkyl_gr_euler_eos eos = grm->eos;
+  double gas_gamma = eos.gas_gamma;
 
   // Step 1: interface metric = arithmetic mean of left and right γ_ij;
   // similarly mean of lapse, shift. √γ_interface from average of √γ.
@@ -1843,14 +1749,15 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   // does not strictly satisfy Σ s·w = ΔF in curved γ.
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  double gas_gamma = grm->gas_gamma;
+  struct gkyl_gr_euler_eos eos = grm->eos;
+  double gas_gamma = eos.gas_gamma;
 
   double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql, grm->prodl_local, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr, grm->prodr_local, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, fr_sr);
   double fl[5], fr[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql, grm->prodl_local, fl_sr, fl);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr, grm->prodr_local, fr_sr, fr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, fl_sr, fl);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, fr_sr, fr);
 
   const double *w0 = &waves[0 * 5], *w1 = &waves[1 * 5], *w2 = &waves[2 * 5];
   double abs_s0 = fabs(s[0]), abs_s1 = fabs(s[1]), abs_s2 = fabs(s[2]);
@@ -1901,7 +1808,8 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
 {
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  double gas_gamma = grm->gas_gamma;
+  struct gkyl_gr_euler_eos eos = grm->eos;
+  double gas_gamma = eos.gas_gamma;
 
   // Excision policy (absorbing BC / one-sided upwind) — same structure
   // as wave_lax. See SESSION_NOTES_3 §11 for the math invariants and
@@ -1973,7 +1881,7 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   // case inside sr_hll_minkowski safely handles the vacuum side.
   double waves_tet[2 * 5], speeds_tet[2];
   gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(
-    gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet);
+    eos, ql_tet, qr_tet, waves_tet, speeds_tet);
 
   // Step 4: back-transform waves and speeds with the new triad. The
   // coord-x momentum slot receives only the a=0 tetrad wave (mirror of
@@ -2064,7 +1972,8 @@ wave_hllc(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   (void)delta;
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  double gas_gamma = grm->gas_gamma;
+  struct gkyl_gr_euler_eos eos = grm->eos;
+  double gas_gamma = eos.gas_gamma;
 
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
@@ -2108,7 +2017,7 @@ wave_hllc(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   // cold-gas-fallback probe in ctest_wv_gr_euler_tetrad_mod_convA.c.
   double waves_tet[3 * 5], speeds_tet[3];
   gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
-    gas_gamma, ql_tet, qr_tet, waves_tet, speeds_tet, NULL);
+    eos, ql_tet, qr_tet, waves_tet, speeds_tet, NULL);
 
   // Step 4: back-transform waves and speeds.
   double maxs_curved = 0.0;
@@ -2182,15 +2091,16 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
   // (flat + GR-correction) flux to match packed wv_gr_euler_tetrad.c:1581.
   struct wv_gr_euler_tetrad_mod *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  double gas_gamma = grm->gas_gamma;
+  struct gkyl_gr_euler_eos eos = grm->eos;
+  double gas_gamma = eos.gas_gamma;
 
   double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql, grm->prodl_local, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr, grm->prodr_local, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, fr_sr);
 
   double fl[5], fr[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql, grm->prodl_local, fl_sr, fl);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr, grm->prodr_local, fr_sr, fr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, fl_sr, fl);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, fr_sr, fr);
 
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
@@ -2200,8 +2110,8 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
     for (int m = 0; m < 5; m++) flux_jump[m] = 0.0;
   }
 
-  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(gas_gamma, ql, grm->prodl_local);
-  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(gas_gamma, qr, grm->prodr_local);
+  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, ql, grm->prodl_local);
+  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, qr, grm->prodr_local);
   return fmax(amaxl, amaxr);
 }
 
@@ -2307,7 +2217,7 @@ max_speed_func(const struct gkyl_wv_eqn *eqn, const double *q)
   if (!grm->auxfields.prods) return 1.0;
   long cidx = gkyl_range_idx(&grm->conf_range, grm->cur_cell_idx);
   const double *prods = gkyl_array_cfetch(grm->auxfields.prods, cidx);
-  return gkyl_gr_euler_tetrad_mod_max_abs_speed(grm->gas_gamma, q, prods);
+  return gkyl_gr_euler_tetrad_mod_max_abs_speed(grm->eos, q, prods);
 }
 
 static inline void
@@ -2401,7 +2311,22 @@ gkyl_wv_gr_euler_tetrad_mod_inew(
   grm->eqn.num_equations = 5;
   grm->eqn.num_diag = 5;
 
-  grm->gas_gamma = inp->gas_gamma;
+  // Resolve the EOS. Two input pathways:
+  //   (a) New callers populate inp->eos directly (type IDEAL or MATHEWS_TAUB).
+  //   (b) Legacy callers populate only inp->gas_gamma; inp->eos is then
+  //       zero-initialized (type = IDEAL, gas_gamma = 0.0) and we copy
+  //       inp->gas_gamma into the eos bundle so downstream code sees IDEAL.
+  grm->eos = inp->eos;
+  if (grm->eos.type == GR_EULER_EOS_IDEAL && grm->eos.gas_gamma == 0.0) {
+    grm->eos.gas_gamma = inp->gas_gamma;
+  }
+
+  // Roe Riemann solver is IDEAL-gas only — the SR-Roe eigenstructure uses
+  // the Eulderink-Mellema ideal-gas Jacobian. Reject the combination at
+  // construction time.
+  assert(inp->rp_type != WV_GR_EULER_TETRAD_RP_ROE
+         || grm->eos.type == GR_EULER_EOS_IDEAL);
+
   grm->conf_range = inp->conf_range;
   grm->auxfields.prods = NULL;
   grm->rot_call_parity = 0;
@@ -2468,5 +2393,16 @@ gkyl_wv_gr_euler_tetrad_mod_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_gr_euler_tetrad_mod *grm = container_of(eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  return grm->gas_gamma;
+  // For MATHEWS_TAUB this returns 0.0 (eos.gas_gamma is unset); callers
+  // that need to distinguish EOS types should use the
+  // gkyl_wv_gr_euler_tetrad_mod_eos accessor.
+  return grm->eos.gas_gamma;
+}
+
+struct gkyl_gr_euler_eos
+gkyl_wv_gr_euler_tetrad_mod_eos(const struct gkyl_wv_eqn *eqn)
+{
+  const struct wv_gr_euler_tetrad_mod *grm = container_of(eqn,
+    struct wv_gr_euler_tetrad_mod, eqn);
+  return grm->eos;
 }

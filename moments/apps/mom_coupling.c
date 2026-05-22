@@ -224,22 +224,28 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       for (int i = 0; i < app->num_species; i++) {
         enum gkyl_eqn_type t = app->species[i].eqn_type;
         if (t == GKYL_EQN_GR_EULER_MOD) {
+          // Non-tetrad mod variant: IDEAL-only by design.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
             .type = t,
-            .gas_gamma = gkyl_wv_gr_euler_mod_gas_gamma(app->species[i].equation),
+            .eos = gkyl_gr_euler_eos_ideal(
+              gkyl_wv_gr_euler_mod_gas_gamma(app->species[i].equation)),
           };
           st_inp.eqn[i] = app->species[i].equation;
         } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+          // Tetrad mod: full EOS bundle (IDEAL or MATHEWS_TAUB) lives on
+          // the equation object — read it back so the source-step uses
+          // the same closure the wave-step does.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
             .type = t,
-            .gas_gamma = gkyl_wv_gr_euler_tetrad_mod_gas_gamma(app->species[i].equation),
+            .eos = gkyl_wv_gr_euler_tetrad_mod_eos(app->species[i].equation),
           };
           st_inp.eqn[i] = app->species[i].equation;
         } else {
           // Non-mod species: leave the entry in a benign-default state; the
           // coupling's advance loop skips non-mod types.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
-            .type = t, .gas_gamma = 0.0,
+            .type = t,
+            .eos = gkyl_gr_euler_eos_ideal(0.0),
           };
           st_inp.eqn[i] = NULL;
         }

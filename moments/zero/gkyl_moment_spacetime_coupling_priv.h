@@ -13,6 +13,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_wv_gr_euler_prim_priv.h>
 
 struct gkyl_moment_spacetime_coupling {
   struct gkyl_rect_grid grid;
@@ -55,7 +56,7 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
  */
 void
 gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-  double gas_gamma, double t_curr, double dt,
+  struct gkyl_gr_euler_eos eos, double t_curr, double dt,
   const double *prods,
   const double fluid_old[5], double fluid_new[5]);
 

@@ -204,13 +204,28 @@ run_rotation_equivalence(struct gkyl_gr_spacetime *spacetime, int half_extent,
       double W = 1.0 / sqrt(1.0 - v_sq);
       double h = 1.0 + (p / rho) * (gas_gamma / (gas_gamma - 1.0));
 
+      // Packed tetrad uses contravariant momentum convention (S^i):
+      //   q[i+1] = √γ · ρhW² · v^i
       q[0] = sqrt(spatial_det) * rho * W;
       q[1] = sqrt(spatial_det) * rho * h * (W*W) * u;
       q[2] = sqrt(spatial_det) * rho * h * (W*W) * v;
       q[3] = sqrt(spatial_det) * rho * h * (W*W) * w;
       q[4] = sqrt(spatial_det) * ((rho * h * (W*W)) - p - (rho * W));
 
-      double q_mod[5] = { q[0], q[1], q[2], q[3], q[4] };
+      // Modular tetrad uses Convention A (covariant momentum, S_i):
+      //   q_mod[i+1] = √γ · γ_ij · ρhW² · v^j
+      // In curved γ this differs from the packed-tetrad q by γ_ij·v^j vs v^i.
+      double v_lower[3] = { 0.0, 0.0, 0.0 };
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+          v_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * vel[j];
+      double q_mod[5] = {
+        q[0],
+        sqrt(spatial_det) * rho * h * (W*W) * v_lower[0],
+        sqrt(spatial_det) * rho * h * (W*W) * v_lower[1],
+        sqrt(spatial_det) * rho * h * (W*W) * v_lower[2],
+        q[4],
+      };
 
       int idx_l[1] = { 0 };
       int idx_r[1] = { 0 };
@@ -218,7 +233,7 @@ run_rotation_equivalence(struct gkyl_gr_spacetime *spacetime, int half_extent,
       // prim_vars equivalence (packed tetrad vs mod tetrad).
       double v_packed[71], v_mod[5];
       gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v_packed);
-      gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, q_mod, prods_row, v_mod);
+      gkyl_gr_euler_tetrad_mod_prim_vars(gkyl_gr_euler_eos_ideal(gas_gamma), q_mod, prods_row, v_mod);
       for (int i = 0; i < 5; i++)
         TEST_CHECK( gkyl_compare(v_mod[i], v_packed[i], 1e-12) );
 
@@ -262,7 +277,7 @@ run_rotation_equivalence(struct gkyl_gr_spacetime *spacetime, int half_extent,
         // Flat-space SR flux equivalence — the meat of the tetrad split.
         double flux_sr_packed[71], flux_sr_mod[5];
         gkyl_gr_euler_tetrad_flux(gas_gamma, q_local_packed, flux_sr_packed);
-        gkyl_gr_euler_tetrad_mod_flux(gas_gamma, q_local_mod_l, grm->prodl_local, flux_sr_mod);
+        gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), q_local_mod_l, grm->prodl_local, flux_sr_mod);
         for (int i = 0; i < 5; i++)
           TEST_CHECK( gkyl_compare(flux_sr_mod[i], flux_sr_packed[i], 1e-12) );
 
@@ -271,7 +286,7 @@ run_rotation_equivalence(struct gkyl_gr_spacetime *spacetime, int half_extent,
         double flux_gr_packed[71], flux_gr_mod[5];
         gkyl_gr_euler_tetrad_flux_correction(gas_gamma,
           q_local_packed, flux_sr_packed, flux_gr_packed);
-        gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma,
+        gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma),
           q_local_mod_l, grm->prodl_local, flux_sr_mod, flux_gr_mod);
         for (int i = 0; i < 5; i++)
           TEST_CHECK( gkyl_compare(flux_gr_mod[i], flux_gr_packed[i], 1e-12) );
@@ -479,8 +494,32 @@ run_riemann_equivalence(struct gkyl_gr_spacetime *spacetime,
       qr_packed[3] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * wr;
       qr_packed[4] = sqrt(spatial_det) * ((rho_r * hr * (Wr*Wr)) - pr - (rho_r * Wr));
 
-      double ql_mod[5] = { ql_packed[0], ql_packed[1], ql_packed[2], ql_packed[3], ql_packed[4] };
-      double qr_mod[5] = { qr_packed[0], qr_packed[1], qr_packed[2], qr_packed[3], qr_packed[4] };
+      // Modular tetrad uses Convention A (covariant momentum S_i =
+      // γ_ij·ρhW²·v^j). Build ql_mod / qr_mod separately from the
+      // packed (contravariant) ql_packed / qr_packed so curved-γ tests
+      // compare apples to apples — the packed equation reads S^i; the
+      // mod equation reads S_i.
+      double v_l_lower[3] = { 0.0, 0.0, 0.0 };
+      double v_r_lower[3] = { 0.0, 0.0, 0.0 };
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) {
+          v_l_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * vell[j];
+          v_r_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * velr[j];
+        }
+      double ql_mod[5] = {
+        ql_packed[0],
+        sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[0],
+        sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[1],
+        sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[2],
+        ql_packed[4],
+      };
+      double qr_mod[5] = {
+        qr_packed[0],
+        sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[0],
+        sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[1],
+        sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[2],
+        qr_packed[4],
+      };
 
       double ql_packed_local[71], qr_packed_local[71];
       gr_packed->rotate_to_local_func(gr_packed, tau1, tau2, norm, ql_packed, ql_packed_local);
@@ -632,19 +671,26 @@ run_roe_properties(struct gkyl_gr_spacetime *spacetime, bool expect_strict_fj)
       double hl = 1.0 + (pl / rho_l) * (gas_gamma / (gas_gamma - 1.0));
       double hr = 1.0 + (pr / rho_r) * (gas_gamma / (gas_gamma - 1.0));
 
-      // Convention B: q[i+1] := √γ · ρhW² · v^i with contravariant velocity
-      // in each slot (legacy convention, see priv.h q_to_tetrad docstring).
+      // Convention A: q[i+1] := √γ · γ_ij · ρhW² · v^j (covariant momentum).
+      double v_l_lower[3] = { 0.0, 0.0, 0.0 };
+      double v_r_lower[3] = { 0.0, 0.0, 0.0 };
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) {
+          v_l_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * vell[j];
+          v_r_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * velr[j];
+        }
+
       double ql_mod[5], qr_mod[5];
       ql_mod[0] = sqrt(spatial_det) * rho_l * Wl;
-      ql_mod[1] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * ul;
-      ql_mod[2] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * vl;
-      ql_mod[3] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * wl;
+      ql_mod[1] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[0];
+      ql_mod[2] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[1];
+      ql_mod[3] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[2];
       ql_mod[4] = sqrt(spatial_det) * ((rho_l * hl * (Wl*Wl)) - pl - (rho_l * Wl));
 
       qr_mod[0] = sqrt(spatial_det) * rho_r * Wr;
-      qr_mod[1] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * ur;
-      qr_mod[2] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * vr;
-      qr_mod[3] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * wr;
+      qr_mod[1] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[0];
+      qr_mod[2] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[1];
+      qr_mod[3] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[2];
       qr_mod[4] = sqrt(spatial_det) * ((rho_r * hr * (Wr*Wr)) - pr - (rho_r * Wr));
 
       int idx_l[1] = { 0 }, idx_r[1] = { 0 };
@@ -684,12 +730,12 @@ run_roe_properties(struct gkyl_gr_spacetime *spacetime, bool expect_strict_fj)
       // In Minkowski α=1, √γ=1, β=0 and the correction is identity, so
       // this reduces to the flat-flux comparison.
       double fl_sr[5], fr_sr[5];
-      gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql_local, grm->prodl_local, fl_sr);
-      gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr_local, grm->prodr_local, fr_sr);
+      gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local, grm->prodl_local, fl_sr);
+      gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local, grm->prodr_local, fr_sr);
       double fl_gr[5], fr_gr[5];
-      gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql_local,
+      gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local,
         grm->prodl_local, fl_sr, fl_gr);
-      gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr_local,
+      gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local,
         grm->prodr_local, fr_sr, fr_gr);
       double df_gr[5];
       for (int i = 0; i < 5; i++) df_gr[i] = fr_gr[i] - fl_gr[i];
@@ -915,21 +961,28 @@ run_full_tetrad_chain_validation(struct gkyl_gr_spacetime *spacetime)
       double hl = 1.0 + (pl / rho_l) * (gas_gamma / (gas_gamma - 1.0));
       double hr = 1.0 + (pr / rho_r) * (gas_gamma / (gas_gamma - 1.0));
 
-      // Curved-frame conserved with CONTRAVARIANT momentum (matches the
-      // rest of the test file and the code's prim_vars convention; see
-      // gkyl_wv_gr_euler_tetrad_mod_priv.h q_to_tetrad doc).
+      // Convention A: curved-frame conserved with COVARIANT momentum
+      // S_i = γ_ij·ρhW²·v^j. Required by the modular tetrad recovery in
+      // gkyl_wv_gr_euler_tetrad_mod_priv.h (q_to_tetrad / prim_vars).
+      double v_l_lower[3] = { 0.0, 0.0, 0.0 };
+      double v_r_lower[3] = { 0.0, 0.0, 0.0 };
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) {
+          v_l_lower[i] += g_ij[i][j] * vell[j];
+          v_r_lower[i] += g_ij[i][j] * velr[j];
+        }
       double ql_GR[5] = {
         sqrt_det * rho_l * Wl,
-        sqrt_det * rho_l * hl * (Wl*Wl) * ul,
-        sqrt_det * rho_l * hl * (Wl*Wl) * vl,
-        sqrt_det * rho_l * hl * (Wl*Wl) * wl,
+        sqrt_det * rho_l * hl * (Wl*Wl) * v_l_lower[0],
+        sqrt_det * rho_l * hl * (Wl*Wl) * v_l_lower[1],
+        sqrt_det * rho_l * hl * (Wl*Wl) * v_l_lower[2],
         sqrt_det * ((rho_l * hl * (Wl*Wl)) - pl - (rho_l * Wl))
       };
       double qr_GR[5] = {
         sqrt_det * rho_r * Wr,
-        sqrt_det * rho_r * hr * (Wr*Wr) * ur,
-        sqrt_det * rho_r * hr * (Wr*Wr) * vr,
-        sqrt_det * rho_r * hr * (Wr*Wr) * wr,
+        sqrt_det * rho_r * hr * (Wr*Wr) * v_r_lower[0],
+        sqrt_det * rho_r * hr * (Wr*Wr) * v_r_lower[1],
+        sqrt_det * rho_r * hr * (Wr*Wr) * v_r_lower[2],
         sqrt_det * ((rho_r * hr * (Wr*Wr)) - pr - (rho_r * Wr))
       };
 
@@ -1137,19 +1190,26 @@ run_roe_properties_diagonal_metric(void)
   double hl = 1.0 + (pl / rho_l) * (gas_gamma / (gas_gamma - 1.0));
   double hr = 1.0 + (pr / rho_r) * (gas_gamma / (gas_gamma - 1.0));
 
-  // Convention B (legacy): q[i+1] := √γ · ρhW² · v^i (contravariant velocity
-  // in each slot). Matches what prim_vars / flux expect.
+  // Convention A: q[i+1] := √γ · γ_ij · ρhW² · v^j (covariant momentum).
+  double v_l_lower[3] = { 0.0, 0.0, 0.0 };
+  double v_r_lower[3] = { 0.0, 0.0, 0.0 };
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      v_l_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * vell[j];
+      v_r_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * velr[j];
+    }
+
   double ql_mod[5], qr_mod[5];
   ql_mod[0] = sqrt(spatial_det) * rho_l * Wl;
-  ql_mod[1] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * ul;
-  ql_mod[2] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * vl;
-  ql_mod[3] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * wl;
+  ql_mod[1] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[0];
+  ql_mod[2] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[1];
+  ql_mod[3] = sqrt(spatial_det) * rho_l * hl * (Wl*Wl) * v_l_lower[2];
   ql_mod[4] = sqrt(spatial_det) * ((rho_l * hl * (Wl*Wl)) - pl - (rho_l * Wl));
 
   qr_mod[0] = sqrt(spatial_det) * rho_r * Wr;
-  qr_mod[1] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * ur;
-  qr_mod[2] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * vr;
-  qr_mod[3] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * wr;
+  qr_mod[1] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[0];
+  qr_mod[2] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[1];
+  qr_mod[3] = sqrt(spatial_det) * rho_r * hr * (Wr*Wr) * v_r_lower[2];
   qr_mod[4] = sqrt(spatial_det) * ((rho_r * hr * (Wr*Wr)) - pr - (rho_r * Wr));
 
   int idx_l[1] = { 0 }, idx_r[1] = { 0 };
@@ -1176,12 +1236,12 @@ run_roe_properties_diagonal_metric(void)
 
   // Flux-jump
   double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, ql_local, grm->prodl_local, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qr_local, grm->prodr_local, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local, grm->prodl_local, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local, grm->prodr_local, fr_sr);
   double fl_gr[5], fr_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, ql_local,
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local,
     grm->prodl_local, fl_sr, fl_gr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qr_local,
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local,
     grm->prodr_local, fr_sr, fr_gr);
   double df[5];
   for (int i = 0; i < 5; i++) df[i] = fr_gr[i] - fl_gr[i];
@@ -1284,7 +1344,7 @@ run_full_back_transform_flux(struct gkyl_gr_spacetime *spacetime,
 
   // ---- Path A: Banyuls flux via flux_correction ----
   double f_sr_dummy[5], f_banyuls[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, q, prods_row, f_sr_dummy, f_banyuls);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), q, prods_row, f_sr_dummy, f_banyuls);
 
   // ---- Path B: full multi-directional tetrad SR flux + back-transform + shift ----
   // Build triad from γ.
@@ -1569,16 +1629,27 @@ run_prim_vars_stringent_tetrad_mod(struct gkyl_gr_spacetime *spacetime,
       double W = 1.0 / sqrt(1.0 - v_sq);
       double h = 1.0 + ((p_in / rho_in) * (gas_gamma / (gas_gamma - 1.0)));
 
+      // Convention A: S_i = γ_ij·ρhW²·v^j (covariant momentum density).
+      // The modular tetrad recovery expects S_i in q[1..3] and recovers
+      // the contravariant velocity v^i via γ^{ij}·S_j/(ρhW²). For
+      // curved γ the lowering step is non-trivial; flat γ has γ_ij = δ_ij
+      // so S_i = S^i and this matches the contravariant convention used
+      // by the packed tetrad. Matches the IC in rt_gr_bhl_static_tetrad_mod.lua.
+      double v_lower[3] = { 0.0, 0.0, 0.0 };
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+          v_lower[i] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * vel[j];
+
       double q_mod[5] = {
         sqrt(spatial_det) * rho_in * W,
-        sqrt(spatial_det) * rho_in * h * (W*W) * u_in,
-        sqrt(spatial_det) * rho_in * h * (W*W) * v_in,
-        sqrt(spatial_det) * rho_in * h * (W*W) * w_in,
+        sqrt(spatial_det) * rho_in * h * (W*W) * v_lower[0],
+        sqrt(spatial_det) * rho_in * h * (W*W) * v_lower[1],
+        sqrt(spatial_det) * rho_in * h * (W*W) * v_lower[2],
         sqrt(spatial_det) * ((rho_in * h * (W*W)) - p_in - (rho_in * W))
       };
 
       double prims[5];
-      gkyl_gr_euler_tetrad_mod_prim_vars(gas_gamma, q_mod, prods_row, prims);
+      gkyl_gr_euler_tetrad_mod_prim_vars(gkyl_gr_euler_eos_ideal(gas_gamma), q_mod, prods_row, prims);
 
       double rel_rho = fabs(prims[0] - rho_in) / fmax(fabs(rho_in), rel_floor);
       double rel_u   = fabs(prims[1] - u_in)   / fmax(fabs(u_in),   rel_floor);

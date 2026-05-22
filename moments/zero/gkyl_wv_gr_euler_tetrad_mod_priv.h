@@ -25,12 +25,13 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_wv_gr_euler_prim_priv.h>       // struct gkyl_gr_euler_eos
 #include <gkyl_wv_gr_euler_tetrad.h>          // shares enum gkyl_wv_gr_euler_tetrad_rp
 #include <gkyl_wv_gr_euler_tetrad_mod.h>
 
 struct wv_gr_euler_tetrad_mod {
   struct gkyl_wv_eqn eqn;                                  // Base equation object.
-  double gas_gamma;                                        // Adiabatic index.
+  struct gkyl_gr_euler_eos eos;                            // Equation of state (IDEAL or MATHEWS_TAUB).
   struct gkyl_range conf_range;                            // For indexing into prods.
 
   struct gkyl_wv_gr_euler_tetrad_mod_auxfields auxfields;  // Pointer to products.
@@ -75,29 +76,30 @@ void gkyl_gr_euler_tetrad_mod_free(const struct gkyl_ref_count *ref);
 
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_mod_prim_vars(double gas_gamma, const double q[5],
-  const double *prods, double v[5]);
+gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, double v[5]);
 
 // Compute the flat-space (special-relativistic) flux from primitives. Uses
 // Cartesian dot products on velocity (W_flat = 1/sqrt(1 - vᵢvᵢ)) with no
 // metric prefactors. Mirrors gkyl_gr_euler_tetrad_flux in packed.
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_mod_flux(double gas_gamma, const double q[5],
-  const double *prods, double flux_sr[5]);
+gkyl_gr_euler_tetrad_mod_flux(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, double flux_sr[5]);
 
 // Apply the GR coordinate-transformation correction to a flat-space SR flux:
 // multiply by α·√γ and replace (vx, W_flat) with (vx - βˣ/α, W_curved).
 // Mirrors gkyl_gr_euler_tetrad_flux_correction in packed.
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_mod_flux_correction(double gas_gamma, const double q[5],
-  const double *prods, const double flux_sr[5], double flux_gr[5]);
+gkyl_gr_euler_tetrad_mod_flux_correction(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, const double flux_sr[5],
+  double flux_gr[5]);
 
 GKYL_CU_D
 double
-gkyl_gr_euler_tetrad_mod_max_abs_speed(double gas_gamma, const double q[5],
-  const double *prods);
+gkyl_gr_euler_tetrad_mod_max_abs_speed(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods);
 
 // ---------------------------------------------------------------------------
 // Modular tetrad-Roe pipeline. The "tetrad mod" Roe is implemented as a
@@ -160,6 +162,11 @@ gkyl_gr_euler_tetrad_mod_q_to_tetrad(const double q_GR[5],
 // off-diagonals zero, spatial part identity). This is what makes it a
 // "true Roe" — the SR Jacobian satisfies A_SR · ∆q_tet = ∆f_SR exactly,
 // so ∑ s_k · w_k = ∆f_SR_flat holds at floating-point precision.
+//
+// IDEAL-GAS ONLY. The c_minus/c_plus/s² coefficients in this eigenstructure
+// are derived from the ideal-gas Jacobian (h = 1 + γ/(γ-1)·p/ρ); the
+// Mathews-Taub Jacobian has a different algebraic form. The mod-tetrad
+// constructor rejects rp_type=ROE when eos.type != IDEAL.
 GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
@@ -171,7 +178,7 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
 // state. Provably admissibility-preserving in flat space (Mignone-Bodo).
 GKYL_CU_D
 double
-gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(double gas_gamma,
+gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[2 * 5], double speeds[2]);
 
@@ -179,7 +186,7 @@ gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(double gas_gamma,
 // diffusive than HLL but admissibility-preserving on admissible inputs.
 GKYL_CU_D
 double
-gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(double gas_gamma,
+gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[2 * 5], double speeds[2]);
 
@@ -236,7 +243,7 @@ struct gkyl_gr_euler_tetrad_mod_hllc_diag {
 
 GKYL_CU_D
 double
-gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(double gas_gamma,
+gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   double waves_tet[3 * 5], double speeds[3],
   struct gkyl_gr_euler_tetrad_mod_hllc_diag *diag);

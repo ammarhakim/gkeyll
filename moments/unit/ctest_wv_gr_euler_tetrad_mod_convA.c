@@ -203,8 +203,8 @@ run_banyuls_flux_consistency(struct gkyl_gr_spacetime *spacetime,
         build_state_convA(gas_gamma, rho, v, p, prods_row, q);
 
         double f_sr[5], f_gr[5];
-        gkyl_gr_euler_tetrad_mod_flux(gas_gamma, q, prods_row, f_sr);
-        gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, q, prods_row, f_sr, f_gr);
+        gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), q, prods_row, f_sr);
+        gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), q, prods_row, f_sr, f_gr);
 
         double f_ref[5];
         analytic_banyuls_flux(gas_gamma, rho, v, p, prods_row, f_ref);
@@ -290,10 +290,10 @@ banyuls_delta_flux(double gas_gamma, struct wv_gr_euler_tetrad_mod *grm,
   const double qL[5], const double qR[5], double dF[5])
 {
   double fL_sr[5], fR_sr[5], fL_gr[5], fR_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qL, grm->prodl_local, fL_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qR, grm->prodr_local, fR_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qL, grm->prodl_local, fL_sr, fL_gr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qR, grm->prodr_local, fR_sr, fR_gr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qL, grm->prodl_local, fL_sr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qR, grm->prodr_local, fR_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qL, grm->prodl_local, fL_sr, fL_gr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qR, grm->prodr_local, fR_sr, fR_gr);
   for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
 }
 
@@ -645,8 +645,8 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   //      Compute F(qL_active) via the production flux + flux_correction
   //      using the active-cell prods.
   double fL_sr[5], fL_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qL_loc, grm->prodl_local, fL_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qL_loc, grm->prodl_local, fL_sr, fL_gr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qL_loc, grm->prodl_local, fL_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qL_loc, grm->prodl_local, fL_sr, fL_gr);
   double dF_R[5];
   for (int i = 0; i < 5; i++) dF_R[i] = -fL_gr[i];
 
@@ -700,8 +700,8 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   }
 
   double fR_sr[5], fR_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gas_gamma, qR_loc, grm->prodr_local, fR_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gas_gamma, qR_loc, grm->prodr_local, fR_sr, fR_gr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qR_loc, grm->prodr_local, fR_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qR_loc, grm->prodr_local, fR_sr, fR_gr);
   double dF_L[5];
   for (int i = 0; i < 5; i++) dF_L[i] = fR_gr[i];  // F(qR_active) − F(qL_excised=0)
 
@@ -1497,8 +1497,8 @@ run_prim_consistency(struct gkyl_gr_spacetime *spacetime,
   double momz = q[3] / sqrt_det;
   double tau  = q[4] / sqrt_det;
   struct gkyl_gr_euler_prim prim_curved;
-  gkyl_gr_euler_recover_primitives(gas_gamma, D, momx, momy, momz, tau,
-    inv_g, &prim_curved);
+  gkyl_gr_euler_recover_primitives(gkyl_gr_euler_eos_ideal(gas_gamma),
+    D, momx, momy, momz, tau, inv_g, &prim_curved);
 
   // Tetrad-frame recovery: transform to tetrad, then run flat-space
   // Newton (replicate the body of sr_hll_minkowski).
@@ -2342,13 +2342,13 @@ run_direct_state_hllc_fallback_probe(void)
     double waves_LC[3 * 5], speeds_LC[3];
     struct gkyl_gr_euler_tetrad_mod_hllc_diag diag_LC = {0};
     gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
-      gas_gamma, qL_tet, qC_tet, waves_LC, speeds_LC, &diag_LC);
+      gkyl_gr_euler_eos_ideal(gas_gamma), qL_tet, qC_tet, waves_LC, speeds_LC, &diag_LC);
 
     // C-R interface.
     double waves_CR[3 * 5], speeds_CR[3];
     struct gkyl_gr_euler_tetrad_mod_hllc_diag diag_CR = {0};
     gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
-      gas_gamma, qC_tet, qR_tet, waves_CR, speeds_CR, &diag_CR);
+      gkyl_gr_euler_eos_ideal(gas_gamma), qC_tet, qR_tet, waves_CR, speeds_CR, &diag_CR);
 
     // fallback_reason key (post tightening of the fallback policy):
     //   1 = lam_diff < 1e-14 (degenerate Davis bracket — λ_L ≈ λ_R)

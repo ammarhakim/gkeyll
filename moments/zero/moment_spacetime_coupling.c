@@ -168,8 +168,12 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
 // Returns the rate of change of the densitized conservative state
 // d(√γ·U)/dt = α√γ·S(w), so callers get the same scaling the original
 // inlined source step used.
+//
+// The eos bundle controls the primitive-variable recovery closure (IDEAL
+// or MATHEWS_TAUB). Everything downstream of the recovery uses h directly
+// from the recovered primitives — no further EOS dispatch needed.
 static void
-compute_source_rate(double gas_gamma, const double *prods,
+compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
   const double q[5], double S_rate[5])
 {
   bool in_excision_region = prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
@@ -199,7 +203,7 @@ compute_source_rate(double gas_gamma, const double *prods,
   };
 
   struct gkyl_gr_euler_prim prim;
-  gkyl_gr_euler_recover_primitives(gas_gamma,
+  gkyl_gr_euler_recover_primitives(eos,
     D, momx, momy, momz, Etot, inv_g, &prim);
 
   double rho = prim.rho;
@@ -443,14 +447,14 @@ compute_s2_limiter_alpha(const double *prods, double dt,
 
 void
 gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-  double gas_gamma, double t_curr, double dt,
+  struct gkyl_gr_euler_eos eos, double t_curr, double dt,
   const double *prods,
   const double fluid_old[5], double fluid_new[5])
 {
   (void)t_curr;  // Source math is time-independent.
 
   double S_rate[5];
-  compute_source_rate(gas_gamma, prods, fluid_old, S_rate);
+  compute_source_rate(eos, prods, fluid_old, S_rate);
 
   // TAU-POSITIVITY LIMITER. δτ = dt·S_τ. Target τ_new = TAU_TARGET
   // (the same floor cascade-repair restores to) so that limited cells
@@ -581,7 +585,7 @@ gkyl_moment_spacetime_coupling_explicit_advance(
       if (type != GKYL_EQN_GR_EULER_MOD && type != GKYL_EQN_GR_EULER_TETRAD_MOD)
         continue;
 
-      double gas_gamma = st->fluid_param[s].gas_gamma;
+      struct gkyl_gr_euler_eos eos = st->fluid_param[s].eos;
 
       double *f = gkyl_array_fetch(fluid[s], cidx);
 
@@ -618,18 +622,18 @@ gkyl_moment_spacetime_coupling_explicit_advance(
       for (int j = 0; j < 5; j++) f_old[j] = f[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-        gas_gamma, t_curr, dt, prods_row, f_old, f_new);
+        eos, t_curr, dt, prods_row, f_old, f_new);
       REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++) f_stage1[j] = f_new[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-        gas_gamma, t_curr + dt, dt, prods_row, f_stage1, f_new);
+        eos, t_curr + dt, dt, prods_row, f_stage1, f_new);
       REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++)
         f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-        gas_gamma, t_curr + 0.5 * dt, dt, prods_row, f_stage2, f_new);
+        eos, t_curr + 0.5 * dt, dt, prods_row, f_stage2, f_new);
       REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++)
         f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
