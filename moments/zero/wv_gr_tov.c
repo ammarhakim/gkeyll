@@ -167,11 +167,11 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 static void
 gr_tov_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx)
 {
-  for (int i = 0; i < 7; i++) {
+  for (int i = 0; i < 8; i++) {
     ghost[i] = skin[i];
   }
   
-  ghost[7] = -skin[7];
+  ghost[2] = -skin[2]; // radial momentum is odd across the spherical center.
 }
 
 static inline void

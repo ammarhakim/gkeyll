@@ -340,9 +340,9 @@ main(int argc, char **argv)
     .has_dynamic_lapse = false,
 
     .force_low_order_flux = false,
-    .limiter = GKYL_ZERO,
+    .limiter = GKYL_MIN_MOD,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcx = { GKYL_SPECIES_REFLECT, GKYL_SPECIES_COPY },
   };
 
   int nrank = 1; // Number of processes in simulation.
