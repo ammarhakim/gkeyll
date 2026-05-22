@@ -34,7 +34,7 @@ struct gk_tcv_ctx {
   char geqdsk_file[128]; // File with equilibrium.
   double psi_axis; // Psi at the magnetic axis.
   double psi_sep; // Psi at the separatrix.
-  double psi_min_core, psi_max_sol, psi_min_pf; // Psi extents.
+  double psi_max_core, psi_min_sol, psi_max_pf; // Psi extents.
   double Lx_core; // Box size in y.
   double Ly; // Box size in y.
   double y_min, y_max; // Limits in y.
@@ -86,7 +86,7 @@ void divertor_plate_func_in(double s, double* RZ)
   // Straight left plate.
   double R = 0.6240000129;
   double Z_lo = -0.7014500499;
-  double Z_up =  0.7014500499;
+  double Z_up =  -0.4014500499;
 
   RZ[0] = R;
   RZ[1] = Z_lo + (Z_up-Z_lo)*s;
@@ -160,9 +160,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
 
   double psi_sep  = params->psi_sep; // Psi at the separatrix.
   double psi_axis = params->psi_axis; // Psi at the magnetic axis.
-  double psi_min_core = params->psi_min_core; // Minimum psi the core.
-  double psi_max_sol  = params->psi_max_sol ; // Maximum psi the SOL.
-  double psi_min_pf   = params->psi_min_pf  ; // Minimum psi the private flux.
+  double psi_max_core = params->psi_max_core; // Minimum psi the core.
+  double psi_min_sol  = params->psi_min_sol ; // Maximum psi the SOL.
+  double psi_max_pf   = params->psi_max_pf  ; // Minimum psi the private flux.
 
   double y_min = params->y_min; // Lower boundary in y.
   double y_max = params->y_max; // Upper boundary in y.
@@ -177,10 +177,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
 
   // Block 0: outer private flux (PF) region.
   gkyl_gk_block_geom_set_block(bgeom, 0, &(struct gkyl_gk_block_geom_info) {
-      .lower = { psi_min_pf, y_min, theta_min },
-      .upper = { psi_sep, y_max, theta_max },
+      .lower = { psi_sep, y_min, theta_min },
+      .upper = { psi_max_pf, y_max, theta_max },
       .cells = { Npsi_pf, Ny, Ntheta_divertor },
-      .cuts = { 1, 1 },
+      .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
@@ -190,7 +190,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rmin       = 0.618,
           .rmax       = 1.14,
           .zmin       = -0.75,
-          .zmax       =  0.75,
+          .zmax       =  -0.38,
           .rleft      = 0.618,
           .rright     = 1.14,
           .zmin_left  = -0.45,
@@ -205,19 +205,23 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         { .bid = 0, .dir = 0, .edge = GKYL_PHYSICAL },  // Physical boundary.
         { .bid = 1, .dir = 0, .edge = GKYL_LOWER_POSITIVE },
       },
-      .connections[1] = { // z-direction.
-        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL}, // Physical boundary.
-        { .bid = 4, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
+      .connections[1] = { // y-direction.
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+      },
+      .connections[2] = { // z-direction.
+        { .bid = 0, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
+        { .bid = 4, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
       }
     }
   );
 
   // Block 1: lower outer SOL.
   gkyl_gk_block_geom_set_block(bgeom, 1, &(struct gkyl_gk_block_geom_info) {
-      .lower = { psi_sep, y_min, theta_min },
-      .upper = { psi_max_sol, y_max, theta_max },
+      .lower = { psi_min_sol, y_min, theta_min },
+      .upper = { psi_sep, y_max, theta_max },
       .cells = { Npsi_sol, Ny, Ntheta_divertor },
-      .cuts = { 1, 1 },
+      .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
@@ -227,9 +231,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
-          .zmax   =  0.75,
+          .zmax   =  0.35,
           .rclose = 0.825,
-          .rleft  = 0.75,
+          .rleft  = 0.62,
           .rright = 0.9,
           .zmin_left  = -0.45,
           .zmin_right = -0.75,
@@ -243,19 +247,23 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         { .bid = 0, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
         { .bid = 1, .dir = 0, .edge = GKYL_PHYSICAL }, // Physical boundary.
       },
-      .connections[1] = { // z-direction.
-        { .bid = 1, .dir = 1, .edge = GKYL_PHYSICAL}, // Physical boundary.
-        { .bid = 2, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
+      .connections[1] = { // y-direction.
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+      },
+      .connections[2] = { // z-direction.
+        { .bid = 1, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
+        { .bid = 2, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
       }
     }
   );
 
   // Block 2: mid SOL.
   gkyl_gk_block_geom_set_block(bgeom, 2, &(struct gkyl_gk_block_geom_info) {
-      .lower = { psi_sep, y_min, theta_min },
-      .upper = { psi_max_sol, y_max, theta_max },
+      .lower = { psi_min_sol, y_min, theta_min },
+      .upper = { psi_sep, y_max, theta_max },
       .cells = { Npsi_sol, Ny, Ntheta_sol },
-      .cuts = { 1, 1 },
+      .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
@@ -265,9 +273,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
-          .zmax   =  0.75,
+          .zmax   =  0.35,
           .rclose = 0.825,
-          .rleft  = 0.75,
+          .rleft  = 0.62,
           .rright = 0.9,
           .zmin_left  = -0.45,
           .zmin_right = -0.75,
@@ -281,19 +289,23 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         { .bid = 5, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
         { .bid = 2, .dir = 0, .edge = GKYL_PHYSICAL }, // Physical boundary.
       },
-      .connections[1] = { // z-direction.
-        { .bid = 1, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 3, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
+      .connections[1] = { // y-direction.
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+      },
+      .connections[2] = { // z-direction.
+        { .bid = 1, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
+        { .bid = 3, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
       }
     }
   );
 
   // Block 3: lower inner SOL.
   gkyl_gk_block_geom_set_block(bgeom, 3, &(struct gkyl_gk_block_geom_info) {
-      .lower = { psi_sep, y_min, theta_min },
-      .upper = { psi_max_sol, y_max, theta_max },
+      .lower = { psi_min_sol, y_min, theta_min },
+      .upper = { psi_sep, y_max, theta_max },
       .cells = { Npsi_sol, Ny, Ntheta_divertor },
-      .cuts = { 1, 1 },
+      .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
@@ -303,9 +315,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
-          .zmax   =  0.75,
+          .zmax   =  0.35,
           .rclose = 0.825,
-          .rleft  = 0.75,
+          .rleft  = 0.62,
           .rright = 0.9,
           .zmin_left  = -0.45,
           .zmin_right = -0.75,
@@ -319,19 +331,23 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         { .bid = 4, .dir = 0, .edge = GKYL_UPPER_POSITIVE},
         { .bid = 3, .dir = 0, .edge = GKYL_PHYSICAL }, // Physical boundary.
       },
-      .connections[1] = { // z-direction.
-        { .bid = 2, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 3, .dir = 1, .edge = GKYL_PHYSICAL}, // Physical boundary.
+      .connections[1] = { // y-direction.
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+      },
+      .connections[2] = { // z-direction.
+        { .bid = 2, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
+        { .bid = 3, .dir = 2, .edge = GKYL_PHYSICAL}, // Physical boundary.
       }
     }
   );
 
   // Block 4: inner private flux (PF) region.
   gkyl_gk_block_geom_set_block(bgeom, 4, &(struct gkyl_gk_block_geom_info) {
-      .lower = { psi_min_pf, y_min, theta_min },
-      .upper = { psi_sep, y_max, theta_max },
+      .lower = { psi_sep, y_min, theta_min },
+      .upper = { psi_max_pf, y_max, theta_max },
       .cells = { Npsi_pf, Ny, Ntheta_divertor },
-      .cuts = { 1, 1 },
+      .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
@@ -341,7 +357,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rmin       = 0.618,
           .rmax       = 1.14,
           .zmin       = -0.75,
-          .zmax       =  0.75,
+          .zmax       =  -0.38,
           .rleft      = 0.618,
           .rright     = 1.14,
           .zmin_left  = -0.45,
@@ -356,19 +372,23 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         { .bid = 4, .dir = 0, .edge = GKYL_PHYSICAL },  // Physical boundary.
         { .bid = 3, .dir = 0, .edge = GKYL_LOWER_POSITIVE },
       },
-      .connections[1] = { // z-direction.
-        { .bid = 0, .dir = 1, .edge = GKYL_UPPER_POSITIVE}, // Physical boundary.
-        { .bid = 4, .dir = 1, .edge = GKYL_PHYSICAL},
+      .connections[1] = { // y-direction.
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+      },
+      .connections[2] = { // z-direction.
+        { .bid = 0, .dir = 2, .edge = GKYL_UPPER_POSITIVE}, // Physical boundary.
+        { .bid = 4, .dir = 2, .edge = GKYL_PHYSICAL},
       }
     }
   );
 
   // Block 5: core region.
   gkyl_gk_block_geom_set_block(bgeom, 5, &(struct gkyl_gk_block_geom_info) {
-      .lower = { psi_min_core, y_min, theta_min },
-      .upper = { psi_sep, y_max, theta_max },
+      .lower = { psi_sep, y_min, theta_min },
+      .upper = { psi_max_core, y_max, theta_max },
       .cells = { Npsi_core, Ny, Ntheta_sol },
-      .cuts = { 1, 1 },
+      .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
         .geometry_id = GKYL_GEOMETRY_TOKAMAK,
@@ -378,8 +398,8 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rmin   = 0.618,
           .rmax   = 1.14,
           .zmin   = -0.75,
-          .zmax   =  0.75,
-          .rclose = 1.08,
+          .zmax   =  0.35,
+          .rclose = 1.14,
           .rleft  = 0.618,
           .rright = 1.14,
         }
@@ -389,9 +409,13 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         { .bid = 5, .dir = 0, .edge = GKYL_PHYSICAL },  // Physical boundary.
         { .bid = 2, .dir = 0, .edge = GKYL_LOWER_POSITIVE },
       },
-      .connections[1] = { // z-direction.
-        { .bid = 5, .dir = 1, .edge = GKYL_UPPER_POSITIVE},
-        { .bid = 5, .dir = 1, .edge = GKYL_LOWER_POSITIVE},
+      .connections[1] = { // y-direction.
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL },
+        { .bid = 0, .dir = 1, .edge = GKYL_PHYSICAL},
+      },
+      .connections[2] = { // z-direction.
+        { .bid = 5, .dir = 2, .edge = GKYL_UPPER_POSITIVE},
+        { .bid = 5, .dir = 2, .edge = GKYL_LOWER_POSITIVE},
       }
     }
   );
@@ -443,8 +467,8 @@ init_profile(double psi, double f_min, double f_max, void *ctx)
 {
   // Profile in D. Michels, et al. Phys. Plasmas 29, 032307 (2022) eqn 17:
   struct gk_tcv_ctx *params = ctx;
-  double psi_min = params->psi_min_core;
-  double psi_max = params->psi_max_sol;
+  double psi_min = params->psi_max_core;
+  double psi_max = params->psi_min_sol;
   double psi_axis = params->psi_axis;
   double psi_sep = params->psi_sep;
 
@@ -587,7 +611,7 @@ diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT
 struct gk_tcv_ctx
 create_ctx(void)
 {
-  int cdim = 2, vdim = 2; // Dimensionality.
+  int cdim = 3, vdim = 2; // Dimensionality.
 
   double eps0 = GKYL_EPSILON0; // Permittivity of free space.
   double eV = GKYL_ELEMENTARY_CHARGE; // Elementary charge.
@@ -649,30 +673,30 @@ create_ctx(void)
   // Here rho = sqrt((psi-psi_axis) / (psi_sep - psi_axis)).
   double rho_min_core = 0.9;
   double rho_max_sol = 1.04;
-  double psi_min_core = psi_rho(rho_min_core, psi_axis, psi_sep);
-  double psi_max_sol = psi_rho(rho_max_sol, psi_axis, psi_sep);
-  double psi_min_pf = psi_sep + 0.5*(psi_sep-psi_max_sol);
+  double psi_max_core = psi_rho(rho_min_core, psi_axis, psi_sep);
+  double psi_min_sol = psi_rho(rho_max_sol, psi_axis, psi_sep);
+  double psi_max_pf = psi_sep + 0.5*(psi_sep-psi_min_sol);
 
   // Number of cells.
-  int Npsi_sol = 8;
-  int Npsi_pf = 4;
-  int Npsi_core = 18;
-  int Ntheta_divertor = 4;
-  int Ntheta_sol = 8;
-  int Ny = 4;
+  int Npsi_sol = 4;
+  int Npsi_pf = 2;
+  int Npsi_core = 4;
+  int Ntheta_divertor = 2;
+  int Ntheta_sol = 6;
+  int Ny = 2;
   int Nvpar = 4; // Number of cells in vpar.
   int Nmu = 4; // Number of cells in mu.
 
-//  // Adjust psi_min_core to ensure that dx_core = dx_sol.
-//  // we need ((psi_sep-shift_fac_core * psi_min_core)/Npsi_core) / ((psi_max_sol-psi_sep)/Npsi_sol) = 1
-//  double shift_fac_core = (-Npsi_core*psi_max_sol + Npsi_core*psi_sep + Npsi_sol*psi_sep)/(Npsi_sol*psi_min_core);
-//  psi_min_core *= shift_fac_core;
-//  double shift_fac_pf = (Npsi_pf*psi_min_core + Npsi_core*psi_sep - Npsi_pf*psi_sep)/(Npsi_core*psi_min_pf);
-//  psi_min_pf *= shift_fac_pf;
+//  // Adjust psi_max_core to ensure that dx_core = dx_sol.
+//  // we need ((psi_sep-shift_fac_core * psi_max_core)/Npsi_core) / ((psi_min_sol-psi_sep)/Npsi_sol) = 1
+//  double shift_fac_core = (-Npsi_core*psi_min_sol + Npsi_core*psi_sep + Npsi_sol*psi_sep)/(Npsi_sol*psi_max_core);
+//  psi_max_core *= shift_fac_core;
+//  double shift_fac_pf = (Npsi_pf*psi_max_core + Npsi_core*psi_sep - Npsi_pf*psi_sep)/(Npsi_core*psi_max_pf);
+//  psi_max_pf *= shift_fac_pf;
 //  printf("  shift_fac_core = %9e\n",shift_fac_core);
 //  printf("  shift_fac_pf = %9e\n",shift_fac_pf);
 
-  double Lx_core = psi_sep - psi_min_core;
+  double Lx_core = psi_sep - psi_max_core;
 
   double r0 = 1.093 - R_axis;
   double q0 = 3.2; // q95, see Oliveira 2022.
@@ -681,8 +705,8 @@ create_ctx(void)
   double y_max =  Ly/2.;
 
   // Source parameters.
-  double psi_src = psi_min_core;
-  double lambda_src = psi_rho(0.915, psi_axis, psi_sep) - psi_min_core;
+  double psi_src = psi_max_core;
+  double lambda_src = psi_rho(0.915, psi_axis, psi_sep) - psi_max_core;
   double Lc_src = 67.0; // Connection length in near SOL.
   double n_sep = 0.75e19;
   double Te_sep = 70.0*eV;
@@ -712,9 +736,9 @@ create_ctx(void)
   printf("  X-point @ (R,Z) = (%.9e,%9e)\n",Rxpt,Zxpt);
   printf("  psi_axis        = %.13e\n",psi_axis);
   printf("  psi_sep         = %.13e\n",psi_sep);
-  printf("  psi_min_core    = %.13e\n",psi_min_core);
-  printf("  psi_max_sol     = %.13e\n",psi_max_sol);
-  printf("  psi_min_pf      = %.13e\n",psi_min_pf);
+  printf("  psi_max_core    = %.13e\n",psi_max_core);
+  printf("  psi_min_sol     = %.13e\n",psi_min_sol);
+  printf("  psi_max_pf      = %.13e\n",psi_max_pf);
   printf("  Npsi_sol        = %d\n",Npsi_sol       );
   printf("  Npsi_pf         = %d\n",Npsi_pf        );
   printf("  Npsi_core       = %d\n",Npsi_core      );
@@ -744,9 +768,9 @@ create_ctx(void)
     .num_blocks = num_blocks,
     .psi_axis = psi_axis,
     .psi_sep = psi_sep,
-    .psi_min_core = psi_min_core,
-    .psi_max_sol = psi_max_sol,
-    .psi_min_pf = psi_min_pf,
+    .psi_max_core = psi_max_core,
+    .psi_min_sol = psi_min_sol,
+    .psi_max_pf = psi_max_pf,
     .Lx_core = Lx_core, 
     .Ly = Ly,
     .y_min = y_min,
