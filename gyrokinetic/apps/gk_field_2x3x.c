@@ -384,6 +384,11 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       app->basis_on_dev, &app->global_upper_skin[par_dir], &app->global_upper_ghost[par_dir],
       app->basis.num_basis, app->cdim, app->use_gpu);
 
+    f->gfss_bc_op_core_lo = gkyl_bc_basic_gyrokinetic_new(par_dir, GKYL_LOWER_EDGE, GKYL_BC_GK_FIELD_BOUNDARY_VALUE,
+      app->basis_on_dev, &app->global_lower_skin[par_dir], &app->global_lower_ghost[par_dir],
+      app->basis.num_basis, app->cdim, app->use_gpu);
+
+
     // Write the discrete shift to file.
     gk_field_3x_write_twistshift(app, f);
   }
@@ -547,6 +552,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
       gkyl_bc_twistshift_release(f->bc_ts_lo);
       gkyl_bc_twistshift_release(f->bc_ts_up);
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
+      gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_lo);
       gkyl_array_release(f->bc_buffer);
     }
   }
