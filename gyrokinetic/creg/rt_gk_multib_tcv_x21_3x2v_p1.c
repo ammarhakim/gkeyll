@@ -600,14 +600,6 @@ init_source_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RES
     fout[0] = 2.0*eV;
 }
 
-void
-diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct sheath_ctx *app = ctx;
-
-  fout[0] = 0.3; // Diffusivity [m^2/s].
-}
-
 struct gk_tcv_ctx
 create_ctx(void)
 {
@@ -952,13 +944,6 @@ main(int argc, char **argv)
       .collide_with = { "ion" },
     },
 
-    .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-//      .write_diagnostics = true,
-    },
-
     .num_physical_bcs = 10,
     .bcs = elc_phys_bcs,
 
@@ -1082,13 +1067,6 @@ main(int argc, char **argv)
       .bmag_ref = ctx.B0,
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
-    },
-
-    .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-//      .write_diagnostics = true,
     },
 
     .num_physical_bcs = 10,
