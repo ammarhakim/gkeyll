@@ -1428,7 +1428,7 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range delta_ts_x_rng;
   struct gkyl_basis delta_ts_x_basis;
   struct gkyl_rect_grid delta_ts_x_grid;
-  struct gkyl_array *delta_ts_x_lo, *delta_ts_x_up;
+  struct gkyl_array *delta_ts_x_lo, *delta_ts_x_up; // Should live on the host.
 
   struct gkyl_position_map *position_map; // Position mapping object.
 

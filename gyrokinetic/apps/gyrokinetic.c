@@ -125,6 +125,8 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array
   struct gkyl_translate_dim *transd_2d_1d;
   struct gkyl_array *buffer_perp;
 
+  struct gkyl_array *delta_ts_x_dev = mkarr(app->use_gpu, app->delta_ts_x_lo->ncomp, app->delta_ts_x_lo->size);
+
   // Lower z boundary.
   struct gkyl_range *local_skin_lower = app->gk_geom->has_LCFS? &app->local_lower_skin_par_core
                                                               : &app->local_lower_skin[par_dir];
@@ -134,9 +136,10 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array
 
   transd_2d_1d = gkyl_translate_dim_new(app->cdim-1, app->gk_geom->surf_basis,
     1, app->delta_ts_x_basis, 1, GKYL_NO_EDGE, app->use_gpu);
-  gkyl_translate_dim_advance(transd_2d_1d, &local_skin_perp, &app->delta_ts_x_rng, buffer_perp, 1, app->delta_ts_x_lo);
+  gkyl_translate_dim_advance(transd_2d_1d, &local_skin_perp, &app->delta_ts_x_rng, buffer_perp, 1, delta_ts_x_dev);
   gkyl_translate_dim_release(transd_2d_1d);
   gkyl_array_release(buffer_perp);
+  gkyl_array_copy(app->delta_ts_x_lo, delta_ts_x_dev);
 
   // Upper z boundary.
   struct gkyl_range *local_skin_upper = app->gk_geom->has_LCFS? &app->local_upper_skin_par_core
@@ -147,9 +150,10 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array
 
   transd_2d_1d = gkyl_translate_dim_new(app->cdim-1, app->gk_geom->surf_basis,
     1, app->delta_ts_x_basis, 1, GKYL_NO_EDGE, app->use_gpu);
-  gkyl_translate_dim_advance(transd_2d_1d, &local_skin_perp, &app->delta_ts_x_rng, buffer_perp, 1, app->delta_ts_x_up);
+  gkyl_translate_dim_advance(transd_2d_1d, &local_skin_perp, &app->delta_ts_x_rng, buffer_perp, 1, delta_ts_x_dev);
   gkyl_translate_dim_release(transd_2d_1d);
   gkyl_array_release(buffer_perp);
+  gkyl_array_copy(app->delta_ts_x_up, delta_ts_x_dev);
 }
 
 gkyl_gyrokinetic_app*
@@ -629,8 +633,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_cart_modal_serendip(&app->delta_ts_x_basis, 1, app->basis.poly_order);
     // Here we define the deflated shift on the global/local range (not the
     // extended range) because that's what the updater expects.
-    app->delta_ts_x_lo = mkarr(app->use_gpu, app->delta_ts_x_basis.num_basis, app->delta_ts_x_rng.volume);
-    app->delta_ts_x_up = mkarr(app->use_gpu, app->delta_ts_x_basis.num_basis, app->delta_ts_x_rng.volume);
+    app->delta_ts_x_lo = mkarr(false, app->delta_ts_x_basis.num_basis, app->delta_ts_x_rng.volume);
+    app->delta_ts_x_up = mkarr(false, app->delta_ts_x_basis.num_basis, app->delta_ts_x_rng.volume);
 
     if (!gyrokinetic_str_ends_in_bnum(app->name)) {
       // Sync the numerical shift.
@@ -1330,24 +1334,20 @@ gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app)
     else
       delta_ts_x_grid_core = app->delta_ts_x_grid;
 
-    struct gkyl_array *delta_ts_x_ho = mkarr(false, app->delta_ts_x_lo->ncomp, app->delta_ts_x_lo->size);
     if (comm_rank == 0) {
-      gkyl_array_copy(delta_ts_x_ho, app->delta_ts_x_lo);
       int sz = gkyl_calc_strlen(fmt, app->name, vars[par_dir], edge[0]);
       char fileNm[sz+1]; // ensures no buffer overflow
       sprintf(fileNm, fmt, app->name, vars[par_dir], edge[0]);
-      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, delta_ts_x_ho, fileNm);
+      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, app->delta_ts_x_lo, fileNm);
     }
 
     if (comm_rank == comm_size-1) {
-      gkyl_array_copy(delta_ts_x_ho, app->delta_ts_x_up);
       int sz = gkyl_calc_strlen(fmt, app->name, vars[par_dir], edge[1]);
       char fileNm[sz+1]; // ensures no buffer overflow
       sprintf(fileNm, fmt, app->name, vars[par_dir], edge[1]);
-      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, delta_ts_x_ho, fileNm);
+      gkyl_grid_sub_array_write(&delta_ts_x_grid_core, &app->delta_ts_x_rng, mt_x, app->delta_ts_x_up, fileNm);
     }
     gkyl_msgpack_data_release(mt_x);
-    gkyl_array_release(delta_ts_x_ho);
   }
   
 }
