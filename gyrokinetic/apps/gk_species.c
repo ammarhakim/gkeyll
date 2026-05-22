@@ -108,8 +108,8 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // Reactions with neutral species.
   gk_species_react_rhs(app, species, &species->react_neut, fin, rhs);
 
-  // Heating source.
-  gk_species_heating_rhs(app, species, &species->heat_src, fin, rhs);
+  // BGK source.
+  gk_species_source_bgk_rhs(app, species, &species->bgk_src, fin, rhs);
 
   // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
@@ -1712,9 +1712,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->bgk = (struct gk_bgk_collisions) { };
   gk_species_bgk_init(app, gks, &gks->bgk);
 
-  // Initialize a heating source.
-  gks->heat_src = (struct gk_heating) { };
-  gk_species_heating_init(app, gks, &gks->heat_src);
+  // Initialize a BGK source.
+  gks->bgk_src = (struct gk_source_bgk) { };
+  gk_species_source_bgk_init(app, gks, &gks->bgk_src);
 
   // Initialize positivity enforcing operator.
   gks->positivity = (struct gk_positivity) { };
@@ -1922,7 +1922,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   gk_species_bgk_release(app, &gks->bgk);
 
-  gk_species_heating_release(app, &gks->heat_src);
+  gk_species_source_bgk_release(app, &gks->bgk_src);
 
   gk_species_positivity_release(app, &gks->positivity);
 
