@@ -168,7 +168,7 @@ create_ctx(void)
   double qe = -eV; // electron charge
 
   // Geometry and magnetic field.
-  double Lz        = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
+  double Lz = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
   double Ly = 2.0*M_PI/8.0;
   double B0 = 0.24;
   double psi_LCFS = 0.003172759514520552; // psi at LCFS. Taken from efit
@@ -346,8 +346,8 @@ int main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
     .num_diag_moments = 5,
@@ -408,8 +408,8 @@ int main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_IWL, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
     
     .num_diag_moments = 5,
@@ -418,7 +418,7 @@ int main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    //.gkfield_id = GKYL_GK_FIELD_ES_IWL,
+    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
@@ -460,8 +460,8 @@ int main(int argc, char **argv)
       .geometry_id = GKYL_GEOMETRY_TOKAMAK,
       .efit_info = efit_inp,
       .tok_grid_info = grid_inp,
-      //.has_LCFS = true,
-      //.x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
+      .has_LCFS = true,
+      .x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
     },
 
     .num_periodic_dir = 1,

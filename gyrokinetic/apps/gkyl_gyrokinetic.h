@@ -234,6 +234,12 @@ struct gkyl_gyrokinetic_geometry {
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
+  // Twist-shift functions for the tokamak core.
+  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
+  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.

@@ -57,6 +57,12 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
     }
   }
 
+  // Function pointers to twistshift function.
+  up->parallel_lower_bc_shift_func = geometry_inp->parallel_lower_bc_shift_func;
+  up->parallel_upper_bc_shift_func = geometry_inp->parallel_upper_bc_shift_func;
+  up->parallel_lower_bc_shift_ctx  = geometry_inp->parallel_lower_bc_shift_ctx;
+  up->parallel_upper_bc_shift_ctx  = geometry_inp->parallel_upper_bc_shift_ctx;
+
   if (up->grid.ndim > 1) {
     gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
     up->num_surf_basis = up->surf_basis.num_basis;
