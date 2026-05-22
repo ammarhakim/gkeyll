@@ -228,7 +228,7 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->local = app->local;
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
+  // modify it in IWL BCs without modifying the app's.
   ns->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<ns->num_periodic_dir; ++d)
     ns->periodic_dirs[d] = app->periodic_dirs[d];
