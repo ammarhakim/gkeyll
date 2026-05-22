@@ -3,6 +3,7 @@
 #include <gkyl_elem_type_priv.h>
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_gyrokinetic_multib_priv.h>
+#include <gkyl_multib_conn.h>
 
 #include <mpack.h>
 
@@ -262,11 +263,33 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
       species_inp.bcs[i].type = GKYL_BC_GK_SKIP;
     }
 
-    // Set species physical BCs.
+    int pardir = cdim-1;
+    int num_below = gkyl_multib_conn_get_num_connected(mbapp->block_topo,
+      bid, pardir, 0, GKYL_CONN_BELOW);
+    int num_above = gkyl_multib_conn_get_num_connected(mbapp->block_topo,
+      bid, pardir, 0, GKYL_CONN_ABOVE);
+
     int bc_count_sp[num_blocks];
     for (int i=0; i<num_blocks; i++)
       bc_count_sp[i] = 0;
 
+    if (cdim ==3) {
+      if (num_below > 0) {
+        species_inp.bcs[bc_count_sp[bid]].dir = pardir;
+        species_inp.bcs[bc_count_sp[bid]].edge = GKYL_LOWER_EDGE;
+        species_inp.bcs[bc_count_sp[bid]].type = GKYL_BC_GK_SPECIES_TWISTSHIFT;
+        bc_count_sp[bid] += 1;
+      }
+
+      if (num_above > 0) {
+        species_inp.bcs[bc_count_sp[bid]].dir = pardir;
+        species_inp.bcs[bc_count_sp[bid]].edge = GKYL_UPPER_EDGE;
+        species_inp.bcs[bc_count_sp[bid]].type = GKYL_BC_GK_SPECIES_TWISTSHIFT;
+        bc_count_sp[bid] += 1;
+      }
+    }
+
+    // Set species physical BCs.
     for (int i=0; i<sp->num_physical_bcs; ++i) {
       if (bid == sp->bcs[i].bidx) {
         species_inp.bcs[bc_count_sp[bid]].dir = sp->bcs[i].dir;

@@ -1335,6 +1335,7 @@ struct gk_field {
   // Objects used in IWL simulations and TS BCs.
   struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_lo; // Fills lower core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
   
   // Pointer to functions that make phi continuous along z.
