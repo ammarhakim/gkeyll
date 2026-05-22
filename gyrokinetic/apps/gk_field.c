@@ -283,10 +283,6 @@ gk_field_step_apar_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, st
 {
   // Apar^{n+1} = Apar^{n} + dt*dApar/dt
   gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
-
-  // Smooth along z.
-  // gk_field_fem_projection_par(app, field, field->apar, field->apar_smooth_aux);
-  // gkyl_array_copy_range(field->apar, field->apar_smooth_aux, &app->local_ext);
 }
 
 static void
@@ -606,7 +602,8 @@ gk_field_accumulate_current_dens(gkyl_gyrokinetic_app *app, struct gk_field *fie
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
     gk_species_moment_calc(&s->m1, s->local, app->local, fin[i]);
-    gkyl_array_accumulate_range(field->currentDens, s->info.charge, s->m1.marr, &app->local);
+    s->gyroaverage(app, s, s->m1.marr, s->m1_gyroavg);
+    gkyl_array_accumulate_range(field->currentDens, s->info.charge, s->m1_gyroavg, &app->local);
   } 
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -619,10 +616,9 @@ gk_field_accumulate_current_dens_dot(gkyl_gyrokinetic_app *app, struct gk_field 
   gkyl_array_clear(field->currentDensdot, 0.0);
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
-
     gk_species_moment_calc(&s->m1, s->local, app->local, rhs_in[i]);
-
-    gkyl_array_accumulate_range(field->currentDensdot, s->info.charge, s->m1.marr, &app->local);
+    s->gyroaverage(app, s, s->m1.marr, s->m1_gyroavg);
+    gkyl_array_accumulate_range(field->currentDensdot, s->info.charge, s->m1_gyroavg, &app->local);
   } 
   app->stat.field_apar_rhs_tm += gkyl_time_diff_now_sec(wst);
 }

@@ -1101,6 +1101,7 @@ struct gk_species {
 
   // Quantities used for FLR model:
   struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
+  struct gkyl_array *m1_gyroavg; // Gyroaveraged particle flow.
   struct gkyl_array *flr_rhoSqD2; // Laplacian weight in FLR operator.
   struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
   struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.

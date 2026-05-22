@@ -1469,6 +1469,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
 
   // Allocate data for density (for charge density or upar calculation).
   gk_species_moment_init(app, gks, &gks->m0, GKYL_F_MOMENT_M0, false);
+  // To compute current density for Ampere's law and current dot for Ohm's law.
+  gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
 
   if (gks->info.flr.type) {
     // Create operator needed for FLR effects.
@@ -1477,6 +1479,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->gyroaverage = gk_species_gyroaverage_enabled;
     // Gyroaveraged M0 and phi.
     gks->m0_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->m1_gyroavg = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gks->gyro_phi = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
     double gyroradius_bmag = gks->info.flr.bmag ? gks->info.flr.bmag : app->bmag_ref;
@@ -1519,6 +1522,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   else {
     gks->gyroaverage = gk_species_gyroaverage_disabled;
     gks->m0_gyroavg = gkyl_array_acquire(gks->m0.marr);
+    gks->m1_gyroavg = gkyl_array_acquire(gks->m1.marr);
     gks->gyro_phi = gkyl_array_acquire(app->field->phi_smooth);
   }
 
@@ -1529,9 +1533,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   else
     gks->gyro_apar = gkyl_array_acquire(app->field->apar_curr);
   gks->gyro_apardot = gkyl_array_acquire(app->field->apardot);
-
-  // To compute current density for Ampere's law and current dot for Ohm's law.
-  gk_species_moment_init(app, gks, &gks->m1, GKYL_F_MOMENT_M1, false);
 
   // Initialize the collisionless solver.
   gks->collisionless = (struct gk_collisionless) { };
@@ -1963,6 +1964,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   // Release moment data.
   gk_species_moment_release(app, &gks->m0);
+  gk_species_moment_release(app, &gks->m1);
   for (int i=0; i<gks->info.num_diag_moments; ++i) {
     gk_species_moment_release(app, &gks->moms[i]);
   }
@@ -1994,6 +1996,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   gk_species_lte_release(app, &gks->lte);
 
   gkyl_array_release(gks->m0_gyroavg);
+  gkyl_array_release(gks->m1_gyroavg);
   gkyl_array_release(gks->gyro_phi);
   if (gks->info.flr.type) {
     gkyl_array_release(gks->flr_rhoSqD2);
@@ -2003,7 +2006,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   gkyl_array_release(gks->gyro_apar);
   gkyl_array_release(gks->gyro_apardot);
-  gk_species_moment_release(app, &gks->m1);
 
   gks->release_func(app, gks);
 }
