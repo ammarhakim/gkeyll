@@ -22,6 +22,12 @@
 #include <gkyl_math.h>
 #include <rt_arg_parse.h>
 
+enum ic_type {
+  IC_TANH = 0, // Tanh profile similar to GYSELA paper (Grandgirard et al. 2008).
+  IC_CONST_GRAD = 1, // Linear profile with constant gradient. No buffer.
+  IC_ABRUPT_GRAD = 2 // Linear profile with constant gradient in the core but flat in the buffer.
+};
+
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
     int cdim, vdim;
@@ -33,6 +39,8 @@ struct gk_app_ctx {
     double nuFrac;
     // Initial condition parameters
     double Ln, LTe, LTi;
+    bool can_max;
+    enum ic_type ic_type;
     // Krook and buffer parameters.
     double nu_krook;
     int num_cell_buff;
@@ -262,8 +270,7 @@ double rbar(double m, double q, double r, double theta, double vpar, double mu, 
 
   double rbar = r0 - rpsi - rvpar;
 
-  return r;
-  // return rbar;
+  return app->can_max ? rbar : r;
 }
 
 double gysela_profile(double x, double v0, double Lgrad, void *ctx)
@@ -309,9 +316,16 @@ double abrupt_profile(double x, double v0, double Lgrad, void *ctx)
 }
 
 double ic_profile(double x, double v0, double Lgrad, void *ctx){
-  // return gysela_profile(x, v0, Lgrad, ctx);
-  // return constant_gradient_profile(x, v0, Lgrad, ctx);
-  return abrupt_profile(x, v0, Lgrad, ctx);
+  switch (((struct gk_app_ctx*)ctx)->ic_type) {
+    case IC_TANH:
+      return gysela_profile(x, v0, Lgrad, ctx);
+    case IC_CONST_GRAD:
+      return constant_gradient_profile(x, v0, Lgrad, ctx);
+    case IC_ABRUPT_GRAD:
+      return abrupt_profile(x, v0, Lgrad, ctx);
+    default:
+      return gysela_profile(x, v0, Lgrad, ctx);
+  }
 }
 
 // Density initial condition (like TCV exp profile)
@@ -518,9 +532,11 @@ struct gk_app_ctx create_ctx(void)
   double z_min     = -Lz/2.;
   double z_max     =  Lz/2.;
 
-  // Krook and buffer parameters.
-  double nu_krook = 1.0/5.0e-8;
+  // IC, Krook and buffer parameters.
+  double nu_krook = 1.0/1.0e-6;
   double buff_frac = 0.25; // Fraction of the domain on each side that is buffer.
+  enum ic_type ic_type = IC_TANH; // Initial condition type.
+  bool can_max = false; // Whether to use the canonical maxwellian formulation for the IC.
 
   // Initial conditions and gradients
   // Factor to multiply the gradient because the canonical maxwellian formulation reduce the gradient at HFS.
@@ -567,10 +583,10 @@ struct gk_app_ctx create_ctx(void)
   // printf("t_itg c_s/R0 = %1.2e, t_gam c_s/R0 = %1.2e\n", t_itg/t_unit, t_gam/t_unit);
 
   // Grid parameters
-  int num_cell_x = 8;
-  int num_cell_z = 6;
-  int num_cell_vpar = 4;
-  int num_cell_mu = 4;
+  int num_cell_x = 16/2;
+  int num_cell_z = 16/2;
+  int num_cell_vpar = 12/2;
+  int num_cell_mu = 8/2;
   int poly_order = 1;
 
 
@@ -581,8 +597,8 @@ struct gk_app_ctx create_ctx(void)
   double mu_max_elc = 7*Te0/B0;
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 7*Ti0/B0;
-  double final_time = 1.0*t_gam;
-  int num_frames = 1;
+  double final_time = 5.0*t_gam;
+  int num_frames = 100;
   double write_phase_freq = 0.2;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
@@ -608,6 +624,10 @@ struct gk_app_ctx create_ctx(void)
     .LTi    = LTi   ,
     .Lx     = Lx    ,
     .Lz     = Lz    ,
+    .num_cell_buff = num_cell_buff,
+    .nu_krook = nu_krook,
+    .ic_type = ic_type,
+    .can_max = can_max,
     .x_min = x_min,  .x_max = x_max,
     .z_min = z_min,  .z_max = z_max,
     .me = me,  .qe = qe,
@@ -618,8 +638,6 @@ struct gk_app_ctx create_ctx(void)
     .num_cell_z     = num_cell_z,
     .num_cell_vpar  = num_cell_vpar,
     .num_cell_mu    = num_cell_mu,
-    .num_cell_buff = num_cell_buff,
-    .nu_krook = nu_krook,
     .cells = {num_cell_x, num_cell_z, num_cell_vpar, num_cell_mu},
     .poly_order   = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
@@ -795,7 +813,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
     },
     .time_rate_diagnostics = true,
