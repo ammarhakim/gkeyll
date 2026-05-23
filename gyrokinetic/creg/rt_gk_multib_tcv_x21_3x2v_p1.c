@@ -16,12 +16,15 @@ struct gk_tcv_ctx {
   double charge_ion; // Ion charge.
   double mass_elc; // Electron mass.
   double mass_ion; // Ion mass.
-  double Te0; // Electron temperature
-  double Ti0; // Ion temperature
+  double Te_max; // Maximum electron temperature
+  double Ti_max; // Maximum ion temperature
+  double n_max; // Maximum density.
+  double Te0; // Reference electron temperature
+  double Ti0; // Reference ion temperature
+  double n0; // Reference density.
+  double B0; // Magnetic field.
   double c_s; // Sound speed
   double nu_frac; // Factor multiplying collision frequencies.
-  double B0; // Magnetic field.
-  double n0; // Density.
 
   // Source parameters
   double psi_src; // Location.
@@ -202,12 +205,12 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
         },
-//        .position_map_info = {
-//          .id = GKYL_PMAP_XPT_COMPRESSION,
-//          .compress_divertor = true,
-//          .radial_compression_factor = params->radial_compression_fac,
-//          .compression_factor = params->parallel_compression_fac
-//        },
+        .position_map_info = {
+          .id = GKYL_PMAP_XPT_COMPRESSION,
+          .compress_divertor = true,
+          .radial_compression_factor = params->radial_compression_fac,
+          .compression_factor = params->parallel_compression_fac
+        },
       },
 
       .connections[0] = { // x-direction.
@@ -250,12 +253,12 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
         },
-//        .position_map_info = {
-//          .id = GKYL_PMAP_XPT_COMPRESSION,
-//          .compress_divertor = true,
-//          .radial_compression_factor = params->radial_compression_fac,
-//          .compression_factor = params->parallel_compression_fac
-//        },
+        .position_map_info = {
+          .id = GKYL_PMAP_XPT_COMPRESSION,
+          .compress_divertor = true,
+          .radial_compression_factor = params->radial_compression_fac,
+          .compression_factor = params->parallel_compression_fac
+        },
       },
       
       .connections[0] = { // x-direction.
@@ -298,12 +301,12 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
         },
-//        .position_map_info = {
-//          .id = GKYL_PMAP_XPT_COMPRESSION,
-//          .compress_divertor = true,
-//          .radial_compression_factor = params->radial_compression_fac,
-//          .compression_factor = params->parallel_compression_fac
-//        },
+        .position_map_info = {
+          .id = GKYL_PMAP_XPT_COMPRESSION,
+          .compress_divertor = true,
+          .radial_compression_factor = params->radial_compression_fac,
+          .compression_factor = params->parallel_compression_fac
+        },
       },
       
       .connections[0] = { // x-direction.
@@ -346,12 +349,12 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
         },
-//        .position_map_info = {
-//          .id = GKYL_PMAP_XPT_COMPRESSION,
-//          .compress_divertor = true,
-//          .radial_compression_factor = params->radial_compression_fac,
-//          .compression_factor = params->parallel_compression_fac
-//        },
+        .position_map_info = {
+          .id = GKYL_PMAP_XPT_COMPRESSION,
+          .compress_divertor = true,
+          .radial_compression_factor = params->radial_compression_fac,
+          .compression_factor = params->parallel_compression_fac
+        },
       },
       
       .connections[0] = { // x-direction.
@@ -393,12 +396,12 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .plate_func_lower = divertor_plate_func_out,
           .plate_func_upper = divertor_plate_func_in,
         },
-//        .position_map_info = {
-//          .id = GKYL_PMAP_XPT_COMPRESSION,
-//          .compress_divertor = true,
-//          .radial_compression_factor = params->radial_compression_fac,
-//          .compression_factor = params->parallel_compression_fac
-//        },
+        .position_map_info = {
+          .id = GKYL_PMAP_XPT_COMPRESSION,
+          .compress_divertor = true,
+          .radial_compression_factor = params->radial_compression_fac,
+          .compression_factor = params->parallel_compression_fac
+        },
       },
 
       .connections[0] = { // x-direction.
@@ -436,12 +439,12 @@ create_asdex_lsn_gk_block_geom(void *ctx)
           .rleft  = 0.618,
           .rright = 1.14,
         },
-//        .position_map_info = {
-//          .id = GKYL_PMAP_XPT_COMPRESSION,
-//          .compress_divertor = true,
-//          .radial_compression_factor = params->radial_compression_fac,
-//          .compression_factor = params->parallel_compression_fac
-//        },
+        .position_map_info = {
+          .id = GKYL_PMAP_XPT_COMPRESSION,
+          .compress_divertor = true,
+          .radial_compression_factor = params->radial_compression_fac,
+          .compression_factor = params->parallel_compression_fac
+        },
       },
 
       .connections[0] = { // x-direction.
@@ -534,45 +537,46 @@ init_profile(double psi, double f_min, double f_max, void *ctx)
 void
 init_dens(double t, const double *xn, double* restrict fout, void *ctx)
 {
+  double psi = xn[0], alpha = xn[1], theta = xn[2];
+
   struct gk_tcv_ctx *params = ctx;
-  double psi = xn[0], theta = xn[1];
+  double psi_axis = params->psi_axis;
+  double psi_sep = params->psi_sep;
+  double n_max = params->n_max;
 
-  // Mimics the SOL profile in D. Michels, et al. Phys. Plasmas 29, 032307
-  // (2022), figure 6 experimental.
-  double den_min = 0.2e19;
-  double den_max = 2.0e19;
+  double rho = rho_psi(psi, psi_axis, psi_sep);
 
-  fout[0] = init_profile(psi, den_min, den_max, ctx);
+  fout[0] = n_max * 1.165 * 0.5 * (1.0 + (0.815/1.165) * tanh((0.905 - rho)/0.048));
 }
 
 void
 init_temp_elc(double t, const double *xn, double* restrict fout, void *ctx)
 {
+  double psi = xn[0], alpha = xn[1], theta = xn[2];
+
   struct gk_tcv_ctx *params = ctx;
-  double psi = xn[0], theta = xn[1];
+  double psi_axis = params->psi_axis;
+  double psi_sep = params->psi_sep;
+  double Te_max = params->Te_max;
 
-  // Mimics the SOL profile in D. Michels, et al. Phys. Plasmas 29, 032307
-  // (2022), figure 8 experimental.
-  double eV = GKYL_ELEMENTARY_CHARGE; // Elementary charge.
-  double T_min = 17.0*eV;
-  double T_max = 300.0*eV;
+  double rho = rho_psi(psi, psi_axis, psi_sep);
 
-  fout[0] = init_profile(psi, T_min, T_max, ctx);
+  fout[0] = Te_max * 1.1694 * 0.5 * ( 1.0 + (95.05/116.94) * tanh((0.87 - rho)/0.066));
 }
 
 void
 init_temp_ion(double t, const double *xn, double* restrict fout, void *ctx)
 {
+  double psi = xn[0], alpha = xn[1], theta = xn[2];
+
   struct gk_tcv_ctx *params = ctx;
-  double psi = xn[0], theta = xn[1];
+  double psi_axis = params->psi_axis;
+  double psi_sep = params->psi_sep;
+  double Ti_max = params->Ti_max;
 
-  // Mimics the SOL profile in D. Michels, et al. Phys. Plasmas 29, 032307
-  // (2022), figure 7 GRILLIX w/ neutrals.
-  double eV = GKYL_ELEMENTARY_CHARGE; // Elementary charge.
-  double T_min = 17.0*eV;
-  double T_max = 300.0*eV;
+  double rho = rho_psi(psi, psi_axis, psi_sep);
 
-  fout[0] = init_profile(psi, T_min, T_max, ctx);
+  fout[0] = Ti_max * 1.1694 * 0.5 * ( 1.0 + (95.05/116.94) * tanh((0.87 - rho)/0.066));
 }
 
 void
@@ -584,18 +588,18 @@ init_upar(double t, const double *xn, double* restrict fout, void *ctx)
 void
 init_source_dens(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_tcv_ctx *params = ctx;
-  double x = xn[0], z = xn[1];
+  double psi = xn[0], alpha = xn[1], theta = xn[2];
 
+  struct gk_tcv_ctx *params = ctx;
   double lambda_src = params->lambda_src;
   double psi_src = params->psi_src;
   double ndot_src = params->ndot_src;
 
   double source_floor = 1e-10;
-  if (x < psi_src + 3*lambda_src)
+  if (psi < psi_src + 3*lambda_src)
     source_floor = 1e-2;
 
-  double src_prof = exp(-pow(x-psi_src,2)/(2*pow(lambda_src,2)));
+  double src_prof = exp(-pow(psi-psi_src,2)/(2*pow(lambda_src,2)));
   fout[0] = ndot_src * fmax(src_prof, source_floor);
 }
 
@@ -608,15 +612,15 @@ init_source_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
 void
 init_source_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_tcv_ctx *params = ctx;
-  double x = xn[0], z = xn[1];
+  double psi = xn[0], alpha = xn[1], theta = xn[2];
 
+  struct gk_tcv_ctx *params = ctx;
   double lambda_src = params->lambda_src;
   double psi_src = params->psi_src;
   double Te_src = params->Te_src;
   double eV = GKYL_ELEMENTARY_CHARGE;
 
-  if (x < psi_src + 3*lambda_src)
+  if (psi < psi_src + 3*lambda_src)
     fout[0] = Te_src;
   else
     fout[0] = 2.0*eV;
@@ -626,14 +630,14 @@ void
 init_source_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_tcv_ctx *params = ctx;
-  double x = xn[0], z = xn[1];
+  double psi = xn[0], alpha = xn[1], theta = xn[2];
 
   double lambda_src = params->lambda_src;
   double psi_src = params->psi_src;
   double Ti_src = params->Ti_src;
   double eV = GKYL_ELEMENTARY_CHARGE;
 
-  if (x < psi_src + 3*lambda_src)
+  if (psi < psi_src + 3*lambda_src)
     fout[0] = Ti_src;
   else
     fout[0] = 2.0*eV;
@@ -653,12 +657,12 @@ create_ctx(void)
 
   double Te_max = 200.0*eV; // Maximum electron temperature.
   double Ti_max = 200.0*eV; // Maximum ion temperature.
-  double B_max  = 9.28639634e-01; // Maximum B field amplitude.
+  double B_max  = 1.561831e+00; // Maximum B field amplitude.
   double n_max  = 2.0e19; // Maximum particle density.
 
   double Te_min = 20.0*eV; // Minimum electron temperature.
   double Ti_min = 20.0*eV; // Minimum ion temperature.
-  double B_min  = 9.28639634e-01; // Minimum B field amplitude.
+  double B_min  = 9.689716e-01; // Minimum B field amplitude.
   double n_min  = 0.2e19; // Minimum particle density.
 
   double Te0 = 0.5*(Te_min+Te_max); // Reference electron temperature.
@@ -710,8 +714,8 @@ create_ctx(void)
 
   // Number of cells.
   int Npsi_sol = 4;
-  int Npsi_pf = 2;
-  int Npsi_core = 4;
+  int Npsi_pf = 4;
+  int Npsi_core = 8;
   int Ntheta_divertor = 4;
   int Ntheta_sol = 12;
   int Ny = 2;
@@ -719,16 +723,12 @@ create_ctx(void)
   int Nmu = 4; // Number of cells in mu.
 
   double parallel_compression_fac = 0.5; // Compress cells near X-pt (0 to 1, 0 is full compression).
-  double radial_compression_fac = 0.0; // Compress cells separatrix (0 to 1, 0 is full compression).
+  double radial_compression_fac = 0.5; // Compress cells separatrix (0 to 1, 0 is full compression).
 
-//  // Adjust psi_max_core to ensure that dx_core = dx_sol.
-//  // we need ((psi_sep-shift_fac_core * psi_max_core)/Npsi_core) / ((psi_min_sol-psi_sep)/Npsi_sol) = 1
-//  double shift_fac_core = (-Npsi_core*psi_min_sol + Npsi_core*psi_sep + Npsi_sol*psi_sep)/(Npsi_sol*psi_max_core);
-//  psi_max_core *= shift_fac_core;
-//  double shift_fac_pf = (Npsi_pf*psi_max_core + Npsi_core*psi_sep - Npsi_pf*psi_sep)/(Npsi_core*psi_max_pf);
-//  psi_max_pf *= shift_fac_pf;
-//  printf("  shift_fac_core = %9e\n",shift_fac_core);
-//  printf("  shift_fac_pf = %9e\n",shift_fac_pf);
+  // Adjust psi so that psi_LCFS is at a cell boundary.
+  double delta_psi = (psi_sep-psi_min_sol)/Npsi_sol; // Cell length in psi.
+  psi_max_core = psi_sep + Npsi_core*delta_psi; // Adjust inner radial core boundary.
+  rho_min_core = rho_psi(psi_max_core, psi_axis, psi_sep); // Minimum psi_N.
 
   double Lx_core = psi_sep - psi_max_core;
 
@@ -739,15 +739,12 @@ create_ctx(void)
   double y_max =  Ly/2.;
 
   // Source parameters.
+  double power_in = 150e3; // Input power [W].
+  double ndot_src = 1.85e21; // Input particle source rate [particles/s].
+  double Te_src = 0.5*power_in/((3.0/2.0)*ndot_src);
+  double Ti_src = 0.5*power_in/((3.0/2.0)*ndot_src);
   double psi_src = psi_max_core;
   double lambda_src = psi_rho(0.915, psi_axis, psi_sep) - psi_max_core;
-  double Lc_src = 67.0; // Connection length in near SOL.
-  double n_sep = 0.75e19;
-  double Te_sep = 70.0*eV;
-  double cs_sep = sqrt(Te_sep/mi);
-  double ndot_src = 2.0*n_sep*cs_sep/Lc_src;
-  double Te_src = 2.*Te0;
-  double Ti_src = 2.*Ti0;
 
   // Physical velocity space limits
   double vpar_max_elc = 6.0*vt_elc;
@@ -770,6 +767,8 @@ create_ctx(void)
   printf("  X-point @ (R,Z) = (%.9e,%9e)\n",Rxpt,Zxpt);
   printf("  psi_axis        = %.13e\n",psi_axis);
   printf("  psi_sep         = %.13e\n",psi_sep);
+  printf("  rho_min_core    = %.13e\n",rho_min_core);
+  printf("  rho_max_sol     = %.13e\n",rho_max_sol);
   printf("  psi_max_core    = %.13e\n",psi_max_core);
   printf("  psi_min_sol     = %.13e\n",psi_min_sol);
   printf("  psi_max_pf      = %.13e\n",psi_max_pf);
@@ -793,12 +792,15 @@ create_ctx(void)
     .charge_ion = qi, 
     .mass_elc = me, 
     .mass_ion = mi,
+    .Te_max = Te_max, 
+    .Ti_max = Ti_max, 
+    .n_max = n_max, 
     .Te0 = Te0, 
     .Ti0 = Ti0, 
+    .n0 = n0, 
+    .B0 = B0, 
     .c_s = c_s, 
     .nu_frac = nu_frac, 
-    .B0 = B0, 
-    .n0 = n0, 
     .num_blocks = num_blocks,
     .psi_axis = psi_axis,
     .psi_sep = psi_sep,
@@ -945,21 +947,21 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_bc elc_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 3, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 4, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
   };
 
   struct gkyl_gyrokinetic_multib_species elc = {
@@ -1070,21 +1072,21 @@ main(int argc, char **argv)
 
   struct gkyl_gyrokinetic_bc ion_phys_bcs[] = {
     // block 0 BCs
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 0, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 0, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 1 BCs
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 1, .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 2 BCs
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
     // block 3 BCs
-    { .bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 3, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 3, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 4 BCs
-    { .bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
-    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB},
+    { .bidx = 4, .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH},
     // block 5 BCs
-    { .bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX},
   };
 
   struct gkyl_gyrokinetic_multib_species ion = {
@@ -1139,12 +1141,18 @@ main(int argc, char **argv)
   };
 
   struct gkyl_gyrokinetic_bc field_phys_bcs[] = {
-    { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-    { .bidx = 1, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-    { .bidx = 2, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-    { .bidx = 3, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-    { .bidx = 4, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-    { .bidx = 5, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_NEUMANN, .value = {0.0} },
+    { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 1, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 2, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 3, .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 4, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 5, .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0} },
+    { .bidx = 1, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0} },
+    { .bidx = 2, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0} },
+    { .bidx = 3, .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0} },
+    { .bidx = 4, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0} },
+    { .bidx = 5, .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0} },
   };
 
   struct gkyl_gyrokinetic_multib_field field = {
@@ -1168,9 +1176,9 @@ main(int argc, char **argv)
   app_inp->field = field;
   app_inp->comm = comm;
 
-
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);
+
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
     .multib_app_inp = *app_inp,
