@@ -33,6 +33,9 @@ struct gk_app_ctx {
     double nuFrac;
     // Initial condition parameters
     double Ln, LTe, LTi;
+    // Krook and buffer parameters.
+    double nu_krook;
+    int num_cell_buff;
     // Grid parameters
     double Lx, Lz;
     double x_min, x_max, z_min, z_max;
@@ -263,53 +266,73 @@ double rbar(double m, double q, double r, double theta, double vpar, double mu, 
   // return rbar;
 }
 
+double gysela_profile(double x, double v0, double Lgrad, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  // Profile use in Gysela (see V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68).
+  // The argument for the tanh/cosh functions
+  double buff_frac = (double)app->num_cell_buff / app->num_cell_x; 
+  double delta = buff_frac * app->Lx;
+  double arg = x / (app->a_mid * delta);
+  // Integrating the cosh^-2 gradient yields a tanh profile.
+  // The prefactor (a_mid * delta_rho_n / Ln) ensures the peak gradient exactly matches 1/Ln.
+  double prof_factor = (app->a_mid * delta) / Lgrad;
+  return v0 * exp(-prof_factor * tanh(arg));
+}
+
+double constant_gradient_profile(double x, double v0, double Lgrad, void *ctx)
+{
+  // Linear profile with constant gradient. No buffer.
+  struct gk_app_ctx *app = ctx;
+  double grad = v0/Lgrad;
+  double x_mid = 0.5*app->Lx;
+  return v0 - grad*(x-x_mid);
+}
+
+double abrupt_profile(double x, double v0, double Lgrad, void *ctx)
+{
+  // Continuous profile but not C1. Constant value up to the buffer fraction, then a linear ramp to the next buffer fraction, then constant again.
+  struct gk_app_ctx *app = ctx;
+  double buff_frac = (double)app->num_cell_buff / app->num_cell_x; 
+  double x_buff = buff_frac * app->Lx;
+  double xL = app->x_min + x_buff;
+  double xR = app->x_max - x_buff;
+  double vL = constant_gradient_profile(xL, v0, Lgrad, ctx);
+  double vR = constant_gradient_profile(xR, v0, Lgrad, ctx);
+  if (x < xL) {
+    return vL;
+  } else if (x > xR) {
+    return vR;
+  } else {
+    return constant_gradient_profile(x, v0, Lgrad, ctx);
+  }
+}
+
+double ic_profile(double x, double v0, double Lgrad, void *ctx){
+  // return gysela_profile(x, v0, Lgrad, ctx);
+  // return constant_gradient_profile(x, v0, Lgrad, ctx);
+  return abrupt_profile(x, v0, Lgrad, ctx);
+}
+
 // Density initial condition (like TCV exp profile)
 double density_init(double x, void *ctx)
 {
-struct gk_app_ctx *app = ctx;
-  
-  // GYSELA CBC width parameter for density 
-  double delta_rho_n = 0.25 * app->Lx; 
-  double a_mid = app->a_mid;
-  double Ln = app->Ln;
-  // The argument for the tanh/cosh functions
-  double arg = x / (a_mid * delta_rho_n);
-  // Integrating the cosh^-2 gradient yields a tanh profile.
-  // The prefactor (a_mid * delta_rho_n / Ln) ensures the peak gradient exactly matches 1/Ln.
-  double prof_factor = (a_mid * delta_rho_n) / Ln;
-  
-  return app->n0 * exp(-prof_factor * tanh(arg));
+  struct gk_app_ctx *app = ctx;
+  return ic_profile(x, app->n0, app->Ln, ctx);
 }
 
 // Electron temperature initial conditions
 double temp_init_elc(double x, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  
-  // GYSELA CBC width parameter for temperature 
-  double delta_rho_T = 0.25 * app->Lx;
-  double a_mid = app->a_mid;
-  double LTe = app->LTe;
-  double arg = x / (a_mid * delta_rho_T);
-  double prof_factor = (a_mid * delta_rho_T) / LTe;
-  
-  return app->Te0 * exp(-prof_factor * tanh(arg));
+  return ic_profile(x, app->Te0, app->LTe, ctx);
 }
 
 // Ion temperature initial conditions
 double temp_init_ion(double x, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  
-  // GYSELA CBC width parameter for temperature 
-  double delta_rho_T = 0.25 * app->Lx;
-  double a_mid = app->a_mid;
-  double LTi = app->LTi;
-
-  double arg = x / (a_mid * delta_rho_T);
-  double prof_factor = (a_mid * delta_rho_T) / LTi;
-  
-  return app->Ti0 * exp(-prof_factor * tanh(arg));
+  return ic_profile(x, app->Ti0, app->LTi, ctx);
 }
 
 // Static BGK source term to maintain eq. profile at lower x boundary. 
@@ -317,14 +340,19 @@ void bgk_source_rate_profile(double t, const double *xn, double *fout, void *ctx
 {
   double x = xn[0];
   struct gk_app_ctx *app = ctx;
+  int nx = app->num_cell_x;
 
-  double Bl = 0.25; // Buffer width fraction
+  double buff_frac = app->num_cell_buff / (double)nx; // Buffer fraction.
   double Bs = 0.02;
-  double nu = 1/1e-6;
-
+  
   // See Eq. 49 of V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68
-  double Hbuff = 1 + 0.5 * (tanh((x - app->x_max + Bl*app->Lx)/(Bs*app->Lx)) - tanh((x - app->x_min - Bl*app->Lx)/(Bs*app->Lx)));
-  fout[0] = Hbuff * nu;
+  // double Hbuff = 1 + 0.5 * (tanh((x - app->x_max + Bl*app->Lx)/(Bs*app->Lx)) - tanh((x - app->x_min - Bl*app->Lx)/(Bs*app->Lx)));
+  
+  // Heavyside version
+  int nx_buff = app->num_cell_buff;
+  int ix = (x - app->x_min) / (app->Lx/nx);
+  double Hbuff = ix < nx_buff ? 1.0 : ix >= nx - nx_buff ? 1.0 : 0.0;
+  fout[0] = Hbuff * app->nu_krook;
 }
 
 void
@@ -490,6 +518,10 @@ struct gk_app_ctx create_ctx(void)
   double z_min     = -Lz/2.;
   double z_max     =  Lz/2.;
 
+  // Krook and buffer parameters.
+  double nu_krook = 1.0/5.0e-8;
+  double buff_frac = 0.25; // Fraction of the domain on each side that is buffer.
+
   // Initial conditions and gradients
   // Factor to multiply the gradient because the canonical maxwellian formulation reduce the gradient at HFS.
   double canMaxFactor = 1.7;
@@ -536,17 +568,21 @@ struct gk_app_ctx create_ctx(void)
 
   // Grid parameters
   int num_cell_x = 8;
-  int num_cell_z = 8;
-  int num_cell_vpar = 8;
-  int num_cell_mu = 8;
+  int num_cell_z = 6;
+  int num_cell_vpar = 4;
+  int num_cell_mu = 4;
   int poly_order = 1;
+
+
+  int num_cell_buff = floor(num_cell_x*buff_frac); // Number of cells in the buffer region on each side.
+
   // Velocity box dimensions
   double vpar_max_elc = 4.*vte;
   double mu_max_elc = 7*Te0/B0;
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 7*Ti0/B0;
-  double final_time = 2.0*t_gam;
-  int num_frames = 100;
+  double final_time = 1.0*t_gam;
+  int num_frames = 1;
   double write_phase_freq = 0.2;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
@@ -582,6 +618,8 @@ struct gk_app_ctx create_ctx(void)
     .num_cell_z     = num_cell_z,
     .num_cell_vpar  = num_cell_vpar,
     .num_cell_mu    = num_cell_mu,
+    .num_cell_buff = num_cell_buff,
+    .nu_krook = nu_krook,
     .cells = {num_cell_x, num_cell_z, num_cell_vpar, num_cell_mu},
     .poly_order   = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
