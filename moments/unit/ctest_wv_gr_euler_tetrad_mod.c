@@ -233,7 +233,7 @@ run_rotation_equivalence(struct gkyl_gr_spacetime *spacetime, int half_extent,
       // prim_vars equivalence (packed tetrad vs mod tetrad).
       double v_packed[71], v_mod[5];
       gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, v_packed);
-      gkyl_gr_euler_tetrad_mod_prim_vars(gkyl_gr_euler_eos_ideal(gas_gamma), q_mod, prods_row, v_mod);
+      gkyl_gr_euler_tetrad_mod_prim_vars(gkyl_gr_euler_eos_ideal(gas_gamma), q_mod, prods_row, NULL, v_mod);
       for (int i = 0; i < 5; i++)
         TEST_CHECK( gkyl_compare(v_mod[i], v_packed[i], 1e-12) );
 
@@ -277,7 +277,7 @@ run_rotation_equivalence(struct gkyl_gr_spacetime *spacetime, int half_extent,
         // Flat-space SR flux equivalence — the meat of the tetrad split.
         double flux_sr_packed[71], flux_sr_mod[5];
         gkyl_gr_euler_tetrad_flux(gas_gamma, q_local_packed, flux_sr_packed);
-        gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), q_local_mod_l, grm->prodl_local, flux_sr_mod);
+        gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), q_local_mod_l, grm->prodl_local, NULL, flux_sr_mod);
         for (int i = 0; i < 5; i++)
           TEST_CHECK( gkyl_compare(flux_sr_mod[i], flux_sr_packed[i], 1e-12) );
 
@@ -287,7 +287,7 @@ run_rotation_equivalence(struct gkyl_gr_spacetime *spacetime, int half_extent,
         gkyl_gr_euler_tetrad_flux_correction(gas_gamma,
           q_local_packed, flux_sr_packed, flux_gr_packed);
         gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma),
-          q_local_mod_l, grm->prodl_local, flux_sr_mod, flux_gr_mod);
+          q_local_mod_l, grm->prodl_local, NULL, flux_sr_mod, flux_gr_mod);
         for (int i = 0; i < 5; i++)
           TEST_CHECK( gkyl_compare(flux_gr_mod[i], flux_gr_packed[i], 1e-12) );
 
@@ -730,13 +730,13 @@ run_roe_properties(struct gkyl_gr_spacetime *spacetime, bool expect_strict_fj)
       // In Minkowski α=1, √γ=1, β=0 and the correction is identity, so
       // this reduces to the flat-flux comparison.
       double fl_sr[5], fr_sr[5];
-      gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local, grm->prodl_local, fl_sr);
-      gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local, grm->prodr_local, fr_sr);
+      gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local, grm->prodl_local, NULL, fl_sr);
+      gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local, grm->prodr_local, NULL, fr_sr);
       double fl_gr[5], fr_gr[5];
       gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local,
-        grm->prodl_local, fl_sr, fl_gr);
+        grm->prodl_local, NULL, fl_sr, fl_gr);
       gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local,
-        grm->prodr_local, fr_sr, fr_gr);
+        grm->prodr_local, NULL, fr_sr, fr_gr);
       double df_gr[5];
       for (int i = 0; i < 5; i++) df_gr[i] = fr_gr[i] - fl_gr[i];
 
@@ -1236,13 +1236,13 @@ run_roe_properties_diagonal_metric(void)
 
   // Flux-jump
   double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local, grm->prodl_local, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local, grm->prodr_local, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local, grm->prodl_local, NULL, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local, grm->prodr_local, NULL, fr_sr);
   double fl_gr[5], fr_gr[5];
   gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), ql_local,
-    grm->prodl_local, fl_sr, fl_gr);
+    grm->prodl_local, NULL, fl_sr, fl_gr);
   gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qr_local,
-    grm->prodr_local, fr_sr, fr_gr);
+    grm->prodr_local, NULL, fr_sr, fr_gr);
   double df[5];
   for (int i = 0; i < 5; i++) df[i] = fr_gr[i] - fl_gr[i];
 
@@ -1344,7 +1344,7 @@ run_full_back_transform_flux(struct gkyl_gr_spacetime *spacetime,
 
   // ---- Path A: Banyuls flux via flux_correction ----
   double f_sr_dummy[5], f_banyuls[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), q, prods_row, f_sr_dummy, f_banyuls);
+  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), q, prods_row, NULL, f_sr_dummy, f_banyuls);
 
   // ---- Path B: full multi-directional tetrad SR flux + back-transform + shift ----
   // Build triad from γ.
@@ -1649,7 +1649,7 @@ run_prim_vars_stringent_tetrad_mod(struct gkyl_gr_spacetime *spacetime,
       };
 
       double prims[5];
-      gkyl_gr_euler_tetrad_mod_prim_vars(gkyl_gr_euler_eos_ideal(gas_gamma), q_mod, prods_row, prims);
+      gkyl_gr_euler_tetrad_mod_prim_vars(gkyl_gr_euler_eos_ideal(gas_gamma), q_mod, prods_row, NULL, prims);
 
       double rel_rho = fabs(prims[0] - rho_in) / fmax(fabs(rho_in), rel_floor);
       double rel_u   = fabs(prims[1] - u_in)   / fmax(fabs(u_in),   rel_floor);

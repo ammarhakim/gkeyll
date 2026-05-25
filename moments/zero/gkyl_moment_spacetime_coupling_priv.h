@@ -57,7 +57,7 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
 void
 gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
   struct gkyl_gr_euler_eos eos, double t_curr, double dt,
-  const double *prods,
+  const double *prods, double *gamma_eff_cell,
   const double fluid_old[5], double fluid_new[5]);
 
 // Diagnostic: count of times the τ-positivity limiter has scaled down

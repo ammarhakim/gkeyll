@@ -172,9 +172,14 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
 // The eos bundle controls the primitive-variable recovery closure (IDEAL
 // or MATHEWS_TAUB). Everything downstream of the recovery uses h directly
 // from the recovered primitives — no further EOS dispatch needed.
+// gamma_eff_cell (optional, may be NULL): per-cell γ_eff cache slot used by
+// the recovery's Picard iteration as a warm-start initial guess for TM.
+// When non-NULL, the converged γ_eff is written back after the recovery so
+// the next call from this cell starts from the right neighborhood. NULL
+// preserves the cold-flow default initial guess of γ=5/3.
 static void
 compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
-  const double q[5], double S_rate[5])
+  const double q[5], double *gamma_eff_cell, double S_rate[5])
 {
   bool in_excision_region = prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   if (in_excision_region) {
@@ -203,8 +208,10 @@ compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
   };
 
   struct gkyl_gr_euler_prim prim;
+  gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_SOURCE);
   gkyl_gr_euler_recover_primitives(eos,
-    D, momx, momy, momz, Etot, inv_g, &prim);
+    D, momx, momy, momz, Etot, inv_g, gamma_eff_cell, &prim);
+  gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_UNKNOWN);
 
   double rho = prim.rho;
   double vx  = prim.v[0];
@@ -341,6 +348,428 @@ gkyl_moment_spacetime_coupling_s2_limiter_fires(void)
   return s_s2_limiter_fires;
 }
 
+// ---------------------------------------------------------------------------
+// Recovery-iteration instrumentation storage. Defined here (rather than in a
+// header) so the histograms can be referenced from the static-inline
+// gkyl_gr_euler_recover_primitives via extern declarations in
+// gkyl_wv_gr_euler_prim_priv.h. Persists for the lifetime of the process;
+// gkyl_gr_euler_print_recovery_stats dumps the tallies.
+// ---------------------------------------------------------------------------
+
+const int gkyl_gr_euler_newton_bin_edges[GR_EULER_NEWTON_HIST_NBINS] = {
+  4, 8, 16, 32, 64, 99, 100
+};
+const int gkyl_gr_euler_picard_bin_edges[GR_EULER_PICARD_HIST_NBINS] = {
+  1, 2, 3, 4, 9, 14, 19, 29, 30
+};
+
+static uint64_t s_newton_hist[GR_EULER_NEWTON_HIST_NBINS] = {0};
+static uint64_t s_picard_hist[GR_EULER_PICARD_HIST_NBINS] = {0};
+static uint64_t s_newton_total_iters = 0;
+static uint64_t s_picard_total_iters = 0;
+static uint64_t s_newton_calls = 0;
+static uint64_t s_picard_calls = 0;
+static int      s_newton_max = 0;
+static int      s_picard_max = 0;
+
+static inline int
+hist_bucket(int n, const int *edges, int nbins)
+{
+  for (int b = 0; b < nbins; b++) {
+    if (n <= edges[b]) return b;
+  }
+  return nbins - 1;  // overflow goes into the last bin
+}
+
+void
+gkyl_gr_euler_record_newton_iters(int n)
+{
+  s_newton_hist[hist_bucket(n, gkyl_gr_euler_newton_bin_edges,
+    GR_EULER_NEWTON_HIST_NBINS)] += 1;
+  s_newton_total_iters += (uint64_t)n;
+  s_newton_calls += 1;
+  if (n > s_newton_max) s_newton_max = n;
+}
+
+void
+gkyl_gr_euler_record_picard_iters(int n)
+{
+  s_picard_hist[hist_bucket(n, gkyl_gr_euler_picard_bin_edges,
+    GR_EULER_PICARD_HIST_NBINS)] += 1;
+  s_picard_total_iters += (uint64_t)n;
+  s_picard_calls += 1;
+  if (n > s_picard_max) s_picard_max = n;
+}
+
+// Bounded ring buffer for EM-Newton cap-hit diagnostic events. Caps total
+// recorded events so a pathological run doesn't flood memory; once the
+// cap is reached we still increment the total counter (so the dump can
+// report how many were lost) but stop recording payloads. Per-run reset
+// not exposed; tests that exercise extreme states (stringent prim_vars)
+// rarely fire this path, so cross-test pollution is bounded.
+#define GR_EULER_CAPFAIL_RING_SIZE 32
+
+static struct gkyl_gr_euler_newton_capfail s_capfail_ring[GR_EULER_CAPFAIL_RING_SIZE];
+static uint64_t s_capfail_recorded = 0;  // calls to record_newton_capfail
+static int      s_capfail_written  = 0;  // count actually written into ring (≤ size)
+
+void
+gkyl_gr_euler_record_newton_capfail(
+  const struct gkyl_gr_euler_newton_capfail *event)
+{
+  s_capfail_recorded += 1;
+  if (s_capfail_written < GR_EULER_CAPFAIL_RING_SIZE) {
+    s_capfail_ring[s_capfail_written] = *event;
+    s_capfail_written += 1;
+  }
+}
+
+// RC EOS comparison diagnostic counters. See header docstring for
+// gkyl_gr_euler_record_rc_compare.
+static uint64_t s_rc_attempts        = 0;
+static uint64_t s_rc_accepted        = 0;  // all acceptances (standard + escape)
+static uint64_t s_rc_accepted_escape = 0;  // subset accepted via conditioning escape
+static double   s_rc_sum_dW_acc      = 0.0;  // sum of |ΔΓ|/Γ_tm over accepted cells
+static double   s_rc_max_dW_acc      = 0.0;  // max  |ΔΓ|/Γ_tm over accepted cells
+static double   s_rc_max_dW_rej      = 0.0;  // max  |ΔΓ|/Γ_tm over rejected cells
+
+void
+gkyl_gr_euler_record_rc_compare(
+  bool accepted, bool conditioning_escape, double dW_rel)
+{
+  s_rc_attempts += 1;
+  if (accepted) {
+    s_rc_accepted += 1;
+    if (conditioning_escape) s_rc_accepted_escape += 1;
+    s_rc_sum_dW_acc += dW_rel;
+    if (dW_rel > s_rc_max_dW_acc) s_rc_max_dW_acc = dW_rel;
+  } else {
+    if (dW_rel > s_rc_max_dW_rej) s_rc_max_dW_rej = dW_rel;
+  }
+}
+
+// RC rejection diagnostic ring buffer. Stores the first 32 rejected
+// cells so we can dump their (W_tm, W_rc, conservatives, conditioning)
+// to see whether rejection is caused by spurious-root Newton failures
+// (rejection correct, RC is wrong) or by TM coefficient cancellation at
+// high W (rejection wrong, RC is actually better and we're discarding
+// a real refinement).
+#define GR_EULER_RC_REJECT_RING_SIZE 32
+static struct gkyl_gr_euler_rc_reject s_rc_reject_ring[GR_EULER_RC_REJECT_RING_SIZE];
+static int s_rc_reject_written = 0;
+
+void
+gkyl_gr_euler_record_rc_reject(const struct gkyl_gr_euler_rc_reject *event)
+{
+  if (s_rc_reject_written < GR_EULER_RC_REJECT_RING_SIZE) {
+    s_rc_reject_ring[s_rc_reject_written] = *event;
+    s_rc_reject_written += 1;
+  }
+}
+
+// Floor-hit counters. Track how often the outer recover_primitives
+// clamp had to apply the ρ or p floor — answers "is the floor doing
+// work or is it irrelevant?" for floor-value sweep experiments.
+static uint64_t s_floor_calls       = 0;
+static uint64_t s_rho_floor_hits    = 0;
+static uint64_t s_p_floor_hits      = 0;
+static uint64_t s_both_floor_hits   = 0;  // cells where ρ AND p both floored
+
+// Per-context floor counters. s_recovery_context is set by callers via
+// gkyl_gr_euler_set_recovery_context before each recover_primitives call;
+// the floor diagnostic reads it to bin the hit. Lets us distinguish
+// transient HLL-rejected-by-positivity hits from real source/Lax hits.
+static int s_recovery_context = GR_EULER_CTX_UNKNOWN;
+static uint64_t s_floor_calls_ctx[GR_EULER_CTX_COUNT]      = {0};
+static uint64_t s_p_floor_hits_ctx[GR_EULER_CTX_COUNT]     = {0};
+static uint64_t s_rho_floor_hits_ctx[GR_EULER_CTX_COUNT]   = {0};
+
+void
+gkyl_gr_euler_set_recovery_context(int ctx)
+{
+  if (ctx >= 0 && ctx < GR_EULER_CTX_COUNT) s_recovery_context = ctx;
+  else                                       s_recovery_context = GR_EULER_CTX_UNKNOWN;
+}
+
+// D-magnitude histogram for floored cells. Answers "are floored cells
+// all near-vacuum (D << 1) or do moderate/normal-density cells also
+// get floored?" Decade bins from D < 1e-10 to D ≥ 1.
+#define GR_EULER_FLOOR_D_BINS 11
+static uint64_t s_floor_D_hist[GR_EULER_FLOOR_D_BINS] = {0};
+// Bin edges: <1e-10, 1e-10..1e-8, 1e-8..1e-6, 1e-6..1e-4, 1e-4..1e-2,
+//            1e-2..1e-1, 1e-1..1, 1..10, 10..100, 100..1000, ≥1000
+// (we put the "≥1000" overflow in the last slot)
+
+static int
+floor_D_bin(double D)
+{
+  if (D < 1.0e-10)  return 0;
+  if (D < 1.0e-8)   return 1;
+  if (D < 1.0e-6)   return 2;
+  if (D < 1.0e-4)   return 3;
+  if (D < 1.0e-2)   return 4;
+  if (D < 1.0e-1)   return 5;
+  if (D < 1.0)      return 6;
+  if (D < 10.0)     return 7;
+  if (D < 100.0)    return 8;
+  if (D < 1000.0)   return 9;
+  return 10;
+}
+
+// (E²−M²)/E² histogram — conditioning measure (~1/W² for floor-typical
+// cells). Tells us whether floored cells are near-luminal or moderate W.
+#define GR_EULER_FLOOR_S2_BINS 8
+static uint64_t s_floor_s2_hist[GR_EULER_FLOOR_S2_BINS] = {0};
+// Bin edges: <1e-12, 1e-12..1e-10, 1e-10..1e-8, 1e-8..1e-6,
+//            1e-6..1e-4, 1e-4..1e-2, 1e-2..1, ≥1
+
+static int
+floor_s2_bin(double s_sq_over_E2)
+{
+  if (s_sq_over_E2 < 1.0e-12) return 0;
+  if (s_sq_over_E2 < 1.0e-10) return 1;
+  if (s_sq_over_E2 < 1.0e-8)  return 2;
+  if (s_sq_over_E2 < 1.0e-6)  return 3;
+  if (s_sq_over_E2 < 1.0e-4)  return 4;
+  if (s_sq_over_E2 < 1.0e-2)  return 5;
+  if (s_sq_over_E2 < 1.0)     return 6;
+  return 7;
+}
+
+// Ring buffer of 64 floor-hit snapshots — captures conservatives +
+// raw recovered (ρ, p) so we can characterize what these cells "look
+// like" physically without needing position info threaded through the
+// recovery API.
+struct gkyl_gr_euler_floor_event {
+  double D, tau, mom_sq;
+  double rho_raw, p_raw;
+  double s_sq_over_E2;
+};
+#define GR_EULER_FLOOR_RING_SIZE 64
+static struct gkyl_gr_euler_floor_event s_floor_event_ring[GR_EULER_FLOOR_RING_SIZE];
+static int s_floor_event_written = 0;
+
+void
+gkyl_gr_euler_record_floor_hit(
+  bool rho_floored, bool p_floored,
+  double D, double tau, double mom_sq,
+  double rho_raw, double p_raw)
+{
+  s_floor_calls += 1;
+  if (rho_floored) s_rho_floor_hits += 1;
+  if (p_floored)   s_p_floor_hits   += 1;
+  if (rho_floored && p_floored) s_both_floor_hits += 1;
+
+  // Per-context counters: tag the call site that triggered this floor.
+  int ctx = (s_recovery_context >= 0 && s_recovery_context < GR_EULER_CTX_COUNT)
+    ? s_recovery_context : GR_EULER_CTX_UNKNOWN;
+  s_floor_calls_ctx[ctx] += 1;
+  if (rho_floored) s_rho_floor_hits_ctx[ctx] += 1;
+  if (p_floored)   s_p_floor_hits_ctx[ctx]   += 1;
+
+  // Only build histograms / ring entries for cells that actually
+  // triggered a floor — keeps the histograms a property of FLOORED
+  // cells, not all cells.
+  if (rho_floored || p_floored) {
+    s_floor_D_hist[floor_D_bin(D)] += 1;
+
+    double E_lab = tau + D;
+    double s_sq = (D + tau) * (D + tau) - mom_sq;
+    double s_sq_over_E2 = (E_lab * E_lab > 1.0e-300)
+      ? s_sq / (E_lab * E_lab) : 0.0;
+    if (s_sq_over_E2 < 0.0) s_sq_over_E2 = 0.0;
+    s_floor_s2_hist[floor_s2_bin(s_sq_over_E2)] += 1;
+
+    if (s_floor_event_written < GR_EULER_FLOOR_RING_SIZE) {
+      s_floor_event_ring[s_floor_event_written] = (struct gkyl_gr_euler_floor_event){
+        .D = D, .tau = tau, .mom_sq = mom_sq,
+        .rho_raw = rho_raw, .p_raw = p_raw,
+        .s_sq_over_E2 = s_sq_over_E2,
+      };
+      s_floor_event_written += 1;
+    }
+  }
+}
+
+void
+gkyl_gr_euler_print_recovery_stats(FILE *fp)
+{
+  if (s_newton_calls == 0 && s_picard_calls == 0) return;
+
+  fprintf(fp,
+    "[gr_euler_recovery] inner-Newton stats: %llu calls, total %llu iters, "
+    "avg %.2f iters/call, max %d\n",
+    (unsigned long long)s_newton_calls,
+    (unsigned long long)s_newton_total_iters,
+    s_newton_calls > 0
+      ? (double)s_newton_total_iters / (double)s_newton_calls : 0.0,
+    s_newton_max);
+  const char *newton_labels[] = {
+    "  ≤4   ", "  5–8  ", "  9–16 ", "  17–32", "  33–64", "  65–99", "  100  "
+  };
+  for (int b = 0; b < GR_EULER_NEWTON_HIST_NBINS; b++) {
+    fprintf(fp, "    %s : %llu\n", newton_labels[b],
+      (unsigned long long)s_newton_hist[b]);
+  }
+
+  fprintf(fp,
+    "[gr_euler_recovery] outer-Picard stats: %llu calls, total %llu iters, "
+    "avg %.2f iters/call, max %d\n",
+    (unsigned long long)s_picard_calls,
+    (unsigned long long)s_picard_total_iters,
+    s_picard_calls > 0
+      ? (double)s_picard_total_iters / (double)s_picard_calls : 0.0,
+    s_picard_max);
+  const char *picard_labels[] = {
+    "  1    ", "  2    ", "  3    ", "  4    ",
+    "  5–9  ", "  10–14", "  15–19", "  20–29", "  30+  "
+  };
+  for (int b = 0; b < GR_EULER_PICARD_HIST_NBINS; b++) {
+    fprintf(fp, "    %s : %llu\n", picard_labels[b],
+      (unsigned long long)s_picard_hist[b]);
+  }
+
+  // Floor-hit stats — applies to all EOSs. Tracks how often the outer
+  // recover_primitives clamp had to fire. Crucial for floor-value sweep
+  // experiments (1e-8 / 1e-10 / 1e-12) to distinguish "lower floor is
+  // doing work" from "lower floor irrelevant, no cells reach it".
+  if (s_floor_calls > 0) {
+    fprintf(fp,
+      "[gr_euler_recovery] Floor hits over %llu recovery calls:\n"
+      "    ρ floored: %llu (%.4f%%)\n"
+      "    p floored: %llu (%.4f%%)\n"
+      "    both:      %llu (%.4f%%)\n",
+      (unsigned long long)s_floor_calls,
+      (unsigned long long)s_rho_floor_hits,
+      100.0 * (double)s_rho_floor_hits / (double)s_floor_calls,
+      (unsigned long long)s_p_floor_hits,
+      100.0 * (double)s_p_floor_hits / (double)s_floor_calls,
+      (unsigned long long)s_both_floor_hits,
+      100.0 * (double)s_both_floor_hits / (double)s_floor_calls);
+
+    // Per-context breakdown — distinguishes transient HLL-rejected-by-
+    // positivity-sweep hits from real source / Lax (committed) hits.
+    const char *ctx_labels[GR_EULER_CTX_COUNT] = {
+      "UNKNOWN", "SOURCE ", "PRIMS  ", "HLL    ", "LAX    ", "HLLC   "
+    };
+    fprintf(fp, "[gr_euler_recovery] Per-context floor breakdown:\n");
+    fprintf(fp, "    context  | total calls | p floored | %% of ctx | %% of all p floors\n");
+    for (int c = 0; c < GR_EULER_CTX_COUNT; c++) {
+      if (s_floor_calls_ctx[c] == 0) continue;
+      double pct_of_ctx = 100.0 * (double)s_p_floor_hits_ctx[c] / (double)s_floor_calls_ctx[c];
+      double pct_of_all_pfloor = (s_p_floor_hits > 0)
+        ? 100.0 * (double)s_p_floor_hits_ctx[c] / (double)s_p_floor_hits : 0.0;
+      fprintf(fp, "    %s  | %11llu | %9llu | %6.2f%% | %6.2f%%\n",
+        ctx_labels[c],
+        (unsigned long long)s_floor_calls_ctx[c],
+        (unsigned long long)s_p_floor_hits_ctx[c],
+        pct_of_ctx, pct_of_all_pfloor);
+    }
+
+    // D-magnitude histogram of floored cells.
+    uint64_t total_floor_hits = s_rho_floor_hits + s_p_floor_hits - s_both_floor_hits;
+    if (total_floor_hits > 0) {
+      const char *D_labels[GR_EULER_FLOOR_D_BINS] = {
+        "  < 1e-10        ", "  1e-10 to 1e-8  ", "  1e-8  to 1e-6  ",
+        "  1e-6  to 1e-4  ", "  1e-4  to 1e-2  ", "  1e-2  to 1e-1  ",
+        "  1e-1  to 1     ", "  1     to 10    ", "  10    to 100   ",
+        "  100   to 1000  ", "  ≥ 1000         "
+      };
+      fprintf(fp, "[gr_euler_recovery] D-magnitude distribution of floored cells:\n");
+      for (int b = 0; b < GR_EULER_FLOOR_D_BINS; b++) {
+        fprintf(fp, "    %s : %llu (%.2f%%)\n",
+          D_labels[b], (unsigned long long)s_floor_D_hist[b],
+          100.0 * (double)s_floor_D_hist[b] / (double)total_floor_hits);
+      }
+      // (E²−M²)/E² histogram — conditioning measure (~1/W² for typical cells).
+      const char *s2_labels[GR_EULER_FLOOR_S2_BINS] = {
+        "  < 1e-12        ", "  1e-12 to 1e-10 ", "  1e-10 to 1e-8  ",
+        "  1e-8  to 1e-6  ", "  1e-6  to 1e-4  ", "  1e-4  to 1e-2  ",
+        "  1e-2  to 1     ", "  ≥ 1            "
+      };
+      fprintf(fp, "[gr_euler_recovery] (E²−M²)/E² distribution of floored cells:\n");
+      for (int b = 0; b < GR_EULER_FLOOR_S2_BINS; b++) {
+        fprintf(fp, "    %s : %llu (%.2f%%)\n",
+          s2_labels[b], (unsigned long long)s_floor_s2_hist[b],
+          100.0 * (double)s_floor_s2_hist[b] / (double)total_floor_hits);
+      }
+      // Ring-buffer sample dump.
+      if (s_floor_event_written > 0) {
+        fprintf(fp, "[gr_euler_recovery] Floor-event sample (first %d):\n"
+          "  idx       D          τ          mom_sq      ρ_raw       p_raw       (E²−M²)/E²\n",
+          s_floor_event_written);
+        for (int i = 0; i < s_floor_event_written; i++) {
+          const struct gkyl_gr_euler_floor_event *e = &s_floor_event_ring[i];
+          fprintf(fp, "  %3d  %+10.3e  %+10.3e  %+10.3e  %+10.3e  %+10.3e  %+10.3e\n",
+            i, e->D, e->tau, e->mom_sq, e->rho_raw, e->p_raw, e->s_sq_over_E2);
+        }
+      }
+    }
+  }
+
+  // RC EOS comparison stats — printed only when RC was actually
+  // exercised (i.e., the run used the RYU_CHATTOPADHYAY EOS).
+  if (s_rc_attempts > 0) {
+    double accept_frac = (double)s_rc_accepted / (double)s_rc_attempts;
+    double avg_dW = s_rc_accepted > 0
+      ? s_rc_sum_dW_acc / (double)s_rc_accepted : 0.0;
+    double escape_frac = s_rc_accepted > 0
+      ? (double)s_rc_accepted_escape / (double)s_rc_accepted : 0.0;
+    fprintf(fp,
+      "[gr_euler_recovery] RC vs TM compare: %llu RC attempts, %llu accepted (%.1f%%)\n"
+      "    of accepted, %llu via conditioning escape (%.2f%% of accepted)\n"
+      "    accepted |ΔΓ|/Γ_tm:  avg=%.3e  max=%.3e\n"
+      "    rejected |ΔΓ|/Γ_tm:  max=%.3e  (rejected = fell back to TM)\n",
+      (unsigned long long)s_rc_attempts,
+      (unsigned long long)s_rc_accepted,
+      100.0 * accept_frac,
+      (unsigned long long)s_rc_accepted_escape,
+      100.0 * escape_frac,
+      avg_dW, s_rc_max_dW_acc,
+      s_rc_max_dW_rej);
+
+    // Per-cell snapshot dump of the first N rejected cells. Helps
+    // distinguish spurious-root Newton failures (rejection correct)
+    // from TM precision-loss at high W (rejection arguably wrong — RC
+    // might be the better answer there).
+    if (s_rc_reject_written > 0) {
+      uint64_t total_rejected = s_rc_attempts - s_rc_accepted;
+      fprintf(fp,
+        "[gr_euler_recovery] RC rejections (showing first %d of %llu):\n"
+        "  idx   |ΔΓ|/Γ_tm      W_tm       W_rc       D          τ          mom_sq     (E²−M²)/E²  θ_tm        p_tm        p_rc\n",
+        s_rc_reject_written, (unsigned long long)total_rejected);
+      for (int i = 0; i < s_rc_reject_written; i++) {
+        const struct gkyl_gr_euler_rc_reject *e = &s_rc_reject_ring[i];
+        fprintf(fp,
+          "  %3d  %+10.3e  %+9.3e  %+9.3e  %+9.3e  %+9.3e  %+9.3e  %+10.3e  %+10.3e  %+10.3e  %+10.3e\n",
+          i, e->dW_rel, e->W_tm, e->W_rc, e->D, e->tau, e->mom_sq,
+          e->s_sq_over_E2, e->theta_tm, e->p_tm, e->p_rc);
+      }
+    }
+  }
+
+  // EM-Newton cap-hit diagnostic dump. Each ring-buffer entry is a
+  // snapshot of one cell that failed to converge in 100 EM iterations.
+  // Useful for understanding which physical regime is pathological —
+  // typically cold-flow-near-floor or near-supraluminal.
+  if (s_capfail_recorded > 0) {
+    fprintf(fp,
+      "[gr_euler_recovery] EM-Newton cap-hits: %llu total (showing first %d)\n",
+      (unsigned long long)s_capfail_recorded, s_capfail_written);
+    fprintf(fp,
+      "  idx     γ_eff     D          τ          mom_sq     θ=p/ρ      ρ          p          W       s²/(D+τ)²  γ^xx     γ^yy     γ^zz     γ^xy     γ^xz     γ^yz\n");
+    for (int i = 0; i < s_capfail_written; i++) {
+      const struct gkyl_gr_euler_newton_capfail *e = &s_capfail_ring[i];
+      fprintf(fp,
+        "  %3d  %.6f  %+10.3e  %+10.3e  %+10.3e  %+10.3e  %+10.3e  %+10.3e  %7.3f  %+10.3e  %+8.2e %+8.2e %+8.2e %+8.2e %+8.2e %+8.2e\n",
+        i, e->gas_gamma, e->D, e->tau, e->mom_sq, e->theta,
+        e->rho, e->p, e->W, e->s_sq_over_Dtau_sq,
+        e->inv_g_diag[0], e->inv_g_diag[1], e->inv_g_diag[2],
+        e->inv_g_off[0],  e->inv_g_off[1],  e->inv_g_off[2]);
+    }
+  }
+}
+
 // Compute the largest α ∈ [0, 1] such that
 //   (1-ε)(a + αb)² − (P + 2αQ + α²R) ≥ 0
 // where a = D+τ, b = δD+δτ, P = γ^{ij}·S_i·S_j, Q = γ^{ij}·S_i·δS_j,
@@ -448,13 +877,15 @@ compute_s2_limiter_alpha(const double *prods, double dt,
 void
 gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
   struct gkyl_gr_euler_eos eos, double t_curr, double dt,
-  const double *prods,
+  const double *prods, double *gamma_eff_cell,
   const double fluid_old[5], double fluid_new[5])
 {
   (void)t_curr;  // Source math is time-independent.
 
+  // gamma_eff_cell threaded through to compute_source_rate so the Picard
+  // initial guess for TM is the previous step's converged value.
   double S_rate[5];
-  compute_source_rate(eos, prods, fluid_old, S_rate);
+  compute_source_rate(eos, prods, fluid_old, gamma_eff_cell, S_rate);
 
   // TAU-POSITIVITY LIMITER. δτ = dt·S_τ. Target τ_new = TAU_TARGET
   // (the same floor cascade-repair restores to) so that limited cells
@@ -565,7 +996,8 @@ gkyl_moment_spacetime_coupling_explicit_advance(
   double t_curr, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  const struct gkyl_array *prods)
+  const struct gkyl_array *prods,
+  struct gkyl_array *gamma_eff_cache)
 {
   int nfluids = st->nfluids;
 
@@ -575,6 +1007,14 @@ gkyl_moment_spacetime_coupling_explicit_advance(
   while (gkyl_range_iter_next(&iter)) {
     long cidx = gkyl_range_idx(update_range, iter.idx);
     const double *prods_row = gkyl_array_cfetch(prods, cidx);
+
+    // Per-cell γ_eff warm-start slot. The recovery's Picard iteration
+    // reads this as the initial guess and writes back the converged value
+    // for the next call. Same array is shared across the three SSP-RK3
+    // stages so each stage benefits from the previous stage's refinement.
+    double *gamma_eff_cell = (gamma_eff_cache != NULL)
+      ? gkyl_array_fetch(gamma_eff_cache, cidx)
+      : NULL;
 
     for (int s = 0; s < nfluids; s++) {
       enum gkyl_eqn_type type = st->fluid_param[s].type;
@@ -622,18 +1062,18 @@ gkyl_moment_spacetime_coupling_explicit_advance(
       for (int j = 0; j < 5; j++) f_old[j] = f[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-        eos, t_curr, dt, prods_row, f_old, f_new);
+        eos, t_curr, dt, prods_row, gamma_eff_cell, f_old, f_new);
       REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++) f_stage1[j] = f_new[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-        eos, t_curr + dt, dt, prods_row, f_stage1, f_new);
+        eos, t_curr + dt, dt, prods_row, gamma_eff_cell, f_stage1, f_new);
       REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++)
         f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-        eos, t_curr + 0.5 * dt, dt, prods_row, f_stage2, f_new);
+        eos, t_curr + 0.5 * dt, dt, prods_row, gamma_eff_cell, f_stage2, f_new);
       REPAIR_ONCE(f_new);
       for (int j = 0; j < 5; j++)
         f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);

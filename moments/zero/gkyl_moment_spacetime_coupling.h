@@ -100,12 +100,20 @@ gkyl_moment_spacetime_coupling_derive_products(
  * The mod fluid arrays carry only the 5 hydro components; the products
  * array supplies all spacetime needed by the source-term math.
  *
- * @param st            Coupling object.
- * @param t_curr        Current simulation time.
- * @param dt            Time step.
- * @param update_range  Range over which to integrate sources.
- * @param fluid         Per-species writable hydro arrays.
- * @param prods         Current spacetime-products array.
+ * gamma_eff_cache (optional, may be NULL): per-cell γ_eff warm-start cache
+ * for the Mathews-Taub Picard iteration in the primitive recovery. When
+ * provided, the source step reads the cell's slot as the initial Picard
+ * guess and writes the converged γ_eff back. For IDEAL gas this argument
+ * is ignored. Drops Picard iteration counts from ~10 to ~1–2 for cells in
+ * steady state.
+ *
+ * @param st               Coupling object.
+ * @param t_curr           Current simulation time.
+ * @param dt               Time step.
+ * @param update_range     Range over which to integrate sources.
+ * @param fluid            Per-species writable hydro arrays.
+ * @param prods            Current spacetime-products array.
+ * @param gamma_eff_cache  Optional per-cell γ_eff warm-start cache.
  */
 void
 gkyl_moment_spacetime_coupling_explicit_advance(
@@ -113,7 +121,8 @@ gkyl_moment_spacetime_coupling_explicit_advance(
   double t_curr, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  const struct gkyl_array *prods);
+  const struct gkyl_array *prods,
+  struct gkyl_array *gamma_eff_cache);
 
 /**
  * Release the coupling object.

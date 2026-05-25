@@ -319,6 +319,13 @@ struct moment_coupling {
   // on the mod species. The EM-coupling solver above continues to handle
   // packed GR fluids; mod and packed are mutually exclusive per species.
   gkyl_moment_spacetime_coupling *spacetime_slvr;
+
+  // Per-cell γ_eff cache for the Mathews-Taub primitive-recovery Picard
+  // iteration. One scalar per cell, initialised to 5/3 at IC, read+written
+  // by the source-step recovery as a warm-start initial guess. Cuts Picard
+  // iteration counts from ~10 to ~1–2 for cells in steady state. NULL when
+  // no GR-mod species or when the EOS is IDEAL-only (Picard skipped).
+  struct gkyl_array *gamma_eff_cache;
 };
 
 struct mhd_src {

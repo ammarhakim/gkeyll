@@ -1304,21 +1304,55 @@ static struct luaL_Reg eqn_gr_euler_mod_ctor[] = {
 // array; the only difference vs GREulerMod is the flux factorization
 // (flat-space SR flux + GR correction). See wv_gr_euler_tetrad_mod.c.
 //
-// EOS dispatch: if the input table specifies gasGamma, the equation uses
-// the ideal-gas closure h = 1 + γ/(γ-1)·p/ρ. If gasGamma is omitted, the
-// equation falls back to the Mathews-Taub closure h(θ) = (5θ + √(9θ²+4))/2
-// which interpolates between non-relativistic (Γ=5/3) and ultra-relativistic
-// (Γ=4/3, c_s²=1/3) limits in a single convex closure. Useful for BHL-style
-// flows where the gas heats from cold inflow to relativistic post-shock.
-// Roe is incompatible with Mathews-Taub (eigenstructure is IDEAL-only); the
-// equation object asserts this at construction time.
+// EOS dispatch (in priority order):
+//   (1) Explicit `eos = "<string>"`:
+//         "ideal"  → IDEAL γ-law (gasGamma required, default 5/3)
+//         "tm" / "mathews-taub"           → MATHEWS_TAUB
+//         "rc" / "ryu-chattopadhyay"      → RYU_CHATTOPADHYAY
+//   (2) If no `eos` string but `gasGamma` is present → IDEAL (legacy path).
+//   (3) Otherwise → MATHEWS_TAUB (legacy default for relativistic-aware
+//       BHL inputs that omitted gasGamma).
+//
+// Both MATHEWS_TAUB and RYU_CHATTOPADHYAY interpolate between non-rel
+// (Γ=5/3) and ultra-rel (Γ=4/3, c_s²=1/3); RC fits the Synge gas tighter
+// (~0.8% h error vs TM's ~2%) at the cost of an iterative recovery (TM
+// has a closed-form cubic; RC requires Newton on a degree-8 polynomial,
+// warm-started from the TM cubic for fast convergence). Use RC for science
+// runs where post-shock thermodynamics accuracy matters; TM is faster.
+//
+// Roe is incompatible with non-IDEAL EOSs (eigenstructure is IDEAL-only);
+// the equation object asserts this at construction time.
 static int
 eqn_gr_euler_tetrad_mod_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_euler_tetrad_mod_lw = gkyl_malloc(sizeof(*gr_euler_tetrad_mod_lw));
 
   struct gkyl_gr_euler_eos eos;
-  if (glua_tbl_has_key(L, "gasGamma")) {
+  if (glua_tbl_has_key(L, "eos")) {
+    const char *eos_str = glua_tbl_get_string(L, "eos", "ideal");
+    if (strcmp(eos_str, "ideal") == 0) {
+      eos.type = GR_EULER_EOS_IDEAL;
+      eos.gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
+    }
+    else if (strcmp(eos_str, "tm") == 0
+          || strcmp(eos_str, "mathews-taub") == 0
+          || strcmp(eos_str, "mathewsTaub") == 0) {
+      eos.type = GR_EULER_EOS_MATHEWS_TAUB;
+      eos.gas_gamma = 0.0;
+    }
+    else if (strcmp(eos_str, "rc") == 0
+          || strcmp(eos_str, "ryu-chattopadhyay") == 0
+          || strcmp(eos_str, "ryuChattopadhyay") == 0) {
+      eos.type = GR_EULER_EOS_RYU_CHATTOPADHYAY;
+      eos.gas_gamma = 0.0;
+    }
+    else {
+      // Unknown EOS string — fall back to IDEAL with default γ.
+      eos.type = GR_EULER_EOS_IDEAL;
+      eos.gas_gamma = 5.0 / 3.0;
+    }
+  }
+  else if (glua_tbl_has_key(L, "gasGamma")) {
     eos.type = GR_EULER_EOS_IDEAL;
     eos.gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
   } else {

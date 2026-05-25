@@ -244,7 +244,9 @@ run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
 
       double f_mod_new[5];
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
-        gkyl_gr_euler_eos_ideal(gas_gamma), 0.0, dt, prods, q_mod, f_mod_new);
+        gkyl_gr_euler_eos_ideal(gas_gamma), 0.0, dt, prods,
+        NULL,  // γ_eff cache: not used for IDEAL, no Picard.
+        q_mod, f_mod_new);
 
       // Packed evolves S^i (contravariant); mod evolves S_i (covariant).
       // Lower the index on the packed momentum slots to compare directly.
@@ -364,7 +366,8 @@ run_explicit_advance_equivalence(struct gkyl_gr_spacetime *spacetime,
 
   struct gkyl_array *fluid_arrs[GKYL_MAX_SPECIES] = { fluid_mod };
   gkyl_moment_spacetime_coupling_explicit_advance(
-    st, 0.0, dt, &update_range, fluid_arrs, prods_arr);
+    st, 0.0, dt, &update_range, fluid_arrs, prods_arr,
+    NULL);  // γ_eff cache: IDEAL test, no Picard.
 
   const double *f_mod_final = gkyl_array_cfetch(fluid_mod, 0);
 
@@ -528,16 +531,20 @@ run_tm_cross_check(struct gkyl_gr_spacetime *spacetime,
 
       const double dt = 1.0e-3;
 
+      // Both calls pass NULL γ_eff cache — the TM Picard starts at 5/3
+      // and converges to γ_eff matching g_eff (which IS g_eff by the
+      // pre-test sanity-check on the matching identity). IDEAL ignores
+      // the pointer. Same input state both times.
       double f_tm[5];
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         (struct gkyl_gr_euler_eos){
           .type = GR_EULER_EOS_MATHEWS_TAUB, .gas_gamma = 0.0 },
-        0.0, dt, prods, q_mod, f_tm);
+        0.0, dt, prods, NULL, q_mod, f_tm);
 
       double f_id[5];
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         gkyl_gr_euler_eos_ideal(g_eff),
-        0.0, dt, prods, q_mod, f_id);
+        0.0, dt, prods, NULL, q_mod, f_id);
 
       // The two source rates must agree to machine precision because they
       // see identical (ρ, v, p, h, W) at the input — only the EOS callback

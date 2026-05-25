@@ -74,10 +74,16 @@ void gkyl_gr_euler_tetrad_mod_free(const struct gkyl_ref_count *ref);
 // unit tests can call them directly for equivalence comparison.
 // ---------------------------------------------------------------------------
 
+// Recovery helpers. Each accepts an optional gamma_eff_cell pointer for the
+// Mathews-Taub Picard warm-start (see gkyl_wv_gr_euler_prim_priv.h). NULL
+// preserves the cold-flow default initial guess of γ=5/3 and is safe for
+// IDEAL (no Picard) or for callers without per-cell context (e.g. some
+// unit tests).
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
-  const double q[5], const double *prods, double v[5]);
+  const double q[5], const double *prods,
+  double *gamma_eff_cell, double v[5]);
 
 // Compute the flat-space (special-relativistic) flux from primitives. Uses
 // Cartesian dot products on velocity (W_flat = 1/sqrt(1 - vᵢvᵢ)) with no
@@ -85,7 +91,8 @@ gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_flux(struct gkyl_gr_euler_eos eos,
-  const double q[5], const double *prods, double flux_sr[5]);
+  const double q[5], const double *prods,
+  double *gamma_eff_cell, double flux_sr[5]);
 
 // Apply the GR coordinate-transformation correction to a flat-space SR flux:
 // multiply by α·√γ and replace (vx, W_flat) with (vx - βˣ/α, W_curved).
@@ -93,13 +100,15 @@ gkyl_gr_euler_tetrad_mod_flux(struct gkyl_gr_euler_eos eos,
 GKYL_CU_D
 void
 gkyl_gr_euler_tetrad_mod_flux_correction(struct gkyl_gr_euler_eos eos,
-  const double q[5], const double *prods, const double flux_sr[5],
-  double flux_gr[5]);
+  const double q[5], const double *prods,
+  double *gamma_eff_cell,
+  const double flux_sr[5], double flux_gr[5]);
 
 GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_mod_max_abs_speed(struct gkyl_gr_euler_eos eos,
-  const double q[5], const double *prods);
+  const double q[5], const double *prods,
+  double *gamma_eff_cell);
 
 // ---------------------------------------------------------------------------
 // Modular tetrad-Roe pipeline. The "tetrad mod" Roe is implemented as a
@@ -176,10 +185,16 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
 // Pure Minkowski SR HLL with Davis/Einfeldt wave-speed bracket.
 // Returns the two-wave decomposition with q_HLL as the intermediate
 // state. Provably admissibility-preserving in flat space (Mignone-Bodo).
+//
+// gamma_eff_l_cell / gamma_eff_r_cell: per-cell γ_eff warm-start slots for
+// the TM Picard iteration on each side of the interface. NULL OK (cold
+// start). The wave_* caller is expected to fetch these from
+// auxfields.gamma_eff_cache using cur_idxl / cur_idxr.
 GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
+  double *gamma_eff_l_cell, double *gamma_eff_r_cell,
   double waves_tet[2 * 5], double speeds[2]);
 
 // Pure Minkowski SR Lax-Friedrichs with symmetric ±amax envelope. More
@@ -188,6 +203,7 @@ GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
+  double *gamma_eff_l_cell, double *gamma_eff_r_cell,
   double waves_tet[2 * 5], double speeds[2]);
 
 // Pure Minkowski SR HLLC (Mignone & Bodo 2005, MNRAS 364, 126). Three
@@ -245,6 +261,7 @@ GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
+  double *gamma_eff_l_cell, double *gamma_eff_r_cell,
   double waves_tet[3 * 5], double speeds[3],
   struct gkyl_gr_euler_tetrad_mod_hllc_diag *diag);
 

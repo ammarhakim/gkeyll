@@ -11,9 +11,19 @@
 // identical for both mod variants (tetrad does not require stored basis
 // vectors; the flat-frame factorization is purely a flux-computation
 // strategy, see wv_gr_euler_tetrad_mod.c).
+//
+// gamma_eff_cache: per-cell γ_eff warm-start cache for the Mathews-Taub
+// primitive-recovery Picard iteration. Read on entry to each recovery as
+// the initial guess; written back with the converged value so subsequent
+// calls from the same cell start in the right neighborhood (∼1–2 Picard
+// iterations instead of ∼10). NULL for IDEAL-only setups (Picard skipped).
+// The app shares the SAME array with the spacetime coupling object — both
+// updaters read and write the same cells.
 struct gkyl_wv_gr_euler_tetrad_mod_auxfields {
-  const struct gkyl_array *prods; // spacetime products array
-                                  // (layout: gkyl_moment_spacetime_products.h)
+  const struct gkyl_array *prods;             // spacetime products array
+                                              // (layout: gkyl_moment_spacetime_products.h)
+  struct gkyl_array *gamma_eff_cache;         // per-cell γ_eff cache (1 component)
+                                              // mutated by the recovery; mod path only
 };
 
 // Input context for the modular tetrad GR Euler constructor.
