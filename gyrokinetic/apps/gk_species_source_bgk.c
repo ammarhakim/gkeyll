@@ -403,13 +403,12 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       if (app->use_gpu) {
         src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
         src->red_integ_diag_global = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-        src->int_mom_global = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
       } 
       else {
         src->red_integ_diag = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
         src->red_integ_diag_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
-        src->int_mom_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
       }
+      src->int_mom_global = gkyl_malloc(sizeof(double[src->integ_mom_op.num_mom]));
       src->integ_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->integ_mom_op.num_mom);
       src->is_first_diag_dynvec_write_call = true;
     }
@@ -622,13 +621,12 @@ gk_species_source_bgk_release(const struct gkyl_gyrokinetic_app *app, const stru
       if (app->use_gpu) {
         gkyl_cu_free(src->red_integ_diag);
         gkyl_cu_free(src->red_integ_diag_global);
-        gkyl_cu_free(src->int_mom_global);
       }
       else {
         gkyl_free(src->red_integ_diag);
         gkyl_free(src->red_integ_diag_global);
-        gkyl_free(src->int_mom_global);
       }
+      gkyl_free(src->int_mom_global);
     }
 
     if (src->source_bgk_id == GKYL_SOURCE_BGK_HEATING) {
