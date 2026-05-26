@@ -869,7 +869,7 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
     .type = GKYL_GK_COLLISIONLESS_ES,
     .scale_factor = pparams->alpha,
   };
-  struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp = {
+  struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
     .num_multipliers = 1,
     .multiplier[0] = {
       .type = pparams->fdot_mult_type,
@@ -1027,7 +1027,7 @@ int main(int argc, char **argv)
       },
     },
 
-    .time_rate_multipliers = {
+    .time_rate_multiplier = {
       .num_multipliers = 1,
       .multiplier[0] = {
         .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
@@ -1102,7 +1102,7 @@ int main(int argc, char **argv)
       },
     },
 
-    .time_rate_multipliers = {
+    .time_rate_multiplier = {
       .num_multipliers = 1,
       .multiplier[0] = {
         .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
