@@ -671,3 +671,31 @@ gkyl_array_diff(const struct gkyl_array *arr1, const struct gkyl_array *arr2, co
     .min_rel_diff = min_rel_diff
   };
 }
+
+struct gkyl_array*
+gkyl_array_max_by_cell_per_cell_avg_range(struct gkyl_array* out, const struct gkyl_array* inp, struct gkyl_range *range)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+
+#ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
+  if (gkyl_array_is_cu_dev(out) && gkyl_array_is_cu_dev(inp)) { gkyl_array_max_by_cell_per_cell_avg_range_cu(out, inp, range); return out; }
+#endif
+
+  long nc = NCOM(out);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(range, iter.idx);
+    double *out_d = gkyl_array_fetch(out, start);
+    const double *inp_d = gkyl_array_cfetch(inp, start);
+    if (out_d[0] < inp_d[0]) {
+      for (int c=0; c<nc; ++c) {
+        out_d[c] = inp_d[c];
+      }
+    }
+  }
+  return out;
+}

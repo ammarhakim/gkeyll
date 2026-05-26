@@ -645,6 +645,61 @@ gkyl_array_flip_copy_to_buffer_fn_cu_kernel(void *data, const struct gkyl_array 
   }
 }
 
+__global__ void
+gkyl_array_max_by_cell_per_cell_avg_range_cu_kernel(struct gkyl_array *out,
+  const struct gkyl_array* inp, struct gkyl_range range)
+{
+  long outnc = NCOM(out), inpnc = NCOM(inp);
+  // For ceil, we assume component counts match, or we limit to outnc
+  long n = outnc; 
+  int idx[GKYL_MAX_DIM];
+
+  int ndim = range.ndim;
+  // ac1 = size of last dimension of range (fastest moving dimension)
+  long ac1 = range.iac[ndim-1] > 0 ? range.iac[ndim-1] : 1;
+
+  // 2D thread grid
+  // In this kernel, linc2 corresponds directly to idx1 (the cell index in the contiguous strip)
+  // We do not split by component 'c' here because the check on c=0 must gate the copy of c=1..N
+  long linc2 = threadIdx.y + blockIdx.y*blockDim.y;
+  
+  // Note: linc2 acts as idx1 here. 
+  // We effectively handle all 'n' components for the cell at 'idx1' in this single thread.
+
+  // linc1 = idx2 + ac2*idx3 + ...
+  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+      linc1 < range.volume/ac1;
+      linc1 += gridDim.x*blockDim.x)
+  {
+    // full linear cell index calculation (same as accumulate)
+    // idx1 + ac1*idx2 + ...
+    // We find the start linear index of the contiguous block (idx1=0)
+    gkyl_sub_range_inv_idx(&range, ac1*linc1, idx);
+    long start = gkyl_range_idx(&range, idx);
+    
+    double* out_d = (double*) gkyl_array_fetch(out, start);
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
+
+    // do operation on contiguous data block
+    if (linc2 < ac1) {
+      // Calculate specific cell pointers based on idx1 (linc2)
+      // Note: out_d points to the start of the 'ac1' strip.
+      // We offset by linc2 * n to get to the specific cell.
+      long cell_offset_out = linc2 * outnc;
+      long cell_offset_inp = linc2 * inpnc;
+
+      // Check the condition on the 0-th component (Cell Average)
+      if (out_d[cell_offset_out] < inp_d[cell_offset_inp]) {
+        
+        // If condition passed, copy ALL components for this cell
+        for (int k = 0; k < n; ++k) {
+          out_d[cell_offset_out + k] = inp_d[cell_offset_inp + k];
+        }
+      }
+    }
+  }
+}
+
 // Host-side wrappers for range-based array operations
 void
 gkyl_array_clear_range_cu(struct gkyl_array *out, double val, const struct gkyl_range *range)
@@ -812,4 +867,13 @@ gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
     gkyl_array_flip_copy_to_buffer_fn_cu_kernel<<<nblocks, nthreads>>>(data,
       arr->on_dev, dir, *range, buff_range, cf);
   }
+}
+
+void
+gkyl_array_max_by_cell_per_cell_avg_range_cu(struct gkyl_array *out,
+  const struct gkyl_array* inp, const struct gkyl_range *range)
+{
+  dim3 dimGrid, dimBlock;
+  gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, 1);
+  gkyl_array_max_by_cell_per_cell_avg_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, inp->on_dev, *range);
 }

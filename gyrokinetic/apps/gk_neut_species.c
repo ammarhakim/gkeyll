@@ -232,7 +232,7 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     app->stat.n_neut_mom += 1;
 
     // Rescale moment by inverse of Jacobian if necessary. 
-    gk_species_moment_diag_jacobgeo_div(app, &gkns->moms[m], gkns->moms[m].marr, gkns->moms[m].marr);
+    gk_neut_species_moment_diag_jacobgeo_div(app, &gkns->moms[m], gkns->moms[m].marr, gkns->moms[m].marr);
     app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec wtm = gkyl_wall_clock();

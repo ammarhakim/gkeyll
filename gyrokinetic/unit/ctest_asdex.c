@@ -110,10 +110,6 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis ba
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot_inv");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv_sq");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv_sq, fileNm);
   sprintf(fileNm, fmt, name, "gxxj");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxxj, fileNm);
   sprintf(fileNm, fmt, name, "gxyj");
@@ -153,7 +149,7 @@ test_fixed_z()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -226,7 +222,7 @@ test_shaped_plate()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -300,7 +296,7 @@ test_lower()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -373,7 +369,7 @@ test_middle()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -446,7 +442,7 @@ test_upper()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };

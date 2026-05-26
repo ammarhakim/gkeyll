@@ -49,7 +49,7 @@ copy_lower_z_ghost_to_all_z_conf(gkyl_gyrokinetic_app *app, struct gkyl_array *a
   int idx_par = cdim-1;
 
   // Copy lower ghost of input field into buffer.
-  struct gkyl_range* lower_ghost = &app->lower_ghost[idx_par];
+  struct gkyl_range* lower_ghost = &app->local_lower_ghost[idx_par];
   gkyl_array_set_offset_range(buff, 1.0, arr_in, comp_in, lower_ghost); 
 
   // Create a range for each z cell, and copy from buffer into that range.
