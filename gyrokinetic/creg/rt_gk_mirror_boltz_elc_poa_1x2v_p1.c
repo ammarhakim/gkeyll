@@ -375,9 +375,9 @@ create_ctx(void)
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 1;        // Frames per OAP phase
-  int num_frames_fdp = 1;        // Frames per FDP phase
-  int num_frames_fdp_extra = 2;  // Frames for the extra FDP phase
+  int num_frames_oap = 1; // Frames per OAP phase
+  int num_frames_fdp = 1; // Frames per FDP phase
+  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -586,7 +586,7 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
     .type = GKYL_GK_COLLISIONLESS_ES,
     .scale_factor = pparams->alpha,
   };
-  struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp = {
+  struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
     .num_multipliers = 1,
     .multiplier[0] = {
       .type = pparams->fdot_mult_type,
@@ -739,7 +739,7 @@ int main(int argc, char **argv)
       .write_diagnostics = true,
     },
 
-    .time_rate_multipliers = {
+    .time_rate_multiplier = {
       .num_multipliers = 1,
       .multiplier[0] = {
         .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.

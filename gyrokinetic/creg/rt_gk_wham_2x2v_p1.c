@@ -658,7 +658,7 @@ int main(int argc, char **argv)
       .ctx = &ctx,
     },
     
-    .time_rate_multipliers = {
+    .time_rate_multiplier = {
       .num_multipliers = 1,
       .multiplier[0] = {
         .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,
@@ -739,7 +739,7 @@ int main(int argc, char **argv)
       .ctx = &ctx,
     },
 
-    .time_rate_multipliers = {
+    .time_rate_multiplier = {
       .num_multipliers = 1,
       .multiplier[0] = {
         .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,

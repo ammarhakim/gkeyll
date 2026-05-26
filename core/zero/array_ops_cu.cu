@@ -113,11 +113,12 @@ gkyl_array_divide_by_cell_cu_kernel(struct gkyl_array* out, const struct gkyl_ar
 }
 
 __global__ void
-gkyl_array_invert_by_cell_cu_kernel(struct gkyl_array* out)
+gkyl_array_invert_by_cell_cu_kernel(struct gkyl_array* out, const struct gkyl_array *inp)
 {
   double *out_d = (double*) out->data;
+  const double *inp_d = (const double*) inp->data;
   for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
-    out_d[linc] = 1.0/out_d[linc];
+    out_d[linc] = 1.0/inp_d[linc];
 }
 
 __global__ void
@@ -129,11 +130,12 @@ gkyl_array_shiftc_cu_kernel(struct gkyl_array* out, double a, unsigned k)
 }
 
 __global__ void
-gkyl_array_min_by_cell_cu_kernel(struct gkyl_array* out, double a)
+gkyl_array_min_by_cell_cu_kernel(struct gkyl_array* out, const struct gkyl_array *inp, double a)
 {
   double *out_d = (double*) out->data;
+  const double *inp_d = (const double*) inp->data;
   for (unsigned long linc = START_ID; linc < NELM(out); linc += blockDim.x*gridDim.x)
-    out_d[linc] = fmin(out_d[linc], a);
+    out_d[linc] = fmin(inp_d[linc], a);
 }
 
 // Host-side wrappers for array operations
@@ -188,9 +190,9 @@ gkyl_array_divide_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a)
 }
 
 void
-gkyl_array_invert_by_cell_cu(struct gkyl_array* out)
+gkyl_array_invert_by_cell_cu(struct gkyl_array* out, const struct gkyl_array *inp)
 {
-  gkyl_array_invert_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev);
+  gkyl_array_invert_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, inp->on_dev);
 }
 
 void
@@ -200,9 +202,9 @@ gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k)
 }
 
 void
-gkyl_array_min_by_cell_cu(struct gkyl_array* out, double a)
+gkyl_array_min_by_cell_cu(struct gkyl_array* out, const struct gkyl_array *inp, double a)
 {
-  gkyl_array_min_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, a);
+  gkyl_array_min_by_cell_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, inp->on_dev, a);
 }
 
 // Range-based methods
@@ -469,7 +471,8 @@ gkyl_array_shiftc_range_cu_kernel(struct gkyl_array* out, double a,
 }
 
 __global__ void
-gkyl_array_min_by_cell_range_cu_kernel(struct gkyl_array* out, double a, struct gkyl_range range)
+gkyl_array_min_by_cell_range_cu_kernel(struct gkyl_array* out, const struct gkyl_array* inp,
+  double a, struct gkyl_range range)
 {
   long ncomp = NCOM(out);
   int idx[GKYL_MAX_DIM];
@@ -494,9 +497,10 @@ gkyl_array_min_by_cell_range_cu_kernel(struct gkyl_array* out, double a, struct 
     long start = gkyl_range_idx(&range, idx);
 
     double* out_d = (double*) gkyl_array_fetch(out, start);
+    const double* inp_d = (const double*) gkyl_array_cfetch(inp, start);
     // do operation on contiguous data block
     if (linc2 < ncomp*ac1)
-      out_d[linc2] = fmin(out_d[linc2], a);
+      out_d[linc2] = fmin(inp_d[linc2], a);
   }
 }
 
@@ -786,12 +790,13 @@ gkyl_array_shiftc_range_cu(struct gkyl_array* out, double a, unsigned k, const s
 }
 
 void
-gkyl_array_min_by_cell_range_cu(struct gkyl_array* out, double a, const struct gkyl_range *range)
+gkyl_array_min_by_cell_range_cu(struct gkyl_array* out, const struct gkyl_array* inp,
+  double a, const struct gkyl_range *range)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_array_range_kernel_launch_dims(&dimGrid, &dimBlock, *range, out->ncomp);
 
-  gkyl_array_min_by_cell_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, a, *range);
+  gkyl_array_min_by_cell_range_cu_kernel<<<dimGrid, dimBlock>>>(out->on_dev, inp->on_dev, a, *range);
 }
 
 void

@@ -131,12 +131,14 @@ struct gkyl_array* gkyl_array_scale_by_cell(struct gkyl_array *out, const struct
 struct gkyl_array* gkyl_array_divide_by_cell(struct gkyl_array *out, const struct gkyl_array *a);
 
 /**
- * Compute element-wise reciprocal, out = 1/out. Returns out.
+ * Compute element-wise reciprocal, out = 1/inp. Returns out.
+ * For in-place operation, pass out == inp.
  *
  * @param out Output array.
+ * @param inp Input array.
  * @return out array.
  */
-struct gkyl_array* gkyl_array_invert_by_cell(struct gkyl_array *out);
+struct gkyl_array* gkyl_array_invert_by_cell(struct gkyl_array *out, const struct gkyl_array *inp);
 
 /**
  * Shift the k-th coefficient in every cell, out_k = a+out_k. Returns out.
@@ -149,13 +151,15 @@ struct gkyl_array* gkyl_array_invert_by_cell(struct gkyl_array *out);
 struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
 
 /**
- * Take element-wise minimum: out = min(out, a). Returns out.
+ * Take element-wise minimum: out = min(inp, a). Returns out.
+ * For in-place operation, pass out == inp.
  *
  * @param out Output array.
+ * @param inp Input array.
  * @param a Value to compare against each element.
  * @return out array.
  */
-struct gkyl_array* gkyl_array_min_by_cell(struct gkyl_array *out, double a);
+struct gkyl_array* gkyl_array_min_by_cell(struct gkyl_array *out, const struct gkyl_array *inp, double a);
 
 /**
  * Clear out = val. Returns out.
@@ -258,15 +262,17 @@ struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
   unsigned k, const struct gkyl_range *range);
 
 /**
- * Take element-wise minimum: out = min(out, a) within a given range. Returns out.
+ * Take element-wise minimum: out = min(inp, a) within a given range. Returns out.
+ * For in-place operation, pass out == inp.
  *
  * @param out Output array.
+ * @param inp Input array.
  * @param a Value to compare against each element.
  * @param range Range to apply minimum operation in.
  * @return out array.
  */
-struct gkyl_array* gkyl_array_min_by_cell_range(struct gkyl_array *out, double a,
-  const struct gkyl_range *range);
+struct gkyl_array* gkyl_array_min_by_cell_range(struct gkyl_array *out, const struct gkyl_array *inp,
+  double a, const struct gkyl_range *range);
 
 /**
  * Copy out inp. Returns out.
@@ -383,11 +389,11 @@ void gkyl_array_scale_by_cell_cu(struct gkyl_array* out, const struct gkyl_array
 
 void gkyl_array_divide_by_cell_cu(struct gkyl_array* out, const struct gkyl_array* a);
 
-void gkyl_array_invert_by_cell_cu(struct gkyl_array* out);
+void gkyl_array_invert_by_cell_cu(struct gkyl_array* out, const struct gkyl_array *inp);
 
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
-void gkyl_array_min_by_cell_cu(struct gkyl_array* out, double a);
+void gkyl_array_min_by_cell_cu(struct gkyl_array* out, const struct gkyl_array *inp, double a);
 
 void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
 
@@ -414,7 +420,7 @@ void gkyl_array_set_offset_range_cu(struct gkyl_array *out,
 void gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_range *range);
 
-void gkyl_array_min_by_cell_range_cu(struct gkyl_array *out, double a, const struct gkyl_range *range);
+void gkyl_array_min_by_cell_range_cu(struct gkyl_array *out, const struct gkyl_array *inp, double a, const struct gkyl_range *range);
 
 void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* inp, 
   const struct gkyl_range *range);

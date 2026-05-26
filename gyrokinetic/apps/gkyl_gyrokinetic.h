@@ -374,17 +374,17 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
   GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
   GKYL_GK_FDOT_MULTIPLIER_CONSTANT,           // Dilates time by a fixed constant, time_dilation_scale_const.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Specify cfl_dt_min_value
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time. No need to specify anything else
-  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,  // Set the dt floor based on the dt from another species. That species must be updated before this species. i.e. if the ions scale dt based on electrons, you must specify in the app `.species = {elc, ion},` so the electrons are updated first.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from omega_H, an electrostatic GK wave.
+  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,  // Set the dt floor based on the dt from another species.
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
 };
 
-// Input parameters for the df/dt multiplier.
-struct gkyl_gyrokinetic_fdot_multiplier {
+// Input parameters for a single component of the df/dt multiplier chain.
+struct gkyl_gyrokinetic_fdot_multiplier_comp {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplier (see enum comments above).
 
   // For USER_INPUT type: function pointer defining M(z).
@@ -405,10 +405,9 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 };
 
 // Parameters for a chain of df/dt multipliers. Components are applied in order.
-struct gkyl_gyrokinetic_fdot_multipliers {
+struct gkyl_gyrokinetic_fdot_multiplier {
   int num_multipliers;
-  double omega_H_scale_const; // A constant which multipliers the omegaH frequency
-  struct gkyl_gyrokinetic_fdot_multiplier multiplier[GKYL_MAX_FDOT_MUL];
+  struct gkyl_gyrokinetic_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL];
 };
 
 // Parameters for gk species.
@@ -432,7 +431,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Ordered list of phase-space fields multiplying df/dt.
-  struct gkyl_gyrokinetic_fdot_multipliers time_rate_multipliers;
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
@@ -1451,7 +1450,7 @@ void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, doubl
  * @param fdot_mult_inp Input struct for the fdot_multiplier.
  */
 void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp);
+  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
 
 /**
  * Reset the collisionless multiplier for a given species.

@@ -63,9 +63,12 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
       m0_max[0] = gks->m0_max[0];
     }
     m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
-  
+
+    double time_dilation_scale_const =
+      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
+
     double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf
-      * gks->time_dilation_scale_const;
+      * time_dilation_scale_const;
 
     return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
   }
@@ -119,17 +122,9 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // Compute moments of the boundary fluxes.
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
   
-  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
-  for (int i = 0; i < species->num_fdot_mult; ++i) {
-    gk_species_fdot_multiplier_advance_times_omegaH(app, species, &species->fdot_mult[i],
-      &species->dt_omegaH);
-  }
-
   // Multiply CFL rate by the df/dt multiplier.
-  for (int i = 0; i < species->num_fdot_mult; ++i) {
-    gk_species_fdot_multiplier_advance_times_cfl(app, species, &species->fdot_mult[i],
-      app->field->phi_smooth, fin, species->cflrate);
-  }
+  gk_species_fdot_multiplier_advance_times_cfl(app, species, &species->fdot_mult,
+    app->field->phi_smooth, fin, species->cflrate);
 
   // Reduce the CFL frequency and compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
@@ -145,10 +140,12 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   }
 
   double dt_out = app->cfl/omega_cfl_ho[0];
-  
+
+  // Apply omega_H constraint on dt.
+  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, species->dt_omegaH);
 
-  species->dt_cfl_global_ho[0] = dt_out;
+  species->dt_cfl_global_ho = dt_out;
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   return dt_out;
@@ -689,7 +686,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     gkyl_free(s->omega_cfl);
     gkyl_free(s->m0_max);
   }
-  gkyl_free(s->dt_cfl_global_ho);
 
   // Release integrated moment memory.
   gk_species_moment_release(app, &s->integ_moms); 
@@ -747,8 +743,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     ghost[cdim+d] = 0; // No ghost-cells in velocity space.
   }
   gks->dt_omegaH = DBL_MIN;
-  gks->time_dilation_scale_const = gks->info.time_rate_multipliers.omega_H_scale_const ?
-    gks->info.time_rate_multipliers.omega_H_scale_const : 1.0;
 
   // Allocate distribution function arrays.
   gks->f1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
@@ -762,7 +756,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     gks->omega_cfl = gkyl_malloc(sizeof(double));
     gks->m0_max = gkyl_malloc(app->basis.num_basis*sizeof(double));
   }
-  gks->dt_cfl_global_ho = gkyl_malloc(sizeof(double));
 
   // Allocate data for integrated moments.
   int num_diag_int_moms = gks->info.num_integrated_diag_moments;
@@ -1520,11 +1513,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gk_species_damping_init(app, gks, &gks->damping);
 
   // Function multiplying df/dt.
-  gks->num_fdot_mult = gks->info.time_rate_multipliers.num_multipliers;
-  for (int i = 0; i < gks->num_fdot_mult; ++i) {
-    gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult[i],
-      &gks->info.time_rate_multipliers.multiplier[i], i);
-  }
+  gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
 
   // Allocate data for diagnostic moments.
   int ndm = gks->info.num_diag_moments;
@@ -1937,9 +1926,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
     gkyl_array_release(gks->damping.fbar_backup);
   }
 
-  for (int i = 0; i < gks->num_fdot_mult; ++i) {
-    gk_species_fdot_multiplier_release(app, &gks->fdot_mult[i]);
-  }
+  gk_species_fdot_multiplier_release(app, &gks->fdot_mult);
 
   gk_species_lbo_release(app, &gks->lbo);
 
