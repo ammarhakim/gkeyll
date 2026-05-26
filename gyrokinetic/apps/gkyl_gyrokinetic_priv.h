@@ -873,9 +873,10 @@ struct gk_source_bgk {
   double norm_power; // Normalized power, 2*P/(vdim_phys*m).
   struct gkyl_array *rate; // Sourcing rate.
   struct gkyl_array *Jrate; // Sourcing rate times the conf-space Jacobian.
-  struct gkyl_array *vtsq_shape; // Spatial profile of the Maxwellian's v_t^2.
+  struct gkyl_array *vtsq_shape; // Spatial profile of the eq. Maxwellian's v_t^2.
   struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
-  struct gkyl_array *Jrate_fmax; // Jrate times the Maxwellian.
+  struct gkyl_array *Jrate_df; // Jrate times the difference between current and eq. distribution.
+  struct gkyl_proj_on_basis *proj_feq; // Operator to project the equilibrium distribution function.
   struct gkyl_array *Jrate_mom; // Jrate times a velocity moment.
   struct gkyl_array *Jrate_cap; // Max value for Jrate_mom.
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
@@ -889,6 +890,7 @@ struct gk_source_bgk {
   bool implicit_step; // Whether or not to take an implcit BGK step.
   double dt_implicit; // Timestep used by the implicit collisions.
   struct gk_species_moment integ_mom_op; // Integrated moments.
+  double *int_mom_global; // Integrated moments reduced across grid.
   struct gk_species_moment correct_mom_op; // Correction moments.
   gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
   double *red_integ_diag, *red_integ_diag_global; // Reduced integrated moments.
@@ -899,6 +901,10 @@ struct gk_source_bgk {
     struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_source_bgk *src, double tm, int frame);
+  void (*update_integrated_diags_rhs_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_source_bgk *src, double tm);
+  void (*update_integrated_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_source_bgk *src, double tm);
   void (*calc_integrated_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_source_bgk *src, double tm);
   void (*write_integrated_diags_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
@@ -1033,6 +1039,7 @@ struct gk_species {
   struct gkyl_range global_lower_ghost[GKYL_MAX_DIM];
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
+  struct gkyl_range local_par_ext; // Range extended in parallel direction for TS BC.
   // Core and SOL ranges for IWL sims.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
   struct gkyl_range local_core, local_ext_core, local_sol, local_ext_sol;
@@ -1252,7 +1259,8 @@ struct gk_neut_species {
 struct gk_field {
   struct gkyl_gyrokinetic_field info; // Data for field.
 
-  enum gkyl_gkfield_id gkfield_id;
+  enum gkyl_gkfield_id gkfield_id; // Field solver ID.
+  enum gkyl_gyrokinetic_bc_type bc_par_phi; // Parallel BC to enforce on phi.
 
   bool update_field; // Are we updating the field?.
   bool calc_init_field; // Whether to compute the t=0 field.
@@ -1388,6 +1396,8 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_range global_upper_skin[GKYL_MAX_DIM];
   struct gkyl_range global_upper_ghost[GKYL_MAX_DIM];
 
+  // Range extended in parallel direction (for TS BCs).
+  struct gkyl_range global_par_ext, local_par_ext;
   // Core and SOL ranges for sims with a LCFS.
   struct gkyl_range global_core, global_ext_core, global_sol, global_ext_sol;
   struct gkyl_range global_par_ext_core; // Core range extended in parallel direction.
