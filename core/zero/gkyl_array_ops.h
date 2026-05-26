@@ -326,6 +326,17 @@ struct gkyl_array_diff gkyl_array_diff(const struct gkyl_array *arr1,
   const struct gkyl_array *arr2, const struct gkyl_range *range);
 
 /**
+ * Compute out = max(out,inp) based on cell avg. Returns out.
+ *
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range to take max over
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_max_by_cell_per_cell_avg_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, struct gkyl_range *range);
+
+/**
  * Host-side wrappers for array operations
  */
 void gkyl_array_clear_cu(struct gkyl_array* out, double val);
@@ -388,3 +399,5 @@ void gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
 
 void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
+
+void gkyl_array_max_by_cell_per_cell_avg_range_cu(struct gkyl_array* out, const struct gkyl_array* inp, const struct gkyl_range *range);

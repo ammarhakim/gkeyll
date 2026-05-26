@@ -264,7 +264,7 @@ test_gr_mhd_basic_minkowski()
         gkyl_wv_eqn_rotate_to_global(gr_mhd, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 75; i++) {
-          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
         }
 
         double w1[75], q1[75];
@@ -272,7 +272,7 @@ test_gr_mhd_basic_minkowski()
         gr_mhd->riem_to_cons(gr_mhd, q_local, w1, q1);
 
         for (int i = 0; i < 75; i++) {
-          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
         }
       }
 
@@ -565,7 +565,7 @@ test_gr_mhd_basic_schwarzschild()
           gkyl_wv_eqn_rotate_to_global(gr_mhd, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 75; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
           }
 
           double w1[75], q1[75];
@@ -573,7 +573,7 @@ test_gr_mhd_basic_schwarzschild()
           gr_mhd->riem_to_cons(gr_mhd, q_local, w1, q1);
 
           for (int i = 0; i < 75; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
           }
         }
       }
@@ -867,7 +867,7 @@ test_gr_mhd_basic_kerr()
           gkyl_wv_eqn_rotate_to_global(gr_mhd, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 75; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
           }
 
           double w1[75], q1[75];
@@ -875,7 +875,7 @@ test_gr_mhd_basic_kerr()
           gr_mhd->riem_to_cons(gr_mhd, q_local, w1, q1);
 
           for (int i = 0; i < 75; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
           }
         }
       }

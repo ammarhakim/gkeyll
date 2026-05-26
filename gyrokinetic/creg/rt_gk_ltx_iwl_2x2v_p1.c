@@ -53,14 +53,18 @@ struct gk_app_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
+// For IWL, this function must return the corner of the limiter plate at the IMP
+// on the LCFS when s=0
 void pfunc_upper(double s, double* RZ){
-    RZ[0] = 0.14047;
-    RZ[1] = -(s-0.061)*0.6;
+  RZ[0] = 0.1406517200151616;
+  RZ[1] = -s*0.6;
 }
 
+// For IWL, this function must return the corner of the limiter plate at the IMP
+// on the LCFS when s=0
 void pfunc_lower(double s, double* RZ){
-    RZ[0] = 0.14047;
-    RZ[1] = (s-0.061)*0.6;
+  RZ[0] = 0.1406517200151616;
+  RZ[1] = s*0.6;
 }
 
 // Electron source profiles.
@@ -176,7 +180,7 @@ create_ctx(void)
   // Geometry and magnetic field.
   double Lz        = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
   double B0 = 0.24;
-  double psi_LCFS = -5.4760172700000003e-03; // psi at LCFS. Taken from efit
+  double psi_LCFS = -0.0054760172700000; // psi at LCFS. Taken from efit
   double psi_min = psi_LCFS - 0.0004; // inner flux surface of domain
   double psi_max = psi_LCFS + 0.0012; // outer flux surface of domain
   double Lx = psi_max - psi_min;
@@ -215,7 +219,7 @@ create_ctx(void)
 
   // Grid parameters
   int Nx = 8;
-  int Nz = 16;
+  int Nz = 12;
   int Nvpar = 12;
   int Nmu = 8;
   int poly_order = 1;

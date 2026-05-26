@@ -444,6 +444,8 @@ test_p1_deflated(){
   gkyl_eval_on_nodes_release(eon);
   gkyl_nodal_ops_release(n2m);
   gkyl_nodal_ops_release(n2m_1d);
+  gkyl_deflate_zsurf_release(deflator_lo);
+  gkyl_deflate_zsurf_release(deflator_up);
 
 }
 
@@ -572,6 +574,8 @@ void test_p1_deflated_3d(){
   gkyl_eval_on_nodes_release(eon);
   gkyl_nodal_ops_release(n2m);
   gkyl_nodal_ops_release(n2m_2d);
+  gkyl_deflate_zsurf_release(deflator_lo);
+  gkyl_deflate_zsurf_release(deflator_up);
 
 }
 
@@ -627,6 +631,10 @@ test_p2_btype(enum gkyl_basis_type basis_type){
   check_same(local, basis, funcdg, funcdg2);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func2.gkyl");
 
+  gkyl_array_release(funcdg);
+  gkyl_array_release(funcdg2);
+  gkyl_array_release(nodal_fld);
+  
 }
 
 void

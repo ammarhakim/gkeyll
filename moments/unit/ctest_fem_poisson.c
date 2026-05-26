@@ -2738,6 +2738,7 @@ test_2x_varBC(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool
   gkyl_fem_poisson_release(poisson);
   gkyl_proj_on_basis_release(projob);
   gkyl_eval_on_nodes_release(projob_bc);
+  gkyl_array_release(phibc);
   gkyl_array_release(rho_ho);
   gkyl_array_release(phi_ho);
   gkyl_array_release(phibc_ho);

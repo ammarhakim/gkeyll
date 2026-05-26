@@ -142,6 +142,8 @@ struct gkyl_gyrokinetic_multib_field {
   const struct gkyl_gyrokinetic_bc *bcs;
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
+  
+  struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
 
 // Top-level app parameters: this
@@ -170,6 +172,9 @@ struct gkyl_gyrokinetic_multib {
   bool skip_field; // Skip field update -> phi = 0 for all time.
   // Field inputs.
   struct gkyl_gyrokinetic_multib_field field;
+
+  // EIRENE inputs
+  struct gkyl_gyrokinetic_eirene eirene;
 
   // Communicator to use.  
   struct gkyl_comm *comm;  

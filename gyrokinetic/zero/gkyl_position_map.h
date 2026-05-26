@@ -34,6 +34,7 @@ struct gkyl_position_map_inp {
   double compression_factor; // For PMAP_XPT_Compression. Specifies how much smaller the cells are
                              // near the X-point
   double radial_compression_factor; // Factor by which cells are compressed radially near xpt
+  bool compress_divertor; // Whether to apply compression at divertor plates for PMAP_XPT compression
 };
 struct gkyl_position_map_inew_inp {
   struct gkyl_position_map_inp pmap_info;
@@ -98,6 +99,7 @@ struct gkyl_position_map_xpt_ctx {
   void *ctxs_backup[3]; // Backup of the context for each position mapping function.
   double compression_factor; // Factor by which cells near X-point are compressed
   double radial_compression_factor; // Factor by which cells are compressed in radial direction at separatrix
+  bool compress_divertor; // Whether to apply compression at divertor plates
   double zcut; // Half-wavelength of sinusoidal mapping
   double zcenter; // Location of largest cells
   double w; // Radial width of domain in psi
