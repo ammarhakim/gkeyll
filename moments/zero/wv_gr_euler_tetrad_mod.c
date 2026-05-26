@@ -45,20 +45,10 @@ gkyl_gr_euler_tetrad_mod_set_auxfields(const struct gkyl_wv_eqn *eqn,
 {
   struct wv_gr_euler_tetrad_mod *grm = container_of(eqn,
     struct wv_gr_euler_tetrad_mod, eqn);
-  grm->auxfields.prods = auxin.prods;
-  grm->auxfields.gamma_eff_cache = auxin.gamma_eff_cache;
-}
-
-// Per-cell γ_eff cache slot lookup. Returns NULL if the cache isn't wired
-// (e.g. unit tests, no GR-mod species, IDEAL-only setups) or the cell idx
-// is outside the configured range — callers tolerate NULL by cold-starting
-// the Picard at γ=5/3.
-static inline double *
-fetch_gamma_eff_cell(const struct wv_gr_euler_tetrad_mod *grm, const int *idx)
-{
-  if (!grm->auxfields.gamma_eff_cache) return NULL;
-  long cidx = gkyl_range_idx(&grm->conf_range, idx);
-  return gkyl_array_fetch(grm->auxfields.gamma_eff_cache, cidx);
+  grm->auxfields.prods                   = auxin.prods;
+  grm->auxfields.prim_status_wave_prop   = auxin.prim_status_wave_prop;
+  grm->auxfields.repair_status_wave_prop = auxin.repair_status_wave_prop;
+  grm->auxfields.repair_status_source    = auxin.repair_status_source;
 }
 
 void
@@ -166,7 +156,7 @@ rot_spacetime_to_local(const double *tau1, const double *tau2,
 void
 gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
-  double *gamma_eff_cell, double v[5])
+  struct gkyl_gr_euler_prim_status *stat, double v[5])
 {
   bool in_excision_region = false;
   if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
@@ -186,11 +176,8 @@ gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
     // contracts |S|² with γ^{ij} and raises the velocity with γ^{ij};
     // both lookups go through the shared helper which is the single
     // source of truth for the Banyuls Newton solve. The EOS bundle
-    // controls the closing equation (IDEAL or MATHEWS_TAUB) in the
-    // helper's dual-Newton dispatch; gamma_eff_cell warm-starts the TM
-    // Picard from the cell's previous-step value (NULL = cold start at
-    // γ=5/3, which is what unit-test call sites and any caller without
-    // per-cell context use).
+    // controls the closing equation (IDEAL or APPROXIMATE_SYNGE) in
+    // the helper's dispatch.
     const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
     double inv_g[3][3] = {
       { ig[0], ig[1], ig[2] },
@@ -198,10 +185,8 @@ gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
       { ig[6], ig[7], ig[8] },
     };
     struct gkyl_gr_euler_prim prim;
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_PRIMS);
     gkyl_gr_euler_recover_primitives(eos,
-      D, momx, momy, momz, Etot, inv_g, gamma_eff_cell, &prim);
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_UNKNOWN);
+      D, momx, momy, momz, Etot, inv_g, stat, &prim);
 
     v[0] = prim.rho;
     v[1] = prim.v[0];
@@ -215,10 +200,11 @@ gkyl_gr_euler_tetrad_mod_prim_vars(struct gkyl_gr_euler_eos eos,
 
 void
 gkyl_gr_euler_tetrad_mod_flux(struct gkyl_gr_euler_eos eos, const double q[5],
-  const double *prods, double *gamma_eff_cell, double flux_sr[5])
+  const double *prods,
+  struct gkyl_gr_euler_prim_status *stat, double flux_sr[5])
 {
   double v[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, gamma_eff_cell, v);
+  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, stat, v);
   double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
 
   bool in_excision_region = false;
@@ -231,8 +217,8 @@ gkyl_gr_euler_tetrad_mod_flux(struct gkyl_gr_euler_eos eos, const double q[5],
     double W = 1.0 / sqrt(1.0 - v_dot);
     if (v_dot > 1.0 - pow(10.0, -8.0)) W = 1.0 / sqrt(pow(10.0, -8.0));
 
-    // EOS dispatch: IDEAL → 1 + γ/(γ-1)·p/ρ;
-    //               MATHEWS_TAUB → (5θ + √(9θ²+4))/2, θ = p/ρ.
+    // EOS dispatch via the shared helper (IDEAL γ-law or
+    // APPROXIMATE_SYNGE with the use_rcc closure selector).
     double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
 
     flux_sr[0] = rho * W * vx;
@@ -248,7 +234,7 @@ gkyl_gr_euler_tetrad_mod_flux(struct gkyl_gr_euler_eos eos, const double q[5],
 void
 gkyl_gr_euler_tetrad_mod_flux_correction(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
-  double *gamma_eff_cell,
+  struct gkyl_gr_euler_prim_status *stat,
   const double flux_sr[5], double flux_gr[5])
 {
   // Mirrors gkyl_gr_euler_tetrad_flux_correction in the packed implementation:
@@ -259,7 +245,7 @@ gkyl_gr_euler_tetrad_mod_flux_correction(struct gkyl_gr_euler_eos eos,
   // packed and mod-tetrad lives in the Roe solve. See wv_gr_euler_tetrad.c
   // for the parallel implementation.
   double v[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, gamma_eff_cell, v);
+  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, stat, v);
   double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
 
   double lapse        = prods[GKYL_GR_SP_LAPSE];
@@ -321,10 +307,10 @@ gkyl_gr_euler_tetrad_mod_flux_correction(struct gkyl_gr_euler_eos eos,
 double
 gkyl_gr_euler_tetrad_mod_max_abs_speed(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
-  double *gamma_eff_cell)
+  struct gkyl_gr_euler_prim_status *stat)
 {
   double v[5];
-  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, gamma_eff_cell, v);
+  gkyl_gr_euler_tetrad_mod_prim_vars(eos, q, prods, stat, v);
   double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
 
   double lapse   = prods[GKYL_GR_SP_LAPSE];
@@ -332,9 +318,8 @@ gkyl_gr_euler_tetrad_mod_max_abs_speed(struct gkyl_gr_euler_eos eos,
   double shift_y = prods[GKYL_GR_SP_SHIFT + 1];
   double shift_z = prods[GKYL_GR_SP_SHIFT + 2];
 
-  // Sound speed via EOS dispatch.
-  //   IDEAL: c_s² = γp / (ρh), h = 1 + γ/(γ-1)·p/ρ.
-  //   MATHEWS_TAUB: c_s² = θ(5h − 8θ) / (3h(h − θ)), θ = p/ρ.
+  // Sound speed via EOS dispatch (see gkyl_gr_euler_eos_cs2 for the
+  // per-EOS algebra).
   double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
   double cs2 = gkyl_gr_euler_eos_cs2(eos, rho, p, h);
   if (cs2 < 0.0) cs2 = 0.0;
@@ -839,7 +824,7 @@ gkyl_gr_euler_tetrad_mod_sr_roe_minkowski(double gas_gamma,
 double
 gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
-  double *gamma_eff_l_cell, double *gamma_eff_r_cell,
+  struct gkyl_gr_euler_prim_status *stat,
   double waves_tet[2 * 5], double speeds[2])
 {
   double D_l = ql_tet[0], D_r = qr_tet[0];
@@ -848,11 +833,11 @@ gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
   double tau_l = ql_tet[4], tau_r = qr_tet[4];
 
-  // Banyuls primitive recovery via the shared helper (eos dispatch: IDEAL
-  // → Eulderink-Mellema quartic Newton; MATHEWS_TAUB → Newton-in-Z). The
-  // Minkowski tetrad frame has γ_ij = δ_ij, so inv_g = I and the shared
-  // helper's curved-frame contraction collapses to the Cartesian dot
-  // product the original inline Newton used.
+  // Banyuls primitive recovery via the shared helper (IDEAL → Eulderink-
+  // Mellema quartic Newton; APPROXIMATE_SYNGE → TM cubic + optional RC
+  // Newton refinement). The Minkowski tetrad frame has γ_ij = δ_ij, so
+  // inv_g = I and the shared helper's curved-frame contraction collapses
+  // to the Cartesian dot product the original inline Newton used.
   //
   // Each side short-circuits to vacuum primitives when fed the all-zero
   // excision state (gkyl_gr_euler_tetrad_mod_is_zero_state). SR fluxes
@@ -869,13 +854,7 @@ gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
     rho_l = 1.0e-30; vx_l = vy_l = vz_l = 0.0; p_l = 0.0; W_l = 1.0; h_l = 1.0;
   } else {
     struct gkyl_gr_euler_prim pl;
-    // γ_eff warm-start: wave_hll caller fetched the left-cell slot from
-    // auxfields.gamma_eff_cache via cur_idxl. NULL OK (cold start at
-    // γ=5/3) when no cache is wired.
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_HLL);
-    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat,
-      gamma_eff_l_cell, &pl);
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_UNKNOWN);
+    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, stat, &pl);
     rho_l = pl.rho; vx_l = pl.v[0]; vy_l = pl.v[1]; vz_l = pl.v[2];
     p_l   = pl.p;   W_l  = pl.W;    h_l  = pl.h;
   }
@@ -883,10 +862,7 @@ gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
     rho_r = 1.0e-30; vx_r = vy_r = vz_r = 0.0; p_r = 0.0; W_r = 1.0; h_r = 1.0;
   } else {
     struct gkyl_gr_euler_prim pr;
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_HLL);
-    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat,
-      gamma_eff_r_cell, &pr);
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_UNKNOWN);
+    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, stat, &pr);
     rho_r = pr.rho; vx_r = pr.v[0]; vy_r = pr.v[1]; vz_r = pr.v[2];
     p_r   = pr.p;   W_r  = pr.W;    h_r  = pr.h;
   }
@@ -966,7 +942,7 @@ gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
 double
 gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
-  double *gamma_eff_l_cell, double *gamma_eff_r_cell,
+  struct gkyl_gr_euler_prim_status *stat,
   double waves_tet[2 * 5], double speeds[2])
 {
   double D_l = ql_tet[0], D_r = qr_tet[0];
@@ -989,12 +965,7 @@ gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
     rho_l = 1.0e-30; vx_l = vy_l = vz_l = 0.0; p_l = 0.0; W_l = 1.0; h_l = 1.0;
   } else {
     struct gkyl_gr_euler_prim pl;
-    // γ_eff warm-start: wave_lax caller fetched left-cell slot from
-    // auxfields.gamma_eff_cache via cur_idxl. NULL OK (cold start).
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_LAX);
-    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat,
-      gamma_eff_l_cell, &pl);
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_UNKNOWN);
+    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, stat, &pl);
     rho_l = pl.rho; vx_l = pl.v[0]; vy_l = pl.v[1]; vz_l = pl.v[2];
     p_l   = pl.p;   W_l  = pl.W;    h_l  = pl.h;
   }
@@ -1002,10 +973,7 @@ gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
     rho_r = 1.0e-30; vx_r = vy_r = vz_r = 0.0; p_r = 0.0; W_r = 1.0; h_r = 1.0;
   } else {
     struct gkyl_gr_euler_prim pr;
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_LAX);
-    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat,
-      gamma_eff_r_cell, &pr);
-    gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_UNKNOWN);
+    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, stat, &pr);
     rho_r = pr.rho; vx_r = pr.v[0]; vy_r = pr.v[1]; vz_r = pr.v[2];
     p_r   = pr.p;   W_r  = pr.W;    h_r  = pr.h;
   }
@@ -1114,7 +1082,7 @@ gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
 double
 gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
-  double *gamma_eff_l_cell, double *gamma_eff_r_cell,
+  struct gkyl_gr_euler_prim_status *stat,
   double waves_tet[3 * 5], double speeds[3],
   struct gkyl_gr_euler_tetrad_mod_hllc_diag *diag)
 {
@@ -1137,15 +1105,9 @@ gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
     { 0.0, 0.0, 1.0 },
   };
 
-  // γ_eff warm-start: wave_hllc caller fetched per-cell slots from
-  // auxfields.gamma_eff_cache via cur_idxl / cur_idxr. NULL OK (cold start).
   struct gkyl_gr_euler_prim pl, pr;
-  gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_HLLC);
-  gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat,
-    gamma_eff_l_cell, &pl);
-  gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat,
-    gamma_eff_r_cell, &pr);
-  gkyl_gr_euler_set_recovery_context(GR_EULER_CTX_UNKNOWN);
+  gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, stat, &pl);
+  gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, stat, &pr);
 
   double rho_l = pl.rho, vx_l = pl.v[0], vy_l = pl.v[1], vz_l = pl.v[2], p_l = pl.p, W_l = pl.W, h_l = pl.h;
   double rho_r = pr.rho, vx_r = pr.v[0], vy_r = pr.v[1], vz_r = pr.v[2], p_r = pr.p, W_r = pr.W, h_r = pr.h;
@@ -1153,16 +1115,16 @@ gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
 
   // Davis (1988) wave-speed estimate, eq (21–23) of MB05.
   // σ_s = c_s² / (γ²(1 − c_s²)), λ_± = (v_x ± √(σ_s(1 − v_x² + σ_s))) / (1 + σ_s).
-  // c_s² via EOS dispatch (IDEAL: γp/(ρh); MATHEWS_TAUB: θ(5h−8θ)/(3h(h−θ))).
+  // c_s² via EOS dispatch (see gkyl_gr_euler_eos_cs2).
   double cs2_l = gkyl_gr_euler_eos_cs2(eos, pl.rho, p_l, h_l);
   double cs2_r = gkyl_gr_euler_eos_cs2(eos, pr.rho, p_r, h_r);
   if (cs2_l < 0.0) cs2_l = 0.0;
   if (cs2_r < 0.0) cs2_r = 0.0;
   // Cap c_s² strictly below 1 so σ_s is finite. For IDEAL with Γ ≤ 2 the
-  // analytic bound is c_s² < Γ−1 ≤ 1; for MATHEWS_TAUB the analytic upper
-  // bound is the radiation-fluid limit c_s² → 1/3 as θ → ∞ (well below 1).
-  // The clamp here catches numerical near-saturation in degenerate
-  // configurations of the IDEAL branch (Γ → 2, ultra-relativistic).
+  // analytic bound is c_s² < Γ−1 ≤ 1; for APPROXIMATE_SYNGE the analytic
+  // upper bound is the radiation-fluid limit c_s² → 1/3 as θ → ∞ (well
+  // below 1). The clamp here catches numerical near-saturation in
+  // degenerate configurations of the IDEAL branch (Γ → 2, ultra-rel).
   if (cs2_l > 1.0 - 1.0e-12) cs2_l = 1.0 - 1.0e-12;
   if (cs2_r > 1.0 - 1.0e-12) cs2_r = 1.0 - 1.0e-12;
   double sigma_l = cs2_l / (W_l*W_l * (1.0 - cs2_l));
@@ -1535,14 +1497,10 @@ wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
 
   // Step 3: SR Lax in tetrad with symmetric ±amax envelope. The zero-
   // state special case inside sr_lax_minkowski handles vacuum primitives
-  // for whichever side is excised (no Newton blowup). γ_eff warm-start
-  // slots fetched from auxfields.gamma_eff_cache via cur_idxl / cur_idxr.
-  double *gamma_eff_l_cell = fetch_gamma_eff_cell(grm, grm->cur_idxl);
-  double *gamma_eff_r_cell = fetch_gamma_eff_cell(grm, grm->cur_idxr);
+  // for whichever side is excised (no Newton blowup).
   double waves_tet[2 * 5], speeds_tet[2];
   gkyl_gr_euler_tetrad_mod_sr_lax_minkowski(
-    eos, ql_tet, qr_tet, gamma_eff_l_cell, gamma_eff_r_cell,
-    waves_tet, speeds_tet);
+    eos, ql_tet, qr_tet, grm->auxfields.prim_status_wave_prop, waves_tet, speeds_tet);
 
   // Step 4: back-transform waves and speeds.
   double maxs_curved = 0.0;
@@ -1613,19 +1571,14 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
     return pow(10.0, -8.0);
   }
 
-  // Per-side γ_eff cache slots fetched from auxfields.gamma_eff_cache
-  // using cur_idxl / cur_idxr. NULL OK (cold start at γ=5/3) when cache
-  // is not wired.
-  double *gamma_eff_l_cell = fetch_gamma_eff_cell(grm, grm->cur_idxl);
-  double *gamma_eff_r_cell = fetch_gamma_eff_cell(grm, grm->cur_idxr);
-
   // Per-side GR Banyuls fluxes. flux_correction zeros the flux on
   // excised cells, giving the absorbing-BC contribution automatically.
+  struct gkyl_gr_euler_prim_status *stat = grm->auxfields.prim_status_wave_prop;
   double fl_sr[5], fr_sr[5], fl_gr[5], fr_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, gamma_eff_l_cell, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, gamma_eff_r_cell, fr_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, gamma_eff_l_cell, fl_sr, fl_gr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, gamma_eff_r_cell, fr_sr, fr_gr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, stat, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, stat, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, stat, fl_sr, fl_gr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, stat, fr_sr, fr_gr);
 
   // amax — full-3D max-abs characteristic speed (max over x/y/z). The
   // x-only variant was too tight in metrics with off-diagonal γ_xy and
@@ -1636,8 +1589,8 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
   // on bhl-repair-s2-#2 showed s²_new=-1.45e-1 (x-only) → +1.16
   // (full-3D). See SESSION_NOTES_3 §17 for the analysis. Excision
   // short-circuits to 1e-8.
-  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, ql, grm->prodl_local, gamma_eff_l_cell);
-  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, qr, grm->prodr_local, gamma_eff_r_cell);
+  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, ql, grm->prodl_local, stat);
+  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, qr, grm->prodr_local, stat);
   double amax = fmax(amaxl, amaxr);
   if (!(amax > 0.0)) {
     for (int k = 0; k < 2 * 5; k++) waves[k] = 0.0;
@@ -1811,18 +1764,13 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
   double gas_gamma = eos.gas_gamma;
   (void)gas_gamma;
 
-  // γ_eff warm-start slots fetched from the cache via cur_idxl / cur_idxr.
-  // Roe path is IDEAL-only (constructor asserts), so these are ignored
-  // inside the recovery, but threading them keeps the call sites uniform.
-  double *gamma_eff_l_cell = fetch_gamma_eff_cell(grm, grm->cur_idxl);
-  double *gamma_eff_r_cell = fetch_gamma_eff_cell(grm, grm->cur_idxr);
-
+  struct gkyl_gr_euler_prim_status *stat = grm->auxfields.prim_status_wave_prop;
   double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, gamma_eff_l_cell, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, gamma_eff_r_cell, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, stat, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, stat, fr_sr);
   double fl[5], fr[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, gamma_eff_l_cell, fl_sr, fl);
-  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, gamma_eff_r_cell, fr_sr, fr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, stat, fl_sr, fl);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, stat, fr_sr, fr);
 
   const double *w0 = &waves[0 * 5], *w1 = &waves[1 * 5], *w2 = &waves[2 * 5];
   double abs_s0 = fabs(s[0]), abs_s1 = fabs(s[1]), abs_s2 = fabs(s[2]);
@@ -1943,14 +1891,10 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   }
 
   // Step 3: pure Minkowski SR HLL with Davis bracket. Zero-state special
-  // case inside sr_hll_minkowski safely handles the vacuum side. γ_eff
-  // warm-start slots fetched from auxfields.gamma_eff_cache via
-  // cur_idxl / cur_idxr.
-  double *gamma_eff_l_cell = fetch_gamma_eff_cell(grm, grm->cur_idxl);
-  double *gamma_eff_r_cell = fetch_gamma_eff_cell(grm, grm->cur_idxr);
+  // case inside sr_hll_minkowski safely handles the vacuum side.
   double waves_tet[2 * 5], speeds_tet[2];
   gkyl_gr_euler_tetrad_mod_sr_hll_minkowski(
-    eos, ql_tet, qr_tet, gamma_eff_l_cell, gamma_eff_r_cell,
+    eos, ql_tet, qr_tet, grm->auxfields.prim_status_wave_prop,
     waves_tet, speeds_tet);
 
   // Step 4: back-transform waves and speeds with the new triad. The
@@ -2085,12 +2029,9 @@ wave_hllc(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   // gives τ-positivity from admissible inputs (MB05 §3.1.2). Pass NULL
   // for diag in production; the diagnostic struct is used only by the
   // cold-gas-fallback probe in ctest_wv_gr_euler_tetrad_mod_convA.c.
-  // γ_eff warm-start slots fetched via cur_idxl / cur_idxr.
-  double *gamma_eff_l_cell = fetch_gamma_eff_cell(grm, grm->cur_idxl);
-  double *gamma_eff_r_cell = fetch_gamma_eff_cell(grm, grm->cur_idxr);
   double waves_tet[3 * 5], speeds_tet[3];
   gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
-    eos, ql_tet, qr_tet, gamma_eff_l_cell, gamma_eff_r_cell,
+    eos, ql_tet, qr_tet, grm->auxfields.prim_status_wave_prop,
     waves_tet, speeds_tet, NULL);
 
   // Step 4: back-transform waves and speeds.
@@ -2170,16 +2111,15 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
   (void)gas_gamma;
 
   // flux_jump_func is the F-wave callback. Our Q-wave production setup
-  // doesn't invoke it (see notes in priv.h). Pass NULL for γ_eff cells —
-  // if a future F-wave run wants warm-start, fetch via cur_idxl/cur_idxr
-  // as done in the wave_* paths above.
+  // doesn't invoke it (see notes in priv.h).
+  struct gkyl_gr_euler_prim_status *stat = grm->auxfields.prim_status_wave_prop;
   double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, NULL, fl_sr);
-  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, NULL, fr_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, ql, grm->prodl_local, stat, fl_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qr, grm->prodr_local, stat, fr_sr);
 
   double fl[5], fr[5];
-  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, NULL, fl_sr, fl);
-  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, NULL, fr_sr, fr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, ql, grm->prodl_local, stat, fl_sr, fl);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qr, grm->prodr_local, stat, fr_sr, fr);
 
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
@@ -2189,8 +2129,8 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
     for (int m = 0; m < 5; m++) flux_jump[m] = 0.0;
   }
 
-  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, ql, grm->prodl_local, NULL);
-  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, qr, grm->prodr_local, NULL);
+  double amaxl = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, ql, grm->prodl_local, stat);
+  double amaxr = gkyl_gr_euler_tetrad_mod_max_abs_speed(eos, qr, grm->prodr_local, stat);
   return fmax(amaxl, amaxr);
 }
 
@@ -2268,31 +2208,20 @@ repair_state(const struct gkyl_wv_eqn *eqn, double *q)
   unsigned int fixed =
     gkyl_gr_euler_repair_admissibility_cascade(inv_g, &D, &Sx, &Sy, &Sz, &tau);
 
-  // Per-constraint independent tallies, split by call-site context. A
-  // non-zero wave_prop count means the post-positivity-sweep low-order
-  // (Lax/HLL) flux failed to produce an admissible state — which our
-  // unit tests say should never happen. Source counts dominate when
-  // the SSP-RK3 forward-Euler pushes already-admissible cells across
-  // an admissibility boundary inside a stage.
-  uint64_t *cnt = (eqn->cur_repair_ctx == 1)
-    ? grm->repair_count_wave_prop
-    : grm->repair_count_source;
-  if (fixed & GR_EULER_REPAIR_D)   cnt[GR_EULER_ADM_BAD_D]   += 1;
-  if (fixed & GR_EULER_REPAIR_TAU) cnt[GR_EULER_ADM_BAD_TAU] += 1;
-  if (fixed & GR_EULER_REPAIR_S2)  cnt[GR_EULER_ADM_BAD_S2]  += 1;
-
-  // After cascade-repair the cell's state has jumped (potentially across
-  // a regime boundary like cold→post-shock). The γ_eff warm-start cache
-  // for this cell now holds a stale value — using it as the next Picard
-  // initial guess can push EM Newton into a bad iterate (we observed
-  // ∼40k Newton-cap-hits in BHL TM caused by this stale warm-start). Reset
-  // the slot to the cold-flow default 5/3 so the next recovery cold-starts.
-  // Only fires when ANY admissibility constraint was repaired — admissible
-  // cells passing through here (no fixed bits set) keep their γ_eff cache.
-  if (fixed != GR_EULER_REPAIR_NONE && grm->auxfields.gamma_eff_cache) {
-    double *gamma_eff_cell = gkyl_array_fetch(
-      grm->auxfields.gamma_eff_cache, cidx);
-    *gamma_eff_cell = 5.0 / 3.0;
+  // Per-constraint independent tallies. Wave-prop and source-step calls
+  // route to separate repair_status buckets, selected by eqn->cur_repair_ctx
+  // (set by the caller). A non-zero count on the wave-prop side means
+  // the post-positivity-sweep low-order (Lax/HLL) flux failed to produce
+  // an admissible state — should be rare. Source counts dominate when
+  // the SSP-RK3 forward-Euler pushes already-admissible cells across an
+  // admissibility boundary inside a stage.
+  struct gkyl_gr_euler_repair_status *rstat = (eqn->cur_repair_ctx == 1)
+    ? grm->auxfields.repair_status_wave_prop
+    : grm->auxfields.repair_status_source;
+  if (rstat) {
+    if (fixed & GR_EULER_REPAIR_D)   rstat->bad_D_fixes   += 1;
+    if (fixed & GR_EULER_REPAIR_TAU) rstat->bad_tau_fixes += 1;
+    if (fixed & GR_EULER_REPAIR_S2)  rstat->bad_s2_fixes  += 1;
   }
 
   q[0] = D   * sd;
@@ -2310,10 +2239,8 @@ max_speed_func(const struct gkyl_wv_eqn *eqn, const double *q)
   if (!grm->auxfields.prods) return 1.0;
   long cidx = gkyl_range_idx(&grm->conf_range, grm->cur_cell_idx);
   const double *prods = gkyl_array_cfetch(grm->auxfields.prods, cidx);
-  // γ_eff warm-start: fetch this cell's slot. NULL OK (cold start) if no
-  // cache is wired.
-  double *gamma_eff_cell = fetch_gamma_eff_cell(grm, grm->cur_cell_idx);
-  return gkyl_gr_euler_tetrad_mod_max_abs_speed(grm->eos, q, prods, gamma_eff_cell);
+  return gkyl_gr_euler_tetrad_mod_max_abs_speed(grm->eos, q, prods,
+    grm->auxfields.prim_status_wave_prop);
 }
 
 static inline void
@@ -2341,51 +2268,9 @@ gkyl_gr_euler_tetrad_mod_free(const struct gkyl_ref_count *ref)
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_gr_euler_tetrad_mod *grm = container_of(base,
     struct wv_gr_euler_tetrad_mod, eqn);
-
-  // Per-constraint independent counts, split by call site. A non-zero
-  // wave_prop count would mean the low-order POSITIVITY_SWEEP flux did
-  // not preserve admissibility — the unit tests assert this never
-  // happens for Lax/HLL on admissible inputs, so any nonzero here is a
-  // signal that the positivity-sweep mechanism itself is broken.
-  uint64_t total_source =
-      grm->repair_count_source[GR_EULER_ADM_BAD_D]
-    + grm->repair_count_source[GR_EULER_ADM_BAD_TAU]
-    + grm->repair_count_source[GR_EULER_ADM_BAD_S2];
-  uint64_t total_wave_prop =
-      grm->repair_count_wave_prop[GR_EULER_ADM_BAD_D]
-    + grm->repair_count_wave_prop[GR_EULER_ADM_BAD_TAU]
-    + grm->repair_count_wave_prop[GR_EULER_ADM_BAD_S2];
-  if (total_source + total_wave_prop > 0) {
-    fprintf(stderr,
-      "[gr_euler_tetrad_mod] cascade-repair fix totals: %llu fixes "
-      "(source: %llu, wave_prop: %llu)\n",
-      (unsigned long long)(total_source + total_wave_prop),
-      (unsigned long long)total_source,
-      (unsigned long long)total_wave_prop);
-    fprintf(stderr,
-      "  source     — D<=0: %llu, tau<0: %llu, s^2<=0: %llu\n",
-      (unsigned long long)grm->repair_count_source[GR_EULER_ADM_BAD_D],
-      (unsigned long long)grm->repair_count_source[GR_EULER_ADM_BAD_TAU],
-      (unsigned long long)grm->repair_count_source[GR_EULER_ADM_BAD_S2]);
-    fprintf(stderr,
-      "  wave_prop  — D<=0: %llu, tau<0: %llu, s^2<=0: %llu\n",
-      (unsigned long long)grm->repair_count_wave_prop[GR_EULER_ADM_BAD_D],
-      (unsigned long long)grm->repair_count_wave_prop[GR_EULER_ADM_BAD_TAU],
-      (unsigned long long)grm->repair_count_wave_prop[GR_EULER_ADM_BAD_S2]);
-    fprintf(stderr,
-      "  tau-limiter fires (source-step preemptive scaling): %llu\n",
-      (unsigned long long)gkyl_moment_spacetime_coupling_tau_limiter_fires());
-    fprintf(stderr,
-      "  s2-limiter  fires (source-step quadratic scaling):  %llu\n",
-      (unsigned long long)gkyl_moment_spacetime_coupling_s2_limiter_fires());
-  }
-
-  // Recovery-iteration instrumentation: print the inner-Newton and outer-
-  // Picard histograms. Useful for diagnosing where the wall-clock cost of
-  // the recovery lives (especially for the TM Picard path which can be
-  // ~7× slower than IDEAL on cold-→shock-heated flows like BHL).
-  gkyl_gr_euler_print_recovery_stats(stderr);
-
+  // Instrumentation now lives in app-owned per-species
+  // {prim_status, repair_status} buckets — see
+  // gkyl_moment_app_gr_euler_print_status for the opt-in dump.
   gkyl_free(grm);
 }
 
@@ -2414,7 +2299,8 @@ gkyl_wv_gr_euler_tetrad_mod_inew(
   grm->eqn.num_diag = 5;
 
   // Resolve the EOS. Two input pathways:
-  //   (a) New callers populate inp->eos directly (type IDEAL or MATHEWS_TAUB).
+  //   (a) New callers populate inp->eos directly (type IDEAL or
+  //       APPROXIMATE_SYNGE, plus use_rcc for the latter).
   //   (b) Legacy callers populate only inp->gas_gamma; inp->eos is then
   //       zero-initialized (type = IDEAL, gas_gamma = 0.0) and we copy
   //       inp->gas_gamma into the eos bundle so downstream code sees IDEAL.
@@ -2430,18 +2316,17 @@ gkyl_wv_gr_euler_tetrad_mod_inew(
          || grm->eos.type == GR_EULER_EOS_IDEAL);
 
   grm->conf_range = inp->conf_range;
-  grm->auxfields.prods = NULL;
+  grm->auxfields.prods                   = NULL;
+  grm->auxfields.prim_status_wave_prop   = NULL;
+  grm->auxfields.repair_status_wave_prop = NULL;
+  grm->auxfields.repair_status_source    = NULL;
+  grm->eqn.cur_repair_ctx = 0;
   grm->rot_call_parity = 0;
   for (int d = 0; d < GKYL_MAX_DIM; d++) {
     grm->cur_idxl[d] = 0;
     grm->cur_idxr[d] = 0;
     grm->cur_cell_idx[d] = 0;
   }
-  for (int k = 0; k < 4; k++) {
-    grm->repair_count_source[k]    = 0;
-    grm->repair_count_wave_prop[k] = 0;
-  }
-  grm->eqn.cur_repair_ctx = 0;
 
   if (inp->rp_type == WV_GR_EULER_TETRAD_RP_LAX) {
     grm->eqn.num_waves = 2;
@@ -2488,17 +2373,6 @@ gkyl_wv_gr_euler_tetrad_mod_inew(
   grm->eqn.on_dev = &grm->eqn;
 
   return &grm->eqn;
-}
-
-double
-gkyl_wv_gr_euler_tetrad_mod_gas_gamma(const struct gkyl_wv_eqn *eqn)
-{
-  const struct wv_gr_euler_tetrad_mod *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad_mod, eqn);
-  // For MATHEWS_TAUB this returns 0.0 (eos.gas_gamma is unset); callers
-  // that need to distinguish EOS types should use the
-  // gkyl_wv_gr_euler_tetrad_mod_eos accessor.
-  return grm->eos.gas_gamma;
 }
 
 struct gkyl_gr_euler_eos

@@ -201,7 +201,12 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // least one species is a GR-mod variant; otherwise spacetime_slvr stays
   // NULL and the spacetime path costs nothing.
   src->spacetime_slvr = NULL;
-  src->gamma_eff_cache = NULL;
+  for (int i = 0; i < GKYL_MAX_SPECIES; i++) {
+    src->gr_euler_prim_status_wave_prop[i]   = NULL;
+    src->gr_euler_repair_status_wave_prop[i] = NULL;
+    src->gr_euler_prim_status_source[i]      = NULL;
+    src->gr_euler_repair_status_source[i]    = NULL;
+  }
   if (app->has_spacetime) {
     bool any_mod = false;
     for (int i = 0; i < app->num_species; i++) {
@@ -233,9 +238,9 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
           };
           st_inp.eqn[i] = app->species[i].equation;
         } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
-          // Tetrad mod: full EOS bundle (IDEAL or MATHEWS_TAUB) lives on
-          // the equation object — read it back so the source-step uses
-          // the same closure the wave-step does.
+          // Tetrad mod: full EOS bundle (IDEAL or APPROXIMATE_SYNGE)
+          // lives on the equation object — read it back so the
+          // source-step uses the same closure the wave-step does.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
             .type = t,
             .eos = gkyl_wv_gr_euler_tetrad_mod_eos(app->species[i].equation),
@@ -253,31 +258,38 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       }
       src->spacetime_slvr = gkyl_moment_spacetime_coupling_new(st_inp);
 
-      // Allocate the γ_eff warm-start cache (one scalar per cell on the
-      // local extended range). Initialize to 5/3 — the cold-flow TM limit
-      // and the IDEAL γ for most BHL-style setups. Cells that genuinely
-      // need γ_eff ≈ 4/3 (post-shock) will converge there on their first
-      // few timesteps; subsequent steps then warm-start from the right
-      // neighborhood.
-      src->gamma_eff_cache = mkarr(false, 1, app->local_ext.volume);
-      gkyl_array_clear(src->gamma_eff_cache, 5.0 / 3.0);
-
-      // Share the cache with each tetrad-mod equation object via its
-      // auxfields. The earlier set_auxfields call in moment.c installs
-      // only the prods array (gamma_eff_cache wasn't allocated yet at
-      // that point); now that we have the array, re-install with both.
-      // The equation object's wave_* / max_abs_speed paths read/write the
-      // cache during the wave_prop step; the source coupling reads/writes
-      // it during the source step. Same underlying array — both updaters
-      // see the most recent converged γ_eff per cell.
+      // Allocate per-species GR Euler tetrad-mod instrumentation buckets:
+      // one wave-prop side prim+repair status and one source side prim+
+      // repair status. Attach wave-prop + source-repair pointers to the
+      // equation's auxfields so the equation's wave-prop hooks and
+      // repair_state callback can write into them.
       for (int i = 0; i < app->num_species; i++) {
-        if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD_MOD) {
-          gkyl_gr_euler_tetrad_mod_set_auxfields(app->species[i].equation,
-            (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){
-              .prods            = app->spacetime.prods,
-              .gamma_eff_cache  = src->gamma_eff_cache,
-            });
-        }
+        if (app->species[i].eqn_type != GKYL_EQN_GR_EULER_TETRAD_MOD)
+          continue;
+        src->gr_euler_prim_status_wave_prop[i] =
+          gkyl_malloc(sizeof(struct gkyl_gr_euler_prim_status));
+        src->gr_euler_repair_status_wave_prop[i] =
+          gkyl_malloc(sizeof(struct gkyl_gr_euler_repair_status));
+        src->gr_euler_prim_status_source[i] =
+          gkyl_malloc(sizeof(struct gkyl_gr_euler_prim_status));
+        src->gr_euler_repair_status_source[i] =
+          gkyl_malloc(sizeof(struct gkyl_gr_euler_repair_status));
+        memset(src->gr_euler_prim_status_wave_prop[i], 0,
+          sizeof(struct gkyl_gr_euler_prim_status));
+        memset(src->gr_euler_repair_status_wave_prop[i], 0,
+          sizeof(struct gkyl_gr_euler_repair_status));
+        memset(src->gr_euler_prim_status_source[i], 0,
+          sizeof(struct gkyl_gr_euler_prim_status));
+        memset(src->gr_euler_repair_status_source[i], 0,
+          sizeof(struct gkyl_gr_euler_repair_status));
+
+        gkyl_gr_euler_tetrad_mod_set_auxfields(app->species[i].equation,
+          (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){
+            .prods                   = app->spacetime.prods,
+            .prim_status_wave_prop   = src->gr_euler_prim_status_wave_prop[i],
+            .repair_status_wave_prop = src->gr_euler_repair_status_wave_prop[i],
+            .repair_status_source    = src->gr_euler_repair_status_source[i],
+          });
       }
     }
   }
@@ -466,7 +478,8 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   if (src->spacetime_slvr) {
     gkyl_moment_spacetime_coupling_explicit_advance(src->spacetime_slvr,
       tcurr, dt, &app->local, fluids, app->spacetime.prods,
-      src->gamma_eff_cache);
+      (struct gkyl_gr_euler_prim_status **)src->gr_euler_prim_status_source,
+      (struct gkyl_gr_euler_repair_status **)src->gr_euler_repair_status_source);
   }
 
   for (int i=0; i<app->num_species; ++i) {
@@ -501,7 +514,15 @@ moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_c
     gkyl_moment_braginskii_release(src->brag_slvr);
   if (src->spacetime_slvr)
     gkyl_moment_spacetime_coupling_release(src->spacetime_slvr);
-  if (src->gamma_eff_cache)
-    gkyl_array_release(src->gamma_eff_cache);
+  for (int i = 0; i < app->num_species; i++) {
+    if (src->gr_euler_prim_status_wave_prop[i])
+      gkyl_free(src->gr_euler_prim_status_wave_prop[i]);
+    if (src->gr_euler_repair_status_wave_prop[i])
+      gkyl_free(src->gr_euler_repair_status_wave_prop[i]);
+    if (src->gr_euler_prim_status_source[i])
+      gkyl_free(src->gr_euler_prim_status_source[i]);
+    if (src->gr_euler_repair_status_source[i])
+      gkyl_free(src->gr_euler_repair_status_source[i]);
+  }
 }
 

@@ -1,32 +1,24 @@
--- 2D Bondi-Hoyle-Lyttleton accretion onto a static (Schwarzschild) black
--- hole, modular tetrad-basis GR Euler with the APPROXIMATE_SYNGE
--- equation of state using the Mathews-Taub (TM) enthalpy closure.
--- Structural clone of rt_gr_bhl_static_tetrad_mod.lua (IDEAL γ=5/3) with
--- identical primitive initial conditions (ρ, u, p) and grid; only the EOS
--- closure differs.
+-- 2D Bondi-Hoyle-Lyttleton accretion onto a SPINNING (Kerr) black hole in
+-- Cartesian Kerr-Schild coordinates, modular tetrad-basis GR Euler with
+-- the APPROXIMATE_SYNGE equation of state using the Ryu-Chattopadhyay
+-- (RCC) enthalpy closure. Structural clone of
+-- rt_gr_bhl_spinning_tetrad_mod.lua with the EOS switched from IDEAL
+-- γ=5/3 to APPROXIMATE_SYNGE (useRcc = true).
 --
--- EOS selection: `eos = "approx_synge"` with `useRcc = false` selects the
--- closed-form Mathews-Taub cubic recovery
---   h(θ) = (5θ + √(9θ² + 4))/2,  θ = p/ρ
--- which interpolates between non-relativistic (Γ→5/3, c_s²→5p/(3ρ)) and
--- ultra-relativistic (Γ→4/3, c_s²→1/3) limits in a single convex closure.
--- This matters most behind the bow shock, where the post-shock gas heats
--- to mildly relativistic temperatures (p/ρ ~ O(0.1–1)) and the ideal-
--- γ=5/3 closure overestimates h relative to TM.
+-- Exercise: even with spin = -0.5, the static-vs-spinning Cartesian
+-- Kerr-Schild metric has the same NON-trivial shift (β^i ≠ 0) and
+-- off-diagonal γ_ij components as the static case. What this case adds
+-- is genuine frame-dragging on top — useful for confirming that the
+-- RCC dispatch (sanity check, cold-flow fallback, paper-grounded
+-- physicality check) remains robust at higher spin.
 --
--- Roe is incompatible with non-IDEAL EOSs at the equation-object level
--- (the SR-Roe eigenstructure uses the ideal-gas Jacobian). We keep
--- rpType="hll" to match the IDEAL case.
---
--- See rt_gr_bhl_static_tetrad_mod.lua for the geometric / spacetime setup.
+-- See rt_gr_bhl_spinning_tetrad_mod.lua for the IDEAL baseline of the
+-- same geometry, and rt_gr_bhl_static_tetrad_mod_rc.lua for the
+-- RCC-EOS-specific dispatch documentation.
 
 local Moments = G0.Moments
 local GREulerTetradMod = G0.Moments.Eq.GREulerTetradMod
 local BlackHole = G0.Moments.Spacetime.BlackHole
-
--- Effective adiabatic index for the IC primitive→conservative conversion.
--- TM is a closure on h(p, ρ); to seed the conservative state we need a
--- specific h at the initial (ρ, p). We use the TM expression directly.
 
 rhol = 3.0
 ul   = 0.3
@@ -37,7 +29,7 @@ ur   = 0.0
 pr   = 0.01
 
 mass = 0.3
-spin = 0.0
+spin = -0.5
 
 pos_x = 2.5
 pos_y = 2.5
@@ -47,7 +39,7 @@ Nx = 256
 Ny = 256
 Lx = 5.0
 Ly = 5.0
-cfl_frac = 0.5  -- Strict 2D directional-splitting CFL (cfla_x + cfla_y ≤ 1.0).
+cfl_frac = 0.5 -- Strict 2D directional-splitting CFL (cfla_x + cfla_y ≤ 1.0)
 
 reinit_freq = 100
 
@@ -60,10 +52,13 @@ num_failures_max = 20
 
 x_loc = 1.0
 
--- Mathews-Taub specific enthalpy: h(θ) = (5θ + √(9θ² + 4))/2, θ = p/ρ.
-local function tm_enthalpy(rho, p)
+-- Ryu-Chattopadhyay specific enthalpy: h(θ) = 2(6θ² + 4θ + 1)/(3θ + 2),
+-- θ = p/ρ. Used to seed the conservative state from the initial
+-- primitive state; the equation object computes the same enthalpy
+-- internally during evolution.
+local function rc_enthalpy(rho, p)
   local theta = p / rho
-  return 0.5 * (5.0 * theta + math.sqrt(9.0 * theta * theta + 4.0))
+  return 2.0 * (6.0*theta*theta + 4.0*theta + 1.0) / (3.0*theta + 2.0)
 end
 
 momentApp = Moments.App.new {
@@ -90,11 +85,9 @@ momentApp = Moments.App.new {
   },
 
   fluid = Moments.Species.new {
-    -- APPROXIMATE_SYNGE with the Mathews-Taub enthalpy closure
-    -- (useRcc = false skips the RC Newton refinement).
     equation = GREulerTetradMod.new {
       eos = "approx_synge",
-      useRcc = false,
+      useRcc = true,
       rpType = "hll",
     },
 
@@ -132,11 +125,7 @@ momentApp = Moments.App.new {
         W = 1.0 / math.sqrt(1.0 - math.pow(10.0, -8.0))
       end
 
-      -- Mathews-Taub specific enthalpy. The IC primitive state is
-      -- identical to the IDEAL run; only the closure that converts
-      -- (ρ, p) → h differs. Same (ρ, u, p) seeds different (τ, S_i)
-      -- because τ = ρhW² − p − ρW depends on h.
-      local h = tm_enthalpy(rho, p)
+      local h = rc_enthalpy(rho, p)
 
       -- Convention A: S_i = γ_ij·ρhW²·v^j (genuine covariant momentum).
       local v_lower = { 0.0, 0.0, 0.0 }

@@ -1306,19 +1306,18 @@ static struct luaL_Reg eqn_gr_euler_mod_ctor[] = {
 //
 // EOS dispatch (in priority order):
 //   (1) Explicit `eos = "<string>"`:
-//         "ideal"  → IDEAL γ-law (gasGamma required, default 5/3)
-//         "tm" / "mathews-taub"           → MATHEWS_TAUB
-//         "rc" / "ryu-chattopadhyay"      → RYU_CHATTOPADHYAY
-//   (2) If no `eos` string but `gasGamma` is present → IDEAL (legacy path).
-//   (3) Otherwise → MATHEWS_TAUB (legacy default for relativistic-aware
-//       BHL inputs that omitted gasGamma).
+//         "ideal"        → IDEAL γ-law (gasGamma required, default 5/3)
+//         "approx_synge" → APPROXIMATE_SYNGE. Honors `useRcc` bool
+//                           (default true) to pick the RCC vs TM enthalpy
+//                           closure within the dispatch — see prim_priv.h.
+//   (2) If no `eos` string but `gasGamma` is present → IDEAL (legacy).
+//   (3) Otherwise → APPROXIMATE_SYNGE with useRcc=true (legacy default
+//       for relativistic-aware BHL inputs that omitted gasGamma).
 //
-// Both MATHEWS_TAUB and RYU_CHATTOPADHYAY interpolate between non-rel
-// (Γ=5/3) and ultra-rel (Γ=4/3, c_s²=1/3); RC fits the Synge gas tighter
-// (~0.8% h error vs TM's ~2%) at the cost of an iterative recovery (TM
-// has a closed-form cubic; RC requires Newton on a degree-8 polynomial,
-// warm-started from the TM cubic for fast convergence). Use RC for science
-// runs where post-shock thermodynamics accuracy matters; TM is faster.
+// RCC (use_rcc=true) fits the Synge gas tighter (~0.8% h error vs TM's
+// ~2%) at the cost of a Newton refinement on top of the TM cubic. Use
+// RCC for science runs where post-shock thermodynamics accuracy matters;
+// the TM cubic alone is faster.
 //
 // Roe is incompatible with non-IDEAL EOSs (eigenstructure is IDEAL-only);
 // the equation object asserts this at construction time.
@@ -1327,24 +1326,17 @@ eqn_gr_euler_tetrad_mod_lw_new(lua_State *L)
 {
   struct wv_eqn_lw *gr_euler_tetrad_mod_lw = gkyl_malloc(sizeof(*gr_euler_tetrad_mod_lw));
 
-  struct gkyl_gr_euler_eos eos;
+  struct gkyl_gr_euler_eos eos = { 0 };
   if (glua_tbl_has_key(L, "eos")) {
     const char *eos_str = glua_tbl_get_string(L, "eos", "ideal");
     if (strcmp(eos_str, "ideal") == 0) {
       eos.type = GR_EULER_EOS_IDEAL;
       eos.gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
     }
-    else if (strcmp(eos_str, "tm") == 0
-          || strcmp(eos_str, "mathews-taub") == 0
-          || strcmp(eos_str, "mathewsTaub") == 0) {
-      eos.type = GR_EULER_EOS_MATHEWS_TAUB;
-      eos.gas_gamma = 0.0;
-    }
-    else if (strcmp(eos_str, "rc") == 0
-          || strcmp(eos_str, "ryu-chattopadhyay") == 0
-          || strcmp(eos_str, "ryuChattopadhyay") == 0) {
-      eos.type = GR_EULER_EOS_RYU_CHATTOPADHYAY;
-      eos.gas_gamma = 0.0;
+    else if (strcmp(eos_str, "approx_synge") == 0
+          || strcmp(eos_str, "approxSynge") == 0) {
+      eos.type = GR_EULER_EOS_APPROXIMATE_SYNGE;
+      eos.use_rcc = glua_tbl_get_bool(L, "useRcc", true);
     }
     else {
       // Unknown EOS string — fall back to IDEAL with default γ.
@@ -1356,8 +1348,8 @@ eqn_gr_euler_tetrad_mod_lw_new(lua_State *L)
     eos.type = GR_EULER_EOS_IDEAL;
     eos.gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
   } else {
-    eos.type = GR_EULER_EOS_MATHEWS_TAUB;
-    eos.gas_gamma = 0.0;
+    eos.type = GR_EULER_EOS_APPROXIMATE_SYNGE;
+    eos.use_rcc = true;
   }
 
   const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");

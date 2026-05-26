@@ -1,21 +1,23 @@
 -- 2D Bondi-Hoyle-Lyttleton accretion onto a static (Schwarzschild) black
--- hole, modular tetrad-basis GR Euler with the RYU-CHATTOPADHYAY equation
--- of state. Structural clone of rt_gr_bhl_static_tetrad_mod_tm.lua with
--- the EOS switched from Mathews-Taub to Ryu-Chattopadhyay (Ryu+ 2006).
+-- hole, modular tetrad-basis GR Euler with the APPROXIMATE_SYNGE
+-- equation of state using the Ryu-Chattopadhyay (RCC) enthalpy closure.
+-- Structural clone of rt_gr_bhl_static_tetrad_mod_tm.lua with `useRcc`
+-- flipped from false to true.
 --
--- EOS selection: explicit `eos = "rc"` dispatches the equation object to
--- the RC closure
+-- EOS selection: `eos = "approx_synge"` with `useRcc = true` runs the
+-- closed-form TM cubic recovery, then refines with the Ryu-Chattopadhyay
+-- closure
 --   h(θ) = 2(6θ² + 4θ + 1)/(3θ + 2),  θ = p/ρ
--- which has the same non-rel (Γ→5/3) and ultra-rel (Γ→4/3) asymptotic
--- limits as TM but fits the Synge (single-component perfect relativistic
--- gas) enthalpy tighter: ~0.8% maximum h error vs TM's ~2%. Useful for
+-- via Newton on the degree-8 polynomial (Ryu+ 2006 eq 29), warm-started
+-- from the TM cubic (~3-5 iterations in practice). The RCC closure has
+-- the same non-rel (Γ→5/3) and ultra-rel (Γ→4/3) asymptotic limits as
+-- TM but fits the Synge (single-component perfect relativistic gas)
+-- enthalpy tighter: ~0.8% maximum h error vs TM's ~2%. Useful for
 -- BHL/shock-heated flows where the trans-rel post-shock thermodynamics
 -- depends on the enthalpy curve away from the asymptotic limits.
 --
--- Recovery cost: TM has a closed-form analytic cubic. RC requires Newton
--- iteration on a degree-8 polynomial (Ryu+ eq 29), warm-started from the
--- TM cubic for fast convergence (~3-5 iterations in practice). The cold-
--- flow fallback to EM Newton at γ=5/3 (θ < 1e-4) is shared with TM.
+-- The cold-flow fallback to EM Newton at γ=5/3 (θ_tm < 1e-6) and the
+-- closed-form TM cubic dispatch are shared with the TM variant.
 --
 -- Roe is incompatible with non-IDEAL EOSs at the equation-object level
 -- (SR-Roe eigenstructure uses the ideal-gas Jacobian). rpType="hll".
@@ -92,9 +94,13 @@ momentApp = Moments.App.new {
   },
 
   fluid = Moments.Species.new {
-    -- Explicit EOS selection — "rc" dispatches to Ryu-Chattopadhyay.
+    -- APPROXIMATE_SYNGE with the Ryu-Chattopadhyay enthalpy closure
+    -- (useRcc = true enables the RC Newton refinement on top of the
+    -- TM cubic). `useRcc = true` is also the default when no `useRcc`
+    -- is specified.
     equation = GREulerTetradMod.new {
-      eos = "rc",
+      eos = "approx_synge",
+      useRcc = true,
       rpType = "hll",
     },
 

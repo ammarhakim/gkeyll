@@ -996,6 +996,147 @@ gkyl_moment_app_cout(const gkyl_moment_app* app, FILE *fp, const char *fmt, ...)
   va_end(argp);
 }
 
+// Helper: dump one prim_status block to fp.
+static void
+gr_euler_print_prim_status(FILE *fp, const char *label,
+  const struct gkyl_gr_euler_prim_status *s)
+{
+  if (!s) return;
+  fprintf(fp, "  [%s prim_status]\n", label);
+
+  if (s->em_newton_calls > 0) {
+    fprintf(fp,
+      "    EM-Newton: %llu calls, total %llu iters, avg %.2f iters/call, max %d, cap-hits %llu\n",
+      (unsigned long long)s->em_newton_calls,
+      (unsigned long long)s->em_newton_total_iters,
+      s->em_newton_calls > 0
+        ? (double)s->em_newton_total_iters / (double)s->em_newton_calls : 0.0,
+      s->em_newton_max_iters,
+      (unsigned long long)s->em_newton_cap_hits);
+    const char *labels[] = {
+      "  ≤4   ", "  5–8  ", "  9–16 ", "  17–32", "  33–64", "  65–99", "  100  "
+    };
+    for (int b = 0; b < GR_EULER_NEWTON_HIST_NBINS; b++)
+      fprintf(fp, "      %s : %llu\n", labels[b],
+        (unsigned long long)s->em_newton_iter_hist[b]);
+  }
+
+  if (s->rc_newton_calls > 0) {
+    fprintf(fp,
+      "    RC-Newton: %llu calls, total %llu iters, avg %.2f iters/call, max %d\n",
+      (unsigned long long)s->rc_newton_calls,
+      (unsigned long long)s->rc_newton_total_iters,
+      s->rc_newton_calls > 0
+        ? (double)s->rc_newton_total_iters / (double)s->rc_newton_calls : 0.0,
+      s->rc_newton_max_iters);
+    const char *labels[] = {
+      "  ≤4   ", "  5–8  ", "  9–16 ", "  17–32", "  33–64", "  65–99", "  100  "
+    };
+    for (int b = 0; b < GR_EULER_NEWTON_HIST_NBINS; b++)
+      fprintf(fp, "      %s : %llu\n", labels[b],
+        (unsigned long long)s->rc_newton_iter_hist[b]);
+  }
+
+  uint64_t total_path = s->path_ideal + s->path_tm_cubic + s->path_cold_flow
+    + s->path_rcc_accepted + s->path_rcc_rejected;
+  if (total_path > 0) {
+    fprintf(fp, "    Dispatch paths (total %llu):\n", (unsigned long long)total_path);
+    fprintf(fp, "      IDEAL EM       : %llu\n", (unsigned long long)s->path_ideal);
+    fprintf(fp, "      TM cubic       : %llu\n", (unsigned long long)s->path_tm_cubic);
+    fprintf(fp, "      cold-flow EM   : %llu\n", (unsigned long long)s->path_cold_flow);
+    fprintf(fp, "      RCC accepted   : %llu\n", (unsigned long long)s->path_rcc_accepted);
+    fprintf(fp, "      RCC rejected   : %llu\n", (unsigned long long)s->path_rcc_rejected);
+  }
+
+  if (s->path_rcc_accepted > 0) {
+    double avg = s->sum_dW_acc / (double)s->path_rcc_accepted;
+    fprintf(fp,
+      "    RCC vs TM |ΔΓ|/Γ_tm:  avg=%.3e max(acc)=%.3e max(rej)=%.3e\n",
+      avg, s->max_dW_acc, s->max_dW_rej);
+  }
+
+  if (s->floor_calls > 0) {
+    fprintf(fp,
+      "    Floor hits over %llu recovery calls:  ρ floored %llu (%.4f%%), "
+      "p floored %llu (%.4f%%), both %llu (%.4f%%)\n",
+      (unsigned long long)s->floor_calls,
+      (unsigned long long)s->rho_floor_hits,
+      100.0 * (double)s->rho_floor_hits / (double)s->floor_calls,
+      (unsigned long long)s->p_floor_hits,
+      100.0 * (double)s->p_floor_hits / (double)s->floor_calls,
+      (unsigned long long)s->both_floor_hits,
+      100.0 * (double)s->both_floor_hits / (double)s->floor_calls);
+
+    uint64_t total_floor = s->rho_floor_hits + s->p_floor_hits - s->both_floor_hits;
+    if (total_floor > 0) {
+      const char *D_labels[GR_EULER_FLOOR_D_BINS] = {
+        "<1e-10", "1e-10..1e-8", "1e-8..1e-6", "1e-6..1e-4", "1e-4..1e-2",
+        "1e-2..1e-1", "1e-1..1", "1..10", "10..100", "100..1000", "≥1000"
+      };
+      fprintf(fp, "    D-magnitude distribution of floored cells:\n");
+      for (int b = 0; b < GR_EULER_FLOOR_D_BINS; b++)
+        fprintf(fp, "      %-15s : %llu (%.2f%%)\n", D_labels[b],
+          (unsigned long long)s->floor_D_hist[b],
+          100.0 * (double)s->floor_D_hist[b] / (double)total_floor);
+      const char *s2_labels[GR_EULER_FLOOR_S2_BINS] = {
+        "<1e-12", "1e-12..1e-10", "1e-10..1e-8", "1e-8..1e-6",
+        "1e-6..1e-4", "1e-4..1e-2", "1e-2..1", "≥1"
+      };
+      fprintf(fp, "    (E²−M²)/E² distribution of floored cells:\n");
+      for (int b = 0; b < GR_EULER_FLOOR_S2_BINS; b++)
+        fprintf(fp, "      %-15s : %llu (%.2f%%)\n", s2_labels[b],
+          (unsigned long long)s->floor_s2_hist[b],
+          100.0 * (double)s->floor_s2_hist[b] / (double)total_floor);
+    }
+  }
+}
+
+// Helper: dump one repair_status block to fp.
+static void
+gr_euler_print_repair_status(FILE *fp, const char *label,
+  const struct gkyl_gr_euler_repair_status *s)
+{
+  if (!s) return;
+  uint64_t total = s->bad_D_fixes + s->bad_tau_fixes + s->bad_s2_fixes;
+  if (total + s->tau_limiter_fires + s->s2_limiter_fires == 0) return;
+  fprintf(fp,
+    "  [%s repair_status] cascade fixes total %llu  (D≤0: %llu, τ<0: %llu, s²≤0: %llu)\n",
+    label, (unsigned long long)total,
+    (unsigned long long)s->bad_D_fixes,
+    (unsigned long long)s->bad_tau_fixes,
+    (unsigned long long)s->bad_s2_fixes);
+  if (s->tau_limiter_fires + s->s2_limiter_fires > 0) {
+    fprintf(fp,
+      "    source-step limiters:  tau-limiter %llu, s²-limiter %llu\n",
+      (unsigned long long)s->tau_limiter_fires,
+      (unsigned long long)s->s2_limiter_fires);
+  }
+}
+
+void
+gkyl_moment_app_gr_euler_print_status(const gkyl_moment_app *app, FILE *fp)
+{
+  if (!app->update_sources) return;
+  const struct moment_coupling *src = &app->sources;
+  for (int i = 0; i < app->num_species; i++) {
+    bool has_status =
+      src->gr_euler_prim_status_wave_prop[i] ||
+      src->gr_euler_repair_status_wave_prop[i] ||
+      src->gr_euler_prim_status_source[i] ||
+      src->gr_euler_repair_status_source[i];
+    if (!has_status) continue;
+    fprintf(fp, "[gr_euler species %d: %s]\n", i, app->species[i].name);
+    gr_euler_print_prim_status(fp, "wave_prop",
+      src->gr_euler_prim_status_wave_prop[i]);
+    gr_euler_print_repair_status(fp, "wave_prop",
+      src->gr_euler_repair_status_wave_prop[i]);
+    gr_euler_print_prim_status(fp, "source",
+      src->gr_euler_prim_status_source[i]);
+    gr_euler_print_repair_status(fp, "source",
+      src->gr_euler_repair_status_source[i]);
+  }
+}
+
 void
 gkyl_moment_app_release(gkyl_moment_app* app)
 {

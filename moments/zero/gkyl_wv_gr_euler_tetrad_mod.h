@@ -12,27 +12,34 @@
 // vectors; the flat-frame factorization is purely a flux-computation
 // strategy, see wv_gr_euler_tetrad_mod.c).
 //
-// gamma_eff_cache: per-cell γ_eff warm-start cache for the Mathews-Taub
-// primitive-recovery Picard iteration. Read on entry to each recovery as
-// the initial guess; written back with the converged value so subsequent
-// calls from the same cell start in the right neighborhood (∼1–2 Picard
-// iterations instead of ∼10). NULL for IDEAL-only setups (Picard skipped).
-// The app shares the SAME array with the spacetime coupling object — both
-// updaters read and write the same cells.
+// Per-callsite instrumentation buckets:
+//   prim_status_wave_prop:   updated by all wave-prop primitive recovery
+//                            callsites (prim_vars hook + 4 Riemann solvers
+//                            + max_speed_func).
+//   repair_status_wave_prop: updated by the repair_state hook when
+//                            cur_repair_ctx = 1 (wave_prop side).
+//   repair_status_source:    updated by the repair_state hook when
+//                            cur_repair_ctx = 0 (source-step side, called
+//                            from gkyl_moment_spacetime_coupling_explicit_advance).
+// The source-step primitive recovery has its OWN prim_status passed
+// directly through explicit_advance — that one doesn't live here.
+// All status pointers may be NULL (unit-test callsites etc.).
 struct gkyl_wv_gr_euler_tetrad_mod_auxfields {
   const struct gkyl_array *prods;             // spacetime products array
                                               // (layout: gkyl_moment_spacetime_products.h)
-  struct gkyl_array *gamma_eff_cache;         // per-cell γ_eff cache (1 component)
-                                              // mutated by the recovery; mod path only
+  struct gkyl_gr_euler_prim_status   *prim_status_wave_prop;
+  struct gkyl_gr_euler_repair_status *repair_status_wave_prop;
+  struct gkyl_gr_euler_repair_status *repair_status_source;
 };
 
 // Input context for the modular tetrad GR Euler constructor.
 //
 // The struct embeds an EOS bundle (struct gkyl_gr_euler_eos) so callers
-// can select IDEAL (with a gas_gamma) or MATHEWS_TAUB. The legacy
-// `gas_gamma` field is retained for source-compatibility — when it is
-// set and eos.type is the default IDEAL, the constructor copies it into
-// eos.gas_gamma. New call sites should populate the eos field directly.
+// can select IDEAL (with a gas_gamma) or APPROXIMATE_SYNGE (with the
+// use_rcc closure selector). The legacy `gas_gamma` field is retained
+// for source-compatibility — when it is set and eos.type is the default
+// IDEAL, the constructor copies it into eos.gas_gamma. New call sites
+// should populate the eos field directly.
 //
 // Roe Riemann solvers are only available with IDEAL gas: the eigenstructure
 // in sr_roe_minkowski uses the Eulderink-Mellema ideal-gas Jacobian. The
@@ -68,12 +75,8 @@ void
 gkyl_gr_euler_tetrad_mod_set_conf_range(const struct gkyl_wv_eqn *eqn,
   const struct gkyl_range *conf_range);
 
-// Read back the adiabatic index from a modular tetrad GR Euler equation object.
-// Returns the ideal-gas gas_gamma; for MATHEWS_TAUB this returns 0.0 (caller
-// should use gkyl_wv_gr_euler_tetrad_mod_eos to introspect the EOS).
-double
-gkyl_wv_gr_euler_tetrad_mod_gas_gamma(const struct gkyl_wv_eqn *eqn);
-
 // Read back the full EOS bundle from a modular tetrad GR Euler equation object.
+// For IDEAL the gas_gamma field is meaningful; for APPROXIMATE_SYNGE the
+// use_rcc field selects the enthalpy closure (RCC vs TM).
 struct gkyl_gr_euler_eos
 gkyl_wv_gr_euler_tetrad_mod_eos(const struct gkyl_wv_eqn *eqn);

@@ -54,37 +54,51 @@
 // object and passed by value through the primitive solve, the SR Riemann
 // cores, the flux helpers, and the source integrator.
 //
-//   IDEAL              — p = (γ-1)·ρ·ε  ⇒  h = 1 + γ/(γ-1)·p/ρ
-//   MATHEWS_TAUB       — (h - θ)(h - 4θ) = 1, θ = p/ρ. Convex Taub-Mathews
-//                        closure that interpolates between the non-rel
-//                        monatomic limit (Γ=5/3, c_s²=5p/(3ρ)) and the
-//                        ultra-rel limit (Γ=4/3, c_s²=1/3). Approximates
-//                        the single-component perfect gas (Synge / RP) to
-//                        within ~2% on enthalpy.
-//   RYU_CHATTOPADHYAY  — h = 2(6θ² + 4θ + 1)/(3θ + 2). Ryu+ 2006 RC EOS.
-//                        Same asymptotic limits as MATHEWS_TAUB but a
-//                        tighter fit to the Synge gas (~0.8% on enthalpy
-//                        vs MATHEWS_TAUB's ~2%). Recovery requires Newton
-//                        iteration on a degree-8 polynomial (Ryu+ eq 29);
-//                        not closed-form like the TM cubic.
+// Two EOS types are supported:
+//
+//   IDEAL             — p = (γ-1)·ρ·ε  ⇒  h = 1 + γ/(γ-1)·p/ρ. Caller
+//                       specifies gas_gamma; use_rcc is ignored.
+//
+//   APPROXIMATE_SYNGE — Single-component perfect relativistic gas
+//                       approximation. Both branches share the same
+//                       non-relativistic (Γ→5/3) and ultra-relativistic
+//                       (Γ→4/3, c_s²→1/3) asymptotic limits and use the
+//                       Ryu+ 2006 §3.2 closed-form TM cubic for the
+//                       primary recovery. The `use_rcc` bool selects
+//                       between the two enthalpy closures:
+//                         use_rcc = false → Taub-Mathews (Mignone+ 2005)
+//                                           h(θ) = (5θ + √(9θ²+4))/2
+//                                           ~2% h error vs Synge.
+//                         use_rcc = true  → Ryu-Chattopadhyay (Ryu+ 2006)
+//                                           h(θ) = 2(6θ²+4θ+1)/(3θ+2)
+//                                           ~0.8% h error vs Synge.
+//                       For both, the recovery dispatch is: TM cubic →
+//                       cold-flow EM γ=5/3 fallback when θ<1e-6 or TM
+//                       floors. If use_rcc, additionally run RC Newton
+//                       on the degree-8 polynomial (Ryu+ eq 29) and
+//                       accept its result when it passes the strict
+//                       paper-grounded physicality check; otherwise fall
+//                       back to TM.
 // ---------------------------------------------------------------------------
 
 enum gkyl_gr_euler_eos_type {
   GR_EULER_EOS_IDEAL = 0,
-  GR_EULER_EOS_MATHEWS_TAUB = 1,
-  GR_EULER_EOS_RYU_CHATTOPADHYAY = 2,
+  GR_EULER_EOS_APPROXIMATE_SYNGE = 1,
 };
 
 struct gkyl_gr_euler_eos {
   enum gkyl_gr_euler_eos_type type;
   double gas_gamma;  // adiabatic index (consulted only when type == IDEAL)
+  bool use_rcc;      // RCC vs TM enthalpy closure within APPROXIMATE_SYNGE;
+                     // ignored for IDEAL
 };
 
-// Specific enthalpy h(ρ, p).
-//   IDEAL:             h = 1 + γ/(γ-1)·p/ρ
-//   MATHEWS_TAUB:      h(θ) = (5θ + sqrt(9θ² + 4))/2
-//   RYU_CHATTOPADHYAY: h(θ) = 2(6θ² + 4θ + 1)/(3θ + 2)             [Ryu+ eq 15]
-// where θ = p/ρ.
+// Specific enthalpy h(ρ, p). θ = p/ρ.
+//   IDEAL:                       h = 1 + γ/(γ-1)·θ
+//   APPROXIMATE_SYNGE (use_rcc=false, TM):
+//                                h = (5θ + sqrt(9θ²+4))/2
+//   APPROXIMATE_SYNGE (use_rcc=true, RCC):
+//                                h = 2(6θ²+4θ+1)/(3θ+2)             [Ryu+ eq 15]
 static inline double
 gkyl_gr_euler_eos_enthalpy(struct gkyl_gr_euler_eos eos,
   double rho, double p)
@@ -93,20 +107,20 @@ gkyl_gr_euler_eos_enthalpy(struct gkyl_gr_euler_eos eos,
     return 1.0 + (p / rho) * (eos.gas_gamma / (eos.gas_gamma - 1.0));
   }
   double theta = p / rho;
-  if (eos.type == GR_EULER_EOS_RYU_CHATTOPADHYAY) {
+  if (eos.use_rcc) {
     return 2.0 * (6.0*theta*theta + 4.0*theta + 1.0) / (3.0*theta + 2.0);
   }
   return 0.5 * (5.0 * theta + sqrt(9.0 * theta * theta + 4.0));
 }
 
-// Pressure recovery p(ρ, h). The EOS-specific inverse of h(ρ, p), used
-// in primitive-variable recovery and in cell-interface state reconstruction.
-//   IDEAL:             h = 1 + γ/(γ-1)·θ  ⇒  θ = (h-1)·(γ-1)/γ
-//   MATHEWS_TAUB:      4θ² − 5hθ + (h² − 1) = 0
-//                      ⇒  θ = (5h − sqrt(9h² + 16))/8
-//   RYU_CHATTOPADHYAY: (3θ+2)·h = 12θ² + 8θ + 2
-//                      ⇒  12θ² + (8-3h)θ + (2-2h) = 0
-//                      ⇒  θ = (3h − 8 + sqrt(9h² + 48h − 32))/24      [Ryu+ eq 60]
+// Pressure recovery p(ρ, h). EOS-specific inverse of h(ρ, p), used
+// in cell-interface state reconstruction.
+//   IDEAL:                       θ = (h-1)·(γ-1)/γ
+//   APPROXIMATE_SYNGE (TM):      4θ² − 5hθ + (h² − 1) = 0
+//                                ⇒ θ = (5h − sqrt(9h² + 16))/8
+//   APPROXIMATE_SYNGE (RCC):     12θ² + (8-3h)θ + (2-2h) = 0
+//                                ⇒ θ = (3h − 8 + sqrt(9h² + 48h − 32))/24
+//                                                                    [Ryu+ eq 60]
 static inline double
 gkyl_gr_euler_eos_pressure_from_rho_h(struct gkyl_gr_euler_eos eos,
   double rho, double h)
@@ -114,7 +128,7 @@ gkyl_gr_euler_eos_pressure_from_rho_h(struct gkyl_gr_euler_eos eos,
   if (eos.type == GR_EULER_EOS_IDEAL) {
     return rho * (h - 1.0) * (eos.gas_gamma - 1.0) / eos.gas_gamma;
   }
-  if (eos.type == GR_EULER_EOS_RYU_CHATTOPADHYAY) {
+  if (eos.use_rcc) {
     double theta = (3.0*h - 8.0 + sqrt(9.0*h*h + 48.0*h - 32.0)) / 24.0;
     return rho * theta;
   }
@@ -124,10 +138,10 @@ gkyl_gr_euler_eos_pressure_from_rho_h(struct gkyl_gr_euler_eos eos,
 
 // Sound speed squared c_s²(ρ, p, h). Cold-flow limit (θ→0) is 5p/(3ρh)
 // (γ=5/3 ideal); ultra-rel limit (θ→∞) is 1/3 (radiation fluid).
-//   IDEAL:             c_s² = γp/(ρh)
-//   MATHEWS_TAUB:      c_s² = θ(5h − 8θ) / (3·h·(h − θ))
-//   RYU_CHATTOPADHYAY: c_s² = θ(3θ+2)(18θ²+24θ+5)
-//                            / (3·(6θ²+4θ+1)·(9θ²+12θ+2))            [Ryu+ eq 16]
+//   IDEAL:                       c_s² = γp/(ρh)
+//   APPROXIMATE_SYNGE (TM):      c_s² = θ(5h − 8θ) / (3·h·(h − θ))
+//   APPROXIMATE_SYNGE (RCC):     c_s² = θ(3θ+2)(18θ²+24θ+5)
+//                                       / (3·(6θ²+4θ+1)·(9θ²+12θ+2))  [Ryu+ eq 16]
 static inline double
 gkyl_gr_euler_eos_cs2(struct gkyl_gr_euler_eos eos,
   double rho, double p, double h)
@@ -136,7 +150,7 @@ gkyl_gr_euler_eos_cs2(struct gkyl_gr_euler_eos eos,
     return (eos.gas_gamma * p) / (rho * h);
   }
   double theta = p / rho;
-  if (eos.type == GR_EULER_EOS_RYU_CHATTOPADHYAY) {
+  if (eos.use_rcc) {
     double num = theta * (3.0*theta + 2.0) * (18.0*theta*theta + 24.0*theta + 5.0);
     double den = 3.0 * (6.0*theta*theta + 4.0*theta + 1.0)
                      * (9.0*theta*theta + 12.0*theta + 2.0);
@@ -157,32 +171,6 @@ gkyl_gr_euler_eos_ideal(double gas_gamma)
     .type = GR_EULER_EOS_IDEAL,
     .gas_gamma = gas_gamma,
   };
-}
-
-// TM γ_eff matching: given recovered (ρ, p) from an EM Newton pass at
-// some trial γ, returns the γ_eff such that h_IDEAL(γ_eff)(ρ, p) equals
-// h_TM(ρ, p). This is the Picard fixed-point update γ_TM(EM(γ)) used by
-// the TM branch of gkyl_gr_euler_recover_primitives.
-//
-//   θ = p/ρ
-//   h_TM(θ) = (5θ + √(9θ² + 4)) / 2
-//   f       = (h_TM − 1) / θ                  (f ∈ [5/2, 4) for TM)
-//   γ_match = f / (f − 1)                     (γ_match ∈ (4/3, 5/3))
-//
-// θ → 0 (cold-flow) is the 0/0 limit where γ_match → 5/3 exactly; we
-// short-circuit at θ < 1e-12 to avoid numerical noise. Density and
-// pressure floors guard against negative inputs from a barely-recovered
-// state.
-static inline double
-gkyl_gr_euler_tm_match_gamma_eff(double rho, double p)
-{
-  double rho_safe = (rho > GR_EULER_DENSITY_FLOOR) ? rho : GR_EULER_DENSITY_FLOOR;
-  double p_safe   = (p   > GR_EULER_PRESSURE_FLOOR) ? p   : GR_EULER_PRESSURE_FLOOR;
-  double theta = p_safe / rho_safe;
-  if (theta < 1.0e-12) return 5.0 / 3.0;
-  double h_tm = 0.5 * (5.0 * theta + sqrt(9.0 * theta * theta + 4.0));
-  double f = (h_tm - 1.0) / theta;
-  return f / (f - 1.0);
 }
 
 // First-failing-constraint enum reported by check_admissibility. The
@@ -326,159 +314,154 @@ struct gkyl_gr_euler_prim {
 };
 
 // ---------------------------------------------------------------------------
-// Recovery-iteration instrumentation.
+// Recovery-iteration instrumentation: per-callsite status structs.
 //
-// gkyl_gr_euler_recover_primitives accumulates per-call iteration counts for
-// both the inner EM Newton (within a single Picard pass) and the outer
-// Picard loop (TM only — IDEAL is one Picard pass by definition). The
-// histograms tell us where the wall-clock cost lives: see
-// SESSION_NOTES_PHASE_1 for the bucket definitions and analysis.
+// Modeled on gkyl_vlasov_lte_correct_status, the prim_status struct holds
+// the running iteration counts, path-dispatch tallies, and floor-hit
+// histograms for one logical callsite (e.g. the wave-prop hooks of a
+// species, or the source-step recovery of that species). The app
+// allocates one prim_status per (species, callsite-class) pair and
+// passes a pointer to gkyl_gr_euler_recover_primitives so the recovery
+// accumulates into it.
 //
-// All recording is process-global; the counters survive equation-object
-// teardown and get printed by gkyl_gr_euler_tetrad_mod_free alongside the
-// existing repair-cascade stats. The instrumentation function bodies live
-// in moment_spacetime_coupling.c so the inline recover_primitives can
-// remain header-only.
+// Pass NULL for the status pointer in unit-test / probe callsites that
+// don't care about instrumentation.
 // ---------------------------------------------------------------------------
 
-// Bucket boundaries for the inner-Newton histogram (upper edge, inclusive).
-// Bin k counts calls with iter count ≤ GR_EULER_NEWTON_BIN_EDGES[k] and
-// > GR_EULER_NEWTON_BIN_EDGES[k-1]. The final bin is "≥ last edge" overflow.
+// Bucket boundaries for the Newton iteration histograms (upper edge,
+// inclusive). Bin k counts calls with iter count ≤ NEWTON_BIN_EDGES[k]
+// and > NEWTON_BIN_EDGES[k-1]. The final bin is "≥ last edge" overflow.
+// Shared across the EM-Newton (cold-flow + IDEAL) and RC-Newton (RCC
+// refinement) iteration trackers since both have similar convergence
+// characteristics.
 #define GR_EULER_NEWTON_HIST_NBINS 7
 // 0–4, 5–8, 9–16, 17–32, 33–64, 65–99, 100+
 extern const int gkyl_gr_euler_newton_bin_edges[GR_EULER_NEWTON_HIST_NBINS];
 
-// Bucket boundaries for the outer-Picard histogram. Brent cap is 30, so
-// the histogram splits the previous "20+" overflow into 20-29 and 30+
-// to expose whether non-converging cells are dominantly hitting the cap
-// or just slowly winding down through the bracket.
-#define GR_EULER_PICARD_HIST_NBINS 9
-// 1, 2, 3, 4, 5–9, 10–14, 15–19, 20–29, 30+
-extern const int gkyl_gr_euler_picard_bin_edges[GR_EULER_PICARD_HIST_NBINS];
+// Decade bins for the D-magnitude histogram of floored cells (answers
+// "are floored cells near-vacuum or normal-density?")
+#define GR_EULER_FLOOR_D_BINS 11
+// <1e-10, 1e-10..1e-8, 1e-8..1e-6, 1e-6..1e-4, 1e-4..1e-2, 1e-2..1e-1,
+// 1e-1..1, 1..10, 10..100, 100..1000, ≥1000
 
-// Record one recovery call's inner-Newton iteration count. Called from
-// gkyl_gr_euler_em_newton_at_gamma at the end of its iteration loop.
-void gkyl_gr_euler_record_newton_iters(int n);
+// Decade bins for the (E²−M²)/E² histogram of floored cells (Newton
+// coefficient-conditioning measure ~1/W² for floor-typical cells —
+// answers "are floored cells near-luminal or moderate W?")
+#define GR_EULER_FLOOR_S2_BINS 8
+// <1e-12, 1e-12..1e-10, 1e-10..1e-8, 1e-8..1e-6, 1e-6..1e-4, 1e-4..1e-2,
+// 1e-2..1, ≥1
 
-// Record one recovery call's outer-Picard iteration count. Called from
-// gkyl_gr_euler_recover_primitives at the end of the Picard loop. For
-// IDEAL (no Picard), this is invoked with n=1.
-void gkyl_gr_euler_record_picard_iters(int n);
+// Per-callsite recovery status. Accumulated by gkyl_gr_euler_recover_primitives.
+//
+// Newton iteration trackers: separate (calls, total iters, max, histogram)
+// blocks for the EM-Newton inner solver (used by the IDEAL path and the
+// cold-flow EM γ=5/3 fallback) and the RC-Newton outer solver (used only
+// by APPROXIMATE_SYNGE with use_rcc = true). Lets the postmortem
+// distinguish where wall-clock cost lives.
+//
+// Path counters: how often each dispatch branch fired. For IDEAL only
+// path_ideal is ever non-zero. For APPROXIMATE_SYNGE the cells are
+// distributed across (path_tm_cubic, path_cold_flow, path_rcc_accepted,
+// path_rcc_rejected). path_rcc_* only non-zero when use_rcc = true.
+//
+// Floor stats: counts of recovery calls whose raw (pre-floor) ρ or p
+// fell below the floor and was clamped. The decade-binned histograms
+// characterize WHERE floored cells live in (D, conditioning) space.
+struct gkyl_gr_euler_prim_status {
+  // EM-Newton (IDEAL + cold-flow EM γ=5/3 fallback).
+  uint64_t em_newton_calls;
+  uint64_t em_newton_total_iters;
+  int      em_newton_max_iters;
+  uint64_t em_newton_iter_hist[GR_EULER_NEWTON_HIST_NBINS];
+  uint64_t em_newton_cap_hits;   // calls that hit the 100-iter cap
 
-// Print the histograms (and totals) to stderr. Invoked by
-// gkyl_gr_euler_tetrad_mod_free alongside repair-cascade stats.
-void gkyl_gr_euler_print_recovery_stats(FILE *fp);
+  // RC-Newton (APPROXIMATE_SYNGE + use_rcc only).
+  uint64_t rc_newton_calls;
+  uint64_t rc_newton_total_iters;
+  int      rc_newton_max_iters;
+  uint64_t rc_newton_iter_hist[GR_EULER_NEWTON_HIST_NBINS];
 
-// Bounded snapshot of one EM-Newton-cap-hit event. Captured by the
-// recovery helper when iter_done reaches 100 (no convergence). Logged in
-// a process-global ring buffer so the post-run dump in
-// gkyl_gr_euler_print_recovery_stats can show what the pathological
-// states look like (which regime: cold/hot/near-floor/near-supraluminal).
-struct gkyl_gr_euler_newton_capfail {
-  double gas_gamma;          // γ being tried (after Picard / cold-restart logic)
-  double D, Sx, Sy, Sz, tau; // undensitized conservatives
-  double mom_sq;             // γ^{ij}·S_i·S_j
-  double inv_g_diag[3];      // γ^{xx}, γ^{yy}, γ^{zz} (curvature indicator)
-  double inv_g_off[3];       // γ^{xy}, γ^{xz}, γ^{yz}
-  double rho, p, W, h;       // final (possibly non-converged) primitives
-  double theta;              // p / ρ
-  double s_sq_over_Dtau_sq;  // s²/(D+τ)² — how close to supraluminal
+  // Path counters — which dispatch branch ran per recovery call.
+  uint64_t path_ideal;            // IDEAL: single EM Newton pass
+  uint64_t path_tm_cubic;         // APPROXIMATE_SYNGE: TM cubic accepted
+                                  //   (no cold-flow fallback, no RC refine)
+  uint64_t path_cold_flow;        // APPROXIMATE_SYNGE: θ_tm<1e-6 or
+                                  //   tm_p_floored → EM γ=5/3 fallback
+  uint64_t path_rcc_accepted;     // APPROXIMATE_SYNGE + use_rcc: RC
+                                  //   Newton accepted by (a)/(b)/(c) check
+  uint64_t path_rcc_rejected;     // APPROXIMATE_SYNGE + use_rcc: RC
+                                  //   rejected, fell back to TM cubic
+
+  // Floor stats.
+  uint64_t floor_calls;           // total recovery calls (one per invoke)
+  uint64_t rho_floor_hits;        // ρ floored (raw < FLOOR before clamp)
+  uint64_t p_floor_hits;          // p floored
+  uint64_t both_floor_hits;       // BOTH ρ and p floored (subset)
+  uint64_t floor_D_hist[GR_EULER_FLOOR_D_BINS];
+  uint64_t floor_s2_hist[GR_EULER_FLOOR_S2_BINS];
+
+  // RCC sanity diagnostics (only meaningful with use_rcc = true).
+  // sum_dW_acc / max_dW_acc accumulate on path_rcc_accepted; max_dW_rej
+  // on path_rcc_rejected. Lets the postmortem confirm that accepted
+  // |ΔΓ|/Γ_tm is small (refinement is fine-grained) and rejected
+  // |ΔΓ|/Γ_tm is large (rejections are real disagreements).
+  double sum_dW_acc;
+  double max_dW_acc;
+  double max_dW_rej;
 };
 
-// Record one Newton-cap event. Stored in a bounded ring buffer (we cap
-// the per-run number of snapshots so a buggy state doesn't flood log).
-void gkyl_gr_euler_record_newton_capfail(
-  const struct gkyl_gr_euler_newton_capfail *event);
-
-// RC EOS comparison diagnostic. Called from the RC dispatch in
-// gkyl_gr_euler_recover_primitives once per non-cold-flow cell. Records:
-//   - rc_attempts:        total non-cold-flow cells routed through RC
-//                         Newton
-//   - rc_accepted:        cells where RC's recovered Γ passed the
-//                         sanity check and replaced the TM result.
-//   - rc_accepted_escape: cells accepted via the CONDITIONING ESCAPE
-//                         (when TM's cubic is precision-suspect due to
-//                         (E²−M²)/E² ≪ 1, i.e., near-luminal cells).
-//                         Tracked separately so we can see how often
-//                         the escape fires and whether it correlates
-//                         with downstream physics improvements.
-//   - dW_rel:             |W_rc − W_tm| / W_tm at this cell. Accumulated
-//                         on accepted cells; max also tracked on
-//                         rejected cells (those where neither the
-//                         standard 10% threshold nor the conditioning
-//                         escape rescued RC).
-//
-// Print via gkyl_gr_euler_print_recovery_stats alongside the other
-// recovery counters.
-void gkyl_gr_euler_record_rc_compare(
-  bool accepted, bool conditioning_escape, double dW_rel);
-
-// Bounded snapshot of a single RC-vs-TM disagreement event (rejected by
-// the sanity check). Used to diagnose WHY RC was rejected:
-//   - Is W_tm large? Suggests TM is losing precision from (E²−M²)²
-//     coefficient cancellation — RC might actually be more accurate and
-//     we'd be throwing away good refinement.
-//   - Is W_tm small (~1-3) with reasonable conservatives? Suggests
-//     Newton converged to a spurious root of the squared polynomial —
-//     rejection is correct.
-//   - Is θ_tm near the cold-flow boundary (just above 1e-4)? Suggests
-//     RC's iterative scheme is failing near the regime where its
-//     pressure formula starts to lose precision.
-struct gkyl_gr_euler_rc_reject {
-  double dW_rel;         // |W_rc − W_tm| / W_tm (>0.10 by construction)
-  double W_tm, W_rc;     // Lorentz factors from both schemes
-  double D, tau, mom_sq; // undensitized conservatives
-  double s_sq_over_E2;   // (E_lab² − M²)/E_lab² — coefficient conditioning measure
-  double theta_tm;       // p_tm / ρ_tm — EOS regime
-  double p_tm, p_rc;     // pressures from each scheme
+// Per-callsite repair-cascade status. Tracks how often the repair
+// cascade fixed each admissibility constraint, plus the source-step
+// tau/s² limiter firing counts (the latter are only meaningful for the
+// source-step callsite — wave-prop's status will see zeros there).
+struct gkyl_gr_euler_repair_status {
+  uint64_t bad_D_fixes;       // D≤0 floored to GR_EULER_DENSITY_FLOOR
+  uint64_t bad_tau_fixes;     // τ<0 floored to GR_EULER_TAU_REPAIR_FLOOR
+  uint64_t bad_s2_fixes;      // s²≤0 rescaled momentum to interior of A_γ
+  uint64_t tau_limiter_fires; // source-step τ-positivity limiter (α<1)
+  uint64_t s2_limiter_fires;  // source-step s²-positivity limiter
 };
 
-// Record one RC-rejection event. Stored in a bounded ring buffer (32
-// entries) so a pathological run doesn't flood log; total count is
-// preserved as s_rc_attempts − s_rc_accepted.
-void gkyl_gr_euler_record_rc_reject(
-  const struct gkyl_gr_euler_rc_reject *event);
+// Decade-bin selector for the floor D-magnitude histogram.
+static inline int
+gkyl_gr_euler_status_floor_D_bin(double D)
+{
+  if (D < 1.0e-10) return 0;
+  if (D < 1.0e-8)  return 1;
+  if (D < 1.0e-6)  return 2;
+  if (D < 1.0e-4)  return 3;
+  if (D < 1.0e-2)  return 4;
+  if (D < 1.0e-1)  return 5;
+  if (D < 1.0)     return 6;
+  if (D < 10.0)    return 7;
+  if (D < 100.0)   return 8;
+  if (D < 1000.0)  return 9;
+  return 10;
+}
 
-// Recovery-call context — set by callers via gkyl_gr_euler_set_recovery_context
-// before each gkyl_gr_euler_recover_primitives invocation so the floor-hit
-// diagnostic can tag which call site is producing inadmissible cells.
-// Crucial for distinguishing "real" floor hits (source step, prim_vars
-// hook) from "transient" ones (HLL Riemann attempts that get rejected by
-// the positivity sweep and replaced by Lax — these contribute false
-// positives to the total floor count because the cells are corrected
-// before being committed).
-enum gkyl_gr_euler_recovery_context {
-  GR_EULER_CTX_UNKNOWN = 0,
-  GR_EULER_CTX_SOURCE  = 1,  // source-step recovery (committed)
-  GR_EULER_CTX_PRIMS   = 2,  // prim_vars hook (committed)
-  GR_EULER_CTX_HLL     = 3,  // HLL Riemann — may be rejected by positivity sweep
-  GR_EULER_CTX_LAX     = 4,  // Lax Riemann — positivity-preserving fallback
-  GR_EULER_CTX_HLLC    = 5,  // HLLC Riemann
-  GR_EULER_CTX_COUNT   = 6,
-};
-void gkyl_gr_euler_set_recovery_context(int ctx);
+// Decade-bin selector for the floor (E²−M²)/E² histogram.
+static inline int
+gkyl_gr_euler_status_floor_s2_bin(double s_sq_over_E2)
+{
+  if (s_sq_over_E2 < 1.0e-12) return 0;
+  if (s_sq_over_E2 < 1.0e-10) return 1;
+  if (s_sq_over_E2 < 1.0e-8)  return 2;
+  if (s_sq_over_E2 < 1.0e-6)  return 3;
+  if (s_sq_over_E2 < 1.0e-4)  return 4;
+  if (s_sq_over_E2 < 1.0e-2)  return 5;
+  if (s_sq_over_E2 < 1.0)     return 6;
+  return 7;
+}
 
-// Floor-hit diagnostic. Records how often the outer recover_primitives
-// floor clamps either ρ or p (separately tracked). Useful for floor-
-// value sweeps (e.g., 1e-8 vs 1e-10 vs 1e-12) to see whether lowering
-// the floor is "doing work" (catching cells previously clamped) or
-// "irrelevant" (no cells reach the lower floor under the new value).
-//
-// Conservatives and raw recovered values are also passed in so the
-// diagnostic can build a histogram of where the floored cells live in
-// (D, mom_sq, E²−M²/E²) space — answers "are these all near-vacuum
-// cells or do normal-density cells also get floored?"
-//
-// Note: this counts cells where the raw recovered value at the outer
-// recover_primitives entry was BELOW the floor. It does NOT count the
-// internal e_rest ≤ floor early-return in the TM/RC pressure formulas,
-// since those return p = FLOOR exactly (which evaluates as "not below
-// floor" at the outer check). For the floor-sweep experiment, the outer
-// count is the primary signal.
-void gkyl_gr_euler_record_floor_hit(
-  bool rho_floored, bool p_floored,
-  double D, double tau, double mom_sq,
-  double rho_raw, double p_raw);
+// Histogram bucket lookup (≤ semantic on the edge).
+static inline int
+gkyl_gr_euler_status_hist_bucket(int n, const int *edges, int nbins)
+{
+  for (int b = 0; b < nbins; b++) {
+    if (n <= edges[b]) return b;
+  }
+  return nbins - 1;
+}
 
 // One Eulderink-Mellema quartic Newton pass at fixed γ. Recovers
 // (ρ, v^i, p, W, h) from undensitized (D, S_i, τ) and inv_g.
@@ -488,10 +471,9 @@ void gkyl_gr_euler_record_floor_hit(
 // any admissible input. Outputs are pre-floor so callers can apply
 // floors / dispatch after refinement.
 //
-// Returns the iteration count: < 100 = converged; 100 = hit cap. Picard
-// callers use this to detect a bad warm-start γ_eff (rare, but seen in
-// the BHL TM run when a cell's state changed enough between timesteps to
-// invalidate the cached γ_eff without triggering cascade-repair).
+// Returns the iteration count: < 100 = converged; 100 = hit cap. The
+// caller (gkyl_gr_euler_recover_primitives) accumulates this into the
+// EM-Newton histogram block of its prim_status if non-NULL.
 static inline int
 gkyl_gr_euler_em_newton_at_gamma(
   double gas_gamma, double mom_sq,
@@ -536,7 +518,6 @@ gkyl_gr_euler_em_newton_at_gamma(
     }
     guess = guess_new;
   }
-  gkyl_gr_euler_record_newton_iters(iter_done);
 
   double W = 0.5 * C0 * guess * (1.0 + sqrt(1.0
     + (4.0 * ((gas_gamma - 1.0) / gas_gamma)
@@ -552,27 +533,6 @@ gkyl_gr_euler_em_newton_at_gamma(
 
   *rho_out = rho; *vx_out = vx; *vy_out = vy; *vz_out = vz;
   *p_out = p; *W_out = W; *h_out = h;
-
-  // Record cap-hit cells for postmortem. Cheap when the bin doesn't fire
-  // (almost always); when it does, we snapshot the state for the post-run
-  // diagnostic dump. The ring buffer caps total events so a bad state
-  // doesn't fill memory or stderr.
-  if (iter_done >= 100) {
-    double Dtau = D + tau;
-    struct gkyl_gr_euler_newton_capfail ev = {
-      .gas_gamma = gas_gamma,
-      .D = D, .Sx = Sx, .Sy = Sy, .Sz = Sz, .tau = tau,
-      .mom_sq = mom_sq,
-      .inv_g_diag = { inv_g[0][0], inv_g[1][1], inv_g[2][2] },
-      .inv_g_off  = { inv_g[0][1], inv_g[0][2], inv_g[1][2] },
-      .rho = rho, .p = p, .W = W, .h = h,
-      .theta = (rho > 0.0) ? p / rho : 0.0,
-      .s_sq_over_Dtau_sq = (Dtau > 0.0)
-        ? (Dtau * Dtau - mom_sq) / (Dtau * Dtau)
-        : 0.0,
-    };
-    gkyl_gr_euler_record_newton_capfail(&ev);
-  }
 
   return iter_done;
 }
@@ -758,17 +718,23 @@ gkyl_gr_euler_recover_primitives_tm_cubic(
 // branch (LHS = −RHS solutions), but starting from a good initial guess
 // in the basin of the physical root avoids these.
 //
-// Initial guess: the TM cubic's recovered Γ. RC and TM agree on Γ to ~1%
-// at any admissible state (both approximate the Synge gas; TM's 2%
-// enthalpy error translates to ~1% Γ error), so Newton from TM converges
-// to RC's machine-precision root in 2-4 iterations.
+// Initial guess (Gamma_init): caller-supplied TM cubic Γ. RC and TM
+// agree on Γ to ~1% at any admissible state (both approximate the Synge
+// gas; TM's 2% enthalpy error translates to ~1% Γ error), so Newton
+// from TM converges to RC's machine-precision root in 2-4 iterations.
+// The caller in gkyl_gr_euler_recover_primitives already ran the TM
+// cubic for dispatch decision; passing its Γ here avoids a redundant
+// second cubic solve.
 //
-// Cap at 50 iterations as a defensive bound — paper claims "a few
-// iterations" robustly; we've never hit it in tests.
-static inline void
+// Returns the iteration count (1..50). Caller accumulates this into
+// the rc_newton histogram block of its prim_status if non-NULL. Cap at
+// 50 iterations as a defensive bound — paper claims "a few iterations"
+// robustly; we've never hit it in tests.
+static inline int
 gkyl_gr_euler_recover_primitives_rc_newton(
   double D, double Sx, double Sy, double Sz, double tau,
   const double inv_g[3][3],
+  double Gamma_init,
   double *rho_out, double *vx_out, double *vy_out, double *vz_out,
   double *p_out, double *W_out, double *h_out)
 {
@@ -781,19 +747,13 @@ gkyl_gr_euler_recover_primitives_rc_newton(
   double E2 = E_lab * E_lab;
   double DE = D * E_lab;
 
-  // Initial guess: TM cubic's Γ (excellent warm start; TM and RC differ
-  // by ~1% on Γ for any admissible state).
-  double rho_init, vx_init, vy_init, vz_init, p_init, Gamma_init, h_init;
-  gkyl_gr_euler_recover_primitives_tm_cubic(
-    D, Sx, Sy, Sz, tau, inv_g,
-    &rho_init, &vx_init, &vy_init, &vz_init, &p_init, &Gamma_init, &h_init);
-
   double Gamma = Gamma_init;
   if (Gamma < 1.0) Gamma = 1.0;
 
   // Newton iteration on the squared polynomial.
   const int max_iter = 50;
   const double tol_rel = 1.0e-14;
+  int iter_done = max_iter;
   for (int iter = 0; iter < max_iter; iter++) {
     double G2_poly = Gamma * Gamma;
     double G3_poly = G2_poly * Gamma;
@@ -817,12 +777,18 @@ gkyl_gr_euler_recover_primitives_rc_newton(
     double P  = M2*G2m1*G*G - H*H;
     double Pp = 2.0*M2*G*(Gamma*G + G2m1*Gp) - 2.0*H*Hp;
 
-    if (fabs(Pp) < 1.0e-30) break;
+    if (fabs(Pp) < 1.0e-30) {
+      iter_done = iter + 1;
+      break;
+    }
 
     double dGamma = -P / Pp;
     Gamma += dGamma;
     if (Gamma < 1.0) Gamma = 1.0;
-    if (fabs(dGamma) < tol_rel * fabs(Gamma)) break;
+    if (fabs(dGamma) < tol_rel * fabs(Gamma)) {
+      iter_done = iter + 1;
+      break;
+    }
   }
 
   // Recover primitives from converged Γ.
@@ -874,6 +840,8 @@ gkyl_gr_euler_recover_primitives_rc_newton(
   *p_out   = p;
   *W_out   = Gamma;
   *h_out   = h;
+
+  return iter_done;
 }
 
 // Banyuls primitive-variable recovery under Convention A. Inputs are
@@ -881,35 +849,38 @@ gkyl_gr_euler_recover_primitives_rc_newton(
 // γ^{ij} for this cell.
 //
 // Dispatch by EOS:
-//   IDEAL         → Single Eulderink-Mellema (EM) quartic Newton pass at
-//                   eos.gas_gamma. Bit-identical to the pre-refactor
-//                   recover_primitives (used by the production BHL run).
+//   IDEAL              → Single Eulderink-Mellema (EM) quartic Newton
+//                        pass at eos.gas_gamma.
+//   APPROXIMATE_SYNGE  → (a) Closed-form TM cubic (Ryu+ 2006 §3.2).
+//                        (b) Cold-flow / TM-failure fallback — EM Newton
+//                            at γ=5/3 when θ_tm < 1e-6 or TM's pressure
+//                            floor triggers. Cells in this regime have
+//                            TM precision-corrupted primitives that
+//                            downstream cannot consume cleanly; EM γ=5/3
+//                            gives a self-consistent regularized state
+//                            with h_TM ≈ h_IDEAL agreement ≲ 1e-13.
+//                        (c) When use_rcc and mom_sq > 0, additionally
+//                            run RC Newton on Ryu+ 2006 eq 29 squared
+//                            polynomial (warm-started from TM cubic) and
+//                            accept its result iff it passes the strict
+//                            Ryu+ 2006 §3.3 physicality check (see
+//                            below). Otherwise fall back to TM cubic.
+//                        (d) When !use_rcc, the TM cubic from step (a)
+//                            is the final answer.
 //
-//   MATHEWS_TAUB  → Picard iteration of EM Newton, where each pass uses a
-//                   γ_eff matched to the local h_TM. For any (ρ, p) there
-//                   is a unique γ_eff with h_IDEAL(γ_eff)(ρ, p) = h_TM(ρ, p):
-//                     f = (h_TM - 1)/θ,  θ = p/ρ
-//                     γ_eff = f/(f - 1)
-//                   γ_eff is monotone-decreasing in θ over its bounded
-//                   range (5/3 at θ→0, 4/3 at θ→∞).
+// stat (optional, may be NULL): per-callsite prim_status to accumulate
+// iteration counts, path counters, and floor stats into. NULL skips all
+// instrumentation. Production callsites in the app pass per-species
+// status objects; unit tests typically pass NULL.
 //
-// gamma_eff_cell (optional, may be NULL): pointer to a per-cell cache slot
-// for γ_eff. When non-NULL and the EOS is non-IDEAL, the Picard iteration
-// is initialised from *gamma_eff_cell (the previous step's converged value)
-// and the final converged γ_eff is written back. Warm-starting drops
-// Picard iteration counts from ~10 to ~1–2 for cells in steady state. For
-// IDEAL the pointer is ignored (no Picard loop). NULL preserves the cold-
-// flow default initial guess of γ=5/3 (used by unit tests and any call
-// site without per-cell context).
-//
-// Both paths recover the same convention (contravariant v^i, post-floor
+// All paths recover the same convention (contravariant v^i, post-floor
 // ρ, p) and populate the same out struct.
 static inline void
 gkyl_gr_euler_recover_primitives(
   struct gkyl_gr_euler_eos eos,
   double D, double Sx, double Sy, double Sz, double tau,
   const double inv_g[3][3],
-  double *gamma_eff_cell,
+  struct gkyl_gr_euler_prim_status *stat,
   struct gkyl_gr_euler_prim *out)
 {
   out->admissible =
@@ -922,105 +893,101 @@ gkyl_gr_euler_recover_primitives(
   double rho, vx, vy, vz, p, W, h;
 
   if (eos.type == GR_EULER_EOS_IDEAL) {
-    // Single EM Newton pass — bit-identical to pre-refactor.
-    (void)gkyl_gr_euler_em_newton_at_gamma(
+    // Single EM Newton pass.
+    int em_iters = gkyl_gr_euler_em_newton_at_gamma(
       eos.gas_gamma, mom_sq, D, Sx, Sy, Sz, tau, inv_g,
       &rho, &vx, &vy, &vz, &p, &W, &h);
-    gkyl_gr_euler_record_picard_iters(1);  // IDEAL is by definition 1 pass
-
+    if (stat) {
+      stat->em_newton_calls       += 1;
+      stat->em_newton_total_iters += (uint64_t)em_iters;
+      if (em_iters > stat->em_newton_max_iters)
+        stat->em_newton_max_iters = em_iters;
+      stat->em_newton_iter_hist[gkyl_gr_euler_status_hist_bucket(
+        em_iters, gkyl_gr_euler_newton_bin_edges,
+        GR_EULER_NEWTON_HIST_NBINS)] += 1;
+      if (em_iters >= 100) stat->em_newton_cap_hits += 1;
+      stat->path_ideal += 1;
+    }
   }
-  else if (eos.type == GR_EULER_EOS_RYU_CHATTOPADHYAY) {
-    // RC dispatch:
-    //   θ_tm < 1e-6 or p_tm floored → EM Newton at γ=5/3 (cold-flow
-    //                                  / TM-failure fallback)
-    //   M = 0                       → static-fluid short-circuit, accept
-    //                                  TM directly
-    //   else                        → RC Newton, paper-grounded physicality
-    //                                  check, accept if physical else fall
-    //                                  back to TM
-    //
-    // The physicality check is built directly from Ryu+ 2006 §3.3:
-    //   (a) W_rc > 1               (strict sub-luminal lower bound)
-    //   (b) W_rc < Γ_u             (strict sub-luminal upper bound, eq 30)
-    //   (c) sign(G(W_rc)) == sign(H(W_rc))   (eq 29 sign-branch check)
-    //
-    // All three inequalities are strict by design: this branch only runs
-    // when M > 0, so Γ_u > 1 and Γ_l = 1 < Γ_phys < Γ_u with strict
-    // separation. The M = 0 boundary (where Γ_l = Γ_u = 1 collapses the
-    // range to a point and RC's squared polynomial has a double root)
-    // is handled by the short-circuit above — RC has nothing to add
-    // when v = 0.
-    //
-    // Together (a)-(c) uniquely identify the paper's physical root.
-    // Squaring eq 29 to get the Newton polynomial doubles the algebraic
-    // root count by introducing the LHS = −RHS sign-flipped roots;
-    // check (c) filters those out. Check (b) rules out the paper's
-    // "positive root larger than Γ_u" (unphysical supraluminal root);
-    // see Ryu+ eq 30 + §3.3 second-to-last paragraph.
-    //
-    // Cancellation-free form of (b): W_rc < Γ_u  ⟺  W_rc² · s² < E²
-    // where s² = (D+τ)² − M². Avoids dividing by (1 − M²/E²) which
-    // can be very small for high-W cells.
-    //
-    // This replaces an earlier "trust RC if it agrees with TM within
-    // 10%" heuristic plus a "conditioning escape" branch — both were
-    // proxies for paper-grounded physicality before we wrote it out
-    // directly. The new check is strictly more rigorous and removes
-    // the need to compare against TM at all (TM is now purely the
-    // Newton warm-start and the fallback when RC fails physicality).
+  else {
+    // APPROXIMATE_SYNGE. Step (a): closed-form TM cubic.
     gkyl_gr_euler_recover_primitives_tm_cubic(
       D, Sx, Sy, Sz, tau, inv_g,
       &rho, &vx, &vy, &vz, &p, &W, &h);
 
+    // Step (b): cold-flow / TM-failure fallback. tm_p_floored is more
+    // honest than θ_tm alone — TM's precision-loss feedback loop near
+    // the admissibility boundary inflates W ⇒ deflates ρ = D/W ⇒
+    // artificially inflates θ = p_floor/ρ above the cold-flow
+    // threshold even though the cell is effectively pressureless.
+    // Route these directly to EM γ=5/3 alongside genuine cold-flow
+    // cells.
     double rho_for_theta = (rho > GR_EULER_DENSITY_FLOOR) ? rho : GR_EULER_DENSITY_FLOOR;
     double theta_tm = p / rho_for_theta;
-    // TM's pressure floor activated ⇒ TM failed to find a positive-p
-    // solution. This is a more honest signal than θ_tm because TM's
-    // precision-loss feedback loop near the admissibility boundary
-    // inflates W ⇒ deflates ρ = D/W ⇒ artificially inflates
-    // θ = p_floor/ρ above the cold-flow threshold even though the cell
-    // is effectively pressureless. Route these directly to EM γ=5/3
-    // alongside genuine cold-flow cells.
     bool tm_p_floored = (p <= GR_EULER_PRESSURE_FLOOR);
-
     if (theta_tm < 1.0e-6 || tm_p_floored) {
-      (void)gkyl_gr_euler_em_newton_at_gamma(
+      int em_iters = gkyl_gr_euler_em_newton_at_gamma(
         5.0/3.0, mom_sq, D, Sx, Sy, Sz, tau, inv_g,
         &rho, &vx, &vy, &vz, &p, &W, &h);
-    } else if (mom_sq == 0.0) {
-      // Static-fluid short-circuit. v = 0 ⇒ W = 1 exactly and (ρ, p) are
-      // determined from (D, τ) by TM's cubic (closed-form at M = 0).
-      // RC's squared polynomial degenerates here: H(W) factors as
-      // (W−1)(W+1)·2·(6E²W² − 4DE·W + D²) with the quadratic having
-      // discriminant −8D²E² < 0, so the only real positive root of H²=0
-      // is the double root W = 1. Newton on a double root converges
-      // linearly and stops at W_rc = 1 ± √ε_machine, which makes the
-      // strict-inequality physicality checks below trip on the boundary.
-      // TM has already produced the exact answer (vx = vy = vz = 0,
-      // W = 1) at this point — just take it.
-    } else {
+      if (stat) {
+        stat->em_newton_calls       += 1;
+        stat->em_newton_total_iters += (uint64_t)em_iters;
+        if (em_iters > stat->em_newton_max_iters)
+          stat->em_newton_max_iters = em_iters;
+        stat->em_newton_iter_hist[gkyl_gr_euler_status_hist_bucket(
+          em_iters, gkyl_gr_euler_newton_bin_edges,
+          GR_EULER_NEWTON_HIST_NBINS)] += 1;
+        if (em_iters >= 100) stat->em_newton_cap_hits += 1;
+        stat->path_cold_flow += 1;
+      }
+    }
+    // Step (c): RC Newton refinement. Only runs when use_rcc and the
+    // momentum is non-zero (the M = 0 boundary case is handled by TM
+    // exactly; RC's squared polynomial degenerates to a double root at
+    // W = 1 there).
+    //
+    // The physicality check is built directly from Ryu+ 2006 §3.3:
+    //   (a) W_rc > 1               (strict sub-luminal lower bound)
+    //   (b) W_rc < Γ_u             (strict sub-luminal upper bound,
+    //                               Ryu+ eq 30, cancellation-free form
+    //                               W_rc² · (E² − M²) < E²)
+    //   (c) sign(G(W_rc)) == sign(H(W_rc))   (eq 29 sign-branch check)
+    // Together (a)-(c) uniquely identify the paper's physical root.
+    // Squaring eq 29 to get the Newton polynomial doubles the algebraic
+    // root count by introducing the LHS = −RHS sign-flipped roots;
+    // check (c) filters those out. Check (b) rules out the paper's
+    // positive root larger than Γ_u (supraluminal root).
+    //
+    // Step (d): when !use_rcc, the TM cubic is the final answer; this
+    // branch is skipped.
+    else if (eos.use_rcc && mom_sq > 0.0) {
+      // Warm-start the RC Newton from the TM cubic's Γ we already have.
       double rho_rc, vx_rc, vy_rc, vz_rc, p_rc, W_rc, h_rc;
-      gkyl_gr_euler_recover_primitives_rc_newton(
-        D, Sx, Sy, Sz, tau, inv_g,
+      int rc_iters = gkyl_gr_euler_recover_primitives_rc_newton(
+        D, Sx, Sy, Sz, tau, inv_g, W,
         &rho_rc, &vx_rc, &vy_rc, &vz_rc, &p_rc, &W_rc, &h_rc);
+      if (stat) {
+        stat->rc_newton_calls       += 1;
+        stat->rc_newton_total_iters += (uint64_t)rc_iters;
+        if (rc_iters > stat->rc_newton_max_iters)
+          stat->rc_newton_max_iters = rc_iters;
+        stat->rc_newton_iter_hist[gkyl_gr_euler_status_hist_bucket(
+          rc_iters, gkyl_gr_euler_newton_bin_edges,
+          GR_EULER_NEWTON_HIST_NBINS)] += 1;
+      }
 
       // (a) Strict sub-luminal lower bound + NaN guard.
       bool rc_lower_bound = (W_rc > 1.0);
 
-      // (b) Strict sub-luminal upper bound — Ryu+ eq 30 in
-      //     cancellation-free form: W_rc² · (E² − M²) < E². The M = 0
-      //     boundary case is handled by the static-fluid short-circuit
-      //     above, so reaching this branch implies M > 0 and the strict
-      //     inequality is the correct semantic.
+      // (b) Strict sub-luminal upper bound. M > 0 here (M = 0 short-
+      //     circuited above), so the strict inequality is the correct
+      //     semantic.
       double E_lab_sq = (D + tau) * (D + tau);
       double s_sq_unfloored = E_lab_sq - mom_sq;
       bool rc_sub_luminal = (s_sq_unfloored > 0.0)
         && (W_rc * W_rc * s_sq_unfloored < E_lab_sq);
 
-      // (c) Eq 29 strict sign-branch check. The un-squared eq 29 is
-      //     M·√(Γ²−1)·G(Γ) = H(Γ). M > 0 here (M = 0 handled above),
-      //     and Γ > 1 (lower bound), so sign(LHS) = sign(G). Physical
-      //     root has sign(G) == sign(H) strictly.
+      // (c) Eq 29 strict sign-branch check.
       double E_lab = D + tau;
       double E2 = E_lab_sq;
       double M2 = mom_sq;
@@ -1036,122 +1003,51 @@ gkyl_gr_euler_recover_primitives(
 
       bool rc_ok = rc_lower_bound && rc_sub_luminal && rc_correct_branch;
 
-      // Diagnostic: track acceptance / rejection magnitude. dW_rel
-      // computed only for the counter; it does NOT participate in the
-      // accept/reject decision anymore. `conditioning_escape` is kept
-      // in the API signature as a vestigial bool (always false now);
-      // simpler to leave the diagnostic API stable.
+      // |ΔΓ|/Γ_tm — diagnostic only, no role in accept/reject decision.
       double dW_rel = fabs(W_rc - W) / ((W > 0.0) ? W : 1.0);
-      gkyl_gr_euler_record_rc_compare(rc_ok, false, dW_rel);
 
       if (rc_ok) {
         rho = rho_rc; vx = vx_rc; vy = vy_rc; vz = vz_rc;
         p   = p_rc;   W  = W_rc;  h  = h_rc;
+        if (stat) {
+          stat->path_rcc_accepted += 1;
+          stat->sum_dW_acc += dW_rel;
+          if (dW_rel > stat->max_dW_acc) stat->max_dW_acc = dW_rel;
+        }
       } else {
-        // Capture diagnostic snapshot for the post-run dump.
-        double s_sq_over_E2 = (E_lab_sq > 1.0e-30)
-          ? s_sq_unfloored / E_lab_sq : 0.0;
-        struct gkyl_gr_euler_rc_reject ev = {
-          .dW_rel       = dW_rel,
-          .W_tm         = W,
-          .W_rc         = W_rc,
-          .D            = D,
-          .tau          = tau,
-          .mom_sq       = mom_sq,
-          .s_sq_over_E2 = s_sq_over_E2,
-          .theta_tm     = theta_tm,
-          .p_tm         = p,
-          .p_rc         = p_rc,
-        };
-        gkyl_gr_euler_record_rc_reject(&ev);
+        if (stat) {
+          stat->path_rcc_rejected += 1;
+          if (dW_rel > stat->max_dW_rej) stat->max_dW_rej = dW_rel;
+        }
       }
     }
-
-    gkyl_gr_euler_record_picard_iters(1);
-
-    if (gamma_eff_cell != NULL) {
-      *gamma_eff_cell = gkyl_gr_euler_tm_match_gamma_eff(rho, p);
-    }
-
-  }
-  else {
-    // Direct (non-iterative) Mathews-Taub recovery via the Ryu+ 2006
-    // cubic (see gkyl_gr_euler_recover_primitives_tm_cubic above) +
-    // cold-flow fallback to EM Newton at γ=5/3 when θ = p/ρ is below
-    // the EOS-equivalence threshold.
-    //
-    // Replaces the Picard machinery (Aitken / Anderson / Brent variants
-    // from earlier sessions) — TM admits a closed-form analytic
-    // recovery, derived independently from the IDEAL Eulderink-Mellema
-    // quartic; we route to it for the bulk of cells.
-    gkyl_gr_euler_recover_primitives_tm_cubic(
-      D, Sx, Sy, Sz, tau, inv_g,
-      &rho, &vx, &vy, &vz, &p, &W, &h);
-
-    // COLD-FLOW FALLBACK. At low θ = p/ρ:
-    //
-    //   h_TM(θ)        = 1 + (5/2)θ + (9/8)θ² + O(θ⁴)
-    //   h_IDEAL(γ=5/3) = 1 + (5/2)θ                 (exactly)
-    //
-    // so |h_TM − h_IDEAL|/h ~ (9/8)θ² — quadratic falloff. The
-    // threshold trades off cubic-vs-EM-fallback rate against EOS
-    // accuracy in the cold tail:
-    //
-    //   θ < 1e-8 → h agreement ~1e-16 (machine precision, bit-identical)
-    //   θ < 1e-6 → h agreement ~1e-13
-    //   θ < 1e-4 → h agreement ~1e-9   (still well below sim tolerance)
-    //   θ < 1e-3 → h agreement ~1e-7
-    //
-    // Using 1e-4: catches the marginal-cubic-precision regime around
-    // the compact object where (e − ρ)/ρ is small enough that the
-    // cubic's p formula suffers cancellation, but generous enough to
-    // include the "barely above the floor" cells whose cubic primitives
-    // were inconsistent at the 1e-6 threshold (showed up in BHL as
-    // residual ~10× excess repair counts vs Brent baseline).
-    //
-    // (Synge gas has same scaling with coefficient 15/8 — slightly
-    // slower convergence but same regime.)
-    //
-    // At the same time, the cubic LOSES SELF-CONSISTENCY in this
-    // regime because its pressure formula p = (e² − ρ²)/(3e) suffers
-    // cancellation when e ≈ ρ (cold flow ⇔ h ≈ 1 ⇔ e ≈ ρ exactly).
-    // The raw p comes out near or below the pressure floor; the outer
-    // floor clamp then leaves the remaining primitives (W, ρ, h, vⁱ)
-    // inconsistent with the floored p. Downstream, that inconsistency
-    // manifests as repeated cascade-repair fires near the compact
-    // object in BHL.
-    //
-    // EM Newton at γ=5/3 is the gold-standard cold-flow recovery:
-    // robust convergence for p << 1, and gives a self-consistent
-    // regularized primitive set that downstream tolerates cleanly.
-    // This explicit fallback mirrors the Picard scheme's implicit
-    // cold-flow shortcut (θ < 1e-12 → γ_eff = 5/3).
-    double rho_for_theta = (rho > GR_EULER_DENSITY_FLOOR) ? rho : GR_EULER_DENSITY_FLOOR;
-    double theta_check = p / rho_for_theta;
-    if (theta_check < 1.0e-4) {
-      (void)gkyl_gr_euler_em_newton_at_gamma(
-        5.0/3.0, mom_sq, D, Sx, Sy, Sz, tau, inv_g,
-        &rho, &vx, &vy, &vz, &p, &W, &h);
-    }
-
-    // Histogram: 1 "pass" regardless of which branch fired — both the
-    // cubic and the EM fallback are a single recovery call.
-    gkyl_gr_euler_record_picard_iters(1);
-
-    // Diagnostic γ_eff writeback (the IDEAL adiabatic index that would
-    // give the same h as TM at the recovered (ρ, p)). Useful for
-    // external monitors that want to see the per-cell effective regime;
-    // not consumed as a warm-start anywhere.
-    if (gamma_eff_cell != NULL) {
-      *gamma_eff_cell = gkyl_gr_euler_tm_match_gamma_eff(rho, p);
+    else if (stat) {
+      // TM cubic accepted without RC refinement (use_rcc=false or M=0).
+      stat->path_tm_cubic += 1;
     }
   }
 
   bool rho_floored = (rho < GR_EULER_DENSITY_FLOOR);
   bool p_floored   = (p   < GR_EULER_PRESSURE_FLOOR);
-  // Pass raw values + conservatives to the diagnostic before clamping.
-  gkyl_gr_euler_record_floor_hit(
-    rho_floored, p_floored, D, tau, mom_sq, rho, p);
+
+  // Floor-hit instrumentation (on raw pre-clamp values).
+  if (stat) {
+    stat->floor_calls += 1;
+    if (rho_floored) stat->rho_floor_hits += 1;
+    if (p_floored)   stat->p_floor_hits   += 1;
+    if (rho_floored && p_floored) stat->both_floor_hits += 1;
+
+    if (rho_floored || p_floored) {
+      stat->floor_D_hist[gkyl_gr_euler_status_floor_D_bin(D)] += 1;
+      double E_lab = tau + D;
+      double s_sq = (D + tau) * (D + tau) - mom_sq;
+      double s_sq_over_E2 = (E_lab * E_lab > 1.0e-300)
+        ? s_sq / (E_lab * E_lab) : 0.0;
+      if (s_sq_over_E2 < 0.0) s_sq_over_E2 = 0.0;
+      stat->floor_s2_hist[gkyl_gr_euler_status_floor_s2_bin(s_sq_over_E2)] += 1;
+    }
+  }
+
   if (rho_floored) rho = GR_EULER_DENSITY_FLOOR;
   if (p_floored)   p   = GR_EULER_PRESSURE_FLOOR;
 

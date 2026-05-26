@@ -16,10 +16,10 @@
 // are valid here; other equation types are owned by moment_em_coupling.
 struct gkyl_moment_spacetime_coupling_data {
   enum gkyl_eqn_type type;     // Equation type (mod variant).
-  struct gkyl_gr_euler_eos eos; // Equation of state (IDEAL or MATHEWS_TAUB).
-                                // For GKYL_EQN_GR_EULER_MOD this is always
-                                // IDEAL; only the tetrad mod variant currently
-                                // supports MATHEWS_TAUB.
+  struct gkyl_gr_euler_eos eos; // Equation of state (IDEAL or
+                                // APPROXIMATE_SYNGE). GKYL_EQN_GR_EULER_MOD
+                                // is always IDEAL; only the tetrad mod
+                                // variant currently supports APPROXIMATE_SYNGE.
 };
 
 // Input for moment_spacetime_coupling. Mirrors gkyl_moment_em_coupling_inp's
@@ -100,20 +100,24 @@ gkyl_moment_spacetime_coupling_derive_products(
  * The mod fluid arrays carry only the 5 hydro components; the products
  * array supplies all spacetime needed by the source-term math.
  *
- * gamma_eff_cache (optional, may be NULL): per-cell γ_eff warm-start cache
- * for the Mathews-Taub Picard iteration in the primitive recovery. When
- * provided, the source step reads the cell's slot as the initial Picard
- * guess and writes the converged γ_eff back. For IDEAL gas this argument
- * is ignored. Drops Picard iteration counts from ~10 to ~1–2 for cells in
- * steady state.
+ * prim_status_source / repair_status_source: per-species source-side
+ * instrumentation. Indexed by species index 0..nfluids-1; entries for
+ * non-GR-mod species are ignored. Pass NULL pointers (or NULL entries)
+ * to skip instrumentation. The repair_status_source pointer must ALSO
+ * be installed on each GR Euler tetrad-mod equation's auxfields (via
+ * gkyl_gr_euler_tetrad_mod_set_auxfields) before this call so the
+ * repair_state callback (fired by REPAIR_ONCE inside the SSP-RK3
+ * stages) can find it on the cur_repair_ctx = 0 branch.
  *
- * @param st               Coupling object.
- * @param t_curr           Current simulation time.
- * @param dt               Time step.
- * @param update_range     Range over which to integrate sources.
- * @param fluid            Per-species writable hydro arrays.
- * @param prods            Current spacetime-products array.
- * @param gamma_eff_cache  Optional per-cell γ_eff warm-start cache.
+ * @param st                   Coupling object.
+ * @param t_curr               Current simulation time.
+ * @param dt                   Time step.
+ * @param update_range         Range over which to integrate sources.
+ * @param fluid                Per-species writable hydro arrays.
+ * @param prods                Current spacetime-products array.
+ * @param prim_status_source   Per-species prim_status for source recovery.
+ * @param repair_status_source Per-species repair_status for source step
+ *                             tau/s²-limiter firing counts.
  */
 void
 gkyl_moment_spacetime_coupling_explicit_advance(
@@ -122,7 +126,8 @@ gkyl_moment_spacetime_coupling_explicit_advance(
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *prods,
-  struct gkyl_array *gamma_eff_cache);
+  struct gkyl_gr_euler_prim_status *prim_status_source[GKYL_MAX_SPECIES],
+  struct gkyl_gr_euler_repair_status *repair_status_source[GKYL_MAX_SPECIES]);
 
 /**
  * Release the coupling object.

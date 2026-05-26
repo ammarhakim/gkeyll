@@ -11,6 +11,7 @@
 #include <gkyl_gr_spacetime.h>
 #include <gkyl_wv_embed_geo.h>
 
+#include <stdio.h>
 #include <time.h>
 
 // Parameters for moment species
@@ -517,6 +518,20 @@ struct gkyl_array* gkyl_moment_app_get_write_array_field(const gkyl_moment_app* 
  * @return Return statistics.
  */
 struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app *app);
+
+/**
+ * Print accumulated GR Euler tetrad-mod recovery + repair status for
+ * every GR Euler tetrad-mod species. Reports per-species, per-callsite
+ * (wave-prop vs source) iteration counts, dispatch path counters, floor
+ * statistics, and cascade-repair fix totals.
+ *
+ * Opt-in: nothing is auto-dumped at app teardown. Call this when you
+ * want the postmortem (e.g. after the simulation loop completes).
+ *
+ * @param app App.
+ * @param fp  Output stream (typically stderr or stdout).
+ */
+void gkyl_moment_app_gr_euler_print_status(const gkyl_moment_app *app, FILE *fp);
 
 /**
  * Free moment app.

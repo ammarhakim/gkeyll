@@ -35,6 +35,23 @@
 // Helpers
 // ---------------------------------------------------------------------------
 
+// EOS modes exercised by the parametrized runners below. The three
+// production EOS configurations: IDEAL γ=5/3, APPROXIMATE_SYNGE with
+// use_rcc=false (Mathews-Taub cubic closure), and APPROXIMATE_SYNGE
+// with use_rcc=true (Ryu-Chattopadhyay Newton refinement on top of TM).
+#define NUM_EOS_MODES 3
+static const struct gkyl_gr_euler_eos eos_modes[NUM_EOS_MODES] = {
+  { .type = GR_EULER_EOS_IDEAL,             .gas_gamma = 5.0/3.0, .use_rcc = false },
+  { .type = GR_EULER_EOS_APPROXIMATE_SYNGE, .gas_gamma = 0.0,     .use_rcc = false },
+  { .type = GR_EULER_EOS_APPROXIMATE_SYNGE, .gas_gamma = 0.0,     .use_rcc = true  },
+};
+static const char *
+eos_label_for(struct gkyl_gr_euler_eos eos)
+{
+  if (eos.type == GR_EULER_EOS_IDEAL) return "IDEAL";
+  return eos.use_rcc ? "RCC" : "TM";
+}
+
 // Fill a single prods row from an analytic spacetime at (x, y, z).
 static void
 fill_prods_at(struct gkyl_gr_spacetime *spacetime,
@@ -51,9 +68,11 @@ fill_prods_at(struct gkyl_gr_spacetime *spacetime,
 //   q[i+1] = √γ · γ_ij · ρhW² · v^j         (covariant momentum)
 //   q[4]   = √γ · (ρhW² − p − ρW)
 //
-// W is computed self-consistently from |v|² = γ_ij v^i v^j.
+// W is computed self-consistently from |v|² = γ_ij v^i v^j; h via the
+// EOS-specific enthalpy formula so the seed conservative state matches
+// what the code-side recovery would produce for the same primitives.
 static void
-build_state_convA(double gas_gamma,
+build_state_convA(struct gkyl_gr_euler_eos eos,
   double rho, const double v_co[3], double p,
   const double *prods, double q[5])
 {
@@ -67,7 +86,7 @@ build_state_convA(double gas_gamma,
   double vsq = 0.0;
   for (int i = 0; i < 3; i++) vsq += v_lo[i] * v_co[i];
   double W = 1.0 / sqrt(1.0 - vsq);
-  double h = 1.0 + (p / rho) * (gas_gamma / (gas_gamma - 1.0));
+  double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
   double rhohW2 = rho * h * W * W;
 
   q[0] = sqrt_det * rho * W;
@@ -78,13 +97,15 @@ build_state_convA(double gas_gamma,
 }
 
 // Analytic Banyuls flux F^x[U] for the Convention-A state described by
-// (rho, v_co, p) at the prods row. v̂^x = v^x − β^x/α.
+// (rho, v_co, p) at the prods row. v̂^x = v^x − β^x/α. Enthalpy h is
+// computed via the EOS-specific formula so the analytic flux matches
+// the code-path flux for the same EOS.
 //
 //   F^x[D]   = α√γ · ρ W · v̂^x
 //   F^x[S_i] = α√γ · (γ_ij·ρhW²·v^j · v̂^x + p · δ_i^x)
 //   F^x[τ]   = α√γ · (τ · v̂^x + p · v^x)
 static void
-analytic_banyuls_flux(double gas_gamma,
+analytic_banyuls_flux(struct gkyl_gr_euler_eos eos,
   double rho, const double v_co[3], double p,
   const double *prods, double F[5])
 {
@@ -100,7 +121,7 @@ analytic_banyuls_flux(double gas_gamma,
   double vsq = 0.0;
   for (int i = 0; i < 3; i++) vsq += v_lo[i] * v_co[i];
   double W = 1.0 / sqrt(1.0 - vsq);
-  double h = 1.0 + (p / rho) * (gas_gamma / (gas_gamma - 1.0));
+  double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
   double rhohW2 = rho * h * W * W;
 
   double v_tilde_x = v_co[0] - beta_x / alpha;
@@ -131,12 +152,13 @@ make_one_cell_prods(struct gkyl_wv_eqn *eqn, struct gkyl_range *conf_range,
 }
 
 static struct gkyl_wv_eqn *
-make_eqn(double gas_gamma, struct gkyl_range conf_range,
+make_eqn(struct gkyl_gr_euler_eos eos, struct gkyl_range conf_range,
   enum gkyl_wv_gr_euler_tetrad_rp rp)
 {
   return gkyl_wv_gr_euler_tetrad_mod_inew(
     &(struct gkyl_wv_gr_euler_tetrad_mod_inp){
-      .gas_gamma = gas_gamma,
+      .gas_gamma = eos.gas_gamma,  // legacy IDEAL shortcut (eos overrides)
+      .eos = eos,
       .conf_range = conf_range,
       .rp_type = rp,
       .use_gpu = false,
@@ -150,15 +172,14 @@ make_eqn(double gas_gamma, struct gkyl_range conf_range,
 static void
 run_banyuls_flux_consistency(struct gkyl_gr_spacetime *spacetime,
   const char *label, double x, double y, double z,
-  enum gkyl_wv_gr_euler_tetrad_rp rp)
+  struct gkyl_gr_euler_eos eos, enum gkyl_wv_gr_euler_tetrad_rp rp)
 {
-  double gas_gamma = 5.0 / 3.0;
 
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -200,14 +221,14 @@ run_banyuls_flux_consistency(struct gkyl_gr_spacetime *spacetime,
         if (!(vsq < 1.0 - 1.0e-6)) continue;
 
         double q[5];
-        build_state_convA(gas_gamma, rho, v, p, prods_row, q);
+        build_state_convA(eos, rho, v, p, prods_row, q);
 
         double f_sr[5], f_gr[5];
-        gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), q, prods_row, NULL, f_sr);
-        gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), q, prods_row, NULL, f_sr, f_gr);
+        gkyl_gr_euler_tetrad_mod_flux(eos, q, prods_row, NULL, f_sr);
+        gkyl_gr_euler_tetrad_mod_flux_correction(eos, q, prods_row, NULL, f_sr, f_gr);
 
         double f_ref[5];
-        analytic_banyuls_flux(gas_gamma, rho, v, p, prods_row, f_ref);
+        analytic_banyuls_flux(eos, rho, v, p, prods_row, f_ref);
 
         for (int i = 0; i < 5; i++) {
           double d = fabs(f_gr[i] - f_ref[i]);
@@ -218,35 +239,43 @@ run_banyuls_flux_consistency(struct gkyl_gr_spacetime *spacetime,
   }
 
   TEST_CHECK_( max_diff < 1.0e-10,
-    "[%s @ (%g,%g,%g)] Banyuls flux residual: max |F_code − F_analytic| = %.3e",
-    label, x, y, z, max_diff );
+    "[%s @ (%g,%g,%g) EOS=%s] Banyuls flux residual: max |F_code − F_analytic| = %.3e",
+    label, x, y, z, eos_label_for(eos), max_diff );
 
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
 
+// Each wrapper loops over [IDEAL, TM, RCC] so every curated state is
+// exercised in all three production EOS configurations.
 void test_banyuls_flux_consistency_lax_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_banyuls_flux_consistency(st, "Mink-Lax", 0.3, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_LAX);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_banyuls_flux_consistency(st, "Mink-Lax", 0.3, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX);
   gkyl_gr_spacetime_release(st);
 }
 void test_banyuls_flux_consistency_lax_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_banyuls_flux_consistency(st, "Schw-Lax", 0.3, 0.2, 0.0, WV_GR_EULER_TETRAD_RP_LAX);
-  run_banyuls_flux_consistency(st, "Schw-Lax", 0.5, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_LAX);
-  run_banyuls_flux_consistency(st, "Schw-Lax", 0.4, 0.4, 0.0, WV_GR_EULER_TETRAD_RP_LAX);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_banyuls_flux_consistency(st, "Schw-Lax", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX);
+    run_banyuls_flux_consistency(st, "Schw-Lax", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX);
+    run_banyuls_flux_consistency(st, "Schw-Lax", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX);
+  }
   gkyl_gr_spacetime_release(st);
 }
 void test_banyuls_flux_consistency_lax_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_banyuls_flux_consistency(st, "Kerr-Lax", 0.3, 0.2, 0.0, WV_GR_EULER_TETRAD_RP_LAX);
-  run_banyuls_flux_consistency(st, "Kerr-Lax", 0.5, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_LAX);
-  run_banyuls_flux_consistency(st, "Kerr-Lax", 0.4, 0.4, 0.0, WV_GR_EULER_TETRAD_RP_LAX);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_banyuls_flux_consistency(st, "Kerr-Lax", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX);
+    run_banyuls_flux_consistency(st, "Kerr-Lax", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX);
+    run_banyuls_flux_consistency(st, "Kerr-Lax", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX);
+  }
   gkyl_gr_spacetime_release(st);
 }
 
@@ -257,25 +286,31 @@ void test_banyuls_flux_consistency_lax_kerr(void)
 void test_banyuls_flux_consistency_hllc_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_banyuls_flux_consistency(st, "Mink-HLLC", 0.3, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_banyuls_flux_consistency(st, "Mink-HLLC", 0.3, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC);
   gkyl_gr_spacetime_release(st);
 }
 void test_banyuls_flux_consistency_hllc_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_banyuls_flux_consistency(st, "Schw-HLLC", 0.3, 0.2, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
-  run_banyuls_flux_consistency(st, "Schw-HLLC", 0.5, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
-  run_banyuls_flux_consistency(st, "Schw-HLLC", 0.4, 0.4, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_banyuls_flux_consistency(st, "Schw-HLLC", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC);
+    run_banyuls_flux_consistency(st, "Schw-HLLC", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC);
+    run_banyuls_flux_consistency(st, "Schw-HLLC", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC);
+  }
   gkyl_gr_spacetime_release(st);
 }
 void test_banyuls_flux_consistency_hllc_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.3, 0.2, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
-  run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.5, 0.0, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
-  run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.4, 0.4, 0.0, WV_GR_EULER_TETRAD_RP_HLLC);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC);
+    run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC);
+    run_banyuls_flux_consistency(st, "Kerr-HLLC", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC);
+  }
   gkyl_gr_spacetime_release(st);
 }
 
@@ -286,29 +321,30 @@ void test_banyuls_flux_consistency_hllc_kerr(void)
 // Returns the curved-frame Banyuls flux ΔF for a given pair of states using
 // the same (flux + flux_correction) machinery the wave construction uses.
 static void
-banyuls_delta_flux(double gas_gamma, struct wv_gr_euler_tetrad_mod *grm,
+banyuls_delta_flux(struct gkyl_gr_euler_eos eos, struct wv_gr_euler_tetrad_mod *grm,
   const double qL[5], const double qR[5], double dF[5])
 {
   double fL_sr[5], fR_sr[5], fL_gr[5], fR_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qL, grm->prodl_local, NULL, fL_sr);
-  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qR, grm->prodr_local, NULL, fR_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qL, grm->prodl_local, NULL, fL_sr, fL_gr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qR, grm->prodr_local, NULL, fR_sr, fR_gr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qL, grm->prodl_local, NULL, fL_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qR, grm->prodr_local, NULL, fR_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qL, grm->prodl_local, NULL, fL_sr, fL_gr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qR, grm->prodr_local, NULL, fR_sr, fR_gr);
   for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
 }
 
 static void
 run_riemann_properties_lax_hll(struct gkyl_gr_spacetime *spacetime,
   const char *label, double x, double y, double z,
-  enum gkyl_wv_gr_euler_tetrad_rp rp, int num_waves)
+  struct gkyl_gr_euler_eos eos, enum gkyl_wv_gr_euler_tetrad_rp rp,
+  int num_waves)
 {
-  double gas_gamma = 5.0 / 3.0;
+  double gas_gamma = eos.gas_gamma;
 
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -336,8 +372,8 @@ run_riemann_properties_lax_hll(struct gkyl_gr_spacetime *spacetime,
   double rho_R = 0.5, p_R = 0.7;  double v_R[3] = { 0.05, 0.10, 0.15 };
 
   double qL_glob[5], qR_glob[5];
-  build_state_convA(gas_gamma, rho_L, v_L, p_L, prods_row, qL_glob);
-  build_state_convA(gas_gamma, rho_R, v_R, p_R, prods_row, qR_glob);
+  build_state_convA(eos, rho_L, v_L, p_L, prods_row, qL_glob);
+  build_state_convA(eos, rho_R, v_R, p_R, prods_row, qR_glob);
 
   int idx[1] = { 0 };
   eqn->set_interface_idx_func(eqn, idx, idx);
@@ -363,7 +399,7 @@ run_riemann_properties_lax_hll(struct gkyl_gr_spacetime *spacetime,
 
   // (b) Flux jump: Σ s_k · w_k = ΔF_GR (Banyuls)
   double dF[5];
-  banyuls_delta_flux(gas_gamma, grm, qL, qR, dF);
+  banyuls_delta_flux(eos, grm, qL, qR, dF);
   for (int i = 0; i < 5; i++) {
     double sw = 0.0;
     for (int k = 0; k < num_waves; k++) sw += speeds[k] * waves[k * 5 + i];
@@ -396,7 +432,7 @@ run_riemann_properties_lax_hll(struct gkyl_gr_spacetime *spacetime,
 
   // (f) Trivial Riemann: qL = qR ⇒ all waves zero, fluctuations zero.
   double qE[5];
-  build_state_convA(gas_gamma, 1.0, (double[]){0.1, 0.2, 0.05}, 1.0, prods_row, qE);
+  build_state_convA(eos, 1.0, (double[]){0.1, 0.2, 0.05}, 1.0, prods_row, qE);
   double qE_loc[5];
   eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qE, qE_loc);
   double dE[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -443,67 +479,66 @@ run_riemann_properties_lax_hll(struct gkyl_gr_spacetime *spacetime,
   gkyl_wv_eqn_release(eqn);
 }
 
+// Each wrapper loops over [IDEAL, TM, RCC] for full EOS coverage.
 void test_riemann_properties_lax_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_riemann_properties_lax_hll(st, "Mink-Lax", 0.3, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_LAX, 2);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_riemann_properties_lax_hll(st, "Mink-Lax", 0.3, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
   gkyl_gr_spacetime_release(st);
 }
 void test_riemann_properties_lax_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_riemann_properties_lax_hll(st, "Schw-Lax", 0.3, 0.2, 0.0,
-    WV_GR_EULER_TETRAD_RP_LAX, 2);
-  run_riemann_properties_lax_hll(st, "Schw-Lax", 0.5, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_LAX, 2);
-  run_riemann_properties_lax_hll(st, "Schw-Lax", 0.4, 0.4, 0.0,
-    WV_GR_EULER_TETRAD_RP_LAX, 2);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_riemann_properties_lax_hll(st, "Schw-Lax", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
+    run_riemann_properties_lax_hll(st, "Schw-Lax", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
+    run_riemann_properties_lax_hll(st, "Schw-Lax", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
+  }
   gkyl_gr_spacetime_release(st);
 }
 void test_riemann_properties_lax_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_riemann_properties_lax_hll(st, "Kerr-Lax", 0.3, 0.2, 0.0,
-    WV_GR_EULER_TETRAD_RP_LAX, 2);
-  run_riemann_properties_lax_hll(st, "Kerr-Lax", 0.5, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_LAX, 2);
-  run_riemann_properties_lax_hll(st, "Kerr-Lax", 0.4, 0.4, 0.0,
-    WV_GR_EULER_TETRAD_RP_LAX, 2);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_riemann_properties_lax_hll(st, "Kerr-Lax", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
+    run_riemann_properties_lax_hll(st, "Kerr-Lax", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
+    run_riemann_properties_lax_hll(st, "Kerr-Lax", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
+  }
   gkyl_gr_spacetime_release(st);
 }
 
 void test_riemann_properties_hll_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_riemann_properties_lax_hll(st, "Mink-HLL", 0.3, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLL, 2);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_riemann_properties_lax_hll(st, "Mink-HLL", 0.3, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
   gkyl_gr_spacetime_release(st);
 }
 void test_riemann_properties_hll_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_riemann_properties_lax_hll(st, "Schw-HLL", 0.3, 0.2, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLL, 2);
-  run_riemann_properties_lax_hll(st, "Schw-HLL", 0.5, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLL, 2);
-  run_riemann_properties_lax_hll(st, "Schw-HLL", 0.4, 0.4, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLL, 2);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_riemann_properties_lax_hll(st, "Schw-HLL", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
+    run_riemann_properties_lax_hll(st, "Schw-HLL", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
+    run_riemann_properties_lax_hll(st, "Schw-HLL", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
+  }
   gkyl_gr_spacetime_release(st);
 }
 void test_riemann_properties_hll_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_riemann_properties_lax_hll(st, "Kerr-HLL", 0.3, 0.2, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLL, 2);
-  run_riemann_properties_lax_hll(st, "Kerr-HLL", 0.5, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLL, 2);
-  run_riemann_properties_lax_hll(st, "Kerr-HLL", 0.4, 0.4, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLL, 2);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_riemann_properties_lax_hll(st, "Kerr-HLL", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
+    run_riemann_properties_lax_hll(st, "Kerr-HLL", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
+    run_riemann_properties_lax_hll(st, "Kerr-HLL", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
+  }
   gkyl_gr_spacetime_release(st);
 }
 
@@ -516,32 +551,31 @@ void test_riemann_properties_hll_kerr(void)
 void test_riemann_properties_hllc_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_riemann_properties_lax_hll(st, "Mink-HLLC", 0.3, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_riemann_properties_lax_hll(st, "Mink-HLLC", 0.3, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
   gkyl_gr_spacetime_release(st);
 }
 void test_riemann_properties_hllc_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.3, 0.2, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLLC, 3);
-  run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.5, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLLC, 3);
-  run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.4, 0.4, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
+    run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
+    run_riemann_properties_lax_hll(st, "Schw-HLLC", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  }
   gkyl_gr_spacetime_release(st);
 }
 void test_riemann_properties_hllc_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.3, 0.2, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLLC, 3);
-  run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.5, 0.0, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLLC, 3);
-  run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.4, 0.4, 0.0,
-    WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.3, 0.2, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
+    run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.5, 0.0, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
+    run_riemann_properties_lax_hll(st, "Kerr-HLLC", 0.4, 0.4, 0.0, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  }
   gkyl_gr_spacetime_release(st);
 }
 
@@ -571,13 +605,14 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   double x, double y, double z)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
 
   // 2-cell conf range so we have distinct slots for active + excised.
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 1 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -605,7 +640,7 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   double rho = 1.0, p = 0.5;
   double v_into_excised[3] = { 0.4, 0.1, 0.0 };
   double q_active_glob[5];
-  build_state_convA(gas_gamma, rho, v_into_excised, p, prods_active, q_active_glob);
+  build_state_convA(eos, rho, v_into_excised, p, prods_active, q_active_glob);
   double q_excised_glob[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
 
   int idx_active[1]  = { 0 };
@@ -645,8 +680,8 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   //      Compute F(qL_active) via the production flux + flux_correction
   //      using the active-cell prods.
   double fL_sr[5], fL_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qL_loc, grm->prodl_local, NULL, fL_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qL_loc, grm->prodl_local, NULL, fL_sr, fL_gr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qL_loc, grm->prodl_local, NULL, fL_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qL_loc, grm->prodl_local, NULL, fL_sr, fL_gr);
   double dF_R[5];
   for (int i = 0; i < 5; i++) dF_R[i] = -fL_gr[i];
 
@@ -700,8 +735,8 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   }
 
   double fR_sr[5], fR_gr[5];
-  gkyl_gr_euler_tetrad_mod_flux(gkyl_gr_euler_eos_ideal(gas_gamma), qR_loc, grm->prodr_local, NULL, fR_sr);
-  gkyl_gr_euler_tetrad_mod_flux_correction(gkyl_gr_euler_eos_ideal(gas_gamma), qR_loc, grm->prodr_local, NULL, fR_sr, fR_gr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qR_loc, grm->prodr_local, NULL, fR_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qR_loc, grm->prodr_local, NULL, fR_sr, fR_gr);
   double dF_L[5];
   for (int i = 0; i < 5; i++) dF_L[i] = fR_gr[i];  // F(qR_active) − F(qL_excised=0)
 
@@ -810,6 +845,7 @@ run_positivity_for_rp(struct gkyl_wv_eqn *eqn,
   int *D_violations, int *S2_violations, int *tau_violations)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   double sqrt_det_L = sqrt(prods_L[GKYL_GR_SP_SPATIAL_DET]);
   double sqrt_det_R = sqrt(prods_R[GKYL_GR_SP_SPATIAL_DET]);
   double inv_g_L[3][3] = {
@@ -827,8 +863,8 @@ run_positivity_for_rp(struct gkyl_wv_eqn *eqn,
   // primitives → different densitized conservatives because
   // build_state_convA uses √γ and γ_ij of the supplied prods row.
   double qL[5], qR[5];
-  build_state_convA(gas_gamma, rc->rho_L, rc->v_L, rc->p_L, prods_L, qL);
-  build_state_convA(gas_gamma, rc->rho_R, rc->v_R, rc->p_R, prods_R, qR);
+  build_state_convA(eos, rc->rho_L, rc->v_L, rc->p_L, prods_L, qL);
+  build_state_convA(eos, rc->rho_R, rc->v_R, rc->p_R, prods_R, qR);
 
   // Sanity: each cell admissible in its own metric.
   double qL_und[5], qR_und[5];
@@ -964,10 +1000,11 @@ static const struct positivity_point g_positivity_points[] = {
 
 static void
 run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
+  struct gkyl_gr_euler_eos eos,
   enum gkyl_wv_gr_euler_tetrad_rp rp,
   const char *label)
 {
-  double gas_gamma = 5.0 / 3.0;
+  double gas_gamma = eos.gas_gamma;
 
   // 2-cell conf_range so set_interface_idx(0, 1) routes prods_L and
   // prods_R to wave_lax_curved's prodl_local / prodr_local.
@@ -975,7 +1012,7 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
   int lower[1] = { 0 }, upper[1] = { 1 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -1030,45 +1067,54 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
   gkyl_wv_eqn_release(eqn);
 }
 
+// Each positivity sweep loops over [IDEAL, TM, RCC] — admissibility
+// preservation is an algorithm property that should hold across all
+// production EOS configurations.
 void test_positivity_lax_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_LAX, "Lax-Mink");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, "Lax-Mink");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_lax_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_LAX, "Lax-Schw");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, "Lax-Schw");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_lax_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_LAX, "Lax-Kerr");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, "Lax-Kerr");
   gkyl_gr_spacetime_release(st);
 }
 
 void test_positivity_hll_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLL, "HLL-Mink");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, "HLL-Mink");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_hll_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLL, "HLL-Schw");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, "HLL-Schw");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_hll_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLL, "HLL-Kerr");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, "HLL-Kerr");
   gkyl_gr_spacetime_release(st);
 }
 
@@ -1080,21 +1126,24 @@ void test_positivity_hll_kerr(void)
 void test_positivity_hllc_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Mink");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Mink");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_hllc_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Schw");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Schw");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_hllc_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Kerr");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-Kerr");
   gkyl_gr_spacetime_release(st);
 }
 
@@ -1108,21 +1157,24 @@ void test_positivity_lax_bhl(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_LAX, "Lax-BHL(M=0.3)");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, "Lax-BHL(M=0.3)");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_hll_bhl(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLL, "HLL-BHL(M=0.3)");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, "HLL-BHL(M=0.3)");
   gkyl_gr_spacetime_release(st);
 }
 void test_positivity_hllc_bhl(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.3, 0.0, 0.0, 0.0, 0.0);
-  run_positivity_sweep(st, WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-BHL(M=0.3)");
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_positivity_sweep(st, eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, "HLLC-BHL(M=0.3)");
   gkyl_gr_spacetime_release(st);
 }
 
@@ -1184,6 +1236,7 @@ run_near_floor_for_floor_value(struct gkyl_wv_eqn *eqn,
   int *D_v, int *S2_v, int *tau_v, int *total)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   double sqrt_det = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
   double inv_g[3][3] = {
     { prods[GKYL_GR_SP_INV_GIJ + 0], prods[GKYL_GR_SP_INV_GIJ + 1], prods[GKYL_GR_SP_INV_GIJ + 2] },
@@ -1202,11 +1255,11 @@ run_near_floor_for_floor_value(struct gkyl_wv_eqn *eqn,
 
     double qL[5], qR[5];
     if (rc->floor_on_left) {
-      build_state_convA(gas_gamma, rc->rho_min, rc->v_min, p_min, prods, qL);
-      build_state_convA(gas_gamma, rc->rho_typ, rc->v_typ, rc->p_typ, prods, qR);
+      build_state_convA(eos, rc->rho_min, rc->v_min, p_min, prods, qL);
+      build_state_convA(eos, rc->rho_typ, rc->v_typ, rc->p_typ, prods, qR);
     } else {
-      build_state_convA(gas_gamma, rc->rho_typ, rc->v_typ, rc->p_typ, prods, qL);
-      build_state_convA(gas_gamma, rc->rho_min, rc->v_min, p_min,    prods, qR);
+      build_state_convA(eos, rc->rho_typ, rc->v_typ, rc->p_typ, prods, qL);
+      build_state_convA(eos, rc->rho_min, rc->v_min, p_min,    prods, qR);
     }
 
     // Skip if either side fails admissibility going in (shouldn't happen,
@@ -1274,13 +1327,14 @@ run_near_floor_sweep(enum gkyl_wv_gr_euler_tetrad_rp rp,
   const char *rp_name)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -1334,9 +1388,10 @@ void test_near_floor_hll(void)
 //     that flux-jump wouldn't see if they cancel on Σ s·w.
 static void
 run_round_trip(struct gkyl_gr_spacetime *spacetime,
-  const char *label, double x, double y, double z)
+  const char *label, double x, double y, double z,
+  struct gkyl_gr_euler_eos eos)
 {
-  double gas_gamma = 5.0 / 3.0;
+  double gas_gamma = eos.gas_gamma;
   double prods[GKYL_GR_SP_NCOMP_BASE];
   fill_prods_at(spacetime, x, y, z, prods);
   if (prods[GKYL_GR_SP_EXCISION] < 0.0) return;
@@ -1415,7 +1470,7 @@ run_round_trip(struct gkyl_gr_spacetime *spacetime,
         if (!(vsq < 1.0 - 1.0e-6)) continue;
 
         double q[5], q_tet[5], q_back[5];
-        build_state_convA(gas_gamma, rho, v, p, prods, q);
+        build_state_convA(eos, rho, v, p, prods, q);
         gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(q, sqrt_det, inv_g, M_inv, q_tet);
         // The "wave_to_curved" maps tetrad-frame jumps to curved-frame
         // jumps. We use it on q_tet directly (which represents "the
@@ -1434,28 +1489,35 @@ run_round_trip(struct gkyl_gr_spacetime *spacetime,
     label, x, y, z, max_rt_err );
 }
 
+// Each round-trip wrapper loops over [IDEAL, TM, RCC] — primitive
+// recovery roundtrip is the most direct test of the EOS dispatch.
 void test_round_trip_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_round_trip(st, "Mink", 0.3, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_round_trip(st, "Mink", 0.3, 0.0, 0.0, eos_modes[ei]);
   gkyl_gr_spacetime_release(st);
 }
 void test_round_trip_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_round_trip(st, "Schw", 0.3, 0.2, 0.0);
-  run_round_trip(st, "Schw", 0.5, 0.0, 0.0);
-  run_round_trip(st, "Schw", 0.4, 0.4, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_round_trip(st, "Schw", 0.3, 0.2, 0.0, eos_modes[ei]);
+    run_round_trip(st, "Schw", 0.5, 0.0, 0.0, eos_modes[ei]);
+    run_round_trip(st, "Schw", 0.4, 0.4, 0.0, eos_modes[ei]);
+  }
   gkyl_gr_spacetime_release(st);
 }
 void test_round_trip_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_round_trip(st, "Kerr", 0.3, 0.2, 0.0);
-  run_round_trip(st, "Kerr", 0.5, 0.0, 0.0);
-  run_round_trip(st, "Kerr", 0.4, 0.4, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_round_trip(st, "Kerr", 0.3, 0.2, 0.0, eos_modes[ei]);
+    run_round_trip(st, "Kerr", 0.5, 0.0, 0.0, eos_modes[ei]);
+    run_round_trip(st, "Kerr", 0.4, 0.4, 0.0, eos_modes[ei]);
+  }
   gkyl_gr_spacetime_release(st);
 }
 
@@ -1466,9 +1528,10 @@ void test_round_trip_kerr(void)
 //     v^x / √γ^{xx} by our construction.
 static void
 run_prim_consistency(struct gkyl_gr_spacetime *spacetime,
-  const char *label, double x, double y, double z)
+  const char *label, double x, double y, double z,
+  struct gkyl_gr_euler_eos eos)
 {
-  double gas_gamma = 5.0 / 3.0;
+  double gas_gamma = eos.gas_gamma;
   double prods[GKYL_GR_SP_NCOMP_BASE];
   fill_prods_at(spacetime, x, y, z, prods);
   if (prods[GKYL_GR_SP_EXCISION] < 0.0) return;
@@ -1488,7 +1551,7 @@ run_prim_consistency(struct gkyl_gr_spacetime *spacetime,
 
   // Build state.
   double q[5];
-  build_state_convA(gas_gamma, rho_in, v_in, p_in, prods, q);
+  build_state_convA(eos, rho_in, v_in, p_in, prods, q);
 
   // Curved-frame recovery via shared helper.
   double D    = q[0] / sqrt_det;
@@ -1497,7 +1560,7 @@ run_prim_consistency(struct gkyl_gr_spacetime *spacetime,
   double momz = q[3] / sqrt_det;
   double tau  = q[4] / sqrt_det;
   struct gkyl_gr_euler_prim prim_curved;
-  gkyl_gr_euler_recover_primitives(gkyl_gr_euler_eos_ideal(gas_gamma),
+  gkyl_gr_euler_recover_primitives(eos,
     D, momx, momy, momz, tau, inv_g, NULL, &prim_curved);
 
   // Tetrad-frame recovery: transform to tetrad, then run flat-space
@@ -1561,28 +1624,34 @@ run_prim_consistency(struct gkyl_gr_spacetime *spacetime,
     fabs(vx_tet_expected - vx_tet_computed) );
 }
 
+// Each prim-consistency wrapper loops over [IDEAL, TM, RCC].
 void test_prim_consistency_minkowski(void)
 {
   struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
-  run_prim_consistency(st, "Mink", 0.3, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_prim_consistency(st, "Mink", 0.3, 0.0, 0.0, eos_modes[ei]);
   gkyl_gr_spacetime_release(st);
 }
 void test_prim_consistency_schwarzschild(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_prim_consistency(st, "Schw @ (0.3,0.2,0)", 0.3, 0.2, 0.0);
-  run_prim_consistency(st, "Schw @ (0.5,0.0,0)", 0.5, 0.0, 0.0);
-  run_prim_consistency(st, "Schw @ (0.4,0.4,0)", 0.4, 0.4, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_prim_consistency(st, "Schw @ (0.3,0.2,0)", 0.3, 0.2, 0.0, eos_modes[ei]);
+    run_prim_consistency(st, "Schw @ (0.5,0.0,0)", 0.5, 0.0, 0.0, eos_modes[ei]);
+    run_prim_consistency(st, "Schw @ (0.4,0.4,0)", 0.4, 0.4, 0.0, eos_modes[ei]);
+  }
   gkyl_gr_spacetime_release(st);
 }
 void test_prim_consistency_kerr(void)
 {
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
-  run_prim_consistency(st, "Kerr @ (0.3,0.2,0)", 0.3, 0.2, 0.0);
-  run_prim_consistency(st, "Kerr @ (0.5,0.0,0)", 0.5, 0.0, 0.0);
-  run_prim_consistency(st, "Kerr @ (0.4,0.4,0)", 0.4, 0.4, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+    run_prim_consistency(st, "Kerr @ (0.3,0.2,0)", 0.3, 0.2, 0.0, eos_modes[ei]);
+    run_prim_consistency(st, "Kerr @ (0.5,0.0,0)", 0.5, 0.0, 0.0, eos_modes[ei]);
+    run_prim_consistency(st, "Kerr @ (0.4,0.4,0)", 0.4, 0.4, 0.0, eos_modes[ei]);
+  }
   gkyl_gr_spacetime_release(st);
 }
 
@@ -1596,10 +1665,11 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
   enum gkyl_wv_gr_euler_tetrad_rp rp, int num_waves)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -1644,8 +1714,8 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
     double v_co_l[3] = { cases[c].vL[0], cases[c].vL[1], cases[c].vL[2] };
     double v_co_r[3] = { cases[c].vR[0], cases[c].vR[1], cases[c].vR[2] };
     double qL_glob[5], qR_glob[5];
-    build_state_convA(gas_gamma, cases[c].rL, v_co_l, cases[c].pL, prods_row, qL_glob);
-    build_state_convA(gas_gamma, cases[c].rR, v_co_r, cases[c].pR, prods_row, qR_glob);
+    build_state_convA(eos, cases[c].rL, v_co_l, cases[c].pL, prods_row, qL_glob);
+    build_state_convA(eos, cases[c].rR, v_co_r, cases[c].pR, prods_row, qR_glob);
 
     eqn->set_interface_idx_func(eqn, idx, idx);
     double qL[5], qR[5];
@@ -1671,7 +1741,7 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
 
     // Flux jump.
     double dF[5];
-    banyuls_delta_flux(gas_gamma, grm, qL, qR, dF);
+    banyuls_delta_flux(eos, grm, qL, qR, dF);
     for (int i = 0; i < 5; i++) {
       double sw = 0.0;
       for (int k = 0; k < num_waves; k++) sw += speeds[k] * waves[k * 5 + i];
@@ -1772,10 +1842,11 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
   enum gkyl_wv_gr_euler_tetrad_rp rp, const char *rp_name)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -1812,8 +1883,8 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
   for (size_t i = 0; i < sizeof(pL_values)/sizeof(*pL_values); i++) {
     double p_L = pL_values[i];
     double qL_glob[5], qR_glob[5];
-    build_state_convA(gas_gamma, rho_L, v_L, p_L, prods_row, qL_glob);
-    build_state_convA(gas_gamma, rho_R, v_R, p_R, prods_row, qR_glob);
+    build_state_convA(eos, rho_L, v_L, p_L, prods_row, qL_glob);
+    build_state_convA(eos, rho_R, v_R, p_R, prods_row, qR_glob);
 
     eqn->set_interface_idx_func(eqn, idx, idx);
     double qL[5], qR[5];
@@ -1827,7 +1898,7 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
       delta, qL, qR, 1.0, 1.0, waves, speeds);
 
     double dF[5];
-    banyuls_delta_flux(gas_gamma, grm, qL, qR, dF);
+    banyuls_delta_flux(eos, grm, qL, qR, dF);
 
     double max_fj = 0.0, max_fb = 0.0;
     int nw = eqn->num_waves;
@@ -1890,10 +1961,11 @@ run_small_tau_over_D_sweep(struct gkyl_gr_spacetime *spacetime,
   enum gkyl_wv_gr_euler_tetrad_rp rp, const char *label)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -1944,9 +2016,9 @@ run_small_tau_over_D_sweep(struct gkyl_gr_spacetime *spacetime,
     label);
   for (size_t c = 0; c < sizeof(cases)/sizeof(*cases); c++) {
     double qL[5], qR[5];
-    build_state_convA(gas_gamma, cases[c].rho_L, cases[c].v_L, cases[c].p_L,
+    build_state_convA(eos, cases[c].rho_L, cases[c].v_L, cases[c].p_L,
       prods_row, qL);
-    build_state_convA(gas_gamma, cases[c].rho_R, cases[c].v_R, cases[c].p_R,
+    build_state_convA(eos, cases[c].rho_R, cases[c].v_R, cases[c].p_R,
       prods_row, qR);
 
     // Sanity: inputs admissible.
@@ -2038,10 +2110,11 @@ run_direct_state_sweep(struct gkyl_gr_spacetime *spacetime,
   double sx, double sy, double sz)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -2264,11 +2337,12 @@ run_direct_state_hllc_fallback_probe(void)
   struct gkyl_gr_spacetime *st =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
 
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, WV_GR_EULER_TETRAD_RP_HLLC);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, WV_GR_EULER_TETRAD_RP_HLLC);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -2342,15 +2416,15 @@ run_direct_state_hllc_fallback_probe(void)
     double waves_LC[3 * 5], speeds_LC[3];
     struct gkyl_gr_euler_tetrad_mod_hllc_diag diag_LC = {0};
     gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
-      gkyl_gr_euler_eos_ideal(gas_gamma), qL_tet, qC_tet,
-      NULL, NULL, waves_LC, speeds_LC, &diag_LC);
+      eos, qL_tet, qC_tet,
+      NULL, waves_LC, speeds_LC, &diag_LC);
 
     // C-R interface.
     double waves_CR[3 * 5], speeds_CR[3];
     struct gkyl_gr_euler_tetrad_mod_hllc_diag diag_CR = {0};
     gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(
-      gkyl_gr_euler_eos_ideal(gas_gamma), qC_tet, qR_tet,
-      NULL, NULL, waves_CR, speeds_CR, &diag_CR);
+      eos, qC_tet, qR_tet,
+      NULL, waves_CR, speeds_CR, &diag_CR);
 
     // fallback_reason key (post tightening of the fallback policy):
     //   1 = lam_diff < 1e-14 (degenerate Davis bracket — λ_L ≈ λ_R)
@@ -2512,10 +2586,11 @@ run_per_cell_metric_sweep(struct gkyl_gr_spacetime *spacetime,
   double sx, double sy, double sz, double dx_metric)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 2 };  // 3 cells: L=0, C=1, R=2
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -2686,10 +2761,11 @@ run_dump_reproducer(struct gkyl_gr_spacetime *spacetime,
   const struct dump_repro *d)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 2 };  // 3 cells: L=0, C=1, R=2
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
@@ -3081,6 +3157,7 @@ run_three_cell_positivity(struct gkyl_wv_eqn *eqn,
   int *D_v, int *S2_v, int *tau_v, int *total)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   double sqrt_det = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
   double inv_g[3][3] = {
     { prods[GKYL_GR_SP_INV_GIJ + 0], prods[GKYL_GR_SP_INV_GIJ + 1], prods[GKYL_GR_SP_INV_GIJ + 2] },
@@ -3095,9 +3172,9 @@ run_three_cell_positivity(struct gkyl_wv_eqn *eqn,
   double p_L = (gas_gamma - 1.0) * tau_L;
   double p_R = (gas_gamma - 1.0) * tau_R;
   double qL[5], qM[5], qR[5];
-  build_state_convA(gas_gamma, rho_L, v_L, p_L, prods, qL);
-  build_state_convA(gas_gamma, rho_M, v_M, p_M, prods, qM);
-  build_state_convA(gas_gamma, rho_R, v_R, p_R, prods, qR);
+  build_state_convA(eos, rho_L, v_L, p_L, prods, qL);
+  build_state_convA(eos, rho_M, v_M, p_M, prods, qM);
+  build_state_convA(eos, rho_R, v_R, p_R, prods, qR);
 
   // Verify all three input states admissible.
   bool d_ok, s_ok, t_ok;
@@ -3227,10 +3304,11 @@ run_three_cell_sweep(struct gkyl_gr_spacetime *spacetime,
   const char *label)
 {
   double gas_gamma = 5.0 / 3.0;
+  struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 0 };
   gkyl_range_init(&conf_range, 1, lower, upper);
-  struct gkyl_wv_eqn *eqn = make_eqn(gas_gamma, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,

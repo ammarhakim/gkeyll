@@ -30,6 +30,7 @@
 #include <gkyl_moment_em_coupling.h>
 #include <gkyl_moment_spacetime_coupling.h>
 #include <gkyl_moment_spacetime_products.h>
+#include <gkyl_wv_gr_euler_prim_priv.h>  // for gkyl_gr_euler_{prim,repair}_status
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
@@ -320,12 +321,15 @@ struct moment_coupling {
   // packed GR fluids; mod and packed are mutually exclusive per species.
   gkyl_moment_spacetime_coupling *spacetime_slvr;
 
-  // Per-cell γ_eff cache for the Mathews-Taub primitive-recovery Picard
-  // iteration. One scalar per cell, initialised to 5/3 at IC, read+written
-  // by the source-step recovery as a warm-start initial guess. Cuts Picard
-  // iteration counts from ~10 to ~1–2 for cells in steady state. NULL when
-  // no GR-mod species or when the EOS is IDEAL-only (Picard skipped).
-  struct gkyl_array *gamma_eff_cache;
+  // Per-species GR Euler tetrad-mod instrumentation. Indexed by species
+  // index 0..num_species-1; entries for non-GR-mod species are NULL.
+  // Wave-prop callsites (handled by the equation object) update the
+  // _wave_prop pair; source-step callsites (handled by spacetime_slvr's
+  // explicit_advance) update the _source pair.
+  struct gkyl_gr_euler_prim_status   *gr_euler_prim_status_wave_prop[GKYL_MAX_SPECIES];
+  struct gkyl_gr_euler_repair_status *gr_euler_repair_status_wave_prop[GKYL_MAX_SPECIES];
+  struct gkyl_gr_euler_prim_status   *gr_euler_prim_status_source[GKYL_MAX_SPECIES];
+  struct gkyl_gr_euler_repair_status *gr_euler_repair_status_source[GKYL_MAX_SPECIES];
 };
 
 struct mhd_src {

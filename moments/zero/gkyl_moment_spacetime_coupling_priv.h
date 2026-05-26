@@ -57,17 +57,7 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
 void
 gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
   struct gkyl_gr_euler_eos eos, double t_curr, double dt,
-  const double *prods, double *gamma_eff_cell,
+  const double *prods,
+  struct gkyl_gr_euler_prim_status *prim_stat,
+  struct gkyl_gr_euler_repair_status *repair_stat,
   const double fluid_old[5], double fluid_new[5]);
-
-// Diagnostic: count of times the τ-positivity limiter has scaled down
-// a source step to keep τ ≥ 0. Reset is not exposed (process-lifetime
-// monotonic counter).
-uint64_t
-gkyl_moment_spacetime_coupling_tau_limiter_fires(void);
-
-// Diagnostic: count of times the s²-positivity limiter has scaled down
-// a source step (further than the τ-limiter would have) to keep
-// s²(q_new) ≥ margin·(D+τ)² in the curved metric.
-uint64_t
-gkyl_moment_spacetime_coupling_s2_limiter_fires(void);
