@@ -1,5 +1,4 @@
 #include <gkyl_alloc.h>
-#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_calc_bmag.h>
 #include <gkyl_comm_io.h>
@@ -32,11 +31,7 @@ gkyl_position_map_null_new()
 {
   struct gkyl_position_map *gpm = gkyl_malloc(sizeof(*gpm));
   gpm->id = GKYL_PMAP_USER_INPUT;
-  for (int i = 0; i < 3; i++){
-    gpm->maps[i] = gkyl_position_map_identity;
-    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
-    gpm->ctxs[i] = 0;
-  }
+
   gpm->use_map_derivs = true;
   gpm->to_optimize = false;
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 1, 1);
@@ -44,9 +39,17 @@ gkyl_position_map_null_new()
   gpm->xpt_ctx = gkyl_malloc(sizeof(struct gkyl_position_map_xpt_ctx));
   gpm->bmag_ctx = gkyl_malloc(sizeof(struct gkyl_bmag_ctx));
   gpm->bmag_ctx->bmag = gkyl_array_new(GKYL_DOUBLE, 1, 1);
-  gpm->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
+  
+  for (int i = 0; i < 3; i++){
+    gpm->maps[i] = gkyl_position_map_identity;
+    gpm->map_derivs[i] = gkyl_position_map_identity_slope;
+    gpm->ctxs[i] = 0;
+    gpm->constB_ctx->maps_backup[i] = gkyl_position_map_identity;
+    gpm->constB_ctx->ctxs_backup[i] = 0;
+    gpm->xpt_ctx->maps_backup[i] = gkyl_position_map_identity;
+    gpm->xpt_ctx->ctxs_backup[i] = 0;
+  }
   return gpm;
 }
 
@@ -147,6 +150,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       }
       gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
       gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
+      gpm->xpt_ctx->compress_divertor = pmap_info.compress_divertor;
   }
 
   gpm->grid = grid;
@@ -157,8 +161,6 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
   gpm->basis = basis;
   gpm->cdim = grid.ndim; 
   gpm->mc2nu = gkyl_array_new(GKYL_DOUBLE, 3*gpm->basis.num_basis, gpm->local_ext.volume);
-  gpm->flags = 0;
-  GKYL_CLEAR_CU_ALLOC(gpm->flags);
   gpm->ref_count = gkyl_ref_count_init(gkyl_position_map_free);
 
   struct gkyl_position_map *gpm_out = gpm;
@@ -265,6 +267,9 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
 
   if (gpm->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL && gpm->to_optimize == true)
   {
+    double psi_center = 0.5 * (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max);
+    double alpha_center = 0.5 * (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max);
+
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
     gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
@@ -276,14 +281,17 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
     gpm->bmag_ctx->cbasis = &gpm->basis;
     gpm->bmag_ctx->cgrid = &gpm->grid;
 
-    gpm->constB_ctx->psi    = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
-    gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
+    gpm->constB_ctx->psi    = psi_center;
+    gpm->constB_ctx->alpha  = alpha_center;
 
     calculate_mirror_throat_location_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
     calculate_optimal_mapping_polynomial(gpm->constB_ctx, gpm->bmag_ctx);
   }
   else if (gpm->id == GKYL_PMAP_CONSTANT_DB_NUMERIC && gpm->to_optimize == true)
   {
+    double psi_center = pow(0.5 * (sqrt(gpm->constB_ctx->psi_min) + sqrt(gpm->constB_ctx->psi_max)), 2.0);
+    double alpha_center = 0.5 * (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max);
+
     gpm->maps[0] = gpm->constB_ctx->maps_backup[0];
     gpm->ctxs[0] = gpm->constB_ctx->ctxs_backup[0];
     gpm->maps[1] = gpm->constB_ctx->maps_backup[1];
@@ -295,8 +303,8 @@ gkyl_position_map_optimize(struct gkyl_position_map* gpm, struct gkyl_rect_grid 
     gpm->bmag_ctx->cbasis        = &gpm->basis;
     gpm->bmag_ctx->cgrid         = &gpm->grid;
 
-    gpm->constB_ctx->psi    = (gpm->constB_ctx->psi_min + gpm->constB_ctx->psi_max) / 2;
-    gpm->constB_ctx->alpha  = (gpm->constB_ctx->alpha_min + gpm->constB_ctx->alpha_max) / 2;
+    gpm->constB_ctx->psi    = psi_center;
+    gpm->constB_ctx->alpha  = alpha_center;
 
     find_B_field_extrema(gpm);
     refine_B_field_extrema(gpm);

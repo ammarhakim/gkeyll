@@ -61,10 +61,6 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_range lo
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot_inv");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv_sq");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv_sq, fileNm);
   sprintf(fileNm, fmt, name, "gxxj");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxxj, fileNm);
   sprintf(fileNm, fmt, name, "gxyj");
@@ -141,6 +137,8 @@ test_3x_p1()
   int nghost[3] = { 1,1,1};
   gkyl_create_grid_ranges(&grid, nghost, &ext_range, &range);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
@@ -148,6 +146,7 @@ test_3x_p1()
     .c2p_ctx = 0,
     .bfield_func = bfield_func, // magnetic field magnitude
     .bfield_ctx =0 ,
+    .position_map = pmap,
     .grid = grid,
     .local = range,
     .local_ext = ext_range,
@@ -316,6 +315,7 @@ test_3x_p1()
   gkyl_array_release(bmag_nodal);
   gkyl_array_release(gij_nodal);
   gkyl_nodal_ops_release(n2m);
+  gkyl_position_map_release(pmap);
   gkyl_gk_geometry_release(gk_geom);
 }
 
@@ -499,6 +499,7 @@ test_3x_p1_pmap()
   // Release memory
   gkyl_array_release(jacobgeo_nodal);
   gkyl_array_release(mapc2p_nodal);
+  gkyl_array_release(mapc2p_nodal_interior);
   gkyl_array_release(bmag_nodal);
   gkyl_nodal_ops_release(n2m);
   gkyl_position_map_release(pos_map);

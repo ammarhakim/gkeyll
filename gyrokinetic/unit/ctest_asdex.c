@@ -10,6 +10,7 @@
 #include <gkyl_array_rio.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_eval_on_nodes.h>
+#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_rect_decomp.h>
@@ -19,7 +20,6 @@
 #include <gkyl_efit.h>
 #include <gkyl_calc_bmag.h>
 #include <gkyl_tok_geo.h>
-
 
 #include <gkyl_calc_metric.h>
 #include <gkyl_calc_derived_geo.h>
@@ -110,10 +110,6 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis ba
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot_inv");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv_sq");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv_sq, fileNm);
   sprintf(fileNm, fmt, name, "gxxj");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxxj, fileNm);
   sprintf(fileNm, fmt, name, "gxyj");
@@ -153,7 +149,7 @@ test_fixed_z()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -173,6 +169,8 @@ test_fixed_z()
   int cpoly_order = 1;
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
+
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_tok_geo_grid_inp ginp = {
     .rmin = 0.0,
@@ -190,6 +188,7 @@ test_fixed_z()
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -206,6 +205,7 @@ test_fixed_z()
 
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -222,7 +222,7 @@ test_shaped_plate()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -243,6 +243,8 @@ test_shaped_plate()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   struct gkyl_tok_geo_grid_inp ginp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_LSN_SOL,
     .rmin = 0.0,
@@ -259,6 +261,7 @@ test_shaped_plate()
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -276,6 +279,7 @@ test_shaped_plate()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdex");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -292,7 +296,7 @@ test_lower()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -324,11 +328,13 @@ test_lower()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -346,6 +352,7 @@ test_lower()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdexlo");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -362,7 +369,7 @@ test_middle()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -394,11 +401,13 @@ test_middle()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -416,6 +425,7 @@ test_middle()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdexmid");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
@@ -432,7 +442,7 @@ test_upper()
 
   struct gkyl_efit_inp efit_inp = {
       // psiRZ and related inputs
-      .filepath = "./gyrokinetic/data/eqdsk/asdex.geqdsk",
+      .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
       .rz_poly_order = 2,
       .flux_poly_order = 1,
     };
@@ -464,11 +474,13 @@ test_upper()
   struct gkyl_basis cbasis;
   gkyl_cart_modal_serendip(&cbasis, 3, cpoly_order);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   struct gkyl_gk_geometry_inp geometry_inp = {
     .geometry_id  = GKYL_GEOMETRY_TOKAMAK,
     .efit_info = efit_inp,
     .tok_grid_info = ginp,
+    .position_map = pmap,
     .grid = cgrid,
     .local = clocal,
     .local_ext = clocal_ext,
@@ -486,6 +498,7 @@ test_upper()
   struct gk_geometry* up = gkyl_gk_geometry_tok_new(&geometry_inp); 
   //write_geometry(up, cgrid, cbasis, clocal, "asdexup");
   gkyl_gk_geometry_release(up);
+  gkyl_position_map_release(pmap);
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;

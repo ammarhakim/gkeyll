@@ -8,7 +8,8 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_gk_collisionless_flux_priv.h>
+#include <gkyl_dg_geom.h>
+#include <gkyl_gk_dg_geom.h>
 
 // Object type
 typedef struct gkyl_gk_collisionless_flux gkyl_gk_collisionless_flux;
