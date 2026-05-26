@@ -31,7 +31,7 @@ struct gkyl_wave_prop {
   struct gkyl_comm *comm; // communcator
   
   // data for 1D slice update
-  struct gkyl_array *waves, *apdq, *amdq, *speeds, *flux2;
+  struct gkyl_array *waves, *waves_scaled, *apdq, *amdq, *speeds, *flux2;
   // flags to indicate if fluctuations should be recomputed
   struct gkyl_array *redo_fluct;
 
@@ -144,6 +144,7 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   // second-order correction flux
   int meqn = winp->equation->num_equations, mwaves = winp->equation->num_waves;
   up->waves = gkyl_array_new(GKYL_DOUBLE, meqn*mwaves, tot_vol);
+  up->waves_scaled = gkyl_array_new(GKYL_DOUBLE, meqn*mwaves, tot_vol);
   up->apdq = gkyl_array_new(GKYL_DOUBLE, meqn, tot_vol);
   up->amdq = gkyl_array_new(GKYL_DOUBLE, meqn, tot_vol);
   up->speeds = gkyl_array_new(GKYL_DOUBLE, mwaves, tot_vol);
@@ -219,16 +220,17 @@ calc_jump(int n, const double *ql, const double *qr, double * GKYL_RESTRICT jump
 
 static inline void
 calc_first_order_update(int meqn, double dtdx,
-  double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l)
+  double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l, const double *fr, const double *fl)
 {
   for (int i=0; i<meqn; ++i)
-    q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i]);
+    q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i] + fr[i] - fl[i]);
 }
 
 static inline void
 wave_prop_first_order(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
   const struct gkyl_range *update_range, const struct gkyl_wave_geom *wg,
-  struct gkyl_array *amdq, struct gkyl_array *apdq, struct gkyl_array *qout)
+  struct gkyl_array *amdq, struct gkyl_array *apdq, struct gkyl_array *flux2,
+  struct gkyl_array *qout)
 {
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
   int meqn = eqn->num_equations;
@@ -247,9 +249,12 @@ wave_prop_first_order(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
     double *amdq_local = gkyl_array_fetch(amdq, ridx);
     double *apdq_local = gkyl_array_fetch(apdq, lidx);
 
+    double *flux2l = gkyl_array_fetch(flux2, lidx);
+    double *flux2r = gkyl_array_fetch(flux2, ridx);
+
     const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idxl);
     calc_first_order_update(meqn, dtdx/cg->kappa, gkyl_array_fetch(qout, lidx),
-      amdq_local, apdq_local);
+      amdq_local, apdq_local, flux2r, flux2l);
   }
 }
 
@@ -285,7 +290,7 @@ wave_prop_check_inv(const gkyl_wv_eqn *eqn, int ndim, int dir, double cflm,
 
     const double *phil = gkyl_array_cfetch(phi, lidx);
     const double *phir = gkyl_array_cfetch(phi, ridx);
-      
+  
     redo_fluct_local[0] = 0.0;
 
     if (!gkyl_wv_eqn_fuse_check_inv(eqn, qoutl, qoutr)) {
@@ -314,6 +319,10 @@ wave_prop_first_order_redo(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtd
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
   int meqn = eqn->num_equations;
 
+  double flux_zero[meqn]; // zero second order flux for redo
+  for (int i=0; i<meqn; ++i)
+    flux_zero[i] = 0.0;
+
   // compute first-order update in each cell
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
@@ -332,7 +341,7 @@ wave_prop_first_order_redo(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtd
     const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idxl);
     if (redo_fluct_c[0] > 0.0) {
       calc_first_order_update(meqn, dtdx/cg->kappa, gkyl_array_fetch(qout, lidx),
-        amdq_local, apdq_local);
+        amdq_local, apdq_local, flux_zero, flux_zero);
     }
   }
 }
@@ -355,9 +364,9 @@ wave_dot_prod(int meqn, const double * GKYL_RESTRICT wa, const double * GKYL_RES
 }
 
 static inline void
-wave_rescale(int meqn, double fact, double *w)
+wave_rescale(int meqn, double fact, double *w, double *ws)
 {
-  for (int i=0; i<meqn; ++i) w[i] *= fact; 
+  for (int i=0; i<meqn; ++i) ws[i] = w[i]*fact;
 }
 
 static inline void
@@ -389,34 +398,53 @@ calc_second_order_update(int meqn, double dtdx, double * GKYL_RESTRICT qout,
     qout[i] += -dtdx*(fr[i]-fl[i]);
 }
 
-static void
-limit_waves(const gkyl_wave_prop *wv, int mwaves,
-  const struct gkyl_range *fluctuation_range,
-  int lower, int upper, struct gkyl_array *waves, const struct gkyl_array *speed)
+static inline void
+wave_prop_second_order_flux(enum gkyl_wave_limiter limiter, double dtdx, 
+  int ndim, int dir, int meqn, int mwaves, const struct gkyl_range *update_range,
+  struct gkyl_range second_order_range, const struct gkyl_wave_geom *wg,
+  struct gkyl_array *waves, struct gkyl_array *waves_scaled,
+  struct gkyl_array *speeds, struct gkyl_array *flux2)
 {
-  int meqn = wv->equation->num_equations;
+  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
 
-  for (int mw=0; mw<mwaves; ++mw) {
-    const double *wl = gkyl_array_cfetch(waves, gkyl_ridx(*fluctuation_range, lower-1));
-    const double *wr = gkyl_array_cfetch(waves, gkyl_ridx(*fluctuation_range, lower));
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &second_order_range);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_copy_int_arr(ndim, iter.idx, idxc);
+    gkyl_copy_int_arr(ndim, iter.idx, idxl);
+    gkyl_copy_int_arr(ndim, iter.idx, idxr);
 
-    double dotr = wave_dot_prod(meqn, &wl[mw*meqn], &wr[mw*meqn]);
-
-    for (int i=lower; i<=upper; ++i) {
-      double dotl = dotr;
-      
-      double * GKYL_RESTRICT wi = gkyl_array_fetch(waves, gkyl_ridx(*fluctuation_range, i));
-      const double * GKYL_RESTRICT wi1 = gkyl_array_cfetch(waves, gkyl_ridx(*fluctuation_range, i+1));
-      
-      double wnorm2 = wave_dot_prod(meqn, &wi[mw*meqn], &wi[mw*meqn]);
-      dotr = wave_dot_prod(meqn, &wi[mw*meqn], &wi1[mw*meqn]);
-
+    idxl[dir] = idxc[dir]-1;
+    idxr[dir] = idxc[dir]+1;
+    long lidx = gkyl_range_idx(update_range, idxl);
+    long cidx = gkyl_range_idx(update_range, idxc);
+    long ridx = gkyl_range_idx(update_range, idxr);
+    const double *s = gkyl_array_cfetch(speeds, cidx);
+    double *wc = gkyl_array_fetch(waves, cidx);
+    double *ws = gkyl_array_fetch(waves_scaled, cidx);
+    const double *wl = gkyl_array_cfetch(waves, lidx);
+    const double *wr = gkyl_array_cfetch(waves, ridx);
+    
+    for (int mw=0; mw<mwaves; ++mw) {
+      double dotl = wave_dot_prod(meqn, &wl[mw*meqn], &wc[mw*meqn]);
+      double wnorm2 = wave_dot_prod(meqn, &wc[mw*meqn], &wc[mw*meqn]);
+      double dotr = wave_dot_prod(meqn, &wc[mw*meqn], &wr[mw*meqn]);
       if (wnorm2 > 0) {
-        const double *s = gkyl_array_cfetch(speed, gkyl_ridx(*fluctuation_range, i));
         double r = s[mw] > 0 ? dotl/wnorm2 : dotr/wnorm2;
-        double theta = limiter_function(r, wv->limiter);
-        wave_rescale(meqn, theta, &wi[mw*meqn]);
+        double theta = limiter_function(r, limiter);
+        wave_rescale(meqn, theta, &wc[mw*meqn], &ws[mw*meqn]);
       }
+    }
+
+    // Each cell owns its flux at the lower interface, so fetch the 
+    // lower and center geometry to get kappa on either side of the interface
+    const struct gkyl_wave_cell_geom *cgl = gkyl_wave_geom_get(wg, idxl);
+    const struct gkyl_wave_cell_geom *cgc = gkyl_wave_geom_get(wg, idxc);
+    double kappal = cgl->kappa;
+    double kappac = cgc->kappa;
+    double *flux2_d = gkyl_array_fetch(flux2, cidx);
+    for (int mw=0; mw<mwaves; ++mw) {
+      calc_second_order_qflux(meqn, dtdx/(0.5*(kappal+kappac)), s[mw], &ws[mw*meqn], flux2_d);
     }
   }
 }
@@ -456,6 +484,12 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   extend_up[dir] = 2;
   gkyl_range_extend(&fluctuation_range, update_range, extend_lo, extend_up);
 
+  // Extend the local range for indexing second order fluxes
+  struct gkyl_range second_order_range;
+  extend_lo[dir] = 0;
+  extend_up[dir] = 1;
+  gkyl_range_extend(&second_order_range, update_range, extend_lo, extend_up);
+
   // Copy previous time step solution 
   gkyl_array_set_range(qout, 1.0, qin, update_range); 
   // Set the redo_fluct array so in the first sweep, we compute fluxes at every interface
@@ -469,7 +503,11 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
     fluctuation_range, wv->geom, phi, qin, wv->waves, wv->speeds, wv->amdq, wv->apdq,
     max_speed, cfla, is_cfl_violated);
 
-  // calculate second order flux here - NOT DONE YET
+  // calculate second order flux
+  gkyl_array_clear(wv->flux2, 0.0);
+  wave_prop_second_order_flux(wv->limiter, dtdx, ndim, dir, meqn, mwaves,
+    update_range, second_order_range, wv->geom, wv->waves, wv->waves_scaled,
+    wv->speeds, wv->flux2);
   
   // compute actual CFL, status & max-speed across all domains
   double red_vars[3] = { cfla[0], is_cfl_violated[0], max_speed[0] };
@@ -492,13 +530,13 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
   // first order update
   wave_prop_first_order(wv->equation, ndim, dir, dtdx, update_range, wv->geom,
-    wv->amdq, wv->apdq, qout);
+    wv->amdq, wv->apdq, wv->flux2, qout);
   
   // Determine if we need to redo any flux computations
   if (wv->check_inv_domain) {    
     wave_prop_check_inv(wv->equation, ndim, dir, cflm, dtdx, ftype, update_range,
-    fluctuation_range, wv->geom, phi, qin, wv->waves, wv->speeds, wv->amdq, wv->apdq,
-    wv->redo_fluct, max_speed, cfla, is_cfl_violated, qout);
+      fluctuation_range, wv->geom, phi, qin, wv->waves, wv->speeds, wv->amdq, wv->apdq,
+      wv->redo_fluct, max_speed, cfla, is_cfl_violated, qout);
 
     wave_prop_first_order_redo(wv->equation, ndim, dir, dtdx, update_range, wv->geom,
       wv->redo_fluct, wv->amdq, wv->apdq, qout);
