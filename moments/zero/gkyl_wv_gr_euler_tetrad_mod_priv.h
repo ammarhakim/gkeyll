@@ -252,6 +252,31 @@ gkyl_gr_euler_tetrad_mod_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   double waves_tet[3 * 5], double speeds[3],
   struct gkyl_gr_euler_tetrad_mod_hllc_diag *diag);
 
+// Invert a 3×3 symmetric matrix in place. Returns det(g); fills inv_g
+// with g^{-1}. Used at the interface to derive a *consistent* (inv_g,
+// sqrt(det)) pair from g_iface, avoiding the O((Δγ)²) wave-sum residual
+// that arises when these three are independently averaged from L/R cells.
+// See TETRAD_REFACTOR_PLAN.md Phase 0(b) Fix 2.
+static inline double
+gkyl_gr_euler_tetrad_mod_invert_metric_3x3(const double g[3][3],
+  double inv_g[3][3])
+{
+  double det = g[0][0] * (g[1][1]*g[2][2] - g[1][2]*g[1][2])
+             - g[0][1] * (g[0][1]*g[2][2] - g[1][2]*g[0][2])
+             + g[0][2] * (g[0][1]*g[1][2] - g[1][1]*g[0][2]);
+  double inv_det = 1.0 / det;
+  inv_g[0][0] =  (g[1][1]*g[2][2] - g[1][2]*g[1][2]) * inv_det;
+  inv_g[0][1] = -(g[0][1]*g[2][2] - g[1][2]*g[0][2]) * inv_det;
+  inv_g[0][2] =  (g[0][1]*g[1][2] - g[1][1]*g[0][2]) * inv_det;
+  inv_g[1][0] = inv_g[0][1];
+  inv_g[1][1] =  (g[0][0]*g[2][2] - g[0][2]*g[0][2]) * inv_det;
+  inv_g[1][2] = -(g[0][0]*g[1][2] - g[0][1]*g[0][2]) * inv_det;
+  inv_g[2][0] = inv_g[0][2];
+  inv_g[2][1] = inv_g[1][2];
+  inv_g[2][2] =  (g[0][0]*g[1][1] - g[0][1]*g[0][1]) * inv_det;
+  return det;
+}
+
 // Build a Gram-Schmidt-on-γ⁻¹ triad: e_0 aligned with the contravariant
 // x-direction, e_1, e_2 orthogonalized in γ. M[i][a] = e_a^i, M_inv =
 // M^T·γ. Eliminates the v_tet^x ↔ v^y, v^z mixing seen with Cholesky

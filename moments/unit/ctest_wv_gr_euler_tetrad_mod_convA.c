@@ -479,6 +479,227 @@ run_riemann_properties_lax_hll(struct gkyl_gr_spacetime *spacetime,
   gkyl_wv_eqn_release(eqn);
 }
 
+// ---------------------------------------------------------------------------
+// Two-cell variant for non-degenerate interface geometry.
+//
+// The single-cell runner above sets prodl_local == prodr_local (idx={0,0}),
+// so the averaging at lines 1464-1475 of wv_gr_euler_tetrad_mod.c recovers
+// the cell-centered values exactly. That makes the flux-jump check trivial
+// at the geometry level: any averaging policy passes.
+//
+// This variant allocates two cells, fills L at (xL,yL,zL) and R at
+// (xR,yR,zR), and sets idx={0,1} so prodl_local and prodr_local come from
+// genuinely different points. The flux-jump check uses an interface-
+// averaged prods row to match the averaging policy inside wave_lax /
+// wave_hll / wave_hllc (the relevant flux-jump form for the tetrad-first
+// scheme; see TETRAD_REFACTOR_PLAN.md §1).
+// ---------------------------------------------------------------------------
+static void
+run_riemann_properties_two_cell(struct gkyl_gr_spacetime *spacetime,
+  const char *label, double xL, double yL, double zL,
+  double xR, double yR, double zR,
+  struct gkyl_gr_euler_eos eos, enum gkyl_wv_gr_euler_tetrad_rp rp,
+  int num_waves)
+{
+  struct gkyl_range conf_range;
+  int lower[1] = { 0 }, upper[1] = { 1 };
+  gkyl_range_init(&conf_range, 1, lower, upper);
+
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
+  struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
+    GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
+  gkyl_gr_euler_tetrad_mod_set_auxfields(eqn,
+    (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = prods });
+
+  double *prods_L = gkyl_array_fetch(prods, 0);
+  double *prods_R = gkyl_array_fetch(prods, 1);
+  fill_prods_at(spacetime, xL, yL, zL, prods_L);
+  fill_prods_at(spacetime, xR, yR, zR, prods_R);
+
+  // Skip if either cell is excised — the wave decomposition uses
+  // active-cell-only geometry in that branch and isn't what this test
+  // probes (excision-boundary face-position evaluation is a Phase 2 test).
+  if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
+      prods_R[GKYL_GR_SP_EXCISION] < 0.0) {
+    gkyl_array_release(prods);
+    gkyl_wv_eqn_release(eqn);
+    return;
+  }
+
+  TEST_CHECK( eqn->num_waves == num_waves );
+
+  struct wv_gr_euler_tetrad_mod *grm = container_of(eqn,
+    struct wv_gr_euler_tetrad_mod, eqn);
+  (void)grm;  // banyuls_delta_flux not used here — interface-averaged form below
+
+  double norm[3] = { 1.0, 0.0, 0.0 };
+  double tau1[3] = { 0.0, 1.0, 0.0 };
+  double tau2[3] = { 0.0, 0.0, 1.0 };
+
+  // Small primitives chosen to remain subluminal in moderately distorted
+  // metrics; if either L or R fails the subluminal check at its own
+  // cell's metric, skip rather than crash inside build_state_convA.
+  double rho_L = 1.0, p_L = 1.5;  double v_L[3] = { 0.05, 0.10, 0.15 };
+  double rho_R = 0.5, p_R = 0.7;  double v_R[3] = { 0.03, 0.05, 0.08 };
+
+  double vsq_L = 0.0, vsq_R = 0.0;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      vsq_L += prods_L[GKYL_GR_SP_GIJ + 3*i + j] * v_L[i] * v_L[j];
+      vsq_R += prods_R[GKYL_GR_SP_GIJ + 3*i + j] * v_R[i] * v_R[j];
+    }
+  if (!(vsq_L < 1.0 - 1.0e-6) || !(vsq_R < 1.0 - 1.0e-6)) {
+    gkyl_array_release(prods);
+    gkyl_wv_eqn_release(eqn);
+    return;
+  }
+
+  // Build each cell's conservative state using its OWN cell-centered
+  // metric — that's the physical state in each cell.
+  double qL_glob[5], qR_glob[5];
+  build_state_convA(eos, rho_L, v_L, p_L, prods_L, qL_glob);
+  build_state_convA(eos, rho_R, v_R, p_R, prods_R, qR_glob);
+
+  int idxl[1] = { 0 }, idxr[1] = { 1 };
+  eqn->set_interface_idx_func(eqn, idxl, idxr);
+
+  double qL[5], qR[5];
+  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qL_glob, qL);
+  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qR_glob, qR);
+
+  double delta[5];
+  for (int i = 0; i < 5; i++) delta[i] = qR[i] - qL[i];
+
+  double waves[3 * 5], speeds[3];
+  double maxs = eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    delta, qL, qR, 1.0, 1.0, waves, speeds);
+
+  // Interface-averaged prods row — matches the production averaging
+  // policy: average covariant γ_ij arithmetically, then DERIVE inv_g_iface
+  // and sqrt(det γ_iface) from the inverse of g_iface. Other fields
+  // (lapse, shift, ...) stay as element-wise arithmetic means.
+  double prods_iface[GKYL_GR_SP_NCOMP_BASE];
+  for (int k = 0; k < GKYL_GR_SP_NCOMP_BASE; k++)
+    prods_iface[k] = 0.5 * (prods_L[k] + prods_R[k]);
+  // Overwrite inv_g and sqrt(γ) with the derived-from-g values.
+  double g_iface_mat[3][3], inv_g_iface_mat[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      g_iface_mat[i][j] = prods_iface[GKYL_GR_SP_GIJ + 3*i + j];
+  double det_iface_t = gkyl_gr_euler_tetrad_mod_invert_metric_3x3(
+    g_iface_mat, inv_g_iface_mat);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      prods_iface[GKYL_GR_SP_INV_GIJ + 3*i + j] = inv_g_iface_mat[i][j];
+  prods_iface[GKYL_GR_SP_SPATIAL_DET] = det_iface_t;
+
+  // ΔF computed with INTERFACE-AVERAGED geometry on BOTH sides. This is
+  // the relevant flux-jump form for the tetrad-first scheme. Comparing
+  // against cell-centered (F(qR;geom_R) − F(qL;geom_L)) would conflate
+  // tetrad-first with curved-Lax interface-flux constructions and show
+  // an unrelated O(Δgeom) residual.
+  double dF[5];
+  double fL_sr[5], fR_sr[5], fL_gr[5], fR_gr[5];
+  gkyl_gr_euler_tetrad_mod_flux(eos, qL, prods_iface, NULL, fL_sr);
+  gkyl_gr_euler_tetrad_mod_flux(eos, qR, prods_iface, NULL, fR_sr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qL, prods_iface, NULL, fL_sr, fL_gr);
+  gkyl_gr_euler_tetrad_mod_flux_correction(eos, qR, prods_iface, NULL, fR_sr, fR_gr);
+  for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
+
+  // (a) Wave sum: Σ w_k = Δq
+  for (int i = 0; i < 5; i++) {
+    double sum = 0.0;
+    for (int k = 0; k < num_waves; k++) sum += waves[k * 5 + i];
+    TEST_CHECK_( fabs(sum - delta[i]) < 1.0e-12,
+      "[%s] wave sum: comp %d, |Σw − Δq| = %.3e", label, i, fabs(sum - delta[i]) );
+  }
+
+  // (b) Flux jump (interface-averaged): Σ s_k · w_k = ΔF_iface
+  for (int i = 0; i < 5; i++) {
+    double sw = 0.0;
+    for (int k = 0; k < num_waves; k++) sw += speeds[k] * waves[k * 5 + i];
+    TEST_CHECK_( fabs(sw - dF[i]) < 1.0e-10,
+      "[%s] flux jump (iface): comp %d, |Σs·w − ΔF| = %.3e",
+      label, i, fabs(sw - dF[i]) );
+  }
+
+  // (c) Fluctuation balance: amdq + apdq = ΔF_iface
+  double amdq[5], apdq[5];
+  eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    qL, qR, 1.0, 1.0, waves, speeds, amdq, apdq);
+  for (int i = 0; i < 5; i++) {
+    TEST_CHECK_( fabs(amdq[i] + apdq[i] - dF[i]) < 1.0e-10,
+      "[%s] fluct balance (iface): comp %d, |amdq+apdq − ΔF| = %.3e",
+      label, i, fabs(amdq[i] + apdq[i] - dF[i]) );
+  }
+
+  // (d) Eigenvalue ordering
+  for (int k = 0; k + 1 < num_waves; k++) {
+    TEST_CHECK_( speeds[k] <= speeds[k + 1] + 1.0e-14,
+      "[%s] ordering: speeds[%d]=%g > speeds[%d]=%g",
+      label, k, speeds[k], k + 1, speeds[k + 1] );
+  }
+
+  // (e) max-abs-speed dominates
+  for (int k = 0; k < num_waves; k++) {
+    TEST_CHECK_( maxs + 1.0e-12 >= fabs(speeds[k]),
+      "[%s] maxs=%g < |speeds[%d]|=%g", label, maxs, k, fabs(speeds[k]) );
+  }
+
+  // (f) Trivial Riemann: qL = qR ⇒ all waves zero, fluctuations zero.
+  // Geometry choice doesn't matter for this check (Δq = 0 ⇒ Δw = 0
+  // regardless of triad). Use L cell prods to construct qE.
+  double qE[5];
+  build_state_convA(eos, 1.0, (double[]){0.05, 0.10, 0.05}, 1.0, prods_L, qE);
+  double qE_loc[5];
+  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qE, qE_loc);
+  double dE[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
+  double wavesE[3 * 5], speedsE[3];
+  double maxsE = eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    dE, qE_loc, qE_loc, 1.0, 1.0, wavesE, speedsE);
+  for (int k = 0; k < num_waves; k++) {
+    for (int i = 0; i < 5; i++) {
+      TEST_CHECK_( fabs(wavesE[k * 5 + i]) < 1.0e-12,
+        "[%s] trivial RP: wave[%d][%d] = %.3e", label, k, i, wavesE[k * 5 + i] );
+    }
+  }
+  double amdqE[5], apdqE[5];
+  eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    qE_loc, qE_loc, 1.0, 1.0, wavesE, speedsE, amdqE, apdqE);
+  for (int i = 0; i < 5; i++) {
+    TEST_CHECK_( fabs(amdqE[i]) < 1.0e-12 && fabs(apdqE[i]) < 1.0e-12,
+      "[%s] trivial RP: |amdq[%d]|=%.3e |apdq[%d]|=%.3e",
+      label, i, fabs(amdqE[i]), i, fabs(apdqE[i]) );
+  }
+  TEST_CHECK( isfinite(maxsE) );
+
+  // (g) L↔R sign symmetry. We also swap interface indices so prodl/prodr
+  // are sourced consistently with the swapped state ordering. The
+  // interface-averaged geom is unchanged under this swap (arithmetic
+  // mean is commutative) — the invariant we check is:
+  //   amdq(qL,qR) + apdq(qL,qR) = − [amdq(qR,qL) + apdq(qR,qL)]
+  int idxl_swap[1] = { 1 }, idxr_swap[1] = { 0 };
+  eqn->set_interface_idx_func(eqn, idxl_swap, idxr_swap);
+  double waves_swap[3 * 5], speeds_swap[3];
+  double delta_swap[5];
+  for (int i = 0; i < 5; i++) delta_swap[i] = qL[i] - qR[i];
+  eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    delta_swap, qR, qL, 1.0, 1.0, waves_swap, speeds_swap);
+  double amdq_swap[5], apdq_swap[5];
+  eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
+    qR, qL, 1.0, 1.0, waves_swap, speeds_swap, amdq_swap, apdq_swap);
+  for (int i = 0; i < 5; i++) {
+    double lhs = amdq[i] + apdq[i];
+    double rhs = -(amdq_swap[i] + apdq_swap[i]);
+    TEST_CHECK_( fabs(lhs - rhs) < 1.0e-10,
+      "[%s] sign symmetry: comp %d, |ΔF + ΔF_swap| = %.3e",
+      label, i, fabs(lhs - rhs) );
+  }
+
+  gkyl_array_release(prods);
+  gkyl_wv_eqn_release(eqn);
+}
+
 // Each wrapper loops over [IDEAL, TM, RCC] for full EOS coverage.
 void test_riemann_properties_lax_minkowski(void)
 {
@@ -578,6 +799,132 @@ void test_riemann_properties_hllc_kerr(void)
   }
   gkyl_gr_spacetime_release(st);
 }
+
+// ---------------------------------------------------------------------------
+// Two-cell variants — non-degenerate L≠R geometry.
+//
+// These exercise the same Riemann properties as the single-cell runners
+// above, but with prodl_local sourced from a different cell than
+// prodr_local so the interface-averaging in wave_lax/wave_hll/wave_hllc is
+// non-trivial. Stress points concentrate near r_+ where lapse, shift,
+// and metric vary most rapidly. See TETRAD_REFACTOR_PLAN.md Phase 0(b).
+// ---------------------------------------------------------------------------
+
+// --- Minkowski sanity baseline. geom_L = geom_R trivially, so this must
+//     pass identically to the single-cell case (sanity check on the
+//     two-cell scaffolding itself).
+void test_riemann_properties_two_cell_lax_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_riemann_properties_two_cell(st, "Mink-Lax-2cell",
+      0.30, 0.0, 0.0,  0.32, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_LAX, 2);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_two_cell_hll_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_riemann_properties_two_cell(st, "Mink-HLL-2cell",
+      0.30, 0.0, 0.0,  0.32, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLL, 2);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_two_cell_hllc_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    run_riemann_properties_two_cell(st, "Mink-HLLC-2cell",
+      0.30, 0.0, 0.0,  0.32, 0.0, 0.0,
+      eos_modes[ei], WV_GR_EULER_TETRAD_RP_HLLC, 3);
+  gkyl_gr_spacetime_release(st);
+}
+
+// --- Schwarzschild (M=0.1 ⇒ r_+ = 0.2). Three position pairs, each
+//     Δx = 0.02 in the x-direction, ordered from near-horizon stress
+//     outward. The first pair sits at r ≈ 0.22, ≈ 10% outside r_+ where
+//     lapse and metric gradients are strong.
+#define SCHW_2CELL_RUNS(rp_macro, label, nw)                                   \
+  do {                                                                         \
+    run_riemann_properties_two_cell(st, label,                                 \
+      0.22, 0.0, 0.0,  0.24, 0.0, 0.0,                                         \
+      eos_modes[ei], rp_macro, nw);                                            \
+    run_riemann_properties_two_cell(st, label,                                 \
+      0.30, 0.20, 0.0,  0.32, 0.20, 0.0,                                       \
+      eos_modes[ei], rp_macro, nw);                                            \
+    run_riemann_properties_two_cell(st, label,                                 \
+      0.38, 0.40, 0.0,  0.40, 0.40, 0.0,                                       \
+      eos_modes[ei], rp_macro, nw);                                            \
+  } while (0)
+
+void test_riemann_properties_two_cell_lax_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    SCHW_2CELL_RUNS(WV_GR_EULER_TETRAD_RP_LAX, "Schw-Lax-2cell", 2);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_two_cell_hll_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    SCHW_2CELL_RUNS(WV_GR_EULER_TETRAD_RP_HLL, "Schw-HLL-2cell", 2);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_two_cell_hllc_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    SCHW_2CELL_RUNS(WV_GR_EULER_TETRAD_RP_HLLC, "Schw-HLLC-2cell", 3);
+  gkyl_gr_spacetime_release(st);
+}
+#undef SCHW_2CELL_RUNS
+
+// --- Kerr at a = 0.9 (M=0.1 ⇒ r_+ ≈ 0.144). Three pairs covering:
+//     near-horizon radial, off-axis where frame-dragging is strongest,
+//     and out-of-plane. Δx = 0.02 throughout.
+#define KERR_2CELL_RUNS(rp_macro, label, nw)                                   \
+  do {                                                                         \
+    run_riemann_properties_two_cell(st, label,                                 \
+      0.16, 0.0, 0.0,  0.18, 0.0, 0.0,                                         \
+      eos_modes[ei], rp_macro, nw);                                            \
+    run_riemann_properties_two_cell(st, label,                                 \
+      0.20, 0.15, 0.0,  0.22, 0.15, 0.0,                                       \
+      eos_modes[ei], rp_macro, nw);                                            \
+    run_riemann_properties_two_cell(st, label,                                 \
+      0.18, 0.0, 0.10,  0.20, 0.0, 0.10,                                       \
+      eos_modes[ei], rp_macro, nw);                                            \
+  } while (0)
+
+void test_riemann_properties_two_cell_lax_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    KERR_2CELL_RUNS(WV_GR_EULER_TETRAD_RP_LAX, "Kerr0.9-Lax-2cell", 2);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_two_cell_hll_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    KERR_2CELL_RUNS(WV_GR_EULER_TETRAD_RP_HLL, "Kerr0.9-HLL-2cell", 2);
+  gkyl_gr_spacetime_release(st);
+}
+void test_riemann_properties_two_cell_hllc_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
+  for (int ei = 0; ei < NUM_EOS_MODES; ei++)
+    KERR_2CELL_RUNS(WV_GR_EULER_TETRAD_RP_HLLC, "Kerr0.9-HLLC-2cell", 3);
+  gkyl_gr_spacetime_release(st);
+}
+#undef KERR_2CELL_RUNS
 
 // ---------------------------------------------------------------------------
 // 2b. Excision-boundary absorbing BC (Lax, HLL)
@@ -3679,6 +4026,16 @@ TEST_LIST = {
   { "riemann_properties_hllc_minkowski",     test_riemann_properties_hllc_minkowski },
   { "riemann_properties_hllc_schwarzschild", test_riemann_properties_hllc_schwarzschild },
   { "riemann_properties_hllc_kerr",          test_riemann_properties_hllc_kerr },
+
+  { "riemann_properties_two_cell_lax_minkowski",      test_riemann_properties_two_cell_lax_minkowski },
+  { "riemann_properties_two_cell_lax_schwarzschild",  test_riemann_properties_two_cell_lax_schwarzschild },
+  { "riemann_properties_two_cell_lax_kerr",           test_riemann_properties_two_cell_lax_kerr },
+  { "riemann_properties_two_cell_hll_minkowski",      test_riemann_properties_two_cell_hll_minkowski },
+  { "riemann_properties_two_cell_hll_schwarzschild",  test_riemann_properties_two_cell_hll_schwarzschild },
+  { "riemann_properties_two_cell_hll_kerr",           test_riemann_properties_two_cell_hll_kerr },
+  { "riemann_properties_two_cell_hllc_minkowski",     test_riemann_properties_two_cell_hllc_minkowski },
+  { "riemann_properties_two_cell_hllc_schwarzschild", test_riemann_properties_two_cell_hllc_schwarzschild },
+  { "riemann_properties_two_cell_hllc_kerr",          test_riemann_properties_two_cell_hllc_kerr },
 
   { "excision_absorbing_lax_minkowski",     test_excision_absorbing_lax_minkowski },
   { "excision_absorbing_lax_schwarzschild", test_excision_absorbing_lax_schwarzschild },

@@ -6461,6 +6461,12 @@ mom_app_run(lua_State *L)
   write_data(&io_trig, app, t_curr, false);
   gkyl_moment_app_stat_write(app);
 
+  // Dump GR-Euler primitive-recovery + repair-state status to stdout at
+  // end-of-run. No-op if the app has no GR-Euler species (per-species
+  // status pointers are NULL in that case). Captured in runregression
+  // runlogs alongside the per-step output for before/after comparison.
+  gkyl_moment_app_gr_euler_print_status(app, stdout);
+
   struct gkyl_moment_stat stat = gkyl_moment_app_stat(app);
 
   gkyl_moment_app_cout(app, stdout, "\n\n");

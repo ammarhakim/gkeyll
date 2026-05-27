@@ -1459,20 +1459,24 @@ wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
     double sd_a    = sqrt(prods_active[GKYL_GR_SP_SPATIAL_DET]);
     sqrt_det_l = sqrt_det_r = sqrt_det_iface = sd_a;
   } else {
+    // Average covariant γ_ij at the interface; derive inv_g_iface and
+    // sqrt_det_iface from this single g_iface via the 3×3 inverse and
+    // determinant. Independently averaging γ_ij, γ^{ij}, and sqrt(γ) (as
+    // earlier versions did) introduces O((Δγ)²) inconsistencies because
+    // (mean of inverses) ≠ inverse of (mean of γ). The consistent-g_iface
+    // choice makes the forward+back transform chain Q-wave-exact.
     for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++) {
+      for (int j = 0; j < 3; j++)
         g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
                              + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
-        inv_g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_INV_GIJ + 3*i + j]
-                                 + grm->prodr_local[GKYL_GR_SP_INV_GIJ + 3*i + j]);
-      }
+    double det_iface = gkyl_gr_euler_tetrad_mod_invert_metric_3x3(g_iface, inv_g_iface);
     alpha_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
                        + grm->prodr_local[GKYL_GR_SP_LAPSE]);
     shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
                          + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
     sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
     sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
-    sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
+    sqrt_det_iface = sqrt(det_iface);
   }
 
   double M[3][3], M_inv[3][3];
@@ -1483,16 +1487,25 @@ wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
   // excised side, feed the zero tetrad state directly (skip the q→tetrad
   // map, which would propagate any numerical noise in the densitized
   // excised q[] through the inverse-metric multiplication).
+  // Use sqrt_det_iface on BOTH sides of the forward transform. This
+  // matches the back-transform (which already uses sqrt_det_iface) and
+  // makes the forward+back chain consistent: with the same sqrt(γ) used
+  // on both sides, the Q-wave property Σ w_curved = q_R − q_L holds
+  // exactly even when the cell-centered sqrt(γ)s differ. Prior code
+  // used sqrt_det_l / sqrt_det_r here, which broke Q-wave consistency
+  // at O(Δsqrt(γ)) per interface (TETRAD_REFACTOR_PLAN.md Phase 0(b)).
+  // In the excision branch sqrt_det_l = sqrt_det_r = sqrt_det_iface = sd_a,
+  // so this is a no-op for excision-adjacent faces.
   double ql_tet[5], qr_tet[5];
   if (excise_l) {
     for (int k = 0; k < 5; k++) ql_tet[k] = 0.0;
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_r, inv_g_iface, M_inv, qr_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_iface, inv_g_iface, M_inv, qr_tet);
   } else if (excise_r) {
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_l, inv_g_iface, M_inv, ql_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_iface, inv_g_iface, M_inv, ql_tet);
     for (int k = 0; k < 5; k++) qr_tet[k] = 0.0;
   } else {
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_l, inv_g_iface, M_inv, ql_tet);
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_r, inv_g_iface, M_inv, qr_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_iface, inv_g_iface, M_inv, ql_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_iface, inv_g_iface, M_inv, qr_tet);
   }
 
   // Step 3: SR Lax in tetrad with symmetric ±amax envelope. The zero-
@@ -1852,20 +1865,20 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
     double sd_a    = sqrt(prods_active[GKYL_GR_SP_SPATIAL_DET]);
     sqrt_det_l = sqrt_det_r = sqrt_det_iface = sd_a;
   } else {
+    // Average covariant γ_ij; derive inv_g_iface and sqrt_det_iface from
+    // it to keep the trio internally consistent. See wave_lax comment.
     for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++) {
+      for (int j = 0; j < 3; j++)
         g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
                              + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
-        inv_g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_INV_GIJ + 3*i + j]
-                                 + grm->prodr_local[GKYL_GR_SP_INV_GIJ + 3*i + j]);
-      }
+    double det_iface = gkyl_gr_euler_tetrad_mod_invert_metric_3x3(g_iface, inv_g_iface);
     alpha_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
                        + grm->prodr_local[GKYL_GR_SP_LAPSE]);
     shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
                          + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
     sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
     sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
-    sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
+    sqrt_det_iface = sqrt(det_iface);
   }
 
   // Step 1: Gram-Schmidt-on-γ⁻¹ triad. First basis vector is the
@@ -1878,16 +1891,17 @@ wave_hll(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
 
   // Step 2: forward transform Convention-A covariant momentum onto the
   // contravariant-x triad. Excised side bypasses the transform.
+  // sqrt_det_iface on both sides — see Q-wave-consistency note in wave_lax.
   double ql_tet[5], qr_tet[5];
   if (excise_l) {
     for (int k = 0; k < 5; k++) ql_tet[k] = 0.0;
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_r, inv_g_iface, M_inv, qr_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_iface, inv_g_iface, M_inv, qr_tet);
   } else if (excise_r) {
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_l, inv_g_iface, M_inv, ql_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_iface, inv_g_iface, M_inv, ql_tet);
     for (int k = 0; k < 5; k++) qr_tet[k] = 0.0;
   } else {
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_l, inv_g_iface, M_inv, ql_tet);
-    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_r, inv_g_iface, M_inv, qr_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_iface, inv_g_iface, M_inv, ql_tet);
+    gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_iface, inv_g_iface, M_inv, qr_tet);
   }
 
   // Step 3: pure Minkowski SR HLL with Davis bracket. Zero-state special
@@ -1999,31 +2013,31 @@ wave_hllc(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
     return pow(10.0, -8.0);
   }
 
-  // Step 1: interface metric (arithmetic mean).
+  // Step 1: interface metric. Average covariant γ_ij; derive
+  // inv_g_iface and sqrt_det_iface from it (see wave_lax for rationale).
   double g_iface[3][3], inv_g_iface[3][3];
   for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++) {
+    for (int j = 0; j < 3; j++)
       g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
                            + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
-      inv_g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_INV_GIJ + 3*i + j]
-                               + grm->prodr_local[GKYL_GR_SP_INV_GIJ + 3*i + j]);
-    }
+  double det_iface = gkyl_gr_euler_tetrad_mod_invert_metric_3x3(g_iface, inv_g_iface);
   double alpha_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
                             + grm->prodr_local[GKYL_GR_SP_LAPSE]);
   double shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
                               + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
   double sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
   double sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
-  double sqrt_det_iface = 0.5 * (sqrt_det_l + sqrt_det_r);
+  double sqrt_det_iface = sqrt(det_iface);
 
   double M[3][3], M_inv[3][3];
   gkyl_gr_euler_tetrad_mod_build_triad_contravariant_x(
     g_iface, inv_g_iface, M, M_inv);
 
   // Step 2: forward transform onto the contravariant-x triad.
+  // sqrt_det_iface on both sides — see Q-wave-consistency note in wave_lax.
   double ql_tet[5], qr_tet[5];
-  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_l, inv_g_iface, M_inv, ql_tet);
-  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_r, inv_g_iface, M_inv, qr_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(ql, sqrt_det_iface, inv_g_iface, M_inv, ql_tet);
+  gkyl_gr_euler_tetrad_mod_q_to_tetrad_contra(qr, sqrt_det_iface, inv_g_iface, M_inv, qr_tet);
 
   // Step 3: pure Minkowski SR HLLC. Three waves; star-state construction
   // gives τ-positivity from admissible inputs (MB05 §3.1.2). Pass NULL
