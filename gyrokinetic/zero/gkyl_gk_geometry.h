@@ -173,6 +173,8 @@ struct gk_geometry {
   int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis.
                               // 1 if psi increases toward magnetic axis.
 
+  int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.
+
   bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
                  // location of the LCFS. For numerical IWL, it may be stored
@@ -202,6 +204,7 @@ struct gkyl_mirror_geo_grid_inp {
 // Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
+  char geometry_path[128]; // Path to geometry files
 
   void *c2p_ctx; // Context for mapc2p function.
   // Pointer to mapc2p function: xc are the computational space
