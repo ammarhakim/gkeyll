@@ -124,14 +124,10 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
   const struct gkyl_array *f, const struct gkyl_array *cflrate,
   struct gkyl_array *combined_multiplier)
 {
-  // Project the loss cone mask into buffer.
-  gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->local,
-    phi, fdmul->phi_m_global, fdmul->buffer);
-
-  // Apply constant scale factor.
+  gkyl_comm_array_allgather(app->comm, &app->local, &app->global, phi, fdmul->phi_global);
+  gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->global,
+    fdmul->bmag_global, fdmul->phi_global, fdmul->buffer);
   gkyl_array_scale(fdmul->buffer, fdmul->time_dilation_scale_const);
-
-  // Multiply into combined.
   gkyl_array_scale_by_cell(combined_multiplier, fdmul->buffer);
 }
 
@@ -315,55 +311,7 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
       fdmul->advance_func = gk_species_fdot_multiplier_advance_mult;
     }
     else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
-      fdmul->buffer = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
-
-      enum gkyl_quad_type qtype = GKYL_GAUSS_LOBATTO_QUAD;
-      int num_quad = gks->basis.poly_order + 1;
-
-      double bmag_max_coord_ho[GKYL_MAX_CDIM];
-      double bmag_max_ho = gkyl_gk_geometry_reduce_arg_bmag(app->gk_geom, GKYL_MAX,
-        bmag_max_coord_ho);
-      double bmag_max_local = bmag_max_ho;
-      double bmag_max_global;
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &bmag_max_local,
-        &bmag_max_global);
-      double bmag_max_coord_local[app->cdim], bmag_max_coord_global[app->cdim];
-      if (fabs(bmag_max_ho - bmag_max_global) < 1e-16) {
-        for (int d = 0; d < app->cdim; d++) {
-          bmag_max_coord_local[d] = bmag_max_coord_ho[d];
-        }
-      }
-      else {
-        for (int d = 0; d < app->cdim; d++) {
-          bmag_max_coord_local[d] = -DBL_MAX;
-        }
-      }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, app->cdim, bmag_max_coord_local,
-        bmag_max_coord_global);
-
-      if (app->use_gpu) {
-        fdmul->bmag_max = gkyl_cu_malloc(sizeof(double));
-        fdmul->bmag_max_coord = gkyl_cu_malloc(app->cdim * sizeof(double));
-        gkyl_cu_memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double), GKYL_CU_MEMCPY_H2D);
-        gkyl_cu_memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim * sizeof(double),
-          GKYL_CU_MEMCPY_H2D);
-      }
-      else {
-        fdmul->bmag_max = gkyl_malloc(sizeof(double));
-        fdmul->bmag_max_coord = gkyl_malloc(app->cdim * sizeof(double));
-        memcpy(fdmul->bmag_max, &bmag_max_global, sizeof(double));
-        memcpy(fdmul->bmag_max_coord, bmag_max_coord_ho, app->cdim * sizeof(double));
-      }
-
-      if (app->use_gpu) {
-        fdmul->phi_m = gkyl_cu_malloc(sizeof(double));
-        fdmul->phi_m_global = gkyl_cu_malloc(sizeof(double));
-      }
-      else {
-        fdmul->phi_m = gkyl_malloc(sizeof(double));
-        fdmul->phi_m_global = gkyl_malloc(sizeof(double));
-      }
-
+      // Operator that projects the loss cone mask.
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
         .conf_basis = &app->basis,
         .vel_map = gks->vel_map,
@@ -372,6 +320,14 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
         .use_gpu = app->use_gpu,
       };
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
+
+      fdmul->buffer = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
+      fdmul->bmag_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.bmag->ncomp,
+        app->global_ext.volume);
+      fdmul->phi_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
+
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_corn.bmag,
+        fdmul->bmag_global);
 
       fdmul->advance_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
     }
@@ -549,18 +505,8 @@ gk_species_fdot_multiplier_release_comp(const struct gkyl_gyrokinetic_app *app,
   }
   else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
     gkyl_array_release(fdmul->buffer);
-    if (app->use_gpu) {
-      gkyl_cu_free(fdmul->bmag_max);
-      gkyl_cu_free(fdmul->bmag_max_coord);
-      gkyl_cu_free(fdmul->phi_m);
-      gkyl_cu_free(fdmul->phi_m_global);
-    }
-    else {
-      gkyl_free(fdmul->bmag_max);
-      gkyl_free(fdmul->bmag_max_coord);
-      gkyl_free(fdmul->phi_m);
-      gkyl_free(fdmul->phi_m_global);
-    }
+    gkyl_array_release(fdmul->bmag_global);
+    gkyl_array_release(fdmul->phi_global);
     gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
   }
   else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_CONSTANT) {

@@ -879,10 +879,8 @@ struct gk_fdot_multiplier_comp {
 
   // Loss cone mask objects
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
-  double *bmag_max; // Global maximum bmag value.
-  double *bmag_max_coord; // Coordinate of global maximum bmag.
-  double *phi_m; // Local minimum phi value.
-  double *phi_m_global; // Global minimum phi value.
+  struct gkyl_array *bmag_global; // Global bmag field used by the loss-cone updater.
+  struct gkyl_array *phi_global; // Global phi field used by the loss-cone updater.
 
   // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.
