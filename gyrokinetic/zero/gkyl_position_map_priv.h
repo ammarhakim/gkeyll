@@ -814,8 +814,8 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
   const double theta_c = xn[0];
   const double sigma = gpm->constB_ctx->gaussian_std;
   const double max_width = gpm->constB_ctx->gaussian_max_integration_width;
-  const double tmin = gpm->grid.lower[0];
-  const double tmax = gpm->grid.upper[0];
+  const double tmin = gpm->constB_ctx->theta_min;
+  const double tmax = gpm->constB_ctx->theta_max;
   
   // Shrink the half-width symmetrically to stay within bounds
   // This ensures the integration window is always centered at theta_c

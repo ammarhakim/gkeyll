@@ -749,8 +749,8 @@ main(int argc, char **argv)
       }
     },
     
-    .heating = {
-      .heating_id = GKYL_HEATING_DEFAULT,
+    .source_bgk = {
+      .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
       .rate_profile = heat_rate_func_elc,
       .rate_profile_ctx = &ctx,
       .temp_shape = heat_temp_shape_func_elc,
@@ -839,8 +839,8 @@ main(int argc, char **argv)
       }
     },
 
-    .heating = {
-      .heating_id = GKYL_HEATING_DEFAULT,
+    .source_bgk= {
+      .source_bgk_id = GKYL_SOURCE_BGK_HEATING,
       .rate_profile = heat_rate_func_ion,
       .rate_profile_ctx = &ctx,
       .temp_shape = heat_temp_shape_func_ion,

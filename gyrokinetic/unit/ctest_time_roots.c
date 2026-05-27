@@ -262,6 +262,7 @@ compare_quad_and_cub(void)
   double ratio = cubic_time/quad_time;
   //printf("Ratio of cubic to quadratic time = %g\n", ratio);
 
+  gkyl_proj_on_basis_release(projCub);
   gkyl_array_release(psi_cubic_DG);
   gkyl_efit_release(efit);
 

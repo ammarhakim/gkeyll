@@ -177,11 +177,11 @@ test_zdep_nd_nxnz(int nx, int ny){
 #endif
 
   //smooth it
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &grid, &basis, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, 0, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc;
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_NEUMANN;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -221,12 +221,15 @@ test_zdep_nd_nxnz(int nx, int ny){
 #ifdef GKYL_HAVE_CUDA 
   gkyl_cu_free(basis_on_dev);
   gkyl_array_release(field_dev);
+  gkyl_array_release(field_discont_dev);
   gkyl_array_release(phi_dev);
   gkyl_array_release(epsilon_dev);
 #endif
+  gkyl_array_release(field_discont);
   gkyl_array_release(field);
   gkyl_array_release(phi);
   gkyl_array_release(epsilon);
+  gkyl_array_release(sol);
   return l2;
 }
 
@@ -276,12 +279,12 @@ test_simplez_dd_nxnz(int nx, int ny){
   struct gkyl_array *field_discont_dev = field_discont;
 #endif
 
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &grid, &basis, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, 0, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
 
-  struct gkyl_poisson_bc poisson_bc;
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -318,15 +321,18 @@ test_simplez_dd_nxnz(int nx, int ny){
 
   gkyl_deflated_fem_poisson_release(deflated_fem_poisson);
   gkyl_fem_parproj_release(parproj);
-#ifdef gkyl_have_cuda
+#ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(basis_on_dev);
   gkyl_array_release(field_dev);
+  gkyl_array_release(field_discont_dev);
   gkyl_array_release(phi_dev);
   gkyl_array_release(epsilon_dev);
 #endif
+  gkyl_array_release(field_discont);
   gkyl_array_release(field);
   gkyl_array_release(phi);
   gkyl_array_release(epsilon);
+  gkyl_array_release(sol);
   return l2;
 }
 
@@ -376,11 +382,11 @@ test_zind_dd_nxnz(int nx, int ny){
   struct gkyl_array *field_discont_dev = field_discont;
 #endif
 
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &grid, &basis, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, 0, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
-  struct gkyl_poisson_bc poisson_bc;
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_value[0].v[0] = 0.;
@@ -418,15 +424,18 @@ test_zind_dd_nxnz(int nx, int ny){
 
   gkyl_deflated_fem_poisson_release(deflated_fem_poisson);
   gkyl_fem_parproj_release(parproj);
-#ifdef gkyl_have_cuda
+#ifdef GKYL_HAVE_CUDA
   gkyl_cu_free(basis_on_dev);
   gkyl_array_release(field_dev);
+  gkyl_array_release(field_discont_dev);
   gkyl_array_release(phi_dev);
   gkyl_array_release(epsilon_dev);
 #endif
+  gkyl_array_release(field_discont);
   gkyl_array_release(field);
   gkyl_array_release(phi);
   gkyl_array_release(epsilon);
+  gkyl_array_release(sol);
   return l2;
 }
 
@@ -478,7 +487,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
 #endif
 
   //smooth it
-  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_DIRICHLET, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *parproj = gkyl_fem_parproj_new(&local, &grid, &basis, GKYL_FEM_PARPROJ_DIRICHLET_SKIN, 0, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(parproj, field_discont_dev, field_discont_dev);
   gkyl_fem_parproj_solve(parproj, field_dev);
 
@@ -493,7 +502,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
   //poisson_bc.lo_value[1].v[0] = 0.;
   //poisson_bc.up_value[1].v[0] = 0.;
 
-  struct gkyl_poisson_bc poisson_bc;
+  struct gkyl_poisson_bc poisson_bc = {0};
   poisson_bc.lo_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.up_type[0] = GKYL_POISSON_DIRICHLET;
   poisson_bc.lo_type[1] = GKYL_POISSON_DIRICHLET;
@@ -540,12 +549,15 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz){
 #ifdef GKYL_HAVE_CUDA 
   gkyl_cu_free(basis_on_dev);
   gkyl_array_release(field_dev);
+  gkyl_array_release(field_discont_dev);
   gkyl_array_release(phi_dev);
   gkyl_array_release(epsilon_dev);
 #endif
+  gkyl_array_release(field_discont);
   gkyl_array_release(field);
   gkyl_array_release(phi);
   gkyl_array_release(epsilon);
+  gkyl_array_release(sol);
   return l2;
 }
 
