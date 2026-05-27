@@ -8,7 +8,7 @@
 
 static int kann_verbose = 0;
 
-void kann_set_verbose_leve(int level) { kann_verbose = level; }
+void kann_set_verbose_level(int level) { kann_verbose = level; }
 
 /******************************************
  *** @@BASIC: fundamental KANN routines ***

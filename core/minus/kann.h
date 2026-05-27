@@ -53,7 +53,7 @@ typedef struct {
 } kann_t;
 
 /* level = 3 for verbose output */
-void kann_set_verbose_leve(int level);
+void kann_set_verbose_level(int level);
 
 #define kann_size_var(a) kad_size_var((a)->n, (a)->v)
 #define kann_size_const(a) kad_size_const((a)->n, (a)->v)
