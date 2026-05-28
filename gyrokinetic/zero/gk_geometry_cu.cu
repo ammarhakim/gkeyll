@@ -81,6 +81,7 @@ gk_geometry_set_int_cu_kernel(struct gk_geometry *gk_geom,
   gk_geom->geo_int.dualcurlbhat = dualcurlbhat;
   gk_geom->geo_int.bioverJB = bioverJB;
   gk_geom->geo_int.B3 = B3;
+  gk_geom->geo_int.bimpactangle = bimpactangle;
   gk_geom->geo_int.qprofile = qprofile;
   // Nodal.
   gk_geom->geo_int.mc2p_nodal_fd = mc2p_nodal_fd;
@@ -105,6 +106,7 @@ gk_geometry_set_int_cu_kernel(struct gk_geometry *gk_geom,
   gk_geom->geo_int.dualcurlbhatoverB_nodal = dualcurlbhatoverB_nodal;
   gk_geom->geo_int.rtg33inv_nodal = rtg33inv_nodal;
   gk_geom->geo_int.bioverJB_nodal = bioverJB_nodal;
+  gk_geom->geo_int.bimpactangle_nodal = bimpactangle_nodal;
 }
 
 __global__ static void
@@ -340,6 +342,10 @@ gk_geometry_int_cu_dev_alloc(struct gk_geom_int up_int_host)
     up_int_host.rtg33inv_nodal->ncomp, up_int_host.rtg33inv_nodal->size);
   up_int_dev->bioverJB_nodal = gkyl_array_cu_dev_new(up_int_host.bioverJB_nodal->type,
     up_int_host.bioverJB_nodal->ncomp, up_int_host.bioverJB_nodal->size);
+  up_int_dev->bimpactangle = gkyl_array_cu_dev_new(up_int_host.bimpactangle->type,
+    up_int_host.bimpactangle->ncomp, up_int_host.bimpactangle->size);
+  up_int_dev->bimpactangle_nodal = gkyl_array_cu_dev_new(up_int_host.bimpactangle_nodal->type,
+    up_int_host.bimpactangle_nodal->ncomp, up_int_host.bimpactangle_nodal->size);
   return up_int_dev;
 }
 
@@ -503,6 +509,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(geo_int_dev->bioverJB, geo_host->geo_int.bioverJB);
   gkyl_array_copy(geo_int_dev->B3, geo_host->geo_int.B3);
   gkyl_array_copy(geo_int_dev->dualcurlbhat, geo_host->geo_int.dualcurlbhat);
+  gkyl_array_copy(geo_int_dev->bimpactangle, geo_host->geo_int.bimpactangle);
   gkyl_array_copy(geo_int_dev->qprofile, geo_host->geo_int.qprofile);
   // Nodal.
   gkyl_array_copy(geo_int_dev->mc2p_nodal_fd, geo_host->geo_int.mc2p_nodal_fd); 
@@ -527,6 +534,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(geo_int_dev->dualcurlbhatoverB_nodal, geo_host->geo_int.dualcurlbhatoverB_nodal); 
   gkyl_array_copy(geo_int_dev->rtg33inv_nodal, geo_host->geo_int.rtg33inv_nodal); 
   gkyl_array_copy(geo_int_dev->bioverJB_nodal, geo_host->geo_int.bioverJB_nodal); 
+  gkyl_array_copy(geo_int_dev->bimpactangle_nodal, geo_host->geo_int.bimpactangle_nodal); 
 
   for (int dir=0; dir<up->grid.ndim; ++dir) {
     // Expansions.
@@ -620,6 +628,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->geo_int.bioverJB = geo_int_dev->bioverJB;
   up->geo_int.B3 = geo_int_dev->B3;
   up->geo_int.dualcurlbhat = geo_int_dev->dualcurlbhat;
+  up->geo_int.bimpactangle = geo_int_dev->bimpactangle;
   up->geo_int.qprofile = geo_int_dev->qprofile;
   // Nodal.
   up->geo_int.mc2p_nodal_fd = geo_int_dev->mc2p_nodal_fd;
@@ -644,6 +653,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   up->geo_int.dualcurlbhatoverB_nodal = geo_int_dev->dualcurlbhatoverB_nodal;
   up->geo_int.rtg33inv_nodal = geo_int_dev->rtg33inv_nodal;
   up->geo_int.bioverJB_nodal = geo_int_dev->bioverJB_nodal;
+  up->geo_int.bimpactangle_nodal = geo_int_dev->bimpactangle_nodal;
   gkyl_free(geo_int_dev);
 
   for (int dir=0; dir<up->grid.ndim; ++dir) {

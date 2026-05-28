@@ -553,6 +553,10 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         bioverJB_n[1] = gFld_n[4]/sqrt(gFld_n[5])/J/bmag_n[0];
         bioverJB_n[2] = gFld_n[5]/sqrt(gFld_n[5])/J/bmag_n[0];
 
+        // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+        double *bimpactangle_n = gkyl_array_fetch(gk_geom->geo_int.bimpactangle_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+        bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[5]) * norm3));
+
       }
     }
   }
@@ -568,6 +572,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.bimpactangle_nodal, gk_geom->geo_int.bimpactangle, true);
 }
 
 void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
@@ -1515,6 +1520,10 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
         bioverJB_n[1] = gFld_n[4]/sqrt(gFld_n[5])/J/bmag_n[0];
         bioverJB_n[2] = gFld_n[5]/sqrt(gFld_n[5])/J/bmag_n[0];
 
+         // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+         double *bimpactangle_n = gkyl_array_fetch(gk_geom->geo_int.bimpactangle_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
+         bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[5]) * norm3));
+
       }
     }
   }
@@ -1531,6 +1540,7 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
+  gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.bimpactangle_nodal, gk_geom->geo_int.bimpactangle, true);
 }
 
 void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)

@@ -145,6 +145,7 @@ gk_geometry_int_alloc_nodal(struct gk_geometry* gk_geom)
   gk_geom->geo_int.dualcurlbhatoverB_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
   gk_geom->geo_int.rtg33inv_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
   gk_geom->geo_int.bioverJB_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
+  gk_geom->geo_int.bimpactangle_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_int.volume);
 }
 
 static void
@@ -180,6 +181,7 @@ gk_geometry_int_alloc_expansions(struct gk_geometry* up)
   up->geo_int.rtg33inv = gkyl_array_new(GKYL_DOUBLE, 1*up->basis.num_basis, up->local_ext.volume);
   up->geo_int.bioverJB = gkyl_array_new(GKYL_DOUBLE, 3*up->basis.num_basis, up->local_ext.volume);
   up->geo_int.B3 = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
+  up->geo_int.bimpactangle = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
   up->geo_int.qprofile = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 }
 
@@ -208,6 +210,7 @@ gk_geometry_int_release_nodal(struct gk_geometry* gk_geom)
   gkyl_array_release(gk_geom->geo_int.dualcurlbhatoverB_nodal);
   gkyl_array_release(gk_geom->geo_int.rtg33inv_nodal);
   gkyl_array_release(gk_geom->geo_int.bioverJB_nodal);
+  gkyl_array_release(gk_geom->geo_int.bimpactangle_nodal);
 }
 
 static void
