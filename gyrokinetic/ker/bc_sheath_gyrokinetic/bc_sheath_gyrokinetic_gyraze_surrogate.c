@@ -519,8 +519,6 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval_fact(const double *mu_new,  int
     double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
 
-    printf("alpha = %g, gamma = %g, phinorm = %g\n", alpha, gamma, phinorm);
-
     double vcut[SRGRZ_N_MU];
     bc_sheath_gyrokinetic_srgrz_predict(alpha, gamma, phinorm, vcut);
     bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, muref, out);
