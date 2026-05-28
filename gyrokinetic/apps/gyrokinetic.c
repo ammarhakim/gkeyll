@@ -1181,19 +1181,26 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
   if (rank == 0) {
     // Create Interior Nodal Range and Grid and Write Nodal Coordinates
-    struct gkyl_array* mc2pint_nodal = mkarr(false, 3, app->gk_geom->nrange_int.volume);
+    // nrange_int must be sized from app->global (not the per-rank local nrange_int)
+    int num_quad_points_int = app->poly_order + 1;
+    int num_nodes_int[GKYL_MAX_CDIM];
+    for (int d=0; d<app->grid.ndim; ++d)
+      num_nodes_int[d] = gkyl_range_shape(&app->global, d) * num_quad_points_int;
+    struct gkyl_range nrange_int_global;
+    gkyl_range_init_from_shape(&nrange_int_global, app->grid.ndim, num_nodes_int);
+    struct gkyl_array* mc2pint_nodal = mkarr(false, 3, nrange_int_global.volume);
     struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&app->basis, &app->grid, false);
-    gkyl_nodal_ops_m2n(n2m, &app->basis, &app->grid, &app->gk_geom->nrange_int, &app->global, 3, mc2pint_nodal, mc2pint_global_ho, true);
+    gkyl_nodal_ops_m2n(n2m, &app->basis, &app->grid, &nrange_int_global, &app->global, 3, mc2pint_nodal, mc2pint_global_ho, true);
 
     struct gkyl_rect_grid ngrid_quad;
-    gkyl_gk_geometry_init_nodal_grid(&ngrid_quad, &app->grid, &app->gk_geom->nrange_int);
+    gkyl_gk_geometry_init_nodal_grid(&ngrid_quad, &app->grid, &nrange_int_global);
 
     const char *fmt = "%s-%s.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, "nodesint");
     char fileNm[sz+1]; // ensures no buffer overflow
     sprintf(fileNm, fmt, app->name, "nodesint");
 
-    gkyl_grid_sub_array_write(&ngrid_quad, &app->gk_geom->nrange_int, 0,  mc2pint_nodal, fileNm);
+    gkyl_grid_sub_array_write(&ngrid_quad, &nrange_int_global, 0, mc2pint_nodal, fileNm);
 
     gkyl_nodal_ops_release(n2m);
     gkyl_array_release(mc2pint_nodal);
