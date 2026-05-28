@@ -836,7 +836,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       for (int b=0; b<mbapp->num_local_blocks; ++b) {
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
         int d  = 0;
-        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, sbapp->grid.dx[1], &sbapp->global);
+        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, sbapp->grid.dx[sbapp->cdim-1], &sbapp->global);
       }
 
       // Sync
@@ -852,7 +852,7 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       for (int b=0; b<mbapp->num_local_blocks; ++b) {
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
         int d  = 0;
-        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, 1.0/sbapp->grid.dx[1], &sbapp->global_ext);
+        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, 1.0/sbapp->grid.dx[sbapp->cdim-1], &sbapp->global_ext);
       }
 
     }
