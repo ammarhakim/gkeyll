@@ -1,0 +1,7 @@
+Step 1: Call get_field_coords.py to produce .npy arrays of all required geometric quantities for a DESC equilibria
+Step 2: Call numpy-to-gkyl.py to convert .npy files into .gkyl files and put them into an output folder
+Step 3: Run ctest_desc_grid.c (found in gyrokinetic/unit/) to gkyl output from step 2 and calculate the rest of the required geometry.
+        Final outputs are stored in {name}_geometry folder ready for use. 
+
+Optional:
+    plot_* functions can be used to plot and verify geometric quantities.
