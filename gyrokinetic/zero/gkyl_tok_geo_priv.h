@@ -544,7 +544,7 @@ contour_func(double Z, void *ctx)
   double dR[4] = { 0 }, dZ[4] = { 0 };
   
   int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
-  double drdz = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dRdZ,nr);
+  double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ,nr);
   
   return nr>0 ? sqrt(1+drdz*drdz) : 0.0;
 }
@@ -558,7 +558,7 @@ phi_contour_func(double Z, void *ctx)
   double dR[4] = { 0 }, dZ[4] = { 0 };
   
   int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
-  double drdz = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dRdZ, nr);
+  double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   if (c->geo->use_cubics) {
@@ -608,7 +608,7 @@ dphidtheta_integrand(double Z, void *ctx)
   double dR[4] = { 0 }, dZ[4] = { 0 };
   
   int nr = gkyl_tok_geo_R_psiZ(c->geo, c->psi, Z, 4, R, dRdZ, dR, dZ);
-  double drdz = nr == 1 ? dR[0] : choose_closest(c->last_R, R, dRdZ, nr);
+  double drdz = nr == 1 ? dRdZ[0] : choose_closest(c->last_R, R, dRdZ, nr);
   double r_curr = nr == 1 ? R[0] : choose_closest(c->last_R, R, R, nr);
 
   if (c->geo->use_cubics) {
