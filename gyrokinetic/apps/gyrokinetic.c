@@ -2858,7 +2858,6 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geo
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bioverJB         , arr_ho3, geometry_inp->geometry_path, "bioverJB");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.B3               , arr_ho1, geometry_inp->geometry_path, "B3");
   gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.dualcurlbhat     , arr_ho3, geometry_inp->geometry_path, "dualcurlbhat");
-  gyrokinetic_app_geometry_read_and_copy(app, app->gk_geom->geo_int.bimpactangle     , arr_ho1, geometry_inp->geometry_path, "bimpactangle");
 
   struct gkyl_array* arr_surf_ho1 = mkarr(false,   app->gk_geom->num_surf_basis, app->local_ext.volume);
   struct gkyl_array* arr_surf_ho2 = mkarr(false, 2*app->gk_geom->num_surf_basis, app->local_ext.volume);

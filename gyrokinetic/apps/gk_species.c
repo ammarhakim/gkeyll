@@ -213,14 +213,14 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_SHEATH:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
-            app->gk_geom->geo_int.bmag, app->gk_geom->geo_int.bimpactangle, &app->local);
+            app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[cdim-1].bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_IWL:
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
-            app->gk_geom->geo_int.bmag, app->gk_geom->geo_int.bimpactangle, &app->local);
+            app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[cdim-1].bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             app->field->phi_wall_lo, f, &app->local);
           if (cdim == 3) {
@@ -246,7 +246,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, 
-            app->gk_geom->geo_int.bimpactangle, 
+            app->gk_geom->geo_surf[cdim-1].bimpactangle, 
             &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
@@ -255,7 +255,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, 
-            app->gk_geom->geo_int.bimpactangle, 
+            app->gk_geom->geo_surf[cdim-1].bimpactangle, 
             &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
