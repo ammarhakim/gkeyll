@@ -73,15 +73,27 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, struct g
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Write gkcls->flux_surf 
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  struct gkyl_msgpack_map_elem desc[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Distribution function surface flux diagnostic for the collisionless gyrokinetic operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+  };
+  int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta, desc};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+  // Write gkcls->flux_surf
   const char *fmt = "%s-%s_collisionless_surf_flux_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
   gkyl_array_copy(gkcls->flux_surf_ho, gkcls->flux_surf);
-  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, NULL,
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt,
     gkcls->flux_surf_ho, fileNm);
 
+  gkyl_msgpack_data_release(mt);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
 }

@@ -78,8 +78,12 @@ gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *
     // Package metadata.
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-    int io_meta_len[] = {app->io_meta_basic_len, gkns->io_meta_len, app->gk_geom->io_meta_len};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gkns->io_meta, app->gk_geom->io_meta};
+    struct gkyl_msgpack_map_elem desc_src[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
+        .cval = "Neutral species source term. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    };
+    int io_meta_len[] = {app->io_meta_basic_len, gkns->io_meta_len, app->gk_geom->io_meta_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gkns->io_meta, app->gk_geom->io_meta, desc_src};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     // Write out the source distribution function
@@ -108,8 +112,12 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
     // Package metadata.
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+    struct gkyl_msgpack_map_elem desc_src_mom[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
+        .cval = "Velocity-space moment of the neutral species source term distribution function. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    };
+    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_src_mom};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     for (int m=0; m<gkns->info.num_diag_moments; ++m) {

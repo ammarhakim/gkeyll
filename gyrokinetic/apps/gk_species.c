@@ -321,7 +321,7 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "J*B*f: distribution function (f) scaled by phase-space Jacobian (J) and magnetic field (B)" }
+      .cval = "Distribution function scaled by phase-space Jacobian and magnetic field. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
   };
   int io_meta_f_len = sizeof(io_meta_f)/sizeof(io_meta_f[0]);
   int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, io_meta_f_len};
@@ -360,7 +360,7 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Maximum stable time-step frequency (CFL rate) for this species at the current simulation time. Units: 1/time (SI: 1/s)." }
+      .cval = "Maximum stable time-step frequency based on the CFL conditionfor this species at the current simulation time. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
   };
   int mpe_cfl_len = sizeof(mpe_cfl)/sizeof(mpe_cfl[0]);
   // Update app basic metada with time/frame.

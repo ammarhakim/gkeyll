@@ -306,13 +306,17 @@ gks_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, struc
     // Package metadata.
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+    struct gkyl_msgpack_map_elem desc[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
+        .cval = "Reaction rate coefficient for atomic physics reactions (ionization, recombination, or charge exchange) in the gyrokinetic simulation. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    };
+    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     if (app->use_gpu)
       gkyl_array_copy(gkr->coeff_react_host[ridx], gkr->coeff_react[ridx]);
-    
+
     if (gkr->react_id[ridx] == GKYL_REACT_IZ) {
       const char *fmt = "%s-%s_%s_react_iz_%s_%d.gkyl";
       int sz = gkyl_calc_strlen(fmt, app->name, gkr->react_type[ridx].ion_nm,
