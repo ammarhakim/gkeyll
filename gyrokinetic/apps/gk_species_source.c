@@ -456,9 +456,9 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         adapt_src->adapt_particle = s->info.source.adapt[k].adapt_particle;
         adapt_src->adapt_energy = s->info.source.adapt[k].adapt_energy;
-        adapt_src->adapt_particle_fraction = s->info.source.adapt[k].adapt_particle_fraction > 0?
+        adapt_src->adapt_particle_fraction = s->info.source.adapt[k].has_adapt_particle_fraction ?
           s->info.source.adapt[k].adapt_particle_fraction : 1.0; // Default to full adaptation if not specified.
-        adapt_src->adapt_energy_fraction = s->info.source.adapt[k].adapt_energy_fraction > 0?
+        adapt_src->adapt_energy_fraction = s->info.source.adapt[k].has_adapt_energy_fraction ?
           s->info.source.adapt[k].adapt_energy_fraction : 1.0; // Default to full adaptation if not specified.
 
         adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_to_species);

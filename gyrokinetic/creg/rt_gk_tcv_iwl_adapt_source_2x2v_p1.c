@@ -24,12 +24,11 @@ struct gk_app_ctx {
   // Source parameters
   int num_sources;
   bool adapt_energy_srcCORE, adapt_particle_srcCORE; 
-  double adapt_energy_fraction_srcCORE, adapt_particle_fraction_srcCORE;
   double center_srcCORE[2], sigma_srcCORE[2];
   double energy_srcCORE, particle_srcCORE;
   double floor_srcCORE;
   bool adapt_energy_srcRECY, adapt_particle_srcRECY;
-  double adapt_energy_fraction_srcRECY, adapt_particle_fraction_srcRECY;
+  double adapt_particle_fraction_srcRECY;
   double center_srcRECY[2], sigma_srcRECY[2];
   double energy_srcRECY, particle_srcRECY;
   double floor_srcRECY;
@@ -383,13 +382,12 @@ struct gk_app_ctx create_ctx(void)
   // Source parameters
   int num_sources = 2;
   double P_exp = 0.34e6; // P_sol measured [W]
+  double recycling_rate = 0.95; // High recycling regime.
   // Core source:
   // - Injects energy only in the core region (0.25MW per species).
   // - The particles injection is only the one that are lost through the inner radial boundary.
   bool adapt_energy_srcCORE = true; // The source will compensate the losses in energy according to given boundaries.
   bool adapt_particle_srcCORE = true; // The source will compensate the losses in particle according to given boundaries.
-  double adapt_energy_fraction_srcCORE = 1.0; // Adjusts energy compensation to 100%. (Not required since default is 100%)
-  double adapt_particle_fraction_srcCORE = 1.0; // Adjusts particle compensation to 100%. (Not required since default is 100%)
   double energy_srcCORE = P_exp; // What the source must inject in energy [W]
   double particle_srcCORE = 0.0;// What the source must inject in particle [1/s]
   double center_srcCORE[2] = {x_min, -Lz/4}; // This is the position of the ion source,
@@ -400,8 +398,7 @@ struct gk_app_ctx create_ctx(void)
   // - Energy is free to leave the system.
   bool adapt_energy_srcRECY = false;
   bool adapt_particle_srcRECY = true;
-  double adapt_energy_fraction_srcRECY = 0.0; // This is ignored since adapt_energy_srcRECY is false.
-  double adapt_particle_fraction_srcRECY = 1.0; // Adjusts recycling rate to 100%.
+  double adapt_particle_fraction_srcRECY = recycling_rate;
   double energy_srcRECY = 0.0; // [W]
   double particle_srcRECY = 0.0; // [1/s]
   double center_srcRECY[2] = {0.5*x_LCFS, M_PI};
@@ -454,8 +451,6 @@ struct gk_app_ctx create_ctx(void)
 
     .adapt_energy_srcCORE = adapt_energy_srcCORE,
     .adapt_particle_srcCORE = adapt_particle_srcCORE,
-    .adapt_energy_fraction_srcCORE = adapt_energy_fraction_srcCORE,
-    .adapt_particle_fraction_srcCORE = adapt_particle_fraction_srcCORE,
     .center_srcCORE = {center_srcCORE[0], center_srcCORE[1]},
     .sigma_srcCORE = {sigma_srcCORE[0], sigma_srcCORE[1]},
     .energy_srcCORE = energy_srcCORE, .particle_srcCORE = particle_srcCORE,
@@ -463,7 +458,6 @@ struct gk_app_ctx create_ctx(void)
 
     .adapt_energy_srcRECY = adapt_energy_srcRECY,
     .adapt_particle_srcRECY = adapt_particle_srcRECY,
-    .adapt_energy_fraction_srcRECY = adapt_energy_fraction_srcRECY,
     .adapt_particle_fraction_srcRECY = adapt_particle_fraction_srcRECY,
     .center_srcRECY = {center_srcRECY[0], center_srcRECY[1]},
     .sigma_srcRECY = {sigma_srcRECY[0], sigma_srcRECY[1]},
@@ -559,9 +553,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
     .adapt_to_species = "elc",
     .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcCORE,
     .adapt_energy = ctx.adapt_energy_srcCORE,
-    .adapt_energy_fraction = ctx.adapt_energy_fraction_srcCORE,
     .num_boundaries = 1, // Only the inner radial boundary.
     .dir = {0},
     .edge = {GKYL_LOWER_EDGE},
@@ -569,9 +561,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcCORE,
     .adapt_energy = ctx.adapt_energy_srcCORE,
-    .adapt_energy_fraction = ctx.adapt_energy_fraction_srcCORE,
     .num_boundaries = 1, // Only the inner radial boundary.
     .dir = {0},
     .edge = {GKYL_LOWER_EDGE},
@@ -579,9 +569,9 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_adapt_source adapt_srcRECY_e = {
     .adapt_to_species = "ion", // Adapt to ion losses to maintain ambipolarity.
     .adapt_particle = ctx.adapt_particle_srcRECY,
-    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
-    .adapt_energy_fraction = ctx.adapt_energy_fraction_srcRECY, 
+    .has_adapt_particle_fraction = true,
+    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcRECY,
     .num_boundaries = 3, // Outer radial boundary and both z boundaries.
     .dir = {0, 1, 1},
     .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
@@ -590,8 +580,8 @@ main(int argc, char **argv)
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
+    .has_adapt_particle_fraction = true,
     .adapt_particle_fraction = ctx.adapt_particle_fraction_srcRECY,
-    .adapt_energy_fraction = ctx.adapt_energy_fraction_srcRECY,
     .num_boundaries = 3, // Outer radial boundary and both z boundaries.
     .dir = {0, 1, 1},
     .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
