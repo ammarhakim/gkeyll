@@ -1093,7 +1093,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   struct gkyl_array* arr_ho9 = mkarr(false, 9*app->basis.num_basis, app->local_ext.volume);
 
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2p       , arr_ho3, "mapc2p",
-    "Map from computational coordinates to physical coordinates (cylindrical or Cartesian) at cell corners. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
+    "Map from computational coordinates to physical coordinates at cell corners. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.mc2nu_pos  , arr_ho3, "mc2nu_pos",
     "Map from computational coordinates to non-uniform position coordinates at cell corners. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_corn.bmag       , arr_ho1, "bmag_corn",
@@ -1133,13 +1133,13 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.b_i         , arr_ho3, "b_i",
     "Covariant components of the magnetic unit vector in computational coordinates. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.bcart       , arr_ho3, "bcart",
-    "Magnetic unit vector in Cartesian coordinates. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
+    "Magnetic field unit vector in Cartesian coordinates. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.cmag        , arr_ho1, "cmag",
     "Clebsch scalar field relating the magnetic field to the coordinate volume element. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobtot    , arr_ho1, "jacobtot",
     "Total phase-space Jacobian (configuration Jacobian times magnetic field magnitude). For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.jacobtot_inv, arr_ho1, "jacobtot_inv",
-    "Inverse total phase-space Jacobian. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
+    "Inverse total phase-space Jacobian (configuration Jacobian times magnetic field magnitude). For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxxj        , arr_ho1, "gxxj",
     "xx contravariant metric component scaled by the configuration Jacobian. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
   gyrokinetic_app_geometry_copy_and_write(app, app->gk_geom->geo_int.gxyj        , arr_ho1, "gxyj",
@@ -1175,7 +1175,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobgeo       , arr_surf_ho1, arr_surf_ho2, "jacobgeo", dir,
       "Configuration-space Jacobian on cell surfaces. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobtot_inv   , arr_surf_ho1, arr_surf_ho2, "jacobtot_inv", dir,
-      "Inverse total phase-space Jacobian on cell surfaces. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
+      "Inverse total phase-space Jacobian on cell surfaces (configuration space Jacobian times magnetic field magnitude). For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].b_i            , arr_surf_ho3, arr_surf_ho6, "b_i", dir,
       "Covariant components of the magnetic unit vector on cell surfaces. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/");
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].cmag           , arr_surf_ho1, arr_surf_ho2, "cmag", dir,
@@ -1306,7 +1306,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
     struct gkyl_msgpack_map_elem io_meta_phi[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "Electrostatic potential solved by the gyrokinetic Poisson equation. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+        .cval = "Electrostatic potential. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
     };
     int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, io_meta_phi};

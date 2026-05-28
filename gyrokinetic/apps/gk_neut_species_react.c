@@ -206,7 +206,7 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Reaction rate coefficient for atomic physics reactions (ionization, recombination, or charge exchange) involving the neutral species in the gyrokinetic simulation. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+      .cval = "Reaction rate coefficient for atomic physics reactions involving the neutral species in the gyrokinetic simulation. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
   };
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc};
