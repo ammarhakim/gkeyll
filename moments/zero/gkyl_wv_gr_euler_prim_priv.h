@@ -7,7 +7,7 @@
 
 // Shared primitive-variable recovery + admissibility check + iterative
 // state-repair helpers for the modular tetrad GR Euler equation
-// (wv_gr_euler_tetrad_mod.c) and its source-term integrator
+// (wv_gr_euler_tetrad.c) and its source-term integrator
 // (moment_spacetime_coupling.c). All call sites route the Banyuls Newton
 // solve through gkyl_gr_euler_recover_primitives so the Convention-A
 // bookkeeping (q[1..3] is genuine covariant momentum S_i; v^i is raised
@@ -408,6 +408,26 @@ struct gkyl_gr_euler_prim_status {
   double sum_dW_acc;
   double max_dW_acc;
   double max_dW_rej;
+
+  // HLLC star-state diagnostics. Only populated by sr_hllc_minkowski (no-op
+  // for the IDEAL+HLL/Roe/Lax paths — fields stay zero). Aggregated counter
+  // + per-reason histogram for production postmortem; last_* fields capture
+  // the most recent HLLC call for fine-grained inspection by single-state
+  // tests (overwritten each call). Reason key:
+  //   0 = no fallback (HLLC star-state used)
+  //   1 = lam_diff ≈ 0 (degenerate Davis bracket — λ_L ≈ λ_R)
+  //   2 = λ* not finite
+  //   3 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
+  //   4 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
+  struct {
+    uint64_t fallback_calls;             // HLLC calls that fell back to HLL
+    uint64_t fallback_reason_hist[5];    // bin by reason index
+    int      last_did_fallback;          // 0 or 1
+    int      last_fallback_reason;       // 0..4
+    double   last_lambda_L;
+    double   last_lambda_R;
+    double   last_lambda_star;
+  } hllc;
 };
 
 // Per-callsite repair-cascade status. Tracks how often the repair

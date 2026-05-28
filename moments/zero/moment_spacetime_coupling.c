@@ -583,7 +583,7 @@ gkyl_moment_spacetime_coupling_explicit_advance(
       // mod variants — only the wave-structure (flat-flux + GR-correction
       // factorization) differs there, not the ADM source contributions to D,
       // S_i, τ.
-      if (type != GKYL_EQN_GR_EULER_MOD && type != GKYL_EQN_GR_EULER_TETRAD_MOD)
+      if (type != GKYL_EQN_GR_EULER_MOD && type != GKYL_EQN_GR_EULER_TETRAD)
         continue;
 
       struct gkyl_gr_euler_eos eos = st->fluid_param[s].eos;

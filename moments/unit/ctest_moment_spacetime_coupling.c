@@ -41,7 +41,7 @@
 // q_packed uses CONTRAVARIANT momentum (S^i = ρhW²·v^i in slots 1..3),
 // matching the convention of explicit_gr_euler_source_update_euler. q_mod
 // uses COVARIANT momentum (S_i = γ_ij·ρhW²·v^j), matching Convention A in
-// gkyl_wv_gr_euler_tetrad_mod_priv.h. The two conventions coincide in
+// gkyl_wv_gr_euler_tetrad_priv.h. The two conventions coincide in
 // Minkowski but differ by γ_ij·v^j vs v^i in curved spacetime — without
 // this split the curved-γ tests compare packed and mod operating on
 // different physical states for the same byte pattern.
@@ -444,7 +444,7 @@ test_explicit_advance_kerr()
 // general (TM and IDEAL have different cs² closures away from the
 // matching point). The source-step math doesn't use c_s², so this is
 // fine. The Riemann-solver path does — and that's separately validated
-// in ctest_wv_gr_euler_tetrad_mod_convA's banyuls_flux_consistency tests.
+// in ctest_wv_gr_euler_tetrad's banyuls_flux_consistency tests.
 // ---------------------------------------------------------------------------
 
 static double

@@ -12,7 +12,7 @@
 #include <gkyl_wv_gr_euler_prim_priv.h>  // struct gkyl_gr_euler_eos
 
 // Per-fluid configuration for the spacetime-coupling updater. Only the
-// modular GR fluid types (GKYL_EQN_GR_EULER_MOD, GKYL_EQN_GR_EULER_TETRAD_MOD)
+// modular GR fluid types (GKYL_EQN_GR_EULER_MOD, GKYL_EQN_GR_EULER_TETRAD)
 // are valid here; other equation types are owned by moment_em_coupling.
 struct gkyl_moment_spacetime_coupling_data {
   enum gkyl_eqn_type type;     // Equation type (mod variant).
@@ -38,7 +38,7 @@ struct gkyl_moment_spacetime_coupling_inp {
   bool is_static;       // True when the spacetime never evolves; the app
                         // calls derive_products once at IC and never again.
   bool has_tetrad;      // True when at least one species needs the tetrad
-                        // add-on block (e.g. wv_gr_euler_tetrad_mod). The
+                        // add-on block (e.g. wv_gr_euler_tetrad). The
                         // size of the products array determines this.
 
   // Phase A — static analytic spacetime: derive_products evaluates the
@@ -105,7 +105,7 @@ gkyl_moment_spacetime_coupling_derive_products(
  * non-GR-mod species are ignored. Pass NULL pointers (or NULL entries)
  * to skip instrumentation. The repair_status_source pointer must ALSO
  * be installed on each GR Euler tetrad-mod equation's auxfields (via
- * gkyl_gr_euler_tetrad_mod_set_auxfields) before this call so the
+ * gkyl_gr_euler_tetrad_set_auxfields) before this call so the
  * repair_state callback (fired by REPAIR_ONCE inside the SSP-RK3
  * stages) can find it on the cur_repair_ctx = 0 branch.
  *

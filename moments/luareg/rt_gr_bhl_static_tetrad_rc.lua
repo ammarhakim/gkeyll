@@ -1,32 +1,32 @@
 -- 2D Bondi-Hoyle-Lyttleton accretion onto a static (Schwarzschild) black
 -- hole, modular tetrad-basis GR Euler with the APPROXIMATE_SYNGE
--- equation of state using the Mathews-Taub (TM) enthalpy closure.
--- Structural clone of rt_gr_bhl_static_tetrad_mod.lua (IDEAL γ=5/3) with
--- identical primitive initial conditions (ρ, u, p) and grid; only the EOS
--- closure differs.
+-- equation of state using the Ryu-Chattopadhyay (RCC) enthalpy closure.
+-- Structural clone of rt_gr_bhl_static_tetrad_tm.lua with `useRcc`
+-- flipped from false to true.
 --
--- EOS selection: `eos = "approx_synge"` with `useRcc = false` selects the
--- closed-form Mathews-Taub cubic recovery
---   h(θ) = (5θ + √(9θ² + 4))/2,  θ = p/ρ
--- which interpolates between non-relativistic (Γ→5/3, c_s²→5p/(3ρ)) and
--- ultra-relativistic (Γ→4/3, c_s²→1/3) limits in a single convex closure.
--- This matters most behind the bow shock, where the post-shock gas heats
--- to mildly relativistic temperatures (p/ρ ~ O(0.1–1)) and the ideal-
--- γ=5/3 closure overestimates h relative to TM.
+-- EOS selection: `eos = "approx_synge"` with `useRcc = true` runs the
+-- closed-form TM cubic recovery, then refines with the Ryu-Chattopadhyay
+-- closure
+--   h(θ) = 2(6θ² + 4θ + 1)/(3θ + 2),  θ = p/ρ
+-- via Newton on the degree-8 polynomial (Ryu+ 2006 eq 29), warm-started
+-- from the TM cubic (~3-5 iterations in practice). The RCC closure has
+-- the same non-rel (Γ→5/3) and ultra-rel (Γ→4/3) asymptotic limits as
+-- TM but fits the Synge (single-component perfect relativistic gas)
+-- enthalpy tighter: ~0.8% maximum h error vs TM's ~2%. Useful for
+-- BHL/shock-heated flows where the trans-rel post-shock thermodynamics
+-- depends on the enthalpy curve away from the asymptotic limits.
+--
+-- The cold-flow fallback to EM Newton at γ=5/3 (θ_tm < 1e-6) and the
+-- closed-form TM cubic dispatch are shared with the TM variant.
 --
 -- Roe is incompatible with non-IDEAL EOSs at the equation-object level
--- (the SR-Roe eigenstructure uses the ideal-gas Jacobian). We keep
--- rpType="hll" to match the IDEAL case.
+-- (SR-Roe eigenstructure uses the ideal-gas Jacobian). rpType="hll".
 --
--- See rt_gr_bhl_static_tetrad_mod.lua for the geometric / spacetime setup.
+-- See rt_gr_bhl_static_tetrad.lua for the geometric / spacetime setup.
 
 local Moments = G0.Moments
-local GREulerTetradMod = G0.Moments.Eq.GREulerTetradMod
+local GREulerTetrad = G0.Moments.Eq.GREulerTetrad
 local BlackHole = G0.Moments.Spacetime.BlackHole
-
--- Effective adiabatic index for the IC primitive→conservative conversion.
--- TM is a closure on h(p, ρ); to seed the conservative state we need a
--- specific h at the initial (ρ, p). We use the TM expression directly.
 
 rhol = 3.0
 ul   = 0.3
@@ -60,10 +60,14 @@ num_failures_max = 20
 
 x_loc = 1.0
 
--- Mathews-Taub specific enthalpy: h(θ) = (5θ + √(9θ² + 4))/2, θ = p/ρ.
-local function tm_enthalpy(rho, p)
+-- Ryu-Chattopadhyay specific enthalpy: h(θ) = 2(6θ² + 4θ + 1)/(3θ + 2),
+-- θ = p/ρ. Same IC convention as TM — the C-side closure type is what
+-- changes; this lua-side helper only needs to seed the conservative
+-- state from the initial primitive state, which uses the same enthalpy
+-- formula the equation object will compute internally.
+local function rc_enthalpy(rho, p)
   local theta = p / rho
-  return 0.5 * (5.0 * theta + math.sqrt(9.0 * theta * theta + 4.0))
+  return 2.0 * (6.0*theta*theta + 4.0*theta + 1.0) / (3.0*theta + 2.0)
 end
 
 momentApp = Moments.App.new {
@@ -90,11 +94,13 @@ momentApp = Moments.App.new {
   },
 
   fluid = Moments.Species.new {
-    -- APPROXIMATE_SYNGE with the Mathews-Taub enthalpy closure
-    -- (useRcc = false skips the RC Newton refinement).
-    equation = GREulerTetradMod.new {
+    -- APPROXIMATE_SYNGE with the Ryu-Chattopadhyay enthalpy closure
+    -- (useRcc = true enables the RC Newton refinement on top of the
+    -- TM cubic). `useRcc = true` is also the default when no `useRcc`
+    -- is specified.
+    equation = GREulerTetrad.new {
       eos = "approx_synge",
-      useRcc = false,
+      useRcc = true,
       rpType = "hll",
     },
 
@@ -132,11 +138,8 @@ momentApp = Moments.App.new {
         W = 1.0 / math.sqrt(1.0 - math.pow(10.0, -8.0))
       end
 
-      -- Mathews-Taub specific enthalpy. The IC primitive state is
-      -- identical to the IDEAL run; only the closure that converts
-      -- (ρ, p) → h differs. Same (ρ, u, p) seeds different (τ, S_i)
-      -- because τ = ρhW² − p − ρW depends on h.
-      local h = tm_enthalpy(rho, p)
+      -- Ryu-Chattopadhyay specific enthalpy at the IC primitive state.
+      local h = rc_enthalpy(rho, p)
 
       -- Convention A: S_i = γ_ij·ρhW²·v^j (genuine covariant momentum).
       local v_lower = { 0.0, 0.0, 0.0 }

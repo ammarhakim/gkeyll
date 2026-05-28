@@ -32,7 +32,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   // the legacy `has_gr_euler` flag, so the EM-coupling object's GR-source
   // path naturally skips them; the spacetime-coupling object owns them.
   if (sp->eqn_type == GKYL_EQN_GR_EULER_MOD ||
-      sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+      sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
     sp->update_sources = true;
   }
 
@@ -483,7 +483,7 @@ moment_species_update(gkyl_moment_app *app,
   // non-zero hydro from the adjacent non-excised quadrature points would
   // retain that small but non-zero hydro forever, drifting from packed.
   bool scrub_excised = (sp->eqn_type == GKYL_EQN_GR_EULER_MOD ||
-                        sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD_MOD)
+                        sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD)
                        && app->has_spacetime;
 
   for (int d=0; d<ndim; ++d) {

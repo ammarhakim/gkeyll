@@ -72,21 +72,6 @@ gr_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
   struct gkyl_array *qout, int dir);
 
 /**
- * Impose gauge conditions for the general relativistic Euler equations in the tetrad basis (general equation of state).
- *
- * @param wv Wave propagation object.
- * @param update_range Range of cells to be updated.
- * @param idxl Index of cell(s) to update.
- * @param loidx_c Lower index of cells to update.
- * @param upidx_c Upper index of cells to update.
- * @param qout Output array of fluid variables.
- * @param dir Direction in which to perform the update.
- */
-void
-gr_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
-
-/**
  * Impose gauge conditions for the general relativistic Euler equations (ultra-relativistic equation of state).
  *
  * @param wv Wave propagation object.

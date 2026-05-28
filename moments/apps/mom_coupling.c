@@ -211,7 +211,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     bool any_mod = false;
     for (int i = 0; i < app->num_species; i++) {
       enum gkyl_eqn_type t = app->species[i].eqn_type;
-      if (t == GKYL_EQN_GR_EULER_MOD || t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+      if (t == GKYL_EQN_GR_EULER_MOD || t == GKYL_EQN_GR_EULER_TETRAD) {
         any_mod = true;
         break;
       }
@@ -237,13 +237,13 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
               gkyl_wv_gr_euler_mod_gas_gamma(app->species[i].equation)),
           };
           st_inp.eqn[i] = app->species[i].equation;
-        } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
+        } else if (t == GKYL_EQN_GR_EULER_TETRAD) {
           // Tetrad mod: full EOS bundle (IDEAL or APPROXIMATE_SYNGE)
           // lives on the equation object — read it back so the
           // source-step uses the same closure the wave-step does.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
             .type = t,
-            .eos = gkyl_wv_gr_euler_tetrad_mod_eos(app->species[i].equation),
+            .eos = gkyl_wv_gr_euler_tetrad_eos(app->species[i].equation),
           };
           st_inp.eqn[i] = app->species[i].equation;
         } else {
@@ -264,7 +264,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       // equation's auxfields so the equation's wave-prop hooks and
       // repair_state callback can write into them.
       for (int i = 0; i < app->num_species; i++) {
-        if (app->species[i].eqn_type != GKYL_EQN_GR_EULER_TETRAD_MOD)
+        if (app->species[i].eqn_type != GKYL_EQN_GR_EULER_TETRAD)
           continue;
         src->gr_euler_prim_status_wave_prop[i] =
           gkyl_malloc(sizeof(struct gkyl_gr_euler_prim_status));
@@ -283,8 +283,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         memset(src->gr_euler_repair_status_source[i], 0,
           sizeof(struct gkyl_gr_euler_repair_status));
 
-        gkyl_gr_euler_tetrad_mod_set_auxfields(app->species[i].equation,
-          (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){
+        gkyl_gr_euler_tetrad_set_auxfields(app->species[i].equation,
+          (struct gkyl_wv_gr_euler_tetrad_auxfields){
             .prods                   = app->spacetime.prods,
             .prim_status_wave_prop   = src->gr_euler_prim_status_wave_prop[i],
             .repair_status_wave_prop = src->gr_euler_repair_status_wave_prop[i],

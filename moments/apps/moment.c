@@ -212,10 +212,10 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
         gkyl_gr_euler_mod_set_conf_range(app->species[i].equation, &app->local_ext);
         gkyl_gr_euler_mod_set_auxfields(app->species[i].equation,
           (struct gkyl_wv_gr_euler_mod_auxfields){ .prods = app->spacetime.prods });
-      } else if (t == GKYL_EQN_GR_EULER_TETRAD_MOD) {
-        gkyl_gr_euler_tetrad_mod_set_conf_range(app->species[i].equation, &app->local_ext);
-        gkyl_gr_euler_tetrad_mod_set_auxfields(app->species[i].equation,
-          (struct gkyl_wv_gr_euler_tetrad_mod_auxfields){ .prods = app->spacetime.prods });
+      } else if (t == GKYL_EQN_GR_EULER_TETRAD) {
+        gkyl_gr_euler_tetrad_set_conf_range(app->species[i].equation, &app->local_ext);
+        gkyl_gr_euler_tetrad_set_auxfields(app->species[i].equation,
+          (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = app->spacetime.prods });
       }
     }
   }
@@ -1087,6 +1087,30 @@ gr_euler_print_prim_status(FILE *fp, const char *label,
         fprintf(fp, "      %-15s : %llu (%.2f%%)\n", s2_labels[b],
           (unsigned long long)s->floor_s2_hist[b],
           100.0 * (double)s->floor_s2_hist[b] / (double)total_floor);
+    }
+  }
+
+  // HLLC star-state diagnostics. Only meaningful when the SR HLLC kernel
+  // ran (Lax/HLL/Roe leave these counters at zero).
+  uint64_t hllc_total = s->hllc.fallback_calls
+                      + s->hllc.fallback_reason_hist[0];
+  if (hllc_total > 0) {
+    fprintf(fp,
+      "    HLLC: %llu calls, %llu fallbacks to HLL (%.4f%%)\n",
+      (unsigned long long)hllc_total,
+      (unsigned long long)s->hllc.fallback_calls,
+      100.0 * (double)s->hllc.fallback_calls / (double)hllc_total);
+    const char *reason_labels[5] = {
+      "no fallback (star-state used)",
+      "lam_diff~0 (degenerate Davis bracket)",
+      "λ* not finite",
+      "|λ_L−λ*| < tol",
+      "|λ_R−λ*| < tol",
+    };
+    for (int r = 0; r < 5; r++) {
+      if (s->hllc.fallback_reason_hist[r] > 0)
+        fprintf(fp, "      [%d] %-40s : %llu\n", r, reason_labels[r],
+          (unsigned long long)s->hllc.fallback_reason_hist[r]);
     }
   }
 }

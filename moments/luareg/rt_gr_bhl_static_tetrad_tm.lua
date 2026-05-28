@@ -1,15 +1,32 @@
 -- 2D Bondi-Hoyle-Lyttleton accretion onto a static (Schwarzschild) black
--- hole, modular tetrad-basis GR Euler. Structural mirror of
--- rt_gr_bhl_static_tetrad_eqv.lua (packed) but the spacetime is supplied
--- as a separate Moments.Spacetime component instead of being packed into
--- the species conserved state. Paired with the packed _eqv variant for
--- the Phase-C tetrad equivalence regression.
+-- hole, modular tetrad-basis GR Euler with the APPROXIMATE_SYNGE
+-- equation of state using the Mathews-Taub (TM) enthalpy closure.
+-- Structural clone of rt_gr_bhl_static_tetrad.lua (IDEAL γ=5/3) with
+-- identical primitive initial conditions (ρ, u, p) and grid; only the EOS
+-- closure differs.
+--
+-- EOS selection: `eos = "approx_synge"` with `useRcc = false` selects the
+-- closed-form Mathews-Taub cubic recovery
+--   h(θ) = (5θ + √(9θ² + 4))/2,  θ = p/ρ
+-- which interpolates between non-relativistic (Γ→5/3, c_s²→5p/(3ρ)) and
+-- ultra-relativistic (Γ→4/3, c_s²→1/3) limits in a single convex closure.
+-- This matters most behind the bow shock, where the post-shock gas heats
+-- to mildly relativistic temperatures (p/ρ ~ O(0.1–1)) and the ideal-
+-- γ=5/3 closure overestimates h relative to TM.
+--
+-- Roe is incompatible with non-IDEAL EOSs at the equation-object level
+-- (the SR-Roe eigenstructure uses the ideal-gas Jacobian). We keep
+-- rpType="hll" to match the IDEAL case.
+--
+-- See rt_gr_bhl_static_tetrad.lua for the geometric / spacetime setup.
 
 local Moments = G0.Moments
-local GREulerTetradMod = G0.Moments.Eq.GREulerTetradMod
+local GREulerTetrad = G0.Moments.Eq.GREulerTetrad
 local BlackHole = G0.Moments.Spacetime.BlackHole
 
-gas_gamma = 5.0 / 3.0
+-- Effective adiabatic index for the IC primitive→conservative conversion.
+-- TM is a closure on h(p, ρ); to seed the conservative state we need a
+-- specific h at the initial (ρ, p). We use the TM expression directly.
 
 rhol = 3.0
 ul   = 0.3
@@ -43,6 +60,12 @@ num_failures_max = 20
 
 x_loc = 1.0
 
+-- Mathews-Taub specific enthalpy: h(θ) = (5θ + √(9θ² + 4))/2, θ = p/ρ.
+local function tm_enthalpy(rho, p)
+  local theta = p / rho
+  return 0.5 * (5.0 * theta + math.sqrt(9.0 * theta * theta + 4.0))
+end
+
 momentApp = Moments.App.new {
 
   tEnd = t_end,
@@ -67,8 +90,11 @@ momentApp = Moments.App.new {
   },
 
   fluid = Moments.Species.new {
-    equation = GREulerTetradMod.new {
-      gasGamma = gas_gamma,
+    -- APPROXIMATE_SYNGE with the Mathews-Taub enthalpy closure
+    -- (useRcc = false skips the RC Newton refinement).
+    equation = GREulerTetrad.new {
+      eos = "approx_synge",
+      useRcc = false,
       rpType = "hll",
     },
 
@@ -106,7 +132,11 @@ momentApp = Moments.App.new {
         W = 1.0 / math.sqrt(1.0 - math.pow(10.0, -8.0))
       end
 
-      local h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)))
+      -- Mathews-Taub specific enthalpy. The IC primitive state is
+      -- identical to the IDEAL run; only the closure that converts
+      -- (ρ, p) → h differs. Same (ρ, u, p) seeds different (τ, S_i)
+      -- because τ = ρhW² − p − ρW depends on h.
+      local h = tm_enthalpy(rho, p)
 
       -- Convention A: S_i = γ_ij·ρhW²·v^j (genuine covariant momentum).
       local v_lower = { 0.0, 0.0, 0.0 }
@@ -130,7 +160,7 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true,
-    forceLowOrderFlux = false, -- Allow high-order with HLLC; positivity-redo also uses HLLC.
+    forceLowOrderFlux = false,
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
     bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
   }

@@ -2,7 +2,7 @@
 
 // Shared parameter tables for the four GR Euler prim_vars stringent stress
 // tests (ctest_wv_gr_euler.c, ctest_wv_gr_euler_mod.c,
-// ctest_wv_gr_euler_tetrad.c, ctest_wv_gr_euler_tetrad_mod.c). Keeping the
+// ctest_wv_gr_euler_tetrad.c, ctest_wv_gr_euler_tetrad.c). Keeping the
 // data in one place ensures the four test runners exercise the same regime
 // — pressure sweep, density sweep, velocity sweep, and combined extremes —
 // at the same sample positions (near-horizon points where γ_ij departs

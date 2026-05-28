@@ -1,5 +1,6 @@
-// Mildly relativistic blast wave test for the general relativistic Euler equations in the tetrad basis.
-// Input parameters taken from the initial conditions in Section 4.1 (blast wave 1), from the article:
+// Mildly relativistic blast wave test for the modular tetrad-basis general relativistic Euler equations.
+// Structural mirror of rt_gr_mild_shock_tetrad.c (packed) but the spacetime is supplied as a separate Moments.Spacetime component on the moment app
+// instead of being packed into the species conserved state. Input parameters taken from the initial conditions in Section 4.1 (blast wave 1), from the article:
 // L. Del Zanna and N. Bucciantini (2002), "An efficient shock-cpaturing central-type scheme for multidimensional relativistic flows. I. Hydrodynamics",
 // Astronomy and Astrophysics, Volume 390 (3): 1177-1186.
 // https://arxiv.org/abs/astro-ph/0205290
@@ -146,46 +147,15 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
     p = pr; // Fluid pressure (right).
   }
 
-  double spatial_det, lapse;
-  double *shift = gkyl_malloc(sizeof(double[3]));
-  bool in_excision_region;
+  double spatial_det;
 
   double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) {
     spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) {
-    extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
-  }
-
-  double *lapse_der = gkyl_malloc(sizeof(double[3]));
-  double **shift_der = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) {
-    shift_der[i] = gkyl_malloc(sizeof(double[3]));
-  }
-
-  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
-  for (int i = 0; i < 3; i++) {
-    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
-
-    for (int j = 0; j < 3; j++) {
-      spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
-    }
-  }
-
   spacetime->spatial_metric_det_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_det);
-  spacetime->lapse_function_func(spacetime, 0.0, x, 0.0, 0.0, &lapse);
-  spacetime->shift_vector_func(spacetime, 0.0, x, 0.0, 0.0, &shift);
-  spacetime->excision_region_func(spacetime, 0.0, x, 0.0, 0.0, &in_excision_region);
-  
   spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, 0.0, 0.0, &spatial_metric);
-  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, 0.0, 0.0, 1.0, 1.0, 1.0, &extrinsic_curvature);
-
-  spacetime->lapse_function_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-  spacetime->shift_vector_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, 0.0, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
 
   double *vel = gkyl_malloc(sizeof(double[3]));
   double v_sq = 0.0;
@@ -204,10 +174,18 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 
+  // Convention A: S_i = gamma_ij * rho*h*W^2 * v^j (genuine covariant momentum).
+  double v_lower[3] = { 0.0, 0.0, 0.0 };
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_lower[i] += spatial_metric[i][j] * vel[j];
+    }
+  }
+
   double rho_rel = sqrt(spatial_det) * rho * W; // Fluid relativistic mass density.
-  double mom_x = sqrt(spatial_det) * rho * h * (W * W) * u; // Fluid momentum density (x-direction).
-  double mom_y = 0.0; // Fluid momentum density (y-direction).
-  double mom_z = 0.0; // Fluid momentum density (z-direction).
+  double mom_x = sqrt(spatial_det) * rho * h * (W * W) * v_lower[0]; // Fluid momentum density (x-direction).
+  double mom_y = sqrt(spatial_det) * rho * h * (W * W) * v_lower[1]; // Fluid momentum density (y-direction).
+  double mom_z = sqrt(spatial_det) * rho * h * (W * W) * v_lower[2]; // Fluid momentum density (z-direction).
   double Etot = sqrt(spatial_det) * ((rho * h * (W * W)) - p - (rho * W)); // Fluid total energy density.
 
   // Set fluid relativistic mass density.
@@ -217,80 +195,12 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   // Set fluid total energy density.
   fout[4] = Etot;
 
-  // Set lapse gauge variable.
-  fout[5] = lapse;
-  // Set shift gauge variables.
-  fout[6] = shift[0]; fout[7] = shift[1]; fout[8] = shift[2];
-
-  // Set spatial metric tensor.
-  fout[9] = spatial_metric[0][0]; fout[10] = spatial_metric[0][1]; fout[11] = spatial_metric[0][2];
-  fout[12] = spatial_metric[1][0]; fout[13] = spatial_metric[1][1]; fout[14] = spatial_metric[1][2];
-  fout[15] = spatial_metric[2][0]; fout[16] = spatial_metric[2][1]; fout[17] = spatial_metric[2][2];
-
-  // Set extrinsic curvature tensor.
-  fout[18] = extrinsic_curvature[0][0]; fout[19] = extrinsic_curvature[0][1]; fout[20] = extrinsic_curvature[0][2];
-  fout[21] = extrinsic_curvature[1][0]; fout[22] = extrinsic_curvature[1][1]; fout[23] = extrinsic_curvature[1][2];
-  fout[24] = extrinsic_curvature[2][0]; fout[25] = extrinsic_curvature[2][1]; fout[26] = extrinsic_curvature[2][2];
-
-  // Set excision boundary conditions.
-  if (in_excision_region) {
-    fout[27] = -1.0;
-  }
-  else {
-    fout[27] = 1.0;
-  }
-
-  // Set lapse function derivatives.
-  fout[28] = lapse_der[0]; fout[29] = lapse_der[1]; fout[30] = lapse_der[2];
-  // Set shift vector derivatives.
-  fout[31] = shift_der[0][0]; fout[32] = shift_der[0][1]; fout[33] = shift_der[0][2];
-  fout[34] = shift_der[1][0]; fout[35] = shift_der[1][1]; fout[36] = shift_der[1][2];
-  fout[37] = shift_der[2][0]; fout[38] = shift_der[2][1]; fout[39] = shift_der[2][2];
-
-  // Set spatial metric tensor derivatives.
-  fout[40] = spatial_metric_der[0][0][0]; fout[41] = spatial_metric_der[0][0][1]; fout[42] = spatial_metric_der[0][0][2];
-  fout[43] = spatial_metric_der[0][1][0]; fout[44] = spatial_metric_der[0][1][1]; fout[45] = spatial_metric_der[0][1][2];
-  fout[46] = spatial_metric_der[0][2][0]; fout[47] = spatial_metric_der[0][2][1]; fout[48] = spatial_metric_der[0][2][2];
-
-  fout[49] = spatial_metric_der[1][0][0]; fout[50] = spatial_metric_der[1][0][1]; fout[51] = spatial_metric_der[1][0][2];
-  fout[52] = spatial_metric_der[1][1][0]; fout[53] = spatial_metric_der[1][1][1]; fout[54] = spatial_metric_der[1][1][2];
-  fout[55] = spatial_metric_der[1][2][0]; fout[56] = spatial_metric_der[1][2][1]; fout[57] = spatial_metric_der[1][2][2];
-
-  fout[58] = spatial_metric_der[2][0][0]; fout[59] = spatial_metric_der[2][0][1]; fout[60] = spatial_metric_der[2][0][2];
-  fout[61] = spatial_metric_der[2][1][0]; fout[62] = spatial_metric_der[2][1][1]; fout[63] = spatial_metric_der[2][1][2];
-  fout[64] = spatial_metric_der[2][2][0]; fout[65] = spatial_metric_der[2][2][1]; fout[66] = spatial_metric_der[2][2][2];
-
-  // Set evolution parameter.
-  fout[67] = 0.0;
-
-  // Set spatial coordinates.
-  fout[68] = x; fout[69] = 0.0; fout[70] = 0.0;
-
-  if (in_excision_region) {
-    for (int i = 0; i < 67; i++) {
-      fout[i] = 0.0;
-    }
-    fout[27] = -1.0;
-  }
-
   // Free all tensorial quantities.
   for (int i = 0; i < 3; i++) {
     gkyl_free(spatial_metric[i]);
-    gkyl_free(extrinsic_curvature[i]);
-    gkyl_free(shift_der[i]);
-
-    for (int j = 0; j < 3; j++) {
-      gkyl_free(spatial_metric_der[i][j]);
-    }
-    gkyl_free(spatial_metric_der[i]);
   }
   gkyl_free(spatial_metric);
-  gkyl_free(extrinsic_curvature);
-  gkyl_free(shift);
   gkyl_free(vel);
-  gkyl_free(lapse_der);
-  gkyl_free(shift_der);
-  gkyl_free(spatial_metric_der);
 }
 
 void
@@ -344,22 +254,35 @@ main(int argc, char **argv)
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
-  // Fluid equations.
-  struct gkyl_wv_eqn *gr_euler_tetrad = gkyl_wv_gr_euler_tetrad_new(ctx.gas_gamma, ctx.spacetime_gauge, ctx.reinit_freq, ctx.spacetime, app_args.use_gpu);
+  // Fluid equations (modular tetrad). The conf_range is a placeholder that
+  // gets overwritten by moment_app_new via gkyl_gr_euler_tetrad_set_conf_range.
+  struct gkyl_range conf_range = { 0 };
+  struct gkyl_wv_gr_euler_tetrad_inp eqn_inp = {
+    .gas_gamma = ctx.gas_gamma,
+    .conf_range = conf_range,
+    .rp_type = WV_GR_EULER_TETRAD_RP_HLL, // Mirrors packed force_low_order_flux = false.
+    .use_gpu = app_args.use_gpu,
+  };
+  struct gkyl_wv_eqn *gr_euler_tetrad = gkyl_wv_gr_euler_tetrad_inew(&eqn_inp);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler_tetrad",
     .equation = gr_euler_tetrad,
-    
+
     .init = evalGREulerInit,
-    .force_low_order_flux = false, // Use HLL fluxes.
     .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
-    .has_gr_euler = true,
-    .gr_euler_gas_gamma = ctx.gas_gamma,
-
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
+
+  // Spacetime component supplied separately on the app for the modular variant.
+  struct gkyl_moment_spacetime spacetime_inp = {
+    .is_static = true,
+    .has_tetrad = false,
+    .analytic_spacetime = ctx.spacetime,
+    .spacetime_gauge = ctx.spacetime_gauge,
+    .reinit_freq = ctx.reinit_freq,
   };
 
   int nrank = 1; // Number of processes in simulation.
@@ -433,13 +356,15 @@ main(int argc, char **argv)
 
     .ndim = 1,
     .lower = { 0.0 },
-    .upper = { ctx.Lx }, 
+    .upper = { ctx.Lx },
     .cells = { NX },
 
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 1,
     .species = { fluid },
+
+    .spacetime = spacetime_inp,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
@@ -506,7 +431,7 @@ main(int argc, char **argv)
     gkyl_moment_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
     struct gkyl_update_status status = gkyl_moment_update(app, dt);
     gkyl_moment_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-    
+
     if (!status.success) {
       gkyl_moment_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
@@ -566,14 +491,14 @@ freeresources:
   gkyl_wv_eqn_release(gr_euler_tetrad);
   gkyl_gr_spacetime_release(ctx.spacetime);
   gkyl_comm_release(comm);
-  gkyl_moment_app_release(app);  
-  
+  gkyl_moment_app_release(app);
+
 mpifinalize:
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi) {
     MPI_Finalize();
   }
 #endif
-  
+
   return 0;
 }
