@@ -103,6 +103,11 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
             gkyl_moment_spacetime_coupling_derive_products(
               app->sources.spacetime_slvr, tcurr, &app->local_ext,
               app->spacetime.fcurr, app->spacetime.prods);
+            if (app->spacetime.wave_spacetime)
+              gkyl_wave_spacetime_refresh(app->spacetime.wave_spacetime,
+                &app->grid, app->geom,
+                app->spacetime.analytic_spacetime,
+                app->spacetime.prods, tcurr);
           }
         }
 

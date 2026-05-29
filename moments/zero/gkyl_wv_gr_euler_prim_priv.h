@@ -41,9 +41,9 @@
 //
 // The source-step τ-limiter target follows automatically via
 // TAU_TARGET = GR_EULER_TAU_REPAIR_FLOOR in moment_spacetime_coupling.c.
-#define GR_EULER_PRESSURE_FLOOR   (1.0e-10)
-#define GR_EULER_DENSITY_FLOOR    (1.0e-10)
-#define GR_EULER_TAU_REPAIR_FLOOR (1.0e-10)
+#define GR_EULER_PRESSURE_FLOOR   (1.0e-8)
+#define GR_EULER_DENSITY_FLOOR    (1.0e-8)
+#define GR_EULER_TAU_REPAIR_FLOOR (1.0e-8)
 
 // ---------------------------------------------------------------------------
 // Equation-of-state abstraction.
@@ -247,9 +247,14 @@ gkyl_gr_euler_check_admissibility(
 //
 // Returns a bitmask of GR_EULER_REPAIR_* flags indicating which
 // constraints were fixed (zero means input was already admissible).
+// margin sets the s² target as a fraction of (D+τ)² — post-repair
+// |S|² = (1 − margin) · (D + τ)², so effective W_repair = 1/√margin.
+// Callers that have access to the cell's prev-update W pass
+// 1/W_prev² to anchor the repaired state on the natural-flow W;
+// callers without history pass a safe default like 1e-2 (W_target=10).
 static inline unsigned int
 gkyl_gr_euler_repair_admissibility_cascade(
-  const double inv_g[3][3],
+  const double inv_g[3][3], double margin,
   double *D, double *Sx, double *Sy, double *Sz, double *tau)
 {
   unsigned int fixed = GR_EULER_REPAIR_NONE;
@@ -283,7 +288,6 @@ gkyl_gr_euler_repair_admissibility_cascade(
     //   1e-2           + 1x amax: 14 fires (chaotic divergence)
     // 1e-6 sits at the plateau. Larger margin doesn't help; smaller
     // gets immediately overwhelmed by the next step's Lax dissipation.
-    const double margin = 1.0e-6;
     if (mom_sq > 0.0) {
       double target = (1.0 - margin) * Dt * Dt;
       double scale = sqrt(target / mom_sq);
@@ -307,7 +311,17 @@ struct gkyl_gr_euler_prim {
   double v[3];    // contravariant 3-velocity v^i
   double p;       // pressure (post-floor)
   double W;       // Lorentz factor
-  double h;       // specific enthalpy (EOS-dependent closure)
+  double h;       // specific enthalpy from the Newton solve (computed
+                  // from the pre-floor (ρ, p) — may be inflated for
+                  // sub-floor recoveries). Callers that need an h
+                  // consistent with the post-floor (ρ, p) must recompute
+                  // locally via gkyl_gr_euler_eos_enthalpy(eos, ρ, p);
+                  // see banyuls_flux_cell for an example. The source
+                  // step in moment_spacetime_coupling.c deliberately
+                  // uses prim.h as-is — its T = ρhu⊗u + pg behaves as
+                  // an implicit near-vacuum stabilizer when h is
+                  // inflated, and this implicit stabilization is what
+                  // keeps wave_prop s² fix counts in line with HEAD.
   bool admissible; // true iff input lay in the strict admissibility set
                    // (D > 0, τ ≥ 0, s² > 0). check_inv consumes this; the
                    // floors below do NOT downgrade it.
@@ -350,6 +364,14 @@ extern const int gkyl_gr_euler_newton_bin_edges[GR_EULER_NEWTON_HIST_NBINS];
 #define GR_EULER_FLOOR_S2_BINS 8
 // <1e-12, 1e-12..1e-10, 1e-10..1e-8, 1e-8..1e-6, 1e-6..1e-4, 1e-4..1e-2,
 // 1e-2..1, ≥1
+
+// Lorentz-factor distribution across ALL recovery calls. Answers the
+// "how high is W actually getting, are we hitting the v² ≥ 1 ceiling?"
+// question. Bin boundaries chosen to separate cold (~1), trans-rel
+// (1.1..10), and pathological (≥1e4 — close to the 1−1e-12 ceiling
+// which caps W at ~1e6) regimes.
+#define GR_EULER_W_BINS 8
+// ≤1.001, 1.001..1.1, 1.1..2, 2..10, 10..100, 100..1e3, 1e3..1e4, ≥1e4
 
 // Per-callsite recovery status. Accumulated by gkyl_gr_euler_recover_primitives.
 //
@@ -400,6 +422,19 @@ struct gkyl_gr_euler_prim_status {
   uint64_t floor_D_hist[GR_EULER_FLOOR_D_BINS];
   uint64_t floor_s2_hist[GR_EULER_FLOOR_S2_BINS];
 
+  // Lorentz factor stats across ALL recovery calls (not just floored).
+  // Lets the postmortem tell whether the v² ≥ 1 ceiling at v² = 1−1e-12
+  // (W_max ≈ 1e6) is actually being hit, and how the W distribution
+  // looks across the simulation.
+  double   max_W_observed;
+  uint64_t W_hist[GR_EULER_W_BINS];
+
+  // W distribution among cells where a floor fired (ρ or p floored).
+  // The candidates for "primitive recovery inconsistent with stored
+  // conservatives" — used to decide whether s²-repair targets should
+  // adapt to the Newton-estimated W of these pathological cells.
+  uint64_t W_floored_hist[GR_EULER_W_BINS];
+
   // RCC sanity diagnostics (only meaningful with use_rcc = true).
   // sum_dW_acc / max_dW_acc accumulate on path_rcc_accepted; max_dW_rej
   // on path_rcc_rejected. Lets the postmortem confirm that accepted
@@ -440,6 +475,22 @@ struct gkyl_gr_euler_repair_status {
   uint64_t bad_s2_fixes;      // s²≤0 rescaled momentum to interior of A_γ
   uint64_t tau_limiter_fires; // source-step τ-positivity limiter (α<1)
   uint64_t s2_limiter_fires;  // source-step s²-positivity limiter
+
+  // s²-repair anchor diagnostics. When history-informed repair fires,
+  // the equation derives W_prev from the cell's pre-update state and
+  // rescales |S| so the post-repair effective Lorentz factor matches
+  // |W_prev|. These accumulators record |W_prev| across the run so
+  // postmortems can confirm that repaired cells stay in the natural
+  // flow's W regime (rather than the old margin=1e-6 era when repair
+  // injected W≈10⁶ ghosts). |W| is used because the EM Newton can
+  // converge to a wrong-branch negative root on near-boundary states
+  // but the magnitude reflects the physical Lorentz factor.
+  uint64_t s2_repair_W_prev_hist[GR_EULER_W_BINS];
+  double   min_abs_s2_repair_W_prev;   // 0.0 = no s²-repair yet fired
+  double   max_abs_s2_repair_W_prev;
+  double   sum_abs_s2_repair_W_prev;   // for avg = sum/bad_s2_fixes
+  double   last_s2_repair_W_prev;      // signed; preserves the sign that
+                                        // Newton actually returned
 };
 
 // Decade-bin selector for the floor D-magnitude histogram.
@@ -470,6 +521,20 @@ gkyl_gr_euler_status_floor_s2_bin(double s_sq_over_E2)
   if (s_sq_over_E2 < 1.0e-4)  return 4;
   if (s_sq_over_E2 < 1.0e-2)  return 5;
   if (s_sq_over_E2 < 1.0)     return 6;
+  return 7;
+}
+
+// Bin selector for the Lorentz-factor histogram.
+static inline int
+gkyl_gr_euler_status_W_bin(double W)
+{
+  if (W <= 1.001)  return 0;
+  if (W <= 1.1)    return 1;
+  if (W <= 2.0)    return 2;
+  if (W <= 10.0)   return 3;
+  if (W <= 100.0)  return 4;
+  if (W <= 1.0e3)  return 5;
+  if (W <= 1.0e4)  return 6;
   return 7;
 }
 
@@ -1071,6 +1136,13 @@ gkyl_gr_euler_recover_primitives(
   if (rho_floored) rho = GR_EULER_DENSITY_FLOOR;
   if (p_floored)   p   = GR_EULER_PRESSURE_FLOOR;
 
+  // Option A (EOS-consistent): when a floor activated, recompute h
+  // directly from the floored (ρ, p) using the EOS closure. Tame at high
+  // W (h ≥ 1 always) and doesn't depend on the cell's conservatives.
+  if (rho_floored || p_floored) {
+    h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
+  }
+
   out->rho = rho;
   out->v[0] = vx;
   out->v[1] = vy;
@@ -1078,4 +1150,11 @@ gkyl_gr_euler_recover_primitives(
   out->p = p;
   out->W = W;
   out->h = h;
+
+  if (stat) {
+    if (W > stat->max_W_observed) stat->max_W_observed = W;
+    int wbin = gkyl_gr_euler_status_W_bin(W);
+    stat->W_hist[wbin] += 1;
+    if (rho_floored || p_floored) stat->W_floored_hist[wbin] += 1;
+  }
 }

@@ -42,7 +42,16 @@ gkyl_gr_euler_mod_set_auxfields(const struct gkyl_wv_eqn *eqn,
   struct gkyl_wv_gr_euler_mod_auxfields auxin)
 {
   struct wv_gr_euler_mod *grm = container_of(eqn, struct wv_gr_euler_mod, eqn);
-  grm->auxfields.prods = auxin.prods;
+  grm->auxfields.prods          = auxin.prods;
+  grm->auxfields.wave_spacetime = auxin.wave_spacetime;
+}
+
+void
+gkyl_gr_euler_mod_set_wave_spacetime(const struct gkyl_wv_eqn *eqn,
+  const struct gkyl_wave_spacetime *ws)
+{
+  struct wv_gr_euler_mod *grm = container_of(eqn, struct wv_gr_euler_mod, eqn);
+  grm->auxfields.wave_spacetime = ws;
 }
 
 void
@@ -353,6 +362,176 @@ gkyl_gr_euler_mod_max_abs_speed(double gas_gamma, const double q[5],
 }
 
 // ---------------------------------------------------------------------------
+// Interface-flux Lax helpers (IFACE_FLUX_PLAN.md Phase A).
+//
+// These mirror gkyl_gr_euler_mod_prim_vars / _flux / _max_abs_speed but
+// split their inputs into two pieces:
+//   - sqrt_det_cell: undensitization factor from the cell whose
+//     conservatives we're processing. The only cell-local operation.
+//   - iface: per-face cache (lapse, face-normal shift, sqrt(det γ_iface),
+//     γ_ij_iface, γ^{ij}_iface). All subsequent algebra runs on this.
+//
+// The result is a "this side's contribution to the interface flux", in
+// the face-local frame (face normal = x). Lax averages and penalizes
+// two such contributions to produce the single-valued iface flux.
+//
+// Convention B (the non-tetrad mod variant): q[1..3] is the contravariant
+// momentum S^i = ρhW²·v^i, so mom_sq = γ_ij · S^i · S^j (using forward
+// metric, not its inverse — that's why the cache now carries g_iface in
+// addition to inv_g_iface).
+//
+// The Newton recovery is the same EM-style quartic the existing
+// gkyl_gr_euler_mod_prim_vars uses; we factor it into an internal helper
+// that takes the metric as a separate arg so both the cell and iface
+// paths can call it.
+// ---------------------------------------------------------------------------
+
+static inline void
+gr_euler_mod_recover_prim_b(double gas_gamma,
+  double D, double momx, double momy, double momz, double Etot,
+  const double g[3][3],
+  double *rho_o, double *vx_o, double *vy_o, double *vz_o,
+  double *p_o, double *W_o, double *h_o)
+{
+  // Convention B: mom_sq = γ_ij · S^i · S^j.
+  double mom_sq = g[0][0]*momx*momx + g[1][1]*momy*momy + g[2][2]*momz*momz
+                + 2.0*(g[0][1]*momx*momy + g[0][2]*momx*momz + g[1][2]*momy*momz);
+
+  double s_sq = ((Etot + D) * (Etot + D)) - mom_sq;
+  double C, C0;
+  if (s_sq < pow(10.0, -10.0)) {
+    C  = D / sqrt(pow(10.0, -10.0));
+    C0 = (D + Etot) / sqrt(pow(10.0, -10.0));
+  } else {
+    C  = D / sqrt(s_sq);
+    C0 = (D + Etot) / sqrt(s_sq);
+  }
+
+  double alpha0 = -1.0 / (gas_gamma * gas_gamma);
+  double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
+  double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0*C0) - 1.0) + 1.0 -
+    (C*C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+  double alpha4 = (C0*C0) - 1.0;
+  double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
+
+  double guess = 1.0;
+  int iter = 0;
+  while (iter < 100) {
+    double poly = (alpha4 * (guess*guess*guess) * (guess - eta)) +
+      (alpha2 * (guess*guess)) + (alpha1 * guess) + alpha0;
+    double poly_der = alpha1 + (2.0 * alpha2 * guess) +
+      (4.0 * alpha4 * (guess*guess*guess)) - (3.0 * eta * alpha4 * (guess*guess));
+    double guess_new = guess - (poly / poly_der);
+    if (fabs(guess - guess_new) < pow(10.0, -14.0)) {
+      guess = guess_new;
+      iter = 100;
+    } else {
+      iter += 1;
+      guess = guess_new;
+    }
+  }
+
+  double W = 0.5 * C0 * guess *
+    (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) *
+      ((1.0 - (C * guess)) / ((C0*C0) * (guess*guess))))));
+  double h = 1.0 / (C * guess);
+
+  double rho = D / W;
+  double vx  = momx / (rho * h * (W*W));
+  double vy  = momy / (rho * h * (W*W));
+  double vz  = momz / (rho * h * (W*W));
+  double p   = (rho * h * (W*W)) - D - Etot;
+
+  if (rho < pow(10.0, -8.0)) rho = pow(10.0, -8.0);
+  if (p   < pow(10.0, -8.0)) p   = pow(10.0, -8.0);
+
+  *rho_o = rho; *vx_o = vx; *vy_o = vy; *vz_o = vz;
+  *p_o   = p;   *W_o  = W;  *h_o  = h;
+}
+
+void
+gkyl_gr_euler_mod_banyuls_flux_iface(double gas_gamma,
+  const double q[5], double sqrt_det_cell,
+  const struct gkyl_wave_spacetime_iface *iface,
+  double flux[5])
+{
+  if (iface->kind == GKYL_WS_IFACE_BOTH_EXCISED) {
+    for (int i = 0; i < 5; i++) flux[i] = 0.0;
+    return;
+  }
+
+  // Undensitize at the cell — the only cell-local op.
+  double D    = q[0] / sqrt_det_cell;
+  double momx = q[1] / sqrt_det_cell;
+  double momy = q[2] / sqrt_det_cell;
+  double momz = q[3] / sqrt_det_cell;
+  double Etot = q[4] / sqrt_det_cell;
+
+  // Recover (ρ, v^i, p, W, h) using iface forward metric.
+  double rho, vx, vy, vz, p, W, h;
+  gr_euler_mod_recover_prim_b(gas_gamma, D, momx, momy, momz, Etot,
+    iface->g_iface, &rho, &vx, &vy, &vz, &p, &W, &h);
+
+  // Banyuls flux at the iface — entirely iface geometry.
+  double prefac = iface->alpha * iface->sqrt_det_iface;
+  double vmsh   = vx - (iface->shift_n / iface->alpha);
+  double rhW2   = rho * h * (W * W);
+
+  flux[0] = prefac * (rho * W * vmsh);
+  flux[1] = prefac * (rhW2 * (vx * vmsh) + p);
+  flux[2] = prefac * (rhW2 * (vy * vmsh));
+  flux[3] = prefac * (rhW2 * (vz * vmsh));
+  flux[4] = prefac * ((rhW2 - p - rho * W) * vmsh + p * vx);
+}
+
+double
+gkyl_gr_euler_mod_max_abs_speed_iface(double gas_gamma,
+  const double q[5], double sqrt_det_cell,
+  const struct gkyl_wave_spacetime_iface *iface)
+{
+  if (iface->kind == GKYL_WS_IFACE_BOTH_EXCISED) return pow(10.0, -8.0);
+
+  double D    = q[0] / sqrt_det_cell;
+  double momx = q[1] / sqrt_det_cell;
+  double momy = q[2] / sqrt_det_cell;
+  double momz = q[3] / sqrt_det_cell;
+  double Etot = q[4] / sqrt_det_cell;
+
+  double rho, vx, vy, vz, p, W, h;
+  gr_euler_mod_recover_prim_b(gas_gamma, D, momx, momy, momz, Etot,
+    iface->g_iface, &rho, &vx, &vy, &vz, &p, &W, &h);
+
+  double num = (gas_gamma * p) / rho;
+  double den = 1.0 + ((p / rho) * gas_gamma / (gas_gamma - 1.0));
+  double c_s = sqrt(num / den);
+
+  // Characteristic speeds along the face-normal direction in the iface
+  // frame: only the x-component matters (face normal = x).
+  double vel[3] = { vx, vy, vz };
+  double v_sq = 0.0;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      v_sq += iface->g_iface[i][j] * vel[i] * vel[j];
+
+  double alpha   = iface->alpha;
+  double shift_n = iface->shift_n;
+  double inv_gnn = iface->inv_g_iface[0][0];
+
+  double material = (alpha * vx) - shift_n;
+  double common = alpha / (1.0 - (v_sq * (c_s*c_s)));
+  double rad = (1.0 - v_sq) * (inv_gnn * (1.0 - (v_sq * (c_s*c_s))) -
+    (vx * vx) * (1.0 - (c_s*c_s)));
+  if (rad < 0.0) rad = 0.0;  // defensive against floating-point noise
+  double fast = common * ((vx * (1.0 - (c_s*c_s))) + (c_s * sqrt(rad))) - shift_n;
+  double slow = common * ((vx * (1.0 - (c_s*c_s))) - (c_s * sqrt(rad))) - shift_n;
+
+  double max_eig = fabs(material);
+  if (fabs(fast) > max_eig) max_eig = fabs(fast);
+  if (fabs(slow) > max_eig) max_eig = fabs(slow);
+  return max_eig;
+}
+
+// ---------------------------------------------------------------------------
 // Riemann-variable conversions and Cartesian-frame rotations. Hydro-only: the
 // spacetime portion of the state lives in auxfields, not in q, so there is no
 // spacetime block to pass through here.
@@ -449,16 +628,41 @@ wave_lax(const struct gkyl_wv_eqn *eqn, const double *delta, const double *ql,
     struct wv_gr_euler_mod, eqn);
   double gas_gamma = grm->gas_gamma;
 
-  double sl = gkyl_gr_euler_mod_max_abs_speed(gas_gamma, ql, grm->prodl_local);
-  double sr = gkyl_gr_euler_mod_max_abs_speed(gas_gamma, qr, grm->prodr_local);
-  double amax = fmax(sl, sr);
-
-  double fl[5], fr[5];
-  gkyl_gr_euler_mod_flux(gas_gamma, ql, grm->prodl_local, fl);
-  gkyl_gr_euler_mod_flux(gas_gamma, qr, grm->prodr_local, fr);
-
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+
+  double sl, sr;
+  double fl[5], fr[5];
+
+  const struct gkyl_wave_spacetime *ws = grm->auxfields.wave_spacetime;
+  if (ws != NULL) {
+    // Interface-flux Lax path (IFACE_FLUX_PLAN.md §2).
+    // Direction = the slot in (cur_idxr - cur_idxl) that's +1.
+    int dir = 0;
+    for (int d = 0; d < GKYL_MAX_DIM; d++) {
+      if (grm->cur_idxr[d] - grm->cur_idxl[d] == 1) { dir = d; break; }
+    }
+    const struct gkyl_wave_spacetime_cell *wsc =
+      gkyl_wave_spacetime_get(ws, grm->cur_idxr);
+    const struct gkyl_wave_spacetime_iface *iface = &wsc->iface[dir];
+
+    double sqrt_det_l = sqrt(grm->prodl_local[GKYL_GR_SP_SPATIAL_DET]);
+    double sqrt_det_r = sqrt(grm->prodr_local[GKYL_GR_SP_SPATIAL_DET]);
+
+    gkyl_gr_euler_mod_banyuls_flux_iface(gas_gamma, ql, sqrt_det_l, iface, fl);
+    gkyl_gr_euler_mod_banyuls_flux_iface(gas_gamma, qr, sqrt_det_r, iface, fr);
+
+    sl = gkyl_gr_euler_mod_max_abs_speed_iface(gas_gamma, ql, sqrt_det_l, iface);
+    sr = gkyl_gr_euler_mod_max_abs_speed_iface(gas_gamma, qr, sqrt_det_r, iface);
+  } else {
+    // Cell-centered classical Lax (A/B baseline).
+    sl = gkyl_gr_euler_mod_max_abs_speed(gas_gamma, ql, grm->prodl_local);
+    sr = gkyl_gr_euler_mod_max_abs_speed(gas_gamma, qr, grm->prodr_local);
+    gkyl_gr_euler_mod_flux(gas_gamma, ql, grm->prodl_local, fl);
+    gkyl_gr_euler_mod_flux(gas_gamma, qr, grm->prodr_local, fr);
+  }
+
+  double amax = fmax(sl, sr);
 
   double *w0 = &waves[0], *w1 = &waves[5];
   if (!excise_l && !excise_r) {
@@ -920,7 +1124,8 @@ gkyl_wv_gr_euler_mod_inew(const struct gkyl_wv_gr_euler_mod_inp *inp)
 
   grm->gas_gamma = inp->gas_gamma;
   grm->conf_range = inp->conf_range;
-  grm->auxfields.prods = NULL;
+  grm->auxfields.prods          = NULL;
+  grm->auxfields.wave_spacetime = NULL;
   grm->rot_call_parity = 0;
   for (int d = 0; d < GKYL_MAX_DIM; d++) {
     grm->cur_idxl[d] = 0;

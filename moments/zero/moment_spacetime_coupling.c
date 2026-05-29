@@ -235,11 +235,31 @@ compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
       inv_g4[i + 1][j + 1] = prods[GKYL_GR_SP_INV_GIJ + 3*i + j]
         - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
 
-  // Perfect-fluid stress-energy tensor.
+  // Perfect-fluid stress-energy tensor. The spatial-spatial block
+  // T^{ij} retains the ρh·u^i·u^j + p·γ^{ij}_4d form; its conservative
+  // rewrite has a 1/(τ+D+p) denominator that is fragile in near-vacuum
+  // cells (the Option-B pathology) so we keep h there.
   double T[4][4];
   for (int i = 0; i < 4; i++)
     for (int j = 0; j < 4; j++)
       T[i][j] = (rho * h * u4[i] * u4[j]) + (p * inv_g4[i][j]);
+
+  // Conservative-form override for the time-mixed components. The
+  // τ-equation identity  ρhW² = τ + D + p  (undensitized) eliminates h:
+  //   T^{00} = (τ + D) / α²
+  //   T^{0i} = γ^{ij} · S_j / α − (τ + D) · β^i / α²
+  // Both denominators here are α² — well-behaved away from horizons —
+  // so this substitution is robust where the spatial-spatial rewrite
+  // would not be. Decouples the source's bookkeeping from the floored
+  // (ρ, p) used to compute h, removing the dominant source of s²
+  // repair-state cascades observed under Option A.
+  double tauD = Etot + D;
+  T[0][0] = tauD / (lapse * lapse);
+  for (int i = 0; i < 3; i++) {
+    double mom_up = inv_g[i][0]*momx + inv_g[i][1]*momy + inv_g[i][2]*momz;
+    T[0][i + 1] = mom_up / lapse - tauD * shift[i] / (lapse * lapse);
+    T[i + 1][0] = T[0][i + 1];
+  }
 
   // Spacetime-derivative lookups from products.
   double lapse_der[3] = {
@@ -608,38 +628,37 @@ gkyl_moment_spacetime_coupling_explicit_advance(
       // Single check + cascade-repair call. The cascade walks all three
       // admissibility constraints in safe order (D, then τ, then S²) in
       // one shot, so a single repair_state call always converges to
-      // admissible — no loop needed. Convex-combo updates (f_stage2,
-      // final f) do NOT need their own repair pass because the
-      // admissibility set is convex (sum of convex constraints, with
-      // |S|_γ a norm), so a convex combination of admissible states is
-      // automatically admissible. Repair only fires after the three
-      // forward-Euler stages.
-      #define REPAIR_ONCE(qbuf) do {                                     \
+      // admissible — no loop needed. qprev (this stage's input) is in
+      // A_γ by construction (every previous repair lands admissible),
+      // so the equation can use it as the "last valid state" anchor.
+      #define REPAIR_ONCE(qprev, qbuf) do {                              \
         if (can_repair && !gkyl_wv_eqn_check_inv(eqn, (qbuf)))           \
-          gkyl_wv_eqn_repair_state(eqn, (qbuf));                         \
+          gkyl_wv_eqn_repair_state(eqn, (qprev), (qbuf));                \
       } while (0)
 
       // SSP-RK3: three forward Euler stages, repair after each one. The
       // two convex combinations (f_stage2, final f) are guaranteed
       // admissible by convexity of the admissibility set, so no repair
-      // pass is needed there.
+      // pass is needed there. Each stage's repair anchors on the stage
+      // input as the "last valid state" — that's the state from which
+      // this Euler update started, so it's by construction in A_γ.
       double f_old[5], f_new[5], f_stage1[5], f_stage2[5];
       for (int j = 0; j < 5; j++) f_old[j] = f[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         eos, t_curr, dt, prods_row, pstat, rstat, f_old, f_new);
-      REPAIR_ONCE(f_new);
+      REPAIR_ONCE(f_old, f_new);
       for (int j = 0; j < 5; j++) f_stage1[j] = f_new[j];
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         eos, t_curr + dt, dt, prods_row, pstat, rstat, f_stage1, f_new);
-      REPAIR_ONCE(f_new);
+      REPAIR_ONCE(f_stage1, f_new);
       for (int j = 0; j < 5; j++)
         f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
 
       gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
         eos, t_curr + 0.5 * dt, dt, prods_row, pstat, rstat, f_stage2, f_new);
-      REPAIR_ONCE(f_new);
+      REPAIR_ONCE(f_stage2, f_new);
       for (int j = 0; j < 5; j++)
         f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
 

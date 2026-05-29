@@ -223,9 +223,8 @@ run_banyuls_flux_consistency(struct gkyl_gr_spacetime *spacetime,
         double q[5];
         build_state_convA(eos, rho, v, p, prods_row, q);
 
-        double f_sr[5], f_gr[5];
-        gkyl_gr_euler_tetrad_flux(eos, q, prods_row, NULL, f_sr);
-        gkyl_gr_euler_tetrad_flux_correction(eos, q, prods_row, NULL, f_sr, f_gr);
+        double f_gr[5];
+        gkyl_gr_euler_banyuls_flux_cell(eos, q, prods_row, NULL, f_gr);
 
         double f_ref[5];
         analytic_banyuls_flux(eos, rho, v, p, prods_row, f_ref);
@@ -319,16 +318,14 @@ void test_banyuls_flux_consistency_hllc_kerr(void)
 // ---------------------------------------------------------------------------
 
 // Returns the curved-frame Banyuls flux ΔF for a given pair of states using
-// the same (flux + flux_correction) machinery the wave construction uses.
+// the same cell-centered Banyuls flux helper the wave construction uses.
 static void
 banyuls_delta_flux(struct gkyl_gr_euler_eos eos, struct wv_gr_euler_tetrad *grm,
   const double qL[5], const double qR[5], double dF[5])
 {
-  double fL_sr[5], fR_sr[5], fL_gr[5], fR_gr[5];
-  gkyl_gr_euler_tetrad_flux(eos, qL, grm->prodl_local, NULL, fL_sr);
-  gkyl_gr_euler_tetrad_flux(eos, qR, grm->prodr_local, NULL, fR_sr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qL, grm->prodl_local, NULL, fL_sr, fL_gr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qR, grm->prodr_local, NULL, fR_sr, fR_gr);
+  double fL_gr[5], fR_gr[5];
+  gkyl_gr_euler_banyuls_flux_cell(eos, qL, grm->prodl_local, NULL, fL_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qR, grm->prodr_local, NULL, fR_gr);
   for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
 }
 
@@ -599,11 +596,9 @@ run_riemann_properties_two_cell(struct gkyl_gr_spacetime *spacetime,
   // tetrad-first with curved-Lax interface-flux constructions and show
   // an unrelated O(Δgeom) residual.
   double dF[5];
-  double fL_sr[5], fR_sr[5], fL_gr[5], fR_gr[5];
-  gkyl_gr_euler_tetrad_flux(eos, qL, prods_iface, NULL, fL_sr);
-  gkyl_gr_euler_tetrad_flux(eos, qR, prods_iface, NULL, fR_sr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qL, prods_iface, NULL, fL_sr, fL_gr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qR, prods_iface, NULL, fR_sr, fR_gr);
+  double fL_gr[5], fR_gr[5];
+  gkyl_gr_euler_banyuls_flux_cell(eos, qL, prods_iface, NULL, fL_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qR, prods_iface, NULL, fR_gr);
   for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
 
   // (a) Wave sum: Σ w_k = Δq
@@ -1080,11 +1075,10 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   }
 
   // (ii) Flux jump: Σ s·w = F(qR) − F(qL) with F(qR_excised) = 0.
-  //      Compute F(qL_active) via the production flux + flux_correction
-  //      using the active-cell prods.
-  double fL_sr[5], fL_gr[5];
-  gkyl_gr_euler_tetrad_flux(eos, qL_loc, grm->prodl_local, NULL, fL_sr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qL_loc, grm->prodl_local, NULL, fL_sr, fL_gr);
+  //      Compute F(qL_active) via the production cell-centered Banyuls
+  //      flux using the active-cell prods.
+  double fL_gr[5];
+  gkyl_gr_euler_banyuls_flux_cell(eos, qL_loc, grm->prodl_local, NULL, fL_gr);
   double dF_R[5];
   for (int i = 0; i < 5; i++) dF_R[i] = -fL_gr[i];
 
@@ -1137,9 +1131,8 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
       spacetime_label, rp_label, i, fabs(sum - delta_L[i]) );
   }
 
-  double fR_sr[5], fR_gr[5];
-  gkyl_gr_euler_tetrad_flux(eos, qR_loc, grm->prodr_local, NULL, fR_sr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qR_loc, grm->prodr_local, NULL, fR_sr, fR_gr);
+  double fR_gr[5];
+  gkyl_gr_euler_banyuls_flux_cell(eos, qR_loc, grm->prodr_local, NULL, fR_gr);
   double dF_L[5];
   for (int i = 0; i < 5; i++) dF_L[i] = fR_gr[i];  // F(qR_active) − F(qL_excised=0)
 

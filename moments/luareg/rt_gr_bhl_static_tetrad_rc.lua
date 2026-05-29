@@ -163,7 +163,7 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true,
-    forceLowOrderFlux = false,
+    forceLowOrderFlux = false, -- HIGH_ORDER tetrad HLL with positivity-sweep LOW_ORDER curved-Lax fallback.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
     bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
   }

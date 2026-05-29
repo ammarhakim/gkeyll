@@ -39,6 +39,7 @@
 #include <gkyl_ten_moment_nn_closure.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
+#include <gkyl_wave_spacetime.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
@@ -278,6 +279,14 @@ struct moment_spacetime {
   // coupling object that fills this array and integrates GR sources lives
   // on struct moment_coupling (see A6 wiring).
   struct gkyl_array *prods;
+
+  // Per-interface tetrad cache (Phase 2). Owned here, acquired by tetrad
+  // species via gkyl_gr_euler_tetrad_set_wave_spacetime. Allocated lazily
+  // after the first derive_products call (prods needs to be filled before
+  // the cache can be built); refreshed after each subsequent
+  // derive_products in dynamic-spacetime runs. NULL when no tetrad species
+  // is present.
+  struct gkyl_wave_spacetime *wave_spacetime;
 
   // BCs (dynamic case).
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];

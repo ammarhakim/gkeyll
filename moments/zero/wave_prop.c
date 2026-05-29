@@ -566,11 +566,18 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
           for (int i = loidx_c; i <= upidx_c; ++i) {
             idxl[dir] = i;
-            double *qt = gkyl_array_fetch(qout, gkyl_range_idx(update_range, idxl));
+            long lidx = gkyl_range_idx(update_range, idxl);
+            double *qt = gkyl_array_fetch(qout, lidx);
             if (wv->equation->set_cell_idx_func)
               wv->equation->set_cell_idx_func(wv->equation, idxl);
-            if (!gkyl_wv_eqn_check_inv(wv->equation, qt))
-              gkyl_wv_eqn_repair_state(wv->equation, qt);
+            if (!gkyl_wv_eqn_check_inv(wv->equation, qt)) {
+              // qin is preserved across the sweep; qout got modified by
+              // the first-order + positivity-sweep updates. Hand the
+              // pre-update state to the repair hook so it can anchor on
+              // the cell's last-valid primitives.
+              const double *q_prev = gkyl_array_cfetch(qin, lidx);
+              gkyl_wv_eqn_repair_state(wv->equation, q_prev, qt);
+            }
           }
           // Restore default so subsequent source-step calls land in the
           // source bucket. (The coupling explicitly sets ctx=0 too, so

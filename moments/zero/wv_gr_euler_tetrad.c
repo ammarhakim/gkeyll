@@ -39,6 +39,7 @@ gr_euler_tetrad_set_cell_idx(const struct gkyl_wv_eqn *eqn, const int *idx)
   }
 }
 
+
 void
 gkyl_gr_euler_tetrad_set_auxfields(const struct gkyl_wv_eqn *eqn,
   struct gkyl_wv_gr_euler_tetrad_auxfields auxin)
@@ -46,6 +47,7 @@ gkyl_gr_euler_tetrad_set_auxfields(const struct gkyl_wv_eqn *eqn,
   struct wv_gr_euler_tetrad *grm = container_of(eqn,
     struct wv_gr_euler_tetrad, eqn);
   grm->auxfields.prods                   = auxin.prods;
+  grm->auxfields.wave_spacetime          = auxin.wave_spacetime;
   grm->auxfields.prim_status_wave_prop   = auxin.prim_status_wave_prop;
   grm->auxfields.repair_status_wave_prop = auxin.repair_status_wave_prop;
   grm->auxfields.repair_status_source    = auxin.repair_status_source;
@@ -58,6 +60,15 @@ gkyl_gr_euler_tetrad_set_conf_range(const struct gkyl_wv_eqn *eqn,
   struct wv_gr_euler_tetrad *grm = container_of(eqn,
     struct wv_gr_euler_tetrad, eqn);
   grm->conf_range = *conf_range;
+}
+
+void
+gkyl_gr_euler_tetrad_set_wave_spacetime(const struct gkyl_wv_eqn *eqn,
+  const struct gkyl_wave_spacetime *ws)
+{
+  struct wv_gr_euler_tetrad *grm = container_of(eqn,
+    struct wv_gr_euler_tetrad, eqn);
+  grm->auxfields.wave_spacetime = ws;
 }
 
 // ---------------------------------------------------------------------------
@@ -141,16 +152,12 @@ rot_spacetime_to_local(const double *tau1, const double *tau2,
 }
 
 // ---------------------------------------------------------------------------
-// Hydro helpers (prim_vars / flux / flux_correction / max_abs_speed).
-// prim_vars and max_abs_speed match the regular mod variant — they don't
-// see the tetrad split. The flux is what differs:
-//   gkyl_gr_euler_tetrad_flux:            flat-space SR flux (Cartesian W,
-//                                             no lapse/shift/√γ)
-//   gkyl_gr_euler_tetrad_flux_correction: applies α·√γ and replaces
-//                                             (vx, W_flat) with (vx - βˣ/α,
-//                                             W_curved) to recover the
-//                                             curved-space flux.
-// Mirrors the packed factorization in wv_gr_euler_tetrad.c at lines 10-124.
+// Hydro helpers (prim_vars / banyuls_flux_cell / max_abs_speed). prim_vars
+// and max_abs_speed match the regular mod variant — they don't see the
+// tetrad split. banyuls_flux_cell is the canonical curved Banyuls flux:
+// undensitize at cell, recover prim once, write the Banyuls flux directly
+// with α·√γ prefactor, β^x/α shift, γ_ij-lowered momentum slot — no
+// W_flat / W_curved Valencia ratio.
 // ---------------------------------------------------------------------------
 
 void
@@ -199,109 +206,75 @@ gkyl_gr_euler_tetrad_prim_vars(struct gkyl_gr_euler_eos eos,
 }
 
 void
-gkyl_gr_euler_tetrad_flux(struct gkyl_gr_euler_eos eos, const double q[5],
-  const double *prods,
-  struct gkyl_gr_euler_prim_status *stat, double flux_sr[5])
-{
-  double v[5];
-  gkyl_gr_euler_tetrad_prim_vars(eos, q, prods, stat, v);
-  double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
-
-  bool in_excision_region = false;
-  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
-    in_excision_region = true;
-  }
-
-  if (!in_excision_region) {
-    double v_dot = (vx*vx) + (vy*vy) + (vz*vz);
-    double W = 1.0 / sqrt(1.0 - v_dot);
-    if (v_dot > 1.0 - pow(10.0, -8.0)) W = 1.0 / sqrt(pow(10.0, -8.0));
-
-    // EOS dispatch via the shared helper (IDEAL γ-law or
-    // APPROXIMATE_SYNGE with the use_rcc closure selector).
-    double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
-
-    flux_sr[0] = rho * W * vx;
-    flux_sr[1] = (rho * h * (W*W) * (vx * vx)) + p;
-    flux_sr[2] = rho * h * (W*W) * (vy * vx);
-    flux_sr[3] = rho * h * (W*W) * (vz * vx);
-    flux_sr[4] = ((rho * h * (W*W)) - (rho * W)) * vx;
-  } else {
-    for (int i = 0; i < 5; i++) flux_sr[i] = 0.0;
-  }
-}
-
-void
-gkyl_gr_euler_tetrad_flux_correction(struct gkyl_gr_euler_eos eos,
+gkyl_gr_euler_banyuls_flux_cell(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
   struct gkyl_gr_euler_prim_status *stat,
-  const double flux_sr[5], double flux_gr[5])
+  double flux[5])
 {
-  // Mirrors gkyl_gr_euler_tetrad_flux_correction in the packed implementation:
-  // scales the flat SR flux by the W_curved / W_flat ratios that arise when
-  // mapping the tetrad-frame flux back into the coord frame, plus the α·√γ
-  // densitization and shift correction. We deliberately keep this byte-for-
-  // byte equivalent to packed so the *only* algorithmic difference between
-  // packed and mod-tetrad lives in the Roe solve. See wv_gr_euler_tetrad.c
-  // for the parallel implementation.
-  double v[5];
-  gkyl_gr_euler_tetrad_prim_vars(eos, q, prods, stat, v);
-  double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
-
-  double lapse        = prods[GKYL_GR_SP_LAPSE];
-  double shift_x      = prods[GKYL_GR_SP_SHIFT + 0];
-  double spatial_det  = prods[GKYL_GR_SP_SPATIAL_DET];
-
-  bool in_excision_region = false;
   if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
-    in_excision_region = true;
+    for (int i = 0; i < 5; i++) flux[i] = 0.0;
+    return;
   }
 
-  if (!in_excision_region) {
-    double v_sq = 0.0;
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++)
-        v_sq += prods[GKYL_GR_SP_GIJ + 3*i + j] * v[i+1] * v[j+1];
+  double spatial_det = prods[GKYL_GR_SP_SPATIAL_DET];
+  double sqrt_det    = sqrt(spatial_det);
 
-    double v_dot = (vx*vx) + (vy*vy) + (vz*vz);
-    double W_flat = 1.0 / sqrt(1.0 - v_dot);
-    if (v_dot > 1.0 - pow(10.0, -8.0)) W_flat = 1.0 / sqrt(pow(10.0, -8.0));
+  // Undensitize at the cell to feed recovery. The input conservatives are
+  // used for the recovery only — the flux itself is then rebuilt from the
+  // recovered primitives, so the flux is by construction consistent with
+  // the post-floor state that prim_vars / recover_primitives produce. This
+  // is what gives the LOW_ORDER curved-Lax path its robustness: when wave-
+  // prop has driven q near or beyond the admissibility floor, the recovery
+  // floors ρ and p, and the flux follows the floored state rather than
+  // propagating the near-zero / negative input.
+  double D_in    = q[0] / sqrt_det;
+  double Sx_in   = q[1] / sqrt_det;
+  double Sy_in   = q[2] / sqrt_det;
+  double Sz_in   = q[3] / sqrt_det;
+  double tau_in  = q[4] / sqrt_det;
 
-    double W_curved = 1.0 / sqrt(1.0 - v_sq);
-    if (v_sq > 1.0 - pow(10.0, -8.0)) W_curved = 1.0 / sqrt(pow(10.0, -8.0));
+  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+  double inv_g[3][3] = {
+    { ig[0], ig[1], ig[2] },
+    { ig[3], ig[4], ig[5] },
+    { ig[6], ig[7], ig[8] },
+  };
+  struct gkyl_gr_euler_prim prim;
+  gkyl_gr_euler_recover_primitives(eos,
+    D_in, Sx_in, Sy_in, Sz_in, tau_in, inv_g, stat, &prim);
 
-    // Numerical-safety clamp on vx for the divisions below. Mirrors packed.
-    if (fabs(vx) < pow(10.0, -8.0)) {
-      vx = (vx > 0.0) ? pow(10.0, -8.0) : -pow(10.0, -8.0);
-    }
+  // Primitive-reconstructed Banyuls flux. The internally-consistent
+  // (ρhW², v_l) pairing keeps the momentum-advection bookkeeping aligned
+  // even when a floor fires — both factors come from the same Newton
+  // recovery. A pure-conservative variant (using input S_i for momentum
+  // and primitive v for velocity) was tested and produced ~120× more
+  // wave s² hits, because the input S_i / recovered v mismatch under
+  // floors leaks back through the positivity-sweep loop.
+  double rho = prim.rho;
+  double p   = prim.p;
+  double h   = prim.h;
+  double W   = prim.W;
 
-    // Convention A momentum flux: F^x[S_i] = α√γ·(S_i·v̂^x + p·δ_i^x)
-    // with S_i·v̂^x = ρhW²·v_l[i]·v̂^x and v_l[i] = γ_ij·v^j (lowered
-    // contravariant velocity). Reconstruct ρhW²_curved from flux_sr[1] =
-    // (ρhW²_flat·v^x·v^x + p) so the D and τ slots can keep the existing
-    // factorization while the momentum slots use the explicit Banyuls
-    // form.
-    double v_l[3];
-    for (int i = 0; i < 3; i++) {
-      v_l[i] = prods[GKYL_GR_SP_GIJ + 3*i + 0]*vx
-             + prods[GKYL_GR_SP_GIJ + 3*i + 1]*vy
-             + prods[GKYL_GR_SP_GIJ + 3*i + 2]*vz;
-    }
-    double rhohW2_c = ((flux_sr[1] - p) * (W_curved * W_curved))
-                    / ((vx * vx) * (W_flat * W_flat));
-
-    double prefac = lapse * sqrt(spatial_det);
-    double vmsh   = vx - (shift_x / lapse);
-
-    flux_gr[0] = prefac * ((flux_sr[0] * vmsh * W_curved) / (vx * W_flat));
-    flux_gr[1] = prefac * (rhohW2_c * v_l[0] * vmsh + p);
-    flux_gr[2] = prefac * (rhohW2_c * v_l[1] * vmsh);
-    flux_gr[3] = prefac * (rhohW2_c * v_l[2] * vmsh);
-    flux_gr[4] = prefac * (((((flux_sr[4] + (rho * vx * W_flat)) * (W_curved*W_curved))
-                          / (vx * (W_flat*W_flat))) - p - (rho * W_curved)) * vmsh + (p * vx));
-  } else {
-    for (int i = 0; i < 5; i++) flux_gr[i] = 0.0;
+  double v_l[3];
+  for (int i = 0; i < 3; i++) {
+    v_l[i] = prods[GKYL_GR_SP_GIJ + 3*i + 0] * prim.v[0]
+           + prods[GKYL_GR_SP_GIJ + 3*i + 1] * prim.v[1]
+           + prods[GKYL_GR_SP_GIJ + 3*i + 2] * prim.v[2];
   }
+  double rhohW2 = rho * h * (W * W);
+  double D_cons   = rho * W;
+  double tau_cons = rhohW2 - p - rho * W;
+
+  double lapse   = prods[GKYL_GR_SP_LAPSE];
+  double shift_x = prods[GKYL_GR_SP_SHIFT + 0];
+  double vmsh    = prim.v[0] - (shift_x / lapse);
+  double prefac  = lapse * sqrt_det;
+
+  flux[0] = prefac * (D_cons * vmsh);
+  flux[1] = prefac * (rhohW2 * v_l[0] * vmsh + p);
+  flux[2] = prefac * (rhohW2 * v_l[1] * vmsh);
+  flux[3] = prefac * (rhohW2 * v_l[2] * vmsh);
+  flux[4] = prefac * (tau_cons * vmsh + p * prim.v[0]);
 }
 
 double
@@ -1347,7 +1320,9 @@ static void qfluct_lax_curved(const struct gkyl_wv_eqn *eqn, const double *ql,
 
 // Tetrad-first HIGH_ORDER worker. Reads sr_kernel + num_waves +
 // excision_policy from the equation object (set in the constructor based
-// on rp_type).
+// on rp_type). Interface tetrad data (M_inv, inv_g, sqrt_det, lapse,
+// face-normal shift) comes from the wave_spacetime cache when one is
+// attached; otherwise falls back to per-call averaging.
 static double
 wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, double *waves, double *s)
@@ -1375,38 +1350,62 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
     return pow(10.0, -8.0);
   }
 
-  // Interface geometry. Active-cell-only for excision-adjacent faces;
-  // otherwise the consistent g_iface / inv(g_iface) / sqrt(det) trio
-  // (Phase 0 Fix 2).
-  double g_iface[3][3], inv_g_iface[3][3];
-  double alpha_iface, shift_x_iface, sqrt_det_iface;
-  if (excise_l || excise_r) {
-    const double *prods_active = excise_l ? grm->prodr_local : grm->prodl_local;
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++) {
-        g_iface[i][j]     = prods_active[GKYL_GR_SP_GIJ + 3*i + j];
-        inv_g_iface[i][j] = prods_active[GKYL_GR_SP_INV_GIJ + 3*i + j];
-      }
-    alpha_iface    = prods_active[GKYL_GR_SP_LAPSE];
-    shift_x_iface  = prods_active[GKYL_GR_SP_SHIFT + 0];
-    sqrt_det_iface = sqrt(prods_active[GKYL_GR_SP_SPATIAL_DET]);
-  } else {
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++)
-        g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
-                             + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
-    double det_iface = gkyl_gr_euler_tetrad_invert_metric_3x3(g_iface, inv_g_iface);
-    alpha_iface   = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
-                         + grm->prodr_local[GKYL_GR_SP_LAPSE]);
-    shift_x_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
-                         + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
-    sqrt_det_iface = sqrt(det_iface);
-  }
+  // Interface tetrad data: M_inv, inv_g_iface, sqrt_det_iface, alpha, and
+  // the face-normal shift component. Either from the cache or computed
+  // on the fly (cache-less path matches the pre-Phase-2 behavior).
+  double inv_g_iface[3][3], M_inv[3][3];
+  double alpha_iface, shift_n_iface, sqrt_det_iface;
 
-  // Gram-Schmidt-on-γ⁻¹ triad (contravariant-x aligned).
-  double M[3][3], M_inv[3][3];
-  gkyl_gr_euler_tetrad_build_triad_contravariant_x(
-    g_iface, inv_g_iface, M, M_inv);
+  const struct gkyl_wave_spacetime *ws = grm->auxfields.wave_spacetime;
+  if (ws != NULL) {
+    // Direction = the slot in (idxr - idxl) that's +1. (The wave-prop
+    // driver always advances one direction per call, so exactly one slot
+    // differs by exactly +1.)
+    int dir = 0;
+    for (int d = 0; d < GKYL_MAX_DIM; d++) {
+      if (grm->cur_idxr[d] - grm->cur_idxl[d] == 1) { dir = d; break; }
+    }
+    const struct gkyl_wave_spacetime_cell *wsc =
+      gkyl_wave_spacetime_get(ws, grm->cur_idxr);
+    const struct gkyl_wave_spacetime_iface *iface = &wsc->iface[dir];
+
+    for (int a = 0; a < 3; a++)
+      for (int b = 0; b < 3; b++) {
+        M_inv[a][b]       = iface->M_inv[a][b];
+        inv_g_iface[a][b] = iface->inv_g_iface[a][b];
+      }
+    sqrt_det_iface = iface->sqrt_det_iface;
+    alpha_iface    = iface->alpha;
+    shift_n_iface  = iface->shift_n;
+  } else {
+    // Fallback path — bit-identical to the pre-cache behavior.
+    double g_iface[3][3];
+    if (excise_l || excise_r) {
+      const double *prods_active = excise_l ? grm->prodr_local : grm->prodl_local;
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++) {
+          g_iface[i][j]     = prods_active[GKYL_GR_SP_GIJ + 3*i + j];
+          inv_g_iface[i][j] = prods_active[GKYL_GR_SP_INV_GIJ + 3*i + j];
+        }
+      alpha_iface    = prods_active[GKYL_GR_SP_LAPSE];
+      shift_n_iface  = prods_active[GKYL_GR_SP_SHIFT + 0];
+      sqrt_det_iface = sqrt(prods_active[GKYL_GR_SP_SPATIAL_DET]);
+    } else {
+      for (int i = 0; i < 3; i++)
+        for (int j = 0; j < 3; j++)
+          g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
+                               + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
+      double det_iface = gkyl_gr_euler_tetrad_invert_metric_3x3(g_iface, inv_g_iface);
+      alpha_iface   = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
+                           + grm->prodr_local[GKYL_GR_SP_LAPSE]);
+      shift_n_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
+                           + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
+      sqrt_det_iface = sqrt(det_iface);
+    }
+    double M[3][3];
+    gkyl_gr_euler_tetrad_build_triad_contravariant_x(
+      g_iface, inv_g_iface, M, M_inv);
+  }
 
   // Forward transform with sqrt_det_iface on BOTH sides (Phase 0 Fix 1).
   double ql_tet[5], qr_tet[5];
@@ -1433,7 +1432,7 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
     gkyl_gr_euler_tetrad_wave_to_curved_contra(&waves_tet[k * 5],
       sqrt_det_iface, M_inv, &waves[k * 5]);
     s[k] = gkyl_gr_euler_tetrad_speed_to_curved_contra(
-      speeds_tet[k], alpha_iface, shift_x_iface, inv_g_iface[0][0]);
+      speeds_tet[k], alpha_iface, shift_n_iface, inv_g_iface[0][0]);
     if (fabs(s[k]) > maxs_curved) maxs_curved = fabs(s[k]);
   }
   return maxs_curved;
@@ -1521,14 +1520,13 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
     return pow(10.0, -8.0);
   }
 
-  // Per-side GR Banyuls fluxes. flux_correction zeros the flux on
-  // excised cells, giving the absorbing-BC contribution automatically.
+  // Per-side cell-centered Banyuls fluxes. Single-pass recovery+flux per
+  // side; the helper zeros the flux on excised cells, giving the
+  // absorbing-BC contribution automatically.
   struct gkyl_gr_euler_prim_status *stat = grm->auxfields.prim_status_wave_prop;
-  double fl_sr[5], fr_sr[5], fl_gr[5], fr_gr[5];
-  gkyl_gr_euler_tetrad_flux(eos, ql, grm->prodl_local, stat, fl_sr);
-  gkyl_gr_euler_tetrad_flux(eos, qr, grm->prodr_local, stat, fr_sr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, ql, grm->prodl_local, stat, fl_sr, fl_gr);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qr, grm->prodr_local, stat, fr_sr, fr_gr);
+  double fl_gr[5], fr_gr[5];
+  gkyl_gr_euler_banyuls_flux_cell(eos, ql, grm->prodl_local, stat, fl_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qr, grm->prodr_local, stat, fr_gr);
 
   // amax — full-3D max-abs characteristic speed (max over x/y/z). The
   // x-only variant was too tight in metrics with off-diagonal γ_xy and
@@ -1602,13 +1600,9 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
   // flux_jump_func is the F-wave callback. Our Q-wave production setup
   // doesn't invoke it (see notes in priv.h).
   struct gkyl_gr_euler_prim_status *stat = grm->auxfields.prim_status_wave_prop;
-  double fl_sr[5], fr_sr[5];
-  gkyl_gr_euler_tetrad_flux(eos, ql, grm->prodl_local, stat, fl_sr);
-  gkyl_gr_euler_tetrad_flux(eos, qr, grm->prodr_local, stat, fr_sr);
-
   double fl[5], fr[5];
-  gkyl_gr_euler_tetrad_flux_correction(eos, ql, grm->prodl_local, stat, fl_sr, fl);
-  gkyl_gr_euler_tetrad_flux_correction(eos, qr, grm->prodr_local, stat, fr_sr, fr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, ql, grm->prodl_local, stat, fl);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qr, grm->prodr_local, stat, fr);
 
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
@@ -1667,8 +1661,16 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 // loops (check_inv → repair_state → check_inv) up to a small bounded
 // number of passes; each call fixes the first failing constraint
 // (D, then τ, then s²).
+//
+// History-informed s² target: when q_prev is non-NULL (the cell's
+// pre-update state — admissible by construction), recover W_prev from
+// it and pass margin = 1/W_prev² to the cascade so the repaired cell
+// has v² = 1 − 1/W_prev², matching the cell's previous Lorentz factor.
+// This avoids injecting a near-luminal (W=10⁶) ghost cell from the
+// old margin=1e-6 default. Falls back to margin=1e-2 (W_target=10) if
+// q_prev is missing or its Newton recovery returns a degenerate W.
 static void
-repair_state(const struct gkyl_wv_eqn *eqn, double *q)
+repair_state(const struct gkyl_wv_eqn *eqn, const double *q_prev, double *q)
 {
   struct wv_gr_euler_tetrad *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad, eqn);
@@ -1694,8 +1696,25 @@ repair_state(const struct gkyl_wv_eqn *eqn, double *q)
   double Sz  = q[3] / sd;
   double tau = q[4] / sd;
 
+  // Anchor the s² repair margin on the cell's prev-update W: recover
+  // (W_prev) from q_prev and pass margin = 1/W_prev² so the repaired
+  // state has the same effective Lorentz factor the cell had before
+  // the failing update. Falls back to a fixed margin if no q_prev was
+  // provided (defensive — drivers should pass it).
+  double margin = 1.0e-2;
+  double W_prev_for_log = -1.0;
+  if (q_prev) {
+    struct gkyl_gr_euler_prim prim_prev;
+    gkyl_gr_euler_recover_primitives(grm->eos,
+      q_prev[0] / sd, q_prev[1] / sd, q_prev[2] / sd,
+      q_prev[3] / sd, q_prev[4] / sd, inv_g, NULL, &prim_prev);
+    margin = 1.0 / (prim_prev.W * prim_prev.W);
+    W_prev_for_log = prim_prev.W;
+  }
+
   unsigned int fixed =
-    gkyl_gr_euler_repair_admissibility_cascade(inv_g, &D, &Sx, &Sy, &Sz, &tau);
+    gkyl_gr_euler_repair_admissibility_cascade(inv_g, margin,
+      &D, &Sx, &Sy, &Sz, &tau);
 
   // Per-constraint independent tallies. Wave-prop and source-step calls
   // route to separate repair_status buckets, selected by eqn->cur_repair_ctx
@@ -1710,7 +1729,20 @@ repair_state(const struct gkyl_wv_eqn *eqn, double *q)
   if (rstat) {
     if (fixed & GR_EULER_REPAIR_D)   rstat->bad_D_fixes   += 1;
     if (fixed & GR_EULER_REPAIR_TAU) rstat->bad_tau_fixes += 1;
-    if (fixed & GR_EULER_REPAIR_S2)  rstat->bad_s2_fixes  += 1;
+    if (fixed & GR_EULER_REPAIR_S2) {
+      rstat->bad_s2_fixes += 1;
+      double absW = fabs(W_prev_for_log);
+      // Treat 0 as "uninitialized" — |W| is always > 0 from any sane
+      // Newton output. memset zero-fills the struct at allocation.
+      if (rstat->min_abs_s2_repair_W_prev <= 0.0
+          || absW < rstat->min_abs_s2_repair_W_prev)
+        rstat->min_abs_s2_repair_W_prev = absW;
+      if (absW > rstat->max_abs_s2_repair_W_prev)
+        rstat->max_abs_s2_repair_W_prev = absW;
+      rstat->sum_abs_s2_repair_W_prev += absW;
+      rstat->last_s2_repair_W_prev = W_prev_for_log;
+      rstat->s2_repair_W_prev_hist[gkyl_gr_euler_status_W_bin(absW)] += 1;
+    }
   }
 
   q[0] = D   * sd;
@@ -1806,6 +1838,7 @@ gkyl_wv_gr_euler_tetrad_inew(
 
   grm->conf_range = inp->conf_range;
   grm->auxfields.prods                   = NULL;
+  grm->auxfields.wave_spacetime          = NULL;
   grm->auxfields.prim_status_wave_prop   = NULL;
   grm->auxfields.repair_status_wave_prop = NULL;
   grm->auxfields.repair_status_source    = NULL;

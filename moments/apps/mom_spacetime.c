@@ -37,6 +37,11 @@ moment_spacetime_init(const struct gkyl_moment *mom,
   sp->prods = mkarr(false, sp->prods_ncomp, app->local_ext.volume);
   gkyl_array_clear(sp->prods, 0.0);
 
+  // The per-interface tetrad cache is allocated lazily after derive_products
+  // first fills prods (see moment.c IC path). NULL here so equation objects
+  // fall back to per-call averaging until the cache is wired in.
+  sp->wave_spacetime = NULL;
+
   // Dynamic-case plumbing: Einstein-state arrays + wave-prop solvers + BCs.
   // Skipped entirely when running with the static-analytic backend.
   for (int d = 0; d < 3; d++) sp->slvr[d] = NULL;
@@ -220,6 +225,7 @@ void
 moment_spacetime_release(const struct moment_spacetime *sp)
 {
   if (sp->prods) gkyl_array_release(sp->prods);
+  if (sp->wave_spacetime) gkyl_wave_spacetime_release(sp->wave_spacetime);
 
   if (!sp->has_einstein_eqn) return;
 

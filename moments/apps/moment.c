@@ -416,6 +416,33 @@ gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
     }
     gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
       num_periodic_dir, app->periodic_dirs, app->spacetime.prods);
+
+    // Build the per-interface tetrad cache now that prods is filled, then
+    // attach it to each tetrad-mod and non-tetrad-mod species. The cache
+    // reads cell-centered prods, applies the wave_geom rotation per face,
+    // and stores the resulting averaged-frame metric + Gram-Schmidt triad
+    // for direct consumption by wave_tetrad_high_order and (when present)
+    // the iface-flux Lax in wv_gr_euler_mod.c.
+    bool need_wave_spacetime = false;
+    for (int i = 0; i < app->num_species; i++)
+      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD ||
+          app->species[i].eqn_type == GKYL_EQN_GR_EULER_MOD) {
+        need_wave_spacetime = true; break;
+      }
+    if (need_wave_spacetime && app->spacetime.wave_spacetime == NULL) {
+      app->spacetime.wave_spacetime = gkyl_wave_spacetime_new(&app->grid,
+        &app->local_ext, app->geom, app->spacetime.analytic_spacetime,
+        app->spacetime.prods, t0, app->spacetime.is_static, /*use_gpu=*/false);
+      for (int i = 0; i < app->num_species; i++) {
+        if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
+          gkyl_gr_euler_tetrad_set_wave_spacetime(app->species[i].equation,
+            app->spacetime.wave_spacetime);
+        } else if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_MOD) {
+          gkyl_gr_euler_mod_set_wave_spacetime(app->species[i].equation,
+            app->spacetime.wave_spacetime);
+        }
+      }
+    }
   }
 }
 
@@ -1088,6 +1115,29 @@ gr_euler_print_prim_status(FILE *fp, const char *label,
           (unsigned long long)s->floor_s2_hist[b],
           100.0 * (double)s->floor_s2_hist[b] / (double)total_floor);
     }
+
+    const char *W_labels[GR_EULER_W_BINS] = {
+      "≤1.001", "1.001..1.1", "1.1..2", "2..10",
+      "10..100", "100..1e3", "1e3..1e4", "≥1e4",
+    };
+    fprintf(fp, "    Lorentz factor W distribution over %llu calls "
+                "(max W observed: %.6e):\n",
+      (unsigned long long)s->floor_calls, s->max_W_observed);
+    for (int b = 0; b < GR_EULER_W_BINS; b++)
+      fprintf(fp, "      %-15s : %llu (%.4f%%)\n", W_labels[b],
+        (unsigned long long)s->W_hist[b],
+        100.0 * (double)s->W_hist[b] / (double)s->floor_calls);
+
+    uint64_t total_floored = 0;
+    for (int b = 0; b < GR_EULER_W_BINS; b++) total_floored += s->W_floored_hist[b];
+    if (total_floored > 0) {
+      fprintf(fp, "    W distribution restricted to floored-cell recoveries "
+                  "(total %llu):\n", (unsigned long long)total_floored);
+      for (int b = 0; b < GR_EULER_W_BINS; b++)
+        fprintf(fp, "      %-15s : %llu (%.4f%%)\n", W_labels[b],
+          (unsigned long long)s->W_floored_hist[b],
+          100.0 * (double)s->W_floored_hist[b] / (double)total_floored);
+    }
   }
 
   // HLLC star-state diagnostics. Only meaningful when the SR HLLC kernel
@@ -1134,6 +1184,23 @@ gr_euler_print_repair_status(FILE *fp, const char *label,
       "    source-step limiters:  tau-limiter %llu, s²-limiter %llu\n",
       (unsigned long long)s->tau_limiter_fires,
       (unsigned long long)s->s2_limiter_fires);
+  }
+  if (s->bad_s2_fixes > 0) {
+    double avg = s->sum_abs_s2_repair_W_prev / (double)s->bad_s2_fixes;
+    fprintf(fp,
+      "    s²-repair |W_prev| anchor:  min=%.3e avg=%.3e max=%.3e last=%.3e (signed)\n",
+      s->min_abs_s2_repair_W_prev, avg,
+      s->max_abs_s2_repair_W_prev, s->last_s2_repair_W_prev);
+    const char *W_labels[GR_EULER_W_BINS] = {
+      "≤1.001", "1.001..1.1", "1.1..2", "2..10",
+      "10..100", "100..1e3", "1e3..1e4", "≥1e4",
+    };
+    fprintf(fp, "    s²-repair |W_prev| distribution:\n");
+    for (int b = 0; b < GR_EULER_W_BINS; b++)
+      if (s->s2_repair_W_prev_hist[b] > 0)
+        fprintf(fp, "      %-15s : %llu (%.2f%%)\n", W_labels[b],
+          (unsigned long long)s->s2_repair_W_prev_hist[b],
+          100.0 * (double)s->s2_repair_W_prev_hist[b] / (double)s->bad_s2_fixes);
   }
 }
 

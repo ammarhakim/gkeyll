@@ -10,6 +10,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_eqn.h>
+#include <gkyl_wave_spacetime.h>
 #include <gkyl_wv_gr_euler.h>          // shares enum gkyl_wv_gr_euler_rp
 #include <gkyl_wv_gr_euler_mod.h>
 
@@ -64,3 +65,29 @@ GKYL_CU_D
 double
 gkyl_gr_euler_mod_max_abs_speed(double gas_gamma, const double q[5],
   const double *prods);
+
+// ---------------------------------------------------------------------------
+// Interface-flux Lax helpers (IFACE_FLUX_PLAN.md §2).
+//
+// These build the curved Banyuls flux entirely from interface geometry
+// (lapse, face-normal shift, sqrt(det γ_iface), γ_ij_iface). The only
+// cell-local input is sqrt_det_cell, used to undensitize the conservatives.
+// Primitives are recovered with iface γ_ij (Convention B → mom_sq =
+// γ_ij·S^i·S^j) and the resulting (ρ, v^i, p, W, h) is iface-frame.
+//
+// Outputs are face-local-frame fluxes / speeds, ready for direct use in
+// wave_prop's Lax-average construction.
+// ---------------------------------------------------------------------------
+
+GKYL_CU_D
+void
+gkyl_gr_euler_mod_banyuls_flux_iface(double gas_gamma,
+  const double q[5], double sqrt_det_cell,
+  const struct gkyl_wave_spacetime_iface *iface,
+  double flux[5]);
+
+GKYL_CU_D
+double
+gkyl_gr_euler_mod_max_abs_speed_iface(double gas_gamma,
+  const double q[5], double sqrt_det_cell,
+  const struct gkyl_wave_spacetime_iface *iface);

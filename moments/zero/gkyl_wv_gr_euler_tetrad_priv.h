@@ -88,10 +88,11 @@ struct wv_gr_euler_tetrad {
   // Per-side locally-rotated spacetime scratch buffers, mirroring the regular
   // mod variant. The tetrad equation reads the same spacetime block (lapse,
   // shift, γ_ij, γ^ij, √γ, excision) and does not require stored basis
-  // vectors — the "tetrad" name refers to a flux-factorization strategy
-  // (compute flat-space SR flux, then apply a GR correction with √γ·α and
-  // shift), not to the primitive-variable representation. See
-  // gkyl_gr_euler_tetrad_flux + gkyl_gr_euler_tetrad_flux_correction.
+  // vectors — the "tetrad" name refers to the HIGH_ORDER Riemann-solver
+  // strategy (rotate state into a locally-flat orthonormal frame at the
+  // interface, solve SR Riemann, back-transform), not to the primitive-
+  // variable representation. LOW_ORDER curved Lax and F-wave callbacks
+  // use gkyl_gr_euler_banyuls_flux_cell directly.
   double prodl_local[GKYL_GR_SP_NCOMP_BASE];
   double prodr_local[GKYL_GR_SP_NCOMP_BASE];
   int rot_call_parity;
@@ -116,24 +117,23 @@ gkyl_gr_euler_tetrad_prim_vars(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
   struct gkyl_gr_euler_prim_status *stat, double v[5]);
 
-// Compute the flat-space (special-relativistic) flux from primitives. Uses
-// Cartesian dot products on velocity (W_flat = 1/sqrt(1 - vᵢvᵢ)) with no
-// metric prefactors. Mirrors gkyl_gr_euler_tetrad_flux in packed.
+// Direct cell-centered Banyuls flux in the curved coordinate basis. This
+// is the canonical reference flux for every flux-jump identity in this
+// equation object — both the LOW_ORDER curved-Lax wave_lax_curved and the
+// F-wave flux_jump_func use it on each side, and the HIGH_ORDER tetrad
+// path's amdq+apdq is checked against it (interface-averaged form) in the
+// ctest harness.
+//
+// Single-pass: recovers (ρ, v^i, p, W, h) with the cell-centered γ⁻¹ and
+// √γ, then writes the Banyuls flux directly — α·√γ prefactor, β^x/α
+// shift, v_l[i] = γ_ij·v^j for the lowered momentum slot. No SR-flat
+// detour, no W_flat / W_curved Valencia ratio.
 GKYL_CU_D
 void
-gkyl_gr_euler_tetrad_flux(struct gkyl_gr_euler_eos eos,
-  const double q[5], const double *prods,
-  struct gkyl_gr_euler_prim_status *stat, double flux_sr[5]);
-
-// Apply the GR coordinate-transformation correction to a flat-space SR flux:
-// multiply by α·√γ and replace (vx, W_flat) with (vx - βˣ/α, W_curved).
-// Mirrors gkyl_gr_euler_tetrad_flux_correction in packed.
-GKYL_CU_D
-void
-gkyl_gr_euler_tetrad_flux_correction(struct gkyl_gr_euler_eos eos,
+gkyl_gr_euler_banyuls_flux_cell(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
   struct gkyl_gr_euler_prim_status *stat,
-  const double flux_sr[5], double flux_gr[5]);
+  double flux[5]);
 
 GKYL_CU_D
 double

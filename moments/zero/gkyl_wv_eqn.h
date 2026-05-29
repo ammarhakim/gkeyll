@@ -79,11 +79,15 @@ typedef void (*wv_set_cell_idx_t)(const struct gkyl_wv_eqn* eqn,
 // repair_state_func: optional last-resort hook called by wave_prop (after
 // the positivity-redo) and by moment_spacetime_coupling (after each
 // forward-Euler source stage) when a cell remains outside the convex
-// admissibility set. The equation projects q in-place onto the boundary of
-// the admissibility set, fixing one constraint per call. Callers iterate
-// (check_inv → repair_state → check_inv) up to a small bounded number of
-// passes. NULL for equations that do not implement state repair.
-typedef void (*wv_repair_state_t)(const struct gkyl_wv_eqn* eqn, double* q);
+// admissibility set. The equation projects q in-place onto the boundary
+// of the admissibility set, fixing one constraint per call. q_prev is the
+// cell's pre-update state — guaranteed to be in the admissibility set
+// (it's the state the failing update started from). Equations that want
+// history-informed repair (anchor target on the cell's last-valid
+// primitives) read it; equations that don't can ignore it. NULL for
+// equations that do not implement state repair.
+typedef void (*wv_repair_state_t)(const struct gkyl_wv_eqn *eqn,
+  const double *q_prev, double *q);
 
 struct gkyl_wv_eqn {
   enum gkyl_eqn_type type; // Equation type
@@ -349,14 +353,17 @@ gkyl_wv_eqn_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sou
  * for first checking that eqn->repair_state_func is non-NULL — equations
  * without a meaningful repair operation leave the slot NULL.
  *
- * @param eqn Equation object
- * @param q   Conserved variables (modified in place)
+ * @param eqn    Equation object
+ * @param q_prev Cell's pre-update state (admissible). NULL is allowed —
+ *               equations that don't need history-informed repair ignore it.
+ * @param q      Conserved variables (modified in place)
  */
 GKYL_CU_DH
 static inline void
-gkyl_wv_eqn_repair_state(const struct gkyl_wv_eqn *eqn, double *q)
+gkyl_wv_eqn_repair_state(const struct gkyl_wv_eqn *eqn,
+  const double *q_prev, double *q)
 {
-  eqn->repair_state_func(eqn, q);
+  eqn->repair_state_func(eqn, q_prev, q);
 }
 
 /**

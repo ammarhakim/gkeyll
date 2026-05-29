@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_range.h>
+#include <gkyl_wave_spacetime.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_gr_euler_prim_priv.h>  // struct gkyl_gr_euler_eos
 
@@ -36,6 +37,13 @@ enum gkyl_wv_gr_euler_tetrad_rp {
 struct gkyl_wv_gr_euler_tetrad_auxfields {
   const struct gkyl_array *prods;             // spacetime products array
                                               // (layout: gkyl_moment_spacetime_products.h)
+  const struct gkyl_wave_spacetime *wave_spacetime;  // per-interface tetrad
+                                              // cache (Phase 2). May be NULL
+                                              // for tests / legacy callers
+                                              // that haven't migrated; the
+                                              // Riemann path falls back to
+                                              // per-call averaging in that
+                                              // case.
   struct gkyl_gr_euler_prim_status   *prim_status_wave_prop;
   struct gkyl_gr_euler_repair_status *repair_status_wave_prop;
   struct gkyl_gr_euler_repair_status *repair_status_source;
@@ -75,6 +83,14 @@ gkyl_wv_gr_euler_tetrad_inew(
 void
 gkyl_gr_euler_tetrad_set_auxfields(const struct gkyl_wv_eqn *eqn,
   struct gkyl_wv_gr_euler_tetrad_auxfields auxin);
+
+// Install the per-interface tetrad cache on the equation without touching
+// any other auxfields entries. The cache is typically constructed by the
+// app layer after the first derive_products call (which fills prods), and
+// installed here in a follow-up pass. Pass NULL to detach.
+void
+gkyl_gr_euler_tetrad_set_wave_spacetime(const struct gkyl_wv_eqn *eqn,
+  const struct gkyl_wave_spacetime *ws);
 
 // Update the configuration-space range used to convert cell indices into
 // offsets in the auxfields products array. Called once by the Lua flow after
