@@ -1,7 +1,8 @@
 // Construct a MLP with KANN and fit a simple 1D function
-#include <kann.h>
-#include <knutils.h>
+#include <gkyl_knutils.h>
+#include <gkyl_util.h>
 
+#include <kann.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -94,20 +95,25 @@ infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec
 void
 write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
-  FILE *fp = fopen("gplot.gp", "w");
-  fprintf(fp, "set macros\n");
-  fprintf(fp, "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n");
-  fprintf(fp, "set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7   # red\n");
-  fprintf(fp, "BLUE = \"1\"\n");
-  fprintf(fp, "RED = \"2\"\n");
-  fprintf(fp, "set grid\n");
-  fprintf(fp, "plot \"data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"");
-  fclose(fp);  
-  
-  fp = fopen("data.txt", "w");
-  for (int i=0; i<inp->nvec; ++i)
-    fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
-  fclose(fp);  
+  const char *gpcode =
+    "set macros\n"
+    "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n"
+    "set style line 2 lc rgb '#dd181f' lt 1 lw 2 pt 7   # red\n"
+    "BLUE = \"1\"\n"
+    "RED = \"2\"\n"
+    "set grid\n"
+    "plot \"rt_kann_mlp_data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
+
+  FILE *fp = 0;
+  with_file(fp, "rt_kann_mlp.gp", "w") {
+    fprintf(fp, "%s", gpcode);
+  }
+
+  fp = 0;
+  with_file(fp, "rt_kann_mlp_data.txt", "w") {
+    for (int i=0; i<inp->nvec; ++i)
+      fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
+  }
 }
 
 int
