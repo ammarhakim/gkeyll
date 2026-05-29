@@ -572,7 +572,7 @@ moment_species_refresh_gr_tov_geometry(gkyl_moment_app *app,
     n++;
   }
 
-  gkyl_gr_tov_refresh_geometry_from_state(sp->tov_gas_gamma, sp->tov_p_atm, ncells, q);
+  gkyl_gr_tov_ultra_rel_refresh_geometry_from_state(sp->tov_gas_gamma, sp->tov_p_atm, ncells, q);
 
   n = 0;
   gkyl_range_iter_init(&iter, &app->local);

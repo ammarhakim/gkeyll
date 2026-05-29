@@ -83,8 +83,8 @@ create_ctx(void)
   printf("R_star = %e \n", R_star);
 
   // Simulation parameters.
-  int Nx = 4096; // Cell count (r-direction).
-  double Lx = 2500.0; // Domain size (r-direction).
+  int Nx = 6096; // Cell count (r-direction).
+  double Lx = 6000.0; // Domain size (r-direction).
   double cfl_frac = 0.8; // CFL coefficient.
 
   double t_end = 1500; // Final simulation time.
@@ -93,6 +93,25 @@ create_ctx(void)
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+
+  double r_domain_max = Lx + (0.5 * Lx / Nx);
+  double r_tov_max = gkyl_tov_ultra_rel_max_radius(tov);
+  if (!gkyl_tov_ultra_rel_surface_found(tov)) {
+    printf("WARNING: ultra-rel TOV surface was not found before the table ended.\n");
+    printf("         P_surface = %.16e, table r_max = %.16e, TOV_ULTRA_REL_MAX_POINTS = %d, dr_tov = %.16e\n",
+      gkyl_tov_ultra_rel_surface_pressure(tov), r_tov_max, TOV_ULTRA_REL_MAX_POINTS, dr_tov);
+    printf("         Increase TOV_ULTRA_REL_MAX_POINTS, increase dr_tov, or use a larger pressure cutoff.\n");
+  }
+  if (R_star > r_domain_max) {
+    printf("WARNING: R_star = %.16e is larger than the simulation domain r_max = %.16e.\n",
+      R_star, r_domain_max);
+    printf("         Increase Lx if you want the domain to contain the full star.\n");
+  }
+  if (r_tov_max < r_domain_max) {
+    printf("WARNING: TOV table r_max = %.16e is smaller than simulation domain r_max = %.16e.\n",
+      r_tov_max, r_domain_max);
+    printf("         Increase TOV_ULTRA_REL_MAX_POINTS or dr_tov so initialization does not clamp metric data.\n");
+  }
 
   struct gr_tov_static_ctx ctx = {
     .pi = pi,
@@ -337,7 +356,7 @@ main(int argc, char **argv)
     .tov_gas_gamma = ctx.gas_gamma,
     .tov_kappa = ctx.kappa,
     .tov_p_atm = ctx.p_atm,
-    .has_dynamic_lapse = false,
+    .has_dynamic_lapse = true,
 
     .force_low_order_flux = false,
     .limiter = GKYL_MIN_MOD,
