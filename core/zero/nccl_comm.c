@@ -389,26 +389,29 @@ array_sync(struct gkyl_comm *comm, const struct gkyl_range *local,
     }
   }
 
-  // Phase 3: NCCL group with only ncclRecv/ncclSend calls inside.
-  // No CUDA memory operations or kernel launches between group start/end.
-  checkNCCL(ncclGroupStart());
+  bool has_nccl_ops = (nridx > 0) || (nsidx > 0);
+  if (has_nccl_ops) {
+    // Phase 3: NCCL group with only ncclRecv/ncclSend calls inside.
+    // No CUDA memory operations or kernel launches between group start/end.
+    checkNCCL(ncclGroupStart());
 
-  for (int r=0; r<nridx; ++r) {
-    size_t recv_vol = array->esznc*nccl->recv[r].range.volume;
-    checkNCCL(ncclRecv(gkyl_mem_buff_data(nccl->recv[r].buff),
-      recv_vol, ncclChar, recv_nids[r], nccl->ncomm, nccl->custream));
+    for (int r=0; r<nridx; ++r) {
+      size_t recv_vol = array->esznc*nccl->recv[r].range.volume;
+      checkNCCL(ncclRecv(gkyl_mem_buff_data(nccl->recv[r].buff),
+        recv_vol, ncclChar, recv_nids[r], nccl->ncomm, nccl->custream));
+    }
+
+    for (int s=0; s<nsidx; ++s) {
+      size_t send_vol = array->esznc*nccl->send[s].range.volume;
+      checkNCCL(ncclSend(gkyl_mem_buff_data(nccl->send[s].buff),
+        send_vol, ncclChar, send_nids[s], nccl->ncomm, nccl->custream));
+    }
+
+    checkNCCL(ncclGroupEnd());
+
+    // Phase 4: Complete sends and recvs.
+    checkCuda(cudaStreamSynchronize(nccl->custream));
   }
-
-  for (int s=0; s<nsidx; ++s) {
-    size_t send_vol = array->esznc*nccl->send[s].range.volume;
-    checkNCCL(ncclSend(gkyl_mem_buff_data(nccl->send[s].buff),
-      send_vol, ncclChar, send_nids[s], nccl->ncomm, nccl->custream));
-  }
-
-  checkNCCL(ncclGroupEnd());
-
-  // Phase 4: Complete sends and recvs.
-  checkCuda(cudaStreamSynchronize(nccl->custream));
 
   // Phase 5: Copy received data into ghost-cells.
   for (int r=0; r<nridx; ++r) {
