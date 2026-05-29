@@ -158,7 +158,7 @@ main(int argc, char *argv[])
         .nwidth = 256,
         .learning_rate = 1e-3f
       },
-      "example1.kann"
+      "rt_kann_mlp.kann"
     );
   }
 
@@ -173,12 +173,11 @@ main(int argc, char *argv[])
     for (int i=0; i<inp->nvec; ++i)
       inp->vals[i][0] = xrange_n(xr, i);
   
-    infer_ann("example1.kann", inp, out);
+    infer_ann("rt_kann_mlp.kann", inp, out);
     write_to_gplot(inp, out);
     
     gkyl_kn_vec_release(inp);
     gkyl_kn_vec_release(out);
-
   }
   
   return 0;
