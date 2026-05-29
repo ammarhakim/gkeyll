@@ -4,9 +4,9 @@
 #include <stdlib.h>
 
 struct
-kn_vec* kn_vec_new(int nvec, int N)
+gkyl_kn_vec* gkyl_kn_vec_new(int nvec, int N)
 {
-  struct kn_vec *vec = malloc(sizeof(*vec));
+  struct gkyl_kn_vec *vec = malloc(sizeof(*vec));
   vec->nvec = nvec;
   vec->N = N;
 
@@ -21,7 +21,7 @@ kn_vec* kn_vec_new(int nvec, int N)
 }
 
 void
-kn_vec_release(struct kn_vec *vec)
+gkyl_kn_vec_release(struct gkyl_kn_vec *vec)
 {
   free(vec->vals);
   free(vec->data);

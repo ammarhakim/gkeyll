@@ -2,7 +2,7 @@
 
 // Struct to hold data passed to KANN functions: nvec float vectors
 // with N elements each
-struct kn_vec {
+struct gkyl_kn_vec {
   int nvec; // number of vectors
   int N; // length of each vector
   float **vals; // for passing into kann functions
@@ -16,11 +16,11 @@ struct kn_vec {
  * @param N Length of each vector.
  * @return New kn_vec
  */
-struct kn_vec* kn_vec_new(int nvec, int N);
+struct gkyl_kn_vec* gkyl_kn_vec_new(int nvec, int N);
 
 /**
  * Release kn_vec.
  *
  * @param vec Vector to release.
  */
-void kn_vec_release(struct kn_vec *vec);
+void gkyl_kn_vec_release(struct gkyl_kn_vec *vec);

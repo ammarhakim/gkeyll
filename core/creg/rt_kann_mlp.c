@@ -47,8 +47,8 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
 
   // allocate memory for input/output vectors
   int N = nn_inp->ntrain; // training samples
-  struct kn_vec *inp = kn_vec_new(N, 1);
-  struct kn_vec *out = kn_vec_new(N, 1);
+  struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
+  struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
   struct xrange xr = {
     .xleft = -1.0,
@@ -73,14 +73,14 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
   kann_save(nn_name, ann); // save to file
   
-  kn_vec_release(inp);
-  kn_vec_release(out);
+  gkyl_kn_vec_release(inp);
+  gkyl_kn_vec_release(out);
   kann_delete(ann);  
 }
 
 // run inference on N input values
 void
-infer_ann(const char *nn_name, const struct kn_vec *inp, struct kn_vec *out)
+infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   kann_t *ann = kann_load(nn_name);
   const float *ov;
@@ -92,7 +92,7 @@ infer_ann(const char *nn_name, const struct kn_vec *inp, struct kn_vec *out)
 }
 
 void
-write_to_gplot(const struct kn_vec *inp, const struct kn_vec *out)
+write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
   FILE *fp = fopen("gplot.gp", "w");
   fprintf(fp, "set macros\n");
@@ -160,8 +160,8 @@ main(int argc, char *argv[])
     fprintf(stdout, "*** Inference\n");
     // run inference
     int nvec = 11;
-    struct kn_vec *inp = kn_vec_new(nvec, 1);
-    struct kn_vec *out = kn_vec_new(nvec, 1);
+    struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
+    struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
 
     struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
     for (int i=0; i<inp->nvec; ++i)
@@ -170,8 +170,8 @@ main(int argc, char *argv[])
     infer_ann("example1.kann", inp, out);
     write_to_gplot(inp, out);
     
-    kn_vec_release(inp);
-    kn_vec_release(out);
+    gkyl_kn_vec_release(inp);
+    gkyl_kn_vec_release(out);
 
   }
   
