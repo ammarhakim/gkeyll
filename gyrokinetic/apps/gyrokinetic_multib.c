@@ -832,6 +832,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
     if (has_anomalous_diff) {
       any_anomalous_diff = true;
+      // Divide diffD by dz before the transfer
+      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+        int d  = 0;
+        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, sbapp->grid.dx[sbapp->cdim-1], &sbapp->global);
+      }
+
+      // Sync
       struct gkyl_array *gkad_nu[mbapp->num_local_blocks];
       for (int b=0; b<mbapp->num_local_blocks; ++b) {
         struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
@@ -839,6 +847,14 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
       }
       gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
         mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, gkad_nu, gkad_nu);
+
+      // Multiply by diffD dz after the transfer to achieve rescaling
+      for (int b=0; b<mbapp->num_local_blocks; ++b) {
+        struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[b];
+        int d  = 0;
+        gkyl_array_scale_range(sbapp->species[i].anom_diff.diffD, 1.0/sbapp->grid.dx[sbapp->cdim-1], &sbapp->global_ext);
+      }
+
     }
   }
 
