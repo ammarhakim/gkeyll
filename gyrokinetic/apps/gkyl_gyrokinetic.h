@@ -496,7 +496,6 @@ struct gkyl_gyrokinetic_neut_species {
 struct gkyl_gyrokinetic_field {
   enum gkyl_gkfield_id gkfield_id;
   bool is_static; // =true field does not change in time.
-  bool is_apar_static; // =true Apar at initial time is used for all time steps.
   bool zero_init_field; // =true doesn't compute the initial field.
   bool calc_init_apar; // Whether to calculate the initial Apar from the initial condition of the distribution function.
 
@@ -511,6 +510,8 @@ struct gkyl_gyrokinetic_field {
   // parameters for EMGK
   struct gkyl_gyrokinetic_bc ampere_bcs[2*GKYL_MAX_CDIM];
   double mu0; // Magnetic permeability of free space.
+  bool remove_em_zonal; // Whether to remove zonal component.
+  bool is_apar_static; // =true Apar at initial time is used for all time steps.
 
   bool time_rate_diagnostics; // Writes the time rate of change of field energy.
 

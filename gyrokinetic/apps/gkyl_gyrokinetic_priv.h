@@ -1343,6 +1343,15 @@ struct gk_field {
   gkyl_dynvec integ_apar_energy_dot; // d/dt of integrated EM energy components (separate from electrostatic energy for debugging purposes)
   bool is_first_apar_energy_dot_write_call; // flag for d(energy)/dt dynvec written first time
 
+  void (*remove_em_zonal)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function to remove zonal component.
+  struct gkyl_array_average *fs_avg_op; // Updater for flux surface averaging.
+  struct gkyl_array *fs_avg; // Array for storing flux-surface averaged quantities.
+  struct gkyl_array *fs_avg_conf_one; // Array of ones in configuration space for flux-surface averaging.
+  struct gkyl_range fs_avg_range; // Range for flux-surface average arrays.
+  struct gkyl_basis fs_avg_basis; // Basis for flux-surface average arrays.
+  struct gkyl_range fs_avg_range_ext; // Range for flux-surface average arrays.
+  int *fs_avg_subdir; // Subscript for flux-surface average direction.
+
   bool has_phi_wall_lo; // flag to indicate there is biased wall potential on lower wall
   bool phi_wall_lo_evolve; // flag to indicate biased wall potential on lower wall is time dependent
   struct gkyl_array *phi_wall_lo; // biased wall potential on lower wall

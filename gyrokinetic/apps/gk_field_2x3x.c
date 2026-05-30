@@ -7,6 +7,7 @@
 #include <gkyl_gk_field_priv.h>
 #include <gkyl_array_rio_priv.h>
 #include <gkyl_comm_io.h>
+#include <gkyl_array_average.h>
 
 #include <assert.h>
 #include <float.h>
@@ -343,6 +344,8 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
 
   field->invert_flr(app, field, field->apardot);
 
+  field->remove_em_zonal(app, field, field->apardot);
+
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -382,6 +385,22 @@ gk_field_em_rhs_none(gkyl_gyrokinetic_app *app, struct gk_field *field, const st
 }
 
 static void
+gk_field_remove_em_zonal_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *field_array)
+{
+  gkyl_array_average_advance(field->fs_avg_op, field_array, field->fs_avg);
+  // Hack the conf to phase space dg op to do the 1x substraction over the entire conf space.
+  gkyl_dg_mul_conf_phase_op_accumulate_range( &field->fs_avg_basis, &app->basis, 
+    field_array, -1.0, field->fs_avg, field->fs_avg_conf_one, &field->fs_avg_range, &app->local);
+}
+
+static void
+gk_field_em_zonal_component_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *field_array)
+{
+  // Do nothing.
+}
+
+
+static void
 gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
@@ -407,6 +426,16 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     if (app->use_gpu) {
       gkyl_array_release(f->apar_host);
       gkyl_array_release(f->apardot_host);
+    }
+    if (f->remove_em_zonal) {
+     gkyl_array_average_release(f->fs_avg_op);
+     gkyl_array_release(f->fs_avg);
+     gkyl_array_release(f->fs_avg_conf_one);
+     if (app->use_gpu) {
+      gkyl_cu_free(f->fs_avg_subdir);
+     } else {
+      gkyl_free(f->fs_avg_subdir);
+     }
     }
   }
 
@@ -603,6 +632,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Setup EM solvers.
   f->ampere_solve = gk_field_ampere_solve_none;
   f->em_rhs_func = gk_field_em_rhs_none;
+  f->remove_em_zonal = gk_field_em_zonal_component_none;
   if (f->is_em) {
     // Translate input file BCs into Ampere BCs.
     for (int d=0; d<app->cdim-1; d++) {
@@ -643,6 +673,45 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 
     f->ampere_solve = gk_field_ampere_solve_enabled;
     f->em_rhs_func = f->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
+
+    if (f->info.remove_em_zonal) {
+      f->remove_em_zonal = gk_field_remove_em_zonal_enabled;
+      // define the reduced range and basis for averaging along x only
+      struct gkyl_rect_grid grid_x;
+      gkyl_rect_grid_init(&grid_x, 1, &app->grid.lower[0], &app->grid.upper[0], &app->grid.cells[0]);
+      int ghost_x[] = {1};
+      gkyl_create_grid_ranges(&grid_x, ghost_x, &f->fs_avg_range_ext, &f->fs_avg_range);
+      gkyl_cart_modal_serendip(&f->fs_avg_basis, 1, app->basis.poly_order);
+      // create and run the array average updater to average y and z
+      // Not that in 2x, it will only average over z.
+      int avg_dim_yz[] = {0,1,1};
+      struct gkyl_array_average_inp inp_avg_xyz_to_x = {
+        .grid = &app->grid,
+        .basis = app->basis,
+        .basis_avg = f->fs_avg_basis,
+        .local = &app->local,
+        .local_avg = &f->fs_avg_range,
+        .local_avg_ext = &f->fs_avg_range_ext,
+        .weight = app->gk_geom->geo_int.jacobgeo,
+        .avg_dim = avg_dim_yz,
+        .use_gpu = app->use_gpu
+      };
+      int fs_avg_subdir[GKYL_MAX_CDIM];
+      fs_avg_subdir[0] = 0; // Average along x only, so subdir is just 0.
+      if (app->use_gpu) {
+        f->fs_avg_subdir = gkyl_cu_malloc(GKYL_MAX_CDIM*sizeof(int));
+        gkyl_cu_memcpy(f->fs_avg_subdir, fs_avg_subdir, GKYL_MAX_CDIM*sizeof(int), GKYL_CU_MEMCPY_H2D);
+      } else {
+        f->fs_avg_subdir = gkyl_malloc(GKYL_MAX_CDIM*sizeof(int));
+        for (int i=0; i<GKYL_MAX_CDIM; i++)
+          f->fs_avg_subdir[i] = fs_avg_subdir[i];
+      }
+      f->fs_avg_op = gkyl_array_average_new(&inp_avg_xyz_to_x);
+      f->fs_avg = mkarr(app->use_gpu, f->fs_avg_basis.num_basis, f->fs_avg_range_ext.volume);
+      f->fs_avg_conf_one = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      double dg_norm = pow(sqrt(2.0), app->basis.ndim);
+      gkyl_array_shiftc_range(f->fs_avg_conf_one, dg_norm, 0, &app->local);
+    }
   }
 
   // Updater for field energy calculation.
