@@ -273,13 +273,13 @@ if [ "$APP" = "core" ]
 then
     ALLTARGETS="core core-unit core-regression"
     INSTALLTARGET="core-install"
-    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/core"
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/core"
     FIN_APP_LIB="-lg0core"
 elif [ "$APP" = "moments" ]
 then
     ALLTARGETS="moments moments-unit moments-regression"
     INSTALLTARGET="moments-install"
-    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/moments"
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/moments"
     FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0moments.so
     FIN_APP_LIB="-lg0moments"
     HAVE_APP_FLAGS="-DGKYL_HAVE_MOMENTS"
@@ -287,7 +287,7 @@ elif [ "$APP" = "vlasov" ]
 then
     ALLTARGETS="vlasov vlasov-unit vlasov-regression"
     INSTALLTARGET="vlasov-install"
-    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/vlasov"
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/vlasov"
     FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0vlasov.so
     FIN_APP_LIB="-lg0vlasov"
     HAVE_APP_FLAGS="-DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS"
@@ -295,7 +295,7 @@ elif [ "$APP" = "gyrokinetic" ]
 then
     ALLTARGETS="gyrokinetic gyrokinetic-unit gyrokinetic-regression"
     INSTALLTARGET="gyrokinetic-install"
-    FIN_APP_LIB_DIR="-L../${BUILD_DIR}/gyrokinetic"
+    FIN_APP_LIB_DIR="-L../\${BUILD_DIR}/gyrokinetic"
     FIN_APP_LIB_NAME=${FIN_APP_LIB_DIR}/libg0gyrokinetic.so
     FIN_APP_LIB="-lg0gyrokinetic"
     HAVE_APP_FLAGS="-DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS"
