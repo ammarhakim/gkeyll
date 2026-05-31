@@ -248,11 +248,16 @@ compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
   // τ-equation identity  ρhW² = τ + D + p  (undensitized) eliminates h:
   //   T^{00} = (τ + D) / α²
   //   T^{0i} = γ^{ij} · S_j / α − (τ + D) · β^i / α²
-  // Both denominators here are α² — well-behaved away from horizons —
-  // so this substitution is robust where the spatial-spatial rewrite
-  // would not be. Decouples the source's bookkeeping from the floored
-  // (ρ, p) used to compute h, removing the dominant source of s²
-  // repair-state cascades observed under Option A.
+  // Both T^{00} and T^{0i} appear *linearly* in the source: T^{00} as a
+  // scalar, T^{0i} as a vector. Linear-in-conservatives operators can
+  // safely take the conservative form because there's no S-vs-v product
+  // to mismatch under floors. The spatial-spatial block T^{ij} is
+  // bilinear (kinetic stress is fundamentally u⊗u), so it stays in the
+  // h-form ρh·u^i·u^j — both factors come from the same Newton recovery
+  // and are internally consistent even when floors fire. An attempted
+  // mixed-form rewrite T^{ij} = S^i·v^j − ... (conservative S × primitive
+  // v) regressed every metric (wave s² 91→732, failed steps 24→59)
+  // because the S/v mismatch at floored cells multiplies bilinearly.
   double tauD = Etot + D;
   T[0][0] = tauD / (lapse * lapse);
   for (int i = 0; i < 3; i++) {

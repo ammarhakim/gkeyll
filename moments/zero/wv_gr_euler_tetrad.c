@@ -1440,7 +1440,11 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
 
 // Unified HIGH_ORDER vs LOW_ORDER waves dispatcher. LOW_ORDER routes to
 // direct curved-frame Lax for s²-positivity preservation on flagged cells
-// (SESSION_NOTES_3 §13, §14).
+// (SESSION_NOTES_3 §13, §14, re-confirmed in SESSION_NOTES_S2_REPAIR.md).
+// Tetrad-Lax LOW_ORDER was re-tested with all-fixes-in-place and produced
+// 140× more wave s² than curved-Lax — the M_inv·γ back-transform does
+// not preserve curved-frame admissibility A_γ even when cells reach the
+// boundary "cleanly".
 static double
 wave_tetrad_dispatch(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double *delta, const double *ql, const double *qr,
