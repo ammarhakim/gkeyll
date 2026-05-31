@@ -22,16 +22,17 @@ PREFIX ?= ${HOME}/gkylsoft
 FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
 FIN_APP_LIB = -lg0pkpm
 
-# Include config.mak file (if it exists) to overide defaults above
+HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+
+# Include config.mak and alltargets.mak files (if they exists) to overide defaults above
 -include config.mak
+-include alltargets.mak
 
 # Default lapack include and libraries: we prefer linking to static library
 LAPACK_INC_DIR ?= $(PREFIX)/OpenBLAS/include/
 LAPACK_LIB_DIR ?= $(PREFIX)/OpenBLAS/lib/
 LAPACK_LIB_NAME ?= openblas
 LAPACK_LIBS ?= -l${LAPACK_LIB_NAME}
-
-HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
 
 ifeq (${BUILD_APP}, moments)
 	HAVE_APP_FLAGS = -DGKYL_HAVE_MOMENTS
