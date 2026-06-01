@@ -106,8 +106,8 @@ gk_species_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *spec
   // Reactions with neutral species.
   gk_species_react_rhs(app, species, &species->react_neut, fin, rhs, cflrate);
 
-  // Heating source.
-  gk_species_heating_rhs(app, species, &species->heat_src, fin, rhs, cflrate);
+  // BGK source.
+  gk_species_source_bgk_rhs(app, species, &species->bgk_src, fin, rhs, cflrate);
 
   // Compute and store (in the ghost cell of rhs and in an array in bflux) the boundary fluxes.
   gk_species_bflux_rhs(app, &species->bflux, fin, rhs);
@@ -282,6 +282,9 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, phi_curr, 
             app->field->phi_wall_lo, f, &app->local);
           break;
+        case GKYL_BC_GK_SPECIES_TWISTSHIFT:
+          gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
+          break;
         case GKYL_BC_GK_SPECIES_IWL:
           phi_curr = gk_field_get_phi_from_fields(app->field, fields);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, phi_curr, 
@@ -308,6 +311,9 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_SHEATH:
           phi_curr = gk_field_get_phi_from_fields(app->field, fields);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, phi_curr, app->field->phi_wall_up, f, &app->local);
+          break;
+        case GKYL_BC_GK_SPECIES_TWISTSHIFT:
+          gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
           break;
         case GKYL_BC_GK_SPECIES_IWL:
           phi_curr = gk_field_get_phi_from_fields(app->field, fields);
@@ -720,6 +726,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
     }
+    else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) { 
+      gkyl_bc_twistshift_release(s->bc_ts_lo);
+    }
     else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) { 
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
       if (app->cdim == 3) {
@@ -735,6 +744,9 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     
     if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
+    }
+    else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+      gkyl_bc_twistshift_release(s->bc_ts_up);
     }
     else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
@@ -869,9 +881,11 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   gks->is_first_L2norm_write_call = true;
   
   for (int dir=0; dir<app->cdim; ++dir) {
-    if (gks->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL || gks->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL) {
-      // Make the parallel direction periodic so that we sync the core before
-      // applying sheath BCs in the SOL.
+    if (
+        gks->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL || gks->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL ||
+        gks->lower_bc[dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT || gks->upper_bc[dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT
+	) {
+      // Make the parallel direction periodic so that we sync before applying TS BC.
       gks->periodic_dirs[gks->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
       gks->num_periodic_dir += 1;
     }
@@ -919,6 +933,26 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
         &gks->local_lower_skin[d], &gks->local_lower_ghost[d], gks->vel_map,
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
+    }
+    else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+      assert(cdim == 3);
+      struct gkyl_bc_twistshift_inp tsinp = {
+        .bc_dir = d,
+        .shift_dir = 1, // y shift.
+        .shear_dir = 0, // shift varies with x.
+        .edge = GKYL_LOWER_EDGE,
+        .cdim = cdim,
+        .bcdir_ext_update_r = gks->local_par_ext,
+        .num_ghost = ghost,
+        .basis = gks->basis,
+        .grid = gks->grid,
+        .shift_func = gks->lower_bc[d].aux_profile,
+        .shift_func_ctx = gks->lower_bc[d].aux_ctx,
+        .use_gpu = app->use_gpu,
+      };
+
+      gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp);
+      
     }
     else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
@@ -979,6 +1013,25 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
         &gks->local_upper_skin[d], &gks->local_upper_ghost[d], gks->vel_map,
         cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
+    }
+    else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
+      assert(cdim == 3);
+      struct gkyl_bc_twistshift_inp tsinp = {
+        .bc_dir = d,
+        .shift_dir = 1, // y shift.
+        .shear_dir = 0, // shift varies with x.
+        .edge = GKYL_UPPER_EDGE,
+        .cdim = cdim,
+        .bcdir_ext_update_r = gks->local_par_ext,
+        .num_ghost = ghost,
+        .basis = gks->basis,
+        .grid = gks->grid,
+        .shift_func = gks->upper_bc[d].aux_profile,
+        .shift_func_ctx = gks->upper_bc[d].aux_ctx,
+        .use_gpu = app->use_gpu,
+      };
+
+      gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp);
     }
     else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
@@ -1630,6 +1683,18 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       dir, GKYL_UPPER_EDGE, &gks->global_ext, ghost);
   }
 
+  // Create a local range extended in the BC dir (for TS BCs).
+  int par_dir = app->cdim-1;
+  int ndim = gks->local.ndim;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = gks->local.lower[i];
+    upper_bcdir_ext[i] = gks->local.upper[i];
+  }
+  lower_bcdir_ext[par_dir] = gks->local_ext.lower[par_dir];
+  upper_bcdir_ext[par_dir] = gks->local_ext.upper[par_dir];
+  gkyl_sub_range_init(&gks->local_par_ext, &gks->local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
   if (gk_app_inp->geometry.has_LCFS) {
     // Simulation spans the last-closed flux surface (LCFS). Create core and SOL global ranges.
     int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
@@ -1804,9 +1869,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->bgk = (struct gk_bgk_collisions) { };
   gk_species_bgk_init(app, gks, &gks->bgk);
 
-  // Initialize a heating source.
-  gks->heat_src = (struct gk_heating) { };
-  gk_species_heating_init(app, gks, &gks->heat_src);
+  // Initialize a BGK source.
+  gks->bgk_src = (struct gk_source_bgk) { };
+  gk_species_source_bgk_init(app, gks, &gks->bgk_src);
 
   // Initialize positivity enforcing operator.
   gks->positivity = (struct gk_positivity) { };
@@ -2089,7 +2154,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   gk_species_bgk_release(app, &gks->bgk);
 
-  gk_species_heating_release(app, &gks->heat_src);
+  gk_species_source_bgk_release(app, &gks->bgk_src);
 
   gk_species_positivity_release(app, &gks->positivity);
 

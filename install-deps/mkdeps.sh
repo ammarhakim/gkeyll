@@ -17,6 +17,7 @@ BUILD_OPENMPI=no
 BUILD_LUAJIT=no
 BUILD_TCC=no
 BUILD_CUDSS=no
+BUILD_EIRENE=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -58,6 +59,7 @@ The following flags specify the libraries to build.
 --build-tcc                 [no] Should we build tcc?
 --build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
 --build-sundials            [no] Should we build SUNDIALS? (uses cmake)
+--build-eirene              [no] Should we build EIRENE? (includes installing SOLPS-ITER)
 
 EOF
 }
@@ -171,6 +173,9 @@ do
    --build-sundials)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SUNDIALS="$value"
+   --build-eirene)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_EIRENE="$value"
       ;;
    *)
       die "Error: Unknown flag: $1"
@@ -278,6 +283,14 @@ build_sundials() {
     fi
 }
 
+build_eirene() {
+    if [ "$BUILD_EIRENE" = "yes" ]
+    then
+	echo "Building EIRNE Coupling for neutral coupling"
+	./build-eirene.sh
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
 build_openmpi
@@ -288,3 +301,4 @@ build_superlu
 build_cudss
 build_adas
 build_sundials
+build_eirene

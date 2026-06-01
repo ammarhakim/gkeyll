@@ -71,7 +71,6 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
   { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN },
   { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
-  { "ElectrostaticIWL", GKYL_GK_FIELD_ES_IWL },
   { "ElectromagneticApar", GKYL_GK_FIELD_EM_APAR },
   { "ElectromagneticAperp", GKYL_GK_FIELD_EM_APERP },
   { "Electromagnetic", GKYL_GK_FIELD_EM },

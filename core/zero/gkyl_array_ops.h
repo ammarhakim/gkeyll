@@ -391,8 +391,19 @@ struct gkyl_array* gkyl_array_error_denom_fac(struct gkyl_array* out,
  * @param range Range to operate in.
  * @return output array.
  */
-struct gkyl_array* gkyl_array_error_denom_fac_range(struct gkyl_array* out,
-  double eps_rel, double eps_abs, const struct gkyl_array* inp, const struct gkyl_range *range);
+struct gkyl_array* gkyl_array_error_denom_fac_range(struct gkyl_array* out, double eps_rel,
+  double eps_abs, const struct gkyl_array* inp, const struct gkyl_range *range);
+
+/**
+ * Compute out = max(out,inp) based on cell avg. Returns out.
+ *
+ * @param out Output array
+ * @param inp Input array
+ * @param range Range to take max over
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_max_by_cell_per_cell_avg_range(struct gkyl_array *out,
+  const struct gkyl_array *inp, struct gkyl_range *range);
 
 /**
  * Host-side wrappers for array operations
@@ -470,3 +481,6 @@ void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *a
 
 void gkyl_array_error_denom_fac_range_cu(struct gkyl_array* out, double eps_rel, double eps_abs,
   const struct gkyl_array *inp, const struct gkyl_range *range);
+
+void gkyl_array_max_by_cell_per_cell_avg_range_cu(struct gkyl_array* out,
+  const struct gkyl_array* inp, const struct gkyl_range *range);

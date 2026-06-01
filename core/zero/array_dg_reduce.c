@@ -38,7 +38,7 @@ gkyl_array_dg_reducec(double *out, const struct gkyl_array *arr, int comp,
 
   double *arr_d = arr->data;
 
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
 
   switch (op) {
     case GKYL_MIN:
@@ -124,7 +124,7 @@ gkyl_array_dg_reducec_range(double *out, const struct gkyl_array *arr, int comp,
 
   double *arr_d = arr->data;
 
-  int num_nodes = pow(basis->poly_order+1,basis->ndim);
+  int num_nodes = basis->num_quad;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, range);

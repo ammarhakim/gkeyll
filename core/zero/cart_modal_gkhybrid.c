@@ -15,6 +15,7 @@ gkyl_cart_modal_gkhybrid(struct gkyl_basis *basis, int cdim, int vdim)
   basis->ndim = ndim;
   basis->poly_order = 1;
   basis->num_basis = num_basis_list[ndim].count[1];
+  basis->num_quad = num_quad_list[ndim].count[1];
   strcpy(basis->id, "gkhybrid");
   basis->b_type = GKYL_BASIS_MODAL_GKHYBRID;
 

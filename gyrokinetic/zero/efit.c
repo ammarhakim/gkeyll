@@ -18,7 +18,7 @@
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
-  gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
+  gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
@@ -377,8 +377,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   double Zxpt[num_max_xpts];
 
   up->num_xpts = find_xpts(up, Rxpt, Zxpt);
-  up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-  up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
+  up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
   for (int i = 0; i < up->num_xpts; i++) {
     up->Rxpt[i] = Rxpt[i];
     up->Zxpt[i] = Zxpt[i];
@@ -387,8 +387,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
-  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
-  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
+  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
   for (int i = 0; i < up->num_xpts_cubic; i++) {
     up->Rxpt_cubic[i] = Rxpt[i];
     up->Zxpt_cubic[i] = Zxpt[i];
