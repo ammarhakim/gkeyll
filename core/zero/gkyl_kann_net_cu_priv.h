@@ -26,6 +26,8 @@ struct kann_cu_node {
   int32_t ptr_i32;                      // integer parameter (e.g. select index)
   uint32_t ext_flag;                    // external flags (KANN_F_IN, etc.)
   int32_t ext_label;                    // external label
+  int32_t pre_idx;                      // index of pre-linked node (-1 if none)
+  int32_t si_off;                       // offset into stdnorm_si buffer (-1 if not stdnorm)
 };
 
 // Per-variable-node metadata for scattered upload/download/RMSprop
@@ -70,6 +72,15 @@ struct kann_cu_graph {
   int *h_fwd_order;               // host array: internal node indices in forward order
   int *h_bwd_order;               // host array: internal node indices in backward order
   int n_internal;                 // number of internal (non-leaf) nodes
+
+  // Stdnorm (layer normalization, op 32) support
+  float *stdnorm_si;              // device buffer for per-row std_inv cache
+  int stdnorm_si_total;           // total floats in stdnorm_si buffer
+
+  // RNN pre-linkage: pairs of (output_node_idx, h0_node_idx)
+  // After forward, copy output's x to h0's x for recurrence
+  int *h_pre_pairs;               // host array [2 * n_pre_pairs]
+  int n_pre_pairs;                // number of pre-linked node pairs
 
   // Batch size tracking
   int max_batch_size;             // batch size used for buffer allocation
@@ -134,3 +145,7 @@ float kann_cu_get_cost(const struct kann_cu_graph *g);
 
 // Read back output values from device.
 void kann_cu_get_output(const struct kann_cu_graph *g, int batch_size, float *out_host);
+
+// Apply pre-recurrence: copy output node x to h0 node x for each
+// pre-linked pair. Call after forward pass for RNN temporal stepping.
+void kann_cu_apply_pre(struct kann_cu_graph *g);

@@ -231,6 +231,96 @@ ker_mse_bwd(int n, const float *pg, const float *y1, const float *y0, float *y1g
     y1g[i] += t * (y1[i] - y0[i]);
 }
 
+// --- stdnorm (op 32): layer normalization ---
+// Each row of length n is independently normalized: subtract mean, divide by std.
+// si_out stores per-row 1/std for backward pass.
+// One block per row, shared-memory reduction.
+__global__ static void
+ker_stdnorm_fwd(int m, int n, const float *qx, float *px, float *si_out)
+{
+  int row = blockIdx.x;
+  if (row >= m) return;
+  const float *in = qx + row * n;
+  float *out = px + row * n;
+
+  // Compute mean via shared reduction
+  extern __shared__ float smem[];
+  float sum = 0.0f;
+  for (int i = threadIdx.x; i < n; i += blockDim.x)
+    sum += in[i];
+  smem[threadIdx.x] = sum;
+  __syncthreads();
+  for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+    if (threadIdx.x < s) smem[threadIdx.x] += smem[threadIdx.x + s];
+    __syncthreads();
+  }
+  float avg = smem[0] / n;
+
+  // Subtract mean
+  for (int i = threadIdx.x; i < n; i += blockDim.x)
+    out[i] = in[i] - avg;
+  __syncthreads();
+
+  // Compute variance
+  sum = 0.0f;
+  for (int i = threadIdx.x; i < n; i += blockDim.x)
+    sum += out[i] * out[i];
+  smem[threadIdx.x] = sum;
+  __syncthreads();
+  for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+    if (threadIdx.x < s) smem[threadIdx.x] += smem[threadIdx.x + s];
+    __syncthreads();
+  }
+  float var = smem[0] / n;
+  float std_inv = (var == 0.0f) ? 1.0f : rsqrtf(var);
+
+  // Scale by 1/std
+  for (int i = threadIdx.x; i < n; i += blockDim.x)
+    out[i] *= std_inv;
+
+  if (threadIdx.x == 0)
+    si_out[row] = std_inv;
+}
+
+// Backward: qg[i] += std_inv * (pg[i] - mean(pg) - px[i] * mean(px * pg))
+__global__ static void
+ker_stdnorm_bwd(int m, int n, const float *pg, const float *px,
+  const float *si, float *qg)
+{
+  int row = blockIdx.x;
+  if (row >= m) return;
+  const float *pg_r = pg + row * n;
+  const float *px_r = px + row * n;
+  float *qg_r = qg + row * n;
+  float std_inv = si[row];
+
+  extern __shared__ float smem[];
+  // smem[0..blockDim-1] = sum of pg, smem[blockDim..2*blockDim-1] = sum of px*pg
+  float *smem_s = smem;
+  float *smem_t = smem + blockDim.x;
+
+  float s_sum = 0.0f, t_sum = 0.0f;
+  for (int i = threadIdx.x; i < n; i += blockDim.x) {
+    s_sum += pg_r[i];
+    t_sum += px_r[i] * pg_r[i];
+  }
+  smem_s[threadIdx.x] = s_sum;
+  smem_t[threadIdx.x] = t_sum;
+  __syncthreads();
+  for (int s = blockDim.x / 2; s > 0; s >>= 1) {
+    if (threadIdx.x < s) {
+      smem_s[threadIdx.x] += smem_s[threadIdx.x + s];
+      smem_t[threadIdx.x] += smem_t[threadIdx.x + s];
+    }
+    __syncthreads();
+  }
+  float s_avg = smem_s[0] / n;
+  float t_avg = smem_t[0] / n;
+
+  for (int i = threadIdx.x; i < n; i += blockDim.x)
+    qg_r[i] += std_inv * (pg_r[i] - s_avg - px_r[i] * t_avg);
+}
+
 // ============================================================
 // Support kernels
 // ============================================================
@@ -321,6 +411,11 @@ kann_cu_graph_new(kann_t *ann, int max_batch_size)
     cg->h_nodes[i].ptr_i32 = 0;
     if (p->ptr && (p->op == 12))
       cg->h_nodes[i].ptr_i32 = *(int32_t *)p->ptr;
+
+    // Pre-linkage (RNN recurrence)
+    cg->h_nodes[i].pre_idx = -1;
+    // si_off for stdnorm (set in second pass below)
+    cg->h_nodes[i].si_off = -1;
 
     // x offset (allocated at max batch size)
     cg->h_nodes[i].x_off = x_total;
@@ -428,11 +523,55 @@ kann_cu_graph_new(kann_t *ann, int max_batch_size)
 
   cg->n_internal = n_internal;
 
+  // Resolve pre-linkage (RNN recurrence) and stdnorm cache offsets
+  int n_pre_pairs = 0;
+  int si_total = 0;
+  for (int i = 0; i < n; ++i) {
+    kad_node_t *p = v[i];
+    // Resolve pre pointer to node index
+    if (p->pre) {
+      for (int j = 0; j < n; ++j) {
+        if (v[j] == p->pre) {
+          cg->h_nodes[i].pre_idx = j;
+          n_pre_pairs++;
+          break;
+        }
+      }
+    }
+    // Assign stdnorm cache offset (m floats per stdnorm node)
+    if (p->op == 32 && p->n_child > 0) {
+      int child_n = cg->h_nodes[cg->h_nodes[i].child_idx[0]].d[
+        cg->h_nodes[cg->h_nodes[i].child_idx[0]].n_d - 1];
+      int m = cg->h_nodes[i].len / child_n;
+      cg->h_nodes[i].si_off = si_total;
+      si_total += m;
+    }
+  }
+
+  // Build pre-pair list: (output_node_idx, h0_node_idx)
+  cg->n_pre_pairs = n_pre_pairs;
+  cg->h_pre_pairs = NULL;
+  if (n_pre_pairs > 0) {
+    cg->h_pre_pairs = (int *)malloc(2 * n_pre_pairs * sizeof(int));
+    int pi = 0;
+    for (int i = 0; i < n; ++i) {
+      if (cg->h_nodes[i].pre_idx >= 0) {
+        cg->h_pre_pairs[2*pi] = i;                     // output node
+        cg->h_pre_pairs[2*pi+1] = cg->h_nodes[i].pre_idx; // h0 node
+        pi++;
+      }
+    }
+  }
+
+  cg->stdnorm_si_total = si_total;
+
   // Allocate device memory
   cg->nodes = (struct kann_cu_node *)gkyl_cu_malloc(n * sizeof(struct kann_cu_node));
   cg->x = (float *)gkyl_cu_malloc(x_total * sizeof(float));
   cg->g = (float *)gkyl_cu_malloc(g_total * sizeof(float));
   cg->r = (float *)gkyl_cu_malloc(n_var * sizeof(float));
+  cg->stdnorm_si = si_total > 0
+    ? (float *)gkyl_cu_malloc(si_total * sizeof(float)) : NULL;
 
   // Upload node metadata to device
   gkyl_cu_memcpy(cg->nodes, cg->h_nodes, n * sizeof(struct kann_cu_node),
@@ -467,11 +606,13 @@ kann_cu_graph_free(struct kann_cu_graph *cg)
   gkyl_cu_free(cg->x);
   gkyl_cu_free(cg->g);
   gkyl_cu_free(cg->r);
+  if (cg->stdnorm_si) gkyl_cu_free(cg->stdnorm_si);
   free(cg->h_nodes);
   free(cg->h_vars);
   free(cg->h_consts);
   free(cg->h_fwd_order);
   free(cg->h_bwd_order);
+  free(cg->h_pre_pairs);
   free(cg);
 }
 
@@ -653,6 +794,20 @@ dispatch_forward(struct kann_cu_graph *cg, cublasHandle_t cublas_h,
     ker_mse_fwd<<<1, KANN_CU_THREADS>>>(clen[0], cx[0], cx[1], px);
     break;
 
+  case 32: { // stdnorm (layer normalization)
+    struct kann_cu_node *q = &hn[p->child_idx[0]];
+    int sn = q->d[q->n_d - 1];
+    int sm = len / sn;
+    int threads = KANN_CU_THREADS;
+    if (threads > sn) threads = sn;
+    // Round down to power of 2 for shared-memory reduction
+    int t2 = 1;
+    while (t2 * 2 <= threads) t2 *= 2;
+    ker_stdnorm_fwd<<<sm, t2, t2 * sizeof(float)>>>(
+      sm, sn, cx[0], px, cg->stdnorm_si + p->si_off);
+    break;
+  }
+
   default:
     fprintf(stderr, "kann_cu_forward: unimplemented op %d\n", p->op);
     assert(0);
@@ -812,6 +967,22 @@ dispatch_backward(struct kann_cu_graph *cg, cublasHandle_t cublas_h,
     }
     break;
 
+  case 32: { // stdnorm backward
+    if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
+      struct kann_cu_node *q = &hn[p->child_idx[0]];
+      int sn = q->d[q->n_d - 1];
+      int sm = p->len / sn;
+      float *px = cg->x + p->x_off;
+      int threads = KANN_CU_THREADS;
+      if (threads > sn) threads = sn;
+      int t2 = 1;
+      while (t2 * 2 <= threads) t2 *= 2;
+      ker_stdnorm_bwd<<<sm, t2, 2 * t2 * sizeof(float)>>>(
+        sm, sn, pg, px, cg->stdnorm_si + p->si_off, cg_arr[0]);
+    }
+    break;
+  }
+
   default:
     fprintf(stderr, "kann_cu_backward: unimplemented op %d\n", p->op);
     assert(0);
@@ -959,4 +1130,18 @@ kann_cu_get_output(const struct kann_cu_graph *cg, int batch_size, float *out_ho
   struct kann_cu_node *hn = &cg->h_nodes[idx];
   gkyl_cu_memcpy(out_host, cg->x + hn->x_off,
     hn->len * sizeof(float), GKYL_CU_MEMCPY_D2H);
+}
+
+void
+kann_cu_apply_pre(struct kann_cu_graph *cg)
+{
+  for (int i = 0; i < cg->n_pre_pairs; ++i) {
+    int out_idx = cg->h_pre_pairs[2*i];
+    int h0_idx  = cg->h_pre_pairs[2*i+1];
+    struct kann_cu_node *out_n = &cg->h_nodes[out_idx];
+    struct kann_cu_node *h0_n  = &cg->h_nodes[h0_idx];
+    int len = h0_n->len < out_n->len ? h0_n->len : out_n->len;
+    cudaMemcpy(cg->x + h0_n->x_off, cg->x + out_n->x_off,
+      len * sizeof(float), cudaMemcpyDeviceToDevice);
+  }
 }

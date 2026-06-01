@@ -29,7 +29,8 @@ ufunc(float t, float x)
 
 enum ann_layer_type {
   ANN_DENSE,
-  ANN_GRU
+  ANN_GRU,
+  ANN_GRU_NORM
 };
 
 struct train_inp {
@@ -54,6 +55,9 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
         break;
       case ANN_GRU:
         t_net = kann_layer_gru(t_net, nn_inp->nwidth, 0);
+        break;
+      case ANN_GRU_NORM:
+        t_net = kann_layer_gru(t_net, nn_inp->nwidth, KANN_RNN_NORM);
         break;
     }
     t_net = kad_tanh(t_net);
@@ -120,7 +124,7 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   gkyl_kann_net_release(net);
 }
 
-// run inference on N input values
+// run inference on N input values (batch mode)
 void
 infer_ann(const char *nn_name, bool use_gpu,
   const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
@@ -139,6 +143,30 @@ infer_ann(const char *nn_name, bool use_gpu,
     gkyl_kn_vec_release(out_cu);
   } else {
     gkyl_kann_net_apply(net, inp, out);
+  }
+
+  gkyl_kann_net_release(net);
+}
+
+// run sequential RNN inference (one timestep at a time with recurrence)
+void
+infer_ann_rnn(const char *nn_name, bool use_gpu,
+  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+{
+  struct gkyl_kann_net *net = gkyl_kann_net_load(nn_name, use_gpu);
+
+  if (use_gpu) {
+    struct gkyl_kn_vec *inp_cu = gkyl_kn_vec_cu_dev_new(inp->nvec, inp->N);
+    struct gkyl_kn_vec *out_cu = gkyl_kn_vec_cu_dev_new(out->nvec, out->N);
+
+    gkyl_kn_vec_copy(inp_cu, inp);
+    gkyl_kann_net_apply_rnn(net, inp_cu, out_cu);
+    gkyl_kn_vec_copy(out, out_cu);
+
+    gkyl_kn_vec_release(inp_cu);
+    gkyl_kn_vec_release(out_cu);
+  } else {
+    gkyl_kann_net_apply_rnn(net, inp, out);
   }
 
   gkyl_kann_net_release(net);
@@ -242,6 +270,19 @@ main(int argc, char *argv[])
       },
       "rt_kann_cmp_arch_gkw_gru.kann"
     );
+
+    fprintf(stdout, "*** Training GRU+Norm%s (gkyl_kann_net wrapper)\n",
+      use_gpu ? " (GPU)" : "");
+    train_ann( &(struct train_inp) {
+        .ntrain = { 101, 101 },
+        .ndepth = 2,
+        .nwidth = 32,
+        .learning_rate = 1e-3f,
+        .layer_type = ANN_GRU_NORM,
+        .use_gpu = use_gpu
+      },
+      "rt_kann_cmp_arch_gkw_gru_norm.kann"
+    );
   }
 
   if (p_infer) {
@@ -264,6 +305,18 @@ main(int argc, char *argv[])
       use_gpu ? " (GPU)" : "");
     infer_ann("rt_kann_cmp_arch_gkw_gru.kann", use_gpu, inp, out);
     write_infer_data("rt_kann_cmp_arch_gkw_gru.txt", inp, out);
+
+    fprintf(stdout, "*** GRU+Norm Inference%s (gkyl_kann_net wrapper)\n",
+      use_gpu ? " (GPU)" : "");
+    infer_ann("rt_kann_cmp_arch_gkw_gru_norm.kann", use_gpu, inp, out);
+    write_infer_data("rt_kann_cmp_arch_gkw_gru_norm.txt", inp, out);
+
+    // Sequential RNN inference: exercises pre-recurrence (hidden state
+    // carries forward across timesteps)
+    fprintf(stdout, "*** GRU Sequential RNN Inference%s\n",
+      use_gpu ? " (GPU)" : "");
+    infer_ann_rnn("rt_kann_cmp_arch_gkw_gru.kann", use_gpu, inp, out);
+    write_infer_data("rt_kann_cmp_arch_gkw_gru_rnn.txt", inp, out);
 
     gkyl_kn_vec_release(inp);
     gkyl_kn_vec_release(out);

@@ -327,6 +327,78 @@ gkyl_kann_net_apply(struct gkyl_kann_net *net,
   }
 }
 
+// GPU sequential RNN inference: process one timestep at a time with
+// pre-recurrence between steps.
+#ifdef GKYL_HAVE_CUDA
+static void
+kann_net_apply_rnn_cu(struct gkyl_kann_net *net,
+  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+{
+  int n_in = net->n_in, n_out = net->n_out;
+  int nvec = inp->nvec;
+
+  assert(gkyl_kn_vec_is_cu_dev(inp) && gkyl_kn_vec_is_cu_dev(out));
+
+  // Graph needs batch_size=1 for sequential processing
+  if (!net->cg || net->cg->max_batch_size < 1) {
+    if (net->cg) kann_cu_graph_free(net->cg);
+    net->cg = kann_cu_graph_new(net->ann, 1);
+  }
+  struct kann_cu_graph *cg = net->cg;
+
+  kann_cu_sync_dim(cg, net->ann, 1);
+
+  int eval_to = cg->out_node_idx >= 0 ? cg->out_node_idx : cg->cost_node_idx;
+  int out_idx = cg->out_node_idx >= 0 ? cg->out_node_idx : cg->cost_node_idx;
+
+  // Zero h0 nodes (initial hidden state)
+  for (int i = 0; i < cg->n_pre_pairs; ++i) {
+    int h0_idx = cg->h_pre_pairs[2*i+1];
+    struct kann_cu_node *h0_n = &cg->h_nodes[h0_idx];
+    cudaMemset(cg->x + h0_n->x_off, 0, h0_n->len * sizeof(float));
+  }
+
+  for (int t = 0; t < nvec; ++t) {
+    // Feed one timestep from device input
+    kann_cu_feed_input_dev(cg, 1, inp->data + t * n_in, n_in);
+
+    kann_cu_forward(cg, net->cublas_h, eval_to);
+
+    // Copy output for this timestep
+    struct kann_cu_node *hn = &cg->h_nodes[out_idx];
+    gkyl_cu_memcpy(out->data + t * n_out, cg->x + hn->x_off,
+      n_out * sizeof(float), GKYL_CU_MEMCPY_D2D);
+
+    // Apply pre-recurrence: copy output node x to h0 node x
+    kann_cu_apply_pre(cg);
+  }
+}
+#endif
+
+void
+gkyl_kann_net_apply_rnn(struct gkyl_kann_net *net,
+  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+{
+  assert(inp->N == net->n_in);
+  assert(out->N == net->n_out);
+  assert(inp->nvec == out->nvec);
+
+#ifdef GKYL_HAVE_CUDA
+  if (GKYL_IS_CU_ALLOC(net->flags)) {
+    kann_net_apply_rnn_cu(net, inp, out);
+    return;
+  }
+#endif
+
+  // CPU path: use kann_rnn_start / kann_apply1 / kann_rnn_end
+  kann_rnn_start(net->ann);
+  for (int i = 0; i < inp->nvec; ++i) {
+    const float *ov = kann_apply1(net->ann, inp->vals[i]);
+    memcpy(out->vals[i], ov, net->n_out * sizeof(float));
+  }
+  kann_rnn_end(net->ann);
+}
+
 int
 gkyl_kann_net_dim_in(const struct gkyl_kann_net *net)
 {

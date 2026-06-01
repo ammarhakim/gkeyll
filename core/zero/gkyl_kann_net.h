@@ -81,6 +81,21 @@ void gkyl_kann_net_apply(struct gkyl_kann_net *net,
   const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out);
 
 /**
+ * Run sequential RNN inference over a sequence of input vectors.
+ * Processes one timestep at a time, applying the recurrent pre-linkage
+ * between steps so the hidden state carries forward. On CPU this uses
+ * kann_rnn_start/kann_apply1/kann_rnn_end; on GPU it uses
+ * kann_cu_apply_pre between forward passes.
+ *
+ * @param net Network to evaluate (must have RNN pre-linkage)
+ * @param inp Input vectors (nvec timesteps, each of length N = n_in)
+ * @param out Output vectors (nvec timesteps, each of length N = n_out).
+ *            Filled by this function.
+ */
+void gkyl_kann_net_apply_rnn(struct gkyl_kann_net *net,
+  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out);
+
+/**
  * Get the input dimension of the network (number of floats per input
  * sample, excluding the batch dimension).
  *
