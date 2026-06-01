@@ -38,6 +38,7 @@ struct train_inp {
   int ndepth;
   float learning_rate;
   enum ann_layer_type layer_type;
+  bool use_gpu;
 };
 
 void
@@ -59,12 +60,13 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   }
 
   t_net = kann_layer_cost(t_net, 1, KANN_C_MSE);
-  struct gkyl_kann_net *net = gkyl_kann_net_new(t_net, false);
+  struct gkyl_kann_net *net = gkyl_kann_net_new(t_net, nn_inp->use_gpu);
 
   // allocate memory for input/output vectors
   int Nt = nn_inp->ntrain[0], Nx = nn_inp->ntrain[1];
-  struct gkyl_kn_vec *inp = gkyl_kn_vec_new(Nt*Nx, 2);
-  struct gkyl_kn_vec *out = gkyl_kn_vec_new(Nt*Nx, 1);
+  int N = Nt*Nx;
+  struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 2);
+  struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
   struct xrange tr = {
     .xleft = 0.0f,
@@ -97,7 +99,20 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
     .frac_val = 0.1f,
   };
 
-  gkyl_kann_net_train_fnn1(net, &params, inp, out);
+  if (nn_inp->use_gpu) {
+    struct gkyl_kn_vec *inp_cu = gkyl_kn_vec_cu_dev_new(N, 2);
+    struct gkyl_kn_vec *out_cu = gkyl_kn_vec_cu_dev_new(N, 1);
+    gkyl_kn_vec_copy(inp_cu, inp);
+    gkyl_kn_vec_copy(out_cu, out);
+
+    gkyl_kann_net_train_fnn1(net, &params, inp_cu, out_cu);
+
+    gkyl_kn_vec_release(inp_cu);
+    gkyl_kn_vec_release(out_cu);
+  } else {
+    gkyl_kann_net_train_fnn1(net, &params, inp, out);
+  }
+
   gkyl_kann_net_save(net, nn_name);
 
   gkyl_kn_vec_release(inp);
@@ -107,10 +122,25 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
 
 // run inference on N input values
 void
-infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+infer_ann(const char *nn_name, bool use_gpu,
+  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
-  struct gkyl_kann_net *net = gkyl_kann_net_load(nn_name, false);
-  gkyl_kann_net_apply(net, inp, out);
+  struct gkyl_kann_net *net = gkyl_kann_net_load(nn_name, use_gpu);
+
+  if (use_gpu) {
+    struct gkyl_kn_vec *inp_cu = gkyl_kn_vec_cu_dev_new(inp->nvec, inp->N);
+    struct gkyl_kn_vec *out_cu = gkyl_kn_vec_cu_dev_new(out->nvec, out->N);
+
+    gkyl_kn_vec_copy(inp_cu, inp);
+    gkyl_kann_net_apply(net, inp_cu, out_cu);
+    gkyl_kn_vec_copy(out, out_cu);
+
+    gkyl_kn_vec_release(inp_cu);
+    gkyl_kn_vec_release(out_cu);
+  } else {
+    gkyl_kann_net_apply(net, inp, out);
+  }
+
   gkyl_kann_net_release(net);
 }
 
@@ -150,14 +180,16 @@ int
 main(int argc, char *argv[])
 {
   int p_train = 0, p_infer = 0, p_verbose = 0, c;
-  while ((c = getopt(argc, argv, "+htiv")) != -1) {
+  bool use_gpu = false;
+  while ((c = getopt(argc, argv, "+htivg")) != -1) {
     switch (c)
     {
       case 'h':
-        fprintf(stdout, "rt_kann_cmp_arch_gkw -i -t -v\n");
+        fprintf(stdout, "rt_kann_cmp_arch_gkw -i -t -v -g\n");
         fprintf(stdout, "  -t Run Training\n");
         fprintf(stdout, "  -i Run Inference\n");
         fprintf(stdout, "  -v Verbose mode\n");
+        fprintf(stdout, "  -g Use GPU\n");
         exit(0);
         break;
 
@@ -173,6 +205,10 @@ main(int argc, char *argv[])
         p_verbose = 3;
         break;
 
+      case 'g':
+        use_gpu = true;
+        break;
+
       case '?':
         break;
     }
@@ -181,24 +217,28 @@ main(int argc, char *argv[])
   gkyl_kann_net_set_verbose(p_verbose);
 
   if (p_train) {
-    fprintf(stdout, "*** Training MLP (gkyl_kann_net wrapper)\n");
+    fprintf(stdout, "*** Training MLP%s (gkyl_kann_net wrapper)\n",
+      use_gpu ? " (GPU)" : "");
     train_ann( &(struct train_inp) {
         .ntrain = { 101, 101 },
         .ndepth = 2,
         .nwidth = 64,
         .learning_rate = 1e-3f,
-        .layer_type = ANN_DENSE
+        .layer_type = ANN_DENSE,
+        .use_gpu = use_gpu
       },
       "rt_kann_cmp_arch_gkw_mlp.kann"
     );
 
-    fprintf(stdout, "*** Training GRU (gkyl_kann_net wrapper)\n");
+    fprintf(stdout, "*** Training GRU%s (gkyl_kann_net wrapper)\n",
+      use_gpu ? " (GPU)" : "");
     train_ann( &(struct train_inp) {
         .ntrain = { 101, 101 },
         .ndepth = 2,
         .nwidth = 32,
         .learning_rate = 1e-3f,
-        .layer_type = ANN_GRU
+        .layer_type = ANN_GRU,
+        .use_gpu = use_gpu
       },
       "rt_kann_cmp_arch_gkw_gru.kann"
     );
@@ -215,12 +255,14 @@ main(int argc, char *argv[])
       inp->vals[i][1] = 0.35f;
     }
 
-    fprintf(stdout, "*** MLP Inference (gkyl_kann_net wrapper)\n");
-    infer_ann("rt_kann_cmp_arch_gkw_mlp.kann", inp, out);
+    fprintf(stdout, "*** MLP Inference%s (gkyl_kann_net wrapper)\n",
+      use_gpu ? " (GPU)" : "");
+    infer_ann("rt_kann_cmp_arch_gkw_mlp.kann", use_gpu, inp, out);
     write_infer_data("rt_kann_cmp_arch_gkw_mlp.txt", inp, out);
 
-    fprintf(stdout, "*** GRU Inference (gkyl_kann_net wrapper)\n");
-    infer_ann("rt_kann_cmp_arch_gkw_gru.kann", inp, out);
+    fprintf(stdout, "*** GRU Inference%s (gkyl_kann_net wrapper)\n",
+      use_gpu ? " (GPU)" : "");
+    infer_ann("rt_kann_cmp_arch_gkw_gru.kann", use_gpu, inp, out);
     write_infer_data("rt_kann_cmp_arch_gkw_gru.txt", inp, out);
 
     gkyl_kn_vec_release(inp);
