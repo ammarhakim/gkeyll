@@ -80,6 +80,7 @@ enum gkyl_source_id {
 // Identifiers for specific bgk source object types.
 enum gkyl_source_bgk_id {
   GKYL_NO_SOURCE_BGK = 0, // No source. This is default.
+  GKYL_SOURCE_BGK_STATIC, // BGK source with user specified rate and eq. function.
   GKYL_SOURCE_BGK_HEATING, // Only energy source.
   GKYL_SOURCE_BGK_EXTERNAL, // External particle, momentum, and energy source.
 };
