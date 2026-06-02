@@ -34,15 +34,11 @@ static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
 };
 
 // Function pointer type for surrogate sheath BC to determine vcut factor.
-typedef void (*sheath_surrogate_t)(const double *vmap, const double *phi, const double *phi_wall, 
+typedef void (*sheath_surrogate_t)(kann_t *model, const double *vmap, const double *phi, const double *phi_wall, 
   const double *density, const double *temperature, double q2Dm, const double *bmag, const double *bimpact_angle, double *vcut_fact_out);
 
 typedef struct { sheath_surrogate_t kernels[3]; } sheath_surrogate_kern_list;  // For use in kernel tables.
 typedef struct { sheath_surrogate_kern_list dim_list[4]; } edged_sheath_surrogate_kern_list;
-
-// Function pointer for direct surrogate interface.
-typedef void (*srgrz_eval_t) (const double *mu_new, int n, double phi, double phi_wall, double dens_e,
-    double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
 
 // Serendipity surrogate kernels.
 GKYL_CU_D
@@ -88,7 +84,6 @@ struct gkyl_bc_sheath_gyrokinetic {
   void (*update_vcut_fact) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
     const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
     const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcut_fact array.
-  srgrz_eval_t surrogate_eval; // Function pointer for direct surrogate interface.
   kann_t *kann_model; // Loaded KANN model for the surrogate (CPU only; NULL on GPU or when not using surrogate).
 };
 

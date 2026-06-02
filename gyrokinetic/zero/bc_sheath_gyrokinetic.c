@@ -66,7 +66,7 @@ void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_
     double gamma = (1.0 / bmag_p[0]) * sqrt(GKYL_ELECTRON_MASS * dens_p[0] / GKYL_EPSILON0) / 2.0;
     double alpha = bimpact_angle_p[0] * 180/GKYL_PI / 2.0;
     
-    up->kernels->surrogate(vmap_p, phi_p, phi_wall_p, dens_p, temp_p, up->q2Dm, bmag_p, bimpact_angle_p, vcut_fact_p);
+    up->kernels->surrogate(up->kann_model, vmap_p, phi_p, phi_wall_p, dens_p, temp_p, up->q2Dm, bmag_p, bimpact_angle_p, vcut_fact_p);
   }
 }
 
@@ -131,15 +131,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   if (use_surrogate) {
     assert(vdim > 1);
     assert(q2Dm == -2*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS); // The surrogate is only valid for electrons.
-    up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
-    up->kann_model = kann_load(surrogate_model_path);
-    if (up->kann_model == NULL)
-      gkyl_exit("gkyl_bc_sheath_gyrokinetic_new: failed to load KANN model; check surrogate_model_path");
-    if (kann_dim_in(up->kann_model) != 3 || kann_dim_out(up->kann_model) != SRGRZ_N_MU) {
-      kann_delete(up->kann_model);
-      gkyl_exit("gkyl_bc_sheath_gyrokinetic_new: loaded KANN model has unexpected input/output dimensions");
-    }
-    bc_sheath_gyrokinetic_srgrz_set_model(up->kann_model);
+    gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(up, surrogate_model_path);
   }
   
   // Choose the kernels that does the reflection/no reflection/partial reflection, 
@@ -255,6 +247,11 @@ struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc
   return &up->vcut_fact_local;
 }
 
+kann_t *gkyl_bc_sheath_gyrokinetic_acquire_model(struct gkyl_bc_sheath_gyrokinetic *up)
+{
+  return up->kann_model;
+}
+
 void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
   const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
@@ -262,19 +259,29 @@ void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_
   return up->update_vcut_fact(up, phi, phi_wall, dens, temp, bmag, bimpact_angle, conf_r);
 }
 
-void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new, int n, double phi, double phi_wall,
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(kann_t *model, const double *mu_new, int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out)
 {
-  bc_sheath_gyrokinetic_srgrz_eval_fact(mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
+  bc_sheath_gyrokinetic_srgrz_eval(model, mu_new, n, phi, phi_wall, dens_e, temp_e, q2Dm, bmag, bimpact_angle, out);
 }
 
 void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(struct gkyl_bc_sheath_gyrokinetic *up, const char *path)
 {
-  kann_delete(up->kann_model);
+  // Assert existence of surrogate model path.
+  FILE *fp = fopen(path, "r");
+  if (fp == NULL) {
+    gkyl_exit("gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path: surrogate_model_path does not point to a valid file");
+  }
   up->kann_model = kann_load(path);
+  // Check that the model is valid.
   if (up->kann_model == NULL)
     gkyl_exit("gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path: failed to load KANN model");
-  bc_sheath_gyrokinetic_srgrz_set_model(up->kann_model);
+  if (kann_dim_in(up->kann_model) != 3 || kann_dim_out(up->kann_model) != SRGRZ_N_MU) {
+    kann_delete(up->kann_model);
+    gkyl_exit("gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path: loaded KANN model has unexpected input/output dimensions");
+  }
+  bc_sheath_gyrokinetic_srgrz_set_model(up->kann_model); // This is meant to be deleted.
+  up->update_vcut_fact = bc_gksheath_update_vcut_fact_surrogate_enabled;
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)

@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_velocity_map.h>
+#include <kann.h>
 
 // Object type
 typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
@@ -78,6 +79,14 @@ struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_
 struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
+ * Get the pointer to the KANN surrogate model used in the sheath BC updater.
+ * 
+ * @param up BC updater.
+ * @return Pointer to KANN model.
+ */
+kann_t *gkyl_bc_sheath_gyrokinetic_acquire_model(struct gkyl_bc_sheath_gyrokinetic *up);
+
+/**
  * Update the vcut_fact array using a surrogate model to reflect the electrons.
  * The surrogate depends on the potential drop, rho_e/lambda_De, and the angle of the magnetic field with respect to the wall.
  * 
@@ -104,6 +113,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
 /**
  * Auxiliary function to evaluate the surrogate model.
  * 
+ * @param model The KANN surrogate model to evaluate.
  * @param mu_new Pointer to array of mu values to evaluate surrogate at.
  * @param n Number of mu values to evaluate surrogate at.
  * @param phi Electrostatic potential at the magnetic presheath entrance (simulation boundary).
@@ -115,7 +125,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
  * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
  * @param out Pointer to array to store surrogate model output (vcut factor) corresponding to input mu values.
  */
-void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(const double *mu_new, int n, double phi, double phi_wall,
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(kann_t *model, const double *mu_new, int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
 
 /**
