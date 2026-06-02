@@ -24,53 +24,12 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x2v_ser_p1(double ffloo
   fnod[11] = 0.3162277660168379*distf[11]+0.31622776601683794*distf[10]+0.31622776601683794*distf[9]+0.3162277660168379*distf[8]+0.4743416490252568*distf[7]+0.4743416490252568*distf[6]+0.3535533905932737*distf[5]+0.4743416490252568*distf[4]+0.3535533905932737*distf[3]+0.4743416490252568*distf[2]+0.3535533905932737*distf[1]+0.3535533905932737*distf[0]; 
 
   // If f < 0. at check nodes, set it to ffloor.
-  if (fnod[0] < 0.) {
-    fnod[0] = ffloor;
-    shifted = true;
-  }
-  if (fnod[1] < 0.) {
-    fnod[1] = ffloor;
-    shifted = true;
-  }
-  if (fnod[2] < 0.) {
-    fnod[2] = ffloor;
-    shifted = true;
-  }
-  if (fnod[3] < 0.) {
-    fnod[3] = ffloor;
-    shifted = true;
-  }
-  if (fnod[4] < 0.) {
-    fnod[4] = ffloor;
-    shifted = true;
-  }
-  if (fnod[5] < 0.) {
-    fnod[5] = ffloor;
-    shifted = true;
-  }
-  if (fnod[6] < 0.) {
-    fnod[6] = ffloor;
-    shifted = true;
-  }
-  if (fnod[7] < 0.) {
-    fnod[7] = ffloor;
-    shifted = true;
-  }
-  if (fnod[8] < 0.) {
-    fnod[8] = ffloor;
-    shifted = true;
-  }
-  if (fnod[9] < 0.) {
-    fnod[9] = ffloor;
-    shifted = true;
-  }
-  if (fnod[10] < 0.) {
-    fnod[10] = ffloor;
-    shifted = true;
-  }
-  if (fnod[11] < 0.) {
-    fnod[11] = ffloor;
-    shifted = true;
+  double frac_shift = 0.1; 
+  for (int i=0; i<12; ++i) {
+    if (fnod[i] < 0.) {
+      fnod[i] += -frac_shift * fnod[i];
+      shifted = true;
+    }
   }
 
   if (shifted) {
@@ -152,20 +111,17 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x2v_ser_p1(double fflo
   }
 
   else {
+    double pct_ffloor = 0.1; // Shift by 10% of the difference between ffloor and f at node.
 
-    // If f < 0. at check nodes, set it to ffloor.
-    if (fnod[0] < 0.) fnod[0] = ffloor;
-    if (fnod[1] < 0.) fnod[1] = ffloor;
-    if (fnod[2] < 0.) fnod[2] = ffloor;
-    if (fnod[3] < 0.) fnod[3] = ffloor;
-    if (fnod[4] < 0.) fnod[4] = ffloor;
-    if (fnod[5] < 0.) fnod[5] = ffloor;
-    if (fnod[6] < 0.) fnod[6] = ffloor;
-    if (fnod[7] < 0.) fnod[7] = ffloor;
-    if (fnod[8] < 0.) fnod[8] = ffloor;
-    if (fnod[9] < 0.) fnod[9] = ffloor;
-    if (fnod[10] < 0.) fnod[10] = ffloor;
-    if (fnod[11] < 0.) fnod[11] = ffloor;
+    // If f < 0. at check nodes, shift it toward zero by pct_ffloor of its
+    // magnitude (same sign convention as above).
+    bool any_shift = false;
+    for (int i=0; i<12; ++i) {
+      if (fnod[i] < 0.) {
+        fnod[i] += pct_ffloor * (-fnod[i]);
+        any_shift = true;
+      }
+    }
 
   distf[0] = 0.1964185503295965*fnod[11]+0.3142696805273545*fnod[10]+0.1964185503295965*fnod[9]+0.1964185503295965*fnod[8]+0.3142696805273545*fnod[7]+0.1964185503295965*fnod[6]+0.1964185503295965*fnod[5]+0.3142696805273545*fnod[4]+0.1964185503295965*fnod[3]+0.1964185503295965*fnod[2]+0.3142696805273545*fnod[1]+0.1964185503295965*fnod[0]; 
   distf[1] = 0.1964185503295965*fnod[11]+0.3142696805273545*fnod[10]+0.1964185503295965*fnod[9]+0.1964185503295965*fnod[8]+0.3142696805273545*fnod[7]+0.1964185503295965*fnod[6]-0.1964185503295965*fnod[5]-0.3142696805273545*fnod[4]-0.1964185503295965*fnod[3]-0.1964185503295965*fnod[2]-0.3142696805273545*fnod[1]-0.1964185503295965*fnod[0]; 
@@ -180,7 +136,8 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x2v_ser_p1(double fflo
   distf[10] = 0.1756820922315767*fnod[11]-0.35136418446315343*fnod[10]+0.1756820922315767*fnod[9]-0.1756820922315767*fnod[8]+0.35136418446315343*fnod[7]-0.1756820922315767*fnod[6]+0.1756820922315767*fnod[5]-0.35136418446315343*fnod[4]+0.1756820922315767*fnod[3]-0.1756820922315767*fnod[2]+0.35136418446315343*fnod[1]-0.1756820922315767*fnod[0]; 
   distf[11] = 0.17568209223157663*fnod[11]-0.35136418446315326*fnod[10]+0.17568209223157663*fnod[9]-0.17568209223157663*fnod[8]+0.35136418446315326*fnod[7]-0.17568209223157663*fnod[6]-0.17568209223157663*fnod[5]+0.35136418446315326*fnod[4]-0.17568209223157663*fnod[3]+0.17568209223157663*fnod[2]-0.35136418446315326*fnod[1]+0.17568209223157663*fnod[0]; 
 
-    shifted_node = true;
+    /* Only flag as shifted if any node was modified. */
+    if (any_shift) shifted_node = true;
   }
 
   return shifted_node;

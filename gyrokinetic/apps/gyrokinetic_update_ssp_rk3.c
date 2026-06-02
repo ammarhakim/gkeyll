@@ -30,6 +30,7 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     gk_species_step_f(gks, fout[i], dta, fin[i]);
     gk_species_damping_forward_euler(gks, fin[i], fbar_in[i], fbar_out[i], dta);
     gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
+    gk_species_positivity_apply(app, gks, &gks->positivity, gks->fnew, gks->f);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
