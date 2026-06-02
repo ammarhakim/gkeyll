@@ -2,9 +2,10 @@
 #include <math.h> 
 #include <float.h> 
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_2x2v_ser_p1(double ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_2x2v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
 { 
-  // ffloor: Distribution function floor to shift to when f<0.
+  // ffloor: Distribution function floor to shift toward when f<0.
+  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   bool shifted = false;
@@ -35,101 +36,101 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_2x2v_ser_p1(double ffloo
   fnod[22] = -(0.2795084971874738*distf[23])-0.2795084971874737*distf[22]-0.2795084971874737*distf[21]-0.2795084971874737*distf[20]-0.2795084971874738*distf[19]-0.2795084971874738*distf[18]-0.2795084971874738*distf[17]-0.2795084971874737*distf[16]+0.25*distf[12]+0.25*distf[9]+0.25*distf[8]+0.25*distf[5]+0.25*distf[4]+0.25*distf[2]+0.25*distf[1]+0.25*distf[0]; 
   fnod[23] = 0.22360679774997894*distf[23]+0.22360679774997896*distf[22]+0.22360679774997896*distf[21]+0.22360679774997896*distf[20]+0.22360679774997894*distf[19]+0.22360679774997902*distf[18]+0.22360679774997902*distf[17]+0.22360679774997896*distf[16]+0.33541019662496846*distf[15]+0.33541019662496846*distf[14]+0.33541019662496846*distf[13]+0.25*distf[12]+0.33541019662496846*distf[11]+0.33541019662496846*distf[10]+0.25*distf[9]+0.25*distf[8]+0.33541019662496846*distf[7]+0.33541019662496846*distf[6]+0.25*distf[5]+0.25*distf[4]+0.33541019662496846*distf[3]+0.25*distf[2]+0.25*distf[1]+0.25*distf[0]; 
 
-  // If f < 0. at check nodes, set it to ffloor.
+  // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
   if (fnod[0] < 0.) {
-    fnod[0] = ffloor;
+    fnod[0] += pct_ffloor*(ffloor-fnod[0]);
     shifted = true;
   }
   if (fnod[1] < 0.) {
-    fnod[1] = ffloor;
+    fnod[1] += pct_ffloor*(ffloor-fnod[1]);
     shifted = true;
   }
   if (fnod[2] < 0.) {
-    fnod[2] = ffloor;
+    fnod[2] += pct_ffloor*(ffloor-fnod[2]);
     shifted = true;
   }
   if (fnod[3] < 0.) {
-    fnod[3] = ffloor;
+    fnod[3] += pct_ffloor*(ffloor-fnod[3]);
     shifted = true;
   }
   if (fnod[4] < 0.) {
-    fnod[4] = ffloor;
+    fnod[4] += pct_ffloor*(ffloor-fnod[4]);
     shifted = true;
   }
   if (fnod[5] < 0.) {
-    fnod[5] = ffloor;
+    fnod[5] += pct_ffloor*(ffloor-fnod[5]);
     shifted = true;
   }
   if (fnod[6] < 0.) {
-    fnod[6] = ffloor;
+    fnod[6] += pct_ffloor*(ffloor-fnod[6]);
     shifted = true;
   }
   if (fnod[7] < 0.) {
-    fnod[7] = ffloor;
+    fnod[7] += pct_ffloor*(ffloor-fnod[7]);
     shifted = true;
   }
   if (fnod[8] < 0.) {
-    fnod[8] = ffloor;
+    fnod[8] += pct_ffloor*(ffloor-fnod[8]);
     shifted = true;
   }
   if (fnod[9] < 0.) {
-    fnod[9] = ffloor;
+    fnod[9] += pct_ffloor*(ffloor-fnod[9]);
     shifted = true;
   }
   if (fnod[10] < 0.) {
-    fnod[10] = ffloor;
+    fnod[10] += pct_ffloor*(ffloor-fnod[10]);
     shifted = true;
   }
   if (fnod[11] < 0.) {
-    fnod[11] = ffloor;
+    fnod[11] += pct_ffloor*(ffloor-fnod[11]);
     shifted = true;
   }
   if (fnod[12] < 0.) {
-    fnod[12] = ffloor;
+    fnod[12] += pct_ffloor*(ffloor-fnod[12]);
     shifted = true;
   }
   if (fnod[13] < 0.) {
-    fnod[13] = ffloor;
+    fnod[13] += pct_ffloor*(ffloor-fnod[13]);
     shifted = true;
   }
   if (fnod[14] < 0.) {
-    fnod[14] = ffloor;
+    fnod[14] += pct_ffloor*(ffloor-fnod[14]);
     shifted = true;
   }
   if (fnod[15] < 0.) {
-    fnod[15] = ffloor;
+    fnod[15] += pct_ffloor*(ffloor-fnod[15]);
     shifted = true;
   }
   if (fnod[16] < 0.) {
-    fnod[16] = ffloor;
+    fnod[16] += pct_ffloor*(ffloor-fnod[16]);
     shifted = true;
   }
   if (fnod[17] < 0.) {
-    fnod[17] = ffloor;
+    fnod[17] += pct_ffloor*(ffloor-fnod[17]);
     shifted = true;
   }
   if (fnod[18] < 0.) {
-    fnod[18] = ffloor;
+    fnod[18] += pct_ffloor*(ffloor-fnod[18]);
     shifted = true;
   }
   if (fnod[19] < 0.) {
-    fnod[19] = ffloor;
+    fnod[19] += pct_ffloor*(ffloor-fnod[19]);
     shifted = true;
   }
   if (fnod[20] < 0.) {
-    fnod[20] = ffloor;
+    fnod[20] += pct_ffloor*(ffloor-fnod[20]);
     shifted = true;
   }
   if (fnod[21] < 0.) {
-    fnod[21] = ffloor;
+    fnod[21] += pct_ffloor*(ffloor-fnod[21]);
     shifted = true;
   }
   if (fnod[22] < 0.) {
-    fnod[22] = ffloor;
+    fnod[22] += pct_ffloor*(ffloor-fnod[22]);
     shifted = true;
   }
   if (fnod[23] < 0.) {
-    fnod[23] = ffloor;
+    fnod[23] += pct_ffloor*(ffloor-fnod[23]);
     shifted = true;
   }
 
@@ -164,9 +165,10 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_2x2v_ser_p1(double ffloo
 
 }
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_2x2v_ser_p1(double ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_2x2v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
 { 
-  // ffloor: Distribution function floor to shift to when f<0.
+  // ffloor: Distribution function floor to shift toward when f<0.
+  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   double fnod[24];
@@ -261,31 +263,31 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_2x2v_ser_p1(double fflo
 
   else {
 
-    // If f < 0. at check nodes, set it to ffloor.
-    if (fnod[0] < 0.) fnod[0] = ffloor;
-    if (fnod[1] < 0.) fnod[1] = ffloor;
-    if (fnod[2] < 0.) fnod[2] = ffloor;
-    if (fnod[3] < 0.) fnod[3] = ffloor;
-    if (fnod[4] < 0.) fnod[4] = ffloor;
-    if (fnod[5] < 0.) fnod[5] = ffloor;
-    if (fnod[6] < 0.) fnod[6] = ffloor;
-    if (fnod[7] < 0.) fnod[7] = ffloor;
-    if (fnod[8] < 0.) fnod[8] = ffloor;
-    if (fnod[9] < 0.) fnod[9] = ffloor;
-    if (fnod[10] < 0.) fnod[10] = ffloor;
-    if (fnod[11] < 0.) fnod[11] = ffloor;
-    if (fnod[12] < 0.) fnod[12] = ffloor;
-    if (fnod[13] < 0.) fnod[13] = ffloor;
-    if (fnod[14] < 0.) fnod[14] = ffloor;
-    if (fnod[15] < 0.) fnod[15] = ffloor;
-    if (fnod[16] < 0.) fnod[16] = ffloor;
-    if (fnod[17] < 0.) fnod[17] = ffloor;
-    if (fnod[18] < 0.) fnod[18] = ffloor;
-    if (fnod[19] < 0.) fnod[19] = ffloor;
-    if (fnod[20] < 0.) fnod[20] = ffloor;
-    if (fnod[21] < 0.) fnod[21] = ffloor;
-    if (fnod[22] < 0.) fnod[22] = ffloor;
-    if (fnod[23] < 0.) fnod[23] = ffloor;
+    // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
+    if (fnod[0] < 0.) fnod[0] += pct_ffloor*(ffloor-fnod[0]);
+    if (fnod[1] < 0.) fnod[1] += pct_ffloor*(ffloor-fnod[1]);
+    if (fnod[2] < 0.) fnod[2] += pct_ffloor*(ffloor-fnod[2]);
+    if (fnod[3] < 0.) fnod[3] += pct_ffloor*(ffloor-fnod[3]);
+    if (fnod[4] < 0.) fnod[4] += pct_ffloor*(ffloor-fnod[4]);
+    if (fnod[5] < 0.) fnod[5] += pct_ffloor*(ffloor-fnod[5]);
+    if (fnod[6] < 0.) fnod[6] += pct_ffloor*(ffloor-fnod[6]);
+    if (fnod[7] < 0.) fnod[7] += pct_ffloor*(ffloor-fnod[7]);
+    if (fnod[8] < 0.) fnod[8] += pct_ffloor*(ffloor-fnod[8]);
+    if (fnod[9] < 0.) fnod[9] += pct_ffloor*(ffloor-fnod[9]);
+    if (fnod[10] < 0.) fnod[10] += pct_ffloor*(ffloor-fnod[10]);
+    if (fnod[11] < 0.) fnod[11] += pct_ffloor*(ffloor-fnod[11]);
+    if (fnod[12] < 0.) fnod[12] += pct_ffloor*(ffloor-fnod[12]);
+    if (fnod[13] < 0.) fnod[13] += pct_ffloor*(ffloor-fnod[13]);
+    if (fnod[14] < 0.) fnod[14] += pct_ffloor*(ffloor-fnod[14]);
+    if (fnod[15] < 0.) fnod[15] += pct_ffloor*(ffloor-fnod[15]);
+    if (fnod[16] < 0.) fnod[16] += pct_ffloor*(ffloor-fnod[16]);
+    if (fnod[17] < 0.) fnod[17] += pct_ffloor*(ffloor-fnod[17]);
+    if (fnod[18] < 0.) fnod[18] += pct_ffloor*(ffloor-fnod[18]);
+    if (fnod[19] < 0.) fnod[19] += pct_ffloor*(ffloor-fnod[19]);
+    if (fnod[20] < 0.) fnod[20] += pct_ffloor*(ffloor-fnod[20]);
+    if (fnod[21] < 0.) fnod[21] += pct_ffloor*(ffloor-fnod[21]);
+    if (fnod[22] < 0.) fnod[22] += pct_ffloor*(ffloor-fnod[22]);
+    if (fnod[23] < 0.) fnod[23] += pct_ffloor*(ffloor-fnod[23]);
 
   distf[0] = 0.1388888888888889*fnod[23]+0.2222222222222222*fnod[22]+0.1388888888888889*fnod[21]+0.1388888888888889*fnod[20]+0.2222222222222222*fnod[19]+0.1388888888888889*fnod[18]+0.1388888888888889*fnod[17]+0.2222222222222222*fnod[16]+0.1388888888888889*fnod[15]+0.1388888888888889*fnod[14]+0.2222222222222222*fnod[13]+0.1388888888888889*fnod[12]+0.1388888888888889*fnod[11]+0.2222222222222222*fnod[10]+0.1388888888888889*fnod[9]+0.1388888888888889*fnod[8]+0.2222222222222222*fnod[7]+0.1388888888888889*fnod[6]+0.1388888888888889*fnod[5]+0.2222222222222222*fnod[4]+0.1388888888888889*fnod[3]+0.1388888888888889*fnod[2]+0.2222222222222222*fnod[1]+0.1388888888888889*fnod[0]; 
   distf[1] = 0.1388888888888889*fnod[23]+0.2222222222222222*fnod[22]+0.1388888888888889*fnod[21]+0.1388888888888889*fnod[20]+0.2222222222222222*fnod[19]+0.1388888888888889*fnod[18]+0.1388888888888889*fnod[17]+0.2222222222222222*fnod[16]+0.1388888888888889*fnod[15]+0.1388888888888889*fnod[14]+0.2222222222222222*fnod[13]+0.1388888888888889*fnod[12]-0.1388888888888889*fnod[11]-0.2222222222222222*fnod[10]-0.1388888888888889*fnod[9]-0.1388888888888889*fnod[8]-0.2222222222222222*fnod[7]-0.1388888888888889*fnod[6]-0.1388888888888889*fnod[5]-0.2222222222222222*fnod[4]-0.1388888888888889*fnod[3]-0.1388888888888889*fnod[2]-0.2222222222222222*fnod[1]-0.1388888888888889*fnod[0]; 

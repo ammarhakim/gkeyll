@@ -241,7 +241,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
 
   struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(confBasis,
-    basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, use_gpu);
+    basis, grid, proj_ctx.mass, 1.0, gk_geom, gvm, &confLocal_ext, use_gpu);
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
 
   // Project distf and apply the positivity shift again (using new ffloor).

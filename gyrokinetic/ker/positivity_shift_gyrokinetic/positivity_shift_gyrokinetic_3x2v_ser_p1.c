@@ -2,9 +2,10 @@
 #include <math.h> 
 #include <float.h> 
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_3x2v_ser_p1(double ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_3x2v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
 { 
-  // ffloor: Distribution function floor to shift to when f<0.
+  // ffloor: Distribution function floor to shift toward when f<0.
+  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   bool shifted = false;
@@ -59,197 +60,197 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_3x2v_ser_p1(double ffloo
   fnod[46] = -(0.19764235376052364*distf[47])-0.19764235376052366*distf[46]-0.19764235376052366*distf[45]-0.19764235376052366*distf[44]-0.19764235376052366*distf[43]-0.19764235376052364*distf[42]-0.19764235376052364*distf[41]-0.19764235376052364*distf[40]-0.19764235376052364*distf[39]-0.19764235376052364*distf[38]-0.19764235376052364*distf[37]-0.19764235376052366*distf[36]-0.19764235376052366*distf[35]-0.19764235376052366*distf[34]-0.19764235376052366*distf[33]-0.19764235376052364*distf[32]+0.1767766952966368*distf[27]+0.1767766952966368*distf[22]+0.1767766952966368*distf[21]+0.1767766952966368*distf[20]+0.1767766952966368*distf[16]+0.1767766952966368*distf[14]+0.1767766952966368*distf[13]+0.1767766952966368*distf[12]+0.1767766952966368*distf[8]+0.1767766952966368*distf[7]+0.1767766952966368*distf[6]+0.1767766952966368*distf[5]+0.1767766952966368*distf[3]+0.1767766952966368*distf[2]+0.1767766952966368*distf[1]+0.1767766952966368*distf[0]; 
   fnod[47] = 0.15811388300841892*distf[47]+0.15811388300841894*distf[46]+0.15811388300841894*distf[45]+0.15811388300841894*distf[44]+0.15811388300841894*distf[43]+0.15811388300841892*distf[42]+0.15811388300841892*distf[41]+0.15811388300841892*distf[40]+0.15811388300841892*distf[39]+0.15811388300841892*distf[38]+0.15811388300841892*distf[37]+0.15811388300841894*distf[36]+0.15811388300841894*distf[35]+0.15811388300841894*distf[34]+0.15811388300841894*distf[33]+0.15811388300841892*distf[32]+0.2371708245126284*distf[31]+0.2371708245126284*distf[30]+0.2371708245126284*distf[29]+0.2371708245126284*distf[28]+0.1767766952966368*distf[27]+0.2371708245126284*distf[26]+0.2371708245126284*distf[25]+0.2371708245126284*distf[24]+0.2371708245126284*distf[23]+0.1767766952966368*distf[22]+0.1767766952966368*distf[21]+0.1767766952966368*distf[20]+0.2371708245126284*distf[19]+0.2371708245126284*distf[18]+0.2371708245126284*distf[17]+0.1767766952966368*distf[16]+0.2371708245126284*distf[15]+0.1767766952966368*distf[14]+0.1767766952966368*distf[13]+0.1767766952966368*distf[12]+0.2371708245126284*distf[11]+0.2371708245126284*distf[10]+0.2371708245126284*distf[9]+0.1767766952966368*distf[8]+0.1767766952966368*distf[7]+0.1767766952966368*distf[6]+0.1767766952966368*distf[5]+0.2371708245126284*distf[4]+0.1767766952966368*distf[3]+0.1767766952966368*distf[2]+0.1767766952966368*distf[1]+0.1767766952966368*distf[0]; 
 
-  // If f < 0. at check nodes, set it to ffloor.
+  // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
   if (fnod[0] < 0.) {
-    fnod[0] = ffloor;
+    fnod[0] += pct_ffloor*(ffloor-fnod[0]);
     shifted = true;
   }
   if (fnod[1] < 0.) {
-    fnod[1] = ffloor;
+    fnod[1] += pct_ffloor*(ffloor-fnod[1]);
     shifted = true;
   }
   if (fnod[2] < 0.) {
-    fnod[2] = ffloor;
+    fnod[2] += pct_ffloor*(ffloor-fnod[2]);
     shifted = true;
   }
   if (fnod[3] < 0.) {
-    fnod[3] = ffloor;
+    fnod[3] += pct_ffloor*(ffloor-fnod[3]);
     shifted = true;
   }
   if (fnod[4] < 0.) {
-    fnod[4] = ffloor;
+    fnod[4] += pct_ffloor*(ffloor-fnod[4]);
     shifted = true;
   }
   if (fnod[5] < 0.) {
-    fnod[5] = ffloor;
+    fnod[5] += pct_ffloor*(ffloor-fnod[5]);
     shifted = true;
   }
   if (fnod[6] < 0.) {
-    fnod[6] = ffloor;
+    fnod[6] += pct_ffloor*(ffloor-fnod[6]);
     shifted = true;
   }
   if (fnod[7] < 0.) {
-    fnod[7] = ffloor;
+    fnod[7] += pct_ffloor*(ffloor-fnod[7]);
     shifted = true;
   }
   if (fnod[8] < 0.) {
-    fnod[8] = ffloor;
+    fnod[8] += pct_ffloor*(ffloor-fnod[8]);
     shifted = true;
   }
   if (fnod[9] < 0.) {
-    fnod[9] = ffloor;
+    fnod[9] += pct_ffloor*(ffloor-fnod[9]);
     shifted = true;
   }
   if (fnod[10] < 0.) {
-    fnod[10] = ffloor;
+    fnod[10] += pct_ffloor*(ffloor-fnod[10]);
     shifted = true;
   }
   if (fnod[11] < 0.) {
-    fnod[11] = ffloor;
+    fnod[11] += pct_ffloor*(ffloor-fnod[11]);
     shifted = true;
   }
   if (fnod[12] < 0.) {
-    fnod[12] = ffloor;
+    fnod[12] += pct_ffloor*(ffloor-fnod[12]);
     shifted = true;
   }
   if (fnod[13] < 0.) {
-    fnod[13] = ffloor;
+    fnod[13] += pct_ffloor*(ffloor-fnod[13]);
     shifted = true;
   }
   if (fnod[14] < 0.) {
-    fnod[14] = ffloor;
+    fnod[14] += pct_ffloor*(ffloor-fnod[14]);
     shifted = true;
   }
   if (fnod[15] < 0.) {
-    fnod[15] = ffloor;
+    fnod[15] += pct_ffloor*(ffloor-fnod[15]);
     shifted = true;
   }
   if (fnod[16] < 0.) {
-    fnod[16] = ffloor;
+    fnod[16] += pct_ffloor*(ffloor-fnod[16]);
     shifted = true;
   }
   if (fnod[17] < 0.) {
-    fnod[17] = ffloor;
+    fnod[17] += pct_ffloor*(ffloor-fnod[17]);
     shifted = true;
   }
   if (fnod[18] < 0.) {
-    fnod[18] = ffloor;
+    fnod[18] += pct_ffloor*(ffloor-fnod[18]);
     shifted = true;
   }
   if (fnod[19] < 0.) {
-    fnod[19] = ffloor;
+    fnod[19] += pct_ffloor*(ffloor-fnod[19]);
     shifted = true;
   }
   if (fnod[20] < 0.) {
-    fnod[20] = ffloor;
+    fnod[20] += pct_ffloor*(ffloor-fnod[20]);
     shifted = true;
   }
   if (fnod[21] < 0.) {
-    fnod[21] = ffloor;
+    fnod[21] += pct_ffloor*(ffloor-fnod[21]);
     shifted = true;
   }
   if (fnod[22] < 0.) {
-    fnod[22] = ffloor;
+    fnod[22] += pct_ffloor*(ffloor-fnod[22]);
     shifted = true;
   }
   if (fnod[23] < 0.) {
-    fnod[23] = ffloor;
+    fnod[23] += pct_ffloor*(ffloor-fnod[23]);
     shifted = true;
   }
   if (fnod[24] < 0.) {
-    fnod[24] = ffloor;
+    fnod[24] += pct_ffloor*(ffloor-fnod[24]);
     shifted = true;
   }
   if (fnod[25] < 0.) {
-    fnod[25] = ffloor;
+    fnod[25] += pct_ffloor*(ffloor-fnod[25]);
     shifted = true;
   }
   if (fnod[26] < 0.) {
-    fnod[26] = ffloor;
+    fnod[26] += pct_ffloor*(ffloor-fnod[26]);
     shifted = true;
   }
   if (fnod[27] < 0.) {
-    fnod[27] = ffloor;
+    fnod[27] += pct_ffloor*(ffloor-fnod[27]);
     shifted = true;
   }
   if (fnod[28] < 0.) {
-    fnod[28] = ffloor;
+    fnod[28] += pct_ffloor*(ffloor-fnod[28]);
     shifted = true;
   }
   if (fnod[29] < 0.) {
-    fnod[29] = ffloor;
+    fnod[29] += pct_ffloor*(ffloor-fnod[29]);
     shifted = true;
   }
   if (fnod[30] < 0.) {
-    fnod[30] = ffloor;
+    fnod[30] += pct_ffloor*(ffloor-fnod[30]);
     shifted = true;
   }
   if (fnod[31] < 0.) {
-    fnod[31] = ffloor;
+    fnod[31] += pct_ffloor*(ffloor-fnod[31]);
     shifted = true;
   }
   if (fnod[32] < 0.) {
-    fnod[32] = ffloor;
+    fnod[32] += pct_ffloor*(ffloor-fnod[32]);
     shifted = true;
   }
   if (fnod[33] < 0.) {
-    fnod[33] = ffloor;
+    fnod[33] += pct_ffloor*(ffloor-fnod[33]);
     shifted = true;
   }
   if (fnod[34] < 0.) {
-    fnod[34] = ffloor;
+    fnod[34] += pct_ffloor*(ffloor-fnod[34]);
     shifted = true;
   }
   if (fnod[35] < 0.) {
-    fnod[35] = ffloor;
+    fnod[35] += pct_ffloor*(ffloor-fnod[35]);
     shifted = true;
   }
   if (fnod[36] < 0.) {
-    fnod[36] = ffloor;
+    fnod[36] += pct_ffloor*(ffloor-fnod[36]);
     shifted = true;
   }
   if (fnod[37] < 0.) {
-    fnod[37] = ffloor;
+    fnod[37] += pct_ffloor*(ffloor-fnod[37]);
     shifted = true;
   }
   if (fnod[38] < 0.) {
-    fnod[38] = ffloor;
+    fnod[38] += pct_ffloor*(ffloor-fnod[38]);
     shifted = true;
   }
   if (fnod[39] < 0.) {
-    fnod[39] = ffloor;
+    fnod[39] += pct_ffloor*(ffloor-fnod[39]);
     shifted = true;
   }
   if (fnod[40] < 0.) {
-    fnod[40] = ffloor;
+    fnod[40] += pct_ffloor*(ffloor-fnod[40]);
     shifted = true;
   }
   if (fnod[41] < 0.) {
-    fnod[41] = ffloor;
+    fnod[41] += pct_ffloor*(ffloor-fnod[41]);
     shifted = true;
   }
   if (fnod[42] < 0.) {
-    fnod[42] = ffloor;
+    fnod[42] += pct_ffloor*(ffloor-fnod[42]);
     shifted = true;
   }
   if (fnod[43] < 0.) {
-    fnod[43] = ffloor;
+    fnod[43] += pct_ffloor*(ffloor-fnod[43]);
     shifted = true;
   }
   if (fnod[44] < 0.) {
-    fnod[44] = ffloor;
+    fnod[44] += pct_ffloor*(ffloor-fnod[44]);
     shifted = true;
   }
   if (fnod[45] < 0.) {
-    fnod[45] = ffloor;
+    fnod[45] += pct_ffloor*(ffloor-fnod[45]);
     shifted = true;
   }
   if (fnod[46] < 0.) {
-    fnod[46] = ffloor;
+    fnod[46] += pct_ffloor*(ffloor-fnod[46]);
     shifted = true;
   }
   if (fnod[47] < 0.) {
-    fnod[47] = ffloor;
+    fnod[47] += pct_ffloor*(ffloor-fnod[47]);
     shifted = true;
   }
 
@@ -308,9 +309,10 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_3x2v_ser_p1(double ffloo
 
 }
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_3x2v_ser_p1(double ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_3x2v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
 { 
-  // ffloor: Distribution function floor to shift to when f<0.
+  // ffloor: Distribution function floor to shift toward when f<0.
+  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   double fnod[48];
@@ -477,55 +479,55 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_3x2v_ser_p1(double fflo
 
   else {
 
-    // If f < 0. at check nodes, set it to ffloor.
-    if (fnod[0] < 0.) fnod[0] = ffloor;
-    if (fnod[1] < 0.) fnod[1] = ffloor;
-    if (fnod[2] < 0.) fnod[2] = ffloor;
-    if (fnod[3] < 0.) fnod[3] = ffloor;
-    if (fnod[4] < 0.) fnod[4] = ffloor;
-    if (fnod[5] < 0.) fnod[5] = ffloor;
-    if (fnod[6] < 0.) fnod[6] = ffloor;
-    if (fnod[7] < 0.) fnod[7] = ffloor;
-    if (fnod[8] < 0.) fnod[8] = ffloor;
-    if (fnod[9] < 0.) fnod[9] = ffloor;
-    if (fnod[10] < 0.) fnod[10] = ffloor;
-    if (fnod[11] < 0.) fnod[11] = ffloor;
-    if (fnod[12] < 0.) fnod[12] = ffloor;
-    if (fnod[13] < 0.) fnod[13] = ffloor;
-    if (fnod[14] < 0.) fnod[14] = ffloor;
-    if (fnod[15] < 0.) fnod[15] = ffloor;
-    if (fnod[16] < 0.) fnod[16] = ffloor;
-    if (fnod[17] < 0.) fnod[17] = ffloor;
-    if (fnod[18] < 0.) fnod[18] = ffloor;
-    if (fnod[19] < 0.) fnod[19] = ffloor;
-    if (fnod[20] < 0.) fnod[20] = ffloor;
-    if (fnod[21] < 0.) fnod[21] = ffloor;
-    if (fnod[22] < 0.) fnod[22] = ffloor;
-    if (fnod[23] < 0.) fnod[23] = ffloor;
-    if (fnod[24] < 0.) fnod[24] = ffloor;
-    if (fnod[25] < 0.) fnod[25] = ffloor;
-    if (fnod[26] < 0.) fnod[26] = ffloor;
-    if (fnod[27] < 0.) fnod[27] = ffloor;
-    if (fnod[28] < 0.) fnod[28] = ffloor;
-    if (fnod[29] < 0.) fnod[29] = ffloor;
-    if (fnod[30] < 0.) fnod[30] = ffloor;
-    if (fnod[31] < 0.) fnod[31] = ffloor;
-    if (fnod[32] < 0.) fnod[32] = ffloor;
-    if (fnod[33] < 0.) fnod[33] = ffloor;
-    if (fnod[34] < 0.) fnod[34] = ffloor;
-    if (fnod[35] < 0.) fnod[35] = ffloor;
-    if (fnod[36] < 0.) fnod[36] = ffloor;
-    if (fnod[37] < 0.) fnod[37] = ffloor;
-    if (fnod[38] < 0.) fnod[38] = ffloor;
-    if (fnod[39] < 0.) fnod[39] = ffloor;
-    if (fnod[40] < 0.) fnod[40] = ffloor;
-    if (fnod[41] < 0.) fnod[41] = ffloor;
-    if (fnod[42] < 0.) fnod[42] = ffloor;
-    if (fnod[43] < 0.) fnod[43] = ffloor;
-    if (fnod[44] < 0.) fnod[44] = ffloor;
-    if (fnod[45] < 0.) fnod[45] = ffloor;
-    if (fnod[46] < 0.) fnod[46] = ffloor;
-    if (fnod[47] < 0.) fnod[47] = ffloor;
+    // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
+    if (fnod[0] < 0.) fnod[0] += pct_ffloor*(ffloor-fnod[0]);
+    if (fnod[1] < 0.) fnod[1] += pct_ffloor*(ffloor-fnod[1]);
+    if (fnod[2] < 0.) fnod[2] += pct_ffloor*(ffloor-fnod[2]);
+    if (fnod[3] < 0.) fnod[3] += pct_ffloor*(ffloor-fnod[3]);
+    if (fnod[4] < 0.) fnod[4] += pct_ffloor*(ffloor-fnod[4]);
+    if (fnod[5] < 0.) fnod[5] += pct_ffloor*(ffloor-fnod[5]);
+    if (fnod[6] < 0.) fnod[6] += pct_ffloor*(ffloor-fnod[6]);
+    if (fnod[7] < 0.) fnod[7] += pct_ffloor*(ffloor-fnod[7]);
+    if (fnod[8] < 0.) fnod[8] += pct_ffloor*(ffloor-fnod[8]);
+    if (fnod[9] < 0.) fnod[9] += pct_ffloor*(ffloor-fnod[9]);
+    if (fnod[10] < 0.) fnod[10] += pct_ffloor*(ffloor-fnod[10]);
+    if (fnod[11] < 0.) fnod[11] += pct_ffloor*(ffloor-fnod[11]);
+    if (fnod[12] < 0.) fnod[12] += pct_ffloor*(ffloor-fnod[12]);
+    if (fnod[13] < 0.) fnod[13] += pct_ffloor*(ffloor-fnod[13]);
+    if (fnod[14] < 0.) fnod[14] += pct_ffloor*(ffloor-fnod[14]);
+    if (fnod[15] < 0.) fnod[15] += pct_ffloor*(ffloor-fnod[15]);
+    if (fnod[16] < 0.) fnod[16] += pct_ffloor*(ffloor-fnod[16]);
+    if (fnod[17] < 0.) fnod[17] += pct_ffloor*(ffloor-fnod[17]);
+    if (fnod[18] < 0.) fnod[18] += pct_ffloor*(ffloor-fnod[18]);
+    if (fnod[19] < 0.) fnod[19] += pct_ffloor*(ffloor-fnod[19]);
+    if (fnod[20] < 0.) fnod[20] += pct_ffloor*(ffloor-fnod[20]);
+    if (fnod[21] < 0.) fnod[21] += pct_ffloor*(ffloor-fnod[21]);
+    if (fnod[22] < 0.) fnod[22] += pct_ffloor*(ffloor-fnod[22]);
+    if (fnod[23] < 0.) fnod[23] += pct_ffloor*(ffloor-fnod[23]);
+    if (fnod[24] < 0.) fnod[24] += pct_ffloor*(ffloor-fnod[24]);
+    if (fnod[25] < 0.) fnod[25] += pct_ffloor*(ffloor-fnod[25]);
+    if (fnod[26] < 0.) fnod[26] += pct_ffloor*(ffloor-fnod[26]);
+    if (fnod[27] < 0.) fnod[27] += pct_ffloor*(ffloor-fnod[27]);
+    if (fnod[28] < 0.) fnod[28] += pct_ffloor*(ffloor-fnod[28]);
+    if (fnod[29] < 0.) fnod[29] += pct_ffloor*(ffloor-fnod[29]);
+    if (fnod[30] < 0.) fnod[30] += pct_ffloor*(ffloor-fnod[30]);
+    if (fnod[31] < 0.) fnod[31] += pct_ffloor*(ffloor-fnod[31]);
+    if (fnod[32] < 0.) fnod[32] += pct_ffloor*(ffloor-fnod[32]);
+    if (fnod[33] < 0.) fnod[33] += pct_ffloor*(ffloor-fnod[33]);
+    if (fnod[34] < 0.) fnod[34] += pct_ffloor*(ffloor-fnod[34]);
+    if (fnod[35] < 0.) fnod[35] += pct_ffloor*(ffloor-fnod[35]);
+    if (fnod[36] < 0.) fnod[36] += pct_ffloor*(ffloor-fnod[36]);
+    if (fnod[37] < 0.) fnod[37] += pct_ffloor*(ffloor-fnod[37]);
+    if (fnod[38] < 0.) fnod[38] += pct_ffloor*(ffloor-fnod[38]);
+    if (fnod[39] < 0.) fnod[39] += pct_ffloor*(ffloor-fnod[39]);
+    if (fnod[40] < 0.) fnod[40] += pct_ffloor*(ffloor-fnod[40]);
+    if (fnod[41] < 0.) fnod[41] += pct_ffloor*(ffloor-fnod[41]);
+    if (fnod[42] < 0.) fnod[42] += pct_ffloor*(ffloor-fnod[42]);
+    if (fnod[43] < 0.) fnod[43] += pct_ffloor*(ffloor-fnod[43]);
+    if (fnod[44] < 0.) fnod[44] += pct_ffloor*(ffloor-fnod[44]);
+    if (fnod[45] < 0.) fnod[45] += pct_ffloor*(ffloor-fnod[45]);
+    if (fnod[46] < 0.) fnod[46] += pct_ffloor*(ffloor-fnod[46]);
+    if (fnod[47] < 0.) fnod[47] += pct_ffloor*(ffloor-fnod[47]);
 
   distf[0] = 0.09820927516479823*fnod[47]+0.15713484026367722*fnod[46]+0.09820927516479823*fnod[45]+0.09820927516479823*fnod[44]+0.15713484026367722*fnod[43]+0.09820927516479823*fnod[42]+0.09820927516479823*fnod[41]+0.15713484026367722*fnod[40]+0.09820927516479823*fnod[39]+0.09820927516479823*fnod[38]+0.15713484026367722*fnod[37]+0.09820927516479823*fnod[36]+0.09820927516479823*fnod[35]+0.15713484026367722*fnod[34]+0.09820927516479823*fnod[33]+0.09820927516479823*fnod[32]+0.15713484026367722*fnod[31]+0.09820927516479823*fnod[30]+0.09820927516479823*fnod[29]+0.15713484026367722*fnod[28]+0.09820927516479823*fnod[27]+0.09820927516479823*fnod[26]+0.15713484026367722*fnod[25]+0.09820927516479823*fnod[24]+0.09820927516479823*fnod[23]+0.15713484026367722*fnod[22]+0.09820927516479823*fnod[21]+0.09820927516479823*fnod[20]+0.15713484026367722*fnod[19]+0.09820927516479823*fnod[18]+0.09820927516479823*fnod[17]+0.15713484026367722*fnod[16]+0.09820927516479823*fnod[15]+0.09820927516479823*fnod[14]+0.15713484026367722*fnod[13]+0.09820927516479823*fnod[12]+0.09820927516479823*fnod[11]+0.15713484026367722*fnod[10]+0.09820927516479823*fnod[9]+0.09820927516479823*fnod[8]+0.15713484026367722*fnod[7]+0.09820927516479823*fnod[6]+0.09820927516479823*fnod[5]+0.15713484026367722*fnod[4]+0.09820927516479823*fnod[3]+0.09820927516479823*fnod[2]+0.15713484026367722*fnod[1]+0.09820927516479823*fnod[0]; 
   distf[1] = 0.09820927516479823*fnod[47]+0.15713484026367722*fnod[46]+0.09820927516479823*fnod[45]+0.09820927516479823*fnod[44]+0.15713484026367722*fnod[43]+0.09820927516479823*fnod[42]+0.09820927516479823*fnod[41]+0.15713484026367722*fnod[40]+0.09820927516479823*fnod[39]+0.09820927516479823*fnod[38]+0.15713484026367722*fnod[37]+0.09820927516479823*fnod[36]+0.09820927516479823*fnod[35]+0.15713484026367722*fnod[34]+0.09820927516479823*fnod[33]+0.09820927516479823*fnod[32]+0.15713484026367722*fnod[31]+0.09820927516479823*fnod[30]+0.09820927516479823*fnod[29]+0.15713484026367722*fnod[28]+0.09820927516479823*fnod[27]+0.09820927516479823*fnod[26]+0.15713484026367722*fnod[25]+0.09820927516479823*fnod[24]-0.09820927516479823*fnod[23]-0.15713484026367722*fnod[22]-0.09820927516479823*fnod[21]-0.09820927516479823*fnod[20]-0.15713484026367722*fnod[19]-0.09820927516479823*fnod[18]-0.09820927516479823*fnod[17]-0.15713484026367722*fnod[16]-0.09820927516479823*fnod[15]-0.09820927516479823*fnod[14]-0.15713484026367722*fnod[13]-0.09820927516479823*fnod[12]-0.09820927516479823*fnod[11]-0.15713484026367722*fnod[10]-0.09820927516479823*fnod[9]-0.09820927516479823*fnod[8]-0.15713484026367722*fnod[7]-0.09820927516479823*fnod[6]-0.09820927516479823*fnod[5]-0.15713484026367722*fnod[4]-0.09820927516479823*fnod[3]-0.09820927516479823*fnod[2]-0.15713484026367722*fnod[1]-0.09820927516479823*fnod[0]; 

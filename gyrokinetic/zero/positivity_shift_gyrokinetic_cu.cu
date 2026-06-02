@@ -77,7 +77,7 @@ __global__ static void
 gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
   struct gkyl_positivity_shift_gyrokinetic_kernels *kers, const struct gkyl_rect_grid grid,
   const struct gkyl_range conf_range, const struct gkyl_range vel_range, const struct gkyl_range phase_range,
-  double *ffloor, double ffloor_fac, double cellav_fac, double mass,
+  double *ffloor, double ffloor_fac, double pct_ffloor, double cellav_fac, double mass,
   const struct gkyl_array* GKYL_RESTRICT bmag, 
   const struct gkyl_array* GKYL_RESTRICT jacobtot, const struct gkyl_array* GKYL_RESTRICT jacobtot_inv, 
   const struct gkyl_array *vmap, const struct gkyl_array *jacobvel, struct gkyl_array* GKYL_RESTRICT shiftedf,
@@ -129,7 +129,7 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     for (int k=0; k<distf->ncomp; k++)
       distf_c[k] /= jacobvel_c[0];
     // Shift f to enforce positivity if needed.
-    shifted_node = kers->shift(ffloor[0], distf_c);
+    shifted_node = kers->shift(ffloor[0], pct_ffloor, distf_c);
     // Multiply by jacobtot and jacobvel to compute M0.
     kers->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
     for (int k=0; k<distf->ncomp; k++)
@@ -266,7 +266,7 @@ gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic* 
   // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
   gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>
     (up->kernels, up->grid, *conf_rng, up->vel_map->local_vel, *phase_rng, up->ffloor, up->ffloor_fac,
-     up->cellav_fac, up->mass,
+     up->pct_ffloor, up->cellav_fac, up->mass,
      up->gk_geom->geo_int.bmag->on_dev, up->gk_geom->geo_int.jacobtot->on_dev,
      up->gk_geom->geo_int.jacobtot_inv->on_dev, up->vel_map->vmap->on_dev, up->vel_map->jacobvel->on_dev,
      up->shiftedf->on_dev, distf->on_dev, m0->on_dev, delta_m0->on_dev);
