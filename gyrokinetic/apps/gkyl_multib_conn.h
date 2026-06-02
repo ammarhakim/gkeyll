@@ -7,6 +7,8 @@ enum gkyl_conn_id {
   GKYL_CONN_NEIGHBOR = 0, // Adjacent blocks
   GKYL_CONN_ALL = 1, // Blocks connected along one direction
   GKYL_CONN_CORNER = 2, // Blocks connected by a corner
+  GKYL_CONN_BELOW = 3, // Block connected below
+  GKYL_CONN_ABOVE = 4, // Block connected above
 };
 
 /** 

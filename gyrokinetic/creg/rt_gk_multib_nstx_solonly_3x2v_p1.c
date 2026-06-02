@@ -2,16 +2,13 @@
 #include <gkyl_const.h>
 #include <gkyl_efit.h>
 #include <gkyl_gyrokinetic_multib.h>
+#include <gkyl_gyrokinetic_run.h>
 #include <gkyl_mpi_comm.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_tok_geo.h>
 
 #include <rt_arg_parse.h>
 
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#endif
 
 
 
@@ -44,7 +41,7 @@ void shaped_pfunc_lower_inner(double s, double* RZ){
 }
 
 
-struct gk_step_ctx {
+struct gk_app_ctx {
   int cdim, vdim; // Dimensionality.
   double chargeElc; // electron charge
   double massElc; // electron mass
@@ -81,6 +78,7 @@ struct gk_step_ctx {
   double mu_max_ion; // Velocity space extents in mu for ions
   double vpar_max_H0; // Velocity space extents in vparallel for H0
   double t_end; // end time
+  double write_phase_freq; // frequency of writing phase space quantities
   int num_frames; // number of output frames
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
@@ -89,7 +87,7 @@ struct gk_step_ctx {
 
 
 
-struct gk_step_ctx
+struct gk_app_ctx
 create_ctx(void)
 {
   int cdim = 3, vdim = 2; // Dimensionality.
@@ -155,7 +153,7 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
-  struct gk_step_ctx ctx = {
+  struct gk_app_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
     .chargeElc = qe, 
@@ -203,7 +201,7 @@ struct gkyl_gk_block_geom*
 create_gk_block_geom(void *ctx)
 {
 
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
   struct gkyl_gk_block_geom *bgeom = gkyl_gk_block_geom_new(3, 3);
 
   /* Block layout and coordinates
@@ -465,7 +463,7 @@ source_density(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 {
   double x = xn[0], z = xn[1];
 
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
   double nsource = app->nsource;
   double psisep = -0.0354402478890806; // from eqdsk our rep
   double wout = 0.0069402478890806/4.0;
@@ -488,7 +486,7 @@ init_upar(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout,
 void
 init_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
   double T = 2.0*app->Te;
   fout[0] = T;
 }
@@ -496,14 +494,14 @@ init_temp_elc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT f
 void
 init_temp_ion(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
   double T = 2.0*app->Ti;
   fout[0] = T;
 }
 void
 source_temp(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
   double T = app->Tsource;
   fout[0] = T;
 }
@@ -511,7 +509,7 @@ source_temp(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fou
 static inline void
 mapc2p_vel_elc(double t, const double* GKYL_RESTRICT vc, double* GKYL_RESTRICT vp, void* ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
   double cvpar = vc[0], cmu = vc[1];
 
   double mu_max_elc = app->mu_max_elc;
@@ -537,7 +535,7 @@ mapc2p_vel_elc(double t, const double* GKYL_RESTRICT vc, double* GKYL_RESTRICT v
 static inline void
 mapc2p_vel_ion(double t, const double* GKYL_RESTRICT vc, double* GKYL_RESTRICT vp, void* ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
   double cvpar = vc[0], cmu = vc[1];
 
   double mu_max_ion = app->mu_max_ion;
@@ -564,7 +562,7 @@ mapc2p_vel_ion(double t, const double* GKYL_RESTRICT vc, double* GKYL_RESTRICT v
 void
 diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct gk_step_ctx *app = ctx;
+  struct gk_app_ctx *app = ctx;
 
   fout[0] = 0.3; // Diffusivity [m^2/s].
 }
@@ -613,7 +611,7 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
-  struct gk_step_ctx ctx = create_ctx(); // Context for init functions.
+  struct gk_app_ctx ctx = create_ctx(); // Context for init functions.
   // Construct block geometry.
   struct gkyl_gk_block_geom *bgeom = create_gk_block_geom(&ctx);
   int nblocks = gkyl_gk_block_geom_num_blocks(bgeom);
@@ -884,132 +882,41 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  struct gkyl_gyrokinetic_multib app_inp = {
-    .name = "nstx_sol_3x",
+  struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1,sizeof(struct gkyl_gyrokinetic_multib));
+  app_inp->cdim = ctx.cdim;
+  app_inp->poly_order = 1;
+  app_inp->basis_type = app_args.basis_type;
+  app_inp->cfl_frac = 1.0;
+  app_inp->gk_block_geom = bgeom;
+  app_inp->num_species = 2;
+  app_inp->species[0] = elc;
+  app_inp->species[1] = ion;
+  app_inp->num_periodic_dir=1;
+  app_inp->periodic_dirs[0]=1;
+  app_inp->field = field;
+  app_inp->comm = comm;
+  app_inp->use_gpu = app_args.use_gpu;
 
-    .cdim = ctx.cdim,
-    .poly_order = 1,
-    .basis_type = app_args.basis_type,
-    .use_gpu = app_args.use_gpu,
-    .cfl_frac = 1.0,
-    //.cfl_frac_omegaH = 1.0e10,
-
-    .gk_block_geom = bgeom,
-    
-    .num_species = 2,
-    .species = { elc, ion},
-
-    .num_neut_species = 0,
-    .neut_species = {  },
-
-    .num_periodic_dir=1,
-    .periodic_dirs = {1}, // periodic in alpha direction
-
-    .field = field,
-
-    .comm = comm
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);
+  struct gkyl_gyrokinetic_run_inp run_inp = {
+    .app_type = GKYL_GK_MULTIB,
+    .multib_app_inp = *app_inp,
+    .time_stepping = {
+      .t_end = ctx.t_end,
+      .num_frames = ctx.num_frames,
+      .write_phase_freq = ctx.write_phase_freq,
+      .int_diag_calc_num = ctx.int_diag_calc_num,
+      .dt_failure_tol = ctx.dt_failure_tol,
+      .num_failures_max = ctx.num_failures_max,
+      .is_restart = app_args.is_restart,
+      .restart_frame = app_args.restart_frame,
+      .num_steps = app_args.num_steps,
+    },
   };
 
-  // Create app object.
-  struct gkyl_gyrokinetic_multib_app *app = gkyl_gyrokinetic_multib_app_new(&app_inp);
+  gkyl_gyrokinetic_run_simulation(&run_inp);
 
-  // Initial and final simulation times.
-  int frame_curr = 0;
-  double t_curr = 0.0, t_end = ctx.t_end;
-  // Initialize simulation.
-  if (app_args.is_restart) {
-    struct gkyl_app_restart_status status = gkyl_gyrokinetic_multib_app_read_from_frame(app, app_args.restart_frame);
-
-    if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
-      gkyl_gyrokinetic_multib_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
-      goto freeresources;
-    }
-
-    frame_curr = status.frame;
-    t_curr = status.stime;
-
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Restarting from frame %d", frame_curr);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, " at time = %g\n", t_curr);
-  }
-  else {
-    gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
-  }
-
-  // Create triggers for IO.
-  int num_frames = ctx.num_frames, num_int_diag_calc = ctx.int_diag_calc_num;
-  struct gkyl_tm_trigger trig_write = { .dt = t_end/num_frames, .tcurr = t_curr, .curr = frame_curr };
-  struct gkyl_tm_trigger trig_calc_intdiag = { .dt = t_end/GKYL_MAX2(num_frames, num_int_diag_calc),
-    .tcurr = t_curr, .curr = frame_curr };
-
-  // Write out ICs (if restart, it overwrites the restart frame).
-  calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, -1.0, false);
-  write_data(&trig_write, app, t_curr, false);
-
-  double dt = t_end-t_curr; // Initial time step.
-  // Initialize small time-step check.
-  double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
-  int num_failures = 0, num_failures_max = ctx.num_failures_max;
-
-  long step = 1, num_steps = app_args.num_steps;
-  while ((t_curr < t_end) && (step <= num_steps)) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    struct gkyl_update_status status = gkyl_gyrokinetic_multib_update(app, dt);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
-
-    if (!status.success) {
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
-      break;
-    }
-    t_curr += status.dt_actual;
-    dt = status.dt_suggested;
-
-    calc_integrated_diagnostics(&trig_calc_intdiag, app, t_curr, status.dt_actual, t_curr > t_end);
-    write_data(&trig_write, app, t_curr, t_curr > t_end);
-
-    if (dt_init < 0.0) {
-      dt_init = status.dt_actual;
-    }
-    else if (status.dt_actual < dt_failure_tol * dt_init) {
-      num_failures += 1;
-
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, "WARNING: Time-step dt = %g", status.dt_actual);
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, " is below %g*dt_init ...", dt_failure_tol);
-      gkyl_gyrokinetic_multib_app_cout(app, stdout, " num_failures = %d\n", num_failures);
-      if (num_failures >= num_failures_max) {
-        gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics(&trig_calc_intdiag, app, status.dt_actual, t_curr, true);
-        write_data(&trig_write, app, t_curr, true);
-        break;
-      }
-    }
-    else {
-      num_failures = 0;
-    }
-
-    step += 1;
-  }
-
-  gkyl_gyrokinetic_multib_app_stat_write(app);
-
-  // Fetch simulation statistics.
-  struct gkyl_gyrokinetic_stat stat = gkyl_gyrokinetic_multib_app_stat(app);
-
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "\n");
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
-  if (stat.nstage_2_fail > 0) {
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_gyrokinetic_multib_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
-  }
-  gkyl_gyrokinetic_multib_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
-  gkyl_gyrokinetic_multib_app_print_timings(app, stdout);
-
-  freeresources:
-  // Free resources after simulation completion.
-  gkyl_gyrokinetic_multib_app_release(app);
   gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
 
@@ -1017,6 +924,7 @@ main(int argc, char **argv)
   if (app_args.use_mpi)
     MPI_Finalize();
 #endif
-
+  
   return 0;
+
 }

@@ -623,8 +623,8 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB, },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, .aux_profile = bc_shift_func_lo, .aux_ctx = &ctx, },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, .aux_profile = bc_shift_func_up, .aux_ctx = &ctx, },
+      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
+      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
     },
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
@@ -741,7 +741,7 @@ main(int argc, char **argv)
 
   // GK app.
   struct gkyl_gk app_inp = {
-    .name = "gk_tcv_core_3x2v_p1",
+    .name = "rt_gk_tcv_core_3x2v_p1",
 
     .cfl_frac = 1.0,
 
@@ -758,6 +758,10 @@ main(int argc, char **argv)
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func, // Magnetic field.
       .bfield_ctx = &ctx,
+      .parallel_lower_bc_shift_func = bc_shift_func_lo,
+      .parallel_upper_bc_shift_func = bc_shift_func_up,
+      .parallel_lower_bc_shift_ctx = &ctx,
+      .parallel_upper_bc_shift_ctx = &ctx,
     },
 
     .num_periodic_dir = 1,
