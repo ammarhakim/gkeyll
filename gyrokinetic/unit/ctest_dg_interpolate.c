@@ -9,7 +9,7 @@
 #include <gkyl_position_map.h>
 #include <gkyl_dg_interpolate.h>
 #include <gkyl_dg_updater_moment.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_util.h>
 #include <gkyl_array_rio.h>
@@ -85,7 +85,7 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   double lower[] = {0.0}, upper[] = {1.0};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
+  int ndim = sizeof(lower)/sizeof(lower[0]);
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -202,7 +202,7 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
+  int ndim = sizeof(lower)/sizeof(lower[0]);
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -336,7 +336,7 @@ static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *con
 void
 test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vx_min = -6.0;
@@ -344,8 +344,8 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double lower[] = {x_min, vx_min}, upper[] = {x_max, vx_max};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -571,7 +571,7 @@ void eval_distf_1x2v_vlasov(double t, const double *xn, double* restrict fout, v
 void
 test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vx_min = -6.0;
@@ -581,8 +581,8 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double lower[] = {x_min, vx_min, vy_min}, upper[] = {x_max, vx_max, vy_max};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -896,16 +896,16 @@ static void calc_moms_gk(struct gkyl_rect_grid *grid, struct gkyl_basis *confBas
   struct gkyl_range *confLocal, struct gkyl_range *local, double mass, double charge, struct gkyl_velocity_map *gvm,
   struct gk_geometry *gk_geom, bool use_gpu, struct gkyl_array *distf, struct gkyl_array *moms)
 {
-  struct gkyl_dg_updater_moment* mom_op = gkyl_dg_updater_moment_gyrokinetic_new(grid, confBasis,
-    basis, confLocal, mass, charge, gvm, gk_geom, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
-  gkyl_dg_updater_moment_gyrokinetic_advance(mom_op, local, confLocal, distf, moms);
-  gkyl_dg_updater_moment_gyrokinetic_release(mom_op);
+  struct gkyl_mom_gyrokinetic *mom_op = gkyl_mom_gyrokinetic_new(mass, charge, confBasis, basis,
+    grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2, false, use_gpu);    
+  gkyl_mom_gyrokinetic_advance(mom_op, local, confLocal, 0, distf, moms);
+  gkyl_mom_gyrokinetic_release(mom_op);
 }
 
 void
 test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vpar_min = -6.0;
@@ -914,8 +914,8 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.0;
   double charge = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1176,7 +1176,7 @@ void eval_distf_1x2v_gk(double t, const double *xn, double* restrict fout, void 
 void
 test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vpar_min = -6.0;
@@ -1186,8 +1186,8 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.0;
   double charge = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1446,7 +1446,7 @@ void eval_distf_2x2v_gk(double t, const double *xn, double* restrict fout, void 
 void
 test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 2;
+  int cdim = 2;
 //  double x_min = 0.0;
 //  double x_max = 1.0;
 //  double y_min = 0.0;
@@ -1465,8 +1465,8 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.67e-27*3.973;
   double charge = 1.602e-19;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1725,7 +1725,7 @@ void eval_distf_3x2v_gk(double t, const double *xn, double* restrict fout, void 
 void
 test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 3;
+  int cdim = 3;
 //  double x_min = 0.0;
 //  double x_max = 1.0;
 //  double y_min = 0.0;
@@ -1757,8 +1757,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.67e-27*3.973;
   double charge = 1.602e-19;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
