@@ -667,6 +667,11 @@ int main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
+    .positivity = {
+      .type = GKYL_GK_POSITIVITY_SHIFT,
+      .write_diagnostics = true,
+    },
+
     .num_diag_moments = 7,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
