@@ -46,7 +46,8 @@ struct gk_tcv_ctx {
   int Npsi_sol; // Number of cells in psi in the SOL.
   int Npsi_pf; // Number of cells in psi in the private flux.
   int Npsi_core; // Number of cells in psi in the core.
-  int Ntheta_divertor; // Number of cells in theta in the divertor.
+  int Ntheta_divertor_lfs; // Number of cells in theta in the divertor, LFS.
+  int Ntheta_divertor_hfs; // Number of cells in theta in the divertor, HFS.
   int Ntheta_sol; // Number of cells in theta in the (upper) SOL (and core).
   int Nvpar, Nmu; // Number of cells in vpar,mu.
   int Ny; // Number of cells in y.
@@ -174,18 +175,19 @@ create_asdex_lsn_gk_block_geom(void *ctx)
   double y_max = params->y_max; // Upper boundary in y.
 
   // Number of cells.
-  int Npsi_sol        = params->Npsi_sol       ;
-  int Npsi_pf         = params->Npsi_pf        ;
-  int Npsi_core       = params->Npsi_core      ;
-  int Ntheta_divertor = params->Ntheta_divertor;
-  int Ntheta_sol      = params->Ntheta_sol     ;
-  int Ny              = params->Ny             ;
+  int Npsi_sol            = params->Npsi_sol       ;
+  int Npsi_pf             = params->Npsi_pf        ;
+  int Npsi_core           = params->Npsi_core      ;
+  int Ntheta_divertor_lfs = params->Ntheta_divertor_lfs;
+  int Ntheta_divertor_hfs = params->Ntheta_divertor_hfs;
+  int Ntheta_sol          = params->Ntheta_sol     ;
+  int Ny                  = params->Ny             ;
 
   // Block 0: outer private flux (PF) region.
   gkyl_gk_block_geom_set_block(bgeom, 0, &(struct gkyl_gk_block_geom_info) {
       .lower = { psi_sep, y_min, theta_min },
       .upper = { psi_max_pf, y_max, theta_max },
-      .cells = { Npsi_pf, Ny, Ntheta_divertor },
+      .cells = { Npsi_pf, Ny, Ntheta_divertor_lfs },
       .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
@@ -232,7 +234,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
   gkyl_gk_block_geom_set_block(bgeom, 1, &(struct gkyl_gk_block_geom_info) {
       .lower = { psi_min_sol, y_min, theta_min },
       .upper = { psi_sep, y_max, theta_max },
-      .cells = { Npsi_sol, Ny, Ntheta_divertor },
+      .cells = { Npsi_sol, Ny, Ntheta_divertor_lfs },
       .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
@@ -328,7 +330,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
   gkyl_gk_block_geom_set_block(bgeom, 3, &(struct gkyl_gk_block_geom_info) {
       .lower = { psi_min_sol, y_min, theta_min },
       .upper = { psi_sep, y_max, theta_max },
-      .cells = { Npsi_sol, Ny, Ntheta_divertor },
+      .cells = { Npsi_sol, Ny, Ntheta_divertor_hfs },
       .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
@@ -376,7 +378,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
   gkyl_gk_block_geom_set_block(bgeom, 4, &(struct gkyl_gk_block_geom_info) {
       .lower = { psi_sep, y_min, theta_min },
       .upper = { psi_max_pf, y_max, theta_max },
-      .cells = { Npsi_pf, Ny, Ntheta_divertor },
+      .cells = { Npsi_pf, Ny, Ntheta_divertor_hfs },
       .cuts = { 1, 1, 1 },
       .geometry = {
         .world = {0.0},
@@ -716,8 +718,9 @@ create_ctx(void)
   int Npsi_sol = 4;
   int Npsi_pf = 4;
   int Npsi_core = 8;
-  int Ntheta_divertor = 4;
-  int Ntheta_sol = 12;
+  int Ntheta_divertor_lfs = 8;
+  int Ntheta_divertor_hfs = 4;
+  int Ntheta_sol = 24;
   int Ny = 2;
   int Nvpar = 4; // Number of cells in vpar.
   int Nmu = 4; // Number of cells in mu.
@@ -764,19 +767,20 @@ create_ctx(void)
   double mu_min_elc_c = 0.;
   double mu_max_elc_c = 1.;
 
-  printf("  X-point @ (R,Z) = (%.9e,%9e)\n",Rxpt,Zxpt);
-  printf("  psi_axis        = %.13e\n",psi_axis);
-  printf("  psi_sep         = %.13e\n",psi_sep);
-  printf("  rho_min_core    = %.13e\n",rho_min_core);
-  printf("  rho_max_sol     = %.13e\n",rho_max_sol);
-  printf("  psi_max_core    = %.13e\n",psi_max_core);
-  printf("  psi_min_sol     = %.13e\n",psi_min_sol);
-  printf("  psi_max_pf      = %.13e\n",psi_max_pf);
-  printf("  Npsi_sol        = %d\n",Npsi_sol       );
-  printf("  Npsi_pf         = %d\n",Npsi_pf        );
-  printf("  Npsi_core       = %d\n",Npsi_core      );
-  printf("  Ntheta_divertor = %d\n",Ntheta_divertor);
-  printf("  Ntheta_sol      = %d\n",Ntheta_sol     );
+  printf("  X-point @ (R,Z)     = (%.9e,%9e)\n",Rxpt,Zxpt);
+  printf("  psi_axis            = %.13e\n",psi_axis);
+  printf("  psi_sep             = %.13e\n",psi_sep);
+  printf("  rho_min_core        = %.13e\n",rho_min_core);
+  printf("  rho_max_sol         = %.13e\n",rho_max_sol);
+  printf("  psi_max_core        = %.13e\n",psi_max_core);
+  printf("  psi_min_sol         = %.13e\n",psi_min_sol);
+  printf("  psi_max_pf          = %.13e\n",psi_max_pf);
+  printf("  Npsi_sol            = %d\n",Npsi_sol       );
+  printf("  Npsi_pf             = %d\n",Npsi_pf        );
+  printf("  Npsi_core           = %d\n",Npsi_core      );
+  printf("  Ntheta_divertor_lfs = %d\n",Ntheta_divertor_lfs);
+  printf("  Ntheta_divertor_hfs = %d\n",Ntheta_divertor_hfs);
+  printf("  Ntheta_sol          = %d\n",Ntheta_sol     );
 
   double t_end = 1.0e-7;
   double num_frames = 1;
@@ -833,7 +837,8 @@ create_ctx(void)
     .Npsi_sol        = Npsi_sol       ,
     .Npsi_pf         = Npsi_pf        ,
     .Npsi_core       = Npsi_core      ,
-    .Ntheta_divertor = Ntheta_divertor,
+    .Ntheta_divertor_lfs = Ntheta_divertor_lfs,
+    .Ntheta_divertor_hfs = Ntheta_divertor_hfs,
     .Ntheta_sol      = Ntheta_sol     ,
     .Ny              = Ny             ,
     .Nvpar = Nvpar,
