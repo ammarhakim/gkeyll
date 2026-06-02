@@ -133,11 +133,6 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   struct gkyl_range range, ext_range;
   gkyl_create_grid_ranges(&up->grid, nghost, &ext_range, &range);
 
-  int max_1d = 0;
-  for (int d=0; d<ext_range.ndim; ++d) {
-    int shape = gkyl_range_shape(&ext_range, d);
-    max_1d = max_1d > shape ? max_1d : shape;
-  }
   long tot_vol = winp->update_range_ext->volume;
 
   // allocate memory to store 1D slices of waves, speeds and
@@ -149,8 +144,8 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   up->amdq = gkyl_array_new(GKYL_DOUBLE, meqn, tot_vol);
   up->speeds = gkyl_array_new(GKYL_DOUBLE, mwaves, tot_vol);
   up->flux2 = gkyl_array_new(GKYL_DOUBLE, meqn, tot_vol);
-
-  up->redo_fluct = gkyl_array_new(GKYL_DOUBLE, meqn, max_1d);
+  
+  up->redo_fluct = gkyl_array_new(GKYL_DOUBLE, 1, tot_vol);
 
   up->geom = gkyl_wave_geom_acquire(winp->geom);
 
@@ -242,12 +237,12 @@ wave_prop_first_order(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
     gkyl_copy_int_arr(ndim, iter.idx, idxl);
     gkyl_copy_int_arr(ndim, iter.idx, idxr);
 
-    idxl[dir] = idxl[dir]-1;
+    idxr[dir] = idxr[dir]+1;
     long lidx = gkyl_range_idx(update_range, idxl);
     long ridx = gkyl_range_idx(update_range, idxr);
 
-    double *amdq_local = gkyl_array_fetch(amdq, ridx);
     double *apdq_local = gkyl_array_fetch(apdq, lidx);
+    double *amdq_local = gkyl_array_fetch(amdq, ridx);
 
     double *flux2l = gkyl_array_fetch(flux2, lidx);
     double *flux2r = gkyl_array_fetch(flux2, ridx);
@@ -330,7 +325,7 @@ wave_prop_first_order_redo(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtd
     gkyl_copy_int_arr(ndim, iter.idx, idxl);
     gkyl_copy_int_arr(ndim, iter.idx, idxr);
 
-    idxl[dir] = idxl[dir]-1;
+    idxr[dir] = idxr[dir]+1;
     long lidx = gkyl_range_idx(update_range, idxl);
     long ridx = gkyl_range_idx(update_range, idxr);
 
@@ -382,15 +377,6 @@ calc_second_order_qflux(int meqn, double dtdx, double s,
 static inline int sign_double(double val) { return (0.0 < val) - (val < 0.0); }
 
 static inline void
-calc_second_order_fflux(int meqn, double dtdx, double s,
-  const double *waves, double * GKYL_RESTRICT flux2)
-{
-  double sfact = 0.5*sign_double(s)*(1-fabs(s)*dtdx);
-  for (int i=0; i<meqn; ++i)
-    flux2[i] += sfact*waves[i];
-}
-
-static inline void
 calc_second_order_update(int meqn, double dtdx, double * GKYL_RESTRICT qout,
   const double *fl, const double *fr)
 {
@@ -424,7 +410,7 @@ wave_prop_second_order_flux(enum gkyl_wave_limiter limiter, double dtdx,
     double *ws = gkyl_array_fetch(waves_scaled, cidx);
     const double *wl = gkyl_array_cfetch(waves, lidx);
     const double *wr = gkyl_array_cfetch(waves, ridx);
-    
+
     for (int mw=0; mw<mwaves; ++mw) {
       double dotl = wave_dot_prod(meqn, &wl[mw*meqn], &wc[mw*meqn]);
       double wnorm2 = wave_dot_prod(meqn, &wc[mw*meqn], &wc[mw*meqn]);
@@ -442,6 +428,7 @@ wave_prop_second_order_flux(enum gkyl_wave_limiter limiter, double dtdx,
     const struct gkyl_wave_cell_geom *cgc = gkyl_wave_geom_get(wg, idxc);
     double kappal = cgl->kappa;
     double kappac = cgc->kappa;
+    
     double *flux2_d = gkyl_array_fetch(flux2, cidx);
     for (int mw=0; mw<mwaves; ++mw) {
       calc_second_order_qflux(meqn, dtdx/(0.5*(kappal+kappac)), s[mw], &ws[mw*meqn], flux2_d);
@@ -483,7 +470,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   extend_lo[dir] = 1;
   extend_up[dir] = 2;
   gkyl_range_extend(&fluctuation_range, update_range, extend_lo, extend_up);
-
+  
   // Extend the local range for indexing second order fluxes
   struct gkyl_range second_order_range;
   extend_lo[dir] = 0;
@@ -491,7 +478,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
   gkyl_range_extend(&second_order_range, update_range, extend_lo, extend_up);
 
   // Copy previous time step solution 
-  gkyl_array_set_range(qout, 1.0, qin, update_range); 
+  gkyl_array_set(qout, 1.0, qin); 
   // Set the redo_fluct array so in the first sweep, we compute fluxes at every interface
   gkyl_array_clear(wv->redo_fluct, 1.0);
 
@@ -533,7 +520,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
     wv->amdq, wv->apdq, wv->flux2, qout);
   
   // Determine if we need to redo any flux computations
-  if (wv->check_inv_domain) {    
+  if (wv->check_inv_domain) {
     wave_prop_check_inv(wv->equation, ndim, dir, cflm, dtdx, ftype, update_range,
       fluctuation_range, wv->geom, phi, qin, wv->waves, wv->speeds, wv->amdq, wv->apdq,
       wv->redo_fluct, max_speed, cfla, is_cfl_violated, qout);
