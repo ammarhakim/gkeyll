@@ -17,7 +17,7 @@
 #include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
-#include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_mom_gyrokinetic.h>
 
 // Meta-data for IO
 struct test_bc_twistshift_output_meta {
@@ -216,12 +216,12 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
-  const double lower[] = {-2.0, -1.50, -3.0};
-  const double upper[] = { 2.0,  1.50,  3.0};
-  const int vdim = 0;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int poly_order = 1;
+  double lower[] = {-2.0, -1.50, -3.0};
+  double upper[] = { 2.0,  1.50,  3.0};
+  int vdim = 0;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
@@ -455,12 +455,12 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
-  const double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
-  const double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
-  const int vdim = 2;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int poly_order = 1;
+  double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
+  double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
+  int vdim = 2;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
@@ -658,9 +658,9 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_clear(gk_geom->geo_corn.bmag, 0.0);
   gkyl_array_shiftc(gk_geom->geo_corn.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
-    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
-  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
+  struct gkyl_mom_gyrokinetic *mcalc = gkyl_mom_gyrokinetic_new(mass, 0, &basis_conf, &basis,
+      &grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2, true, use_gpu);    
+  int num_mom = gkyl_mom_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
@@ -675,12 +675,10 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
   double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
-      &skin_rng, &skin_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &skin_rng, &skin_rng_conf, 0, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_skin, marr, GKYL_SUM, &skin_rng_conf);
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
-      &ghost_rng, &ghost_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, 0, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu) {
@@ -750,8 +748,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "ctest_bc_twistshift_3x2v_fig6_tar_shifted.gkyl");
   }
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
-      &ghost_rng, &ghost_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, 0, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu)
@@ -804,7 +801,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     gkyl_free(red_integ_mom_skin);
     gkyl_free(red_integ_mom_ghost);
   }
-  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
+  gkyl_mom_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
@@ -874,12 +871,12 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
-  const double lower[] = {-2.0, -1.50, -3.0};
-  const double upper[] = { 2.0,  1.50,  3.0};
-  const int vdim = 0;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int poly_order = 1;
+  double lower[] = {-2.0, -1.50, -3.0};
+  double upper[] = { 2.0,  1.50,  3.0};
+  int vdim = 0;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
@@ -1190,12 +1187,12 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
-  const double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
-  const double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
-  const int vdim = 2;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int poly_order = 1;
+  double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
+  double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
+  int vdim = 2;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
@@ -1402,9 +1399,9 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_clear(gk_geom->geo_corn.bmag, 0.0);
   gkyl_array_shiftc(gk_geom->geo_corn.bmag, B0*pow(sqrt(2.0),cdim), 0);
 
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &basis_conf,
-    &basis, &local_conf, mass, 0, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2, true, use_gpu);
-  int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
+  struct gkyl_mom_gyrokinetic *mcalc = gkyl_mom_gyrokinetic_new(mass, 0, &basis_conf, &basis,
+      &grid, gvm, gk_geom, GKYL_F_MOMENT_M0M1M2, true, use_gpu);    
+  int num_mom = gkyl_mom_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, local_ext_conf.volume);
   double *red_integ_mom_skin, *red_integ_mom_ghost;
@@ -1419,12 +1416,10 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   double *red_integ_mom_skin_ho = gkyl_malloc(sizeof(double[num_mom]));
   double *red_integ_mom_ghost_ho = gkyl_malloc(sizeof(double[num_mom]));
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
-      &skin_rng, &skin_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &skin_rng, &skin_rng_conf, 0, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_skin, marr, GKYL_SUM, &skin_rng_conf);
 
-  gkyl_dg_updater_moment_gyrokinetic_advance(mcalc,
-      &ghost_rng, &ghost_rng_conf, distf, marr);
+  gkyl_mom_gyrokinetic_advance(mcalc, &ghost_rng, &ghost_rng_conf, 0, distf, marr);
   gkyl_array_reduce_range(red_integ_mom_ghost, marr, GKYL_SUM, &ghost_rng_conf);
 
   if (use_gpu) {
@@ -1600,7 +1595,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     gkyl_free(red_integ_mom_skin);
     gkyl_free(red_integ_mom_ghost);
   }
-  gkyl_dg_updater_moment_gyrokinetic_release(mcalc);
+  gkyl_mom_gyrokinetic_release(mcalc);
   gkyl_array_release(marr);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_position_map_release(pmap);
