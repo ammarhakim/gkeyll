@@ -2318,7 +2318,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_1x2v_ser_p1(const double *
   double dens_n = -(0.5*(2.4494897427831783*density[1]-1.4142135623730951*density[0])); 
   double temp_n = -(0.5*(2.4494897427831783*temperature[1]-1.4142135623730951*temperature[0])); 
   double bmag_n = -(0.5*(2.4494897427831783*bmag[1]-1.4142135623730951*bmag[0])); 
-  double angle_n = -(0.5*(2.4494897427831783*bimpact_angle[1]-1.4142135623730951*bimpact_angle[0])); 
+  double angle_n = bimpact_angle[0]; 
   double vcut_fact_n[2] = {0.}; 
 
   double mu;
@@ -2345,7 +2345,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_1x2v_ser_p1(const double *
   double dens_n = 0.5*(2.4494897427831783*density[1]+1.4142135623730951*density[0]); 
   double temp_n = 0.5*(2.4494897427831783*temperature[1]+1.4142135623730951*temperature[0]); 
   double bmag_n = 0.5*(2.4494897427831783*bmag[1]+1.4142135623730951*bmag[0]); 
-  double angle_n = 0.5*(2.4494897427831783*bimpact_angle[1]+1.4142135623730951*bimpact_angle[0]); 
+  double angle_n = bimpact_angle[0]; 
   double vcut_fact_n[2] = {0.}; 
 
   double mu;
@@ -2383,7 +2383,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_2x2v_ser_p1(const double *
     dens_n = 0.5*(1.7320508075688772*density[3]-1.7320508075688772*density[2]-1.0*density[1]+density[0]); 
     temp_n = 0.5*(1.7320508075688772*temperature[3]-1.7320508075688772*temperature[2]-1.0*temperature[1]+temperature[0]); 
     bmag_n = 0.5*(1.7320508075688772*bmag[3]-1.7320508075688772*bmag[2]-1.0*bmag[1]+bmag[0]); 
-    angle_n = 0.5*(1.7320508075688772*bimpact_angle[3]-1.7320508075688772*bimpact_angle[2]-1.0*bimpact_angle[1]+bimpact_angle[0]); 
+    angle_n = -(0.5*(1.4142135623730951*bimpact_angle[1]-1.4142135623730951*bimpact_angle[0])); 
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2401,7 +2401,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_2x2v_ser_p1(const double *
     dens_n = -(0.5*(1.7320508075688772*(density[3]+density[2])-1.0*(density[1]+density[0]))); 
     temp_n = -(0.5*(1.7320508075688772*(temperature[3]+temperature[2])-1.0*(temperature[1]+temperature[0]))); 
     bmag_n = -(0.5*(1.7320508075688772*(bmag[3]+bmag[2])-1.0*(bmag[1]+bmag[0]))); 
-    angle_n = -(0.5*(1.7320508075688772*(bimpact_angle[3]+bimpact_angle[2])-1.0*(bimpact_angle[1]+bimpact_angle[0]))); 
+    angle_n = 0.7071067811865476*(bimpact_angle[1]+bimpact_angle[0]); 
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2437,7 +2437,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_2x2v_ser_p1(const double *
     dens_n = -(0.5*(1.7320508075688772*density[3]-1.7320508075688772*density[2]+density[1]-1.0*density[0])); 
     temp_n = -(0.5*(1.7320508075688772*temperature[3]-1.7320508075688772*temperature[2]+temperature[1]-1.0*temperature[0])); 
     bmag_n = -(0.5*(1.7320508075688772*bmag[3]-1.7320508075688772*bmag[2]+bmag[1]-1.0*bmag[0])); 
-    angle_n = -(0.5*(1.7320508075688772*bimpact_angle[3]-1.7320508075688772*bimpact_angle[2]+bimpact_angle[1]-1.0*bimpact_angle[0])); 
+    angle_n = -(0.5*(1.4142135623730951*bimpact_angle[1]-1.4142135623730951*bimpact_angle[0])); 
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2455,7 +2455,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_2x2v_ser_p1(const double *
     dens_n = 0.5*(1.7320508075688772*(density[3]+density[2])+density[1]+density[0]); 
     temp_n = 0.5*(1.7320508075688772*(temperature[3]+temperature[2])+temperature[1]+temperature[0]); 
     bmag_n = 0.5*(1.7320508075688772*(bmag[3]+bmag[2])+bmag[1]+bmag[0]); 
-    angle_n = 0.5*(1.7320508075688772*(bimpact_angle[3]+bimpact_angle[2])+bimpact_angle[1]+bimpact_angle[0]); 
+    angle_n = 0.7071067811865476*(bimpact_angle[1]+bimpact_angle[0]); 
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2491,7 +2491,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
     dens_n = -(0.25*(2.4494897427831783*density[7]-2.4494897427831783*(density[6]+density[5])-1.4142135623730951*density[4]+2.4494897427831783*density[3]+1.4142135623730951*(density[2]+density[1])-1.4142135623730951*density[0])); 
     temp_n = -(0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*(temperature[6]+temperature[5])-1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]+1.4142135623730951*(temperature[2]+temperature[1])-1.4142135623730951*temperature[0])); 
     bmag_n = -(0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*(bmag[6]+bmag[5])-1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]+1.4142135623730951*(bmag[2]+bmag[1])-1.4142135623730951*bmag[0])); 
-    angle_n = -(0.25*(2.4494897427831783*bimpact_angle[7]-2.4494897427831783*(bimpact_angle[6]+bimpact_angle[5])-1.4142135623730951*bimpact_angle[4]+2.4494897427831783*bimpact_angle[3]+1.4142135623730951*(bimpact_angle[2]+bimpact_angle[1])-1.4142135623730951*bimpact_angle[0])); 
+    angle_n = 0.5*(bimpact_angle[3]-1.0*(bimpact_angle[2]+bimpact_angle[1])+bimpact_angle[0]); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2509,7 +2509,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
     dens_n = 0.25*(2.4494897427831783*density[7]-2.4494897427831783*density[6]+2.4494897427831783*density[5]-1.4142135623730951*density[4]-2.4494897427831783*density[3]+1.4142135623730951*density[2]-1.4142135623730951*density[1]+1.4142135623730951*density[0]); 
     temp_n = 0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*temperature[6]+2.4494897427831783*temperature[5]-1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]+1.4142135623730951*temperature[2]-1.4142135623730951*temperature[1]+1.4142135623730951*temperature[0]); 
     bmag_n = 0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*bmag[6]+2.4494897427831783*bmag[5]-1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]+1.4142135623730951*bmag[2]-1.4142135623730951*bmag[1]+1.4142135623730951*bmag[0]); 
-    angle_n = 0.25*(2.4494897427831783*bimpact_angle[7]-2.4494897427831783*bimpact_angle[6]+2.4494897427831783*bimpact_angle[5]-1.4142135623730951*bimpact_angle[4]-2.4494897427831783*bimpact_angle[3]+1.4142135623730951*bimpact_angle[2]-1.4142135623730951*bimpact_angle[1]+1.4142135623730951*bimpact_angle[0]); 
+    angle_n = -(0.5*(bimpact_angle[3]-1.0*bimpact_angle[2]+bimpact_angle[1]-1.0*bimpact_angle[0])); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2527,7 +2527,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
     dens_n = 0.25*(2.4494897427831783*(density[7]+density[6])-2.4494897427831783*density[5]-1.4142135623730951*density[4]-2.4494897427831783*density[3]-1.4142135623730951*density[2]+1.4142135623730951*(density[1]+density[0])); 
     temp_n = 0.25*(2.4494897427831783*(temperature[7]+temperature[6])-2.4494897427831783*temperature[5]-1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]-1.4142135623730951*temperature[2]+1.4142135623730951*(temperature[1]+temperature[0])); 
     bmag_n = 0.25*(2.4494897427831783*(bmag[7]+bmag[6])-2.4494897427831783*bmag[5]-1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]-1.4142135623730951*bmag[2]+1.4142135623730951*(bmag[1]+bmag[0])); 
-    angle_n = 0.25*(2.4494897427831783*(bimpact_angle[7]+bimpact_angle[6])-2.4494897427831783*bimpact_angle[5]-1.4142135623730951*bimpact_angle[4]-2.4494897427831783*bimpact_angle[3]-1.4142135623730951*bimpact_angle[2]+1.4142135623730951*(bimpact_angle[1]+bimpact_angle[0])); 
+    angle_n = -(0.5*(bimpact_angle[3]+bimpact_angle[2]-1.0*(bimpact_angle[1]+bimpact_angle[0]))); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2545,7 +2545,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_lower_3x2v_ser_p1(const double *
     dens_n = -(0.25*(2.4494897427831783*(density[7]+density[6]+density[5])-1.4142135623730951*density[4]+2.4494897427831783*density[3]-1.4142135623730951*(density[2]+density[1]+density[0]))); 
     temp_n = -(0.25*(2.4494897427831783*(temperature[7]+temperature[6]+temperature[5])-1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]-1.4142135623730951*(temperature[2]+temperature[1]+temperature[0]))); 
     bmag_n = -(0.25*(2.4494897427831783*(bmag[7]+bmag[6]+bmag[5])-1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]-1.4142135623730951*(bmag[2]+bmag[1]+bmag[0]))); 
-    angle_n = -(0.25*(2.4494897427831783*(bimpact_angle[7]+bimpact_angle[6]+bimpact_angle[5])-1.4142135623730951*bimpact_angle[4]+2.4494897427831783*bimpact_angle[3]-1.4142135623730951*(bimpact_angle[2]+bimpact_angle[1]+bimpact_angle[0]))); 
+    angle_n = 0.5*(bimpact_angle[3]+bimpact_angle[2]+bimpact_angle[1]+bimpact_angle[0]); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2585,7 +2585,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
     dens_n = 0.25*(2.4494897427831783*density[7]-2.4494897427831783*(density[6]+density[5])+1.4142135623730951*density[4]+2.4494897427831783*density[3]-1.4142135623730951*(density[2]+density[1])+1.4142135623730951*density[0]); 
     temp_n = 0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*(temperature[6]+temperature[5])+1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]-1.4142135623730951*(temperature[2]+temperature[1])+1.4142135623730951*temperature[0]); 
     bmag_n = 0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*(bmag[6]+bmag[5])+1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]-1.4142135623730951*(bmag[2]+bmag[1])+1.4142135623730951*bmag[0]); 
-    angle_n = 0.25*(2.4494897427831783*bimpact_angle[7]-2.4494897427831783*(bimpact_angle[6]+bimpact_angle[5])+1.4142135623730951*bimpact_angle[4]+2.4494897427831783*bimpact_angle[3]-1.4142135623730951*(bimpact_angle[2]+bimpact_angle[1])+1.4142135623730951*bimpact_angle[0]); 
+    angle_n = 0.5*(bimpact_angle[3]-1.0*(bimpact_angle[2]+bimpact_angle[1])+bimpact_angle[0]); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2603,7 +2603,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
     dens_n = -(0.25*(2.4494897427831783*density[7]-2.4494897427831783*density[6]+2.4494897427831783*density[5]+1.4142135623730951*density[4]-2.4494897427831783*density[3]-1.4142135623730951*density[2]+1.4142135623730951*density[1]-1.4142135623730951*density[0])); 
     temp_n = -(0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*temperature[6]+2.4494897427831783*temperature[5]+1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]-1.4142135623730951*temperature[2]+1.4142135623730951*temperature[1]-1.4142135623730951*temperature[0])); 
     bmag_n = -(0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*bmag[6]+2.4494897427831783*bmag[5]+1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]-1.4142135623730951*bmag[2]+1.4142135623730951*bmag[1]-1.4142135623730951*bmag[0])); 
-    angle_n = -(0.25*(2.4494897427831783*bimpact_angle[7]-2.4494897427831783*bimpact_angle[6]+2.4494897427831783*bimpact_angle[5]+1.4142135623730951*bimpact_angle[4]-2.4494897427831783*bimpact_angle[3]-1.4142135623730951*bimpact_angle[2]+1.4142135623730951*bimpact_angle[1]-1.4142135623730951*bimpact_angle[0])); 
+    angle_n = -(0.5*(bimpact_angle[3]-1.0*bimpact_angle[2]+bimpact_angle[1]-1.0*bimpact_angle[0])); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2621,7 +2621,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
     dens_n = -(0.25*(2.4494897427831783*(density[7]+density[6])-2.4494897427831783*density[5]+1.4142135623730951*density[4]-2.4494897427831783*density[3]+1.4142135623730951*density[2]-1.4142135623730951*(density[1]+density[0]))); 
     temp_n = -(0.25*(2.4494897427831783*(temperature[7]+temperature[6])-2.4494897427831783*temperature[5]+1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]+1.4142135623730951*temperature[2]-1.4142135623730951*(temperature[1]+temperature[0]))); 
     bmag_n = -(0.25*(2.4494897427831783*(bmag[7]+bmag[6])-2.4494897427831783*bmag[5]+1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]+1.4142135623730951*bmag[2]-1.4142135623730951*(bmag[1]+bmag[0]))); 
-    angle_n = -(0.25*(2.4494897427831783*(bimpact_angle[7]+bimpact_angle[6])-2.4494897427831783*bimpact_angle[5]+1.4142135623730951*bimpact_angle[4]-2.4494897427831783*bimpact_angle[3]+1.4142135623730951*bimpact_angle[2]-1.4142135623730951*(bimpact_angle[1]+bimpact_angle[0]))); 
+    angle_n = -(0.5*(bimpact_angle[3]+bimpact_angle[2]-1.0*(bimpact_angle[1]+bimpact_angle[0]))); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
@@ -2639,7 +2639,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_surrogate_upper_3x2v_ser_p1(const double *
     dens_n = 0.25*(2.4494897427831783*(density[7]+density[6]+density[5])+1.4142135623730951*density[4]+2.4494897427831783*density[3]+1.4142135623730951*(density[2]+density[1]+density[0])); 
     temp_n = 0.25*(2.4494897427831783*(temperature[7]+temperature[6]+temperature[5])+1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]+1.4142135623730951*(temperature[2]+temperature[1]+temperature[0])); 
     bmag_n = 0.25*(2.4494897427831783*(bmag[7]+bmag[6]+bmag[5])+1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]+1.4142135623730951*(bmag[2]+bmag[1]+bmag[0])); 
-    angle_n = 0.25*(2.4494897427831783*(bimpact_angle[7]+bimpact_angle[6]+bimpact_angle[5])+1.4142135623730951*bimpact_angle[4]+2.4494897427831783*bimpact_angle[3]+1.4142135623730951*(bimpact_angle[2]+bimpact_angle[1]+bimpact_angle[0])); 
+    angle_n = 0.5*(bimpact_angle[3]+bimpact_angle[2]+bimpact_angle[1]+bimpact_angle[0]); 
   
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
