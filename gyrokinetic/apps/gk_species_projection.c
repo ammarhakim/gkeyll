@@ -359,7 +359,8 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, app->cdim-1, GKYL_UPPER_EDGE);
   if (bc_lo != 0 && bc_up != 0) {
     // Apply periodicity condition if both edges are IWL.
-    fg_ctx.is_dir_periodic[app->cdim-1] = (bc_lo->type == GKYL_BC_GK_SPECIES_IWL && bc_up->type == GKYL_BC_GK_SPECIES_IWL);
+    fg_ctx.is_dir_periodic[app->cdim-1] = (bc_lo->type == GKYL_BC_GK_SPECIES_IWL && bc_up->type == GKYL_BC_GK_SPECIES_IWL)
+      || (bc_lo->type == GKYL_BC_GK_SPECIES_TWISTSHIFT && bc_up->type == GKYL_BC_GK_SPECIES_TWISTSHIFT);
   }
   
   // Set periodicity also according to the global app settings.
