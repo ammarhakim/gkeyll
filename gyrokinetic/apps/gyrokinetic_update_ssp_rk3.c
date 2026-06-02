@@ -27,12 +27,18 @@ gyrokinetic_forward_euler(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     struct gk_species *gks = &app->species[i];
     gk_species_step_f(gks, fout[i], dta, fin[i]);
     gk_species_bflux_accumulate(app, &gks->bflux, bflux_out[i], 1.0, bflux_in[i]);
+    gk_species_positivity_apply(app, gks, &gks->positivity, gks->fnew, gks->f);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gkns = &app->neut_species[i];
     gk_neut_species_step_f(gkns, fout_neut[i], dta, fin_neut[i]);
     gk_neut_species_bflux_accumulate(app, &gkns->bflux, bflux_out_neut[i], 1.0, bflux_in_neut[i]);
+    gk_neut_species_positivity_apply(app, gkns, &gkns->positivity, gkns->fnew, gkns->f);
   }
+
+  // Enforce quasineutrality of the positivity shifts.
+  gyrokinetic_post_positivity_quasineut(app, fout);
+
   app->stat.fwd_euler_step_f_tm += gkyl_time_diff_now_sec(wst);
   app->stat.fwd_euler_tm += gkyl_time_diff_now_sec(wst_fe);
 
@@ -257,15 +263,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           }
           app->stat.time_stepper_arithmetic_tm += gkyl_time_diff_now_sec(wst);
 
-          // Apply positivity shift if requested.
-          for (int i=0; i<app->num_species; ++i) {
-            struct gk_species *gks = &app->species[i];
-            gk_species_positivity_apply(app, gks, &gks->positivity, gks->fnew, gks->f);
-          }
-          for (int i=0; i<app->num_neut_species; ++i) {
-            struct gk_neut_species *gkns = &app->neut_species[i];
-            gk_neut_species_positivity_apply(app, gkns, &gkns->positivity, gkns->fnew, gkns->f);
-          }
 
           for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gks = &app->species[i];
@@ -275,9 +272,6 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
           for (int i=0; i<app->num_neut_species; ++i) {
             fout_neut[i] = app->neut_species[i].f;
           }
-
-          // Enforce quasineutrality of the positivity shifts.
-          gyrokinetic_post_positivity_quasineut(app, fout);
 
           // Compute the fields and apply BCs
           gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);
