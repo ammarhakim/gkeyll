@@ -2,10 +2,10 @@
 #include <math.h> 
 #include <float.h> 
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x2v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x2v_ser_p1(double ffloor, double frac_shift, double *distf) 
 { 
   // ffloor: Distribution function floor to shift toward when f<0.
-  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
+  // frac_shift: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   bool shifted = false;
@@ -24,53 +24,53 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x2v_ser_p1(double ffloo
   fnod[10] = -(0.3952847075210473*distf[11])-0.39528470752104733*distf[10]-0.39528470752104733*distf[9]-0.3952847075210473*distf[8]+0.3535533905932737*distf[5]+0.3535533905932737*distf[3]+0.3535533905932737*distf[1]+0.3535533905932737*distf[0]; 
   fnod[11] = 0.3162277660168379*distf[11]+0.31622776601683794*distf[10]+0.31622776601683794*distf[9]+0.3162277660168379*distf[8]+0.4743416490252568*distf[7]+0.4743416490252568*distf[6]+0.3535533905932737*distf[5]+0.4743416490252568*distf[4]+0.3535533905932737*distf[3]+0.4743416490252568*distf[2]+0.3535533905932737*distf[1]+0.3535533905932737*distf[0]; 
 
-  // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
+  // If f < 0. at check nodes, shift it toward ffloor by frac_shift.
   if (fnod[0] < 0.) {
-    fnod[0] += pct_ffloor*(ffloor-fnod[0]);
+    fnod[0] += frac_shift*(-fnod[0]);
     shifted = true;
   }
   if (fnod[1] < 0.) {
-    fnod[1] += pct_ffloor*(ffloor-fnod[1]);
+    fnod[1] += frac_shift*(-fnod[1]);
     shifted = true;
   }
   if (fnod[2] < 0.) {
-    fnod[2] += pct_ffloor*(ffloor-fnod[2]);
+    fnod[2] += frac_shift*(-fnod[2]);
     shifted = true;
   }
   if (fnod[3] < 0.) {
-    fnod[3] += pct_ffloor*(ffloor-fnod[3]);
-    shifted = true;
+      fnod[3] += frac_shift*(-fnod[3]);
+      shifted = true;
   }
   if (fnod[4] < 0.) {
-    fnod[4] += pct_ffloor*(ffloor-fnod[4]);
+    fnod[4] += frac_shift*(-fnod[4]);
     shifted = true;
   }
   if (fnod[5] < 0.) {
-    fnod[5] += pct_ffloor*(ffloor-fnod[5]);
+    fnod[5] += frac_shift*(-fnod[5]);
     shifted = true;
   }
   if (fnod[6] < 0.) {
-    fnod[6] += pct_ffloor*(ffloor-fnod[6]);
+    fnod[6] += frac_shift*(-fnod[6]);
     shifted = true;
   }
   if (fnod[7] < 0.) {
-    fnod[7] += pct_ffloor*(ffloor-fnod[7]);
+    fnod[7] += frac_shift*(-fnod[7]);
     shifted = true;
   }
   if (fnod[8] < 0.) {
-    fnod[8] += pct_ffloor*(ffloor-fnod[8]);
+    fnod[8] += frac_shift*(-fnod[8]);
     shifted = true;
   }
   if (fnod[9] < 0.) {
-    fnod[9] += pct_ffloor*(ffloor-fnod[9]);
+    fnod[9] += frac_shift*(-fnod[9]);
     shifted = true;
   }
   if (fnod[10] < 0.) {
-    fnod[10] += pct_ffloor*(ffloor-fnod[10]);
+    fnod[10] += frac_shift*(-fnod[10]);
     shifted = true;
   }
   if (fnod[11] < 0.) {
-    fnod[11] += pct_ffloor*(ffloor-fnod[11]);
+    fnod[11] += frac_shift*(-fnod[11]);
     shifted = true;
   }
 
@@ -93,10 +93,10 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x2v_ser_p1(double ffloo
 
 }
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x2v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x2v_ser_p1(double ffloor, double frac_shift, double *distf) 
 { 
   // ffloor: Distribution function floor to shift toward when f<0.
-  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
+  // frac_shift: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   double fnod[12];
@@ -155,19 +155,19 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x2v_ser_p1(double fflo
 
   else {
 
-    // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
-    if (fnod[0] < 0.) fnod[0] += pct_ffloor*(ffloor-fnod[0]);
-    if (fnod[1] < 0.) fnod[1] += pct_ffloor*(ffloor-fnod[1]);
-    if (fnod[2] < 0.) fnod[2] += pct_ffloor*(ffloor-fnod[2]);
-    if (fnod[3] < 0.) fnod[3] += pct_ffloor*(ffloor-fnod[3]);
-    if (fnod[4] < 0.) fnod[4] += pct_ffloor*(ffloor-fnod[4]);
-    if (fnod[5] < 0.) fnod[5] += pct_ffloor*(ffloor-fnod[5]);
-    if (fnod[6] < 0.) fnod[6] += pct_ffloor*(ffloor-fnod[6]);
-    if (fnod[7] < 0.) fnod[7] += pct_ffloor*(ffloor-fnod[7]);
-    if (fnod[8] < 0.) fnod[8] += pct_ffloor*(ffloor-fnod[8]);
-    if (fnod[9] < 0.) fnod[9] += pct_ffloor*(ffloor-fnod[9]);
-    if (fnod[10] < 0.) fnod[10] += pct_ffloor*(ffloor-fnod[10]);
-    if (fnod[11] < 0.) fnod[11] += pct_ffloor*(ffloor-fnod[11]);
+    // If f < 0. at check nodes, shift it toward ffloor by frac_shift.
+    if (fnod[0] < 0.) fnod[0] += frac_shift*(-fnod[0]);
+    if (fnod[1] < 0.) fnod[1] += frac_shift*(-fnod[1]);
+    if (fnod[2] < 0.) fnod[2] += frac_shift*(-fnod[2]);
+    if (fnod[3] < 0.) fnod[3] += frac_shift*(-fnod[3]);
+    if (fnod[4] < 0.) fnod[4] += frac_shift*(-fnod[4]);
+    if (fnod[5] < 0.) fnod[5] += frac_shift*(-fnod[5]);
+    if (fnod[6] < 0.) fnod[6] += frac_shift*(-fnod[6]);
+    if (fnod[7] < 0.) fnod[7] += frac_shift*(-fnod[7]);
+    if (fnod[8] < 0.) fnod[8] += frac_shift*(-fnod[8]);
+    if (fnod[9] < 0.) fnod[9] += frac_shift*(-fnod[9]);
+    if (fnod[10] < 0.) fnod[10] += frac_shift*(-fnod[10]);
+    if (fnod[11] < 0.) fnod[11] += frac_shift*(-fnod[11]);
 
   distf[0] = 0.1964185503295965*fnod[11]+0.3142696805273545*fnod[10]+0.1964185503295965*fnod[9]+0.1964185503295965*fnod[8]+0.3142696805273545*fnod[7]+0.1964185503295965*fnod[6]+0.1964185503295965*fnod[5]+0.3142696805273545*fnod[4]+0.1964185503295965*fnod[3]+0.1964185503295965*fnod[2]+0.3142696805273545*fnod[1]+0.1964185503295965*fnod[0]; 
   distf[1] = 0.1964185503295965*fnod[11]+0.3142696805273545*fnod[10]+0.1964185503295965*fnod[9]+0.1964185503295965*fnod[8]+0.3142696805273545*fnod[7]+0.1964185503295965*fnod[6]-0.1964185503295965*fnod[5]-0.3142696805273545*fnod[4]-0.1964185503295965*fnod[3]-0.1964185503295965*fnod[2]-0.3142696805273545*fnod[1]-0.1964185503295965*fnod[0]; 
