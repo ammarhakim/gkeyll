@@ -843,8 +843,9 @@ main(int argc, char **argv)
     },
     .print_verbosity = {
       .enabled = true,
-      .frequency = 1.,
+//      .frequency = 0.1,
 //      .estimate_completion_time = true,
+      .frequency = 1.,
       .disable_timings = true,
     },
   };

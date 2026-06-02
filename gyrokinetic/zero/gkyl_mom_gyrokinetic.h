@@ -11,7 +11,7 @@
 typedef struct gkyl_mom_gyrokinetic gkyl_mom_gyrokinetic;
 
 /**
- * Create new updated to compute gyrokinetic moments.
+ * Create new updater to compute gyrokinetic moments.
  *
  * @param cbasis Configuration-space basis-functions.
  * @param pbasis Phase-space basis-functions.
