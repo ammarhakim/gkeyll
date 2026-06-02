@@ -173,6 +173,7 @@ do
    --build-sundials)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SUNDIALS="$value"
+      ;;
    --build-eirene)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_EIRENE="$value"

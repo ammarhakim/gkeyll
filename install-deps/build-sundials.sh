@@ -15,7 +15,7 @@ then
     echo "Downloading SUNDIALS .."
     # delete old checkout and builds
     rm -rf sundials
-    git clone --branch=bugfix/ssp_stageindex https://github.com/LLNL/sundials
+    git clone --branch=develop https://github.com/LLNL/sundials
 fi
 
 if [ "$BUILD_PKGS" = "yes" ]
@@ -26,7 +26,14 @@ then
     echo $MPICC
     echo $MPICXX
 
-    cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DENABLE_MPI=ON -DSUNDIALS_INDEX_SIZE=32 -DCMAKE_C_COMPILER=$MPICC -DCMAKE_CXX_COMPILER=$MPICXX -DCMAKE_CXX_COMPILER=$MPICXX -DMPI_C_COMPILER=$MPICC -DMPIEXEC_EXECUTABLE=$MPIEXEC -DENABLE_LAPACK=ON -DLAPACK_LIBRARIES=$GKYLSOFT/OpenBLAS/lib/libopenblas.a -DMPI_Fortran_WORKS=ON -DMPI_Fortran_COMPILER=$GKYLSOFT/openmpi/bin/mpifort ..
+    # Choose LAPACK/BLAS option depending on platform
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        LAPACK_OPTION="-DBLA_VENDOR=Apple"
+    else
+        LAPACK_OPTION="-DLAPACK_LIBRARIES=${GKYLSOFT}/OpenBLAS/lib/libopenblas.a"
+    fi
+
+    cmake -DCMAKE_INSTALL_PREFIX=$PREFIX -DSUNDIALS_ENABLE_MPI=ON -DSUNDIALS_INDEX_SIZE=32 -DCMAKE_C_COMPILER=$MPICC -DCMAKE_CXX_COMPILER=$MPICXX -DMPI_C_COMPILER=$MPICC -DMPIEXEC_EXECUTABLE=$MPIEXEC -DSUNDIALS_ENABLE_LAPACK=ON ${LAPACK_OPTION} -DMPI_Fortran_WORKS=ON -DMPI_Fortran_COMPILER=$GKYLSOFT/openmpi/bin/mpifort ..
 
     make -j 4 install
 
