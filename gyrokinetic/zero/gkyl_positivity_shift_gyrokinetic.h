@@ -20,7 +20,7 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  * @param pbasis Phase-space basis.
  * @param pgrid Phase-space grid.
  * @param mass Mass of species.
- * @param pct_ffloor Fraction of the gap between f and the floor to shift by at
+ * @param frac_shift Fraction of the gap between f and the floor to shift by at
  *   each negative node (e.g. 0.1 shifts 10% of the way to the floor).
  * @param gk_geom Geometry object.
  * @param vel_map Velocity mapping object.
@@ -30,7 +30,7 @@ typedef struct gkyl_positivity_shift_gyrokinetic gkyl_positivity_shift_gyrokinet
  */
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, double mass, double pct_ffloor,
+  struct gkyl_rect_grid grid, double mass, double frac_shift,
   const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu);
 

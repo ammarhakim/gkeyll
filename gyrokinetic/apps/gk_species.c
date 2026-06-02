@@ -1290,9 +1290,9 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 
   if (inp.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
-    double pct_ffloor = gks->info.positivity.pct_ffloor > 0.0? gks->info.positivity.pct_ffloor : 1.0;
+    double frac_shift = gks->info.positivity.frac_shift > 0.0? gks->info.positivity.frac_shift : 1.0;
     struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis,
-      gks->basis, gks->grid, gks->info.mass, pct_ffloor, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      gks->basis, gks->grid, gks->info.mass, frac_shift, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     gkyl_positivity_shift_gyrokinetic_advance(pos_shift_op, &app->local, &gks->local,
       gks->f, gks->m0.marr, gks->m0.marr);
