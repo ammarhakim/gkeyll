@@ -26,6 +26,7 @@ struct gk_geom_surf {
   struct gkyl_array *normcurlbhat; // 1 component, n^m \dot curl(bhat).
   struct gkyl_array *normals; // 9 components Cartesian components of normal. vectors in order n^1, n^2, n^3.
   struct gkyl_array *lenr; // 1 components Jc|n^i|.
+  struct gkyl_array *bimpactangle; // 1 component arcsin(1/sqrt(g_33 * g^33))
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array *mc2p_nodal_fd; // 3 components. Cartesian X,Y, and Z at surf quad nodes and nodes epsilon away.
@@ -49,6 +50,7 @@ struct gk_geom_surf {
                      
   struct gkyl_array *B3_nodal; // 1 component n^3 \dot \vec{B} = 1/g_33.
   struct gkyl_array *lenr_nodal; // 1 components Jc|n^i|.
+  struct gkyl_array *bimpactangle_nodal; // 1 component arcsin(1/sqrt(g_33 * g^33))
 };
 
 struct gk_geom_corn {
@@ -98,7 +100,6 @@ struct gk_geom_int {
   struct gkyl_array *bioverJB; // 1 component b_i/J/|B|.
   struct gkyl_array *B3; // 1 component e^3 \dot \vec{B} = 1/g_33.
   struct gkyl_array *qprofile; // 1 component. Flux surface averaged q profle q(psi).
-  struct gkyl_array *bimpactangle; // 1 component arcsin(1/sqrt(g_33 * g^33))
 
   // Arrays below are just for computation of arrays above
   struct gkyl_array *bmag_nodal;
@@ -143,8 +144,6 @@ struct gk_geom_int {
   struct gkyl_array *dualcurlbhatoverB_nodal; // 3 components, e^m \dot curl(bhat)/|B|
   struct gkyl_array *rtg33inv_nodal; // 1 component 1/sqrt(g_33)
   struct gkyl_array *bioverJB_nodal; // 3 components b_i/J/|B|
-  struct gkyl_array *bimpactangle_nodal; // 1 component arcsin(1/sqrt(g_33 * g^33))
-
 };
 
 struct gk_geometry {
@@ -175,6 +174,8 @@ struct gk_geometry {
   int geqdsk_sign_convention; // 0 if psi increases away from magnetic axis.
                               // 1 if psi increases toward magnetic axis.
 
+  int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.
+
   bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
                  // location of the LCFS. For numerical IWL, it may be stored
@@ -204,6 +205,7 @@ struct gkyl_mirror_geo_grid_inp {
 // Input struct for geometry creation
 struct gkyl_gk_geometry_inp {
   enum gkyl_geometry_id geometry_id;
+  char geometry_path[128]; // Path to geometry files
 
   void *c2p_ctx; // Context for mapc2p function.
   // Pointer to mapc2p function: xc are the computational space
