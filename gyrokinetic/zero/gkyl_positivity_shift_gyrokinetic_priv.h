@@ -17,7 +17,7 @@ enum gkyl_positivity_shift_type {
 
 // Function pointer type for sheath reflection kernels.
 typedef bool (*m0_pos_check_t)(const double *m0);
-typedef bool (*shift_t)(double ffloor, double *distf);
+typedef bool (*shift_t)(double ffloor, double pct_ffloor, double *distf);
 typedef void (*m0_t)(const double *dxv, const double *vmap,
   double m_, const double *bmag, const double *f, double* GKYL_RESTRICT out);
 
@@ -73,6 +73,7 @@ struct gkyl_positivity_shift_gyrokinetic {
   double mass;  // Species mass.
   double *ffloor;  // Minimum f to shift distribution to when it's <0.
   double ffloor_fac;  // ffloor = max(f)*ffloor_fac.
+  double pct_ffloor;  // Fraction of the (ffloor-f) gap to shift by at each negative node.
   double cellav_fac; // Factor multiplying 0th DG coefficient to give cellav.
   const struct gk_geometry *gk_geom; // Pointer to geometry object.
   const struct gkyl_velocity_map *vel_map; // Pointer to velocity mapping object.

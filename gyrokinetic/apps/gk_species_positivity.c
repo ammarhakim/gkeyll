@@ -205,9 +205,12 @@ gk_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
     pos->delta_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
+    // Fraction of the gap to the floor to shift by at each negative node.
+    double pct_ffloor = gks->info.positivity.pct_ffloor > 0.0? gks->info.positivity.pct_ffloor : 1.0;
+
     // Positivity shift updater.
     pos->shift_op_gk = gkyl_positivity_shift_gyrokinetic_new(app->basis, gks->basis,
-      gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      gks->grid, gks->info.mass, pct_ffloor, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
 
     // Methods chosen at runtime.
     pos->apply_func = gks_pos_apply_enabled;

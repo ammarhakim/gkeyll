@@ -2,9 +2,10 @@
 #include <math.h> 
 #include <float.h> 
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x1v_ser_p1(double ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x1v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
 { 
-  // ffloor: Distribution function floor to shift to when f<0.
+  // ffloor: Distribution function floor to shift toward when f<0.
+  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   bool shifted = false;
@@ -17,29 +18,29 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x1v_ser_p1(double ffloo
   fnod[4] = -(0.5590169943749476*distf[5])-0.5590169943749475*distf[4]+0.5*distf[1]+0.5*distf[0]; 
   fnod[5] = 0.44721359549995804*distf[5]+0.4472135954999579*distf[4]+0.6708203932499369*distf[3]+0.6708203932499369*distf[2]+0.5*distf[1]+0.5*distf[0]; 
 
-  // If f < 0. at check nodes, set it to ffloor.
+  // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
   if (fnod[0] < 0.) {
-    fnod[0] = ffloor;
+    fnod[0] += pct_ffloor*(ffloor-fnod[0]);
     shifted = true;
   }
   if (fnod[1] < 0.) {
-    fnod[1] = ffloor;
+    fnod[1] += pct_ffloor*(ffloor-fnod[1]);
     shifted = true;
   }
   if (fnod[2] < 0.) {
-    fnod[2] = ffloor;
+    fnod[2] += pct_ffloor*(ffloor-fnod[2]);
     shifted = true;
   }
   if (fnod[3] < 0.) {
-    fnod[3] = ffloor;
+    fnod[3] += pct_ffloor*(ffloor-fnod[3]);
     shifted = true;
   }
   if (fnod[4] < 0.) {
-    fnod[4] = ffloor;
+    fnod[4] += pct_ffloor*(ffloor-fnod[4]);
     shifted = true;
   }
   if (fnod[5] < 0.) {
-    fnod[5] = ffloor;
+    fnod[5] += pct_ffloor*(ffloor-fnod[5]);
     shifted = true;
   }
 
@@ -56,9 +57,10 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_shift_only_1x1v_ser_p1(double ffloo
 
 }
 
-GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x1v_ser_p1(double ffloor, double *distf) 
+GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x1v_ser_p1(double ffloor, double pct_ffloor, double *distf) 
 { 
-  // ffloor: Distribution function floor to shift to when f<0.
+  // ffloor: Distribution function floor to shift toward when f<0.
+  // pct_ffloor: fraction of the (ffloor-f) gap to shift by at each negative node.
   // distf: distribution function.
 
   double fnod[6];
@@ -99,13 +101,13 @@ GKYL_CU_DH bool positivity_shift_gyrokinetic_MRS_limiter_1x1v_ser_p1(double fflo
 
   else {
 
-    // If f < 0. at check nodes, set it to ffloor.
-    if (fnod[0] < 0.) fnod[0] = ffloor;
-    if (fnod[1] < 0.) fnod[1] = ffloor;
-    if (fnod[2] < 0.) fnod[2] = ffloor;
-    if (fnod[3] < 0.) fnod[3] = ffloor;
-    if (fnod[4] < 0.) fnod[4] = ffloor;
-    if (fnod[5] < 0.) fnod[5] = ffloor;
+    // If f < 0. at check nodes, shift it toward ffloor by pct_ffloor.
+    if (fnod[0] < 0.) fnod[0] += pct_ffloor*(ffloor-fnod[0]);
+    if (fnod[1] < 0.) fnod[1] += pct_ffloor*(ffloor-fnod[1]);
+    if (fnod[2] < 0.) fnod[2] += pct_ffloor*(ffloor-fnod[2]);
+    if (fnod[3] < 0.) fnod[3] += pct_ffloor*(ffloor-fnod[3]);
+    if (fnod[4] < 0.) fnod[4] += pct_ffloor*(ffloor-fnod[4]);
+    if (fnod[5] < 0.) fnod[5] += pct_ffloor*(ffloor-fnod[5]);
 
   distf[0] = 0.2777777777777778*fnod[5]+0.4444444444444444*fnod[4]+0.2777777777777778*fnod[3]+0.2777777777777778*fnod[2]+0.4444444444444444*fnod[1]+0.2777777777777778*fnod[0]; 
   distf[1] = 0.2777777777777778*fnod[5]+0.4444444444444444*fnod[4]+0.2777777777777778*fnod[3]-0.2777777777777778*fnod[2]-0.4444444444444444*fnod[1]-0.2777777777777778*fnod[0]; 

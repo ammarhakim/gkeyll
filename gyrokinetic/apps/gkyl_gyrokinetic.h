@@ -342,6 +342,8 @@ struct gkyl_gyrokinetic_positivity {
   enum gkyl_gyrokinetic_positivity_type type; // Type of positivity enforcement algorithm.
   bool quasineutrality_rescale; // Whether to rescale this species to enforce quasineutrality in the simulation.
   bool write_diagnostics; // Whether to output diagnostics.
+  double pct_ffloor; // Fraction of the (ffloor-f) gap to shift by at each negative node.
+                     // Defaults to 1.0 (shift 100% of the way to the floor) if <=0.
 };
 
 enum gkyl_gyrokinetic_damping_type {
