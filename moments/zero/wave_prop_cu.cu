@@ -39,8 +39,6 @@ gkyl_wave_prop_waves_qfluct_cu_ker(gkyl_wv_eqn *eqn,
     long lidx = gkyl_range_idx(&update_range, idxl);
     long ridx = gkyl_range_idx(&update_range, idxr);
 
-    printf("qfluct idx = %ld, %ld\n", lidx, ridx);
-
     // Fetch the geometry, waves, speeds, and A^-/+ Delta Q fluctuations arrays
     // Every cell owns its lower interface values, so we fetch using ridx since idxr[dir] = tid_y is
     // the current cell. 
@@ -192,7 +190,6 @@ gkyl_wave_prop_update_state_cu_kern(double dtdx,
     idxr[dir] = idxr[dir]+1; 
     long linc = gkyl_range_idx(&update_range, idxc); 
     long linr = gkyl_range_idx(&update_range, idxr);
-    printf("idx = %ld, %ld\n", linc, linr);
     const double *redo_fluct_c = (const double*) gkyl_array_cfetch(redo_fluct, linc);
     if (redo_fluct_c[0] > 0.0) {
       // Each cell owns its flux at the lower interface, so fetch the 
