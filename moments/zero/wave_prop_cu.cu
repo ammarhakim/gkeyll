@@ -363,7 +363,7 @@ gkyl_wave_prop_max_dt_cu_ker(gkyl_wv_eqn *eqn, double dx, double cfl,
 
 // max dt method
 double 
-gkyl_wave_prop_max_dt_cu(gkyl_wave_prop *wv,
+gkyl_wave_prop_max_dt_cu(const gkyl_wave_prop *wv,
   const struct gkyl_range *update_range, const struct gkyl_array *qin)
 {
   double max_dt = DBL_MAX;
