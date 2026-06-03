@@ -41,12 +41,14 @@ struct gkyl_wave_prop {
   long n_max_bad_cells; // maximum number of cells fixed in a call
 };
 
+GKYL_CU_DH
 static inline double
 fmax3(double a, double b, double c)
 {
   return fmax(fmax(a,b),c);
 }
 
+GKYL_CU_DH
 static inline double
 fmin3(double a, double b, double c)
 {
@@ -54,6 +56,7 @@ fmin3(double a, double b, double c)
 }
 
 // limiter function
+GKYL_CU_DH
 static inline double
 limiter_function(double r, enum gkyl_wave_limiter limiter)
 {
@@ -103,63 +106,21 @@ limiter_function(double r, enum gkyl_wave_limiter limiter)
 }
 
 // some helper functions
-static inline void
-wave_prop_waves_qfluct(const gkyl_wv_eqn *eqn, int ndim, int dir, double cflm,
-  double dtdx, enum gkyl_wv_flux_type ftype, const struct gkyl_range *update_range,
-  struct gkyl_range fluctuation_range, const struct gkyl_wave_geom *wg,
-  const struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *waves,
-  struct gkyl_array *speeds, struct gkyl_array *amdq, struct gkyl_array *apdq,
-  double *max_speed, double *cfla, double *is_cfl_violated)
-{
-  int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &fluctuation_range);
-  while (gkyl_range_iter_next(&iter)) {
-    gkyl_copy_int_arr(ndim, iter.idx, idxl);
-    gkyl_copy_int_arr(ndim, iter.idx, idxr);
-
-    idxl[dir] = idxl[dir]-1;
-
-    long lidx = gkyl_range_idx(update_range, idxl);
-    long ridx = gkyl_range_idx(update_range, idxr);
-
-    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idxr);
-    double *waves_local = gkyl_array_fetch(waves, ridx);
-    double *amdq_local = gkyl_array_fetch(amdq, ridx);
-    double *apdq_local = gkyl_array_fetch(apdq, ridx);
-    double *s = gkyl_array_fetch(speeds, ridx);
-    
-    const double *qinl = gkyl_array_cfetch(qin, lidx);
-    const double *qinr = gkyl_array_cfetch(qin, ridx);
-
-    const double *phil = gkyl_array_cfetch(phi, lidx);
-    const double *phir = gkyl_array_cfetch(phi, ridx);
-
-    double my_max_speed = gkyl_wv_eqn_fused_rotate_waves_qfluct(eqn,
-      ftype, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], cg->lenr[dir],
-      qinl, qinr, phil[0], phir[0], waves_local, s, amdq_local, apdq_local);
-    max_speed[0] = max_speed[0] > my_max_speed ? max_speed[0] : my_max_speed;
-    
-    // check time-step before any updates are performed
-    cfla[0] = fmax(cfla[0], dtdx/cg->kappa*my_max_speed);
-    if (cfla[0] > cflm)
-      is_cfl_violated[0] = 1.0;
-  }
-}
-
+GKYL_CU_DH
 static inline void
 copy_wv_vec(int n, double * GKYL_RESTRICT out, const double * GKYL_RESTRICT inp)
 {
   for (int i=0; i<n; ++i) out[i] = inp[i];
 }
 
+GKYL_CU_DH
 static inline void
 calc_jump(int n, const double *ql, const double *qr, double * GKYL_RESTRICT jump)
 {
   for (int d=0; d<n; ++d) jump[d] = qr[d]-ql[d];
 }
 
+GKYL_CU_DH
 static inline void
 calc_first_order_update(int meqn, double dtdx,
   double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l, const double *fr, const double *fl)
@@ -168,126 +129,7 @@ calc_first_order_update(int meqn, double dtdx,
     q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i] + fr[i] - fl[i]);
 }
 
-static inline void
-wave_prop_first_order(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
-  const struct gkyl_range *update_range, const struct gkyl_wave_geom *wg,
-  struct gkyl_array *amdq, struct gkyl_array *apdq, struct gkyl_array *flux2,
-  struct gkyl_array *qout)
-{
-  int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-  int meqn = eqn->num_equations;
-
-  // compute first-order update in each cell
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, update_range);
-  while (gkyl_range_iter_next(&iter)) {
-    gkyl_copy_int_arr(ndim, iter.idx, idxl);
-    gkyl_copy_int_arr(ndim, iter.idx, idxr);
-
-    idxr[dir] = idxr[dir]+1;
-    long lidx = gkyl_range_idx(update_range, idxl);
-    long ridx = gkyl_range_idx(update_range, idxr);
-
-    double *apdq_local = gkyl_array_fetch(apdq, lidx);
-    double *amdq_local = gkyl_array_fetch(amdq, ridx);
-
-    double *flux2l = gkyl_array_fetch(flux2, lidx);
-    double *flux2r = gkyl_array_fetch(flux2, ridx);
-
-    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idxl);
-    calc_first_order_update(meqn, dtdx/cg->kappa, gkyl_array_fetch(qout, lidx),
-      amdq_local, apdq_local, flux2r, flux2l);
-  }
-}
-
-static inline void
-wave_prop_check_inv(const gkyl_wv_eqn *eqn, int ndim, int dir, double cflm,
-  double dtdx, enum gkyl_wv_flux_type ftype, const struct gkyl_range *update_range,
-  struct gkyl_range fluctuation_range, const struct gkyl_wave_geom *wg,
-  const struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *waves,
-  struct gkyl_array *speeds, struct gkyl_array *amdq, struct gkyl_array *apdq,
-  struct gkyl_array *redo_fluct, double *max_speed, double *cfla,
-  double *is_cfl_violated, const struct gkyl_array *qout)
-{
-  int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &fluctuation_range);
-  while (gkyl_range_iter_next(&iter)) {
-    gkyl_copy_int_arr(ndim, iter.idx, idxl);
-    gkyl_copy_int_arr(ndim, iter.idx, idxr);
-
-    idxl[dir] = idxl[dir]-1;
-
-    long lidx = gkyl_range_idx(update_range, idxl);
-    long ridx = gkyl_range_idx(update_range, idxr);
-
-    double *redo_fluct_local = gkyl_array_fetch(redo_fluct, ridx);
-
-    const double *qinl = gkyl_array_cfetch(qin, lidx);
-    const double *qinr = gkyl_array_cfetch(qin, ridx);
-
-    const double *qoutl = gkyl_array_cfetch(qout, lidx);
-    const double *qoutr = gkyl_array_cfetch(qout, ridx);
-
-    const double *phil = gkyl_array_cfetch(phi, lidx);
-    const double *phir = gkyl_array_cfetch(phi, ridx);
-  
-    redo_fluct_local[0] = 0.0;
-
-    if (!gkyl_wv_eqn_fuse_check_inv(eqn, qoutl, qoutr)) {
-      redo_fluct_local[0] = 1.0;
-      const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idxr);
-      double *waves_local = gkyl_array_fetch(waves, ridx);
-      double *amdq_local = gkyl_array_fetch(amdq, ridx);
-      double *apdq_local = gkyl_array_fetch(apdq, ridx);
-      double *s = gkyl_array_fetch(speeds, ridx);
-        
-      double my_max_speed = gkyl_wv_eqn_fused_rotate_waves_qfluct(eqn,
-        GKYL_WV_LOW_ORDER_FLUX, cg->tau1[dir], cg->tau2[dir], cg->norm[dir],
-        cg->lenr[dir], qinl, qinr, phil[0], phir[0], waves_local, s, amdq_local,
-        apdq_local);
-      max_speed[0] = max_speed[0] > my_max_speed ? max_speed[0] : my_max_speed;
-    }
-  }
-}
-
-static inline void
-wave_prop_first_order_redo(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
-  const struct gkyl_range *update_range, const struct gkyl_wave_geom *wg,
-  struct gkyl_array *redo_fluct, struct gkyl_array *amdq, struct gkyl_array *apdq,
-  struct gkyl_array *qout)
-{
-  int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
-  int meqn = eqn->num_equations;
-
-  double flux_zero[meqn]; // zero second order flux for redo
-  for (int i=0; i<meqn; ++i)
-    flux_zero[i] = 0.0;
-
-  // compute first-order update in each cell
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, update_range);
-  while (gkyl_range_iter_next(&iter)) {
-    gkyl_copy_int_arr(ndim, iter.idx, idxl);
-    gkyl_copy_int_arr(ndim, iter.idx, idxr);
-
-    idxr[dir] = idxr[dir]+1;
-    long lidx = gkyl_range_idx(update_range, idxl);
-    long ridx = gkyl_range_idx(update_range, idxr);
-
-    double *amdq_local = gkyl_array_fetch(amdq, ridx);
-    double *apdq_local = gkyl_array_fetch(apdq, lidx);
-
-    const double *redo_fluct_c = gkyl_array_cfetch(redo_fluct, lidx);
-    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idxl);
-    if (redo_fluct_c[0] > 0.0) {
-      calc_first_order_update(meqn, dtdx/cg->kappa, gkyl_array_fetch(qout, lidx),
-        amdq_local, apdq_local, flux_zero, flux_zero);
-    }
-  }
-}
-
+GKYL_CU_DH
 static inline double
 calc_cfla(int mwaves, double cfla, double dtdx, const double *s)
 {
@@ -297,6 +139,7 @@ calc_cfla(int mwaves, double cfla, double dtdx, const double *s)
   return c;
 }
 
+GKYL_CU_DH
 static inline double
 wave_dot_prod(int meqn, const double * GKYL_RESTRICT wa, const double * GKYL_RESTRICT wb)
 {
@@ -305,12 +148,14 @@ wave_dot_prod(int meqn, const double * GKYL_RESTRICT wa, const double * GKYL_RES
   return dot;
 }
 
+GKYL_CU_DH
 static inline void
 wave_rescale(int meqn, double fact, double *w, double *ws)
 {
   for (int i=0; i<meqn; ++i) ws[i] = w[i]*fact;
 }
 
+GKYL_CU_DH
 static inline void
 calc_second_order_qflux(int meqn, double dtdx, double s,
   const double *waves, double * GKYL_RESTRICT flux2)
@@ -321,8 +166,10 @@ calc_second_order_qflux(int meqn, double dtdx, double s,
 }
 
 // this is the sign function for doubles
+GKYL_CU_DH
 static inline int sign_double(double val) { return (0.0 < val) - (val < 0.0); }
 
+GKYL_CU_DH
 static inline void
 calc_second_order_update(int meqn, double dtdx, double * GKYL_RESTRICT qout,
   const double *fl, const double *fr)
@@ -331,61 +178,35 @@ calc_second_order_update(int meqn, double dtdx, double * GKYL_RESTRICT qout,
     qout[i] += -dtdx*(fr[i]-fl[i]);
 }
 
-static inline void
-wave_prop_second_order_flux(enum gkyl_wave_limiter limiter, double dtdx, 
-  int ndim, int dir, int meqn, int mwaves, const struct gkyl_range *update_range,
-  struct gkyl_range second_order_range, const struct gkyl_wave_geom *wg,
-  struct gkyl_array *waves, struct gkyl_array *waves_scaled,
-  struct gkyl_array *speeds, struct gkyl_array *flux2)
-{
-  int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
+#ifdef GKYL_HAVE_CUDA
 
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &second_order_range);
-  while (gkyl_range_iter_next(&iter)) {
-    gkyl_copy_int_arr(ndim, iter.idx, idxc);
-    gkyl_copy_int_arr(ndim, iter.idx, idxl);
-    gkyl_copy_int_arr(ndim, iter.idx, idxr);
-
-    idxl[dir] = idxc[dir]-1;
-    idxr[dir] = idxc[dir]+1;
-    long lidx = gkyl_range_idx(update_range, idxl);
-    long cidx = gkyl_range_idx(update_range, idxc);
-    long ridx = gkyl_range_idx(update_range, idxr);
-    const double *s = gkyl_array_cfetch(speeds, cidx);
-    double *wc = gkyl_array_fetch(waves, cidx);
-    double *ws = gkyl_array_fetch(waves_scaled, cidx);
-    const double *wl = gkyl_array_cfetch(waves, lidx);
-    const double *wr = gkyl_array_cfetch(waves, ridx);
-
-    for (int mw=0; mw<mwaves; ++mw) {
-      double dotl = wave_dot_prod(meqn, &wl[mw*meqn], &wc[mw*meqn]);
-      double wnorm2 = wave_dot_prod(meqn, &wc[mw*meqn], &wc[mw*meqn]);
-      double dotr = wave_dot_prod(meqn, &wc[mw*meqn], &wr[mw*meqn]);
-      if (wnorm2 > 0) {
-        double r = s[mw] > 0 ? dotl/wnorm2 : dotr/wnorm2;
-        double theta = limiter_function(r, limiter);
-        wave_rescale(meqn, theta, &wc[mw*meqn], &ws[mw*meqn]);
-      }
-    }
-
-    // Each cell owns its flux at the lower interface, so fetch the 
-    // lower and center geometry to get kappa on either side of the interface
-    const struct gkyl_wave_cell_geom *cgl = gkyl_wave_geom_get(wg, idxl);
-    const struct gkyl_wave_cell_geom *cgc = gkyl_wave_geom_get(wg, idxc);
-    double kappal = cgl->kappa;
-    double kappac = cgc->kappa;
-    
-    double *flux2_d = gkyl_array_fetch(flux2, cidx);
-    for (int mw=0; mw<mwaves; ++mw) {
-      calc_second_order_qflux(meqn, dtdx/(0.5*(kappal+kappac)), s[mw], &ws[mw*meqn], flux2_d);
-    }
-  }
-}
-
+/**
+ * Compute wave-propagation update on the device. The update_rng MUST be a sub-range
+ * of the range on which the array is defined. That is, it must be
+ * either the same range as the array range, or one created using the
+ * gkyl_sub_range_init method.
+ *
+ * @param wv Updater object
+ * @param tm Current time
+ * @param dt time-step
+ * @param update_rng Range on which to compute.
+ * @param phi Embedded mask
+ * @param qin Input to updater
+ * @param qout Solution at tm+dt
+ */
 struct gkyl_wave_prop_status gkyl_wave_prop_advance_cu(gkyl_wave_prop *wv,
   double tm, double dt, const struct gkyl_range *update_range,
   const struct gkyl_array *phi, const struct gkyl_array *qin, struct gkyl_array *qout);
 
+/**
+ * Compute an estimate of maximum stable time-step for given input
+ * state 'qin' on device. 
+ *
+ * @param wv Updater object
+ * @param qin Input to compute dt for
+ * @return maximum stable time-step
+ */
 double gkyl_wave_prop_max_dt_cu(const gkyl_wave_prop *wv,
   const struct gkyl_range *update_range, const struct gkyl_array *qin);
+
+#endif
