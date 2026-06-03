@@ -167,6 +167,28 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  src_inp.has_vacuum_einstein_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_vacuum_einstein) {
+      src_inp.has_vacuum_einstein_sources = true;
+
+      src_inp.vacuum_einstein_excision_threshold = app->species[i].vacuum_einstein_excision_threshold;
+      src_inp.vacuum_einstein_spacetime_slicing = app->species[i].vacuum_einstein_spacetime_slicing;
+      src_inp.vacuum_einstein_spacetime_evolution = app->species[i].vacuum_einstein_spacetime_evolution;
+    }
+  }
+
+  src_inp.has_vacuum_einstein_conformal_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_vacuum_einstein_conformal) {
+      src_inp.has_vacuum_einstein_conformal_sources = true;
+
+      src_inp.vacuum_einstein_conformal_excision_threshold = app->species[i].vacuum_einstein_conformal_excision_threshold;
+      src_inp.vacuum_einstein_conformal_spacetime_slicing = app->species[i].vacuum_einstein_conformal_spacetime_slicing;
+      src_inp.vacuum_einstein_conformal_spacetime_evolution = app->species[i].vacuum_einstein_conformal_spacetime_evolution;
+    }
+  }
+
   // save the use-rel bool
   src_inp.use_rel = use_rel;
 

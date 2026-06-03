@@ -2,6 +2,32 @@
 #include <gkyl_gyrokinetic_priv.h>
 
 static void
+gk_neut_species_moment_diag_jacobgeo_div_disabled(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
+{
+  // Do nothing.
+}
+
+static void
+gk_neut_species_moment_diag_jacobgeo_div_enabled_1st_comp(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
+{
+  // Only divide the first component.
+  gkyl_dg_div_op_range(sm->mem_geo, app->basis, 0, mom_out, 0, Jmom_in, 0, 
+    app->gk_geom->geo_int.jacobgeo, &app->local);
+}
+
+static void
+gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
+{
+  // Divide all components.
+  for (int k=0; k<sm->num_mom; k++)
+    gkyl_dg_div_op_range(sm->mem_geo, app->basis, k, mom_out, k, Jmom_in, 0, 
+      app->gk_geom->geo_int.jacobgeo, &app->local);  
+}
+
+static void
 gk_neut_species_kinetic_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_range phase_rng, const struct gkyl_range conf_rng,
   const struct gkyl_array *fin)
@@ -43,6 +69,8 @@ static void
 gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
+  sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_disabled;
+
   // Initialize kinetic neutral species moment object.
   if (sm->is_integrated) {
     // Create moment operator.
@@ -81,6 +109,7 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
       };
       sm->vlasov_lte_moms = gkyl_vlasov_lte_moments_inew(&inp_mom);
       sm->num_mom = 5; // (n, ux, uy, uz, T/m).
+      sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_1st_comp;
     }
     else {
       struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
@@ -89,6 +118,7 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
         mom_type, sm->is_integrated, app->use_gpu);
 
       sm->num_mom = gkyl_dg_updater_moment_num_mom(sm->mcalc);
+      sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp;
     }
 
     // Allocate arrays to hold moments.
@@ -180,6 +210,8 @@ static void
 gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gk_species_moment *sm, enum gkyl_distribution_moments mom_type, bool is_integrated)
 {
+  sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_disabled;
+
   // Initialize fluid neutral species moment object.
   if (sm->is_integrated) {
     sm->num_mom = 6; // rho, rho*ux, rho*uy, rho*uz, flowE, thermalE.
@@ -201,6 +233,7 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
       sm->num_mom = 5;
       sm->nf_prim_vars = gkyl_gk_neut_fluid_prim_vars_new(s->info.gas_gamma, s->info.mass,
         &app->basis, &app->grid, &app->local_ext, GKYL_GK_NEUT_FLUID_PRIM_VARS_LTE, false, app->use_gpu);
+      sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_1st_comp;
     }
     else {
       sm->mass = s->info.mass;
@@ -222,6 +255,8 @@ gk_neut_species_fluid_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_ne
         // Not yet implemented.
         assert(false);
       }
+
+      sm->diag_jacobgeo_div_func = gk_neut_species_moment_diag_jacobgeo_div_enabled_all_comp;
     }
 
     // Allocate arrays to hold moments.
@@ -265,6 +300,13 @@ gk_neut_species_moment_calc(const struct gk_species_moment *sm,
   const struct gkyl_array *fin)
 {
   sm->calc_func(sm, phase_rng, conf_rng, fin);
+}
+
+void
+gk_neut_species_moment_diag_jacobgeo_div(const struct gkyl_gyrokinetic_app *app,
+  struct gk_species_moment *sm, struct gkyl_array *Jmom_in, struct gkyl_array *mom_out)
+{
+  sm->diag_jacobgeo_div_func(app, sm, Jmom_in, mom_out);
 }
 
 void

@@ -122,6 +122,26 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->gr_twofluid_e_fact = mom_sp->gr_twofluid_e_fact;
   }
 
+  sp->has_vacuum_einstein = false;
+  if (mom_sp->has_vacuum_einstein) {
+    sp->update_sources = true;
+    sp->has_vacuum_einstein = true;
+
+    sp->vacuum_einstein_excision_threshold = mom_sp->vacuum_einstein_excision_threshold;
+    sp->vacuum_einstein_spacetime_slicing = mom_sp->vacuum_einstein_spacetime_slicing;
+    sp->vacuum_einstein_spacetime_evolution = mom_sp->vacuum_einstein_spacetime_evolution;
+  }
+
+  sp->has_vacuum_einstein_conformal = false;
+  if (mom_sp->has_vacuum_einstein_conformal) {
+    sp->update_sources = true;
+    sp->has_vacuum_einstein_conformal = true;
+
+    sp->vacuum_einstein_conformal_excision_threshold = mom_sp->vacuum_einstein_conformal_excision_threshold;
+    sp->vacuum_einstein_conformal_spacetime_slicing = mom_sp->vacuum_einstein_conformal_spacetime_slicing;
+    sp->vacuum_einstein_conformal_spacetime_evolution = mom_sp->vacuum_einstein_conformal_spacetime_evolution;
+  }
+  
   sp->has_gr_mhd = false;
   if (mom_sp->has_gr_mhd) {
     sp->update_sources = true; 

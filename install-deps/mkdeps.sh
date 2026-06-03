@@ -7,18 +7,17 @@ PREFIX=$HOME/gkylsoft
 CC=gcc
 CXX=g++
 FC=gfortran
-MPICC=$PREFIX/openmpi/bin/mpicc
-MPICXX=$PREFIX/openmpi/bin/mpicxx
+MPICC=mpicc
+MPICXX=mpicxx
 
 # by default, do not build anything
 BUILD_OPENBLAS=no
 BUILD_SUPERLU=no
-BUILD_SUPERLU_DIST=no
-BUILD_SUPERLU_DIST_GPU=no
 BUILD_OPENMPI=no
 BUILD_LUAJIT=no
 BUILD_TCC=no
 BUILD_CUDSS=no
+BUILD_EIRENE=no
 
 # by default, download as well as build packages
 DOWNLOAD_PKGS=yes
@@ -54,13 +53,12 @@ The following flags specify the libraries to build.
 
 --build-openblas            [no] Should we build OpenBLAS?
 --build-superlu             [no] Should we build SuperLU (serial)
---build-superlu_dist        [no] Should we build SuperLU (parallel)
---enable-superlu_gpu        [no] Build GPUs lib for SuperLU (needs --build-superlu_dist=yes)
 --build-openmpi             [no] Should we build OpenMPI?
 --build-luajit              [no] Should we build LuaJIT?
 --build-cudss               [no] Should we build cuDSS?
 --build-tcc                 [no] Should we build tcc?
 --build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
+--build-eirene              [no] Should we build eirene? (includes installing SOLPS-ITER)
 
 EOF
 }
@@ -149,17 +147,11 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_SUPERLU="$value"
       ;;
-   --build-superlu_dist)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_SUPERLU_DIST="$value"
-      ;;
-   --enable-superlu_gpu)
-      [ -n "$value" ] || die "Missing value in flag $key."
-      BUILD_SUPERLU_DIST_GPU="$value"
-      ;;
    --build-openmpi)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_OPENMPI="$value"
+      MPICC=$PREFIX/openmpi/bin/mpicc
+      MPICXX=$PREFIX/openmpi/bin/mpicxx
       ;;   
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -176,6 +168,10 @@ do
    --build-adas)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADAS="$value"
+      ;;
+   --build-eirene)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_EIRENE="$value"
       ;;
    *)
       die "Error: Unknown flag: $1"
@@ -231,15 +227,6 @@ build_superlu() {
     fi
 }
 
-build_superlu_dist() {
-    if [ "$BUILD_SUPERLU_DIST" = "yes" ]
-    then    
-	echo "Building SUPERLU Parallel"
-	./build-parmetis.sh
-	./build-superlu_dist.sh 
-    fi
-}
-
 build_openmpi() {
     if [ "$BUILD_OPENMPI" = "yes" ]
     then    
@@ -280,6 +267,14 @@ build_adas() {
     fi
 }
 
+build_eirene() {
+    if [ "$BUILD_EIRENE" = "yes" ]
+    then
+	echo "Building EIRNE Coupling for neutral coupling"
+	./build-eirene.sh
+    fi
+}
+
 echo "Installations will be in  $PREFIX"
 
 build_openmpi
@@ -287,6 +282,6 @@ build_luajit
 build_tcc
 build_openblas
 build_superlu
-build_superlu_dist
 build_cudss
 build_adas
+build_eirene

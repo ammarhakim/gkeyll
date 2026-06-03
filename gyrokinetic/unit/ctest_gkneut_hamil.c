@@ -174,12 +174,10 @@ test_hamil(int cdim, bool use_gpu)
   gkyl_array_release(gyy); 
   gkyl_array_release(gyz); 
   gkyl_array_release(gzz); 
-  if (use_gpu) {
-    gkyl_array_release(hamil_ho);
-    gkyl_array_release(gxx_ho);
-    gkyl_array_release(gyy_ho);
-    gkyl_array_release(gzz_ho);
-  }
+  gkyl_array_release(hamil_ho);
+  gkyl_array_release(gxx_ho);
+  gkyl_array_release(gyy_ho);
+  gkyl_array_release(gzz_ho);
   gkyl_proj_on_basis_release(proj_gxx); 
   gkyl_proj_on_basis_release(proj_gyy);
   gkyl_proj_on_basis_release(proj_gzz);

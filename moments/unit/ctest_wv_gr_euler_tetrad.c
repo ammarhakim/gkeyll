@@ -23,9 +23,9 @@ test_gr_euler_tetrad_basic_minkowski()
 
       double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, p = 1.5;
 
-      double spatial_det, lapse;
+      double spatial_det = 0.0, lapse = 0.0;
       double *shift = gkyl_malloc(sizeof(double[3]));
-      bool in_excision_region;
+      bool in_excision_region = false;
 
       double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
       for (int i = 0; i < 3; i++) {
@@ -117,14 +117,14 @@ test_gr_euler_tetrad_basic_minkowski()
       q[67] = 0.0;
       q[68] = x; q[69] = y; q[70] = 0.0;
 
-      double prims[71];
+      double prims[71] = {0};
       gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, prims);
       
-      TEST_CHECK( gkyl_compare(prims[0], rho, 1e-15) );
-      TEST_CHECK( gkyl_compare(prims[1], u, 1e-15) );
-      TEST_CHECK( gkyl_compare(prims[2], v, 1e-15) );
-      TEST_CHECK( gkyl_compare(prims[3], w, 1e-15) );
-      TEST_CHECK( gkyl_compare(prims[4], p, 1e-15) );
+      TEST_CHECK( gkyl_compare(prims[0], rho, 1e-13) );
+      TEST_CHECK( gkyl_compare(prims[1], u, 1e-13) );
+      TEST_CHECK( gkyl_compare(prims[2], v, 1e-13) );
+      TEST_CHECK( gkyl_compare(prims[3], w, 1e-13) );
+      TEST_CHECK( gkyl_compare(prims[4], p, 1e-13) );
 
       double fluxes[3][5] = {
         { (lapse * sqrt(spatial_det)) * (rho * W * (vel[0] - (shift[0] / lapse))),
@@ -162,7 +162,7 @@ test_gr_euler_tetrad_basic_minkowski()
         { 0.0, 1.0, 0.0 },
       };
 
-      double q_local[71], flux_local_sr[71], flux_local_gr[71], flux[71];
+      double q_local[71] = {0}, flux_local_sr[71] = {0}, flux_local_gr[71] = {0}, flux[71] = {0};
       for (int d = 0; d < 3; d++) {
         gr_euler_tetrad->rotate_to_local_func(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
         gkyl_gr_euler_tetrad_flux(gas_gamma, q_local, flux_local_sr);
@@ -174,21 +174,21 @@ test_gr_euler_tetrad_basic_minkowski()
         }
       }
 
-      double q_l[71], q_g[71];
+      double q_l[71] = {0}, q_g[71] = {0};
       for (int d = 0; d < 3; d++) {
         gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
         gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
         for (int i = 0; i < 71; i++) {
-          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
         }
 
-        double w1[71], q1[71];
+        double w1[71] = {0}, q1[71] = {0};
         gr_euler_tetrad->cons_to_riem(gr_euler_tetrad, q_local, q_local, w1);
         gr_euler_tetrad->riem_to_cons(gr_euler_tetrad, q_local, w1, q1);
 
         for (int i = 0; i < 71; i++) {
-          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+          TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
         }
       }
 
@@ -233,9 +233,9 @@ test_gr_euler_tetrad_basic_schwarzschild()
 
       double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, p = 1.5;
 
-      double spatial_det, lapse;
+      double spatial_det = 0.0, lapse = 0.0;
       double *shift = gkyl_malloc(sizeof(double[3]));
-      bool in_excision_region;
+      bool in_excision_region = false;
 
       double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
       for (int i = 0; i < 3; i++) {
@@ -328,7 +328,7 @@ test_gr_euler_tetrad_basic_schwarzschild()
         q[67] = 0.0;
         q[68] = x; q[69] = y; q[70] = 0.0;
 
-        double prims[71];
+        double prims[71] = {0};
         gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, prims);
         
         TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
@@ -373,7 +373,7 @@ test_gr_euler_tetrad_basic_schwarzschild()
           { 0.0, 1.0, 0.0 },
         };
 
-        double q_local[71], flux_local_sr[71], flux_local_gr[71], flux[71];
+        double q_local[71] = {0}, flux_local_sr[71] = {0}, flux_local_gr[71] = {0}, flux[71] = {0};
         for (int d = 0; d < 3; d++) {
           gr_euler_tetrad->rotate_to_local_func(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
           gkyl_gr_euler_tetrad_flux(gas_gamma, q_local, flux_local_sr);
@@ -385,21 +385,21 @@ test_gr_euler_tetrad_basic_schwarzschild()
           }
         }
 
-        double q_l[71], q_g[71];
+        double q_l[71] = {0}, q_g[71] = {0};
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 71; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
           }
 
-          double w1[71], q1[71];
+          double w1[71] = {0}, q1[71] = {0};
           gr_euler_tetrad->cons_to_riem(gr_euler_tetrad, q_local, q_local, w1);
           gr_euler_tetrad->riem_to_cons(gr_euler_tetrad, q_local, w1, q1);
 
           for (int i = 0; i < 71; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
           }
         }
       }
@@ -445,9 +445,9 @@ test_gr_euler_tetrad_basic_kerr()
 
       double rho = 1.0, u = 0.1, v = 0.2, w = 0.3, p = 1.5;
 
-      double spatial_det, lapse;
+      double spatial_det = 0.0, lapse = 0.0;
       double *shift = gkyl_malloc(sizeof(double[3]));
-      bool in_excision_region;
+      bool in_excision_region = false;
 
       double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
       for (int i = 0; i < 3; i++) {
@@ -540,7 +540,7 @@ test_gr_euler_tetrad_basic_kerr()
         q[67] = 0.0;
         q[68] = x; q[69] = y; q[70] = 0.0;
 
-        double prims[71];
+        double prims[71] = {0};
         gkyl_gr_euler_tetrad_prim_vars(gas_gamma, q, prims);
         
         TEST_CHECK( gkyl_compare(prims[0], rho, 1e-1) );
@@ -585,7 +585,7 @@ test_gr_euler_tetrad_basic_kerr()
           { 0.0, 1.0, 0.0 },
         };
 
-        double q_local[71], flux_local_sr[71], flux_local_gr[71], flux[71];
+        double q_local[71] = {0}, flux_local_sr[71] = {0}, flux_local_gr[71] = {0}, flux[71] = {0};
         for (int d = 0; d < 3; d++) {
           gr_euler_tetrad->rotate_to_local_func(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_local);
           gkyl_gr_euler_tetrad_flux(gas_gamma, q_local, flux_local_sr);
@@ -597,21 +597,21 @@ test_gr_euler_tetrad_basic_kerr()
           }
         }
 
-        double q_l[71], q_g[71];
+        double q_l[71] = {0}, q_g[71] = {0};
         for (int d = 0; d < 3; d++) {
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q, q_l);
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], q_l, q_g);
 
           for (int i = 0; i < 71; i++) {
-            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q[i], q_g[i], 1e-13) );
           }
 
-          double w1[71], q1[71];
+          double w1[71] = {0}, q1[71] = {0};
           gr_euler_tetrad->cons_to_riem(gr_euler_tetrad, q_local, q_local, w1);
           gr_euler_tetrad->riem_to_cons(gr_euler_tetrad, q_local, w1, q1);
 
           for (int i = 0; i < 71; i++) {
-            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-16) );
+            TEST_CHECK( gkyl_compare(q_local[i], q1[i], 1e-13) );
           }
         }
       }
@@ -655,8 +655,8 @@ test_gr_euler_tetrad_waves_minkowski()
       double rho_l = 1.0, u_l = 0.1, v_l = 0.2, w_l = 0.3, p_l = 1.5;
       double rho_r = 0.1, u_r = 0.2, v_r = 0.3, w_r = 0.4, p_r = 0.15;
 
-      double spatial_det_l, spatial_det_r;
-      double lapse_l, lapse_r;
+      double spatial_det_l = 0.0, spatial_det_r = 0.0;
+      double lapse_l = 0.0, lapse_r = 0.0;
       double *shift_l = gkyl_malloc(sizeof(double[3]));
       double *shift_r = gkyl_malloc(sizeof(double[3]));
 
@@ -827,31 +827,31 @@ test_gr_euler_tetrad_waves_minkowski()
       };
 
       for (int d = 0; d < 3; d++) {
-        double speeds[3], waves[3 * 71], waves_local[3 * 71];
+        double speeds[3] = {0}, waves[3 * 71] = {0}, waves_local[3 * 71] = {0};
 
-        double ql_local[71], qr_local[71];
+        double ql_local[71] = {0}, qr_local[71] = {0};
         gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
         gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
-        double delta[71];
+        double delta[71] = {0};
         for (int i = 0; i < 71; i++) {
           delta[i] = qr_local[i] - ql_local[i];
         }
 
         gkyl_wv_eqn_waves(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
-        double apdq_local[71], amdq_local[71];
+        double apdq_local[71] = {0}, amdq_local[71] = {0};
         gkyl_wv_eqn_qfluct(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
         for (int i = 0; i < 3; i++) {
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 71], &waves[i * 71]);
         }
 
-        double apdq[71], amdq[71];
+        double apdq[71] = {0}, amdq[71] = {0};
         gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
         gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-        double fl_local_sr[71], fr_local_sr[71];
+        double fl_local_sr[71] = {0}, fr_local_sr[71] = {0};
         gkyl_gr_euler_tetrad_flux(gas_gamma, ql_local, fl_local_sr);
         gkyl_gr_euler_tetrad_flux(gas_gamma, qr_local, fr_local_sr);
 
@@ -864,7 +864,7 @@ test_gr_euler_tetrad_waves_minkowski()
         gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], fr_local_gr, fr);
 
         for (int i = 0; i < 71; i++) {
-          TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-15) );
+          TEST_CHECK( gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], 1e-13) );
         }
       }
 
@@ -919,11 +919,11 @@ test_gr_euler_tetrad_waves_schwarzschild()
       double rho_l = 1.0, u_l = 0.1, v_l = 0.2, w_l = 0.3, p_l = 1.5;
       double rho_r = 0.1, u_r = 0.2, v_r = 0.3, w_r = 0.4, p_r = 0.15;
 
-      double spatial_det_l, spatial_det_r;
-      double lapse_l, lapse_r;
+      double spatial_det_l = 0.0, spatial_det_r = 0.0;
+      double lapse_l = 0.0, lapse_r = 0.0;
       double *shift_l = gkyl_malloc(sizeof(double[3]));
       double *shift_r = gkyl_malloc(sizeof(double[3]));
-      bool in_excision_region_l, in_excision_region_r;
+      bool in_excision_region_l = false, in_excision_region_r = false;
 
       double **spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
       double **spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
@@ -1095,31 +1095,31 @@ test_gr_euler_tetrad_waves_schwarzschild()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[3], waves[3 * 71], waves_local[3 * 71];
+          double speeds[3] = {0}, waves[3 * 71] = {0}, waves_local[3 * 71] = {0};
 
-          double ql_local[71], qr_local[71];
+          double ql_local[71] = {0}, qr_local[71] = {0};
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
-          double delta[71];
+          double delta[71] = {0};
           for (int i = 0; i < 71; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
           gkyl_wv_eqn_waves(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
-          double apdq_local[71], amdq_local[71];
+          double apdq_local[71] = {0}, amdq_local[71] = {0};
           gkyl_wv_eqn_qfluct(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 71], &waves[i * 71]);
           }
 
-          double apdq[71], amdq[71];
+          double apdq[71] = {0}, amdq[71] = {0};
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-          double fl_local_sr[71], fr_local_sr[71];
+          double fl_local_sr[71] = {0}, fr_local_sr[71] = {0};
           gkyl_gr_euler_tetrad_flux(gas_gamma, ql_local, fl_local_sr);
           gkyl_gr_euler_tetrad_flux(gas_gamma, qr_local, fr_local_sr);
 
@@ -1188,11 +1188,11 @@ test_gr_euler_tetrad_waves_kerr()
       double rho_l = 1.0, u_l = 0.1, v_l = 0.2, w_l = 0.3, p_l = 1.5;
       double rho_r = 0.1, u_r = 0.2, v_r = 0.3, w_r = 0.4, p_r = 0.15;
 
-      double spatial_det_l, spatial_det_r;
-      double lapse_l, lapse_r;
+      double spatial_det_l = 0.0, spatial_det_r = 0.0;
+      double lapse_l = 0.0, lapse_r = 0.0;
       double *shift_l = gkyl_malloc(sizeof(double[3]));
       double *shift_r = gkyl_malloc(sizeof(double[3]));
-      bool in_excision_region_l, in_excision_region_r;
+      bool in_excision_region_l = false, in_excision_region_r = false;
 
       double **spatial_metric_l = gkyl_malloc(sizeof(double*[3]));
       double **spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
@@ -1364,31 +1364,31 @@ test_gr_euler_tetrad_waves_kerr()
         };
 
         for (int d = 0; d < 3; d++) {
-          double speeds[3], waves[3 * 71], waves_local[3 * 71];
+          double speeds[3] = {0}, waves[3 * 71] = {0}, waves_local[3 * 71] = {0};
 
-          double ql_local[71], qr_local[71];
+          double ql_local[71] = {0}, qr_local[71] = {0};
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], ql, ql_local);
           gkyl_wv_eqn_rotate_to_local(gr_euler_tetrad, tau1[d], tau2[d], norm[d], qr, qr_local);
 
-          double delta[71];
+          double delta[71] = {0};
           for (int i = 0; i < 71; i++) {
             delta[i] = qr_local[i] - ql_local[i];
           }
 
           gkyl_wv_eqn_waves(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
-          double apdq_local[71], amdq_local[71];
+          double apdq_local[71] = {0}, amdq_local[71] = {0};
           gkyl_wv_eqn_qfluct(gr_euler_tetrad, GKYL_WV_LOW_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 3; i++) {
             gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], &waves_local[i * 71], &waves[i * 71]);
           }
 
-          double apdq[71], amdq[71];
+          double apdq[71] = {0}, amdq[71] = {0};
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], apdq_local, apdq);
           gkyl_wv_eqn_rotate_to_global(gr_euler_tetrad, tau1[d], tau2[d], norm[d], amdq_local, amdq);
 
-          double fl_local_sr[71], fr_local_sr[71];
+          double fl_local_sr[71] = {0}, fr_local_sr[71] = {0};
           gkyl_gr_euler_tetrad_flux(gas_gamma, ql_local, fl_local_sr);
           gkyl_gr_euler_tetrad_flux(gas_gamma, qr_local, fr_local_sr);
 

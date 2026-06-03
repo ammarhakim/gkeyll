@@ -28,10 +28,12 @@ struct gk_app_ctx {
   double kappa; // Elongation (=1 for no elongation).
   double delta; // Triangularity (=0 for no triangularity).
   double q0; // Magnetic safety factor in the center of domain.
+  double Cy; // Prefactor in binormal coordinate.
 
   double x_LCFS; // Radial location of the last closed flux surface.
   double x_inner; // Domain size inside the separatrix.
 
+  double side_wall_bias; // Potential of the side wall.
   // Plasma parameters.
   double me; double qe;
   double mi; double qi;
@@ -155,6 +157,16 @@ double integrand(double t, void *int_ctx)
   struct gk_app_ctx *app = inctx->app_ctx;
   return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
 }
+
+double Bphi(double R, void *ctx)
+{
+  // Toroidal magnetic field.
+  struct gk_app_ctx *app = ctx;
+  double B0 = app->B0;
+  double R0 = app->R0;
+  return B0*R0/R;
+}
+
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -162,10 +174,10 @@ double dPsidr(double r, double theta, void *ctx)
   struct gkyl_qr_res integral;
   integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
-  double R = R_rtheta(r,0.0,ctx);
-  return ( B0*R_axis/(2.*M_PI*qprofile(R)))*integral.res;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
+  double R_omp = R_rtheta(r,0.0,ctx);
+  return ( R*Bt/(2.*M_PI*qprofile(R_omp)))*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -184,20 +196,12 @@ double alpha(double r, double theta, double phi, void *ctx)
     integral.res = -integral.res;
   }
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return phi - B0*R_axis*integral.res/dPsidr(r,theta,ctx);
+  return phi - R*Bt*integral.res/dPsidr(r,theta,ctx);
 }
 
-double Bphi(double R, void *ctx)
-{
-  // Toroidal magnetic field.
-  struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-  return B0*R0/R;
-}
 double gradr(double r, double theta, void *ctx)
 {
   return (R_rtheta(r,theta,ctx)/Jr(r,theta,ctx))*sqrt(pow(dRdtheta(r,theta,ctx),2) + pow(dZdtheta(r,theta,ctx),2));
@@ -338,8 +342,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   double x = xc[0], y = xc[1], z = xc[2];
 
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
+  double Cy = app->Cy;
   double a_mid = app->a_mid;
   double x_inner = app->x_inner;
 
@@ -348,7 +351,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = Z_rtheta(r, z, ctx);
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -400,8 +403,7 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
 
   struct gk_app_ctx *app = ctx;
   double a_mid = app->a_mid;
-  double r0 = app->r0;
-  double q0 = app->q0;
+  double Cy = app->Cy;
   double x_inner = app->x_inner;
   double r = r_x(x,a_mid,x_inner);
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
@@ -412,14 +414,14 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = y/Cy + alpha(r, z, 0, ctx);
   double R   = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = -(B_r * cos(phi) - Bt * sin(phi));
-  fout[1] = -(B_r * sin(phi) + Bt * cos(phi));
-  fout[2] = -B_z;
+  fout[0] = B_r * cos(phi) + Bt * sin(phi);
+  fout[1] = B_r * sin(phi) - Bt * cos(phi);
+  fout[2] = B_z;
 }
 
 void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
@@ -427,14 +429,15 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double x = xc[0];
 
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
   double a_mid = app->a_mid;
-  double Lz = app->Lz;
   double x_inner = app->x_inner;
+  double Cy = app->Cy;
+  double z_min = app->z_min;
+  double z_max = app->z_max;
+
   double r = r_x(x,a_mid,x_inner);
 
-  fout[0] = -r0/q0*alpha(r, -Lz/2, 0.0, ctx);
+  fout[0] = Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
@@ -442,14 +445,15 @@ void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, vo
   double x = xc[0];
 
   struct gk_app_ctx *app = ctx;
-  double r0 = app->r0;
-  double q0 = app->q0;
   double a_mid = app->a_mid;
-  double Lz = app->Lz;
   double x_inner = app->x_inner;
+  double Cy = app->Cy;
+  double z_min = app->z_min;
+  double z_max = app->z_max;
+
   double r = r_x(x,a_mid,x_inner);
 
-  fout[0] = -r0/q0*alpha(r, Lz/2, 0.0, ctx);
+  fout[0] = -Cy*( alpha(r, z_min, 0.0, ctx) - alpha(r, z_max, 0.0, ctx) );
 }
 
 struct gk_app_ctx
@@ -478,8 +482,10 @@ create_ctx(void)
 
   // Minor radius at outboard midplane [m]. Redefine it with
   // Shafranov shift, to ensure LCFS radial location.
-  double a_mid = a_shift<1e-13? R_LCFSmid-R_axis :
+  double a_mid = fabs(a_shift)<1e-13? R_LCFSmid-R_axis :
     R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
+
+  double side_wall_bias = 0.0; // Potential of the side wall.
 
   double r0 = R0-R_axis; // Minor radius of the simulation box [m].
   double B0 = B_axis*(R_axis/R0); // Magnetic field magnitude in the simulation box [T].
@@ -513,6 +519,7 @@ create_ctx(void)
   double z_max = Lz/2.;
 
   double q0 = qprofile(R0); // Magnetic safety factor in the center of domain.
+  double Cy = r0/q0; // Normalization in binormal coordinate.
 
   double nu_frac = 0.1;
 
@@ -563,6 +570,8 @@ create_ctx(void)
     .kappa = kappa,
     .delta = delta,
     .q0 = q0,
+    .side_wall_bias = side_wall_bias,
+    .Cy = Cy,
     .Lx = Lx,
     .Ly = Ly,
     .Lz = Lz,
@@ -812,31 +821,37 @@ main(int argc, char **argv)
     },
   };
 
-  struct gkyl_poisson_bias_plane target_corner_bc = {
-    .dir = 0, // Direction perpendicular to the plane.
-    .loc = ctx.x_LCFS, // Location of the plane in the 'dir' dimension.
-    .val = 0.0, // Biasing value.
+  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
+     .val = ctx.side_wall_bias, // Biasing value.
+    },
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
+     .val = ctx.side_wall_bias, // Biasing value.
+    },
   };
-  
-  struct gkyl_poisson_bias_plane_list bias_plane_list = {
-    .num_bias_plane = 1,
-    .bp = &target_corner_bc,
+
+  struct gkyl_poisson_bias_line_list bias_line_list = {
+    .num_bias_line = 2,
+    .bl = target_corner_bcs,
   };
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES_IWL,
+    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {ctx.side_wall_bias} },
     },
-    .bias_plane_list = &bias_plane_list,
+    .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_d3d_iwl_3x2v_p1",
 
     .cfl_frac_omegaH = 1.0,
     .cfl_frac = 1.0,
@@ -872,6 +887,8 @@ main(int argc, char **argv)
     }
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

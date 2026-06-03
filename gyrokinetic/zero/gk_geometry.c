@@ -75,7 +75,16 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   }
 
   // Store metadata for I/O.
-  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK || up->geometry_id == GKYL_GEOMETRY_MIRROR) {
+  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    struct gkyl_msgpack_map_elem io_meta[] = {
+      { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
+      { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
+      { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
+    };
+    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
+    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+  }
+  else if (up->geometry_id == GKYL_GEOMETRY_MIRROR) {
     struct gkyl_msgpack_map_elem io_meta[] = {
       { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
       { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
@@ -127,6 +136,31 @@ void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
       gkyl_msgpack_map_elem_release(io_meta_buffer_len, io_meta_buffer); 
     }
   }
+
+  if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if (gkyl_msgpack_map_elem_has_key(up->io_meta_len, up->io_meta, "half_domain")) {
+      // Element list has this key. Update its value.
+      gkyl_msgpack_map_elem_set_uint(up->io_meta_len, up->io_meta, "half_domain", up->half_domain);
+    }
+    else {
+      // Element list doesn't have this key. Create a new list with it.
+      struct gkyl_msgpack_map_elem io_meta_new[] = {
+        { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
+      };
+      int io_meta_new_len = sizeof(io_meta_new)/sizeof(io_meta_new[0]);
+
+      struct gkyl_msgpack_map_elem *io_meta_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_len, up->io_meta);
+      int io_meta_buffer_len = up->io_meta_len;
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, up->io_meta); 
+
+      int io_meta_list_len[] = {io_meta_new_len, io_meta_buffer_len};
+      const struct gkyl_msgpack_map_elem* io_meta_list[] = {io_meta_new, io_meta_buffer};
+      up->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_list_len)/sizeof(int),
+        io_meta_list_len, io_meta_list, &up->io_meta_len);
+
+      gkyl_msgpack_map_elem_release(io_meta_buffer_len, io_meta_buffer); 
+    }
+  }
 }
 
 void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
@@ -163,6 +197,7 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 9, up_surf.normals_nodal, up_surf.normals, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.lenr_nodal, up_surf.lenr, dir);
+    gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.bimpactangle_nodal, up_surf.bimpactangle, dir);
   }
   gkyl_nodal_ops_release(n2m);
 
@@ -422,6 +457,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     up->num_surf_basis = 1;
   }
   up->geqdsk_sign_convention = up_3d->geqdsk_sign_convention;
+  up->half_domain = up_3d->half_domain;
   up->has_LCFS = up_3d->has_LCFS;
   up->x_LCFS = up_3d->x_LCFS;
   up->idx_LCFS_lo = up_3d->idx_LCFS_lo;
@@ -449,7 +485,9 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2p, up->geo_corn.mc2p, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.mc2nu_pos, up->geo_corn.mc2nu_pos, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.bmag, up->geo_corn.bmag, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_corn.bmag_inv, up->geo_corn.bmag_inv, 1);
 
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.mc2p, up->geo_int.mc2p, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag, up->geo_int.bmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.g_ij, up->geo_int.g_ij, 6);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.g_ij_neut, up->geo_int.g_ij_neut, 6);
@@ -467,8 +505,6 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.cmag, up->geo_int.cmag, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot, up->geo_int.jacobtot, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.jacobtot_inv, up->geo_int.jacobtot_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv, up->geo_int.bmag_inv, 1);
-  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bmag_inv_sq, up->geo_int.bmag_inv_sq, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxxj, up->geo_int.gxxj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gxyj, up->geo_int.gxyj, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.gyyj, up->geo_int.gyyj, 1);
@@ -479,7 +515,9 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.rtg33inv, up->geo_int.rtg33inv, 1);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.bioverJB, up->geo_int.bioverJB, 3);
   gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.B3, up->geo_int.B3, 1);
+  gkyl_deflate_geo_advance(deflator, &up_3d->local, &up->local, up_3d->geo_int.qprofile, up->geo_int.qprofile, 1);
   // Done deflating modal
+
   // Deflate nodal quantities
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.jacobgeo_nodal, up->geo_int.jacobgeo_nodal, 1);
   gkyl_deflate_geo_advance_nodal(deflator, &up_3d->nrange_int, &up->nrange_int, up_3d->geo_int.dxdz_nodal, up->geo_int.dxdz_nodal, 9);
@@ -498,12 +536,12 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     // In 2D geometry, make mapc2p a function of only R and Z 
     // and mc2nu_pos only a function of psi and length along field line
     struct gkyl_array *temp = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
-    gkyl_array_set_offset(up->geo_corn.mc2p_deflated, 1.0, up->geo_corn.mc2p, 0 * up->basis.num_basis); // 
-    gkyl_array_set_offset(temp,              1.0, up->geo_corn.mc2p, 1 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2p_deflated, 1.0, temp,     1 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, up->geo_corn.mc2nu_pos, 0 * up->basis.num_basis);
-    gkyl_array_set_offset(temp,                   1.0, up->geo_corn.mc2nu_pos, 2 * up->basis.num_basis);
-    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, temp,          1 * up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2p_deflated     , 1.0, up->geo_corn.mc2p     , 0*up->basis.num_basis);
+    gkyl_array_set_offset(temp                           , 1.0, up->geo_corn.mc2p     , 1*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2p_deflated     , 1.0, temp                  , 1*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, up->geo_corn.mc2nu_pos, 0*up->basis.num_basis);
+    gkyl_array_set_offset(temp                           , 1.0, up->geo_corn.mc2nu_pos, 2*up->basis.num_basis);
+    gkyl_array_set_offset(up->geo_corn.mc2nu_pos_deflated, 1.0, temp                  , 1*up->basis.num_basis);
     gkyl_array_release(temp);
   }
   else if (up->grid.ndim==3) {
@@ -512,7 +550,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
     gkyl_array_copy(up->geo_corn.mc2nu_pos_deflated, up->geo_corn.mc2nu_pos);
   }
   // Deflate surface geo
-  int  count = 0;
+  int count = 0;
   for (int dir = 0; dir < 3; dir++) {
     if(rem_dirs[dir] == 0) {
       struct gkyl_range local_ext_in_dir_3d;
@@ -542,6 +580,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].normcurlbhat, up->geo_surf[count].normcurlbhat, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].normals, up->geo_surf[count].normals, 9);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].lenr, up->geo_surf[count].lenr, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].bimpactangle, up->geo_surf[count].bimpactangle, 1);
       // deflate nodal quantities 
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].bmag_nodal, up->geo_surf[count].bmag_nodal, 1);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].jacobgeo_nodal, up->geo_surf[count].jacobgeo_nodal, 1);
@@ -550,6 +589,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].b_i_nodal, up->geo_surf[count].b_i_nodal, 3);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].normals_nodal, up->geo_surf[count].normals_nodal, 9);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].lenr_nodal, up->geo_surf[count].lenr_nodal, 1);
+      gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].bimpactangle_nodal, up->geo_surf[count].bimpactangle_nodal, 1);
       count+=1;
       gkyl_deflate_geo_surf_release(deflator_surf);
     }
@@ -610,6 +650,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_corn.mc2p);
   gkyl_array_release(up->geo_corn.mc2nu_pos);
   gkyl_array_release(up->geo_corn.bmag);
+  gkyl_array_release(up->geo_corn.bmag_inv);
   gkyl_array_release(up->geo_corn.mc2p_deflated);
   gkyl_array_release(up->geo_corn.mc2nu_pos_deflated);
 
@@ -631,8 +672,6 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.cmag);
   gkyl_array_release(up->geo_int.jacobtot);
   gkyl_array_release(up->geo_int.jacobtot_inv);
-  gkyl_array_release(up->geo_int.bmag_inv);
-  gkyl_array_release(up->geo_int.bmag_inv_sq);
   gkyl_array_release(up->geo_int.gxxj);
   gkyl_array_release(up->geo_int.gxyj);
   gkyl_array_release(up->geo_int.gyyj);
@@ -643,6 +682,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   gkyl_array_release(up->geo_int.rtg33inv);
   gkyl_array_release(up->geo_int.bioverJB);
   gkyl_array_release(up->geo_int.B3);
+  gkyl_array_release(up->geo_int.qprofile);
 
   for (int dir = 0; dir < up->grid.ndim; dir++) {
     gkyl_array_release(up->geo_surf[dir].jacobgeo);
@@ -655,6 +695,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
     gkyl_array_release(up->geo_surf[dir].normcurlbhat);
     gkyl_array_release(up->geo_surf[dir].normals);
     gkyl_array_release(up->geo_surf[dir].lenr);
+    gkyl_array_release(up->geo_surf[dir].bimpactangle);
   }
 
   // Release nodal data
