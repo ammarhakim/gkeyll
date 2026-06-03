@@ -29,44 +29,65 @@ void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_
 
   int cidx[GKYL_MAX_CDIM]; // Configuration space index.
   int vidx[GKYL_MAX_VDIM]; // Velocity space index.
-  int vcut_idx[GKYL_MAX_CDIM]; // Index for vcut_fact array, which is in the space of perpendicular config space coords and mu.
 
-  int pdim = up->skin_r->ndim; 
-  int vpar_dir = up->cdim;
-  
-  // Set the independent indices.
+  // Set the fixed parallel config index and vpar lower index.
   cidx[up->cdim-1] = up->edge == GKYL_LOWER_EDGE ? up->skin_r->lower[up->cdim-1] : up->skin_r->upper[up->cdim-1];
   vidx[0] = up->skin_r->lower[up->cdim];
 
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &up->vcut_fact_local);
-  while (gkyl_range_iter_next(&iter)) {
-
-    for (int d=0; d < up->cdim-1; d++) {
-      cidx[d] = iter.idx[d];
-      vcut_idx[d] = iter.idx[d];
-    }
-    vidx[1] = iter.idx[up->cdim-1];
-    vcut_idx[up->vcut_fact_dim-1] = iter.idx[up->vcut_fact_dim-1];
-
-    long cperp_mu_loc = gkyl_range_idx(&up->vcut_fact_local, iter.idx);
+  // Loop over perpendicular config cells only to fill the KANN input vectors.
+  // build_input writes n_nodes_per_cell nodes into nn_inp_out using stride dim_in:
+  //   feature f of local node n -> nn_inp_out[f + dim_in * n]
+  // This matches gkyl_kn_vec layout: node g data at data[g*N], feature f at data[g*N + f].
+  struct gkyl_range_iter iter_xy;
+  gkyl_range_iter_init(&iter_xy, &up->perp_r);
+  while (gkyl_range_iter_next(&iter_xy)) {
+    for (int d = 0; d < up->cdim-1; d++) {
+      cidx[d] = iter_xy.idx[d];
+    }    
     long conf_loc = gkyl_range_idx(conf_r, cidx);
-    long vel_loc = gkyl_range_idx(&up->vel_map->local_vel, vidx);
-
-    const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *dens_p = (const double*) gkyl_array_cfetch(dens, conf_loc);
     const double *temp_p = (const double*) gkyl_array_cfetch(temp, conf_loc);
     const double *bmag_p = (const double*) gkyl_array_cfetch(bmag, conf_loc);
     const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_loc);
+
+    // Contiguous block stride for the input parameter of the NN.
+    long perp_k = gkyl_range_idx(&up->perp_r, iter_xy.idx);
+    int stride = perp_k * up->perp_node_per_cell * up->kann_inp->N;
+
+    up->kernels->build_input(phi_p, phi_wall_p, dens_p, temp_p, bmag_p, bimpact_angle_p,
+      up->kann_inp->N, up->kann_inp->data + stride);
+  }
+
+  // Infer NN.
+  gkyl_kann_net_apply(up->kann_net, up->kann_inp, up->kann_out);
+  
+  // Loop over perp config + mu cells to project NN output onto DG vcut_fact.
+  // vcut_calc reads local node n's output block as nn_out + n*dim_out, matching
+  // gkyl_kn_vec layout where node g data starts at data[g*N].
+  struct gkyl_range_iter iter_xymu;
+  gkyl_range_iter_init(&iter_xymu, &up->vcut_fact_local);
+  while (gkyl_range_iter_next(&iter_xymu)) {
+
+    for (int d = 0; d < up->cdim-1; d++)
+      cidx[d] = iter_xymu.idx[d];
+    vidx[1] = iter_xymu.idx[up->cdim-1];
+
+    long cperp_mu_loc = gkyl_range_idx(&up->vcut_fact_local, iter_xymu.idx);
+    long conf_loc = gkyl_range_idx(conf_r, cidx);
+    long vel_loc = gkyl_range_idx(&up->vel_map->local_vel, vidx);
+    // 0-based sequential perp cell index from the perp part of the index.
+    long perp_k = gkyl_range_idx(&up->perp_r, cidx);
+
+    const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
+    const double *temp_p = (const double*) gkyl_array_cfetch(temp, conf_loc);
+    const double *bmag_p = (const double*) gkyl_array_cfetch(bmag, conf_loc);
     double *vcut_fact_p = (double*) gkyl_array_cfetch(up->vcut_fact, cperp_mu_loc);
 
-    // Run the NN inference kernel to get raw NN outputs for all perp nodes.
-    up->kernels->infer(up->kann_net, up->kann_inp, up->kann_out,
-      vmap_p, phi_p, phi_wall_p, dens_p, temp_p, bmag_p, bimpact_angle_p, up->nn_out);
+    int stride = perp_k * up->perp_node_per_cell * up->kann_out->N;
     // Compute the DG representation of the interpolated vcut_fact values.
-    up->kernels->vcut_calc(vmap_p, up->nn_out, temp_p, bmag_p, vcut_fact_p);
+    up->kernels->vcut_calc(vmap_p, up->kann_out->data + stride, up->kann_out->N, temp_p, bmag_p, vcut_fact_p);
   }
 }
 
@@ -85,6 +106,16 @@ void bc_sheath_gyrokinetic_set_surrogate_model(struct gkyl_bc_sheath_gyrokinetic
     gkyl_exit("surrogate_model_path does not point to a valid file");
   }
 
+  // Build a perp config range with the same bounds as the perp dims of skin_r.
+  // gkyl_range_idx on this range gives a sequential 0-based index into kann_inp/kann_out.
+  int perp_lower[GKYL_MAX_CDIM], perp_upper[GKYL_MAX_CDIM];
+  for (int d = 0; d < up->cdim-1; d++) {
+    perp_lower[d] = up->skin_r->lower[d];
+    perp_upper[d] = up->skin_r->upper[d];
+  }
+  gkyl_range_init(&up->perp_r, up->cdim-1, perp_lower, perp_upper);
+  up->perp_node_per_cell = 1 << (up->cdim-1);
+
   // Direct KANN interface.
   up->kann_model = kann_load(path);
   // Check that the model is valid.
@@ -99,8 +130,9 @@ void bc_sheath_gyrokinetic_set_surrogate_model(struct gkyl_bc_sheath_gyrokinetic
   up->kann_net = gkyl_kann_net_load(path, up->use_gpu);
   int dim_in = gkyl_kann_net_dim_in(up->kann_net);
   int dim_out = gkyl_kann_net_dim_out(up->kann_net);
-  up->kann_inp = up->use_gpu ? gkyl_kn_vec_cu_dev_new(1, dim_in) : gkyl_kn_vec_new(1, dim_in);
-  up->kann_out = up->use_gpu ? gkyl_kn_vec_cu_dev_new(1, dim_out) : gkyl_kn_vec_new(1, dim_out);
+  int nperp_nodes = up->perp_node_per_cell * up->perp_r.volume;
+  up->kann_inp = up->use_gpu ? gkyl_kn_vec_cu_dev_new(nperp_nodes, dim_in) : gkyl_kn_vec_new(nperp_nodes, dim_in);
+  up->kann_out = up->use_gpu ? gkyl_kn_vec_cu_dev_new(nperp_nodes, dim_out) : gkyl_kn_vec_new(nperp_nodes, dim_out);
   up->kann_infer_xy_out = mkarr(up->use_gpu, dim_out*pow(2, up->cdim-1), up->skin_r->volume);
   up->nn_out = up->use_gpu ? gkyl_cu_malloc(dim_out*pow(2, up->cdim-1)*sizeof(double)) 
     : gkyl_malloc(dim_out*pow(2, up->cdim-1)*sizeof(double));

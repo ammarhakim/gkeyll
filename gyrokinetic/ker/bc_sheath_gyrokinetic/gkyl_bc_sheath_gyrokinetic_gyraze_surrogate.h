@@ -57,6 +57,18 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_infer(double alpha, double gamma, do
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const double *mu_new, int n, double mu_ref, double *out);
 
 /**
+ * Linear interpolation of (float) vcut[SRGRZ_N_MU] (on the fixed mu-grid) onto
+ * mu_new[n]; results are written into out[n]. Clamps at the grid boundaries.
+ *
+ * @param vcut:    input array of size SRGRZ_N_MU containing values at the fixed mu-grid
+ * @param mu_new:  input array of size n containing the new mu points
+ * @param n:       number of points in mu_new and out
+ * @param mu_ref:  reference mu value for normalisation (e.g. temperature / Bmag)
+ * @param out:     output array of size n where interpolated values are written
+ */
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interpf(const float *vcut, const double *mu_new, int n, double mu_ref, double *out);
+
+/**
  * Eval the sheath BC surrogate to get vcutsq, normalises by 2 * e * (phi - phi_wall) / T.
  *
  * @param model:   pointer to the loaded KANN model

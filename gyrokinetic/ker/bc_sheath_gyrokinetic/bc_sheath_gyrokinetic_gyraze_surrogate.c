@@ -382,6 +382,25 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interp(const double *vcut, const dou
     }
 }
 
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interpf(const float *vcut, const double *mu_new, int n, double mu_ref, double *out)
+{
+    const double *mu_grid = SRGRZ_MUGRID;
+    int ng = SRGRZ_N_MU;
+    for (int i = 0; i < n; i++) {
+        double mu = mu_new[i]/mu_ref;
+        if (mu <= mu_grid[0])          { out[i] = vcut[0];          continue; }
+        if (mu >= mu_grid[ng - 1])     { out[i] = vcut[ng - 1];     continue; }
+        /* binary search for the bracketing interval */
+        int lo = 0, hi = ng - 1;
+        while (hi - lo > 1) {
+            int mid = (lo + hi) >> 1;
+            if (mu_grid[mid] <= mu) lo = mid; else hi = mid;
+        }
+        double t = (mu - mu_grid[lo]) / (mu_grid[hi] - mu_grid[lo]);
+        out[i] = vcut[lo] + t * (vcut[hi] - vcut[lo]);
+    }
+}
+
 GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(kann_t *model, const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {

@@ -34,25 +34,24 @@ static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
   },
 };
 
+
+// Function pointer type for the build the KANN input.
+typedef void (*sheath_surrogate_inp_t)(const double *phi, const double *phi_wall, const double *density, 
+  const double *temperature, const double *bmag, const double *bimpact_angle, int n_inp, float *inp_out);
+
 // Function pointer type for surrogate sheath BC to determine vcut factor from pre-computed NN output.
-typedef void (*sheath_surrogate_t)(const double *vmap, const double *nn_out,
+typedef void (*sheath_surrogate_out_t)(const double *vmap, const float *nn_out, int n_out,
   const double *temperature, const double *bmag, double *vcut_fact_out);
 
-// Function pointer type for the infer kernel: evaluates NN features and runs gkyl_kann_net_apply.
-typedef void (*sheath_infer_t)(struct gkyl_kann_net *net, struct gkyl_kn_vec *inp_k, struct gkyl_kn_vec *out_k,
-  const double *vmap, const double *phi, const double *phi_wall,
-  const double *density, const double *temperature, const double *bmag,
-  const double *bimpact_angle, double *out);
+typedef struct { sheath_surrogate_out_t kernels[3]; } sheath_surrogate_out_kern_list;  // For use in kernel tables.
+typedef struct { sheath_surrogate_out_kern_list dim_list[4]; } edged_sheath_surrogate_out_kern_list;
 
-typedef struct { sheath_surrogate_t kernels[3]; } sheath_surrogate_kern_list;  // For use in kernel tables.
-typedef struct { sheath_surrogate_kern_list dim_list[4]; } edged_sheath_surrogate_kern_list;
-
-typedef struct { sheath_infer_t kernels[3]; } sheath_infer_kern_list;
-typedef struct { sheath_infer_kern_list dim_list[4]; } edged_sheath_infer_kern_list;
+typedef struct { sheath_surrogate_inp_t kernels[3]; } sheath_inp_kern_list;
+typedef struct { sheath_inp_kern_list dim_list[4]; } edged_sheath_inp_kern_list;
 
 // Serendipity surrogate kernels (vcut_fact projection using pre-computed nn_out).
 GKYL_CU_D
-static const edged_sheath_surrogate_kern_list ser_sheath_vcut_calc_list[] = {
+static const edged_sheath_surrogate_out_kern_list ser_sheath_vcut_calc_list[] = {
   { .dim_list={
       { NULL, NULL },
       { bc_sheath_gyrokinetic_vparcut_calc_lower_1x2v_ser_p1, NULL },
@@ -71,27 +70,27 @@ static const edged_sheath_surrogate_kern_list ser_sheath_vcut_calc_list[] = {
 
 // Serendipity infer kernels (NN feature evaluation + gkyl_kann_net_apply).
 GKYL_CU_D
-static const edged_sheath_infer_kern_list ser_sheath_infer_list[] = {
+static const edged_sheath_inp_kern_list ser_sheath_input_list[] = {
   { .dim_list={
       { NULL, NULL },
-      { bc_sheath_gyrokinetic_infer_lower_1x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_infer_lower_2x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_infer_lower_3x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_build_input_lower_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_build_input_lower_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_build_input_lower_3x2v_ser_p1, NULL },
     },
   },
   { .dim_list={
       { NULL, NULL },
-      { bc_sheath_gyrokinetic_infer_upper_1x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_infer_upper_2x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_infer_upper_3x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_build_input_upper_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_build_input_upper_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_build_input_upper_3x2v_ser_p1, NULL },
     },
   },
 };
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {
   sheath_reflectedf_t reflectedf; // reflectedf kernel.
-  sheath_infer_t infer; // NN inference kernel (fills raw NN output).
-  sheath_surrogate_t vcut_calc; // vcut_fact DG projection kernel (uses pre-computed NN output).
+  sheath_surrogate_inp_t build_input; // NN input construction kernel.
+  sheath_surrogate_out_t vcut_calc; // vcut_fact DG projection kernel (uses pre-computed NN output).
 };
 
 // Primary struct in this updater.
@@ -111,12 +110,15 @@ struct gkyl_bc_sheath_gyrokinetic {
   struct gkyl_array *vcut_fact; // factor for mu dependent vcut in sheath BC.
   struct gkyl_basis vcut_fact_basis; // Basis for vcut_fact array (expansion in perpendicular config space and mu).
   struct gkyl_range vcut_fact_local; // Range for vcut_fact array.
+  struct gkyl_range perp_r; // Peprendicular conf space range.
+  int perp_node_per_cell; // Number of nodes per cell in the perpendicular conf. space.
   void (*update_vcut_fact) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
     const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
     const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcut_fact array.
   kann_t *kann_model; // Loaded KANN model for the surrogate (CPU only; NULL on GPU or when not using surrogate).
   struct gkyl_kann_net *kann_net; // KANN sheath surrogate.
-  struct gkyl_kn_vec *kann_inp, *kann_out; // Input and output vector structures.
+  struct gkyl_kn_vec *kann_inp; // Input vector for KANN surrogate (3 x number of perp nodes).
+  struct gkyl_kn_vec *kann_out; // Output vector for KANN surrogate (20 x number of perp nodes).
   struct gkyl_array *kann_infer_xy_out; // Output array for KANN on a perpendicular plane.
   double *nn_out; // Buffer to hold raw NN outputs for all perp nodes (device memory when using GPU).
 };
@@ -174,38 +176,15 @@ bc_gksheath_choose_surrogate_kernels(const struct gkyl_basis *basis, enum gkyl_e
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kers->vcut_calc = ser_sheath_vcut_calc_list[edge].dim_list[dim-2].kernels[poly_order-1];
-      kers->infer = ser_sheath_infer_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->build_input = ser_sheath_input_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
       kers->vcut_calc = NULL;
-      kers->infer = NULL;
+      kers->build_input = NULL;
       break;
   }
   assert(kers->vcut_calc);
-  assert(kers->infer);
-}
-
-GKYL_CU_D
-static sheath_infer_t
-bc_gksheath_choose_infer_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
-{
-  int dim = basis->ndim;
-  enum gkyl_basis_type basis_type = basis->b_type;
-  int poly_order = basis->poly_order;
-
-  sheath_infer_t kern = NULL;
-
-  switch (basis_type) {
-    case GKYL_BASIS_MODAL_GKHYBRID:
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      kern = ser_sheath_infer_list[edge].dim_list[dim-2].kernels[poly_order-1];
-      break;
-    default:
-      kern = NULL;
-      break;
-  }
-  assert(kern); // Infer kernel must be non-null if using surrogate.
-  return kern;
+  assert(kers->build_input);
 }
 
 #ifdef GKYL_HAVE_CUDA
