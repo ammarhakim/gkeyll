@@ -480,9 +480,9 @@ fused_rotate_waves_qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux
   delta[4] = qr_local[4] - ql_local[4];
 
   double amdq_local[5], apdq_local[5];
-
-  double my_max_speed = 0.0; 
-  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+  
+  double my_max_speed = 0.0;
+  if (type == GKYL_WV_HIGH_ORDER_FLUX && (phil > 0.0) && (phir > 0.0)) {
     double waves_local[15];
     my_max_speed = wave_roe(eqn, delta, ql_local, qr_local, waves_local, s);
     // Rescale speeds (3 waves)
@@ -497,7 +497,13 @@ fused_rotate_waves_qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux
   }
   else {
     double waves_local[10];
-    my_max_speed = wave_lax(eqn, delta, ql_local, qr_local, waves_local, s);
+    if ((phil < 0.0) || (phir < 0.0)) {
+      my_max_speed = wave_embedded(eqn, delta, ql_local, qr_local, phil, phir,
+        waves_local, s);
+    }
+    else {
+      my_max_speed = wave_lax(eqn, delta, ql_local, qr_local, waves_local, s);
+    }
     // Rescale speeds (2 waves)
     s[0] *= lenr;
     s[1] *= lenr;
@@ -806,7 +812,7 @@ fused_rotate_waves_qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flu
   double amdq_local[5], apdq_local[5];
 
   double my_max_speed = 0.0; 
-  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+  if (type == GKYL_WV_HIGH_ORDER_FLUX && (phil > 0.0) && (phir > 0.0)) {
     double waves_local[15];
     my_max_speed = wave_hllc(eqn, delta, ql_local, qr_local, waves_local, s);
     // Rescale speeds (3 waves)
@@ -821,7 +827,13 @@ fused_rotate_waves_qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flu
   }
   else {
     double waves_local[10];
-    my_max_speed = wave_lax(eqn, delta, ql_local, qr_local, waves_local, s);
+    if ((phil < 0.0) || (phir < 0.0)) {
+      my_max_speed = wave_embedded(eqn, delta, ql_local, qr_local, phil, phir,
+        waves_local, s);
+    }
+    else {
+      my_max_speed = wave_lax(eqn, delta, ql_local, qr_local, waves_local, s);
+    }
     // Rescale speeds (2 waves)
     s[0] *= lenr;
     s[1] *= lenr;
