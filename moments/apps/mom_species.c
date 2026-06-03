@@ -389,7 +389,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
       mom_sp->app_accel, mom_sp->app_accel_ctx);  
   }
 
-  sp->embed_mask = mkarr(false, 1, app->local_ext.volume);
+  sp->embed_mask = mkarr(app->use_gpu, 1, app->local_ext.volume);
   gkyl_array_clear(sp->embed_mask, 1.0);
 
   if (mom_sp->equation->embed_geo) {
