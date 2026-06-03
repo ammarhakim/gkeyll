@@ -53,6 +53,8 @@ struct gkyl_wave_prop_inp {
 
   const struct gkyl_wave_geom *geom; // geometry
   const struct gkyl_comm *comm; // communcator
+
+  bool use_gpu; // are we using GPUs?
 };
 
 // Some statics from update calls
