@@ -152,7 +152,7 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, 
       nT_sources_s[i] = gkyl_array_cfetch(nT_sources[i], cell_idx);
       embed_mask_s[i] = gkyl_array_cfetch(embed_mask[i], cell_idx);
       if (embed_mask_s[i][0] < 0.0) {
-        in_embed = true;
+        in_embed = false;
       }
     }
 
