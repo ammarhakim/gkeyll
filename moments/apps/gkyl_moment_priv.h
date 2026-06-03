@@ -135,6 +135,7 @@ struct moment_species {
   bool has_app_accel; // flag to indicate there is applied acceleration
   bool app_accel_evolve; // flag to indicate applied acceleration is time-dependent
   struct gkyl_array *app_accel; // applied acceleration
+  struct gkyl_array *app_accel_host; // applied acceleration host-side for projection and I/O
   gkyl_fv_proj *app_accel_proj; // projector for acceleration
 
   struct gkyl_array *nT_source; // array for num density and temperature sources
@@ -171,6 +172,7 @@ struct moment_species {
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
+  struct gkyl_array *f_host; // host copy for use IO and initialization
 
   // boundary condition type
   enum gkyl_species_bc_type lower_bct[3], upper_bct[3];
@@ -196,12 +198,14 @@ struct moment_field {
   bool has_ext_em; // flag to indicate there is external electromagnetic field
   bool ext_em_evolve; // flag to indicate external electromagnetic field is time dependent
   struct gkyl_array *ext_em; // external electromagnetic field
+  struct gkyl_array *ext_em_host; // external electromagnetic field host-side for projection and I/O
   gkyl_fv_proj *ext_em_proj; // projector for external electromagnetic field 
   double t_ramp_E; // linear ramp for turning on external E field
 
   bool has_app_current; // flag to indicate there is an applied current 
   bool app_current_evolve; // flag to indicate applied current is time dependent  
   struct gkyl_array *app_current; // applied current
+  struct gkyl_array *app_current_host; // applied current host-side for projection and I/O
   gkyl_fv_proj *app_current_proj;  // projector for applied current 
   double t_ramp_curr; // linear ramp for turning on applied currents
 
@@ -236,6 +240,7 @@ struct moment_field {
     };
   };
   struct gkyl_array *fcurr; // points to current solution (depends on scheme)
+  struct gkyl_array *f_host; // host copy for use IO and initialization
 
   // boundary condition type
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
@@ -286,6 +291,8 @@ struct gkyl_moment_app {
   int ndim; // space dimensions
   double tcurr; // current time
   double cfl; // CFL number
+
+  bool use_gpu; // should we use GPU (if present)
 
   enum gkyl_moment_scheme scheme_type; // scheme to use
   enum gkyl_wave_split_type split_type; // edge splitting to use  
@@ -454,7 +461,7 @@ double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Free memory allocated by species
-void moment_species_release(const struct moment_species *sp);
+void moment_species_release(const gkyl_moment_app *app, const struct moment_species *sp);
 
 /** moment_field API */
 
@@ -482,7 +489,7 @@ double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
 // Release the EM field object
-void moment_field_release(const struct moment_field *fld);
+void moment_field_release(const gkyl_moment_app *app, const struct moment_field *fld);
 
 /** moment_coupling API */
 
