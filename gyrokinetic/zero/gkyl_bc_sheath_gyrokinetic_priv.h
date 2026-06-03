@@ -52,7 +52,7 @@ typedef struct { sheath_infer_kern_list dim_list[4]; } edged_sheath_infer_kern_l
 
 // Serendipity surrogate kernels (vcut_fact projection using pre-computed nn_out).
 GKYL_CU_D
-static const edged_sheath_surrogate_kern_list ser_sheath_surrogate_list[] = {
+static const edged_sheath_surrogate_kern_list ser_sheath_vcut_calc_list[] = {
   { .dim_list={
       { NULL, NULL },
       { bc_sheath_gyrokinetic_vparcut_calc_lower_1x2v_ser_p1, NULL },
@@ -91,7 +91,7 @@ static const edged_sheath_infer_kern_list ser_sheath_infer_list[] = {
 struct gkyl_bc_sheath_gyrokinetic_kernels {
   sheath_reflectedf_t reflectedf; // reflectedf kernel.
   sheath_infer_t infer; // NN inference kernel (fills raw NN output).
-  sheath_surrogate_t vcut_fact_calc; // vcut_fact DG projection kernel (uses pre-computed NN output).
+  sheath_surrogate_t vcut_calc; // vcut_fact DG projection kernel (uses pre-computed NN output).
 };
 
 // Primary struct in this updater.
@@ -158,35 +158,31 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
 }
 
 void 
-gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
-  struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
-
-void
-gkyl_bc_gksheath_choose_infer_kernel_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+gkyl_bc_gksheath_choose_surrogate_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
-static sheath_surrogate_t
-bc_gksheath_choose_surrogate_kernel(const struct gkyl_basis *basis, enum gkyl_edge_loc edge)
+static void
+bc_gksheath_choose_surrogate_kernels(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
 {
-  
   int dim = basis->ndim;
   enum gkyl_basis_type basis_type = basis->b_type;
   int poly_order = basis->poly_order;
 
-  sheath_surrogate_t kern = NULL;
-
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kern = ser_sheath_surrogate_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->vcut_calc = ser_sheath_vcut_calc_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->infer = ser_sheath_infer_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
-      kern = NULL;
+      kers->vcut_calc = NULL;
+      kers->infer = NULL;
       break;
   }
-  assert(kern); // Surrogate kernel must be non-null if using surrogate.
-  return kern;
+  assert(kers->vcut_calc);
+  assert(kers->infer);
 }
 
 GKYL_CU_D

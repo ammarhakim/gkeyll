@@ -43,7 +43,8 @@ gkyl_bc_gksheath_surr_set_cu_ker_ptrs(const struct gkyl_basis *basis,
   switch (b_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->surrogate = ser_sheath_surrogate_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->vcut_calc = ser_sheath_vcut_calc_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->infer = ser_sheath_infer_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
       assert(false);
@@ -51,7 +52,7 @@ gkyl_bc_gksheath_surr_set_cu_ker_ptrs(const struct gkyl_basis *basis,
 };
 
 void
-gkyl_bc_gksheath_choose_surrogate_kernel_cu(const struct gkyl_basis *basis,
+gkyl_bc_gksheath_choose_surrogate_kernels_cu(const struct gkyl_basis *basis,
   enum gkyl_edge_loc edge, struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
 {
   gkyl_bc_gksheath_surr_set_cu_ker_ptrs<<<1,1>>>(basis, edge, kers);
@@ -125,9 +126,10 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
 
 __global__ static void
 bc_gksheath_update_vcut_fact_surrogate_cu_ker(enum gkyl_edge_loc edge, const struct gkyl_range conf_r,
-  const struct gkyl_range skin_r,
-  const struct gkyl_range vcut_fact_r, const struct gkyl_range vel_r, const struct gkyl_basis *basis, 
-  const struct gkyl_array *vmap, double q2Dm, const struct gkyl_array *phi, const struct gkyl_array *phi_wall, 
+  const struct gkyl_range skin_r, const struct gkyl_range vcut_fact_r, const struct gkyl_range vel_r, 
+  const struct gkyl_basis *basis, const struct gkyl_array *vmap, 
+  struct gkyl_kann_net *kann_net, struct gkyl_kn_vec *kann_inp, struct gkyl_kn_vec *kann_out, double *nn_out,
+  double q2Dm, const struct gkyl_array *phi, const struct gkyl_array *phi_wall, 
   const struct gkyl_array *dens, const struct gkyl_array *temp, const struct gkyl_array *bmag, 
   const struct gkyl_array *bimpact_angle, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, 
   struct gkyl_array *vcut_fact)
@@ -166,7 +168,11 @@ bc_gksheath_update_vcut_fact_surrogate_cu_ker(enum gkyl_edge_loc edge, const str
     const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_loc);
     double *vcut_fact_p = (double*) gkyl_array_cfetch(vcut_fact, vcut_fact_loc);
 
-    kers->surrogate(vmap_p, phi_p, phi_wall_p, dens_p, temp_p, q2Dm, bmag_p, bimpact_angle_p, vcut_fact_p);
+    // Run the NN inference kernel to get raw NN outputs for all perp nodes.
+    kers->infer(kann_net, kann_inp, kann_out, vmap_p, phi_p, phi_wall_p, 
+      dens_p, temp_p, bmag_p, bimpact_angle_p, nn_out);
+    // Compute the DG representation of the interpolated vcut_fact values.
+    kers->vcut_calc(vmap_p, nn_out, temp_p, bmag_p, vcut_fact_p);
   }
 }
 
@@ -192,8 +198,9 @@ bc_gksheath_update_vcut_fact_surrogate_cu(const struct gkyl_bc_sheath_gyrokineti
   if (up->vcut_fact_local.volume > 0) {
     int nblocks = up->vcut_fact_local.nblocks, nthreads = up->vcut_fact_local.nthreads;
     bc_gksheath_update_vcut_fact_surrogate_cu_ker<<<nblocks, nthreads>>>(up->edge, *conf_r, *up->skin_r,
-      up->vcut_fact_local, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm, 
-      phi->on_dev, phi_wall->on_dev, dens->on_dev, temp->on_dev, bmag->on_dev, bimpact_angle->on_dev, 
+      up->vcut_fact_local, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev,
+      up->kann_net, up->kann_inp, up->kann_out, up->nn_out,
+      up->q2Dm, phi->on_dev, phi_wall->on_dev, dens->on_dev, temp->on_dev, bmag->on_dev, bimpact_angle->on_dev, 
       up->kernels_cu, up->vcut_fact->on_dev);
   }
 }

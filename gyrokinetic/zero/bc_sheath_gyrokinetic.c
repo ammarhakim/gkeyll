@@ -65,9 +65,8 @@ void bc_gksheath_update_vcut_fact_surrogate_enabled(const struct gkyl_bc_sheath_
     // Run the NN inference kernel to get raw NN outputs for all perp nodes.
     up->kernels->infer(up->kann_net, up->kann_inp, up->kann_out,
       vmap_p, phi_p, phi_wall_p, dens_p, temp_p, bmag_p, bimpact_angle_p, up->nn_out);
-
     // Compute the DG representation of the interpolated vcut_fact values.
-    up->kernels->vcut_fact_calc(vmap_p, up->nn_out, temp_p, bmag_p, vcut_fact_p);
+    up->kernels->vcut_calc(vmap_p, up->nn_out, temp_p, bmag_p, vcut_fact_p);
   }
 }
 
@@ -174,17 +173,13 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
     gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis, edge, up->kernels_cu);
     if (use_surrogate) {
-      gkyl_bc_gksheath_choose_surrogate_kernel_cu(basis, edge, up->kernels_cu);
-      gkyl_bc_gksheath_choose_infer_kernel_cu(basis, edge, up->kernels_cu);
+      gkyl_bc_gksheath_choose_surrogate_kernels_cu(basis, edge, up->kernels_cu);
     }
   } else {
     up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
     assert(up->kernels->reflectedf);
     if (use_surrogate) {
-      up->kernels->surrogate = bc_gksheath_choose_surrogate_kernel(basis, edge);
-      assert(up->kernels->surrogate);
-      up->kernels->infer = bc_gksheath_choose_infer_kernel(basis, edge);
-      assert(up->kernels->infer);
+      bc_gksheath_choose_surrogate_kernels(basis, edge, up->kernels);
     }
     up->kernels_cu = up->kernels;
   }
@@ -192,10 +187,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
   assert(up->kernels->reflectedf);
   if (use_surrogate) {
-    up->kernels->vcut_fact_calc = bc_gksheath_choose_surrogate_kernel(basis, edge);
-    assert(up->kernels->vcut_fact_calc);
-    up->kernels->infer = bc_gksheath_choose_infer_kernel(basis, edge);
-    assert(up->kernels->infer);
+    bc_gksheath_choose_surrogate_kernels(basis, edge, up->kernels);
   }
   up->kernels_cu = up->kernels;
 #endif
