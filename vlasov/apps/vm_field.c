@@ -38,7 +38,7 @@ vm_field_buffer_fixed_func_bc(gkyl_vlasov_app *app, struct vm_field *field)
     return;
 
   if (field->field_id == GKYL_FIELD_GR_D_B) {
-    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h_init->nodal_arr_vol,
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
       field->em, field->em_no_J, app->use_gpu);
   }
 
@@ -203,10 +203,10 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     .cbasis = &app->basis,
     .crange = &app->local,
     .conf_flux_surf = (f->field_id == GKYL_FIELD_GR_D_B ) ? f->conf_flux_surf : 0,
-    .lapse_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->lapse_init->nodal_arr_vol : 0,
-    .shift_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->shift_init->nodal_arr_vol : 0,
-    .h_ij_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij_init->nodal_arr_vol : 0,
-    .det_h_vol_nodes = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->det_h_init->nodal_arr_vol : 0,
+    .lapse = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->lapse : 0,
+    .shift = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->shift : 0,
+    .h_ij = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij : 0,
+    .det_h = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->det_h : 0,
     .lightSpeed = c,
     .field_id = f->field_id,
     .elcErrorSpeedFactor = ef,
@@ -353,7 +353,7 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
     // The input function is specified in primitive variables. Preserve that in em_no_J
     // and rescale to the conservative J-weighted fields used for evolution.
     gkyl_array_copy(field->em_no_J, field->em_host);
-    gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h_init->nodal_arr_vol,
+    gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
       field->em_no_J, field->em, app->use_gpu);
   }
   else if (app->use_gpu) {
@@ -466,7 +466,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 
   if (field->field_id == GKYL_FIELD_GR_D_B) {
     // Divide out configuration-space Jacobian. 
-    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h_init->nodal_arr_vol, 
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h,
        em, field->em_no_J, app->use_gpu); 
 
     // Apply BCs after dividing out J so ghost cells are populated
@@ -597,7 +597,7 @@ vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
   const struct gkyl_array *field_to_write = app->field->em_host;
   if (app->field->field_id == GKYL_FIELD_GR_D_B) {
     // For GR Maxwell, write primitive D/B fields by default.
-    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h_init->nodal_arr_vol,
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h,
       app->field->em, app->field->em_no_J, app->use_gpu);
 
     if (app->use_gpu) {

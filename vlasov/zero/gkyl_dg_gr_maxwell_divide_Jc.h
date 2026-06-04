@@ -3,6 +3,7 @@
 #include <gkyl_array.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
+#include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_basis.h>
 
 /**
@@ -20,7 +21,7 @@
  * @param use_gpu bool to determine if on GPU
  */
 void gkyl_dg_gr_maxwell_divide_Jc(const struct gkyl_basis *conf_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *det_h, 
+  const struct gkyl_range *conf_range, const struct gkyl_surf_and_vol_node_arrays *det_h,
   const struct gkyl_array *field_with_J_con, struct gkyl_array *field_no_J_con, bool use_gpu);
 
 /**
@@ -28,7 +29,7 @@ void gkyl_dg_gr_maxwell_divide_Jc(const struct gkyl_basis *conf_basis,
  * NV-GPU. See new() method for documentation.
  */  
 void gkyl_dg_gr_maxwell_divide_Jc_cu(const struct gkyl_basis *conf_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *det_h, 
+  const struct gkyl_range *conf_range, const struct gkyl_surf_and_vol_node_arrays *det_h,
   const struct gkyl_array *field_with_J_con, struct gkyl_array *field_no_J_con);  
 
 /**
@@ -46,7 +47,7 @@ void gkyl_dg_gr_maxwell_divide_Jc_cu(const struct gkyl_basis *conf_basis,
  * @param use_gpu bool to determine if on GPU
  */
 void gkyl_dg_gr_maxwell_rescale_Jc(const struct gkyl_basis *conf_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *det_h, 
+  const struct gkyl_range *conf_range, const struct gkyl_surf_and_vol_node_arrays *det_h,
   const struct gkyl_array *field_no_J_con, struct gkyl_array *field_with_J_con, bool use_gpu);
 
 /**
@@ -54,5 +55,5 @@ void gkyl_dg_gr_maxwell_rescale_Jc(const struct gkyl_basis *conf_basis,
  * NV-GPU. See new() method for documentation.
  */  
 void gkyl_dg_gr_maxwell_rescale_Jc_cu(const struct gkyl_basis *conf_basis, 
-  const struct gkyl_range *conf_range, const struct gkyl_array *det_h, 
-  const struct gkyl_array *field_no_J_con, struct gkyl_array *field_with_J_con);    
+  const struct gkyl_range *conf_range, const struct gkyl_surf_and_vol_node_arrays *det_h,
+  const struct gkyl_array *field_no_J_con, struct gkyl_array *field_with_J_con);

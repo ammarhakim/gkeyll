@@ -2,6 +2,7 @@
 
 #include <gkyl_maxwell_kernels.h>
 #include <gkyl_dg_gr_maxwell_kernels.h>
+#include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_dg_eqn.h>
 
@@ -37,10 +38,10 @@ struct dg_maxwell {
   maxwell_surf_from_flux_t surf_from_flux[3]; // Surface terms for streaming using fluxes.
 
   maxwell_gr_maxwell_vol_t vol; // pointers to volume kernels (for nodal geometry)
-  const struct gkyl_array *lapse_vol_nodes; // nodal expansion of lapse at volume nodes
-  const struct gkyl_array *shift_vol_nodes; // nodal expansion of shift at volume nodes
-  const struct gkyl_array *h_ij_vol_nodes; // nodal expansion of spatial metric at volume nodes
-  const struct gkyl_array *det_h_vol_nodes; // nodal expansion of spatial metric determinant at volume nodes
+  const struct gkyl_surf_and_vol_node_arrays *lapse; // nodal expansion of lapse
+  const struct gkyl_surf_and_vol_node_arrays *shift; // nodal expansion of shift
+  const struct gkyl_surf_and_vol_node_arrays *h_ij; // nodal expansion of spatial metric
+  const struct gkyl_surf_and_vol_node_arrays *det_h; // nodal expansion of spatial metric determinant
 };
 
 //
@@ -314,10 +315,10 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
   if (maxwell->use_conf_flux_surf) {
     // Each cell owns the *lower* edge surface flux
     long cidx = gkyl_range_idx(&maxwell->crange, idx);
-    const double* lapse = (const double*) gkyl_array_cfetch(maxwell->lapse_vol_nodes, cidx);
-    const double* shift = (const double*) gkyl_array_cfetch(maxwell->shift_vol_nodes, cidx);
-    const double* h_ij = (const double*) gkyl_array_cfetch(maxwell->h_ij_vol_nodes, cidx);
-    const double* det_h = (const double*) gkyl_array_cfetch(maxwell->det_h_vol_nodes, cidx);
+    const double* lapse = (const double*) gkyl_array_cfetch(maxwell->lapse->nodal_arr_vol, cidx);
+    const double* shift = (const double*) gkyl_array_cfetch(maxwell->shift->nodal_arr_vol, cidx);
+    const double* h_ij = (const double*) gkyl_array_cfetch(maxwell->h_ij->nodal_arr_vol, cidx);
+    const double* det_h = (const double*) gkyl_array_cfetch(maxwell->det_h->nodal_arr_vol, cidx);
 
     // For GR Maxwell the volume term does not contribute to CFL, only the conf-flux.
     maxwell->vol(xc, dx, lapse, shift, h_ij, det_h, qIn, qRhsOut);

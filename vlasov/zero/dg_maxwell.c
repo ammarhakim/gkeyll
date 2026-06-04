@@ -4,6 +4,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
+#include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_maxwell_priv.h>
 #include <gkyl_util.h>
@@ -27,10 +28,10 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
   // Free the conf_flux_surf acquisition
   if (maxwell->use_conf_flux_surf) {
     gkyl_array_release(maxwell->conf_flux_surf);
-    gkyl_array_release(maxwell->lapse_vol_nodes);
-    gkyl_array_release(maxwell->shift_vol_nodes);
-    gkyl_array_release(maxwell->h_ij_vol_nodes);
-    gkyl_array_release(maxwell->det_h_vol_nodes);
+    gkyl_surf_and_vol_node_arrays_release(maxwell->lapse);
+    gkyl_surf_and_vol_node_arrays_release(maxwell->shift);
+    gkyl_surf_and_vol_node_arrays_release(maxwell->h_ij);
+    gkyl_surf_and_vol_node_arrays_release(maxwell->det_h);
   }
 
   gkyl_free(maxwell);
@@ -56,10 +57,10 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
     maxwell->use_conf_flux_surf = true;
     maxwell->crange = *inp->crange;
     maxwell->conf_flux_surf = gkyl_array_acquire(inp->conf_flux_surf);
-    maxwell->lapse_vol_nodes = gkyl_array_acquire(inp->lapse_vol_nodes);
-    maxwell->shift_vol_nodes = gkyl_array_acquire(inp->shift_vol_nodes);
-    maxwell->h_ij_vol_nodes = gkyl_array_acquire(inp->h_ij_vol_nodes);
-    maxwell->det_h_vol_nodes = gkyl_array_acquire(inp->det_h_vol_nodes);
+    maxwell->lapse = gkyl_surf_and_vol_node_arrays_acquire(inp->lapse);
+    maxwell->shift = gkyl_surf_and_vol_node_arrays_acquire(inp->shift);
+    maxwell->h_ij = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij);
+    maxwell->det_h = gkyl_surf_and_vol_node_arrays_acquire(inp->det_h);
   }
 
   const gkyl_dg_maxwell_vol_kern_list *vol_kernels;

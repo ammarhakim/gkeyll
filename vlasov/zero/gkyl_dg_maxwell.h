@@ -2,6 +2,7 @@
 
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
@@ -16,10 +17,10 @@ struct gkyl_dg_maxwell_inp {
   double elcErrorSpeedFactor; // Factor multiplying lightSpeed for div E correction
   double mgnErrorSpeedFactor; // Factor multiplying lightSpeed for div B correction
   const struct gkyl_array *conf_flux_surf; // Modal expansion of fluxes at configuration space surfaces. 
-  const struct gkyl_array *lapse_vol_nodes; // nodal expansion of lapse at volume nodes
-  const struct gkyl_array *shift_vol_nodes; // nodal expansion of shift at volume nodes
-  const struct gkyl_array *h_ij_vol_nodes; // nodal expansion of spatial metric at volume nodes
-  const struct gkyl_array *det_h_vol_nodes; // nodal expansion of spatial metric determinant at volume nodes
+  const struct gkyl_surf_and_vol_node_arrays *lapse; // nodal expansion of lapse
+  const struct gkyl_surf_and_vol_node_arrays *shift; // nodal expansion of shift
+  const struct gkyl_surf_and_vol_node_arrays *h_ij; // nodal expansion of spatial
+  const struct gkyl_surf_and_vol_node_arrays *det_h; // nodal expansion of spatial metric determinant
   bool use_gpu; // bool to determine if on GPU. 
 };
 

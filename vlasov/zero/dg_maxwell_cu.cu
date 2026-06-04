@@ -5,6 +5,7 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_dg_maxwell.h>    
 #include <gkyl_dg_maxwell_priv.h>
+#include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 }
 
 #include <cassert>
@@ -103,30 +104,31 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_maxwell_free);
 
   maxwell->conf_flux_surf = 0;
-  maxwell->lapse_vol_nodes = 0;
-  maxwell->shift_vol_nodes = 0;
-  maxwell->h_ij_vol_nodes = 0;
-  maxwell->det_h_vol_nodes = 0;
+  maxwell->lapse = 0;
+  maxwell->shift = 0;
+  maxwell->h_ij = 0;
+  maxwell->det_h = 0;
   struct gkyl_array *conf_flux_surf = 0;
-  struct gkyl_array *lapse_vol_nodes = 0;
-  struct gkyl_array *shift_vol_nodes = 0;
-  struct gkyl_array *h_ij_vol_nodes = 0;
-  struct gkyl_array *det_h_vol_nodes = 0;
+  struct gkyl_surf_and_vol_node_arrays *lapse = 0;
+  struct gkyl_surf_and_vol_node_arrays *shift = 0;
+  struct gkyl_surf_and_vol_node_arrays *h_ij = 0;
+  struct gkyl_surf_and_vol_node_arrays *det_h = 0;
   maxwell->use_conf_flux_surf = false;
   if (inp->field_id == GKYL_FIELD_GR_D_B) {
     assert(inp->crange);
     maxwell->use_conf_flux_surf = true;
     maxwell->crange = *inp->crange;
     conf_flux_surf = gkyl_array_acquire(inp->conf_flux_surf);
-    lapse_vol_nodes = gkyl_array_acquire(inp->lapse_vol_nodes);
-    shift_vol_nodes = gkyl_array_acquire(inp->shift_vol_nodes);
-    h_ij_vol_nodes = gkyl_array_acquire(inp->h_ij_vol_nodes);
-    det_h_vol_nodes = gkyl_array_acquire(inp->det_h_vol_nodes);
-    maxwell->conf_flux_surf = conf_flux_surf->on_dev; 
-    maxwell->lapse_vol_nodes = lapse_vol_nodes->on_dev; 
-    maxwell->shift_vol_nodes = shift_vol_nodes->on_dev; 
-    maxwell->h_ij_vol_nodes = h_ij_vol_nodes->on_dev; 
-    maxwell->det_h_vol_nodes = det_h_vol_nodes->on_dev; 
+    maxwell->conf_flux_surf = conf_flux_surf->on_dev;
+
+    lapse = gkyl_surf_and_vol_node_arrays_acquire(inp->lapse);
+    shift = gkyl_surf_and_vol_node_arrays_acquire(inp->shift);
+    h_ij = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij);
+    det_h = gkyl_surf_and_vol_node_arrays_acquire(inp->det_h);
+    maxwell->lapse = lapse->on_dev;
+    maxwell->shift = shift->on_dev;
+    maxwell->h_ij = h_ij->on_dev;
+    maxwell->det_h = det_h->on_dev;
   }
 
   // copy the host struct to device struct
@@ -140,10 +142,10 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
 
   // Host-side equation object should store host pointers.
   maxwell->conf_flux_surf = conf_flux_surf; 
-  maxwell->lapse_vol_nodes = lapse_vol_nodes; 
-  maxwell->shift_vol_nodes = shift_vol_nodes; 
-  maxwell->h_ij_vol_nodes = h_ij_vol_nodes; 
-  maxwell->det_h_vol_nodes = det_h_vol_nodes; 
+  maxwell->lapse = lapse;
+  maxwell->shift = shift;
+  maxwell->h_ij = h_ij;
+  maxwell->det_h = det_h;
 
   return &maxwell->eqn;
 }

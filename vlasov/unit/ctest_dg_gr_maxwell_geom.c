@@ -562,7 +562,7 @@ test_ks_r_theta_2x_geom_p1()
   gkyl_proj_on_basis_release(proj);
 
   // Divide out the spatial Jacobian
-  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &confLocal, det_h->nodal_arr_vol, 
+  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &confLocal, det_h,
     field_with_J_con, field_no_J_con, false);
 
   // Test the fields before and after division by J_c (mode by mode).
@@ -658,9 +658,9 @@ test_ks_r_theta_2x_geom_p1()
   gkyl_proj_on_basis_advance(proj_radial_ghost, 0.0, &radial_ghost_up, field_with_J_radial_init);
   gkyl_proj_on_basis_release(proj_radial_ghost);
 
-  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &radial_ghost_lo, det_h->nodal_arr_vol,
+  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &radial_ghost_lo, det_h,
     field_with_J_radial_init, field_no_J_radial_init, false);
-  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &radial_ghost_up, det_h->nodal_arr_vol,
+  gkyl_dg_gr_maxwell_divide_Jc(&confBasis, &radial_ghost_up, det_h,
     field_with_J_radial_init, field_no_J_radial_init, false);
 
   struct gkyl_array *field_no_J_fixed = mkarr(8*confBasis.num_basis, confLocal_ext.volume);
