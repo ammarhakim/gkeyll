@@ -223,7 +223,6 @@ wave_prop_second_order_flux(enum gkyl_wave_limiter limiter, double dtdx,
     const struct gkyl_wave_cell_geom *cgc = gkyl_wave_geom_get(wg, idxc);
     double kappal = cgl->kappa;
     double kappac = cgc->kappa;
-    
     double *flux2_d = gkyl_array_fetch(flux2, cidx);
     for (int mw=0; mw<mwaves; ++mw) {
       calc_second_order_qflux(meqn, dtdx/(0.5*(kappal+kappac)), s[mw], &ws[mw*meqn], flux2_d);
@@ -269,6 +268,7 @@ gkyl_wave_prop_new(const struct gkyl_wave_prop_inp *winp)
   int meqn = winp->equation->num_equations, mwaves = winp->equation->num_waves;
   if (up->use_gpu) {
     up->waves = gkyl_array_cu_dev_new(GKYL_DOUBLE, meqn*mwaves, tot_vol);
+    up->waves_scaled = gkyl_array_cu_dev_new(GKYL_DOUBLE, meqn*mwaves, tot_vol);
     up->apdq = gkyl_array_cu_dev_new(GKYL_DOUBLE, meqn, tot_vol);
     up->amdq = gkyl_array_cu_dev_new(GKYL_DOUBLE, meqn, tot_vol);
     up->speeds = gkyl_array_cu_dev_new(GKYL_DOUBLE, mwaves, tot_vol);
