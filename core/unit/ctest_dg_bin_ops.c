@@ -88,13 +88,13 @@ test_1d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
   // projection updaters for vector fields.
-  gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_1d, NULL);
-  gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_1d, NULL);
-  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_1d, NULL);
-  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_1d, NULL);
+  struct gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_1d, NULL);
+  struct gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_1d, NULL);
+  struct gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_1d, NULL);
+  struct gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -410,7 +410,7 @@ test_inv_1d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Project fields.
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  struct gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
 
   // Create array range.
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -588,13 +588,13 @@ test_2d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
   // projection updaters for vector fields.
-  gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_2d, NULL);
-  gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_2d, NULL);
-  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
-  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
+  struct gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_2d, NULL);
+  struct gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_2d, NULL);
+  struct gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
+  struct gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -634,7 +634,7 @@ test_2d(int poly_order, bool use_gpu)
   // create a conf-space factor
   struct gkyl_array *cfield = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, arr_crange.volume);
   // project conf-space function onto basis.
-  gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d2d, NULL);
+  struct gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d2d, NULL);
   gkyl_proj_on_basis_advance(proj_cfield, 0.0, &arr_crange, cfield);
   struct gkyl_array *cfield_cu;
   if (use_gpu) {
@@ -957,7 +957,7 @@ test_inv_2d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Project fields.
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  struct gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
 
   // Create array range.
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1168,11 +1168,11 @@ test_3d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_3d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_3d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_3d, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_3d, NULL);
   // projection updaters for vector fields.
-  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
-  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
+  struct gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
+  struct gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1212,7 +1212,7 @@ test_3d(int poly_order, bool use_gpu)
   // create a conf-space factor
   struct gkyl_array *cfield = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, arr_crange.volume);
   // project conf-space function onto basis.
-  gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d3d, NULL);
+  struct gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d3d, NULL);
   gkyl_proj_on_basis_advance(proj_cfield, 0.0, &arr_crange, cfield);
   struct gkyl_array *cfield_cu;
   if (use_gpu) {
@@ -1544,7 +1544,7 @@ test_4d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_4d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_4d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1580,7 +1580,7 @@ test_4d(int poly_order, bool use_gpu)
   // create a conf-space factor
   struct gkyl_array *cfield = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, arr_crange.volume);
   // project conf-space function onto basis.
-  gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_2d2d, NULL);
+  struct gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_2d2d, NULL);
   gkyl_proj_on_basis_advance(proj_cfield, 0.0, &arr_crange, cfield);
   struct gkyl_array *cfield_cu;
   if (use_gpu) {
@@ -1752,8 +1752,8 @@ test_3d_p3()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1834,6 +1834,129 @@ test_3d_p3()
   gkyl_dg_bin_op_mem_release(mem);  
 }
 
+// conf-phase accumulate subtraction test: pout = g(x,vx,vy) - f(x)*ones
+// where f(x)=x, g(x,vx,vy)=sin(x)*cos(vx)+vy, ones=1
+// verifies gkyl_dg_mul_conf_phase_op_accumulate_range with a=-1 and pop=constant 1.
+
+void f_sub_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  fout[0] = xn[0]; // f(x) = x
+}
+
+void g_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  double x = xn[0], vx = xn[1], vy = xn[2];
+  fout[0] = sin(x)*cos(vx) + vy; // g(x,vx,vy) = sin(x)*cos(vx) + vy
+}
+
+void ones_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  fout[0] = 1.0;
+}
+
+void h_sol_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  double x = xn[0], vx = xn[1], vy = xn[2];
+  fout[0] = sin(x)*cos(vx) + vy - x; // h = g - f
+}
+
+void
+test_subspace_accumulate(int poly_order, bool use_gpu)
+{
+  // Main dimension
+  int dim = 3;
+  double lower[] = {0.0, -M_PI/2.0, -M_PI/2.0};
+  double upper[] = {M_PI, M_PI/2.0, M_PI/2.0};
+  int cells[] = {8, 4, 4};
+  // Sub dimension: 1D, x in [0, pi]
+  int subdim = 1;
+  double sublower[] = {0.0}, subupper[] = {M_PI};
+  int ccells[] = {8};
+
+  // grids
+  struct gkyl_rect_grid fullgrid, subgrid;
+  gkyl_rect_grid_init(&fullgrid, dim, lower, upper, cells);
+  gkyl_rect_grid_init(&subgrid, subdim, sublower, subupper, ccells);
+
+  // basis
+  struct gkyl_basis basis, subbasis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+  gkyl_cart_modal_serendip(&subbasis, subdim, poly_order);
+
+  // ranges (no ghost cells)
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&fullgrid, nghost, &local_ext, &local);
+
+  struct gkyl_range sub_local, sub_local_ext;
+  gkyl_create_grid_ranges(&subgrid, nghost, &sub_local_ext, &sub_local);
+
+  // projection updaters
+  struct gkyl_proj_on_basis *proj_f = gkyl_proj_on_basis_new(&subgrid, &subbasis, poly_order+1, 1, f_sub_eval, NULL);
+  struct gkyl_proj_on_basis *proj_g = gkyl_proj_on_basis_new(&fullgrid, &basis, poly_order+1, 1, g_eval, NULL);
+  struct gkyl_proj_on_basis *proj_ones = gkyl_proj_on_basis_new(&fullgrid, &basis, poly_order+1, 1, ones_eval, NULL);
+  struct gkyl_proj_on_basis *proj_h = gkyl_proj_on_basis_new(&fullgrid, &basis, poly_order+1, 1, h_sol_eval, NULL);
+
+  // allocate arrays
+  struct gkyl_array *f_sub_ho = gkyl_array_new(GKYL_DOUBLE, subbasis.num_basis, sub_local.volume);
+  struct gkyl_array *g_full_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  struct gkyl_array *ones_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  struct gkyl_array *h_sol_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  struct gkyl_array *pout_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+
+  // project onto basis with host arrays
+  gkyl_proj_on_basis_advance(proj_f, 0.0, &sub_local, f_sub_ho);
+  gkyl_proj_on_basis_advance(proj_g, 0.0, &local, g_full_ho);
+  gkyl_proj_on_basis_advance(proj_ones, 0.0, &local, ones_ho);
+  gkyl_proj_on_basis_advance(proj_h, 0.0, &local, h_sol_ho);
+
+  // If GPU is enabled, make device copies of arrays and copy data to device
+  struct gkyl_array *f_sub = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, subbasis.num_basis, sub_local.volume) : gkyl_array_acquire(f_sub_ho);
+  struct gkyl_array *g_full = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(g_full_ho);
+  struct gkyl_array *ones_phase = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(ones_ho);
+  struct gkyl_array *h_expect = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(h_sol_ho);
+  struct gkyl_array *pout = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(pout_ho);
+
+  // copy data to device if using GPU
+  gkyl_array_copy(f_sub, f_sub_ho);
+  gkyl_array_copy(g_full, g_full_ho);
+  gkyl_array_copy(ones_phase, ones_ho);
+
+  // pout = g, then pout += -1 * f_sub * ones_phase  =>  pout = g - f
+  gkyl_array_copy(pout, g_full);
+  gkyl_dg_mul_conf_phase_op_accumulate_range(&subbasis, &basis, pout, -1.0,
+    f_sub, ones_phase, &sub_local, &local);
+
+  // Copy pout back to host if using GPU
+  gkyl_array_copy(pout_ho, pout);
+
+  // check: pout should equal h_expect coefficient-by-coefficient
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+    const double *pout_d = gkyl_array_cfetch(pout_ho,     loc);
+    const double *h_d    = gkyl_array_cfetch(h_sol_ho, loc);
+    for (int k = 0; k < basis.num_basis; ++k)
+      TEST_CHECK( gkyl_compare(h_d[k], pout_d[k], 1e-12) );
+  }
+
+  // cleanup
+  gkyl_proj_on_basis_release(proj_f);
+  gkyl_proj_on_basis_release(proj_g);
+  gkyl_proj_on_basis_release(proj_ones);
+  gkyl_proj_on_basis_release(proj_h);
+  gkyl_array_release(f_sub_ho);
+  gkyl_array_release(g_full_ho);
+  gkyl_array_release(ones_ho);
+  gkyl_array_release(h_sol_ho);
+  gkyl_array_release(pout_ho);
+}
+
+void test_conf_phase_accumulate_subtract_p1() { test_subspace_accumulate(1, false); }
+void test_conf_phase_accumulate_subtract_p2() { test_subspace_accumulate(2, false); }
+
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -1867,8 +1990,8 @@ test_3d_p3_cu()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1970,6 +2093,9 @@ test_3d_p3_cu()
   gkyl_dg_bin_op_mem_release(mem);
 }
 
+void test_conf_phase_accumulate_subtract_p1_cu() { test_subspace_accumulate(1, true); }
+void test_conf_phase_accumulate_subtract_p2_cu() { test_subspace_accumulate(2, true); }
+
 #endif
 
 TEST_LIST = {
@@ -1986,6 +2112,8 @@ TEST_LIST = {
   { "test_3d_p3", test_3d_p3 },
   { "test_4d_p1", test_4d_p1 },
   { "test_4d_p2", test_4d_p2 },
+  { "test_conf_phase_accumulate_subtract_p1", test_conf_phase_accumulate_subtract_p1 },
+  { "test_conf_phase_accumulate_subtract_p2", test_conf_phase_accumulate_subtract_p2 },
 #ifdef GKYL_HAVE_CUDA
   { "test_1d_p1_cu", test_1d_p1_cu },
   { "test_inv_1d_p1_cu", test_inv_1d_p1_cu },
@@ -1998,6 +2126,8 @@ TEST_LIST = {
   { "test_3d_p1_cu", test_3d_p1_cu },
   { "test_3d_p2_cu", test_3d_p2_cu },
   { "test_3d_p3_cu", test_3d_p3_cu },
+  { "test_conf_phase_accumulate_subtract_p1_cu", test_conf_phase_accumulate_subtract_p1_cu },
+  { "test_conf_phase_accumulate_subtract_p2_cu", test_conf_phase_accumulate_subtract_p2_cu },
 #endif
   { NULL, NULL },
 };
