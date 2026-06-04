@@ -158,7 +158,6 @@ void
 test_ks_r_theta_2x_geom_p1()
 {
 
-  bool use_gpu = false;
 
   // GR paramters
   // populate the geometry context struct with mass and spin
@@ -203,14 +202,14 @@ test_ks_r_theta_2x_geom_p1()
   // Lapse - \alpha in the ADM split
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* lapse_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &confGrid, &confBasis, 1, poly_order, gkyl_dg_gr_maxwell_preset_lapse(triad_preset_geom_type), &ctx);
-  lapse = gkyl_surf_and_vol_node_arrays_new(lapse_proj, confLocal_ext.volume, use_gpu);
+  lapse = gkyl_surf_and_vol_node_arrays_new(lapse_proj, confLocal_ext.volume, false);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(lapse_proj, 0.0, &confLocal_ext, lapse);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(lapse_proj);
 
   // shift - \beta^i components in the ADM split (contravariant)
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* shift_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &confGrid, &confBasis, 3, poly_order, gkyl_dg_gr_maxwell_preset_shift(triad_preset_geom_type), &ctx);
-  shift = gkyl_surf_and_vol_node_arrays_new(shift_proj, confLocal_ext.volume, use_gpu);
+  shift = gkyl_surf_and_vol_node_arrays_new(shift_proj, confLocal_ext.volume, false);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(shift_proj, 0.0, &confLocal_ext, shift);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(shift_proj);
 
@@ -219,14 +218,14 @@ test_ks_r_theta_2x_geom_p1()
   // Allocate arrays for specified metric inverse
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* h_ij_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &confGrid, &confBasis, 6, poly_order, gkyl_dg_gr_maxwell_preset_h_ij(triad_preset_geom_type), &ctx);
-  h_ij = gkyl_surf_and_vol_node_arrays_new(h_ij_proj, confLocal_ext.volume, use_gpu);
+  h_ij = gkyl_surf_and_vol_node_arrays_new(h_ij_proj, confLocal_ext.volume, false);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(h_ij_proj, 0.0, &confLocal_ext, h_ij);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(h_ij_proj);
 
   // Allocate arrays for the metric determinant (computed from J = sqrt(det(h_ij)))
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* det_h_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &confGrid, &confBasis, 1, poly_order, gkyl_dg_gr_maxwell_preset_det_h(triad_preset_geom_type), &ctx);
-  det_h = gkyl_surf_and_vol_node_arrays_new(det_h_proj, confLocal_ext.volume, use_gpu);
+  det_h = gkyl_surf_and_vol_node_arrays_new(det_h_proj, confLocal_ext.volume, false);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(det_h_proj, 0.0, &confLocal_ext, det_h);
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(det_h_proj);
 

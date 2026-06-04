@@ -23,6 +23,10 @@ struct gkyl_surf_and_vol_node_arrays {
   struct gkyl_array *nodal_arr_surf_z_host; // Host side copy, array evaluated at local nodal locations (surf-z)
   bool use_gpu; // Boolean for using GPU
   int ndim; // Number of dimensions
+
+  uint32_t flags; 
+  struct gkyl_ref_count ref_count;
+  struct gkyl_surf_and_vol_node_arrays *on_dev; // Device side copy
 };
 
 struct gkyl_dg_gr_maxwell_surf_and_vol_nodes_inp {
@@ -108,8 +112,33 @@ double* gkyl_dg_gr_maxwell_surf_and_vol_nodes_fetch_node(const gkyl_dg_gr_maxwel
 void gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(gkyl_dg_gr_maxwell_surf_and_vol_nodes *up);
 
 /**
- * Delete array objects.
+ * Copy surf and volume node array information to device.
+ *
+ * @param up Updater to delete.
+ * @param ndim Number of dimensions.
+ * @return New object on device.
+ */
+struct gkyl_surf_and_vol_node_arrays* gkyl_surf_and_vol_node_copy_to_device(struct gkyl_surf_and_vol_node_arrays *vol_surf_nodes, int ndim);
+
+/**
+ * Cehck is strcut is a on cu dev.
  *
  * @param up Object to delete.
+ * @return true if on cu dev, false otherwise.
  */
-void gkyl_surf_and_vol_node_arrays_release(gkyl_surf_and_vol_node_arrays *up);
+bool gkyl_surf_and_vol_node_arrays_is_cu_dev(const struct gkyl_surf_and_vol_node_arrays *up);
+
+/**
+ * Acquire array objects.
+ *
+ * @param up Object to acquire arrays from.
+ * @return Acquired object.
+ */
+struct gkyl_surf_and_vol_node_arrays *gkyl_surf_and_vol_node_arrays_acquire(const struct gkyl_surf_and_vol_node_arrays* up);
+
+/**
+ * Decrement reference count for array objects.
+ *
+ * @param up Object to decrement reference count too.
+ */
+void gkyl_surf_and_vol_node_arrays_release(const struct gkyl_surf_and_vol_node_arrays *up);

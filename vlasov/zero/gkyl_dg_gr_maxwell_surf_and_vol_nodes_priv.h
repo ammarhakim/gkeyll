@@ -18,6 +18,12 @@ mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
+/**
+ * Free the surface and volume node arrays.
+ * @param ref Reference to the surface and volume node arrays to free.
+ */
+void gkyl_surf_and_vol_node_arrays_free(const struct gkyl_ref_count* ref);
+
 static void
 vol_node_list(struct gkyl_array *nodes, int ndim, int polyorder)
 {

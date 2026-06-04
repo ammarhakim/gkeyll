@@ -2,6 +2,7 @@
 #include <assert.h>
 
 #include <gkyl_alloc.h>
+#include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_gauss_quad_data.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
@@ -29,6 +30,35 @@ struct gkyl_dg_gr_maxwell_surf_and_vol_nodes {
   dg_gr_maxwell_nodes_c2p_t c2p; // Function transformation comp to phys coords.
   void *c2p_ctx; // Context for the c2p mapping.
 };
+
+
+void
+gkyl_surf_and_vol_node_arrays_free(const struct gkyl_ref_count* ref)
+{
+  struct gkyl_surf_and_vol_node_arrays *up = container_of(ref, struct gkyl_surf_and_vol_node_arrays, ref_count);
+  if (gkyl_surf_and_vol_node_arrays_is_cu_dev(up)){
+    gkyl_cu_free(up->on_dev); 
+  }
+  else {
+    gkyl_array_release(up->nodal_arr_vol);
+    gkyl_array_release(up->nodal_arr_surf_x);
+    if (up->ndim > 1) {
+      gkyl_array_release(up->nodal_arr_surf_y);
+    }
+    if (up->ndim > 2) {
+      gkyl_array_release(up->nodal_arr_surf_z);
+    }
+    gkyl_array_release(up->nodal_arr_vol_host);
+    gkyl_array_release(up->nodal_arr_surf_x_host);
+    if (up->ndim > 1) {
+      gkyl_array_release(up->nodal_arr_surf_y_host);
+    }
+    if (up->ndim > 2) {
+      gkyl_array_release(up->nodal_arr_surf_z_host);
+    }
+  }
+  gkyl_free(up);
+}
 
 // Identity comp to phys coord mapping, for when user doesn't provide a map.
 static inline void
@@ -108,6 +138,48 @@ gkyl_dg_gr_maxwell_surf_and_vol_nodes_inew(const struct gkyl_dg_gr_maxwell_surf_
 }
 
 struct gkyl_surf_and_vol_node_arrays*
+gkyl_surf_and_vol_node_copy_to_device(struct gkyl_surf_and_vol_node_arrays *vol_surf_nodes, int ndim)
+{
+  struct gkyl_surf_and_vol_node_arrays *up = (struct gkyl_surf_and_vol_node_arrays*) gkyl_malloc(sizeof(struct gkyl_surf_and_vol_node_arrays));
+
+  up->use_gpu = true;
+  up->ndim = ndim;
+
+  // Copy host-side geometry onto device
+  gkyl_array_copy(vol_surf_nodes->nodal_arr_vol, vol_surf_nodes->nodal_arr_vol_host);
+  gkyl_array_copy(vol_surf_nodes->nodal_arr_surf_x, vol_surf_nodes->nodal_arr_surf_x_host);
+  if (ndim > 1) {
+    gkyl_array_copy(vol_surf_nodes->nodal_arr_surf_y, vol_surf_nodes->nodal_arr_surf_y_host);
+  }
+  if (ndim > 2) {
+    gkyl_array_copy(vol_surf_nodes->nodal_arr_surf_z, vol_surf_nodes->nodal_arr_surf_z_host);
+  }
+
+  // indirection, pointing to device pointers for copying of device structure
+  up->nodal_arr_vol = vol_surf_nodes->nodal_arr_vol->on_dev;
+  up->nodal_arr_surf_x = vol_surf_nodes->nodal_arr_surf_x->on_dev;
+  if (ndim > 1) {
+    up->nodal_arr_surf_y = vol_surf_nodes->nodal_arr_surf_y->on_dev;
+  }
+  if (ndim > 2) {
+    up->nodal_arr_surf_z = vol_surf_nodes->nodal_arr_surf_z->on_dev;
+  }
+
+  up->flags = 0;
+  GKYL_SET_CU_ALLOC(up->flags);
+  up->ref_count = gkyl_ref_count_init(gkyl_surf_and_vol_node_arrays_free);
+  up->on_dev = up; // CPU eqn obj points to itself
+
+  // copy the host struct to device struct
+  struct gkyl_surf_and_vol_node_arrays *up_cu = (struct gkyl_surf_and_vol_node_arrays*) gkyl_cu_malloc(sizeof(struct gkyl_surf_and_vol_node_arrays));
+  gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_surf_and_vol_node_arrays), GKYL_CU_MEMCPY_H2D);
+
+  up->on_dev = up_cu; // set the on_dev pointer to the device struct
+
+  return up; 
+}
+
+struct gkyl_surf_and_vol_node_arrays*
 gkyl_surf_and_vol_node_arrays_new(struct gkyl_dg_gr_maxwell_surf_and_vol_nodes *info, long volume, bool use_gpu)
 {
   struct gkyl_surf_and_vol_node_arrays *up = gkyl_malloc(sizeof(struct gkyl_surf_and_vol_node_arrays));
@@ -121,15 +193,9 @@ gkyl_surf_and_vol_node_arrays_new(struct gkyl_dg_gr_maxwell_surf_and_vol_nodes *
   if (info->grid.ndim > 2) {
     up->nodal_arr_surf_z = mkarr(use_gpu, info->num_ret_vals*info->num_nodes_surf, volume);
   }
-  up->nodal_arr_vol_host = up->nodal_arr_vol;
-  up->nodal_arr_surf_x_host = up->nodal_arr_surf_x;
-  if (info->grid.ndim > 1) {
-    up->nodal_arr_surf_y_host = up->nodal_arr_surf_y;
-  }
-  if (info->grid.ndim > 2) {
-    up->nodal_arr_surf_z_host = up->nodal_arr_surf_z;
-  }
-  if (use_gpu){
+
+  // Allocate host side arrays
+  if (use_gpu) {
     up->nodal_arr_vol_host = mkarr(false, info->num_ret_vals*info->num_nodes_vol, volume );
     up->nodal_arr_surf_x_host = mkarr(false, info->num_ret_vals*info->num_nodes_surf, volume);
     if (info->grid.ndim > 1) {
@@ -139,8 +205,24 @@ gkyl_surf_and_vol_node_arrays_new(struct gkyl_dg_gr_maxwell_surf_and_vol_nodes *
       up->nodal_arr_surf_z_host = mkarr(false, info->num_ret_vals*info->num_nodes_surf, volume);
     }
   }
+  else {
+    up->nodal_arr_vol_host = gkyl_array_acquire(up->nodal_arr_vol);
+    up->nodal_arr_surf_x_host = gkyl_array_acquire(up->nodal_arr_surf_x);
+    if (info->grid.ndim > 1) {
+      up->nodal_arr_surf_y_host = gkyl_array_acquire(up->nodal_arr_surf_y);
+    }
+    if (info->grid.ndim > 2) {
+      up->nodal_arr_surf_z_host = gkyl_array_acquire(up->nodal_arr_surf_z);
+    }
+  }
+
   up->use_gpu = use_gpu;
   up->ndim = info->grid.ndim;
+
+  up->flags = 0;
+  GKYL_CLEAR_CU_ALLOC(up->flags);
+  up->ref_count = gkyl_ref_count_init(gkyl_surf_and_vol_node_arrays_free);
+  up->on_dev = up; // CPU eqn obj points to itself
 
   return up;
 }
@@ -185,9 +267,6 @@ void
 gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(const struct gkyl_dg_gr_maxwell_surf_and_vol_nodes *up,
   double tm, const struct gkyl_range *update_range, struct gkyl_surf_and_vol_node_arrays *surf_vol_nodal_arrays)
 {
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(surf_vol_nodal_arrays->nodal_arr_vol_host)) assert(false);  // arr should be a host array.
-#endif
 
   double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
 
@@ -305,26 +384,22 @@ gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(struct gkyl_dg_gr_maxwell_surf_and
   gkyl_free(up);
 }
 
-void
-gkyl_surf_and_vol_node_arrays_release(struct gkyl_surf_and_vol_node_arrays* up)
+
+bool
+gkyl_surf_and_vol_node_arrays_is_cu_dev(const struct gkyl_surf_and_vol_node_arrays *vol_surf_nodes)
 {
-  gkyl_array_release(up->nodal_arr_vol);
-  gkyl_array_release(up->nodal_arr_surf_x);
-  if (up->ndim > 1) {
-    gkyl_array_release(up->nodal_arr_surf_y);
-  }
-  if (up->ndim > 2) {
-    gkyl_array_release(up->nodal_arr_surf_z);
-  }
-  if (up->use_gpu) {
-    gkyl_array_release(up->nodal_arr_vol_host);
-    gkyl_array_release(up->nodal_arr_surf_x_host);
-    if (up->ndim > 1) {
-      gkyl_array_release(up->nodal_arr_surf_y_host);
-    }
-    if (up->ndim > 2) {
-      gkyl_array_release(up->nodal_arr_surf_z_host);
-    }
-  }
-  gkyl_free(up);
+  return GKYL_IS_CU_ALLOC(vol_surf_nodes->flags);
+}
+
+struct gkyl_surf_and_vol_node_arrays*
+gkyl_surf_and_vol_node_arrays_acquire(const struct gkyl_surf_and_vol_node_arrays* vol_surf_nodes)
+{
+  gkyl_ref_count_inc(&vol_surf_nodes->ref_count);
+  return (struct gkyl_surf_and_vol_node_arrays*) vol_surf_nodes;
+}
+
+void
+gkyl_surf_and_vol_node_arrays_release(const struct gkyl_surf_and_vol_node_arrays* vol_surf_nodes)
+{
+  gkyl_ref_count_dec(&vol_surf_nodes->ref_count);
 }

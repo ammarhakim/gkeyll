@@ -33,15 +33,27 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
   // Lapse - \alpha in the ADM split
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* lapse_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &app->grid, &app->basis, 1, vm_app_inp->poly_order, gkyl_dg_gr_maxwell_preset_lapse(vmg->triad_preset_geom_type), &ctx);
-  vmg->lapse = gkyl_surf_and_vol_node_arrays_new(lapse_proj, app->local_ext.volume, app->use_gpu);
-  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(lapse_proj, 0.0, &app->local_ext, vmg->lapse);
+  vmg->lapse_init = gkyl_surf_and_vol_node_arrays_new(lapse_proj, app->local_ext.volume, app->use_gpu);
+  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(lapse_proj, 0.0, &app->local_ext, vmg->lapse_init);
+  if (app->use_gpu) {
+    vmg->lapse = gkyl_surf_and_vol_node_copy_to_device(vmg->lapse_init, app->cdim);
+  }
+  else {
+    vmg->lapse = gkyl_surf_and_vol_node_arrays_acquire(vmg->lapse_init);
+  }
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(lapse_proj);
 
   // shift - \beta^i components in the ADM split (contravariant)
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* shift_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &app->grid, &app->basis, 3, vm_app_inp->poly_order, gkyl_dg_gr_maxwell_preset_shift(vmg->triad_preset_geom_type), &ctx);
-  vmg->shift = gkyl_surf_and_vol_node_arrays_new(shift_proj, app->local_ext.volume, app->use_gpu);
-  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(shift_proj, 0.0, &app->local_ext, vmg->shift);
+  vmg->shift_init = gkyl_surf_and_vol_node_arrays_new(shift_proj, app->local_ext.volume, app->use_gpu);
+  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(shift_proj, 0.0, &app->local_ext, vmg->shift_init);
+  if (app->use_gpu) {
+    vmg->shift = gkyl_surf_and_vol_node_copy_to_device(vmg->shift_init, app->cdim);
+  }
+  else {
+    vmg->shift = gkyl_surf_and_vol_node_arrays_acquire(vmg->shift_init);
+  }
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(shift_proj);
 
   // h_ij - Covariant components of the spatial metric (assumed to allways be a upper 
@@ -49,15 +61,27 @@ vm_dg_maxwell_geom_new(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
   // Allocate arrays for specified metric inverse
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* h_ij_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &app->grid, &app->basis, 6, vm_app_inp->poly_order, gkyl_dg_gr_maxwell_preset_h_ij(vmg->triad_preset_geom_type), &ctx);
-  vmg->h_ij = gkyl_surf_and_vol_node_arrays_new(h_ij_proj, app->local_ext.volume, app->use_gpu);
-  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(h_ij_proj, 0.0, &app->local_ext, vmg->h_ij);
+  vmg->h_ij_init = gkyl_surf_and_vol_node_arrays_new(h_ij_proj, app->local_ext.volume, app->use_gpu);
+  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(h_ij_proj, 0.0, &app->local_ext, vmg->h_ij_init);
+  if (app->use_gpu) {
+    vmg->h_ij = gkyl_surf_and_vol_node_copy_to_device(vmg->h_ij_init, app->cdim);
+  }
+  else {
+    vmg->h_ij = gkyl_surf_and_vol_node_arrays_acquire(vmg->h_ij_init);
+  }
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(h_ij_proj);
 
   // Allocate arrays for the metric determinant (computed from J = sqrt(det(h_ij)))
   struct gkyl_dg_gr_maxwell_surf_and_vol_nodes* det_h_proj = gkyl_dg_gr_maxwell_surf_and_vol_nodes_new(
     &app->grid, &app->basis, 1, vm_app_inp->poly_order, gkyl_dg_gr_maxwell_preset_det_h(vmg->triad_preset_geom_type), &ctx);
-  vmg->det_h = gkyl_surf_and_vol_node_arrays_new(det_h_proj, app->local_ext.volume, app->use_gpu);
-  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(det_h_proj, 0.0, &app->local_ext, vmg->det_h);
+  vmg->det_h_init = gkyl_surf_and_vol_node_arrays_new(det_h_proj, app->local_ext.volume, app->use_gpu);
+  gkyl_dg_gr_maxwell_surf_and_vol_nodes_advance(det_h_proj, 0.0, &app->local_ext, vmg->det_h_init);
+  if (app->use_gpu) {
+    vmg->det_h = gkyl_surf_and_vol_node_copy_to_device(vmg->det_h_init, app->cdim);
+  }
+  else {
+    vmg->det_h = gkyl_surf_and_vol_node_arrays_acquire(vmg->det_h_init);
+  }
   gkyl_dg_gr_maxwell_surf_and_vol_nodes_release(det_h_proj);
 
 }
@@ -102,5 +126,9 @@ vm_geom_release(const gkyl_vlasov_app* app, const struct vm_geom *vmg)
     gkyl_surf_and_vol_node_arrays_release(vmg->shift);
     gkyl_surf_and_vol_node_arrays_release(vmg->h_ij);
     gkyl_surf_and_vol_node_arrays_release(vmg->det_h);
+    gkyl_surf_and_vol_node_arrays_release(vmg->lapse_init);
+    gkyl_surf_and_vol_node_arrays_release(vmg->shift_init);
+    gkyl_surf_and_vol_node_arrays_release(vmg->h_ij_init);
+    gkyl_surf_and_vol_node_arrays_release(vmg->det_h_init);
   }
 }
