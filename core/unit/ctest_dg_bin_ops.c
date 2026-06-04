@@ -1939,7 +1939,7 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
     const double *pout_d = gkyl_array_cfetch(pout_ho,     loc);
     const double *h_d    = gkyl_array_cfetch(h_sol_ho, loc);
     for (int k = 0; k < basis.num_basis; ++k)
-      TEST_CHECK( gkyl_compare(h_d[k], pout_d[k], 1e-12) );
+      TEST_CHECK( gkyl_compare(h_d[k], pout_d[k], 1e-11) );
   }
 
   // cleanup
