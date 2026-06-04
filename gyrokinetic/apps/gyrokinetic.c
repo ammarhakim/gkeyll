@@ -402,6 +402,26 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
+  // Create a global and local ranges, extended in the BC dir.
+  int ndim = app->cdim;
+  int par_dir = ndim-1;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = app->global.lower[i];
+    upper_bcdir_ext[i] = app->global.upper[i];
+  }
+  lower_bcdir_ext[par_dir] = app->global_ext.lower[par_dir];
+  upper_bcdir_ext[par_dir] = app->global_ext.upper[par_dir];
+  gkyl_sub_range_init(&app->global_par_ext, &app->global_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = app->local.lower[i];
+    upper_bcdir_ext[i] = app->local.upper[i];
+  }
+  lower_bcdir_ext[par_dir] = app->local_ext.lower[par_dir];
+  upper_bcdir_ext[par_dir] = app->local_ext.upper[par_dir];
+  gkyl_sub_range_init(&app->local_par_ext, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
   if (gk->geometry.has_LCFS) {
     // Simulation spans the last-closed flux surface (LCFS). Create core and SOL global ranges.
     int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
@@ -1139,6 +1159,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].normcurlbhat           , arr_surf_ho1, arr_surf_ho2, "normcurlbhat", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].normals           , arr_surf_ho9, arr_surf_ho18, "normals", dir, mt);
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].lenr           , arr_surf_ho1, arr_surf_ho2, "lenr", dir, mt);
+    gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].bimpactangle           , arr_surf_ho1, arr_surf_ho2, "bimpactangle", dir, mt);
   }
 
   // Write out nodes. This has to be done from rank 0 so we need to gather mc2p.
@@ -2874,6 +2895,7 @@ gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_geo
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].B3           , arr_surf_ho1, arr_surf_ho2, geometry_inp->geometry_path, "B3", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].normals      , arr_surf_ho9, arr_surf_ho18,geometry_inp->geometry_path,  "normals", dir);
     gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].lenr         , arr_surf_ho1, arr_surf_ho2, geometry_inp->geometry_path, "lenr", dir);
+    gyrokinetic_app_geometry_read_and_copy_surf(app, app->gk_geom->geo_surf[dir].bimpactangle , arr_surf_ho1, arr_surf_ho2, geometry_inp->geometry_path, "bimpactangle", dir);
     // jacobgeo_ratio is not used in single block.
     gkyl_array_clear(app->gk_geom->geo_surf[dir].jacobgeo_ratio, 0.0);
     gkyl_array_shiftc(app->gk_geom->geo_surf[dir].jacobgeo_ratio, pow(sqrt(2.0),app->cdim), 0);
