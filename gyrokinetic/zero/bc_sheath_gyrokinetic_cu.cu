@@ -43,8 +43,8 @@ gkyl_bc_gksheath_surr_set_cu_ker_ptrs(const struct gkyl_basis *basis,
   switch (b_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->vcut_calc = ser_sheath_vcut_calc_list[edge].dim_list[dim-2].kernels[poly_order-1];
-      kers->build_input = ser_sheath_input_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->vcut_calc = ser_sheath_surr_vcut_calc_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->build_input = ser_sheath_surr_input_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
       assert(false);

@@ -1,9 +1,8 @@
 #include <gkyl_bc_sheath_gyrokinetic_kernels.h> 
 
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
   double fReflSurf[3] = {0.}; 
 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
@@ -12,15 +11,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double 
   double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
   double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
 
-  vcutSq = -(0.5*(2.4494897427831783*phiWall[1]-2.4494897427831783*phi[1]-1.4142135623730951*phiWall[0]+1.4142135623730951*phi[0])*q2Dm); 
+  double vcutsq_n = vcutsq[0]; 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurf[0] = 0.0; 
   fReflSurf[1] = 0.0; 
   fReflSurf[2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurf[0] = -(0.7071067811865475*(1.7320508075688772*f[1]-1.0*f[0])); 
   fReflSurf[1] = -(0.7071067811865475*(1.7320508075688772*f[3]-1.0*f[2])); 
@@ -35,7 +34,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -48,7 +47,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -85,9 +84,8 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x1v_ser_p1(const double 
   fRefl[5] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
   double fReflSurf[3] = {0.}; 
 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
@@ -96,15 +94,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double 
   double vparAbsSqLo = vmap[0]>0.? vparLo*vparLo : vparUp*vparUp;
   double vparAbsSqUp = vmap[0]>0.? vparUp*vparUp : vparLo*vparLo;
 
-  vcutSq = 0.5*(2.4494897427831783*phiWall[1]-2.4494897427831783*phi[1]+1.4142135623730951*phiWall[0]-1.4142135623730951*phi[0])*q2Dm; 
+  double vcutsq_n = vcutsq[0]; 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurf[0] = 0.0; 
   fReflSurf[1] = 0.0; 
   fReflSurf[2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurf[0] = 0.7071067811865475*(1.7320508075688772*f[1]+f[0]); 
   fReflSurf[1] = 0.7071067811865475*(1.7320508075688772*f[3]+f[2]); 
@@ -119,7 +117,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -132,7 +130,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -169,9 +167,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x1v_ser_p1(const double 
   fRefl[5] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
+  double vcutsq_n;
   double fReflSurf[6] = {0.}; 
 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
@@ -187,15 +185,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
   double fReflSurfMu[2][3] = {0.}; 
 
   // node (mu)_0 
-  vcutSq = 0.5*((1.7320508075688772*phiWall[1]-1.7320508075688772*phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.7320508075688772*phiWall[1])+1.7320508075688772*phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = -(0.5*(1.4142135623730951*vcutsq[1]-1.4142135623730951*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfMu[0][0] = 0.0; 
   fReflSurfMu[0][1] = 0.0; 
   fReflSurfMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfMu[0][0] = 0.5*(1.7320508075688772*f[5]-1.0*(f[3]+1.7320508075688772*f[1])+f[0]); 
   fReflSurfMu[0][1] = 0.5*(1.7320508075688772*f[7]-1.0*(f[6]+1.7320508075688772*f[4])+f[2]); 
@@ -205,7 +203,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -218,7 +216,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -248,15 +246,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = -(0.5*(1.7320508075688772*phiWall[1]-1.7320508075688772*phi[1]-1.0*phiWall[0]+phi[0])*(vcut_fact[1]+vcut_fact[0])*q2Dm); 
+  vcutsq_n = 0.7071067811865476*(vcutsq[1]+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfMu[1][0] = 0.0; 
   fReflSurfMu[1][1] = 0.0; 
   fReflSurfMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfMu[1][0] = -(0.5*(1.7320508075688772*f[5]-1.0*f[3]+1.7320508075688772*f[1]-1.0*f[0])); 
   fReflSurfMu[1][1] = -(0.5*(1.7320508075688772*f[7]-1.0*f[6]+1.7320508075688772*f[4]-1.0*f[2])); 
@@ -266,7 +264,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -279,7 +277,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -329,9 +327,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_1x2v_ser_p1(const double 
   fRefl[11] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double *vmap, const double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
+  double vcutsq_n;
   double fReflSurf[6] = {0.}; 
 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
@@ -347,15 +345,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
   double fReflSurfMu[2][3] = {0.}; 
 
   // node (mu)_0 
-  vcutSq = -(0.5*((1.7320508075688772*phiWall[1]-1.7320508075688772*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.7320508075688772*phiWall[1])+1.7320508075688772*phi[1]-1.0*phiWall[0]+phi[0]))*q2Dm); 
+  vcutsq_n = -(0.5*(1.4142135623730951*vcutsq[1]-1.4142135623730951*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfMu[0][0] = 0.0; 
   fReflSurfMu[0][1] = 0.0; 
   fReflSurfMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfMu[0][0] = -(0.5*(1.7320508075688772*f[5]+f[3]-1.0*(1.7320508075688772*f[1]+f[0]))); 
   fReflSurfMu[0][1] = -(0.5*(1.7320508075688772*f[7]+f[6]-1.0*(1.7320508075688772*f[4]+f[2]))); 
@@ -365,7 +363,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -378,7 +376,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -408,15 +406,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = 0.5*(1.7320508075688772*phiWall[1]-1.7320508075688772*phi[1]+phiWall[0]-1.0*phi[0])*(vcut_fact[1]+vcut_fact[0])*q2Dm; 
+  vcutsq_n = 0.7071067811865476*(vcutsq[1]+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfMu[1][0] = 0.0; 
   fReflSurfMu[1][1] = 0.0; 
   fReflSurfMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfMu[1][0] = 0.5*(1.7320508075688772*f[5]+f[3]+1.7320508075688772*f[1]+f[0]); 
   fReflSurfMu[1][1] = 0.5*(1.7320508075688772*f[7]+f[6]+1.7320508075688772*f[4]+f[2]); 
@@ -426,7 +424,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -439,7 +437,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -489,9 +487,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_1x2v_ser_p1(const double 
   fRefl[11] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
+  double vcutsq_n;
   double fReflSurfX[2][6] = {0.}; 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
   double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
@@ -511,15 +509,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = 0.25*((1.7320508075688772*phiWall[3]-1.7320508075688772*(phi[3]+phiWall[2])+1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]))*phiWall[3]+(1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[3]+(1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[2]+(1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[2]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*vcut_fact[1])*phi[2]+(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = 0.5*(vcutsq[3]-1.0*(vcutsq[2]+vcutsq[1])+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[0][0] = 0.0; 
   fReflSurfXMu[0][1] = 0.0; 
   fReflSurfXMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[0][0] = -(0.3535533905932737*(1.7320508075688772*f[12]-1.0*(1.7320508075688772*f[9]+f[8]+1.7320508075688772*f[5])+f[4]+1.7320508075688772*f[2]+f[1]-1.0*f[0])); 
   fReflSurfXMu[0][1] = -(0.3535533905932737*(1.7320508075688772*f[15]-1.0*(1.7320508075688772*f[14]+f[13]+1.7320508075688772*f[11])+f[10]+1.7320508075688772*f[7]+f[6]-1.0*f[3])); 
@@ -529,7 +527,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -542,7 +540,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -572,15 +570,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = -(0.25*((1.7320508075688772*phiWall[3]-1.7320508075688772*(phi[3]+phiWall[2])+1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(-(1.7320508075688772*vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[3]+(1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[2]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*vcut_fact[1])*phiWall[2]+(1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[2]+(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[1]+vcut_fact[0]*(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0]))*q2Dm); 
+  vcutsq_n = -(0.5*(vcutsq[3]-1.0*vcutsq[2]+vcutsq[1]-1.0*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[1][0] = 0.0; 
   fReflSurfXMu[1][1] = 0.0; 
   fReflSurfXMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[1][0] = 0.3535533905932737*(1.7320508075688772*f[12]-1.0*(1.7320508075688772*f[9]+f[8])+1.7320508075688772*f[5]+f[4]-1.0*(1.7320508075688772*f[2]+f[1])+f[0]); 
   fReflSurfXMu[1][1] = 0.3535533905932737*(1.7320508075688772*f[15]-1.0*(1.7320508075688772*f[14]+f[13])+1.7320508075688772*f[11]+f[10]-1.0*(1.7320508075688772*f[7]+f[6])+f[3]); 
@@ -590,7 +588,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -603,7 +601,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -645,15 +643,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = 0.25*((1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[3]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*vcut_fact[2])*phi[3]+(1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[2]+(vcut_fact[1]+vcut_fact[0])*(-(1.7320508075688772*phiWall[2])+1.7320508075688772*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = -(0.5*(vcutsq[3]+vcutsq[2]-1.0*(vcutsq[1]+vcutsq[0]))); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[0][0] = 0.0; 
   fReflSurfXMu[0][1] = 0.0; 
   fReflSurfXMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[0][0] = 0.3535533905932737*(1.7320508075688772*(f[12]+f[9])-1.0*(f[8]+1.7320508075688772*f[5]+f[4]+1.7320508075688772*f[2])+f[1]+f[0]); 
   fReflSurfXMu[0][1] = 0.3535533905932737*(1.7320508075688772*(f[15]+f[14])-1.0*(f[13]+1.7320508075688772*f[11]+f[10]+1.7320508075688772*f[7])+f[6]+f[3]); 
@@ -663,7 +661,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -676,7 +674,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -706,15 +704,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = -(0.25*(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*q2Dm); 
+  vcutsq_n = 0.5*(vcutsq[3]+vcutsq[2]+vcutsq[1]+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[1][0] = 0.0; 
   fReflSurfXMu[1][1] = 0.0; 
   fReflSurfXMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[1][0] = -(0.3535533905932737*(1.7320508075688772*(f[12]+f[9])-1.0*f[8]+1.7320508075688772*f[5]-1.0*f[4]+1.7320508075688772*f[2]-1.0*(f[1]+f[0]))); 
   fReflSurfXMu[1][1] = -(0.3535533905932737*(1.7320508075688772*(f[15]+f[14])-1.0*f[13]+1.7320508075688772*f[11]-1.0*f[10]+1.7320508075688772*f[7]-1.0*(f[6]+f[3]))); 
@@ -724,7 +722,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -737,7 +735,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -799,9 +797,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_2x2v_ser_p1(const double 
   fRefl[23] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
+  double vcutsq_n;
   double fReflSurfX[2][6] = {0.}; 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
   double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
@@ -821,15 +819,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = -(0.25*((1.7320508075688772*phiWall[3]-1.7320508075688772*(phi[3]+phiWall[2])+1.7320508075688772*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]))*phiWall[3]+(1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[3]+(1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[2]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*vcut_fact[1])*phi[2]+(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[1]+vcut_fact[0]*(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0]))*q2Dm); 
+  vcutsq_n = 0.5*(vcutsq[3]-1.0*(vcutsq[2]+vcutsq[1])+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[0][0] = 0.0; 
   fReflSurfXMu[0][1] = 0.0; 
   fReflSurfXMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[0][0] = 0.3535533905932737*(1.7320508075688772*(f[12]-1.0*f[9])+f[8]-1.0*(1.7320508075688772*f[5]+f[4])+1.7320508075688772*f[2]-1.0*f[1]+f[0]); 
   fReflSurfXMu[0][1] = 0.3535533905932737*(1.7320508075688772*(f[15]-1.0*f[14])+f[13]-1.0*(1.7320508075688772*f[11]+f[10])+1.7320508075688772*f[7]-1.0*f[6]+f[3]); 
@@ -839,7 +837,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -852,7 +850,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -882,15 +880,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = 0.25*((1.7320508075688772*phiWall[3]-1.7320508075688772*(phi[3]+phiWall[2])+1.7320508075688772*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[3]+(-(1.7320508075688772*vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[3]+(1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*vcut_fact[1])*phiWall[2]+(1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[2]+(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = -(0.5*(vcutsq[3]-1.0*vcutsq[2]+vcutsq[1]-1.0*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[1][0] = 0.0; 
   fReflSurfXMu[1][1] = 0.0; 
   fReflSurfXMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[1][0] = -(0.3535533905932737*(1.7320508075688772*(f[12]-1.0*f[9])+f[8]+1.7320508075688772*f[5]-1.0*(f[4]+1.7320508075688772*f[2])+f[1]-1.0*f[0])); 
   fReflSurfXMu[1][1] = -(0.3535533905932737*(1.7320508075688772*(f[15]-1.0*f[14])+f[13]+1.7320508075688772*f[11]-1.0*(f[10]+1.7320508075688772*f[7])+f[6]-1.0*f[3])); 
@@ -900,7 +898,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -913,7 +911,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -955,15 +953,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = -(0.25*((1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[3]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*vcut_fact[2])*phi[3]+(1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(vcut_fact[1]+vcut_fact[0])*(-(1.7320508075688772*phiWall[2])+1.7320508075688772*phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0]))*q2Dm); 
+  vcutsq_n = -(0.5*(vcutsq[3]+vcutsq[2]-1.0*(vcutsq[1]+vcutsq[0]))); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[0][0] = 0.0; 
   fReflSurfXMu[0][1] = 0.0; 
   fReflSurfXMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[0][0] = -(0.3535533905932737*(1.7320508075688772*(f[12]+f[9])+f[8]-1.7320508075688772*f[5]+f[4]-1.0*(1.7320508075688772*f[2]+f[1]+f[0]))); 
   fReflSurfXMu[0][1] = -(0.3535533905932737*(1.7320508075688772*(f[15]+f[14])+f[13]-1.7320508075688772*f[11]+f[10]-1.0*(1.7320508075688772*f[7]+f[6]+f[3]))); 
@@ -973,7 +971,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -986,7 +984,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1016,15 +1014,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = 0.25*(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+1.7320508075688772*phiWall[2]-1.7320508075688772*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*q2Dm; 
+  vcutsq_n = 0.5*(vcutsq[3]+vcutsq[2]+vcutsq[1]+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXMu[1][0] = 0.0; 
   fReflSurfXMu[1][1] = 0.0; 
   fReflSurfXMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXMu[1][0] = 0.3535533905932737*(1.7320508075688772*(f[12]+f[9])+f[8]+1.7320508075688772*f[5]+f[4]+1.7320508075688772*f[2]+f[1]+f[0]); 
   fReflSurfXMu[1][1] = 0.3535533905932737*(1.7320508075688772*(f[15]+f[14])+f[13]+1.7320508075688772*f[11]+f[10]+1.7320508075688772*f[7]+f[6]+f[3]); 
@@ -1034,7 +1032,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1047,7 +1045,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1109,9 +1107,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_2x2v_ser_p1(const double 
   fRefl[23] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
+  double vcutsq_n;
   double fReflSurfXY[4][6] = {0.}; 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
   double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
@@ -1130,15 +1128,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = 0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*phi[6]-1.7320508075688772*phiWall[5]+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[7]+(-(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]+vcut_fact[4]))+1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[6]+(1.7320508075688772*(vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phiWall[6]+(-(1.7320508075688772*(vcut_fact[5]+vcut_fact[4]))+1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phiWall[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[5]+(phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[4]+(vcut_fact[0]-1.0*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1]))*phiWall[4]+(vcut_fact[3]+vcut_fact[2]+vcut_fact[1]-1.0*vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[3]+(1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[3]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]))*phi[3]+(phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phiWall[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phi[2]+(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = -(0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*(vcutsq[6]+vcutsq[5]+vcutsq[4])+1.4142135623730951*(vcutsq[3]+vcutsq[2]+vcutsq[1])-1.4142135623730951*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = 0.25*(1.7320508075688772*f[27]-1.0*(1.7320508075688772*(f[22]+f[21])+f[20])+1.7320508075688772*(f[14]-1.0*f[16])+f[13]+f[12]+1.7320508075688772*(f[8]+f[7])+f[6]-1.0*(f[5]+1.7320508075688772*f[3]+f[2]+f[1])+f[0]); 
   fReflSurfXYMu[0][1] = 0.25*(1.7320508075688772*f[31]-1.0*(1.7320508075688772*(f[30]+f[29])+f[28])+1.7320508075688772*(f[25]-1.0*f[26])+f[24]+f[23]+1.7320508075688772*(f[19]+f[18])+f[17]-1.0*(f[15]+1.7320508075688772*f[11]+f[10]+f[9])+f[4]); 
@@ -1148,7 +1146,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1161,7 +1159,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1191,15 +1189,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = -(0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*phi[6]-1.7320508075688772*phiWall[5]+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[7]+(-(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]))+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*(vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*(vcut_fact[6]+vcut_fact[5])-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*(vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[5]+(-(1.7320508075688772*(vcut_fact[4]+vcut_fact[3]))+1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[5]+(1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*(vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phi[5]+(-(1.0*phiWall[4])+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]+vcut_fact[1]-1.0*vcut_fact[0])*phiWall[4]+(vcut_fact[3]-1.0*(vcut_fact[2]+vcut_fact[1])+vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]))*phiWall[3]+(1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[3]+(-(1.0*phiWall[2])+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phiWall[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phi[2]+(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[1]+vcut_fact[0]*(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0]))*q2Dm); 
+  vcutsq_n = 0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*(vcutsq[6]+vcutsq[5])+1.4142135623730951*(vcutsq[4]+vcutsq[3])-1.4142135623730951*(vcutsq[2]+vcutsq[1])+1.4142135623730951*vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = -(0.25*(1.7320508075688772*f[27]-1.0*(1.7320508075688772*(f[22]+f[21])+f[20])+1.7320508075688772*(f[16]+f[14])+f[13]+f[12]-1.0*(1.7320508075688772*(f[8]+f[7])+f[6]+f[5])+1.7320508075688772*f[3]+f[2]+f[1]-1.0*f[0])); 
   fReflSurfXYMu[1][1] = -(0.25*(1.7320508075688772*f[31]-1.0*(1.7320508075688772*(f[30]+f[29])+f[28])+1.7320508075688772*(f[26]+f[25])+f[24]+f[23]-1.0*(1.7320508075688772*(f[19]+f[18])+f[17]+f[15])+1.7320508075688772*f[11]+f[10]+f[9]-1.0*f[4])); 
@@ -1209,7 +1207,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1222,7 +1220,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1264,15 +1262,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = 0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*(phi[6]+phiWall[5])-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*vcut_fact[5]-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*vcut_fact[5]+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*vcut_fact[2]+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*vcut_fact[2]+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[5]+(-(1.7320508075688772*(vcut_fact[4]+vcut_fact[3]))+1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[5]+(1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*vcut_fact[2]+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[5]+(phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[4]+(vcut_fact[3]-1.0*vcut_fact[2]+vcut_fact[1]-1.0*vcut_fact[0])*phiWall[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]-1.0*vcut_fact[1]+vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[3]+(-(1.7320508075688772*vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[3]+(phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phiWall[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phi[2]+(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = 0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*vcutsq[6]+1.4142135623730951*vcutsq[5]-1.4142135623730951*(vcutsq[4]+vcutsq[3])+1.4142135623730951*vcutsq[2]-1.4142135623730951*vcutsq[1]+1.4142135623730951*vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = -(0.25*(1.7320508075688772*(f[27]-1.0*f[22]+f[21])-1.0*(f[20]+1.7320508075688772*(f[16]+f[14]))+f[13]-1.0*f[12]+1.7320508075688772*(f[8]-1.0*f[7])+f[6]+f[5]+1.7320508075688772*f[3]-1.0*f[2]+f[1]-1.0*f[0])); 
   fReflSurfXYMu[0][1] = -(0.25*(1.7320508075688772*(f[31]-1.0*f[30]+f[29])-1.0*(f[28]+1.7320508075688772*(f[26]+f[25]))+f[24]-1.0*f[23]+1.7320508075688772*(f[19]-1.0*f[18])+f[17]+f[15]+1.7320508075688772*f[11]-1.0*f[10]+f[9]-1.0*f[4])); 
@@ -1282,7 +1280,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1295,7 +1293,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1325,15 +1323,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = -(0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*(phi[6]+phiWall[5])-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*(vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*(vcut_fact[5]+vcut_fact[4])+1.7320508075688772*(vcut_fact[3]+vcut_fact[2])-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[6]+(-(1.7320508075688772*(vcut_fact[5]+vcut_fact[4]))+1.7320508075688772*(vcut_fact[3]+vcut_fact[2])-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[6]+(1.7320508075688772*(vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*(vcut_fact[3]+vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*(vcut_fact[3]+vcut_fact[2])-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[5]+(-(1.0*phiWall[4])+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[4]+(vcut_fact[3]+vcut_fact[2]-1.0*vcut_fact[1]+vcut_fact[0])*phiWall[4]+(-(1.0*(vcut_fact[3]+vcut_fact[2]))+vcut_fact[1]-1.0*vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[3]+(-(1.7320508075688772*vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[3]+(-(1.0*phiWall[2])+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phiWall[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phi[2]+(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[1]+vcut_fact[0]*(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0]))*q2Dm); 
+  vcutsq_n = -(0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*vcutsq[6]+1.4142135623730951*(vcutsq[5]+vcutsq[4])-1.4142135623730951*(vcutsq[3]+vcutsq[2])+1.4142135623730951*vcutsq[1]-1.4142135623730951*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = 0.25*(1.7320508075688772*(f[27]-1.0*f[22]+f[21])-1.0*f[20]+1.7320508075688772*(f[16]-1.0*f[14])+f[13]-1.0*f[12]+1.7320508075688772*(f[7]-1.0*f[8])-1.0*f[6]+f[5]-1.7320508075688772*f[3]+f[2]-1.0*f[1]+f[0]); 
   fReflSurfXYMu[1][1] = 0.25*(1.7320508075688772*(f[31]-1.0*f[30]+f[29])-1.0*f[28]+1.7320508075688772*(f[26]-1.0*f[25])+f[24]-1.0*f[23]+1.7320508075688772*(f[18]-1.0*f[19])-1.0*f[17]+f[15]-1.7320508075688772*f[11]+f[10]-1.0*f[9]+f[4]); 
@@ -1343,7 +1341,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1356,7 +1354,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1398,15 +1396,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = 0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2])+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2])-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[6]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2]))*phiWall[6]+(1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2])-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[5]+(1.7320508075688772*(vcut_fact[4]+vcut_fact[3]+vcut_fact[2])-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[5]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*(vcut_fact[4]+vcut_fact[3]+vcut_fact[2]))*phi[5]+(phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[4]+(vcut_fact[3]+vcut_fact[2]-1.0*(vcut_fact[1]+vcut_fact[0]))*phiWall[4]+(-(1.0*(vcut_fact[3]+vcut_fact[2]))+vcut_fact[1]+vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[3]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*vcut_fact[2])*phi[3]+(phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[2]+(vcut_fact[1]+vcut_fact[0])*(-(1.0*phiWall[2])+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = 0.25*(1.4142135623730951*(vcutsq[7]+vcutsq[6])-1.4142135623730951*(vcutsq[5]+vcutsq[4]+vcutsq[3]+vcutsq[2])+1.4142135623730951*(vcutsq[1]+vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = -(0.25*(1.7320508075688772*(f[27]+f[22])-1.0*(1.7320508075688772*f[21]+f[20]+1.7320508075688772*(f[16]+f[14])+f[13])+f[12]+1.7320508075688772*(f[7]-1.0*f[8])+f[6]+f[5]+1.7320508075688772*f[3]+f[2]-1.0*(f[1]+f[0]))); 
   fReflSurfXYMu[0][1] = -(0.25*(1.7320508075688772*(f[31]+f[30])-1.0*(1.7320508075688772*f[29]+f[28]+1.7320508075688772*(f[26]+f[25])+f[24])+f[23]+1.7320508075688772*(f[18]-1.0*f[19])+f[17]+f[15]+1.7320508075688772*f[11]+f[10]-1.0*(f[9]+f[4]))); 
@@ -1416,7 +1414,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1429,7 +1427,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1459,15 +1457,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = -(0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*vcut_fact[5]+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*vcut_fact[5]-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*vcut_fact[2]+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*vcut_fact[2]+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*vcut_fact[3]-1.7320508075688772*vcut_fact[2]+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[5]+(-(1.0*phiWall[4])+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[4]+(vcut_fact[3]-1.0*vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*phiWall[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]-1.0*(vcut_fact[1]+vcut_fact[0]))*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[3]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*vcut_fact[2])*phiWall[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[3]+(-(1.0*phiWall[2])+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(vcut_fact[1]+vcut_fact[0])*(phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0]))*q2Dm); 
+  vcutsq_n = -(0.25*(1.4142135623730951*(vcutsq[7]+vcutsq[6])-1.4142135623730951*vcutsq[5]+1.4142135623730951*vcutsq[4]-1.4142135623730951*vcutsq[3]+1.4142135623730951*vcutsq[2]-1.4142135623730951*(vcutsq[1]+vcutsq[0]))); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = 0.25*(1.7320508075688772*(f[27]+f[22])-1.0*(1.7320508075688772*f[21]+f[20])+1.7320508075688772*f[16]-1.0*(1.7320508075688772*f[14]+f[13])+f[12]+1.7320508075688772*f[8]-1.0*(1.7320508075688772*f[7]+f[6])+f[5]-1.0*(1.7320508075688772*f[3]+f[2])+f[1]+f[0]); 
   fReflSurfXYMu[1][1] = 0.25*(1.7320508075688772*(f[31]+f[30])-1.0*(1.7320508075688772*f[29]+f[28])+1.7320508075688772*f[26]-1.0*(1.7320508075688772*f[25]+f[24])+f[23]+1.7320508075688772*f[19]-1.0*(1.7320508075688772*f[18]+f[17])+f[15]-1.0*(1.7320508075688772*f[11]+f[10])+f[9]+f[4]); 
@@ -1477,7 +1475,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1490,7 +1488,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1532,15 +1530,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = 0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[7]+(1.7320508075688772*(vcut_fact[6]+vcut_fact[5])-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phiWall[7]+(-(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]))+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phiWall[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*vcut_fact[3]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phiWall[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phi[5]+(phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*phiWall[4]+(vcut_fact[3]-1.0*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[3]+(vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*(-(1.7320508075688772*phiWall[3])+1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = -(0.25*(1.4142135623730951*(vcutsq[7]+vcutsq[6]+vcutsq[5])-1.4142135623730951*vcutsq[4]+1.4142135623730951*vcutsq[3]-1.4142135623730951*(vcutsq[2]+vcutsq[1]+vcutsq[0]))); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = 0.25*(1.7320508075688772*(f[27]+f[22]+f[21])-1.0*f[20]+1.7320508075688772*(f[14]-1.0*f[16])-1.0*(f[13]+f[12]+1.7320508075688772*(f[8]+f[7]))+f[6]-1.0*(f[5]+1.7320508075688772*f[3])+f[2]+f[1]+f[0]); 
   fReflSurfXYMu[0][1] = 0.25*(1.7320508075688772*(f[31]+f[30]+f[29])-1.0*f[28]+1.7320508075688772*(f[25]-1.0*f[26])-1.0*(f[24]+f[23]+1.7320508075688772*(f[19]+f[18]))+f[17]-1.0*(f[15]+1.7320508075688772*f[11])+f[10]+f[9]+f[4]); 
@@ -1550,7 +1548,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1563,7 +1561,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1593,15 +1591,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = -(0.125*(1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*(vcut_fact[7]+vcut_fact[6]+vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*q2Dm); 
+  vcutsq_n = 0.3535533905932738*(vcutsq[7]+vcutsq[6]+vcutsq[5]+vcutsq[4]+vcutsq[3]+vcutsq[2]+vcutsq[1]+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = -(0.25*(1.7320508075688772*(f[27]+f[22]+f[21])-1.0*f[20]+1.7320508075688772*(f[16]+f[14])-1.0*(f[13]+f[12])+1.7320508075688772*(f[8]+f[7])-1.0*(f[6]+f[5])+1.7320508075688772*f[3]-1.0*(f[2]+f[1]+f[0]))); 
   fReflSurfXYMu[1][1] = -(0.25*(1.7320508075688772*(f[31]+f[30]+f[29])-1.0*f[28]+1.7320508075688772*(f[26]+f[25])-1.0*(f[24]+f[23])+1.7320508075688772*(f[19]+f[18])-1.0*(f[17]+f[15])+1.7320508075688772*f[11]-1.0*(f[10]+f[9]+f[4]))); 
@@ -1611,7 +1609,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1624,7 +1622,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1710,9 +1708,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_lower_3x2v_ser_p1(const double 
   fRefl[47] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double *vmap, double q2Dm, const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double *vmap, const double *vcutsq, const double *f, double *fRefl) 
 { 
-  double vcutSq;
+  double vcutsq_n;
   double fReflSurfXY[4][6] = {0.}; 
   double vparLo = 0.7071067811865475*vmap[0]-1.224744871391589*vmap[1];
   double vparUp = 1.224744871391589*vmap[1]+0.7071067811865475*vmap[0];
@@ -1731,15 +1729,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = -(0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*phi[6]-1.7320508075688772*phiWall[5]+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[7]+(-(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]+vcut_fact[4]))+1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[6]+(1.7320508075688772*(vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phiWall[6]+(-(1.7320508075688772*(vcut_fact[5]+vcut_fact[4]))+1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phiWall[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[5]+(-(1.0*phiWall[4])+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[4]+(vcut_fact[3]+vcut_fact[2]+vcut_fact[1]-1.0*vcut_fact[0])*phiWall[4]+(vcut_fact[0]-1.0*(vcut_fact[3]+vcut_fact[2]+vcut_fact[1]))*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[3]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]))*phi[3]+(-(1.0*phiWall[2])+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phiWall[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phi[2]+(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[1]+vcut_fact[0]*(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0]))*q2Dm); 
+  vcutsq_n = -(0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*(vcutsq[6]+vcutsq[5]+vcutsq[4])+1.4142135623730951*(vcutsq[3]+vcutsq[2]+vcutsq[1])-1.4142135623730951*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = -(0.25*(1.7320508075688772*(f[27]-1.0*(f[22]+f[21]))+f[20]+1.7320508075688772*(f[14]-1.0*f[16])-1.0*(f[13]+f[12])+1.7320508075688772*(f[8]+f[7])-1.0*f[6]+f[5]-1.7320508075688772*f[3]+f[2]+f[1]-1.0*f[0])); 
   fReflSurfXYMu[0][1] = -(0.25*(1.7320508075688772*(f[31]-1.0*(f[30]+f[29]))+f[28]+1.7320508075688772*(f[25]-1.0*f[26])-1.0*(f[24]+f[23])+1.7320508075688772*(f[19]+f[18])-1.0*f[17]+f[15]-1.7320508075688772*f[11]+f[10]+f[9]-1.0*f[4])); 
@@ -1749,7 +1747,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1762,7 +1760,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1792,15 +1790,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = 0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*phi[6]-1.7320508075688772*phiWall[5]+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[7]+(-(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]))+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*(vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*(vcut_fact[6]+vcut_fact[5])-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*(vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[5]+(-(1.7320508075688772*(vcut_fact[4]+vcut_fact[3]))+1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phiWall[5]+(1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*(vcut_fact[2]+vcut_fact[1])+1.7320508075688772*vcut_fact[0])*phi[5]+(phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[4]+(vcut_fact[3]-1.0*(vcut_fact[2]+vcut_fact[1])+vcut_fact[0])*phiWall[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]+vcut_fact[1]-1.0*vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[0]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]))*phiWall[3]+(1.7320508075688772*(vcut_fact[2]+vcut_fact[1])-1.7320508075688772*vcut_fact[0])*phi[3]+(phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phiWall[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phi[2]+(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = 0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*(vcutsq[6]+vcutsq[5])+1.4142135623730951*(vcutsq[4]+vcutsq[3])-1.4142135623730951*(vcutsq[2]+vcutsq[1])+1.4142135623730951*vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = 0.25*(1.7320508075688772*(f[27]-1.0*(f[22]+f[21]))+f[20]+1.7320508075688772*(f[16]+f[14])-1.0*(f[13]+f[12]+1.7320508075688772*(f[8]+f[7]))+f[6]+f[5]+1.7320508075688772*f[3]-1.0*(f[2]+f[1])+f[0]); 
   fReflSurfXYMu[1][1] = 0.25*(1.7320508075688772*(f[31]-1.0*(f[30]+f[29]))+f[28]+1.7320508075688772*(f[26]+f[25])-1.0*(f[24]+f[23]+1.7320508075688772*(f[19]+f[18]))+f[17]+f[15]+1.7320508075688772*f[11]-1.0*(f[10]+f[9])+f[4]); 
@@ -1810,7 +1808,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1823,7 +1821,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1865,15 +1863,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = -(0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*(phi[6]+phiWall[5])-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*vcut_fact[5]-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*vcut_fact[5]+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*vcut_fact[2]+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*vcut_fact[2]+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*(vcut_fact[4]+vcut_fact[3])+1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[5]+(-(1.7320508075688772*(vcut_fact[4]+vcut_fact[3]))+1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[5]+(1.7320508075688772*(vcut_fact[4]+vcut_fact[3])-1.7320508075688772*vcut_fact[2]+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[5]+(-(1.0*phiWall[4])+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]-1.0*vcut_fact[1]+vcut_fact[0])*phiWall[4]+(vcut_fact[3]-1.0*vcut_fact[2]+vcut_fact[1]-1.0*vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(-(1.7320508075688772*vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[3]+(-(1.0*phiWall[2])+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phiWall[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phi[2]+(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[1]+vcut_fact[0]*(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0]))*q2Dm); 
+  vcutsq_n = 0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*vcutsq[6]+1.4142135623730951*vcutsq[5]-1.4142135623730951*(vcutsq[4]+vcutsq[3])+1.4142135623730951*vcutsq[2]-1.4142135623730951*vcutsq[1]+1.4142135623730951*vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = 0.25*(1.7320508075688772*(f[27]-1.0*f[22]+f[21])+f[20]-1.0*(1.7320508075688772*(f[16]+f[14])+f[13])+f[12]+1.7320508075688772*f[8]-1.0*(1.7320508075688772*f[7]+f[6]+f[5])+1.7320508075688772*f[3]+f[2]-1.0*f[1]+f[0]); 
   fReflSurfXYMu[0][1] = 0.25*(1.7320508075688772*(f[31]-1.0*f[30]+f[29])+f[28]-1.0*(1.7320508075688772*(f[26]+f[25])+f[24])+f[23]+1.7320508075688772*f[19]-1.0*(1.7320508075688772*f[18]+f[17]+f[15])+1.7320508075688772*f[11]+f[10]-1.0*f[9]+f[4]); 
@@ -1883,7 +1881,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1896,7 +1894,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1926,15 +1924,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = 0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*(phi[7]+phiWall[6])+1.7320508075688772*(phi[6]+phiWall[5])-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*(vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*(vcut_fact[5]+vcut_fact[4])+1.7320508075688772*(vcut_fact[3]+vcut_fact[2])-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[6]+(-(1.7320508075688772*(vcut_fact[5]+vcut_fact[4]))+1.7320508075688772*(vcut_fact[3]+vcut_fact[2])-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[6]+(1.7320508075688772*(vcut_fact[5]+vcut_fact[4])-1.7320508075688772*(vcut_fact[3]+vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*(vcut_fact[3]+vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phiWall[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*(vcut_fact[3]+vcut_fact[2])-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phi[5]+(phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[4]+(-(1.0*(vcut_fact[3]+vcut_fact[2]))+vcut_fact[1]-1.0*vcut_fact[0])*phiWall[4]+(vcut_fact[3]+vcut_fact[2]-1.0*vcut_fact[1]+vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*vcut_fact[1]+1.7320508075688772*vcut_fact[0])*phiWall[3]+(-(1.7320508075688772*vcut_fact[2])+1.7320508075688772*vcut_fact[1]-1.7320508075688772*vcut_fact[0])*phi[3]+(phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(vcut_fact[0]-1.0*vcut_fact[1])*phiWall[2]+(vcut_fact[1]-1.0*vcut_fact[0])*phi[2]+(phiWall[1]-1.0*(phi[1]+phiWall[0])+phi[0])*vcut_fact[1]+vcut_fact[0]*(-(1.0*phiWall[1])+phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = -(0.25*(1.4142135623730951*vcutsq[7]-1.4142135623730951*vcutsq[6]+1.4142135623730951*(vcutsq[5]+vcutsq[4])-1.4142135623730951*(vcutsq[3]+vcutsq[2])+1.4142135623730951*vcutsq[1]-1.4142135623730951*vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = -(0.25*(1.7320508075688772*(f[27]-1.0*f[22]+f[21])+f[20]+1.7320508075688772*f[16]-1.0*(1.7320508075688772*f[14]+f[13])+f[12]+1.7320508075688772*(f[7]-1.0*f[8])+f[6]-1.0*(f[5]+1.7320508075688772*f[3]+f[2])+f[1]-1.0*f[0])); 
   fReflSurfXYMu[1][1] = -(0.25*(1.7320508075688772*(f[31]-1.0*f[30]+f[29])+f[28]+1.7320508075688772*f[26]-1.0*(1.7320508075688772*f[25]+f[24])+f[23]+1.7320508075688772*(f[18]-1.0*f[19])+f[17]-1.0*(f[15]+1.7320508075688772*f[11]+f[10])+f[9]-1.0*f[4])); 
@@ -1944,7 +1942,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1957,7 +1955,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -1999,15 +1997,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = -(0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2])+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2])-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[6]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2]))*phiWall[6]+(1.7320508075688772*(vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2])-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[5]+(1.7320508075688772*(vcut_fact[4]+vcut_fact[3]+vcut_fact[2])-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[5]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*(vcut_fact[4]+vcut_fact[3]+vcut_fact[2]))*phi[5]+(-(1.0*phiWall[4])+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[4]+(-(1.0*(vcut_fact[3]+vcut_fact[2]))+vcut_fact[1]+vcut_fact[0])*phiWall[4]+(vcut_fact[3]+vcut_fact[2]-1.0*(vcut_fact[1]+vcut_fact[0]))*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[3]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*vcut_fact[2])*phi[3]+(-(1.0*phiWall[2])+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[2]+(vcut_fact[1]+vcut_fact[0])*(phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0]))*q2Dm); 
+  vcutsq_n = 0.25*(1.4142135623730951*(vcutsq[7]+vcutsq[6])-1.4142135623730951*(vcutsq[5]+vcutsq[4]+vcutsq[3]+vcutsq[2])+1.4142135623730951*(vcutsq[1]+vcutsq[0])); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = 0.25*(1.7320508075688772*(f[27]+f[22]-1.0*f[21])+f[20]-1.7320508075688772*(f[16]+f[14])+f[13]-1.0*f[12]+1.7320508075688772*(f[7]-1.0*f[8])-1.0*(f[6]+f[5])+1.7320508075688772*f[3]-1.0*f[2]+f[1]+f[0]); 
   fReflSurfXYMu[0][1] = 0.25*(1.7320508075688772*(f[31]+f[30]-1.0*f[29])+f[28]-1.7320508075688772*(f[26]+f[25])+f[24]-1.0*f[23]+1.7320508075688772*(f[18]-1.0*f[19])-1.0*(f[17]+f[15])+1.7320508075688772*f[11]-1.0*f[10]+f[9]+f[4]); 
@@ -2017,7 +2015,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2030,7 +2028,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2060,15 +2058,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = 0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[7]+(1.7320508075688772*vcut_fact[6]-1.7320508075688772*vcut_fact[5]+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[7]+(-(1.7320508075688772*vcut_fact[6])+1.7320508075688772*vcut_fact[5]-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*vcut_fact[2]+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*(phi[6]+phiWall[5])+1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*vcut_fact[2]+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]-1.0*phiWall[4]+phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*vcut_fact[3]-1.7320508075688772*vcut_fact[2]+1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phiWall[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[5]+(phiWall[4]-1.0*phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]+phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]-1.0*(vcut_fact[1]+vcut_fact[0]))*phiWall[4]+(vcut_fact[3]-1.0*vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(1.7320508075688772*(vcut_fact[1]+vcut_fact[0])-1.7320508075688772*vcut_fact[2])*phiWall[3]+(1.7320508075688772*vcut_fact[2]-1.7320508075688772*(vcut_fact[1]+vcut_fact[0]))*phi[3]+(phiWall[2]-1.0*(phi[2]+phiWall[1])+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[2]+(vcut_fact[1]+vcut_fact[0])*(-(1.0*phiWall[2])+phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0]))*q2Dm; 
+  vcutsq_n = -(0.25*(1.4142135623730951*(vcutsq[7]+vcutsq[6])-1.4142135623730951*vcutsq[5]+1.4142135623730951*vcutsq[4]-1.4142135623730951*vcutsq[3]+1.4142135623730951*vcutsq[2]-1.4142135623730951*(vcutsq[1]+vcutsq[0]))); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = -(0.25*(1.7320508075688772*(f[27]+f[22]-1.0*f[21])+f[20]+1.7320508075688772*(f[16]-1.0*f[14])+f[13]-1.0*f[12]+1.7320508075688772*(f[8]-1.0*f[7])+f[6]-1.0*(f[5]+1.7320508075688772*f[3])+f[2]-1.0*(f[1]+f[0]))); 
   fReflSurfXYMu[1][1] = -(0.25*(1.7320508075688772*(f[31]+f[30]-1.0*f[29])+f[28]+1.7320508075688772*(f[26]-1.0*f[25])+f[24]-1.0*f[23]+1.7320508075688772*(f[19]-1.0*f[18])+f[17]-1.0*(f[15]+1.7320508075688772*f[11])+f[10]-1.0*(f[9]+f[4]))); 
@@ -2078,7 +2076,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2091,7 +2089,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2133,15 +2131,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   dv = vparUp-1.0*vparLo;
 
   // node (mu)_0 
-  vcutSq = -(0.125*((1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[7]+(1.7320508075688772*(vcut_fact[6]+vcut_fact[5])-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phiWall[7]+(-(1.7320508075688772*(vcut_fact[6]+vcut_fact[5]))+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phi[7]+(1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[6]+(1.7320508075688772*vcut_fact[5]-1.7320508075688772*vcut_fact[4]+1.7320508075688772*vcut_fact[3]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phiWall[6]+(-(1.7320508075688772*vcut_fact[5])+1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phi[6]+(1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[5]+(-(1.7320508075688772*vcut_fact[4])+1.7320508075688772*vcut_fact[3]-1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phiWall[5]+(1.7320508075688772*vcut_fact[4]-1.7320508075688772*vcut_fact[3]+1.7320508075688772*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phi[5]+(-(1.0*phiWall[4])+phi[4]-1.7320508075688772*phiWall[3]+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0])*vcut_fact[4]+(vcut_fact[3]-1.0*(vcut_fact[2]+vcut_fact[1]+vcut_fact[0]))*phiWall[4]+(-(1.0*vcut_fact[3])+vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*phi[4]+(1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*vcut_fact[3]+(vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*(-(1.7320508075688772*phiWall[3])+1.7320508075688772*phi[3]-1.0*phiWall[2]+phi[2]-1.0*phiWall[1]+phi[1]-1.0*phiWall[0]+phi[0]))*q2Dm); 
+  vcutsq_n = -(0.25*(1.4142135623730951*(vcutsq[7]+vcutsq[6]+vcutsq[5])-1.4142135623730951*vcutsq[4]+1.4142135623730951*vcutsq[3]-1.4142135623730951*(vcutsq[2]+vcutsq[1]+vcutsq[0]))); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[0][0] = 0.0; 
   fReflSurfXYMu[0][1] = 0.0; 
   fReflSurfXYMu[0][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[0][0] = -(0.25*(1.7320508075688772*(f[27]+f[22]+f[21])+f[20]+1.7320508075688772*(f[14]-1.0*f[16])+f[13]+f[12]-1.0*(1.7320508075688772*(f[8]+f[7])+f[6])+f[5]-1.0*(1.7320508075688772*f[3]+f[2]+f[1]+f[0]))); 
   fReflSurfXYMu[0][1] = -(0.25*(1.7320508075688772*(f[31]+f[30]+f[29])+f[28]+1.7320508075688772*(f[25]-1.0*f[26])+f[24]+f[23]-1.0*(1.7320508075688772*(f[19]+f[18])+f[17])+f[15]-1.0*(1.7320508075688772*f[11]+f[10]+f[9]+f[4]))); 
@@ -2151,7 +2149,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2164,7 +2162,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2194,15 +2192,15 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   }
 
   // node (mu)_1 
-  vcutSq = 0.125*(1.7320508075688772*phiWall[7]-1.7320508075688772*phi[7]+1.7320508075688772*phiWall[6]-1.7320508075688772*phi[6]+1.7320508075688772*phiWall[5]-1.7320508075688772*phi[5]+phiWall[4]-1.0*phi[4]+1.7320508075688772*phiWall[3]-1.7320508075688772*phi[3]+phiWall[2]-1.0*phi[2]+phiWall[1]-1.0*phi[1]+phiWall[0]-1.0*phi[0])*(vcut_fact[7]+vcut_fact[6]+vcut_fact[5]+vcut_fact[4]+vcut_fact[3]+vcut_fact[2]+vcut_fact[1]+vcut_fact[0])*q2Dm; 
+  vcutsq_n = 0.3535533905932738*(vcutsq[7]+vcutsq[6]+vcutsq[5]+vcutsq[4]+vcutsq[3]+vcutsq[2]+vcutsq[1]+vcutsq[0]); 
 
-  if (vcutSq <= vparAbsSqLo) { // absorb (no reflection) 
+  if (vcutsq_n <= vparAbsSqLo) { // absorb (no reflection) 
 
   fReflSurfXYMu[1][0] = 0.0; 
   fReflSurfXYMu[1][1] = 0.0; 
   fReflSurfXYMu[1][2] = 0.0; 
 
-  } else if (vcutSq > vparAbsSqUp) { // full reflection 
+  } else if (vcutsq_n > vparAbsSqUp) { // full reflection 
 
   fReflSurfXYMu[1][0] = 0.25*(1.7320508075688772*(f[27]+f[22]+f[21])+f[20]+1.7320508075688772*(f[16]+f[14])+f[13]+f[12]+1.7320508075688772*(f[8]+f[7])+f[6]+f[5]+1.7320508075688772*f[3]+f[2]+f[1]+f[0]); 
   fReflSurfXYMu[1][1] = 0.25*(1.7320508075688772*(f[31]+f[30]+f[29])+f[28]+1.7320508075688772*(f[26]+f[25])+f[24]+f[23]+1.7320508075688772*(f[19]+f[18])+f[17]+f[15]+1.7320508075688772*f[11]+f[10]+f[9]+f[4]); 
@@ -2212,7 +2210,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     if (wv > 0.) {
       // vcut in logical space.
-      double vcut_l = 2.*(sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2225,7 +2223,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
 
     } else {
       // vcut in logical space.
-      double vcut_l = 2.*(-sqrt(vcutSq)-wv)/dv;
+      double vcut_l = 2.*(-sqrt(vcutsq_n)-wv)/dv;
 
   const double vcut_lR2 = pow(vcut_l,2);
   const double vcut_lR3 = pow(vcut_l,3);
@@ -2311,306 +2309,522 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_reflectedf_upper_3x2v_ser_p1(const double 
   fRefl[47] = 0.0; 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_vparcut_calc_lower_1x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcut_fact_out) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_const_lower_1x2v_ser_p1(const double *phi, const double *phi_wall, double q2Dm, double *vcutsq_out) 
+{ 
+  double deltaphi_n = 0.5*(2.4494897427831783*phi_wall[1]-2.4494897427831783*phi[1]-1.4142135623730951*phi_wall[0]+1.4142135623730951*phi[0]); 
+  double vcutsq_n[2] = {0.}; 
+
+  // node (mu)_0 
+    vcutsq_n[0] = -q2Dm * deltaphi_n;
+
+  // node (mu)_1 
+    vcutsq_n[1] = -q2Dm * deltaphi_n;
+
+  vcutsq_out[0] = 0.7071067811865475*(vcutsq_n[1]+vcutsq_n[0]); 
+  vcutsq_out[1] = 0.7071067811865475*(vcutsq_n[1]-1.0*vcutsq_n[0]); 
+}
+
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_const_upper_1x2v_ser_p1(const double *phi, const double *phi_wall, double q2Dm, double *vcutsq_out) 
+{ 
+  double deltaphi_n = -(0.5*(2.4494897427831783*phi_wall[1]-2.4494897427831783*phi[1]+1.4142135623730951*phi_wall[0]-1.4142135623730951*phi[0])); 
+  double vcutsq_n[2] = {0.}; 
+
+  // node (mu)_0 
+    vcutsq_n[0] = -q2Dm * deltaphi_n;
+
+  // node (mu)_1 
+    vcutsq_n[1] = -q2Dm * deltaphi_n;
+
+  vcutsq_out[0] = 0.7071067811865475*(vcutsq_n[1]+vcutsq_n[0]); 
+  vcutsq_out[1] = 0.7071067811865475*(vcutsq_n[1]-1.0*vcutsq_n[0]); 
+}
+
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_const_lower_2x2v_ser_p1(const double *phi, const double *phi_wall, double q2Dm, double *vcutsq_out) 
+{ 
+  double deltaphi_n; 
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
+
+  // node (x)_0 
+    deltaphi_n = -(0.5*(1.7320508075688772*phi_wall[3]-1.7320508075688772*(phi[3]+phi_wall[2])+1.7320508075688772*phi[2]-1.0*phi_wall[1]+phi[1]+phi_wall[0]-1.0*phi[0])); 
+
+    // node (mu)_0 
+      vcutsq_n_0[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_0[1] = -q2Dm * deltaphi_n;
+
+  // node (x)_1 
+    deltaphi_n = 0.5*(1.7320508075688772*phi_wall[3]-1.7320508075688772*phi[3]+1.7320508075688772*phi_wall[2]-1.7320508075688772*phi[2]-1.0*phi_wall[1]+phi[1]-1.0*phi_wall[0]+phi[0]); 
+
+    // node (mu)_0 
+      vcutsq_n_1[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_1[1] = -q2Dm * deltaphi_n;
+
+  vcutsq_out[0] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.5*(vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[2] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[3] = 0.5*(vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
+}
+
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_const_upper_2x2v_ser_p1(const double *phi, const double *phi_wall, double q2Dm, double *vcutsq_out) 
+{ 
+  double deltaphi_n; 
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
+
+  // node (x)_0 
+    deltaphi_n = 0.5*(1.7320508075688772*phi_wall[3]-1.7320508075688772*(phi[3]+phi_wall[2])+1.7320508075688772*phi[2]+phi_wall[1]-1.0*(phi[1]+phi_wall[0])+phi[0]); 
+
+    // node (mu)_0 
+      vcutsq_n_0[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_0[1] = -q2Dm * deltaphi_n;
+
+  // node (x)_1 
+    deltaphi_n = -(0.5*(1.7320508075688772*phi_wall[3]-1.7320508075688772*phi[3]+1.7320508075688772*phi_wall[2]-1.7320508075688772*phi[2]+phi_wall[1]-1.0*phi[1]+phi_wall[0]-1.0*phi[0])); 
+
+    // node (mu)_0 
+      vcutsq_n_1[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_1[1] = -q2Dm * deltaphi_n;
+
+  vcutsq_out[0] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.5*(vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[2] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[3] = 0.5*(vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
+}
+
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_const_lower_3x2v_ser_p1(const double *phi, const double *phi_wall, double q2Dm, double *vcutsq_out) 
+{ 
+  double deltaphi_n; 
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
+  double vcutsq_n_2[2] = {0.}; 
+  double vcutsq_n_3[2] = {0.}; 
+
+  // node (x,y)_0 
+    deltaphi_n = 0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*(phi[7]+phi_wall[6])+2.4494897427831783*phi[6]-2.4494897427831783*phi_wall[5]+2.4494897427831783*phi[5]-1.4142135623730951*phi_wall[4]+1.4142135623730951*phi[4]+2.4494897427831783*phi_wall[3]-2.4494897427831783*phi[3]+1.4142135623730951*phi_wall[2]-1.4142135623730951*phi[2]+1.4142135623730951*phi_wall[1]-1.4142135623730951*(phi[1]+phi_wall[0])+1.4142135623730951*phi[0]); 
+
+    // node (mu)_0 
+      vcutsq_n_0[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_0[1] = -q2Dm * deltaphi_n;
+
+  // node (x,y)_1 
+    deltaphi_n = -(0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*(phi[7]+phi_wall[6])+2.4494897427831783*(phi[6]+phi_wall[5])-2.4494897427831783*phi[5]-1.4142135623730951*phi_wall[4]+1.4142135623730951*phi[4]-2.4494897427831783*phi_wall[3]+2.4494897427831783*phi[3]+1.4142135623730951*phi_wall[2]-1.4142135623730951*(phi[2]+phi_wall[1])+1.4142135623730951*(phi[1]+phi_wall[0])-1.4142135623730951*phi[0])); 
+
+    // node (mu)_0 
+      vcutsq_n_1[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_1[1] = -q2Dm * deltaphi_n;
+
+  // node (x,y)_2 
+    deltaphi_n = -(0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*phi[7]+2.4494897427831783*phi_wall[6]-2.4494897427831783*(phi[6]+phi_wall[5])+2.4494897427831783*phi[5]-1.4142135623730951*phi_wall[4]+1.4142135623730951*phi[4]-2.4494897427831783*phi_wall[3]+2.4494897427831783*phi[3]-1.4142135623730951*phi_wall[2]+1.4142135623730951*(phi[2]+phi_wall[1])-1.4142135623730951*phi[1]+1.4142135623730951*phi_wall[0]-1.4142135623730951*phi[0])); 
+
+    // node (mu)_0 
+      vcutsq_n_2[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_2[1] = -q2Dm * deltaphi_n;
+
+  // node (x,y)_3 
+    deltaphi_n = 0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*phi[7]+2.4494897427831783*phi_wall[6]-2.4494897427831783*phi[6]+2.4494897427831783*phi_wall[5]-2.4494897427831783*phi[5]-1.4142135623730951*phi_wall[4]+1.4142135623730951*phi[4]+2.4494897427831783*phi_wall[3]-2.4494897427831783*phi[3]-1.4142135623730951*phi_wall[2]+1.4142135623730951*phi[2]-1.4142135623730951*phi_wall[1]+1.4142135623730951*phi[1]-1.4142135623730951*phi_wall[0]+1.4142135623730951*phi[0]); 
+
+    // node (mu)_0 
+      vcutsq_n_3[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_3[1] = -q2Dm * deltaphi_n;
+
+  vcutsq_out[0] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1])+vcutsq_n_3[0]+vcutsq_n_2[0]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[2] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[3] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[4] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*(vcutsq_n_2[0]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
+  vcutsq_out[5] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0])+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[6] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_3[0])+vcutsq_n_2[0]-1.0*vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[7] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]-1.0*vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+}
+
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_const_upper_3x2v_ser_p1(const double *phi, const double *phi_wall, double q2Dm, double *vcutsq_out) 
+{ 
+  double deltaphi_n; 
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
+  double vcutsq_n_2[2] = {0.}; 
+  double vcutsq_n_3[2] = {0.}; 
+
+  // node (x,y)_0 
+    deltaphi_n = -(0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*(phi[7]+phi_wall[6])+2.4494897427831783*phi[6]-2.4494897427831783*phi_wall[5]+2.4494897427831783*phi[5]+1.4142135623730951*phi_wall[4]-1.4142135623730951*phi[4]+2.4494897427831783*phi_wall[3]-2.4494897427831783*phi[3]-1.4142135623730951*phi_wall[2]+1.4142135623730951*phi[2]-1.4142135623730951*phi_wall[1]+1.4142135623730951*(phi[1]+phi_wall[0])-1.4142135623730951*phi[0])); 
+
+    // node (mu)_0 
+      vcutsq_n_0[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_0[1] = -q2Dm * deltaphi_n;
+
+  // node (x,y)_1 
+    deltaphi_n = 0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*(phi[7]+phi_wall[6])+2.4494897427831783*(phi[6]+phi_wall[5])-2.4494897427831783*phi[5]+1.4142135623730951*phi_wall[4]-1.4142135623730951*phi[4]-2.4494897427831783*phi_wall[3]+2.4494897427831783*phi[3]-1.4142135623730951*phi_wall[2]+1.4142135623730951*(phi[2]+phi_wall[1])-1.4142135623730951*(phi[1]+phi_wall[0])+1.4142135623730951*phi[0]); 
+
+    // node (mu)_0 
+      vcutsq_n_1[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_1[1] = -q2Dm * deltaphi_n;
+
+  // node (x,y)_2 
+    deltaphi_n = 0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*phi[7]+2.4494897427831783*phi_wall[6]-2.4494897427831783*(phi[6]+phi_wall[5])+2.4494897427831783*phi[5]+1.4142135623730951*phi_wall[4]-1.4142135623730951*phi[4]-2.4494897427831783*phi_wall[3]+2.4494897427831783*phi[3]+1.4142135623730951*phi_wall[2]-1.4142135623730951*(phi[2]+phi_wall[1])+1.4142135623730951*phi[1]-1.4142135623730951*phi_wall[0]+1.4142135623730951*phi[0]); 
+
+    // node (mu)_0 
+      vcutsq_n_2[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_2[1] = -q2Dm * deltaphi_n;
+
+  // node (x,y)_3 
+    deltaphi_n = -(0.25*(2.4494897427831783*phi_wall[7]-2.4494897427831783*phi[7]+2.4494897427831783*phi_wall[6]-2.4494897427831783*phi[6]+2.4494897427831783*phi_wall[5]-2.4494897427831783*phi[5]+1.4142135623730951*phi_wall[4]-1.4142135623730951*phi[4]+2.4494897427831783*phi_wall[3]-2.4494897427831783*phi[3]+1.4142135623730951*phi_wall[2]-1.4142135623730951*phi[2]+1.4142135623730951*phi_wall[1]-1.4142135623730951*phi[1]+1.4142135623730951*phi_wall[0]-1.4142135623730951*phi[0])); 
+
+    // node (mu)_0 
+      vcutsq_n_3[0] = -q2Dm * deltaphi_n;
+
+    // node (mu)_1 
+      vcutsq_n_3[1] = -q2Dm * deltaphi_n;
+
+  vcutsq_out[0] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1])+vcutsq_n_3[0]+vcutsq_n_2[0]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[2] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[3] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[4] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*(vcutsq_n_2[0]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
+  vcutsq_out[5] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0])+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[6] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_3[0])+vcutsq_n_2[0]-1.0*vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[7] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]-1.0*vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+}
+
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_1x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcutsq_out) 
 { 
   double temp_n = -(0.5*(2.4494897427831783*temperature[1]-1.4142135623730951*temperature[0])); 
   double bmag_n = -(0.5*(2.4494897427831783*bmag[1]-1.4142135623730951*bmag[0])); 
   double mu_ref = temp_n/bmag_n;
-  double vcut_fact_n[2] = {0.}; 
+  double vthSq = temp_n/GKYL_ELECTRON_MASS;
   double mu;
-  double vcut_fact;
+  double vcut;
+  double vcutsq_n[2] = {0.}; 
 
   // node (mu)_0 
     mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-    vcut_fact_n[0] = vcut_fact;
+    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+    vcutsq_n[0] = vcut*vcut * vthSq;
 
   // node (mu)_1 
     mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-    vcut_fact_n[1] = vcut_fact;
+    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+    vcutsq_n[1] = vcut*vcut * vthSq;
 
-  vcut_fact_out[0] = 0.7071067811865475*(vcut_fact_n[1]+vcut_fact_n[0]); 
-  vcut_fact_out[1] = 0.7071067811865475*(vcut_fact_n[1]-1.0*vcut_fact_n[0]); 
+  vcutsq_out[0] = 0.7071067811865475*(vcutsq_n[1]+vcutsq_n[0]); 
+  vcutsq_out[1] = 0.7071067811865475*(vcutsq_n[1]-1.0*vcutsq_n[0]); 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_vparcut_calc_upper_1x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcut_fact_out) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_1x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcutsq_out) 
 { 
   double temp_n = 0.5*(2.4494897427831783*temperature[1]+1.4142135623730951*temperature[0]); 
   double bmag_n = 0.5*(2.4494897427831783*bmag[1]+1.4142135623730951*bmag[0]); 
   double mu_ref = temp_n/bmag_n;
-  double vcut_fact_n[2] = {0.}; 
+  double vthSq = temp_n/GKYL_ELECTRON_MASS;
   double mu;
-  double vcut_fact;
+  double vcut;
+  double vcutsq_n[2] = {0.}; 
 
   // node (mu)_0 
     mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-    vcut_fact_n[0] = vcut_fact;
+    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+    vcutsq_n[0] = vcut*vcut * vthSq;
 
   // node (mu)_1 
     mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-    vcut_fact_n[1] = vcut_fact;
+    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+    vcutsq_n[1] = vcut*vcut * vthSq;
 
-  vcut_fact_out[0] = 0.7071067811865475*(vcut_fact_n[1]+vcut_fact_n[0]); 
-  vcut_fact_out[1] = 0.7071067811865475*(vcut_fact_n[1]-1.0*vcut_fact_n[0]); 
+  vcutsq_out[0] = 0.7071067811865475*(vcutsq_n[1]+vcutsq_n[0]); 
+  vcutsq_out[1] = 0.7071067811865475*(vcutsq_n[1]-1.0*vcutsq_n[0]); 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_vparcut_calc_lower_2x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcut_fact_out) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_2x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcutsq_out) 
 { 
   double temp_n; 
   double bmag_n; 
   double mu_ref; 
+  double vthSq; 
   double mu;
-  double vcut_fact;
-  double vcut_fact_n_0[2] = {0.}; 
-  double vcut_fact_n_1[2] = {0.}; 
+  double vcut;
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
 
   // node (x)_0 
     temp_n = 0.5*(1.7320508075688772*temperature[3]-1.7320508075688772*temperature[2]-1.0*temperature[1]+temperature[0]); 
     bmag_n = 0.5*(1.7320508075688772*bmag[3]-1.7320508075688772*bmag[2]-1.0*bmag[1]+bmag[0]); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x)_1 
     temp_n = -(0.5*(1.7320508075688772*(temperature[3]+temperature[2])-1.0*(temperature[1]+temperature[0]))); 
     bmag_n = -(0.5*(1.7320508075688772*(bmag[3]+bmag[2])-1.0*(bmag[1]+bmag[0]))); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[1] = vcut*vcut * vthSq;
 
-  vcut_fact_out[0] = 0.5*(vcut_fact_n_1[1]+vcut_fact_n_0[1]+vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[1] = 0.5*(vcut_fact_n_1[1]-1.0*vcut_fact_n_0[1]+vcut_fact_n_1[0]-1.0*vcut_fact_n_0[0]); 
-  vcut_fact_out[2] = 0.5*(vcut_fact_n_1[1]+vcut_fact_n_0[1]-1.0*(vcut_fact_n_1[0]+vcut_fact_n_0[0])); 
-  vcut_fact_out[3] = 0.5*(vcut_fact_n_1[1]-1.0*(vcut_fact_n_0[1]+vcut_fact_n_1[0])+vcut_fact_n_0[0]); 
+  vcutsq_out[0] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.5*(vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[2] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[3] = 0.5*(vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_vparcut_calc_upper_2x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcut_fact_out) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_2x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcutsq_out) 
 { 
   double temp_n; 
   double bmag_n; 
   double mu_ref; 
+  double vthSq; 
   double mu;
-  double vcut_fact;
-  double vcut_fact_n_0[2] = {0.}; 
-  double vcut_fact_n_1[2] = {0.}; 
+  double vcut;
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
 
   // node (x)_0 
     temp_n = -(0.5*(1.7320508075688772*temperature[3]-1.7320508075688772*temperature[2]+temperature[1]-1.0*temperature[0])); 
     bmag_n = -(0.5*(1.7320508075688772*bmag[3]-1.7320508075688772*bmag[2]+bmag[1]-1.0*bmag[0])); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x)_1 
     temp_n = 0.5*(1.7320508075688772*(temperature[3]+temperature[2])+temperature[1]+temperature[0]); 
     bmag_n = 0.5*(1.7320508075688772*(bmag[3]+bmag[2])+bmag[1]+bmag[0]); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[1] = vcut*vcut * vthSq;
 
-  vcut_fact_out[0] = 0.5*(vcut_fact_n_1[1]+vcut_fact_n_0[1]+vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[1] = 0.5*(vcut_fact_n_1[1]-1.0*vcut_fact_n_0[1]+vcut_fact_n_1[0]-1.0*vcut_fact_n_0[0]); 
-  vcut_fact_out[2] = 0.5*(vcut_fact_n_1[1]+vcut_fact_n_0[1]-1.0*(vcut_fact_n_1[0]+vcut_fact_n_0[0])); 
-  vcut_fact_out[3] = 0.5*(vcut_fact_n_1[1]-1.0*(vcut_fact_n_0[1]+vcut_fact_n_1[0])+vcut_fact_n_0[0]); 
+  vcutsq_out[0] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.5*(vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[2] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[3] = 0.5*(vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_vparcut_calc_lower_3x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcut_fact_out) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_3x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcutsq_out) 
 { 
   double temp_n; 
   double bmag_n; 
   double mu_ref; 
   double mu;
-  double vcut_fact;
-  double vcut_fact_n_0[2] = {0.}; 
-  double vcut_fact_n_1[2] = {0.}; 
-  double vcut_fact_n_2[2] = {0.}; 
-  double vcut_fact_n_3[2] = {0.}; 
+  double vthSq;
+  double vcut;
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
+  double vcutsq_n_2[2] = {0.}; 
+  double vcutsq_n_3[2] = {0.}; 
 
   // node (x,y)_0 
     temp_n = -(0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*(temperature[6]+temperature[5])-1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]+1.4142135623730951*(temperature[2]+temperature[1])-1.4142135623730951*temperature[0])); 
     bmag_n = -(0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*(bmag[6]+bmag[5])-1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]+1.4142135623730951*(bmag[2]+bmag[1])-1.4142135623730951*bmag[0])); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x,y)_1 
     temp_n = 0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*temperature[6]+2.4494897427831783*temperature[5]-1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]+1.4142135623730951*temperature[2]-1.4142135623730951*temperature[1]+1.4142135623730951*temperature[0]); 
     bmag_n = 0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*bmag[6]+2.4494897427831783*bmag[5]-1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]+1.4142135623730951*bmag[2]-1.4142135623730951*bmag[1]+1.4142135623730951*bmag[0]); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[1] = vcut*vcut * vthSq;
 
   // node (x,y)_2 
     temp_n = 0.25*(2.4494897427831783*(temperature[7]+temperature[6])-2.4494897427831783*temperature[5]-1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]-1.4142135623730951*temperature[2]+1.4142135623730951*(temperature[1]+temperature[0])); 
     bmag_n = 0.25*(2.4494897427831783*(bmag[7]+bmag[6])-2.4494897427831783*bmag[5]-1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]-1.4142135623730951*bmag[2]+1.4142135623730951*(bmag[1]+bmag[0])); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_2[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_2[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_2[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_2[1] = vcut*vcut * vthSq;
 
   // node (x,y)_3 
     temp_n = -(0.25*(2.4494897427831783*(temperature[7]+temperature[6]+temperature[5])-1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]-1.4142135623730951*(temperature[2]+temperature[1]+temperature[0]))); 
     bmag_n = -(0.25*(2.4494897427831783*(bmag[7]+bmag[6]+bmag[5])-1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]-1.4142135623730951*(bmag[2]+bmag[1]+bmag[0]))); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_3[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_3[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_3[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_3[1] = vcut*vcut * vthSq;
 
-  vcut_fact_out[0] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]+vcut_fact_n_1[1]+vcut_fact_n_0[1]+vcut_fact_n_3[0]+vcut_fact_n_2[0]+vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[1] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]-1.0*(vcut_fact_n_1[1]+vcut_fact_n_0[1])+vcut_fact_n_3[0]+vcut_fact_n_2[0]-1.0*(vcut_fact_n_1[0]+vcut_fact_n_0[0])); 
-  vcut_fact_out[2] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*vcut_fact_n_2[1]+vcut_fact_n_1[1]-1.0*vcut_fact_n_0[1]+vcut_fact_n_3[0]-1.0*vcut_fact_n_2[0]+vcut_fact_n_1[0]-1.0*vcut_fact_n_0[0]); 
-  vcut_fact_out[3] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]+vcut_fact_n_1[1]+vcut_fact_n_0[1]-1.0*(vcut_fact_n_3[0]+vcut_fact_n_2[0]+vcut_fact_n_1[0]+vcut_fact_n_0[0])); 
-  vcut_fact_out[4] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*(vcut_fact_n_2[1]+vcut_fact_n_1[1])+vcut_fact_n_0[1]+vcut_fact_n_3[0]-1.0*(vcut_fact_n_2[0]+vcut_fact_n_1[0])+vcut_fact_n_0[0]); 
-  vcut_fact_out[5] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]-1.0*(vcut_fact_n_1[1]+vcut_fact_n_0[1]+vcut_fact_n_3[0]+vcut_fact_n_2[0])+vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[6] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*vcut_fact_n_2[1]+vcut_fact_n_1[1]-1.0*(vcut_fact_n_0[1]+vcut_fact_n_3[0])+vcut_fact_n_2[0]-1.0*vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[7] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*(vcut_fact_n_2[1]+vcut_fact_n_1[1])+vcut_fact_n_0[1]-1.0*vcut_fact_n_3[0]+vcut_fact_n_2[0]+vcut_fact_n_1[0]-1.0*vcut_fact_n_0[0]); 
+  vcutsq_out[0] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1])+vcutsq_n_3[0]+vcutsq_n_2[0]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[2] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[3] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[4] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*(vcutsq_n_2[0]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
+  vcutsq_out[5] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0])+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[6] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_3[0])+vcutsq_n_2[0]-1.0*vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[7] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]-1.0*vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_vparcut_calc_upper_3x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcut_fact_out) 
+GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_3x2v_ser_p1(const double *vmap, const float *nn_out, int n_out, const double *temperature, const double *bmag, double *vcutsq_out) 
 { 
   double temp_n; 
   double bmag_n; 
   double mu_ref; 
   double mu;
-  double vcut_fact;
-  double vcut_fact_n_0[2] = {0.}; 
-  double vcut_fact_n_1[2] = {0.}; 
-  double vcut_fact_n_2[2] = {0.}; 
-  double vcut_fact_n_3[2] = {0.}; 
+  double vthSq;
+  double vcut;
+  double vcutsq_n_0[2] = {0.}; 
+  double vcutsq_n_1[2] = {0.}; 
+  double vcutsq_n_2[2] = {0.}; 
+  double vcutsq_n_3[2] = {0.}; 
 
   // node (x,y)_0 
     temp_n = 0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*(temperature[6]+temperature[5])+1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]-1.4142135623730951*(temperature[2]+temperature[1])+1.4142135623730951*temperature[0]); 
     bmag_n = 0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*(bmag[6]+bmag[5])+1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]-1.4142135623730951*(bmag[2]+bmag[1])+1.4142135623730951*bmag[0]); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_0[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x,y)_1 
     temp_n = -(0.25*(2.4494897427831783*temperature[7]-2.4494897427831783*temperature[6]+2.4494897427831783*temperature[5]+1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]-1.4142135623730951*temperature[2]+1.4142135623730951*temperature[1]-1.4142135623730951*temperature[0])); 
     bmag_n = -(0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*bmag[6]+2.4494897427831783*bmag[5]+1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]-1.4142135623730951*bmag[2]+1.4142135623730951*bmag[1]-1.4142135623730951*bmag[0])); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_1[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_1[1] = vcut*vcut * vthSq;
 
   // node (x,y)_2 
     temp_n = -(0.25*(2.4494897427831783*(temperature[7]+temperature[6])-2.4494897427831783*temperature[5]+1.4142135623730951*temperature[4]-2.4494897427831783*temperature[3]+1.4142135623730951*temperature[2]-1.4142135623730951*(temperature[1]+temperature[0]))); 
     bmag_n = -(0.25*(2.4494897427831783*(bmag[7]+bmag[6])-2.4494897427831783*bmag[5]+1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]+1.4142135623730951*bmag[2]-1.4142135623730951*(bmag[1]+bmag[0]))); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_2[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_2[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_2[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_2[1] = vcut*vcut * vthSq;
 
   // node (x,y)_3 
     temp_n = 0.25*(2.4494897427831783*(temperature[7]+temperature[6]+temperature[5])+1.4142135623730951*temperature[4]+2.4494897427831783*temperature[3]+1.4142135623730951*(temperature[2]+temperature[1]+temperature[0])); 
     bmag_n = 0.25*(2.4494897427831783*(bmag[7]+bmag[6]+bmag[5])+1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]+1.4142135623730951*(bmag[2]+bmag[1]+bmag[0])); 
     mu_ref = temp_n/bmag_n;
+    vthSq = temp_n/GKYL_ELECTRON_MASS;
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_3[0] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_3[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut_fact);
-      vcut_fact_n_3[1] = vcut_fact;
+      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      vcutsq_n_3[1] = vcut*vcut * vthSq;
 
-  vcut_fact_out[0] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]+vcut_fact_n_1[1]+vcut_fact_n_0[1]+vcut_fact_n_3[0]+vcut_fact_n_2[0]+vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[1] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]-1.0*(vcut_fact_n_1[1]+vcut_fact_n_0[1])+vcut_fact_n_3[0]+vcut_fact_n_2[0]-1.0*(vcut_fact_n_1[0]+vcut_fact_n_0[0])); 
-  vcut_fact_out[2] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*vcut_fact_n_2[1]+vcut_fact_n_1[1]-1.0*vcut_fact_n_0[1]+vcut_fact_n_3[0]-1.0*vcut_fact_n_2[0]+vcut_fact_n_1[0]-1.0*vcut_fact_n_0[0]); 
-  vcut_fact_out[3] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]+vcut_fact_n_1[1]+vcut_fact_n_0[1]-1.0*(vcut_fact_n_3[0]+vcut_fact_n_2[0]+vcut_fact_n_1[0]+vcut_fact_n_0[0])); 
-  vcut_fact_out[4] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*(vcut_fact_n_2[1]+vcut_fact_n_1[1])+vcut_fact_n_0[1]+vcut_fact_n_3[0]-1.0*(vcut_fact_n_2[0]+vcut_fact_n_1[0])+vcut_fact_n_0[0]); 
-  vcut_fact_out[5] = 0.3535533905932737*(vcut_fact_n_3[1]+vcut_fact_n_2[1]-1.0*(vcut_fact_n_1[1]+vcut_fact_n_0[1]+vcut_fact_n_3[0]+vcut_fact_n_2[0])+vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[6] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*vcut_fact_n_2[1]+vcut_fact_n_1[1]-1.0*(vcut_fact_n_0[1]+vcut_fact_n_3[0])+vcut_fact_n_2[0]-1.0*vcut_fact_n_1[0]+vcut_fact_n_0[0]); 
-  vcut_fact_out[7] = 0.3535533905932737*(vcut_fact_n_3[1]-1.0*(vcut_fact_n_2[1]+vcut_fact_n_1[1])+vcut_fact_n_0[1]-1.0*vcut_fact_n_3[0]+vcut_fact_n_2[0]+vcut_fact_n_1[0]-1.0*vcut_fact_n_0[0]); 
+  vcutsq_out[0] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[1] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1])+vcutsq_n_3[0]+vcutsq_n_2[0]-1.0*(vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[2] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
+  vcutsq_out[3] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]-1.0*(vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0])); 
+  vcutsq_out[4] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]+vcutsq_n_3[0]-1.0*(vcutsq_n_2[0]+vcutsq_n_1[0])+vcutsq_n_0[0]); 
+  vcutsq_out[5] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]-1.0*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0])+vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[6] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*vcutsq_n_2[1]+vcutsq_n_1[1]-1.0*(vcutsq_n_0[1]+vcutsq_n_3[0])+vcutsq_n_2[0]-1.0*vcutsq_n_1[0]+vcutsq_n_0[0]); 
+  vcutsq_out[7] = 0.3535533905932737*(vcutsq_n_3[1]-1.0*(vcutsq_n_2[1]+vcutsq_n_1[1])+vcutsq_n_0[1]-1.0*vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]-1.0*vcutsq_n_0[0]); 
 }
 
 GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_1x2v_ser_p1(const double *phi, const double *phi_wall, const double *density, const double *temperature, const double *bmag, const double *bimpact_angle, int n_inp, float *nn_inp_out) 

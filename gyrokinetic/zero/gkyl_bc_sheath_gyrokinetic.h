@@ -52,7 +52,7 @@ void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic 
  * @param up BC updater.
  * @param vcut_fact The vcut_fact array to use in the sheath BC.
  */
-void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact);
+void gkyl_bc_sheath_gyrokinetic_set_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact);
 
 /**
  * Acquire the vcut_fact array used in the sheath BC. The pointer needs to be released by the caller using gkyl_array_release.
@@ -60,7 +60,7 @@ void gkyl_bc_sheath_gyrokinetic_set_vcut_fact(const struct gkyl_bc_sheath_gyroki
  * @param up BC updater.
  * @return The vcut_fact array used in the sheath BC.
  */
-struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcut_fact(struct gkyl_bc_sheath_gyrokinetic *up);
+struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcutsq(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Get the basis of the vcut_fact array used in the sheath BC.
@@ -68,7 +68,7 @@ struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcut_fact(struct gkyl_bc_s
  * @param up BC updater.
  * @return The basis of the vcut_fact array used in the sheath BC.
  */
-struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_sheath_gyrokinetic *up);
+struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcutsq_basis(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Get the range of the vcut_fact array used in the sheath BC.
@@ -76,7 +76,7 @@ struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcut_fact_basis(struct gkyl_bc_
  * @param up BC updater.
  * @return The range of the vcut_fact array used in the sheath BC.
  */
-struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc_sheath_gyrokinetic *up);
+struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcutsq_range(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Get the pointer to the KANN surrogate model used in the sheath BC updater.
@@ -87,8 +87,7 @@ struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcut_fact_range(struct gkyl_bc
 kann_t *gkyl_bc_sheath_gyrokinetic_acquire_model(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
- * Update the vcut_fact array using a surrogate model to reflect the electrons.
- * The surrogate depends on the potential drop, rho_e/lambda_De, and the angle of the magnetic field with respect to the wall.
+ * Update the vcutsq array.
  * 
  * @param up BC updater.
  * @param phi Electrostatic potential at the magnetic presheath entrance (simulation boundary).
@@ -99,7 +98,7 @@ kann_t *gkyl_bc_sheath_gyrokinetic_acquire_model(struct gkyl_bc_sheath_gyrokinet
  * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
  * @param conf_r Configuration space range (to index phi, density, temperature, bmag, and bimpact_angle).
  */
-void gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+void gkyl_bc_sheath_gyrokinetic_update_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
   const struct gkyl_array *phi_wall, const struct gkyl_array *density, const struct gkyl_array *temperature,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r);
 
@@ -125,7 +124,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
  * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
  * @param out Pointer to array to store surrogate model output (vcut factor) corresponding to input mu values.
  */
-void gkyl_bc_sheath_gyrokinetic_evaluate_vcut_fact_surrogate(kann_t *model, const double *mu_new, int n, double phi, double phi_wall,
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcutsq_surrogate(kann_t *model, const double *mu_new, int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
 
 /**

@@ -9,8 +9,7 @@
 #include <gkyl_kann_net.h>
 
 // Function pointer type for sheath reflection kernels.
-typedef void (*sheath_reflectedf_t)(const double *vmap, const double q2Dm,
-  const double *phi, const double *phiWall, const double *vcut_fact, const double *f, double *fRefl);
+typedef void (*sheath_reflectedf_t)(const double *vmap, const double *vcutsq, const double *f, double *fRefl);
 
 typedef struct { sheath_reflectedf_t kernels[3]; } sheath_reflectedf_kern_list;  // For use in kernel tables.
 typedef struct { sheath_reflectedf_kern_list list[4]; } edged_sheath_reflectedf_kern_list;
@@ -34,43 +33,64 @@ static const edged_sheath_reflectedf_kern_list ser_sheath_reflect_list[] = {
   },
 };
 
+typedef void (*sheath_vcutsq_const_t)(const double *phi, const double *phi_wall, double q2Dm, double *vcutsq_out);
+typedef struct { sheath_vcutsq_const_t kernels[3]; } sheath_vcutsq_const_kern_list;  // For use in kernel tables.
+typedef struct { sheath_vcutsq_const_kern_list dim_list[4]; } edged_sheath_vcutsq_const_kern_list;
 
-// Function pointer type for the build the KANN input.
-typedef void (*sheath_surrogate_inp_t)(const double *phi, const double *phi_wall, const double *density, 
-  const double *temperature, const double *bmag, const double *bimpact_angle, int n_inp, float *inp_out);
-
-// Function pointer type for surrogate sheath BC to determine vcut factor from pre-computed NN output.
-typedef void (*sheath_surrogate_out_t)(const double *vmap, const float *nn_out, int n_out,
-  const double *temperature, const double *bmag, double *vcut_fact_out);
-
-typedef struct { sheath_surrogate_out_t kernels[3]; } sheath_surrogate_out_kern_list;  // For use in kernel tables.
-typedef struct { sheath_surrogate_out_kern_list dim_list[4]; } edged_sheath_surrogate_out_kern_list;
-
-typedef struct { sheath_surrogate_inp_t kernels[3]; } sheath_inp_kern_list;
-typedef struct { sheath_inp_kern_list dim_list[4]; } edged_sheath_inp_kern_list;
-
-// Serendipity surrogate kernels (vcut_fact projection using pre-computed nn_out).
+// Serendipity kernels to calculate vcut using conducting sheath model.
 GKYL_CU_D
-static const edged_sheath_surrogate_out_kern_list ser_sheath_vcut_calc_list[] = {
+static const edged_sheath_vcutsq_const_kern_list ser_sheath_vcutsq_const_list[] = {
   { .dim_list={
       { NULL, NULL },
-      { bc_sheath_gyrokinetic_vparcut_calc_lower_1x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_vparcut_calc_lower_2x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_vparcut_calc_lower_3x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_const_lower_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_const_lower_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_const_lower_3x2v_ser_p1, NULL },
     },
   },
   { .dim_list={
       { NULL, NULL },
-      { bc_sheath_gyrokinetic_vparcut_calc_upper_1x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_vparcut_calc_upper_2x2v_ser_p1, NULL },
-      { bc_sheath_gyrokinetic_vparcut_calc_upper_3x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_const_upper_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_const_upper_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_const_upper_3x2v_ser_p1, NULL },
     },
   },
 };
 
-// Serendipity infer kernels (NN feature evaluation + gkyl_kann_net_apply).
+// Function pointer type for surrogate sheath BC to determine vcut factor from pre-computed NN output.
+typedef void (*sheath_vcutsq_surr_t)(const double *vmap, const float *nn_out, int n_out,
+  const double *temperature, const double *bmag, double *vcutsq_out);
+
+typedef struct { sheath_vcutsq_surr_t kernels[3]; } sheath_vcutsq_surr_kern_list;  // For use in kernel tables.
+typedef struct { sheath_vcutsq_surr_kern_list dim_list[4]; } edged_sheath_vcutsq_surr_kern_list;
+
+// Serendipity to evaluate vcut from the KANN surrogate model output.
 GKYL_CU_D
-static const edged_sheath_inp_kern_list ser_sheath_input_list[] = {
+static const edged_sheath_vcutsq_surr_kern_list ser_sheath_vcutsq_surr_list[] = {
+  { .dim_list={
+      { NULL, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_surr_lower_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_surr_lower_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_surr_lower_3x2v_ser_p1, NULL },
+    },
+  },
+  { .dim_list={
+      { NULL, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_surr_upper_1x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_surr_upper_2x2v_ser_p1, NULL },
+      { bc_sheath_gyrokinetic_vcutsq_surr_upper_3x2v_ser_p1, NULL },
+    },
+  },
+};
+
+// Function pointer type for the build the KANN input.
+typedef void (*sheath_surrogate_inp_t)(const double *phi, const double *phi_wall, const double *density, 
+  const double *temperature, const double *bmag, const double *bimpact_angle, int n_inp, float *inp_out);
+typedef struct { sheath_surrogate_inp_t kernels[3]; } sheath_inp_kern_list;
+typedef struct { sheath_inp_kern_list dim_list[4]; } edged_sheath_inp_kern_list;
+
+// Serendipity kernels to build the KANN input.
+GKYL_CU_D
+static const edged_sheath_inp_kern_list ser_sheath_vcutsq_input_list[] = {
   { .dim_list={
       { NULL, NULL },
       { bc_sheath_gyrokinetic_build_input_lower_1x2v_ser_p1, NULL },
@@ -89,8 +109,9 @@ static const edged_sheath_inp_kern_list ser_sheath_input_list[] = {
 
 struct gkyl_bc_sheath_gyrokinetic_kernels {
   sheath_reflectedf_t reflectedf; // reflectedf kernel.
-  sheath_surrogate_inp_t build_input; // NN input construction kernel.
-  sheath_surrogate_out_t vcut_calc; // vcut_fact DG projection kernel (uses pre-computed NN output).
+  sheath_surrogate_inp_t vcutsq_input; // NN input construction kernel.
+  sheath_vcutsq_surr_t vcutsq_surr; // vcut_fact DG projection kernel (uses pre-computed NN output).
+  sheath_vcutsq_const_t vcutsq_const; // vcut calculation using conducting sheath model.
 };
 
 // Primary struct in this updater.
@@ -106,15 +127,15 @@ struct gkyl_bc_sheath_gyrokinetic {
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
   const struct gkyl_velocity_map *vel_map; // Velocity space mapping.
-  int vcut_fact_dim; // Dimensionality of vcut_fact array.
-  struct gkyl_array *vcut_fact; // factor for mu dependent vcut in sheath BC.
-  struct gkyl_basis vcut_fact_basis; // Basis for vcut_fact array (expansion in perpendicular config space and mu).
-  struct gkyl_range vcut_fact_local; // Range for vcut_fact array.
-  struct gkyl_range perp_r; // Peprendicular conf space range.
+  int vcutsq_dim; // Dimensionality of vcutsq array.
+  struct gkyl_array *vcutsq; // factor for mu dependent vcut in sheath BC.
+  struct gkyl_basis vcutsq_basis; // Basis for vcutsq array (expansion in perpendicular config space and mu).
+  struct gkyl_range vcutsq_local; // Range for vcutsq array.
+  struct gkyl_range perp_local; // Peprendicular conf space range.
   int perp_node_per_cell; // Number of nodes per cell in the perpendicular conf. space.
-  void (*update_vcut_fact) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  void (*update_vcutsq) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
     const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
-    const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcut_fact array.
+    const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcutsq array.
   kann_t *kann_model; // Loaded KANN model for the surrogate (CPU only; NULL on GPU or when not using surrogate).
   struct gkyl_kann_net *kann_net; // KANN sheath surrogate.
   struct gkyl_kn_vec *kann_inp; // Input vector for KANN surrogate (3 x number of perp nodes).
@@ -160,12 +181,12 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
 }
 
 void 
-gkyl_bc_gksheath_choose_surrogate_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
+gkyl_bc_gksheath_choose_vcutsq_surr_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
 static void
-bc_gksheath_choose_surrogate_kernels(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+bc_gksheath_choose_vcutsq_surr_kernels(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
 {
   int dim = basis->ndim;
@@ -175,16 +196,41 @@ bc_gksheath_choose_surrogate_kernels(const struct gkyl_basis *basis, enum gkyl_e
   switch (basis_type) {
     case GKYL_BASIS_MODAL_GKHYBRID:
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      kers->vcut_calc = ser_sheath_vcut_calc_list[edge].dim_list[dim-2].kernels[poly_order-1];
-      kers->build_input = ser_sheath_input_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->vcutsq_surr = ser_sheath_vcutsq_surr_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      kers->vcutsq_input = ser_sheath_vcutsq_input_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
-      kers->vcut_calc = NULL;
-      kers->build_input = NULL;
+      kers->vcutsq_surr = NULL;
+      kers->vcutsq_input = NULL;
       break;
   }
-  assert(kers->vcut_calc);
-  assert(kers->build_input);
+  assert(kers->vcutsq_surr);
+  assert(kers->vcutsq_input);
+}
+
+void 
+gkyl_bc_gksheath_choose_vcutsq_const_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
+
+GKYL_CU_D
+static void
+bc_gksheath_choose_vcutsq_const_kernels(const struct gkyl_basis *basis, enum gkyl_edge_loc edge,
+  struct gkyl_bc_sheath_gyrokinetic_kernels *kers)
+{
+  int dim = basis->ndim;
+  enum gkyl_basis_type basis_type = basis->b_type;
+  int poly_order = basis->poly_order;
+
+  switch (basis_type) {
+    case GKYL_BASIS_MODAL_GKHYBRID:
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kers->vcutsq_const = ser_sheath_vcutsq_const_list[edge].dim_list[dim-2].kernels[poly_order-1];
+      break;
+    default:
+      kers->vcutsq_const = NULL;
+      break;
+  }
+  assert(kers->vcutsq_const);
 }
 
 #ifdef GKYL_HAVE_CUDA

@@ -211,7 +211,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       switch (species->lower_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
-          gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
+          gkyl_bc_sheath_gyrokinetic_update_vcutsq(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[cdim-1].bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
@@ -221,7 +221,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
           break;
         case GKYL_BC_GK_SPECIES_IWL:
-          gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_lo, 
+          gkyl_bc_sheath_gyrokinetic_update_vcutsq(species->bc_sheath_lo, 
             app->field->phi_smooth, app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
             app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[cdim-1].bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
@@ -246,11 +246,9 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       switch (species->upper_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
-          gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
+          gkyl_bc_sheath_gyrokinetic_update_vcutsq(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
-            app->gk_geom->geo_int.bmag, 
-            app->gk_geom->geo_surf[cdim-1].bimpactangle, 
-            &app->local);
+            app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[cdim-1].bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
           break;
@@ -258,11 +256,9 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
           break;
         case GKYL_BC_GK_SPECIES_IWL:
-          gkyl_bc_sheath_gyrokinetic_update_vcut_fact_surrogate(species->bc_sheath_up, 
+          gkyl_bc_sheath_gyrokinetic_update_vcutsq(species->bc_sheath_up, 
             app->field->phi_smooth, app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
-            app->gk_geom->geo_int.bmag, 
-            app->gk_geom->geo_surf[cdim-1].bimpactangle, 
-            &app->local);
+            app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[cdim-1].bimpactangle, &app->local);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             app->field->phi_wall_up, f, &app->local);
           if (cdim == 3) {
