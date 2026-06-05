@@ -553,7 +553,7 @@ struct gkyl_sundials_inp {
   double absolute_tolerance; // Absolute tolerance.
   long max_steps; // Maximum number of steps.
   unsigned int num_stages; // Number of stages per step.
-  unsigned int max_num_stages; // Maximum number of stages per step.
+  unsigned int max_num_stages; // Maximum number of stages per step (default: 200).
   enum gkyl_sundials_rk_method rk_method; // Time stepping method.
   enum gkyl_sundials_opsplit_method opsplit_method; // Operator splitting method (default: 1st order Lie-Trotter)
   // Dominant eigenvalue estimator (DEE) inputs.
