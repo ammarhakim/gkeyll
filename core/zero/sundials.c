@@ -547,6 +547,28 @@ smanynvec_get_array(N_Vector manynvin, int nvidx)
   return snvec_get_array(nvin);
 }
 
+static void
+smanynvec_clear(N_Vector manynvin, double cval)
+{
+  // Set all DOF of input ManyNVector 'manynvin' to the value 'cval'.
+  int num_subvec = N_VGetNumSubvectors_ManyVector(manynvin);
+  for (int i=0; i<num_subvec; i++) {
+    struct gkyl_array *garr = smanynvec_get_array(manynvin, i);
+    gkyl_array_clear(garr, cval);
+  }
+}
+
+static void 
+smanynvec_randomize(N_Vector manynvin, double lo, double up)
+{
+  // Set all DOF of input ManyNVector 'manynvin' different random numbers.
+  int num_subvec = N_VGetNumSubvectors_ManyVector(manynvin);
+  for (int i=0; i<num_subvec; i++) {
+    struct gkyl_array *garr = smanynvec_get_array(manynvin, i);
+    gkyl_array_randomize(garr, lo, up);
+  }
+}
+
 struct gkyl_sundials *
 gkyl_sundials_new(bool use_gpu)
 {
@@ -851,6 +873,9 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   flag = ARKodeSStolerances(gksun->arkode_mem_sts, inp->rel_tol, inp->abs_tol);
   sundials_check_flag(&flag, "ARKStepSStolerances", 1);
 
+  // Randomize the input vector (needed by DEE).
+  smanynvec_randomize(nvin, 0.5, 1.5);
+
   gksun->dom_eig_est = 0;
   if (inp->dee_by_gkeyll) {
     // Gkeyll estimates the dominant eigenvalue.
@@ -873,6 +898,9 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
     sundials_check_flag(&flag, "LSRKStepSetNumDomEigEstPreprocessIters", 1);
   }
 
+  // Zero out input vector (that's what's expected/assumed during initialization).
+  smanynvec_clear(nvin, 0.0);
+
   // Specify after how many successful steps dom_eig is recomputed.
   // Note that nsteps = 0 refers to constant dominant eigenvalue.
   flag = LSRKStepSetDomEigFrequency(gksun->arkode_mem_sts, inp->dee_frequency);
@@ -893,6 +921,10 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   // Specify the STS method.
   flag = LSRKStepSetSTSMethod(gksun->arkode_mem_sts, gs_translate_gk_to_sundials_method_sts(inp->rk_method));
   sundials_check_flag(&flag, "LSRKStepSetSTSMethod", 1);
+
+  // Attach the error function.
+  flag = ARKodeWFtolerances(gksun->arkode_mem_sts, gksun->snvec_efun_cell_norm_func);
+  sundials_check_flag(&flag, "ARKodeWFtolerances (sts)", 1);
 
   // Set pre/post processing methods in arkode mem.
   flag = ARKodeSetPreRhsFn(gksun->arkode_mem_sts, gksun->pre_process_rk_stage_sts_func);

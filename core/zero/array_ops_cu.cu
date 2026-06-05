@@ -1,6 +1,7 @@
 /* -*- c++ -*- */
 
 #include <cstdio>
+#include <curand.h>
 #include <math.h>
 #include <time.h>
 
@@ -200,6 +201,21 @@ void
 gkyl_array_clear_cu(struct gkyl_array* out, double val)
 {
   gkyl_array_clear_cu_kernel<<<out->nblocks, out->nthreads>>>(out->on_dev, val);
+}
+
+void
+gkyl_array_randomize_cu(struct gkyl_array* out, double lo, double hi)
+{
+  curandGenerator_t gen;
+  curandCreateGenerator(&gen, CURAND_RNG_PSEUDO_DEFAULT);
+  curandSetPseudoRandomGeneratorSeed(gen, 42);
+  curandGenerateUniformDouble(gen, (double*) out->data, NELM(out));
+  curandDestroyGenerator(gen);
+
+  // curand fills with (0,1]; scale and shift to [lo, hi]
+  gkyl_array_scale(out, hi - lo);
+  for (size_t c=0; c<NCOM(out); ++c)
+    gkyl_array_shiftc(out, lo, c);
 }
 
 void

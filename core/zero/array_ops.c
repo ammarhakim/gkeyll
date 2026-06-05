@@ -32,6 +32,23 @@ gkyl_array_clear(struct gkyl_array* out, double val)
 }
 
 struct gkyl_array*
+gkyl_array_randomize(struct gkyl_array* out, double lo, double hi)
+{
+  assert(out->type == GKYL_DOUBLE);
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_randomize_cu(out, lo, hi); return out; }
+#endif
+
+  pcg64_random_t rng = gkyl_pcg64_init(false);
+  double *out_d = out->data;
+  double range = hi - lo;
+  for (size_t i=0; i<NELM(out); ++i)
+    out_d[i] = lo + range * gkyl_pcg64_rand_double(&rng);
+  return out;
+}
+
+struct gkyl_array*
 gkyl_array_accumulate(struct gkyl_array* out, double a,
   const struct gkyl_array* inp)
 {
