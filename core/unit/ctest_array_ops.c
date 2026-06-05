@@ -1241,6 +1241,51 @@ void test_array_error_denom_fac_range_ho()
   test_array_error_denom_fac_range(false);
 }
 
+void test_array_randomize(bool use_gpu)
+{
+  double lo = -2.0, hi = 3.0;
+  int nc = 3, size = 10;
+
+  struct gkyl_array *arr = mkarr(use_gpu, nc, size);
+  struct gkyl_array *arr_ho = use_gpu ? mkarr(false, nc, size)
+                                      : gkyl_array_acquire(arr);
+
+  gkyl_array_randomize(arr, lo, hi);
+  gkyl_array_copy(arr_ho, arr);
+
+  // Check all values lie in [lo, hi]
+  double *arr_d = arr_ho->data;
+  for (long i=0; i<nc*size; ++i) {
+    TEST_CHECK(arr_d[i] >= lo && arr_d[i] <= hi);
+    TEST_MSG("Entry %ld = %g not in [%g, %g]", i, arr_d[i], lo, hi);
+  }
+
+  // Check reproducibility: a second array randomized with the same fixed seed
+  // should produce identical values
+  struct gkyl_array *arr2 = mkarr(use_gpu, nc, size);
+  struct gkyl_array *arr2_ho = use_gpu ? mkarr(false, nc, size)
+                                       : gkyl_array_acquire(arr2);
+
+  gkyl_array_randomize(arr2, lo, hi);
+  gkyl_array_copy(arr2_ho, arr2);
+
+  double *arr2_d = arr2_ho->data;
+  for (long i=0; i<nc*size; ++i) {
+    TEST_CHECK(gkyl_compare(arr_d[i], arr2_d[i], 1e-14));
+    TEST_MSG("Entry %ld: %g != %g (not reproducible)", i, arr_d[i], arr2_d[i]);
+  }
+
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(arr2);
+  gkyl_array_release(arr2_ho);
+}
+
+void test_array_randomize_ho()
+{
+  test_array_randomize(false);
+}
+
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
@@ -2231,6 +2276,11 @@ void test_array_error_denom_fac_range_dev()
   test_array_error_denom_fac_range(true);
 }
 
+void test_array_randomize_dev()
+{
+  test_array_randomize(true);
+}
+
 #endif
 
 TEST_LIST = {
@@ -2260,6 +2310,7 @@ TEST_LIST = {
   { "array_comp_op_range_ho", test_array_comp_op_range_ho },
   { "array_error_denom_fac_ho", test_array_error_denom_fac_ho },
   { "array_error_denom_fac_range_ho", test_array_error_denom_fac_range_ho },
+  { "array_randomize", test_array_randomize_ho },
 #ifdef GKYL_HAVE_CUDA
   { "cu_array_clear", test_cu_array_clear},
   { "cu_array_clear_range", test_cu_array_clear_range},
@@ -2285,6 +2336,7 @@ TEST_LIST = {
   { "array_comp_op_range", test_array_comp_op_range_dev },
   { "array_error_denom_fac_dev", test_array_error_denom_fac_dev },
   { "array_error_denom_fac_range_dev", test_array_error_denom_fac_range_dev },
+  { "cu_array_randomize", test_array_randomize_dev },
 #endif
   { NULL, NULL },
 };
