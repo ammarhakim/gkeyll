@@ -221,9 +221,9 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
     gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis, edge, up->kernels_cu);
     if (use_surrogate) {
-      gkyl_bc_gksheath_choose_vcutsq_surr_kernels_cu(basis, edge, up->kernels_cu);
+      gkyl_bc_gksheath_choose_surrogate_kernels_cu(basis, edge, up->kernels_cu);
     } else {
-      gkyl_bc_gksheath_choose_vcutsq_const_kernels_cu(basis, edge, up->kernels_cu);
+      gkyl_bc_gksheath_choose_const_kernels_cu(basis, edge, up->kernels_cu);
     }
   } else {
     up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);

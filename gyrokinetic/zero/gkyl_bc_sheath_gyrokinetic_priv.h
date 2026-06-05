@@ -181,7 +181,7 @@ bc_gksheath_reflect(int dir, const struct gkyl_basis *basis, int cdim, double *o
 }
 
 void 
-gkyl_bc_gksheath_choose_vcutsq_surr_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
+gkyl_bc_gksheath_choose_surrogate_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
@@ -200,16 +200,12 @@ bc_gksheath_choose_vcutsq_surr_kernels(const struct gkyl_basis *basis, enum gkyl
       kers->vcutsq_input = ser_sheath_vcutsq_input_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
-      kers->vcutsq_surr = NULL;
-      kers->vcutsq_input = NULL;
-      break;
+      assert(false);
   }
-  assert(kers->vcutsq_surr);
-  assert(kers->vcutsq_input);
 }
 
 void 
-gkyl_bc_gksheath_choose_vcutsq_const_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
+gkyl_bc_gksheath_choose_const_kernels_cu(const struct gkyl_basis *basis, enum gkyl_edge_loc edge, 
   struct gkyl_bc_sheath_gyrokinetic_kernels *kers);
 
 GKYL_CU_D
@@ -227,10 +223,8 @@ bc_gksheath_choose_vcutsq_const_kernels(const struct gkyl_basis *basis, enum gky
       kers->vcutsq_const = ser_sheath_vcutsq_const_list[edge].dim_list[dim-2].kernels[poly_order-1];
       break;
     default:
-      kers->vcutsq_const = NULL;
-      break;
+      assert(false);
   }
-  assert(kers->vcutsq_const);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -248,7 +242,7 @@ void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinet
   const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
 /**
- * CUDA device function to update the vcut_fact array.
+ * CUDA device function to update the vcutsq array with surrogate.
  * 
  * @param up BC updater.
  * @param phi Electrostatic potential.
@@ -260,7 +254,24 @@ void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinet
  * @param conf_r Configuration space range (to index phi, dens, temp, bmag, and bimpact_angle).
  * 
  */
-void bc_gksheath_update_vcut_fact_surrogate_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+void bc_gksheath_update_vcutsq_surrogate_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
+  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r);
+
+/**
+ * CUDA device function to update the vcutsq array with conducting sheath model.
+ * 
+ * @param up BC updater.
+ * @param phi Electrostatic potential.
+ * @param phi_wall Wall potential.
+ * @param dens Density array.
+ * @param temp Temperature array.
+ * @param bmag Magnetic field magnitude array.
+ * @param bimpact_angle Magnetic field impact angle array.
+ * @param conf_r Configuration space range (to index phi, dens, temp, bmag, and bimpact_angle).
+ * 
+ */
+void bc_gksheath_update_vcutsq_const_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
   const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r);
 #endif
