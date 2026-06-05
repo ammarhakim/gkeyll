@@ -48,10 +48,21 @@ gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc);
  * Clear out = val. Returns out.
  *
  * @param out Output array
- * @param val Factor to set 
+ * @param val Factor to set
  * @return out array
  */
 struct gkyl_array* gkyl_array_clear(struct gkyl_array *out, double val);
+
+/**
+ * Set each entry of out to a uniformly distributed random double in [lo, hi].
+ * Each entry receives a different random value. Returns out.
+ *
+ * @param out Output array
+ * @param lo Lower bound of random range
+ * @param hi Upper bound of random range
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_randomize(struct gkyl_array *out, double lo, double hi);
 
 /**
  * Compute out = out + a*inp. Returns out.
@@ -398,6 +409,8 @@ struct gkyl_array* gkyl_array_error_denom_fac_range(struct gkyl_array* out,
  * Host-side wrappers for array operations
  */
 void gkyl_array_clear_cu(struct gkyl_array* out, double val);
+
+void gkyl_array_randomize_cu(struct gkyl_array* out, double lo, double hi);
 
 void gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 

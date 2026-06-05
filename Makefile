@@ -87,7 +87,7 @@ ifneq (,$(filter $(CC),nvcc nvc))
 	else
 		CUDA_LIBS =
 	endif
-	CUDA_LIBS += -lcublas -lcusparse -lcusolver
+	CUDA_LIBS += -lcublas -lcusparse -lcusolver -lcurand
 	SQL_CFLAGS = --forward-unknown-to-host-compiler -fPIC
 endif
 
