@@ -730,6 +730,18 @@ int main(int argc, char **argv)
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
+    .sundials_stepper = {
+      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3,
+//      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_RKC_2,
+      .relative_tolerance = 1e-5,
+      .absolute_tolerance = 1e-12,
+//      .max_steps = 100000,
+      .num_stages = 4,
+//      .max_num_stages = 10,
+//      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
+//      .dee_frequency = 5, // Frequency of DEE calculation in number of steps (default: 10).
+    },
+
     .geometry = {
       .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = {ctx.psi_eval, 0.0},

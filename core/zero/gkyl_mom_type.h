@@ -19,7 +19,9 @@ enum gkyl_distribution_moments {
   GKYL_F_MOMENT_BIMAXWELLIAN, // M0, drift speed, Tpar/m, Tperp/m.
   GKYL_F_MOMENT_LTE, // Maxwellian or Maxwell-Juttner moments.
   GKYL_F_MOMENT_M0M1M2,  // M0, M1, M2.
+  GKYL_F_MOMENT_M0M1M2M3,  // M0, M1, M2, M3.
   GKYL_F_MOMENT_M0M1M2PARM2PERP,  // M0, M1, M2par, M2perp.
+  GKYL_F_MOMENT_M0M1M2PARM2PERPM3PARM3PERP,  // M0, M1, M2par, M2perp, M3par, M3perp.
   GKYL_F_MOMENT_HAMILTONIAN,  // M0, mass*M1, H moments.
   GKYL_F_MOMENT_M1_FROM_H, // dH/dv / m moment.
   GKYL_F_MOMENT_ENERGY, // H moment.
@@ -44,7 +46,9 @@ static const char *gkyl_distribution_moments_strs[] = {
   "BiMaxwellianMoments",
   "LTEMoments",
   "M0M1M2",
+  "M0M1M2M3",
   "M0M1M2parM2perp",
+  "M0M1M2parM2perpM3parM3perp",
   "HamiltonianMoments",
   "M1_from_H",
   "EnergyMoment",

@@ -98,7 +98,7 @@ create_ctx(void)
   double R0 = 0.85; // Major radius (simple toroidal coordinates).
   double a0 = 0.15; // Minor axis (simple toroidal coordinates).
 
-  double nu_frac = 0.1; // Collision frequency fraction.
+  double nu_frac = 1.; // Collision frequency fraction.
 
   // Derived physical quantities (using non-normalized physical units).
   double R = R0 + a0; // Radial coordinate (simple toroidal coordinates).
@@ -784,6 +784,22 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 //    .cfl_frac_omegaH = 1e10,
 
+    .sundials_stepper = {
+//      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2,
+      .rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3 | GKYL_SUNDIALS_METHOD_LSRK_RKL_2,
+//      .rk_method = GKYL_SUNDIALS_METHOD_RK_SSP_3_3,
+//      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_S_3,
+//      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_SSP_10_4,
+//      .rk_method = GKYL_SUNDIALS_METHOD_LSRK_RKC_2,
+      .relative_tolerance = 1e-5,
+      .absolute_tolerance = 1e-12,
+//      .max_steps = 100000,
+      .num_stages = 4,
+//      .max_num_stages = 10,
+      .dee_by_gkeyll = true, // Use Gkeyll's dominant eigenvalue estimator (DEE) for STS operator (default: false).
+      .dee_frequency = 1, // Frequency of DEE calculation in number of steps (default: 10).
+    },
+
     .geometry = {
       .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = { 0.0 },
@@ -811,6 +827,7 @@ main(int argc, char **argv)
   
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
@@ -826,8 +843,10 @@ main(int argc, char **argv)
     },
     .print_verbosity = {
       .enabled = true,
-      .frequency = 0.1,
-      .estimate_completion_time = true,
+//      .frequency = 0.1,
+//      .estimate_completion_time = true,
+      .frequency = 1.,
+      .disable_timings = true,
     },
   };
 

@@ -24,7 +24,7 @@ then
     gunzip -c openmpi-4.1.6.tar.gz | tar xf -
     cd openmpi-4.1.6
 
-    ./configure --prefix=$PREFIX --enable-mpi-fortran=none CC=$CC CXX=$CXX
+    ./configure --prefix=$PREFIX --enable-mpi-fortran=yes CC=$CC CXX=$CXX
     make -j6 install 
 
     # soft-link 

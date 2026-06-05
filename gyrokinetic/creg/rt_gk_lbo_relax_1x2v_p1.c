@@ -258,10 +258,10 @@ main(int argc, char **argv)
       .ctx_func = &ctx,
     },
 
-    .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
-    },
-
+//    .collisionless = {
+//      .type = GKYL_GK_COLLISIONLESS_ES,
+//    },
+//
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalTopHatNu,
@@ -288,9 +288,9 @@ main(int argc, char **argv)
       .ctx_func = &ctx,
     },
 
-    .collisionless = {
-      .type = GKYL_GK_COLLISIONLESS_ES,
-    },
+//    .collisionless = {
+//      .type = GKYL_GK_COLLISIONLESS_ES,
+//    },
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,

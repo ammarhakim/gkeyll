@@ -58,7 +58,8 @@ The following flags specify the libraries to build.
 --build-cudss               [no] Should we build cuDSS?
 --build-tcc                 [no] Should we build tcc?
 --build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
---build-eirene              [no] Should we build eirene? (includes installing SOLPS-ITER)
+--build-sundials            [no] Should we build SUNDIALS? (uses cmake)
+--build-eirene              [no] Should we build EIRENE? (includes installing SOLPS-ITER)
 
 EOF
 }
@@ -169,6 +170,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_ADAS="$value"
       ;;
+   --build-sundials)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      BUILD_SUNDIALS="$value"
+      ;;
    --build-eirene)
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_EIRENE="$value"
@@ -179,6 +184,9 @@ do
    esac
    shift
 done
+
+MPICC=$PREFIX/openmpi/bin/mpicc
+MPICXX=$PREFIX/openmpi/bin/mpicxx
 
 CMAKE_SUPERLU_DIST_GPU=OFF
 # Set package options
@@ -204,6 +212,7 @@ CC=$CC
 CXX=$CXX
 MPICC=$MPICC
 MPICXX=$MPICXX
+MPIEXEC=$MPIEXEC
 FC=gfortran
 
 # Package options
@@ -267,6 +276,14 @@ build_adas() {
     fi
 }
 
+build_sundials() {
+    if [ "$BUILD_SUNDIALS" = "yes" ]
+    then    
+	echo "Building SUNDIALS"
+	./build-sundials.sh 
+    fi
+}
+
 build_eirene() {
     if [ "$BUILD_EIRENE" = "yes" ]
     then
@@ -284,4 +301,5 @@ build_openblas
 build_superlu
 build_cudss
 build_adas
+build_sundials
 build_eirene

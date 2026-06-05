@@ -62,7 +62,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
 
   for (int m=0; m<gks->src.num_diag_mom; ++m) {
     struct timespec wst = gkyl_wall_clock();
-    gk_species_moment_calc(&gks->src.moms[m], gks->local, app->local, gks->src.source);
+    gk_species_moment_calc(app, &gks->src.moms[m], &gks->local, &app->local, 0, 0, app->field->phi, gks->src.source);
     app->stat.n_mom += 1;
 
     // Rescale moment by inverse of Jacobian if needed.
@@ -113,7 +113,7 @@ gk_species_source_calc_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct 
   int num_mom = gks->src.integ_moms.num_mom;
   double avals_global[num_mom];
 
-  gk_species_moment_calc(&gks->src.integ_moms, gks->local, app->local, gks->src.source); 
+  gk_species_moment_calc(app, &gks->src.integ_moms, &gks->local, &app->local, 0, 0, app->field->phi, gks->src.source); 
   app->stat.n_mom += 1;
 
   // Reduce to compute sum over whole domain, append to diagnostics
@@ -392,14 +392,14 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     src->moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
     for (int m=0; m<src->num_diag_mom; ++m)
-      gk_species_moment_init(app, s, &src->moms[m], s->info.source.diagnostics.diag_moments[m], false);
+      gk_species_moment_init(app, s, &src->moms[m], s->info.source.diagnostics.diag_moments[m], 0, false);
 
     // Allocate data and updaters for integrated moments.
     src->num_diag_int_mom = s->info.source.diagnostics.num_integrated_diag_moments;
     assert(src->num_diag_int_mom < 2); // 1 int moment allowed now.
     if (src->evolve || src->num_diag_int_mom > 0) {
       gk_species_moment_init(app, s, &src->integ_moms,
-        src->num_diag_int_mom == 0? GKYL_F_MOMENT_M0M1M2PARM2PERP : s->info.source.diagnostics.integrated_diag_moments[0], true);
+        src->num_diag_int_mom == 0? GKYL_F_MOMENT_M0M1M2PARM2PERP : s->info.source.diagnostics.integrated_diag_moments[0], 0, true);
       int num_mom = src->integ_moms.num_mom;
       if (app->use_gpu) {
         src->red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
@@ -467,7 +467,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         adapt_src->temperature_curr = s->info.source.projection[k].total_num_particles > 0?
           (2./vdim_phys) * adapt_src->energy_src_curr/adapt_src->particle_src_curr : s->info.source.projection[k].temp_min;
 
-        gk_species_moment_init(app, adapt_src->adapt_species, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, true);
+        gk_species_moment_init(app, adapt_src->adapt_species, &adapt_src->integ_threemoms, GKYL_F_MOMENT_M0M1M2, 0, true);
 
         // Initialize the infrastructure to compute integrated moments of the boundary fluxes.
         adapt_src->bflux_m0 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

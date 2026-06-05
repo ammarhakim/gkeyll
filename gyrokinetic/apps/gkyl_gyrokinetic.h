@@ -3,14 +3,15 @@
 #include <gkyl_app.h>
 #include <gkyl_basis.h>
 #include <gkyl_eqn_type.h>
+#include <gkyl_gk_bc_type.h>
 #include <gkyl_gk_geometry.h>
-#include <gkyl_range.h>
-#include <gkyl_util.h>
-#include <gkyl_velocity_map.h>
-#include <gkyl_position_map.h>
 #include <gkyl_gyrokinetic_comms.h>
 #include <gkyl_mom_type.h>
-#include <gkyl_gk_bc_type.h>
+#include <gkyl_position_map.h>
+#include <gkyl_range.h>
+#include <gkyl_sundials.h>
+#include <gkyl_util.h>
+#include <gkyl_velocity_map.h>
 
 #include <stdbool.h>
 
@@ -468,6 +469,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   struct gkyl_gyrokinetic_positivity positivity; // Positivity enforcement options.
   
+  double skip_cell_threshold; // Skip cells with average Jf smaller than this value.
+
   struct gkyl_gyrokinetic_ic_import init_from_file;
   
   // Initial conditions using projection routine.
@@ -544,6 +547,26 @@ struct gkyl_gyrokinetic_field {
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
 
+// Sundials inputs specified in input file.
+struct gkyl_sundials_inp {
+  double relative_tolerance; // Relative tolerance.
+  double absolute_tolerance; // Absolute tolerance.
+  long max_steps; // Maximum number of steps.
+  unsigned int num_stages; // Number of stages per step.
+  unsigned int max_num_stages; // Maximum number of stages per step (default: 200).
+  enum gkyl_sundials_rk_method rk_method; // Time stepping method.
+  enum gkyl_sundials_opsplit_method opsplit_method; // Operator splitting method (default: 1st order Lie-Trotter)
+  // Dominant eigenvalue estimator (DEE) inputs.
+  bool dee_by_gkeyll; // =true Gkeyll's DEE, =false SUNDIALS' (default: false).
+  unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
+  double dee_relative_tolerance; // Relative tolerance (default: 0.01).
+  unsigned int dee_num_init_warmups; // Number of initial warm ups (default: 100).
+  unsigned int dee_num_succ_warmups; // Number of succeeding warm ups (default: 0).
+  unsigned int dee_frequency; // Number of steps between DEEs (default: 10).
+  double dee_safety_fac; // Safety factor setting the effective dominant eigenvalue (default: 1.01).
+};
+
+// EIRENE coupling inputs.
 struct gkyl_gyrokinetic_eirene {
   char input_data_path[128]; // Path to EIRENE data
   char output_data_path[128]; // Path to EIRENE data
@@ -563,6 +586,8 @@ struct gkyl_gk {
   int cells[3]; // Config-space cells.
   int poly_order; // Polynomial order.
   enum gkyl_basis_type basis_type; // Type of basis functions to use.
+
+  struct gkyl_sundials_inp sundials_stepper; // SUNDIALS time stepper inputs.
 
   struct gkyl_gyrokinetic_geometry geometry; // Geometry input struct.
 
@@ -587,13 +612,15 @@ struct gkyl_gk {
 
 // Simulation statistics
 struct gkyl_gyrokinetic_stat {
-  bool use_gpu; // did this sim use GPU?
+  bool use_gpu; // Cid this sim use GPU?
   
-  long nup; // calls to update
-  long nfeuler; // calls to forward-Euler method
+  long nup; // Calls to update.
+  long nfeuler; // Calls to forward-Euler method.
+  long nfdot; // Calls to df/dt.
     
-  long nstage_2_fail; // number of failed RK stage-2s
-  long nstage_3_fail; // number of failed RK stage-3s
+  long nstage_2_fail; // Number of failed RK stage-2s
+  long nstage_3_fail; // Number of failed RK stage-3s
+  long dt_error_adapt_fail; // Number of failed error checks to adapt dt.
 
   double stage_2_dt_diff[2]; // [min,max] rel-diff for stage-2 failure
   double stage_3_dt_diff[2]; // [min,max] rel-diff for stage-3 failure

@@ -74,7 +74,8 @@ gk_eirene_rhs(gkyl_gyrokinetic_app *app, const struct gkyl_array *fin[], struct 
     struct gk_species *gks = eirene->coupling_species[i];
     struct gk_source_bgk *bgk_src = &eirene->bgk_src[i];
     int sidx = gk_find_species_idx(app, gks->info.name);
-    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[sidx], rhs[sidx]);
+    struct gkyl_array *cflrate = gks->cflrate_ssprk;
+    gk_species_source_bgk_rhs(app, gks, bgk_src, fin[sidx], rhs[sidx], cflrate);
   }
 }
 

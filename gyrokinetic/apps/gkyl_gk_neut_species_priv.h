@@ -16,6 +16,27 @@
 #include <assert.h>
 #include <time.h>
 
+static inline double
+gk_neut_species_omega_cfl_to_dt(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, struct gkyl_array *cflrate)
+{
+  // Reduce the CFL frequency and compute stable dt needed by this species.
+  app->stat.n_neut_species_omega_cfl +=1;
+  struct timespec tm = gkyl_wall_clock();
+  gkyl_array_reduce_range(species->omega_cfl, cflrate, GKYL_MAX, &species->local);
+
+  double omega_cfl_ho;
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(&omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    omega_cfl_ho = species->omega_cfl[0];
+  }
+  double dt_out = app->cfl/omega_cfl_ho;
+  
+  app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
+  return dt_out;
+}
+
 /**
  * Initialize fluid neutral species.
  * 

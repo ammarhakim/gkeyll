@@ -10,12 +10,10 @@ gk_neut_species_scaling_cross_moms_enabled(gkyl_gyrokinetic_app *app, const stru
   struct gk_species *gks_elc = &app->species[sca->elc_idx]; 
 
   // Compute electron Maxwellian moments (J*n, u_par, T/m).
-  gk_species_moment_calc(&gks_elc->lte.moms, 
-    gks_elc->local, app->local, fin[sca->elc_idx]);
+  gk_species_moment_calc(app, &gks_elc->lte.moms, &gks_elc->local, &app->local, 0, 0, 0, fin[sca->elc_idx]);
 
   // Divide the electron density by the Jacobian.
-  gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 0, gks_elc->lte.moms.marr,
-    0, gks_elc->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
+  gk_species_moment_diag_jacobgeo_div(app, &gks_elc->lte.moms, gks_elc->lte.moms.marr, gks_elc->lte.moms.marr);
 
   // Compute ionization reactivity <sigma v>_iz.
   gkyl_dg_iz_coll(sca->iz_react_calc, gks_elc->lte.moms.marr, 
@@ -67,7 +65,7 @@ gk_neut_species_scaling_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_neut_s
 
 static void
 gk_neut_species_scaling_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array *fields[], struct gkyl_array **bflux[])
 {
   struct gk_species *gks_ion = &app->species[sca->ion_idx];
   struct gkyl_array **bflux_ion = bflux[sca->ion_idx];
@@ -113,7 +111,7 @@ gk_neut_species_scaling_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_
 
 static void
 gk_neut_species_scaling_apply_disabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array *fields[], struct gkyl_array **bflux[])
 {
   // Do nothing.
 }
@@ -280,9 +278,9 @@ gk_neut_species_scaling_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *n
 
 void
 gk_neut_species_scaling_apply(gkyl_gyrokinetic_app *app, struct gk_neut_species *ns,
-  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array *fields[], struct gkyl_array **bflux[])
 {
-  sca->apply_func_neut(app, ns, sca, fin, bflux);
+  sca->apply_func_neut(app, ns, sca, fin, fields, bflux);
 }
 
 void

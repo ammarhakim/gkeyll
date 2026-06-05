@@ -18,40 +18,31 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
     struct gk_species *gks_ion = &app->species[react->ion_idx[i]]; 
 
     if (react->react_id[i] == GKYL_REACT_IZ) {
-      // compute needed electron Maxwellian moments (J*n, u_par, T/m) 
-      gk_species_moment_calc(&gks_elc->lte.moms, 
-        gks_elc->local, app->local, fin[react->elc_idx[i]]);
+      // Compute needed electron Maxwellian moments (J*n, u_par, T/m). 
+      gk_species_moment_calc(app, &gks_elc->lte.moms, &gks_elc->local, &app->local, 0, 0, 0, fin[react->elc_idx[i]]);
 
-      // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
-        0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
-        app->gk_geom->geo_int.jacobgeo, &app->local); 
+      // Divide out the Jacobian from the electron density for computing reaction rates.
+      gk_species_moment_diag_jacobgeo_div(app, &gks_elc->lte.moms, gks_elc->lte.moms.marr, gks_elc->lte.moms.marr);
 
       // compute ionization reaction rate from input electron primitive moments
       gkyl_dg_iz_coll(react->iz[i], gks_elc->lte.moms.marr, 
         react->vt_sq_iz1[i], react->vt_sq_iz2[i], react->coeff_react[i], 0);
     }
     else if (react->react_id[i] == GKYL_REACT_RECOMB) {
-      // compute needed electron Maxwellian moments (J*n, u_par, T/m) 
-      gk_species_moment_calc(&gks_elc->lte.moms, 
-        gks_elc->local, app->local, fin[react->elc_idx[i]]);
+      // Compute needed electron Maxwellian moments (J*n, u_par, T/m) 
+      gk_species_moment_calc(app, &gks_elc->lte.moms, &gks_elc->local, &app->local, 0, 0, 0, fin[react->elc_idx[i]]);
 
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
-      // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
-        0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
-        app->gk_geom->geo_int.jacobgeo, &app->local); 
+      // Divide out the Jacobian from the electron density for computing reaction rates.
+      gk_species_moment_diag_jacobgeo_div(app, &gks_elc->lte.moms, gks_elc->lte.moms.marr, gks_elc->lte.moms.marr);
 
-      // compute needed ion Maxwellian moments (J*n, u_par, T/m) 
-      gk_species_moment_calc(&gks_ion->lte.moms, 
-        gks_ion->local, app->local, fin[react->ion_idx[i]]);
+      // Compute needed ion Maxwellian moments (J*n, u_par, T/m) 
+      gk_species_moment_calc(app, &gks_ion->lte.moms, &gks_ion->local, &app->local, 0, 0, 0, fin[react->ion_idx[i]]);
 
-      // divide out the Jacobian from the ion density for use in Maxwellian projection
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
-        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
-        app->gk_geom->geo_int.jacobgeo, &app->local);
+      // Divide out the Jacobian from the ion density for use in Maxwellian projection.
+      gk_species_moment_diag_jacobgeo_div(app, &gks_ion->lte.moms, gks_ion->lte.moms.marr, gks_ion->lte.moms.marr);
 
       // Construct ion vector velocity upar b_i
       // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
@@ -69,13 +60,10 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
     }
     else if (react->react_id[i] == GKYL_REACT_CX) {
       // compute needed ion Maxwellian moments (J*n, u_par, T/m) 
-      gk_species_moment_calc(&gks_ion->lte.moms, 
-        gks_ion->local, app->local, fin[react->ion_idx[i]]);
+      gk_species_moment_calc(app, &gks_ion->lte.moms, &gks_ion->local, &app->local, 0, 0, 0, fin[react->ion_idx[i]]);
 
-      // divide out the Jacobian from the ion density
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
-        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
-        app->gk_geom->geo_int.jacobgeo, &app->local); 
+      // Divide out the Jacobian from the ion density.
+      gk_species_moment_diag_jacobgeo_div(app, &gks_ion->lte.moms, gks_ion->lte.moms.marr, gks_ion->lte.moms.marr);
 
       // Construct ion vector velocity upar b_i
       // if cdim = 1, u0 = upar, if cdim = 2, u1 = upar, if cdim = 3, u2 = upar
@@ -89,16 +77,14 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
 
       // compute needed partner (neutral) Maxwellian moments (J*n, ux, uy, uz, T/m) 
       struct gk_neut_species *gkns_partner = &app->neut_species[react->partner_idx[i]];
-      gk_neut_species_moment_calc(&gkns_partner->lte.moms, 
-        gkns_partner->local, app->local, fin_neut[react->partner_idx[i]]);  
+      gk_neut_species_moment_calc(app, &gkns_partner->lte.moms, 
+        &gkns_partner->local, &app->local, 0, 0, 0, fin_neut[react->partner_idx[i]]);  
 
       // Copy J*n for use in final update
       gkyl_array_set_range(react->Jm0_partner[i], 1.0, gkns_partner->lte.moms.marr, &app->local);
 
       // Divide out the Jacobian from the partner density.
-      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
-        0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
-        app->gk_geom->geo_int.jacobgeo, &app->local); 
+      gk_neut_species_moment_diag_jacobgeo_div(app, &gkns_partner->lte.moms, gkns_partner->lte.moms.marr, gkns_partner->lte.moms.marr);
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
       gkyl_dg_cx_coll(react->cx[i], gks_ion->lte.moms.marr, gkns_partner->lte.moms.marr, 
@@ -110,14 +96,14 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
 
 static void
 gkns_react_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   // Do nothing.
 }
 
 static void
 gkns_react_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();  
   for (int i=0; i<react->num_react; ++i) {
@@ -404,10 +390,10 @@ gk_neut_species_react_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_neut
 }
 
 void
-gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
-  struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_neut_species_react_rhs(gkyl_gyrokinetic_app *app, struct gk_neut_species *s, struct gk_react *react,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  react->rhs_func_neut(app, s, react, fin, rhs);
+  react->rhs_func_neut(app, s, react, fin, rhs, cflrate);
 }
 
 void

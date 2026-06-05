@@ -21,6 +21,16 @@ gkyl_array_dg_reducec(double *out, const struct gkyl_array *arr, int comp,
       case GKYL_SUM:                                      
         gkyl_array_dg_reducec_sum_cu(out, arr, comp, basis);
         break;
+      case GKYL_ABS:
+      case GKYL_INV:
+      case GKYL_PROD:
+      case GKYL_DIV:
+      case GKYL_AXPBY:
+      case GKYL_ABS_MAX:
+      case GKYL_SQ_SUM:
+      case GKYL_RMS:
+        assert(false);
+        break;
     }
     return;
   }
@@ -66,6 +76,16 @@ gkyl_array_dg_reducec(double *out, const struct gkyl_array *arr, int comp,
         }
       }
       break;
+    case GKYL_ABS:
+    case GKYL_INV:
+    case GKYL_PROD:
+    case GKYL_DIV:
+    case GKYL_AXPBY:
+    case GKYL_ABS_MAX:
+    case GKYL_SQ_SUM:
+    case GKYL_RMS:
+      assert(false);
+      break;
   }
 }
 
@@ -86,6 +106,16 @@ gkyl_array_dg_reducec_range(double *out, const struct gkyl_array *arr, int comp,
         break;
       case GKYL_SUM:
         gkyl_array_dg_reducec_range_sum_cu(out, arr, comp, basis, range);
+        break;
+      case GKYL_ABS:
+      case GKYL_INV:
+      case GKYL_PROD:
+      case GKYL_DIV:
+      case GKYL_AXPBY:
+      case GKYL_ABS_MAX:
+      case GKYL_SQ_SUM:
+      case GKYL_RMS:
+        assert(false);
         break;
     }
     return;
@@ -137,6 +167,16 @@ gkyl_array_dg_reducec_range(double *out, const struct gkyl_array *arr, int comp,
           out[0] += arr_nodal[k];
         }
       }
+      break;
+    case GKYL_ABS:
+    case GKYL_INV:
+    case GKYL_PROD:
+    case GKYL_DIV:
+    case GKYL_AXPBY:
+    case GKYL_ABS_MAX:
+    case GKYL_SQ_SUM:
+    case GKYL_RMS:
+      assert(false);
       break;
   }
 }

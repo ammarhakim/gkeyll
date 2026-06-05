@@ -17,17 +17,17 @@ gk_species_scaling_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gk
 
 static void
 gk_species_scaling_apply_fixed_fraction(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array *fields[], struct gkyl_array **bflux[])
 {
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
   // Reciprocal of the density of this species.
   struct gkyl_array *m0_inv = gks->lte.moms.marr;
-  gk_species_moment_calc(&gks->m0, gks->local, app->local, fin);
+  gk_species_moment_calc(app, &gks->m0, &gks->local, &app->local, 0, 0, 0, fin);
   gkyl_dg_inv_op_range(app->basis, 0, m0_inv, 0, gks->m0.marr, &app->local);
 
   // Density of the reference species.
-  gk_species_moment_calc(&gks_ref->m0, gks_ref->local, app->local, gks_ref->f);
+  gk_species_moment_calc(app, &gks_ref->m0, &gks_ref->local, &app->local, 0, 0, 0, gks_ref->f);
 
   // Ratio of the densities.
   struct gkyl_array *m0ratio = gks->m0.marr;
@@ -70,12 +70,12 @@ copy_lower_z_ghost_to_all_z_conf(gkyl_gyrokinetic_app *app, struct gkyl_array *a
 
 static void
 gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array *fields[], struct gkyl_array **bflux[])
 {
   struct gk_species *gks_ref = &app->species[sca->ref_species_idx];
 
   // Compute density and temperature.
-  gk_species_moment_calc(&gks->lte.moms, gks->local, app->local, fin);
+  gk_species_moment_calc(app, &gks->lte.moms, &gks->local, &app->local, 0, 0, 0, fin);
   gkyl_dg_div_op_range(gks->lte.moms.mem_geo, app->basis, 0, gks->lte.moms.marr,
     0, gks->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
 
@@ -86,7 +86,8 @@ gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species 
   copy_lower_z_ghost_to_all_z_conf(app, sca->sheath_val, app->field->sheath_vals[off], 1*app->basis.num_basis, sca->buffer_conf);
 
   // Compute ( phi-phi_sheath)/(T/m) ).
-  gkyl_array_copy_range(sca->buffer_conf, app->field->phi_smooth, &app->local);
+  struct gkyl_array *phi_curr = gk_field_get_phi_from_fields(app->field, fields);
+  gkyl_array_copy_range(sca->buffer_conf, phi_curr, &app->local);
   gkyl_array_accumulate_range(sca->buffer_conf, -1.0, sca->sheath_val, &app->local);
   gkyl_dg_div_op_range(gks->lte.moms.mem_geo, app->basis, 0, sca->buffer_conf,
     0, sca->buffer_conf, 2, gks->lte.moms.marr, &app->local);
@@ -116,7 +117,7 @@ gk_species_scaling_apply_boltzmann(gkyl_gyrokinetic_app *app, struct gk_species 
 
 static void
 gk_species_scaling_apply_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array *fields[], struct gkyl_array **bflux[])
 {
   // Do nothing.
 }
@@ -227,9 +228,9 @@ gk_species_scaling_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
 
 void
 gk_species_scaling_apply(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array **bflux[])
+  struct gk_scaling *sca, struct gkyl_array *fin, struct gkyl_array *fields[], struct gkyl_array **bflux[])
 {
-  sca->apply_func(app, gks, sca, fin, bflux);
+  sca->apply_func(app, gks, sca, fin, fields, bflux);
 }
 
 void

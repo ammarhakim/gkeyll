@@ -25,10 +25,10 @@ gk_neut_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_spe
     src->num_diag_mom = s->info.num_diag_moments;
     s->src.moms = gkyl_malloc(sizeof(struct gk_species_moment[src->num_diag_mom]));
     for (int m=0; m<src->num_diag_mom; ++m)
-      gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], false);
+      gk_neut_species_moment_init(app, s, &s->src.moms[m], s->info.diag_moments[m], 0, false);
 
     // Allocate data and updaters for integrated moments.
-    gk_neut_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+    gk_neut_species_moment_init(app, s, &s->src.integ_moms, GKYL_F_MOMENT_M0M1M2, 0, true);
     int num_mom = s->src.integ_moms.num_mom;
     if (app->use_gpu) {
       s->src.red_integ_diag = gkyl_cu_malloc(sizeof(double[num_mom]));
@@ -114,11 +114,11 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
 
     for (int m=0; m<gkns->info.num_diag_moments; ++m) {
       struct timespec wst = gkyl_wall_clock();
-      gk_neut_species_moment_calc(&gkns->src.moms[m], gkns->local, app->local, gkns->src.source);
+      gk_neut_species_moment_calc(app, &gkns->src.moms[m], &gkns->local, &app->local, 0, 0, 0, gkns->src.source);
       app->stat.n_neut_mom += 1;
 
       // Rescale moment by inverse of Jacobian if needed.
-      gk_species_moment_diag_jacobgeo_div(app, &gkns->src.moms[m], gkns->src.moms[m].marr, gkns->src.moms[m].marr);
+      gk_neut_species_moment_diag_jacobgeo_div(app, &gkns->src.moms[m], gkns->src.moms[m].marr, gkns->src.moms[m].marr);
       app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
       struct timespec wtm = gkyl_wall_clock();
@@ -152,7 +152,7 @@ gk_neut_species_source_calc_integrated_mom(gkyl_gyrokinetic_app* app, struct gk_
     int vdim = gkns->info.vdim;
     int num_mom = gkns->src.integ_moms.num_mom;
     double avals_global[num_mom];
-    gk_neut_species_moment_calc(&gkns->src.integ_moms, gkns->local, app->local, gkns->src.source);
+    gk_neut_species_moment_calc(app, &gkns->src.integ_moms, &gkns->local, &app->local, 0, 0, 0, gkns->src.source);
     app->stat.n_neut_mom += 1; 
 
     // reduce to compute sum over whole domain, append to diagnostics

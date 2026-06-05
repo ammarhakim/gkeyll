@@ -25,22 +25,21 @@ gk_species_collisionless_flux_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
 
 static void
 gk_species_collisionless_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
 }
 
 static void
 gk_species_collisionless_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
 
   gkcls->flux_func(app, species, gkcls, fin);
 
-  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, 
-    fin, species->cflrate, rhs);
+  gkyl_dg_updater_gyrokinetic_advance(gkcls->slvr, &species->local, fin, cflrate, rhs);
 
-  gkcls->fdot_scaling(app, species, gkcls, rhs, species->cflrate, &species->local);
+  gkcls->fdot_scaling(app, species, gkcls, rhs, cflrate, &species->local);
 
   app->stat.species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -133,16 +132,6 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     // Allocate arrays to store surface phase space flux.
     gkcls->flux_surf = mkarr(app->use_gpu, flux_surf_sz, gks->local_ext.volume);
 
-    if (gkcls->collisionless_id == GKYL_GK_COLLISIONLESS_EM_BPERP) {
-      // Parallel component of magnetic vector potential.
-      gkcls->apar = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      gkcls->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);    
-    }
-    else {
-      gkcls->apar    = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-      gkcls->apardot = gkyl_array_acquire(app->field->phi_smooth); // Not used.
-    }
-
     enum gkyl_gyrokinetic_bc_type bctype_conf[2*GKYL_MAX_CDIM];
     for (int d=0; d<app->cdim; d++) {
       bctype_conf[d] = gks->lower_bc[d].type;
@@ -150,12 +139,11 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
     }
 
     gkcls->surf_flux_op = gkyl_gk_collisionless_flux_new(&gks->grid, &app->basis, &gks->basis, 
-      gks->info.charge, gks->info.mass,
-      gkcls->collisionless_id, app->gk_geom, 
+      gks->info.charge, gks->info.mass, gkcls->collisionless_id, app->gk_geom, 
       app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
 
     struct gkyl_dg_gyrokinetic_auxfields aux_inp = { .flux_surf = gkcls->flux_surf, 
-      .phi = gks->gyro_phi, .apar = gkcls->apar, .apardot = gkcls->apardot };
+      .phi = gks->gyro_phi, .apar = gks->gyro_apar, .apardot = gks->gyro_apardot };
     // Create solver.
     gkcls->slvr = gkyl_dg_updater_gyrokinetic_new(&gks->grid, &app->basis, &gks->basis, 
       &app->local, &gks->local, is_zero_flux, gks->info.charge, gks->info.mass,
@@ -187,10 +175,10 @@ gk_species_collisionless_flux(gkyl_gyrokinetic_app *app, struct gk_species *spec
 }
 
 void
-gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
-  struct gk_collisionless *gkcls, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_collisionless_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gk_collisionless *gkcls,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  gkcls->rhs_func(app, species, gkcls, fin, rhs);
+  gkcls->rhs_func(app, species, gkcls, fin, rhs, cflrate);
 }
 
 void
@@ -204,10 +192,7 @@ void
 gk_species_collisionless_release(const struct gkyl_gyrokinetic_app *app, const struct gk_collisionless *gkcls)
 {
   if (gkcls->collisionless_id) {
-
     gkyl_array_release(gkcls->flux_surf);
-    gkyl_array_release(gkcls->apar);
-    gkyl_array_release(gkcls->apardot);
   
     gkyl_gk_collisionless_flux_release(gkcls->surf_flux_op);
     gkyl_dg_updater_gyrokinetic_release(gkcls->slvr);

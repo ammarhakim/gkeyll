@@ -199,6 +199,10 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+  if (inp->app_inp.sundials_stepper.rk_method != GKYL_SUNDIALS_METHOD_NONE) {
+    // Sundials interprets dt as the period between frames.
+    dt = (t_end - t_curr)/num_frames;
+  }
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = time_stepping.dt_failure_tol;
@@ -284,13 +288,23 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   } else {
     gkyl_gyrokinetic_app_cout(app, stdout, "\n");
     gkyl_gyrokinetic_app_cout(app, stdout, "Number of update calls %ld\n", stat.nup);
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
+    if (stat.nfeuler > 0) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
+    }
+    if (stat.nfdot > 0) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "Number of df/dt calls %ld\n", stat.nfdot);
+    }
     if (stat.nstage_2_fail > 0) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
       gkyl_gyrokinetic_app_cout(app, stdout, "  Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
       gkyl_gyrokinetic_app_cout(app, stdout, "  Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
     }  
-    gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+    if (stat.nstage_3_fail > 0) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
+    }
+    if (stat.dt_error_adapt_fail > 0) {
+      gkyl_gyrokinetic_app_cout(app, stdout, "Number of dt adaptation error check failures %ld\n", stat.dt_error_adapt_fail);
+    }
     gkyl_gyrokinetic_app_cout(app, stdout, "Number of write calls %ld\n", stat.n_io);
     gkyl_gyrokinetic_app_print_timings(app, stdout);
   }
@@ -470,6 +484,10 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
   // Compute initial guess of maximum stable time-step.
   double dt = t_end - t_curr;
+  if (inp->app_inp.sundials_stepper.rk_method != GKYL_SUNDIALS_METHOD_NONE) {
+    // Sundials interprets dt as the period between frames.
+    dt = (t_end - t_curr)/num_frames;
+  }
 
   // Initialize small time-step check.
   double dt_init = -1.0, dt_failure_tol = time_stepping.dt_failure_tol;

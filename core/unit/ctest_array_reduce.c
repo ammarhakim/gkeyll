@@ -9,11 +9,7 @@
 #include <gkyl_util.h>
 #include <time.h>
 
-void test_dummy()
-{
-}
-
-void test_reduce()
+void test_array_reduce_min_max_ho()
 {
   int ncomp = 3, ncells = 200;
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
@@ -36,7 +32,7 @@ void test_reduce()
   gkyl_array_release(arr);
 }
 
-void test_reduce_range()
+void test_array_reduce_min_max_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -74,7 +70,58 @@ void test_reduce_range()
   gkyl_array_release(arr);
 }
 
-void test_sum_reduce_range()
+void test_array_reduce_sum_range_ho()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  int ncomp = 3;
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *d = gkyl_array_fetch(arr, loc);
+    d[0] = 0.5;
+    d[1] = 1.5;
+    d[2] = 2.5;
+  }
+
+  double asum[ncomp];
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM, &range);
+
+  TEST_CHECK( asum[0] == 0.5*range.volume );
+  TEST_CHECK( asum[1] == 1.5*range.volume );
+  TEST_CHECK( asum[2] == 2.5*range.volume );
+
+  gkyl_array_release(arr);
+}
+
+void test_array_reduce_abs_max_ho()
+{
+  int ncomp = 3, ncells = 200;
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
+
+  for (int i=0; i<arr->size; ++i) {
+    double *d = gkyl_array_fetch(arr, i);
+    for (int c=0; c<ncomp; ++c)
+      d[c] = -0.5*i + 0.1*c;
+  }
+  
+  double absmax[ncomp];
+  gkyl_array_reduce(absmax, arr, GKYL_ABS_MAX);
+
+  for (int c=0; c<ncomp; ++c) {
+    TEST_CHECK( absmax[c] == fabs(-0.5*(ncells-1)+0.1*c) );
+    TEST_MSG( "Got: %.9e | Expected: %.9e\n",absmax[c], fabs(-0.5*(ncells-1)+0.1*c) );
+  }
+
+  gkyl_array_release(arr);
+}
+
+void test_array_reduce_sq_sum_range_ho()
 {
   int shape[] = {10, 20};
   struct gkyl_range range;
@@ -93,53 +140,186 @@ void test_sum_reduce_range()
   }
 
   double asum[3];
-  gkyl_array_reduce_range(asum, arr, GKYL_SUM, &range);
+  gkyl_array_reduce_range(asum, arr, GKYL_SQ_SUM, &range);
 
-  TEST_CHECK( asum[0] == 0.5*range.volume );
-  TEST_CHECK( asum[1] == 1.5*range.volume );
-  TEST_CHECK( asum[2] == 2.5*range.volume );
+  TEST_CHECK( asum[0] == 0.5*0.5*range.volume );
+  TEST_CHECK( asum[1] == 1.5*1.5*range.volume );
+  TEST_CHECK( asum[2] == 2.5*2.5*range.volume );
 
   gkyl_array_release(arr);
+}
+
+void test_array_reduce_weighted_min_max_ho()
+{
+  int ncomp = 3, ncells = 200;
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
+  struct gkyl_array *brr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
+
+  for (size_t i=0; i<arr->size; ++i) {
+    double *arr_c = gkyl_array_fetch(arr, i);
+    double *brr_c = gkyl_array_fetch(brr, i);
+    for (size_t c=0; c<ncomp; ++c) {
+      arr_c[c] = 0.5*i + 0.1*c;
+      brr_c[c] = 0.25*i + 0.4*c;
+    }
+  }
+  
+  double amin[ncomp], amax[ncomp];
+  gkyl_array_reduce_weighted(amin, arr, brr, GKYL_MIN);
+  gkyl_array_reduce_weighted(amax, arr, brr, GKYL_MAX);
+
+  for (size_t c=0; c<ncomp; ++c) {
+    TEST_CHECK( amin[c] == (0.4*c)*(0.1*c) );
+    TEST_CHECK( amax[c] == (0.25*(ncells-1) + 0.4*c)*(0.5*(ncells-1) + 0.1*c) );
+  }
+
+  gkyl_array_release(arr);
+  gkyl_array_release(brr);
+}
+
+void test_array_reduce_weighted_sq_sum_range_ho()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  int ncomp = 3;
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *brr = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *arr_c = gkyl_array_fetch(arr, loc);
+    double *brr_c = gkyl_array_fetch(brr, loc);
+    arr_c[0] = 0.5;
+    arr_c[1] = 1.5;
+    arr_c[2] = 2.5;
+
+    brr_c[0] = 0.05;
+    brr_c[1] = 0.15;
+    brr_c[2] = 0.25;
+  }
+
+  double asum[ncomp];
+  gkyl_array_reduce_weighted_range(asum, arr, brr, GKYL_SQ_SUM, &range);
+
+  TEST_CHECK( gkyl_compare(asum[0], 0.05*0.5*0.5*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum[1], 0.15*1.5*1.5*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum[2], 0.25*2.5*2.5*range.volume, 1e-12) );
+
+  gkyl_array_release(arr);
+  gkyl_array_release(brr);
+}
+
+void test_array_reduce_weighted_rms_range_ho()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  int ncomp = 3;
+  struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *brr = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *arr_c = gkyl_array_fetch(arr, loc);
+    double *brr_c = gkyl_array_fetch(brr, loc);
+    arr_c[0] = 0.5;
+    arr_c[1] = 1.5;
+    arr_c[2] = 2.5;
+
+    brr_c[0] = 0.05;
+    brr_c[1] = 0.15;
+    brr_c[2] = 0.25;
+  }
+
+  double asum[ncomp];
+  gkyl_array_reduce_weighted_range(asum, arr, brr, GKYL_RMS, &range);
+
+  double rms = sqrt((0.5*0.5 + 1.5*1.5 + 2.5*2.5)/ncomp);
+  TEST_CHECK( gkyl_compare(asum[0], 0.05*rms*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum[1], 0.15*rms*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum[2], 0.25*rms*range.volume, 1e-12) );
+
+  gkyl_array_release(arr);
+  gkyl_array_release(brr);
 }
 
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void test_cu_array_reduce_max()
+void test_array_reduce_max_dev()
 {
+  unsigned long numComp = 3, numCells = 10;
+  // Create host array and device copy
+  struct gkyl_array *a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, numComp, numCells);
+  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, numComp, numCells);
+  // Initialize data
+  double *a1_ho_d = a1_ho->data;
+  for (unsigned i=0; i<numCells; ++i) {
+    for (unsigned k=0; k<numComp; ++k) {
+      a1_ho_d[i*numComp+k] = (double)i+(double)k*0.10;
+  }}
+  gkyl_array_copy(a1, a1_ho);
+  // create a device and host arrays to store reduction
+  double* a1max = (double*) gkyl_cu_malloc(numComp*sizeof(double));
+  double* a1max_ho = gkyl_malloc(numComp*sizeof(double));
 
+  // Component-wise reduce array.
+  gkyl_array_reduce(a1max, a1, GKYL_MAX);
+
+  // Copy to host and check values.
+  gkyl_cu_memcpy(a1max_ho, a1max, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  for (unsigned k=0; k<numComp; ++k) {
+    TEST_CHECK( gkyl_compare(a1max_ho[k], (double)(numCells-1)+(double)k*0.10, 1e-14) );
+  }
+
+  gkyl_cu_free(a1max);
+  gkyl_free(a1max_ho);
+  gkyl_array_release(a1);
+  gkyl_array_release(a1_ho);
+
+}
+
+void test_array_reduce_abs_max_dev()
+{
   unsigned long numComp = 3, numCells = 10;
   // Create host array and device copy
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, numComp, numCells);
   struct gkyl_array *a1_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, numComp, numCells);
   // Initialize data
   double *a1_d = a1->data;
-  for (unsigned i=0; i<numCells; ++i) {
-    for (unsigned k=0; k<numComp; ++k) {
-      a1_d[i*numComp+k] = (double)i+(double)k*0.10;
+  for (int i=0; i<numCells; ++i) {
+    for (int k=0; k<numComp; ++k) {
+      a1_d[i*numComp+k] = -i+k*0.10;
   }}
   gkyl_array_copy(a1_cu, a1);
   // create a device and host arrays to store reduction
-  double* a1max = gkyl_malloc(numComp*sizeof(double));
-  double* a1max_cu = (double*) gkyl_cu_malloc(numComp*sizeof(double));
+  double* a1absmax = gkyl_malloc(numComp*sizeof(double));
+  double* a1absmax_cu = (double*) gkyl_cu_malloc(numComp*sizeof(double));
 
   // Component-wise reduce array.
-  gkyl_array_reduce(a1max_cu, a1_cu, GKYL_MAX);
+  gkyl_array_reduce(a1absmax_cu, a1_cu, GKYL_ABS_MAX);
 
   // Copy to host and check values.
-  gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_memcpy(a1absmax, a1absmax_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
   for (unsigned k=0; k<numComp; ++k) {
-    TEST_CHECK( gkyl_compare(a1max[k], (double)(numCells-1)+(double)k*0.10, 1e-14) );
+    TEST_CHECK( gkyl_compare(a1absmax[k], fabs(-(double)(numCells-1)+(double)k*0.10), 1e-14) );
   }
 
-  gkyl_free(a1max);
-  gkyl_cu_free(a1max_cu);
+  gkyl_free(a1absmax);
+  gkyl_cu_free(a1absmax_cu);
   gkyl_array_release(a1);
   gkyl_array_release(a1_cu);
 
 }
 
-void test_cu_array_reduce_max_big()
+void test_array_reduce_max_big_dev()
 {
 
   unsigned long numComp = 12, numCells = 1000;
@@ -164,8 +344,8 @@ void test_cu_array_reduce_max_big()
   gkyl_cu_memcpy(a1max, a1max_cu, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
   for (unsigned k=0; k<numComp; ++k) {
     // Make print statements to manually check the comparison
-    // printf("a1max[%d] = %g\n", k, a1max[k]);
-    // printf("numCells-1+(double)k*0.10 = %g\n", (double)(numCells-1)+(double)k*0.10);
+//    printf("a1max[%d] = %g\n", k, a1max[k]);
+//    printf("numCells-1+(double)k*0.10 = %g\n", (double)(numCells-1)+(double)k*0.10);
     TEST_CHECK( gkyl_compare(a1max[k], (double)(numCells-1)+(double)k*0.10, 1e-14) );
   }
 
@@ -176,7 +356,7 @@ void test_cu_array_reduce_max_big()
 
 }
 
-void test_cu_array_reduce_range_1d_max()
+void test_array_reduce_max_range_1d_dev()
 {
   unsigned long numComp = 1, numCells = 10;
   // create host array and device copy
@@ -223,7 +403,7 @@ void test_cu_array_reduce_range_1d_max()
   gkyl_array_release(a1_cu);
 }
 
-void test_cu_array_reduce_range_2d_max()
+void test_array_reduce_max_range_2d_dev()
 {
   int cells[] = {8, 10};
   int ghost[] = {1, 0};
@@ -291,7 +471,7 @@ void test_cu_array_reduce_range_2d_max()
 }
 
 void
-test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
+test_array_reduce_max_range_timer_dev(int NX, int NY, int VX, int VY)
 {
   int cells[] = {NX, NY, VX, VY};
   int ghost[] = {1, 1, 0, 0};
@@ -341,8 +521,7 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
     gkyl_array_reduce_range(a1max_cu, a1_cu, GKYL_MAX, &range);
   double red_tm = gkyl_time_diff_now_sec(tm);
 
-  // printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY,
-    // red_tm);
+//  printf("100 reductions on (%d,%d,%d,%d) took %g sec\n", NX, NY, VX, VY, red_tm);
 
   gkyl_free(a1max);
   gkyl_cu_free(a1max_cu);
@@ -356,31 +535,207 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
 }
 
 void
-test_cu_array_reduce_range_max_timer_32x32x40x40()
+test_array_reduce_max_range_timer_32x32x40x40_dev()
 {
-  test_cu_array_reduce_range_max_timer(32, 32, 40, 40);
+  test_array_reduce_max_range_timer_dev(32, 32, 40, 40);
 }
 
 void
-test_cu_array_reduce_range_max_timer_32x32x32x32()
+test_array_reduce_max_range_timer_32x32x32x32_dev()
 {
-  test_cu_array_reduce_range_max_timer(32, 32, 32, 32);
+  test_array_reduce_max_range_timer_dev(32, 32, 32, 32);
+}
+
+void test_array_reduce_sum_range_dev()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  int ncomp = 3;
+  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *arr_d = gkyl_array_fetch(arr_ho, loc);
+    arr_d[0] = 0.5;
+    arr_d[1] = 1.5;
+    arr_d[2] = 2.5;
+  }
+  gkyl_array_copy(arr, arr_ho);
+
+  double* asum = (double*) gkyl_cu_malloc(ncomp*sizeof(double));
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM, &range);
+
+  double asum_ho[ncomp];
+  gkyl_cu_memcpy(asum_ho, asum, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+
+  TEST_CHECK( asum_ho[0] == 0.5*range.volume );
+  TEST_CHECK( asum_ho[1] == 1.5*range.volume );
+  TEST_CHECK( asum_ho[2] == 2.5*range.volume );
+
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_ho);
+  gkyl_cu_free(asum);
+}
+
+void test_array_reduce_weighted_max_dev()
+{
+  unsigned long numComp = 3, numCells = 10;
+  // Create host array and device copy
+  struct gkyl_array *a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, numComp, numCells);
+  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, numComp, numCells);
+  struct gkyl_array *b1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, numComp, numCells);
+  struct gkyl_array *b1_ho = gkyl_array_new(GKYL_DOUBLE, numComp, numCells);
+  // Initialize data
+  double *a1_ho_d = a1_ho->data;
+  double *b1_ho_d = b1_ho->data;
+  for (unsigned i=0; i<numCells; ++i) {
+    for (unsigned k=0; k<numComp; ++k) {
+      a1_ho_d[i*numComp+k] = i+k*0.10;
+      b1_ho_d[i*numComp+k] = 0.1*i+k*0.01;
+  }}
+  gkyl_array_copy(a1, a1_ho);
+  gkyl_array_copy(b1, b1_ho);
+  // create a device and host arrays to store reduction
+  double* a1max = (double*) gkyl_cu_malloc(numComp*sizeof(double));
+  double* a1max_ho = gkyl_malloc(numComp*sizeof(double));
+
+  // Component-wise reduce array.
+  gkyl_array_reduce_weighted(a1max, a1, b1, GKYL_MAX);
+
+  // Copy to host and check values.
+  gkyl_cu_memcpy(a1max_ho, a1max, numComp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+  for (unsigned k=0; k<numComp; ++k) {
+    TEST_CHECK( gkyl_compare(a1max_ho[k], (0.1*(numCells-1)+k*0.01)*((numCells-1)+k*0.10), 1e-14) );
+  }
+
+  gkyl_cu_free(a1max);
+  gkyl_free(a1max_ho);
+  gkyl_array_release(a1);
+  gkyl_array_release(a1_ho);
+
+}
+
+void test_array_reduce_weighted_sum_range_dev()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  int ncomp = 3;
+  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *brr = gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *brr_ho = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *arr_d = gkyl_array_fetch(arr_ho, loc);
+    arr_d[0] = 0.5;
+    arr_d[1] = 1.5;
+    arr_d[2] = 2.5;
+
+    double *brr_d = gkyl_array_fetch(brr_ho, loc);
+    brr_d[0] = 0.05;
+    brr_d[1] = 0.15;
+    brr_d[2] = 0.25;
+  }
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_array_copy(brr, brr_ho);
+
+  double* asum = (double*) gkyl_cu_malloc(ncomp*sizeof(double));
+  gkyl_array_reduce_weighted_range(asum, arr, brr, GKYL_SUM, &range);
+
+  double asum_ho[ncomp];
+  gkyl_cu_memcpy(asum_ho, asum, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+
+  TEST_CHECK( gkyl_compare(asum_ho[0], 0.05*0.5*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum_ho[1], 0.15*1.5*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum_ho[2], 0.25*2.5*range.volume, 1e-12) );
+
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(brr);
+  gkyl_array_release(brr_ho);
+  gkyl_cu_free(asum);
+}
+
+void test_array_reduce_weighted_rms_range_dev()
+{
+  int shape[] = {10, 20};
+  struct gkyl_range range;
+  gkyl_range_init_from_shape(&range, 2, shape);
+  
+  int ncomp = 3;
+  struct gkyl_array *arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *arr_ho = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *brr = gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp, range.volume);
+  struct gkyl_array *brr_ho = gkyl_array_new(GKYL_DOUBLE, ncomp, range.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &range);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&range, iter.idx);
+    double *arr_d = gkyl_array_fetch(arr_ho, loc);
+    arr_d[0] = 0.5;
+    arr_d[1] = 1.5;
+    arr_d[2] = 2.5;
+
+    double *brr_d = gkyl_array_fetch(brr_ho, loc);
+    brr_d[0] = 0.05;
+    brr_d[1] = 0.15;
+    brr_d[2] = 0.25;
+  }
+  gkyl_array_copy(arr, arr_ho);
+  gkyl_array_copy(brr, brr_ho);
+
+  double* asum = (double*) gkyl_cu_malloc(ncomp*sizeof(double));
+  gkyl_array_reduce_weighted_range(asum, arr, brr, GKYL_RMS, &range);
+
+  double asum_ho[ncomp];
+  gkyl_cu_memcpy(asum_ho, asum, ncomp*sizeof(double), GKYL_CU_MEMCPY_D2H);
+
+  double rms = sqrt((0.5*0.5 + 1.5*1.5 + 2.5*2.5)/ncomp);
+  TEST_CHECK( gkyl_compare(asum_ho[0], 0.05*rms*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum_ho[1], 0.15*rms*range.volume, 1e-12) );
+  TEST_CHECK( gkyl_compare(asum_ho[2], 0.25*rms*range.volume, 1e-12) );
+
+  gkyl_array_release(arr);
+  gkyl_array_release(arr_ho);
+  gkyl_array_release(brr);
+  gkyl_array_release(brr_ho);
+  gkyl_cu_free(asum);
 }
 
 #endif
 
 TEST_LIST = {
-  { "dummy", test_dummy },
-  { "array_reduce", test_reduce },
-  { "array_reduce_range", test_reduce_range },
-  { "array_reduce_sum_range", test_sum_reduce_range },
+  { "array_reduce_min_max_ho", test_array_reduce_min_max_ho },
+  { "array_reduce_min_max_range_ho", test_array_reduce_min_max_range_ho },
+  { "array_reduce_sum_range_ho", test_array_reduce_sum_range_ho },
+  { "array_reduce_abs_max_ho", test_array_reduce_abs_max_ho },
+  { "array_reduce_sq_sum_range_ho", test_array_reduce_sq_sum_range_ho },
+  { "array_reduce_weighted_min_max_ho", test_array_reduce_weighted_min_max_ho },
+  { "array_reduce_weighted_sq_sum_range_ho", test_array_reduce_weighted_sq_sum_range_ho },
+  { "array_reduce_weighted_rms_range_ho", test_array_reduce_weighted_rms_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "cu_array_reduce_max", test_cu_array_reduce_max },
-  { "cu_array_reduce_max_big", test_cu_array_reduce_max_big },
-  { "cu_array_reduce_range_1d_max", test_cu_array_reduce_range_1d_max },
-  { "cu_array_reduce_range_2d_max", test_cu_array_reduce_range_2d_max },
-  { "cu_array_reduce_range_max_timer_32x32x40x40", test_cu_array_reduce_range_max_timer_32x32x40x40  },
-  { "cu_array_reduce_range_max_timer_32x32x32x32", test_cu_array_reduce_range_max_timer_32x32x32x32  },  
+  { "array_reduce_max_dev", test_array_reduce_max_dev },
+  { "array_reduce_abs_max_dev", test_array_reduce_abs_max_dev },
+  { "array_reduce_max_big_dev", test_array_reduce_max_big_dev },
+  { "array_reduce_max_range_1d_dev", test_array_reduce_max_range_1d_dev },
+  { "array_reduce_max_range_2d_dev", test_array_reduce_max_range_2d_dev },
+  { "array_reduce_max_range_timer_32x32x40x40_dev", test_array_reduce_max_range_timer_32x32x40x40_dev  },
+  { "array_reduce_max_range_timer_32x32x32x32_dev", test_array_reduce_max_range_timer_32x32x32x32_dev  },  
+  { "array_reduce_sum_range_dev", test_array_reduce_sum_range_dev },
+  { "array_reduce_weighted_max_dev", test_array_reduce_weighted_max_dev },
+  { "array_reduce_weighted_sum_range_dev", test_array_reduce_weighted_sum_range_dev },
+  { "array_reduce_weighted_rms_range_dev", test_array_reduce_weighted_rms_range_dev },
 #endif
   { NULL, NULL },
 };

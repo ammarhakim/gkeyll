@@ -422,12 +422,16 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
   mbf->cdim = mbapp->block_topo->ndim;
   mbf->half_domain = mbf->info.half_domain ? mbf->info.half_domain : false;
 
+  mbf->num_fields = 1;
+  if (mbf->gkfield_id == GKYL_GK_FIELD_EM_APAR)
+    mbf->num_fields = 2;
+
   // Allocate local arrays for charge density and potential.
   mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
   mbf->rho_c_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
   for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-    mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
+    mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi);
     mbf->rho_c_local[bI] = gkyl_array_acquire(sbapp->field->rho_c);
   }
 
@@ -445,13 +449,13 @@ gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyr
 // Compute the electrostatic potential.
 void
 gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
-  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
+  struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   // Every local block calculates its charge density.
   for (int bI=0; bI<mbf->num_local_blocks; bI++) {
     struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
     // Construct fin for the local block.
-    const struct gkyl_array *fin_local_block[mbapp->num_species];
+    struct gkyl_array *fin_local_block[mbapp->num_species];
     struct gkyl_array **bflux_local_block[mbapp->num_species];
     int lin_idx = bI * mbapp->num_species;
     for (int i=0; i<mbapp->num_species; ++i) {
@@ -476,7 +480,7 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
   if (mbf->cdim == 1) {
     // Copy continuous charge density back to apps.
     for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->rho_c_multibz_smooth[bI],
+      gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi, mbf->rho_c_multibz_smooth[bI],
         &mbapp->singleb_apps[bI]->local, mbf->block_subrangesz[bI]);
     }
   }
@@ -503,7 +507,7 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
       gkyl_fem_poisson_perp_set_rhs(mbf->fem_poisson[bI], mbf->rho_c_multib_perp[bI]);
       gkyl_fem_poisson_perp_solve(mbf->fem_poisson[bI], mbf->phi_multib_perp[bI]);
       // Copy the potential from the mulib range to local.
-      gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->phi_multib_perp[bI],
+      gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi, mbf->phi_multib_perp[bI],
         &mbapp->singleb_apps[bI]->local, mbf->block_subranges_perp[bI]);
     }
     //
@@ -525,7 +529,7 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
       gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
         mbf->phi_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
       // Copy from block-global to block local.
-      gkyl_array_copy_range_to_range(sbapp->field->phi_smooth, sbapp->field->rho_c_global_smooth,
+      gkyl_array_copy_range_to_range(sbapp->field->phi, sbapp->field->rho_c_global_smooth,
         &sbapp->local, &sbapp->field->global_sub_range);
     }
   }

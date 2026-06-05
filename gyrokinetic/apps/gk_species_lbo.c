@@ -16,7 +16,7 @@ gklbo_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct timespec wst = gkyl_wall_clock();
 
   // Compute J*M0, J*M1, J*M2 moments and separate our M0 and M2.
-  gk_species_moment_calc(&lbo->moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &lbo->moms, &species->local, &app->local, 0, 0, 0, fin);
   gkyl_array_set_offset_range(lbo->m2self, 1.0, lbo->moms.marr, 2*app->basis.num_basis, &app->local);
   
   // Construct boundary corrections.
@@ -55,9 +55,10 @@ gklbo_self_nu_calc_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *sp
   struct gk_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
   // Calculate nu_ss(x,t).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
-    0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
+  gk_species_moment_calc(app, &species->lte.moms, &species->local, &app->local, 0, 0, 0, fin);
+
+  // Divide the electron density by the Jacobian.
+  gk_species_moment_diag_jacobgeo_div(app, &species->lte.moms, species->lte.moms.marr, species->lte.moms.marr);
 
   gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, species->lte.moms.marr, lbo->vtsq_min,
     species->lte.moms.marr, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
@@ -147,21 +148,20 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 }
 
 static void
-gklbo_rhs_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gklbo_rhs_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   // Empty method.
 }
 
 static void
-gklbo_rhs_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gklbo_rhs_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
     
   // Accumulate update due to collisions onto rhs.
-  gkyl_dg_updater_lbo_gyrokinetic_advance(lbo->coll_slvr, &gks->local,
-    fin, gks->cflrate, rhs);
+  gkyl_dg_updater_lbo_gyrokinetic_advance(lbo->coll_slvr, &gks->local, fin, cflrate, rhs);
   
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -281,7 +281,7 @@ gk_species_lbo_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
     }
   
     // Create moment calculator to get M0, M1, M2 for primitive moments.
-    gk_species_moment_init(app, gks, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
+    gk_species_moment_init(app, gks, &lbo->moms, GKYL_F_MOMENT_M0M1M2, 0, false);
     lbo->nu_moms = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
   
     // Edge of velocity space corrections to momentum and energy.
@@ -474,10 +474,10 @@ gk_species_lbo_cross_moms(gkyl_gyrokinetic_app *app, const struct gk_species *sp
 }
 
 void
-gk_species_lbo_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_lbo_collisions *lbo, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_lbo_rhs(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_lbo_collisions *lbo,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  lbo->rhs_func(app, gks, lbo, fin, rhs);
+  lbo->rhs_func(app, gks, lbo, fin, rhs, cflrate);
 }
 
 void

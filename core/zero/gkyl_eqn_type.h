@@ -37,9 +37,11 @@ enum gkyl_eqn_type {
 // Identifiers for specific gyrokinetic field object types.
 enum gkyl_gkfield_id {
   GKYL_GK_FIELD_ES = 0, // Electrostatic GK. This is default.
-  GKYL_GK_FIELD_BOLTZMANN = 1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
-  GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
-  GKYL_GK_FIELD_EM = 4, // Electromagnetic GK.
+  GKYL_GK_FIELD_BOLTZMANN, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
+  GKYL_GK_FIELD_ADIABATIC, // GK field with an adiabatic species.
+  GKYL_GK_FIELD_EM_APAR, // Electromagnetic GK with A_parallel.
+  GKYL_GK_FIELD_EM_APERP, // Electromagnetic GK with A_perp.
+  GKYL_GK_FIELD_EM, // Electromagnetic GK with A_parallel and A_perp.
 };
 
 // Identifiers for specific field object types.
@@ -181,8 +183,8 @@ enum gkyl_gk_collisionless_type {
   GKYL_GK_COLLISIONLESS_NONE = 0, // Turns off collisionless terms.
   GKYL_GK_COLLISIONLESS_ES, // Electrostatic.
   GKYL_GK_COLLISIONLESS_ES_NO_BY, // Electrostatic, w/o toroidal field (b_y=0).
-  GKYL_GK_COLLISIONLESS_EM_BPERP, // Electromagnetic with B_perp fluctuations.
-  GKYL_GK_COLLISIONLESS_EM_BPAR, // Electromagnetic with B_par fluctuations.
+  GKYL_GK_COLLISIONLESS_EM_APAR, // Electromagnetic with B_perp fluctuations.
+  GKYL_GK_COLLISIONLESS_EM_APERP, // Electromagnetic with B_par fluctuations.
   GKYL_GK_COLLISIONLESS_EM, // Electromagnetic with B_perp and B_par fluctuations.
   GKYL_GK_COLLISIONLESS_NEUTRAL, // Neutral collisionless terms.
 };

@@ -1,64 +1,101 @@
 #include <gkyl_gk_neut_species_priv.h>
 
+static inline void
+gk_neut_species_fluid_dfdt_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
+{
+  // Time rate of change of the distribution due to terms stepped with SSP-RK.
+  
+  // Collisionless terms.
+  struct timespec wst = gkyl_wall_clock();
+  // NYI.
+  app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+
+  // Compute volume-integrated reactions in rrs.
+  gk_neut_species_scaling_rhs(app, species, &species->sca, fin, rhs);
+}
+
+static inline void
+gk_neut_species_fluid_dfdt_sts_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species, const struct gkyl_array *fin,
+  struct gkyl_array *rhs, struct gkyl_array **bflux_moms, struct gkyl_array *cflrate)
+{
+  // Time rate of change of the distribution due to terms stepped with STS.
+}
+
 static double
 gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
-  double omega_cfl = 1/DBL_MAX;   
-  gkyl_array_clear(species->cflrate, 0.0);
+  struct gkyl_array *cflrate = species->cflrate;
+
+  gkyl_array_clear(cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
   
-  // Collisionless terms.
-  struct timespec wst = gkyl_wall_clock();
-  // Not ready.
-  app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
-
-  // Compute volume-integrated reactions in sca.
-  gk_neut_species_scaling_rhs(app, species, &species->sca, fin, rhs);
-
-  app->stat.n_neut_species_omega_cfl +=1;
-  struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
+  // Compute df/dt by terms that can be stepped with SSP-RK.
+  gk_neut_species_fluid_dfdt_ssprk_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
   
-  double omega_cfl_ho[1];
-  if (app->use_gpu)
-    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  else
-    omega_cfl_ho[0] = species->omega_cfl[0];
+  // Compute df/dt by terms that can be stepped with STS.
+  gk_neut_species_fluid_dfdt_sts_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
 
-  omega_cfl = omega_cfl_ho[0];
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
   
-  app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
-  return app->cfl/omega_cfl;
+  return dt_out;
+}
+
+static double
+gk_neut_species_fluid_rhs_ssprk_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  struct gkyl_array *cflrate = species->cflrate_ssprk;
+
+  gkyl_array_clear(cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+  
+  // Compute df/dt by terms that can be stepped with SSP-RK.
+  gk_neut_species_fluid_dfdt_ssprk_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
+
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
+  
+  return dt_out;
+}
+
+static double
+gk_neut_species_fluid_rhs_sts_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+{
+  struct gkyl_array *cflrate = species->cflrate_sts;
+
+  gkyl_array_clear(cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+  
+  // Compute df/dt by terms that can be stepped with STS.
+  gk_neut_species_fluid_dfdt_sts_dynamic(app, species, fin, rhs, bflux_moms, cflrate);
+
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
+  
+  return dt_out;
 }
 
 static double
 gk_neut_species_fluid_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt)
 { 
-  double omega_cfl = 1/DBL_MAX;
-  gkyl_array_clear(species->cflrate, 0.0);
+  struct gkyl_array *cflrate = species->cflrate;
+
+  gkyl_array_clear(cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
   // No implicit terms yet.
 
   gkyl_array_accumulate(gkyl_array_scale(rhs, dt), 1.0, fin);
   
-  app->stat.n_neut_species_omega_cfl +=1;
-  struct timespec tm = gkyl_wall_clock();
-  gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
-  
-  double omega_cfl_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(omega_cfl_ho, species->omega_cfl, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    omega_cfl_ho[0] = species->omega_cfl[0];
-  }
-  omega_cfl = omega_cfl_ho[0];
-  
-  app->stat.neut_species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
-  return app->cfl/omega_cfl;
+  // CFL stable time step for this species.
+  double dt_out = gk_neut_species_omega_cfl_to_dt(app, species, cflrate);
+
+  return dt_out;
 }
 
 static void
@@ -66,6 +103,8 @@ gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const str
 {
   // Release memory allocated for dynamic neutrals.
   gkyl_array_release(ns->cflrate);
+  gkyl_array_release(ns->cflrate_ssprk);
+  gkyl_array_release(ns->cflrate_sts);
   
   if (app->use_gpu) {
     gkyl_cu_free(ns->omega_cfl);
@@ -129,7 +168,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 }
 
 static void
-gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   int cdim = app->cdim;
   
@@ -139,12 +178,20 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
   
   // Allocate cflrate (scalar array).
   ns->cflrate = mkarr(app->use_gpu, 1, ns->local_ext.volume);
+  if (gkyl_sundials_operator_split_in_method(gk_app_inp->sundials_stepper.rk_method)) {
+    ns->cflrate_ssprk = mkarr(app->use_gpu, ns->cflrate->ncomp, ns->cflrate->size);
+    ns->cflrate_sts = mkarr(app->use_gpu, ns->cflrate->ncomp, ns->cflrate->size);
+  }
+  else {
+    ns->cflrate_ssprk = gkyl_array_acquire(ns->cflrate);
+    ns->cflrate_sts = gkyl_array_acquire(ns->cflrate);
+  }
 
   ns->omega_cfl = app->use_gpu? gkyl_cu_malloc(sizeof(double))
                               : gkyl_malloc(sizeof(double));
 
   // Allocate data for integrated moments.
-  gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
+  gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, 0, true);
 
   // Allocate data for integrated diagnostics.
   if (app->use_gpu) {
@@ -160,6 +207,8 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
 
   // Set function pointers
   ns->rhs_func = gk_neut_species_fluid_rhs_dynamic;
+  ns->rhs_ssprk_func = gk_neut_species_fluid_rhs_ssprk_dynamic;
+  ns->rhs_sts_func = gk_neut_species_fluid_rhs_sts_dynamic;
   ns->rhs_implicit_func = gk_neut_species_fluid_rhs_implicit_dynamic;
   ns->bc_func = gk_neut_species_apply_bc_static; // Not ready.
   ns->release_func = gk_neut_species_fluid_release;
@@ -175,7 +224,7 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
 }
 
 static void
-gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+gk_neut_species_fluid_init_static(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
 {
   // Set pointers for RK methods.
   s->f1 = gkyl_array_acquire(s->f);
@@ -183,6 +232,8 @@ gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_ap
 
   // Set function pointers
   s->rhs_func = gk_neut_species_rhs_static;
+  s->rhs_ssprk_func = gk_neut_species_rhs_static;
+  s->rhs_sts_func = gk_neut_species_rhs_static;
   s->rhs_implicit_func = gk_neut_species_rhs_implicit_static;
   s->bc_func = gk_neut_species_apply_bc_static;
   s->release_func = gk_neut_species_fluid_release;
@@ -198,7 +249,7 @@ gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_ap
 }
 
 void
-gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+gk_neut_species_fluid_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
 {
   ns->is_fluid = true; // Fluid neutrals.
   assert(ns->info.vdim == 0); // Ensure user provided vdim=0 in input file, or didn't provide it at all.
@@ -283,6 +334,97 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
       dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
   }
 
+  if (gk_app_inp->geometry.has_LCFS) {
+    // Simulation spans the last-closed flux surface (LCFS). Create core and SOL global ranges.
+    int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
+    // Length of lower and upper x ranges (one is core, the other SOL).
+    int len_lo = idx_LCFS_lo;
+    int len_up = ns->global.upper[0]-len_lo;
+    // Lower and upper x ranges.
+    struct gkyl_range *global_lo_r, *global_ext_lo_r, *global_up_r, *global_ext_up_r;
+    struct gkyl_range *local_lo_r, *local_ext_lo_r, *local_up_r, *local_ext_up_r;
+    struct gkyl_range *local_lower_skin_par_lo_r, *local_upper_skin_par_lo_r,
+                      *local_lower_ghost_par_lo_r, *local_upper_ghost_par_lo_r;
+    struct gkyl_range *local_lower_skin_par_up_r, *local_upper_skin_par_up_r,
+                      *local_lower_ghost_par_up_r, *local_upper_ghost_par_up_r;
+    if (app->gk_geom->geqdsk_sign_convention == 0) {
+      // x increases towards SOL.
+      global_lo_r                = &ns->global_core;
+      global_up_r                = &ns->global_sol;
+      global_ext_lo_r            = &ns->global_ext_core;
+      global_ext_up_r            = &ns->global_ext_sol;
+      local_lo_r                 = &ns->local_core;
+      local_up_r                 = &ns->local_sol;
+      local_ext_lo_r             = &ns->local_ext_core;
+      local_ext_up_r             = &ns->local_ext_sol;
+      local_lower_skin_par_lo_r  = &ns->local_lower_skin_par_core;
+      local_lower_ghost_par_lo_r = &ns->local_lower_ghost_par_core;
+      local_lower_skin_par_up_r  = &ns->local_lower_skin_par_sol;
+      local_lower_ghost_par_up_r = &ns->local_lower_ghost_par_sol;
+      local_upper_skin_par_lo_r  = &ns->local_upper_skin_par_core;
+      local_upper_ghost_par_lo_r = &ns->local_upper_ghost_par_core;
+      local_upper_skin_par_up_r  = &ns->local_upper_skin_par_sol;
+      local_upper_ghost_par_up_r = &ns->local_upper_ghost_par_sol;
+    }
+    else {
+      // x increases towards core.
+      global_lo_r                = &ns->global_sol;
+      global_ext_lo_r            = &ns->global_ext_sol;
+      global_up_r                = &ns->global_core;
+      global_ext_up_r            = &ns->global_ext_core;
+      local_lo_r                 = &ns->local_sol;
+      local_up_r                 = &ns->local_core;
+      local_ext_lo_r             = &ns->local_ext_sol;
+      local_ext_up_r             = &ns->local_ext_core;
+      local_lower_skin_par_lo_r  = &ns->local_lower_skin_par_sol;
+      local_upper_skin_par_lo_r  = &ns->local_upper_skin_par_sol;
+      local_lower_ghost_par_lo_r = &ns->local_lower_ghost_par_sol;
+      local_upper_ghost_par_lo_r = &ns->local_upper_ghost_par_sol;
+      local_lower_skin_par_up_r  = &ns->local_lower_skin_par_core;
+      local_upper_skin_par_up_r  = &ns->local_upper_skin_par_core;
+      local_lower_ghost_par_up_r = &ns->local_lower_ghost_par_core;
+      local_upper_ghost_par_up_r = &ns->local_upper_ghost_par_core;
+    }
+
+    // Lower and upper x ranges.
+    gkyl_range_shorten_from_above(global_lo_r, &ns->global, 0, len_lo);
+    gkyl_range_shorten_from_below(global_up_r, &ns->global, 0, len_up);
+    gkyl_range_shorten_from_above(local_lo_r, &ns->local, 0, len_lo);
+    gkyl_range_shorten_from_below(local_up_r, &ns->local, 0, len_up);
+
+    // Extended lower and upper x ranges.
+    int len_lo_ext = idx_LCFS_lo+1;
+    int len_up_ext = ns->global_ext.upper[0]-len_lo;
+    gkyl_range_shorten_from_above(global_ext_lo_r, &ns->global_ext, 0, len_lo_ext);
+    gkyl_range_shorten_from_below(global_ext_up_r, &ns->global_ext, 0, len_up_ext);
+    gkyl_range_shorten_from_above(local_ext_lo_r, &ns->local_ext, 0, len_lo_ext);
+    gkyl_range_shorten_from_below(local_ext_up_r, &ns->local_ext, 0, len_up_ext);
+
+    // Parallel skin and ghost ranges, limited to the lower and upper x range.
+    int par_dir = app->cdim-1;
+    for (int e=0; e<2; e++) {
+      gkyl_range_shorten_from_above(e==0? local_lower_skin_par_lo_r       : local_upper_skin_par_lo_r,
+                                    e==0? &ns->local_lower_skin[par_dir]  : &ns->local_upper_skin[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_above(e==0? local_lower_ghost_par_lo_r      : local_upper_ghost_par_lo_r,
+                                    e==0? &ns->local_lower_ghost[par_dir] : &ns->local_upper_ghost[par_dir], 0, len_lo);
+      gkyl_range_shorten_from_below(e==0? local_lower_skin_par_up_r       : local_upper_skin_par_up_r,
+                                    e==0? &ns->local_lower_skin[par_dir]  : &ns->local_upper_skin[par_dir], 0, len_up);
+      gkyl_range_shorten_from_below(e==0? local_lower_ghost_par_up_r      : local_upper_ghost_par_up_r,
+                                    e==0? &ns->local_lower_ghost[par_dir] : &ns->local_upper_ghost[par_dir], 0, len_up);
+    }
+
+    // Core range extended in the parallel direction.
+    int ndim = ns->local.ndim;
+    int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+    for (int i=0; i<ndim; i++) {
+      lower_bcdir_ext[i] = ns->local_core.lower[i];
+      upper_bcdir_ext[i] = ns->local_core.upper[i];
+    }
+    lower_bcdir_ext[par_dir] = ns->local_ext_core.lower[par_dir];
+    upper_bcdir_ext[par_dir] = ns->local_ext_core.upper[par_dir];
+    gkyl_sub_range_init(&ns->local_par_ext_core, &ns->local_ext_core, lower_bcdir_ext, upper_bcdir_ext);
+  }
+
   // Initialize projection routine for initial conditions.
   gk_neut_species_projection_init(app, ns, ns->info.projection, &ns->proj_init);
 
@@ -290,7 +432,7 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   int ndm = ns->info.num_diag_moments;
   ns->moms = gkyl_malloc(sizeof(struct gk_species_moment[ndm]));
   for (int m=0; m<ndm; ++m)
-    gk_neut_species_moment_init(app, ns, &ns->moms[m], ns->info.diag_moments[m], false);
+    gk_neut_species_moment_init(app, ns, &ns->moms[m], ns->info.diag_moments[m], 0, false);
 
   // Initialize boundary fluxes.
   ns->bflux = (struct gk_boundary_fluxes) { };
@@ -329,10 +471,10 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   ns->src = (struct gk_source) { };
   if (!ns->info.is_static) {
-    gk_neut_species_fluid_init_dynamic(gk, app, ns);
+    gk_neut_species_fluid_init_dynamic(gk_app_inp, app, ns);
   }
   else {
-    gk_neut_species_fluid_init_static(gk, app, ns);
+    gk_neut_species_fluid_init_static(gk_app_inp, app, ns);
   }
 }
 

@@ -114,13 +114,13 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
     double m0phase_in_c[num_cbasis];
     for (unsigned int k=0; k<delta_m0->ncomp; ++k)
       m0phase_in_c[k] = 0.0;
-    kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0phase_in_c);
+
+    kers->m0(grid.dx, vmap_c, mass, 0.0, bmag_c, 0, distf_c, m0phase_in_c);
 
     // Add to the old number density.
     for (unsigned int k = 0; k < delta_m0->ncomp; ++k)
       atomicAdd(&delta_m0_c[k], m0phase_in_c[k]);
 
-      
     // Shift f if needed.
     bool shifted_node = false;
 
@@ -141,7 +141,8 @@ gkyl_positivity_shift_gyrokinetic_advance_shift_cu_ker(
       double m0phase_out_c[num_cbasis];
       for (unsigned int k=0; k<m0->ncomp; ++k)
         m0phase_out_c[k] = 0.0;
-      kers->m0(grid.dx, vmap_c, mass, bmag_c, distf_c, m0phase_out_c);
+
+      kers->m0(grid.dx, vmap_c, mass, 0.0, bmag_c, 0, distf_c, m0phase_in_c);
 
       if (m0phase_in_c[0] > 0.0 && m0phase_out_c[0] > 0.0) {
         // Rescale f in this cell so it keeps the same cell-averaged density.

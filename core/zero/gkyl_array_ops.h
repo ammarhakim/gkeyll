@@ -48,10 +48,21 @@ gkyl_array_copy_func_is_cu_dev(const struct gkyl_array_copy_func *bc);
  * Clear out = val. Returns out.
  *
  * @param out Output array
- * @param val Factor to set 
+ * @param val Factor to set
  * @return out array
  */
 struct gkyl_array* gkyl_array_clear(struct gkyl_array *out, double val);
+
+/**
+ * Set each entry of out to a uniformly distributed random double in [lo, hi].
+ * Each entry receives a different random value. Returns out.
+ *
+ * @param out Output array
+ * @param lo Lower bound of random range
+ * @param hi Upper bound of random range
+ * @return out array
+ */
+struct gkyl_array* gkyl_array_randomize(struct gkyl_array *out, double lo, double hi);
 
 /**
  * Compute out = out + a*inp. Returns out.
@@ -139,6 +150,25 @@ struct gkyl_array* gkyl_array_divide_by_cell(struct gkyl_array *out, const struc
  * @return out array.
  */
 struct gkyl_array* gkyl_array_shiftc(struct gkyl_array *out, double a, unsigned k);
+
+/**
+ * Perform a component-wise algebraic operation between arrays.
+ * Operations allowed (op) are:
+ *   - GKYL_ABS: fabs(a*in1).
+ *   - GKYL_INV: a/a1.
+ *   - GKYL_PROD: a * in1 * in2 + b.
+ *   - GKYL_DIV: a * in1 / in2 + b.
+ *   - GKYL_AXPBY: out = a*in1 + b*in2.
+ *
+ * @param out Output array.
+ * @param op Type of operation to perform.
+ * @param a Coefficient to multiply in1 by.
+ * @param in1 First input array.
+ * @param b Coefficient to multiply in2 by.
+ * @param in2 Second input array.
+ */
+struct gkyl_array* gkyl_array_comp_op(struct gkyl_array *out, enum gkyl_array_op op,
+ double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2);
 
 /**
  * Clear out = val. Returns out.
@@ -241,6 +271,25 @@ struct gkyl_array* gkyl_array_shiftc_range(struct gkyl_array *out, double a,
   unsigned k, const struct gkyl_range *range);
 
 /**
+ * Perform a component-wise algebraic operation between arrays.
+ *   - GKYL_ABS: fabs(a*in1).
+ *   - GKYL_INV: a/a1.
+ *   - GKYL_PROD: a * in1 * in2 + b.
+ *   - GKYL_DIV: a * in1 / in2 + b.
+ *   - GKYL_AXPBY: out = a*in1 + b*in2.
+ *
+ * @param out Output array.
+ * @param op Type of operation to perform.
+ * @param a Coefficient to multiply in1 by.
+ * @param in1 First input array.
+ * @param b Coefficient to multiply in2 by.
+ * @param in2 Second input array.
+ */
+struct gkyl_array* gkyl_array_comp_op_range(struct gkyl_array *out, enum gkyl_array_op op,
+ double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2,
+ const struct gkyl_range *range);
+
+/**
  * Copy out inp. Returns out.
  *
  * @param out Output array
@@ -326,6 +375,37 @@ struct gkyl_array_diff gkyl_array_diff(const struct gkyl_array *arr1,
   const struct gkyl_array *arr2, const struct gkyl_range *range);
 
 /**
+ * Return a cell-wise factor used in computing an error norm,
+ * dependent on a relative and an absolute tolerance.
+ *
+ *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_i^{(k)} )^2 )+eps_abs]
+ *
+ * @param out Array to hold the output.
+ * @param eps_rel Relative tolerance.
+ * @param eps_aps Absolute tolerance.
+ * @param inp Input array.
+ * @return output array.
+ */
+struct gkyl_array* gkyl_array_error_denom_fac(struct gkyl_array* out,
+  double eps_rel, double eps_abs, const struct gkyl_array* inp);
+
+/**
+ * Return a cell-wise factor used in computing an error norm,
+ * dependent on a relative and an absolute tolerance, in specified range.
+ *
+ *   out_i^{(j)} = 1/[eps_rel*sqrt((1/N) sum_k^N ( inp_i^{(k)} )^2 )+eps_abs]
+ *
+ * @param out Array to hold the output.
+ * @param eps_rel Relative tolerance.
+ * @param eps_aps Absolute tolerance.
+ * @param inp Input array.
+ * @param range Range to operate in.
+ * @return output array.
+ */
+struct gkyl_array* gkyl_array_error_denom_fac_range(struct gkyl_array* out, double eps_rel,
+  double eps_abs, const struct gkyl_array* inp, const struct gkyl_range *range);
+
+/**
  * Compute out = max(out,inp) based on cell avg. Returns out.
  *
  * @param out Output array
@@ -340,6 +420,8 @@ struct gkyl_array* gkyl_array_max_by_cell_per_cell_avg_range(struct gkyl_array *
  * Host-side wrappers for array operations
  */
 void gkyl_array_clear_cu(struct gkyl_array* out, double val);
+
+void gkyl_array_randomize_cu(struct gkyl_array* out, double lo, double hi);
 
 void gkyl_array_accumulate_cu(struct gkyl_array* out, double a, const struct gkyl_array* inp);
 
@@ -357,7 +439,11 @@ void gkyl_array_divide_by_cell_cu(struct gkyl_array* out, const struct gkyl_arra
 
 void gkyl_array_shiftc_cu(struct gkyl_array* out, double a, unsigned k);
 
-void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
+void gkyl_array_comp_op_cu(struct gkyl_array *out, enum gkyl_array_op op,
+  double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2);
+
+void gkyl_array_error_denom_fac_cu(struct gkyl_array* out, double eps_rel, double eps_abs,
+  const struct gkyl_array *inp);
 
 /**
  * Host-side wrappers for range-based array operations
@@ -382,6 +468,12 @@ void gkyl_array_set_offset_range_cu(struct gkyl_array *out,
 void gkyl_array_scale_range_cu(struct gkyl_array *out,
   double a, const struct gkyl_range *range);
 
+void gkyl_array_shiftc_range_cu(struct gkyl_array *out, double a, unsigned k, const struct gkyl_range *range);
+
+void gkyl_array_comp_op_range_cu(struct gkyl_array *out, enum gkyl_array_op op,
+ double a, const struct gkyl_array *in1, double b, const struct gkyl_array *in2,
+ const struct gkyl_range *range);
+
 void gkyl_array_copy_range_cu(struct gkyl_array *out, const struct gkyl_array* inp, 
   const struct gkyl_range *range);
 
@@ -400,4 +492,8 @@ void gkyl_array_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
 void gkyl_array_flip_copy_to_buffer_fn_cu(void *data, const struct gkyl_array *arr,
   int dir, const struct gkyl_range *range, struct gkyl_array_copy_func *cf);
 
-void gkyl_array_max_by_cell_per_cell_avg_range_cu(struct gkyl_array* out, const struct gkyl_array* inp, const struct gkyl_range *range);
+void gkyl_array_error_denom_fac_range_cu(struct gkyl_array* out, double eps_rel, double eps_abs,
+  const struct gkyl_array *inp, const struct gkyl_range *range);
+
+void gkyl_array_max_by_cell_per_cell_avg_range_cu(struct gkyl_array* out,
+  const struct gkyl_array* inp, const struct gkyl_range *range);

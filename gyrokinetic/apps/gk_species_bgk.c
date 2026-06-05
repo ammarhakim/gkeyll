@@ -16,7 +16,7 @@ gkbgk_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   struct timespec wst = gkyl_wall_clock();
 
   // Compute Maxwellian moments (n, u_par, T/m).
-  gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+  gk_species_moment_calc(app, &species->lte.moms, &species->local, &app->local, 0, 0, 0, fin);
   gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
   
@@ -108,15 +108,15 @@ gkbgk_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 }
 
 static void
-gkbgk_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
+gkbgk_rhs_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   // Empty method.
 }
 
 static void
-gkbgk_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
+gkbgk_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
   struct timespec wst = gkyl_wall_clock();
     
@@ -148,7 +148,7 @@ gkbgk_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks,
 
   // Apply BGK collisions.
   gkyl_bgk_collisions_advance(bgk->up_bgk, &app->local, &gks->local, 
-    bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, dt, rhs, gks->cflrate);
+    bgk->nu_sum, bgk->nu_fmax, fin, bgk->implicit_step, dt, rhs, cflrate);
   
   app->stat.species_coll_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -456,17 +456,17 @@ gk_species_bgk_cross_moms_implicit(gkyl_gyrokinetic_app *app, const struct gk_sp
 }
 
 void
-gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, struct gkyl_array *rhs)
+gk_species_bgk_rhs(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  bgk->rhs_func(app, gks, bgk, fin, 0.0, rhs);
+  bgk->rhs_func(app, gks, bgk, fin, 0.0, rhs, cflrate);
 }
 
 void
-gk_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *gks,
-  struct gk_bgk_collisions *bgk, const struct gkyl_array *fin, double dt, struct gkyl_array *rhs)
+gk_species_bgk_rhs_implicit(gkyl_gyrokinetic_app *app, struct gk_species *gks, struct gk_bgk_collisions *bgk,
+  const struct gkyl_array *fin, double dt, struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {
-  bgk->rhs_func_implicit(app, gks, bgk, fin, dt, rhs);
+  bgk->rhs_func_implicit(app, gks, bgk, fin, dt, rhs, cflrate);
 }
 
 void
