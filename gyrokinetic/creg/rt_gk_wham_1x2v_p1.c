@@ -465,7 +465,7 @@ create_ctx(void)
   int poly_order = 1;
 
   double t_end = 1e-8;
-  int num_frames = 10;
+  int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -582,6 +582,16 @@ int main(int argc, char **argv)
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
+    
+    .time_rate_multiplier = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,
+        .f_threshold = 1e-30,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -660,6 +670,16 @@ int main(int argc, char **argv)
     .mapc2p = {
       .mapping = mapc2p_vel_ion,
       .ctx = &ctx,
+    },
+
+    .time_rate_multiplier = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,
+        .f_threshold = 1e-4,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
 
     .projection = {

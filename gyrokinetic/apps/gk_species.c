@@ -63,9 +63,13 @@ gk_species_omegaH_dt(gkyl_gyrokinetic_app *app, struct gk_species *gks, const st
       m0_max[0] = gks->m0_max[0];
     }
     m0_max[0] *= 1.0/pow(sqrt(2.0),app->cdim);
-  
-    double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf;
-  
+
+    double time_dilation_scale_const =
+      gk_fdot_multiplier_get_time_dilation_scale_const(app, &gks->fdot_mult);
+
+    double omegaH = fabs(gks->info.charge)*sqrt(GKYL_MAX2(0.0,m0_max[0])/gks->info.mass)*app->omegaH_gf
+      * time_dilation_scale_const;
+
     return omegaH > 1e-20? app->cfl_omegaH/omegaH : DBL_MAX;
   }
   else {
@@ -118,9 +122,10 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   gk_species_bflux_calc_moms(app, &species->bflux, rhs, bflux_moms);
 
   // Multiply CFL rate by the df/dt multiplier.
-  gk_species_fdot_multiplier_advance_times_cfl(app, species, &species->fdot_mult, app->field->phi_smooth, species->cflrate);
-  
-  // Reduce the CFL frequency anD compute stable dt needed by this species.
+  gk_species_fdot_multiplier_advance_times_cfl(app, species, &species->fdot_mult,
+    app->field->phi_smooth, fin, species->cflrate);
+
+  // Reduce the CFL frequency and compute stable dt needed by this species.
   app->stat.n_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
   gkyl_array_reduce_range(species->omega_cfl, species->cflrate, GKYL_MAX, &species->local);
@@ -132,11 +137,14 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   else {
     omega_cfl_ho[0] = species->omega_cfl[0];
   }
+
   double dt_out = app->cfl/omega_cfl_ho[0];
   
-  // Enforce the omega_H constraint on dt.
-  double dt_omegaH = gk_species_omegaH_dt(app, species, fin);
-  dt_out = fmin(dt_out, dt_omegaH);
+  // Apply omega_H constraint on dt.
+  species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
+  dt_out = fmin(dt_out, species->dt_omegaH);
+
+  species->dt_cfl_global_ho = dt_out;
 
   app->stat.species_omega_cfl_tm += gkyl_time_diff_now_sec(tm);
   return dt_out;
@@ -355,6 +363,8 @@ gk_species_write_static(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 static void
 gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
+  // The 0th frame is often wrong for this diagnostic because cflrate is computed AFTER
+  // the first time step
   struct timespec wst = gkyl_wall_clock();
   // DG metadata for cflrate.
   struct gkyl_msgpack_map_elem mpe_cfl[] = {
@@ -742,6 +752,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     // Full phase space grid.
     ghost[cdim+d] = 0; // No ghost-cells in velocity space.
   }
+  gks->dt_omegaH = DBL_MIN;
 
   // Allocate distribution function arrays.
   gks->f1 = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
@@ -1016,8 +1027,9 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     gks->cflrate_ho = mkarr(false, gks->cflrate->ncomp, gks->cflrate->size);
     gks->write_cfl_func = gk_species_write_cfl_enabled;
   }
-  else 
+  else {
     gks->write_cfl_func = gk_species_write_cfl_disabled;
+  }
   gks->write_mom_func = gk_species_write_mom_dynamic;
   gks->calc_integrated_mom_func = gk_species_calc_integrated_mom_dynamic;
   gks->write_integrated_mom_func = gk_species_write_integrated_mom_dynamic;

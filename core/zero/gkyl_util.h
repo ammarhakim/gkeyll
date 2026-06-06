@@ -59,6 +59,11 @@
 # define GKYL_MAX_SOURCES 4
 #endif
 
+// Maximum number of supported fdot multiplier types
+#ifndef GKYL_MAX_FDOT_MUL
+# define GKYL_MAX_FDOT_MUL 4
+#endif
+
 // Maximum number of supported charge states
 #ifndef GKYL_MAX_CHARGE_STATE
 # define GKYL_MAX_CHARGE_STATE 18
