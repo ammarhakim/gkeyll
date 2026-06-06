@@ -153,25 +153,27 @@ gkyl_array_scale_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
 }
 
 struct gkyl_array*
-gkyl_array_min_by_cell(struct gkyl_array* out, double a)
+gkyl_array_min_by_cell(struct gkyl_array* out, const struct gkyl_array *inp, double a)
 {
   assert(out->type == GKYL_DOUBLE);
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_min_by_cell_cu(out, a); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_min_by_cell_cu(out, inp, a); return out; }
 #endif
 
   double *out_d = out->data;
+  const double *inp_d = inp->data;
   for (size_t i=0; i<NELM(out); ++i)
-    out_d[i] = fmin(out_d[i], a);
+    out_d[i] = fmin(inp_d[i], a);
   return out;
 }
 
 struct gkyl_array*
-gkyl_array_min_by_cell_range(struct gkyl_array* out, double a, const struct gkyl_range *range)
+gkyl_array_min_by_cell_range(struct gkyl_array* out, const struct gkyl_array *inp, double a,
+  const struct gkyl_range *range)
 {
   assert(out->type == GKYL_DOUBLE);
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_min_by_cell_range_cu(out, a, range); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_min_by_cell_range_cu(out, inp, a, range); return out; }
 #endif
 
   struct gkyl_range_iter iter;
@@ -180,8 +182,9 @@ gkyl_array_min_by_cell_range(struct gkyl_array* out, double a, const struct gkyl
   while (gkyl_range_iter_next(&iter)) {
     long start = gkyl_range_idx(range, iter.idx);
     double *out_d = gkyl_array_fetch(out, start);
+    const double *inp_d = gkyl_array_cfetch(inp, start);
     for (size_t c=0; c<NCOM(out); ++c)
-      out_d[c] = fmin(out_d[c], a);
+      out_d[c] = fmin(inp_d[c], a);
   }
   return out;
 }
@@ -204,16 +207,17 @@ gkyl_array_divide_by_cell(struct gkyl_array* out, const struct gkyl_array* a)
 }
 
 struct gkyl_array*
-gkyl_array_invert_by_cell(struct gkyl_array* out)
+gkyl_array_invert_by_cell(struct gkyl_array* out, const struct gkyl_array *inp)
 {
   assert(out->type == GKYL_DOUBLE);
 #ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(out)) { gkyl_array_invert_by_cell_cu(out); return out; }
+  if (gkyl_array_is_cu_dev(out)) { gkyl_array_invert_by_cell_cu(out, inp); return out; }
 #endif
 
   double *out_d = out->data;
+  const double *inp_d = inp->data;
   for (size_t i=0; i<NELM(out); ++i)
-    out_d[i] = 1.0/out_d[i];
+    out_d[i] = 1.0/inp_d[i];
   return out;
 }
 
@@ -670,4 +674,32 @@ gkyl_array_diff(const struct gkyl_array *arr1, const struct gkyl_array *arr2, co
     .max_rel_diff = max_rel_diff,
     .min_rel_diff = min_rel_diff
   };
+}
+
+struct gkyl_array*
+gkyl_array_max_by_cell_per_cell_avg_range(struct gkyl_array* out, const struct gkyl_array* inp, struct gkyl_range *range)
+{
+  assert(out->type == GKYL_DOUBLE);
+  assert(out->size == inp->size && out->elemsz == inp->elemsz);
+
+#ifdef GKYL_HAVE_CUDA
+  assert(gkyl_array_is_cu_dev(out)==gkyl_array_is_cu_dev(inp));
+  if (gkyl_array_is_cu_dev(out) && gkyl_array_is_cu_dev(inp)) { gkyl_array_max_by_cell_per_cell_avg_range_cu(out, inp, range); return out; }
+#endif
+
+  long nc = NCOM(out);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(range, iter.idx);
+    double *out_d = gkyl_array_fetch(out, start);
+    const double *inp_d = gkyl_array_cfetch(inp, start);
+    if (out_d[0] < inp_d[0]) {
+      for (int c=0; c<nc; ++c) {
+        out_d[c] = inp_d[c];
+      }
+    }
+  }
+  return out;
 }

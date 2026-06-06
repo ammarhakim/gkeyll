@@ -367,7 +367,7 @@ static void
 brill_lindquist_spatial_weyl_tensor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
   const double dx, const double dy, const double dz, double***** spatial_weyl_tensor)
 {
-  gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dx, spatial_weyl_tensor);
+  gkyl_gr_spatial_weyl_tensor_fd(spacetime, t, x, y, z, dx, dy, dz, spatial_weyl_tensor);
 }
 
 static void
@@ -386,6 +386,54 @@ brill_lindquist_extrinsic_curvature_tensor(const struct gkyl_gr_spacetime* space
       (*extrinsic_curvature_tensor)[i][j] = 0.0;
     }
   }
+}
+
+static void
+brill_lindquist_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  double* conformal_factor)
+{
+  double spatial_metric_det;
+  brill_lindquist_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
+
+  *conformal_factor = pow(spatial_metric_det, 1.0 / 12.0);
+}
+
+static void
+brill_lindquist_bssn_conformal_factor(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  double* bssn_conformal_factor)
+{
+  double spatial_metric_det;
+  brill_lindquist_spatial_metric_det(spacetime, t, x, y, z, &spatial_metric_det);
+
+  *bssn_conformal_factor = 1.0 / pow(spatial_metric_det, 1.0 / 6.0);
+}
+
+static void
+brill_lindquist_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** conformal_factor_der)
+{
+  gkyl_gr_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der);
+}
+
+static void
+brill_lindquist_bssn_conformal_factor_der(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double** bssn_conformal_factor_der)
+{
+  gkyl_gr_bssn_conformal_factor_diff(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der);
+}
+
+static void
+brill_lindquist_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** conformal_factor_der2)
+{
+  gkyl_gr_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz, conformal_factor_der2);
+}
+
+static void
+brill_lindquist_bssn_conformal_factor_der2(const struct gkyl_gr_spacetime* spacetime, const double t, const double x, const double y, const double z,
+  const double dx, const double dy, const double dz, double*** bssn_conformal_factor_der2)
+{
+  gkyl_gr_bssn_conformal_factor_diff2(spacetime, t, x, y, z, dx, dy, dz, bssn_conformal_factor_der2);
 }
 
 static void
@@ -498,6 +546,15 @@ gkyl_gr_brill_lindquist_inew(const struct gkyl_gr_brill_lindquist_inp* inp)
   gr_brill_lindquist->spacetime.spacetime_weyl_tensor_func = brill_lindquist_spacetime_weyl_tensor;
 
   gr_brill_lindquist->spacetime.extrinsic_curvature_tensor_func = brill_lindquist_extrinsic_curvature_tensor;
+
+  gr_brill_lindquist->spacetime.conformal_factor_func = brill_lindquist_conformal_factor;
+  gr_brill_lindquist->spacetime.bssn_conformal_factor_func = brill_lindquist_bssn_conformal_factor;
+
+  gr_brill_lindquist->spacetime.conformal_factor_der_func = brill_lindquist_conformal_factor_der;
+  gr_brill_lindquist->spacetime.bssn_conformal_factor_der_func = brill_lindquist_bssn_conformal_factor_der;
+
+  gr_brill_lindquist->spacetime.conformal_factor_der2_func = brill_lindquist_conformal_factor_der2;
+  gr_brill_lindquist->spacetime.bssn_conformal_factor_der2_func = brill_lindquist_bssn_conformal_factor_der2;
 
   gr_brill_lindquist->spacetime.excision_region_func = brill_lindquist_excision_region;
 

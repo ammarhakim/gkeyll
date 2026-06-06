@@ -14,12 +14,20 @@
 
 #include <stdbool.h>
 
-struct gkyl_gyrokinetic_projection_moment_import {
-  enum gkyl_ic_import_type type;
-  char file_name[128];
-};
 
 // Parameters for projection
+struct gkyl_gyrokinetic_ic_import {
+  // Inputs to initialize the species with the distribution from a file (f_in)
+  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
+  enum gkyl_ic_import_type type;
+  char file_name[128]; // Name of file that contains IC, J*f_in.
+  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
+  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
+  bool enforce_positivity; // =true sets f to 0 where it was negative.
+  void *conf_scale_ctx;
+  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
+};
+
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
   enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
@@ -49,11 +57,13 @@ struct gkyl_gyrokinetic_projection {
       void *ctx_tempperp;
 
       // Optionally read primitive moments from files.
-      struct gkyl_gyrokinetic_projection_moment_import density_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import upar_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import temp_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import temppar_from_file;
-      struct gkyl_gyrokinetic_projection_moment_import tempperp_from_file;
+      struct gkyl_gyrokinetic_ic_import maxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import bimaxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import density_import;
+      struct gkyl_gyrokinetic_ic_import upar_import;
+      struct gkyl_gyrokinetic_ic_import temp_import;
+      struct gkyl_gyrokinetic_ic_import temppar_import;
+      struct gkyl_gyrokinetic_ic_import tempperp_import;
 
       // For kinetic neutrals, specify density, drift velocity (udrift) and
       // temperature, and their context, if projecting a Maxwellian.
@@ -161,14 +171,25 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
-// Parameters for species heating term nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f).
-struct gkyl_gyrokinetic_heating {
-  enum gkyl_heating_id heating_id; // Type of heating term.
+// Parameters for species bgk source term either:
+// 1. nu_Q(x)*(f_M(n,upar,T_Q(t)*s_Q(x)/m) - f) 
+//    for default model or
+// 2. nu(x)*(f_M(n_S,upar,T) - f)
+//    nu(x)*(f_M(n,upar_S,T) - f)
+//    nu(x)*(f_M(n,upar,T_S) - f)
+//    for external model
+struct gkyl_gyrokinetic_source_bgk {
+  enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
   void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x).
   void *rate_profile_ctx;
   void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
+  double injection_time;  // Injection time for external source model
+                          // nu(x) = 1/coupling time
+  double damping_factor;  // For external source model
+                          // n_s = max(n_s, damping factor*n)
+                          // to prevent driving n negative
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
@@ -196,6 +217,7 @@ struct gkyl_gyrokinetic_bc {
 
 struct gkyl_gyrokinetic_geometry {
   enum gkyl_geometry_id geometry_id;
+  char geometry_path[128]; // Path to geometry files
 
   // Pointer to mapc2p function: xc are the computational space
   // coordinates and on output xp are the corresponding physical space
@@ -302,19 +324,6 @@ struct gkyl_gyrokinetic_flr {
                // it'll use B in the center of the domain.
 };
 
-struct gkyl_gyrokinetic_ic_import {
-  // Inputs to initialize the species with the distribution from a file (f_in)
-  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
-  enum gkyl_ic_import_type type;
-  char file_name[128]; // Name of file that contains IC, J*f_in.
-  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
-  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
-  bool enforce_positivity; // =true sets f to 0 where it was negative.
-  void *conf_scale_ctx;
-  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
-  struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
-};
-
 struct gkyl_gyrokinetic_correct_inp {
   bool correct_all_moms; // boolean if we are correcting all the moments or only density
   double iter_eps; // error tolerance for moment fixes (density is always exact)
@@ -365,17 +374,17 @@ enum gkyl_gyrokinetic_fdot_multiplier_type {
   GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
   GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
   GKYL_GK_FDOT_MULTIPLIER_CONSTANT,           // Dilates time by a fixed constant, time_dilation_scale_const.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value. Specify cfl_dt_min_value
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value.
   GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
-  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from cyclotron frequency omega_H. Dilates time. No need to specify anything else
-  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,  // Set the dt floor based on the dt from another species. That species must be updated before this species. i.e. if the ions scale dt based on electrons, you must specify in the app `.species = {elc, ion},` so the electrons are updated first.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from omega_H, an electrostatic GK wave.
+  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,  // Set the dt floor based on the dt from another species.
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
   GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
 };
 
-// Input parameters for the df/dt multiplier.
-struct gkyl_gyrokinetic_fdot_multiplier {
+// Input parameters for a single component of the df/dt multiplier chain.
+struct gkyl_gyrokinetic_fdot_multiplier_comp {
   enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplier (see enum comments above).
 
   // For USER_INPUT type: function pointer defining M(z).
@@ -396,10 +405,9 @@ struct gkyl_gyrokinetic_fdot_multiplier {
 };
 
 // Parameters for a chain of df/dt multipliers. Components are applied in order.
-struct gkyl_gyrokinetic_fdot_multipliers {
+struct gkyl_gyrokinetic_fdot_multiplier {
   int num_multipliers;
-  double omega_H_scale_const; // A constant which multipliers the omegaH frequency
-  struct gkyl_gyrokinetic_fdot_multiplier multiplier[GKYL_MAX_FDOT_MUL];
+  struct gkyl_gyrokinetic_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL];
 };
 
 // Parameters for gk species.
@@ -423,7 +431,7 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
   // Ordered list of phase-space fields multiplying df/dt.
-  struct gkyl_gyrokinetic_fdot_multipliers time_rate_multipliers;
+  struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
 
@@ -460,8 +468,8 @@ struct gkyl_gyrokinetic_species {
   // Anomalous diffusion.
   struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
-  // Heating source.
-  struct gkyl_gyrokinetic_heating heating;
+  // BGK source.
+  struct gkyl_gyrokinetic_source_bgk source_bgk;
 
   // Line radiation.
   struct gkyl_gyrokinetic_radiation radiation;
@@ -534,7 +542,7 @@ struct gkyl_gyrokinetic_field {
   bool is_static; // =true field does not change in time.
   bool zero_init_field; // =true doesn't compute the initial field.
 
-  double polarization_bmag; 
+  double polarization_bmag; // B factor in the polarization density.
   double kperpSq; // kperp^2 parameter for 1D field equations
 
   // parameters for adiabatic electrons simulations
@@ -547,7 +555,7 @@ struct gkyl_gyrokinetic_field {
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
-  struct gkyl_gyrokinetic_ic_import polarization_potential_init_from_file;
+  struct gkyl_gyrokinetic_ic_import polarization_potential_import;
 
   // Interface to read a potential from file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
@@ -566,7 +574,17 @@ struct gkyl_gyrokinetic_field {
   void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
   bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
 
-  struct gkyl_poisson_bias_plane_list *bias_plane_list; // store possible biased plane that will constrain the solution
+  struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
+};
+
+struct gkyl_gyrokinetic_eirene {
+  char input_data_path[128]; // Path to EIRENE data
+  char output_data_path[128]; // Path to EIRENE data
+  double injection_time[GKYL_MAX_SPECIES]; // Injection time for each species
+  double damping_factor[GKYL_MAX_SPECIES]; // Damping Factor
+  double core_coll_factor[GKYL_MAX_SPECIES]; // core rate is increased by this factor
+  int num_coupling_species; // number of species to couple
+  char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
 // Top-level app parameters
@@ -594,6 +612,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_neut_species neut_species[GKYL_MAX_SPECIES]; // Species objects.
   
   struct gkyl_gyrokinetic_field field; // Field object.
+
+  struct gkyl_gyrokinetic_eirene eirene; // EIRENE input
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
 };
@@ -634,7 +654,7 @@ struct gkyl_gyrokinetic_stat {
   double species_react_mom_tm; // total time to compute various moments needed in reactions 
   double species_react_tm; // total time for reactions updaters
   double species_src_tm; // Time to accumulate species source onto RHS.
-  double species_heat_tm; // Time to compute heating term RHS.
+  double species_source_bgk_tm; // Time to compute bgk source term RHS.
   double species_omega_cfl_tm; // time spent in all-reduce for omega-cfl
 
   double neut_species_collisionless_tm; // Time to compute neutral species collisionless RHS.
@@ -774,6 +794,30 @@ void gkyl_gyrokinetic_app_calc_field_energy(gkyl_gyrokinetic_app* app, double tm
  * @param app App object.
  */
 void gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app);
+
+/**
+ * Write eirene data to file.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ */
+void gkyl_gyrokinetic_app_write_eirene_diagnostics(gkyl_gyrokinetic_app* app, double tm, int frame);
+
+/**
+ * Calculate eirene integrated diagnostics.
+ * 
+ * @param app App object.
+ * @param tm Time-stamp.
+ */
+void gkyl_gyrokinetic_app_calc_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app, double tm);
+
+/**
+ * Write eirene integrated diagnostics.
+ * 
+ * @param app App object.
+ */
+void gkyl_gyrokinetic_app_write_eirene_integrated_diagnostics(gkyl_gyrokinetic_app* app);
 
 /**
  * Write species data to file.
@@ -964,6 +1008,15 @@ void gkyl_gyrokinetic_app_calc_species_source_integrated_mom(gkyl_gyrokinetic_ap
 void gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinetic_app* app, int sidx, double tm);
 
 /**
+ * Calculate integrated diagnostic moments for a plasma species BGK source.
+ *
+ * @param app App object.
+ * @param sidx Index of species whose integrated moments to write.
+ * @param tm Time at which integrated diagnostics are to be computed
+ */
+void gkyl_gyrokinetic_app_calc_species_source_bgk_integrated_diagnostics(gkyl_gyrokinetic_app* app, int sidx, double tm);
+
+/**
  * Write integrated diagnostic moments for charged species source to file. Integrated
  * moments are appended to the same file.
  * 
@@ -971,6 +1024,15 @@ void gkyl_gyrokinetic_app_calc_neut_species_source_integrated_mom(gkyl_gyrokinet
  * @param sidx Index of species whose source integrated moments to write.
  */
 void gkyl_gyrokinetic_app_write_species_source_integrated_mom(gkyl_gyrokinetic_app *app, int sidx);
+
+/**
+ * Write integrated diagnostic moments for charged species BGK source to file. Integrated
+ * moments are appended to the same file.
+ * 
+ * @param app App object.
+ * @param sidx Index of species whose source integrated moments to write.
+ */
+void gkyl_gyrokinetic_app_write_species_source_bgk_integrated_diagnostics(gkyl_gyrokinetic_app *app, int sidx);
 
 /**
  * Write integrated diagnostic moments for neutral species source to file. Integrated
@@ -1247,7 +1309,7 @@ gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app);
  *
  * @param app App object.
  */
-void gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app *app);
+void gkyl_gyrokinetic_app_read_geometry(gkyl_gyrokinetic_app *app, struct gkyl_gk_geometry_inp *geometry_inp);
 
 /**
  * Initialize field from file
@@ -1370,6 +1432,16 @@ void gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app);
 void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
 
 /**
+ * Reset the CFL factor for the omega_H frequency.
+ *
+ * @param app App object.
+ * @param tm Time-stamp.
+ * @param cfl_frac_omegaH New CFL factor to use for the omega_H mode.
+ */
+void gkyl_gyrokinetic_app_reset_cfl_frac_omegaH(gkyl_gyrokinetic_app* app, double tm,
+  double cfl_frac_omegaH);
+
+/**
  * Reset the df/dt multiplier operator for a given species.
  *
  * @param app App object.
@@ -1378,7 +1450,7 @@ void gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app);
  * @param fdot_mult_inp Input struct for the fdot_multiplier.
  */
 void gkyl_gyrokinetic_app_reset_species_fdot_multiplier(gkyl_gyrokinetic_app* app, double tm,
-  const char *species_name, struct gkyl_gyrokinetic_fdot_multipliers fdot_mult_inp);
+  const char *species_name, struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp);
 
 /**
  * Reset the collisionless multiplier for a given species.

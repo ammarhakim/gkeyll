@@ -511,7 +511,7 @@ void test_array_invert_by_cell()
     for (size_t k=0; k<a1->ncomp; ++k)
       a1_d[i*a1->ncomp+k] = test_vals[i];
 
-  gkyl_array_invert_by_cell(a1);
+  gkyl_array_invert_by_cell(a1, a1);
 
   // Check inverted values
   for (unsigned i=0; i<a1->size; ++i)
@@ -620,7 +620,7 @@ void test_array_min_by_cell(bool on_gpu)
   if (on_gpu) gkyl_array_copy(a1, a1_ho);
 
   // Apply min with threshold 15.0
-  gkyl_array_min_by_cell(a1, 15.0);
+  gkyl_array_min_by_cell(a1, a1, 15.0);
 
   if (on_gpu) gkyl_array_copy(a1_ho, a1);
 
@@ -648,7 +648,7 @@ void test_array_min_by_cell(bool on_gpu)
 
   if (on_gpu) gkyl_array_copy(a2, a2_ho);
 
-  gkyl_array_min_by_cell(a2, -2.5);
+  gkyl_array_min_by_cell(a2, a2, -2.5);
 
   if (on_gpu) gkyl_array_copy(a2_ho, a2);
 
@@ -686,7 +686,7 @@ void test_array_min_range(bool on_gpu)
   struct gkyl_range subrange;
   gkyl_sub_range_init(&subrange, &range, lowerSub, upperSub);
 
-  gkyl_array_min_by_cell_range(a1, 12.0, &subrange);
+  gkyl_array_min_by_cell_range(a1, a1, 12.0, &subrange);
 
   if (on_gpu) gkyl_array_copy(a1_ho, a1);
 
@@ -727,7 +727,7 @@ void test_array_min_range(bool on_gpu)
 
   if (on_gpu) gkyl_array_copy(a2, a2_ho);
 
-  gkyl_array_min_by_cell_range(a2, 8.0, &subrange);
+  gkyl_array_min_by_cell_range(a2, a2, 8.0, &subrange);
 
   if (on_gpu) gkyl_array_copy(a2_ho, a2);
 
@@ -1800,7 +1800,7 @@ void test_cu_array_invert_by_cell()
   // Copy to device
   gkyl_array_copy(a1, a1_ho);
 
-  gkyl_array_invert_by_cell(a1);
+  gkyl_array_invert_by_cell(a1, a1);
 
   // Copy back from device
   gkyl_array_copy(a1_ho, a1);

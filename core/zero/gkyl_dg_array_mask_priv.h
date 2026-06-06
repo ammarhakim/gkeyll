@@ -30,7 +30,6 @@ struct gkyl_dg_array_mask {
 
   // Function pointer for advance method (GPU), set at init time based on mask type.
   void (*advance_func_cu)(struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask);
-  void (*advance_threshold_func_cu)(struct gkyl_dg_array_mask *mask, const double global_max);
 
   // Function that evaluates the mask.
   bool (*eval_idx_func)(struct gkyl_dg_array_mask *mask, const int *idx);
