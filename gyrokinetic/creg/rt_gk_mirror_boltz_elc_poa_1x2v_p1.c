@@ -366,15 +366,17 @@ create_ctx(void)
   // POA parameters
   double alpha_oap = 5e-6;  // Factor multiplying collisionless terms.
   double alpha_fdp = 1.0;
-  double tau_oap = 0.001;  // Duration of each phase.
-  double tau_fdp = 7e-9;
-  double tau_fdp_extra = 2e-9;
+
+  // Duration of each phase.
+  double tau_oap = 100e-9;
+  double tau_fdp = 1e-9;
+  double tau_fdp_extra = 2*tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 1;        // Frames per OAP phase
-  int num_frames_fdp = 1;        // Frames per FDP phase
-  int num_frames_fdp_extra = 2;  // Frames for the extra FDP phase
+  int num_frames_oap = 1; // Frames per OAP phase
+  int num_frames_fdp = 1; // Frames per FDP phase
+  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -581,9 +583,12 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
     .scale_factor = pparams->alpha,
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
-    .type = pparams->fdot_mult_type,
-    .cellwise_const = true,
-    .write_diagnostics = true,
+    .num_multipliers = 1,
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    },
   };
   struct gkyl_gyrokinetic_field field_inp = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -611,13 +616,21 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
   int num_failures = 0, num_failures_max = ctx->num_failures_max;
 
   long step = 1;
-  while ((t_curr < t_end) && (step <= num_steps)) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    dt = t_end - t_curr; // Ensure we don't step beyond t_end.
+
+  while ((t_curr < t_end) && (step <= num_steps))
+  {
+    if (step == 1 || step % 1 == 0)
+      gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
+
+    dt = fmin(dt, t_end - t_curr); // Don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    if (!status.success) {
+    if (step == 1 || step % 1 == 0)
+      gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+
+    if (!status.success)
+    {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
@@ -713,10 +726,14 @@ int main(int argc, char **argv)
       .scale_factor = 1.0, // Will be replaced below.
       .write_diagnostics = true,
     },
+
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
-      .cellwise_const = true,
-      .write_diagnostics = true,
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
 
     .collisions = {

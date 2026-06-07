@@ -250,12 +250,12 @@ create_ctx(void)
   double tau_oap = 3.0e-6;
   double tau_fdp = 2.0e-9;
   double tau_fdp_extra = 2.*tau_fdp;
-  int num_cycles = 3; // Number of OAP+FDP cycles to run.
+  int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
   int num_frames_oap = 1;        // Frames per OAP phase
   int num_frames_fdp = 1;        // Frames per FDP phase
-  int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
+  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
   
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -450,9 +450,12 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
     .scale_factor = pparams->alpha,
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = {
-    .type = pparams->fdot_mult_type,
-    .cellwise_const = true,
-    .write_diagnostics = true,
+    .num_multipliers = 1,
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    }
   };
   struct gkyl_gyrokinetic_field reset_field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -582,9 +585,12 @@ int main(int argc, char **argv)
     },
 
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
-      .cellwise_const = true,
-      .write_diagnostics = true,
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
 
     .collisions = {

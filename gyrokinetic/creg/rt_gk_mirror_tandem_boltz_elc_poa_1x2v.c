@@ -614,9 +614,12 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
     .scale_factor = pparams->alpha,
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
-    .type = pparams->fdot_mult_type,
-    .cellwise_const = true,
-    .write_diagnostics = true,
+    .num_multipliers = 1,
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    },
   };
   struct gkyl_gyrokinetic_field field_inp = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -773,11 +776,13 @@ int main(int argc, char **argv)
     },
 
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
-      .cellwise_const = true,
-      .write_diagnostics = true,
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
-
     .positivity = {
       .type = GKYL_GK_POSITIVITY_SHIFT,
       .write_diagnostics = true,

@@ -732,6 +732,10 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
         double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         normcurlbhat_n[0] = normFld_n[3*dir+0]*curlbhat_n[0] +  normFld_n[3*dir+1]*curlbhat_n[1] + normFld_n[3*dir+2]*curlbhat_n[2];
 
+        // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+        double *bimpactangle_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bimpactangle_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[5]) * norm3));
+
       }
     }
   }
@@ -1514,7 +1518,6 @@ void gkyl_calc_metric_advance_interior(gkyl_calc_metric *up, struct gk_geometry 
         bioverJB_n[0] = gFld_n[2]/sqrt(gFld_n[5])/J/bmag_n[0];
         bioverJB_n[1] = gFld_n[4]/sqrt(gFld_n[5])/J/bmag_n[0];
         bioverJB_n[2] = gFld_n[5]/sqrt(gFld_n[5])/J/bmag_n[0];
-
       }
     }
   }
@@ -1741,6 +1744,10 @@ void gkyl_calc_metric_advance_surface(gkyl_calc_metric *up, int dir, struct gk_g
         curlbhat_n[2] = (dbhatdX[1][0] - dbhatdX[0][1]);
         double *normcurlbhat_n = gkyl_array_fetch(gk_geom->geo_surf[dir].normcurlbhat_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         normcurlbhat_n[0] = normFld_n[3*dir+0]*curlbhat_n[0] +  normFld_n[3*dir+1]*curlbhat_n[1] + normFld_n[3*dir+2]*curlbhat_n[2];
+
+         // set bimpactangle = arcsin(1/sqrt(g_33 * g^33))
+         double *bimpactangle_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bimpactangle_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+         bimpactangle_n[0] = asin(1.0/(sqrt(gFld_n[5]) * norm3));
 
       }
     }
