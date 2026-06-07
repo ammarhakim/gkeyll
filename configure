@@ -329,7 +329,7 @@ else
 fi
 
 # Default lapack include and libraries: we prefer linking to static library
-: "${LAPACK_INC_DIR:=$PREFIX/OpenBLAS/include/}"
+: "${LAPACK_INC_DIR=$PREFIX/OpenBLAS/include/}"
 : "${LAPACK_LIB_DIR=$PREFIX/OpenBLAS/lib/}"
 : "${LAPACK_LIB_NAME=openblas}"
 

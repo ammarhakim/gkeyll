@@ -3842,6 +3842,24 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
   gkyl_position_map_release(app->position_map);
 
+#ifdef GKYL_HAVE_SUNDIALS
+  if (app->use_sundials) {
+    for (int i=0; i<ns_charged; ++i) {
+      struct gk_species *gk_s = &app->species[i];
+      gk_species_sundials_nvec_release(app, gk_s);
+    }
+    for (int i=0; i<ns_neut; ++i) {
+      struct gk_neut_species *gk_ns = &app->neut_species[i];
+      gk_neut_species_sundials_nvec_release(app, gk_ns);
+    }
+    gk_field_sundials_nvec_release(app, app->field);
+
+    gkyl_sundials_many_nvec_release(app->sundials_mnvec);
+
+    gkyl_sundials_release(app->gk_sundials);
+  }
+#endif
+
   if (ns_charged > 0) {
     for (int i=0; i<ns_charged; ++i) {
       gk_species_release(app, &app->species[i]);
@@ -3868,24 +3886,6 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   }
 
   gkyl_dynvec_release(app->dts);
-
-#ifdef GKYL_HAVE_SUNDIALS
-  if (app->use_sundials) {
-    for (int i=0; i<ns_charged; ++i) {
-      struct gk_species *gk_s = &app->species[i];
-      gk_species_sundials_nvec_release(app, gk_s);
-    }
-    for (int i=0; i<ns_neut; ++i) {
-      struct gk_neut_species *gk_ns = &app->neut_species[i];
-      gk_neut_species_sundials_nvec_release(app, gk_ns);
-    }
-    gk_field_sundials_nvec_release(app, app->field);
-
-    gkyl_sundials_many_nvec_release(app->sundials_mnvec);
-
-    gkyl_sundials_release(app->gk_sundials);
-  }
-#endif
 
   gyrokinetic_fdot_args_release(&app->fdot_args, app);
 

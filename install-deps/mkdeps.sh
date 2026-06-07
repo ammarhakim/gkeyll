@@ -7,8 +7,6 @@ PREFIX=$HOME/gkylsoft
 CC=gcc
 CXX=g++
 FC=gfortran
-MPICC=mpicc
-MPICXX=mpicxx
 
 # by default, do not build anything
 BUILD_OPENBLAS=no
@@ -35,13 +33,15 @@ cat <<EOF
 Build GkylZero dependencies
 
 CC 
-CXX                         C and C++ compilers to use
-FC                          Fortran compiler to use (only gfortran is supported)
-MPICC                       
-MPICXX                      MPI C and C++ compilers to use
+CXX                         C and C++ compilers to use.
+FC                          Fortran compiler to use (only gfortran is supported).
+MPICC                       MPI C compilers to use.
+MPICXX                      MPI C++ compilers to use.
+MPIFC                       MPI Fortran compiler to use.
+MPIRUN                      MPI run command to use.
 
 -h
---help                      This help.
+--help                      This help message.
 
 --download                  [yes] Download packages?
 --build                     [yes] Build packages?
@@ -60,6 +60,12 @@ The following flags specify the libraries to build.
 --build-adas                [no] Should we download ADAS data? (uses python, needs numpy)
 --build-sundials            [no] Should we build SUNDIALS? (uses cmake)
 --build-eirene              [no] Should we build EIRENE? (includes installing SOLPS-ITER)
+
+Some libraries paths to local basic libraries (e.g. SUNDIALS needs LAPACK).
+
+--lapack-inc               Location of Lapack headers.
+--lapack-lib               Location of Lapack library.
+--lapack-lib-name          Name of Lapack library (default: openblas).
 
 EOF
 }
@@ -124,6 +130,10 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       CXX="$value"
       ;;
+   FC)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      FC="$value"
+      ;;   
    MPICC)
       [ -n "$value" ] || die "Missing value in flag $key."
       MPICC="$value"
@@ -132,10 +142,14 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       MPICXX="$value"
       ;;
-   FC)
+   MPIFC)
       [ -n "$value" ] || die "Missing value in flag $key."
-      FC="$value"
-      ;;   
+      MPIFC="$value"
+      ;;
+   MPIRUN)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      MPIRUN="$value"
+      ;;
    --prefix)
       [ -n "$value" ] || die "Missing value in flag $key."
       PREFIX="$value"
@@ -153,6 +167,8 @@ do
       BUILD_OPENMPI="$value"
       MPICC=$PREFIX/openmpi/bin/mpicc
       MPICXX=$PREFIX/openmpi/bin/mpicxx
+      MPIFC=$PREFIX/openmpi/bin/mpifort
+      MPIRUN=$PREFIX/openmpi/bin/mpirun
       ;;   
    --build-luajit)
       [ -n "$value" ] || die "Missing value in flag $key."
@@ -178,6 +194,18 @@ do
       [ -n "$value" ] || die "Missing value in flag $key."
       BUILD_EIRENE="$value"
       ;;
+   --lapack-inc)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_INC_DIR="$value"
+      ;;
+   --lapack-lib)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_LIB_DIR="$value"
+      ;;
+   --lapack-lib-name)
+      [ -n "$value" ] || die "Missing value in flag $key."
+      LAPACK_LIB_NAME="$value"
+      ;;
    *)
       die "Error: Unknown flag: $1"
       ;;
@@ -185,8 +213,16 @@ do
    shift
 done
 
-MPICC=$PREFIX/openmpi/bin/mpicc
-MPICXX=$PREFIX/openmpi/bin/mpicxx
+#[ Default MPI variables.
+: "${MPICC=$PREFIX/openmpi/bin/mpicc}"
+: "${MPICXX=$PREFIX/openmpi/bin/mpicxx}"
+: "${MPIFC=$PREFIX/openmpi/bin/mpifort}"
+: "${MPIRUN=$PREFIX/openmpi/bin/mpirun}"
+
+# Default lapack include and libraries: we prefer linking to static library
+: "${LAPACK_INC_DIR=$PREFIX/OpenBLAS/include/}"
+: "${LAPACK_LIB_DIR=$PREFIX/OpenBLAS/lib/}"
+: "${LAPACK_LIB_NAME=openblas}"
 
 CMAKE_SUPERLU_DIST_GPU=OFF
 # Set package options
@@ -210,10 +246,20 @@ GKYLSOFT=$PREFIX
 # Various compilers
 CC=$CC
 CXX=$CXX
+FC=$FC
 MPICC=$MPICC
 MPICXX=$MPICXX
-MPIEXEC=$MPIEXEC
+MPIFC=$MPIFC
+MPIRUN=$MPIRUN
 FC=gfortran
+
+# Library paths
+LAPACK_INC_DIR=$LAPACK_INC_DIR
+LAPACK_LIB_DIR=$LAPACK_LIB_DIR
+LAPACK_LIB_NAME=$LAPACK_LIB_NAME
+MPI_INC_DIR=$MPI_INC_DIR
+MPI_LIB_DIR=$MPI_LIB_DIR
+MPI_BIN_DIR=$MPI_BIN_DIR
 
 # Package options
 CMAKE_SUPERLU_DIST_GPU=$CMAKE_SUPERLU_DIST_GPU
