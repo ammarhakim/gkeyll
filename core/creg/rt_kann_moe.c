@@ -4,6 +4,7 @@
 #include <kann.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <gkyl_alloc.h>
 #include <math.h>
 
 struct xrange {
@@ -18,6 +19,13 @@ xrange_n(struct xrange xr, int n)
   return xr.xleft + dx * n;
 }
 
+// Family of pretraining functions.
+static inline float
+tfunc(int n, float x)
+{
+  return sinf((2.0f * M_PI * (n + 1) * x) + n);
+}
+
 // Function to fit.
 static inline float
 ufunc(float x)
@@ -29,17 +37,20 @@ struct train_inp {
   int ntrain;
   int nwidth;
   int ndepth;
+  int nexperts;
   float learning_rate;
 };
 
-// Construct a single-hidden-layer perceptron (with tanh activation) to use as a single "expert".
+// Construct an MLP (with tanh activation) to use as a single "expert".
 static inline kad_node_t*
-single_expert(kad_node_t *input, int n_hidden, int n_output)
+single_expert(kad_node_t *input, int n_layers, int n_hidden, int n_output)
 {
   kad_node_t *t_net;
 
-  t_net = kann_layer_dense(input, n_hidden);
-  t_net = kad_tanh(t_net);
+  for (int i = 0; i < n_layers; i++) {
+    t_net = kann_layer_dense(input, n_hidden);
+    t_net = kad_tanh(t_net);
+  }
   t_net = kann_layer_dense(t_net, n_output);
 
   return t_net;
@@ -61,28 +72,33 @@ weighted_expert(kad_node_t *expert, int n_output, float init_weight)
   return t_net;
 }
 
-// Construct a "mixture of experts" architecture consisting of three single "experts" linked together (with tanh activation and MSE cost).
+// Construct a "mixture of experts" architecture consisting of multiple single "experts" linked together (with tanh activation and MSE cost).
 static inline kad_node_t*
-mixture_of_experts(int n_input, int n_hidden, int n_output)
+mixture_of_experts(int n_input, int n_layers, int n_hidden, int n_experts, int n_output)
 {
   kad_node_t *input;
-  kad_node_t *expert1, *expert2, *expert3;
-  kad_node_t *weighted_expert1, *weighted_expert2, *weighted_expert3;
+  kad_node_t **experts;
+  kad_node_t **weighted_experts;
 
   kad_node_t *opinion_sum;
   kad_node_t *activation, *truth, *cost;
 
   input = kann_layer_input(n_input);
 
-  expert1 = single_expert(input, n_hidden, n_output);
-  expert2 = single_expert(input, n_hidden, n_output);
-  expert3 = single_expert(input, n_hidden, n_output);
+  experts = gkyl_malloc(n_experts * sizeof(kad_node_t*));
+  for (int i = 0; i < n_experts; i++) {
+    experts[i] = single_expert(input, n_layers, n_hidden, n_output);
+  }
 
-  weighted_expert1 = weighted_expert(expert1, n_output, 1.0f / 3.0f);
-  weighted_expert2 = weighted_expert(expert2, n_output, 1.0f / 3.0f);
-  weighted_expert3 = weighted_expert(expert3, n_output, 1.0f / 3.0f);
+  weighted_experts = gkyl_malloc(n_experts * sizeof(kad_node_t*));
+  for (int i = 0; i < n_experts; i++) {
+    weighted_experts[i] = weighted_expert(experts[i], n_output, 1.0f / n_experts);
+  }
 
-  opinion_sum = kad_add(kad_add(weighted_expert1, weighted_expert2), weighted_expert3);
+  opinion_sum = weighted_experts[0];
+  for (int i = 1; i < n_experts; i++) {
+    opinion_sum = kad_add(opinion_sum, weighted_experts[i]);
+  }
 
   activation = kad_tanh(opinion_sum);
   activation->ext_flag |= KANN_F_OUT;
@@ -92,15 +108,50 @@ mixture_of_experts(int n_input, int n_hidden, int n_output)
 
   cost = kad_mse(activation, truth);
   cost->ext_flag |= KANN_F_COST;
+  
+  gkyl_free(experts);
+  gkyl_free(weighted_experts);
 
   return cost;
 }
 
 void
-train_ann(struct train_inp *nn_inp, const char *nn_name)
+train_mixture(struct train_inp *nn_inp, const char *nn_name)
 {
-  kad_node_t *t_net = mixture_of_experts(1, nn_inp->nwidth, 1);
+  kad_node_t *t_net = mixture_of_experts(1, nn_inp->ndepth, nn_inp->nwidth, nn_inp->nexperts, 1);
   kann_t *ann = kann_new(t_net, 0);
+
+  // Hyperparameters for training.
+  float lr = nn_inp->learning_rate; // Learning rate.
+  int mini_size = 64;
+  int max_epoch = 50;
+  int max_drop_streak = 10;
+  float frac_val = 0.1f; // Fraction of samples to use for validation.
+
+  // Run individual expert training (i.e. pretraining).
+  for (int i = 0; i < nn_inp->nexperts; i++) {
+    // Allocate memory for input/output vectors for individual experts.
+    int N_expert = nn_inp->ntrain; // Training samples
+    struct gkyl_kn_vec *inp_expert = gkyl_kn_vec_new(N_expert, 1);
+    struct gkyl_kn_vec *out_expert = gkyl_kn_vec_new(N_expert, 1);
+
+    struct xrange xr_expert = {
+      .xleft = -1.0,
+      .xright = 1.0,
+      .N = N_expert
+    };
+
+    // Initialize input/output mapping for individual experts.
+    for (int j = 0; j < N_expert; j++) {
+      inp_expert->vals[j][0] = xrange_n(xr_expert, j);
+      out_expert->vals[j][0] = tfunc(i, inp_expert->vals[j][0]);
+    }
+
+    kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N_expert, inp_expert->vals, out_expert->vals);
+
+    gkyl_kn_vec_release(inp_expert);
+    gkyl_kn_vec_release(out_expert);
+  }
 
   // Allocate memory for input/output vectors.
   int N = nn_inp->ntrain; // Training samples
@@ -114,19 +165,12 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   };
 
   // Initialize input/output mapping.
-  for (int i=0; i<N; ++i) {
+  for (int i = 0; i < N; i++) {
     inp->vals[i][0] = xrange_n(xr, i);
     out->vals[i][0] = ufunc(inp->vals[i][0]);
   }
-
-  // Hyperparameters for training.
-  float lr = nn_inp->learning_rate; // Learning rate.
-  int mini_size = 64;
-  int max_epoch = 50;
-  int max_drop_streak = 10;
-  float frac_val = 0.1f; // Fraction of samples to use for validation.
   
-  // Run training
+  // Run mixture of experts training (i.e. finetuning).
   kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
   kann_save(nn_name, ann); // Save to file.
   
@@ -211,10 +255,11 @@ main(int argc, char *argv[])
 
   if (p_train) {
     fprintf(stdout, "*** Training\n");
-    train_ann( &(struct train_inp) {
+    train_mixture( &(struct train_inp) {
         .ntrain = 1001,
         .ndepth = 2,
         .nwidth = 256,
+        .nexperts = 3,
         .learning_rate = 1e-3f
       },
       "rt_kann_moe.kann"
