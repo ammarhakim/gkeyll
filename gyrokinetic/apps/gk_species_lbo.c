@@ -107,43 +107,45 @@ gklbo_cross_moms_disabled(gkyl_gyrokinetic_app *app, const struct gk_species *gk
   // Empty method.
 }
 
+// Compute unscaled cross primitive moments (u_par_sr, vtsq_sr) for cross-collision species coll_idx.
+// Result is written into lbo->nu_boundary_corrections, which is used as scratch.
+static void
+gklbo_calc_cross_prim_moms(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
+  struct gk_lbo_collisions *lbo, int coll_idx)
+{
+  lbo->alpha_E_func(app, gks, lbo, coll_idx);
+
+  // Multiply moments and boundary corrections by cross nu.
+  for (int d=0; d<3; d++)
+    gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[coll_idx]);
+  for (int d=0; d<2; d++)
+    gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[coll_idx]);
+    
+  // Compute cross primitive moments.
+  // Recycle the boundary_corrections array because we don't need those anymore.
+  gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E,
+    gks->info.mass, lbo->nu_moms, lbo->prim_moms,
+    lbo->other_m[coll_idx], lbo->collide_with[coll_idx]->lbo.moms.marr, lbo->other_prim_moms[coll_idx],
+    lbo->nu_boundary_corrections, lbo->cross_nu[coll_idx], lbo->nu_boundary_corrections);
+}
+
 static void
 gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
   struct gk_lbo_collisions *lbo)
 {
-  // Compute primitive moments for cross-species collisions.
   struct timespec wst = gkyl_wall_clock();
-  
+
   for (int i=0; i<lbo->num_cross_collisions; ++i) {
-
-    // Compute the cross-species collision frequency.
     lbo->cross_nu_func(app, gks, lbo, i);
+    gklbo_calc_cross_prim_moms(app, gks, lbo, i);
 
-    // Compute alpha_E.
-    lbo->alpha_E_func(app, gks, lbo, i);
-
-    // Multiply moments and boundary corrections by cross nu.
-    for (int d=0; d<3; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[i]);
-    for (int d=0; d<2; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
-
-    // Compute cross primitive moments.
-    // Recycle the boundary_corrections array because we don't need those anymore.
+    // Scale upar_{sr} and vtSq_{sr} by nu_{sr} and accumulate.
     struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
-    gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, 
-      gks->info.mass, lbo->nu_moms, lbo->prim_moms,
-      lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
-      lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms);
-
-    // Scale upar_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
-
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, cross_prim_moms);
-
   }
-  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
+  app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -204,7 +206,56 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->lbo.nu_prim_moms_host, fileNm_nu_prim);
   app->stat.n_diag_io += 2;
 
-  gkyl_msgpack_data_release(mt); 
+  // Per-cross-species diagnostics: unscaled cross primitive moments and cross-nu.
+  if (gks->lbo.write_diagnostics) {
+    // Self primitive moments (u_par_s, vtsq_s) before any cross-species contribution.
+    const char *fmt_prim = "%s-%s_lbo_self_prim_moms_%d.gkyl";
+    int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, gks->info.name, frame);
+    char fileNm_prim[sz_prim+1];
+    snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, gks->info.name, frame);
+    struct gkyl_array *prim_moms_io;
+    if (app->use_gpu) {
+      gkyl_array_copy(gks->lbo.nu_prim_moms_host, gks->lbo.prim_moms);
+      prim_moms_io = gks->lbo.nu_prim_moms_host;
+    } else {
+      prim_moms_io = gks->lbo.prim_moms;
+    }
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, prim_moms_io, fileNm_prim);
+    app->stat.n_diag_io += 1;
+    for (int i=0; i<gks->lbo.num_cross_collisions; ++i) {
+      const char *other_name = gks->lbo.collide_with[i]->info.name;
+
+      const char *fmt_cprim = "%s-%s_lbo_cross_%s_prim_moms_%d.gkyl";
+      int sz_cprim = gkyl_calc_strlen(fmt_cprim, app->name, gks->info.name, other_name, frame);
+      char fileNm_cprim[sz_cprim+1];
+      snprintf(fileNm_cprim, sizeof fileNm_cprim, fmt_cprim, app->name, gks->info.name, other_name, frame);
+
+      const char *fmt_cnu = "%s-%s_lbo_cross_%s_nu_%d.gkyl";
+      int sz_cnu = gkyl_calc_strlen(fmt_cnu, app->name, gks->info.name, other_name, frame);
+      char fileNm_cnu[sz_cnu+1];
+      snprintf(fileNm_cnu, sizeof fileNm_cnu, fmt_cnu, app->name, gks->info.name, other_name, frame);
+
+      gklbo_calc_cross_prim_moms(app, gks, &gks->lbo, i);
+      struct gkyl_array *cross_prim_moms_scratch = gks->lbo.nu_boundary_corrections;
+
+      struct gkyl_array *cross_prim_moms_io, *cross_nu_io;
+      if (app->use_gpu) {
+        gkyl_array_copy(gks->lbo.nu_prim_moms_host, cross_prim_moms_scratch);
+        cross_prim_moms_io = gks->lbo.nu_prim_moms_host;
+        gkyl_array_copy(gks->lbo.nu_sum_host, gks->lbo.cross_nu[i]);
+      }
+      else {
+        cross_prim_moms_io = cross_prim_moms_scratch;
+        cross_nu_io = gks->lbo.cross_nu[i];
+      }
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, cross_prim_moms_io, fileNm_cprim);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, cross_nu_io, fileNm_cnu);
+      app->stat.n_diag_io += 2;
+    }
+  }
+
+  gkyl_msgpack_data_release(mt);
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
