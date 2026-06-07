@@ -181,6 +181,11 @@ enum gkyl_cu_memcpy_kind {
 #define GKYL_MAX2(x,y) ((x)>(y) ? (x) : (y))
 #define GKYL_SGN(b) (((b)>=0.) ? 1.0 : -1.0)
 
+// GKYL_ALIGN_UP finds the integer that is closest to "a" that is
+// multiple of "b"
+#define GKYL_UDIV_UP(a, b) (((a) + (b) - 1) / (b))
+#define GKYL_ALIGN_UP(a, b) (GKYL_UDIV_UP(a, b) * (b))
+
 EXTERN_C_BEG
 
 /**
