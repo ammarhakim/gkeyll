@@ -243,6 +243,7 @@ gkyl_wv_coldfluid_new(void)
 
   coldfluid->eqn.source_func = coldfluid_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
   coldfluid->eqn.set_interface_idx_func = 0;
   coldfluid->eqn.set_cell_idx_func = 0;
   coldfluid->eqn.repair_state_func = 0;
