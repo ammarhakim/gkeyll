@@ -52,7 +52,8 @@ typedef struct {
 	void *mt;         /* auxiliary data for multi-threading; NULL if multi-threading disabled */
 } kann_t;
 
-extern int kann_verbose;
+/* level = 3 for verbose output */
+void kann_set_verbose_level(int level);
 
 #define kann_size_var(a) kad_size_var((a)->n, (a)->v)
 #define kann_size_const(a) kad_size_const((a)->n, (a)->v)
