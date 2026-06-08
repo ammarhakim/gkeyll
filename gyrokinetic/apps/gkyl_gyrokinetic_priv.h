@@ -789,6 +789,8 @@ struct gk_adapt_source {
   bool adapt_particle, adapt_energy; // Adaptation flags.
   struct gk_species *adapt_species; // Non-owning pointer to the species whose particle loss is being adapted; lifetime managed elsewhere.
   int adapt_species_idx; // Index of the species whose particle loss is being adapted.
+  double adapt_particle_fraction; // Fraction of particle loss to adapt to.
+  double adapt_energy_fraction; // Fraction of energy loss to adapt to.
 
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[2*GKYL_MAX_CDIM]; // Direction to adapt.
