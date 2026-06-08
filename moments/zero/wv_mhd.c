@@ -851,6 +851,11 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 
   mhd->eqn.source_func = mhd_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  mhd->eqn.set_interface_idx_func = 0;
+  mhd->eqn.set_cell_idx_func = 0;
+  mhd->eqn.repair_state_func = 0;  
+
   mhd->eqn.ref_count = gkyl_ref_count_init(mhd_free);
 
   mhd->eqn.embed_geo = NULL;

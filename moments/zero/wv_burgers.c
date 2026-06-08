@@ -289,6 +289,11 @@ gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp* inp)
 
   burgers->eqn.source_func = burgers_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  burgers->eqn.set_interface_idx_func = 0;
+  burgers->eqn.set_cell_idx_func = 0;
+  burgers->eqn.repair_state_func = 0;
+
   burgers->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(burgers->eqn.flags);
   burgers->eqn.ref_count = gkyl_ref_count_init(gkyl_burgers_free);

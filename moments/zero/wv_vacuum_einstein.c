@@ -1641,6 +1641,11 @@ gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
 
   vacuum_einstein->eqn.source_func = vacuum_einstein_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  vacuum_einstein->eqn.set_interface_idx_func = 0;
+  vacuum_einstein->eqn.set_cell_idx_func = 0;
+  vacuum_einstein->eqn.repair_state_func = 0;  
+
   vacuum_einstein->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vacuum_einstein->eqn.flags);
   vacuum_einstein->eqn.ref_count = gkyl_ref_count_init(gkyl_vacuum_einstein_free);

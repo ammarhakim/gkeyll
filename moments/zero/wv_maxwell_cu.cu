@@ -29,6 +29,11 @@ wv_maxwell_set_cu_dev_ptrs(struct wv_maxwell *maxwell)
   maxwell->eqn.wall_bc_func = maxwell_wall;
 
   maxwell->eqn.cons_to_diag = maxwell_cons_to_diag;
+
+  // Equation system has no auxiliary field interface indexing or repair state.
+  maxwell->eqn.set_interface_idx_func = 0;
+  maxwell->eqn.set_cell_idx_func = 0;
+  maxwell->eqn.repair_state_func = 0;  
 }
 
 struct gkyl_wv_eqn*

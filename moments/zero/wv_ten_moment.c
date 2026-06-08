@@ -74,6 +74,11 @@ gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
 
   ten_moment->eqn.source_func = ten_moment_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  ten_moment->eqn.set_interface_idx_func = 0;
+  ten_moment->eqn.set_cell_idx_func = 0;
+  ten_moment->eqn.repair_state_func = 0;    
+
   ten_moment->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(ten_moment->eqn.flags);
   ten_moment->eqn.ref_count = gkyl_ref_count_init(gkyl_ten_moment_free);

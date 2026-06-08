@@ -612,6 +612,11 @@ gkyl_wv_euler_mixture_inew(const struct gkyl_wv_euler_mixture_inp* inp)
 
   euler_mixture->eqn.source_func = euler_mixture_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  euler_mixture->eqn.set_interface_idx_func = 0;
+  euler_mixture->eqn.set_cell_idx_func = 0;
+  euler_mixture->eqn.repair_state_func = 0;
+
   euler_mixture->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(euler_mixture->eqn.flags);
   euler_mixture->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_mixture_free);

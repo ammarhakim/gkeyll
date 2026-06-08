@@ -28,6 +28,11 @@ wv_ten_moment_set_cu_dev_ptrs(struct wv_ten_moment *ten_moment)
   ten_moment->eqn.wall_bc_func = ten_moment_wall;
 
   ten_moment->eqn.cons_to_diag = gkyl_default_cons_to_diag;
+
+  // Equation system has no auxiliary field interface indexing or repair state.
+  ten_moment->eqn.set_interface_idx_func = 0;
+  ten_moment->eqn.set_cell_idx_func = 0;
+  ten_moment->eqn.repair_state_func = 0;    
 }
 
 struct gkyl_wv_eqn*

@@ -357,6 +357,11 @@ gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
 
   iso_euler->eqn.source_func = iso_euler_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  iso_euler_mixture->eqn.set_interface_idx_func = 0;
+  iso_euler_mixture->eqn.set_cell_idx_func = 0;
+  iso_euler_mixture->eqn.repair_state_func = 0;
+
   iso_euler->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(iso_euler->eqn.flags);
   iso_euler->eqn.ref_count = gkyl_ref_count_init(gkyl_iso_euler_free);

@@ -454,6 +454,11 @@ gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp* inp)
 
   euler_rgfm->eqn.source_func = euler_rgfm_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  euler_rgfm->eqn.set_interface_idx_func = 0;
+  euler_rgfm->eqn.set_cell_idx_func = 0;
+  euler_rgfm->eqn.repair_state_func = 0;
+
   euler_rgfm->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(euler_rgfm->eqn.flags);
   euler_rgfm->eqn.ref_count = gkyl_ref_count_init(gkyl_euler_rgfm_free);

@@ -120,6 +120,11 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
 
   maxwell->eqn.source_func = maxwell_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  maxwell->eqn.set_interface_idx_func = 0;
+  maxwell->eqn.set_cell_idx_func = 0;
+  maxwell->eqn.repair_state_func = 0;  
+
   maxwell->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(maxwell->eqn.flags);
   maxwell->eqn.ref_count = gkyl_ref_count_init(gkyl_wv_maxwell_free);

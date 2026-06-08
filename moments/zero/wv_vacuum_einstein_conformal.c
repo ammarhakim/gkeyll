@@ -1784,6 +1784,11 @@ gkyl_wv_vacuum_einstein_conformal_inew(const struct gkyl_wv_vacuum_einstein_conf
 
   vacuum_einstein_conformal->eqn.source_func = vacuum_einstein_conformal_source;
 
+  // Equation system has no auxiliary field interface indexing or repair state.
+  vacuum_einstein_conformal->eqn.set_interface_idx_func = 0;
+  vacuum_einstein_conformal->eqn.set_cell_idx_func = 0;
+  vacuum_einstein_conformal->eqn.repair_state_func = 0;    
+
   vacuum_einstein_conformal->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vacuum_einstein_conformal->eqn.flags);
   vacuum_einstein_conformal->eqn.ref_count = gkyl_ref_count_init(gkyl_vacuum_einstein_conformal_free);

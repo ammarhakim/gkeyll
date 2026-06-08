@@ -55,6 +55,11 @@ wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
   euler->eqn.cons_to_diag = euler_cons_to_diag;
 
   euler->eqn.source_func = euler_source;
+  
+  // Equation system has no auxiliary field interface indexing or repair state.
+  euler->eqn.set_interface_idx_func = 0;
+  euler->eqn.set_cell_idx_func = 0;
+  euler->eqn.repair_state_func = 0;
 }
 
 struct gkyl_wv_eqn*
