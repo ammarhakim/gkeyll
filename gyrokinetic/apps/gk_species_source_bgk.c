@@ -467,9 +467,9 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         // Replace the update int. diags func. with the one that is called within the RHS.
         src->update_integrated_diags_func = gks_src_bgk_update_integrated_diags_disabled;
         src->update_integrated_diags_rhs_func = gks_src_bgk_update_integrated_diags_enabled;
-        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK relaxation rate, nu in -nu*(f-feq)", 
+        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate", 
           app->grid, app->local, src->rate);
-        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_feq", "BGK equilibrium function, feq in -nu*(f-feq)", 
+        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_feq", "BGK source equilibrium function", 
           gks->grid, gks->local, src->Jrate_df);
       }
 
