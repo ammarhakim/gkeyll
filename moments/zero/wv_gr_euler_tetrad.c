@@ -351,7 +351,16 @@ gkyl_gr_euler_tetrad_max_abs_speed(struct gkyl_gr_euler_eos eos,
       if (fabs(slow)     > max_eig) max_eig = fabs(slow);
     }
 
-    return fabs(v_sq) + max_eig;
+    // max_eig is the spectral radius of the curved-frame flux Jacobian
+    // — the tight bound for the Lax envelope and CFL. An earlier version
+    // added `fabs(v_sq)` here as a safety pad, but the addition is not
+    // algebraically justified and gave a CFL bound up to 2× larger than
+    // needed. Removing it lets the integrator hold dt at its IC value
+    // through the BHL run (1.13e-2 vs 6.4e-3) for a 36% wall-time win
+    // and 8× fewer failed time-steps, at the price of a modest increase
+    // in s² repair count (91 → 1,772 in the test) on benign |W_prev|≲3
+    // cells. See SESSION_NOTES_S2_REPAIR.md §6 for the rationale.
+    return max_eig;
   }
 
   double v_mag = sqrt((vx*vx) + (vy*vy) + (vz*vz));
@@ -1532,15 +1541,16 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
   gkyl_gr_euler_banyuls_flux_cell(eos, ql, grm->prodl_local, stat, fl_gr);
   gkyl_gr_euler_banyuls_flux_cell(eos, qr, grm->prodr_local, stat, fr_gr);
 
-  // amax — full-3D max-abs characteristic speed (max over x/y/z). The
-  // x-only variant was too tight in metrics with off-diagonal γ_xy and
-  // a general-orientation 3-velocity: with x-only, the Lax envelope
-  // failed to dominate the full curved-frame flux Jacobian's spectral
-  // radius, and the convex-combination argument broke. Reproducer:
-  // test_direct_state_lax_curved_near_horizon at (sx,sy,sz)=(1,1,0)
-  // on bhl-repair-s2-#2 showed s²_new=-1.45e-1 (x-only) → +1.16
-  // (full-3D). See SESSION_NOTES_3 §17 for the analysis. Excision
-  // short-circuits to 1e-8.
+  // amax — full-3D max-abs eigenvalue (max over x/y/z) of the curved-
+  // frame flux Jacobian. The x-only variant was too tight in metrics
+  // with off-diagonal γ_xy and a general-orientation 3-velocity: with
+  // x-only, the Lax envelope failed to dominate the full spectral
+  // radius and the convex-combination argument broke. Reproducer:
+  // test_direct_state_lax_curved_near_horizon at (sx,sy,sz)=(1,1,0) on
+  // bhl-repair-s2-#2 showed s²_new=-1.45e-1 (x-only) → +1.16 (full-3D).
+  // See SESSION_NOTES_3 §17. The function returns the tight max_eig
+  // (no v_sq safety pad — see SESSION_NOTES_S2_REPAIR.md §6).
+  // Excision short-circuits to 1e-8.
   double amaxl = gkyl_gr_euler_tetrad_max_abs_speed(eos, ql, grm->prodl_local, stat);
   double amaxr = gkyl_gr_euler_tetrad_max_abs_speed(eos, qr, grm->prodr_local, stat);
   double amax = fmax(amaxl, amaxr);
