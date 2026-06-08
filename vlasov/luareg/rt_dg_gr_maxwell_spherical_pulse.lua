@@ -21,7 +21,7 @@ r0, r1 = 2.0, 5.0 -- inner and outer radii
 
 -- Final time/output.
 t_end = 1.5
-num_frames = 30
+num_frames = 1 -- 30
 field_energy_calcs = GKYL_MAX_INT
 integrated_mom_calcs = GKYL_MAX_INT
 integrated_L2_f_calcs = GKYL_MAX_INT

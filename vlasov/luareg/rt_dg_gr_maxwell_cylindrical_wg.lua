@@ -23,7 +23,7 @@ w = 2.430327042902498 -- frequency of mode
 tperiod = 2*math.pi/w -- period of mode
 
 t_end = 2 * tperiod -- Final simulation time.
-num_frames = 30 -- Number of output frames.
+num_frames = 1 -- 30 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
@@ -91,7 +91,7 @@ vlasovApp = Vlasov.App.new {
       local r, phi = xn[1], xn[2]
 
       local a = 1.0
-      local wkn = math.sqrt(w^2-kn^2)
+      local wkn = math.sqrt(w*w-kn*kn)
       local b = -a*ffi.C.jn(m,r0*wkn)/ffi.C.yn(m,r0*wkn)
       local Ez_r = a*ffi.C.jn(m,r*wkn) + b*ffi.C.yn(m,r*wkn)
       local Ez = Ez_r*math.cos(m*phi)

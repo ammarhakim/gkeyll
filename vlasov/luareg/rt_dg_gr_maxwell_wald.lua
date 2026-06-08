@@ -8,7 +8,7 @@ local Vlasov = G0.Vlasov
 pi = math.pi
 
 -- Simulation parameters.
-Nr = 192 -- Cell count (r-direction).
+Nr = 48 -- 192 -- Cell count (r-direction).
 Ntheta = 192 -- Cell count (theta-direction).
 poly_order = 1 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
@@ -16,7 +16,7 @@ time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
 
 t_end = 5.0 -- Final simulation time.
-num_frames = 30 -- Number of output frames.
+num_frames = 1 -- 30 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
 integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of distribution function.
