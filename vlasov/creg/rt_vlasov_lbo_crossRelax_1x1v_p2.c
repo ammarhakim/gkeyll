@@ -1,7 +1,10 @@
+// Simplified LBO cross collisions regression test from G2.
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <gkyl_const.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_vlasov.h>
@@ -19,7 +22,7 @@
 
 #include <rt_arg_parse.h>
 
-struct lbo_cross_ctx
+struct bgk_cross_ctx
 {
   // Mathematical constants (dimensionless).
   double pi;
@@ -30,19 +33,19 @@ struct lbo_cross_ctx
   double charge_neut1; // First neutral charge.
   double charge_neut2; // Second neutral charge.
 
+  double n_neut1; // First neutral reference number density.
+  double n_neut2; // Second neutral reference number density.
+  double u0_neut1; // First neutral reference velocity.
+  double u0_neut2; // Second neutral reference velocity.
   double p_neut1; // First neutral pressure.
   double p_neut2; // Second neutral pressure.
-  double n0_neut1; // First neutral reference number density.
-  double n0_neut2; // Second netural reference number density.
-
-  double ux0_neut1; // First neutral reference velocity (x-direction).
-  double ux0_neut2; // Second neutral reference velocity (x-direction).
-  double nu_neut1; // First neutral collision frequency.
-  double nu_neut2; // Second neutral collision frequency.
 
   // Derived physical quantities (using normalized code units).
   double vt_neut1; // First neutral thermal velocity.
   double vt_neut2; // Second neutral thermal velocity.
+  double K; // Collisionality factor.
+  double nu_neut1; // First neutral collision frequency.
+  double nu_neut2; // Second neutral collision frequency.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
@@ -62,42 +65,42 @@ struct lbo_cross_ctx
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct lbo_cross_ctx
+struct bgk_cross_ctx
 create_ctx(void)
 {
   // Mathematical constants (dimensionless).
-  double pi = M_PI;
+  double pi = GKYL_PI;
 
   // Physical constants (using normalized code units).
   double mass_neut1 = 1.0; // First neutral mass.
-  double mass_neut2 = 0.05; // Second neutral mass.
+  double mass_neut2 = 1.0; // Second neutral mass.
   double charge_neut1 = 0.0; // First neutral charge.
   double charge_neut2 = 0.0; // Second neutral charge.
 
-  double p_neut1 = 1.0; // First neutral pressure.
-  double p_neut2 = 0.5; // Second neutral pressure.
-  double n0_neut1 = 1.0; // First neutral reference number density.
-  double n0_neut2 = 1.0; // Second netural reference number density.
-
-  double ux0_neut1 = 0.1; // First neutral reference velocity (x-direction).
-  double ux0_neut2 = 2.5; // Second neutral reference velocity (x-direction).
-  double nu_neut1 = 1.0 / 0.01; // First neutral collision frequency.
-  double nu_neut2 = sqrt(0.5 / 0.05) / 0.01; // Second neutral collision frequency.
+  double n_neut1 = 1.0; // First neutral reference number density.
+  double n_neut2 = 1.0; // Second neutral reference number density.
+  double u0_neut1 = 0.0; // First neutral reference velocity (x-direction).
+  double u0_neut2 = 0.0; // Second neutral reference velocity (x-direction).
+  double p_neut1 = 0.1; // First neutral pressure.
+  double p_neut2 = 1.0; // Second neutral pressure.
 
   // Derived physical quantities (using normalized code units).
-  double vt_neut1 = sqrt(p_neut1 / (n0_neut1 * mass_neut1)); // First neutral thermal velocity.
-  double vt_neut2 = sqrt(p_neut2 / (n0_neut2 * mass_neut2)); // Second neutral thermal velocity.
+  double vt_neut1 = sqrt(p_neut1 / n_neut1); // First neutral thermal velocity.
+  double vt_neut2 = sqrt(p_neut2 / n_neut2); // Second neutral thermal velocity.
+  double K = 0.1; // Collisionality factor.
+  double nu_neut1 = vt_neut1/K; // First neutral collision frequency.
+  double nu_neut2 = vt_neut2/K; // Second neutral collision frequency.
 
   // Simulation parameters.
-  int Nx = 16; // Cell count (configuration space: x-direction).
-  int Nvx = 32; // Cell count (velocity space: vx-direction).
+  int Nx = 128; // Cell count (configuration space: x-direction).
+  int Nvx = 64; // Cell count (velocity space: vx-direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double vx_max_neut1 = 6.0 * vt_neut1; // First neutral domain boundary (velocity space: vx-direction).
-  double vx_max_neut2 = 6.0 * vt_neut2; // Second neutral domain boundary (velocity space: vx-direction).
-  int poly_order = 2; // Polynomial order.
+  double vx_max_neut1 = 6.0; // First neutral domain boundary (velocity space: vx-direction).
+  double vx_max_neut2 = 6.0; // Second neutral domain boundary (velocity space: vx-direction).
+  int poly_order = 2; // Polynomial order.  
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 0.01; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 10; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -105,22 +108,23 @@ create_ctx(void)
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
   
-  struct lbo_cross_ctx ctx = {
+  struct bgk_cross_ctx ctx = {
     .pi = pi,
     .mass_neut1 = mass_neut1,
     .mass_neut2 = mass_neut2,
     .charge_neut1 = charge_neut1,
     .charge_neut2 = charge_neut2,
+    .n_neut1 = n_neut1,
+    .n_neut2 = n_neut2,
+    .u0_neut1 = u0_neut1,
+    .u0_neut2 = u0_neut2,
     .p_neut1 = p_neut1,
     .p_neut2 = p_neut2,
-    .n0_neut1 = n0_neut1,
-    .n0_neut2 = n0_neut2,
-    .ux0_neut1 = ux0_neut1,
-    .ux0_neut2 = ux0_neut2,
-    .nu_neut1 = nu_neut1,
-    .nu_neut2 = nu_neut2,
     .vt_neut1 = vt_neut1,
     .vt_neut2 = vt_neut2,
+    .K = K,
+    .nu_neut1 = nu_neut1,
+    .nu_neut2 = nu_neut2,
     .Nx = Nx,
     .Nvx = Nvx,
     .Lx = Lx,
@@ -143,18 +147,18 @@ create_ctx(void)
 void
 evalNeut1Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
   double vx = xn[1];
   
   double pi = app->pi;
 
-  double n0_neut1 = app->n0_neut1;
-  double ux0_neut1 = app->ux0_neut1;
+  double n_neut1 = app->n_neut1;
+  double u0_neut1 = app->u0_neut1;
   double vt_neut1 = app->vt_neut1;
 
-  double v_sq = (vx - ux0_neut1) * (vx - ux0_neut1);
+  double v_sq = (vx - u0_neut1) * (vx - u0_neut1);
 
-  double n = (n0_neut1 / sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * exp(-v_sq / (2.0 * vt_neut1 * vt_neut1)); // Distribution function.
+  double n = (n_neut1 / sqrt(2.0 * pi * vt_neut1 * vt_neut1)) * exp(-v_sq / (2.0 * vt_neut1 * vt_neut1));
 
   // Set distribution function.
   fout[0] = n;
@@ -163,18 +167,18 @@ evalNeut1Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalNeut2Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
   double vx = xn[1];
   
   double pi = app->pi;
 
-  double n0_neut2 = app->n0_neut2;
-  double ux0_neut2 = app->ux0_neut2;
+  double n_neut2 = app->n_neut2;
+  double u0_neut2 = app->u0_neut2;
   double vt_neut2 = app->vt_neut2;
 
-  double v_sq = (vx - ux0_neut2) * (vx - ux0_neut2);
+  double v_sq = (vx - u0_neut2) * (vx - u0_neut2);
 
-  double n = (n0_neut2 / sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * exp(-v_sq / (2.0 * vt_neut2 * vt_neut2)); // Distribution function.
+  double n = (n_neut2 / sqrt(2.0 * pi * vt_neut2 * vt_neut2)) * exp(-v_sq / (2.0 * vt_neut2 * vt_neut2));
 
   // Set distribution function.
   fout[0] = n;
@@ -183,7 +187,18 @@ evalNeut2Init(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
 void
 evalNeut1Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
+
+  double nu_neut1 = app->nu_neut1;
+
+  // Set collision frequency.
+  fout[0] = 0;
+}
+
+void 
+evalNeut1CrossNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct bgk_cross_ctx *app = ctx;
 
   double nu_neut1 = app->nu_neut1;
 
@@ -191,39 +206,26 @@ evalNeut1Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   fout[0] = nu_neut1;
 }
 
-void 
-evalNeut1CrossNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct lbo_cross_ctx *app = ctx;
-
-  double mass_neut1 = app->mass_neut1;
-  double mass_neut2 = app->mass_neut2;
-  double nu_neut2 = app->nu_neut2;
-
-  // Set collision frequency.
-  fout[0] = sqrt(2.0) * (mass_neut2 / mass_neut1) * nu_neut2;
-}
-
 void
 evalNeut2Nu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
 
   double nu_neut2 = app->nu_neut2;
 
   // Set collision frequency.
-  fout[0] = nu_neut2;
+  fout[0] = 0;
 }
 
 void
 evalNeut2CrossNu(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  struct lbo_cross_ctx *app = ctx;
+  struct bgk_cross_ctx *app = ctx;
 
   double nu_neut2 = app->nu_neut2;
 
   // Set collision frequency.
-  fout[0] = sqrt(2.0) * nu_neut2;
+  fout[0] = nu_neut2;
 }
 
 void
@@ -283,7 +285,7 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct lbo_cross_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct bgk_cross_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NVX = APP_ARGS_CHOOSE(app_args.vcells[0], ctx.Nvx);
@@ -380,21 +382,26 @@ main(int argc, char **argv)
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
+      // .nu_frac = 1.0, // Collision frequency scaling factor. Default is 1.
+      // .fixed_temp_relax = true, // Energy conservation through BGK collisions.
+      // .is_implicit = true, // Implicit time-stepping for BGK collisions.
+      // Self collisions
       .self_nu = evalNeut1Nu,
       .self_nu_ctx = &ctx,
+      // Cross collisions
       .num_cross_collisions = 1,
       .collide_with = { "neut2" },
       .cross_nu = { evalNeut1CrossNu },
       .cross_nu_ctx = { &ctx },
       // Reference values for Coulomb logarithm
-      .den_ref = ctx.n0_neut1,
+      .den_ref = ctx.n_neut1,
       .temp_ref = ctx.mass_neut1*ctx.vt_neut1*ctx.vt_neut1,
       // Write collisional diagnostics
       // .write_coll_diagnostics = true,
     },
     
-    .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 },
+    .num_diag_moments = 1,
+    .diag_moments = { GKYL_F_MOMENT_LTE },
   };
 
   // Second neutral species.
@@ -413,25 +420,31 @@ main(int argc, char **argv)
     },
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
+      // .nu_frac = 1.0, // Collision frequency scaling factor. Default is 1.
+      // .fixed_temp_relax = true, // Energy conservation through BGK collisions.
+      // .is_implicit = true, // Implicit time-stepping for BGK collisions.
+      // Self collisions
       .self_nu = evalNeut2Nu,
       .self_nu_ctx = &ctx,
+      // Cross collisions
       .num_cross_collisions = 1,
       .collide_with = { "neut1" },
       .cross_nu = { evalNeut2CrossNu },
       .cross_nu_ctx = { &ctx },
       // Reference values for Coulomb logarithm
-      .den_ref = ctx.n0_neut2,
+      .den_ref = ctx.n_neut2,
       .temp_ref = ctx.mass_neut2*ctx.vt_neut2*ctx.vt_neut2,
       // Write collisional diagnostics
       // .write_coll_diagnostics = true,
     },
     
-    .num_diag_moments = 3,
-    .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 },
+    .num_diag_moments = 1,
+    .diag_moments = { GKYL_F_MOMENT_LTE },
   };
 
     // Vlasov-Maxwell app.
   struct gkyl_vm app_inp = {
+    .name = "vlasov_lbo_crossRelax_1x1v_p2",
 
     .cdim = 1, .vdim = 1,
     .lower = { 0.0 },
@@ -458,8 +471,6 @@ main(int argc, char **argv)
   };
 
   // Create app object.
-  // Set app output name from the executable name (argv[0]).
-  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&app_inp);
 
   // Initial and final simulation times.
