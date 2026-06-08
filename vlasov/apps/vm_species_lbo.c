@@ -394,7 +394,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         struct gkyl_array *cross_nu_ho = mkarr(false, app->basis.num_basis, app->local_ext.volume);
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
           gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-            app->poly_order+1, 1, vms->info.collisions.cross_nu[i], vms->info.collisions.cross_nu_ctx);
+            app->poly_order+1, 1, vms->info.collisions.cross_nu[i], vms->info.collisions.cross_nu_ctx[i]);
           gkyl_proj_on_basis_advance(proj, 0.0, &app->local, cross_nu_ho);
           gkyl_proj_on_basis_release(proj);
           gkyl_array_copy(lbo->cross_nu[i], cross_nu_ho);

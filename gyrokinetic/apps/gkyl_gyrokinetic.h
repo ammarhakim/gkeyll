@@ -14,7 +14,20 @@
 
 #include <stdbool.h>
 
+
 // Parameters for projection
+struct gkyl_gyrokinetic_ic_import {
+  // Inputs to initialize the species with the distribution from a file (f_in)
+  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
+  enum gkyl_ic_import_type type;
+  char file_name[128]; // Name of file that contains IC, J*f_in.
+  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
+  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
+  bool enforce_positivity; // =true sets f to 0 where it was negative.
+  void *conf_scale_ctx;
+  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
+};
+
 struct gkyl_gyrokinetic_projection {
   enum gkyl_projection_id proj_id; // type of projection (see gkyl_eqn_type.h)
   enum gkyl_quad_type quad_type; // quadrature scheme to use: defaults to Gaussian
@@ -42,6 +55,15 @@ struct gkyl_gyrokinetic_projection {
       void *ctx_temppar;
       void (*tempperp)(double t, const double *xn, double *fout, void *ctx);
       void *ctx_tempperp;
+
+      // Optionally read primitive moments from files.
+      struct gkyl_gyrokinetic_ic_import maxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import bimaxwellian_moms_import;
+      struct gkyl_gyrokinetic_ic_import density_import;
+      struct gkyl_gyrokinetic_ic_import upar_import;
+      struct gkyl_gyrokinetic_ic_import temp_import;
+      struct gkyl_gyrokinetic_ic_import temppar_import;
+      struct gkyl_gyrokinetic_ic_import tempperp_import;
 
       // For kinetic neutrals, specify density, drift velocity (udrift) and
       // temperature, and their context, if projecting a Maxwellian.
@@ -84,6 +106,8 @@ struct gkyl_gyrokinetic_collisionless {
 struct gkyl_gyrokinetic_collisions {
   enum gkyl_collision_id collision_id; // type of collisions (see gkyl_eqn_type.h)
   bool write_diagnostics; // Whether to output diagnostics.
+  bool not_in_dfdt; // If true, the collision operator will not be added to df/dt.
+    // Used to ignore the collisional updates of this species, while updating cross-species collisions.
 
   double nu_frac; // Rescales collision frequencies (default = 1).
 
@@ -257,12 +281,14 @@ enum gkyl_gk_species_scaling_type {
   GKYL_GK_SPECIES_SCALING_NONE = 0, // No scaling.
   GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE, // Balance between recycling and ionization.
   GKYL_GK_SPECIES_SCALING_FIXED_FRACTION, // Maintains fixed fraction relative to another species.
+  GKYL_GK_SPECIES_SCALING_BOLTZMANN, // n_s = n_{s,sheath}*exp(-q_s*(phi-phi_sheath)/T_s).
 };
 
-// Input parameters for scaling a species according to recycling at specified
-// boundaries balanced by reactions.
-struct gkyl_gyrokinetic_recycling_reaction_scaling_inp {
+// Input parameters for scaling a species every time step.
+struct gkyl_gyrokinetic_scaling_inp {
   enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
+
+  // Info for GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE.
   int num_boundaries; // Number of boundaries.
   int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
   enum gkyl_edge_loc boundaries_edge[GKYL_MAX_CDIM*2]; // Edge of boundaries.
@@ -270,6 +296,11 @@ struct gkyl_gyrokinetic_recycling_reaction_scaling_inp {
   enum gkyl_ion_type impacting_ion_id; // Type of impacting ion.
   char electron_name[128]; // Name of electron species.
   double recycling_coeff; // Recycling coefficient.
+  
+  // Info for GKYL_GK_SPECIES_SCALING_FIXED_FRACTION.
+  char ref_species_name[128]; // Name of reference species.
+  double fixed_fraction; // Fraction of reference species density.
+
   bool write_diagnostics; // Whether to write diagnostics.
 };
 
@@ -279,19 +310,6 @@ struct gkyl_gyrokinetic_flr {
   double Tperp; // Perp temperature used to evaluate gyroradius. 
   double bmag; // Magnetic field used to evaluate gyroradius. If not provided
                // it'll use B in the center of the domain.
-};
-
-struct gkyl_gyrokinetic_ic_import {
-  // Inputs to initialize the species with the distribution from a file (f_in)
-  // and to modify that distribution such that f = alpha(x)*f_in+beta(x,v).
-  enum gkyl_ic_import_type type;
-  char file_name[128]; // Name of file that contains IC, J*f_in.
-  char jacobtot_inv_file_name[128]; // Name of file that contains 1/Jacobian. Used to get f from Jf.
-  char jacobvel_file_name[128]; // Name of file that contains the velocity-space Jacobian.
-  bool enforce_positivity; // =true sets f to 0 where it was negative.
-  void *conf_scale_ctx;
-  void (*conf_scale)(double t, const double *xn, double *fout, void *ctx); // alpha(x).
-  struct gkyl_gyrokinetic_projection phase_add; // beta(x,v).
 };
 
 struct gkyl_gyrokinetic_correct_inp {
@@ -416,6 +434,9 @@ struct gkyl_gyrokinetic_species {
   // Reactions with neutral species.
   struct gkyl_gyrokinetic_react react_neut;
 
+  // Inputs to operation that scales the species every time step.
+  struct gkyl_gyrokinetic_scaling_inp scaling;
+
   // Boundary conditions.
   struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 };
@@ -466,9 +487,8 @@ struct gkyl_gyrokinetic_neut_species {
 
   double gas_gamma; // Adiabatic index (fluid neutrals).
 
-  // Inputs to operation that scales the species according to a balance of
-  // recycling and reactions.
-  struct gkyl_gyrokinetic_recycling_reaction_scaling_inp recycling_reaction_scaling;
+  // Inputs to operation that scales the species every time step.
+  struct gkyl_gyrokinetic_scaling_inp scaling;
 };
 
 // Parameter for gk field.
@@ -490,6 +510,7 @@ struct gkyl_gyrokinetic_field {
   // Initial potential used to compute the total polarization density.
   void (*polarization_potential)(double t, const double *xn, double *out, void *ctx);
   void *polarization_potential_ctx;
+  struct gkyl_gyrokinetic_ic_import polarization_potential_import;
 
   // Interface to read a potential from file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
