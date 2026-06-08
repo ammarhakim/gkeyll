@@ -164,6 +164,8 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_array_release(m0r);
   gkyl_array_release(vtsqr);
   gkyl_array_release(nu);
+  gkyl_array_release(nu_ho);
+  gkyl_array_release(nuA_ho);
   gkyl_array_release(m0s_ho);
   gkyl_array_release(vtsqs_ho);
   gkyl_array_release(m0r_ho);
@@ -326,6 +328,8 @@ test_2x(int poly_order, bool use_gpu)
   gkyl_array_release(m0r);
   gkyl_array_release(vtsqr);
   gkyl_array_release(nu);
+  gkyl_array_release(nu_ho);
+  gkyl_array_release(nuA_ho);
   gkyl_array_release(m0s_ho);
   gkyl_array_release(vtsqs_ho);
   gkyl_array_release(m0r_ho);
@@ -383,7 +387,7 @@ test_3x(int poly_order, bool use_gpu)
 {
   double Lx = 2.*M_PI, Ly = 8.*M_PI, Lz = 4.*M_PI;
   double lower[] = {-Lx/2., -Ly/2., -Lz/2.}, upper[] = {Lx/2., Ly/2., Lz/2.};
-  int cells[] = {32, 128, 64};
+  int cells[] = {32, 48, 48};
 
   double norm_nu = 1./3.;
 
@@ -490,6 +494,8 @@ test_3x(int poly_order, bool use_gpu)
   gkyl_array_release(m0r);
   gkyl_array_release(vtsqr);
   gkyl_array_release(nu);
+  gkyl_array_release(nu_ho);
+  gkyl_array_release(nuA_ho);
   gkyl_array_release(m0s_ho);
   gkyl_array_release(vtsqs_ho);
   gkyl_array_release(m0r_ho);

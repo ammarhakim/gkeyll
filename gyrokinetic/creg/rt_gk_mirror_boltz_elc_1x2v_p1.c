@@ -506,7 +506,7 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   int Nz = 32;
   int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 48;  // Number of cells in the mu direction 192
+  int Nmu = 16;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
   double t_end = 1.0e-7;
@@ -634,6 +634,17 @@ int main(int argc, char **argv)
 
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
+      .write_diagnostics = true,
+    },
+    
+    .time_rate_multiplier = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+        .cfl_factor_times_omega_max = 0.1,
+      },
     },
 
     .collisions =  {
@@ -667,6 +678,7 @@ int main(int argc, char **argv)
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
 
+    .write_omega_cfl = true,
     .num_diag_moments = 7,
     .diag_moments = {GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, GKYL_F_MOMENT_M3PAR, GKYL_F_MOMENT_M3PERP},
   };
@@ -771,6 +783,8 @@ int main(int argc, char **argv)
     },
     .print_verbosity = {
       .enabled = true,
+      .frequency = 1.0,
+      .disable_timings = true,
     },
   };
 

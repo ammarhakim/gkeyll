@@ -54,10 +54,6 @@ write_geometry(gk_geometry *up, struct gkyl_rect_grid grid, struct gkyl_basis ba
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot, fileNm);
   sprintf(fileNm, fmt, name, "jacobtot_inv");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.jacobtot_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv, fileNm);
-  sprintf(fileNm, fmt, name, "bmag_inv_sq");
-  gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.bmag_inv_sq, fileNm);
   sprintf(fileNm, fmt, name, "gxxj");
   gkyl_grid_sub_array_write(&grid, &local, 0,  up->geo_int.gxxj, fileNm);
   sprintf(fileNm, fmt, name, "gxyj");
@@ -151,6 +147,8 @@ test_ltx_miller()
 
   end = clock();
   cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+  gkyl_position_map_release(pmap);
 }
 
 

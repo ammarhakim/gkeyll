@@ -358,7 +358,8 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, app->cdim-1, GKYL_LOWER_EDGE);
   struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(s->info.bcs, 2*app->cdim, app->cdim-1, GKYL_UPPER_EDGE);
   // Apply periodicity condition if both edges are IWL.
-  fg_ctx.is_dir_periodic[app->cdim-1] = (bc_lo->type == GKYL_BC_GK_SPECIES_IWL && bc_up->type == GKYL_BC_GK_SPECIES_IWL);
+  fg_ctx.is_dir_periodic[app->cdim-1] = (bc_lo->type == GKYL_BC_GK_SPECIES_IWL && bc_up->type == GKYL_BC_GK_SPECIES_IWL)
+    || (bc_lo->type == GKYL_BC_GK_SPECIES_TWISTSHIFT && bc_up->type == GKYL_BC_GK_SPECIES_TWISTSHIFT);
   
   // Set periodicity also according to the global app settings.
   for (int i=0; i < app->num_periodic_dir; ++i)
@@ -410,7 +411,8 @@ init_maxwellian_gaussian(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
   double vdim_phys = s->info.vdim == 1? 1.0 : 3.0;
   double temp = inp.total_num_particles == 0 ? inp.temp_max/2.0 : 2./vdim_phys * inp.total_kin_energy/inp.total_num_particles;
   temp = temp > inp.temp_max ? inp.temp_max : temp; // saturate to max temperature.
-  gkyl_array_shiftc(proj->prim_moms, temp/s->info.mass, 2*app->basis.num_basis);
+  double dg_norm = pow(sqrt(2.0), app->cdim);
+  gkyl_array_shiftc(proj->prim_moms, dg_norm * temp/s->info.mass, 2*app->basis.num_basis);
   // Moment correction
   proj->correct_all_moms = inp.correct_all_moms;
 }

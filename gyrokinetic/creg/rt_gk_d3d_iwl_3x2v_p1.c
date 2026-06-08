@@ -33,6 +33,7 @@ struct gk_app_ctx {
   double x_LCFS; // Radial location of the last closed flux surface.
   double x_inner; // Domain size inside the separatrix.
 
+  double side_wall_bias; // Potential of the side wall.
   // Plasma parameters.
   double me; double qe;
   double mi; double qi;
@@ -484,6 +485,8 @@ create_ctx(void)
   double a_mid = fabs(a_shift)<1e-13? R_LCFSmid-R_axis :
     R_axis/a_shift - sqrt(R_axis*(R_axis - 2*a_shift*R_LCFSmid + 2*a_shift*R_axis))/a_shift;
 
+  double side_wall_bias = 0.0; // Potential of the side wall.
+
   double r0 = R0-R_axis; // Minor radius of the simulation box [m].
   double B0 = B_axis*(R_axis/R0); // Magnetic field magnitude in the simulation box [T].
   double kappa = 1.35; // Elongation (=1 for no elongation).
@@ -567,6 +570,7 @@ create_ctx(void)
     .kappa = kappa,
     .delta = delta,
     .q0 = q0,
+    .side_wall_bias = side_wall_bias,
     .Cy = Cy,
     .Lx = Lx,
     .Ly = Ly,
@@ -817,25 +821,32 @@ main(int argc, char **argv)
     },
   };
 
-  struct gkyl_poisson_bias_plane target_corner_bc = {
-    .dir = 0, // Direction perpendicular to the plane.
-    .loc = ctx.x_LCFS, // Location of the plane in the 'dir' dimension.
-    .val = 0.0, // Biasing value.
+  struct gkyl_poisson_bias_line target_corner_bcs[] = {
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_min}, // Coordinates of the line in perpendicular directions.
+     .val = ctx.side_wall_bias, // Biasing value.
+    },
+    {
+     .perp_dirs = {0, 2}, // Directions perpendicular to line.
+     .perp_coords = {ctx.x_LCFS, ctx.z_max}, // Coordinates of the line in perpendicular directions.
+     .val = ctx.side_wall_bias, // Biasing value.
+    },
   };
-  
-  struct gkyl_poisson_bias_plane_list bias_plane_list = {
-    .num_bias_plane = 1,
-    .bp = &target_corner_bc,
+
+  struct gkyl_poisson_bias_line_list bias_line_list = {
+    .num_bias_line = 2,
+    .bl = target_corner_bcs,
   };
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES_IWL,
+    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {ctx.side_wall_bias} },
     },
-    .bias_plane_list = &bias_plane_list,
+    .bias_line_list = &bias_line_list,
     .time_rate_diagnostics = true,
   };
 
