@@ -9,6 +9,7 @@ Usage:
 import os
 import sys
 import glob
+import argparse
 import numpy as np
 import postgkyl as pg
 
@@ -279,14 +280,22 @@ def convert_np_to_gkyl(inp_dir, filename, N, dims, lower, upper, output_dir=None
 
 
 if __name__ == '__main__':
+      parser = argparse.ArgumentParser(description="Convert .npy files from DESC to .gkyl format.")
+      parser.add_argument("input_dir", help="Path to directory containing .npy files from get_field_coords.py")
+      parser.add_argument("output_dir", help="Path to output directory for .gkyl files")
+      args = parser.parse_args()
+
+      inp_dir = args.input_dir
+      out_dir = args.output_dir
+
       nfp = 5 # set to 1 or 5 depending on what NFP in DESC code was set to
       lower = [0, 0, 0]
       upper = [1, 2*np.pi, (2*np.pi)/nfp]
-      
+
       num_rho = 10   #5
       num_alpha = 50 # 20
       num_zeta = 7 # 7
-      
+
       dims_corner = [num_rho, num_alpha, num_zeta]
       dims_S1 = [num_rho, 2*(num_alpha-1), 2*(num_zeta-1)]
       dims_S2 = [2*(num_rho-1), num_alpha, 2*(num_zeta-1)]
@@ -297,14 +306,11 @@ if __name__ == '__main__':
       N_s2 = 2*(num_rho-1) * num_alpha * 2*(num_zeta-1)
       N_s3 = 2*(num_rho-1) * 2*(num_alpha-1) * num_zeta
       N_i = 2*(num_rho-1) * 2*(num_alpha-1) * 2*(num_zeta-1)
-      
-      out_dir = "./W7X_DESC_GEOMETRY"
-      inp_dir = "../../../DESC/W7-X_field-aligned_coords/"
-      
+
       convert_np_to_gkyl(inp_dir, "raz_corner.npy", N_corner, dims_corner, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "rzp_corner.npy", N_corner, dims_corner, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "Bmag_corner.npy", N_corner, dims_corner, lower, upper, out_dir)
-      
+
       convert_np_to_gkyl(inp_dir, "tangents_I.npy", N_i, dims_I, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "Bmag_I.npy", N_i, dims_I, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_I.npy", N_i, dims_I, lower, upper, out_dir)
@@ -312,14 +318,13 @@ if __name__ == '__main__':
 
       convert_np_to_gkyl(inp_dir, "tangents_S1.npy", N_s1, dims_S1, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "Bmag_S1.npy", N_s1, dims_S1, lower, upper, out_dir)
-      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S1.npy", N_s1, dims_S1, lower, upper, out_dir)      
+      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S1.npy", N_s1, dims_S1, lower, upper, out_dir)
 
       convert_np_to_gkyl(inp_dir, "tangents_S2.npy", N_s2, dims_S2, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "Bmag_S2.npy", N_s2, dims_S2, lower, upper, out_dir)
-      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S2.npy", N_s2, dims_S2, lower, upper, out_dir) 
-      
+      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S2.npy", N_s2, dims_S2, lower, upper, out_dir)
+
       convert_np_to_gkyl(inp_dir, "tangents_S3.npy", N_s3, dims_S3, lower, upper, out_dir)
       convert_np_to_gkyl(inp_dir, "Bmag_S3.npy", N_s3, dims_S3, lower, upper, out_dir)
-      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S3.npy", N_s3, dims_S3, lower, upper, out_dir)            
-      
-      
+      convert_np_to_gkyl(inp_dir, "curl_B_hat_xyz_S3.npy", N_s3, dims_S3, lower, upper, out_dir)
+

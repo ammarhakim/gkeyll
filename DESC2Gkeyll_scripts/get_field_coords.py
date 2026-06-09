@@ -1,12 +1,13 @@
 import os
 import time
+import argparse
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 import jax
 import jax.numpy as jnp
 
-from desc.examples import get
+from desc.io import load
 from desc.grid import LinearGrid, Grid
 from desc.utils import rpz2xyz, rpz2xyz_vec, xyz2rpz
 from desc.compute.utils import _compute as compute_fun, get_transforms, get_profiles, get_params
@@ -467,10 +468,15 @@ def compute_gkeyll_nodes(raz, eq, node_type = "corner"):
         return tangents, Bmag, curl_B_hat_xyz, b_xyz
 
 def main():
+    parser = argparse.ArgumentParser(description="Compute field-aligned coordinates from a DESC equilibrium.")
+    parser.add_argument("eq_file", help="Path to a DESC equilibrium file (H5)")
+    parser.add_argument("out_dir", help="Path to output directory for .npy files")
+    args = parser.parse_args()
+
     start_time = time.time()
-    # Load example equilibrium
-    name = "W7-X" 
-    eq = get(name)
+    # Load equilibrium from file
+    out_dir = args.out_dir
+    eq = load(args.eq_file)
     # Desired grid sizes
     num_rho = 10
     num_alpha = 50
@@ -531,7 +537,7 @@ def main():
     print(f"Finished computing interior nodes in {t9 - t8:.2f} seconds")
     
     # Output directory
-    out_dir = os.path.join(os.getcwd(), name+"_field-aligned_coords")
+    out_dir = os.path.join(os.getcwd(), out_dir)
     os.makedirs(out_dir, exist_ok=True)
 
     # Organize all arrays: {array_name: {suffix: array}}
