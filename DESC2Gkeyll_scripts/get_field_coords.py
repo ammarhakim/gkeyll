@@ -7,11 +7,15 @@ from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
 import jax
 import jax.numpy as jnp
 
-from desc.io import load
-from desc.grid import LinearGrid, Grid
-from desc.utils import rpz2xyz, rpz2xyz_vec, xyz2rpz
-from desc.compute.utils import _compute as compute_fun, get_transforms, get_profiles, get_params
-from desc.backend import root, jit, vmap
+try:
+    from desc.io import load
+    from desc.grid import LinearGrid, Grid
+    from desc.utils import rpz2xyz, rpz2xyz_vec, xyz2rpz
+    from desc.compute.utils import _compute as compute_fun, get_transforms, get_profiles, get_params
+    from desc.backend import root, jit, vmap
+except ImportError:
+    print("Failed to import DESC. Activate DESC environment (e.g. conda activate DESC)")
+    exit(1)
 
 
 def _rpz_to_rtz(eq, rpz, params=None, guess=None, tol=1e-6, maxiter=30):

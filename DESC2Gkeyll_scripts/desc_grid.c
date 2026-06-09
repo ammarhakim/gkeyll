@@ -1,4 +1,3 @@
-#include <acutest.h>
 #include <stdio.h>
 #include <math.h>
 #include <sys/stat.h>
@@ -9,25 +8,40 @@
 #include <gkyl_array.h>
 #include <gkyl_array_rio.h>
 #include <gkyl_basis.h>
+#include <gkyl_elem_type.h>
 #include <gkyl_gk_geometry.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 
-// Private headers (for test files)
-#include <gkyl_app_priv.h>
-#include <gkyl_elem_type_priv.h>
+// Inlined from gkyl_app_priv.h (not installed as a public header)
+static struct gkyl_array*
+mkarr(bool on_gpu, long nc, long size)
+{
+  struct gkyl_array* a;
+  if (on_gpu)
+    a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
+  else
+    a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return a;
+}
+
+// Inlined from gkyl_elem_type_priv.h (not installed as a public header)
+static const size_t gkyl_elem_type_size[] = {
+  [GKYL_INT] = sizeof(int),
+  [GKYL_FLOAT] = sizeof(float),
+  [GKYL_DOUBLE] = sizeof(double),
+  [GKYL_INT_64] = sizeof(int64_t),
+  [GKYL_USER] = 1,
+};
 
 // Static function to load a .gkyl file and return the data array as nodal grid
 // Assumes the file is already nodal (grid.cells represents nodes, not computational cells)
-// (static means it doesn't need a header file - only visible in this file)
 static struct gkyl_array*
-load_gkyl_file_to_nodal(const char *filename)
+load_gkyl_file_to_nodal(const char *inp_dir, const char *filename)
 {
-    // Prepend relative path to data directory
-    // Test is run from gkeyll/ directory, so path is relative to there
     char fullpath[512];
-    snprintf(fullpath, sizeof(fullpath), "W7X_DESC_GEOMETRY/%s", filename);
+    snprintf(fullpath, sizeof(fullpath), "%s/%s", inp_dir, filename);
 
     // Step 1: Read header to get grid info and number of components
     struct gkyl_rect_grid grid;
@@ -65,17 +79,27 @@ load_gkyl_file_to_nodal(const char *filename)
     return data_array;
 }
 
-void test_3xp1(){
+int main(int argc, char *argv[]){
+    if (argc != 3) {
+        fprintf(stderr, "Usage: %s <input_dir> <name>\n", argv[0]);
+        fprintf(stderr, "  input_dir: directory containing .gkyl files from numpy-to-gkyl.py\n");
+        fprintf(stderr, "  name: name prefix for output files (output dir: <name>_geometry)\n");
+        return 1;
+    }
+    const char *inp_dir = argv[1];
+    const char *name = argv[2];
+
+    // Construct output directory from name
+    char output_dir[512];
+    snprintf(output_dir, sizeof(output_dir), "%s_geometry", name);
+
     //Load in all corner files and calculate derived quantities
-    struct gkyl_array* bmag_corner_nodal = load_gkyl_file_to_nodal("Bmag_corner.gkyl");
-    struct gkyl_array* mc2nu_pos_corner_nodal = load_gkyl_file_to_nodal("raz_corner.gkyl"); // change back to raz
-    struct gkyl_array* mc2p_corner_nodal = load_gkyl_file_to_nodal("rzp_corner.gkyl");
-    // Check for NULL pointers (file loading failures)
-    TEST_CHECK(bmag_corner_nodal != NULL);
-    TEST_CHECK(mc2nu_pos_corner_nodal != NULL);
-    TEST_CHECK(mc2p_corner_nodal != NULL);
+    struct gkyl_array* bmag_corner_nodal = load_gkyl_file_to_nodal(inp_dir, "Bmag_corner.gkyl");
+    struct gkyl_array* mc2nu_pos_corner_nodal = load_gkyl_file_to_nodal(inp_dir, "raz_corner.gkyl");
+    struct gkyl_array* mc2p_corner_nodal = load_gkyl_file_to_nodal(inp_dir, "rzp_corner.gkyl");
     if (!bmag_corner_nodal || !mc2p_corner_nodal || !mc2nu_pos_corner_nodal) {
-        return; // Exit early if files failed to load
+        fprintf(stderr, "Failed to load corner files from %s\n", inp_dir);
+        return 1;
     }
     
     // Load grid structure from one of the corner files to get proper dimensions
@@ -83,11 +107,11 @@ void test_3xp1(){
     struct gkyl_rect_grid grid_corner;
     struct gkyl_array_header_info hdr_corner;
     char fullpath_corner[512];
-    snprintf(fullpath_corner, sizeof(fullpath_corner), "W7X_DESC_GEOMETRY/Bmag_corner.gkyl");
+    snprintf(fullpath_corner, sizeof(fullpath_corner), "%s/Bmag_corner.gkyl", inp_dir);
     enum gkyl_array_rio_status status_corner = gkyl_grid_sub_array_header_read(&grid_corner, &hdr_corner, fullpath_corner);
     if (status_corner != GKYL_ARRAY_RIO_SUCCESS) {
         fprintf(stderr, "Failed to load grid from: %s\n", fullpath_corner);
-        return;
+        return 1;
     }
          
     struct gkyl_range nrange_corner;
@@ -101,17 +125,13 @@ void test_3xp1(){
     gkyl_array_header_info_release(&hdr_corner);
 
     // Do for interior
-    struct gkyl_array* dxdz_interior_nodal = load_gkyl_file_to_nodal("tangents_I.gkyl"); 
-    struct gkyl_array* bmag_interior_nodal = load_gkyl_file_to_nodal("Bmag_I.gkyl");
-    struct gkyl_array* curlbhat_interior_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_I.gkyl");
-    struct gkyl_array* bcart_interior_nodal = load_gkyl_file_to_nodal("b_xyz_I.gkyl");
-    // LOAD IN bcart_interior_nodal from DESC data
-    TEST_CHECK(dxdz_interior_nodal != NULL);
-    TEST_CHECK(bmag_interior_nodal != NULL);
-    TEST_CHECK(curlbhat_interior_nodal != NULL);
-    TEST_CHECK(bcart_interior_nodal != NULL);
+    struct gkyl_array* dxdz_interior_nodal = load_gkyl_file_to_nodal(inp_dir, "tangents_I.gkyl");
+    struct gkyl_array* bmag_interior_nodal = load_gkyl_file_to_nodal(inp_dir, "Bmag_I.gkyl");
+    struct gkyl_array* curlbhat_interior_nodal = load_gkyl_file_to_nodal(inp_dir, "curl_B_hat_xyz_I.gkyl");
+    struct gkyl_array* bcart_interior_nodal = load_gkyl_file_to_nodal(inp_dir, "b_xyz_I.gkyl");
     if (!dxdz_interior_nodal || !bmag_interior_nodal || !curlbhat_interior_nodal || !bcart_interior_nodal) {
-        return;
+        fprintf(stderr, "Failed to load interior files from %s\n", inp_dir);
+        return 1;
     }
     
     // Load grid structure from one of the interior files to get proper dimensions
@@ -119,11 +139,11 @@ void test_3xp1(){
     struct gkyl_rect_grid grid_interior;
     struct gkyl_array_header_info hdr_interior;
     char fullpath_interior[512];
-    snprintf(fullpath_interior, sizeof(fullpath_interior), "W7X_DESC_GEOMETRY/Bmag_I.gkyl");
+    snprintf(fullpath_interior, sizeof(fullpath_interior), "%s/Bmag_I.gkyl", inp_dir);
     enum gkyl_array_rio_status status_interior = gkyl_grid_sub_array_header_read(&grid_interior, &hdr_interior, fullpath_interior);
     if (status_interior != GKYL_ARRAY_RIO_SUCCESS) {
         fprintf(stderr, "Failed to load grid from: %s\n", fullpath_interior);
-        return;
+        return 1;
     }
     
     struct gkyl_range nrange_interior;
@@ -370,35 +390,32 @@ void test_3xp1(){
 
 
     // Do again for surfaces
-    struct gkyl_array* dxdz_surface1_nodal = load_gkyl_file_to_nodal("tangents_S1.gkyl");
-    struct gkyl_array* bmag_surface1_nodal = load_gkyl_file_to_nodal("Bmag_S1.gkyl");
-    struct gkyl_array* curlbhat_surface1_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S1.gkyl");
-    struct gkyl_array* dxdz_surface2_nodal = load_gkyl_file_to_nodal("tangents_S2.gkyl");
-    struct gkyl_array* bmag_surface2_nodal = load_gkyl_file_to_nodal("Bmag_S2.gkyl");
-    struct gkyl_array* curlbhat_surface2_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S2.gkyl");
-    struct gkyl_array* dxdz_surface3_nodal = load_gkyl_file_to_nodal("tangents_S3.gkyl");
-    struct gkyl_array* bmag_surface3_nodal = load_gkyl_file_to_nodal("Bmag_S3.gkyl");
-    struct gkyl_array* curlbhat_surface3_nodal = load_gkyl_file_to_nodal("curl_B_hat_xyz_S3.gkyl");
-    
-    // Check all surface arrays loaded successfully
-    TEST_CHECK(dxdz_surface1_nodal != NULL && bmag_surface1_nodal != NULL && curlbhat_surface1_nodal != NULL);
-    TEST_CHECK(dxdz_surface2_nodal != NULL && bmag_surface2_nodal != NULL && curlbhat_surface2_nodal != NULL);
-    TEST_CHECK(dxdz_surface3_nodal != NULL && bmag_surface3_nodal != NULL && curlbhat_surface3_nodal != NULL);
+    struct gkyl_array* dxdz_surface1_nodal = load_gkyl_file_to_nodal(inp_dir, "tangents_S1.gkyl");
+    struct gkyl_array* bmag_surface1_nodal = load_gkyl_file_to_nodal(inp_dir, "Bmag_S1.gkyl");
+    struct gkyl_array* curlbhat_surface1_nodal = load_gkyl_file_to_nodal(inp_dir, "curl_B_hat_xyz_S1.gkyl");
+    struct gkyl_array* dxdz_surface2_nodal = load_gkyl_file_to_nodal(inp_dir, "tangents_S2.gkyl");
+    struct gkyl_array* bmag_surface2_nodal = load_gkyl_file_to_nodal(inp_dir, "Bmag_S2.gkyl");
+    struct gkyl_array* curlbhat_surface2_nodal = load_gkyl_file_to_nodal(inp_dir, "curl_B_hat_xyz_S2.gkyl");
+    struct gkyl_array* dxdz_surface3_nodal = load_gkyl_file_to_nodal(inp_dir, "tangents_S3.gkyl");
+    struct gkyl_array* bmag_surface3_nodal = load_gkyl_file_to_nodal(inp_dir, "Bmag_S3.gkyl");
+    struct gkyl_array* curlbhat_surface3_nodal = load_gkyl_file_to_nodal(inp_dir, "curl_B_hat_xyz_S3.gkyl");
+
     if (!dxdz_surface1_nodal || !bmag_surface1_nodal || !curlbhat_surface1_nodal ||
         !dxdz_surface2_nodal || !bmag_surface2_nodal || !curlbhat_surface2_nodal ||
         !dxdz_surface3_nodal || !bmag_surface3_nodal || !curlbhat_surface3_nodal) {
-        return;
+        fprintf(stderr, "Failed to load surface files from %s\n", inp_dir);
+        return 1;
     }
     // Load grid structures for each surface separately (they may have different dimensions)
     // Surface 1
     struct gkyl_rect_grid grid_surface1;
     struct gkyl_array_header_info hdr_surface1;
     char fullpath_surface1[512];
-    snprintf(fullpath_surface1, sizeof(fullpath_surface1), "W7X_DESC_GEOMETRY/Bmag_S1.gkyl");
+    snprintf(fullpath_surface1, sizeof(fullpath_surface1), "%s/Bmag_S1.gkyl", inp_dir);
     enum gkyl_array_rio_status status_surface1 = gkyl_grid_sub_array_header_read(&grid_surface1, &hdr_surface1, fullpath_surface1);
     if (status_surface1 != GKYL_ARRAY_RIO_SUCCESS) {
         fprintf(stderr, "Failed to load grid from: %s\n", fullpath_surface1);
-        return;
+        return 1;
     }
     struct gkyl_range nrange_surface1;
     int nlower_surface1[GKYL_MAX_DIM] = {0, 0, 0};
@@ -413,7 +430,7 @@ void test_3xp1(){
         curlbhat_surface1_nodal->size != nrange_surface1.volume) {
         fprintf(stderr, "ERROR: surface1 arrays size mismatch\n");
         gkyl_array_header_info_release(&hdr_surface1);
-        return;
+        return 1;
     }
     gkyl_array_header_info_release(&hdr_surface1);
 
@@ -422,11 +439,11 @@ void test_3xp1(){
     struct gkyl_rect_grid grid_surface2;
     struct gkyl_array_header_info hdr_surface2;
     char fullpath_surface2[512];
-    snprintf(fullpath_surface2, sizeof(fullpath_surface2), "W7X_DESC_GEOMETRY/Bmag_S2.gkyl");
+    snprintf(fullpath_surface2, sizeof(fullpath_surface2), "%s/Bmag_S2.gkyl", inp_dir);
     enum gkyl_array_rio_status status_surface2 = gkyl_grid_sub_array_header_read(&grid_surface2, &hdr_surface2, fullpath_surface2);
     if (status_surface2 != GKYL_ARRAY_RIO_SUCCESS) {
         fprintf(stderr, "Failed to load grid from: %s\n", fullpath_surface2);
-        return;
+        return 1;
     }
     struct gkyl_range nrange_surface2;
     int nlower_surface2[GKYL_MAX_DIM] = {0, 0, 0};
@@ -441,7 +458,7 @@ void test_3xp1(){
         curlbhat_surface2_nodal->size != nrange_surface2.volume) {
         fprintf(stderr, "ERROR: surface2 arrays size mismatch\n");
         gkyl_array_header_info_release(&hdr_surface2);
-        return;
+        return 1;
     }
     gkyl_array_header_info_release(&hdr_surface2);
     
@@ -449,11 +466,11 @@ void test_3xp1(){
     struct gkyl_rect_grid grid_surface3;
     struct gkyl_array_header_info hdr_surface3;
     char fullpath_surface3[512];
-    snprintf(fullpath_surface3, sizeof(fullpath_surface3), "W7X_DESC_GEOMETRY/Bmag_S3.gkyl");
+    snprintf(fullpath_surface3, sizeof(fullpath_surface3), "%s/Bmag_S3.gkyl", inp_dir);
     enum gkyl_array_rio_status status_surface3 = gkyl_grid_sub_array_header_read(&grid_surface3, &hdr_surface3, fullpath_surface3);
     if (status_surface3 != GKYL_ARRAY_RIO_SUCCESS) {
         fprintf(stderr, "Failed to load grid from: %s\n", fullpath_surface3);
-        return;
+        return 1;
     }
     struct gkyl_range nrange_surface3;
     int nlower_surface3[GKYL_MAX_DIM] = {0, 0, 0};
@@ -468,7 +485,7 @@ void test_3xp1(){
         curlbhat_surface3_nodal->size != nrange_surface3.volume) {
         fprintf(stderr, "ERROR: surface3 arrays size mismatch\n");
         gkyl_array_header_info_release(&hdr_surface3);
-        return;
+        return 1;
     }
     gkyl_array_header_info_release(&hdr_surface3);  
 
@@ -833,54 +850,34 @@ void test_3xp1(){
 
 
 
-    // Debug: Print to both stdout and stderr to ensure we see output
-
-    // Write out all nodal and modal arrays 
-    // Create output directories
-    // Note: Test is run from gkeyll/ directory, so create directories there
-    const char *output_dir = "W7-X_geometry";
-    const char *nodal_dir = "W7X-nodal_modal_arrays/nodal";
-    const char *modal_dir = "W7X-nodal_modal_arrays/modal";
-    
-    // Create directories (must create parent first)
+    // Write out all nodal and modal arrays
+    // Create output directory
     #ifdef _WIN32
         if (_mkdir(output_dir) != 0 && errno != EEXIST) {
-            return; // Exit if we can't create the main directory
-        }
-        if (_mkdir(nodal_dir) != 0 && errno != EEXIST) {
-            return;
-        }
-        if (_mkdir(modal_dir) != 0 && errno != EEXIST) {
-            return;
+            return 1;
         }
     #else
         if (mkdir(output_dir, 0755) != 0 && errno != EEXIST) {
-            return; // Exit if we can't create the main directory
-        }
-        if (mkdir(nodal_dir, 0755) != 0 && errno != EEXIST) {
-            return;
-        }
-        if (mkdir(modal_dir, 0755) != 0 && errno != EEXIST) {
-            return;
+            return 1;
         }
     #endif
-    
+
     // Helper macro to write modal array (cell-centered)
-    #define WRITE_MODAL(grid, comp_range, arr, name) \
+    #define WRITE_MODAL(grid, comp_range, arr, suffix) \
         do { \
             if (arr != NULL) { \
                 char fname[512]; \
-                snprintf(fname, sizeof(fname), "%s/%s.gkyl", output_dir, name); \
+                snprintf(fname, sizeof(fname), "%s/%s-%s.gkyl", output_dir, name, suffix); \
                 gkyl_grid_sub_array_write(grid, comp_range, 0, arr, fname); \
             } \
         } while(0)
-    
+
     // Helper macro to write nodal arrays (actual nodal data, not converted modal)
-    #define WRITE_NODAL(ngrid, nrange, nodal_arr, name) \
+    #define WRITE_NODAL(ngrid, nrange, nodal_arr, suffix) \
         do { \
             if (nodal_arr != NULL) { \
                 char fname[512]; \
-                snprintf(fname, sizeof(fname), "%s/%s.gkyl", output_dir, name); \
+                snprintf(fname, sizeof(fname), "%s/%s-%s.gkyl", output_dir, name, suffix); \
                 gkyl_grid_sub_array_write(ngrid, nrange, 0, nodal_arr, fname); \
             } \
         } while(0)
@@ -995,81 +992,81 @@ void test_3xp1(){
     N2M_CONVERT_SURFACE(nrange_surface3, 1, lenr_surface3_nodal,     lenr_s3_modal, 2);
     printf("DEBUG: Finished surface3 n2m conversions.\n");
     
-    // Write corner nodal arrays 
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2nu_pos_corner_nodal, "W7X-nodes-computational");
-    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2p_corner_nodal, "W7X-nodes");
-     
-     // Write corner modal arrays 
-    WRITE_MODAL(&grid_modal, &modal_range, mc2nu_pos_corner_modal, "W7X-mc2nu_pos");
-    WRITE_MODAL(&grid_modal, &modal_range, mc2p_corner_modal, "W7X-mapc2p");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_corner_modal, "W7X-bmag_corn");
-    
-    // Write interior modal arrays 
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_interior_modal, "W7X-dxdz");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_interior_modal, "W7X-bmag");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_interior_modal, "W7X-curlbhat");
-    WRITE_MODAL(&grid_modal, &modal_range, bcart_interior_modal, "W7X-bcart");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_interior_modal, "W7X-B3");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_interior_modal, "W7X-b_i");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_interior_modal, "W7X-bmag_inv");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_sq_interior_modal, "W7X-bmag_inv_sq");
-    WRITE_MODAL(&grid_modal, &modal_range, bioverJB_interior_modal, "W7X-bioverJB");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_interior_modal, "W7X-cmag");
-    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhat_interior_modal, "W7X-dualcurlbhat");
-    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhatoverB_interior_modal, "W7X-dualcurlbhatoverB");
-    WRITE_MODAL(&grid_modal, &modal_range, dzdx_interior_modal, "W7X-dzdx");
-    WRITE_MODAL(&grid_modal, &modal_range, eps2_interior_modal, "W7X-eps2");
-    WRITE_MODAL(&grid_modal, &modal_range, g_ij_interior_modal, "W7X-g_ij");
-    WRITE_MODAL(&grid_modal, &modal_range, gij_interior_modal, "W7X-gij");
-    WRITE_MODAL(&grid_modal, &modal_range, gxxj_interior_modal, "W7X-gxxj");
-    WRITE_MODAL(&grid_modal, &modal_range, gxyj_interior_modal, "W7X-gxyj");
-    WRITE_MODAL(&grid_modal, &modal_range, gxzj_interior_modal, "W7X-gxzj");
-    WRITE_MODAL(&grid_modal, &modal_range, gyyj_interior_modal, "W7X-gyyj");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_interior_modal, "W7X-jacobgeo");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_inv_interior_modal, "W7X-jacobgeo_inv");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_interior_modal, "W7X-jacobtot");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_interior_modal, "W7X-jacobtot_inv");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_interior_modal, "W7X-normals");
-    WRITE_MODAL(&grid_modal, &modal_range, rtg33inv_interior_modal, "W7X-rtg33inv");
-    
-    // Write surface 1 modal arrays 
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s1_modal, "W7X-dxdz_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_s1_modal, "W7X-bmag_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s1_modal, "W7X-curlbhat_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_s1_modal, "W7X-B3_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_s1_modal, "W7X-b_i_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_s1_modal, "W7X-cmag_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s1_modal, "W7X-normcurlbhat_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s1_modal, "W7X-jacobgeo_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s1_modal, "W7X-jacobtot_inv_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_s1_modal, "W7X-normals_dir0");
-    WRITE_MODAL(&grid_modal, &modal_range, lenr_s1_modal, "W7X-lenr_dir0");
-    
-    // Write surface 2 modal arrays - use same grid structure as nodal
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s2_modal, "W7X-dxdz_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_s2_modal, "W7X-bmag_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s2_modal, "W7X-curlbhat_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_s2_modal, "W7X-B3_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_s2_modal, "W7X-b_i_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_s2_modal, "W7X-cmag_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s2_modal, "W7X-normcurlbhat_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s2_modal, "W7X-jacobgeo_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s2_modal, "W7X-jacobtot_inv_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_s2_modal, "W7X-normals_dir1");
-    WRITE_MODAL(&grid_modal, &modal_range, lenr_s2_modal, "W7X-lenr_dir1");
-    
-    // Write surface 3 modal arrays - use same grid structure as nodal
-    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s3_modal, "W7X-dxdz_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, bmag_s3_modal, "W7X-bmag_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s3_modal, "W7X-curlbhat_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, B3_s3_modal, "W7X-B3_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, b_i_s3_modal, "W7X-b_i_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, cmag_s3_modal, "W7X-cmag_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s3_modal, "W7X-normcurlbhat_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s3_modal, "W7X-jacobgeo_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s3_modal, "W7X-jacobtot_inv_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, normals_s3_modal, "W7X-normals_dir2");
-    WRITE_MODAL(&grid_modal, &modal_range, lenr_s3_modal, "W7X-lenr_dir2");
+    // Write corner nodal arrays
+    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2nu_pos_corner_nodal, "nodes-computational");
+    WRITE_NODAL(&ngrid_corner, &nrange_corner, mc2p_corner_nodal, "nodes");
+
+    // Write corner modal arrays
+    WRITE_MODAL(&grid_modal, &modal_range, mc2nu_pos_corner_modal, "mc2nu_pos");
+    WRITE_MODAL(&grid_modal, &modal_range, mc2p_corner_modal, "mapc2p");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_corner_modal, "bmag_corn");
+
+    // Write interior modal arrays
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_interior_modal, "dxdz");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_interior_modal, "bmag");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_interior_modal, "curlbhat");
+    WRITE_MODAL(&grid_modal, &modal_range, bcart_interior_modal, "bcart");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_interior_modal, "B3");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_interior_modal, "b_i");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_interior_modal, "bmag_inv");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_inv_sq_interior_modal, "bmag_inv_sq");
+    WRITE_MODAL(&grid_modal, &modal_range, bioverJB_interior_modal, "bioverJB");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_interior_modal, "cmag");
+    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhat_interior_modal, "dualcurlbhat");
+    WRITE_MODAL(&grid_modal, &modal_range, dualcurlbhatoverB_interior_modal, "dualcurlbhatoverB");
+    WRITE_MODAL(&grid_modal, &modal_range, dzdx_interior_modal, "dzdx");
+    WRITE_MODAL(&grid_modal, &modal_range, eps2_interior_modal, "eps2");
+    WRITE_MODAL(&grid_modal, &modal_range, g_ij_interior_modal, "g_ij");
+    WRITE_MODAL(&grid_modal, &modal_range, gij_interior_modal, "gij");
+    WRITE_MODAL(&grid_modal, &modal_range, gxxj_interior_modal, "gxxj");
+    WRITE_MODAL(&grid_modal, &modal_range, gxyj_interior_modal, "gxyj");
+    WRITE_MODAL(&grid_modal, &modal_range, gxzj_interior_modal, "gxzj");
+    WRITE_MODAL(&grid_modal, &modal_range, gyyj_interior_modal, "gyyj");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_interior_modal, "jacobgeo");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_inv_interior_modal, "jacobgeo_inv");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_interior_modal, "jacobtot");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_interior_modal, "jacobtot_inv");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_interior_modal, "normals");
+    WRITE_MODAL(&grid_modal, &modal_range, rtg33inv_interior_modal, "rtg33inv");
+
+    // Write surface 1 modal arrays
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s1_modal, "dxdz_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_s1_modal, "bmag_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s1_modal, "curlbhat_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_s1_modal, "B3_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_s1_modal, "b_i_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_s1_modal, "cmag_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s1_modal, "normcurlbhat_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s1_modal, "jacobgeo_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s1_modal, "jacobtot_inv_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_s1_modal, "normals_dir0");
+    WRITE_MODAL(&grid_modal, &modal_range, lenr_s1_modal, "lenr_dir0");
+
+    // Write surface 2 modal arrays
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s2_modal, "dxdz_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_s2_modal, "bmag_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s2_modal, "curlbhat_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_s2_modal, "B3_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_s2_modal, "b_i_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_s2_modal, "cmag_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s2_modal, "normcurlbhat_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s2_modal, "jacobgeo_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s2_modal, "jacobtot_inv_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_s2_modal, "normals_dir1");
+    WRITE_MODAL(&grid_modal, &modal_range, lenr_s2_modal, "lenr_dir1");
+
+    // Write surface 3 modal arrays
+    WRITE_MODAL(&grid_modal, &modal_range, dxdz_s3_modal, "dxdz_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, bmag_s3_modal, "bmag_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, curlbhat_s3_modal, "curlbhat_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, B3_s3_modal, "B3_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, b_i_s3_modal, "b_i_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, cmag_s3_modal, "cmag_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, normcurlbhat_s3_modal, "normcurlbhat_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobgeo_s3_modal, "jacobgeo_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, jacobtot_inv_s3_modal, "jacobtot_inv_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, normals_s3_modal, "normals_dir2");
+    WRITE_MODAL(&grid_modal, &modal_range, lenr_s3_modal, "lenr_dir2");
 
     // Clean up everything
     // Release corner loaded arrays
@@ -1227,13 +1224,7 @@ void test_3xp1(){
     // Release other resources
     gkyl_nodal_ops_release(n2m);
 
- 
+    printf("Done. Output written to %s/\n", output_dir);
+    return 0;
 }
-
-TEST_LIST = {
-    { "test_3x_p1", test_3xp1},
-    { NULL, NULL },
-  };
-
-
 

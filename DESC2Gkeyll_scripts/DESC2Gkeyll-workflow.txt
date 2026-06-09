@@ -1,7 +1,24 @@
-Step 1: Call get_field_coords.py to produce .npy arrays of all required geometric quantities for a DESC equilibria
-Step 2: Call numpy-to-gkyl.py to convert .npy files into .gkyl files and put them into an output folder
-Step 3: Run ctest_desc_grid.c (found in gyrokinetic/unit/) to gkyl output from step 2 and calculate the rest of the required geometry.
-        Final outputs are stored in {name}_geometry folder ready for use. 
+DESC to Gkeyll Geometry Workflow
+=================================
 
-Optional:
-    plot_* functions can be used to plot and verify geometric quantities.
+Step 1: Extract geometry from DESC equilibrium -> .npy arrays *required having conda env with DESC installed activated
+  python get_field_coords.py <equilibrium.h5> <npy_output_dir>
+
+Step 2: Convert .npy arrays -> .gkyl binary files
+  python numpy-to-gkyl.py <npy_input_dir> <gkyl_output_dir>
+
+Step 3: Compute derived geometry and nodal-to-modal conversion -> final .gkyl files
+  make desc_grid
+  ./desc_grid <gkyl_input_dir> <name>
+  Output goes to <name>_geometry/, files are named <name>-<quantity>.gkyl
+
+Full example (W7-X):
+  conda activate DESC
+  python get_field_coords.py w7x_equilibrium.h5 w7x_npy
+  python numpy-to-gkyl.py w7x_npy w7x_gkyl
+  make desc_grid
+  ./desc_grid w7x_gkyl w7x
+
+  # Final output: w7x_geometry/w7x-bmag.gkyl, w7x-mapc2p.gkyl, etc.
+
+Optional: plot_*.py scripts can verify geometric quantities.
