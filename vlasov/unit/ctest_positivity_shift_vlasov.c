@@ -57,13 +57,13 @@ void eval_distf_1x2v(double t, const double *xn, double* restrict fout, void *ct
 void
 test_1x2v(int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double vx_max = 6.0, vy_max = 6.0;
   double lower[] = {0.0, -vx_max, -vy_max}, upper[] = {1.0, vx_max, vy_max};
   int cells[] = {2, 12, 8};
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
