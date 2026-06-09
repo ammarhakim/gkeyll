@@ -80,6 +80,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     &up->simag, &up->sibry, &up->bcentr, &up-> current, &up->simag, &up->xdum, &up->rmaxis, 
     &up->xdum, &up-> zmaxis, &up->xdum, &up->sibry, &up->xdum, &up->xdum);
 
+  up->psisep = up->sibry;
+  up->psisep_cubic = up->sibry;
 
   // Set zmid to 0 for double null
   if (up->reflect) {
@@ -376,16 +378,6 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   double Rxpt[num_max_xpts];
   double Zxpt[num_max_xpts];
 
-  up->num_xpts = find_xpts(up, Rxpt, Zxpt);
-  up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
-  up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
-  for (int i = 0; i < up->num_xpts; i++) {
-    up->Rxpt[i] = Rxpt[i];
-    up->Zxpt[i] = Zxpt[i];
-    // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
-    //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
-  }
-
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
   up->Rxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
   up->Zxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
@@ -394,6 +386,16 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     up->Zxpt_cubic[i] = Zxpt[i];
     // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
     //  printf("cubic: Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt_cubic[i], i, up->Zxpt_cubic[i], up->psisep_cubic);
+  }
+
+  up->num_xpts = find_xpts(up, up->num_xpts_cubic, up->Rxpt_cubic, up->Zxpt_cubic, Rxpt, Zxpt);
+  up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  for (int i = 0; i < up->num_xpts; i++) {
+    up->Rxpt[i] = Rxpt[i];
+    up->Zxpt[i] = Zxpt[i];
+    // AS 9/24/24 This commented print statement is useful for checking the X-point Locations
+    //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
   }
 
   return up;

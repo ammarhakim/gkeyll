@@ -64,6 +64,12 @@ static inline double dot(const double a[3], const double b[3]) {
   return a[0]*b[0] + a[1]*b[1] + a[2]*b[2];
 }
 
+static inline double
+signed_jacobian_rz(double R, double dRdpsi, double dZdpsi, double dRdtheta, double dZdtheta)
+{
+  return R*(dRdpsi*dZdtheta - dRdtheta*dZdpsi);
+}
+
 static inline void cross(const double a[3], const double b[3], double c[3]) {
   c[0] = a[1]*b[2] - a[2]*b[1];
   c[1] = a[2]*b[0] - a[0]*b[2];
@@ -87,6 +93,8 @@ check_orthonormality(const double tan[9], const double dual[9], bool exit_at_che
     for (int j = 0; j < 3; j++) {
       if ( i==j && prod[i][j] < 0 ) {
         fprintf(stderr, "calc_metric.c: Orthonormality violated : e_%d . e^%d = %.6e\n", i+1, j+1, prod[i][j]);
+        fprintf(stderr, "calc_metric.c: diagonal products = [%.6e, %.6e, %.6e]\n",
+          prod[0][0], prod[1][1], prod[2][2]);
         assert(!exit_at_check);
       }
     }
@@ -432,9 +440,9 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(R*R*(   dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2]
-                              +  dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
-                              -2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] )) ;
+        double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
+        jFld_n[0] = fabs(J);
+        double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -452,10 +460,10 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
 
         double *gFld_n= gkyl_array_fetch(gk_geom->geo_int.g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
-        gFld_n[1] = R*R*dxdz[2][0]; 
+        gFld_n[1] = alpha_sign*R*R*dxdz[2][0];
         gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];
         gFld_n[3] = R*R; 
-        gFld_n[4] = R*R*dphidtheta;
+        gFld_n[4] = alpha_sign*R*R*dphidtheta;
         gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2]; 
 
         // Calculate cartesian components of bhat
@@ -468,14 +476,13 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
 
         // Set cartesian components of tangents and duals
         double Z = mc2p_n[Z_IDX];
-        double J = jFld_n[0];
         double *tanvecFld_n= gkyl_array_fetch(gk_geom->geo_int.dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         tanvecFld_n[0] = dxdz[0][0]*cos(phi) - R*sin(phi)*dxdz[2][0]; 
         tanvecFld_n[1] = dxdz[0][0]*sin(phi)  + R*cos(phi)*dxdz[2][0]; 
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = -R*sin(phi); 
-        tanvecFld_n[4] = +R*cos(phi); 
+        tanvecFld_n[3] = alpha_sign*(-R*sin(phi));
+        tanvecFld_n[4] = alpha_sign*(+R*cos(phi));
         tanvecFld_n[5] = 0.0; 
 
         tanvecFld_n[6] = dxdz[0][2]*cos(phi) - R*sin(phi)*dphidtheta; 
@@ -483,19 +490,12 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         tanvecFld_n[8] = dxdz[1][2];
 
         double *dualFld_n= gkyl_array_fetch(gk_geom->geo_int.dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
-        dualFld_n[0] = +R/J*cos(phi)*dxdz[1][2];
-        dualFld_n[1] = +R/J*sin(phi)*dxdz[1][2];
-        dualFld_n[2] = -R/J*dxdz[0][2];
-
-        dualFld_n[3] =  1/J * ( dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta
-                               -dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
-        dualFld_n[4] = -1/J * ( dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta
-                               -dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
-        dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
-
-        dualFld_n[6] = -R/J*cos(phi)*dxdz[1][0];
-        dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
-        dualFld_n[8] = +R/J*dxdz[0][0];
+        const double e1[3] = { tanvecFld_n[0], tanvecFld_n[1], tanvecFld_n[2] };
+        const double e2[3] = { tanvecFld_n[3], tanvecFld_n[4], tanvecFld_n[5] };
+        const double e3[3] = { tanvecFld_n[6], tanvecFld_n[7], tanvecFld_n[8] };
+        calc_dual(jFld_n[0], e2, e3, &dualFld_n[0]);
+        calc_dual(jFld_n[0], e3, e1, &dualFld_n[3]);
+        calc_dual(jFld_n[0], e1, e2, &dualFld_n[6]);
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
@@ -619,9 +619,9 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(R*R*(   dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2]
-                              +  dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
-                              -2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] )) ;
+        double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
+        jFld_n[0] = fabs(J);
+        double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -635,10 +635,10 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
 
         double *gFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
-        gFld_n[1] = R*R*dxdz[2][0]; 
+        gFld_n[1] = alpha_sign*R*R*dxdz[2][0];
         gFld_n[2] = dxdz[0][0]*dxdz[0][2] + R*R*dxdz[2][0]*dphidtheta + dxdz[1][0]*dxdz[1][2];
         gFld_n[3] = R*R; 
-        gFld_n[4] = R*R*dphidtheta;
+        gFld_n[4] = alpha_sign*R*R*dphidtheta;
         gFld_n[5] = dxdz[0][2]*dxdz[0][2] + R*R*dphidtheta*dphidtheta + dxdz[1][2]*dxdz[1][2]; 
 
         // Calculate cmag, bi, and jtot_inv
@@ -662,14 +662,13 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
 
         // Set cartesian components of tangents and duals
         double Z = mc2p_n[Z_IDX];
-        double J = jFld_n[0];
         double *tanvecFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].dxdz_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         tanvecFld_n[0] = dxdz[0][0]*cos(phi) - R*sin(phi)*dxdz[2][0]; 
         tanvecFld_n[1] = dxdz[0][0]*sin(phi)  + R*cos(phi)*dxdz[2][0]; 
         tanvecFld_n[2] = dxdz[1][0];
 
-        tanvecFld_n[3] = -R*sin(phi); 
-        tanvecFld_n[4] = +R*cos(phi); 
+        tanvecFld_n[3] = alpha_sign*(-R*sin(phi));
+        tanvecFld_n[4] = alpha_sign*(+R*cos(phi));
         tanvecFld_n[5] = 0.0; 
 
         tanvecFld_n[6] = dxdz[0][2]*cos(phi) - R*sin(phi)*dphidtheta; 
@@ -677,19 +676,12 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
         tanvecFld_n[8] = dxdz[1][2];
 
         double *dualFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].dzdx_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        dualFld_n[0] = +R/J*cos(phi)*dxdz[1][2];
-        dualFld_n[1] = +R/J*sin(phi)*dxdz[1][2];
-        dualFld_n[2] = -R/J*dxdz[0][2];
-
-        dualFld_n[3] =  1/J * ( dxdz[1][0]*dxdz[0][2]*sin(phi) + dxdz[1][0]*R*cos(phi)*dphidtheta
-                               -dxdz[1][2]*dxdz[0][0]*sin(phi) - dxdz[1][2]*R*cos(phi)*dxdz[2][0] );
-        dualFld_n[4] = -1/J * ( dxdz[1][0]*dxdz[0][2]*cos(phi) - dxdz[1][0]*R*sin(phi)*dphidtheta
-                               -dxdz[1][2]*dxdz[0][0]*cos(phi) + dxdz[1][2]*R*sin(phi)*dxdz[2][0] );
-        dualFld_n[5] =  R/J * ( dxdz[0][2]*dxdz[2][0] - dxdz[0][0]*dphidtheta);
-
-        dualFld_n[6] = -R/J*cos(phi)*dxdz[1][0];
-        dualFld_n[7] = -R/J*sin(phi)*dxdz[1][0];
-        dualFld_n[8] = +R/J*dxdz[0][0];
+        const double e1[3] = { tanvecFld_n[0], tanvecFld_n[1], tanvecFld_n[2] };
+        const double e2[3] = { tanvecFld_n[3], tanvecFld_n[4], tanvecFld_n[5] };
+        const double e3[3] = { tanvecFld_n[6], tanvecFld_n[7], tanvecFld_n[8] };
+        calc_dual(jFld_n[0], e2, e3, &dualFld_n[0]);
+        calc_dual(jFld_n[0], e3, e1, &dualFld_n[3]);
+        calc_dual(jFld_n[0], e1, e2, &dualFld_n[6]);
 
         // Check that the coordinate system has tangent/dual vectors
         // satisfying orthonormality, and that it's right handed.
