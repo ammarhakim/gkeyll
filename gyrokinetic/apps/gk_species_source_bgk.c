@@ -11,7 +11,7 @@ proj_on_basis_c2p_phase_func(const double *xcomp, double *xphys, void *ctx)
 }
 
 static double
-gk_source_bgk_volume_integrate(gkyl_gyrokinetic_app *app, struct gk_source_bgk *src, const struct gkyl_array *arrin)
+gk_species_source_bgk_volume_integrate(gkyl_gyrokinetic_app *app, struct gk_source_bgk *src, const struct gkyl_array *arrin)
 {
   // Compute the volume integral of arrin.
   gkyl_array_integrate_advance(src->vol_integ_op, arrin, 1.0,
@@ -94,7 +94,7 @@ gk_species_source_bgk_rhs_heating_enabled(gkyl_gyrokinetic_app *app, struct gk_s
 }
 
 static void
-gks_src_bgk_rhs_accumulate_maxwellian(gkyl_gyrokinetic_app *app, struct gk_species *species,
+gk_species_source_bgk_rhs_accumulate_maxwellian(gkyl_gyrokinetic_app *app, struct gk_species *species,
   struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -158,7 +158,7 @@ gk_species_source_bgk_rhs_external_enabled(gkyl_gyrokinetic_app *app, struct gk_
 {
   gkyl_array_clear(src->Jrate_df, 0.0);
 
-  gks_src_bgk_rhs_accumulate_maxwellian(app, species, src, fin, src->Jrate_df);
+  gk_species_source_bgk_rhs_accumulate_maxwellian(app, species, src, fin, src->Jrate_df);
 
   // Multiply the Maxwellian by Jrate.
   gkyl_dg_mul_conf_phase_op_range(&app->basis, &species->basis, species->lte.f_lte, 
@@ -237,14 +237,14 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, st
 }
 
 static void
-gks_src_bgk_update_integrated_diags_disabled(gkyl_gyrokinetic_app* app,
+gk_species_source_bgk_update_integrated_diags_disabled(gkyl_gyrokinetic_app* app,
   struct gk_species *gks, struct gk_source_bgk *src, double tm)
 {
   // Do nothing.
 }
 
 static void
-gks_src_bgk_update_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
+gk_species_source_bgk_update_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
   struct gk_species *gks, struct gk_source_bgk *src, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -272,14 +272,14 @@ gks_src_bgk_update_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
 }
 
 static void
-gks_src_bgk_calc_integrated_diags_disabled(gkyl_gyrokinetic_app* app,
+gk_species_source_bgk_calc_integrated_diags_disabled(gkyl_gyrokinetic_app* app,
   struct gk_species *gks, struct gk_source_bgk *src, double tm)
 {
   // Do nothing.
 }
 
 static void
-gks_src_bgk_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
+gk_species_source_bgk_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
   struct gk_species *gks, struct gk_source_bgk *src, double tm)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -292,14 +292,14 @@ gks_src_bgk_calc_integrated_diags_enabled(gkyl_gyrokinetic_app* app,
 }
 
 static void
-gks_src_bgk_write_integrated_diags_disabled(gkyl_gyrokinetic_app *app,
+gk_species_source_bgk_write_integrated_diags_disabled(gkyl_gyrokinetic_app *app,
   struct gk_species *gks, struct gk_source_bgk *src)
 {
   // Empty.
 }
 
 static void
-gks_src_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
+gk_species_source_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
   struct gk_species *gks, struct gk_source_bgk *src)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -329,12 +329,12 @@ gks_src_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
 }
 
 static void
-gk_source_bgk_write_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+gk_species_source_bgk_write_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_source_bgk *src, int frame, double stime, char* file_suffix, char* description,
   struct gkyl_rect_grid grid, struct gkyl_range local,
   struct gkyl_array *arrout)
 {
-  // Write out a conf-space array.
+  // Write out a conf-space or a phase-space array.
 
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", stime);
@@ -378,10 +378,10 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
   src->write_diags_func = gk_species_source_bgk_write_diags_disabled;
   src->rhs_func = gk_species_source_bgk_rhs_disabled;
-  src->update_integrated_diags_rhs_func = gks_src_bgk_update_integrated_diags_disabled;
-  src->update_integrated_diags_func = gks_src_bgk_update_integrated_diags_disabled;
-  src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_disabled;
-  src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_disabled;
+  src->update_integrated_diags_rhs_func = gk_species_source_bgk_update_integrated_diags_disabled;
+  src->update_integrated_diags_func = gk_species_source_bgk_update_integrated_diags_disabled;
+  src->calc_integrated_diags_func = gk_species_source_bgk_calc_integrated_diags_disabled;
+  src->write_integrated_diags_func = gk_species_source_bgk_write_integrated_diags_disabled;
 
   if (src->source_bgk_id){
     // Collision rate
@@ -396,9 +396,9 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
     src->dt_implicit = 1e9;
     // Diagnostics.
     if (src->write_diagnostics) {
-      src->update_integrated_diags_func = gks_src_bgk_update_integrated_diags_enabled;
-      src->calc_integrated_diags_func = gks_src_bgk_calc_integrated_diags_enabled;
-      src->write_integrated_diags_func = gks_src_bgk_write_integrated_diags_enabled;
+      src->update_integrated_diags_func = gk_species_source_bgk_update_integrated_diags_enabled;
+      src->calc_integrated_diags_func = gk_species_source_bgk_calc_integrated_diags_enabled;
+      src->write_integrated_diags_func = gk_species_source_bgk_write_integrated_diags_enabled;
       gk_species_moment_init(app, gks, &src->integ_mom_op, GKYL_F_MOMENT_M0M1M2, true);
       if (app->use_gpu) {
         src->red_integ_diag = gkyl_cu_malloc(sizeof(double[src->integ_mom_op.num_mom]));
@@ -465,11 +465,11 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       src->rhs_func = gk_species_source_bgk_rhs_feq_enabled;
       if (src->write_diagnostics) {
         // Replace the update int. diags func. with the one that is called within the RHS.
-        src->update_integrated_diags_func = gks_src_bgk_update_integrated_diags_disabled;
-        src->update_integrated_diags_rhs_func = gks_src_bgk_update_integrated_diags_enabled;
-        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate", 
+        src->update_integrated_diags_func = gk_species_source_bgk_update_integrated_diags_disabled;
+        src->update_integrated_diags_rhs_func = gk_species_source_bgk_update_integrated_diags_enabled;
+        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate", 
           app->grid, app->local, src->rate);
-        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_feq", "BGK source equilibrium function", 
+        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_feq", "BGK source equilibrium function", 
           gks->grid, gks->local, src->Jrate_df);
       }
 
