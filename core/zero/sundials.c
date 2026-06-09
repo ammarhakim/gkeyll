@@ -835,20 +835,47 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   // Initialize the Super Time Stepping integrator.
 
   // Set default values if user didn't provide a value.
-  if (inp->dee_max_iter == 0)
+  if (inp->rel_tol < 0.0)
+    inp->rel_tol = 1e-7;
+  
+  if (inp->abs_tol < 0.0)
+    inp->abs_tol = 1e-12;
+
+  if (inp->max_steps == 0)
+    inp->max_steps = 1e5;
+
+  if (inp->max_num_stages <= 0)
+    inp->max_num_stages = 200;
+
+  if (inp->gsnv == NULL) {
+    fprintf(stderr, "\ngkyl_sundials_stepper_init_sts: Error, gsnv is null.\n");
+    assert(false);
+  }
+
+  if (inp->app_ctx == NULL) {
+    fprintf(stderr, "\ngkyl_sundials_stepper_init_sts: Error, app_ctx is null.\n");
+    assert(false);
+  }
+
+  gksun->dom_eig_est = NULL;
+
+  if (inp->dee_max_iter <= 0)
     inp->dee_max_iter = 1e3;
   
-  if (fabs(inp->dee_rel_tol) < 1e-16)
+  if (fabs(inp->dee_rel_tol) <= 0.0)
     inp->dee_rel_tol = 0.01;
   
-  if (inp->dee_num_init_warmups == 0)
-    inp->dee_num_init_warmups = 1e2;
+  if (inp->dee_num_init_warmups < 0)
+    inp->dee_num_init_warmups = 0;
   
-  if (inp->dee_num_succ_warmups != 0)
-    inp->dee_num_succ_warmups = inp->dee_num_succ_warmups;
+  if (inp->dee_num_succ_warmups < 0)
+    inp->dee_num_succ_warmups = 0;
   
-  if (inp->dee_frequency == 0)
+  if (inp->dee_frequency < 0)
     inp->dee_frequency = 10;
+
+  if (inp->dee_safety_fac <= 1.0)
+    inp->dee_safety_fac = 1.1;
   // Finished setting default values.
 
   int flag;
@@ -876,7 +903,6 @@ gkyl_sundials_stepper_init_sts(struct gkyl_sundials *gksun,
   // Randomize the input vector (needed by DEE).
   smanynvec_randomize(nvin, 0.5, 1.5);
 
-  gksun->dom_eig_est = 0;
   if (inp->dee_by_gkeyll) {
     // Gkeyll estimates the dominant eigenvalue.
     flag = LSRKStepSetDomEigFn(gksun->arkode_mem_sts, gksun->has_ssprk? gksun->gk_dom_eig_sts_func : gksun->gk_dom_eig_func);
@@ -1140,6 +1166,28 @@ gkyl_sundials_evolve(struct gkyl_sundials *gksun, double t_new,
   // Call integrator to evolve the solution to time t_new.
   int flag = ARKodeEvolve(gksun->arkode_mem_opsplit, t_new, nvin, t_curr, ARK_ONE_STEP);
   sundials_check_flag(&flag, "ARKodeEvolve", 1);
+  if (flag != ARK_SUCCESS) {
+    fprintf(stderr, "\ngkyl_sundials_evolve: Error, ARKodeEvolve failed with flag = %d.\n", flag);
+    return flag;
+  }
+
+  if (gksun->stepper_inp->print_arkode_stats) {
+    printf("\n\n\nStep successful: advanced to time %g\n", *t_curr);
+    flag = ARKodePrintAllStats(gksun->arkode_mem_opsplit, stdout, SUN_OUTPUTFORMAT_TABLE);
+    sundials_check_flag(&flag, "ARKodePrintAllStats", 1);
+    if (flag != ARK_SUCCESS) {
+      fprintf(stderr, "\ngkyl_sundials_evolve: Error, ARKodePrintAllStats failed with flag = %d.\n", flag);
+      return flag;
+    }
+    if (gksun->dom_eig_est != NULL) {
+      flag = SUNDomEigEstimator_Write(gksun->dom_eig_est, stdout);
+      sundials_check_flag(&flag, "SUNDomEigEstimator_Write", 1);
+      if (flag != ARK_SUCCESS) {
+        fprintf(stderr, "\ngkyl_sundials_evolve: Error, SUNDomEigEstimator_Write failed with flag = %d.\n", flag);
+        return flag;
+      }
+    }
+  }
 
   return flag;
 }

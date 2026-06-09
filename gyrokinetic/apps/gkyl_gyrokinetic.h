@@ -556,6 +556,7 @@ struct gkyl_sundials_inp {
   unsigned int max_num_stages; // Maximum number of stages per step (default: 200).
   enum gkyl_sundials_rk_method rk_method; // Time stepping method.
   enum gkyl_sundials_opsplit_method opsplit_method; // Operator splitting method (default: 1st order Lie-Trotter)
+  bool print_arkode_stats; // Whether to print ARKODE statistics at the end of the run (default: false).
   // Dominant eigenvalue estimator (DEE) inputs.
   bool dee_by_gkeyll; // =true Gkeyll's DEE, =false SUNDIALS' (default: false).
   unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).

@@ -1158,6 +1158,7 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     app->sundials_stepper_inp.gsnv = app->sundials_mnvec,
     app->sundials_stepper_inp.t_curr = 0.0,
     app->sundials_stepper_inp.app_ctx = &app->sundials_app_ctx,
+    app->sundials_stepper_inp.print_arkode_stats = gk->sundials_stepper.print_arkode_stats,
     app->sundials_stepper_inp.dee_by_gkeyll = gk->sundials_stepper.dee_by_gkeyll,
     app->sundials_stepper_inp.dee_max_iter = gk->sundials_stepper.dee_max_iter,
     app->sundials_stepper_inp.dee_rel_tol = gk->sundials_stepper.dee_relative_tolerance,

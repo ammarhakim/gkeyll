@@ -81,6 +81,7 @@ struct gkyl_sundials_stepper_inp {
   struct gkyl_sundials_nvec *gsnv; // Input NVECTOR.
   double t_curr; // Current simulation time.
   struct gkyl_sundials_app_ctx *app_ctx; // Context with app-specific data and functions.
+  bool print_arkode_stats; // Whether to print ARKODE statistics at the end of the run. 
   // Dominant eigenvalue estimator inputs.
   bool dee_by_gkeyll; // =true Gkeyll's DEE, =false SUNDIALS' (default: false).
   unsigned int dee_max_iter; // Maximum number of iterations (default: 1e3).
