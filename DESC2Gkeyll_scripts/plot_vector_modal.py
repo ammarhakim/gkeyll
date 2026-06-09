@@ -7,7 +7,7 @@ import os
 import math
 import sys
 
-import scipy.interpolate 
+import scipy.interpolate
 from scipy.interpolate import RegularGridInterpolator, interp1d
 import scipy.integrate as sci
 
@@ -15,6 +15,11 @@ import scipy.integrate as sci
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 
+if len(sys.argv) != 2:
+    print(f"Usage: {sys.argv[0]} <name>")
+    sys.exit(1)
+name = sys.argv[1]
+geom_dir = f"{name}_geometry"
 
 def fix_gridvals(grid):
     """Output file grids have cell-edge coordinates by default, but the values are at cell centers.
@@ -37,7 +42,7 @@ data = {}
 
 zeta_idx = 0
 
-bcartdata = pg.GData('./W7X-nodal_modal_arrays/modal/bcart_interior_modal.gkyl')
+bcartdata = pg.GData(f'./{geom_dir}/{name}-bcart.gkyl')
 grid,b0val = pg.data.GInterpModal(bcartdata,poly_order=1,basis_type='ms').interpolate(0)
 Bx = b0val.squeeze()
 grid,b1val = pg.data.GInterpModal(bcartdata,poly_order=1,basis_type='ms').interpolate(1)
@@ -45,7 +50,7 @@ By = b1val.squeeze()
 grid,b2val = pg.data.GInterpModal(bcartdata,poly_order=1,basis_type='ms').interpolate(2)
 Bz = b2val.squeeze()
 
-bcartdata = pg.GData('./W7X-nodal_modal_arrays/modal/dxdz_interior_modal.gkyl')
+bcartdata = pg.GData(f'./{geom_dir}/{name}-dxdz.gkyl')
 grid,e_3_0val = pg.data.GInterpModal(bcartdata,poly_order=1,basis_type='ms').interpolate(6)
 e_3x = e_3_0val.squeeze()
 grid,e_3_1val = pg.data.GInterpModal(bcartdata,poly_order=1,basis_type='ms').interpolate(7)
@@ -55,7 +60,7 @@ e_3z = e_3_2val.squeeze()
 
 
 
-mc2pdata = pg.GData('./W7X-nodal_modal_arrays/modal/mc2p_corner_modal.gkyl')
+mc2pdata = pg.GData(f'./{geom_dir}/{name}-mapc2p.gkyl')
 grid,rvals = pg.data.GInterpModal(mc2pdata,poly_order=1,basis_type='ms').interpolate(0)
 grid,zvals = pg.data.GInterpModal(mc2pdata,poly_order=1,basis_type='ms').interpolate(1)
 grid,phivals = pg.data.GInterpModal(mc2pdata,poly_order=1,basis_type='ms').interpolate(2)

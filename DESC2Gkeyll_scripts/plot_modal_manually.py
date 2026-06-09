@@ -1,13 +1,20 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 import postgkyl as pg
 
+if len(sys.argv) != 2:
+    print(f"Usage: {sys.argv[0]} <name>")
+    sys.exit(1)
+name = sys.argv[1]
+geom_dir = f"{name}_geometry"
+
 def basis(x,y,z):
     return 1/2**1.5, np.sqrt(3)*x/2**1.5, np.sqrt(3)*y/2**1.5, np.sqrt(3)*z/2**1.5, 3*x*y/2**1.5, 3*x*z/2**1.5, 3*y*z/2**1.5, x*y*z*(3/2)**1.5
 
-rzpdata_corner = pg.GData('./W7-X_geometry/W7X-nodes.gkyl')
-razdata_corner = pg.GData('./W7-X_geometry/W7X-nodes-computational.gkyl')
+rzpdata_corner = pg.GData(f'./{geom_dir}/{name}-nodes.gkyl')
+razdata_corner = pg.GData(f'./{geom_dir}/{name}-nodes-computational.gkyl')
 
 rzp = rzpdata_corner.get_values()
 raz = razdata_corner.get_values()
@@ -21,13 +28,13 @@ rho = raz[:,:,:,0]
 alpha = raz[:,:,:,1]
 zeta = raz[:,:,:,2]
 
-bdata = pg.GData('./W7-X_geometry/W7X-bmag_corn.gkyl')
+bdata = pg.GData(f'./{geom_dir}/{name}-bmag_corn.gkyl')
 bcoeffs = bdata.get_values()
 print(bcoeffs.shape)
 bvals = np.sum(bcoeffs*basis(0,0,-1), axis=-1)
 print(bvals.shape)
 
-Jdata = pg.GData('./W7-X_geometry/W7X-jacobgeo.gkyl')
+Jdata = pg.GData(f'./{geom_dir}/{name}-jacobgeo.gkyl')
 Jcoeffs = Jdata.get_values()
 print(Jcoeffs.shape)
 Jvals = np.sum(Jcoeffs*basis(0,0,-1), axis=-1)
@@ -127,7 +134,7 @@ for idx, zeta_idx in enumerate(range(6)):
 
     # Title with phi value for this slice
     phi_k = np.mean(((phi[:, :, zeta_idx] + np.pi) % (2 * np.pi) - np.pi))
-    ax_bmag.set_title(f'W7-X |B| at $\\phi = {phi_k:.3f}$ rad')
+    ax_bmag.set_title(f'{name} |B| at $\\phi = {phi_k:.3f}$ rad')
 
     # Add colorbar for this subplot
     cbar0 = fig_bmag.colorbar(pcm0, ax=ax_bmag)
@@ -176,7 +183,7 @@ for idx, zeta_idx in enumerate(range(6)):
     ax_jacob.set_ylabel('Z [m]')
 
     # Title with phi value for this slice
-    ax_jacob.set_title(f'W7-X Jacobian at $\\phi = {phi_k:.3f}$ rad')
+    ax_jacob.set_title(f'{name} Jacobian at $\\phi = {phi_k:.3f}$ rad')
 
     # Add colorbar for this subplot
     cbar1 = fig_jacob.colorbar(pcm1, ax=ax_jacob)

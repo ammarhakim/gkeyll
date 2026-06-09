@@ -1,14 +1,21 @@
+import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import postgkyl as pg
 
+if len(sys.argv) != 2:
+    print(f"Usage: {sys.argv[0]} <name>")
+    sys.exit(1)
+name = sys.argv[1]
+geom_dir = f"{name}_geometry"
+
 # Read the gkyl files
-data = pg.GData("./W7-X_geometry/W7X-nodes.gkyl")  # (R, Z, phi)
+data = pg.GData(f"./{geom_dir}/{name}-nodes.gkyl")  # (R, Z, phi)
 vals = data.get_values()
 
 # Companion file with the *same nodes* in (rho, alpha, zeta)
-nu_data = pg.GData("./W7-X_geometry/W7X-nodes-computational.gkyl")     # (rho, alpha, zeta)
+nu_data = pg.GData(f"./{geom_dir}/{name}-nodes-computational.gkyl")     # (rho, alpha, zeta)
 nu_vals = nu_data.get_values()
 
 
@@ -72,13 +79,13 @@ fig = plt.figure(figsize=(10, 8))
 ax = fig.add_subplot(111, projection='3d')
 
 # Plot the points from first gkyl file (larger markers for visibility)
-ax.scatter(x, y, z, marker='.', s=6, alpha=0.7, label='W7-X nodes', color='blue')
+ax.scatter(x, y, z, marker='.', s=6, alpha=0.7, label=f'{name} nodes', color='blue')
 
 # Set labels
 ax.set_xlabel('X [m]')
 ax.set_ylabel('Y [m]')
 ax.set_zlabel('Z [m]')
-ax.set_title('W7-X nodes 3D Plot')
+ax.set_title(f'{name} nodes 3D Plot')
 
 # Set equal aspect ratio for better visualization
 # Ensure all arrays are 1D before concatenating
@@ -141,7 +148,7 @@ if vals.ndim == 4 and nu_vals.ndim == 4 and vals.shape[:3] == nu_vals.shape[:3] 
     ax_nu.set_xlabel('rho')
     ax_nu.set_ylabel('zeta [rad]')
     ax_nu.set_zlabel('alpha [rad]')
-    ax_nu.set_title('W7-X nodes in rho alpha zeta space')
+    ax_nu.set_title(f'{name} nodes in rho alpha zeta space')
     
     # Set equal aspect ratio for better visualization
     all_rho = np.atleast_1d(rho_flat).flatten()
