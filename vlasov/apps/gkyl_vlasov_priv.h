@@ -404,6 +404,7 @@ struct vm_source {
   struct vm_species *adapt_source_species[GKYL_MAX_SPECIES]; // list of species to use for the source
   int adapt_source_species_idx[GKYL_MAX_SPECIES]; // list of indices of source species
   struct gkyl_array *scale_m0[GKYL_MAX_SPECIES]; // Time-dependent re-scaling of the density of the source. 
+  struct gkyl_array *scale_m0_host[GKYL_MAX_SPECIES]; // host copy for use in IO
   struct gkyl_mom_calc *m0_reduced[GKYL_MAX_SPECIES]; // Reduced density update for rescaling source. 
   struct gkyl_array *adapt_source[GKYL_MAX_SPECIES]; // adaptive source array
   int adapt_proj_source[GKYL_MAX_SPECIES]; // Index of projection function to use for adaptive source. 

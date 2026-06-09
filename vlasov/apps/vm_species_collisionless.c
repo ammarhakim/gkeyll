@@ -277,4 +277,6 @@ vm_species_collisionless_release(const struct gkyl_vlasov_app *app,
     gkyl_proj_on_basis_release(cls->app_accel_proj);
   } 
   gkyl_array_release(cls->vel_flux_surf);  
+  gkyl_hyper_dg_release(cls->slvr);
+  gkyl_dg_eqn_release(cls->eqn);
 }
