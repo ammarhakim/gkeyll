@@ -67,11 +67,11 @@ gk_species_source_bgk_rhs_heating_enabled(gkyl_gyrokinetic_app *app, struct gk_s
   // Volume integrate Jrate times the thermal M2.
   gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_mom, 0, src->Jrate, 0, species->lte.moms.marr, &app->local);
   gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 2, species->lte.moms.marr, &app->local);
-  double Jrate_M2thermal_int = GKYL_MAX2(0.0, gk_source_bgk_volume_integrate(app, src, src->Jrate_mom));
+  double Jrate_M2thermal_int = GKYL_MAX2(0.0, gk_species_source_bgk_volume_integrate(app, src, src->Jrate_mom));
 
   // Volume integrate Jrate times the vtsq_shape time M0.
   gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_mom, 0, src->Jrate_vtsq_shape, 0, species->lte.moms.marr, &app->local);
-  double Jrate_vtsq_shape_M0_int = GKYL_MAX2(0.0, gk_source_bgk_volume_integrate(app, src, src->Jrate_mom));
+  double Jrate_vtsq_shape_M0_int = GKYL_MAX2(0.0, gk_species_source_bgk_volume_integrate(app, src, src->Jrate_mom));
 
   // Thermal speed squared of the Maxwellian.
   src->vtsq_amplitude = (src->norm_power + Jrate_M2thermal_int)/Jrate_vtsq_shape_M0_int;
@@ -527,9 +527,9 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       if (src->write_diagnostics) {
         src->vtsq_amp_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
         // Write out the source_bgk rate and vtsq shape.
-        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK relaxation rate, nu in -nu*(f-feq)", 
+        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK relaxation rate, nu in -nu*(f-feq)", 
           app->grid, app->local, src->rate);
-        gk_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK thermal energy, vth^2 of nu*(f-feq)", 
+        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK thermal energy, vth^2 of nu*(f-feq)", 
           app->grid, app->local, src->vtsq_shape);
       }
 
