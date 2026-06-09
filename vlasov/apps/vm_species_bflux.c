@@ -5,7 +5,7 @@ void
 vm_species_bflux_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct vm_boundary_fluxes *bflux)
 { 
   // Allocate solver.
-  bflux->flux_slvr = gkyl_ghost_surf_calc_new(&vms->grid, vms->eqn, app->cdim, app->use_gpu);
+  bflux->flux_slvr = gkyl_ghost_surf_calc_new(&vms->grid, vms->collisionless.eqn, app->cdim, app->use_gpu);
   int ndim = app->cdim + app->vdim;
   int cells[GKYL_MAX_DIM], ghost[GKYL_MAX_DIM];
   double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];

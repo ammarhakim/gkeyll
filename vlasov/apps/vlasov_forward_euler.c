@@ -32,8 +32,8 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   }
   // Compute applied acceleration if if present and time-dependent.
   for (int i=0; i<app->num_species; ++i) {
-    if (app->species[i].app_accel_evolve) {
-      vm_species_calc_app_accel(app, &app->species[i], tcurr);
+    if (app->species[i].collisionless.app_accel_evolve) {
+      vm_species_collisionless_app_accel(app, &app->species[i].collisionless, tcurr);
     }
   }
 
