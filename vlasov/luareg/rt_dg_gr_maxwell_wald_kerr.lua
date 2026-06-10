@@ -29,11 +29,8 @@ spinBH = 0.95 -- Spin parameter, a = J/M, of the black hole ( Kerr-Schild, coord
 B_0 = 1.0 -- Magnetic field amplitude 
 
 vlasovApp = Vlasov.App.new {
-  -- Model ID sets Maxwell's Eq type
-  modelID = G0.Model.TriadGR, -- General Relativity Maxwell's used here
 
   -- Vlasov Geometry
-  -- NOTE: Kerr-Schild spherical assumed for DG-GR-Kinetic and DG-GR-Maxwell
   geom = Vlasov.Geom.new {
     
     -- Black hole parameters

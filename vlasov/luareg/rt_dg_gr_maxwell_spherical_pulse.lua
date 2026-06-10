@@ -51,8 +51,6 @@ r_pulse2_left  = r_pulse2_center - pulse_halfwidth
 r_pulse2_right = r_pulse2_center + pulse_halfwidth
 
 vlasovApp = Vlasov.App.new {
-  -- Model ID sets Maxwell's Eq type.
-  modelID = G0.Model.TriadGR,
 
   -- Geometry.
   geom = Vlasov.Geom.new {
