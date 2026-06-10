@@ -26,6 +26,7 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_FIELD_NEUMANN, // Nemann.
   GKYL_BC_GK_FIELD_DIRICHLET_VARYING, // Spatially varying Dirichlet.
   GKYL_BC_GK_FIELD_BOUNDARY_VALUE, // Skin value at the boundary.
+  GKYL_BC_GK_FIELD_IWL, // Inner wall limited.
   GKYL_BC_GK_FIELD_TWISTSHIFT, // Twist-shift.
 };
 

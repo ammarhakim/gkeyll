@@ -310,7 +310,6 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
       sum_energy_loss_local += 0.5 * s_adapt->info.mass * integ_m2_local_j; // 1/2 * m * v^2
     }
     // Sum over all MPI processes.
-    double total_particle_loss, total_energy_loss;
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_particle_loss_local, &adapt_src->particle_rate_loss);
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_energy_loss_local, &adapt_src->energy_rate_loss);
 
@@ -319,11 +318,13 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     // Particle and energy rate update.
     // balance = user target + loss
+    double density_compensation = adapt_src->adapt_particle_fraction * adapt_src->particle_rate_loss;
     double particle_src_new = adapt_src->adapt_particle? 
-      particle_input + adapt_src->particle_rate_loss : particle_input;
+      particle_input + density_compensation : particle_input;
 
+    double energy_compensation = adapt_src->adapt_energy_fraction * adapt_src->energy_rate_loss;
     double energy_src_new = adapt_src->adapt_energy?
-      energy_input + adapt_src->energy_rate_loss : energy_input;
+      energy_input + energy_compensation : energy_input;
 
     // Avoid negative particle source.
     // This is important to avoid division by zero in the temperature calculation.
@@ -464,6 +465,10 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         adapt_src->adapt_particle = s->info.source.adapt[k].adapt_particle;
         adapt_src->adapt_energy = s->info.source.adapt[k].adapt_energy;
+        adapt_src->adapt_particle_fraction = s->info.source.adapt[k].has_adapt_particle_fraction ?
+          s->info.source.adapt[k].adapt_particle_fraction : 1.0; // Default to full adaptation if not specified.
+        adapt_src->adapt_energy_fraction = s->info.source.adapt[k].has_adapt_energy_fraction ?
+          s->info.source.adapt[k].adapt_energy_fraction : 1.0; // Default to full adaptation if not specified.
 
         adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_to_species);
         assert(adapt_src->adapt_species != NULL); // Make sure the adaptive species is found.
