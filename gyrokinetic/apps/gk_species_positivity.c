@@ -47,7 +47,7 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Velocity-space moments of the change in the distribution function applied by the positivity-preserving step. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+      .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift." }
   };
   int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta, desc};

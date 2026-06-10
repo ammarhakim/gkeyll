@@ -76,7 +76,7 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
 
     struct gkyl_msgpack_map_elem io_meta_mom[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = (char*)gkyl_gk_distribution_moments_source_descriptions[gks->info.source.diagnostics.diag_moments[m]] }
+        .cval = (char*)gkyl_distribution_moments_descriptions[gks->info.source.diagnostics.diag_moments[m]] }
     };
     int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, io_meta_mom};
