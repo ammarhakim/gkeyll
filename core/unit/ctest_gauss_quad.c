@@ -6,7 +6,8 @@
 static void
 test_g1()
 {
-  double w[gkyl_gauss_max], x[gkyl_gauss_max];
+  int gauss_max = gkyl_gauss_max;
+  double w[gauss_max], x[gauss_max];
   
   for (unsigned n=1; n<=gkyl_gauss_max; ++n) {
     // use the generic routine to get the ordinates and weights

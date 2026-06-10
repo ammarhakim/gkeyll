@@ -88,9 +88,9 @@ test_2x_option(bool use_gpu)
   double lower[] = {0.0, 0.0, -vpar_max_ion, 0.0};
   double upper[] = {1.0, 1.0, vpar_max_ion, mu_max_ion};
   int cells[] = {10, 16, 16, 20};
-  const int vdim = 2;
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int vdim = 2;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
   int confCells[cdim], vCells[vdim];

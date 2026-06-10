@@ -498,6 +498,29 @@ void test_array_shiftc()
   gkyl_array_release(a2);
 }
 
+void test_array_invert_by_cell()
+{
+  struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 8);
+  double *a1_d = a1->data;
+
+  // Set values: 1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1
+  double test_vals[] = {1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1};
+  double expected_inv[] = {1.0, 0.5, 0.25, 0.2, 0.1, 2.0, 4.0, 10.0};
+  
+  for (unsigned i=0; i<a1->size; ++i)
+    for (size_t k=0; k<a1->ncomp; ++k)
+      a1_d[i*a1->ncomp+k] = test_vals[i];
+
+  gkyl_array_invert_by_cell(a1, a1);
+
+  // Check inverted values
+  for (unsigned i=0; i<a1->size; ++i)
+    for (size_t k=0; k<a1->ncomp; ++k)
+      TEST_CHECK( gkyl_compare(a1_d[i*a1->ncomp+k], expected_inv[i], 1e-14) );
+
+  gkyl_array_release(a1);
+}
+
 void test_array_shiftc_range(bool on_gpu)
 {
   int lower[] = {1}, upper[] = {10};
@@ -579,6 +602,151 @@ void test_array_shiftc_range(bool on_gpu)
   }
 
   gkyl_array_release(a2);
+  if (on_gpu) gkyl_array_release(a2);
+}
+
+void test_array_min_by_cell(bool on_gpu)
+{
+  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 10);
+  struct gkyl_array *a1 = a1_ho;
+  if (on_gpu) a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a1_ho->ncomp, a1_ho->size);
+
+  double *a1_ho_d = a1_ho->data;
+  for (unsigned i=0; i<a1_ho->size; ++i) {
+    for (size_t k=0; k<a1_ho->ncomp; ++k) 
+      a1_ho_d[i*a1_ho->ncomp+k] = i*10.0+k;
+  }
+
+  if (on_gpu) gkyl_array_copy(a1, a1_ho);
+
+  // Apply min with threshold 15.0
+  gkyl_array_min_by_cell(a1, a1, 15.0);
+
+  if (on_gpu) gkyl_array_copy(a1_ho, a1);
+
+  // Check that values > 15.0 are clamped to 15.0
+  for (unsigned i=0; i<a1_ho->size; ++i) {
+    for (size_t k=0; k<a1_ho->ncomp; ++k) {
+      double expected = (i*10.0+k < 15.0) ? i*10.0+k : 15.0;
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], expected, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a1_ho);
+  if (on_gpu) gkyl_array_release(a1);
+
+  // Test with negative threshold
+  struct gkyl_array *a2_ho = gkyl_array_new(GKYL_DOUBLE, 4, 8);
+  struct gkyl_array *a2 = a2_ho;
+  if (on_gpu) a2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a2_ho->ncomp, a2_ho->size);
+
+  double *a2_ho_d = a2_ho->data;
+  for (unsigned i=0; i<a2_ho->size; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) 
+      a2_ho_d[i*a2_ho->ncomp+k] = (double)i - 5.0 + k*0.1;
+  }
+
+  if (on_gpu) gkyl_array_copy(a2, a2_ho);
+
+  gkyl_array_min_by_cell(a2, a2, -2.5);
+
+  if (on_gpu) gkyl_array_copy(a2_ho, a2);
+
+  for (unsigned i=0; i<a2_ho->size; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) {
+      double orig = (double)i - 5.0 + k*0.1;
+      double expected = (orig < -2.5) ? orig : -2.5;
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], expected, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2_ho);
+  if (on_gpu) gkyl_array_release(a2);
+}
+
+void test_array_min_range(bool on_gpu)
+{
+  int lower[] = {1}, upper[] = {10};
+  struct gkyl_range range;
+  gkyl_range_init(&range, 1, lower, upper);
+
+  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, range.volume);
+  struct gkyl_array *a1 = a1_ho;
+  if (on_gpu) a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a1_ho->ncomp, a1_ho->size);
+
+  double *a1_ho_d = a1_ho->data;
+  for (unsigned i=0; i<a1_ho->size; ++i)
+    for (size_t k=0; k<a1_ho->ncomp; ++k) 
+      a1_ho_d[i*a1_ho->ncomp+k] = i*10.0+k;
+
+  if (on_gpu) gkyl_array_copy(a1, a1_ho);
+
+  // Apply min only to subrange [2, 6]
+  int lowerSub[] = {2}, upperSub[] = {6};
+  struct gkyl_range subrange;
+  gkyl_sub_range_init(&subrange, &range, lowerSub, upperSub);
+
+  gkyl_array_min_by_cell_range(a1, a1, 12.0, &subrange);
+
+  if (on_gpu) gkyl_array_copy(a1_ho, a1);
+
+  // Check cells outside subrange are unchanged
+  for (size_t k=0; k<a1_ho->ncomp; ++k) {
+    for (unsigned i=0; i<1; ++i)
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], i*10.0+k, 1e-14) );
+    for (unsigned i=6; i<10; ++i)
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], i*10.0+k, 1e-14) );
+  }
+  
+  // Check cells in subrange have min applied
+  for (unsigned i=1; i<6; ++i) {
+    for (size_t k=0; k<a1_ho->ncomp; ++k) {
+      double orig = i*10.0+k;
+      double expected = (orig < 12.0) ? orig : 12.0;
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], expected, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a1_ho);
+  if (on_gpu) gkyl_array_release(a1);
+
+  // Test with different range and threshold
+  lower[0] = 1;  upper[0] = 8;
+  struct gkyl_range range2;
+  gkyl_range_init(&range2, 1, lower, upper);
+
+  struct gkyl_array *a2_ho = gkyl_array_new(GKYL_DOUBLE, 4, range2.volume);
+  struct gkyl_array *a2 = a2_ho;
+  if (on_gpu) a2 = gkyl_array_cu_dev_new(GKYL_DOUBLE, a2_ho->ncomp, a2_ho->size);
+
+  double *a2_ho_d = a2_ho->data;
+  for (unsigned i=0; i<a2_ho->size; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) 
+      a2_ho_d[i*a2_ho->ncomp+k] = i*5.0+k;
+  }
+
+  if (on_gpu) gkyl_array_copy(a2, a2_ho);
+
+  gkyl_array_min_by_cell_range(a2, a2, 8.0, &subrange);
+
+  if (on_gpu) gkyl_array_copy(a2_ho, a2);
+
+  for (size_t k=0; k<a2_ho->ncomp; ++k) {
+    for (unsigned i=0; i<1; ++i)
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*5.0+k, 1e-14) );
+    for (unsigned i=6; i<8; ++i)
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], i*5.0+k, 1e-14) );
+  }
+  
+  for (unsigned i=1; i<6; ++i) {
+    for (size_t k=0; k<a2_ho->ncomp; ++k) {
+      double orig = i*5.0+k;
+      double expected = (orig < 8.0) ? orig : 8.0;
+      TEST_CHECK( gkyl_compare(a2_ho_d[i*a2_ho->ncomp+k], expected, 1e-14) );
+    }
+  }
+
+  gkyl_array_release(a2_ho);
   if (on_gpu) gkyl_array_release(a2);
 }
 
@@ -964,6 +1132,14 @@ void test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
 
 void test_array_copy_range_to_range_diff_range_dim_ho() {
   test_array_copy_range_to_range_diff_range_dim(false);
+}
+
+void test_array_min_by_cell_ho() {
+  test_array_min_by_cell(false);
+}
+
+void test_array_min_range_ho() {
+  test_array_min_range(false);
 }
 
 // Cuda specific tests
@@ -1691,6 +1867,37 @@ void test_cu_array_shiftc()
   gkyl_array_release(a2_cu);
 }
 
+void test_cu_array_invert_by_cell()
+{
+  struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 8);
+  struct gkyl_array *a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 8);
+  double *a1_ho_d = a1_ho->data;
+
+  // Set values: 1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1
+  double test_vals[] = {1.0, 2.0, 4.0, 5.0, 10.0, 0.5, 0.25, 0.1};
+  double expected_inv[] = {1.0, 0.5, 0.25, 0.2, 0.1, 2.0, 4.0, 10.0};
+  
+  for (unsigned i=0; i<a1_ho->size; ++i)
+    for (size_t k=0; k<a1_ho->ncomp; ++k)
+      a1_ho_d[i*a1_ho->ncomp+k] = test_vals[i];
+
+  // Copy to device
+  gkyl_array_copy(a1, a1_ho);
+
+  gkyl_array_invert_by_cell(a1, a1);
+
+  // Copy back from device
+  gkyl_array_copy(a1_ho, a1);
+
+  // Check inverted values
+  for (unsigned i=0; i<a1_ho->size; ++i)
+    for (size_t k=0; k<a1_ho->ncomp; ++k)
+      TEST_CHECK( gkyl_compare(a1_ho_d[i*a1_ho->ncomp+k], expected_inv[i], 1e-14) );
+
+  gkyl_array_release(a1_ho);
+  gkyl_array_release(a1);
+}
+
 void test_cu_array_copy_buffer()
 {
   int shape[] = {10, 20};
@@ -1939,6 +2146,15 @@ void test_array_shiftc_range_dev() {
 void test_array_copy_range_to_range_diff_range_dim_dev() {
   test_array_copy_range_to_range_diff_range_dim(true);
 }
+
+void test_array_min_by_cell_dev() {
+  test_array_min_by_cell(true);
+}
+
+void test_array_min_range_dev() {
+  test_array_min_range(true);
+}
+
 #endif
 
 TEST_LIST = {
@@ -1955,8 +2171,11 @@ TEST_LIST = {
   { "array_set_offset_range", test_array_set_offset_range },
   { "array_scale", test_array_scale },
   { "array_scale_by_cell", test_array_scale_by_cell },
+  { "array_invert_by_cell", test_array_invert_by_cell },
   { "array_shiftc", test_array_shiftc },
   { "array_shiftc_range", test_array_shiftc_range_ho },
+  { "array_min_by_cell", test_array_min_by_cell_ho },
+  { "array_min_range", test_array_min_range_ho },
   { "array_opcombine", test_array_opcombine },
   { "array_ops_comp", test_array_ops_comp },
   { "array_copy_buffer", test_array_copy_buffer },
@@ -1980,8 +2199,11 @@ TEST_LIST = {
   { "cu_array_set_offset_range", test_cu_array_set_offset_range },
   { "cu_array_scale", test_cu_array_scale },
   { "cu_array_scale_by_cell", test_cu_array_scale_by_cell },
+  { "cu_array_invert_by_cell", test_cu_array_invert_by_cell },
   { "cu_array_shiftc", test_cu_array_shiftc },
   { "cu_array_shiftc_range", test_array_shiftc_range_dev },
+  { "cu_array_min_by_cell", test_array_min_by_cell_dev },
+  { "cu_array_min_by_cell_range", test_array_min_range_dev },
   { "cu_array_copy_buffer", test_cu_array_copy_buffer },
   { "cu_array_copy_buffer_fn", test_cu_array_copy_buffer_fn },
   { "cu_array_flip_copy_buffer_fn", test_cu_array_flip_copy_buffer_fn },

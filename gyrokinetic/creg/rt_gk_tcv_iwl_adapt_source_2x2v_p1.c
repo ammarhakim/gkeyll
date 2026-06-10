@@ -28,6 +28,7 @@ struct gk_app_ctx {
   double energy_srcCORE, particle_srcCORE;
   double floor_srcCORE;
   bool adapt_energy_srcRECY, adapt_particle_srcRECY;
+  double adapt_particle_fraction_srcRECY;
   double center_srcRECY[2], sigma_srcRECY[2];
   double energy_srcRECY, particle_srcRECY;
   double floor_srcRECY;
@@ -381,6 +382,7 @@ struct gk_app_ctx create_ctx(void)
   // Source parameters
   int num_sources = 2;
   double P_exp = 0.34e6; // P_sol measured [W]
+  double recycling_rate = 0.95; // High recycling regime.
   // Core source:
   // - Injects energy only in the core region (0.25MW per species).
   // - The particles injection is only the one that are lost through the inner radial boundary.
@@ -396,6 +398,7 @@ struct gk_app_ctx create_ctx(void)
   // - Energy is free to leave the system.
   bool adapt_energy_srcRECY = false;
   bool adapt_particle_srcRECY = true;
+  double adapt_particle_fraction_srcRECY = recycling_rate;
   double energy_srcRECY = 0.0; // [W]
   double particle_srcRECY = 0.0; // [1/s]
   double center_srcRECY[2] = {0.5*x_LCFS, M_PI};
@@ -445,18 +448,22 @@ struct gk_app_ctx create_ctx(void)
     .n0 = n0, .Te0 = Te0, .Ti0 = Ti0,
     .nuFrac = nuFrac, .nuElc = nuElc, .nuIon = nuIon,
     .num_sources = num_sources,
+
     .adapt_energy_srcCORE = adapt_energy_srcCORE,
     .adapt_particle_srcCORE = adapt_particle_srcCORE,
     .center_srcCORE = {center_srcCORE[0], center_srcCORE[1]},
     .sigma_srcCORE = {sigma_srcCORE[0], sigma_srcCORE[1]},
     .energy_srcCORE = energy_srcCORE, .particle_srcCORE = particle_srcCORE,
     .floor_srcCORE = floor_srcCORE,
+
     .adapt_energy_srcRECY = adapt_energy_srcRECY,
     .adapt_particle_srcRECY = adapt_particle_srcRECY,
+    .adapt_particle_fraction_srcRECY = adapt_particle_fraction_srcRECY,
     .center_srcRECY = {center_srcRECY[0], center_srcRECY[1]},
     .sigma_srcRECY = {sigma_srcRECY[0], sigma_srcRECY[1]},
     .energy_srcRECY = energy_srcRECY, .particle_srcRECY = particle_srcRECY,
     .floor_srcRECY = floor_srcRECY,
+    
     .num_cell_x = num_cell_x,
     .num_cell_z = num_cell_z,
     .num_cell_vpar = num_cell_vpar,
@@ -563,6 +570,8 @@ main(int argc, char **argv)
     .adapt_to_species = "ion", // Adapt to ion losses to maintain ambipolarity.
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
+    .has_adapt_particle_fraction = true,
+    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcRECY,
     .num_boundaries = 3, // Outer radial boundary and both z boundaries.
     .dir = {0, 1, 1},
     .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
@@ -571,6 +580,8 @@ main(int argc, char **argv)
     .adapt_to_species = "ion",
     .adapt_particle = ctx.adapt_particle_srcRECY,
     .adapt_energy = ctx.adapt_energy_srcRECY,
+    .has_adapt_particle_fraction = true,
+    .adapt_particle_fraction = ctx.adapt_particle_fraction_srcRECY,
     .num_boundaries = 3, // Outer radial boundary and both z boundaries.
     .dir = {0, 1, 1},
     .edge = {GKYL_UPPER_EDGE, GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
