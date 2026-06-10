@@ -217,6 +217,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     if (app->periodic_dirs[d] == app->cdim-1) {
       fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
     }
+
   f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis,
     fem_parproj_bc, 0, epsilon_global, 0, app->use_gpu);
 

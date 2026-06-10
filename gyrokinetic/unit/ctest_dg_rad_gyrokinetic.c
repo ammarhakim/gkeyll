@@ -121,10 +121,10 @@ test_1x(int poly_order, bool use_gpu, double te, int atomic_z,
   double lower[] = {-1.0, -4*vth, 0.0};
   double upper[] = {1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
   int cells[] = {2, 256, 128};
-  const int vdim = 2;
+  int vdim = 2;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -453,10 +453,10 @@ test_2x(int poly_order, bool use_gpu, double te)
   double lower[] = {-2.0, -1.0, -4*vth, 0.0};
   double upper[] = {2.0, 1.0, 4*vth, 9*vth*vth*GKYL_ELECTRON_MASS};
   int cells[] = {2, 2, 256, 128};
-  const int vdim = 2;
+  int vdim = 2;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];

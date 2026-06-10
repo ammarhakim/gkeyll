@@ -39,11 +39,7 @@ enum gkyl_gkfield_id {
   GKYL_GK_FIELD = 0, // This is default.
   GKYL_GK_FIELD_BOLTZMANN = 1, // GK Boltzmann, isothermal electrons, phi = phi_sheath + (T_e/e)*ln(n_i/n_is).
   GKYL_GK_FIELD_ADIABATIC = 2, // GK field with an adiabatic species.
-  GKYL_GK_FIELD_IWL = 3, // Inner-wall limited.
-  GKYL_GK_FIELD_ES = 4, // Electrostatic field.
-  GKYL_GK_FIELD_ES_IWL = 5, // Electromagnetic field with inner-wall limited BCs.
-  GKYL_GK_FIELD_EM = 6, // To force electromagnetic field solve (even if no species is EM).
-  GKYL_GK_FIELD_EM_IWL = 7, // Electromagnetic field with inner-wall limited BCs, even if no species is EM.
+  GKYL_GK_FIELD_EM = 4, // Electromagnetic GK.
 };
 
 // Identifiers for specific field object types.
@@ -83,6 +79,7 @@ enum gkyl_source_id {
 // Identifiers for specific bgk source object types.
 enum gkyl_source_bgk_id {
   GKYL_NO_SOURCE_BGK = 0, // No source. This is default.
+  GKYL_SOURCE_BGK_STATIC, // BGK source with user specified rate and eq. function.
   GKYL_SOURCE_BGK_HEATING, // Only energy source.
   GKYL_SOURCE_BGK_EXTERNAL, // External particle, momentum, and energy source.
 };

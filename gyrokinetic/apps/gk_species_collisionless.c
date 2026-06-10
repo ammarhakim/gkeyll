@@ -183,7 +183,7 @@ gk_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_specie
       gkcls->collisionless_id, gkcls->no_by, complete_em, app->gk_geom, gks->vel_map, 
       &aux_inp, app->use_gpu);
 
-    gkcls->scale_fac = -1.0; // Not used if scale_factor in input file is not given.
+    gkcls->scale_fac = 1.0; // Not used if scale_factor in input file is not given.
     gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
     if (1.0e-16 < fabs(gks->info.collisionless.scale_factor)) {
       gkcls->scale_fac = gks->info.collisionless.scale_factor;
@@ -269,7 +269,7 @@ void
 gk_species_collisionless_reset(gkyl_gyrokinetic_app* app, double tm, struct gk_species *gks,
   struct gk_collisionless *gkcls, struct gkyl_gyrokinetic_collisionless gkcls_inp)
 {
-  gkcls->scale_fac = 0.0;
+  gkcls->scale_fac = 1.0;
   gkcls->fdot_scaling = gk_species_collisionless_fdot_scaling_disabled;
   if (1.0e-16 < fabs(gkcls_inp.scale_factor)) {
     gks->info.collisionless.scale_factor = gkcls_inp.scale_factor;

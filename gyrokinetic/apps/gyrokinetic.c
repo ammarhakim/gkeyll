@@ -402,6 +402,26 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
+  // Create a global and local ranges, extended in the BC dir.
+  int ndim = app->cdim;
+  int par_dir = ndim-1;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = app->global.lower[i];
+    upper_bcdir_ext[i] = app->global.upper[i];
+  }
+  lower_bcdir_ext[par_dir] = app->global_ext.lower[par_dir];
+  upper_bcdir_ext[par_dir] = app->global_ext.upper[par_dir];
+  gkyl_sub_range_init(&app->global_par_ext, &app->global_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+  for (int i=0; i<ndim; i++) {
+    lower_bcdir_ext[i] = app->local.lower[i];
+    upper_bcdir_ext[i] = app->local.upper[i];
+  }
+  lower_bcdir_ext[par_dir] = app->local_ext.lower[par_dir];
+  upper_bcdir_ext[par_dir] = app->local_ext.upper[par_dir];
+  gkyl_sub_range_init(&app->local_par_ext, &app->local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
   if (gk->geometry.has_LCFS) {
     // Simulation spans the last-closed flux surface (LCFS). Create core and SOL global ranges.
     int idx_LCFS_lo = app->gk_geom->idx_LCFS_lo;
@@ -1596,7 +1616,7 @@ void
 gkyl_gyrokinetic_app_write_species_fdot_multiplier(gkyl_gyrokinetic_app* app, int sidx, double tm, int frame)
 {
   struct gk_species *gks = &app->species[sidx];
-  gk_species_fdot_multiplier_write(app, gks, tm, frame);
+  gk_species_fdot_multiplier_write(app, gks, &gks->fdot_mult, tm, frame);
 }
 
 //
@@ -2088,10 +2108,11 @@ gyrokinetic_rhs(gkyl_gyrokinetic_app* app, double tcurr, double dt,
     dtmin = fmin(dtmin, dt1);
   }
 
-  // Multiply dfdt by a factor.
+  // Multiply dfdt (fout) by a factor.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *gks = &app->species[i];
-    gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult, app->field->phi_smooth, fout[i]);
+    gk_species_fdot_multiplier_advance_times_rate(app, gks, &gks->fdot_mult,
+      app->field->phi_smooth, fin[i], fout[i]);
   }
 
   struct timespec wtm = gkyl_wall_clock();
