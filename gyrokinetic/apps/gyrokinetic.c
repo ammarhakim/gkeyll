@@ -968,7 +968,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
       // It benign because this will be overwritten by the first RHS calls.
       if (app->field->is_em) {
         gk_field_accumulate_current_dens(app, app->field, (const struct gkyl_array **) distf);
-        gk_field_calc_apar_ic(app, app->field);
+        gk_field_calc_apar_ic(app, app->field, app->field->apar);
         for (int i=0; i<app->num_species; ++i) {
           struct gk_species *gk_s = &app->species[i];
           gk_species_rhs_em_complete(app, gk_s, distf[i], distfdot[i], bflux[i]);
@@ -1286,10 +1286,18 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
 
     if (app->field->is_em) {
+      // Solve ampere to output it and compare with stepped apar.
+      struct gkyl_array *distf[app->num_species];
+      for (int i=0; i<app->num_species; ++i) {
+        distf[i] = app->species[i].f;
+      }
+      gk_field_accumulate_current_dens(app, app->field, (const struct gkyl_array **) distf);
+      gk_field_calc_apar_ic(app, app->field, app->field->amperesol);
       // Copy data from device to host before writing it out.
       if (app->use_gpu) {
         gkyl_array_copy(app->field->apar_host, app->field->apar);
         gkyl_array_copy(app->field->apardot_host, app->field->apardot);
+        gkyl_array_copy(app->field->amperesol_host, app->field->amperesol);
       }
       const char *fmt_apar = "%s-apar_%d.gkyl";
       int sz_apar = gkyl_calc_strlen(fmt_apar, app->name, frame);
@@ -1304,6 +1312,13 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
       snprintf(fileNm_apardot, sizeof fileNm_apardot, fmt_apardot, app->name, frame);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apardot_host, fileNm_apardot);
+
+      const char *fmt_amperesol = "%s-amperesol_%d.gkyl";
+      int sz_amperesol = gkyl_calc_strlen(fmt_amperesol, app->name, frame);
+      char fileNm_amperesol[sz_amperesol+1]; // ensures no buffer overflow
+      snprintf(fileNm_amperesol, sizeof fileNm_amperesol, fmt_amperesol, app->name, frame);
+
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->amperesol_host, fileNm_amperesol);
     }
 
     gkyl_msgpack_data_release(mt);
@@ -3246,7 +3261,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
         if (app->field->calc_init_apar) {
           // Compute Apar.
           gk_field_accumulate_current_dens(app, app->field, (const struct gkyl_array **) distf);
-          gk_field_calc_apar_ic(app, app->field);
+          gk_field_calc_apar_ic(app, app->field, app->field->apar);
           // We also compute Apardot here to output the first frame.
           for (int i=0; i<app->num_species; ++i) {
             struct gk_species *gk_s = &app->species[i];

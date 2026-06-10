@@ -1346,6 +1346,8 @@ struct gk_field {
       struct gkyl_array *apar_host; // Host copy for use IO.
       struct gkyl_array *apardot; // Array for d(A_parallel)/dt (solved through Ohm's law).
       struct gkyl_array *apardot_host; // Host copy for use IO.
+      struct gkyl_array *amperesol; // Array for Ampere's law solution.
+      struct gkyl_array *amperesol_host; // Host copy for use IO.
       struct gkyl_array *currentDens; // Current density.
       struct gkyl_array *currentDens_global; // Current density.
       struct gkyl_array *currentDensdot; // Time derivative of current density.
@@ -1444,8 +1446,8 @@ struct gk_field {
     const struct gkyl_array *fin[]);
   void (*accumulate_current_dot) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, 
     struct gkyl_array *rhs_in[]);
-  void (*ampere_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
-  void (*ohm_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field);
+  void (*ampere_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out);
+  void (*ohm_solve) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out);
   void (*step_apar) (struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array* out, double a, const struct gkyl_array* inp);
   void (*em_combine_func) (struct gkyl_array *out, double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,const struct gkyl_range *rng);
   void (*em_copy_func) (struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range);
@@ -4277,9 +4279,9 @@ gk_field_accumulate_ohms_kSq(gkyl_gyrokinetic_app *app, struct gk_field *field,
  * 
  * @param app gyrokinetic app object.
  * @param field Pointer to field.
- * @param em Output field.
+ * @param out Output array. (apar)
  */
-void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field);
+void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out);
 
 /**
  * Step the parallel component of the magnetic vector potential, apar, forward in time.

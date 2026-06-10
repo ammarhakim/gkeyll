@@ -434,9 +434,9 @@ gk_field_new(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app)
 
   f->info = gk->field;
 
-  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD_ES;
+  f->gkfield_id = f->info.gkfield_id ? f->info.gkfield_id : GKYL_GK_FIELD;
   
-  f->is_em = f->info.gkfield_id == GKYL_GK_FIELD_EM || f->info.gkfield_id == GKYL_GK_FIELD_EM_IWL;
+  f->is_em = f->info.gkfield_id == GKYL_GK_FIELD_EM;
   // Ensure that if any species is electromagnetic, the field is electromagnetic.
   for (int i=0; i<app->num_species; ++i) {
     struct gk_species *s = &app->species[i];
@@ -507,12 +507,12 @@ gk_field_em_rhs(gkyl_gyrokinetic_app *app, struct gk_field *field, const struct 
   app->stat.field_tm += gkyl_time_diff_now_sec(wst);
 }
 
-void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field)
+void gk_field_calc_apar_ic(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out)
 {
   struct timespec wst = gkyl_wall_clock();
-  field->ampere_solve(app, field);
+  field->ampere_solve(app, field, out);
   // Smooth Apar after solving Ampere's law.
-  gk_field_fem_projection_par(app, field, field->apar, field->apar);
+  gk_field_fem_projection_par(app, field, out, out);
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 

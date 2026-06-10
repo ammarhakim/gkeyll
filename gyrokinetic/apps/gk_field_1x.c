@@ -20,7 +20,7 @@ gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 }
 
 static void 
-gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
+gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out){
   struct timespec wst = gkyl_wall_clock();
 
   // Compute the LHS factor (= k_perp^2/mu_0 + sum_s q_s^2 n_s/m_s)
@@ -30,7 +30,7 @@ gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
   gkyl_array_accumulate_range(field->dApartdtSlvr_lhs_factor, 1.0, field->lapWeightAmpere, &app->local);
 
   // Weak division method dApar/dt = sum_s q_s int dv vpar d/dt(F_s) / ( (k_perp^2/mu_0 + sum_s q_s^2/m_s int dv F_s) )
-  gkyl_dg_div_op_range(field->div_mem, app->basis, 0, field->apardot, 0, field->currentDensdot, 
+  gkyl_dg_div_op_range(field->div_mem, app->basis, 0, out, 0, field->currentDensdot, 
     0, field->dApartdtSlvr_lhs_factor, &app->local);
   
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -38,18 +38,18 @@ gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
 }
 
 static void 
-gk_field_ampere_solve_1x_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field){
+gk_field_ampere_solve_1x_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out){
   struct timespec wst = gkyl_wall_clock();
 
   // Weak division method Apar = sum_s q_s int dv vpar F_s / (k_perp^2/mu_0)
-  gkyl_dg_div_op_range(field->div_mem, app->basis, 0, field->apar, 0, field->currentDens, 
+  gkyl_dg_div_op_range(field->div_mem, app->basis, 0, out, 0, field->currentDens, 
     0, field->lapWeightAmpere, &app->local);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void 
-gk_field_ampere_solve_1x_none(gkyl_gyrokinetic_app *app, struct gk_field *field){
+gk_field_ampere_solve_1x_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out){
   // Do nothing.
 }
 
@@ -58,7 +58,7 @@ gk_field_em_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, const
 {
   gk_field_accumulate_current_dens_dot(app, field, rhs_in);
   gk_field_accumulate_ohms_kSq(app, field, f_in);
-  gk_field_ohm_solve_1x(app, field);
+  gk_field_ohm_solve_1x(app, field, field->apardot);
 }
 
 static void
@@ -79,6 +79,7 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(f->apar1);
   gkyl_array_release(f->aparnew);
   gkyl_array_release(f->apardot);
+  gkyl_array_release(f->amperesol);
 
   if (f->is_em) {
     gkyl_array_release(f->currentDens);
@@ -91,6 +92,7 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     if (app->use_gpu) {
       gkyl_array_release(f->apar_host);
       gkyl_array_release(f->apardot_host);
+      gkyl_array_release(f->amperesol_host);
     }
   }
 
@@ -123,15 +125,18 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->amperesol = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Allocate additional arrays for EM case.
   if (f->is_em) {
     
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;
+    f->amperesol_host = f->amperesol;
     if (app->use_gpu) {
       f->apar_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
       f->apardot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      f->amperesol_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
     f->currentDens = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

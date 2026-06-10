@@ -479,12 +479,12 @@ gk_field_rhs_poisson_perp_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field
 }
 
 static void
-gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
+gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out){
   struct timespec wst = gkyl_wall_clock();
   
   gkyl_fem_poisson_perp_update_lhs(field->fem_apardot_solver, field->lapWeightAmpere, field->dApartdtSlvr_kSq);
   gkyl_fem_poisson_perp_set_rhs(field->fem_apardot_solver, field->currentDensdot);
-  gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, field->apardot);
+  gkyl_fem_poisson_perp_solve(field->fem_apardot_solver, out);
 
   field->invert_flr(app, field, field->apardot);
 
@@ -494,23 +494,23 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field){
 }
 
 static void 
-gk_field_ampere_solve_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field){
+gk_field_ampere_solve_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out){
   struct timespec wst = gkyl_wall_clock();
 
   gkyl_fem_poisson_perp_set_rhs(field->fem_apar_solver, field->currentDens);
-  gkyl_fem_poisson_perp_solve(field->fem_apar_solver, field->apar);
+  gkyl_fem_poisson_perp_solve(field->fem_apar_solver, out);
 
   // Smooth along z.
   // gk_field_fem_projection_par(app, field, field->apar, field->apar_smooth_aux);
   // gkyl_array_copy_range(field->apar, field->apar_smooth_aux, &app->local_ext);
 
-  field->invert_flr(app, field, field->apar);
+  field->invert_flr(app, field, out);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void 
-gk_field_ampere_solve_none(gkyl_gyrokinetic_app *app, struct gk_field *field){
+gk_field_ampere_solve_none(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *out){
   // Do nothing.
 }
 
@@ -519,7 +519,7 @@ gk_field_em_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, const
 {
   gk_field_accumulate_current_dens_dot(app, field, rhs_in);
   gk_field_accumulate_ohms_kSq(app, field, f_in);
-  gk_field_ohm_solve(app, field);
+  gk_field_ohm_solve(app, field, field->apardot);
 }
 
 static void
@@ -570,6 +570,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     if (app->use_gpu) {
       gkyl_array_release(f->apar_host);
       gkyl_array_release(f->apardot_host);
+      gkyl_array_release(f->amperesol_host);
     }
     if (f->remove_em_zonal) {
      gkyl_array_average_release(f->fs_avg_op);
@@ -650,14 +651,17 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->apar1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->aparnew = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   f->apardot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  f->amperesol = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
   // Setup electromagnetic variables if needed.
   if (f->is_em) {
     f->apar_host = f->apar;
     f->apardot_host = f->apardot;
+    f->amperesol_host = f->amperesol;
     if (app->use_gpu) {
       f->apar_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
       f->apardot_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
+      f->amperesol_host = mkarr(false, app->basis.num_basis, app->local_ext.volume);
     }
 
     f->apar_smooth_aux = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
