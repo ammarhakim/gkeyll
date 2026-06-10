@@ -647,6 +647,14 @@ end
 local function list_tests(activeLayers, args)
    local luaTests, cTests = {}, {}
 
+   -- Track which --run-only entries matched at least one existing test file
+   -- (in any scanned layer, Lua or C) so we can report unknown test names
+   -- instead of silently running nothing.
+   local runOnlyEntries, runOnlyFound = {}, {}
+   if args.run_only then
+      runOnlyEntries = splitList(args.run_only)
+   end
+
    -- Determine which layers to scan.
    local layersToScan = {}
    if activeLayers then
@@ -678,7 +686,14 @@ local function list_tests(activeLayers, args)
             -- Skip tests in ignore list.  The lua table stores basenames
             -- (no path, no extension) so the file works on any machine.
             local ignLua = ignoreTests[layer.name] and ignoreTests[layer.name].lua or {}
-            if lume.find(ignLua, stripext(basename(fn))) then return end
+            if lume.find(ignLua, stripext(basename(fn))) then
+               if args.run_only then
+                  log(string.format(
+                     "NOTE: skipping '%s/luareg/%s': test is in the ignore list.\n",
+                     layer.name, stripext(basename(fn))))
+               end
+               return
+            end
             -- Derive a short display name from the absolute path for DB storage.
             local nm = layer.name .. "/luareg/" .. basename(fn)
             table.insert(luaTests, {
@@ -695,9 +710,10 @@ local function list_tests(activeLayers, args)
                if lfs.attributes(candidate) then addLuaTest(candidate) end
             end
          elseif args.run_only then
-            for _, ro in ipairs(splitList(args.run_only)) do
+            for _, ro in ipairs(runOnlyEntries) do
                local a = lfs.attributes(ro)
                if a then
+                  runOnlyFound[ro] = true
                   if a.mode == "file" then
                      addLuaTest(ro)
                   elseif a.mode == "directory" then
@@ -706,7 +722,10 @@ local function list_tests(activeLayers, args)
                else
                   -- Bare test name (e.g. "rt_euler_sodshock"): search this layer's luareg/.
                   local candidate = luaregDir .. "/" .. ro .. ".lua"
-                  if lfs.attributes(candidate) then addLuaTest(candidate) end
+                  if lfs.attributes(candidate) then
+                     runOnlyFound[ro] = true
+                     addLuaTest(candidate)
+                  end
                end
             end
          else
@@ -737,7 +756,14 @@ local function list_tests(activeLayers, args)
             local testname = stripext(basename(fn))
             -- Skip tests in ignore list (C ignores are stored as basenames without .c).
             local ignC = ignoreTests[layer.name] and ignoreTests[layer.name].c or {}
-            if lume.find(ignC, testname) then return end
+            if lume.find(ignC, testname) then
+               if args.run_only then
+                  log(string.format(
+                     "NOTE: skipping '%s/creg/%s': test is in the ignore list.\n",
+                     layer.name, testname))
+               end
+               return
+            end
             table.insert(cTests, {
                src      = fn,
                layer    = layer.name,
@@ -753,9 +779,10 @@ local function list_tests(activeLayers, args)
                if lfs.attributes(candidate) then addCTest(candidate) end
             end
          elseif args.run_only then
-            for _, ro in ipairs(splitList(args.run_only)) do
+            for _, ro in ipairs(runOnlyEntries) do
                local a = lfs.attributes(ro)
                if a then
+                  runOnlyFound[ro] = true
                   if a.mode == "file" then
                      addCTest(ro)
                   elseif a.mode == "directory" then
@@ -766,7 +793,10 @@ local function list_tests(activeLayers, args)
                else
                   -- Bare test name (e.g. "rt_10m_sodshock"): search this layer's creg/.
                   local candidate = cregSrcDir .. "/" .. ro .. ".c"
-                  if lfs.attributes(candidate) then addCTest(candidate) end
+                  if lfs.attributes(candidate) then
+                     runOnlyFound[ro] = true
+                     addCTest(candidate)
+                  end
                end
             end
          else
@@ -780,6 +810,52 @@ local function list_tests(activeLayers, args)
          verboseLog(string.format(
             "C regression directory '%s' not found, skipping.\n", cregSrcDir))
       end
+   end
+
+   -- Fail with a clear message if any --run-only entry matched no test in the
+   -- scanned layers (e.g. 'rt_gk_sheath_3x2v' given when the actual tests are
+   -- 'rt_gk_sheath_3x2v_p1' and 'rt_gk_sheath_3x2v_p1_cons').
+   local missing = {}
+   for _, ro in ipairs(runOnlyEntries) do
+      if not runOnlyFound[ro] then table.insert(missing, ro) end
+   end
+   if #missing > 0 then
+      local scannedNames = {}
+      for _, L in ipairs(layersToScan) do
+         table.insert(scannedNames, L.name)
+      end
+      for _, ro in ipairs(missing) do
+         log(string.format(
+            "ERROR: no regression test named '%s' found in layer(s): %s.\n",
+            ro, table.concat(scannedNames, ", ")))
+         -- Suggest tests whose names contain the requested name.
+         local suggestions, seen = {}, {}
+         for _, layer in ipairs(layersToScan) do
+            for _, sub in ipairs({ "luareg", "creg" }) do
+               local dirPath = configVals.source_dir .. "/" .. layer.src .. "/" .. sub
+               local attr = lfs.attributes(dirPath)
+               if attr and attr.mode == "directory" then
+                  for fn in lfs.dir(dirPath) do
+                     if string.match(fn, "^rt_.+%.lua$") or string.match(fn, "^rt_.+%.c$") then
+                        local nm = stripext(fn)
+                        local key = layer.name .. "/" .. sub .. "/" .. nm
+                        if not seen[key] and string.find(nm, ro, 1, true) then
+                           seen[key] = true
+                           table.insert(suggestions, key)
+                        end
+                     end
+                  end
+               end
+            end
+         end
+         if #suggestions > 0 then
+            table.sort(suggestions)
+            log("Did you mean one of these?\n")
+            for _, s in ipairs(suggestions) do log("   " .. s .. "\n") end
+         end
+      end
+      log("Use 'gkeyll runregression list' to see all available tests.\n")
+      os.exit(1)
    end
 
    return luaTests, cTests
