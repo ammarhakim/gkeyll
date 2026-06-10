@@ -799,6 +799,7 @@ vlasov_species_lw_new(lua_State *L)
         if (glua_tbl_iget_tbl(L, i + 1)) {
           if (glua_tbl_get_func(L, "crossNu")) {
             cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_cross_nu_func[i] = true;
           }
         }
         lua_pop(L, 1);
@@ -2274,8 +2275,10 @@ vm_app_new(lua_State *L)
     vm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(vm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
-      vm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
-      vm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+      if (species[s]->has_cross_nu_func[i]) {
+        vm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
+        vm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+      }
     }
     vm.species[s].collisions.den_ref = app_lw->den_ref[s];
     vm.species[s].collisions.temp_ref = app_lw->temp_ref[s];
