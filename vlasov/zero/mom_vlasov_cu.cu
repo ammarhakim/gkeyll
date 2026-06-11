@@ -214,17 +214,18 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->hamil = hamil_ho->on_dev; // store pointer to on_dev for copying over to device. 
 
   mom_vlasov->vel_range = *inp->vel_range;
+  mom_vlasov->vel_map = 0;
   mom_vlasov->vmap = 0;
-  mom_vlasov->jacob_vel = 0;    
-  struct gkyl_array *vmap_ho = 0; 
-  struct gkyl_array *jacob_vel_ho = 0; 
+  mom_vlasov->jacob_vel = 0;
   mom_vlasov->use_vmap = false;
-  if (inp->use_vmap) {
-    mom_vlasov->use_vmap = inp->use_vmap;
-    vmap_ho = gkyl_array_acquire(inp->vmap); 
-    jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
-    mom_vlasov->vmap = vmap_ho->on_dev;
-    mom_vlasov->jacob_vel = jacob_vel_ho->on_dev; 
+  if (inp->vel_map) {
+    mom_vlasov->use_vmap = inp->vel_map->is_mapped;
+    if (mom_vlasov->use_vmap) {
+      // Unpack raw device pointers for use inside kernels; lifetime is
+      // guaranteed by acquiring the vel_map object on the host side below.
+      mom_vlasov->vmap = inp->vel_map->vmap->on_dev;
+      mom_vlasov->jacob_vel = inp->vel_map->jacob_vel->on_dev;
+    }
   }
 
   // Threshold velocity for integration of moments over a subset of the domain. 
@@ -248,8 +249,9 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
 
   // Host-side moment type object should store host pointers.
-  mom_vlasov->vmap = vmap_ho; 
-  mom_vlasov->jacob_vel = jacob_vel_ho; 
+  mom_vlasov->vel_map = inp->vel_map ? gkyl_vlasov_velocity_map_acquire(inp->vel_map) : 0;
+  mom_vlasov->vmap = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->vmap : 0;
+  mom_vlasov->jacob_vel = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->jacob_vel : 0;
   mom_vlasov->hamil = hamil_ho; 
   
   return &mom_vlasov->momt;
@@ -330,17 +332,18 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->hamil = hamil_ho->on_dev; // store pointer to on_dev for copying over to device. 
 
   mom_vlasov->vel_range = *inp->vel_range;
+  mom_vlasov->vel_map = 0;
   mom_vlasov->vmap = 0;
-  mom_vlasov->jacob_vel = 0;    
-  struct gkyl_array *vmap_ho = 0; 
-  struct gkyl_array *jacob_vel_ho = 0;
-  mom_vlasov->use_vmap = false; 
-  if (inp->use_vmap) {
-    mom_vlasov->use_vmap = inp->use_vmap;
-    vmap_ho = gkyl_array_acquire(inp->vmap); 
-    jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
-    mom_vlasov->vmap = vmap_ho->on_dev;
-    mom_vlasov->jacob_vel = jacob_vel_ho->on_dev; 
+  mom_vlasov->jacob_vel = 0;
+  mom_vlasov->use_vmap = false;
+  if (inp->vel_map) {
+    mom_vlasov->use_vmap = inp->vel_map->is_mapped;
+    if (mom_vlasov->use_vmap) {
+      // Unpack raw device pointers for use inside kernels; lifetime is
+      // guaranteed by acquiring the vel_map object on the host side below.
+      mom_vlasov->vmap = inp->vel_map->vmap->on_dev;
+      mom_vlasov->jacob_vel = inp->vel_map->jacob_vel->on_dev;
+    }
   }
 
   mom_vlasov->momt.num_mom = v_num_mom(vdim, inp->mom_type); // Number of moments.
@@ -359,8 +362,9 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.on_dev = &mom_vlasov_cu->momt;
 
   // Host-side moment type object should store host pointers.
-  mom_vlasov->vmap = vmap_ho; 
-  mom_vlasov->jacob_vel = jacob_vel_ho; 
+  mom_vlasov->vel_map = inp->vel_map ? gkyl_vlasov_velocity_map_acquire(inp->vel_map) : 0;
+  mom_vlasov->vmap = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->vmap : 0;
+  mom_vlasov->jacob_vel = (inp->vel_map && mom_vlasov->use_vmap) ? inp->vel_map->jacob_vel : 0;
   mom_vlasov->hamil = hamil_ho;  
 
   return &mom_vlasov->momt;

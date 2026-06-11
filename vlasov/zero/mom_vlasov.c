@@ -20,9 +20,8 @@ gkyl_mom_vlasov_free(const struct gkyl_ref_count *ref)
   }
 
   struct mom_type_vlasov *mom_vlasov = container_of(base, struct mom_type_vlasov, momt);
-  if (mom_vlasov->use_vmap) {
-    gkyl_array_release(mom_vlasov->vmap); 
-    gkyl_array_release(mom_vlasov->jacob_vel); 
+  if (mom_vlasov->vel_map) {
+    gkyl_vlasov_velocity_map_release(mom_vlasov->vel_map);
   }
   gkyl_array_release(mom_vlasov->hamil);
   gkyl_free(mom_vlasov);
@@ -62,13 +61,18 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
 
   mom_vlasov->vel_range = *inp->vel_range;
+  mom_vlasov->vel_map = 0;
   mom_vlasov->vmap = 0;
   mom_vlasov->jacob_vel = 0;
   mom_vlasov->use_vmap = false;
-  if (inp->use_vmap) {
-    mom_vlasov->use_vmap = true;
-    mom_vlasov->vmap = gkyl_array_acquire(inp->vmap); 
-    mom_vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
+  if (inp->vel_map) {
+    mom_vlasov->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+    mom_vlasov->use_vmap = inp->vel_map->is_mapped;
+    if (mom_vlasov->use_vmap) {
+      // Borrowed pointers; kept alive by the acquired vel_map.
+      mom_vlasov->vmap = inp->vel_map->vmap;
+      mom_vlasov->jacob_vel = inp->vel_map->jacob_vel;
+    }
   }
 
   // Threshold velocity for integration of moments over a subset of the domain. 
@@ -259,13 +263,18 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
 
   mom_vlasov->vel_range = *inp->vel_range;
+  mom_vlasov->vel_map = 0;
   mom_vlasov->vmap = 0;
   mom_vlasov->jacob_vel = 0;
   mom_vlasov->use_vmap = false;
-  if (inp->use_vmap) {
-    mom_vlasov->use_vmap = true;
-    mom_vlasov->vmap = gkyl_array_acquire(inp->vmap); 
-    mom_vlasov->jacob_vel = gkyl_array_acquire(inp->jacob_vel); 
+  if (inp->vel_map) {
+    mom_vlasov->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+    mom_vlasov->use_vmap = inp->vel_map->is_mapped;
+    if (mom_vlasov->use_vmap) {
+      // Borrowed pointers; kept alive by the acquired vel_map.
+      mom_vlasov->vmap = inp->vel_map->vmap;
+      mom_vlasov->jacob_vel = inp->vel_map->jacob_vel;
+    }
   }
 
   // Choose kernel tables based on basis-function type.

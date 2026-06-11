@@ -30,15 +30,15 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_range = vms->local_vel; 
     vms->hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
-    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
-      vms->model_id, vms->vmap, vms->hamil, vms->gamma_inv, app->use_gpu); 
+    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel,
+      vms->model_id, vms->vel_map, vms->hamil, vms->gamma_inv, app->use_gpu);
 
     // If relativistic, allocate additional updater for computing derived relativistic moments,
-    // such as the spatial component of the four-velocity and pressure. 
+    // such as the spatial component of the four-velocity and pressure.
     if (vms->model_id == GKYL_MODEL_SR) {
       vms->sr_vars = gkyl_dg_calc_sr_vars_new(&vms->grid, &vms->grid_vel,
-        &app->basis,  &vms->basis_vel, &app->local, &vms->local_vel, 
-        vms->vmap, vms->use_vmap, app->use_gpu);   
+        &app->basis,  &vms->basis_vel, &app->local, &vms->local_vel,
+        vms->vel_map, app->use_gpu);
     }
   } 
   else if (vms->model_id == GKYL_MODEL_TRIAD) {
@@ -51,8 +51,8 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_range = vms->local_vel; 
     vms->hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
-    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
-      GKYL_MODEL_DEFAULT, vms->vmap, vms->hamil, vms->gamma_inv, app->use_gpu);
+    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel,
+      GKYL_MODEL_DEFAULT, vms->vel_map, vms->hamil, vms->gamma_inv, app->use_gpu);
 
     struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
     inp_triad_geom.use_vierbein = vms->info.use_vierbein;
@@ -197,9 +197,9 @@ vm_species_new_radiation(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app
   vms->rad = mkarr(app->use_gpu, vdim*vms->basis_vel.num_basis, vms->local_vel.volume);
   if (radiation_id ==  GKYL_VM_COMPTON_RADIATION || radiation_id == GKYL_VM_CURVATURE_RADIATION) {
     vms->has_rad = true;
-    gkyl_dg_vlasov_calc_radiation(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
-      radiation_id, vms->vmap, vms->info.radiation.t_cool, vms->info.radiation.p0, 
-      vms->rad, app->use_gpu); 
+    gkyl_dg_vlasov_calc_radiation(&vms->grid_vel, &vms->basis_vel, &vms->local_vel,
+      radiation_id, vms->vel_map, vms->info.radiation.t_cool, vms->info.radiation.p0,
+      vms->rad, app->use_gpu);
   }
 }
 
@@ -1170,13 +1170,6 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   }
   vms->vel_map = gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel,
     &vms->basis_vel, inp_vmap, app->use_gpu);
-
-  // Transitional borrowed aliases (kept alive by vel_map's reference count).
-  vms->use_vmap = vms->vel_map->is_mapped;
-  vms->vmap = vms->vel_map->vmap;
-  vms->jacob_vel = vms->vel_map->jacob_vel;
-  vms->jacob_vel_surf = vms->vel_map->jacob_vel_surf;
-  vms->jacob_vel_gauss = vms->vel_map->jacob_vel_gauss;
 
   // Allocate array for dividing out velocity-space Jacobian. 
   // If the mesh is uniform, we simply copy the distribution function at that RK stage

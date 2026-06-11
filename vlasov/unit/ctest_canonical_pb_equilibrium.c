@@ -218,7 +218,6 @@ test_2x2v(int poly_order)
     .hamil = hamil,
     .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
-    .use_vmap = false,
     .use_extended_hamil_def = false,
     .use_gpu = false,
   };  
@@ -271,7 +270,6 @@ test_2x2v(int poly_order)
     .hamil = hamil,
     .hamil_range = &local,
     .model_id = GKYL_MODEL_CANONICAL_PB,
-    .use_vmap = false,
     .use_extended_hamil_def = false,
     .use_gpu = false,
   };

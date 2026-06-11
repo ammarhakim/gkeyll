@@ -63,13 +63,13 @@ gkyl_dg_vlasov_calc_hamil_cu_kernel(struct gkyl_rect_grid vel_grid,
 
 // Host-side wrapper for initialization of Hamiltonian. 
 void
-gkyl_dg_vlasov_calc_hamil_cu(const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range, 
-  enum gkyl_model_id model_id, const struct gkyl_array *vmap, 
+gkyl_dg_vlasov_calc_hamil_cu(const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
+  enum gkyl_model_id model_id, const struct gkyl_vlasov_velocity_map *vel_map,
   struct gkyl_array *hamil, struct gkyl_array *hamil_inv)
 {
   int nblocks = vel_range->nblocks;
   int nthreads = vel_range->nthreads;
-  gkyl_dg_vlasov_calc_hamil_cu_kernel<<<nblocks, nthreads>>>(*vel_grid, *vel_basis, *vel_range, 
-    model_id, vmap ? vmap->on_dev : 0, hamil->on_dev, hamil_inv->on_dev);
+  gkyl_dg_vlasov_calc_hamil_cu_kernel<<<nblocks, nthreads>>>(*vel_grid, *vel_basis, *vel_range,
+    model_id, vel_map ? vel_map->vmap->on_dev : 0, hamil->on_dev, hamil_inv->on_dev);
 }

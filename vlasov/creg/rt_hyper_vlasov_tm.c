@@ -275,8 +275,6 @@ main(int argc, char **argv)
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
     .vel_range = &velRange,
-    .use_vmap = false, 
-    .jacob_vel = false, 
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
     .has_E = true, 

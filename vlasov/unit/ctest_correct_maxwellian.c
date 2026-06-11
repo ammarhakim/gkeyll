@@ -169,7 +169,6 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
-    .use_vmap = false,
     .use_extended_hamil_def = false,
     .use_gpu = false,
   };  
@@ -190,7 +189,6 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
-    .use_vmap = false,
     .use_extended_hamil_def = false,
     .use_gpu = false,
   };

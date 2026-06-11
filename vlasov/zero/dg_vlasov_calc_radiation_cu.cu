@@ -62,13 +62,13 @@ gkyl_dg_vlasov_calc_radiation_cu_kernel(struct gkyl_rect_grid vel_grid,
 
 // Host-side wrapper for initialization of radiation drag force. 
 void
-gkyl_dg_vlasov_calc_radiation_cu(const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range, 
-  enum gkyl_vlasov_radiation_id radiation_id, const struct gkyl_array *vmap, 
+gkyl_dg_vlasov_calc_radiation_cu(const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
+  enum gkyl_vlasov_radiation_id radiation_id, const struct gkyl_vlasov_velocity_map *vel_map,
   double t_cool, double p0, struct gkyl_array *rad)
 {
   int nblocks = vel_range->nblocks;
   int nthreads = vel_range->nthreads;
-  gkyl_dg_vlasov_calc_radiation_cu_kernel<<<nblocks, nthreads>>>(*vel_grid, *vel_basis, *vel_range, 
-    radiation_id, vmap ? vmap->on_dev : 0, t_cool, p0, rad->on_dev);
+  gkyl_dg_vlasov_calc_radiation_cu_kernel<<<nblocks, nthreads>>>(*vel_grid, *vel_basis, *vel_range,
+    radiation_id, vel_map ? vel_map->vmap->on_dev : 0, t_cool, p0, rad->on_dev);
 }

@@ -147,8 +147,6 @@ test_1x2v(int poly_order, bool use_gpu)
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .vel_range = &velLocal,
-    .use_vmap = 0, 
-    .vmap = 0, 
     .hamil_range = &velLocal,
     .hamil = hamil,
     .model_id = GKYL_MODEL_DEFAULT,

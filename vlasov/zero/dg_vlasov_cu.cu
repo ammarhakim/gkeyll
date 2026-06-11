@@ -235,13 +235,16 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->vel_range = *inp->vel_range;
   vlasov->phase_range = *inp->phase_range;
 
-  vlasov->jacob_vel = 0;    
-  struct gkyl_array *jacob_vel_ho = 0; 
+  vlasov->vel_map = 0;
+  vlasov->jacob_vel = 0;
   vlasov->use_vmap = false;
-  if (inp->use_vmap) {
-    vlasov->use_vmap = inp->use_vmap;
-    jacob_vel_ho = gkyl_array_acquire(inp->jacob_vel); 
-    vlasov->jacob_vel = jacob_vel_ho->on_dev; 
+  if (inp->vel_map) {
+    vlasov->use_vmap = inp->vel_map->is_mapped;
+    if (vlasov->use_vmap) {
+      // Unpack the raw device pointer for use inside kernels; lifetime is
+      // guaranteed by acquiring the vel_map object on the host side below.
+      vlasov->jacob_vel = inp->vel_map->jacob_vel->on_dev;
+    }
   }
   struct gkyl_array *poisson_tensor_conf_ho = gkyl_array_acquire(inp->poisson_tensor_conf);
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
@@ -284,8 +287,9 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->eqn.on_dev = &vlasov_cu->eqn;
 
   // Host-side equation object should store host pointers.
-  vlasov->jacob_vel = jacob_vel_ho; 
-  vlasov->poisson_tensor_conf = poisson_tensor_conf_ho; 
+  vlasov->vel_map = inp->vel_map ? gkyl_vlasov_velocity_map_acquire(inp->vel_map) : 0;
+  vlasov->jacob_vel = (inp->vel_map && vlasov->use_vmap) ? inp->vel_map->jacob_vel : 0;
+  vlasov->poisson_tensor_conf = poisson_tensor_conf_ho;
   vlasov->hamil = hamil_ho; 
   vlasov->qmem = qmem_ho; 
   vlasov->pot_tot = pot_tot_ho; 

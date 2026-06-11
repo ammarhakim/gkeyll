@@ -252,7 +252,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
   up->use_vmap = false;
-  if (inp->use_vmap) {
+  if (inp->vel_map && inp->vel_map->is_mapped) {
     up->use_vmap = true;
     if (up->use_gpu) {
       up->vmap_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
@@ -261,8 +261,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     else {
       gkyl_cart_modal_tensor(&up->vmap_basis, 1, 3);
     }
-    up->vmap = gkyl_array_acquire(inp->vmap);
-    up->jacob_vel_gauss = gkyl_array_acquire(inp->jacob_vel_gauss);
+    up->vmap = gkyl_array_acquire(inp->vel_map->vmap);
+    up->jacob_vel_gauss = gkyl_array_acquire(inp->vel_map->jacob_vel_gauss);
   }
 
   // initialize data needed for phase-space quadrature 
@@ -437,10 +437,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .phase_range = inp->phase_range,
-    .use_vmap = inp->use_vmap, 
-    .vmap = inp->vmap, 
-    .jacob_vel = inp->jacob_vel, 
-    .hamil_range = inp->hamil_range, 
+    .vel_map = inp->vel_map,
+    .hamil_range = inp->hamil_range,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
     .gamma_inv = inp->gamma_inv,
