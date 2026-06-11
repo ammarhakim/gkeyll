@@ -29,7 +29,7 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
     return gkyl_wv_euler_cu_dev_inew(inp);
   } 
 #endif  
-  struct wv_euler *euler = gkyl_malloc(sizeof(struct wv_euler));
+  struct wv_euler *euler = gkyl_calloc(1, sizeof(struct wv_euler));
 
   euler->eqn.type = GKYL_EQN_EULER;
   euler->eqn.num_equations = 5;

@@ -11,38 +11,6 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_spacetime.h>
 #include <gkyl_wave_spacetime_priv.h>
-#include <gkyl_wv_gr_euler_tetrad_priv.h>  // invert_metric_3x3, build_triad_contravariant_x
-
-// ---------------------------------------------------------------------------
-// Local rotation helpers — mirror the static-inline copies in
-// wv_gr_euler_tetrad.c so the cache builder can produce face-local-frame
-// quantities without taking a dependency on internal symbols of the
-// equation object. Behaviour is identical (the equation's rot_call_parity
-// path uses the same algebra).
-// ---------------------------------------------------------------------------
-
-static inline void
-ws_rotate_rank1(const double *tau1, const double *tau2, const double *norm,
-  const double *in, double *out)
-{
-  out[0] = in[0]*norm[0] + in[1]*norm[1] + in[2]*norm[2];
-  out[1] = in[0]*tau1[0] + in[1]*tau1[1] + in[2]*tau1[2];
-  out[2] = in[0]*tau2[0] + in[1]*tau2[1] + in[2]*tau2[2];
-}
-
-static inline void
-ws_rotate_rank2(const double *tau1, const double *tau2, const double *norm,
-  const double *in, double *out)
-{
-  const double *R[3] = { norm, tau1, tau2 };
-  double tmp[3][3];
-  for (int a = 0; a < 3; a++)
-    for (int i = 0; i < 3; i++)
-      tmp[a][i] = in[3*i+0]*R[a][0] + in[3*i+1]*R[a][1] + in[3*i+2]*R[a][2];
-  for (int a = 0; a < 3; a++)
-    for (int b = 0; b < 3; b++)
-      out[3*a + b] = tmp[a][0]*R[b][0] + tmp[a][1]*R[b][1] + tmp[a][2]*R[b][2];
-}
 
 // Fill iface in BOTH_EXCISED state — sentinel values consistent with the
 // Riemann solver's short-circuit branch (it never reads the matrices when
@@ -84,15 +52,14 @@ ws_build_iface_from_rotated(struct gkyl_wave_spacetime_iface *iface,
   // Phase 0 Fix 2: derive (inv_g_iface, det) consistently from a single
   // matrix inversion rather than from independent averages.
   double inv_g[3][3];
-  double det = gkyl_gr_euler_tetrad_invert_metric_3x3(g_iface, inv_g);
+  double det = gkyl_wave_spacetime_invert_metric_3x3(g_iface, inv_g);
 
   double M[3][3], M_inv[3][3];
-  gkyl_gr_euler_tetrad_build_triad_contravariant_x(g_iface, inv_g, M, M_inv);
+  gkyl_wave_spacetime_build_triad_contravariant_x(g_iface, inv_g, M, M_inv);
 
   for (int a = 0; a < 3; a++)
     for (int b = 0; b < 3; b++) {
       iface->M_inv[a][b]       = M_inv[a][b];
-      iface->g_iface[a][b]     = g_iface[a][b];
       iface->inv_g_iface[a][b] = inv_g[a][b];
     }
   iface->sqrt_det_iface = sqrt(det);
@@ -132,13 +99,37 @@ gkyl_wave_spacetime_build_cpu(struct gkyl_wave_spacetime *ws,
     for (int d = 0; d < ndim; d++) {
       struct gkyl_wave_spacetime_iface *iface = &cell->iface[d];
 
-      // L = neighbor at idx - δ_d. Skip if out of range (lower-boundary
-      // ghost layer); the wave-prop inner loop never reads those ifaces.
+      // L = neighbor at idx - δ_d. At the bottom edge of the build range
+      // no lower neighbor exists, so the only choice available on the
+      // local extended range is to fill this face one-sided from the
+      // cell's OWN prods. wave_prop never consumes this entry — its edge
+      // loop spans [lower-1, upper+2] over the update range, so with the
+      // standard two-ghost-layer extended range the deepest face it
+      // requests is owned by the FIRST ghost cell, whose lower neighbor
+      // (the second ghost layer) is inside this range. The one-sided
+      // fill exists so that every entry in the cache is nonetheless
+      // VALID: a zero fill here would place sqrt_det_iface = 0 within
+      // reach of a division should any consumer's loop extents ever
+      // change. (If the edge cell itself is excised, fall back to the
+      // BOTH_EXCISED zero fill — its metric may be unusable and every
+      // consumer already short-circuits on the excision flags.)
       int idxL[GKYL_MAX_CDIM];
       for (int k = 0; k < GKYL_MAX_CDIM; k++) idxL[k] = iter.idx[k];
       idxL[d] -= 1;
       if (idxL[d] < range->lower[d]) {
-        ws_fill_both_excised(iface);
+        if (exc_R < 1.0e-8) {
+          ws_fill_both_excised(iface);
+          continue;
+        }
+        double gR_loc[3][3] = {{0}};
+        double shiftR_loc[3] = {0};
+        gkyl_wave_spacetime_rotate_rank2(wcg->tau1[d], wcg->tau2[d],
+          wcg->norm[d], &pR[GKYL_GR_SP_GIJ], (double *)gR_loc);
+        gkyl_wave_spacetime_rotate_rank1(wcg->tau1[d], wcg->tau2[d],
+          wcg->norm[d], &pR[GKYL_GR_SP_SHIFT], shiftR_loc);
+        ws_build_iface_from_rotated(iface, GKYL_WS_IFACE_INTERIOR,
+          gR_loc, gR_loc, /*use_avg=*/false,
+          pR[GKYL_GR_SP_LAPSE], shiftR_loc[0]);
         continue;
       }
 
@@ -161,15 +152,15 @@ gkyl_wave_spacetime_build_cpu(struct gkyl_wave_spacetime *ws,
       double shiftL_loc[3] = {0}, shiftR_loc[3] = {0};
 
       if (!excised_L) {
-        ws_rotate_rank2(tau1, tau2, norm,
+        gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm,
           &pL[GKYL_GR_SP_GIJ], (double *)gL_loc);
-        ws_rotate_rank1(tau1, tau2, norm,
+        gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm,
           &pL[GKYL_GR_SP_SHIFT], shiftL_loc);
       }
       if (!excised_R) {
-        ws_rotate_rank2(tau1, tau2, norm,
+        gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm,
           &pR[GKYL_GR_SP_GIJ], (double *)gR_loc);
-        ws_rotate_rank1(tau1, tau2, norm,
+        gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm,
           &pR[GKYL_GR_SP_SHIFT], shiftR_loc);
       }
 
@@ -275,4 +266,74 @@ void
 gkyl_wave_spacetime_release(const struct gkyl_wave_spacetime *ws)
 {
   gkyl_ref_count_dec(&ws->ref_count);
+}
+
+// Build an orthonormal triad whose FIRST basis vector is aligned with the
+// CONTRAVARIANT x-direction (∂^x = γ^{xj}·∂_j) rather than the coordinate
+// x-direction. The other two basis vectors come from Gram-Schmidt-in-γ
+// starting from (0,1,0) and (0,0,1). This eliminates the v_tet^x ↔ v^y,v^z
+// mixing seen with Cholesky-on-γ for non-diagonal γ.
+//
+// Outputs:
+//   M[i][a]    = e_a^i  (matrix of basis-vector components; columns = e_a)
+//   M_inv[a][i] = (e^a)_i = γ_ij · M[j][a]  (dual co-vector components)
+//
+// Properties:
+//   γ_ij·M[i][a]·M[j][b] = δ_ab          (orthonormality)
+//   M_inv·M = M·M_inv = I (matrix product)
+//   M[i][0] = γ^{xi}/√γ^{xx}              (contravariant x alignment)
+//   M_inv[0][i] = δ^x_i/√γ^{xx} = (1/√γ^{xx}, 0, 0)
+//
+// For diagonal γ this reduces to the Cholesky construction.
+void
+gkyl_wave_spacetime_build_triad_contravariant_x(
+  const double g_ij[3][3], const double inv_g[3][3],
+  double M[3][3], double M_inv[3][3])
+{
+  // First basis vector: contravariant x-direction, normalized in γ.
+  //   e_0^i = γ^{xi} / √γ^{xx}
+  double sqrt_inv_gxx = sqrt(inv_g[0][0]);
+  for (int i = 0; i < 3; i++) M[i][0] = inv_g[0][i] / sqrt_inv_gxx;
+
+  // Helper: γ-inner-product of two contravariant vectors.
+  // <u, v>_γ = γ_ij · u^i · v^j
+  #define GAMMA_DOT(u, v)                                              \
+    (g_ij[0][0]*(u)[0]*(v)[0] + g_ij[1][1]*(u)[1]*(v)[1]               \
+   + g_ij[2][2]*(u)[2]*(v)[2]                                          \
+   + g_ij[0][1]*((u)[0]*(v)[1] + (u)[1]*(v)[0])                        \
+   + g_ij[0][2]*((u)[0]*(v)[2] + (u)[2]*(v)[0])                        \
+   + g_ij[1][2]*((u)[1]*(v)[2] + (u)[2]*(v)[1]))
+
+  // Second basis vector: Gram-Schmidt-in-γ of (0,1,0) against e_0.
+  double e0[3] = { M[0][0], M[1][0], M[2][0] };
+  double f1[3] = { 0.0, 1.0, 0.0 };
+  double c01 = GAMMA_DOT(f1, e0);  // projection coefficient
+  double e1[3] = { f1[0] - c01*e0[0], f1[1] - c01*e0[1], f1[2] - c01*e0[2] };
+  double norm1 = sqrt(GAMMA_DOT(e1, e1));
+  for (int i = 0; i < 3; i++) M[i][1] = e1[i] / norm1;
+
+  // Third basis vector: Gram-Schmidt of (0,0,1) against e_0 and e_1.
+  double e1_norm[3] = { M[0][1], M[1][1], M[2][1] };
+  double f2[3] = { 0.0, 0.0, 1.0 };
+  double c02 = GAMMA_DOT(f2, e0);
+  double c12 = GAMMA_DOT(f2, e1_norm);
+  double e2[3] = {
+    f2[0] - c02*e0[0] - c12*e1_norm[0],
+    f2[1] - c02*e0[1] - c12*e1_norm[1],
+    f2[2] - c02*e0[2] - c12*e1_norm[2],
+  };
+  double norm2 = sqrt(GAMMA_DOT(e2, e2));
+  for (int i = 0; i < 3; i++) M[i][2] = e2[i] / norm2;
+
+  #undef GAMMA_DOT
+
+  // M_inv = M^T · γ (since γ-orthonormality says M^T·γ·M = I, so
+  // M^{-1} = M^T·γ).
+  for (int a = 0; a < 3; a++) {
+    for (int i = 0; i < 3; i++) {
+      M_inv[a][i] = M[0][a]*g_ij[0][i]
+                  + M[1][a]*g_ij[1][i]
+                  + M[2][a]*g_ij[2][i];
+    }
+  }
 }

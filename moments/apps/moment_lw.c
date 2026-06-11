@@ -28,7 +28,6 @@
 #include <gkyl_wv_gr_ultra_rel_euler.h>
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad.h>
 #include <gkyl_wv_gr_euler.h>
-#include <gkyl_wv_gr_euler_mod.h>
 #include <gkyl_wv_gr_medium.h>
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_wv_vacuum_einstein_conformal.h>
@@ -1239,69 +1238,15 @@ static struct luaL_Reg eqn_gr_euler_ctor[] = {
 /* Modular General Relativistic Euler Equations */
 /* ******************************************* */
 
-// GREulerMod.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
-// Same signature as GREuler, but produces the modular equation object that
-// reads its spacetime from the shared spacetime-products array attached at
-// app-construction time via gkyl_gr_euler_mod_set_auxfields. The user is
-// expected to declare a separate Moments.Spacetime { ... } component in the
-// same App table that supplies the spacetime backend.
-static int
-eqn_gr_euler_mod_lw_new(lua_State *L)
-{
-  struct wv_eqn_lw *gr_euler_mod_lw = gkyl_malloc(sizeof(*gr_euler_mod_lw));
-
-  double gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0 / 3.0);
-
-  const char *rp_str = glua_tbl_get_string(L, "rpType", "hll");
-  enum gkyl_wv_gr_euler_rp rp_type = gkyl_search_str_int_pair_by_str(
-    gr_euler_rp_type, rp_str, WV_GR_EULER_RP_HLL);
-
-  // The real conf_range is populated by gkyl_gr_euler_mod_set_conf_range
-  // inside gkyl_moment_app_new once the app's local range exists. Build
-  // the equation now with a placeholder 1-cell range so the equation
-  // object is well-formed.
-  int lower[1] = { 0 };
-  int upper[1] = { 0 };
-  struct gkyl_range conf_range;
-  gkyl_range_init(&conf_range, 1, lower, upper);
-
-  gr_euler_mod_lw->magic = MOMENT_EQN_DEFAULT;
-  gr_euler_mod_lw->eqn = gkyl_wv_gr_euler_mod_inew(
-    &(struct gkyl_wv_gr_euler_mod_inp) {
-      .gas_gamma  = gas_gamma,
-      .conf_range = conf_range,
-      .rp_type    = rp_type,
-      .use_gpu    = false,
-    });
-  gr_euler_mod_lw->has_nn        = false;
-  gr_euler_mod_lw->ann           = 0;
-  gr_euler_mod_lw->has_spacetime = false;  // spacetime lives on the app component
-  gr_euler_mod_lw->spacetime     = 0;
-
-  // Create Lua userdata.
-  struct wv_eqn_lw **l_gr_euler_mod_lw = lua_newuserdata(L, sizeof(struct wv_eqn_lw*));
-  *l_gr_euler_mod_lw = gr_euler_mod_lw;
-
-  // Set metatable.
-  luaL_getmetatable(L, MOMENT_WAVE_EQN_METATABLE_NM);
-  lua_setmetatable(L, -2);
-
-  return 1;
-}
-
-static struct luaL_Reg eqn_gr_euler_mod_ctor[] = {
-  { "new", eqn_gr_euler_mod_lw_new },
-  { 0, 0 }
-};
-
 /* ************************************************************** */
 /* Modular General Relativistic Euler Equations (Tetrad Basis)    */
 /* ************************************************************** */
 
 // GREulerTetrad.new { gasGamma = 5.0 / 3.0, rpType = "hll" }
-// Tetrad-basis sibling of GREulerMod. Reads the same shared spacetime-products
-// array; the only difference vs GREulerMod is the flux factorization
-// (flat-space SR flux + GR correction). See wv_gr_euler_tetrad.c.
+// Modular GR Euler in the tetrad basis. Reads its spacetime from the
+// shared spacetime-products array attached at app-construction time;
+// fluxes use the tetrad-first factorization (locally-flat SR Riemann
+// solve + geometric correction). See wv_gr_euler_tetrad.c.
 //
 // EOS dispatch (in priority order):
 //   (1) Explicit `eos = "<string>"`:
@@ -1966,7 +1911,6 @@ eqn_openlibs(lua_State *L)
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEuler", eqn_gr_ultra_rel_euler_ctor);
   luaL_register(L, "G0.Moments.Eq.GRUltraRelEulerTetrad", eqn_gr_ultra_rel_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GREuler", eqn_gr_euler_ctor);
-  luaL_register(L, "G0.Moments.Eq.GREulerMod", eqn_gr_euler_mod_ctor);
   luaL_register(L, "G0.Moments.Eq.GREulerTetrad", eqn_gr_euler_tetrad_ctor);
   luaL_register(L, "G0.Moments.Eq.GRMedium", eqn_gr_medium_ctor);
   luaL_register(L, "G0.Moments.Eq.VacuumEinstein", eqn_vacuum_einstein_ctor);

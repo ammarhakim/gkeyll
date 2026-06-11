@@ -468,7 +468,7 @@ compute_s2_limiter_alpha(const double *prods, double dt,
 }
 
 void
-gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+gkyl_moment_spacetime_coupling_gr_euler_source_euler(
   struct gkyl_gr_euler_eos eos, double t_curr, double dt,
   const double *prods,
   struct gkyl_gr_euler_prim_status *prim_stat,
@@ -603,12 +603,7 @@ gkyl_moment_spacetime_coupling_explicit_advance(
     const double *prods_row = gkyl_array_cfetch(prods, cidx);
 
     for (int s = 0; s < nfluids; s++) {
-      enum gkyl_eqn_type type = st->fluid_param[s].type;
-      // The geometric source terms are identical for the curved and tetrad
-      // mod variants — only the wave-structure (flat-flux + GR-correction
-      // factorization) differs there, not the ADM source contributions to D,
-      // S_i, τ.
-      if (type != GKYL_EQN_GR_EULER_MOD && type != GKYL_EQN_GR_EULER_TETRAD)
+      if (st->fluid_param[s].type != GKYL_EQN_GR_EULER_TETRAD)
         continue;
 
       struct gkyl_gr_euler_eos eos = st->fluid_param[s].eos;
@@ -650,18 +645,18 @@ gkyl_moment_spacetime_coupling_explicit_advance(
       double f_old[5], f_new[5], f_stage1[5], f_stage2[5];
       for (int j = 0; j < 5; j++) f_old[j] = f[j];
 
-      gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
         eos, t_curr, dt, prods_row, pstat, rstat, f_old, f_new);
       REPAIR_ONCE(f_old, f_new);
       for (int j = 0; j < 5; j++) f_stage1[j] = f_new[j];
 
-      gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
         eos, t_curr + dt, dt, prods_row, pstat, rstat, f_stage1, f_new);
       REPAIR_ONCE(f_stage1, f_new);
       for (int j = 0; j < 5; j++)
         f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
 
-      gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
         eos, t_curr + 0.5 * dt, dt, prods_row, pstat, rstat, f_stage2, f_new);
       REPAIR_ONCE(f_stage2, f_new);
       for (int j = 0; j < 5; j++)

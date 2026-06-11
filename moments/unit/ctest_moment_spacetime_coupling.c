@@ -9,7 +9,7 @@
 //     reference spacetimes, build a packed 71-component q and a matching
 //     mod 5-component q + products row from identical spacetime callbacks.
 //     Run packed explicit_gr_euler_source_update_euler and mod
-//     gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler. Verify the
+//     gkyl_moment_spacetime_coupling_gr_euler_source_euler. Verify the
 //     hydro slice matches to <1e-12.
 //
 // (3) SSP-RK3 wrapper equivalence: same setup as (2) but driven through
@@ -123,7 +123,7 @@ run_derive_products_check(struct gkyl_gr_spacetime *spacetime)
   struct gkyl_moment_spacetime_coupling_inp inp = {
     .grid               = &grid,
     .nfluids            = 1,
-    .fluid_param        = {{ .type = GKYL_EQN_GR_EULER_MOD, .eos = gkyl_gr_euler_eos_ideal(5.0/3.0) }},
+    .fluid_param        = {{ .type = GKYL_EQN_GR_EULER_TETRAD, .eos = gkyl_gr_euler_eos_ideal(5.0/3.0) }},
     .is_static          = true,
     .has_tetrad         = false,
     .analytic_spacetime = spacetime,
@@ -190,9 +190,18 @@ test_derive_products_kerr()
 // hydro slice.
 static void
 run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
-  int half_extent, double step)
+  int half_extent, double step, double tol)
 {
   double gas_gamma = 5.0 / 3.0;
+  // Phase-B1 instrumentation (CLEANUP_PLAN.md): per-component max
+  // relative packed-vs-modular discrepancy across the sweep, with the
+  // sample point that produced it. The conservative-T^{0μ} source
+  // rewrite (SESSION_NOTES_S2_REPAIR §2.6) deliberately diverged the
+  // modular source from the legacy packed h-form in curved spacetime;
+  // these numbers quantify by how much, to drive the re-baseline
+  // decision (Phase B2).
+  double max_rel[5] = { 0 };
+  double max_rel_x[5] = { 0 }, max_rel_y[5] = { 0 };
 
   // Build a minimal gkyl_moment_em_coupling to satisfy the packed source-
   // step signature. The packed function only reads gas_gamma from this
@@ -243,7 +252,7 @@ run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
       explicit_gr_euler_source_update_euler(mom_em, gas_gamma, 0.0, dt, q_packed, f_packed_new);
 
       double f_mod_new[5];
-      gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
         gkyl_gr_euler_eos_ideal(gas_gamma), 0.0, dt, prods,
         NULL, NULL, q_mod, f_mod_new);
 
@@ -255,19 +264,46 @@ run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
         for (int j = 0; j < 3; j++)
           f_packed_lowered[i+1] += prods[GKYL_GR_SP_GIJ + 3*i + j] * f_packed_new[j+1];
 
-      for (int i = 0; i < 5; i++)
-        TEST_CHECK( gkyl_compare(f_mod_new[i], f_packed_lowered[i], 1e-12) );
+      for (int i = 0; i < 5; i++) {
+        double den = fmax(fabs(f_packed_lowered[i]), 1.0e-15);
+        double rel = fabs(f_mod_new[i] - f_packed_lowered[i]) / den;
+        if (rel > max_rel[i]) {
+          max_rel[i] = rel;
+          max_rel_x[i] = x; max_rel_y[i] = y;
+        }
+        TEST_CHECK( gkyl_compare(f_mod_new[i], f_packed_lowered[i], tol) );
+      }
     }
   }
 
+  static const char *comp[5] = { "D", "S_x", "S_y", "S_z", "tau" };
+  fprintf(stderr, "  [B1 source_euler] max packed-vs-mod rel diff per component:\n");
+  for (int i = 0; i < 5; i++)
+    fprintf(stderr, "    %-4s %.3e  at (%.2f, %.2f)\n",
+      comp[i], max_rel[i], max_rel_x[i], max_rel_y[i]);
+
   gkyl_moment_em_coupling_release(mom_em);
 }
+
+// Packed-vs-modular equivalence tolerances (Phase B2 decision,
+// CLEANUP_PLAN.md): the conservative-T^{0μ} source rewrite
+// (SESSION_NOTES_S2_REPAIR §2.6) deliberately diverged the modular
+// source from the legacy packed h-form in curved spacetime. Measured
+// max relative discrepancy on the smooth sweep states (B1
+// instrumentation above): 2.2e-4 (S_x), 1.2e-4 (S_y), ~5e-6 (τ),
+// exactly 0 for D and for all components in Minkowski. The curved
+// tolerance below (1e-3) bounds that known algebraic difference while
+// still catching genuine convention/sign errors (which produce O(1)
+// diffs); Minkowski stays at 1e-12 (geometric sources vanish — any
+// difference is a real bug).
+#define SRC_EQUIV_TOL_MINK   (1.0e-12)
+#define SRC_EQUIV_TOL_CURVED (1.0e-3)
 
 static void
 test_source_euler_minkowski()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  run_source_euler_equivalence(spacetime, 5, 0.1);
+  run_source_euler_equivalence(spacetime, 5, 0.1, SRC_EQUIV_TOL_MINK);
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -276,7 +312,7 @@ test_source_euler_schwarzschild()
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 1.0, 1.0, 0.0);
-  run_source_euler_equivalence(spacetime, 5, 0.1);
+  run_source_euler_equivalence(spacetime, 5, 0.1, SRC_EQUIV_TOL_CURVED);
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -285,15 +321,15 @@ test_source_euler_kerr()
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 1.0, 1.0, 0.0);
-  run_source_euler_equivalence(spacetime, 5, 0.1);
+  run_source_euler_equivalence(spacetime, 5, 0.1, SRC_EQUIV_TOL_CURVED);
   gkyl_gr_spacetime_release(spacetime);
 }
 
 // (3) SSP-RK3 wrapper equivalence: full advance matches packed
 // explicit_gr_euler_source_update on the hydro slice.
 static void
-run_explicit_advance_equivalence(struct gkyl_gr_spacetime *spacetime,
-  double dt)
+run_explicit_advance_equivalence_tol(struct gkyl_gr_spacetime *spacetime,
+  double dt, double tol)
 {
   double gas_gamma = 5.0 / 3.0;
 
@@ -352,7 +388,7 @@ run_explicit_advance_equivalence(struct gkyl_gr_spacetime *spacetime,
   struct gkyl_moment_spacetime_coupling_inp st_inp = {
     .grid               = &grid,
     .nfluids            = 1,
-    .fluid_param        = {{ .type = GKYL_EQN_GR_EULER_MOD, .eos = gkyl_gr_euler_eos_ideal(gas_gamma) }},
+    .fluid_param        = {{ .type = GKYL_EQN_GR_EULER_TETRAD, .eos = gkyl_gr_euler_eos_ideal(gas_gamma) }},
     .is_static          = true,
     .has_tetrad         = false,
     .analytic_spacetime = spacetime,
@@ -379,7 +415,20 @@ run_explicit_advance_equivalence(struct gkyl_gr_spacetime *spacetime,
       f_packed_lowered[i+1] += prods_row[GKYL_GR_SP_GIJ + 3*i + j] * f_packed[j+1];
 
   for (int i = 0; i < 5; i++)
-    TEST_CHECK( gkyl_compare(f_mod_final[i], f_packed_lowered[i], 1e-12) );
+    TEST_CHECK( gkyl_compare(f_mod_final[i], f_packed_lowered[i], tol) );
+
+  // Phase-B1 instrumentation: report the discrepancy magnitudes (the
+  // 1e-12 packed-equivalence expectation is stale post conservative-
+  // T^{0μ}; see CLEANUP_PLAN.md Phase B).
+  {
+    static const char *comp[5] = { "D", "S_x", "S_y", "S_z", "tau" };
+    fprintf(stderr, "  [B1 explicit_advance] packed-vs-mod rel diff:\n");
+    for (int i = 0; i < 5; i++) {
+      double den = fmax(fabs(f_packed_lowered[i]), 1.0e-15);
+      fprintf(stderr, "    %-4s %.3e\n",
+        comp[i], fabs(f_mod_final[i] - f_packed_lowered[i]) / den);
+    }
+  }
 
   gkyl_array_release(prods_arr);
   gkyl_array_release(fluid_mod);
@@ -391,7 +440,7 @@ static void
 test_explicit_advance_minkowski()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
-  run_explicit_advance_equivalence(spacetime, 1.0e-3);
+  run_explicit_advance_equivalence_tol(spacetime, 1.0e-3, SRC_EQUIV_TOL_MINK);
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -400,7 +449,7 @@ test_explicit_advance_schwarzschild()
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 1.0, 1.0, 0.0);
-  run_explicit_advance_equivalence(spacetime, 1.0e-3);
+  run_explicit_advance_equivalence_tol(spacetime, 1.0e-3, SRC_EQUIV_TOL_CURVED);
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -409,7 +458,7 @@ test_explicit_advance_kerr()
 {
   struct gkyl_gr_spacetime *spacetime =
     gkyl_gr_blackhole_new(false, 0.1, 0.5, 1.0, 1.0, 0.0);
-  run_explicit_advance_equivalence(spacetime, 1.0e-3);
+  run_explicit_advance_equivalence_tol(spacetime, 1.0e-3, SRC_EQUIV_TOL_CURVED);
   gkyl_gr_spacetime_release(spacetime);
 }
 
@@ -534,13 +583,13 @@ run_tm_cross_check(struct gkyl_gr_spacetime *spacetime,
       // returns the same h by construction — so the source rates must
       // agree to machine precision.
       double f_tm[5];
-      gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
         (struct gkyl_gr_euler_eos){
           .type = GR_EULER_EOS_APPROXIMATE_SYNGE, .use_rcc = false },
         0.0, dt, prods, NULL, NULL, q_mod, f_tm);
 
       double f_id[5];
-      gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
         gkyl_gr_euler_eos_ideal(g_eff),
         0.0, dt, prods, NULL, NULL, q_mod, f_id);
 

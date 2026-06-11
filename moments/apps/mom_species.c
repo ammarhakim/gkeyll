@@ -28,11 +28,10 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
   // Modular GR equation types always require source integration through the
   // spacetime-coupling object — turn sources on regardless of the rest of
-  // the species configuration. Note: mod species deliberately do NOT set
+  // the species configuration. Note: tetrad species deliberately do NOT set
   // the legacy `has_gr_euler` flag, so the EM-coupling object's GR-source
   // path naturally skips them; the spacetime-coupling object owns them.
-  if (sp->eqn_type == GKYL_EQN_GR_EULER_MOD ||
-      sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
+  if (sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
     sp->update_sources = true;
   }
 
@@ -482,8 +481,7 @@ moment_species_update(gkyl_moment_app *app,
   // are inside the excision region but whose IC projection averaged in
   // non-zero hydro from the adjacent non-excised quadrature points would
   // retain that small but non-zero hydro forever, drifting from packed.
-  bool scrub_excised = (sp->eqn_type == GKYL_EQN_GR_EULER_MOD ||
-                        sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD)
+  bool scrub_excised = sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD
                        && app->has_spacetime;
 
   for (int d=0; d<ndim; ++d) {

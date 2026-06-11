@@ -267,7 +267,7 @@ gkyl_wv_advect_new(double a, bool use_gpu)
 struct gkyl_wv_eqn*
 gkyl_wv_advect_inew(const struct gkyl_wv_advect_inp* inp)
 {
-  struct wv_advect *advect = gkyl_malloc(sizeof(struct wv_advect));
+  struct wv_advect *advect = gkyl_calloc(1, sizeof(struct wv_advect));
 
   advect->eqn.type = GKYL_EQN_ADVECTION;
   advect->eqn.num_equations = 1;

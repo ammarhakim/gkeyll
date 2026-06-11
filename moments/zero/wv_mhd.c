@@ -786,7 +786,7 @@ mhd_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 struct gkyl_wv_eqn*
 gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 {
-  struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
+  struct wv_mhd *mhd = gkyl_calloc(1, sizeof(struct wv_mhd));
 
   mhd->eqn.type = GKYL_EQN_MHD;
   mhd->gas_gamma = inp->gas_gamma;

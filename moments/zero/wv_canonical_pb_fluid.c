@@ -17,7 +17,7 @@ gkyl_wv_can_pb_incompress_euler_free(const struct gkyl_ref_count *ref)
 struct gkyl_wv_eqn*
 gkyl_wv_can_pb_incompress_euler_new()
 {  
-  struct wv_can_pb_incompress_euler *can_pb_incompress_euler = gkyl_malloc(sizeof(struct wv_can_pb_incompress_euler));
+  struct wv_can_pb_incompress_euler *can_pb_incompress_euler = gkyl_calloc(1, sizeof(struct wv_can_pb_incompress_euler));
 
   can_pb_incompress_euler->eqn.type = GKYL_EQN_CAN_PB_INCOMPRESS_EULER;
   can_pb_incompress_euler->eqn.num_equations = 1; 
@@ -41,7 +41,7 @@ gkyl_wv_can_pb_hasegawa_mima_free(const struct gkyl_ref_count *ref)
 struct gkyl_wv_eqn*
 gkyl_wv_can_pb_hasegawa_mima_new()
 {  
-  struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_mima));
+  struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima = gkyl_calloc(1, sizeof(struct wv_can_pb_hasegawa_mima));
 
   can_pb_hasegawa_mima->eqn.type = GKYL_EQN_CAN_PB_HASEGAWA_MIMA;
   can_pb_hasegawa_mima->eqn.num_equations = 1; 
@@ -65,7 +65,7 @@ gkyl_wv_can_pb_hasegawa_wakatani_free(const struct gkyl_ref_count *ref)
 struct gkyl_wv_eqn*
 gkyl_wv_can_pb_hasegawa_wakatani_new(double alpha, bool is_modified)
 {  
-  struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_wakatani));
+  struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani = gkyl_calloc(1, sizeof(struct wv_can_pb_hasegawa_wakatani));
 
   can_pb_hasegawa_wakatani->eqn.type = GKYL_EQN_CAN_PB_HASEGAWA_WAKATANI;
   can_pb_hasegawa_wakatani->eqn.num_equations = 2; 

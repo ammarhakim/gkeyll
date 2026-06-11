@@ -32,7 +32,7 @@ moment_spacetime_init(const struct gkyl_moment *mom,
     : GKYL_GR_SP_NCOMP_BASE;
 
   // The shared products array. Mod fluid equations point at this via
-  // gkyl_gr_euler_mod_set_auxfields after construction. Zero-initialised
+  // gkyl_gr_euler_tetrad_set_auxfields after construction. Zero-initialised
   // here; the coupling object fills it at IC time and as needed each step.
   sp->prods = mkarr(false, sp->prods_ncomp, app->local_ext.volume);
   gkyl_array_clear(sp->prods, 0.0);

@@ -44,7 +44,7 @@ gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
     return gkyl_wv_ten_moment_cu_dev_new(k0, use_grad_closure, use_nn_closure, poly_order, ann, use_gpu);
   } 
 #endif    
-  struct wv_ten_moment *ten_moment = gkyl_malloc(sizeof(struct wv_ten_moment));
+  struct wv_ten_moment *ten_moment = gkyl_calloc(1, sizeof(struct wv_ten_moment));
 
   ten_moment->k0 = k0;
   ten_moment->use_grad_closure = use_grad_closure;

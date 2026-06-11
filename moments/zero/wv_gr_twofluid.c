@@ -2027,7 +2027,7 @@ gkyl_wv_gr_twofluid_new(double mass_elc, double mass_ion, double charge_elc, dou
 struct gkyl_wv_eqn*
 gkyl_wv_gr_twofluid_inew(const struct gkyl_wv_gr_twofluid_inp* inp)
 {
-  struct wv_gr_twofluid *gr_twofluid = gkyl_malloc(sizeof(struct wv_gr_twofluid));
+  struct wv_gr_twofluid *gr_twofluid = gkyl_calloc(1, sizeof(struct wv_gr_twofluid));
 
   gr_twofluid->eqn.type = GKYL_EQN_GR_TWOFLUID;
   gr_twofluid->eqn.num_equations = 84;

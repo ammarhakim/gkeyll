@@ -1801,7 +1801,7 @@ gkyl_wv_gr_euler_new(double gas_gamma, enum gkyl_spacetime_gauge spacetime_gauge
 struct gkyl_wv_eqn*
 gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
 {
-  struct wv_gr_euler *gr_euler = gkyl_malloc(sizeof(struct wv_gr_euler));
+  struct wv_gr_euler *gr_euler = gkyl_calloc(1, sizeof(struct wv_gr_euler));
 
   gr_euler->eqn.type = GKYL_EQN_GR_EULER;
   gr_euler->eqn.num_equations = 71;

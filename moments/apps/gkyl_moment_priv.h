@@ -44,7 +44,6 @@
 #include <gkyl_wv_apply_bc.h>
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_embed_geo.h>
-#include <gkyl_wv_gr_euler_mod.h>
 #include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_iso_euler.h>
 #include <gkyl_wv_maxwell.h>
@@ -274,8 +273,8 @@ struct moment_spacetime {
   void *ctx;                    // user IC context
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
-  // The shared spacetime-products array. Mod fluid equation objects
-  // acquire pointers into this via gkyl_gr_euler_mod_set_auxfields. The
+  // The shared spacetime-products array. Tetrad fluid equation objects
+  // acquire pointers into this via gkyl_gr_euler_tetrad_set_auxfields. The
   // coupling object that fills this array and integrates GR sources lives
   // on struct moment_coupling (see A6 wiring).
   struct gkyl_array *prods;

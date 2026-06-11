@@ -10,10 +10,9 @@
 #include <gkyl_wv_gr_euler_tetrad_priv.h>
 
 // ---------------------------------------------------------------------------
-// Setters for cell-index communication from wave_prop. Identical to the
-// regular mod variant; the per-instance idx slots populated below are read
-// by downstream callbacks to fetch the appropriate row from the spacetime
-// products array.
+// Setters for cell-index communication from wave_prop. The per-instance
+// idx slots populated below are read by downstream callbacks to fetch the
+// appropriate row from the spacetime products array.
 // ---------------------------------------------------------------------------
 
 static void
@@ -73,33 +72,10 @@ gkyl_gr_euler_tetrad_set_wave_spacetime(const struct gkyl_wv_eqn *eqn,
 
 // ---------------------------------------------------------------------------
 // Rotation of the spacetime products array from global to local
-// tangent-normal frame. Shared verbatim with the regular mod variant — the
-// tetrad equation reads the same spacetime block; rotation conventions are
-// identical.
+// tangent-normal frame. Rank-1/rank-2 rotations come from
+// gkyl_wave_spacetime.h (shared with the cache builder); rank-3 below is
+// equation-specific (metric-derivative block for the source terms).
 // ---------------------------------------------------------------------------
-
-static inline void
-rotate_rank1(const double *tau1, const double *tau2, const double *norm,
-  const double *in, double *out)
-{
-  out[0] = in[0]*norm[0] + in[1]*norm[1] + in[2]*norm[2];
-  out[1] = in[0]*tau1[0] + in[1]*tau1[1] + in[2]*tau1[2];
-  out[2] = in[0]*tau2[0] + in[1]*tau2[1] + in[2]*tau2[2];
-}
-
-static inline void
-rotate_rank2(const double *tau1, const double *tau2, const double *norm,
-  const double *in, double *out)
-{
-  const double *R[3] = { norm, tau1, tau2 };
-  double tmp[3][3];
-  for (int a = 0; a < 3; a++)
-    for (int i = 0; i < 3; i++)
-      tmp[a][i] = in[3*i+0]*R[a][0] + in[3*i+1]*R[a][1] + in[3*i+2]*R[a][2];
-  for (int a = 0; a < 3; a++)
-    for (int b = 0; b < 3; b++)
-      out[3*a + b] = tmp[a][0]*R[b][0] + tmp[a][1]*R[b][1] + tmp[a][2]*R[b][2];
-}
 
 static inline void
 rotate_rank3(const double *tau1, const double *tau2, const double *norm,
@@ -139,14 +115,14 @@ rot_spacetime_to_local(const double *tau1, const double *tau2,
   out_p[GKYL_GR_SP_EXCISION]     = in_p[GKYL_GR_SP_EXCISION];
   out_p[GKYL_GR_SP_SPATIAL_DET]  = in_p[GKYL_GR_SP_SPATIAL_DET];
 
-  rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_SHIFT],   &out_p[GKYL_GR_SP_SHIFT]);
-  rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_DALPHA],  &out_p[GKYL_GR_SP_DALPHA]);
-  rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_CELLCTR], &out_p[GKYL_GR_SP_CELLCTR]);
+  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_SHIFT],   &out_p[GKYL_GR_SP_SHIFT]);
+  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_DALPHA],  &out_p[GKYL_GR_SP_DALPHA]);
+  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_CELLCTR], &out_p[GKYL_GR_SP_CELLCTR]);
 
-  rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_GIJ],     &out_p[GKYL_GR_SP_GIJ]);
-  rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_KIJ],     &out_p[GKYL_GR_SP_KIJ]);
-  rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_DBETA],   &out_p[GKYL_GR_SP_DBETA]);
-  rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_INV_GIJ], &out_p[GKYL_GR_SP_INV_GIJ]);
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_GIJ],     &out_p[GKYL_GR_SP_GIJ]);
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_KIJ],     &out_p[GKYL_GR_SP_KIJ]);
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_DBETA],   &out_p[GKYL_GR_SP_DBETA]);
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_INV_GIJ], &out_p[GKYL_GR_SP_INV_GIJ]);
 
   rotate_rank3(tau1, tau2, norm, &in_p[GKYL_GR_SP_DGIJ],    &out_p[GKYL_GR_SP_DGIJ]);
 }
@@ -277,164 +253,92 @@ gkyl_gr_euler_banyuls_flux_cell(struct gkyl_gr_euler_eos eos,
   flux[4] = prefac * (tau_cons * vmsh + p * prim.v[0]);
 }
 
+// Per-direction max-abs eigenvalue of the curved-frame flux Jacobian in
+// coordinate direction d, from already-recovered primitives. Works in
+// whatever frame @a prods is expressed in: global frame for cell-level
+// callers; face-local frame (d = 0 is the interface normal) for the
+// curved-Lax penalization.
+static inline double
+gr_euler_lambda_dir(const double vel[3], double c_s, double v_sq,
+  const double *prods, int d)
+{
+  double lapse = prods[GKYL_GR_SP_LAPSE];
+  double shift = prods[GKYL_GR_SP_SHIFT + d];
+  double inv_dd = prods[GKYL_GR_SP_INV_GIJ + 3*d + d];
+
+  double material = (lapse * vel[d]) - shift;
+  double common = lapse / (1.0 - (v_sq * (c_s*c_s)));
+  double rad = (1.0 - v_sq) * (inv_dd * (1.0 - (v_sq * (c_s*c_s))) -
+    (vel[d] * vel[d]) * (1.0 - (c_s*c_s)));
+  // Clamp the radical to ≥ 0: NaN > x is always false, so an unclamped
+  // sqrt(rad < 0) would silently drop this direction from a max.
+  if (rad < 0.0) rad = 0.0;
+  double fast = common * ((vel[d] * (1.0 - (c_s*c_s))) + (c_s * sqrt(rad))) - shift;
+  double slow = common * ((vel[d] * (1.0 - (c_s*c_s))) - (c_s * sqrt(rad))) - shift;
+
+  double max_eig = fabs(material);
+  if (fabs(fast) > max_eig) max_eig = fabs(fast);
+  if (fabs(slow) > max_eig) max_eig = fabs(slow);
+  return max_eig;
+}
+
+// Shared prologue for the eigenvalue-bound entry points: primitive
+// recovery + sound speed + metric velocity norm. Returns false when the
+// cell is excised (callers return the 1e-8 sentinel).
+static inline bool
+gr_euler_lambda_setup(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods,
+  struct gkyl_gr_euler_prim_status *stat,
+  double vel[3], double *c_s, double *v_sq)
+{
+  double v[5];
+  gkyl_gr_euler_tetrad_prim_vars(eos, q, prods, stat, v);
+  vel[0] = v[1]; vel[1] = v[2]; vel[2] = v[3];
+
+  double h = gkyl_gr_euler_eos_enthalpy(eos, v[0], v[4]);
+  double cs2 = gkyl_gr_euler_eos_cs2(eos, v[0], v[4], h);
+  if (cs2 < 0.0) cs2 = 0.0;
+  *c_s = sqrt(cs2);
+
+  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) return false;
+
+  *v_sq = 0.0;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      *v_sq += prods[GKYL_GR_SP_GIJ + 3*i + j] * vel[i] * vel[j];
+  return true;
+}
+
+// Cell-level eigenvalue bound in coordinate direction @a d. Used as the
+// directionally-aware initial-dt seed (max_speed_dir_func) and — with
+// face-local prods, d = 0 — as the curved-Lax normal-direction
+// penalization (SESSION_NOTES_POSITIVITY_UNIFICATION.md §9).
+double
+gkyl_gr_euler_tetrad_max_abs_speed_dir(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, int d,
+  struct gkyl_gr_euler_prim_status *stat)
+{
+  double vel[3], c_s, v_sq;
+  if (!gr_euler_lambda_setup(eos, q, prods, stat, vel, &c_s, &v_sq))
+    return pow(10.0, -8.0);
+  return gr_euler_lambda_dir(vel, c_s, v_sq, prods, d);
+}
+
+// Direction-agnostic cell-level bound: max over coordinate directions.
 double
 gkyl_gr_euler_tetrad_max_abs_speed(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
   struct gkyl_gr_euler_prim_status *stat)
 {
-  double v[5];
-  gkyl_gr_euler_tetrad_prim_vars(eos, q, prods, stat, v);
-  double rho = v[0], vx = v[1], vy = v[2], vz = v[3], p = v[4];
-
-  double lapse   = prods[GKYL_GR_SP_LAPSE];
-  double shift_x = prods[GKYL_GR_SP_SHIFT + 0];
-  double shift_y = prods[GKYL_GR_SP_SHIFT + 1];
-  double shift_z = prods[GKYL_GR_SP_SHIFT + 2];
-
-  // Sound speed via EOS dispatch (see gkyl_gr_euler_eos_cs2 for the
-  // per-EOS algebra).
-  double h = gkyl_gr_euler_eos_enthalpy(eos, rho, p);
-  double cs2 = gkyl_gr_euler_eos_cs2(eos, rho, p, h);
-  if (cs2 < 0.0) cs2 = 0.0;
-  double c_s = sqrt(cs2);
-
-  bool in_excision_region = false;
-  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
-    in_excision_region = true;
+  double vel[3], c_s, v_sq;
+  if (!gr_euler_lambda_setup(eos, q, prods, stat, vel, &c_s, &v_sq))
+    return pow(10.0, -8.0);
+  double max_eig = 0.0;
+  for (int d = 0; d < 3; d++) {
+    double lam = gr_euler_lambda_dir(vel, c_s, v_sq, prods, d);
+    if (lam > max_eig) max_eig = lam;
   }
-
-  bool curved_spacetime = false;
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      double g_ij = prods[GKYL_GR_SP_GIJ + 3*i + j];
-      if (i == j) {
-        if (fabs(g_ij - 1.0) > pow(10.0, -8.0)) curved_spacetime = true;
-      } else {
-        if (fabs(g_ij)       > pow(10.0, -8.0)) curved_spacetime = true;
-      }
-    }
-  }
-  if (fabs(lapse - 1.0) > pow(10.0, -8.0) ||
-      fabs(shift_x)     > pow(10.0, -8.0) ||
-      fabs(shift_y)     > pow(10.0, -8.0) ||
-      fabs(shift_z)     > pow(10.0, -8.0)) {
-    curved_spacetime = true;
-  }
-
-  if (in_excision_region) return pow(10.0, -8.0);
-
-  if (curved_spacetime) {
-    double vel[3]   = { vx, vy, vz };
-    double shift[3] = { shift_x, shift_y, shift_z };
-    double v_sq = 0.0;
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++)
-        v_sq += prods[GKYL_GR_SP_GIJ + 3*i + j] * vel[i] * vel[j];
-
-    double max_eig = 0.0;
-    for (int i = 0; i < 3; i++) {
-      double inv_ii = prods[GKYL_GR_SP_INV_GIJ + 3*i + i];
-      double material = (lapse * vel[i]) - shift[i];
-      double common = lapse / (1.0 - (v_sq * (c_s*c_s)));
-      double rad = (1.0 - v_sq) * (inv_ii * (1.0 - (v_sq * (c_s*c_s))) -
-        (vel[i] * vel[i]) * (1.0 - (c_s*c_s)));
-      // Clamp the radical to ≥ 0 to avoid NaN-poisoning when γ^{ii}·v²
-      // approaches the relativistic limit. NaN > x is always false, so an
-      // unclamped sqrt(rad<0) would silently drop the direction's
-      // contribution to max_eig and under-bound the Lax envelope.
-      if (rad < 0.0) rad = 0.0;
-      double fast = common * ((vel[i] * (1.0 - (c_s*c_s))) + (c_s * sqrt(rad))) - shift[i];
-      double slow = common * ((vel[i] * (1.0 - (c_s*c_s))) - (c_s * sqrt(rad))) - shift[i];
-
-      if (fabs(material) > max_eig) max_eig = fabs(material);
-      if (fabs(fast)     > max_eig) max_eig = fabs(fast);
-      if (fabs(slow)     > max_eig) max_eig = fabs(slow);
-    }
-
-    // max_eig is the spectral radius of the curved-frame flux Jacobian
-    // — the tight bound for the Lax envelope and CFL. An earlier version
-    // added `fabs(v_sq)` here as a safety pad, but the addition is not
-    // algebraically justified and gave a CFL bound up to 2× larger than
-    // needed. Removing it lets the integrator hold dt at its IC value
-    // through the BHL run (1.13e-2 vs 6.4e-3) for a 36% wall-time win
-    // and 8× fewer failed time-steps, at the price of a modest increase
-    // in s² repair count (91 → 1,772 in the test) on benign |W_prev|≲3
-    // cells. See SESSION_NOTES_S2_REPAIR.md §6 for the rationale.
-    return max_eig;
-  }
-
-  double v_mag = sqrt((vx*vx) + (vy*vy) + (vz*vz));
-  return fabs(v_mag) + c_s;
-}
-
-// Build an orthonormal triad whose FIRST basis vector is aligned with the
-// CONTRAVARIANT x-direction (∂^x = γ^{xj}·∂_j) rather than the coordinate
-// x-direction. The other two basis vectors come from Gram-Schmidt-in-γ
-// starting from (0,1,0) and (0,0,1). This eliminates the v_tet^x ↔ v^y,v^z
-// mixing seen with Cholesky-on-γ for non-diagonal γ.
-//
-// Outputs:
-//   M[i][a]    = e_a^i  (matrix of basis-vector components; columns = e_a)
-//   M_inv[a][i] = (e^a)_i = γ_ij · M[j][a]  (dual co-vector components)
-//
-// Properties:
-//   γ_ij·M[i][a]·M[j][b] = δ_ab          (orthonormality)
-//   M_inv·M = M·M_inv = I (matrix product)
-//   M[i][0] = γ^{xi}/√γ^{xx}              (contravariant x alignment)
-//   M_inv[0][i] = δ^x_i/√γ^{xx} = (1/√γ^{xx}, 0, 0)
-//
-// For diagonal γ this reduces to the Cholesky construction.
-void
-gkyl_gr_euler_tetrad_build_triad_contravariant_x(
-  const double g_ij[3][3], const double inv_g[3][3],
-  double M[3][3], double M_inv[3][3])
-{
-  // First basis vector: contravariant x-direction, normalized in γ.
-  //   e_0^i = γ^{xi} / √γ^{xx}
-  double sqrt_inv_gxx = sqrt(inv_g[0][0]);
-  for (int i = 0; i < 3; i++) M[i][0] = inv_g[0][i] / sqrt_inv_gxx;
-
-  // Helper: γ-inner-product of two contravariant vectors.
-  // <u, v>_γ = γ_ij · u^i · v^j
-  #define GAMMA_DOT(u, v)                                              \
-    (g_ij[0][0]*(u)[0]*(v)[0] + g_ij[1][1]*(u)[1]*(v)[1]               \
-   + g_ij[2][2]*(u)[2]*(v)[2]                                          \
-   + g_ij[0][1]*((u)[0]*(v)[1] + (u)[1]*(v)[0])                        \
-   + g_ij[0][2]*((u)[0]*(v)[2] + (u)[2]*(v)[0])                        \
-   + g_ij[1][2]*((u)[1]*(v)[2] + (u)[2]*(v)[1]))
-
-  // Second basis vector: Gram-Schmidt-in-γ of (0,1,0) against e_0.
-  double e0[3] = { M[0][0], M[1][0], M[2][0] };
-  double f1[3] = { 0.0, 1.0, 0.0 };
-  double c01 = GAMMA_DOT(f1, e0);  // projection coefficient
-  double e1[3] = { f1[0] - c01*e0[0], f1[1] - c01*e0[1], f1[2] - c01*e0[2] };
-  double norm1 = sqrt(GAMMA_DOT(e1, e1));
-  for (int i = 0; i < 3; i++) M[i][1] = e1[i] / norm1;
-
-  // Third basis vector: Gram-Schmidt of (0,0,1) against e_0 and e_1.
-  double e1_norm[3] = { M[0][1], M[1][1], M[2][1] };
-  double f2[3] = { 0.0, 0.0, 1.0 };
-  double c02 = GAMMA_DOT(f2, e0);
-  double c12 = GAMMA_DOT(f2, e1_norm);
-  double e2[3] = {
-    f2[0] - c02*e0[0] - c12*e1_norm[0],
-    f2[1] - c02*e0[1] - c12*e1_norm[1],
-    f2[2] - c02*e0[2] - c12*e1_norm[2],
-  };
-  double norm2 = sqrt(GAMMA_DOT(e2, e2));
-  for (int i = 0; i < 3; i++) M[i][2] = e2[i] / norm2;
-
-  #undef GAMMA_DOT
-
-  // M_inv = M^T · γ (since γ-orthonormality says M^T·γ·M = I, so
-  // M^{-1} = M^T·γ).
-  for (int a = 0; a < 3; a++) {
-    for (int i = 0; i < 3; i++) {
-      M_inv[a][i] = M[0][a]*g_ij[0][i]
-                  + M[1][a]*g_ij[1][i]
-                  + M[2][a]*g_ij[2][i];
-    }
-  }
+  return max_eig;
 }
 
 // Forward transform of covariant momentum (Convention A) onto the
@@ -506,13 +410,14 @@ gkyl_gr_euler_tetrad_speed_to_curved_contra(double s_tet,
   return (lapse * sqrt(inv_gxx) * s_tet) - shift_x;
 }
 
-// Detect the all-zero "vacuum" tetrad state used by the excision-boundary
-// short-circuit in wave_lax / wave_hll / wave_hllc. The excised side is
-// fed in as q = [0,0,0,0,0] (in coord frame) and back-transforms to
-// [0,0,0,0,0] in the tetrad frame. The Banyuls Newton primitive recovery
-// in sr_*_minkowski would divide by D = 0 and produce NaN / saturated
-// floors. Detecting this state lets each SR core skip Newton on that
-// side and substitute exact vacuum primitives (ρ=0, v=0, p=0, W=1, h=1).
+// Detect the all-zero "vacuum" tetrad state produced by the
+// GKYL_TETRAD_EXCISION_ZERO_VACUUM policy (Lax/HLL/Roe — see
+// wave_tetrad_high_order). The excised side is fed in as q = [0,0,0,0,0]
+// (in coord frame) and back-transforms to [0,0,0,0,0] in the tetrad
+// frame. The Banyuls Newton primitive recovery in sr_*_minkowski would
+// divide by D = 0 and produce NaN / saturated floors. Detecting this
+// state lets each SR core skip Newton on that side and substitute exact
+// vacuum primitives (ρ=0, v=0, p=0, W=1, h=1).
 // SR fluxes for a vacuum state are then identically zero, so the wave
 // decomposition correctly reduces to the absorbing-BC case Σ s·w =
 // F_R − F_L = ∓F(q_active). See SESSION_NOTES_3.md §11.10–§11.13.
@@ -558,9 +463,16 @@ gkyl_gr_euler_tetrad_sr_roe_minkowski(struct gkyl_gr_euler_eos eos,
 
   // Newton recovery for primitives — same algorithm as
   // gkyl_gr_euler_tetrad_prim_vars, but with √γ=1 and γ_ij=δ_ij.
+  // Each side short-circuits to vacuum primitives when fed the all-zero
+  // excision state (gkyl_gr_euler_tetrad_is_zero_state) — the Newton
+  // recovery would otherwise produce W = 0 → ρ = 0/0 = NaN. With one
+  // vacuum side, K_side → 0 below and the Eulderink-Mellema averages
+  // collapse to the active side's values.
   double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
   double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
-  {
+  if (gkyl_gr_euler_tetrad_is_zero_state(ql_tet)) {
+    rho_l = 1.0e-30; vx_l = vy_l = vz_l = 0.0; p_l = 0.0; W_l = 1.0; h_l = 1.0;
+  } else {
     double s_sq_l = ((tau_l + D_l)*(tau_l + D_l)) - (Sx_l*Sx_l + Sy_l*Sy_l + Sz_l*Sz_l);
     double C, C0;
     if (s_sq_l < pow(10.0, -8.0)) {
@@ -598,7 +510,9 @@ gkyl_gr_euler_tetrad_sr_roe_minkowski(struct gkyl_gr_euler_eos eos,
     if (rho_l < pow(10.0, -8.0)) rho_l = pow(10.0, -8.0);
     if (p_l   < pow(10.0, -8.0)) p_l   = pow(10.0, -8.0);
   }
-  {
+  if (gkyl_gr_euler_tetrad_is_zero_state(qr_tet)) {
+    rho_r = 1.0e-30; vx_r = vy_r = vz_r = 0.0; p_r = 0.0; W_r = 1.0; h_r = 1.0;
+  } else {
     double s_sq_r = ((tau_r + D_r)*(tau_r + D_r)) - (Sx_r*Sx_r + Sy_r*Sy_r + Sz_r*Sz_r);
     double C, C0;
     if (s_sq_r < pow(10.0, -8.0)) {
@@ -1404,7 +1318,7 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
         for (int j = 0; j < 3; j++)
           g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
                                + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
-      double det_iface = gkyl_gr_euler_tetrad_invert_metric_3x3(g_iface, inv_g_iface);
+      double det_iface = gkyl_wave_spacetime_invert_metric_3x3(g_iface, inv_g_iface);
       alpha_iface   = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
                            + grm->prodr_local[GKYL_GR_SP_LAPSE]);
       shift_n_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
@@ -1412,7 +1326,7 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
       sqrt_det_iface = sqrt(det_iface);
     }
     double M[3][3];
-    gkyl_gr_euler_tetrad_build_triad_contravariant_x(
+    gkyl_wave_spacetime_build_triad_contravariant_x(
       g_iface, inv_g_iface, M, M_inv);
   }
 
@@ -1541,18 +1455,13 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
   gkyl_gr_euler_banyuls_flux_cell(eos, ql, grm->prodl_local, stat, fl_gr);
   gkyl_gr_euler_banyuls_flux_cell(eos, qr, grm->prodr_local, stat, fr_gr);
 
-  // amax — full-3D max-abs eigenvalue (max over x/y/z) of the curved-
-  // frame flux Jacobian. The x-only variant was too tight in metrics
-  // with off-diagonal γ_xy and a general-orientation 3-velocity: with
-  // x-only, the Lax envelope failed to dominate the full spectral
-  // radius and the convex-combination argument broke. Reproducer:
-  // test_direct_state_lax_curved_near_horizon at (sx,sy,sz)=(1,1,0) on
-  // bhl-repair-s2-#2 showed s²_new=-1.45e-1 (x-only) → +1.16 (full-3D).
-  // See SESSION_NOTES_3 §17. The function returns the tight max_eig
-  // (no v_sq safety pad — see SESSION_NOTES_S2_REPAIR.md §6).
+  // amax — normal-direction (face-local x) max-abs eigenvalue: the
+  // principled penalization for a dimensionally-split sweep. Adopted
+  // 2026-06-10 over the earlier full-3D bound; history and the BHL A/B
+  // statistics are in SESSION_NOTES_POSITIVITY_UNIFICATION.md §9.
   // Excision short-circuits to 1e-8.
-  double amaxl = gkyl_gr_euler_tetrad_max_abs_speed(eos, ql, grm->prodl_local, stat);
-  double amaxr = gkyl_gr_euler_tetrad_max_abs_speed(eos, qr, grm->prodr_local, stat);
+  double amaxl = gkyl_gr_euler_tetrad_max_abs_speed_dir(eos, ql, grm->prodl_local, 0, stat);
+  double amaxr = gkyl_gr_euler_tetrad_max_abs_speed_dir(eos, qr, grm->prodr_local, 0, stat);
   double amax = fmax(amaxl, amaxr);
   if (!(amax > 0.0)) {
     for (int k = 0; k < 2 * 5; k++) waves[k] = 0.0;
@@ -1605,8 +1514,8 @@ static double
 flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
   const double *qr, double *flux_jump)
 {
-  // Mirrors the regular mod variant's flux_jump_func but uses the corrected
-  // (flat + GR-correction) flux to match packed wv_gr_euler_tetrad.c:1581.
+  // F-wave flux-jump callback using the cell-centered Banyuls flux on
+  // each side (same flux helper as the LOW_ORDER curved-Lax path).
   struct wv_gr_euler_tetrad *grm = container_of((struct gkyl_wv_eqn *)eqn,
     struct wv_gr_euler_tetrad, eqn);
   struct gkyl_gr_euler_eos eos = grm->eos;
@@ -1778,6 +1687,21 @@ max_speed_func(const struct gkyl_wv_eqn *eqn, const double *q)
     grm->auxfields.prim_status_wave_prop);
 }
 
+// Directionally-aware initial-dt seed: per-sweep-direction bound, so the
+// seed is dt ≤ CFL·dx_d/λ_d instead of the blanket max over directions.
+// Called by gkyl_wave_prop_max_dt when non-NULL.
+static double
+max_speed_dir_func(const struct gkyl_wv_eqn *eqn, const double *q, int dir)
+{
+  struct wv_gr_euler_tetrad *grm = container_of((struct gkyl_wv_eqn *)eqn,
+    struct wv_gr_euler_tetrad, eqn);
+  if (!grm->auxfields.prods) return 1.0;
+  long cidx = gkyl_range_idx(&grm->conf_range, grm->cur_cell_idx);
+  const double *prods = gkyl_array_cfetch(grm->auxfields.prods, cidx);
+  return gkyl_gr_euler_tetrad_max_abs_speed_dir(grm->eos, q, prods, dir,
+    grm->auxfields.prim_status_wave_prop);
+}
+
 static inline void
 gr_euler_tetrad_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin,
   double *diag)
@@ -1827,7 +1751,7 @@ gkyl_wv_gr_euler_tetrad_inew(
   const struct gkyl_wv_gr_euler_tetrad_inp *inp)
 {
   struct wv_gr_euler_tetrad *grm =
-    gkyl_malloc(sizeof(struct wv_gr_euler_tetrad));
+    gkyl_calloc(1, sizeof(struct wv_gr_euler_tetrad));
 
   grm->eqn.type = GKYL_EQN_GR_EULER_TETRAD;
   grm->eqn.num_equations = 5;
@@ -1897,6 +1821,7 @@ gkyl_wv_gr_euler_tetrad_inew(
   grm->eqn.flux_jump = flux_jump_func;
   grm->eqn.check_inv_func = check_inv;
   grm->eqn.max_speed_func = max_speed_func;
+  grm->eqn.max_speed_dir_func = max_speed_dir_func;
   grm->eqn.rotate_to_local_func = rot_to_local;
   grm->eqn.rotate_to_global_func = rot_to_global;
   grm->eqn.wall_bc_func = gr_euler_tetrad_wall;

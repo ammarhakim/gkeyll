@@ -673,7 +673,12 @@ gkyl_wave_prop_max_dt(const gkyl_wave_prop *wv, const struct gkyl_range *update_
       // Per-cell setter so the equation can fetch auxfields if needed.
       if (wv->equation->set_cell_idx_func)
         wv->equation->set_cell_idx_func(wv->equation, iter.idx);
-      double maxs = gkyl_wv_eqn_max_speed(wv->equation, q);
+      // Directionally-aware seed when the equation provides it: each
+      // sweep direction is bounded by its own eigenvalue, not the
+      // blanket max over directions.
+      double maxs = wv->equation->max_speed_dir_func
+        ? wv->equation->max_speed_dir_func(wv->equation, q, dir)
+        : gkyl_wv_eqn_max_speed(wv->equation, q);
       max_dt = fmin(max_dt, wv->cfl*dx/maxs);
     }
     

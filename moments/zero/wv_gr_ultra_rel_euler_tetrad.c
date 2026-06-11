@@ -1815,7 +1815,7 @@ gkyl_wv_gr_ultra_rel_euler_tetrad_new(double gas_gamma, enum gkyl_spacetime_gaug
 struct gkyl_wv_eqn*
 gkyl_wv_gr_ultra_rel_euler_tetrad_inew(const struct gkyl_wv_gr_ultra_rel_euler_tetrad_inp* inp)
 {
-  struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = gkyl_malloc(sizeof(struct wv_gr_ultra_rel_euler_tetrad));
+  struct wv_gr_ultra_rel_euler_tetrad *gr_ultra_rel_euler_tetrad = gkyl_calloc(1, sizeof(struct wv_gr_ultra_rel_euler_tetrad));
 
   gr_ultra_rel_euler_tetrad->eqn.type = GKYL_EQN_GR_ULTRA_REL_EULER_TETRAD;
   gr_ultra_rel_euler_tetrad->eqn.num_equations = 70;

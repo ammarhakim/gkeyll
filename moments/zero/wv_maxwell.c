@@ -83,7 +83,7 @@ gkyl_wv_maxwell_new(double c, double e_fact, double b_fact, bool use_gpu)
 struct gkyl_wv_eqn*
 gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
 {
-  struct wv_maxwell *maxwell = gkyl_malloc(sizeof(struct wv_maxwell));
+  struct wv_maxwell *maxwell = gkyl_calloc(1, sizeof(struct wv_maxwell));
 
   maxwell->eqn.type = GKYL_EQN_MAXWELL;
   maxwell->eqn.num_equations = 8;

@@ -536,7 +536,7 @@ gkyl_wv_gr_maxwell_new(double light_speed, double e_fact, double b_fact, enum gk
 struct gkyl_wv_eqn*
 gkyl_wv_gr_maxwell_inew(const struct gkyl_wv_gr_maxwell_inp* inp)
 {
-  struct wv_gr_maxwell *gr_maxwell = gkyl_malloc(sizeof(struct wv_gr_maxwell));
+  struct wv_gr_maxwell *gr_maxwell = gkyl_calloc(1, sizeof(struct wv_gr_maxwell));
 
   gr_maxwell->eqn.type = GKYL_EQN_GR_MAXWELL;
   gr_maxwell->eqn.num_equations = 26;

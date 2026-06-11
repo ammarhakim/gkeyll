@@ -12,10 +12,9 @@
 // The Banyuls inversion uses |S|² = γ^{ij}·S_i·S_j and recovers the
 // contravariant velocity v^i = γ^{ij}·S_j / (ρhW²); both lookups go
 // through gkyl_gr_euler_recover_primitives in
-// gkyl_wv_gr_euler_prim_priv.h. The packed-tetrad path
-// (wv_gr_euler_tetrad.c) and the non-tetrad mod path (wv_gr_euler_mod.c)
-// remain on the contravariant-momentum convention; only the modular
-// tetrad path defined here uses Convention A.
+// gkyl_wv_gr_euler_prim_priv.h. The legacy packed path (wv_gr_euler.c)
+// remains on the contravariant-momentum convention; the modular tetrad
+// path defined here uses Convention A.
 
 #include <math.h>
 #include <stdint.h>
@@ -102,11 +101,10 @@ struct wv_gr_euler_tetrad {
 void gkyl_gr_euler_tetrad_free(const struct gkyl_ref_count *ref);
 
 // ---------------------------------------------------------------------------
-// Helpers ported from wv_gr_euler_tetrad.c but driven by the spacetime-products
-// layout (see gkyl_moment_spacetime_products.h) instead of the packed 71-comp
-// state vector. The math is split into a flat-space SR step and a GR
-// correction, matching the packed tetrad factorization. Declared here so
-// unit tests can call them directly for equivalence comparison.
+// Helpers driven by the spacetime-products layout (see
+// gkyl_moment_spacetime_products.h). The math is split into a flat-space
+// SR step and a GR correction (the tetrad-first factorization). Declared
+// here so unit tests can call them directly.
 // ---------------------------------------------------------------------------
 
 // Recovery helpers. Each accepts an optional prim_status pointer for
@@ -139,6 +137,15 @@ GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_max_abs_speed(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
+  struct gkyl_gr_euler_prim_status *stat);
+
+// Per-direction cell-level eigenvalue bound. With face-local prods and
+// d = 0 this is the curved-Lax normal-direction penalization (adopted
+// 2026-06-10); with global prods it is the directionally-aware dt seed.
+GKYL_CU_D
+double
+gkyl_gr_euler_tetrad_max_abs_speed_dir(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, int d,
   struct gkyl_gr_euler_prim_status *stat);
 
 // Run a pure SR (Minkowski) Roe wave decomposition in the tetrad frame.
@@ -243,40 +250,10 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   struct gkyl_gr_euler_prim_status *stat,
   double waves_tet[3 * 5], double speeds[3]);
 
-// Invert a 3×3 symmetric matrix in place. Returns det(g); fills inv_g
-// with g^{-1}. Used at the interface to derive a *consistent* (inv_g,
-// sqrt(det)) pair from g_iface, avoiding the O((Δγ)²) wave-sum residual
-// that arises when these three are independently averaged from L/R cells.
-// See TETRAD_REFACTOR_PLAN.md Phase 0(b) Fix 2.
-static inline double
-gkyl_gr_euler_tetrad_invert_metric_3x3(const double g[3][3],
-  double inv_g[3][3])
-{
-  double det = g[0][0] * (g[1][1]*g[2][2] - g[1][2]*g[1][2])
-             - g[0][1] * (g[0][1]*g[2][2] - g[1][2]*g[0][2])
-             + g[0][2] * (g[0][1]*g[1][2] - g[1][1]*g[0][2]);
-  double inv_det = 1.0 / det;
-  inv_g[0][0] =  (g[1][1]*g[2][2] - g[1][2]*g[1][2]) * inv_det;
-  inv_g[0][1] = -(g[0][1]*g[2][2] - g[1][2]*g[0][2]) * inv_det;
-  inv_g[0][2] =  (g[0][1]*g[1][2] - g[1][1]*g[0][2]) * inv_det;
-  inv_g[1][0] = inv_g[0][1];
-  inv_g[1][1] =  (g[0][0]*g[2][2] - g[0][2]*g[0][2]) * inv_det;
-  inv_g[1][2] = -(g[0][0]*g[1][2] - g[0][1]*g[0][2]) * inv_det;
-  inv_g[2][0] = inv_g[0][2];
-  inv_g[2][1] = inv_g[1][2];
-  inv_g[2][2] =  (g[0][0]*g[1][1] - g[0][1]*g[0][1]) * inv_det;
-  return det;
-}
-
-// Build a Gram-Schmidt-on-γ⁻¹ triad: e_0 aligned with the contravariant
-// x-direction, e_1, e_2 orthogonalized in γ. M[i][a] = e_a^i, M_inv =
-// M^T·γ. Eliminates the v_tet^x ↔ v^y, v^z mixing seen with Cholesky
-// for non-diagonal γ — see SESSION_NOTES_2.md §12.
-GKYL_CU_D
-void
-gkyl_gr_euler_tetrad_build_triad_contravariant_x(
-  const double g_ij[3][3], const double inv_g[3][3],
-  double M[3][3], double M_inv[3][3]);
+// The per-interface geometry helpers (metric inversion, Gram-Schmidt
+// triad, face-local rotations) live in gkyl_wave_spacetime.h — they are
+// the cache builder's own operations; the equation's cache-less fallback
+// reproduces them per call.
 
 // Forward transform of Convention-A covariant momentum onto the
 // contravariant-x triad: S_tet^a = M_inv[a][i]·γ^{ij}·S_j/√γ. For a=0

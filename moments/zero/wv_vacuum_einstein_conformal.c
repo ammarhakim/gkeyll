@@ -1748,7 +1748,7 @@ gkyl_wv_vacuum_einstein_conformal_new(double excision_threshold, enum gkyl_space
 struct gkyl_wv_eqn*
 gkyl_wv_vacuum_einstein_conformal_inew(const struct gkyl_wv_vacuum_einstein_conformal_inp* inp)
 {
-  struct wv_vacuum_einstein_conformal *vacuum_einstein_conformal = gkyl_malloc(sizeof(struct wv_vacuum_einstein_conformal));
+  struct wv_vacuum_einstein_conformal *vacuum_einstein_conformal = gkyl_calloc(1, sizeof(struct wv_vacuum_einstein_conformal));
 
   vacuum_einstein_conformal->eqn.type = GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL;
   vacuum_einstein_conformal->eqn.num_equations = 77;

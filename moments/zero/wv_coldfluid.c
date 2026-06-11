@@ -219,7 +219,7 @@ coldfluid_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 struct gkyl_wv_eqn*
 gkyl_wv_coldfluid_new(void)
 {
-  struct wv_coldfluid *coldfluid = gkyl_malloc(sizeof(struct wv_coldfluid));
+  struct wv_coldfluid *coldfluid = gkyl_calloc(1, sizeof(struct wv_coldfluid));
 
   coldfluid->eqn.type = GKYL_EQN_COLDFLUID;
   coldfluid->eqn.num_equations = 4;

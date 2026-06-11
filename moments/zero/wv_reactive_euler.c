@@ -421,7 +421,7 @@ gkyl_wv_reactive_euler_new(double gas_gamma, double specific_heat_capacity, doub
 struct gkyl_wv_eqn*
 gkyl_wv_reactive_euler_inew(const struct gkyl_wv_reactive_euler_inp* inp)
 {
-  struct wv_reactive_euler *reactive_euler = gkyl_malloc(sizeof(struct wv_reactive_euler));
+  struct wv_reactive_euler *reactive_euler = gkyl_calloc(1, sizeof(struct wv_reactive_euler));
 
   reactive_euler->eqn.type = GKYL_EQN_REACTIVE_EULER;
   reactive_euler->eqn.num_equations = 6;

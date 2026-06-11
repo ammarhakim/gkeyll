@@ -208,11 +208,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   if (app->has_spacetime) {
     for (int i = 0; i < ns; i++) {
       enum gkyl_eqn_type t = app->species[i].eqn_type;
-      if (t == GKYL_EQN_GR_EULER_MOD) {
-        gkyl_gr_euler_mod_set_conf_range(app->species[i].equation, &app->local_ext);
-        gkyl_gr_euler_mod_set_auxfields(app->species[i].equation,
-          (struct gkyl_wv_gr_euler_mod_auxfields){ .prods = app->spacetime.prods });
-      } else if (t == GKYL_EQN_GR_EULER_TETRAD) {
+      if (t == GKYL_EQN_GR_EULER_TETRAD) {
         gkyl_gr_euler_tetrad_set_conf_range(app->species[i].equation, &app->local_ext);
         gkyl_gr_euler_tetrad_set_auxfields(app->species[i].equation,
           (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = app->spacetime.prods });
@@ -418,15 +414,13 @@ gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
       num_periodic_dir, app->periodic_dirs, app->spacetime.prods);
 
     // Build the per-interface tetrad cache now that prods is filled, then
-    // attach it to each tetrad-mod and non-tetrad-mod species. The cache
-    // reads cell-centered prods, applies the wave_geom rotation per face,
-    // and stores the resulting averaged-frame metric + Gram-Schmidt triad
-    // for direct consumption by wave_tetrad_high_order and (when present)
-    // the iface-flux Lax in wv_gr_euler_mod.c.
+    // attach it to each tetrad species. The cache reads cell-centered
+    // prods, applies the wave_geom rotation per face, and stores the
+    // resulting averaged-frame metric + Gram-Schmidt triad for direct
+    // consumption by wave_tetrad_high_order.
     bool need_wave_spacetime = false;
     for (int i = 0; i < app->num_species; i++)
-      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD ||
-          app->species[i].eqn_type == GKYL_EQN_GR_EULER_MOD) {
+      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
         need_wave_spacetime = true; break;
       }
     if (need_wave_spacetime && app->spacetime.wave_spacetime == NULL) {
@@ -436,9 +430,6 @@ gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
       for (int i = 0; i < app->num_species; i++) {
         if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
           gkyl_gr_euler_tetrad_set_wave_spacetime(app->species[i].equation,
-            app->spacetime.wave_spacetime);
-        } else if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_MOD) {
-          gkyl_gr_euler_mod_set_wave_spacetime(app->species[i].equation,
             app->spacetime.wave_spacetime);
         }
       }
