@@ -77,8 +77,7 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, struct g
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Distribution function surface flux diagnostic for the collisionless gyrokinetic operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Collisionless flux at cell surface." }
   };
   int io_meta_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta, desc};

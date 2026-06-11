@@ -180,8 +180,7 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc_nu_sum[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Total collision frequency summed over all species for the Lenard-Bernstein (LBO) gyrokinetic collision operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies." }
   };
   int io_meta_nu_sum_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta_nu_sum[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_nu_sum};
@@ -189,7 +188,7 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 
   struct gkyl_msgpack_map_elem desc_nu_prim[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Primitive moments (drift velocity and thermal velocity squared) weighted by the collision frequency for the Lenard-Bernstein (LBO) gyrokinetic collision operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+      .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over colliding species." }
   };
   int io_meta_nu_prim_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta_nu_prim[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_nu_prim};

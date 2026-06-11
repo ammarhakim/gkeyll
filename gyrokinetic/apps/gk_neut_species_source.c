@@ -79,8 +79,7 @@ gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
     struct gkyl_msgpack_map_elem desc_src[] = {
-      { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "Neutral species source term scaled by the phase-space Jacobian and magnetic field. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Neutral species source." }
     };
     int io_meta_len[] = {app->io_meta_basic_len, gkns->io_meta_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gkns->io_meta, app->gk_geom->io_meta, desc_src};
@@ -113,8 +112,7 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
     struct gkyl_msgpack_map_elem desc_src_mom[] = {
-      { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "Velocity-space moment of the neutral species source term distribution function. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Velocity-space moment of the neutral species source." }
     };
     int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_src_mom};

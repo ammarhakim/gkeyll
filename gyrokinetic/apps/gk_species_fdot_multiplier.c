@@ -20,7 +20,7 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app *app, struct gk_sp
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Multiplicative function applied to the distribution function time derivative. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" },
+      .cval = "Function multiplying the distribution time derivative." },
   };
   int mpe_mult_len = sizeof(mpe_mult) / sizeof(mpe_mult[0]);
   // Update app basic metadata with time/frame.

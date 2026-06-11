@@ -18,7 +18,7 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *g
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Damping rate applied to the distribution function. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" },
+      .cval = "Rate of the damping term." },
   };
   int mpe_drate_len = sizeof(mpe_drate)/sizeof(mpe_drate[0]);
   // Update app basic metada with time/frame.

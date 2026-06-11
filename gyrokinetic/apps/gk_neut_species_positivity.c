@@ -35,7 +35,7 @@ gkns_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Velocity-space moments of the change in the neutral species distribution function applied by the positivity-preserving operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+      .cval = "M0M1M2 moments of the change in the distribution by the positivity shift." }
   };
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc};
@@ -51,10 +51,10 @@ gkns_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *
 
   const char *fmt = "%s-%s_positivity_%s_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name,
-    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2PARM2PERP], frame);
+    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2], frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gkns->info.name,
-    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2PARM2PERP], frame);
+    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2], frame);
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
@@ -205,10 +205,10 @@ gk_neut_species_positivity_init(struct gkyl_gyrokinetic_app *app, struct gk_neut
 
     if (pos->write_diagnostics) {
       // Allocate data for diagnostic moments.
-      gk_neut_species_moment_init(app, gkns, &pos->moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, false);
+      gk_neut_species_moment_init(app, gkns, &pos->moms, GKYL_F_MOMENT_M0M1M2, false);
 
       // Integrated moments of delta f.
-      gk_neut_species_moment_init(app, gkns, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2PARM2PERP, true);
+      gk_neut_species_moment_init(app, gkns, &pos->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
 
       if (app->use_gpu) {
         pos->red_integ_diag = gkyl_cu_malloc(sizeof(double[pos->integ_moms.num_mom]));

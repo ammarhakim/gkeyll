@@ -36,7 +36,7 @@ gk_species_anomalous_diff_write_diags_enabled(gkyl_gyrokinetic_app* app, struct 
 
 static void
 gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
-  struct gk_anomalous_diff *gkad, int frame, double stime, char* file_suffix,
+  struct gk_anomalous_diff *gkad, int frame, double stime, char* file_suffix, char* description,
   struct gkyl_array *arrout, struct gkyl_array *arrout_host)
 {
   // Write out a conf-space array.
@@ -45,8 +45,7 @@ gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species 
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", stime);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Configuration-space diagnostic field for the anomalous diffusion operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description }
   };
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc};
@@ -159,7 +158,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     if (gkad->write_diagnostics) {
       // Write out the diffusivity.
-      gk_anomalous_diff_write_conf_array(app, gks, gkad, 0, 0.0, "anomalous_diffusivity", gkad->diffD, 0);
+      gk_anomalous_diff_write_conf_array(app, gks, gkad, 0, 0.0, "anom_diff", "Anomalous diffusivity.", gkad->diffD, 0);
     }
 
     // Methods chosen at runtime.

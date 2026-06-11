@@ -100,32 +100,28 @@ gks_rad_write_drag_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc_nvnu_surf[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Parallel velocity surface drag coefficient for the radiation drag operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "vpar surface drag coefficient." }
   };
   int io_meta_surfvpar_len[] = {app->io_meta_basic_len, rad->io_meta_surfvpar_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta_surfvpar[] = {app->io_meta_basic, rad->io_meta_surfvpar, app->gk_geom->io_meta, desc_nvnu_surf};
   struct gkyl_msgpack_data *mt_surfvpar = gkyl_msgpack_create_union(sizeof(io_meta_surfvpar_len)/sizeof(int), io_meta_surfvpar_len, io_meta_surfvpar);
 
   struct gkyl_msgpack_map_elem desc_nvnu[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Parallel velocity cell-centered drag coefficient for the radiation drag operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "vpar volume drag coefficient." }
   };
   int io_meta_nvnu_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta_nvnu[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta, desc_nvnu};
   struct gkyl_msgpack_data *mt_nvnu = gkyl_msgpack_create_union(sizeof(io_meta_nvnu_len)/sizeof(int), io_meta_nvnu_len, io_meta_nvnu);
 
   struct gkyl_msgpack_map_elem desc_nvsqnu_surf[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Magnetic moment surface drag coefficient for the radiation drag operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "mu surface drag coefficient." }
   };
   int io_meta_surfmu_len[] = {app->io_meta_basic_len, rad->io_meta_surfmu_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta_surfmu[] = {app->io_meta_basic, rad->io_meta_surfmu, app->gk_geom->io_meta, desc_nvsqnu_surf};
   struct gkyl_msgpack_data *mt_surfmu = gkyl_msgpack_create_union(sizeof(io_meta_surfmu_len)/sizeof(int), io_meta_surfmu_len, io_meta_surfmu);
 
   struct gkyl_msgpack_map_elem desc_nvsqnu[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Magnetic moment cell-centered drag coefficient for the radiation drag operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "mu volume drag coefficient." }
   };
   int io_meta_nvsqnu_len[] = {app->io_meta_basic_len, gks->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta_nvsqnu[] = {app->io_meta_basic, gks->io_meta, app->gk_geom->io_meta, desc_nvsqnu};
@@ -235,8 +231,7 @@ gks_rad_write_emissivity_enabled(gkyl_gyrokinetic_app* app, struct gk_species *g
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc_emissivity[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Radiation emissivity coefficient computed as a velocity-space integral of the radiation drag operator applied to the distribution function. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emissivity density." }
   };
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_emissivity};

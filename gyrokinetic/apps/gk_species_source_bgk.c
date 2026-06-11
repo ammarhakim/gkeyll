@@ -215,25 +215,25 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, st
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc_bgk_moms[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Time derivative of the velocity-space moments of the distribution function due to the BGK source term. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+      .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate." }
   };
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_bgk_moms};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
-  if(app->use_gpu) {
+  if (app->use_gpu) {
     gkyl_array_copy(src->M0dot_host, src->M0dot);
     gkyl_array_copy(src->M1dot_host, src->M1dot);
     gkyl_array_copy(src->M2dot_host, src->M2dot);
   }
 
-  cstr fileNm = cstr_from_fmt("%s-%s_BGKM0dot_%d.gkyl", app->name, gks->info.name, frame);
+  cstr fileNm = cstr_from_fmt("%s-%s_source_bgk_M0dot_%d.gkyl", app->name, gks->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->M0dot_host, fileNm.str);
   cstr_drop(&fileNm);
-  fileNm = cstr_from_fmt("%s-%s_BGKM1dot_%d.gkyl", app->name, gks->info.name, frame);
+  fileNm = cstr_from_fmt("%s-%s_source_bgk_M1dot_%d.gkyl", app->name, gks->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->M1dot_host, fileNm.str);
   cstr_drop(&fileNm);
-  fileNm = cstr_from_fmt("%s-%s_BGKM2dot_%d.gkyl", app->name, gks->info.name, frame);
+  fileNm = cstr_from_fmt("%s-%s_source_bgk_M2dot_%d.gkyl", app->name, gks->info.name, frame);
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->M2dot_host, fileNm.str);
   cstr_drop(&fileNm);
 
@@ -344,8 +344,7 @@ gk_species_source_bgk_write_array(gkyl_gyrokinetic_app* app, struct gk_species *
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", stime);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = description},
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description},
   };
   int io_meta_f_len = sizeof(io_meta_f)/sizeof(io_meta_f[0]);
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, io_meta_f_len};
@@ -531,9 +530,9 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       if (src->write_diagnostics) {
         src->vtsq_amp_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
         // Write out the source_bgk rate and vtsq shape.
-        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK relaxation rate, nu in -nu*(f-feq)", 
+        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate.", 
           app->grid, app->local, src->rate);
-        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK thermal energy, vth^2 of nu*(f-feq)", 
+        gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK source temperature shape.", 
           app->grid, app->local, src->vtsq_shape);
       }
 

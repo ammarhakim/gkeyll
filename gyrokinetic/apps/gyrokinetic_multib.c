@@ -1141,7 +1141,7 @@ gkyl_gyrokinetic_multib_app_write_topo(const gkyl_gyrokinetic_multib_app* app)
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
   if (0 == rank) {
-    cstr file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
+    cstr file_name = cstr_from_fmt("%s-block_topo.gkyl", app->name);
     gkyl_block_topo_write(app->block_topo, file_name.str);
     cstr_drop(&file_name);
   }

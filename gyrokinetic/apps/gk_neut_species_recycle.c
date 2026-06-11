@@ -11,13 +11,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  struct gkyl_msgpack_map_elem desc[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Particle density flux at the recycling boundary wall, computed from the impacting and emitting species distribution functions. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
-  };
   int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   const char *vars[] = {"x","y","z"};
   const char *edge[] = {"lower","upper"};
@@ -45,13 +39,21 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
     if (app->use_gpu)
       gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
 
+    struct gkyl_msgpack_map_elem desc0[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Impacting boundary particle flux." }
+    };
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc0};
+    struct gkyl_msgpack_data *mt0 = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
     const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     char fileNm[sz+1]; // ensures no buffer overflow
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], gks->info.name, frame);
     
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt0, recyc->diag_out_ho, fileNm);
     app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
+
+    gkyl_msgpack_data_release(mt0); 
   }
 
   struct timespec wst = gkyl_wall_clock();
@@ -71,16 +73,22 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   if (app->use_gpu)
     gkyl_array_copy(recyc->diag_out_ho, recyc->diag_out);
   
+  struct gkyl_msgpack_map_elem desc1[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux." }
+  };
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc1};
+  struct gkyl_msgpack_data *mt1 = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
   const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, s->info.name, vars[dir], edge[edi], s->info.name, frame);
   
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, recyc->diag_out_ho, fileNm);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt1, recyc->diag_out_ho, fileNm);
   app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
 
-  gkyl_msgpack_data_release(mt); 
+  gkyl_msgpack_data_release(mt1); 
 }
 
 static void

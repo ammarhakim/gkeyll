@@ -194,8 +194,7 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
   struct gkyl_msgpack_map_elem desc_f[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Neutral species distribution function scaled by the phase-space Jacobian and magnetic field. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Neutral species distribution times Jacobians." }
   };
   int io_meta_len[] = {app->io_meta_basic_len, gkns->io_meta_len, app->gk_geom->io_meta_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, gkns->io_meta, app->gk_geom->io_meta, desc_f};
@@ -226,14 +225,6 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
   // Package metadata.
   gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
   gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  struct gkyl_msgpack_map_elem desc_mom[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Velocity-space moment of the neutral species distribution function. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
-  };
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_mom};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
-
   for (int m=0; m<gkns->info.num_diag_moments; ++m) {
     struct timespec wst = gkyl_wall_clock();
     gk_neut_species_moment_calc(&gkns->moms[m], gkns->local, app->local, gkns->f);
@@ -247,6 +238,14 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
     if (app->use_gpu)
       gkyl_array_copy(gkns->moms[m].marr_host, gkns->moms[m].marr);
 
+    struct gkyl_msgpack_map_elem desc_mom[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
+        .cval = (char*)gkyl_distribution_moments_descriptions[gkns->info.diag_moments[m]] }
+    };
+    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_mom};
+    struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
     const char *fmt = "%s-%s_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gkns->info.name, 
       gkyl_distribution_moments_strs[gkns->info.diag_moments[m]], frame);
@@ -256,10 +255,10 @@ gk_neut_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_spec
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
       gkns->moms[m].marr_host, fileNm);
+    gkyl_msgpack_data_release(mt); 
     app->stat.neut_species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_neut_diag_io += 1;
   }
-  gkyl_msgpack_data_release(mt); 
 }
 
 void
