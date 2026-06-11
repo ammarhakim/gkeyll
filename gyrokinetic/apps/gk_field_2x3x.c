@@ -488,7 +488,7 @@ gk_field_ohm_solve(struct gkyl_gyrokinetic_app *app, struct gk_field *field, str
 
   field->invert_flr(app, field, field->apardot);
 
-  field->remove_em_zonal(app, field, field->apardot);
+  field->remove_em_zonal_func(app, field, field->apardot);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -572,7 +572,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
       gkyl_array_release(f->apardot_host);
       gkyl_array_release(f->amperesol_host);
     }
-    if (f->remove_em_zonal) {
+    if (f->info.remove_em_zonal) {
      gkyl_array_average_release(f->fs_avg_op);
      gkyl_array_release(f->fs_avg);
      gkyl_array_release(f->fs_avg_conf_one);
@@ -793,7 +793,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   // Setup EM solvers.
   f->ampere_solve = gk_field_ampere_solve_none;
   f->em_rhs_func = gk_field_em_rhs_none;
-  f->remove_em_zonal = gk_field_em_zonal_component_none;
+  f->remove_em_zonal_func = gk_field_em_zonal_component_none;
   if (f->is_em) {
     // Translate input file BCs into Ampere BCs.
     for (int d=0; d<app->cdim-1; d++) {
@@ -836,7 +836,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     f->em_rhs_func = f->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
 
     if (f->info.remove_em_zonal) {
-      f->remove_em_zonal = gk_field_remove_em_zonal_enabled;
+      f->remove_em_zonal_func = gk_field_remove_em_zonal_enabled;
       // define the reduced range and basis for averaging along x only
       struct gkyl_rect_grid grid_x;
       gkyl_rect_grid_init(&grid_x, 1, &app->grid.lower[0], &app->grid.upper[0], &app->grid.cells[0]);
