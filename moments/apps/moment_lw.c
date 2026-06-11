@@ -1314,6 +1314,11 @@ eqn_gr_euler_tetrad_lw_new(lua_State *L)
       .eos        = eos,
       .conf_range = conf_range,
       .rp_type    = rp_type,
+      // exactWaveSpeeds: HLL/Lax bracket from the exact tangential-aware
+      // eigenvalues (MB05 eqs 22–23) instead of the velocity-addition
+      // default. Tighter bracket = less diffusion (HLLC_AUDIT_PLAN.md
+      // bracket-tightness study). Ignored by HLLC/Roe.
+      .use_exact_wave_speeds = glua_tbl_get_bool(L, "exactWaveSpeeds", false),
       .use_gpu    = false,
     });
   gr_euler_tetrad_lw->has_nn        = false;

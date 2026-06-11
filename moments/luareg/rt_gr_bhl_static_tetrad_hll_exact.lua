@@ -1,24 +1,17 @@
--- 2D Bondi-Hoyle-Lyttleton accretion onto a SPINNING (Kerr) black hole in
--- Cartesian Kerr-Schild coordinates, modular tetrad-basis GR Euler with
--- the APPROXIMATE_SYNGE equation of state using the Ryu-Chattopadhyay
--- (RCC) enthalpy closure. Structural clone of
--- rt_gr_bhl_spinning_tetrad.lua with the EOS switched from IDEAL
--- γ=5/3 to APPROXIMATE_SYNGE (useRcc = true).
---
--- Exercise: even with spin = -0.5, the static-vs-spinning Cartesian
--- Kerr-Schild metric has the same NON-trivial shift (β^i ≠ 0) and
--- off-diagonal γ_ij components as the static case. What this case adds
--- is genuine frame-dragging on top — useful for confirming that the
--- RCC dispatch (sanity check, cold-flow fallback, paper-grounded
--- physicality check) remains robust at higher spin.
---
--- See rt_gr_bhl_spinning_tetrad.lua for the IDEAL baseline of the
--- same geometry, and rt_gr_bhl_static_tetrad_rc.lua for the
--- RCC-EOS-specific dispatch documentation.
+-- 2D Bondi-Hoyle-Lyttleton accretion onto a static (Schwarzschild) black
+-- hole, modular tetrad-basis GR Euler with rpType="hll" and the EXACT
+-- tangential-aware eigenvalue bracket (exactWaveSpeeds=true; MB05 eqs
+-- 22-23) instead of the velocity-addition default. The bracket-tightness
+-- A/B partner of rt_gr_bhl_static_tetrad.lua (HLLC_AUDIT_PLAN.md):
+-- registry data says the exact bracket costs s2 margin near horizons at
+-- production-scale margins; this run tests whether that destabilizes
+-- production BHL the way HLLC (which always uses it) appears to.
 
 local Moments = G0.Moments
 local GREulerTetrad = G0.Moments.Eq.GREulerTetrad
 local BlackHole = G0.Moments.Spacetime.BlackHole
+
+gas_gamma = 5.0 / 3.0
 
 rhol = 3.0
 ul   = 0.3
@@ -29,7 +22,7 @@ ur   = 0.0
 pr   = 0.01
 
 mass = 0.3
-spin = -0.5
+spin = 0.0
 
 pos_x = 2.5
 pos_y = 2.5
@@ -39,7 +32,7 @@ Nx = 256
 Ny = 256
 Lx = 5.0
 Ly = 5.0
-cfl_frac = 0.5 -- Strict 2D directional-splitting CFL (cfla_x + cfla_y ≤ 1.0)
+cfl_frac = 0.5  -- Strict 2D directional-splitting CFL (cfla_x + cfla_y ≤ 1.0).
 
 reinit_freq = 100
 
@@ -51,15 +44,6 @@ dt_failure_tol = 1.0e-4
 num_failures_max = 20
 
 x_loc = 1.0
-
--- Ryu-Chattopadhyay specific enthalpy: h(θ) = 2(6θ² + 4θ + 1)/(3θ + 2),
--- θ = p/ρ. Used to seed the conservative state from the initial
--- primitive state; the equation object computes the same enthalpy
--- internally during evolution.
-local function rc_enthalpy(rho, p)
-  local theta = p / rho
-  return 2.0 * (6.0*theta*theta + 4.0*theta + 1.0) / (3.0*theta + 2.0)
-end
 
 momentApp = Moments.App.new {
 
@@ -86,13 +70,8 @@ momentApp = Moments.App.new {
 
   fluid = Moments.Species.new {
     equation = GREulerTetrad.new {
-      eos = "approx_synge",
-      useRcc = true,
+      gasGamma = gas_gamma,
       rpType = "hll",
-      -- Exact tangential-aware eigenvalue bracket (MB05 eqs 22-23) —
-      -- adopted for the RCC-HLL baselines 2026-06-11 after the bracket
-      -- A/B showed it stable with slightly LOWER repair activity than
-      -- the velocity-addition default (HLLC_AUDIT_PLAN.md).
       exactWaveSpeeds = true,
     },
 
@@ -130,7 +109,7 @@ momentApp = Moments.App.new {
         W = 1.0 / math.sqrt(1.0 - math.pow(10.0, -8.0))
       end
 
-      local h = rc_enthalpy(rho, p)
+      local h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)))
 
       -- Convention A: S_i = γ_ij·ρhW²·v^j (genuine covariant momentum).
       local v_lower = { 0.0, 0.0, 0.0 }
@@ -154,7 +133,7 @@ momentApp = Moments.App.new {
     end,
 
     evolve = true,
-    forceLowOrderFlux = false,
+    forceLowOrderFlux = false, -- HIGH_ORDER tetrad with positivity-sweep LOW_ORDER fallback.
     bcx = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
     bcy = { G0.SpeciesBc.bcCopy, G0.SpeciesBc.bcCopy },
   }

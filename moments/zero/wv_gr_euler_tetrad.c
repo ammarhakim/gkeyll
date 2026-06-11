@@ -435,6 +435,136 @@ gkyl_gr_euler_tetrad_is_zero_state(const double q[5])
       && fabs(q[3]) < eps && fabs(q[4]) < eps;
 }
 
+// ---------------------------------------------------------------------------
+// Shared flat-tetrad SR building blocks (HLL, Lax, and HLLC's fallback
+// path all use these — HLLC_AUDIT_PLAN.md "modularity"). Roe keeps its
+// historical inline γ-specific recovery.
+// ---------------------------------------------------------------------------
+
+// Vacuum-safe SR primitive recovery. The all-zero excision state
+// short-circuits to vacuum primitives — the Newton recovery would
+// otherwise produce W = 0 → ρ = 0/0 = NaN. Returns true on the vacuum
+// branch so callers can route (HLLC uses this to pick fallback reason 5).
+static inline bool
+gr_euler_sr_prims_vacuum_safe(struct gkyl_gr_euler_eos eos,
+  const double q_tet[5], struct gkyl_gr_euler_prim_status *stat,
+  struct gkyl_gr_euler_prim *out)
+{
+  if (gkyl_gr_euler_tetrad_is_zero_state(q_tet)) {
+    out->rho = 1.0e-30;
+    out->v[0] = 0.0; out->v[1] = 0.0; out->v[2] = 0.0;
+    out->p = 0.0; out->W = 1.0; out->h = 1.0;
+    out->admissible = false;
+    return true;
+  }
+  double inv_g_flat[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, 1.0, 0.0 },
+    { 0.0, 0.0, 1.0 },
+  };
+  gkyl_gr_euler_recover_primitives(eos, q_tet[0], q_tet[1], q_tet[2],
+    q_tet[3], q_tet[4], inv_g_flat, stat, out);
+  return false;
+}
+
+// Banyuls flux F^x in the flat tetrad (α = 1, √γ = 1, β = 0):
+//   F[D] = D·v_x, F[S_i] = S_i·v_x + p·δ_i^x, F[τ] = (τ + p)·v_x.
+// Vacuum primitives (v = 0, p = 0) give an identically zero flux, which
+// is the absorbing-BC contribution at an excision interface.
+static inline void
+gr_euler_sr_flat_flux(const double q_tet[5],
+  const struct gkyl_gr_euler_prim *prim, double f[5])
+{
+  double vx = prim->v[0], p = prim->p;
+  f[0] = q_tet[0] * vx;
+  f[1] = q_tet[1] * vx + p;
+  f[2] = q_tet[2] * vx;
+  f[3] = q_tet[3] * vx;
+  f[4] = (q_tet[4] + p) * vx;
+}
+
+// HLL middle state (integral average over the Riemann fan, MB05 eq 9)
+// in Banyuls (D, S_i, τ) variables. Caller guarantees s_r − s_l is
+// bounded away from zero.
+static inline void
+gr_euler_sr_hll_middle(const double ql[5], const double qr[5],
+  const double fl[5], const double fr[5], double sl, double sr,
+  double qm[5])
+{
+  double denom = sr - sl;
+  for (int i = 0; i < 5; i++)
+    qm[i] = (sr * qr[i] - sl * ql[i] + fl[i] - fr[i]) / denom;
+}
+
+// Per-side acoustic eigenvalue estimates — TWO forms exist in this
+// family (HLLC_AUDIT_PLAN.md):
+//
+// _addition: 1D relativistic velocity addition (v_x ± c_s)/(1 ± v_x·c_s).
+//   Ignores the W² aberration narrowing of the sound cone from
+//   transverse velocity, so it is strictly WIDER (more diffusive but
+//   safe) than the exact form whenever v_t ≠ 0. Historical default for
+//   HLL/Lax — every rpType="hll" baseline runs through it.
+//
+// _exact: the exact 1D-Jacobian eigenvalues with tangential velocity
+//   (MB05 eqs 22–23 / Davis 1988): σ_s = c_s²/(W²(1−c_s²)),
+//   λ± = (v_x ± √(σ_s(1−v_x²+σ_s)))/(1+σ_s). Native to the HLLC
+//   kernel; selectable for HLL/Lax via use_exact_wave_speeds
+//   (Lua: exactWaveSpeeds) for bracket-tightness A/B studies.
+static inline void
+gr_euler_sr_lambda_addition(double vx, double c_s, double *lm, double *lp)
+{
+  *lm = (vx - c_s) / (1.0 - vx * c_s);
+  *lp = (vx + c_s) / (1.0 + vx * c_s);
+}
+
+static inline void
+gr_euler_sr_lambda_exact(double vx, double W, double cs2,
+  double *lm, double *lp)
+{
+  // Cap c_s² strictly below 1 so σ_s stays finite (numerical
+  // near-saturation of degenerate IDEAL configurations; analytic
+  // bounds keep real EOSs well below this).
+  if (cs2 > 1.0 - 1.0e-12) cs2 = 1.0 - 1.0e-12;
+  double sigma = cs2 / (W*W * (1.0 - cs2));
+  double rad = sqrt(fmax(sigma * (1.0 - vx*vx + sigma), 0.0));
+  *lm = (vx - rad) / (1.0 + sigma);
+  *lp = (vx + rad) / (1.0 + sigma);
+}
+
+// Single HLL-fallback emitter for the HLLC kernel: middle state from
+// the shared helper (the same construction sr_hll_minkowski emits —
+// including the absorbing decomposition when one side is vacuum),
+// contact slot zero. Every fallback reason routes here so the
+// degradation path is one piece of code (HLLC_AUDIT_PLAN.md Phase 3).
+static inline double
+gr_euler_sr_hllc_fallback_hll(struct gkyl_gr_euler_prim_status *stat,
+  int reason, const double ql_tet[5], const double qr_tet[5],
+  const double fl[5], const double fr[5],
+  double lambda_L, double lambda_R,
+  double waves_tet[3 * 5], double speeds[3])
+{
+  if (stat) {
+    stat->hllc.last_did_fallback = 1;
+    stat->hllc.last_fallback_reason = reason;
+    stat->hllc.fallback_calls++;
+    stat->hllc.fallback_reason_hist[reason]++;
+  }
+  double qm[5];
+  gr_euler_sr_hll_middle(ql_tet, qr_tet, fl, fr, lambda_L, lambda_R, qm);
+  double *w0 = &waves_tet[0 * 5];
+  double *w1 = &waves_tet[1 * 5];
+  double *w2 = &waves_tet[2 * 5];
+  for (int i = 0; i < 5; i++) {
+    w0[i] = qm[i] - ql_tet[i];
+    w1[i] = 0.0;
+    w2[i] = qr_tet[i] - qm[i];
+  }
+  speeds[0] = lambda_L;
+  speeds[1] = 0.5 * (lambda_L + lambda_R);
+  speeds[2] = lambda_R;
+  return fmax(fabs(lambda_L), fabs(lambda_R));
+}
+
 double
 gkyl_gr_euler_tetrad_sr_roe_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
@@ -635,52 +765,25 @@ gkyl_gr_euler_tetrad_sr_roe_minkowski(struct gkyl_gr_euler_eos eos,
 //
 // Tetrad-first composition: this is the SR core; the curved-frame
 // pipeline transforms states/fluxes into the tetrad frame, calls this,
-// and back-transforms waves and speeds.
-double
-gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
+// and back-transforms waves and speeds. The exported entry points below
+// pin exact_speeds at compile time (default = addition form).
+static inline double
+gr_euler_sr_hll_core(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2])
+  double waves_tet[2 * 5], double speeds[2], bool exact_speeds)
 {
-  double D_l = ql_tet[0], D_r = qr_tet[0];
-  double Sx_l = ql_tet[1], Sx_r = qr_tet[1];
-  double Sy_l = ql_tet[2], Sy_r = qr_tet[2];
-  double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
-  double tau_l = ql_tet[4], tau_r = qr_tet[4];
-
-  // Banyuls primitive recovery via the shared helper (IDEAL → Eulderink-
-  // Mellema quartic Newton; APPROXIMATE_SYNGE → TM cubic + optional RC
-  // Newton refinement). The Minkowski tetrad frame has γ_ij = δ_ij, so
-  // inv_g = I and the shared helper's curved-frame contraction collapses
-  // to the Cartesian dot product the original inline Newton used.
-  //
-  // Each side short-circuits to vacuum primitives when fed the all-zero
-  // excision state (gkyl_gr_euler_tetrad_is_zero_state). SR fluxes
-  // then identically zero on that side and the Davis bracket is bounded
-  // by the active side's wave speeds.
-  double inv_g_flat[3][3] = {
-    { 1.0, 0.0, 0.0 },
-    { 0.0, 1.0, 0.0 },
-    { 0.0, 0.0, 1.0 },
-  };
-  double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
-  double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
-  if (gkyl_gr_euler_tetrad_is_zero_state(ql_tet)) {
-    rho_l = 1.0e-30; vx_l = vy_l = vz_l = 0.0; p_l = 0.0; W_l = 1.0; h_l = 1.0;
-  } else {
-    struct gkyl_gr_euler_prim pl;
-    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, stat, &pl);
-    rho_l = pl.rho; vx_l = pl.v[0]; vy_l = pl.v[1]; vz_l = pl.v[2];
-    p_l   = pl.p;   W_l  = pl.W;    h_l  = pl.h;
-  }
-  if (gkyl_gr_euler_tetrad_is_zero_state(qr_tet)) {
-    rho_r = 1.0e-30; vx_r = vy_r = vz_r = 0.0; p_r = 0.0; W_r = 1.0; h_r = 1.0;
-  } else {
-    struct gkyl_gr_euler_prim pr;
-    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, stat, &pr);
-    rho_r = pr.rho; vx_r = pr.v[0]; vy_r = pr.v[1]; vz_r = pr.v[2];
-    p_r   = pr.p;   W_r  = pr.W;    h_r  = pr.h;
-  }
+  // Vacuum-safe Banyuls primitive recovery (shared helper; IDEAL →
+  // Eulderink-Mellema quartic Newton, APPROXIMATE_SYNGE → TM cubic +
+  // optional RC Newton refinement). Minkowski tetrad frame: γ_ij = δ_ij.
+  // An all-zero excision side gets vacuum primitives; SR fluxes are then
+  // identically zero on that side and the wave bracket is bounded by the
+  // active side's speeds.
+  struct gkyl_gr_euler_prim pl, pr;
+  gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
+  gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
+  double rho_l = pl.rho, vx_l = pl.v[0], p_l = pl.p, h_l = pl.h;
+  double rho_r = pr.rho, vx_r = pr.v[0], p_r = pr.p, h_r = pr.h;
 
   // Sound speeds via EOS dispatch. Vacuum-state side gets c_s = 0 (p = 0
   // ⇒ c_s² = 0 for any reasonable EOS).
@@ -688,51 +791,46 @@ gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   double cs2_r = (p_r > 0.0) ? gkyl_gr_euler_eos_cs2(eos, rho_r, p_r, h_r) : 0.0;
   if (cs2_l < 0.0) cs2_l = 0.0;
   if (cs2_r < 0.0) cs2_r = 0.0;
-  double c_sl = sqrt(cs2_l);
-  double c_sr = sqrt(cs2_r);
 
-  // Davis/Einfeldt wave-speed estimate in tetrad frame: per-side
-  // relativistic acoustic eigenvalues with velocity addition, then
-  // min/max across both sides. Guarantees sl ≤ smin, sr ≥ smax.
-  double lambda_minus_l = (vx_l - c_sl) / (1.0 - vx_l * c_sl);
-  double lambda_plus_l  = (vx_l + c_sl) / (1.0 + vx_l * c_sl);
-  double lambda_minus_r = (vx_r - c_sr) / (1.0 - vx_r * c_sr);
-  double lambda_plus_r  = (vx_r + c_sr) / (1.0 + vx_r * c_sr);
+  // Wave-speed estimate: velocity-addition by default (every
+  // rpType="hll" baseline runs through it — do not change casually),
+  // exact tangential-aware eigenvalues under use_exact_wave_speeds.
+  // See the helper comments above for the wide-vs-tight trade.
+  double lambda_minus_l, lambda_plus_l, lambda_minus_r, lambda_plus_r;
+  if (exact_speeds) {
+    gr_euler_sr_lambda_exact(vx_l, pl.W, cs2_l, &lambda_minus_l, &lambda_plus_l);
+    gr_euler_sr_lambda_exact(vx_r, pr.W, cs2_r, &lambda_minus_r, &lambda_plus_r);
+  }
+  else {
+    double c_sl = sqrt(cs2_l);
+    double c_sr = sqrt(cs2_r);
+    gr_euler_sr_lambda_addition(vx_l, c_sl, &lambda_minus_l, &lambda_plus_l);
+    gr_euler_sr_lambda_addition(vx_r, c_sr, &lambda_minus_r, &lambda_plus_r);
+  }
   double sl = fmin(lambda_minus_l, lambda_minus_r);
   double sr = fmax(lambda_plus_l, lambda_plus_r);
 
-  // Banyuls fluxes in Minkowski (α=1, √γ=1, β=0):
-  //   F[D]    = D · vx
-  //   F[S_i]  = S_i · vx + p · δ_i^x  (with covariant S_i = Cartesian S^i in flat)
-  //   F[τ]    = (τ + p) · vx
+  // Flat-tetrad Banyuls fluxes (shared helper).
   double fl[5], fr[5];
-  fl[0] = D_l  * vx_l;
-  fl[1] = Sx_l * vx_l + p_l;
-  fl[2] = Sy_l * vx_l;
-  fl[3] = Sz_l * vx_l;
-  fl[4] = (tau_l + p_l) * vx_l;
-  fr[0] = D_r  * vx_r;
-  fr[1] = Sx_r * vx_r + p_r;
-  fr[2] = Sy_r * vx_r;
-  fr[3] = Sz_r * vx_r;
-  fr[4] = (tau_r + p_r) * vx_r;
+  gr_euler_sr_flat_flux(ql_tet, &pl, fl);
+  gr_euler_sr_flat_flux(qr_tet, &pr, fr);
 
   // HLL intermediate state: q_HLL = (sr·qR − sl·qL + fl − fr)/(sr − sl).
   // For Mignone-Bodo admissible inputs and Davis bracket, q_HLL is itself
   // admissible. Waves are conservative-state jumps from qL → q_HLL → qR.
   double qm[5];
-  double denom = sr - sl;
-  if (fabs(denom) < 1.0e-14) {
-    // Degenerate (qL = qR or both supersonic in the same direction).
-    // Fall back to zero waves; qfluct's central form recovers ΔF.
+  if (fabs(sr - sl) < 1.0e-14) {
+    // Degenerate (both sides cold at equal v_x, or both supersonic in
+    // the same direction). Zero waves — KNOWN latent flux-jump hole
+    // when Δq ≠ 0 at equal v_x (Σs·w = 0 ≠ v_x·Δq); near-unreachable
+    // post-floors (recovery keeps c_s ≳ 1e-4 so the bracket stays open).
+    // Queued fix: single wave w = Δq at (sl+sr)/2 — HLLC_AUDIT_PLAN F1.
     for (int i = 0; i < 2 * 5; i++) waves_tet[i] = 0.0;
     speeds[0] = sl;
     speeds[1] = sr;
     return fmax(fabs(sl), fabs(sr));
   }
-  for (int i = 0; i < 5; i++) {
-    qm[i] = (sr * qr_tet[i] - sl * ql_tet[i] + fl[i] - fr[i]) / denom;
-  }
+  gr_euler_sr_hll_middle(ql_tet, qr_tet, fl, fr, sl, sr, qm);
 
   double *w0 = &waves_tet[0 * 5];
   double *w1 = &waves_tet[1 * 5];
@@ -746,6 +844,26 @@ gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   return fmax(fabs(sl), fabs(sr));
 }
 
+double
+gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
+  const double ql_tet[5], const double qr_tet[5],
+  struct gkyl_gr_euler_prim_status *stat,
+  double waves_tet[2 * 5], double speeds[2])
+{
+  return gr_euler_sr_hll_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
+    /*exact_speeds=*/false);
+}
+
+double
+gkyl_gr_euler_tetrad_sr_hll_minkowski_exact(struct gkyl_gr_euler_eos eos,
+  const double ql_tet[5], const double qr_tet[5],
+  struct gkyl_gr_euler_prim_status *stat,
+  double waves_tet[2 * 5], double speeds[2])
+{
+  return gr_euler_sr_hll_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
+    /*exact_speeds=*/true);
+}
+
 // Pure Minkowski SR Lax-Friedrichs. Symmetric envelope ±amax with
 // amax = max over both sides of |λ|_max. Like HLL but with a symmetric
 // (broader) speed bracket — more diffusive but still admissibility-
@@ -754,75 +872,48 @@ gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
 // Tetrad-first composition: same role as sr_hll_minkowski but symmetric
 // in speed. The curved-frame wave_lax pipeline transforms states into
 // the tetrad frame, calls this, and back-transforms waves/speeds.
-double
-gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
+// Exported entry points below pin exact_speeds at compile time.
+static inline double
+gr_euler_sr_lax_core(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2])
+  double waves_tet[2 * 5], double speeds[2], bool exact_speeds)
 {
-  double D_l = ql_tet[0], D_r = qr_tet[0];
-  double Sx_l = ql_tet[1], Sx_r = qr_tet[1];
-  double Sy_l = ql_tet[2], Sy_r = qr_tet[2];
-  double Sz_l = ql_tet[3], Sz_r = qr_tet[3];
-  double tau_l = ql_tet[4], tau_r = qr_tet[4];
-
-  // Banyuls primitive recovery via the shared helper (eos dispatch). See
-  // sr_hll_minkowski above for the rationale on identity inv_g and the
-  // zero-state short-circuit.
-  double inv_g_flat[3][3] = {
-    { 1.0, 0.0, 0.0 },
-    { 0.0, 1.0, 0.0 },
-    { 0.0, 0.0, 1.0 },
-  };
-  double rho_l, vx_l, vy_l, vz_l, p_l, W_l, h_l;
-  double rho_r, vx_r, vy_r, vz_r, p_r, W_r, h_r;
-  if (gkyl_gr_euler_tetrad_is_zero_state(ql_tet)) {
-    rho_l = 1.0e-30; vx_l = vy_l = vz_l = 0.0; p_l = 0.0; W_l = 1.0; h_l = 1.0;
-  } else {
-    struct gkyl_gr_euler_prim pl;
-    gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, stat, &pl);
-    rho_l = pl.rho; vx_l = pl.v[0]; vy_l = pl.v[1]; vz_l = pl.v[2];
-    p_l   = pl.p;   W_l  = pl.W;    h_l  = pl.h;
-  }
-  if (gkyl_gr_euler_tetrad_is_zero_state(qr_tet)) {
-    rho_r = 1.0e-30; vx_r = vy_r = vz_r = 0.0; p_r = 0.0; W_r = 1.0; h_r = 1.0;
-  } else {
-    struct gkyl_gr_euler_prim pr;
-    gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, stat, &pr);
-    rho_r = pr.rho; vx_r = pr.v[0]; vy_r = pr.v[1]; vz_r = pr.v[2];
-    p_r   = pr.p;   W_r  = pr.W;    h_r  = pr.h;
-  }
+  // Vacuum-safe Banyuls primitive recovery (shared helper). See
+  // sr_hll_minkowski above for the rationale.
+  struct gkyl_gr_euler_prim pl, pr;
+  gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
+  gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
+  double rho_l = pl.rho, vx_l = pl.v[0], p_l = pl.p, h_l = pl.h;
+  double rho_r = pr.rho, vx_r = pr.v[0], p_r = pr.p, h_r = pr.h;
 
   // Sound speeds via EOS dispatch. Vacuum-state side gets c_s = 0.
   double cs2_l = (p_l > 0.0) ? gkyl_gr_euler_eos_cs2(eos, rho_l, p_l, h_l) : 0.0;
   double cs2_r = (p_r > 0.0) ? gkyl_gr_euler_eos_cs2(eos, rho_r, p_r, h_r) : 0.0;
   if (cs2_l < 0.0) cs2_l = 0.0;
   if (cs2_r < 0.0) cs2_r = 0.0;
-  double c_sl = sqrt(cs2_l);
-  double c_sr = sqrt(cs2_r);
 
-  double lam_minus_l = (vx_l - c_sl) / (1.0 - vx_l * c_sl);
-  double lam_plus_l  = (vx_l + c_sl) / (1.0 + vx_l * c_sl);
-  double lam_minus_r = (vx_r - c_sr) / (1.0 - vx_r * c_sr);
-  double lam_plus_r  = (vx_r + c_sr) / (1.0 + vx_r * c_sr);
+  // λ± estimate: same default/exact selection and caveat as the HLL core.
+  double lam_minus_l, lam_plus_l, lam_minus_r, lam_plus_r;
+  if (exact_speeds) {
+    gr_euler_sr_lambda_exact(vx_l, pl.W, cs2_l, &lam_minus_l, &lam_plus_l);
+    gr_euler_sr_lambda_exact(vx_r, pr.W, cs2_r, &lam_minus_r, &lam_plus_r);
+  }
+  else {
+    double c_sl = sqrt(cs2_l);
+    double c_sr = sqrt(cs2_r);
+    gr_euler_sr_lambda_addition(vx_l, c_sl, &lam_minus_l, &lam_plus_l);
+    gr_euler_sr_lambda_addition(vx_r, c_sr, &lam_minus_r, &lam_plus_r);
+  }
 
   double max_l = fmax(fabs(lam_minus_l), fabs(lam_plus_l));
   double max_r = fmax(fabs(lam_minus_r), fabs(lam_plus_r));
   double amax = fmax(max_l, max_r);
 
-  // Banyuls fluxes in flat tetrad: F[D] = D·vx, F[S_i] = S_i·vx + p·δ_i^x,
-  // F[τ] = (τ+p)·vx.
+  // Flat-tetrad Banyuls fluxes (shared helper).
   double fl[5], fr[5];
-  fl[0] = D_l  * vx_l;
-  fl[1] = Sx_l * vx_l + p_l;
-  fl[2] = Sy_l * vx_l;
-  fl[3] = Sz_l * vx_l;
-  fl[4] = (tau_l + p_l) * vx_l;
-  fr[0] = D_r  * vx_r;
-  fr[1] = Sx_r * vx_r + p_r;
-  fr[2] = Sy_r * vx_r;
-  fr[3] = Sz_r * vx_r;
-  fr[4] = (tau_r + p_r) * vx_r;
+  gr_euler_sr_flat_flux(ql_tet, &pl, fl);
+  gr_euler_sr_flat_flux(qr_tet, &pr, fr);
 
   // Lax wave decomposition: symmetric ±amax envelope.
   //   w_0 = 0.5·(Δq − ΔF/amax)
@@ -846,6 +937,26 @@ gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
   speeds[1] = +amax;
 
   return amax;
+}
+
+double
+gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
+  const double ql_tet[5], const double qr_tet[5],
+  struct gkyl_gr_euler_prim_status *stat,
+  double waves_tet[2 * 5], double speeds[2])
+{
+  return gr_euler_sr_lax_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
+    /*exact_speeds=*/false);
+}
+
+double
+gkyl_gr_euler_tetrad_sr_lax_minkowski_exact(struct gkyl_gr_euler_eos eos,
+  const double ql_tet[5], const double qr_tet[5],
+  struct gkyl_gr_euler_prim_status *stat,
+  double waves_tet[2 * 5], double speeds[2])
+{
+  return gr_euler_sr_lax_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
+    /*exact_speeds=*/true);
 }
 
 // ---------------------------------------------------------------------------
@@ -894,6 +1005,24 @@ gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
 //      The fallback degrades gracefully but inherits HLL's known
 //      weakness. Hopefully reaching the fallback is rare on actual
 //      problems.
+//
+//   4. Vacuum-side routing (absorbing BC at excision boundaries —
+//      HLLC_AUDIT_PLAN.md Phase 1): an all-zero side gets vacuum
+//      primitives (shared gr_euler_sr_prims_vacuum_safe) and routes to
+//      the HLL fallback (reason 5) instead of the star construction.
+//      The fluid–vacuum Riemann problem has NO contact wave — there is
+//      nothing for λ* to resolve — and MB05's star-state admissibility
+//      is explicitly scoped to "no vacuum" (§3.1.2): with U = 0 on one
+//      side the star construction manufactures D* = 0 with S*, τ* ≠ 0
+//      sourced from p*, inadmissible by design. The HLL middle state
+//      with a vacuum side IS the absorbing decomposition (what
+//      Lax/HLL pass excision_absorbing_* with).
+//
+// Wave-speed note: this kernel uses the full Davis estimate (MB05 eqs
+// 21–23, σ_s with W² — the exact tangential-aware acoustic eigenvalue).
+// sr_hll/sr_lax use the wider 1D velocity-addition form. The asymmetry
+// is documented in HLLC_AUDIT_PLAN.md; unifying the family onto the
+// exact form is queued behind a baseline checkpoint.
 double
 gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
@@ -911,24 +1040,18 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
     stat->hllc.last_lambda_R = 0.0;
     stat->hllc.last_lambda_star = 0.0 / 0.0;  // NaN until computed
   }
-  // Pure Minkowski primitive recovery — γ_ij = δ_ij so the inv_g passed
-  // to the shared Banyuls helper is identity. Convention A's covariant-
-  // momentum bookkeeping is degenerate to contravariant in flat space.
+  // Vacuum-safe Minkowski primitive recovery (shared helper) — γ_ij =
+  // δ_ij in the tetrad frame. A vacuum side (excision: all-zero state)
+  // is flagged for fallback routing below (fix #4).
   double D_l = ql_tet[0], Sx_l = ql_tet[1], Sy_l = ql_tet[2], Sz_l = ql_tet[3], tau_l = ql_tet[4];
   double D_r = qr_tet[0], Sx_r = qr_tet[1], Sy_r = qr_tet[2], Sz_r = qr_tet[3], tau_r = qr_tet[4];
 
-  double inv_g_flat[3][3] = {
-    { 1.0, 0.0, 0.0 },
-    { 0.0, 1.0, 0.0 },
-    { 0.0, 0.0, 1.0 },
-  };
-
   struct gkyl_gr_euler_prim pl, pr;
-  gkyl_gr_euler_recover_primitives(eos, D_l, Sx_l, Sy_l, Sz_l, tau_l, inv_g_flat, stat, &pl);
-  gkyl_gr_euler_recover_primitives(eos, D_r, Sx_r, Sy_r, Sz_r, tau_r, inv_g_flat, stat, &pr);
+  bool vac_l = gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
+  bool vac_r = gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
 
-  double rho_l = pl.rho, vx_l = pl.v[0], vy_l = pl.v[1], vz_l = pl.v[2], p_l = pl.p, W_l = pl.W, h_l = pl.h;
-  double rho_r = pr.rho, vx_r = pr.v[0], vy_r = pr.v[1], vz_r = pr.v[2], p_r = pr.p, W_r = pr.W, h_r = pr.h;
+  double rho_l = pl.rho, vx_l = pl.v[0], p_l = pl.p, W_l = pl.W, h_l = pl.h;
+  double rho_r = pr.rho, vx_r = pr.v[0], p_r = pr.p, W_r = pr.W, h_r = pr.h;
 
   // Davis (1988) wave-speed estimate, eq (21–23) of MB05.
   // σ_s = c_s² / (γ²(1 − c_s²)), λ_± = (v_x ± √(σ_s(1 − v_x² + σ_s))) / (1 + σ_s).
@@ -944,14 +1067,9 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   // degenerate configurations of the IDEAL branch (Γ → 2, ultra-rel).
   if (cs2_l > 1.0 - 1.0e-12) cs2_l = 1.0 - 1.0e-12;
   if (cs2_r > 1.0 - 1.0e-12) cs2_r = 1.0 - 1.0e-12;
-  double sigma_l = cs2_l / (W_l*W_l * (1.0 - cs2_l));
-  double sigma_r = cs2_r / (W_r*W_r * (1.0 - cs2_r));
-  double rad_l = sqrt(fmax(sigma_l * (1.0 - vx_l*vx_l + sigma_l), 0.0));
-  double rad_r = sqrt(fmax(sigma_r * (1.0 - vx_r*vx_r + sigma_r), 0.0));
-  double lm_l = (vx_l - rad_l) / (1.0 + sigma_l);
-  double lp_l = (vx_l + rad_l) / (1.0 + sigma_l);
-  double lm_r = (vx_r - rad_r) / (1.0 + sigma_r);
-  double lp_r = (vx_r + rad_r) / (1.0 + sigma_r);
+  double lm_l, lp_l, lm_r, lp_r;
+  gr_euler_sr_lambda_exact(vx_l, W_l, cs2_l, &lm_l, &lp_l);
+  gr_euler_sr_lambda_exact(vx_r, W_r, cs2_r, &lm_r, &lp_r);
   double lambda_L = fmin(lm_l, lm_r);
   double lambda_R = fmax(lp_l, lp_r);
 
@@ -964,17 +1082,16 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   double E_l = tau_l + D_l;
   double E_r = tau_r + D_r;
 
-  double FD_l  = D_l  * vx_l;
-  double Fmx_l = Sx_l * vx_l + p_l;
-  double Fmy_l = Sy_l * vx_l;
-  double Fmz_l = Sz_l * vx_l;
-  double FE_l  = Sx_l;   // m_x
-
-  double FD_r  = D_r  * vx_r;
-  double Fmx_r = Sx_r * vx_r + p_r;
-  double Fmy_r = Sy_r * vx_r;
-  double Fmz_r = Sz_r * vx_r;
-  double FE_r  = Sx_r;
+  // Flat-tetrad Banyuls fluxes (shared helper; consumed by the λ*
+  // averages via the aliases below and by the HLL fallback emitter).
+  // The MB05 energy flux F[E] = m_x is kept as the EXACT identity
+  // FE = S_x rather than f[τ] + f[D] — bit-identical to the historical
+  // kernel on the success path.
+  double fl_ban[5], fr_ban[5];
+  gr_euler_sr_flat_flux(ql_tet, &pl, fl_ban);
+  gr_euler_sr_flat_flux(qr_tet, &pr, fr_ban);
+  double Fmx_l = fl_ban[1], Fmx_r = fr_ban[1];
+  double FE_l  = Sx_l,      FE_r  = Sx_r;   // m_x
 
   // HLL averages for the components needed by the λ* quadratic (MB05
   // eqs 9, 11). Pre-compute lam_diff and short-circuit the rare
@@ -997,102 +1114,77 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
     }
     return fmax(fabs(lambda_L), fabs(lambda_R));
   }
-  double mx_hll  = (lambda_R * Sx_r  - lambda_L * Sx_l  + Fmx_l - Fmx_r) / lam_diff;
-  double E_hll   = (lambda_R * E_r   - lambda_L * E_l   + FE_l  - FE_r ) / lam_diff;
-  double Fmx_hll = (lambda_R * Fmx_l - lambda_L * Fmx_r + lambda_R * lambda_L * (Sx_r - Sx_l)) / lam_diff;
-  double FE_hll  = (lambda_R * FE_l  - lambda_L * FE_r  + lambda_R * lambda_L * (E_r  - E_l )) / lam_diff;
+  // Fallback ladder. Reason 5 (vacuum side, fix #4) routes BEFORE the
+  // λ* construction — the fluid–vacuum Riemann problem has no contact
+  // wave, so there is nothing for the quadratic to resolve. Otherwise
+  // compute λ* and catch the numerical pathologies (reasons 2–4).
+  int fb_reason = 0;
+  double lambda_star = 0.0 / 0.0;  // NaN until computed
+  if (vac_l || vac_r) {
+    fb_reason = 5;
+  }
+  else {
+    double mx_hll  = (lambda_R * Sx_r  - lambda_L * Sx_l  + Fmx_l - Fmx_r) / lam_diff;
+    double E_hll   = (lambda_R * E_r   - lambda_L * E_l   + FE_l  - FE_r ) / lam_diff;
+    double Fmx_hll = (lambda_R * Fmx_l - lambda_L * Fmx_r + lambda_R * lambda_L * (Sx_r - Sx_l)) / lam_diff;
+    double FE_hll  = (lambda_R * FE_l  - lambda_L * FE_r  + lambda_R * lambda_L * (E_r  - E_l )) / lam_diff;
 
-  // Quadratic for λ* (MB05 eq 18): F_E^hll·(λ*)² − (E^hll + F_mx^hll)·λ* + m_x^hll = 0.
-  // The physical root is the minus-sign root (proven in MB05 Appendix A).
-  // Stabilized via citardauq when −b > 0 to avoid catastrophic cancellation
-  // — see comment block at the top of this function (fix #1).
-  double a = FE_hll;
-  double b = -(E_hll + Fmx_hll);
-  double c = mx_hll;
-  double lambda_star;
-  if (fabs(a) < 1.0e-14) {
-    // Linear case: −b·λ* + c = 0  ⇒  λ* = c / (−b).
-    lambda_star = c / (-b);
-  } else {
-    double disc = b*b - 4.0*a*c;
-    if (disc < 0.0) disc = 0.0;
-    double sqrt_disc = sqrt(disc);
-    if (-b >= 0.0) {
-      lambda_star = (2.0 * c) / (-b + sqrt_disc);
+    // Quadratic for λ* (MB05 eq 18): F_E^hll·(λ*)² − (E^hll + F_mx^hll)·λ* + m_x^hll = 0.
+    // The physical root is the minus-sign root (proven in MB05 Appendix A).
+    // Stabilized via citardauq when −b > 0 to avoid catastrophic cancellation
+    // — see comment block at the top of this function (fix #1).
+    double a = FE_hll;
+    double b = -(E_hll + Fmx_hll);
+    double c = mx_hll;
+    if (fabs(a) < 1.0e-14) {
+      // Linear case: −b·λ* + c = 0  ⇒  λ* = c / (−b).
+      lambda_star = c / (-b);
     } else {
-      lambda_star = (-b - sqrt_disc) / (2.0 * a);
+      double disc = b*b - 4.0*a*c;
+      if (disc < 0.0) disc = 0.0;
+      double sqrt_disc = sqrt(disc);
+      if (-b >= 0.0) {
+        lambda_star = (2.0 * c) / (-b + sqrt_disc);
+      } else {
+        lambda_star = (-b - sqrt_disc) / (2.0 * a);
+      }
     }
-  }
 
-  // Cold-gas / degenerate-fan fallback to HLL (fix #3 in header). Detect
-  // λ* outside [λ_L, λ_R] (with a small clamp band) or non-finite, and
-  // collapse the contact wave to zero. The two outer waves then carry the
-  // entire HLL-averaged jump: w0 = U_HLL − U_L, w2 = U_R − U_HLL.
-  // Fallback policy. Only catch *real* numerical pathologies that would
-  // make the star-state computation unsafe:
-  //   (1) λ* not finite (sqrt of negative discriminant after clamp, or
-  //       analogous numerical blowup).
-  //   (2) λ* arbitrarily close to λ_L or λ_R, which would blow up
-  //       1/(λ_L − λ*) or 1/(λ_R − λ*) in the star-state RH formulas.
-  //
-  // We deliberately do NOT degrade when λ* is "outside the bracket"
-  // [λ_L, λ_R] in the sense λ* < λ_L or λ* > λ_R. The MB05 Appendix A
-  // proof of λ_L ≤ λ* ≤ λ_R explicitly assumes λ_L < 0 < λ_R (interface
-  // sits inside the Riemann fan). For supersonic flow (entire fan on
-  // one side of the interface) the algebraic minus root naturally lands
-  // outside the bracket, but the wave decomposition still satisfies
-  // Σ s·w = ΔF and wave_prop's bin-by-sign qfluct correctly handles the
-  // supersonic upwinding via amdq=0 / apdq=ΔF (or vice versa).
-  //
-  // The earlier overly-aggressive "λ* < λ_L + clamp || λ* > λ_R − clamp"
-  // check caused every BHL bow-shock interface to silently degrade to
-  // HLL — see SESSION_NOTES_3.md (HLLC investigation) for the empirical
-  // probe that uncovered this.
-  double scale = fabs(lambda_R) + fabs(lambda_L) + 1.0;
-  double dist_L = fabs(lambda_L - lambda_star);
-  double dist_R = fabs(lambda_R - lambda_star);
-  double tol = 1.0e-12 * scale;
-  bool degrade_to_hll = !isfinite(lambda_star)
-    || (dist_L < tol)
-    || (dist_R < tol);
+    // Fallback policy (fix #3). Only catch *real* numerical pathologies
+    // that would make the star-state computation unsafe:
+    //   (1) λ* not finite (sqrt of negative discriminant after clamp, or
+    //       analogous numerical blowup).
+    //   (2) λ* arbitrarily close to λ_L or λ_R, which would blow up
+    //       1/(λ_L − λ*) or 1/(λ_R − λ*) in the star-state RH formulas.
+    //
+    // We deliberately do NOT degrade when λ* is "outside the bracket"
+    // [λ_L, λ_R] in the sense λ* < λ_L or λ* > λ_R. The MB05 Appendix A
+    // proof of λ_L ≤ λ* ≤ λ_R explicitly assumes λ_L < 0 < λ_R (interface
+    // sits inside the Riemann fan). For supersonic flow (entire fan on
+    // one side of the interface) the algebraic minus root naturally lands
+    // outside the bracket, but the wave decomposition still satisfies
+    // Σ s·w = ΔF and wave_prop's bin-by-sign qfluct correctly handles the
+    // supersonic upwinding via amdq=0 / apdq=ΔF (or vice versa).
+    //
+    // The earlier overly-aggressive "λ* < λ_L + clamp || λ* > λ_R − clamp"
+    // check caused every BHL bow-shock interface to silently degrade to
+    // HLL — see SESSION_NOTES_3.md (HLLC investigation) for the empirical
+    // probe that uncovered this.
+    double scale = fabs(lambda_R) + fabs(lambda_L) + 1.0;
+    double dist_L = fabs(lambda_L - lambda_star);
+    double dist_R = fabs(lambda_R - lambda_star);
+    double tol = 1.0e-12 * scale;
+    fb_reason = !isfinite(lambda_star) ? 2
+              : (dist_L < tol)         ? 3
+              : (dist_R < tol)         ? 4
+              : 0;
+  }
   if (stat) stat->hllc.last_lambda_star = lambda_star;
-  if (degrade_to_hll) {
-    int reason = !isfinite(lambda_star) ? 2
-               : (dist_L < tol)         ? 3
-               : 4;
-    if (stat) {
-      stat->hllc.last_did_fallback = 1;
-      stat->hllc.last_fallback_reason = reason;
-      stat->hllc.fallback_calls++;
-      stat->hllc.fallback_reason_hist[reason]++;
-    }
-    double D_hll  = (lambda_R * D_r  - lambda_L * D_l  + FD_l  - FD_r ) / lam_diff;
-    double Sy_hll = (lambda_R * Sy_r - lambda_L * Sy_l + Fmy_l - Fmy_r) / lam_diff;
-    double Sz_hll = (lambda_R * Sz_r - lambda_L * Sz_l + Fmz_l - Fmz_r) / lam_diff;
-    double tau_hll = E_hll - D_hll;
-    double *w0 = &waves_tet[0 * 5];
-    double *w1 = &waves_tet[1 * 5];
-    double *w2 = &waves_tet[2 * 5];
-    w0[0] = D_hll   - D_l;
-    w0[1] = mx_hll  - Sx_l;
-    w0[2] = Sy_hll  - Sy_l;
-    w0[3] = Sz_hll  - Sz_l;
-    w0[4] = tau_hll - tau_l;
-    for (int k = 0; k < 5; k++) w1[k] = 0.0;
-    w2[0] = D_r   - D_hll;
-    w2[1] = Sx_r  - mx_hll;
-    w2[2] = Sy_r  - Sy_hll;
-    w2[3] = Sz_r  - Sz_hll;
-    w2[4] = tau_r - tau_hll;
-    speeds[0] = lambda_L;
-    speeds[1] = 0.5 * (lambda_L + lambda_R);
-    speeds[2] = lambda_R;
-    return fmax(fabs(lambda_L), fabs(lambda_R));
-  }
 
-  // Success path: HLLC star-state proceeds without fallback. Bump the
-  // no-fallback bin so the histogram totals match the number of calls.
-  if (stat) stat->hllc.fallback_reason_hist[0]++;
+  if (fb_reason != 0) {
+    return gr_euler_sr_hllc_fallback_hll(stat, fb_reason, ql_tet, qr_tet,
+      fl_ban, fr_ban, lambda_L, lambda_R, waves_tet, speeds);
+  }
 
   // p* from the left-state Rankine-Hugoniot relation. Sign-corrected vs
   // MB05 eq (17) as printed (fix #2 in header):
@@ -1121,6 +1213,33 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   double Szs_r  = Sz_r * (lambda_R - vx_r) * inv_L_r;
   double Es_r   = (E_r  * (lambda_R - vx_r) + p_star * lambda_star - p_r * vx_r) * inv_L_r;
   double taus_r = Es_r - Ds_r;
+
+  // Star-state admissibility audit (fix #5; HLLC_AUDIT_PLAN.md Phase 3,
+  // failure mode F6). MB05 §3.1.2 proves D* > 0; the energy inequality
+  // is only EMPIRICAL and explicitly scoped away from vacuum/marginal
+  // inputs — at post-repair margins (~1/W²) under -O3 -ffast-math the
+  // star states can exit the cone. Guard the production-admissibility
+  // invariants (the same cone wave_prop's check_inv tests): D* > 0 and
+  // s²* = (D*+τ*)² − |S*|² > 0 on both sides; on violation fall back to
+  // HLL (reason 6), whose middle state is admissible for admissible
+  // inputs under this bracket — bounding HLLC below by HLL.
+  // τ* < 0 is COUNTED (star_tau_neg) but is NOT a fallback trigger:
+  // HLL's middle τ is no better in the τ/D ≪ 1 regime
+  // (SESSION_NOTES_2.md §17), so falling back would trade away HLLC's
+  // contact resolution for no positivity gain.
+  double s2s_l = (Ds_l + taus_l) * (Ds_l + taus_l)
+               - (Sxs_l*Sxs_l + Sys_l*Sys_l + Szs_l*Szs_l);
+  double s2s_r = (Ds_r + taus_r) * (Ds_r + taus_r)
+               - (Sxs_r*Sxs_r + Sys_r*Sys_r + Szs_r*Szs_r);
+  if (stat && (taus_l < 0.0 || taus_r < 0.0)) stat->hllc.star_tau_neg++;
+  if (!(Ds_l > 0.0) || !(Ds_r > 0.0) || !(s2s_l > 0.0) || !(s2s_r > 0.0)) {
+    return gr_euler_sr_hllc_fallback_hll(stat, 6, ql_tet, qr_tet,
+      fl_ban, fr_ban, lambda_L, lambda_R, waves_tet, speeds);
+  }
+
+  // Success path: HLLC star-state proceeds without fallback. Bump the
+  // no-fallback bin so the histogram totals match the number of calls.
+  if (stat) stat->hllc.fallback_reason_hist[0]++;
 
   // Conservative-state jumps across the three Riemann fans.
   double *w0 = &waves_tet[0 * 5];  // λ_L: U_L  → U_L*
@@ -1258,7 +1377,9 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
   bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
 
-  // Both-excised, or HLLC any-side-excised: zero waves with sentinel speeds.
+  // Both-excised, or any-side-excised under the (currently unused)
+  // SHORT_CIRCUIT policy: zero waves with sentinel speeds. All four
+  // rp_types now use ZERO_VACUUM (absorbing BC).
   if ((excise_l && excise_r) ||
       (grm->excision_policy == GKYL_TETRAD_EXCISION_SHORT_CIRCUIT && (excise_l || excise_r))) {
     for (int k = 0; k < num_waves * 5; k++) waves[k] = 0.0;
@@ -1794,7 +1915,9 @@ gkyl_wv_gr_euler_tetrad_inew(
   // share the same dispatch entry point, so the equation pointer carries
   // everything needed for GPU dispatch.
   if (inp->rp_type == WV_GR_EULER_TETRAD_RP_LAX) {
-    grm->sr_kernel = gkyl_gr_euler_tetrad_sr_lax_minkowski;
+    grm->sr_kernel = inp->use_exact_wave_speeds
+      ? gkyl_gr_euler_tetrad_sr_lax_minkowski_exact
+      : gkyl_gr_euler_tetrad_sr_lax_minkowski;
     grm->num_waves = 2;
     grm->excision_policy = GKYL_TETRAD_EXCISION_ZERO_VACUUM;
   }
@@ -1806,10 +1929,16 @@ gkyl_wv_gr_euler_tetrad_inew(
   else if (inp->rp_type == WV_GR_EULER_TETRAD_RP_HLLC) {
     grm->sr_kernel = gkyl_gr_euler_tetrad_sr_hllc_minkowski;
     grm->num_waves = 3;
-    grm->excision_policy = GKYL_TETRAD_EXCISION_SHORT_CIRCUIT;
+    // Absorbing BC at excision boundaries: the kernel routes vacuum
+    // sides to its HLL fallback (reason 5) — HLLC_AUDIT_PLAN.md Phase 1.
+    // (Historical: SHORT_CIRCUIT until 2026-06, i.e. a reflective
+    // no-flux wall at the horizon — the HLLC production blocker.)
+    grm->excision_policy = GKYL_TETRAD_EXCISION_ZERO_VACUUM;
   }
   else {  // default: HLL
-    grm->sr_kernel = gkyl_gr_euler_tetrad_sr_hll_minkowski;
+    grm->sr_kernel = inp->use_exact_wave_speeds
+      ? gkyl_gr_euler_tetrad_sr_hll_minkowski_exact
+      : gkyl_gr_euler_tetrad_sr_hll_minkowski;
     grm->num_waves = 2;
     grm->excision_policy = GKYL_TETRAD_EXCISION_ZERO_VACUUM;
   }

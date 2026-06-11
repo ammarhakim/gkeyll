@@ -117,9 +117,12 @@ analytic_banyuls_flux(struct gkyl_gr_euler_eos eos,
   F[4] = prefac * (tau * v_tilde_x + p * v_co[0]);
 }
 
+// exact_speeds: HLL/Lax wave-speed bracket from the exact
+// tangential-aware eigenvalues (MB05 eqs 22–23) instead of the
+// velocity-addition default. Ignored by HLLC/Roe.
 static struct gkyl_wv_eqn *
-make_eqn(struct gkyl_gr_euler_eos eos, struct gkyl_range conf_range,
-  enum gkyl_wv_gr_euler_tetrad_rp rp)
+make_eqn_speeds(struct gkyl_gr_euler_eos eos, struct gkyl_range conf_range,
+  enum gkyl_wv_gr_euler_tetrad_rp rp, bool exact_speeds)
 {
   return gkyl_wv_gr_euler_tetrad_inew(
     &(struct gkyl_wv_gr_euler_tetrad_inp){
@@ -127,8 +130,16 @@ make_eqn(struct gkyl_gr_euler_eos eos, struct gkyl_range conf_range,
       .eos = eos,
       .conf_range = conf_range,
       .rp_type = rp,
+      .use_exact_wave_speeds = exact_speeds,
       .use_gpu = false,
     });
+}
+
+static struct gkyl_wv_eqn *
+make_eqn(struct gkyl_gr_euler_eos eos, struct gkyl_range conf_range,
+  enum gkyl_wv_gr_euler_tetrad_rp rp)
+{
+  return make_eqn_speeds(eos, conf_range, rp, false);
 }
 
 // Returns the curved-frame Banyuls flux ΔF for a given pair of states using

@@ -1,7 +1,9 @@
 #pragma once
 
 // Shared extreme-state table for the GR-Euler positivity / convexity
-// sweeps in ctest_wv_gr_euler_tetrad.c. Entries are PRIMITIVES
+// sweeps in ctest_gr_euler_positivity.c (registry, curved-Lax sweep,
+// coarse-dx axis) and ctest_gr_euler_riemann.c (cache-equivalence
+// sweep). Entries are PRIMITIVES
 // (ρ, p, v^i), so the table is convention-agnostic — each consumer
 // builds its own conservatives with its own convention and cell metric.
 // (Historical: also consumed by ctest_wv_gr_euler_mod.c until the

@@ -493,7 +493,7 @@ test_explicit_advance_kerr()
 // general (TM and IDEAL have different cs² closures away from the
 // matching point). The source-step math doesn't use c_s², so this is
 // fine. The Riemann-solver path does — and that's separately validated
-// in ctest_wv_gr_euler_tetrad's banyuls_flux_consistency tests.
+// in ctest_gr_euler_riemann's banyuls_flux_consistency tests.
 // ---------------------------------------------------------------------------
 
 static double

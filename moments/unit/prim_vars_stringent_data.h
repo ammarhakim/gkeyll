@@ -1,7 +1,7 @@
 #pragma once
 
 // Shared parameter tables for the GR Euler prim_vars stringent stress
-// tests (ctest_wv_gr_euler.c, ctest_wv_gr_euler_tetrad.c). Keeping the
+// tests (currently consumed by ctest_wv_gr_euler.c only). Keeping the
 // data in one place ensures the test runners exercise the same regime
 // — pressure sweep, density sweep, velocity sweep, and combined extremes —
 // at the same sample positions (near-horizon points where γ_ij departs

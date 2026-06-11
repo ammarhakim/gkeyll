@@ -454,11 +454,18 @@ struct gkyl_gr_euler_prim_status {
   //   2 = λ* not finite
   //   3 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
   //   4 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
+  //   5 = vacuum side (excision absorbing-BC: the fluid–vacuum Riemann
+  //       problem has no contact wave and the star construction on a
+  //       vacuum side is inadmissible by design — HLLC_AUDIT_PLAN.md)
+  //   6 = reserved: star-state admissibility audit (Phase 3)
   struct {
     uint64_t fallback_calls;             // HLLC calls that fell back to HLL
-    uint64_t fallback_reason_hist[5];    // bin by reason index
+    uint64_t fallback_reason_hist[7];    // bin by reason index
+    uint64_t star_tau_neg;               // star states with τ* < 0 (counted,
+                                         // NOT a fallback trigger — see the
+                                         // audit comment in the kernel)
     int      last_did_fallback;          // 0 or 1
-    int      last_fallback_reason;       // 0..4
+    int      last_fallback_reason;       // 0..6
     double   last_lambda_L;
     double   last_lambda_R;
     double   last_lambda_star;

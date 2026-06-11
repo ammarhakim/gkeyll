@@ -8,8 +8,8 @@
 //       balance, ordering, max-speed dominance, trivial RP, sign symmetry
 //   2a. Curved-Lax (LOW_ORDER) two-cell properties against its PER-CELL
 //       flux-jump identity Σs·w = F(q_R;γ_R) − F(q_L;γ_L)
-//   2b. Excision-boundary absorbing BC (Lax/HLL/Roe; HLLC excluded —
-//       SHORT_CIRCUIT policy until the absorbing-BC port)
+//   2b. Excision-boundary absorbing BC (all four solvers; HLLC routes
+//       vacuum sides to its HLL fallback, reason 5)
 //   3.  BHL-regime states — properties on production-relevant inputs
 //   4.  wave_spacetime cache vs fallback equivalence
 //   5.  SR HLLC kernel fallback probe (kernel-level diagnostics)
@@ -1064,6 +1064,25 @@ void test_excision_absorbing_roe_schwarzschild(void)
   gkyl_gr_spacetime_release(st);
 }
 
+// HLLC routes vacuum sides to its in-kernel HLL fallback (reason 5) and
+// runs under ZERO_VACUUM like the others since the absorbing-BC port
+// (HLLC_AUDIT_PLAN.md Phase 1).
+void test_excision_absorbing_hllc_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_excision_absorbing_for_rp(st, "Mink", WV_GR_EULER_TETRAD_RP_HLLC, 3, "HLLC",
+    0.3, 0.0, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+void test_excision_absorbing_hllc_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_excision_absorbing_for_rp(st, "Schw", WV_GR_EULER_TETRAD_RP_HLLC, 3, "HLLC",
+    0.3, 0.2, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
 // ---------------------------------------------------------------------------
 // 3d. wave_spacetime cache equivalence
 //
@@ -1564,6 +1583,8 @@ run_direct_state_hllc_fallback_probe(void)
       "λ* not finite",      // 2
       "|λ_L−λ*| < tol",     // 3
       "|λ_R−λ*| < tol",     // 4
+      "vacuum side",        // 5 (excision absorbing BC)
+      "star inadmissible",  // 6 (reserved: Phase-3 audit)
     };
     fprintf(stderr,
       "  [%-16s] τ_C/D_C=%.4f\n", cases[c].name, cases[c].tau_C / cases[c].D_C);
@@ -1627,6 +1648,8 @@ TEST_LIST = {
   { "excision_absorbing_hll_schwarzschild", test_excision_absorbing_hll_schwarzschild },
   { "excision_absorbing_roe_minkowski",     test_excision_absorbing_roe_minkowski },
   { "excision_absorbing_roe_schwarzschild", test_excision_absorbing_roe_schwarzschild },
+  { "excision_absorbing_hllc_minkowski",     test_excision_absorbing_hllc_minkowski },
+  { "excision_absorbing_hllc_schwarzschild", test_excision_absorbing_hllc_schwarzschild },
 
   { "bhl_regime_lax_schwarzschild",  test_bhl_regime_lax_schwarzschild },
   { "bhl_regime_hll_schwarzschild",  test_bhl_regime_hll_schwarzschild },
