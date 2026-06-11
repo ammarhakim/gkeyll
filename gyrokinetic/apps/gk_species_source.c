@@ -521,7 +521,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           adapt_src->edge[j] = edge;
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-          if (app->gk_geom->has_LCFS) {
+          if (dir == app->cdim-1 && app->gk_geom->has_LCFS) {
             adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE? s->local_lower_ghost_par_sol
                                                                           : s->local_upper_ghost_par_sol;
             adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE? app->local_lower_ghost_par_sol

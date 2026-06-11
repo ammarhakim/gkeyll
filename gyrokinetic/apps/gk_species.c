@@ -792,13 +792,12 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   gks->L2norm = gkyl_dynvec_new(GKYL_DOUBLE, 1); // L2 norm.
   gks->is_first_L2norm_write_call = true;
   
-  for (int dir=0; dir<app->cdim; ++dir) {
-    if (gk_app_inp->geometry.has_LCFS ||
-        (gks->lower_bc[dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT || gks->upper_bc[dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT)) {
-      // Make the parallel direction periodic so that we sync before applying TS BC.
-      gks->periodic_dirs[gks->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
-      gks->num_periodic_dir += 1;
-    }
+  int par_dir = app->cdim-1; // The last direction is the parallel one.
+  if (gk_app_inp->geometry.has_LCFS ||
+      (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT || gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT)) {
+    // Make the parallel direction periodic so that we sync before applying TS BC.
+    gks->periodic_dirs[gks->num_periodic_dir] = par_dir;
+    gks->num_periodic_dir += 1;
   }
   
   // Allocate buffer needed for BCs.
@@ -960,7 +959,6 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
 
   if (gk_app_inp->geometry.has_LCFS && app->cdim == 3) {
     // Allocate a twistshift operator in the core.
-    int par_dir = app->cdim-1;
     struct gkyl_bc_twistshift_inp tsinp_lo = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
