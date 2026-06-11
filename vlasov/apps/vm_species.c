@@ -31,7 +31,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   }
 
   if (vms->model_id == GKYL_MODEL_DEFAULT || vms->model_id == GKYL_MODEL_SR) {
-    // Hamiltonain (moments) is only a function of velocity space. 
+    // Hamiltonain for computing the moments is only a function of velocity space. 
     vms->mom_hamil_range = vms->local_vel; 
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);

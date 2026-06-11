@@ -961,6 +961,15 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
     if (app->use_gpu)
       gkyl_array_copy(app->field->em, app->field->em_host);
     if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+
+      // For GR, rescale the primitive fields to the evolved quantities by multiplying
+      // by Jc
+      if (app->field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
+        gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
+          app->field->em_no_J, app->field->em, app->use_gpu);
+      }
+
       vm_field_apply_bc(app, app->field, app->field->em);
     }
   }
@@ -1111,7 +1120,8 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
-    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_NULL)) {
+    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_GR_D_B) 
+      && (app->field->field_id != GKYL_FIELD_NULL)) {
       struct gkyl_array *distf[app->num_species];
       for (int i=0; i<app->num_species; ++i)
         distf[i] = app->species[i].f;
