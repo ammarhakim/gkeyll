@@ -251,18 +251,25 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     inp->quad_type, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
+  up->vel_map = 0;
+  up->vmap = 0;
+  up->jacob_vel_gauss = 0;
   up->use_vmap = false;
-  if (inp->vel_map && inp->vel_map->is_mapped) {
-    up->use_vmap = true;
-    if (up->use_gpu) {
-      up->vmap_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-      gkyl_cart_modal_tensor_cu_dev(up->vmap_basis_on_dev, 1, 3);
+  if (inp->vel_map) {
+    up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+    if (inp->vel_map->is_mapped) {
+      up->use_vmap = true;
+      if (up->use_gpu) {
+        up->vmap_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+        gkyl_cart_modal_tensor_cu_dev(up->vmap_basis_on_dev, 1, 3);
+      }
+      else {
+        gkyl_cart_modal_tensor(&up->vmap_basis, 1, 3);
+      }
+      // Borrowed pointers; kept alive by the acquired vel_map.
+      up->vmap = inp->vel_map->vmap;
+      up->jacob_vel_gauss = inp->vel_map->jacob_vel_gauss;
     }
-    else {
-      gkyl_cart_modal_tensor(&up->vmap_basis, 1, 3);
-    }
-    up->vmap = gkyl_array_acquire(inp->vel_map->vmap);
-    up->jacob_vel_gauss = gkyl_array_acquire(inp->vel_map->jacob_vel_gauss);
   }
 
   // initialize data needed for phase-space quadrature 
@@ -704,9 +711,8 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
 
-  if (up->use_vmap) {
-    gkyl_array_release(up->vmap);
-    gkyl_array_release(up->jacob_vel_gauss);
+  if (up->vel_map) {
+    gkyl_vlasov_velocity_map_release(up->vel_map);
   }
 
   gkyl_array_release(up->num_ratio);

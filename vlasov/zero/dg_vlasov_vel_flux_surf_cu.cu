@@ -85,18 +85,18 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
   }
 }
 
-void 
-gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
+void
+gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *phase_range, jacob_vel_surf ? jacob_vel_surf->on_dev : 0, poisson_tensor_conf->on_dev,
-    hamil->on_dev, qmem->on_dev, pot_tot->on_dev, rad->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);  
+  gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev,
+    *conf_range, *phase_range, up->jacob_vel_surf->on_dev, poisson_tensor_conf->on_dev,
+    hamil->on_dev, qmem->on_dev, pot_tot->on_dev, rad->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);
 }
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
@@ -287,19 +287,30 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
     up->hamil_dim = pdim; 
     up->hamil_offset = 0; 
   }
-  up->vel_range = *inp->vel_range; 
-  
+  // The velocity map is required: it provides the velocity-space Jacobian at
+  // surface quadrature points and the velocity-space range used to index it.
+  // The host pointers below are not dereferenced on device (the advance wrapper
+  // passes the raw device array pointer to the kernel as an argument).
+  assert(inp->vel_map);
+  up->vel_range = inp->vel_map->local_vel;
+  up->vel_map = 0;
+  up->jacob_vel_surf = 0;
+
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
   struct gkyl_dg_vlasov_vel_flux_surf *up_cu = (struct gkyl_dg_vlasov_vel_flux_surf*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type, 
-    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);  
+  gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type,
+    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;
-  
+
+  // Host-side updater stores the acquired map and host array pointers.
+  up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+  up->jacob_vel_surf = inp->vel_map->jacob_vel_surf;
+
   return up;
 }

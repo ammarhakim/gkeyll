@@ -73,18 +73,18 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   }
   vlasov->hamil_range = *inp->hamil_range;
   vlasov->conf_range = *inp->conf_range;
-  vlasov->vel_range = *inp->vel_range;
   vlasov->phase_range = *inp->phase_range;
-  vlasov->vel_map = 0;
+
+  // The velocity map is required: it provides the velocity-space range used
+  // to index per-velocity-cell quantities (Jacobian, radiation drag).
+  assert(inp->vel_map);
+  vlasov->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+  vlasov->vel_range = inp->vel_map->local_vel;
+  vlasov->use_vmap = inp->vel_map->is_mapped;
   vlasov->jacob_vel = 0;
-  vlasov->use_vmap = false;
-  if (inp->vel_map) {
-    vlasov->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
-    vlasov->use_vmap = inp->vel_map->is_mapped;
-    if (vlasov->use_vmap) {
-      // Borrowed pointer; kept alive by the acquired vel_map.
-      vlasov->jacob_vel = inp->vel_map->jacob_vel;
-    }
+  if (vlasov->use_vmap) {
+    // Borrowed pointer; kept alive by the acquired vel_map.
+    vlasov->jacob_vel = inp->vel_map->jacob_vel;
   }
   vlasov->poisson_tensor_conf = gkyl_array_acquire(inp->poisson_tensor_conf); 
   vlasov->hamil = gkyl_array_acquire(inp->hamil); 

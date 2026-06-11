@@ -9,6 +9,7 @@
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_priv.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -78,13 +79,17 @@ test_dg_vlasov()
   struct gkyl_array *rad = mkarr1(false, vdim*vbasis.num_basis, velRange.volume);
   struct gkyl_array *qmem = mkarr1(false, 8*cbasis.num_basis, confRange_ext.volume);
 
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &vbasis, inp_vmap, false);
+
   struct gkyl_dg_vlasov_inp inp_eqn = {
     .conf_basis = &cbasis,
     .phase_basis = &pbasis,
     .conf_range =  &confRange,
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
-    .vel_range = &velRange,
+    .vel_map = vel_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
     .has_E = true, 
@@ -114,6 +119,7 @@ test_dg_vlasov()
   TEST_CHECK( vlasov->conf_range.volume == 100 );
 
   gkyl_dg_eqn_release(eqn);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(qmem);
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
@@ -179,13 +185,17 @@ test_cu_dg_vlasov()
   struct gkyl_array *rad = mkarr1(true, vdim*vbasis.num_basis, velRange.volume);
   struct gkyl_array *qmem = mkarr1(true, 8*cbasis.num_basis, confRange_ext.volume);
 
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &vbasis, inp_vmap, true);
+
   struct gkyl_dg_vlasov_inp inp_eqn = {
     .conf_basis = &cbasis,
     .phase_basis = &pbasis,
     .conf_range =  &confRange,
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
-    .vel_range = &velRange,
+    .vel_map = vel_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
     .has_E = true, 
@@ -215,6 +225,7 @@ test_cu_dg_vlasov()
   TEST_CHECK( vlasov->conf_range.volume == 100 );
 
   gkyl_dg_eqn_release(eqn);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(qmem);
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);

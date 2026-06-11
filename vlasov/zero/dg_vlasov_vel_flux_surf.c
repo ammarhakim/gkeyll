@@ -45,9 +45,15 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
     up->hamil_dim = pdim; 
     up->hamil_offset = 0; 
   }
-  up->vel_range = *inp->vel_range; 
+  // The velocity map is required: it provides the velocity-space Jacobian at
+  // surface quadrature points and the velocity-space range used to index it.
+  assert(inp->vel_map);
+  up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+  up->vel_range = inp->vel_map->local_vel;
+  // Borrowed pointer; kept alive by the acquired vel_map.
+  up->jacob_vel_surf = inp->vel_map->jacob_vel_surf;
 
-  // By default, we have no forces from Hamiltonian, E, B, phi, or radiation. 
+  // By default, we have no forces from Hamiltonian, E, B, phi, or radiation.
   for (int d=0; d<vdim; ++d) {
     up->hamil_alpha_quad[d] = no_hamil_alpha_quad; 
     up->E_alpha_quad[d] = no_E_alpha_quad;
@@ -213,18 +219,19 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   return up;  
 }
 
-void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
+void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(vel_flux_surf)) {
-    return gkyl_dg_vlasov_vel_flux_surf_advance_cu(up, conf_range, phase_range, 
-      jacob_vel_surf, poisson_tensor_conf, hamil, qmem, pot_tot, rad, fin, cflrate, vel_flux_surf);
+    return gkyl_dg_vlasov_vel_flux_surf_advance_cu(up, conf_range, phase_range,
+      poisson_tensor_conf, hamil, qmem, pot_tot, rad, fin, cflrate, vel_flux_surf);
   }
 #endif
+  const struct gkyl_array *jacob_vel_surf = up->jacob_vel_surf;
   int pdim = up->pdim;
   int cdim = up->cdim;
   int vdim = pdim - cdim;
@@ -289,6 +296,7 @@ void
 gkyl_dg_vlasov_vel_flux_surf_release(struct gkyl_dg_vlasov_vel_flux_surf* up)
 {
   // Release memory associated with this updater.
+  gkyl_vlasov_velocity_map_release(up->vel_map);
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     gkyl_cu_free(up->on_dev);

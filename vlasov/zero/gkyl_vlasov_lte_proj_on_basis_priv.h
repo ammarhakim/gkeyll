@@ -89,8 +89,9 @@ struct gkyl_vlasov_lte_proj_on_basis {
   struct gkyl_array *effective_potential_quad; // (Can-bp quantity) background effective potential from the geometry (i.e. constant rotation effective potential)
 
   bool use_vmap;
-  struct gkyl_array *vmap; 
-  struct gkyl_array *jacob_vel_gauss; 
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired; 0 if not given).
+  struct gkyl_array *vmap; // Borrowed from vel_map; kept alive by the acquired struct.
+  struct gkyl_array *jacob_vel_gauss; // Borrowed from vel_map; kept alive by the acquired struct.
 
   struct gkyl_vlasov_lte_moments *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0

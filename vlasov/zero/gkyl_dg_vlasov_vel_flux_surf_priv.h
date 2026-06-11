@@ -6,6 +6,7 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_vlasov_kernels.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -68,8 +69,10 @@ struct gkyl_dg_vlasov_vel_flux_surf {
   int hamil_dim; // Dimensionality of Hamiltonian. 
   int hamil_offset; // Offset for indexing Hamiltonian from phase-space index. 
   struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
-  struct gkyl_range vel_range; // Velocity-space range for use in velocity-space Jacobian. 
-  hamil_alpha_quad_t hamil_alpha_quad[3]; // Hamiltonian contribution to alpha_v at quadrature points. 
+  struct gkyl_range vel_range; // Velocity-space range for use in velocity-space Jacobian.
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired host-side for lifetime safety).
+  const struct gkyl_array *jacob_vel_surf; // Velocity-space Jacobian at surface quadrature points (borrowed from vel_map; host pointer).
+  hamil_alpha_quad_t hamil_alpha_quad[3]; // Hamiltonian contribution to alpha_v at quadrature points.
   E_alpha_quad_t E_alpha_quad[3]; // Lorentz force contribution from electric field to alpha_v at quadrature points. 
   phi_alpha_quad_t phi_alpha_quad[3]; // Scalar potential, -grad(phi), force contribution to alpha_v at quadrature points. 
   B_alpha_quad_t B_alpha_quad[3]; // Lorentz force contribution from magnetic field to alpha_v at quadrature points. 

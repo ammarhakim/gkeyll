@@ -7,6 +7,7 @@
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_dg_vlasov.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -105,11 +106,15 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
   struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
 
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &velBasis, inp_vmap, use_gpu);
+
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &phaseGrid, 
     .conf_basis = &confBasis,
     .phase_basis = &basis,
-    .vel_range = &velRange,
+    .vel_map = vel_map,
     .hamil_range = &velRange,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
@@ -128,7 +133,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     .conf_range =  &confRange,
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
-    .vel_range = &velRange,
+    .vel_map = vel_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
     .has_E = true, 
@@ -182,8 +187,8 @@ test_vlasov_1x2v_p2_(bool use_gpu)
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
 
-    gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux, &confRange, &phaseRange, 
-     0, poisson_tensor_conf, hamil, qmem, pot_tot, rad, 
+    gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux, &confRange, &phaseRange,
+     poisson_tensor_conf, hamil, qmem, pot_tot, rad, 
      f_no_J, cflrate, vel_flux_surf);    
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
 
@@ -272,6 +277,7 @@ test_vlasov_1x2v_p2_(bool use_gpu)
 
   gkyl_hyper_dg_release(slvr);
   gkyl_dg_eqn_release(eqn);
+  gkyl_vlasov_velocity_map_release(vel_map);
 
   if (use_gpu) {
     gkyl_cu_free(cfl_ptr);
@@ -363,11 +369,15 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
   struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
 
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &velBasis, inp_vmap, use_gpu);
+
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &phaseGrid, 
     .conf_basis = &confBasis,
     .phase_basis = &basis,
-    .vel_range = &velRange,
+    .vel_map = vel_map,
     .hamil_range = &velRange,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
@@ -386,7 +396,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
     .conf_range =  &confRange,
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
-    .vel_range = &velRange,
+    .vel_map = vel_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
     .has_E = true, 
@@ -435,8 +445,8 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   for(int n=0; n<nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux, &confRange, &phaseRange, 
-     0, poisson_tensor_conf, hamil, qmem, pot_tot, rad, 
+    gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux, &confRange, &phaseRange,
+     poisson_tensor_conf, hamil, qmem, pot_tot, rad, 
      f_no_J, cflrate, vel_flux_surf);   
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
@@ -520,6 +530,7 @@ test_vlasov_2x3v_p1_(bool use_gpu)
 
   gkyl_hyper_dg_release(slvr);
   gkyl_dg_eqn_release(eqn);
+  gkyl_vlasov_velocity_map_release(vel_map);
 
   if (use_gpu) {
     gkyl_array_release(fin_h);
