@@ -374,17 +374,20 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     gkyl_gk_dg_geom_release(gk_dg_geom_dev);
   }
 
-  // Basic metadata for I/O.
+  // Basic metadata for I/O (including metadata optional from user).
   const char* build_id = GIT_COMMIT_ID;
   const char* build_date = GKYL_BUILD_DATE;
-  struct gkyl_msgpack_map_elem io_meta_basic[] = {
+  struct gkyl_msgpack_map_elem io_meta_basic_default[] = {
    { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
    { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
   };
-  app->io_meta_basic_len = sizeof(io_meta_basic)/sizeof(io_meta_basic[0]);
-  app->io_meta_basic = gkyl_msgpack_map_elem_clone(app->io_meta_basic_len, io_meta_basic);
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {io_meta_basic_default, gk->metadata.attributes};
+  int io_meta_basic_union_len[] = {sizeof(io_meta_basic_default)/sizeof(io_meta_basic_default[0]), gk->metadata.num_attributes};
+  app->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union)/sizeof(io_meta_basic_union[0]),
+    io_meta_basic_union_len, io_meta_basic_union, &app->io_meta_basic_len);
+
   // Metadata for GK app.
   struct gkyl_msgpack_map_elem io_meta[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },

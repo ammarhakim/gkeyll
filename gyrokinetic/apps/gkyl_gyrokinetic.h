@@ -588,6 +588,12 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
+// Additional metadata users can provide.
+struct gkyl_gyrokinetic_metadata_inp {
+  struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
+  int num_attributes; // Number of attributes.
+};
+
 // Top-level app parameters
 struct gkyl_gk {
   char name[128]; // Name of app: used as output prefix.
@@ -617,6 +623,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_eirene eirene; // EIRENE input
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
+
+  struct gkyl_gyrokinetic_metadata_inp metadata; // Optional metadata for output files.
 };
 
 // Simulation statistics
