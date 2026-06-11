@@ -347,6 +347,27 @@ banyuls_delta_flux(struct gkyl_gr_euler_eos eos, struct wv_gr_euler_tetrad *grm,
 // wave_hll / wave_hllc (the relevant flux-jump form for the tetrad-first
 // scheme; see TETRAD_REFACTOR_PLAN.md §1).
 // ---------------------------------------------------------------------------
+// Interface-averaged prods row — the production averaging policy:
+// element-wise arithmetic mean of all components, then DERIVE inv_g and
+// sqrt(det γ) from the inverse of the averaged γ_ij (Phase 0 Fix 2:
+// a consistent pair from one inversion).
+static void
+build_prods_iface(const double *prods_L, const double *prods_R,
+  double *prods_iface)
+{
+  for (int k = 0; k < GKYL_GR_SP_NCOMP_BASE; k++)
+    prods_iface[k] = 0.5 * (prods_L[k] + prods_R[k]);
+  double g_m[3][3], inv_g_m[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      g_m[i][j] = prods_iface[GKYL_GR_SP_GIJ + 3*i + j];
+  double det = gkyl_wave_spacetime_invert_metric_3x3(g_m, inv_g_m);
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      prods_iface[GKYL_GR_SP_INV_GIJ + 3*i + j] = inv_g_m[i][j];
+  prods_iface[GKYL_GR_SP_SPATIAL_DET] = det;
+}
+
 static void
 run_riemann_properties_two_cell(struct gkyl_gr_spacetime *spacetime,
   const char *label, double xL, double yL, double zL,
@@ -432,19 +453,7 @@ run_riemann_properties_two_cell(struct gkyl_gr_spacetime *spacetime,
   // and sqrt(det γ_iface) from the inverse of g_iface. Other fields
   // (lapse, shift, ...) stay as element-wise arithmetic means.
   double prods_iface[GKYL_GR_SP_NCOMP_BASE];
-  for (int k = 0; k < GKYL_GR_SP_NCOMP_BASE; k++)
-    prods_iface[k] = 0.5 * (prods_L[k] + prods_R[k]);
-  // Overwrite inv_g and sqrt(γ) with the derived-from-g values.
-  double g_iface_mat[3][3], inv_g_iface_mat[3][3];
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      g_iface_mat[i][j] = prods_iface[GKYL_GR_SP_GIJ + 3*i + j];
-  double det_iface_t = gkyl_wave_spacetime_invert_metric_3x3(
-    g_iface_mat, inv_g_iface_mat);
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      prods_iface[GKYL_GR_SP_INV_GIJ + 3*i + j] = inv_g_iface_mat[i][j];
-  prods_iface[GKYL_GR_SP_SPATIAL_DET] = det_iface_t;
+  build_prods_iface(prods_L, prods_R, prods_iface);
 
   // ΔF computed with INTERFACE-AVERAGED geometry on BOTH sides. This is
   // the relevant flux-jump form for the tetrad-first scheme. Comparing
@@ -1953,19 +1962,21 @@ static const struct near_floor_rp g_near_floor_cases[] = {
 
 static void
 run_near_floor_for_floor_value(struct gkyl_wv_eqn *eqn,
-  struct wv_gr_euler_tetrad *grm,
-  const double *prods,
+  const double *prods_L, const double *prods_R,
   double tau_min_target,
   int *D_v, int *S2_v, int *tau_v, int *total)
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
-  double sqrt_det = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
-  double inv_g[3][3] = {
-    { prods[GKYL_GR_SP_INV_GIJ + 0], prods[GKYL_GR_SP_INV_GIJ + 1], prods[GKYL_GR_SP_INV_GIJ + 2] },
-    { prods[GKYL_GR_SP_INV_GIJ + 3], prods[GKYL_GR_SP_INV_GIJ + 4], prods[GKYL_GR_SP_INV_GIJ + 5] },
-    { prods[GKYL_GR_SP_INV_GIJ + 6], prods[GKYL_GR_SP_INV_GIJ + 7], prods[GKYL_GR_SP_INV_GIJ + 8] },
-  };
+
+  double sqrt_det_L = sqrt(prods_L[GKYL_GR_SP_SPATIAL_DET]);
+  double sqrt_det_R = sqrt(prods_R[GKYL_GR_SP_SPATIAL_DET]);
+  double inv_g_L[3][3], inv_g_R[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      inv_g_L[i][j] = prods_L[GKYL_GR_SP_INV_GIJ + 3*i + j];
+      inv_g_R[i][j] = prods_R[GKYL_GR_SP_INV_GIJ + 3*i + j];
+    }
 
   int n = sizeof(g_near_floor_cases) / sizeof(*g_near_floor_cases);
   for (int c = 0; c < n; c++) {
@@ -1973,38 +1984,37 @@ run_near_floor_for_floor_value(struct gkyl_wv_eqn *eqn,
 
     // Construct the "floored-side" state: target τ ≈ tau_min_target.
     // Cold-flow inversion (W≈1, h≈1) gives τ ≈ p/(γ-1), so set p_min
-    // accordingly. Cap to ≥ p_min in the case rho_min was supplied.
+    // accordingly.
     double p_min = (gas_gamma - 1.0) * tau_min_target;
 
+    // Each side is built with its OWN cell metric (per-cell-metrics
+    // policy — production wave_prop reads adjacent cells' prods).
     double qL[5], qR[5];
     if (rc->floor_on_left) {
-      build_state_convA(eos, rc->rho_min, rc->v_min, p_min, prods, qL);
-      build_state_convA(eos, rc->rho_typ, rc->v_typ, rc->p_typ, prods, qR);
+      build_state_convA(eos, rc->rho_min, rc->v_min, p_min, prods_L, qL);
+      build_state_convA(eos, rc->rho_typ, rc->v_typ, rc->p_typ, prods_R, qR);
     } else {
-      build_state_convA(eos, rc->rho_typ, rc->v_typ, rc->p_typ, prods, qL);
-      build_state_convA(eos, rc->rho_min, rc->v_min, p_min,    prods, qR);
+      build_state_convA(eos, rc->rho_typ, rc->v_typ, rc->p_typ, prods_L, qL);
+      build_state_convA(eos, rc->rho_min, rc->v_min, p_min,    prods_R, qR);
     }
 
-    // Skip if either side fails admissibility going in (shouldn't happen,
-    // but defensive).
+    // Skip if either side fails admissibility going in (defensive).
     {
       bool d_ok, s_ok, t_ok;
       double qu[5];
-      for (int i = 0; i < 5; i++) qu[i] = qL[i] / sqrt_det;
-      record_admissibility(inv_g, qu, &d_ok, &s_ok, &t_ok);
+      for (int i = 0; i < 5; i++) qu[i] = qL[i] / sqrt_det_L;
+      record_admissibility(inv_g_L, qu, &d_ok, &s_ok, &t_ok);
       if (!(d_ok && s_ok && t_ok)) continue;
-      for (int i = 0; i < 5; i++) qu[i] = qR[i] / sqrt_det;
-      record_admissibility(inv_g, qu, &d_ok, &s_ok, &t_ok);
+      for (int i = 0; i < 5; i++) qu[i] = qR[i] / sqrt_det_R;
+      record_admissibility(inv_g_R, qu, &d_ok, &s_ok, &t_ok);
       if (!(d_ok && s_ok && t_ok)) continue;
     }
 
-    int idx[1] = { 0 };
-    eqn->set_interface_idx_func(eqn, idx, idx);
+    int idxl[1] = { 0 }, idxr[1] = { 1 };
+    eqn->set_interface_idx_func(eqn, idxl, idxr);
 
-    // rotate_to_local has the side-effect of filling prodl_local /
-    // prodr_local on the equation, which wave_hll reads. Skipping this
-    // call leaves uninitialized data and makes wave_hll mis-detect
-    // excision. With norm = +x̂ this is a no-op rotation.
+    // rotate_to_local fills prodl_local / prodr_local on the equation
+    // (per-cell rows). With norm = +x̂ this is a no-op on q components.
     double norm[3] = { 1.0, 0.0, 0.0 };
     double tau1[3] = { 0.0, 1.0, 0.0 };
     double tau2[3] = { 0.0, 0.0, 1.0 };
@@ -2024,81 +2034,101 @@ run_near_floor_for_floor_value(struct gkyl_wv_eqn *eqn,
     if (!(maxs > 0.0)) continue;
     double dt_dx = 0.95 / maxs;  // BHL uses cfl_frac = 0.95
 
-    double qL_new[5], qR_new[5];
-    for (int i = 0; i < 5; i++) {
-      qL_new[i] = qL_loc[i] - dt_dx * amdq[i];
-      qR_new[i] = qR_loc[i] - dt_dx * apdq[i];
-    }
-
+    // Per-side single-interface updates, each checked in its OWN metric.
     for (int side = 0; side < 2; side++) {
-      const double *qn = (side == 0) ? qL_new : qR_new;
-      double qu[5];
-      for (int i = 0; i < 5; i++) qu[i] = qn[i] / sqrt_det;
+      double qn[5], qu[5];
+      double sd = (side == 0) ? sqrt_det_L : sqrt_det_R;
+      const double (*ig)[3] = (side == 0) ? inv_g_L : inv_g_R;
+      for (int i = 0; i < 5; i++)
+        qn[i] = (side == 0) ? qL_loc[i] - dt_dx * amdq[i]
+                            : qR_loc[i] - dt_dx * apdq[i];
+      for (int i = 0; i < 5; i++) qu[i] = qn[i] / sd;
       bool D_ok, S2_ok, tau_ok;
-      record_admissibility(inv_g, qu, &D_ok, &S2_ok, &tau_ok);
+      record_admissibility(ig, qu, &D_ok, &S2_ok, &tau_ok);
       if (!D_ok)   (*D_v)++;
       if (!S2_ok)  (*S2_v)++;
       if (!tau_ok) (*tau_v)++;
       (*total)++;
     }
   }
-  (void)grm;
 }
 
+// Floor-value sweep through the LOW_ORDER curved-Lax fallback — the path
+// that processes post-repair near-floor cells in production. LOW_ORDER is
+// rp-independent (wave_tetrad_dispatch routes every rp_type to
+// wave_lax_curved), so this runs ONE equation; the old per-rp trio
+// (near_floor_{lax,hll,hllc}) ran identical math three times. Cells L/R
+// carry per-cell metrics at the production grid spacing.
 static void
-run_near_floor_sweep(enum gkyl_wv_gr_euler_tetrad_rp rp,
-  const char *rp_name)
+run_near_floor_sweep(struct gkyl_gr_spacetime *spacetime,
+  const char *label, double x, double y, double z)
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
-  struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
   struct gkyl_range conf_range;
-  int lower[1] = { 0 }, upper[1] = { 0 };
+  int lower[1] = { 0 }, upper[1] = { 1 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
-  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
+  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range,
+    WV_GR_EULER_TETRAD_RP_LAX);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_set_auxfields(eqn,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
 
-  double *prods_row = gkyl_array_fetch(prods, 0);
-  fill_prods_at(spacetime, 0.0, 0.0, 0.0, prods_row);
-
-  struct wv_gr_euler_tetrad *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad, eqn);
+  double *prods_L = gkyl_array_fetch(prods, 0);
+  double *prods_R = gkyl_array_fetch(prods, 1);
+  fill_prods_at(spacetime, x - 0.5*GR_EULER_POSITIVITY_DX, y, z, prods_L);
+  fill_prods_at(spacetime, x + 0.5*GR_EULER_POSITIVITY_DX, y, z, prods_R);
+  if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
+      prods_R[GKYL_GR_SP_EXCISION] < 0.0) {
+    gkyl_array_release(prods);
+    gkyl_wv_eqn_release(eqn);
+    return;
+  }
 
   double tau_sweep[] = {
     1.0e-6, 1.0e-7, 1.0e-8, 1.0e-9, 1.0e-10,
     1.0e-11, 1.0e-12, 1.0e-13, 1.0e-14
   };
 
-  fprintf(stderr, "[near-floor %s] tau_target  total  D<=0  s^2<=0  tau<0\n", rp_name);
+  fprintf(stderr, "[near-floor %s] tau_target  total  D<=0  s^2<=0  tau<0\n", label);
   for (size_t i = 0; i < sizeof(tau_sweep)/sizeof(*tau_sweep); i++) {
     int D_v = 0, S2_v = 0, tau_v = 0, total = 0;
-    run_near_floor_for_floor_value(eqn, grm, prods_row,
+    run_near_floor_for_floor_value(eqn, prods_L, prods_R,
       tau_sweep[i], &D_v, &S2_v, &tau_v, &total);
-    fprintf(stderr, "  %-8s    %.0e  %4d  %4d  %4d   %4d\n",
-      rp_name, tau_sweep[i], total, D_v, S2_v, tau_v);
+    fprintf(stderr, "  %-12s  %.0e  %4d  %4d  %4d   %4d\n",
+      label, tau_sweep[i], total, D_v, S2_v, tau_v);
   }
 
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
-  gkyl_gr_spacetime_release(spacetime);
 }
 
-void test_near_floor_hllc(void)
+void test_near_floor_minkowski(void)
 {
-  run_near_floor_sweep(WV_GR_EULER_TETRAD_RP_HLLC, "HLLC");
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_near_floor_sweep(st, "Mink", 0.0, 0.0, 0.0);
+  gkyl_gr_spacetime_release(st);
 }
-void test_near_floor_lax(void)
+// Production τ-floor cells live near the horizon — probe the curved
+// near-horizon regime the old single-cell Minkowski version never saw.
+void test_near_floor_schwarzschild(void)
 {
-  run_near_floor_sweep(WV_GR_EULER_TETRAD_RP_LAX, "Lax");
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_near_floor_sweep(st, "Schw-near", 0.23, 0.0, 0.0);
+  run_near_floor_sweep(st, "Schw-mid",  0.33, 0.0, 0.0);
+  gkyl_gr_spacetime_release(st);
 }
-void test_near_floor_hll(void)
+void test_near_floor_kerr(void)
 {
-  run_near_floor_sweep(WV_GR_EULER_TETRAD_RP_HLL, "HLL");
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
+  run_near_floor_sweep(st, "Kerr-near",    0.17, 0.0,  0.0);
+  run_near_floor_sweep(st, "Kerr-offaxis", 0.23, 0.10, 0.0);
+  gkyl_gr_spacetime_release(st);
 }
 
 // ---------------------------------------------------------------------------
@@ -2538,27 +2568,34 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
   struct gkyl_range conf_range;
-  int lower[1] = { 0 }, upper[1] = { 0 };
+  int lower[1] = { 0 }, upper[1] = { 1 };
   gkyl_range_init(&conf_range, 1, lower, upper);
   struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_set_auxfields(eqn,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
-  double *prods_row = gkyl_array_fetch(prods, 0);
-  fill_prods_at(spacetime, x, y, z, prods_row);
-  if (prods_row[GKYL_GR_SP_EXCISION] < 0.0) {
+  // Per-cell metrics: L at x − dx/2, R at x + dx/2 (production grid dx).
+  double *prods_L = gkyl_array_fetch(prods, 0);
+  double *prods_R = gkyl_array_fetch(prods, 1);
+  fill_prods_at(spacetime, x - 0.5*GR_EULER_POSITIVITY_DX, y, z, prods_L);
+  fill_prods_at(spacetime, x + 0.5*GR_EULER_POSITIVITY_DX, y, z, prods_R);
+  if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
+      prods_R[GKYL_GR_SP_EXCISION] < 0.0) {
     gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
     return;
   }
 
-  struct wv_gr_euler_tetrad *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad, eqn);
+  // Interface-averaged prods for the flux-jump reference: with per-cell
+  // metrics the tetrad scheme satisfies Σs·w = ΔF(geom_iface), not the
+  // cell-centered difference (TETRAD_REFACTOR_PLAN §1).
+  double prods_iface[GKYL_GR_SP_NCOMP_BASE];
+  build_prods_iface(prods_L, prods_R, prods_iface);
 
   double norm[3] = { 1.0, 0.0, 0.0 };
   double tau1[3] = { 0.0, 1.0, 0.0 };
   double tau2[3] = { 0.0, 0.0, 1.0 };
-  int idx[1] = { 0 };
+  int idxl[1] = { 0 }, idxr[1] = { 1 };
 
   // BHL-like state pairs: small τ on one side, transverse v, etc.
   struct {
@@ -2585,10 +2622,10 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
     double v_co_l[3] = { cases[c].vL[0], cases[c].vL[1], cases[c].vL[2] };
     double v_co_r[3] = { cases[c].vR[0], cases[c].vR[1], cases[c].vR[2] };
     double qL_glob[5], qR_glob[5];
-    build_state_convA(eos, cases[c].rL, v_co_l, cases[c].pL, prods_row, qL_glob);
-    build_state_convA(eos, cases[c].rR, v_co_r, cases[c].pR, prods_row, qR_glob);
+    build_state_convA(eos, cases[c].rL, v_co_l, cases[c].pL, prods_L, qL_glob);
+    build_state_convA(eos, cases[c].rR, v_co_r, cases[c].pR, prods_R, qR_glob);
 
-    eqn->set_interface_idx_func(eqn, idx, idx);
+    eqn->set_interface_idx_func(eqn, idxl, idxr);
     double qL[5], qR[5];
     eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qL_glob, qL);
     eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qR_glob, qR);
@@ -2610,16 +2647,25 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
         label, cases[c].name, i, fabs(sum - delta[i]) );
     }
 
-    // Flux jump.
+    // Flux jump — interface-averaged form (per-cell metrics make the
+    // cell-centered difference an unrelated O(Δgeom) quantity).
     double dF[5];
-    banyuls_delta_flux(eos, grm, qL, qR, dF);
+    {
+      double fL_gr[5], fR_gr[5];
+      gkyl_gr_euler_banyuls_flux_cell(eos, qL, prods_iface, NULL, fL_gr);
+      gkyl_gr_euler_banyuls_flux_cell(eos, qR, prods_iface, NULL, fR_gr);
+      for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
+    }
     for (int i = 0; i < 5; i++) {
       double sw = 0.0;
       for (int k = 0; k < num_waves; k++) sw += speeds[k] * waves[k * 5 + i];
       // Near-floor τ cases incur catastrophic-cancellation precision
       // loss in the Banyuls Newton (Δ at 1e-10 squared minus terms at
-      // 1e-8), so we loosen the tolerance to 1e-7 for those.
-      double tol = strstr(cases[c].name, "near-floor") ? 1.0e-7 : 1.0e-9;
+      // 1e-8). With per-cell metrics each side's recovery sees slightly
+      // different scales and the iface-metric reference flux adds its
+      // own recovery; measured residual ≈ 3.6e-7 on the τ slot, so the
+      // near-floor tolerance is 1e-6 (was 1e-7 at single metric).
+      double tol = strstr(cases[c].name, "near-floor") ? 1.0e-6 : 1.0e-9;
       TEST_CHECK_( fabs(sw - dF[i]) < tol,
         "[%s/%s] flux jump: comp %d, |Σs·w − ΔF| = %.3e",
         label, cases[c].name, i, fabs(sw - dF[i]) );
@@ -2630,7 +2676,7 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
     eqn->qfluct_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
       qL, qR, 1.0, 1.0, waves, speeds, amdq, apdq);
     for (int i = 0; i < 5; i++) {
-      double tol_fluct = strstr(cases[c].name, "near-floor") ? 1.0e-7 : 1.0e-9;
+      double tol_fluct = strstr(cases[c].name, "near-floor") ? 1.0e-6 : 1.0e-9;
       TEST_CHECK_( fabs(amdq[i] + apdq[i] - dF[i]) < tol_fluct,
         "[%s/%s] fluct: comp %d, |amdq+apdq − ΔF| = %.3e",
         label, cases[c].name, i, fabs(amdq[i] + apdq[i] - dF[i]) );
@@ -4134,9 +4180,9 @@ TEST_LIST = {
   { "positivity_registry_kerr",          test_positivity_registry_kerr },
   { "positivity_registry_bhl",           test_positivity_registry_bhl },
 
-  { "near_floor_lax",  test_near_floor_lax },
-  { "near_floor_hll",  test_near_floor_hll },
-  { "near_floor_hllc", test_near_floor_hllc },
+  { "near_floor_minkowski",     test_near_floor_minkowski },
+  { "near_floor_schwarzschild", test_near_floor_schwarzschild },
+  { "near_floor_kerr",          test_near_floor_kerr },
 
   { "round_trip_minkowski",     test_round_trip_minkowski },
   { "round_trip_schwarzschild", test_round_trip_schwarzschild },
