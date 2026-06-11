@@ -15,6 +15,7 @@
 #include <gkyl_wave_spacetime.h>
 #include <gkyl_wv_gr_euler_prim_priv.h>
 #include <gkyl_wv_gr_euler_tetrad.h>
+#include <gkyl_wv_gr_euler_tetrad_priv.h>
 
 // EOS modes exercised by the parametrized runners. The three production
 // EOS configurations: IDEAL γ=5/3, APPROXIMATE_SYNGE with use_rcc=false
@@ -128,6 +129,18 @@ make_eqn(struct gkyl_gr_euler_eos eos, struct gkyl_range conf_range,
       .rp_type = rp,
       .use_gpu = false,
     });
+}
+
+// Returns the curved-frame Banyuls flux ΔF for a given pair of states using
+// the same cell-centered Banyuls flux helper the wave construction uses.
+static void
+banyuls_delta_flux(struct gkyl_gr_euler_eos eos, struct wv_gr_euler_tetrad *grm,
+  const double qL[5], const double qR[5], double dF[5])
+{
+  double fL_gr[5], fR_gr[5];
+  gkyl_gr_euler_banyuls_flux_cell(eos, qL, grm->prodl_local, NULL, fL_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qR, grm->prodr_local, NULL, fR_gr);
+  for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
 }
 
 // Interface-averaged prods row — the production averaging policy:

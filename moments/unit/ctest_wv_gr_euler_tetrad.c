@@ -187,18 +187,6 @@ void test_banyuls_flux_consistency_hllc_kerr(void)
 // 2. Standard Riemann-solver property tests for Lax / HLL
 // ---------------------------------------------------------------------------
 
-// Returns the curved-frame Banyuls flux ΔF for a given pair of states using
-// the same cell-centered Banyuls flux helper the wave construction uses.
-static void
-banyuls_delta_flux(struct gkyl_gr_euler_eos eos, struct wv_gr_euler_tetrad *grm,
-  const double qL[5], const double qR[5], double dF[5])
-{
-  double fL_gr[5], fR_gr[5];
-  gkyl_gr_euler_banyuls_flux_cell(eos, qL, grm->prodl_local, NULL, fL_gr);
-  gkyl_gr_euler_banyuls_flux_cell(eos, qR, grm->prodr_local, NULL, fR_gr);
-  for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
-}
-
 // ---------------------------------------------------------------------------
 // Two-cell variant for non-degenerate interface geometry.
 //
