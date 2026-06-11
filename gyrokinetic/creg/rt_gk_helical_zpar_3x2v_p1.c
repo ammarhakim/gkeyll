@@ -579,6 +579,8 @@ main(int argc, char **argv)
     },
     .mu0 = GKYL_MU0,
     .time_rate_diagnostics = true,
+    .smooth_apar_z = false,
+    .remove_em_zonal = false,
   };
 
   // GK app

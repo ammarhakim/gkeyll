@@ -1437,6 +1437,8 @@ struct gk_field {
     struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
   void (*fem_projection_par_phi_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
     struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
+  void (*fem_projection_par_apar_func)(gkyl_gyrokinetic_app *app, struct gk_field *field,
+    struct gkyl_array *arr_dg, struct gkyl_array *arr_fem);
   void (*twistshift_func) (struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
 
   // Pointer to function for electromagnetic field solve.

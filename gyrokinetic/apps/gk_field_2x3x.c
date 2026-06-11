@@ -83,6 +83,13 @@ gk_field_3x_write_twistshift(struct gkyl_gyrokinetic_app *app, struct gk_field *
 }
 
 static void
+gk_field_fem_projection_par_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
+{
+  // Do nothing.
+}
+
+static void
 gk_field_fem_projection_par_rho_ts_2x(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
 {
@@ -554,6 +561,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_release(f->phi_smooth);
   gkyl_array_release(f->apar);
   gkyl_array_release(f->apardot);
+  gkyl_array_release(f->amperesol);
   gkyl_array_release(f->apar_curr);
   gkyl_array_release(f->apar1);
   gkyl_array_release(f->aparnew);
@@ -794,6 +802,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   f->ampere_solve = gk_field_ampere_solve_none;
   f->em_rhs_func = gk_field_em_rhs_none;
   f->remove_em_zonal_func = gk_field_em_zonal_component_none;
+  f->fem_projection_par_apar_func = gk_field_fem_projection_par_none;
   if (f->is_em) {
     // Translate input file BCs into Ampere BCs.
     for (int d=0; d<app->cdim-1; d++) {
@@ -872,6 +881,9 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       f->fs_avg_conf_one = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       double dg_norm = pow(sqrt(2.0), app->basis.ndim);
       gkyl_array_shiftc_range(f->fs_avg_conf_one, dg_norm, 0, &app->local);
+    }
+    if (f->info.smooth_apar_z) {
+      f->fem_projection_par_apar_func = f->fem_projection_par_phi_func;
     }
   }
 

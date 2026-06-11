@@ -283,6 +283,9 @@ gk_field_step_apar_enabled(gkyl_gyrokinetic_app *app, struct gk_field *field, st
 {
   // Apar^{n+1} = Apar^{n} + dt*dApar/dt
   gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
+
+  // Smooth Apar along z.
+  field->fem_projection_par_apar_func(app, field, out, out);
 }
 
 static void
