@@ -660,11 +660,13 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
             fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
           else {
-            double efact = 0.0;        
+            double efact = 0.0;
             for (int d=0; d<vdim; ++d) {
               efact += (xmu[cdim+d]-V_drift_quad[cqidx][d])*(xmu[cdim+d]-V_drift_quad[cqidx][d]);
             }
-            fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
+            // The velocity-space Jacobian is included since the projected
+            // distribution is the evolved quantity Jf on mapped velocity grids.
+            fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
         }
       }
