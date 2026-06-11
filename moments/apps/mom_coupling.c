@@ -124,6 +124,18 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  src_inp.has_gr_tov_ultra_rel_sources = false;
+  for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].has_gr_tov_ultra_rel) {
+      src_inp.has_gr_tov_ultra_rel_sources = true;
+
+      if (app->species[i].tov_gas_gamma != 0.0 || app->species[i].tov_kappa != 0.0) {
+        src_inp.tov_gas_gamma = app->species[i].tov_gas_gamma;
+        src_inp.tov_kappa = app->species[i].tov_kappa;
+      }
+    }
+  }
+
   src_inp.has_gr_ultra_rel_sources = false;
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].has_gr_ultra_rel) {
@@ -377,6 +389,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     }
   }
 
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].has_gr_tov_ultra_rel && app->species[i].has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, &app->species[i], fluids[i]);
+    }
+  }
+
   if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const, 
@@ -393,6 +411,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
 
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].has_gr_tov && app->species[i].has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, &app->species[i], fluids[i]);
+    }
+  }
+
+  for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].has_gr_tov_ultra_rel && app->species[i].has_dynamic_lapse) {
       moment_species_refresh_gr_tov_geometry(app, &app->species[i], fluids[i]);
     }
   }

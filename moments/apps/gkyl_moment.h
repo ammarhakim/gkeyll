@@ -49,6 +49,7 @@ struct gkyl_moment_species {
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
   bool has_gr_tov; 
+  bool has_gr_tov_ultra_rel; 
   bool has_dynamic_lapse; //
   double tov_gas_gamma; //
   double tov_kappa; // 

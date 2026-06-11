@@ -19,7 +19,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_GR_MAXWELL, // General relativistic Maxwell equations.
   GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
   GKYL_EQN_GR_MEDIUM, // Coupled fluid-Einstein equations in plane-symmetric spacetimes.
-  GKYL_EQN_GR_TOV, // General relativistic Euler euations in spherical symmetry in spherical coordinates coupled with the TOV problem (lapse conditon)
+  GKYL_EQN_GR_TOV, // General relativistic Euler euations in spherical symmetry in spherical coordinates coupled with the TOV problem (lapse conditon), polytropic EOS
+  GKYL_EQN_GR_TOV_ULTRA_REL, // General relativistic Euler euations in spherical symmetry in spherical coordinates coupled with the TOV problem (lapse conditon), ultra-rel EOS
   GKYL_EQN_GR_TWOFLUID, // General relativistic two-fluid equations.
   GKYL_EQN_VACUUM_EINSTEIN, // Vacuum Einstein equations using the Bona-Masso formalism.
   GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL, // Vacuum Einstein equations using the conformal Bona-Masso formalism.

@@ -3,19 +3,18 @@
 #include <gkyl_wv_eqn.h>
 
 // Type of Riemann-solver to use:
-enum gkyl_wv_gr_tov_rp {
-  WV_GR_TOV_RP_LAX = 0, // Default (Lax fluxes).
-  WV_GR_TOV_RP_ROE,
-  WV_GR_TOV_RP_HLL,
-  WV_GR_TOV_RP_HLLC,
+enum gkyl_wv_gr_tov_ultra_rel_rp {
+  WV_GR_TOV_ULTRA_REL_RP_LAX = 0, // Default (Lax fluxes).
+  WV_GR_TOV_ULTRA_REL_RP_ROE,
+  WV_GR_TOV_ULTRA_REL_RP_HLL,
 };
 
 // Input context, packaged as a struct.
-struct gkyl_wv_gr_tov_inp {
+struct gkyl_wv_gr_tov_ultra_rel_inp {
   double gas_gamma; // Adiabatic index.
   double kappa; // Stress-energy prefactor in the Einstein field equations.
 
-  enum gkyl_wv_gr_tov_rp rp_type; // Type of Riemann-solver to use.
+  enum gkyl_wv_gr_tov_ultra_rel_rp rp_type; // Type of Riemann-solver to use.
   bool use_gpu; // Whether the wave equation object is on the host (false) or the device (true).
 };
 
@@ -28,7 +27,7 @@ struct gkyl_wv_gr_tov_inp {
 * @return Pointer to the coupled fluid-Einstein equations object in plane-symmetric spacetimes.
 */
 struct gkyl_wv_eqn*
-gkyl_wv_gr_tov_new(double gas_gamma, double kappa, bool use_gpu);
+gkyl_wv_gr_tov_ultra_rel_new(double gas_gamma, double kappa, bool use_gpu);
 
 /**
 * Create a new coupled fluid-Einstein equations object in plane-symmetric spacetimes, from an input context struct.
@@ -37,7 +36,7 @@ gkyl_wv_gr_tov_new(double gas_gamma, double kappa, bool use_gpu);
 * @return Pointer to the coupled fluid-Einstein equations object in plane-symmetric spacetimes.
 */
 struct gkyl_wv_eqn*
-gkyl_wv_gr_tov_inew(const struct gkyl_wv_gr_tov_inp* inp);
+gkyl_wv_gr_tov_ultra_rel_inew(const struct gkyl_wv_gr_tov_ultra_rel_inp* inp);
 
 /**
 * Get adiabatic index.
@@ -46,7 +45,7 @@ gkyl_wv_gr_tov_inew(const struct gkyl_wv_gr_tov_inp* inp);
 * @return Adiabatic index.
 */
 double
-gkyl_wv_gr_tov_gas_gamma(const struct gkyl_wv_eqn* eqn);
+gkyl_gr_tov_ultra_rel_gas_gamma(const struct gkyl_wv_eqn* eqn);
 
 /**
 * Get stress-energy prefactor in the Einstein field equations.
@@ -55,4 +54,4 @@ gkyl_wv_gr_tov_gas_gamma(const struct gkyl_wv_eqn* eqn);
 * @return Stress-energy prefactor in the Einstein field equations.
 */
 double
-gkyl_wv_gr_tov_kappa(const struct gkyl_wv_eqn* eqn);
+gkyl_gr_tov_ultra_rel_kappa(const struct gkyl_wv_eqn* eqn);

@@ -24,7 +24,10 @@ struct gkyl_tov_ultra_rel {
     double R_areal; // areal radius of the star surface
     double e_c; // central energy density
     double P_c; // pressure at the center
-    
+    double P_surface; // pressure cutoff used to define the stellar surface
+    double r_max; // maximum tabulated radius
+    bool surface_found; // true if the pressure reached P_surface before table end
+    bool table_exhausted; // true if the table ended before finding P_surface
 
     double dr; // radial step
 
@@ -196,6 +199,46 @@ double gkyl_tov_ultra_rel_star_radius(const struct gkyl_tov_ultra_rel *tov)
     }
 }
 
+bool gkyl_tov_ultra_rel_surface_found(const struct gkyl_tov_ultra_rel *tov)
+{
+    if (tov) {
+        return tov->surface_found;
+    }
+    else {
+        return false;
+    }
+}
+
+bool gkyl_tov_ultra_rel_table_exhausted(const struct gkyl_tov_ultra_rel *tov)
+{
+    if (tov) {
+        return tov->table_exhausted;
+    }
+    else {
+        return true;
+    }
+}
+
+double gkyl_tov_ultra_rel_max_radius(const struct gkyl_tov_ultra_rel *tov)
+{
+    if (tov) {
+        return tov->r_max;
+    }
+    else {
+        return 0.0;
+    }
+}
+
+double gkyl_tov_ultra_rel_surface_pressure(const struct gkyl_tov_ultra_rel *tov)
+{
+    if (tov) {
+        return tov->P_surface;
+    }
+    else {
+        return 0.0;
+    }
+}
+
 //main
 struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, double dr)
 {
@@ -209,11 +252,11 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     tov->e_c = e_c;
     tov->dr = dr;
 
-    tov->r_areal = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
-    tov->m = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
-    tov->P  = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
-    tov->e = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
-    tov->Phi = gkyl_malloc(sizeof(double[TOV_MAX_POINTS]));
+    tov->r_areal = gkyl_malloc(sizeof(double[TOV_ULTRA_REL_MAX_POINTS]));
+    tov->m = gkyl_malloc(sizeof(double[TOV_ULTRA_REL_MAX_POINTS]));
+    tov->P  = gkyl_malloc(sizeof(double[TOV_ULTRA_REL_MAX_POINTS]));
+    tov->e = gkyl_malloc(sizeof(double[TOV_ULTRA_REL_MAX_POINTS]));
+    tov->Phi = gkyl_malloc(sizeof(double[TOV_ULTRA_REL_MAX_POINTS]));
 
     if (!tov->r_areal || !tov->m || !tov->P || !tov->e || !tov->Phi) {
         gkyl_tov_ultra_rel_release(tov);
@@ -223,6 +266,11 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     // First we integrate the TOV eqns in the areal coordinates
     double P_c = eos_pressure(Gamma, e_c);
     tov->P_c = P_c;
+    // Cutoff-defined surface: because the ultra-rel EOS has a long pressure tail, unlike a polytrope with a clean zero-pressure boundary.
+    tov->P_surface = eos_pressure(Gamma, TOV_ULTRA_REL_SURFACE_E_FRAC * e_c);
+    tov->r_max = (TOV_ULTRA_REL_MAX_POINTS - 1) * dr;
+    tov->surface_found = false;
+    tov->table_exhausted = false;
 
     // center
     tov->r_areal[0] = 0.0;
@@ -252,13 +300,14 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     int n = 2;     
 
     // Actual integration call - call to the SSP-RK3 (implicit_tov_source_update)
-    double r_max = 5000.0;
-    while (r_n < r_max && y[1] > 0.0 && n < TOV_MAX_POINTS) {
+    double r_max = tov->r_max;
+    while (r_n < r_max && y[1] > tov->P_surface && n < TOV_ULTRA_REL_MAX_POINTS) {
         implicit_tov_source_update(r_n, y, dr, Gamma);
         r_n += dr;
 
-        if (y[1] <= 0.0) {
+        if (y[1] <= tov->P_surface) {
             y[1] = 0.0;
+            tov->surface_found = true;
         }
 
         e_n = eos_e_from_pressure(Gamma, y[1]);
@@ -271,7 +320,11 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
         tov->Phi[n] = y[2];
         n++;
 
-        if (y[1] <= 0.0) break;
+        if (tov->surface_found) break;
+    }
+
+    if (!tov->surface_found) {
+        tov->table_exhausted = true;
     }
 
     tov->N = n;
@@ -293,7 +346,7 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
     assert(fabs(alpha_surf_int - alpha_surf_ext) < 1e-12 && "Lapse doesn't match on the surface"); // this should pass
 
     // Extend to vacuum exterior out to r_max
-    while (r_n < r_max && n < TOV_MAX_POINTS) {
+    while (r_n < r_max && n < TOV_ULTRA_REL_MAX_POINTS) {
         r_n += dr;
         double V_ext = 2.0 * tov->M_star / r_n;
         tov->r_areal[n] = r_n;
@@ -313,7 +366,7 @@ struct gkyl_tov_ultra_rel * gkyl_tov_ultra_rel_new(double Gamma, double e_c, dou
 }
 
 void
-gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q)
+gkyl_gr_tov_ultra_rel_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q)
 {
   double e_before = 0.0;
   double m_before = 0.0;

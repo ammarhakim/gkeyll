@@ -341,15 +341,190 @@ struct gkyl_tov * gkyl_tov_new(double K, double Gamma, double rho_c, double dr)
         tov->eps[n]     = 0.0;
         tov->e[n]       = 0.0;
 
-        tov->Phi[n] = (1.0 - V_ext > 0.0)
-                  ? 0.5 * log(1.0 - V_ext)
-                  : tov->Phi[n-1];
+        if (1.0 - V_ext > 0.0) {
+            tov->Phi[n] = 0.5 * log(1.0 - V_ext);
+        }
+        else {
+            tov->Phi[n] = tov->Phi[n-1];
+        }
         n++;
     }
 
     tov->N = n;
 
     return tov;
+}
+
+void
+gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q)
+{
+  double e_before = 0.0;
+  double m_before = 0.0;
+  double phi_before = 0.0;
+
+  double r_before = 0.0;
+  double dphi_dr_before = 0.0;
+  int surface_idx = ncells - 1;
+
+  for (int i = 0; i < ncells; ++i) {
+    double *qi = &q[8*i];
+
+    double r = qi[5];
+    double r2 = r * r;
+    if (r2 < 1.0e-300) {
+      r2 = 1.0e-300;
+    }
+
+    double D = qi[0] / r2;
+    double tau = qi[1] / r2;   // tau = Etot - D (Valencia energy)
+    double mom_r = qi[2] / r2;
+
+    double rho_floor = 1.0e-15;
+    double p_floor = 1.0e-300;
+    double D_safe = fmax(D, rho_floor);
+    double p_min = fmax(p_floor, fabs(mom_r) - tau - D_safe + 1.0e-16);
+    double p = fmax((gas_gamma - 1.0) * tau, p_min);
+    double vel = 0.0;
+    double rho = D_safe;
+
+    for (int iter = 0; iter < 100; iter++) {
+      double Q = tau + D_safe + p;
+      vel = mom_r / Q;
+      if (vel * vel > 1.0 - 1.0e-12) {
+        vel = copysign(sqrt(1.0 - 1.0e-12), vel);
+      }
+      double W2 = 1.0 / (1.0 - vel * vel);
+      double W = sqrt(W2);
+      rho = D_safe / W;
+      double eps = (tau - D_safe * (W - 1.0) - p * (W2 - 1.0)) / (D_safe * W);
+      if (eps < 0.0) {
+        eps = 0.0;
+      }
+
+      double p_eos = (gas_gamma - 1.0) * rho * eps;
+      double f_val = p_eos - p;
+      double h = 1.0 + eps + p / rho;
+      double cs2 = gas_gamma * p / (rho * h);
+      if (cs2 < 0.0) {
+        cs2 = 0.0;
+      }
+      if (cs2 > 1.0 - 1.0e-12) {
+        cs2 = 1.0 - 1.0e-12;
+      }
+      double f_prime = vel * vel * cs2 - 1.0;
+
+      double dp = -f_val / f_prime;
+      p += dp;
+      if (p < p_min) {
+        p = p_min;
+      }
+      if (fabs(dp) < 1.0e-12 * fmax(fabs(p), p_floor)) {
+        break;
+      }
+    }
+
+    double denom = tau + D_safe + p;
+    vel = mom_r / denom;
+    if (vel * vel > 1.0 - 1.0e-12) {
+      vel = copysign(sqrt(1.0 - 1.0e-12), vel);
+    }
+    double W = 1.0 / sqrt(1.0 - vel * vel);
+    rho = D_safe / W;
+
+    bool in_atmosphere = false;
+    if (p_atm > 0.0 && p <= (1.0 + 1.0e-12) * p_atm) {
+      in_atmosphere = true;
+    }
+
+    double p_geom = 0.0;
+    if (p_atm > 0.0) {
+      p_geom = fmax(0.0, p - p_atm);
+    }
+    else {
+      p_geom = p;
+    }
+
+    double rho_geom = 0.0;
+    double e_geom = 0.0;
+    if (p_geom > 0.0) {
+      rho_geom = rho;
+      e_geom = rho_geom + p_geom / (gas_gamma - 1.0);
+    }
+
+    if (in_atmosphere && surface_idx == ncells - 1) {
+      if (i > 0) {
+        surface_idx = i - 1;
+      }
+      else {
+        surface_idx = 0;
+      }
+    }
+
+    // double m = qi[4];
+    // for refreshing m start:
+    double m = 0.0;
+    if (!in_atmosphere) {
+      double dm_dr = 4.0 * M_PI * r * r * e_geom;
+      if (i == 0) {
+        m = (4.0 / 3.0) * M_PI * e_geom * r * r * r;
+      }
+      else {
+        double dm_dr_before = 4.0 * M_PI * r_before * r_before * e_before;
+        double dr = r - r_before;
+        m = m_before + 0.5 * dr * (dm_dr_before + dm_dr);
+      }
+    }
+    else {
+      m = m_before;
+    }
+    qi[4] = m;
+    // for refreshing m stop
+
+    double dphi_dr = 0.0;
+    if (!in_atmosphere && r > 0.0 && r - 2.0 * m > 0.0) {
+      double radial_stress = mom_r * vel + p_geom; // fluid is moving, no longer just pressure
+      dphi_dr = (m + 4.0 * M_PI * r * r * r * radial_stress) / (r * (r - 2.0 * m));
+    }
+
+    double phi = 0.0;
+    if (i == 0) {
+      phi = 0.0; // provisional; shift after sweep
+    }
+    else {
+      double dr = r - r_before;
+      phi = phi_before + 0.5*dr*(dphi_dr_before + dphi_dr);
+    }
+
+    qi[3] = phi;
+
+    r_before = r;
+    e_before = e_geom;
+    m_before = m;
+    phi_before = phi;
+    dphi_dr_before = dphi_dr;
+  }
+
+  double *qsurf = &q[8*surface_idx];
+  double R = qsurf[5];
+  double M = qsurf[4];
+
+  if (R > 0.0 && 1.0 - 2.0*M/R > 0.0) {
+    double phi_match = 0.5 * log(1.0 - 2.0 * M / R);
+    double phi_shift = phi_match - qsurf[3];
+
+    for (int i = 0; i <= surface_idx; ++i) {
+      q[8*i + 3] += phi_shift;
+    }
+  }
+
+  for (int i = surface_idx + 1; i < ncells; ++i) {
+    double *qi = &q[8*i];
+    double r = qi[5];
+    double m = qi[4];
+    if (r > 0.0 && 1.0 - 2.0 * m / r > 0.0) {
+      qi[3] = 0.5 * log(1.0 - 2.0 * m / r);
+    }
+  }
 }
 
 void gkyl_tov_solution_release(struct gkyl_tov *tov)

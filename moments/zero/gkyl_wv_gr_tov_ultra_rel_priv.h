@@ -9,7 +9,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-struct wv_gr_tov {
+struct wv_gr_tov_ultra_rel {
   struct gkyl_wv_eqn eqn; // Base equation object.
 
   double gas_gamma; // Adiabatic index.
@@ -25,7 +25,7 @@ struct wv_gr_tov {
 */
 GKYL_CU_D
 void
-gkyl_gr_tov_prim_vars(double gas_gamma, const double q[8], double v[9]);
+gkyl_gr_tov_ultra_rel_prim_vars(double gas_gamma, const double q[8], double v[8]);
 
 /**
 * Compute maximum absolute wave speed.
@@ -36,7 +36,7 @@ gkyl_gr_tov_prim_vars(double gas_gamma, const double q[8], double v[9]);
 */
 GKYL_CU_D
 static inline double
-gkyl_gr_tov_max_abs_speed(double gas_gamma, const double q[8]);
+gkyl_gr_tov_ultra_rel_max_abs_speed(double gas_gamma, const double q[8]);
 
 /**
 * Compute flux vector. Assumes rotation to local coordinate system.
@@ -48,7 +48,7 @@ gkyl_gr_tov_max_abs_speed(double gas_gamma, const double q[8]);
 */
 GKYL_CU_D
 void
-gkyl_gr_tov_flux(double gas_gamma, double kappa, const double q[8], double flux1[8], double flux2[8]);
+gkyl_gr_tov_ultra_rel_flux(double gas_gamma, double kappa, const double q[8], double flux1[8], double flux2[8]);
 
 /**
 * Compute Riemann variables given the conserved variables.
@@ -86,7 +86,7 @@ riem_to_cons(const struct gkyl_wv_eqn* eqn, const double* qstate, const double* 
 */
 GKYL_CU_D
 static void
-gr_tov_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
+gr_tov_ultra_rel_wall(const struct gkyl_wv_eqn* eqn, double t, int nc, const double* skin, double* GKYL_RESTRICT ghost, void* ctx);
 
 /**
 * Rotate state vector from global to local coordinate frame.
@@ -288,7 +288,7 @@ max_speed(const struct gkyl_wv_eqn* eqn, const double* q);
 */
 GKYL_CU_D
 static inline void
-gr_tov_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
+gr_tov_ultra_rel_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* diag);
 
 /**
 * Compute forcing/source term vector from conserved variables.
@@ -299,11 +299,11 @@ gr_tov_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* di
 */
 GKYL_CU_DH
 static inline void
-gr_tov_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
+gr_tov_ultra_rel_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
 /**
 * Free coupled fluid-Einstein equations object in plane-symmetric spacetimes.
 *
 * @param ref Reference counter for coupled fluid-Einstein equations in plane-symmetric spacetimes.
 */
-void gkyl_gr_tov_free(const struct gkyl_ref_count* ref);
+void gkyl_gr_tov_ultra_rel_free(const struct gkyl_ref_count* ref);

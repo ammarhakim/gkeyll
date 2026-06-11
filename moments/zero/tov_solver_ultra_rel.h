@@ -2,7 +2,13 @@
 
 #include <stdbool.h>
 
-#define TOV_MAX_POINTS 200000
+#define TOV_ULTRA_REL_MAX_POINTS 800000
+
+// The ultra-rel EOS does not give a sharp finite-radius p=0 surface, so we
+// define R_star as the radius where e/e_c falls below this cutoff. This is
+// deliberately stricter than the numerical atmosphere floor used in the
+// evolution.
+#define TOV_ULTRA_REL_SURFACE_E_FRAC 1.0e-6
 
 // Output struct for BL evaluation.
 struct tov_ultra_rel_eval_bl {
@@ -66,12 +72,32 @@ double gkyl_tov_ultra_rel_star_mass(const struct gkyl_tov_ultra_rel *tov);
 double gkyl_tov_ultra_rel_star_radius(const struct gkyl_tov_ultra_rel *tov);
 
 /**
+ * Whether the pressure cutoff surface was reached before the TOV table ended.
+ */
+bool gkyl_tov_ultra_rel_surface_found(const struct gkyl_tov_ultra_rel *tov);
+
+/**
+ * Whether the TOV table ended before the pressure cutoff surface was reached.
+ */
+bool gkyl_tov_ultra_rel_table_exhausted(const struct gkyl_tov_ultra_rel *tov);
+
+/**
+ * Maximum radius covered by the TOV table.
+ */
+double gkyl_tov_ultra_rel_max_radius(const struct gkyl_tov_ultra_rel *tov);
+
+/**
+ * Pressure cutoff used to define the stellar surface.
+ */
+double gkyl_tov_ultra_rel_surface_pressure(const struct gkyl_tov_ultra_rel *tov);
+
+/**
  * Refresh lapse potential Phi and enclosed mass m from the current
  * one-dimensional GR TOV state.
  *
  * The state q is assumed to be contiguous with 8 components per cell.
  */
-void gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q);
+void gkyl_gr_tov_ultra_rel_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q);
 
 /**
  * Release TOV solution object and free memory.

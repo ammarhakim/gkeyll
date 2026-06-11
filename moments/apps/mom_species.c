@@ -1,7 +1,7 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
-
+#include "tov_solver.h"
 #include "tov_solver_ultra_rel.h"
 
 // initialize species
@@ -84,10 +84,22 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
 
   sp->has_gr_tov = false;
+  sp->has_gr_tov_ultra_rel = false;
   sp->has_dynamic_lapse = false;
+  
   if (mom_sp->has_gr_tov) {
     sp->update_sources = true; 
     sp->has_gr_tov = true;
+    sp->has_dynamic_lapse = mom_sp->has_dynamic_lapse;
+
+    sp->tov_gas_gamma = mom_sp->tov_gas_gamma;
+    sp->tov_kappa = mom_sp->tov_kappa;
+    sp->tov_p_atm = mom_sp->tov_p_atm;
+  }
+
+  if (mom_sp->has_gr_tov_ultra_rel) {
+    sp->update_sources = true; 
+    sp->has_gr_tov_ultra_rel = true;
     sp->has_dynamic_lapse = mom_sp->has_dynamic_lapse;
 
     sp->tov_gas_gamma = mom_sp->tov_gas_gamma;
@@ -485,6 +497,9 @@ moment_species_update(gkyl_moment_app *app,
     if (sp->has_gr_tov && sp->has_dynamic_lapse) {
       moment_species_refresh_gr_tov_geometry(app, sp, sp->f[d]);
     }
+    if (sp->has_gr_tov_ultra_rel && sp->has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, sp, sp->f[d]);
+    }
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->embed_mask, sp->f[d], sp->f[d+1]);
 
     double my_max_speed = stat.max_speed;
@@ -498,6 +513,9 @@ moment_species_update(gkyl_moment_app *app,
     
     dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     if (sp->has_gr_tov && sp->has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, sp, sp->f[d+1]);
+    }
+    if (sp->has_gr_tov_ultra_rel && sp->has_dynamic_lapse) {
       moment_species_refresh_gr_tov_geometry(app, sp, sp->f[d+1]);
     }
     moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
@@ -550,7 +568,7 @@ void
 moment_species_refresh_gr_tov_geometry(gkyl_moment_app *app,
   const struct moment_species *sp, struct gkyl_array *f)
 {
-  if (!sp->has_gr_tov || !sp->has_dynamic_lapse || sp->ndim != 1 || sp->num_equations < 8) {
+  if ((!sp->has_gr_tov && !sp->has_gr_tov_ultra_rel) || !sp->has_dynamic_lapse) {
     return;
   }
 
@@ -565,19 +583,24 @@ moment_species_refresh_gr_tov_geometry(gkyl_moment_app *app,
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
   while (gkyl_range_iter_next(&iter)) {
-    const double *qin = gkyl_array_cfetch(f, gkyl_range_idx(&app->local, iter.idx));
+    const double *qin = gkyl_array_cfetch(f, gkyl_range_idx(&app->local_ext, iter.idx));
     for (int k = 0; k < 8; ++k) {
       q[8*n + k] = qin[k];
     }
     n++;
   }
 
-  gkyl_gr_tov_refresh_geometry_from_state(sp->tov_gas_gamma, sp->tov_p_atm, ncells, q);
-
+  if (sp->has_gr_tov){
+    gkyl_gr_tov_refresh_geometry_from_state(sp->tov_gas_gamma, sp->tov_p_atm, ncells, q);
+  }
+  if (sp->has_gr_tov_ultra_rel){
+    gkyl_gr_tov_ultra_rel_refresh_geometry_from_state(sp->tov_gas_gamma, sp->tov_p_atm, ncells, q);
+  }
+  
   n = 0;
   gkyl_range_iter_init(&iter, &app->local);
   while (gkyl_range_iter_next(&iter)) {
-    double *qout = gkyl_array_fetch(f, gkyl_range_idx(&app->local, iter.idx));
+    double *qout = gkyl_array_fetch(f, gkyl_range_idx(&app->local_ext, iter.idx));
     qout[3] = q[8*n + 3];
     qout[4] = q[8*n + 4];
     n++;

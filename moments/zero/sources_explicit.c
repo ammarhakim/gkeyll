@@ -402,6 +402,131 @@ void
 explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double kappa, double t_curr,
   const double dt, double* fluid_old, double* fluid_new)
 {
+  double Phi = fluid_old[3]; // potential (in the metric term dt)
+  double m = fluid_old[4];
+  double r = fluid_old[5];
+  double r2 = r * r;
+  if (r2 < 1.0e-300) {
+    r2 = 1.0e-300;
+  }
+
+  double D = fluid_old[0] / r2;
+  double tau = fluid_old[1] / r2;   // tau = Etot - D (Valencia energy)
+  double mom_r = fluid_old[2] / r2;
+
+  double rho_floor = 1.0e-15;
+  double p_floor = 1.0e-300;
+  double D_safe = fmax(D, rho_floor);
+  double p_min = fmax(p_floor, fabs(mom_r) - tau - D_safe + 1.0e-16);
+  double p = fmax((gas_gamma - 1.0) * tau, p_min);
+  double vel = 0.0;
+
+  for (int iter = 0; iter < 100; iter++) {
+    double Q = tau + D_safe + p;
+    vel = mom_r / Q;
+    if (vel * vel > 1.0 - 1.0e-12) {
+      vel = copysign(sqrt(1.0 - 1.0e-12), vel);
+    }
+    double W2 = 1.0 / (1.0 - vel * vel);
+    double W = sqrt(W2);
+    double rho = D_safe / W;
+    double eps = (tau - D_safe * (W - 1.0) - p * (W2 - 1.0)) / (D_safe * W);
+    if (eps < 0.0) {
+      eps = 0.0;
+    }
+
+    double p_eos = (gas_gamma - 1.0) * rho * eps;
+    double f_val = p_eos - p;
+    double h = 1.0 + eps + p / rho;
+    double cs2 = gas_gamma * p / (rho * h);
+    if (cs2 < 0.0) {
+      cs2 = 0.0;
+    }
+    if (cs2 > 1.0 - 1.0e-12) {
+      cs2 = 1.0 - 1.0e-12;
+    }
+    double f_prime = vel * vel * cs2 - 1.0;
+
+    double dp = -f_val / f_prime;
+    p += dp;
+    if (p < p_min) {
+      p = p_min;
+    }
+    if (fabs(dp) < 1.0e-12 * fmax(fabs(p), p_floor)) {
+      break;
+    }
+  }
+
+  double Etot = tau + D; // physical energy, restored for the geometric source
+  double denom = Etot + p;
+  vel = mom_r / denom;
+  if (vel * vel > 1.0 - 1.0e-12) {
+    vel = copysign(sqrt(1.0 - 1.0e-12), vel);
+  }
+
+  double lapse = exp(Phi);
+  double a = 1.0 / sqrt(1.0 - (2.0 * m / r));
+
+  double W = 1.0 / sqrt(1.0 - (vel * vel));
+  if (vel * vel > 1.0 - 1.0e-8) {
+    W = 1.0 / sqrt(1.0e-8);
+  }
+
+  double THETA = (mom_r * vel - Etot) * (8.0 * M_PI * lapse * a * r * p + lapse * a * (m / (r * r))) + (lapse * a * p * (m / (r * r)));
+  double X = lapse / a;
+  double sigma = THETA + (2.0 * X * p / r);
+  for (int i = 0; i < 8; i++) {
+    fluid_new[i] = fluid_old[i];
+  }
+
+  fluid_new[0] += 0.0;
+  fluid_new[1] += 0.0;
+  fluid_new[2] += dt * (r2 * sigma);
+  fluid_new[3] += 0.0;
+  fluid_new[4] += 0.0;
+  fluid_new[5] += 0.0;
+  fluid_new[6] += 0.0;
+  fluid_new[7] += 0.0;
+}
+
+void
+explicit_gr_tov_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+{
+  int nfluids = mom_em->nfluids;
+
+  double gas_gamma = mom_em->tov_gas_gamma;
+  double kappa = mom_em->tov_kappa;
+
+  for (int i = 0; i < nfluids; i++) {
+    double *f = fluid_s[i];
+
+    double f_new[8], f_stage1[8], f_stage2[8], f_old[8];
+
+    for (int j = 0; j < 8; j++) {
+      f_old[j] = f[j];
+    }
+
+    explicit_gr_tov_source_update_euler(mom_em, gas_gamma, kappa, t_curr, dt, f_old, f_new);
+    for (int j = 0; j < 8; j++) {
+      f_stage1[j] = f_new[j];
+    }
+
+    explicit_gr_tov_source_update_euler(mom_em, gas_gamma, kappa, t_curr + dt, dt, f_stage1, f_new);
+    for (int j = 0; j < 8; j++) {
+      f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
+    }
+
+    explicit_gr_tov_source_update_euler(mom_em, gas_gamma, kappa, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    for (int j = 0; j < 8; j++) {
+      f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
+    }
+  }
+}
+
+void
+explicit_gr_tov_ultra_rel_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double kappa, double t_curr,
+  const double dt, double* fluid_old, double* fluid_new)
+{
   double Etot = fluid_old[1];
   double mom_r = fluid_old[2];
   double Phi = fluid_old[3]; // potential (in the metric term dt)
@@ -450,7 +575,7 @@ explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
 }
 
 void
-explicit_gr_tov_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
+explicit_gr_tov_ultra_rel_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -466,17 +591,17 @@ explicit_gr_tov_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
       f_old[j] = f[j];
     }
 
-    explicit_gr_tov_source_update_euler(mom_em, gas_gamma, kappa, t_curr, dt, f_old, f_new);
+    explicit_gr_tov_ultra_rel_source_update_euler(mom_em, gas_gamma, kappa, t_curr, dt, f_old, f_new);
     for (int j = 0; j < 8; j++) {
       f_stage1[j] = f_new[j];
     }
 
-    explicit_gr_tov_source_update_euler(mom_em, gas_gamma, kappa, t_curr + dt, dt, f_stage1, f_new);
+    explicit_gr_tov_ultra_rel_source_update_euler(mom_em, gas_gamma, kappa, t_curr + dt, dt, f_stage1, f_new);
     for (int j = 0; j < 8; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
-    explicit_gr_tov_source_update_euler(mom_em, gas_gamma, kappa, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    explicit_gr_tov_ultra_rel_source_update_euler(mom_em, gas_gamma, kappa, t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 8; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }

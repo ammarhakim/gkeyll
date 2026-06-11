@@ -19,6 +19,9 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
     if (app->species[i].has_gr_tov && app->species[i].has_dynamic_lapse) {
       moment_species_refresh_gr_tov_geometry(app, &app->species[i], fin[i]);
     }
+    if (app->species[i].has_gr_tov_ultra_rel && app->species[i].has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, &app->species[i], fin[i]);
+    }
     double dt1 = moment_species_rhs(app, &app->species[i], fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
@@ -44,6 +47,9 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
     gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, &(app->local)),
       1.0, fin[i], &(app->local));
     if (app->species[i].has_gr_tov && app->species[i].has_dynamic_lapse) {
+      moment_species_refresh_gr_tov_geometry(app, &app->species[i], fout[i]);
+    }
+    if (app->species[i].has_gr_tov_ultra_rel && app->species[i].has_dynamic_lapse) {
       moment_species_refresh_gr_tov_geometry(app, &app->species[i], fout[i]);
     }
     moment_species_apply_bc(app, tcurr, &app->species[i], fout[i]);

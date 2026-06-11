@@ -74,3 +74,11 @@ double gkyl_tov_star_radius(const struct gkyl_tov *tov);
  * Release TOV solution object and free memory.
  */
 void gkyl_tov_solution_release(struct gkyl_tov *tov);
+
+/**
+ * Refresh lapse potential Phi and enclosed mass m from the current
+ * one-dimensional GR TOV state.
+ *
+ * The state q is assumed to be contiguous with 8 components per cell.
+ */
+void gkyl_gr_tov_refresh_geometry_from_state(double gas_gamma, double p_atm, int ncells, double *q);

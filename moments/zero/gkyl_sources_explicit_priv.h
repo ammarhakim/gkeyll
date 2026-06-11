@@ -215,6 +215,35 @@ void
 explicit_gr_tov_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
 
 /**
+* Integrate the coupled fluid-Einstein source terms in plane-symmetric spacetimes in the multi-fluid equation system within a single cell, using an
+* explicit forcing solver (specifically a simple first-order forward-Euler method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param gas_gamma Adiabatic index.
+* @param kappa Stress-energy prefactor in the Einstein field equations.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_old Array of old fluid variables (before source update).
+* @param fluid_new Array of new fluid variables (after source update).
+*/
+void
+explicit_gr_tov_ultra_rel_source_update_euler(const gkyl_moment_em_coupling* mom_em, const double gas_gamma, const double kappa, double t_curr,
+  const double dt, double* fluid_old, double* fluid_new);
+
+/**
+* Integrate the coupled fluid-Einstein source terms in plane-symmetric spacetimes in the multi-fluid equation system within a single cell, using an
+* explicit forcing solver (specifically a strong stability-preserving third-order Runge-Kutta method).
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+*/
+void
+explicit_gr_tov_ultra_rel_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt, double* fluid_s[GKYL_MAX_SPECIES]);
+
+
+/**
 * Integrate the general relativistic source terms (Euler equations, ultra-relativistic equation of state) in the multi-fluid equation system within a
 * single cell, using an explicit forcing solver (specifically a simple first-order forward-Euler method).
 *

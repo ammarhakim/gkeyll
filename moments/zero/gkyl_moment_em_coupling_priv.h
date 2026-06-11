@@ -56,6 +56,7 @@ struct gkyl_moment_em_coupling {
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
   bool has_gr_tov_sources; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  bool has_gr_tov_ultra_rel_sources;
   double tov_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double tov_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
