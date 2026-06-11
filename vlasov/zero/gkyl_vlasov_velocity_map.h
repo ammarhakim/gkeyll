@@ -17,22 +17,30 @@ struct gkyl_vlasov_velocity_map_inp {
   void *ctx; // Context for function evaluation. Can be NULL.
 };
 
-// Representation of the stored velocity map. Only the C^1 cubic representation
-// (tensor velocity basis) is implemented; the C^0 linear representation for
-// Serendipity velocity bases is a planned extension which will be stored as a
-// degenerate cubic in the same vdim*4 layout.
+// Representation of the stored velocity map, chosen by the velocity basis:
+// tensor bases (p>1) use the C^1 cubic; Serendipity bases (and p=1, where
+// tensor and Serendipity coincide) use the C^0 piecewise linear, stored as a
+// degenerate cubic in the same vdim*4 layout (quadratic and cubic
+// coefficients zero). The C^0 map's Jacobian is piecewise constant and
+// discontinuous at cell interfaces: the Jacobian arrays hold that constant
+// replicated at every quadrature point, and consumers needing the Jacobian
+// at an interface must take the minimum of the two adjacent cells when
+// estimating maximum frequencies.
 enum gkyl_vlasov_vmap_rep {
   GKYL_VLASOV_VMAP_C1_CUBIC = 0,
   GKYL_VLASOV_VMAP_C0_LINEAR,
 };
 
-// Velocity-space mapping object for the Vlasov app. Packages the C^1 cubic
-// representation of the (possibly non-uniform) computational-to-physical
-// velocity mapping in each velocity dimension, along with the velocity-space
-// Jacobian evaluated at the Gauss-Legendre quadrature points needed by volume,
-// surface, and projection operations. This object is *always* created by the
-// app: when no user mapping is supplied the identity map is used, so consumers
-// handle uniform and non-uniform velocity grids transparently.
+// Velocity-space mapping object for the Vlasov app. Packages the
+// representation (C^1 cubic or C^0 linear, by velocity basis) of the
+// (possibly non-uniform) computational-to-physical velocity mapping in each
+// velocity dimension, along with the velocity-space Jacobian evaluated at the
+// Gauss-Legendre quadrature points needed by volume, surface, and projection
+// operations. This object is *always* created by the app: when no user
+// mapping is supplied the identity map is used, and there is a single code
+// path — the map is always populated, always written at frame 0, and the
+// Jacobian is always divided/rescaled — so consumers handle uniform and
+// non-uniform velocity grids transparently.
 //
 // This is a host-side, reference-counted container. There is deliberately no
 // device-side mirror of the struct itself: when created with use_gpu=true the
@@ -46,8 +54,9 @@ struct gkyl_vlasov_velocity_map {
   struct gkyl_basis basis_vel; // Velocity-space basis (b_type and poly_order drive kernel dispatch).
   enum gkyl_vlasov_vmap_rep rep; // Representation of the stored map.
   bool is_identity; // True if no user mapping was given in any direction.
-  bool is_mapped; // True if velocity basis is tensor or a user mapping was given.
-                  // Gates I/O and the non-uniform paths in updaters.
+  bool is_mapped; // Always true: the map is always created and consumed.
+                  // Retained for consumers that set use_vmap from it; to be
+                  // removed once those call sites are simplified.
 
   // Solver arrays; device-resident when created with use_gpu=true.
   struct gkyl_array *vmap; // C^1 cubic representation of mapping in each velocity dimension (vdim*4 components: vx, then vy, then vz).
@@ -70,11 +79,13 @@ struct gkyl_vlasov_velocity_map {
 };
 
 /**
- * Create a new velocity map using a cubic C^1 representation based on the
- * input mapping functions. Directions with eval_vmap==NULL get the identity
- * map, so this constructor is valid for every species and model. All arrays
- * (including host mirrors and I/O arrays) are allocated and populated here;
- * when use_gpu=true the solver arrays are copied onto device.
+ * Create a new velocity map based on the input mapping functions, using a
+ * C^1 cubic representation for tensor velocity bases (p>1) and a C^0
+ * piecewise linear representation for Serendipity velocity bases (and p=1).
+ * Directions with eval_vmap==NULL get the identity map, so this constructor
+ * is valid for every species and model. All arrays (including host mirrors
+ * and I/O arrays) are allocated and populated here; when use_gpu=true the
+ * solver arrays are copied onto device.
  *
  * @param vgrid Velocity-space grid object.
  * @param vrange Velocity-space range the arrays are defined on.
@@ -118,8 +129,8 @@ bool gkyl_vlasov_velocity_map_is_cu_dev(const struct gkyl_vlasov_velocity_map *v
 /**
  * Write the velocity map to %s-%s_vmap.gkyl and, if write_cell_avg, its cell
  * average to %s-%s_vmap_avg.gkyl, on rank 0 of comm. The map is static in
- * time so this is intended to be called once (e.g. at frame 0) when the map
- * is non-trivial (vvm->is_mapped).
+ * time so this is intended to be called once (e.g. at frame 0); it is always
+ * written, uniform (identity) grids included.
  *
  * @param vvm Velocity map object.
  * @param comm Communicator of the species this map belongs to.
@@ -138,8 +149,9 @@ void gkyl_vlasov_velocity_map_write(const struct gkyl_vlasov_velocity_map *vvm,
  * because, by construction, we know Jv at these points and Jv is static in
  * time, so we obtain the weakly equivalent f from Jf in our DG expansion
  * (since we can always transform between the Gauss-Legendre nodal basis and
- * our modal basis). On uniform grids with Serendipity bases this reduces to a
- * copy. Runs on device when the map was created with use_gpu=true.
+ * our modal basis). For the C^0 linear representation (Serendipity bases) the
+ * Jacobian is constant in the cell so the division is exact, modally and
+ * nodally. Runs on device when the map was created with use_gpu=true.
  *
  * @param vvm Velocity map object.
  * @param conf_basis Configuration-space basis.

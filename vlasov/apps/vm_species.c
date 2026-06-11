@@ -490,7 +490,9 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
     
   vlasov_array_meta_release(mt);  
 
-  if (vms->vel_map->is_mapped && frame == 0) {
+  // The velocity map is static in time, so write it (uniform grids included)
+  // only with the first frame.
+  if (frame == 0) {
     struct gkyl_msgpack_data *mt_vel = vlasov_array_meta_new( (struct vlasov_output_meta) {
         .frame = frame,
         .stime = tm,

@@ -7,6 +7,7 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_comm_io.h>
 #include <gkyl_dg_basis_ops.h>
+#include <gkyl_eval_on_nodes.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_vlasov_velocity_map.h>
@@ -31,7 +32,7 @@ mkarr(bool on_gpu, long nc, long size)
 // dimension and evaluating its derivative at the Gauss-Legendre quadrature
 // points needed by volume, surface, and projection operations.
 static void
-vlasov_velocity_map_populate(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange,
+vlasov_velocity_map_c1_cubic(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange,
   int v_poly_order, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
   struct gkyl_array *vmap, struct gkyl_array *jacob_vel, struct gkyl_array *jacob_vel_surf,
   struct gkyl_array *vmap_pgkyl, struct gkyl_array *vmap_avg_pgkyl,
@@ -126,6 +127,115 @@ vlasov_velocity_map_populate(const struct gkyl_rect_grid *vgrid, const struct gk
   }
 }
 
+// Populate the (host) velocity map arrays from the input 1D mappings by
+// constructing a continuous (C^0) piecewise linear representation in each
+// velocity dimension: an eval_on_nodes at the Gauss-Lobatto nodes (the cell
+// vertices for a p=1 basis, shared between neighboring cells so the
+// representation is continuous by construction). The linear map is stored as
+// a degenerate cubic in the same vdim*4 layout as the C^1 cubic
+// representation (quadratic and cubic coefficients identically zero), so
+// consumers that evaluate the map with a 1D cubic basis work unchanged. The
+// per-direction Jacobian is piecewise constant (discontinuous at cell
+// interfaces), so every quadrature-point value in jacob_vel, jacob_vel_surf,
+// and jacob_vel_gauss within a cell is the same constant; the arrays keep
+// the cubic layout with that constant replicated.
+static void
+vlasov_velocity_map_c0_linear(const struct gkyl_rect_grid *vgrid, const struct gkyl_range *vrange,
+  int v_poly_order, struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM],
+  struct gkyl_array *vmap, struct gkyl_array *jacob_vel, struct gkyl_array *jacob_vel_surf,
+  struct gkyl_array *vmap_pgkyl, struct gkyl_array *vmap_avg_pgkyl,
+  struct gkyl_array *jacob_vel_gauss)
+{
+  int vdim = vgrid->ndim;
+  struct gkyl_array *v_linear[3];
+
+  // Make 1D linear basis for constructing C^0 expansion
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, 1);
+
+  // 1D ranges for indexing 1D linear bases
+  struct gkyl_range local[3], local_ext[3];
+
+  // Loop over number of dimensions and construct 1D mappings
+  for (int i=0; i<vdim; ++i) {
+    double lower[] = { vgrid->lower[i] }, upper[] = { vgrid->upper[i] };
+    int cells[] = { vgrid->cells[i] };
+
+    struct gkyl_rect_grid grid_1d;
+    gkyl_rect_grid_init(&grid_1d, 1, lower, upper, cells);
+
+    int nghost[GKYL_MAX_CDIM] = { 0, 0 };
+    gkyl_create_grid_ranges(&grid_1d, nghost, &local_ext[i], &local[i]);
+
+    v_linear[i] = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext[i].volume);
+
+    gkyl_eval_on_nodes *ev_map = gkyl_eval_on_nodes_new(&grid_1d, &basis, 1,
+      inp_vmap[i].eval_vmap, inp_vmap[i].ctx);
+    gkyl_eval_on_nodes_advance(ev_map, 0.0, &local[i], v_linear[i]);
+    gkyl_eval_on_nodes_release(ev_map);
+  }
+
+  // Location of the four 1D cubic coefficients of direction d inside the
+  // full-dimensional p=3 serendipity vmap_pgkyl representation, and the scale
+  // factor relating them to the 1D coefficients (same placement the C^1 cubic
+  // kernels use; the quadratic and cubic slots just hold zeros here).
+  static const int pgkyl_idx[3][3][4] = {
+    { {0, 1, 2, 3}, {0}, {0} }, // 1V
+    { {0, 1, 4, 8}, {0, 2, 5, 9}, {0} }, // 2V
+    { {0, 1, 7, 17}, {0, 2, 8, 18}, {0, 3, 9, 19} }, // 3V
+  };
+  static const double pgkyl_scale[3] = { 1.0, 1.4142135623730951, 2.0 };
+
+  int num_quad_vol = v_poly_order+1, num_quad_surf = v_poly_order+2;
+  long pgkyl_nb = vmap_pgkyl->ncomp/vdim;
+  int vidx_1D[1]; // 1D index for indexing correct linear mapping
+
+  struct gkyl_range_iter iter_vmap;
+  gkyl_range_iter_init(&iter_vmap, vrange);
+  while (gkyl_range_iter_next(&iter_vmap)) {
+    long loc_vel = gkyl_range_idx(vrange, iter_vmap.idx);
+
+    double *vmap_d = gkyl_array_fetch(vmap, loc_vel);
+    double *jacob_vel_d = gkyl_array_fetch(jacob_vel, loc_vel);
+    double *jacob_vel_surf_d = gkyl_array_fetch(jacob_vel_surf, loc_vel);
+    double *vmap_pgkyl_d = gkyl_array_fetch(vmap_pgkyl, loc_vel);
+    double *vmap_avg_pgkyl_d = gkyl_array_fetch(vmap_avg_pgkyl, loc_vel);
+    double *jacob_vel_gauss_d = gkyl_array_fetch(jacob_vel_gauss, loc_vel);
+
+    double jacob_tot = 1.0;
+    for (int i=0; i<vdim; ++i) {
+      vidx_1D[0] = iter_vmap.idx[i];
+      long loc_vel_1D = gkyl_range_idx(&local[i], vidx_1D);
+      const double *lin = gkyl_array_cfetch(v_linear[i], loc_vel_1D);
+
+      double *p = &vmap_d[4*i];
+      p[0] = lin[0];
+      p[1] = lin[1];
+      p[2] = 0.0;
+      p[3] = 0.0;
+
+      // Piecewise constant Jacobian: (2/dv)*d/dz of the linear map, with
+      // sqrt(3/2) from the derivative of the 1D linear basis function.
+      double jac = (2.0/vgrid->dx[i])*1.224744871391589*p[1];
+      jacob_tot *= jac;
+      for (int q=0; q<num_quad_vol; ++q)
+        jacob_vel_d[i*num_quad_vol+q] = jac;
+      for (int q=0; q<num_quad_surf; ++q)
+        jacob_vel_surf_d[i*num_quad_surf+q] = jac;
+
+      for (int k=0; k<4; ++k)
+        vmap_pgkyl_d[i*pgkyl_nb + pgkyl_idx[vdim-1][i][k]] = pgkyl_scale[vdim-1]*p[k];
+      vmap_avg_pgkyl_d[i] = p[0]/1.4142135623730951;
+    }
+    for (int q=0; q<jacob_vel_gauss->ncomp; ++q)
+      jacob_vel_gauss_d[q] = jacob_tot;
+  }
+
+  // free temporary memory
+  for (int i=0; i<vdim; ++i)
+    gkyl_array_release(v_linear[i]);
+}
+
 static void
 gkyl_vlasov_velocity_map_free(const struct gkyl_ref_count *ref)
 {
@@ -160,9 +270,12 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
   vvm->grid_vel = *vgrid;
   vvm->local_vel = *vrange;
   vvm->basis_vel = *vel_basis;
-  // C^0 linear representation for Serendipity velocity bases is a planned
-  // extension; only the C^1 cubic representation is constructed.
-  vvm->rep = GKYL_VLASOV_VMAP_C1_CUBIC;
+  // Representation is chosen by the velocity basis: tensor bases (p>1) use
+  // the C^1 cubic, Serendipity bases use the C^0 linear whose Jacobian is
+  // piecewise constant. p=1 always uses the C^0 linear since tensor p=1 and
+  // Serendipity p=1 are the same basis.
+  vvm->rep = (vel_basis->b_type == GKYL_BASIS_MODAL_SERENDIPITY || poly_order == 1) ?
+    GKYL_VLASOV_VMAP_C0_LINEAR : GKYL_VLASOV_VMAP_C1_CUBIC;
 
   vvm->is_identity = true;
   for (int v=0; v<vdim; ++v) {
@@ -170,7 +283,9 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
       vvm->is_identity = false;
     }
   }
-  vvm->is_mapped = (vel_basis->b_type == GKYL_BASIS_MODAL_TENSOR) || !vvm->is_identity;
+  // The map is always constructed and consumed, for every basis and for
+  // uniform (identity) grids alike; there is a single code path.
+  vvm->is_mapped = true;
 
   // velocity map is always a C^1 cubic representation in each direction (up to 3V; 3*4=12 components)
   vvm->vmap = mkarr(use_gpu, vdim*4, vrange->volume);
@@ -218,29 +333,23 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
     }
   }
 
-  if (choose_vmap_kern(vdim, poly_order)) {
-    vlasov_velocity_map_populate(vgrid, vrange, poly_order, inp,
+  if (vvm->rep == GKYL_VLASOV_VMAP_C0_LINEAR) {
+    vlasov_velocity_map_c0_linear(vgrid, vrange, poly_order, inp,
       vvm->vmap_host, vvm->jacob_vel_host, vvm->jacob_vel_surf_host,
       vvm->vmap_pgkyl_host, vvm->vmap_avg_pgkyl_host, vvm->jacob_vel_gauss_host);
-
-    if (use_gpu) {
-      gkyl_array_copy(vvm->vmap, vvm->vmap_host);
-      gkyl_array_copy(vvm->jacob_vel, vvm->jacob_vel_host);
-      gkyl_array_copy(vvm->jacob_vel_surf, vvm->jacob_vel_surf_host);
-      gkyl_array_copy(vvm->jacob_vel_gauss, vvm->jacob_vel_gauss_host);
-    }
   }
   else {
-    // No C^1 cubic kernel for this (vdim, poly_order) combination; only
-    // allowed when the map is the identity (e.g. Serendipity p=1, whose
-    // divide/rescale kernels do not reference these arrays).
-    assert(vvm->is_identity);
-    if (use_gpu) {
-      gkyl_array_clear(vvm->vmap, 0.0);
-      gkyl_array_clear(vvm->jacob_vel, 0.0);
-      gkyl_array_clear(vvm->jacob_vel_surf, 0.0);
-      gkyl_array_clear(vvm->jacob_vel_gauss, 0.0);
-    }
+    assert(choose_vmap_kern(vdim, poly_order)); // C^1 cubic kernels exist for tensor p=2,3.
+    vlasov_velocity_map_c1_cubic(vgrid, vrange, poly_order, inp,
+      vvm->vmap_host, vvm->jacob_vel_host, vvm->jacob_vel_surf_host,
+      vvm->vmap_pgkyl_host, vvm->vmap_avg_pgkyl_host, vvm->jacob_vel_gauss_host);
+  }
+
+  if (use_gpu) {
+    gkyl_array_copy(vvm->vmap, vvm->vmap_host);
+    gkyl_array_copy(vvm->jacob_vel, vvm->jacob_vel_host);
+    gkyl_array_copy(vvm->jacob_vel_surf, vvm->jacob_vel_surf_host);
+    gkyl_array_copy(vvm->jacob_vel_gauss, vvm->jacob_vel_gauss_host);
   }
 
   vvm->flags = 0;
@@ -292,10 +401,10 @@ gkyl_vlasov_velocity_map_divide_jacobvel(const struct gkyl_vlasov_velocity_map *
   const struct gkyl_range *phase_range,
   const struct gkyl_array *Jf, struct gkyl_array *f_no_J)
 {
-  // Only the C^1 cubic representation is implemented; the future C^0 linear
-  // representation for Serendipity velocity bases will dispatch differently here.
-  assert(vvm->rep == GKYL_VLASOV_VMAP_C1_CUBIC);
-
+  // Both representations divide nodally at Gauss-Legendre quadrature points;
+  // the kernels are selected by the conf basis type. For the C^0 linear
+  // representation the Jacobian is constant in the cell, so the Serendipity
+  // kernels reduce to division by that constant.
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_vlasov_velocity_map_is_cu_dev(vvm)) {
     gkyl_vlasov_velocity_map_divide_jacobvel_cu(conf_basis, phase_basis,
@@ -345,10 +454,10 @@ gkyl_vlasov_velocity_map_rescale_jacobvel(const struct gkyl_vlasov_velocity_map 
   const struct gkyl_range *phase_range,
   const struct gkyl_array *f_no_J, struct gkyl_array *Jf)
 {
-  // Only the C^1 cubic representation is implemented; the future C^0 linear
-  // representation for Serendipity velocity bases will dispatch differently here.
-  assert(vvm->rep == GKYL_VLASOV_VMAP_C1_CUBIC);
-
+  // Both representations rescale nodally at Gauss-Legendre quadrature points;
+  // the kernels are selected by the conf basis type. For the C^0 linear
+  // representation the Jacobian is constant in the cell, so the Serendipity
+  // kernels reduce to multiplication by that constant.
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_vlasov_velocity_map_is_cu_dev(vvm)) {
     gkyl_vlasov_velocity_map_rescale_jacobvel_cu(conf_basis, phase_basis,
