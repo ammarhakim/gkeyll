@@ -281,6 +281,7 @@ static void test_divide_jacobvel_1x3v(void) { test_divide_jacobvel(3, false); }
 #ifdef GKYL_HAVE_CUDA
 static void test_divide_jacobvel_1x1v_gpu(void) { test_divide_jacobvel(1, true); }
 static void test_divide_jacobvel_1x2v_gpu(void) { test_divide_jacobvel(2, true); }
+static void test_divide_jacobvel_1x3v_gpu(void) { test_divide_jacobvel(3, true); }
 #endif
 
 TEST_LIST = {
@@ -290,6 +291,7 @@ TEST_LIST = {
 #ifdef GKYL_HAVE_CUDA
   { "divide_jacobvel_1x1v_gpu", test_divide_jacobvel_1x1v_gpu },
   { "divide_jacobvel_1x2v_gpu", test_divide_jacobvel_1x2v_gpu },
+  { "divide_jacobvel_1x3v_gpu", test_divide_jacobvel_1x3v_gpu },
 #endif
   { NULL, NULL },
 };

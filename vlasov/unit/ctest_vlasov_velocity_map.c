@@ -307,9 +307,11 @@ static void test_vmap_identity_3v_p2(void) { test_vmap_identity(3, 2, false); }
 
 #ifdef GKYL_HAVE_CUDA
 // On GPUs the solver arrays are device-resident: copy them back to the host
-// and compare against a host-built map.
+// and compare against a host-built map. The map itself is constructed on the
+// CPU and copied over, so this checks the device copy of every solver array
+// for both user mappings and the identity (uniform grid) default.
 static void
-test_vmap_gpu(int vdim, int poly_order)
+test_vmap_gpu(int vdim, int poly_order, bool identity)
 {
   double lower[] = { -2.0, -2.0, -2.0 }, upper[] = { 2.0, 2.0, 2.0 };
   int cells[] = { 8, 6, 4 };
@@ -325,8 +327,9 @@ test_vmap_gpu(int vdim, int poly_order)
   gkyl_cart_modal_tensor(&basis_vel, vdim, poly_order);
 
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  for (int d=0; d<vdim; ++d)
-    inp_vmap[d].eval_vmap = test_eval_maps[d];
+  if (!identity)
+    for (int d=0; d<vdim; ++d)
+      inp_vmap[d].eval_vmap = test_eval_maps[d];
 
   struct gkyl_vlasov_velocity_map *vvm_ho = gkyl_vlasov_velocity_map_new(&vgrid,
     &local_vel, &basis_vel, inp_vmap, false);
@@ -334,6 +337,7 @@ test_vmap_gpu(int vdim, int poly_order)
     &local_vel, &basis_vel, inp_vmap, true);
 
   TEST_CHECK( gkyl_vlasov_velocity_map_is_cu_dev(vvm) );
+  TEST_CHECK( vvm->is_identity == identity );
 
   struct gkyl_array *dev_arrays[] = { vvm->vmap, vvm->jacob_vel, vvm->jacob_vel_surf, vvm->jacob_vel_gauss };
   struct gkyl_array *ho_arrays[] = { vvm_ho->vmap, vvm_ho->jacob_vel, vvm_ho->jacob_vel_surf, vvm_ho->jacob_vel_gauss };
@@ -353,7 +357,11 @@ test_vmap_gpu(int vdim, int poly_order)
   gkyl_vlasov_velocity_map_release(vvm);
 }
 
-static void test_vmap_2v_p2_gpu(void) { test_vmap_gpu(2, 2); }
+static void test_vmap_1v_p2_gpu(void) { test_vmap_gpu(1, 2, false); }
+static void test_vmap_1v_p3_gpu(void) { test_vmap_gpu(1, 3, false); }
+static void test_vmap_2v_p2_gpu(void) { test_vmap_gpu(2, 2, false); }
+static void test_vmap_3v_p2_gpu(void) { test_vmap_gpu(3, 2, false); }
+static void test_vmap_identity_2v_p2_gpu(void) { test_vmap_gpu(2, 2, true); }
 #endif
 
 TEST_LIST = {
@@ -365,7 +373,11 @@ TEST_LIST = {
   { "vmap_identity_2v_p2", test_vmap_identity_2v_p2 },
   { "vmap_identity_3v_p2", test_vmap_identity_3v_p2 },
 #ifdef GKYL_HAVE_CUDA
+  { "vmap_1v_p2_gpu", test_vmap_1v_p2_gpu },
+  { "vmap_1v_p3_gpu", test_vmap_1v_p3_gpu },
   { "vmap_2v_p2_gpu", test_vmap_2v_p2_gpu },
+  { "vmap_3v_p2_gpu", test_vmap_3v_p2_gpu },
+  { "vmap_identity_2v_p2_gpu", test_vmap_identity_2v_p2_gpu },
 #endif
   { NULL, NULL },
 };
