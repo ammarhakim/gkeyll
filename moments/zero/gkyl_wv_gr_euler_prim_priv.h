@@ -1,5 +1,6 @@
 #pragma once
 
+#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -450,7 +451,9 @@ struct gkyl_gr_euler_prim_status {
   // the most recent HLLC call for fine-grained inspection by single-state
   // tests (overwritten each call). Reason key:
   //   0 = no fallback (HLLC star-state used)
-  //   1 = lam_diff ≈ 0 (degenerate Davis bracket — λ_L ≈ λ_R)
+  //   1 = RETIRED (degenerate bracket is a hard failure since
+  //       2026-06-11 — unreachable on non-vacuum inputs; bin kept for
+  //       layout)
   //   2 = λ* not finite
   //   3 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
   //   4 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
@@ -975,6 +978,20 @@ gkyl_gr_euler_recover_primitives(
   struct gkyl_gr_euler_prim_status *stat,
   struct gkyl_gr_euler_prim *out)
 {
+  // NaN/Inf chokepoint — the single funnel every GR-Euler solve path
+  // (SR kernels, curved Lax, prim_vars, source coupling) flows through.
+  // -fno-finite-math-only keeps NaN semantics honest, so a poisoned
+  // state propagates here within a step; fail loudly with the inputs
+  // rather than letting the repair machinery launder it. (A NaN cell
+  // fails the D > 0 admissibility comparison and would otherwise be
+  // silently "repaired" as just another bad cell.)
+  if (!isfinite(D + Sx + Sy + Sz + tau)) {
+    fprintf(stderr, "gr_euler recover_primitives: non-finite input state "
+      "(D=%.17e Sx=%.17e Sy=%.17e Sz=%.17e tau=%.17e)\n",
+      D, Sx, Sy, Sz, tau);
+    assert(false);
+  }
+
   out->admissible =
     gkyl_gr_euler_check_admissibility(D, Sx, Sy, Sz, tau, inv_g) == GR_EULER_ADM_OK;
 

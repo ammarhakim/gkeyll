@@ -496,27 +496,15 @@ gr_euler_sr_hll_middle(const double ql[5], const double qr[5],
     qm[i] = (sr * qr[i] - sl * ql[i] + fl[i] - fr[i]) / denom;
 }
 
-// Per-side acoustic eigenvalue estimates — TWO forms exist in this
-// family (HLLC_AUDIT_PLAN.md):
-//
-// _addition: 1D relativistic velocity addition (v_x ± c_s)/(1 ± v_x·c_s).
-//   Ignores the W² aberration narrowing of the sound cone from
-//   transverse velocity, so it is strictly WIDER (more diffusive but
-//   safe) than the exact form whenever v_t ≠ 0. Historical default for
-//   HLL/Lax — every rpType="hll" baseline runs through it.
-//
-// _exact: the exact 1D-Jacobian eigenvalues with tangential velocity
-//   (MB05 eqs 22–23 / Davis 1988): σ_s = c_s²/(W²(1−c_s²)),
-//   λ± = (v_x ± √(σ_s(1−v_x²+σ_s)))/(1+σ_s). Native to the HLLC
-//   kernel; selectable for HLL/Lax via use_exact_wave_speeds
-//   (Lua: exactWaveSpeeds) for bracket-tightness A/B studies.
-static inline void
-gr_euler_sr_lambda_addition(double vx, double c_s, double *lm, double *lp)
-{
-  *lm = (vx - c_s) / (1.0 - vx * c_s);
-  *lp = (vx + c_s) / (1.0 + vx * c_s);
-}
-
+// Per-side acoustic eigenvalues: the exact 1D-Jacobian eigenvalues with
+// tangential velocity (MB05 eqs 21–23 / Davis 1988):
+//   σ_s = c_s²/(W²(1−c_s²)), λ± = (v_x ± √(σ_s(1−v_x²+σ_s)))/(1+σ_s).
+// The single wave-speed estimate for the whole SR kernel family
+// (HLL/Lax/HLLC) — the community-standard choice (Schneider 1993;
+// Duncan & Hughes 1994; Del Zanna & Bucciantini 2002). A historical
+// 1D velocity-addition variant was deleted 2026-06-11 after the
+// bracket A/B (HLLC_AUDIT_PLAN.md); it was the zero-tangential-velocity
+// special case of this formula.
 static inline void
 gr_euler_sr_lambda_exact(double vx, double W, double cs2,
   double *lm, double *lp)
@@ -765,13 +753,12 @@ gkyl_gr_euler_tetrad_sr_roe_minkowski(struct gkyl_gr_euler_eos eos,
 //
 // Tetrad-first composition: this is the SR core; the curved-frame
 // pipeline transforms states/fluxes into the tetrad frame, calls this,
-// and back-transforms waves and speeds. The exported entry points below
-// pin exact_speeds at compile time (default = addition form).
-static inline double
-gr_euler_sr_hll_core(struct gkyl_gr_euler_eos eos,
+// and back-transforms waves and speeds.
+double
+gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2], bool exact_speeds)
+  double waves_tet[2 * 5], double speeds[2])
 {
   // Vacuum-safe Banyuls primitive recovery (shared helper; IDEAL →
   // Eulderink-Mellema quartic Newton, APPROXIMATE_SYNGE → TM cubic +
@@ -779,6 +766,10 @@ gr_euler_sr_hll_core(struct gkyl_gr_euler_eos eos,
   // An all-zero excision side gets vacuum primitives; SR fluxes are then
   // identically zero on that side and the wave bracket is bounded by the
   // active side's speeds.
+  // Input contract: at most one side is vacuum (the dispatch
+  // short-circuits both-excised before any kernel runs). A violated
+  // contract collapses the wave bracket → 0/0 below → honest NaN
+  // (-fno-finite-math-only) caught at the recovery chokepoint.
   struct gkyl_gr_euler_prim pl, pr;
   gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
   gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
@@ -792,21 +783,10 @@ gr_euler_sr_hll_core(struct gkyl_gr_euler_eos eos,
   if (cs2_l < 0.0) cs2_l = 0.0;
   if (cs2_r < 0.0) cs2_r = 0.0;
 
-  // Wave-speed estimate: velocity-addition by default (every
-  // rpType="hll" baseline runs through it — do not change casually),
-  // exact tangential-aware eigenvalues under use_exact_wave_speeds.
-  // See the helper comments above for the wide-vs-tight trade.
+  // Davis-type bracket from the exact per-side eigenvalues (MB05 eq 21).
   double lambda_minus_l, lambda_plus_l, lambda_minus_r, lambda_plus_r;
-  if (exact_speeds) {
-    gr_euler_sr_lambda_exact(vx_l, pl.W, cs2_l, &lambda_minus_l, &lambda_plus_l);
-    gr_euler_sr_lambda_exact(vx_r, pr.W, cs2_r, &lambda_minus_r, &lambda_plus_r);
-  }
-  else {
-    double c_sl = sqrt(cs2_l);
-    double c_sr = sqrt(cs2_r);
-    gr_euler_sr_lambda_addition(vx_l, c_sl, &lambda_minus_l, &lambda_plus_l);
-    gr_euler_sr_lambda_addition(vx_r, c_sr, &lambda_minus_r, &lambda_plus_r);
-  }
+  gr_euler_sr_lambda_exact(vx_l, pl.W, cs2_l, &lambda_minus_l, &lambda_plus_l);
+  gr_euler_sr_lambda_exact(vx_r, pr.W, cs2_r, &lambda_minus_r, &lambda_plus_r);
   double sl = fmin(lambda_minus_l, lambda_minus_r);
   double sr = fmax(lambda_plus_l, lambda_plus_r);
 
@@ -818,18 +798,12 @@ gr_euler_sr_hll_core(struct gkyl_gr_euler_eos eos,
   // HLL intermediate state: q_HLL = (sr·qR − sl·qL + fl − fr)/(sr − sl).
   // For Mignone-Bodo admissible inputs and Davis bracket, q_HLL is itself
   // admissible. Waves are conservative-state jumps from qL → q_HLL → qR.
+  // No degenerate-bracket guard: a collapsed bracket is unreachable on
+  // contract-satisfying inputs (the recovery pressure floor keeps each
+  // side's cone width ≳ 1e-4/√ρ; the W² aberration route needs W ≳ 1e7
+  // — HLLC_AUDIT_PLAN.md F1 analysis). If it ever happens, the divide
+  // produces honest NaN/Inf caught at the recovery chokepoint.
   double qm[5];
-  if (fabs(sr - sl) < 1.0e-14) {
-    // Degenerate (both sides cold at equal v_x, or both supersonic in
-    // the same direction). Zero waves — KNOWN latent flux-jump hole
-    // when Δq ≠ 0 at equal v_x (Σs·w = 0 ≠ v_x·Δq); near-unreachable
-    // post-floors (recovery keeps c_s ≳ 1e-4 so the bracket stays open).
-    // Queued fix: single wave w = Δq at (sl+sr)/2 — HLLC_AUDIT_PLAN F1.
-    for (int i = 0; i < 2 * 5; i++) waves_tet[i] = 0.0;
-    speeds[0] = sl;
-    speeds[1] = sr;
-    return fmax(fabs(sl), fabs(sr));
-  }
   gr_euler_sr_hll_middle(ql_tet, qr_tet, fl, fr, sl, sr, qm);
 
   double *w0 = &waves_tet[0 * 5];
@@ -844,26 +818,6 @@ gr_euler_sr_hll_core(struct gkyl_gr_euler_eos eos,
   return fmax(fabs(sl), fabs(sr));
 }
 
-double
-gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
-  const double ql_tet[5], const double qr_tet[5],
-  struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2])
-{
-  return gr_euler_sr_hll_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
-    /*exact_speeds=*/false);
-}
-
-double
-gkyl_gr_euler_tetrad_sr_hll_minkowski_exact(struct gkyl_gr_euler_eos eos,
-  const double ql_tet[5], const double qr_tet[5],
-  struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2])
-{
-  return gr_euler_sr_hll_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
-    /*exact_speeds=*/true);
-}
-
 // Pure Minkowski SR Lax-Friedrichs. Symmetric envelope ±amax with
 // amax = max over both sides of |λ|_max. Like HLL but with a symmetric
 // (broader) speed bracket — more diffusive but still admissibility-
@@ -872,15 +826,14 @@ gkyl_gr_euler_tetrad_sr_hll_minkowski_exact(struct gkyl_gr_euler_eos eos,
 // Tetrad-first composition: same role as sr_hll_minkowski but symmetric
 // in speed. The curved-frame wave_lax pipeline transforms states into
 // the tetrad frame, calls this, and back-transforms waves/speeds.
-// Exported entry points below pin exact_speeds at compile time.
-static inline double
-gr_euler_sr_lax_core(struct gkyl_gr_euler_eos eos,
+double
+gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2], bool exact_speeds)
+  double waves_tet[2 * 5], double speeds[2])
 {
-  // Vacuum-safe Banyuls primitive recovery (shared helper). See
-  // sr_hll_minkowski above for the rationale.
+  // Vacuum-safe Banyuls primitive recovery (shared helper). Input
+  // contract and failure mode as in sr_hll_minkowski above.
   struct gkyl_gr_euler_prim pl, pr;
   gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
   gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
@@ -893,18 +846,10 @@ gr_euler_sr_lax_core(struct gkyl_gr_euler_eos eos,
   if (cs2_l < 0.0) cs2_l = 0.0;
   if (cs2_r < 0.0) cs2_r = 0.0;
 
-  // λ± estimate: same default/exact selection and caveat as the HLL core.
+  // Exact per-side eigenvalues (same estimate as HLL/HLLC).
   double lam_minus_l, lam_plus_l, lam_minus_r, lam_plus_r;
-  if (exact_speeds) {
-    gr_euler_sr_lambda_exact(vx_l, pl.W, cs2_l, &lam_minus_l, &lam_plus_l);
-    gr_euler_sr_lambda_exact(vx_r, pr.W, cs2_r, &lam_minus_r, &lam_plus_r);
-  }
-  else {
-    double c_sl = sqrt(cs2_l);
-    double c_sr = sqrt(cs2_r);
-    gr_euler_sr_lambda_addition(vx_l, c_sl, &lam_minus_l, &lam_plus_l);
-    gr_euler_sr_lambda_addition(vx_r, c_sr, &lam_minus_r, &lam_plus_r);
-  }
+  gr_euler_sr_lambda_exact(vx_l, pl.W, cs2_l, &lam_minus_l, &lam_plus_l);
+  gr_euler_sr_lambda_exact(vx_r, pr.W, cs2_r, &lam_minus_r, &lam_plus_r);
 
   double max_l = fmax(fabs(lam_minus_l), fabs(lam_plus_l));
   double max_r = fmax(fabs(lam_minus_r), fabs(lam_plus_r));
@@ -919,12 +864,8 @@ gr_euler_sr_lax_core(struct gkyl_gr_euler_eos eos,
   //   w_0 = 0.5·(Δq − ΔF/amax)
   //   w_1 = 0.5·(Δq + ΔF/amax)
   // Then Σ s·w = amax·(w_1 − w_0) = ΔF (flux jump exact in tetrad).
-  if (!(amax > 0.0)) {
-    for (int k = 0; k < 2 * 5; k++) waves_tet[k] = 0.0;
-    speeds[0] = -pow(10.0, -8.0);
-    speeds[1] =  pow(10.0, -8.0);
-    return pow(10.0, -8.0);
-  }
+  // amax = 0 is unreachable on contract-satisfying inputs (see sr_hll);
+  // the divide produces honest NaN/Inf caught at the recovery chokepoint.
   double *w0 = &waves_tet[0 * 5];
   double *w1 = &waves_tet[1 * 5];
   for (int i = 0; i < 5; i++) {
@@ -937,26 +878,6 @@ gr_euler_sr_lax_core(struct gkyl_gr_euler_eos eos,
   speeds[1] = +amax;
 
   return amax;
-}
-
-double
-gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
-  const double ql_tet[5], const double qr_tet[5],
-  struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2])
-{
-  return gr_euler_sr_lax_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
-    /*exact_speeds=*/false);
-}
-
-double
-gkyl_gr_euler_tetrad_sr_lax_minkowski_exact(struct gkyl_gr_euler_eos eos,
-  const double ql_tet[5], const double qr_tet[5],
-  struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2])
-{
-  return gr_euler_sr_lax_core(eos, ql_tet, qr_tet, stat, waves_tet, speeds,
-    /*exact_speeds=*/true);
 }
 
 // ---------------------------------------------------------------------------
@@ -1018,11 +939,9 @@ gkyl_gr_euler_tetrad_sr_lax_minkowski_exact(struct gkyl_gr_euler_eos eos,
 //      with a vacuum side IS the absorbing decomposition (what
 //      Lax/HLL pass excision_absorbing_* with).
 //
-// Wave-speed note: this kernel uses the full Davis estimate (MB05 eqs
-// 21–23, σ_s with W² — the exact tangential-aware acoustic eigenvalue).
-// sr_hll/sr_lax use the wider 1D velocity-addition form. The asymmetry
-// is documented in HLLC_AUDIT_PLAN.md; unifying the family onto the
-// exact form is queued behind a baseline checkpoint.
+// Wave-speed note: the whole kernel family (HLL/Lax/HLLC) shares the
+// exact tangential-aware eigenvalue estimate (gr_euler_sr_lambda_exact;
+// MB05 eqs 21–23).
 double
 gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
@@ -1046,6 +965,10 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   double D_l = ql_tet[0], Sx_l = ql_tet[1], Sy_l = ql_tet[2], Sz_l = ql_tet[3], tau_l = ql_tet[4];
   double D_r = qr_tet[0], Sx_r = qr_tet[1], Sy_r = qr_tet[2], Sz_r = qr_tet[3], tau_r = qr_tet[4];
 
+  // Input contract: at most one side is vacuum (dispatch short-circuits
+  // both-excised before any kernel runs); a violated contract collapses
+  // the bracket and the fallback emitter's divide produces honest
+  // NaN/Inf caught at the recovery chokepoint.
   struct gkyl_gr_euler_prim pl, pr;
   bool vac_l = gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
   bool vac_r = gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
@@ -1101,19 +1024,10 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
     stat->hllc.last_lambda_L = lambda_L;
     stat->hllc.last_lambda_R = lambda_R;
   }
-  if (fabs(lam_diff) < 1.0e-14) {
-    for (int i = 0; i < 3 * 5; i++) waves_tet[i] = 0.0;
-    speeds[0] = lambda_L;
-    speeds[1] = 0.5 * (lambda_L + lambda_R);
-    speeds[2] = lambda_R;
-    if (stat) {
-      stat->hllc.last_did_fallback = 1;
-      stat->hllc.last_fallback_reason = 1;
-      stat->hllc.fallback_calls++;
-      stat->hllc.fallback_reason_hist[1]++;
-    }
-    return fmax(fabs(lambda_L), fabs(lambda_R));
-  }
+  // No degenerate-bracket guard: unreachable on contract-satisfying
+  // inputs (see sr_hll; the old reason-1 fallback fired 0 times across
+  // 333M production calls). A collapsed bracket NaN-poisons through the
+  // divides below and is caught at the recovery chokepoint.
   // Fallback ladder. Reason 5 (vacuum side, fix #4) routes BEFORE the
   // λ* construction — the fluid–vacuum Riemann problem has no contact
   // wave, so there is nothing for the quadratic to resolve. Otherwise
@@ -1915,9 +1829,7 @@ gkyl_wv_gr_euler_tetrad_inew(
   // share the same dispatch entry point, so the equation pointer carries
   // everything needed for GPU dispatch.
   if (inp->rp_type == WV_GR_EULER_TETRAD_RP_LAX) {
-    grm->sr_kernel = inp->use_exact_wave_speeds
-      ? gkyl_gr_euler_tetrad_sr_lax_minkowski_exact
-      : gkyl_gr_euler_tetrad_sr_lax_minkowski;
+    grm->sr_kernel = gkyl_gr_euler_tetrad_sr_lax_minkowski;
     grm->num_waves = 2;
     grm->excision_policy = GKYL_TETRAD_EXCISION_ZERO_VACUUM;
   }
@@ -1936,9 +1848,7 @@ gkyl_wv_gr_euler_tetrad_inew(
     grm->excision_policy = GKYL_TETRAD_EXCISION_ZERO_VACUUM;
   }
   else {  // default: HLL
-    grm->sr_kernel = inp->use_exact_wave_speeds
-      ? gkyl_gr_euler_tetrad_sr_hll_minkowski_exact
-      : gkyl_gr_euler_tetrad_sr_hll_minkowski;
+    grm->sr_kernel = gkyl_gr_euler_tetrad_sr_hll_minkowski;
     grm->num_waves = 2;
     grm->excision_policy = GKYL_TETRAD_EXCISION_ZERO_VACUUM;
   }

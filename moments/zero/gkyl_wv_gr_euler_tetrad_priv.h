@@ -192,29 +192,11 @@ gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   struct gkyl_gr_euler_prim_status *stat,
   double waves_tet[2 * 5], double speeds[2]);
 
-// HLL with the exact tangential-aware eigenvalue bracket (MB05 eqs
-// 22–23) instead of the velocity-addition default. Selected via
-// use_exact_wave_speeds (Lua: exactWaveSpeeds).
-GKYL_CU_D
-double
-gkyl_gr_euler_tetrad_sr_hll_minkowski_exact(struct gkyl_gr_euler_eos eos,
-  const double ql_tet[5], const double qr_tet[5],
-  struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2]);
-
 // Pure Minkowski SR Lax-Friedrichs with symmetric ±amax envelope. More
 // diffusive than HLL but admissibility-preserving on admissible inputs.
 GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
-  const double ql_tet[5], const double qr_tet[5],
-  struct gkyl_gr_euler_prim_status *stat,
-  double waves_tet[2 * 5], double speeds[2]);
-
-// Lax with the exact eigenvalue bracket (see _hll_minkowski_exact).
-GKYL_CU_D
-double
-gkyl_gr_euler_tetrad_sr_lax_minkowski_exact(struct gkyl_gr_euler_eos eos,
   const double ql_tet[5], const double qr_tet[5],
   struct gkyl_gr_euler_prim_status *stat,
   double waves_tet[2 * 5], double speeds[2]);

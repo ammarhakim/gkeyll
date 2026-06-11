@@ -89,11 +89,6 @@ momentApp = Moments.App.new {
       eos = "approx_synge",
       useRcc = true,
       rpType = "hll",
-      -- Exact tangential-aware eigenvalue bracket (MB05 eqs 22-23) —
-      -- adopted for the RCC-HLL baselines 2026-06-11 after the bracket
-      -- A/B showed it stable with slightly LOWER repair activity than
-      -- the velocity-addition default (HLLC_AUDIT_PLAN.md).
-      exactWaveSpeeds = true,
     },
 
     init = function (t, xn)

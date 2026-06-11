@@ -36,7 +36,6 @@ run_round_trip(struct gkyl_gr_spacetime *spacetime,
   const char *label, double x, double y, double z,
   struct gkyl_gr_euler_eos eos)
 {
-  double gas_gamma = eos.gas_gamma;
   double prods[GKYL_GR_SP_NCOMP_BASE];
   fill_prods_at(spacetime, x, y, z, prods);
   if (prods[GKYL_GR_SP_EXCISION] < 0.0) return;
@@ -176,7 +175,6 @@ run_prim_consistency(struct gkyl_gr_spacetime *spacetime,
   const char *label, double x, double y, double z,
   struct gkyl_gr_euler_eos eos)
 {
-  double gas_gamma = eos.gas_gamma;
   double prods[GKYL_GR_SP_NCOMP_BASE];
   fill_prods_at(spacetime, x, y, z, prods);
   if (prods[GKYL_GR_SP_EXCISION] < 0.0) return;
@@ -208,42 +206,23 @@ run_prim_consistency(struct gkyl_gr_spacetime *spacetime,
   gkyl_gr_euler_recover_primitives(eos,
     D, momx, momy, momz, tau, inv_g, NULL, &prim_curved);
 
-  // Tetrad-frame recovery: transform to tetrad, then run flat-space
-  // Newton (replicate the body of sr_hll_minkowski).
+  // Tetrad-frame recovery: transform q to the tetrad frame and recover
+  // with the shared helper at the identity metric — the same SR
+  // recovery the kernels perform, EOS-correct for all three modes.
   double q_tet[5];
   gkyl_gr_euler_tetrad_q_to_tetrad_contra(q, sqrt_det, inv_g, M_inv, q_tet);
 
-  double D_t = q_tet[0], Sx_t = q_tet[1], Sy_t = q_tet[2], Sz_t = q_tet[3], tau_t = q_tet[4];
-  // Flat-space Banyuls Newton (inline).
-  double s_sq_t = ((tau_t + D_t)*(tau_t + D_t))
-                - (Sx_t*Sx_t + Sy_t*Sy_t + Sz_t*Sz_t);
-  double C, C0;
-  if (s_sq_t < pow(10.0, -10.0)) {
-    C  = D_t / sqrt(pow(10.0, -10.0));
-    C0 = (D_t + tau_t) / sqrt(pow(10.0, -10.0));
-  } else {
-    C  = D_t / sqrt(s_sq_t);
-    C0 = (D_t + tau_t) / sqrt(s_sq_t);
-  }
-  double a0 = -1.0 / (gas_gamma*gas_gamma);
-  double a1 = -2.0 * C * ((gas_gamma - 1.0)/(gas_gamma*gas_gamma));
-  double a2 = ((gas_gamma - 2.0)/gas_gamma) * ((C0*C0) - 1.0) + 1.0
-            - (C*C)*((gas_gamma-1.0)/gas_gamma)*((gas_gamma-1.0)/gas_gamma);
-  double a4 = (C0*C0) - 1.0;
-  double eta = 2.0 * C * ((gas_gamma - 1.0)/gas_gamma);
-  double g = 1.0;
-  for (int it = 0; it < 100; it++) {
-    double poly = (a4*g*g*g)*(g-eta) + (a2*g*g) + (a1*g) + a0;
-    double dpoly = a1 + 2.0*a2*g + 4.0*a4*g*g*g - 3.0*eta*a4*g*g;
-    double gn = g - poly/dpoly;
-    if (fabs(g - gn) < pow(10.0, -14.0)) { g = gn; break; }
-    g = gn;
-  }
-  double W_t = 0.5 * C0 * g * (1.0 + sqrt(1.0
-    + 4.0*((gas_gamma-1.0)/gas_gamma)*((1.0 - C*g)/(C0*C0*g*g))));
-  double h_t = 1.0 / (C * g);
-  double rho_t = D_t / W_t;
-  double p_t  = (rho_t * h_t * W_t * W_t) - D_t - tau_t;
+  double inv_g_flat[3][3] = {
+    { 1.0, 0.0, 0.0 },
+    { 0.0, 1.0, 0.0 },
+    { 0.0, 0.0, 1.0 },
+  };
+  struct gkyl_gr_euler_prim prim_tet;
+  gkyl_gr_euler_recover_primitives(eos, q_tet[0], q_tet[1], q_tet[2],
+    q_tet[3], q_tet[4], inv_g_flat, NULL, &prim_tet);
+  double Sx_t = q_tet[1];
+  double W_t = prim_tet.W, h_t = prim_tet.h;
+  double rho_t = prim_tet.rho, p_t = prim_tet.p;
 
   // (ρ, p, W, h) should match between curved-frame and tetrad-frame
   // recovery to round-off.

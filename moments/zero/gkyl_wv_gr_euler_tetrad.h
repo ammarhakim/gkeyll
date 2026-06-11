@@ -66,13 +66,6 @@ struct gkyl_wv_gr_euler_tetrad_inp {
   struct gkyl_gr_euler_eos eos;                    // Full EOS specification.
   struct gkyl_range conf_range;                    // For indexing into prods.
   enum gkyl_wv_gr_euler_tetrad_rp rp_type;         // Lax / Roe / HLL / HLLC.
-  // HLL/Lax wave-speed estimate: false (default) = 1D velocity-addition
-  // (historical — every rpType="hll" baseline runs through it); true =
-  // exact tangential-aware eigenvalues (MB05 eqs 22–23, what HLLC
-  // always uses). Tighter bracket = less diffusion; for the
-  // bracket-tightness A/B study see HLLC_AUDIT_PLAN.md. Ignored by
-  // HLLC and Roe.
-  bool use_exact_wave_speeds;
   bool use_gpu;
 };
 

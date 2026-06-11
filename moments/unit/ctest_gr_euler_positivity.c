@@ -1098,23 +1098,21 @@ void test_direct_state_lax_curved_production_reproducer(void)
 // genuine solver bug, not Mode A/B.
 // ---------------------------------------------------------------------------
 
-// Columns 4–5 are the exact-eigenvalue (MB05 eqs 22–23) variants of the
-// HLL/Lax brackets — the bracket-tightness instrument for the Davis
-// unification question (HLLC_AUDIT_PLAN.md): identical kernels to
-// columns 0–1 except the wave-speed estimate. The deltas between the
-// paired columns isolate the eigenvalue estimate's positivity impact;
-// in particular a Minkowski-control violation appearing ONLY in an
-// exact column would mean the addition form's extra width is
-// load-bearing. (Curved Lax takes amax from max_abs_speed_dir, never
-// the SR kernel estimates — no exact variant exists for it.)
+// Bracket provenance: the whole SR kernel family uses the exact
+// tangential-aware eigenvalue estimate (MB05 eqs 21–23) since
+// 2026-06-11; the historical 1D velocity-addition form was DELETED
+// after the bracket A/B study (HLLC_AUDIT_PLAN.md — registry columns
+// for both brackets, plus production BHL static/spinning runs, showed
+// the exact form stable with slightly lower repair activity; tetrad-Lax
+// margin rows are near-identical between brackets, tetrad-HLL W=10
+// rows shift, e.g. Schw 18→25/84). Measured-history tables in this
+// header predating that date were recorded under the addition bracket.
 enum gr_pos_flux {
   GRPF_TET_LAX = 0, GRPF_TET_HLL = 1, GRPF_TET_HLLC = 2, GRPF_CUR_LAX = 3,
-  GRPF_TET_LAX_X = 4, GRPF_TET_HLL_X = 5,
-  GRPF_N = 6
+  GRPF_N = 4
 };
 static const char *gr_pos_flux_name[GRPF_N] =
-  { "tetrad-Lax", "tetrad-HLL", "tetrad-HLLC", "curved-Lax",
-    "tetrad-Lax-exact", "tetrad-HLL-exact" };
+  { "tetrad-Lax", "tetrad-HLL", "tetrad-HLLC", "curved-Lax" };
 
 #define GRPR_MAX_CONDS 128
 // Coarse-Δγ axis spacing (near-horizon production-coarse cells; the
@@ -1269,19 +1267,14 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
   int lower[1] = { 0 }, upper[1] = { 1 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
-  // One equation per HIGH_ORDER (rp × speed-estimate) variant;
-  // curved-Lax runs through the LAX equation's LOW_ORDER branch
-  // (rp-independent, speed-flag-independent).
+  // One equation per HIGH_ORDER rp; curved-Lax runs through the LAX
+  // equation's LOW_ORDER branch (rp-independent).
   struct gkyl_wv_eqn *eqn_lax = make_eqn(eos, conf_range,
     WV_GR_EULER_TETRAD_RP_LAX);
   struct gkyl_wv_eqn *eqn_hll = make_eqn(eos, conf_range,
     WV_GR_EULER_TETRAD_RP_HLL);
   struct gkyl_wv_eqn *eqn_hllc = make_eqn(eos, conf_range,
     WV_GR_EULER_TETRAD_RP_HLLC);
-  struct gkyl_wv_eqn *eqn_lax_x = make_eqn_speeds(eos, conf_range,
-    WV_GR_EULER_TETRAD_RP_LAX, /*exact_speeds=*/true);
-  struct gkyl_wv_eqn *eqn_hll_x = make_eqn_speeds(eos, conf_range,
-    WV_GR_EULER_TETRAD_RP_HLL, /*exact_speeds=*/true);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_set_auxfields(eqn_lax,
@@ -1290,29 +1283,19 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
   gkyl_gr_euler_tetrad_set_auxfields(eqn_hllc,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
-  gkyl_gr_euler_tetrad_set_auxfields(eqn_lax_x,
-    (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
-  gkyl_gr_euler_tetrad_set_auxfields(eqn_hll_x,
-    (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
   struct wv_gr_euler_tetrad *grm_lax = container_of(eqn_lax,
     struct wv_gr_euler_tetrad, eqn);
   struct wv_gr_euler_tetrad *grm_hll = container_of(eqn_hll,
     struct wv_gr_euler_tetrad, eqn);
   struct wv_gr_euler_tetrad *grm_hllc = container_of(eqn_hllc,
     struct wv_gr_euler_tetrad, eqn);
-  struct wv_gr_euler_tetrad *grm_lax_x = container_of(eqn_lax_x,
-    struct wv_gr_euler_tetrad, eqn);
-  struct wv_gr_euler_tetrad *grm_hll_x = container_of(eqn_hll_x,
-    struct wv_gr_euler_tetrad, eqn);
 
-  struct gkyl_wv_eqn *flux_eqn[GRPF_N] =
-    { eqn_lax, eqn_hll, eqn_hllc, eqn_lax, eqn_lax_x, eqn_hll_x };
+  struct gkyl_wv_eqn *flux_eqn[GRPF_N] = { eqn_lax, eqn_hll, eqn_hllc, eqn_lax };
   struct wv_gr_euler_tetrad *flux_grm[GRPF_N] =
-    { grm_lax, grm_hll, grm_hllc, grm_lax, grm_lax_x, grm_hll_x };
+    { grm_lax, grm_hll, grm_hllc, grm_lax };
   enum gkyl_wv_flux_type flux_ft[GRPF_N] = {
     GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_HIGH_ORDER_FLUX,
-    GKYL_WV_LOW_ORDER_FLUX,
-    GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_HIGH_ORDER_FLUX };
+    GKYL_WV_LOW_ORDER_FLUX };
 
   struct gr_pos_registry_row reg[GRPR_MAX_CONDS];
   int n_conds = 0;
@@ -1598,8 +1581,6 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
   gkyl_wv_eqn_release(eqn_lax);
   gkyl_wv_eqn_release(eqn_hll);
   gkyl_wv_eqn_release(eqn_hllc);
-  gkyl_wv_eqn_release(eqn_lax_x);
-  gkyl_wv_eqn_release(eqn_hll_x);
 }
 
 void test_positivity_registry_minkowski(void)

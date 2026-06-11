@@ -15,8 +15,13 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
-LDFLAGS = 
+# -fno-finite-math-only on top of -ffast-math: keeps the value-changing
+# speed (reassociation/contraction — measured ~2% from full fast-math,
+# vs +22% for strict IEEE) but restores honest NaN/Inf semantics, so
+# isnan/isfinite work and a poisoned state is detectable instead of
+# being undefined behavior. JJ: 2026-06-11 
+CFLAGS ?= -O3 -g -ffast-math -fno-finite-math-only -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+LDFLAGS =
 PREFIX ?= ${HOME}/gkylsoft
 
 FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
@@ -79,7 +84,11 @@ CUDA_LIBS =
 SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
 ifneq (,$(filter $(CC),nvcc nvc))
 	USING_NVCC = yes
-	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
+	# -fno-finite-math-only forwards to the HOST compiler (honest NaN
+	# semantics for host-side checks); nvcc's --use_fast_math is
+	# device-side only and never assumes finiteness, so isnan/isfinite
+	# stay honest in device code without further flags.
+	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -fno-finite-math-only -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
 	ifdef CUDAMATH_LIB_DIR

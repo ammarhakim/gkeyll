@@ -1143,7 +1143,7 @@ gr_euler_print_prim_status(FILE *fp, const char *label,
       100.0 * (double)s->hllc.fallback_calls / (double)hllc_total);
     const char *reason_labels[7] = {
       "no fallback (star-state used)",
-      "lam_diff~0 (degenerate Davis bracket)",
+      "RETIRED: degenerate bracket (now hard failure)",
       "λ* not finite",
       "|λ_L−λ*| < tol",
       "|λ_R−λ*| < tol",
