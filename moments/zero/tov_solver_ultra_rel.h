@@ -4,10 +4,10 @@
 
 #define TOV_ULTRA_REL_MAX_POINTS 800000
 
-// The ultra-rel EOS does not give a sharp finite-radius p=0 surface, so we
-// define R_star as the radius where e/e_c falls below this cutoff. This is
-// deliberately stricter than the numerical atmosphere floor used in the
-// evolution.
+// The ultra-rel EOS does not five a sharp finite-radius p=0 surface, so we define R_star as the radius
+// were the e/e_c falls below this cutoff. This is purposely stricter than the numerical atmospheric floor used in the evolution
+// and that will be used for the polytropic EOS (it couldn't reliably find the cutoff otherwise).
+
 #define TOV_ULTRA_REL_SURFACE_E_FRAC 1.0e-6
 
 // Output struct for BL evaluation.
