@@ -305,9 +305,7 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
     gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
     return;
   }
-
-  struct wv_gr_euler_tetrad *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad, eqn);
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   double norm[3] = { 1.0, 0.0, 0.0 };
   double tau1[3] = { 0.0, 1.0, 0.0 };
@@ -346,7 +344,7 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
       delta, qL, qR, 1.0, 1.0, waves, speeds);
 
     double dF[5];
-    banyuls_delta_flux(eos, grm, qL, qR, dF);
+    banyuls_delta_flux(eos, prods_row, prods_row, qL, qR, dF);
 
     double max_fj = 0.0, max_fb = 0.0;
     int nw = eqn->num_waves;
@@ -368,6 +366,7 @@ run_floor_precision_sweep(struct gkyl_gr_spacetime *spacetime,
       rp_name, p_L, max_fj, max_fb);
   }
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }

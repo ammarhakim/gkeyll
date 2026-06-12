@@ -51,7 +51,7 @@ typedef double (*gkyl_sr_riemann_kernel_t)(
   double *waves_tet, double *speeds_tet);
 
 // Excision-boundary policy. All four solvers now use ZERO_VACUUM
-// (HLLC routes vacuum sides to its in-kernel HLL fallback, reason 5 —
+// (HLLC routes vacuum sides to its in-kernel HLL fallback, reason 4 —
 // HLLC_AUDIT_PLAN.md Phase 1). SHORT_CIRCUIT is retained as a policy
 // knob (zero waves = no-flux wall, i.e. REFLECTIVE semantics at the
 // horizon); it currently has no production user.
@@ -88,17 +88,10 @@ struct wv_gr_euler_tetrad {
   int cur_idxr[GKYL_MAX_DIM];
   int cur_cell_idx[GKYL_MAX_DIM];
 
-  // Per-side locally-rotated spacetime scratch buffers, mirroring the regular
-  // mod variant. The tetrad equation reads the same spacetime block (lapse,
-  // shift, γ_ij, γ^ij, √γ, excision) and does not require stored basis
-  // vectors — the "tetrad" name refers to the HIGH_ORDER Riemann-solver
-  // strategy (rotate state into a locally-flat orthonormal frame at the
-  // interface, solve SR Riemann, back-transform), not to the primitive-
-  // variable representation. LOW_ORDER curved Lax and F-wave callbacks
-  // use gkyl_gr_euler_banyuls_flux_cell directly.
-  double prodl_local[GKYL_GR_SP_NCOMP_BASE];
-  double prodr_local[GKYL_GR_SP_NCOMP_BASE];
-  int rot_call_parity;
+  // NOTE: per-interface face-local geometry lives in the wave_spacetime
+  // cache (cell_prods_local + iface entries), fetched by (index, dir) —
+  // there are no per-side scratch buffers or rotation-order contracts
+  // on this object (WAVE_SPACETIME_PARITY_PLAN.md).
 };
 
 // Free function for the reference-count callback.

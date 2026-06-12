@@ -426,7 +426,7 @@ gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
     if (need_wave_spacetime && app->spacetime.wave_spacetime == NULL) {
       app->spacetime.wave_spacetime = gkyl_wave_spacetime_new(&app->grid,
         &app->local_ext, app->geom, app->spacetime.analytic_spacetime,
-        app->spacetime.prods, t0, app->spacetime.is_static, /*use_gpu=*/false);
+        app->spacetime.prods, t0, /*use_gpu=*/false);
       for (int i = 0; i < app->num_species; i++) {
         if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
           gkyl_gr_euler_tetrad_set_wave_spacetime(app->species[i].equation,

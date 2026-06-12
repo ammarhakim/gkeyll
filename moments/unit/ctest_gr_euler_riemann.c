@@ -11,7 +11,7 @@
 //   2b. Excision-boundary absorbing BC (all four solvers; HLLC routes
 //       vacuum sides to its HLL fallback, reason 5)
 //   3.  BHL-regime states — properties on production-relevant inputs
-//   4.  wave_spacetime cache vs fallback equivalence
+//   4.  wave_spacetime builder correctness
 //   5.  SR HLLC kernel fallback probe (kernel-level diagnostics)
 
 #include <acutest.h>
@@ -62,6 +62,7 @@ run_banyuls_flux_consistency(struct gkyl_gr_spacetime *spacetime,
     gkyl_wv_eqn_release(eqn);
     return;
   }
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   // A small grid of (rho, v_co, p) primitives.
   double rhos[]   = { 1.0, 0.5, 3.0 };
@@ -110,6 +111,7 @@ run_banyuls_flux_consistency(struct gkyl_gr_spacetime *spacetime,
     "[%s @ (%g,%g,%g) EOS=%s] Banyuls flux residual: max |F_code − F_analytic| = %.3e",
     label, x, y, z, eos_label_for(eos), max_diff );
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -189,13 +191,13 @@ void test_banyuls_flux_consistency_hllc_kerr(void)
 // ---------------------------------------------------------------------------
 // Two-cell variant for non-degenerate interface geometry.
 //
-// The single-cell runner above sets prodl_local == prodr_local (idx={0,0}),
-// so the averaging at lines 1464-1475 of wv_gr_euler_tetrad.c recovers
-// the cell-centered values exactly. That makes the flux-jump check trivial
-// at the geometry level: any averaging policy passes.
+// The single-cell runner above uses idx={0,0}, so both sides see the
+// same cell's geometry and the averaging recovers the cell-centered
+// values exactly — the flux-jump check is trivial at the geometry
+// level: any averaging policy passes.
 //
 // This variant allocates two cells, fills L at (xL,yL,zL) and R at
-// (xR,yR,zR), and sets idx={0,1} so prodl_local and prodr_local come from
+// (xR,yR,zR), and sets idx={0,1} so the cached per-cell rows come from
 // genuinely different points. The flux-jump check uses an interface-
 // averaged prods row to match the averaging policy inside wave_lax /
 // wave_hll / wave_hllc (the relevant flux-jump form for the tetrad-first
@@ -235,9 +237,7 @@ run_riemann_properties_two_cell(struct gkyl_gr_spacetime *spacetime,
 
   TEST_CHECK( eqn->num_waves == num_waves );
 
-  struct wv_gr_euler_tetrad *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad, eqn);
-  (void)grm;  // banyuls_delta_flux not used here — interface-averaged form below
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   double norm[3] = { 1.0, 0.0, 0.0 };
   double tau1[3] = { 0.0, 1.0, 0.0 };
@@ -256,6 +256,7 @@ run_riemann_properties_two_cell(struct gkyl_gr_spacetime *spacetime,
       vsq_R += prods_R[GKYL_GR_SP_GIJ + 3*i + j] * v_R[i] * v_R[j];
     }
   if (!(vsq_L < 1.0 - 1.0e-6) || !(vsq_R < 1.0 - 1.0e-6)) {
+    test_ws_release(&tws);
     gkyl_array_release(prods);
     gkyl_wv_eqn_release(eqn);
     return;
@@ -389,6 +390,7 @@ run_riemann_properties_two_cell(struct gkyl_gr_spacetime *spacetime,
       label, i, fabs(lhs - rhs) );
   }
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -611,8 +613,7 @@ run_riemann_properties_two_cell_curved_lax(struct gkyl_gr_spacetime *spacetime,
     return;
   }
 
-  struct wv_gr_euler_tetrad *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad, eqn);
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   double norm[3] = { 1.0, 0.0, 0.0 };
   double tau1[3] = { 0.0, 1.0, 0.0 };
@@ -629,6 +630,7 @@ run_riemann_properties_two_cell_curved_lax(struct gkyl_gr_spacetime *spacetime,
       vsq_R += prods_R[GKYL_GR_SP_GIJ + 3*i + j] * v_R[i] * v_R[j];
     }
   if (!(vsq_L < 1.0 - 1.0e-6) || !(vsq_R < 1.0 - 1.0e-6)) {
+    test_ws_release(&tws);
     gkyl_array_release(prods);
     gkyl_wv_eqn_release(eqn);
     return;
@@ -654,10 +656,9 @@ run_riemann_properties_two_cell_curved_lax(struct gkyl_gr_spacetime *spacetime,
     delta, qL, qR, 1.0, 1.0, waves, speeds);
 
   // PER-CELL ΔF: each side's Banyuls flux at its OWN cell-centered prods
-  // (banyuls_delta_flux reads grm->prodl_local / prodr_local, which the
-  // interface-idx call above bound to the per-cell rows).
+  // (x-normal identity frame: the global rows are already face-local).
   double dF[5];
-  banyuls_delta_flux(eos, grm, qL, qR, dF);
+  banyuls_delta_flux(eos, prods_L, prods_R, qL, qR, dF);
 
   // (a) Wave sum: Σ w_k = Δq
   for (int i = 0; i < 5; i++) {
@@ -699,18 +700,15 @@ run_riemann_properties_two_cell_curved_lax(struct gkyl_gr_spacetime *spacetime,
   // different metrics the wave content is exactly the Mode-B
   // cross-geometry flux term — see probe (f).
   //
-  // Call-contract note: set_interface_idx only stores indices and resets
-  // the rotation parity; the L-then-R pair of rotate_to_local calls is
-  // what loads prodl_local / prodr_local. The per-cell path reads them
-  // directly (the interface average is swap-invariant and would forgive
-  // a stale pair), so every probe below re-runs the rotate pair.
+  // Geometry is selected by set_interface_idx alone (cache fetch by
+  // index — rotation is state-only and call-order-free since the
+  // parity-contract retirement).
   int idx0[1] = { 0 };
   eqn->set_interface_idx_func(eqn, idx0, idx0);
   double qE[5];
   build_state_convA(eos, 1.0, (double[]){0.05, 0.10, 0.05}, 1.0, prods_L, qE);
   double qE_loc[5];
-  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qE, qE_loc);  // L: row 0
-  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qE, qE_loc);  // R: row 0
+  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qE, qE_loc);
   double dE[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
   double wavesE[NW_LAX * 5], speedsE[NW_LAX];
   double maxsE = eqn->waves_func(eqn, GKYL_WV_LOW_ORDER_FLUX,
@@ -737,14 +735,12 @@ run_riemann_properties_two_cell_curved_lax(struct gkyl_gr_spacetime *spacetime,
   // hold exactly on it (the waves are genuinely nonzero; that is the
   // scheme, not a bug).
   eqn->set_interface_idx_func(eqn, idxl, idxr);
-  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qE, qE_loc);  // L: row 0
-  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qE, qE_loc);  // R: row 1
   double dB[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
   double wavesB[NW_LAX * 5], speedsB[NW_LAX];
   eqn->waves_func(eqn, GKYL_WV_LOW_ORDER_FLUX,
     dB, qE_loc, qE_loc, 1.0, 1.0, wavesB, speedsB);
   double dFB[5];
-  banyuls_delta_flux(eos, grm, qE_loc, qE_loc, dFB);
+  banyuls_delta_flux(eos, prods_L, prods_R, qE_loc, qE_loc, dFB);
   for (int i = 0; i < 5; i++) {
     double sumB = wavesB[0 * 5 + i] + wavesB[1 * 5 + i];
     double swB = speedsB[0] * wavesB[0 * 5 + i] + speedsB[1] * wavesB[1 * 5 + i];
@@ -760,9 +756,6 @@ run_riemann_properties_two_cell_curved_lax(struct gkyl_gr_spacetime *spacetime,
   //   amdq(qL,qR) + apdq(qL,qR) = −[amdq(qR,qL) + apdq(qR,qL)].
   int idxl_swap[1] = { 1 }, idxr_swap[1] = { 0 };
   eqn->set_interface_idx_func(eqn, idxl_swap, idxr_swap);
-  double q_dum[5];
-  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qR_glob, q_dum);  // L: row 1
-  eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qL_glob, q_dum);  // R: row 0
   double delta_swap[5];
   for (int i = 0; i < 5; i++) delta_swap[i] = qL[i] - qR[i];
   double waves_swap[NW_LAX * 5], speeds_swap[NW_LAX];
@@ -779,6 +772,7 @@ run_riemann_properties_two_cell_curved_lax(struct gkyl_gr_spacetime *spacetime,
       label, i, fabs(lhs - rhs) );
   }
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -875,6 +869,9 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   }
   prods_excised[GKYL_GR_SP_EXCISION] = -1.0;
 
+  // Cache built AFTER the excision-flag mock so the cached rows carry it.
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
+
   double sqrt_det = sqrt(prods_active[GKYL_GR_SP_SPATIAL_DET]);
   (void)sqrt_det;
 
@@ -896,11 +893,8 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   // L = active, R = excised. Matter flowing right (into BH).
   eqn->set_interface_idx_func(eqn, idx_active, idx_excised);
   double qL_loc[5], qR_loc[5];
-  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_active_glob,  qL_loc);  // → prodl_local (cell 0, active)
-  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_excised_glob, qR_loc);  // → prodr_local (cell 1, excised)
-
-  struct wv_gr_euler_tetrad *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad, eqn);
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_active_glob,  qL_loc);
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_excised_glob, qR_loc);
 
   double delta_R[5];
   for (int i = 0; i < 5; i++) delta_R[i] = qR_loc[i] - qL_loc[i];
@@ -923,7 +917,7 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   //      Compute F(qL_active) via the production cell-centered Banyuls
   //      flux using the active-cell prods.
   double fL_gr[5];
-  gkyl_gr_euler_banyuls_flux_cell(eos, qL_loc, grm->prodl_local, NULL, fL_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qL_loc, prods_active, NULL, fL_gr);
   double dF_R[5];
   for (int i = 0; i < 5; i++) dF_R[i] = -fL_gr[i];
 
@@ -957,8 +951,8 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   // Matter cannot emerge from the BH; the wave decomposition with q=0 on left
   // should not produce inflow into the active cell from the excised side.
   eqn->set_interface_idx_func(eqn, idx_excised, idx_active);
-  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_excised_glob, qL_loc); // → prodl_local (excised)
-  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_active_glob,  qR_loc); // → prodr_local (active)
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_excised_glob, qL_loc);
+  eqn->rotate_to_local_func(eqn, tau1v, tau2v, norm, q_active_glob,  qR_loc);
 
   double delta_L[5];
   for (int i = 0; i < 5; i++) delta_L[i] = qR_loc[i] - qL_loc[i];
@@ -977,7 +971,7 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
   }
 
   double fR_gr[5];
-  gkyl_gr_euler_banyuls_flux_cell(eos, qR_loc, grm->prodr_local, NULL, fR_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qR_loc, prods_active, NULL, fR_gr);
   double dF_L[5];
   for (int i = 0; i < 5; i++) dF_L[i] = fR_gr[i];  // F(qR_active) − F(qL_excised=0)
 
@@ -1011,6 +1005,7 @@ run_excision_absorbing_for_rp(struct gkyl_gr_spacetime *spacetime,
       spacetime_label, rp_label, i, fabs(amdq_L[i] + apdq_L[i] - dF_L[i]) );
   }
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -1084,18 +1079,16 @@ void test_excision_absorbing_hllc_schwarzschild(void)
 }
 
 // ---------------------------------------------------------------------------
-// 3d. wave_spacetime cache equivalence
+// 3d. wave_spacetime builder correctness
 //
-// The HIGH_ORDER tetrad path reads its interface tetrad data from the
-// wave_spacetime cache when one is attached, and falls back to per-call
-// averaging when not (wave_tetrad_high_order). The cache builder mirrors
-// the fallback's averaging + Gram-Schmidt construction, so for interior
-// faces the two paths must agree to machine precision. This test is the
-// equation-object-level cache coverage that used to live in
-// ctest_wv_gr_euler_mod.c (deleted with the iface-flux experiment).
-//
-// Also checks the cached-triad invariant M_inv·γ⁻¹·M_invᵀ = I (which is
-// the M_inv = Mᵀ·γ image of Gram-Schmidt orthonormality MᵀγM = I).
+// The cache is the ONLY geometry path (the per-call fallback retired
+// with the rotation-parity contract — WAVE_SPACETIME_PARITY_PLAN.md;
+// cache == fallback was validated by the historical version of this
+// test before removal). Checks: the bottom-edge storage contract, the
+// cached-triad invariant M_inv·γ⁻¹·M_invᵀ = I, the per-(cell, dir)
+// face-local rows against a hand rotation, and the full-row rotation
+// helper on a synthetic non-identity frame (1D wave_geom frames are
+// identity, which would not exercise the tensor blocks).
 // ---------------------------------------------------------------------------
 
 #include <gkyl_rect_grid.h>
@@ -1103,13 +1096,16 @@ void test_excision_absorbing_hllc_schwarzschild(void)
 #include <gkyl_wave_spacetime.h>
 
 static void
-run_wave_spacetime_cache_equivalence(struct gkyl_gr_spacetime *spacetime,
+run_wave_spacetime_builder(struct gkyl_gr_spacetime *spacetime,
   const char *label, double xL, double xR)
 {
   struct gkyl_gr_euler_eos eos = eos_modes[0];
 
+  // Range {1,2} so gkyl's cell-center convention puts cell 1 at xL and
+  // cell 2 at xR — the excision face-eval check below needs grid
+  // positions aligned with the prods sample points.
   struct gkyl_range conf_range;
-  int lower[1] = { 0 }, upper[1] = { 1 };
+  int lower[1] = { 1 }, upper[1] = { 2 };
   gkyl_range_init(&conf_range, 1, lower, upper);
 
   double dx = xR - xL;
@@ -1121,12 +1117,8 @@ run_wave_spacetime_cache_equivalence(struct gkyl_gr_spacetime *spacetime,
   struct gkyl_wave_geom *wg =
     gkyl_wave_geom_new(&grid, &conf_range, NULL, NULL, false);
 
-  struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range,
-    WV_GR_EULER_TETRAD_RP_LAX);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
-  gkyl_gr_euler_tetrad_set_auxfields(eqn,
-    (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
 
   double *prods_L = gkyl_array_fetch(prods, 0);
   double *prods_R = gkyl_array_fetch(prods, 1);
@@ -1135,21 +1127,21 @@ run_wave_spacetime_cache_equivalence(struct gkyl_gr_spacetime *spacetime,
   if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
       prods_R[GKYL_GR_SP_EXCISION] < 0.0) {
     gkyl_array_release(prods);
-    gkyl_wv_eqn_release(eqn);
     gkyl_wave_geom_release(wg);
     return;
   }
+  (void)eos;
 
   struct gkyl_wave_spacetime *ws =
     gkyl_wave_spacetime_new(&grid, &conf_range, wg, spacetime, prods, 0.0,
-      /*is_static=*/true, /*use_gpu=*/false);
+      /*use_gpu=*/false);
 
   // Storage contract at the bottom edge of the build range: cell 0 has
   // no lower neighbor, so its iface[0] must be the one-sided fill from
   // its own prods — VALID (sqrt_det > 0), tagged INTERIOR, never a
   // zero-filled sentinel (see gkyl_wave_spacetime.h).
   {
-    int idx0[1] = { 0 };
+    int idx0[1] = { 1 };
     const struct gkyl_wave_spacetime_cell *wsc0 =
       gkyl_wave_spacetime_get(ws, idx0);
     const struct gkyl_wave_spacetime_iface *if0 = &wsc0->iface[0];
@@ -1168,7 +1160,7 @@ run_wave_spacetime_cache_equivalence(struct gkyl_gr_spacetime *spacetime,
   // Cached-triad invariant on the interior face owned by cell 1:
   // M_inv·γ⁻¹·M_invᵀ = I at machine ε.
   {
-    int idxr[1] = { 1 };
+    int idxr[1] = { 2 };
     const struct gkyl_wave_spacetime_cell *wsc =
       gkyl_wave_spacetime_get(ws, idxr);
     const struct gkyl_wave_spacetime_iface *iface = &wsc->iface[0];
@@ -1191,77 +1183,92 @@ run_wave_spacetime_cache_equivalence(struct gkyl_gr_spacetime *spacetime,
       }
   }
 
-  // Cache-attached vs fallback equivalence over the shared state table.
-  double norm[3] = { 1.0, 0.0, 0.0 };
-  double tau1[3] = { 0.0, 1.0, 0.0 };
-  double tau2[3] = { 0.0, 0.0, 1.0 };
-  int idxl[1] = { 0 }, idxr[1] = { 1 };
+  // Per-(cell, dir) face-local rows: cached row == hand rotation of the
+  // cell's global row with the same wave_geom frames.
+  for (int ci = 0; ci < 2; ci++) {
+    int idx[1] = { ci + 1 };
+    const struct gkyl_wave_spacetime_cell *wsc =
+      gkyl_wave_spacetime_get(ws, idx);
+    const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idx);
+    const double *row = (ci == 0) ? prods_L : prods_R;
+    double expect[GKYL_GR_SP_NCOMP_BASE];
+    gkyl_wave_spacetime_rotate_prods_row(cg->tau1[0], cg->tau2[0],
+      cg->norm[0], row, expect);
+    for (int k = 0; k < GKYL_GR_SP_NCOMP_BASE; k++)
+      TEST_CHECK_( wsc->cell_prods_local[0][k] == expect[k],
+        "[%s] cell %d face-local row comp %d: cached %.17e vs %.17e",
+        label, ci, k, wsc->cell_prods_local[0][k], expect[k] );
+  }
 
-  for (int c = 0; c < GR_EULER_POS_NUM_CASES; c++) {
-    const struct gr_euler_pos_rp_case *rc = &gr_euler_pos_cases[c];
+  // Full-row rotation helper on a synthetic y-normal frame (pure
+  // permutation — spot-check one component per tensor rank).
+  {
+    double nrm[3] = { 0.0, 1.0, 0.0 };
+    double t1v[3] = { -1.0, 0.0, 0.0 };
+    double t2v[3] = { 0.0, 0.0, 1.0 };
+    double rot[GKYL_GR_SP_NCOMP_BASE];
+    gkyl_wave_spacetime_rotate_prods_row(t1v, t2v, nrm, prods_L, rot);
+    TEST_CHECK_( fabs(rot[GKYL_GR_SP_SHIFT + 0]
+        - prods_L[GKYL_GR_SP_SHIFT + 1]) < 1.0e-15,
+      "[%s] y-frame rank-1: shift_n != β_y", label );
+    TEST_CHECK_( fabs(rot[GKYL_GR_SP_GIJ + 0]
+        - prods_L[GKYL_GR_SP_GIJ + 4]) < 1.0e-15,
+      "[%s] y-frame rank-2: γ_nn != γ_yy", label );
+    TEST_CHECK_( fabs(rot[GKYL_GR_SP_DGIJ + 0]
+        - prods_L[GKYL_GR_SP_DGIJ + 9*1 + 3*1 + 1]) < 1.0e-15,
+      "[%s] y-frame rank-3: (∂γ)_nnn != ∂_y γ_yy", label );
+  }
 
-    double vsq_L = 0.0, vsq_R = 0.0;
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++) {
-        vsq_L += prods_L[GKYL_GR_SP_GIJ + 3*i + j] * rc->v_L[i] * rc->v_L[j];
-        vsq_R += prods_R[GKYL_GR_SP_GIJ + 3*i + j] * rc->v_R[i] * rc->v_R[j];
-      }
-    if (!(vsq_L < 1.0 - 1.0e-6) || !(vsq_R < 1.0 - 1.0e-6)) continue;
-
-    double qL_glob[5], qR_glob[5];
-    build_state_convA(eos, rc->rho_L, rc->v_L, rc->p_L, prods_L, qL_glob);
-    build_state_convA(eos, rc->rho_R, rc->v_R, rc->p_R, prods_R, qR_glob);
-
-    double waves_ws[3 * 5], speeds_ws[3], waves_nb[3 * 5], speeds_nb[3];
-    double qL[5], qR[5], delta[5];
-
-    // Cache attached.
-    gkyl_gr_euler_tetrad_set_wave_spacetime(eqn, ws);
-    eqn->set_interface_idx_func(eqn, idxl, idxr);
-    eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qL_glob, qL);
-    eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qR_glob, qR);
-    for (int i = 0; i < 5; i++) delta[i] = qR[i] - qL[i];
-    eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
-      delta, qL, qR, 1.0, 1.0, waves_ws, speeds_ws);
-
-    // Cache detached — per-call averaging fallback.
-    gkyl_gr_euler_tetrad_set_wave_spacetime(eqn, NULL);
-    eqn->set_interface_idx_func(eqn, idxl, idxr);
-    eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qL_glob, qL);
-    eqn->rotate_to_local_func(eqn, tau1, tau2, norm, qR_glob, qR);
-    eqn->waves_func(eqn, GKYL_WV_HIGH_ORDER_FLUX,
-      delta, qL, qR, 1.0, 1.0, waves_nb, speeds_nb);
-
-    for (int k = 0; k < 2 * 5; k++)
-      TEST_CHECK_( fabs(waves_ws[k] - waves_nb[k]) < 1.0e-12,
-        "[%s/%s] cache vs fallback wave[%d]: %.3e vs %.3e",
-        label, rc->name, k, waves_ws[k], waves_nb[k] );
-    for (int k = 0; k < 2; k++)
-      TEST_CHECK_( fabs(speeds_ws[k] - speeds_nb[k]) < 1.0e-12,
-        "[%s/%s] cache vs fallback speed[%d]: %.3e vs %.3e",
-        label, rc->name, k, speeds_ws[k], speeds_nb[k] );
+  // Excision-face geometry: with the analytic spacetime available, the
+  // builder evaluates the metric AT THE FACE CENTROID. Mock cell 1 (at
+  // xL) excised; the face between the cells sits at (xL+xR)/2 and its
+  // iface entry must match the analytic values there, not cell 2's
+  // center values.
+  {
+    double exc_save = prods_L[GKYL_GR_SP_EXCISION];
+    prods_L[GKYL_GR_SP_EXCISION] = -1.0;
+    struct gkyl_wave_spacetime *ws_ex =
+      gkyl_wave_spacetime_new(&grid, &conf_range, wg, spacetime, prods, 0.0,
+        /*use_gpu=*/false);
+    int idxr[1] = { 2 };
+    const struct gkyl_wave_spacetime_iface *ifx =
+      &gkyl_wave_spacetime_get(ws_ex, idxr)->iface[0];
+    TEST_CHECK_( ifx->kind == GKYL_WS_IFACE_EXCISION,
+      "[%s] excision face not tagged EXCISION", label );
+    double pF[GKYL_GR_SP_NCOMP_BASE];
+    fill_prods_at(spacetime, 0.5 * (xL + xR), 0.0, 0.0, pF);
+    TEST_CHECK_( fabs(ifx->alpha - pF[GKYL_GR_SP_LAPSE]) < 1.0e-14,
+      "[%s] excision face α = %.17e != analytic %.17e at face centroid",
+      label, ifx->alpha, pF[GKYL_GR_SP_LAPSE] );
+    TEST_CHECK_( fabs(ifx->shift_n - pF[GKYL_GR_SP_SHIFT + 0]) < 1.0e-14,
+      "[%s] excision face β_n != analytic at face centroid", label );
+    TEST_CHECK_( fabs(ifx->sqrt_det_iface
+        - sqrt(pF[GKYL_GR_SP_SPATIAL_DET])) < 1.0e-12,
+      "[%s] excision face √det = %.17e != analytic %.17e",
+      label, ifx->sqrt_det_iface, sqrt(pF[GKYL_GR_SP_SPATIAL_DET]) );
+    gkyl_wave_spacetime_release(ws_ex);
+    prods_L[GKYL_GR_SP_EXCISION] = exc_save;
   }
 
   gkyl_wave_spacetime_release(ws);
   gkyl_array_release(prods);
-  gkyl_wv_eqn_release(eqn);
   gkyl_wave_geom_release(wg);
 }
 
-void test_wave_spacetime_cache_equivalence(void)
+void test_wave_spacetime_builder(void)
 {
   struct gkyl_gr_spacetime *mink = gkyl_gr_minkowski_new(false);
-  run_wave_spacetime_cache_equivalence(mink, "Mink-cache", 0.30, 0.32);
+  run_wave_spacetime_builder(mink, "Mink-cache", 0.30, 0.32);
   gkyl_gr_spacetime_release(mink);
 
   struct gkyl_gr_spacetime *schw =
     gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
-  run_wave_spacetime_cache_equivalence(schw, "Schw-cache", 0.22, 0.24);
+  run_wave_spacetime_builder(schw, "Schw-cache", 0.22, 0.24);
   gkyl_gr_spacetime_release(schw);
 
   struct gkyl_gr_spacetime *kerr =
     gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
-  run_wave_spacetime_cache_equivalence(kerr, "Kerr-cache", 0.16, 0.18);
+  run_wave_spacetime_builder(kerr, "Kerr-cache", 0.16, 0.18);
   gkyl_gr_spacetime_release(kerr);
 }
 
@@ -1294,6 +1301,7 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
     gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
     return;
   }
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   // Interface-averaged prods for the flux-jump reference: with per-cell
   // metrics the tetrad scheme satisfies Σs·w = ΔF(geom_iface), not the
@@ -1392,6 +1400,7 @@ run_bhl_regime_states(struct gkyl_gr_spacetime *spacetime,
     }
   }
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -1657,7 +1666,7 @@ TEST_LIST = {
   { "bhl_regime_hllc_schwarzschild", test_bhl_regime_hllc_schwarzschild },
   { "bhl_regime_hllc_kerr",          test_bhl_regime_hllc_kerr },
 
-  { "wave_spacetime_cache_equivalence", test_wave_spacetime_cache_equivalence },
+  { "wave_spacetime_builder", test_wave_spacetime_builder },
 
   { "direct_state_hllc_fallback_probe", test_direct_state_hllc_fallback_probe },
 

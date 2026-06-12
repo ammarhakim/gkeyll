@@ -2,6 +2,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_gr_spacetime.h>
+#include <gkyl_moment_spacetime_products.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -40,6 +41,16 @@ struct gkyl_wave_spacetime_iface {
 // the grid is lower-dimensional; the unused entries cost ~200 bytes/cell
 // and keep the indexing uniform.
 //
+// `cell_prods_local[d]` is the cell's OWN spacetime-products row rotated
+// into the face-local frame of direction d (face normal = x), in the
+// standard GKYL_GR_SP_* row layout so consumers keep their
+// `const double *prods` signatures. This is the per-(cell, dir) geometry
+// that used to be smuggled into the equation object through the
+// rotation-parity contract (prodl_local/prodr_local) — consumers now
+// fetch it by (idx, dir) like every other cached quantity
+// (WAVE_SPACETIME_PARITY_PLAN.md). Unused dirs (d ≥ ndim) are
+// zero-filled.
+//
 // Storage contract for the lower-face convention at the edge of the build
 // range: cells at the BOTTOM edge of the range have no lower neighbor, so
 // their iface[d] cannot be built from an L/R pair — the only choice
@@ -56,17 +67,18 @@ struct gkyl_wave_spacetime_iface {
 // via the excision flags before the cache is read.
 struct gkyl_wave_spacetime_cell {
   struct gkyl_wave_spacetime_iface iface[GKYL_MAX_CDIM];
+  double cell_prods_local[GKYL_MAX_CDIM][GKYL_GR_SP_NCOMP_BASE];
 };
 
 // Object header — mirrors gkyl_wave_geom (range + data array + flags +
-// refcount + on_dev). `is_static` is informational; Phase 2 always rebuilds
-// on refresh, Phase 3 will gate this.
+// refcount + on_dev). Dynamism is the APP's concern: the app calls
+// refresh only for Einstein-evolved (non-static) spacetimes, and
+// refresh always rebuilds — the cache carries no static/dynamic state.
 struct gkyl_wave_spacetime {
   int ndim;
   struct gkyl_range range;
   struct gkyl_array *data;   // gkyl_wave_spacetime_cell per cell over `range`.
 
-  bool is_static;
   double last_build_time;
 
   uint32_t flags;
@@ -85,15 +97,18 @@ struct gkyl_wave_spacetime {
  * @param wg        Wave geometry providing the per-face tau1/tau2/norm
  *                  rotation used to push prods from the global frame into
  *                  each face-local frame before averaging.
- * @param spacetime Analytic spacetime callbacks (for face-position eval at
- *                  excision-adjacent faces). May be NULL in pure-interior
- *                  setups (no excision).
+ * @param spacetime Analytic spacetime callbacks. When non-NULL,
+ *                  excision-adjacent faces are built by evaluating the
+ *                  metric AT THE FACE CENTROID (the excision geometry is
+ *                  known exactly). When NULL (Einstein-evolved runs),
+ *                  those faces fall back to the active cell's center
+ *                  values — the slot an apparent-horizon finder fills.
+ *                  Interior faces always use L/R averaging (for a
+ *                  dynamic spacetime there is no other option).
  * @param prods     Cell-centered spacetime products array; the cache reads
  *                  lapse/shift/γ/inv-γ/excision flags from here. Layout per
  *                  gkyl_moment_spacetime_products.h.
  * @param t_curr    Time at construction (used only as a label).
- * @param is_static Hint for future Phase 3 short-circuiting; ignored in
- *                  Phase 2 (refresh always rebuilds).
  * @param use_gpu   GPU mirror flag.
  */
 struct gkyl_wave_spacetime *
@@ -103,14 +118,13 @@ gkyl_wave_spacetime_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_gr_spacetime *spacetime,
   const struct gkyl_array *prods,
   double t_curr,
-  bool is_static,
   bool use_gpu);
 
 /**
- * Rebuild the cache against the current spacetime/prods state. No-op only
- * when @a is_static was set true at construction AND the requested time
- * matches `last_build_time` exactly (Phase 3 short-circuit; in Phase 2
- * always rebuilds and updates `last_build_time`).
+ * Rebuild the cache against the current spacetime/prods state. Always
+ * rebuilds and updates `last_build_time`; the app invokes this only for
+ * Einstein-evolved (dynamic) spacetimes — static runs build once at
+ * construction.
  */
 void
 gkyl_wave_spacetime_refresh(struct gkyl_wave_spacetime *ws,
@@ -168,6 +182,69 @@ gkyl_wave_spacetime_rotate_rank2(const double *tau1, const double *tau2,
   for (int a = 0; a < 3; a++)
     for (int b = 0; b < 3; b++)
       out[3*a + b] = tmp[a][0]*R[b][0] + tmp[a][1]*R[b][1] + tmp[a][2]*R[b][2];
+}
+
+/**
+ * Rotate a rank-3 spatial object (27 components, row-major over
+ * (k, i, j)) into the face-local frame: out = R·R·R·in with R rows
+ * (norm, tau1, tau2). Used for the metric-derivative block ∂_k γ_ij.
+ */
+static inline void
+gkyl_wave_spacetime_rotate_rank3(const double *tau1, const double *tau2,
+  const double *norm, const double *in, double *out)
+{
+  const double *R[3] = { norm, tau1, tau2 };
+  double tmp1[3][3][3];
+  for (int a = 0; a < 3; a++)
+    for (int j = 0; j < 3; j++)
+      for (int k = 0; k < 3; k++)
+        tmp1[a][j][k] =
+          in[0*9 + 3*j + k]*R[a][0] +
+          in[1*9 + 3*j + k]*R[a][1] +
+          in[2*9 + 3*j + k]*R[a][2];
+  double tmp2[3][3][3];
+  for (int a = 0; a < 3; a++)
+    for (int b = 0; b < 3; b++)
+      for (int k = 0; k < 3; k++)
+        tmp2[a][b][k] =
+          tmp1[a][0][k]*R[b][0] +
+          tmp1[a][1][k]*R[b][1] +
+          tmp1[a][2][k]*R[b][2];
+  for (int a = 0; a < 3; a++)
+    for (int b = 0; b < 3; b++)
+      for (int c = 0; c < 3; c++)
+        out[9*a + 3*b + c] =
+          tmp2[a][b][0]*R[c][0] +
+          tmp2[a][b][1]*R[c][1] +
+          tmp2[a][b][2]*R[c][2];
+}
+
+/**
+ * Rotate a full spacetime-products row (GKYL_GR_SP_* layout) from the
+ * global frame into a face-local frame: scalars copy through; shift,
+ * ∂α, and cell-center rotate rank-1; γ, K, ∂β, γ⁻¹ rotate rank-2;
+ * ∂γ rotates rank-3. Used by the cache builder to fill
+ * cell_prods_local[d] and defines the face-local row semantics every
+ * consumer sees.
+ */
+static inline void
+gkyl_wave_spacetime_rotate_prods_row(const double *tau1, const double *tau2,
+  const double *norm, const double *in_p, double *out_p)
+{
+  out_p[GKYL_GR_SP_LAPSE]        = in_p[GKYL_GR_SP_LAPSE];
+  out_p[GKYL_GR_SP_EXCISION]     = in_p[GKYL_GR_SP_EXCISION];
+  out_p[GKYL_GR_SP_SPATIAL_DET]  = in_p[GKYL_GR_SP_SPATIAL_DET];
+
+  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_SHIFT],   &out_p[GKYL_GR_SP_SHIFT]);
+  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_DALPHA],  &out_p[GKYL_GR_SP_DALPHA]);
+  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_CELLCTR], &out_p[GKYL_GR_SP_CELLCTR]);
+
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_GIJ],     &out_p[GKYL_GR_SP_GIJ]);
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_KIJ],     &out_p[GKYL_GR_SP_KIJ]);
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_DBETA],   &out_p[GKYL_GR_SP_DBETA]);
+  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_INV_GIJ], &out_p[GKYL_GR_SP_INV_GIJ]);
+
+  gkyl_wave_spacetime_rotate_rank3(tau1, tau2, norm, &in_p[GKYL_GR_SP_DGIJ],    &out_p[GKYL_GR_SP_DGIJ]);
 }
 
 /**

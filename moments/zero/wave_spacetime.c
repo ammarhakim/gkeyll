@@ -6,6 +6,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_moment_spacetime_coupling_priv.h>
 #include <gkyl_moment_spacetime_products.h>
 #include <gkyl_util.h>
 #include <gkyl_wave_geom.h>
@@ -76,11 +77,6 @@ gkyl_wave_spacetime_build_cpu(struct gkyl_wave_spacetime *ws,
   const struct gkyl_array *prods,
   double t_curr)
 {
-  (void)grid;
-  (void)spacetime;  // Phase 2: face-position eval at excision boundary is
-                    // a Phase-2+ extension; identity-mapped pass uses the
-                    // active-cell values that the current Riemann path does.
-
   const int ndim = ws->ndim;
   const struct gkyl_range *range = &ws->range;
 
@@ -95,6 +91,18 @@ gkyl_wave_spacetime_build_cpu(struct gkyl_wave_spacetime *ws,
 
     const double *pR = gkyl_array_cfetch(prods, roff);
     double exc_R = pR[GKYL_GR_SP_EXCISION];
+
+    // Cell's own products rotated into each face-local frame (the
+    // per-(cell, dir) geometry consumers fetch by index — see the
+    // cell_prods_local storage contract in the header). Filled for
+    // every cell including excised ones: the excision flag travels
+    // with the row and every consumer short-circuits on it.
+    for (int d = 0; d < ndim; d++)
+      gkyl_wave_spacetime_rotate_prods_row(wcg->tau1[d], wcg->tau2[d],
+        wcg->norm[d], pR, cell->cell_prods_local[d]);
+    for (int d = ndim; d < GKYL_MAX_CDIM; d++)
+      for (int k = 0; k < GKYL_GR_SP_NCOMP_BASE; k++)
+        cell->cell_prods_local[d][k] = 0.0;
 
     for (int d = 0; d < ndim; d++) {
       struct gkyl_wave_spacetime_iface *iface = &cell->iface[d];
@@ -164,16 +172,45 @@ gkyl_wave_spacetime_build_cpu(struct gkyl_wave_spacetime *ws,
           &pR[GKYL_GR_SP_SHIFT], shiftR_loc);
       }
 
-      if (excised_L) {
-        // Active = R; mirror current Riemann path which uses only the
-        // active cell's values at excision-adjacent faces.
-        ws_build_iface_from_rotated(iface, GKYL_WS_IFACE_EXCISION,
-          gR_loc, gR_loc, /*use_avg=*/false,
-          pR[GKYL_GR_SP_LAPSE], shiftR_loc[0]);
-      } else if (excised_R) {
-        ws_build_iface_from_rotated(iface, GKYL_WS_IFACE_EXCISION,
-          gL_loc, gL_loc, /*use_avg=*/false,
-          pL[GKYL_GR_SP_LAPSE], shiftL_loc[0]);
+      if (excised_L || excised_R) {
+        if (spacetime != NULL) {
+          // Excision-face geometry is KNOWN — evaluate the analytic
+          // metric AT THE FACE CENTROID rather than substituting the
+          // active cell's center values (a half-cell offset toward
+          // weaker curvature, largest exactly where gradients peak).
+          // Interior faces stay on the averaging policy: for a dynamic
+          // spacetime averaging is the only option, and the analytic
+          // shortcut must not make the two regimes diverge.
+          double xc[GKYL_MAX_CDIM] = { 0.0, 0.0, 0.0 };
+          gkyl_rect_grid_cell_center(grid, iter.idx, xc);
+          xc[d] -= 0.5 * grid->dx[d];   // this cell's lower-face centroid
+          double pF[GKYL_GR_SP_NCOMP_BASE];
+          gkyl_moment_spacetime_coupling_fill_products_analytic(
+            (struct gkyl_gr_spacetime *)spacetime, t_curr,
+            xc[0], xc[1], xc[2], pF);
+          double gF_loc[3][3] = {{0}};
+          double shiftF_loc[3] = {0};
+          gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm,
+            &pF[GKYL_GR_SP_GIJ], (double *)gF_loc);
+          gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm,
+            &pF[GKYL_GR_SP_SHIFT], shiftF_loc);
+          ws_build_iface_from_rotated(iface, GKYL_WS_IFACE_EXCISION,
+            gF_loc, gF_loc, /*use_avg=*/false,
+            pF[GKYL_GR_SP_LAPSE], shiftF_loc[0]);
+        }
+        else if (excised_L) {
+          // No analytic spacetime (Einstein-evolved run): active-cell
+          // values. This branch is the slot an apparent-horizon finder
+          // fills with its declared excision-boundary geometry.
+          ws_build_iface_from_rotated(iface, GKYL_WS_IFACE_EXCISION,
+            gR_loc, gR_loc, /*use_avg=*/false,
+            pR[GKYL_GR_SP_LAPSE], shiftR_loc[0]);
+        }
+        else {
+          ws_build_iface_from_rotated(iface, GKYL_WS_IFACE_EXCISION,
+            gL_loc, gL_loc, /*use_avg=*/false,
+            pL[GKYL_GR_SP_LAPSE], shiftL_loc[0]);
+        }
       } else {
         double alpha_iface   = 0.5 * (pL[GKYL_GR_SP_LAPSE] + pR[GKYL_GR_SP_LAPSE]);
         double shift_n_iface = 0.5 * (shiftL_loc[0] + shiftR_loc[0]);
@@ -215,7 +252,6 @@ gkyl_wave_spacetime_new(const struct gkyl_rect_grid *grid,
   const struct gkyl_gr_spacetime *spacetime,
   const struct gkyl_array *prods,
   double t_curr,
-  bool is_static,
   bool use_gpu)
 {
   // GPU mirror deferred to a later phase; CPU-only for now matches the
@@ -230,7 +266,6 @@ gkyl_wave_spacetime_new(const struct gkyl_rect_grid *grid,
   // GKYL_USER arrays don't support gkyl_array_clear; the builder pass that
   // runs below populates every iface entry.
 
-  ws->is_static       = is_static;
   ws->last_build_time = -1.0;
 
   ws->flags = 0;
@@ -250,8 +285,7 @@ gkyl_wave_spacetime_refresh(struct gkyl_wave_spacetime *ws,
   const struct gkyl_array *prods,
   double t_curr)
 {
-  // Phase 2: always rebuild. Phase 3 will gate this on is_static +
-  // last_build_time matching t_curr.
+  // Always rebuild; the app gates calls on spacetime dynamism.
   gkyl_wave_spacetime_build_cpu(ws, grid, wg, spacetime, prods, t_curr);
 }
 

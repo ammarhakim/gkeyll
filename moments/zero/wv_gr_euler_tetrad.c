@@ -25,7 +25,6 @@ gr_euler_tetrad_set_interface_idx(const struct gkyl_wv_eqn *eqn,
     grm->cur_idxl[d] = idxl[d];
     grm->cur_idxr[d] = idxr[d];
   }
-  grm->rot_call_parity = 0;
 }
 
 static void
@@ -72,60 +71,9 @@ gkyl_gr_euler_tetrad_set_wave_spacetime(const struct gkyl_wv_eqn *eqn,
 
 // ---------------------------------------------------------------------------
 // Rotation of the spacetime products array from global to local
-// tangent-normal frame. Rank-1/rank-2 rotations come from
-// gkyl_wave_spacetime.h (shared with the cache builder); rank-3 below is
-// equation-specific (metric-derivative block for the source terms).
+// tangent-normal frame is owned by gkyl_wave_spacetime.h
+// (gkyl_wave_spacetime_rotate_prods_row), shared with the cache builder.
 // ---------------------------------------------------------------------------
-
-static inline void
-rotate_rank3(const double *tau1, const double *tau2, const double *norm,
-  const double *in, double *out)
-{
-  const double *R[3] = { norm, tau1, tau2 };
-  double tmp1[3][3][3];
-  for (int a = 0; a < 3; a++)
-    for (int j = 0; j < 3; j++)
-      for (int k = 0; k < 3; k++)
-        tmp1[a][j][k] =
-          in[0*9 + 3*j + k]*R[a][0] +
-          in[1*9 + 3*j + k]*R[a][1] +
-          in[2*9 + 3*j + k]*R[a][2];
-  double tmp2[3][3][3];
-  for (int a = 0; a < 3; a++)
-    for (int b = 0; b < 3; b++)
-      for (int k = 0; k < 3; k++)
-        tmp2[a][b][k] =
-          tmp1[a][0][k]*R[b][0] +
-          tmp1[a][1][k]*R[b][1] +
-          tmp1[a][2][k]*R[b][2];
-  for (int a = 0; a < 3; a++)
-    for (int b = 0; b < 3; b++)
-      for (int c = 0; c < 3; c++)
-        out[9*a + 3*b + c] =
-          tmp2[a][b][0]*R[c][0] +
-          tmp2[a][b][1]*R[c][1] +
-          tmp2[a][b][2]*R[c][2];
-}
-
-static inline void
-rot_spacetime_to_local(const double *tau1, const double *tau2,
-  const double *norm, const double *in_p, double *out_p)
-{
-  out_p[GKYL_GR_SP_LAPSE]        = in_p[GKYL_GR_SP_LAPSE];
-  out_p[GKYL_GR_SP_EXCISION]     = in_p[GKYL_GR_SP_EXCISION];
-  out_p[GKYL_GR_SP_SPATIAL_DET]  = in_p[GKYL_GR_SP_SPATIAL_DET];
-
-  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_SHIFT],   &out_p[GKYL_GR_SP_SHIFT]);
-  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_DALPHA],  &out_p[GKYL_GR_SP_DALPHA]);
-  gkyl_wave_spacetime_rotate_rank1(tau1, tau2, norm, &in_p[GKYL_GR_SP_CELLCTR], &out_p[GKYL_GR_SP_CELLCTR]);
-
-  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_GIJ],     &out_p[GKYL_GR_SP_GIJ]);
-  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_KIJ],     &out_p[GKYL_GR_SP_KIJ]);
-  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_DBETA],   &out_p[GKYL_GR_SP_DBETA]);
-  gkyl_wave_spacetime_rotate_rank2(tau1, tau2, norm, &in_p[GKYL_GR_SP_INV_GIJ], &out_p[GKYL_GR_SP_INV_GIJ]);
-
-  rotate_rank3(tau1, tau2, norm, &in_p[GKYL_GR_SP_DGIJ],    &out_p[GKYL_GR_SP_DGIJ]);
-}
 
 // ---------------------------------------------------------------------------
 // Hydro helpers (prim_vars / banyuls_flux_cell / max_abs_speed). prim_vars
@@ -1234,16 +1182,6 @@ rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
   qlocal[3] = (qglobal[1] * tau2[0]) + (qglobal[2] * tau2[1]) + (qglobal[3] * tau2[2]);
   qlocal[4] = qglobal[4];
 
-  struct wv_gr_euler_tetrad *grm = container_of((struct gkyl_wv_eqn *)eqn,
-    struct wv_gr_euler_tetrad, eqn);
-  if (grm->auxfields.prods) {
-    const int *idx = (grm->rot_call_parity == 0) ? grm->cur_idxl : grm->cur_idxr;
-    double *out = (grm->rot_call_parity == 0) ? grm->prodl_local : grm->prodr_local;
-    long cidx = gkyl_range_idx(&grm->conf_range, idx);
-    const double *in_p = gkyl_array_cfetch(grm->auxfields.prods, cidx);
-    rot_spacetime_to_local(tau1, tau2, norm, in_p, out);
-  }
-  grm->rot_call_parity ^= 1;
 }
 
 static inline void
@@ -1275,11 +1213,45 @@ static void qfluct_lax_curved(const struct gkyl_wv_eqn *eqn, const double *ql,
   const double *qr, const double *waves, const double *s, double *amdq,
   double *apdq);
 
+// Per-interface geometry fetch: the (L, R) cells' face-local products
+// rows, by (index, direction) from the wave_spacetime cache — the
+// wave_geom model (WAVE_SPACETIME_PARITY_PLAN.md; replaces the
+// rotation-parity smuggling through rot_to_local). dir is the slot where
+// idxr − idxl = +1 (the wave-prop driver advances one direction per
+// call); equal indices — single-cell test probes — resolve to dir 0.
+// The cache is REQUIRED for this equation.
+static inline void
+gr_euler_tetrad_iface_cell_prods(const struct wv_gr_euler_tetrad *grm,
+  const double **prods_l, const double **prods_r,
+  const struct gkyl_wave_spacetime_iface **iface_out)
+{
+  const struct gkyl_wave_spacetime *ws = grm->auxfields.wave_spacetime;
+  assert(ws != NULL);
+  // Scan only the range's dimensions: set_interface_idx copies
+  // GKYL_MAX_DIM entries from the caller's arrays, so slots ≥ ndim can
+  // hold garbage when callers (unit tests) pass ndim-sized arrays.
+  // The face is OWNED by the greater index along the differing dim
+  // (wave_geom's lower-face convention); a descending pair — the L/R-
+  // exchanged view a sign-symmetry probe takes — refers to the SAME
+  // physical face. Production pairs are always ascending.
+  int dir = 0;
+  const int *owner = grm->cur_idxr;
+  for (int d = 0; d < ws->ndim; d++) {
+    int diff = grm->cur_idxr[d] - grm->cur_idxl[d];
+    if (diff == 1)  { dir = d; owner = grm->cur_idxr; break; }
+    if (diff == -1) { dir = d; owner = grm->cur_idxl; break; }
+  }
+  *prods_l = gkyl_wave_spacetime_get(ws, grm->cur_idxl)->cell_prods_local[dir];
+  *prods_r = gkyl_wave_spacetime_get(ws, grm->cur_idxr)->cell_prods_local[dir];
+  if (iface_out)
+    *iface_out = &gkyl_wave_spacetime_get(ws, owner)->iface[dir];
+}
+
 // Tetrad-first HIGH_ORDER worker. Reads sr_kernel + num_waves +
 // excision_policy from the equation object (set in the constructor based
 // on rp_type). Interface tetrad data (M_inv, inv_g, sqrt_det, lapse,
-// face-normal shift) comes from the wave_spacetime cache when one is
-// attached; otherwise falls back to per-call averaging.
+// face-normal shift) and the per-cell face-local rows come from the
+// wave_spacetime cache.
 static double
 wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
   const double *ql, const double *qr, double *waves, double *s)
@@ -1289,8 +1261,12 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
   struct gkyl_gr_euler_eos eos = grm->eos;
   int num_waves = grm->num_waves;
 
-  bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-  bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  const double *prods_l, *prods_r;
+  const struct gkyl_wave_spacetime_iface *iface;
+  gr_euler_tetrad_iface_cell_prods(grm, &prods_l, &prods_r, &iface);
+
+  bool excise_l = prods_l[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  bool excise_r = prods_r[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
 
   // Both-excised, or any-side-excised under the (currently unused)
   // SHORT_CIRCUIT policy: zero waves with sentinel speeds. All four
@@ -1310,61 +1286,21 @@ wave_tetrad_high_order(const struct gkyl_wv_eqn *eqn,
   }
 
   // Interface tetrad data: M_inv, inv_g_iface, sqrt_det_iface, alpha, and
-  // the face-normal shift component. Either from the cache or computed
-  // on the fly (cache-less path matches the pre-Phase-2 behavior).
+  // the face-normal shift component, from the cache. (The historical
+  // cache-less per-call averaging path was deleted with the parity
+  // contract — cache == fallback was validated by the old
+  // cache_equivalence test before removal.)
   double inv_g_iface[3][3], M_inv[3][3];
   double alpha_iface, shift_n_iface, sqrt_det_iface;
 
-  const struct gkyl_wave_spacetime *ws = grm->auxfields.wave_spacetime;
-  if (ws != NULL) {
-    // Direction = the slot in (idxr - idxl) that's +1. (The wave-prop
-    // driver always advances one direction per call, so exactly one slot
-    // differs by exactly +1.)
-    int dir = 0;
-    for (int d = 0; d < GKYL_MAX_DIM; d++) {
-      if (grm->cur_idxr[d] - grm->cur_idxl[d] == 1) { dir = d; break; }
+  for (int a = 0; a < 3; a++)
+    for (int b = 0; b < 3; b++) {
+      M_inv[a][b]       = iface->M_inv[a][b];
+      inv_g_iface[a][b] = iface->inv_g_iface[a][b];
     }
-    const struct gkyl_wave_spacetime_cell *wsc =
-      gkyl_wave_spacetime_get(ws, grm->cur_idxr);
-    const struct gkyl_wave_spacetime_iface *iface = &wsc->iface[dir];
-
-    for (int a = 0; a < 3; a++)
-      for (int b = 0; b < 3; b++) {
-        M_inv[a][b]       = iface->M_inv[a][b];
-        inv_g_iface[a][b] = iface->inv_g_iface[a][b];
-      }
-    sqrt_det_iface = iface->sqrt_det_iface;
-    alpha_iface    = iface->alpha;
-    shift_n_iface  = iface->shift_n;
-  } else {
-    // Fallback path — bit-identical to the pre-cache behavior.
-    double g_iface[3][3];
-    if (excise_l || excise_r) {
-      const double *prods_active = excise_l ? grm->prodr_local : grm->prodl_local;
-      for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 3; j++) {
-          g_iface[i][j]     = prods_active[GKYL_GR_SP_GIJ + 3*i + j];
-          inv_g_iface[i][j] = prods_active[GKYL_GR_SP_INV_GIJ + 3*i + j];
-        }
-      alpha_iface    = prods_active[GKYL_GR_SP_LAPSE];
-      shift_n_iface  = prods_active[GKYL_GR_SP_SHIFT + 0];
-      sqrt_det_iface = sqrt(prods_active[GKYL_GR_SP_SPATIAL_DET]);
-    } else {
-      for (int i = 0; i < 3; i++)
-        for (int j = 0; j < 3; j++)
-          g_iface[i][j] = 0.5 * (grm->prodl_local[GKYL_GR_SP_GIJ + 3*i + j]
-                               + grm->prodr_local[GKYL_GR_SP_GIJ + 3*i + j]);
-      double det_iface = gkyl_wave_spacetime_invert_metric_3x3(g_iface, inv_g_iface);
-      alpha_iface   = 0.5 * (grm->prodl_local[GKYL_GR_SP_LAPSE]
-                           + grm->prodr_local[GKYL_GR_SP_LAPSE]);
-      shift_n_iface = 0.5 * (grm->prodl_local[GKYL_GR_SP_SHIFT + 0]
-                           + grm->prodr_local[GKYL_GR_SP_SHIFT + 0]);
-      sqrt_det_iface = sqrt(det_iface);
-    }
-    double M[3][3];
-    gkyl_wave_spacetime_build_triad_contravariant_x(
-      g_iface, inv_g_iface, M, M_inv);
-  }
+  sqrt_det_iface = iface->sqrt_det_iface;
+  alpha_iface    = iface->alpha;
+  shift_n_iface  = iface->shift_n;
 
   // Forward transform with sqrt_det_iface on BOTH sides (Phase 0 Fix 1).
   double ql_tet[5], qr_tet[5];
@@ -1474,8 +1410,11 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
   struct gkyl_gr_euler_eos eos = grm->eos;
   double gas_gamma = eos.gas_gamma;
 
-  bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-  bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  const double *prods_l, *prods_r;
+  gr_euler_tetrad_iface_cell_prods(grm, &prods_l, &prods_r, NULL);
+
+  bool excise_l = prods_l[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  bool excise_r = prods_r[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   if (excise_l && excise_r) {
     for (int k = 0; k < 2 * 5; k++) waves[k] = 0.0;
     s[0] = -pow(10.0, -8.0);
@@ -1488,16 +1427,16 @@ wave_lax_curved(const struct gkyl_wv_eqn *eqn, const double *delta,
   // absorbing-BC contribution automatically.
   struct gkyl_gr_euler_prim_status *stat = grm->auxfields.prim_status_wave_prop;
   double fl_gr[5], fr_gr[5];
-  gkyl_gr_euler_banyuls_flux_cell(eos, ql, grm->prodl_local, stat, fl_gr);
-  gkyl_gr_euler_banyuls_flux_cell(eos, qr, grm->prodr_local, stat, fr_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, ql, prods_l, stat, fl_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qr, prods_r, stat, fr_gr);
 
   // amax — normal-direction (face-local x) max-abs eigenvalue: the
   // principled penalization for a dimensionally-split sweep. Adopted
   // 2026-06-10 over the earlier full-3D bound; history and the BHL A/B
   // statistics are in SESSION_NOTES_POSITIVITY_UNIFICATION.md §9.
   // Excision short-circuits to 1e-8.
-  double amaxl = gkyl_gr_euler_tetrad_max_abs_speed_dir(eos, ql, grm->prodl_local, 0, stat);
-  double amaxr = gkyl_gr_euler_tetrad_max_abs_speed_dir(eos, qr, grm->prodr_local, 0, stat);
+  double amaxl = gkyl_gr_euler_tetrad_max_abs_speed_dir(eos, ql, prods_l, 0, stat);
+  double amaxr = gkyl_gr_euler_tetrad_max_abs_speed_dir(eos, qr, prods_r, 0, stat);
   double amax = fmax(amaxl, amaxr);
   if (!(amax > 0.0)) {
     for (int k = 0; k < 2 * 5; k++) waves[k] = 0.0;
@@ -1559,20 +1498,23 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
   // flux_jump_func is the F-wave callback. Our Q-wave production setup
   // doesn't invoke it (see notes in priv.h).
   struct gkyl_gr_euler_prim_status *stat = grm->auxfields.prim_status_wave_prop;
-  double fl[5], fr[5];
-  gkyl_gr_euler_banyuls_flux_cell(eos, ql, grm->prodl_local, stat, fl);
-  gkyl_gr_euler_banyuls_flux_cell(eos, qr, grm->prodr_local, stat, fr);
+  const double *prods_l, *prods_r;
+  gr_euler_tetrad_iface_cell_prods(grm, &prods_l, &prods_r, NULL);
 
-  bool excise_l = grm->prodl_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-  bool excise_r = grm->prodr_local[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  double fl[5], fr[5];
+  gkyl_gr_euler_banyuls_flux_cell(eos, ql, prods_l, stat, fl);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qr, prods_r, stat, fr);
+
+  bool excise_l = prods_l[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  bool excise_r = prods_r[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
   if (!excise_l && !excise_r) {
     for (int m = 0; m < 5; m++) flux_jump[m] = fr[m] - fl[m];
   } else {
     for (int m = 0; m < 5; m++) flux_jump[m] = 0.0;
   }
 
-  double amaxl = gkyl_gr_euler_tetrad_max_abs_speed(eos, ql, grm->prodl_local, stat);
-  double amaxr = gkyl_gr_euler_tetrad_max_abs_speed(eos, qr, grm->prodr_local, stat);
+  double amaxl = gkyl_gr_euler_tetrad_max_abs_speed(eos, ql, prods_l, stat);
+  double amaxr = gkyl_gr_euler_tetrad_max_abs_speed(eos, qr, prods_r, stat);
   return fmax(amaxl, amaxr);
 }
 
@@ -1817,7 +1759,6 @@ gkyl_wv_gr_euler_tetrad_inew(
   grm->auxfields.repair_status_wave_prop = NULL;
   grm->auxfields.repair_status_source    = NULL;
   grm->eqn.cur_repair_ctx = 0;
-  grm->rot_call_parity = 0;
   for (int d = 0; d < GKYL_MAX_DIM; d++) {
     grm->cur_idxl[d] = 0;
     grm->cur_idxr[d] = 0;

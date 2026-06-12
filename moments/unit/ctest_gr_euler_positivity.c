@@ -42,8 +42,8 @@
 
 // Per-cell-metric positivity check. prods_L and prods_R are the
 // spacetime products rows for the LEFT and RIGHT cells (production
-// wave_prop pipes adjacent-cell metrics into prodl_local/prodr_local
-// independently). Each cell's conservatives are densitized with its
+// wave_prop exposes adjacent cells' metrics independently through the
+// wave_spacetime cache). Each cell's conservatives are densitized with its
 // OWN √γ and admissibility-checked in its OWN inverse spatial metric,
 // matching what wave_prop does post-POSITIVITY_SWEEP.
 //
@@ -57,7 +57,6 @@
 // pair of metric samples), so callers can report honest percentages.
 static int
 run_positivity_for_rp(struct gkyl_wv_eqn *eqn,
-  struct wv_gr_euler_tetrad *grm,
   const double *prods_L, const double *prods_R,
   const struct gr_euler_pos_rp_case *rc,
   enum gkyl_wv_flux_type ftype, double cfl,
@@ -119,9 +118,9 @@ run_positivity_for_rp(struct gkyl_wv_eqn *eqn,
     return 0;
   }
 
-  // Per-cell metric: idxl=0 → prods_L, idxr=1 → prods_R. rotate_to_local
-  // populates prodl_local/prodr_local via the parity flip; with norm=+x̂
-  // the rotation is a no-op on q components.
+  // Per-cell metric: idxl=0 → prods_L, idxr=1 → prods_R, fetched from
+  // the wave_spacetime cache by (index, dir); with norm=+x̂ the state
+  // rotation is a no-op on q components.
   int idx_L[1] = { 0 }, idx_R[1] = { 1 };
   eqn->set_interface_idx_func(eqn, idx_L, idx_R);
   double norm[3] = { 1.0, 0.0, 0.0 };
@@ -173,7 +172,6 @@ run_positivity_for_rp(struct gkyl_wv_eqn *eqn,
       "  [positivity] '%s' cell %s: τ = %.3e (D = %.3e)\n",
       rc->name, who, qn_und[4], qn_und[0]); }
   }
-  (void)grm;
   return 2;
 }
 
@@ -195,8 +193,8 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
 {
   double gas_gamma = eos.gas_gamma;
 
-  // 2-cell conf_range so set_interface_idx(0, 1) routes prods_L and
-  // prods_R to wave_lax_curved's prodl_local / prodr_local.
+  // 2-cell conf_range so set_interface_idx(0, 1) selects cells 0/1's
+  // cached face-local rows for wave_lax_curved.
   struct gkyl_range conf_range;
   int lower[1] = { 0 }, upper[1] = { 1 };
   gkyl_range_init(&conf_range, 1, lower, upper);
@@ -208,8 +206,7 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
   gkyl_gr_euler_tetrad_set_auxfields(eqn,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
 
-  struct wv_gr_euler_tetrad *grm = container_of(eqn,
-    struct wv_gr_euler_tetrad, eqn);
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   int D_violations = 0, S2_violations = 0, tau_violations = 0;
   int total_cells = 0;
@@ -227,9 +224,10 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
     fill_prods_at(spacetime, pt->x + dx_half, pt->y, pt->z, prods_R);
     if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
         prods_R[GKYL_GR_SP_EXCISION] < 0.0) continue;
+    test_ws_refresh(&tws, prods);
 
     for (int c = 0; c < GR_EULER_POS_NUM_CASES; c++) {
-      total_cells += run_positivity_for_rp(eqn, grm, prods_L, prods_R,
+      total_cells += run_positivity_for_rp(eqn, prods_L, prods_R,
         &gr_euler_pos_cases[c], GKYL_WV_LOW_ORDER_FLUX, 0.9,
         &D_violations, &S2_violations, &tau_violations);
     }
@@ -256,6 +254,7 @@ run_positivity_sweep(struct gkyl_gr_spacetime *spacetime,
   TEST_MSG( "τ ≥ 0 violated %d times for %s — info-only",
     tau_violations, label );
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -405,8 +404,8 @@ run_near_floor_for_floor_value(struct gkyl_wv_eqn *eqn,
     int idxl[1] = { 0 }, idxr[1] = { 1 };
     eqn->set_interface_idx_func(eqn, idxl, idxr);
 
-    // rotate_to_local fills prodl_local / prodr_local on the equation
-    // (per-cell rows). With norm = +x̂ this is a no-op on q components.
+    // Geometry comes from the cache by (index, dir); with norm = +x̂
+    // the state rotation is a no-op on q components.
     double norm[3] = { 1.0, 0.0, 0.0 };
     double tau1[3] = { 0.0, 1.0, 0.0 };
     double tau2[3] = { 0.0, 0.0, 1.0 };
@@ -479,6 +478,7 @@ run_near_floor_sweep(struct gkyl_gr_spacetime *spacetime,
     gkyl_wv_eqn_release(eqn);
     return;
   }
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   double tau_sweep[] = {
     1.0e-6, 1.0e-7, 1.0e-8, 1.0e-9, 1.0e-10,
@@ -494,6 +494,7 @@ run_near_floor_sweep(struct gkyl_gr_spacetime *spacetime,
       label, tau_sweep[i], total, D_v, S2_v, tau_v);
   }
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -554,6 +555,7 @@ run_small_tau_over_D_sweep(struct gkyl_gr_spacetime *spacetime,
     gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
     return;
   }
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   double sqrt_det = sqrt(prods_row[GKYL_GR_SP_SPATIAL_DET]);
   double inv_g[3][3] = {
@@ -646,6 +648,7 @@ run_small_tau_over_D_sweep(struct gkyl_gr_spacetime *spacetime,
       label, cases[c].name, tau_over_D_L, tau_L_new, tau_over_D_R, tau_R_new);
   }
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -723,21 +726,31 @@ run_dump_reproducer(struct gkyl_gr_spacetime *spacetime,
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_euler_eos eos = gkyl_gr_euler_eos_ideal(gas_gamma);
+  // Dimension-general range: the 3 cells are stacked ALONG the sweep
+  // direction so the wave_spacetime cache supplies the face-local rows
+  // in the same frames the production sweep used (dir=1 dumps get the
+  // y-frame rows; with a 1D range they would get x-frame rows).
   struct gkyl_range conf_range;
-  int lower[1] = { 0 }, upper[1] = { 2 };  // 3 cells: L=0, C=1, R=2
-  gkyl_range_init(&conf_range, 1, lower, upper);
+  int ndim = d->dir + 1;
+  int lower[3] = { 0, 0, 0 }, upper[3] = { 0, 0, 0 };
+  upper[d->dir] = 2;  // 3 cells: L=0, C=1, R=2 along d->dir
+  gkyl_range_init(&conf_range, ndim, lower, upper);
   struct gkyl_wv_eqn *eqn = make_eqn(eos, conf_range, rp);
   struct gkyl_array *prods = gkyl_array_new(GKYL_DOUBLE,
     GKYL_GR_SP_NCOMP_BASE, conf_range.volume);
   gkyl_gr_euler_tetrad_set_auxfields(eqn,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
 
-  double *prods_L = gkyl_array_fetch(prods, 0);
-  double *prods_C = gkyl_array_fetch(prods, 1);
-  double *prods_R = gkyl_array_fetch(prods, 2);
+  int idx_L[3] = { 0, 0, 0 }, idx_C[3] = { 0, 0, 0 }, idx_R[3] = { 0, 0, 0 };
+  idx_C[d->dir] = 1;
+  idx_R[d->dir] = 2;
+  double *prods_L = gkyl_array_fetch(prods, gkyl_range_idx(&conf_range, idx_L));
+  double *prods_C = gkyl_array_fetch(prods, gkyl_range_idx(&conf_range, idx_C));
+  double *prods_R = gkyl_array_fetch(prods, gkyl_range_idx(&conf_range, idx_R));
   fill_prods_at(spacetime, d->xL, d->yL, d->zL, prods_L);
   fill_prods_at(spacetime, d->xC, d->yC, d->zC, prods_C);
   fill_prods_at(spacetime, d->xR, d->yR, d->zR, prods_R);
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn);
 
   double sqrt_det_C = sqrt(prods_C[GKYL_GR_SP_SPATIAL_DET]);
   double inv_g_C[3][3] = {
@@ -780,8 +793,6 @@ run_dump_reproducer(struct gkyl_gr_spacetime *spacetime,
     qR_glob[i] = d->qR[i];
   }
 
-  int idx_L[1] = { 0 }, idx_C[1] = { 1 }, idx_R[1] = { 2 };
-
   // L-C interface: prodl from cell L, prodr from cell C
   eqn->set_interface_idx_func(eqn, idx_L, idx_C);
   double qL_loc[5], qC_loc_LC[5];
@@ -813,6 +824,7 @@ run_dump_reproducer(struct gkyl_gr_spacetime *spacetime,
   double maxs = fmax(maxs_LC, maxs_CR);
   if (!(maxs > 0.0)) {
     fprintf(stderr, "  [%s] degenerate (maxs<=0)\n", d->name);
+    test_ws_release(&tws);
     gkyl_array_release(prods); gkyl_wv_eqn_release(eqn);
     return;
   }
@@ -857,6 +869,7 @@ run_dump_reproducer(struct gkyl_gr_spacetime *spacetime,
     s_sq_new <= 0.0 ? "**s²≤0**" : "       ");
   (void)qC_und;
 
+  test_ws_release(&tws);
   gkyl_array_release(prods);
   gkyl_wv_eqn_release(eqn);
 }
@@ -1283,16 +1296,12 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
   gkyl_gr_euler_tetrad_set_auxfields(eqn_hllc,
     (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods });
-  struct wv_gr_euler_tetrad *grm_lax = container_of(eqn_lax,
-    struct wv_gr_euler_tetrad, eqn);
-  struct wv_gr_euler_tetrad *grm_hll = container_of(eqn_hll,
-    struct wv_gr_euler_tetrad, eqn);
-  struct wv_gr_euler_tetrad *grm_hllc = container_of(eqn_hllc,
-    struct wv_gr_euler_tetrad, eqn);
+  // One cache shared by all three equations (same prods, same range).
+  struct test_ws tws = test_ws_new(&conf_range, prods, eqn_lax);
+  gkyl_gr_euler_tetrad_set_wave_spacetime(eqn_hll, tws.ws);
+  gkyl_gr_euler_tetrad_set_wave_spacetime(eqn_hllc, tws.ws);
 
   struct gkyl_wv_eqn *flux_eqn[GRPF_N] = { eqn_lax, eqn_hll, eqn_hllc, eqn_lax };
-  struct wv_gr_euler_tetrad *flux_grm[GRPF_N] =
-    { grm_lax, grm_hll, grm_hllc, grm_lax };
   enum gkyl_wv_flux_type flux_ft[GRPF_N] = {
     GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_HIGH_ORDER_FLUX, GKYL_WV_HIGH_ORDER_FLUX,
     GKYL_WV_LOW_ORDER_FLUX };
@@ -1343,8 +1352,9 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
         fill_prods_at(spacetime, pts[pi].x + dxh, pts[pi].y, pts[pi].z, prods_R);
         if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
             prods_R[GKYL_GR_SP_EXCISION] < 0.0) continue;
+        test_ws_refresh(&tws, prods);
         for (int fl = 0; fl < GRPF_N; fl++) {
-          row->n[fl] += run_positivity_for_rp(flux_eqn[fl], flux_grm[fl],
+          row->n[fl] += run_positivity_for_rp(flux_eqn[fl],
             prods_L, prods_R, rc, flux_ft[fl], 1.0,
             &row->D[fl], &row->S2[fl], &row->tau[fl]);
         }
@@ -1384,6 +1394,7 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
           fill_prods_at(spacetime, pts[pi].x + dxh, pts[pi].y, pts[pi].z, prods_R);
           if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
               prods_R[GKYL_GR_SP_EXCISION] < 0.0) continue;
+          test_ws_refresh(&tws, prods);
           struct gr_euler_pos_rp_case rc = {
             .name = row->name,
             .rho_L = mthermo[ti].rho, .p_L = mthermo[ti].p,
@@ -1399,7 +1410,7 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
             rc.v_R[i] = mdirs[di][i] * sqrt(vsq_t / nsq_R);
           }
           for (int fl = 0; fl < GRPF_N; fl++) {
-            row->n[fl] += run_positivity_for_rp(flux_eqn[fl], flux_grm[fl],
+            row->n[fl] += run_positivity_for_rp(flux_eqn[fl],
               prods_L, prods_R, &rc, flux_ft[fl], 1.0,
               &row->D[fl], &row->S2[fl], &row->tau[fl]);
           }
@@ -1433,8 +1444,9 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
         coarse_pts[pi].y, coarse_pts[pi].z, prods_R);
       if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
           prods_R[GKYL_GR_SP_EXCISION] < 0.0) continue;
+      test_ws_refresh(&tws, prods);
       for (int fl = 0; fl < GRPF_N; fl++) {
-        row->n[fl] += run_positivity_for_rp(flux_eqn[fl], flux_grm[fl],
+        row->n[fl] += run_positivity_for_rp(flux_eqn[fl],
           prods_L, prods_R, rc, flux_ft[fl], 1.0,
           &row->D[fl], &row->S2[fl], &row->tau[fl]);
       }
@@ -1461,6 +1473,7 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
       pts[0].y, pts[0].z, prods_R);
     if (prods_L[GKYL_GR_SP_EXCISION] < 0.0 ||
         prods_R[GKYL_GR_SP_EXCISION] < 0.0) continue;
+    test_ws_refresh(&tws, prods);
 
     // Print the dump's input relative s² margins under THIS metric, so
     // the matrix below self-documents: fixed conservatives carry their
@@ -1578,6 +1591,7 @@ run_positivity_registry(struct gkyl_gr_spacetime *spacetime,
   }
 
   gkyl_array_release(prods);
+  test_ws_release(&tws);
   gkyl_wv_eqn_release(eqn_lax);
   gkyl_wv_eqn_release(eqn_hll);
   gkyl_wv_eqn_release(eqn_hllc);

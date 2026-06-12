@@ -131,16 +131,70 @@ make_eqn(struct gkyl_gr_euler_eos eos, struct gkyl_range conf_range,
     });
 }
 
-// Returns the curved-frame Banyuls flux ΔF for a given pair of states using
-// the same cell-centered Banyuls flux helper the wave construction uses.
+// Returns the curved-frame Banyuls flux ΔF for a given pair of states
+// using the same cell-centered Banyuls flux helper the wave construction
+// uses. prods_l/prods_r are the per-side FACE-LOCAL rows; for the
+// x-normal identity frame every runner here uses, the global-frame rows
+// are already face-local.
 static void
-banyuls_delta_flux(struct gkyl_gr_euler_eos eos, struct wv_gr_euler_tetrad *grm,
+banyuls_delta_flux(struct gkyl_gr_euler_eos eos,
+  const double *prods_l, const double *prods_r,
   const double qL[5], const double qR[5], double dF[5])
 {
   double fL_gr[5], fR_gr[5];
-  gkyl_gr_euler_banyuls_flux_cell(eos, qL, grm->prodl_local, NULL, fL_gr);
-  gkyl_gr_euler_banyuls_flux_cell(eos, qR, grm->prodr_local, NULL, fR_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qL, prods_l, NULL, fL_gr);
+  gkyl_gr_euler_banyuls_flux_cell(eos, qR, prods_r, NULL, fR_gr);
   for (int i = 0; i < 5; i++) dF[i] = fR_gr[i] - fL_gr[i];
+}
+
+// ---------------------------------------------------------------------------
+// wave_spacetime scaffolding. The tetrad equation REQUIRES the cache
+// (the rotation-parity contract is retired — WAVE_SPACETIME_PARITY_PLAN
+// .md), so every runner that drives waves_func/qfluct/flux_jump attaches
+// one. Build AFTER the prods array exists; call test_ws_refresh after
+// every prods refill so the cached face-local rows track the new metric
+// samples. The grid extents are arbitrary — geometry enters only through
+// the prods rows; wave_geom supplies the axis-aligned face frames.
+// ---------------------------------------------------------------------------
+struct test_ws {
+  struct gkyl_rect_grid grid;
+  struct gkyl_wave_geom *wg;
+  struct gkyl_wave_spacetime *ws;
+};
+
+static struct test_ws
+test_ws_new(const struct gkyl_range *conf_range,
+  const struct gkyl_array *prods, struct gkyl_wv_eqn *eqn)
+{
+  struct test_ws t;
+  int ndim = conf_range->ndim;
+  double lo[GKYL_MAX_CDIM] = { 0.0 }, up[GKYL_MAX_CDIM];
+  int cells[GKYL_MAX_CDIM];
+  for (int d = 0; d < ndim; d++) {
+    cells[d] = conf_range->upper[d] - conf_range->lower[d] + 1;
+    lo[d] = 0.0;
+    up[d] = (double)cells[d];
+  }
+  gkyl_rect_grid_init(&t.grid, ndim, lo, up, cells);
+  t.wg = gkyl_wave_geom_new(&t.grid, (struct gkyl_range *)conf_range,
+    0, 0, false);
+  t.ws = gkyl_wave_spacetime_new(&t.grid, conf_range, t.wg, NULL, prods,
+    0.0, /*use_gpu=*/false);
+  gkyl_gr_euler_tetrad_set_wave_spacetime(eqn, t.ws);
+  return t;
+}
+
+static void
+test_ws_refresh(struct test_ws *t, const struct gkyl_array *prods)
+{
+  gkyl_wave_spacetime_refresh(t->ws, &t->grid, t->wg, NULL, prods, 0.0);
+}
+
+static void
+test_ws_release(struct test_ws *t)
+{
+  gkyl_wave_spacetime_release(t->ws);
+  gkyl_wave_geom_release(t->wg);
 }
 
 // Interface-averaged prods row — the production averaging policy:
