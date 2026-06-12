@@ -382,24 +382,32 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   // Basic metadata for I/O (including metadata optional from user).
   const char* build_id = GIT_COMMIT_ID;
   const char* build_date = GKYL_BUILD_DATE;
-  struct gkyl_msgpack_map_elem io_meta_basic_default[] = {
-   { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
-   { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
-   { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
-   { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
-  };
-  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {io_meta_basic_default, gk->metadata.attributes};
-  int io_meta_basic_union_len[] = {sizeof(io_meta_basic_default)/sizeof(io_meta_basic_default[0]), gk->metadata.num_attributes};
-  app->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union)/sizeof(io_meta_basic_union[0]),
-    io_meta_basic_union_len, io_meta_basic_union, &app->io_meta_basic_len);
+  if (app->is_multib) {
+    gks->io_meta_basic_len = gk->metadata.num_attributes;
+    gks->io_meta_basic = gkyl_msgpack_map_elem_clone(gks->io_meta_basic_len, gk->metadata.attributes);
+  }
+  else {
+    struct gkyl_msgpack_map_elem io_meta_basic_default[] = {
+      { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
+      { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
+    };
+    const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {io_meta_basic_default, gk->metadata.attributes};
+    int io_meta_basic_union_len[] = {sizeof(io_meta_basic_default)/sizeof(io_meta_basic_default[0]), gk->metadata.num_attributes};
+    app->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union)/sizeof(io_meta_basic_union[0]),
+      io_meta_basic_union_len, io_meta_basic_union, &app->io_meta_basic_len);
+  }
 
-  // Metadata for GK app.
-  struct gkyl_msgpack_map_elem io_meta[] = {
+  // Metadata for grid quantities (including metadata optional from user).
+  struct gkyl_msgpack_map_elem io_meta_grid[] = {
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id }
   };
-  app->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  app->io_meta = gkyl_msgpack_map_elem_clone(app->io_meta_len, io_meta);
+  const struct gkyl_msgpack_map_elem *io_meta_grid_union[] = {app->io_meta_basic, io_meta_grid};
+  int io_meta_grid_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_grid)/sizeof(io_meta_grid[0])};
+  app->io_meta_grid = gkyl_msgpack_map_elem_union(sizeof(io_meta_grid_union)/sizeof(io_meta_grid_union[0]),
+    io_meta_grid_union_len, io_meta_grid_union, &app->io_meta_grid_len);
 
   gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
@@ -1071,8 +1079,8 @@ gyrokinetic_app_geometry_copy_and_write(gkyl_gyrokinetic_app* app, struct gkyl_a
   struct gkyl_msgpack_map_elem desc_elem[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char*)description }
   };
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_elem};
+  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_elem};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host, fileNm);
@@ -1097,8 +1105,8 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
   struct gkyl_msgpack_map_elem desc_elem[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char*)description }
   };
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_elem};
+  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_elem};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host_doubled, fileNm);
@@ -1254,8 +1262,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     struct gkyl_msgpack_map_elem desc_nodes[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Physical coordinates of grid corner nodes." }
     };
-    int io_meta_nodes_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta_nodes[] = {app->io_meta_basic, app->gk_geom->io_meta, desc_nodes};
+    int io_meta_nodes_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta_nodes[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nodes};
     struct gkyl_msgpack_data *mt_nodes = gkyl_msgpack_create_union(sizeof(io_meta_nodes_len)/sizeof(int), io_meta_nodes_len, io_meta_nodes);
 
     gkyl_grid_sub_array_write(&ngrid, &nrange, mt_nodes, mc2p_nodal, fileNm);
@@ -1289,8 +1297,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     struct gkyl_msgpack_map_elem desc_nodesint[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Physical coordinates of grid interior nodes." }
     };
-    int io_meta_nodesint_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta_nodesint[] = {app->io_meta_basic, app->gk_geom->io_meta, desc_nodesint};
+    int io_meta_nodesint_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta_nodesint[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nodesint};
     struct gkyl_msgpack_data *mt_nodesint = gkyl_msgpack_create_union(sizeof(io_meta_nodesint_len)/sizeof(int), io_meta_nodesint_len, io_meta_nodesint);
 
     gkyl_grid_sub_array_write(&ngrid_quad, &nrange_int_global, mt_nodesint, mc2pint_nodal, fileNm);
@@ -1332,13 +1340,13 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     }
 
     // Package metadata.
-    gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-    gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+    gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
+    gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
     struct gkyl_msgpack_map_elem io_meta_phi[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic potential." }
     };
-    int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, io_meta_phi};
+    int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, io_meta_phi};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-field_%d.gkyl";
@@ -1388,12 +1396,13 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
           { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic field energy." }
         };
-        int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_len, 1};
-        const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta, io_meta_phi};
+        int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
         struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
         
         gkyl_dynvec_write_wmeta(app->field->integ_energy, fileNm0, mt);
         app->field->is_first_energy_write_call = false;
+        gkyl_msgpack_data_release(mt);
       }
       else {
         // Append to existing file.
@@ -1413,8 +1422,17 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
       if (rank == 0) {
         if (app->field->is_first_energy_dot_write_call) {
           // Write to a new file (this ensure previous output is removed).
-          gkyl_dynvec_write(app->field->integ_energy_dot, fileNm1);
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic field energy rate of change." }
+          };
+          int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+          const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+          struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+        
+          gkyl_dynvec_write_wmeta(app->field->integ_energy_dot, fileNm1, mt);
+
           app->field->is_first_energy_dot_write_call = false;
+          gkyl_msgpack_data_release(mt);
         }
         else {
           // Append to existing file.
@@ -2771,8 +2789,16 @@ gkyl_gyrokinetic_app_write_dt(gkyl_gyrokinetic_app* app)
     snprintf(fileNm, sizeof fileNm, fmt, app->name, "dt");
 
     if (app->is_first_dt_write_call) {
-      gkyl_dynvec_write(app->dts, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size." }
+      };
+      int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(app->dts, fileNm, mt);
       app->is_first_dt_write_call = false;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(app->dts, fileNm);
@@ -3291,7 +3317,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_dynvec_release(app->dts);
 
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
-  gkyl_msgpack_map_elem_release(app->io_meta_len, app->io_meta);
+  gkyl_msgpack_map_elem_release(app->io_meta_grid_len, app->io_meta_grid);
 
   gkyl_free(app);
 }

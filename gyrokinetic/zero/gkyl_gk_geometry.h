@@ -182,8 +182,8 @@ struct gk_geometry {
                  // in the eqdsk.
   int idx_LCFS_lo; // Index of the cell that abuts the LCFS from below.
 
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Metadata for I/O.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
 
   uint32_t flags;
   struct gkyl_ref_count ref_count;  
@@ -354,10 +354,10 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom);
 /**
  * Write psi(R,Z)
 * @param geometry_inp Geometry input struct.
-* @param io_meta_basic basic metadata
-* @param io_meta_basic_len length of basic metadata
+* @param io_meta_basic_basic basic metadata
+* @param io_meta_basic_basic_len length of basic metadata
  */
-void gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem* io_meta_basic, int io_meta_basic_len);
+void gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem* io_meta_basic_basic, int io_meta_basic_basic_len);
 
 /**
  * Reset the metadata values with corresponding values in GK geometry object

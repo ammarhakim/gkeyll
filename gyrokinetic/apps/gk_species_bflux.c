@@ -446,7 +446,15 @@ gk_species_bflux_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app,
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name);
 
         if (bflux->is_first_intmom_write_call[b]) {
-          gkyl_dynvec_write(bflux->intmom[b*num_diag_int_mom+m], fileNm);
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of the boundary flux." }
+          };
+          int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+          const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+          struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  
+          gkyl_dynvec_write_wmeta(bflux->intmom[b*num_diag_int_mom+m], fileNm, mt);
+          gkyl_msgpack_data_release(mt);
         }
         else {
           gkyl_dynvec_awrite(bflux->intmom[b*num_diag_int_mom+m], fileNm);
@@ -484,13 +492,13 @@ gk_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *spec_in,
   const struct gk_species *gks = spec_in;
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Velocity-space moment of the boundary flux." }
   };
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc};
+  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   int rank, comm_size;

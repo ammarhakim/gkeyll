@@ -97,8 +97,8 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // Copy parallelism input into app input.
   memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
 
-  app_inp.metadata.num_attributes = mbapp->io_meta_len;
-  app_inp.metadata.attributes = mbapp->io_meta;
+  app_inp.metadata.num_attributes = mbapp->io_meta_basic_len;
+  app_inp.metadata.attributes = mbapp->io_meta_basic;
 
   return gkyl_gyrokinetic_app_new_geom(&app_inp);
 }
@@ -541,6 +541,21 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   mbapp->num_local_blocks = num_local_blocks;  
 
+  // Basic metadata for I/O (including metadata optional from user).
+  const char* build_id = GIT_COMMIT_ID;
+  const char* build_date = GKYL_BUILD_DATE;
+  struct gkyl_msgpack_map_elem io_meta_default[] = {
+    { .key = "changeset", .elem_type = GKYL_MP_STRING, .cval = (char *)build_id },
+    { .key = "builddate", .elem_type = GKYL_MP_STRING, .cval = (char *)build_date },
+    { .key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1 },
+    { .key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo }
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_union[] = {io_meta_default, mbinp->metadata.attributes};
+  int io_meta_union_len[] = {sizeof(io_meta_default)/sizeof(io_meta_default[0]), mbinp->metadata.num_attributes};
+
+  mbapp->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_union)/sizeof(io_meta_union[0]),
+    io_meta_union_len, io_meta_union, &mbapp->io_meta_basic_len);
+
   // Write the block topo file.
   gkyl_gyrokinetic_multib_app_write_topo(mbapp);
 
@@ -549,16 +564,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
   char fileNm_btopo[sz+1]; // ensures no buffer overflow
   snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
-
-  struct gkyl_msgpack_map_elem io_meta_default[] = {
-    { .key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1 },
-    { .key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo }
-  };
-  const struct gkyl_msgpack_map_elem *io_meta_union[] = {io_meta_default, mbinp->metadata.attributes};
-  int io_meta_union_len[] = {sizeof(io_meta_default)/sizeof(io_meta_default[0]), mbinp->metadata.num_attributes};
-
-  mbapp->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_union)/sizeof(io_meta_union[0]),
-    io_meta_union_len, io_meta_union, &mbapp->io_meta_len);
 
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
   for (int i=0; i<num_local_blocks; ++i)
@@ -1762,8 +1767,16 @@ gkyl_gyrokinetic_multib_app_write_dt(gkyl_gyrokinetic_multib_app* app)
 
     struct timespec wtm = gkyl_wall_clock();
     if (app->is_first_dt_write_call) {
-      gkyl_dynvec_write(app->dts, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Time step size." }
+      };
+      int io_meta_len[] = {app->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(app->dts, fileNm, mt);
       app->is_first_dt_write_call = false;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(app->dts, fileNm);
@@ -1808,7 +1821,7 @@ gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp)
   
   gkyl_comm_release(mbapp->comm);
 
-  gkyl_msgpack_map_elem_release(mbapp->io_meta_len, mbapp->io_meta);
+  gkyl_msgpack_map_elem_release(mbapp->io_meta_basic_len, mbapp->io_meta_basic);
 
   gkyl_free(mbapp);
 }

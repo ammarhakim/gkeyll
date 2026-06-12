@@ -63,8 +63,8 @@ gk_field_3x_write_twistshift(struct gkyl_gyrokinetic_app *app, struct gk_field *
           { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = shift_b.id }
         };
         int io_meta_shift_dg_len = sizeof(io_meta_shift_dg)/sizeof(io_meta_shift_dg[0]);
-        int io_meta_shift_len[] = {app->io_meta_basic_len, io_meta_shift_dg_len};
-        const struct gkyl_msgpack_map_elem* io_meta_shift[] = {app->io_meta_basic, io_meta_shift_dg};
+        int io_meta_shift_len[] = {app->io_meta_grid_len, io_meta_shift_dg_len};
+        const struct gkyl_msgpack_map_elem* io_meta_shift[] = {app->io_meta_grid, io_meta_shift_dg};
         struct gkyl_msgpack_data *mt_shift = gkyl_msgpack_create_union(sizeof(io_meta_shift_len)/sizeof(int),
           io_meta_shift_len, io_meta_shift);
 

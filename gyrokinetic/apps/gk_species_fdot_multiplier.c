@@ -24,12 +24,12 @@ gk_species_fdot_multiplier_write_enabled(gkyl_gyrokinetic_app *app, struct gk_sp
   };
   int mpe_mult_len = sizeof(mpe_mult) / sizeof(mpe_mult[0]);
   // Update app basic metadata with time/frame.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
   // Package metadata.
-  int io_meta_len[] = { app->io_meta_basic_len, mpe_mult_len, app->gk_geom->io_meta_len };
-  const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_basic, mpe_mult,
-                                                    app->gk_geom->io_meta };
+  int io_meta_len[] = { app->io_meta_grid_len, mpe_mult_len, app->gk_geom->io_meta_basic_len };
+  const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_grid, mpe_mult,
+                                                    app->gk_geom->io_meta_basic };
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int),
     io_meta_len, io_meta);
 

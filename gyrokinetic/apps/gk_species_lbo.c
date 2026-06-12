@@ -177,21 +177,21 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 {
   struct timespec wtm = gkyl_wall_clock();
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
   struct gkyl_msgpack_map_elem desc_nu_sum[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies." }
   };
-  int io_meta_nu_sum_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_nu_sum[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_nu_sum};
+  int io_meta_nu_sum_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nu_sum[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nu_sum};
   struct gkyl_msgpack_data *mt_nu_sum = gkyl_msgpack_create_union(sizeof(io_meta_nu_sum_len)/sizeof(int), io_meta_nu_sum_len, io_meta_nu_sum);
 
   struct gkyl_msgpack_map_elem desc_nu_prim[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "Drift velocity and thermal speed squared, times collision frequency, summed over colliding species." }
   };
-  int io_meta_nu_prim_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_nu_prim[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_nu_prim};
+  int io_meta_nu_prim_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nu_prim[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nu_prim};
   struct gkyl_msgpack_data *mt_nu_prim = gkyl_msgpack_create_union(sizeof(io_meta_nu_prim_len)/sizeof(int), io_meta_nu_prim_len, io_meta_nu_prim);
 
   // Write out nu_sum and nu_prim_moms.

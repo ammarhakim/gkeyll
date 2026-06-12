@@ -193,8 +193,16 @@ gk_species_source_bgk_write_diags_heating_enabled(gkyl_gyrokinetic_app* app, str
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name);
     
     if (src->is_first_diag_dynvec_write_call) {
-      gkyl_dynvec_write(src->vtsq_amp_diag, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Squared thermal speed amplitude." }
+      };
+      int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(src->vtsq_amp_diag, fileNm, mt);
       src->is_first_diag_dynvec_write_call = false;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(src->vtsq_amp_diag, fileNm);
@@ -211,14 +219,14 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, st
   struct gk_source_bgk *src, double tm, int frame)
 {
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
   struct gkyl_msgpack_map_elem desc_bgk_moms[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate." }
   };
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, desc_bgk_moms};
+  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_bgk_moms};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   if (app->use_gpu) {
@@ -319,8 +327,16 @@ gk_species_source_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2]);
 
     if (src->is_first_diag_dynvec_write_call) {
-      gkyl_dynvec_write(src->integ_diag, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moment of the BGK source." }
+      };
+      int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(src->integ_diag, fileNm, mt);
       src->is_first_diag_dynvec_write_call = false;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(src->integ_diag, fileNm);
@@ -341,14 +357,14 @@ gk_species_source_bgk_write_array(gkyl_gyrokinetic_app* app, struct gk_species *
   // Write out a conf-space or a phase-space array.
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", stime);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", stime);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description},
   };
   int io_meta_f_len = sizeof(io_meta_f)/sizeof(io_meta_f[0]);
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, io_meta_f_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, io_meta_f};
+  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, io_meta_f};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Construct the file handles for collision frequency and primitive moments.
