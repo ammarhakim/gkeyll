@@ -2837,7 +2837,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_1x2v_ser_p1(const double
   double angle_n   = bimpact_angle[0]; 
 
   nn_inp_out[0+n_inp*0] = (float)(angle_n*(180.0/GKYL_PI));
-  nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+  nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
   nn_inp_out[2+n_inp*0] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
 }
@@ -2852,7 +2852,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_upper_1x2v_ser_p1(const double
   double angle_n   = bimpact_angle[0]; 
 
   nn_inp_out[0+n_inp*0] = (float)(angle_n*(180.0/GKYL_PI));
-  nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+  nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
   nn_inp_out[2+n_inp*0] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
 }
@@ -2869,7 +2869,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_2x2v_ser_p1(const double
     bmag_n     = 0.5*(1.7320508075688772*bmag[3]-1.7320508075688772*bmag[2]-1.0*bmag[1]+bmag[0]); 
     angle_n    = -(0.5*(1.4142135623730951*bimpact_angle[1]-1.4142135623730951*bimpact_angle[0])); 
     nn_inp_out[0+n_inp*0] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*0] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x)_1 
@@ -2880,7 +2880,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_2x2v_ser_p1(const double
     bmag_n     = -(0.5*(1.7320508075688772*(bmag[3]+bmag[2])-1.0*(bmag[1]+bmag[0]))); 
     angle_n    = 0.7071067811865476*(bimpact_angle[1]+bimpact_angle[0]); 
     nn_inp_out[0+n_inp*1] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*1] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
 }
@@ -2897,7 +2897,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_upper_2x2v_ser_p1(const double
     bmag_n     = -(0.5*(1.7320508075688772*bmag[3]-1.7320508075688772*bmag[2]+bmag[1]-1.0*bmag[0])); 
     angle_n    = -(0.5*(1.4142135623730951*bimpact_angle[1]-1.4142135623730951*bimpact_angle[0])); 
     nn_inp_out[0+n_inp*0] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*0] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x)_1 
@@ -2908,7 +2908,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_upper_2x2v_ser_p1(const double
     bmag_n     = 0.5*(1.7320508075688772*(bmag[3]+bmag[2])+bmag[1]+bmag[0]); 
     angle_n    = 0.7071067811865476*(bimpact_angle[1]+bimpact_angle[0]); 
     nn_inp_out[0+n_inp*1] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*1] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
 }
@@ -2925,7 +2925,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_3x2v_ser_p1(const double
     bmag_n     = -(0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*(bmag[6]+bmag[5])-1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]+1.4142135623730951*(bmag[2]+bmag[1])-1.4142135623730951*bmag[0])); 
     angle_n    = 0.5*(bimpact_angle[3]-1.0*(bimpact_angle[2]+bimpact_angle[1])+bimpact_angle[0]); 
     nn_inp_out[0+n_inp*0] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*0] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x,y)_1 
@@ -2936,7 +2936,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_3x2v_ser_p1(const double
     bmag_n     = 0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*bmag[6]+2.4494897427831783*bmag[5]-1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]+1.4142135623730951*bmag[2]-1.4142135623730951*bmag[1]+1.4142135623730951*bmag[0]); 
     angle_n    = -(0.5*(bimpact_angle[3]-1.0*bimpact_angle[2]+bimpact_angle[1]-1.0*bimpact_angle[0])); 
     nn_inp_out[0+n_inp*1] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*1] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x,y)_2 
@@ -2947,7 +2947,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_3x2v_ser_p1(const double
     bmag_n     = 0.25*(2.4494897427831783*(bmag[7]+bmag[6])-2.4494897427831783*bmag[5]-1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]-1.4142135623730951*bmag[2]+1.4142135623730951*(bmag[1]+bmag[0])); 
     angle_n    = -(0.5*(bimpact_angle[3]+bimpact_angle[2]-1.0*(bimpact_angle[1]+bimpact_angle[0]))); 
     nn_inp_out[0+n_inp*2] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*2] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*2] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*2] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x,y)_3 
@@ -2958,7 +2958,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_lower_3x2v_ser_p1(const double
     bmag_n     = -(0.25*(2.4494897427831783*(bmag[7]+bmag[6]+bmag[5])-1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]-1.4142135623730951*(bmag[2]+bmag[1]+bmag[0]))); 
     angle_n    = 0.5*(bimpact_angle[3]+bimpact_angle[2]+bimpact_angle[1]+bimpact_angle[0]); 
     nn_inp_out[0+n_inp*3] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*3] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*3] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*3] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
 }
@@ -2975,7 +2975,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_upper_3x2v_ser_p1(const double
     bmag_n     = 0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*(bmag[6]+bmag[5])+1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]-1.4142135623730951*(bmag[2]+bmag[1])+1.4142135623730951*bmag[0]); 
     angle_n    = 0.5*(bimpact_angle[3]-1.0*(bimpact_angle[2]+bimpact_angle[1])+bimpact_angle[0]); 
     nn_inp_out[0+n_inp*0] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*0] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*0] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x,y)_1 
@@ -2986,7 +2986,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_upper_3x2v_ser_p1(const double
     bmag_n     = -(0.25*(2.4494897427831783*bmag[7]-2.4494897427831783*bmag[6]+2.4494897427831783*bmag[5]+1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]-1.4142135623730951*bmag[2]+1.4142135623730951*bmag[1]-1.4142135623730951*bmag[0])); 
     angle_n    = -(0.5*(bimpact_angle[3]-1.0*bimpact_angle[2]+bimpact_angle[1]-1.0*bimpact_angle[0])); 
     nn_inp_out[0+n_inp*1] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*1] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*1] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x,y)_2 
@@ -2997,7 +2997,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_upper_3x2v_ser_p1(const double
     bmag_n     = -(0.25*(2.4494897427831783*(bmag[7]+bmag[6])-2.4494897427831783*bmag[5]+1.4142135623730951*bmag[4]-2.4494897427831783*bmag[3]+1.4142135623730951*bmag[2]-1.4142135623730951*(bmag[1]+bmag[0]))); 
     angle_n    = -(0.5*(bimpact_angle[3]+bimpact_angle[2]-1.0*(bimpact_angle[1]+bimpact_angle[0]))); 
     nn_inp_out[0+n_inp*2] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*2] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*2] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*2] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
   // node (x,y)_3 
@@ -3008,7 +3008,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_build_input_upper_3x2v_ser_p1(const double
     bmag_n     = 0.25*(2.4494897427831783*(bmag[7]+bmag[6]+bmag[5])+1.4142135623730951*bmag[4]+2.4494897427831783*bmag[3]+1.4142135623730951*(bmag[2]+bmag[1]+bmag[0])); 
     angle_n    = 0.5*(bimpact_angle[3]+bimpact_angle[2]+bimpact_angle[1]+bimpact_angle[0]); 
     nn_inp_out[0+n_inp*3] = (float)(angle_n*(180.0/GKYL_PI));
-    nn_inp_out[1+n_inp*3] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*dens_n/GKYL_EPSILON0));
+    nn_inp_out[1+n_inp*3] = (float)((1.0/bmag_n)*sqrt(GKYL_ELECTRON_MASS*fmax(0.0, dens_n)/GKYL_EPSILON0));
     nn_inp_out[2+n_inp*3] = (float)((GKYL_ELEMENTARY_CHARGE*(phi_n-phi_wall_n))/temp_n);
 
 }
