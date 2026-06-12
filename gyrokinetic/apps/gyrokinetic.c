@@ -1385,7 +1385,14 @@ gkyl_gyrokinetic_app_write_field_energy(gkyl_gyrokinetic_app* app)
     if (rank == 0) {
       if (app->field->is_first_energy_write_call) {
         // Write to a new file (this ensure previous output is removed).
-        gkyl_dynvec_write(app->field->integ_energy, fileNm0);
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic field energy." }
+        };
+        int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_len, 1};
+        const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta, io_meta_phi};
+        struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+        
+        gkyl_dynvec_write_wmeta(app->field->integ_energy, fileNm0, mt);
         app->field->is_first_energy_write_call = false;
       }
       else {
