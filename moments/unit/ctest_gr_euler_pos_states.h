@@ -71,3 +71,34 @@ static const struct gr_euler_pos_rp_case gr_euler_pos_cases[] = {
 
 #define GR_EULER_POS_NUM_CASES \
   ((int)(sizeof(gr_euler_pos_cases) / sizeof(gr_euler_pos_cases[0])))
+
+// Cone-marginal block: the production attractor regime. Cold flow rides
+// the p≥0-cone boundary of the invariant domain (s² = D² ⟺ p = 0 —
+// SESSION_NOTES_P_GE_0_CONE.md), and sign(s² − D²) = sign(p) means θ = p/ρ
+// directly sets how far inside the cone a primitive-built state sits.
+// The θ ladder spans fresh-repair landings (θ → 0⁺) up to the
+// p-floor scale; the pairs model the BHL wake: uniform cold stream,
+// cold velocity jumps, shear, and wake edges against warm/dense and
+// near-vacuum neighbors. These rows are what "marginal state" means in
+// production under the p≥0-cone domain.
+static const struct gr_euler_pos_rp_case gr_euler_pos_cone_marginal_cases[] = {
+  // Uniform cold streams at decreasing cone depth.
+  { "cone-uniform-th1e-6",  1.0, 1.0e-6,  { 0.30, 0.0, 0.0 },  1.0, 1.0e-6,  { 0.30, 0.0, 0.0 } },
+  { "cone-uniform-th1e-9",  1.0, 1.0e-9,  { 0.30, 0.0, 0.0 },  1.0, 1.0e-9,  { 0.30, 0.0, 0.0 } },
+  { "cone-uniform-th1e-12", 1.0, 1.0e-12, { 0.30, 0.0, 0.0 },  1.0, 1.0e-12, { 0.30, 0.0, 0.0 } },
+  // Cold velocity structure at fixed depth.
+  { "cone-vjump-th1e-9",    1.0, 1.0e-9,  { 0.80, 0.0, 0.0 },  1.0, 1.0e-9,  { 0.10, 0.0, 0.0 } },
+  { "cone-vjump-rev-th1e-9",1.0, 1.0e-9,  { 0.80, 0.0, 0.0 },  1.0, 1.0e-9,  { -0.10, 0.0, 0.0 } },
+  { "cone-shear-th1e-9",    1.0, 1.0e-9,  { 0.50, 0.30, 0.0 }, 1.0, 1.0e-9,  { 0.50, -0.30, 0.0 } },
+  { "cone-fast-th1e-9",     1.0, 1.0e-9,  { 0.90, 0.0, 0.0 },  1.0, 1.0e-9,  { 0.90, 0.0, 0.0 } },
+  // Wake edges: marginal cell against warm-dense / near-vacuum drivers.
+  { "cone-vs-warm",         1.0, 1.0e-9,  { 0.50, 0.0, 0.0 },  1.0, 1.0,     { 0.0, 0.0, 0.0 } },
+  { "cone-vs-vacuum",       1.0, 1.0e-9,  { 0.50, 0.0, 0.0 },  1.0e-6, 1.0e-7, { 0.10, 0.0, 0.0 } },
+  // Low-density marginal cell against a typical neighbor (post-floor
+  // cell at the wake boundary).
+  { "cone-low-rho-th1e-9",  1.0e-3, 1.0e-12, { 0.50, 0.0, 0.0 }, 1.0, 1.0e-4, { 0.50, 0.0, 0.0 } },
+};
+
+#define GR_EULER_POS_NUM_CONE_MARGINAL_CASES \
+  ((int)(sizeof(gr_euler_pos_cone_marginal_cases) / \
+         sizeof(gr_euler_pos_cone_marginal_cases[0])))

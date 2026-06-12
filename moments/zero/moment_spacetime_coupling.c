@@ -207,20 +207,7 @@ compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
   gkyl_gr_euler_recover_primitives(eos,
     D, momx, momy, momz, Etot, inv_g, stat, &prim);
 
-  double rho = prim.rho;
-  double vx  = prim.v[0];
-  double vy  = prim.v[1];
-  double vz  = prim.v[2];
-  double p   = prim.p;
-  double W   = prim.W;
-  double h   = prim.h;
-
-  // Spacetime 4-velocity and contravariant 4-metric.
-  double u4[4];
-  u4[0] = W / lapse;
-  u4[1] = (W * vx) - (shift_x * (W / lapse));
-  u4[2] = (W * vy) - (shift_y * (W / lapse));
-  u4[3] = (W * vz) - (shift_z * (W / lapse));
+  double p = prim.p;
 
   double shift[3] = { shift_x, shift_y, shift_z };
 
@@ -235,36 +222,36 @@ compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
       inv_g4[i + 1][j + 1] = prods[GKYL_GR_SP_INV_GIJ + 3*i + j]
         - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
 
-  // Perfect-fluid stress-energy tensor. The spatial-spatial block
-  // T^{ij} retains the ρh·u^i·u^j + p·γ^{ij}_4d form; its conservative
-  // rewrite has a 1/(τ+D+p) denominator that is fragile in near-vacuum
-  // cells (the Option-B pathology) so we keep h there.
-  double T[4][4];
-  for (int i = 0; i < 4; i++)
-    for (int j = 0; j < 4; j++)
-      T[i][j] = (rho * h * u4[i] * u4[j]) + (p * inv_g4[i][j]);
-
-  // Conservative-form override for the time-mixed components. The
-  // τ-equation identity  ρhW² = τ + D + p  (undensitized) eliminates h:
-  //   T^{00} = (τ + D) / α²
-  //   T^{0i} = γ^{ij} · S_j / α − (τ + D) · β^i / α²
-  // Both T^{00} and T^{0i} appear *linearly* in the source: T^{00} as a
-  // scalar, T^{0i} as a vector. Linear-in-conservatives operators can
-  // safely take the conservative form because there's no S-vs-v product
-  // to mismatch under floors. The spatial-spatial block T^{ij} is
-  // bilinear (kinetic stress is fundamentally u⊗u), so it stays in the
-  // h-form ρh·u^i·u^j — both factors come from the same Newton recovery
-  // and are internally consistent even when floors fire. An attempted
-  // mixed-form rewrite T^{ij} = S^i·v^j − ... (conservative S × primitive
-  // v) regressed every metric (wave s² 91→732, failed steps 24→59)
-  // because the S/v mismatch at floored cells multiplies bilinearly.
+  // Perfect-fluid stress-energy in conservative-paired form. The
+  // τ-equation identity ρhW² = τ + D + p (undensitized) eliminates ρh
+  // everywhere:
+  //   T^{00} = (τ + D) / α²                                  (linear)
+  //   T^{0i} = γ^{ij}·S_j / α − (τ + D)·β^i / α²             (linear)
+  //   T^{ij} = (τ + D + p)·ṽ^i·ṽ^j + p·γ₄^{ij},  ṽ = v − β/α
+  // The bilinear spatial block pairs a conservative SCALAR with the
+  // recovered velocity dyad ṽ⊗ṽ — one recovered object squared, so no
+  // S-vs-v cross-term to mismatch, and no 1/(τ+D+p) denominator. The
+  // pre-cone experiments that rejected conservative forms here (the
+  // mixed S^i·v^j rewrite and the Option-B denominator form) were
+  // measuring wrong-root recovery garbage at gap states; the post-cone
+  // A/B for this form is in SESSION_NOTES_P_GE_0_CONE.md.
   double tauD = Etot + D;
+  double vtil[3] = {
+    prim.v[0] - shift_x / lapse,
+    prim.v[1] - shift_y / lapse,
+    prim.v[2] - shift_z / lapse,
+  };
+  double T[4][4];
   T[0][0] = tauD / (lapse * lapse);
   for (int i = 0; i < 3; i++) {
     double mom_up = inv_g[i][0]*momx + inv_g[i][1]*momy + inv_g[i][2]*momz;
     T[0][i + 1] = mom_up / lapse - tauD * shift[i] / (lapse * lapse);
     T[i + 1][0] = T[0][i + 1];
   }
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      T[i + 1][j + 1] = (tauD + p) * vtil[i] * vtil[j]
+                      + p * inv_g4[i + 1][j + 1];
 
   // Spacetime-derivative lookups from products.
   double lapse_der[3] = {
@@ -364,13 +351,15 @@ const int gkyl_gr_euler_newton_bin_edges[GR_EULER_NEWTON_HIST_NBINS] = {
 };
 
 // Compute the largest α ∈ [0, 1] such that
-//   (1-ε)(a + αb)² − (P + 2αQ + α²R) ≥ 0
+//   (1-ε)·((a + αb)² − (D + α·δD)²) − (P + 2αQ + α²R) ≥ 0
+// — the p≥0-cone bound s² > D² (see check_admissibility) with margin ε,
 // where a = D+τ, b = δD+δτ, P = γ^{ij}·S_i·S_j, Q = γ^{ij}·S_i·δS_j,
 // R = γ^{ij}·δS_i·δS_j. Equivalently:
 //   A α² + 2 B α + C ≥ 0
-// with A = (1-ε)b² − R, B = (1-ε)ab − Q, C = (1-ε)a² − P. Assumes
-// C ≥ 0 (input state q already satisfies the margin); if not, returns
-// 1.0 to let the cascade-repair handle it downstream.
+// with A = (1-ε)(b² − δD²) − R, B = (1-ε)(ab − D·δD) − Q,
+// C = (1-ε)(a² − D²) − P. Assumes C ≥ 0 (input state q already
+// satisfies the margin); if not, returns 1.0 to let the cascade-repair
+// handle it downstream.
 static double
 compute_s2_limiter_alpha(const double *prods, double dt,
   const double fluid_old[5], const double S_rate[5])
@@ -409,9 +398,9 @@ compute_s2_limiter_alpha(const double *prods, double dt,
       R += inv_g_ij * dS_v[i] * dS_v[j];
     }
 
-  double A = (1.0 - margin) * b * b - R;
-  double B = (1.0 - margin) * a * b - Q;
-  double C = (1.0 - margin) * a * a - P;
+  double A = (1.0 - margin) * (b * b - dD * dD) - R;
+  double B = (1.0 - margin) * (a * b - D * dD) - Q;
+  double C = (1.0 - margin) * (a * a - D * D) - P;
 
   if (C < 0.0) return 1.0;  // q already fails margin; let repair handle
 
@@ -501,7 +490,8 @@ gkyl_moment_spacetime_coupling_gr_euler_source_euler(
   }
 
   // S²-POSITIVITY LIMITER. Solve the quadratic for max α s.t. the
-  // limited source step keeps s²(q_new) ≥ margin·(D+τ)².
+  // limited source step keeps q_new strictly inside the p≥0 cone,
+  // s²(q_new) − D² ≥ margin·((D+τ)² − D²).
   double alpha_s2 = compute_s2_limiter_alpha(prods, dt, fluid_old, S_rate);
   if (alpha_s2 < alpha) {
     alpha = alpha_s2;

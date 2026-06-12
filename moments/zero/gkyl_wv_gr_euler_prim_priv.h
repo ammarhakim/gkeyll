@@ -180,7 +180,7 @@ enum gkyl_gr_euler_admissibility_status {
   GR_EULER_ADM_OK = 0,
   GR_EULER_ADM_BAD_D,    // D ≤ 0
   GR_EULER_ADM_BAD_TAU,  // τ < 0
-  GR_EULER_ADM_BAD_S2,   // s² = (D+τ)² − γ^{ij}·S_i·S_j ≤ 0
+  GR_EULER_ADM_BAD_S2,   // s² = (D+τ)² − γ^{ij}·S_i·S_j ≤ D²
 };
 
 // Bitmask returned by the cascade-repair helper indicating which
@@ -210,7 +210,19 @@ gkyl_gr_euler_mom_sq(const double inv_g[3][3],
 // Strict admissibility check for the Banyuls inversion.
 //   D > 0
 //   τ ≥ 0    (energy ≥ rest-mass: D + τ = ρhW² ≥ ρW = D, with h ≥ 1, W ≥ 1)
-//   s² > 0
+//   s² > D²  (p≥0 cone: D + τ > √(D² + |S|²))
+//
+// The s² bound is the existence condition for a p ≥ 0 inversion with any
+// EOS satisfying h ≥ 1: the boundary s² = D² is the cold (p = 0, h = 1)
+// state with W = √(1 + |S|²/D²). The weaker s² > 0 admits a gap of
+// states where the EM quartic has NO root with W ≥ 1 and h ≥ 1 — Newton
+// then converges to an unphysical root (W < 0 or h < 1) whose sign
+// errors cancel in ρhW², so downstream floors mask it and eigenvalue
+// estimates silently under-bound the signal speed. See
+// SESSION_NOTES_4.md (dir=1 amax under-bound) for the production
+// failure this closed. Equivalently: the Newton parameter C = D/√s²
+// satisfies C < 1 exactly on the admissible side.
+//
 // Returns the FIRST failing constraint (in this order) so repair_state can
 // project minimally on a single axis per iteration.
 static inline enum gkyl_gr_euler_admissibility_status
@@ -221,16 +233,16 @@ gkyl_gr_euler_check_admissibility(
   if (!(D > 0.0))   return GR_EULER_ADM_BAD_D;
   if (!(tau >= 0.0)) return GR_EULER_ADM_BAD_TAU;
   double s_sq = ((D + tau) * (D + tau)) - gkyl_gr_euler_mom_sq(inv_g, Sx, Sy, Sz);
-  if (!(s_sq > 0.0)) return GR_EULER_ADM_BAD_S2;
+  if (!(s_sq > D * D)) return GR_EULER_ADM_BAD_S2;
   return GR_EULER_ADM_OK;
 }
 
 // Cascade state repair: in a single call, check each of the three
-// admissibility constraints (D > 0, τ ≥ 0, s² > 0) and apply a minimal
+// admissibility constraints (D > 0, τ ≥ 0, s² > D²) and apply a minimal
 // projection for each that is violated. Order is fixed and safe:
 //   1. D-floor (independent of τ, S)
 //   2. τ-floor (independent of D, S)
-//   3. S-rescale (uses the post-floor D + τ for the bound)
+//   3. S-rescale (uses the post-floor D and D + τ for the bound)
 //
 // Because the order respects the dependencies, the post-call state is
 // always admissible — no caller iteration needed.
@@ -241,17 +253,19 @@ gkyl_gr_euler_check_admissibility(
 //             of τ = ρhW² − p − D gives τ → p_floor, the safe lower
 //             bound that keeps Banyuls recoverable. Newton then converges
 //             to a physical (W, ρ, p) with p ≈ p_floor.
-//   s² ≤ 0  → rescale (Sx, Sy, Sz) so |S|² = (1 − ε)·(D+τ)² with
-//             ε = 1e-8, putting s² strictly in the interior of the
-//             convex set so Newton converges away from the singularity.
+//   s² ≤ D² → rescale (Sx, Sy, Sz) so |S|² = (1 − margin)·((D+τ)² − D²),
+//             putting the state strictly inside the p≥0 cone (the
+//             p ≥ 0 inversion-existence set, see check_admissibility)
+//             so the EM Newton has a physical root to converge to.
 //
 // Returns a bitmask of GR_EULER_REPAIR_* flags indicating which
 // constraints were fixed (zero means input was already admissible).
-// margin sets the s² target as a fraction of (D+τ)² — post-repair
-// |S|² = (1 − margin) · (D + τ)², so effective W_repair = 1/√margin.
-// Callers that have access to the cell's prev-update W pass
-// 1/W_prev² to anchor the repaired state on the natural-flow W;
-// callers without history pass a safe default like 1e-2 (W_target=10).
+// margin sets the interior depth — post-repair
+// s² = D² + margin·((D+τ)² − D²). The repaired Lorentz factor is
+// pinned by (D, τ) (cold flow: D + τ ≈ DW), so margin only sets the
+// pressure slack; keep it small (the production caller passes 1e-6,
+// matching the source-step s²-limiter) so a near-cone state loses
+// only its unphysical excess momentum.
 static inline unsigned int
 gkyl_gr_euler_repair_admissibility_cascade(
   const double inv_g[3][3], double margin,
@@ -275,13 +289,22 @@ gkyl_gr_euler_repair_admissibility_cascade(
   double Dt = *D + *tau;
   double mom_sq = gkyl_gr_euler_mom_sq(inv_g, *Sx, *Sy, *Sz);
   double s_sq = (Dt * Dt) - mom_sq;
-  if (!(s_sq > 0.0)) {
-    // Repair into the INTERIOR of A_γ with a finite margin, so the next
-    // flux step has breathing room before the cell touches the s²
-    // boundary again. The original margin (1e-8) left cells essentially
-    // ON the boundary — any subsequent Lax/HLL dissipation immediately
-    // re-triggered the repair cascade. BHL production sweep results
-    // (t_end=3.0, M=0.3 BH):
+  if (!(s_sq > (*D) * (*D))) {
+    // A τ below the repair floor cannot host any momentum — the cone
+    // budget (D+τ)² − D² ≈ 0, so the rescale below would land ON the
+    // cone (or fail in FP). Bump τ first so the target is strictly
+    // interior.
+    if (*tau < GR_EULER_TAU_REPAIR_FLOOR) {
+      *tau = GR_EULER_TAU_REPAIR_FLOOR;
+      fixed |= GR_EULER_REPAIR_TAU;
+      Dt = *D + *tau;
+    }
+    // Repair into the INTERIOR of the p≥0 cone with a finite margin,
+    // so the next flux step has breathing room before the cell touches
+    // the boundary again. The original margin (1e-8) left cells
+    // essentially ON the boundary — any subsequent Lax/HLL dissipation
+    // immediately re-triggered the repair cascade. BHL production sweep
+    // results (t_end=3.0, M=0.3 BH, under the pre-cone s² > 0 bound):
     //   1e-8 (orig) + 2x amax: 81 wave_prop s²<0 fires, 39 s wall
     //   1e-6           + 1x amax: 12 fires, 31.5 s wall  (best ratio)
     //   1e-4           + 1x amax: 12 fires, identical
@@ -289,15 +312,14 @@ gkyl_gr_euler_repair_admissibility_cascade(
     // 1e-6 sits at the plateau. Larger margin doesn't help; smaller
     // gets immediately overwhelmed by the next step's Lax dissipation.
     if (mom_sq > 0.0) {
-      double target = (1.0 - margin) * Dt * Dt;
+      double target = (1.0 - margin) * (Dt * Dt - (*D) * (*D));
       double scale = sqrt(target / mom_sq);
       *Sx *= scale;
       *Sy *= scale;
       *Sz *= scale;
     } else {
-      // mom_sq is exactly zero (e.g., all S components zero) and s² ≤ 0
-      // would require D + τ ≤ 0 — which the τ pass above already
-      // handled. Defensive no-op.
+      // mom_sq is exactly zero (all S components zero); the τ-bump
+      // above already moved the state strictly inside the cone.
       *Sx = *Sy = *Sz = 0.0;
     }
     fixed |= GR_EULER_REPAIR_S2;
@@ -323,8 +345,8 @@ struct gkyl_gr_euler_prim {
                   // inflated, and this implicit stabilization is what
                   // keeps wave_prop s² fix counts in line with HEAD.
   bool admissible; // true iff input lay in the strict admissibility set
-                   // (D > 0, τ ≥ 0, s² > 0). check_inv consumes this; the
-                   // floors below do NOT downgrade it.
+                   // (D > 0, τ ≥ 0, s² > D²). check_inv consumes this;
+                   // the floors below do NOT downgrade it.
 };
 
 // ---------------------------------------------------------------------------
@@ -478,25 +500,23 @@ struct gkyl_gr_euler_prim_status {
 struct gkyl_gr_euler_repair_status {
   uint64_t bad_D_fixes;       // D≤0 floored to GR_EULER_DENSITY_FLOOR
   uint64_t bad_tau_fixes;     // τ<0 floored to GR_EULER_TAU_REPAIR_FLOOR
-  uint64_t bad_s2_fixes;      // s²≤0 rescaled momentum to interior of A_γ
+  uint64_t bad_s2_fixes;      // s²≤D² rescaled momentum into the p≥0 cone
   uint64_t tau_limiter_fires; // source-step τ-positivity limiter (α<1)
   uint64_t s2_limiter_fires;  // source-step s²-positivity limiter
 
-  // s²-repair anchor diagnostics. When history-informed repair fires,
-  // the equation derives W_prev from the cell's pre-update state and
-  // rescales |S| so the post-repair effective Lorentz factor matches
-  // |W_prev|. These accumulators record |W_prev| across the run so
-  // postmortems can confirm that repaired cells stay in the natural
-  // flow's W regime (rather than the old margin=1e-6 era when repair
-  // injected W≈10⁶ ghosts). |W| is used because the EM Newton can
-  // converge to a wrong-branch negative root on near-boundary states
-  // but the magnitude reflects the physical Lorentz factor.
-  uint64_t s2_repair_W_prev_hist[GR_EULER_W_BINS];
-  double   min_abs_s2_repair_W_prev;   // 0.0 = no s²-repair yet fired
-  double   max_abs_s2_repair_W_prev;
-  double   sum_abs_s2_repair_W_prev;   // for avg = sum/bad_s2_fixes
-  double   last_s2_repair_W_prev;      // signed; preserves the sign that
-                                        // Newton actually returned
+  // s²-repair clip diagnostics. Each s² repair rescales |S| onto the
+  // interior of the p≥0 cone; clip = 1 − |S|²_new/|S|²_old is the
+  // fraction of squared momentum removed. Under the p≥0-cone bound
+  // the repaired W is pinned by (D, τ) — the only physically meaningful
+  // postmortem question is how much momentum each fire takes, i.e.
+  // whether repairs are infinitesimal nudges back onto the cone
+  // (clip ≈ margin) or genuine state surgery (clip ~ 1). Binned with
+  // the floor_s2 decade bins.
+  uint64_t s2_repair_clip_hist[8];
+  double   min_s2_repair_clip;   // meaningful only when bad_s2_fixes > 0
+  double   max_s2_repair_clip;
+  double   sum_s2_repair_clip;   // for avg = sum/bad_s2_fixes
+  double   last_s2_repair_clip;
 };
 
 // Decade-bin selector for the floor D-magnitude histogram.

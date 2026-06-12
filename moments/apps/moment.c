@@ -1169,7 +1169,7 @@ gr_euler_print_repair_status(FILE *fp, const char *label,
   uint64_t total = s->bad_D_fixes + s->bad_tau_fixes + s->bad_s2_fixes;
   if (total + s->tau_limiter_fires + s->s2_limiter_fires == 0) return;
   fprintf(fp,
-    "  [%s repair_status] cascade fixes total %llu  (D≤0: %llu, τ<0: %llu, s²≤0: %llu)\n",
+    "  [%s repair_status] cascade fixes total %llu  (D≤0: %llu, τ<0: %llu, s²≤D²: %llu)\n",
     label, (unsigned long long)total,
     (unsigned long long)s->bad_D_fixes,
     (unsigned long long)s->bad_tau_fixes,
@@ -1181,21 +1181,21 @@ gr_euler_print_repair_status(FILE *fp, const char *label,
       (unsigned long long)s->s2_limiter_fires);
   }
   if (s->bad_s2_fixes > 0) {
-    double avg = s->sum_abs_s2_repair_W_prev / (double)s->bad_s2_fixes;
+    double avg = s->sum_s2_repair_clip / (double)s->bad_s2_fixes;
     fprintf(fp,
-      "    s²-repair |W_prev| anchor:  min=%.3e avg=%.3e max=%.3e last=%.3e (signed)\n",
-      s->min_abs_s2_repair_W_prev, avg,
-      s->max_abs_s2_repair_W_prev, s->last_s2_repair_W_prev);
-    const char *W_labels[GR_EULER_W_BINS] = {
-      "≤1.001", "1.001..1.1", "1.1..2", "2..10",
-      "10..100", "100..1e3", "1e3..1e4", "≥1e4",
+      "    s²-repair |S|² clip fraction:  min=%.3e avg=%.3e max=%.3e last=%.3e\n",
+      s->min_s2_repair_clip, avg,
+      s->max_s2_repair_clip, s->last_s2_repair_clip);
+    const char *clip_labels[8] = {
+      "<1e-12", "1e-12..1e-10", "1e-10..1e-8", "1e-8..1e-6",
+      "1e-6..1e-4", "1e-4..1e-2", "1e-2..1", "≥1",
     };
-    fprintf(fp, "    s²-repair |W_prev| distribution:\n");
-    for (int b = 0; b < GR_EULER_W_BINS; b++)
-      if (s->s2_repair_W_prev_hist[b] > 0)
-        fprintf(fp, "      %-15s : %llu (%.2f%%)\n", W_labels[b],
-          (unsigned long long)s->s2_repair_W_prev_hist[b],
-          100.0 * (double)s->s2_repair_W_prev_hist[b] / (double)s->bad_s2_fixes);
+    fprintf(fp, "    s²-repair clip distribution:\n");
+    for (int b = 0; b < 8; b++)
+      if (s->s2_repair_clip_hist[b] > 0)
+        fprintf(fp, "      %-15s : %llu (%.2f%%)\n", clip_labels[b],
+          (unsigned long long)s->s2_repair_clip_hist[b],
+          100.0 * (double)s->s2_repair_clip_hist[b] / (double)s->bad_s2_fixes);
   }
 }
 

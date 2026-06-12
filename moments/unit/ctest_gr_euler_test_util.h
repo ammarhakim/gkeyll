@@ -219,7 +219,13 @@ build_prods_iface(const double *prods_L, const double *prods_R,
 }
 
 // Admissibility of an undensitized Convention-A state in the cell's own
-// inverse spatial metric: D > 0, τ ≥ 0, s² = (D+τ)² − S·S > 0.
+// inverse spatial metric, mirroring gkyl_gr_euler_check_admissibility:
+// D > 0, τ ≥ 0, and the p≥0 cone s² = (D+τ)² − S·S > D² (existence of
+// a p ≥ 0 inversion — see SESSION_NOTES_P_GE_0_CONE.md). Unlike the
+// shared first-failing-constraint check, this reports all three flags
+// independently; τ ≥ 0 is implied by the cone but kept as a separate
+// channel so sweeps can distinguish τ-driven from momentum-driven
+// violations.
 static void
 record_admissibility(const double inv_g[3][3],
   const double q_undens[5],
@@ -231,7 +237,7 @@ record_admissibility(const double inv_g[3][3],
   *tau_ok = (tau >= 0.0);
   double mom_sq = gkyl_gr_euler_mom_sq(inv_g, Sx, Sy, Sz);
   double s_sq = (D + tau) * (D + tau) - mom_sq;
-  *S2_ok  = (s_sq > 0.0);
+  *S2_ok  = (s_sq > D * D);
 }
 
 // Physical sample points for curved-spacetime positivity probes.

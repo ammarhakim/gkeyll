@@ -689,10 +689,185 @@ void test_eos_rcc_synge_extreme_W(void)
   run_eos_synge_validation(eos, v, 1.0e-6, 8.0e-3, "RCC extreme-W");
 }
 
+// (e) Executable derivation of the invariant domain (the p≥0 cone,
+//     SESSION_NOTES_P_GE_0_CONE.md). The admissibility bound s² > D² is
+//     exactly the existence condition for a p ≥ 0 primitive inversion;
+//     these checks ARE the derivation, run as assertions:
+//
+//     1. BOUNDARY: a pressureless state (p = 0, h = 1) at any Lorentz factor sits
+//        exactly ON s² = D² — from D = ρW, S_i = γ_ij ρW²v^j,
+//        τ = ρW² − ρW: s² = (ρW²)² − (ρW²)²v² = D². The cone boundary
+//        is the cold-flow attractor, not a pathological corner.
+//     2. SIGN IDENTITY: on any primitive-built state,
+//        sign(s² − D²) = sign(p) (for ideal γ ≤ 2 the bracket in
+//        s² − D² = p·[ρW²((h+1)γ/(γ−1) − 2h) + p] is positive). So
+//        p > 0 ⟹ strictly inside; also C = D/√s² < 1 ⟺ inside —
+//        the EM Newton's start guess g = 1 is exactly the boundary root.
+//     3. WELL-POSEDNESS INSIDE: for every cone-interior state the
+//        recovery returns the physical root — W ≥ 1, h ≥ 1, v
+//        sub-luminal, and the v-implied Lorentz factor matches the
+//        Newton's W. (At gap states the quartic has NO physical root
+//        and the Newton lands on W < 0 or h < 1 with sign errors that
+//        cancel in ρhW² — the silent corruption that caused the dir=1
+//        amax under-bound. This check is the five-minute detector for
+//        that bug class.)
+//     4. GAP REJECTION: scaling |S| up so 0 < s² < D² (still "valid" by
+//        the old s² > 0 rule) must be flagged inadmissible.
+static void
+run_cone_definition(struct gkyl_gr_spacetime *spacetime,
+  const char *label, double x, double y, double z)
+{
+  double prods[GKYL_GR_SP_NCOMP_BASE];
+  fill_prods_at(spacetime, x, y, z, prods);
+  if (prods[GKYL_GR_SP_EXCISION] < 0.0) return;
+
+  double g_ij[3][3], inv_g[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      g_ij[i][j]  = prods[GKYL_GR_SP_GIJ + 3*i + j];
+      inv_g[i][j] = prods[GKYL_GR_SP_INV_GIJ + 3*i + j];
+    }
+  double sqrt_det = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
+
+  struct gkyl_gr_euler_eos eos_id = gkyl_gr_euler_eos_ideal(5.0 / 3.0);
+
+  static const double thetas[] =
+    { 1.0e-12, 1.0e-9, 1.0e-6, 1.0e-3, 1.0e-1, 1.0 };
+  static const double vmags[] = { 0.0, 0.3, 0.7, 0.9, 0.98 };
+  static const double dirs[][3] = { { 1.0, 0.0, 0.0 }, { 1.0, 1.0, 0.0 } };
+  double rho = 1.0;
+
+  for (size_t di = 0; di < sizeof(dirs)/sizeof(*dirs); di++) {
+    // Metric-normalize the direction so vmag is the PHYSICAL speed
+    // γ_ij v^i v^j = vmag² in this cell.
+    double nsq = 0.0;
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        nsq += g_ij[i][j] * dirs[di][i] * dirs[di][j];
+
+    for (size_t vi = 0; vi < sizeof(vmags)/sizeof(*vmags); vi++) {
+      double v[3];
+      for (int i = 0; i < 3; i++)
+        v[i] = dirs[di][i] * vmags[vi] / sqrt(nsq);
+
+      // 1. BOUNDARY: a pressureless state (p = 0) sits exactly on s² = D².
+      {
+        double q[5], qu[5];
+        build_state_convA(eos_id, rho, v, 0.0, prods, q);
+        for (int i = 0; i < 5; i++) qu[i] = q[i] / sqrt_det;
+        double msq = gkyl_gr_euler_mom_sq(inv_g, qu[1], qu[2], qu[3]);
+        double Dt2 = (qu[0] + qu[4]) * (qu[0] + qu[4]);
+        double on_cone = (Dt2 - msq) - qu[0] * qu[0];
+        TEST_CHECK_( fabs(on_cone) <= 1.0e-12 * Dt2,
+          "[%s] p=0 v=%.2f dir=%zu: |s² − D²| = %.3e off the cone "
+          "(scale %.3e)", label, vmags[vi], di, fabs(on_cone), Dt2 );
+      }
+
+      for (size_t ti = 0; ti < sizeof(thetas)/sizeof(*thetas); ti++) {
+        double p = thetas[ti] * rho;
+        double q[5], qu[5];
+        build_state_convA(eos_id, rho, v, p, prods, q);
+        for (int i = 0; i < 5; i++) qu[i] = q[i] / sqrt_det;
+        double msq = gkyl_gr_euler_mom_sq(inv_g, qu[1], qu[2], qu[3]);
+        double Dt2 = (qu[0] + qu[4]) * (qu[0] + qu[4]);
+        double s_sq = Dt2 - msq;
+        double D_sq = qu[0] * qu[0];
+
+        // 2. SIGN IDENTITY: p > 0 ⟹ strictly inside, and C < 1.
+        TEST_CHECK_( s_sq > D_sq,
+          "[%s] θ=%.0e v=%.2f dir=%zu: p > 0 state not inside the cone "
+          "(s² − D² = %.3e)", label, thetas[ti], vmags[vi], di, s_sq - D_sq );
+        TEST_CHECK_( qu[0] / sqrt(s_sq) < 1.0,
+          "[%s] θ=%.0e v=%.2f dir=%zu: C = D/√s² ≥ 1 inside the cone",
+          label, thetas[ti], vmags[vi], di );
+        TEST_CHECK_( gkyl_gr_euler_check_admissibility(qu[0], qu[1], qu[2],
+            qu[3], qu[4], inv_g) == GR_EULER_ADM_OK,
+          "[%s] θ=%.0e v=%.2f dir=%zu: check_admissibility rejects an "
+          "interior state", label, thetas[ti], vmags[vi], di );
+
+        // 3. WELL-POSEDNESS: physical root, internally consistent, for
+        //    every EOS mode.
+        for (int ei = 0; ei < NUM_EOS_MODES; ei++) {
+          struct gkyl_gr_euler_prim prim;
+          gkyl_gr_euler_recover_primitives(eos_modes[ei],
+            qu[0], qu[1], qu[2], qu[3], qu[4], inv_g, NULL, &prim);
+          TEST_CHECK_( prim.admissible,
+            "[%s] θ=%.0e v=%.2f dir=%zu eos=%d: interior state flagged "
+            "inadmissible", label, thetas[ti], vmags[vi], di, ei );
+          TEST_CHECK_( prim.W >= 1.0 - 1.0e-12 && prim.h >= 1.0 - 1.0e-12,
+            "[%s] θ=%.0e v=%.2f dir=%zu eos=%d: unphysical root "
+            "W=%.6e h=%.6e", label, thetas[ti], vmags[vi], di, ei,
+            prim.W, prim.h );
+          double vsq_rec = 0.0;
+          for (int i = 0; i < 3; i++)
+            for (int j = 0; j < 3; j++)
+              vsq_rec += g_ij[i][j] * prim.v[i] * prim.v[j];
+          TEST_CHECK_( vsq_rec < 1.0,
+            "[%s] θ=%.0e v=%.2f dir=%zu eos=%d: super-luminal recovery "
+            "v² = %.6e", label, thetas[ti], vmags[vi], di, ei, vsq_rec );
+          double W_from_v = 1.0 / sqrt(1.0 - vsq_rec);
+          TEST_CHECK_( fabs(W_from_v - prim.W) <= 1.0e-9 * prim.W,
+            "[%s] θ=%.0e v=%.2f dir=%zu eos=%d: W inconsistent with "
+            "recovered v (Newton W=%.12e, W(v)=%.12e) — wrong-root "
+            "signature", label, thetas[ti], vmags[vi], di, ei,
+            prim.W, W_from_v );
+        }
+
+        // 4. GAP REJECTION: push |S|² to (D+τ)² − D²/2, i.e. s² = D²/2 —
+        //    inside the OLD s² > 0 domain, outside the cone. Needs S ≠ 0.
+        if (msq > 0.0) {
+          double msq_gap = Dt2 - 0.5 * D_sq;
+          double scale = sqrt(msq_gap / msq);
+          double Sg[3] = { qu[1] * scale, qu[2] * scale, qu[3] * scale };
+          TEST_CHECK_( gkyl_gr_euler_check_admissibility(qu[0], Sg[0], Sg[1],
+              Sg[2], qu[4], inv_g) == GR_EULER_ADM_BAD_S2,
+            "[%s] θ=%.0e v=%.2f dir=%zu: gap state (s² = D²/2) not "
+            "flagged BAD_S2", label, thetas[ti], vmags[vi], di );
+          struct gkyl_gr_euler_prim prim;
+          gkyl_gr_euler_recover_primitives(eos_id,
+            qu[0], Sg[0], Sg[1], Sg[2], qu[4], inv_g, NULL, &prim);
+          TEST_CHECK_( !prim.admissible,
+            "[%s] θ=%.0e v=%.2f dir=%zu: recovery did not flag gap state",
+            label, thetas[ti], vmags[vi], di );
+        }
+      }
+    }
+  }
+}
+
+void test_cone_definition_minkowski(void)
+{
+  struct gkyl_gr_spacetime *st = gkyl_gr_minkowski_new(false);
+  run_cone_definition(st, "Mink", 0.3, 0.0, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+void test_cone_definition_schwarzschild(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
+  run_cone_definition(st, "Schw", 0.3, 0.2, 0.0);
+  run_cone_definition(st, "Schw", 0.5, 0.0, 0.0);
+  run_cone_definition(st, "Schw", 0.4, 0.4, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+void test_cone_definition_kerr(void)
+{
+  struct gkyl_gr_spacetime *st =
+    gkyl_gr_blackhole_new(false, 0.1, 0.5, 0.0, 0.0, 0.0);
+  run_cone_definition(st, "Kerr", 0.3, 0.2, 0.0);
+  run_cone_definition(st, "Kerr", 0.5, 0.0, 0.0);
+  run_cone_definition(st, "Kerr", 0.4, 0.4, 0.0);
+  gkyl_gr_spacetime_release(st);
+}
+
 TEST_LIST = {
   { "round_trip_minkowski",     test_round_trip_minkowski },
   { "round_trip_schwarzschild", test_round_trip_schwarzschild },
   { "round_trip_kerr",          test_round_trip_kerr },
+
+  { "cone_definition_minkowski",     test_cone_definition_minkowski },
+  { "cone_definition_schwarzschild", test_cone_definition_schwarzschild },
+  { "cone_definition_kerr",          test_cone_definition_kerr },
 
   { "prim_consistency_minkowski",     test_prim_consistency_minkowski },
   { "prim_consistency_schwarzschild", test_prim_consistency_schwarzschild },

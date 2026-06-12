@@ -143,14 +143,8 @@ gkyl_gr_euler_banyuls_flux_cell(struct gkyl_gr_euler_eos eos,
   double spatial_det = prods[GKYL_GR_SP_SPATIAL_DET];
   double sqrt_det    = sqrt(spatial_det);
 
-  // Undensitize at the cell to feed recovery. The input conservatives are
-  // used for the recovery only — the flux itself is then rebuilt from the
-  // recovered primitives, so the flux is by construction consistent with
-  // the post-floor state that prim_vars / recover_primitives produce. This
-  // is what gives the LOW_ORDER curved-Lax path its robustness: when wave-
-  // prop has driven q near or beyond the admissibility floor, the recovery
-  // floors ρ and p, and the flux follows the floored state rather than
-  // propagating the near-zero / negative input.
+  // Undensitize at the cell: the conservatives are both the recovery
+  // input and the advected quantities in the flux below.
   double D_in    = q[0] / sqrt_det;
   double Sx_in   = q[1] / sqrt_det;
   double Sy_in   = q[2] / sqrt_det;
@@ -167,38 +161,31 @@ gkyl_gr_euler_banyuls_flux_cell(struct gkyl_gr_euler_eos eos,
   gkyl_gr_euler_recover_primitives(eos,
     D_in, Sx_in, Sy_in, Sz_in, tau_in, inv_g, stat, &prim);
 
-  // Primitive-reconstructed Banyuls flux. The internally-consistent
-  // (ρhW², v_l) pairing keeps the momentum-advection bookkeeping aligned
-  // even when a floor fires — both factors come from the same Newton
-  // recovery. A pure-conservative variant (using input S_i for momentum
-  // and primitive v for velocity) was tested and produced ~120× more
-  // wave s² hits, because the input S_i / recovered v mismatch under
-  // floors leaks back through the positivity-sweep loop.
-  double rho = prim.rho;
-  double p   = prim.p;
-  double h   = prim.h;
-  double W   = prim.W;
-
-  double v_l[3];
-  for (int i = 0; i < 3; i++) {
-    v_l[i] = prods[GKYL_GR_SP_GIJ + 3*i + 0] * prim.v[0]
-           + prods[GKYL_GR_SP_GIJ + 3*i + 1] * prim.v[1]
-           + prods[GKYL_GR_SP_GIJ + 3*i + 2] * prim.v[2];
-  }
-  double rhohW2 = rho * h * (W * W);
-  double D_cons   = rho * W;
-  double tau_cons = rhohW2 - p - rho * W;
+  // Conservative-advected Banyuls flux: advect the conservatives the
+  // cell actually holds, with the recovery entering only through (v, p)
+  // — the exact Banyuls flux variables:
+  //   F_D   = D·(αv^x − β^x),
+  //   F_S_i = S_i·(αv^x − β^x) + α√γ·p·δ^x_i,
+  //   F_τ   = τ·(αv^x − β^x) + α√γ·p·v^x.
+  // Under the p≥0-cone domain every input is recoverable to a consistent
+  // physical root, so S_i ≈ ρhW²·v_l_i holds to recovery precision and
+  // the advected quantities telescope with the state the cell carries.
+  // (Post-cone A/B vs the primitive-reconstructed form ρhW²·v_l·vmsh:
+  // SESSION_NOTES_P_GE_0_CONE.md. The pre-cone "120× more wave s² hits"
+  // rejection of this form was measuring wrong-root recovery garbage at
+  // gap states, not the flux form.)
+  double p = prim.p;
 
   double lapse   = prods[GKYL_GR_SP_LAPSE];
   double shift_x = prods[GKYL_GR_SP_SHIFT + 0];
   double vmsh    = prim.v[0] - (shift_x / lapse);
   double prefac  = lapse * sqrt_det;
 
-  flux[0] = prefac * (D_cons * vmsh);
-  flux[1] = prefac * (rhohW2 * v_l[0] * vmsh + p);
-  flux[2] = prefac * (rhohW2 * v_l[1] * vmsh);
-  flux[3] = prefac * (rhohW2 * v_l[2] * vmsh);
-  flux[4] = prefac * (tau_cons * vmsh + p * prim.v[0]);
+  flux[0] = prefac * (D_in * vmsh);
+  flux[1] = prefac * (Sx_in * vmsh + p);
+  flux[2] = prefac * (Sy_in * vmsh);
+  flux[3] = prefac * (Sz_in * vmsh);
+  flux[4] = prefac * (tau_in * vmsh + p * prim.v[0]);
 }
 
 // Per-direction max-abs eigenvalue of the curved-frame flux Jacobian in
@@ -1519,8 +1506,10 @@ flux_jump_func(const struct gkyl_wv_eqn *eqn, const double *ql,
 }
 
 // Strict admissibility predicate (Convention A): D > 0, τ ≥ 0, and
-// s² = (D+τ)² − γ^{ij}·S_i·S_j > 0. Returns true iff the cell lies in
-// the convex set the Banyuls inversion can reach without floors firing.
+// s² = (D+τ)² − γ^{ij}·S_i·S_j > D² (the p≥0 cone — existence of a
+// p ≥ 0 inversion; see check_admissibility in gkyl_wv_gr_euler_prim_priv.h).
+// Returns true iff the cell lies in the convex set the Banyuls
+// inversion can reach without floors firing.
 //
 // The previous test relied on `v[0] < 0 || v[4] < 0` AFTER floors had
 // already pushed those positive — it never fired. Routing through
@@ -1563,13 +1552,17 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 // number of passes; each call fixes the first failing constraint
 // (D, then τ, then s²).
 //
-// History-informed s² target: when q_prev is non-NULL (the cell's
-// pre-update state — admissible by construction), recover W_prev from
-// it and pass margin = 1/W_prev² to the cascade so the repaired cell
-// has v² = 1 − 1/W_prev², matching the cell's previous Lorentz factor.
-// This avoids injecting a near-luminal (W=10⁶) ghost cell from the
-// old margin=1e-6 default. Falls back to margin=1e-2 (W_target=10) if
-// q_prev is missing or its Newton recovery returns a degenerate W.
+// The s² repair projects onto the interior of the p≥0 cone with a
+// small fixed margin (matching the source-step s²-limiter). Under the
+// p≥0-cone bound (s² > D², see check_admissibility) the repaired
+// Lorentz factor is pinned by (D, τ) — cold flow has D + τ ≈ DW — so
+// margin only sets the pressure slack, and a near-cone state loses
+// only its unphysical excess momentum (clip ≈ margin). The previous
+// W_prev-anchored margin (margin = 1/W_prev²) was designed for the
+// old s² > 0 bound where margin DID set the repaired W; against the
+// cone budget it cut |S|² by 1 − 1/W_prev² per fire — a catastrophic
+// momentum sink for cold near-cone flow. q_prev is unused now but
+// remains in the hook signature.
 static void
 repair_state(const struct gkyl_wv_eqn *eqn, const double *q_prev, double *q)
 {
@@ -1597,24 +1590,11 @@ repair_state(const struct gkyl_wv_eqn *eqn, const double *q_prev, double *q)
   double Sz  = q[3] / sd;
   double tau = q[4] / sd;
 
-  // Anchor the s² repair margin on the cell's prev-update W: recover
-  // (W_prev) from q_prev and pass margin = 1/W_prev² so the repaired
-  // state has the same effective Lorentz factor the cell had before
-  // the failing update. Falls back to a fixed margin if no q_prev was
-  // provided (defensive — drivers should pass it).
-  double margin = 1.0e-2;
-  double W_prev_for_log = -1.0;
-  if (q_prev) {
-    struct gkyl_gr_euler_prim prim_prev;
-    gkyl_gr_euler_recover_primitives(grm->eos,
-      q_prev[0] / sd, q_prev[1] / sd, q_prev[2] / sd,
-      q_prev[3] / sd, q_prev[4] / sd, inv_g, NULL, &prim_prev);
-    margin = 1.0 / (prim_prev.W * prim_prev.W);
-    W_prev_for_log = prim_prev.W;
-  }
+  (void)q_prev;
+  double mom_sq_pre = Sx*Sx + Sy*Sy + Sz*Sz;
 
   unsigned int fixed =
-    gkyl_gr_euler_repair_admissibility_cascade(inv_g, margin,
+    gkyl_gr_euler_repair_admissibility_cascade(inv_g, 1.0e-6,
       &D, &Sx, &Sy, &Sz, &tau);
 
   // Per-constraint independent tallies. Wave-prop and source-step calls
@@ -1632,17 +1612,21 @@ repair_state(const struct gkyl_wv_eqn *eqn, const double *q_prev, double *q)
     if (fixed & GR_EULER_REPAIR_TAU) rstat->bad_tau_fixes += 1;
     if (fixed & GR_EULER_REPAIR_S2) {
       rstat->bad_s2_fixes += 1;
-      double absW = fabs(W_prev_for_log);
-      // Treat 0 as "uninitialized" — |W| is always > 0 from any sane
-      // Newton output. memset zero-fills the struct at allocation.
-      if (rstat->min_abs_s2_repair_W_prev <= 0.0
-          || absW < rstat->min_abs_s2_repair_W_prev)
-        rstat->min_abs_s2_repair_W_prev = absW;
-      if (absW > rstat->max_abs_s2_repair_W_prev)
-        rstat->max_abs_s2_repair_W_prev = absW;
-      rstat->sum_abs_s2_repair_W_prev += absW;
-      rstat->last_s2_repair_W_prev = W_prev_for_log;
-      rstat->s2_repair_W_prev_hist[gkyl_gr_euler_status_W_bin(absW)] += 1;
+      // The repair multiplies all S_i by one scalar c, so the NEW/OLD
+      // ratio of S_i·S_j contracted with any fixed metric is c² —
+      // Euclidean dot products suffice for the clip even though the
+      // bound itself is curved. clip = 0 only in the degenerate S = 0
+      // τ-bump branch.
+      double mom_sq_post = Sx*Sx + Sy*Sy + Sz*Sz;
+      double clip = (mom_sq_pre > 0.0)
+        ? 1.0 - mom_sq_post / mom_sq_pre : 0.0;
+      if (rstat->bad_s2_fixes == 1 || clip < rstat->min_s2_repair_clip)
+        rstat->min_s2_repair_clip = clip;
+      if (clip > rstat->max_s2_repair_clip)
+        rstat->max_s2_repair_clip = clip;
+      rstat->sum_s2_repair_clip += clip;
+      rstat->last_s2_repair_clip = clip;
+      rstat->s2_repair_clip_hist[gkyl_gr_euler_status_floor_s2_bin(clip)] += 1;
     }
   }
 
