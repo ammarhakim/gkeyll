@@ -38,7 +38,6 @@ gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct g
   up->use_vmap = vel_map && vel_map->is_mapped;
   up->vmap = 0;
   if (up->use_vmap) {
-    if (b_type != GKYL_BASIS_MODAL_TENSOR) gkyl_exit("dg_calc_sr_vars: vmap only works with tensor basis!");
     up->vmap = gkyl_array_acquire(vel_map->vmap);
   }
   up->sr_pressure = choose_sr_vars_pressure_kern(b_type, cdim, vdim, poly_order);    

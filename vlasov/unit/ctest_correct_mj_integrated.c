@@ -160,14 +160,12 @@ test_1x1v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  { // Hamiltonian is built on the (identity) velocity map.
-    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-      &velLocal, &velBasis, inp_vmap, false);
-    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
-    gkyl_vlasov_velocity_map_release(hamil_vel_map);
-  }
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+    &velLocal, &velBasis, inp_vmap, false);
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -190,6 +188,7 @@ test_1x1v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -219,6 +218,7 @@ test_1x1v(int poly_order)
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m) 
@@ -246,6 +246,7 @@ test_1x1v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -283,6 +284,7 @@ test_1x1v(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 
@@ -361,14 +363,12 @@ test_1x1v_spatially_varied(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  { // Hamiltonian is built on the (identity) velocity map.
-    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-      &velLocal, &velBasis, inp_vmap, false);
-    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
-    gkyl_vlasov_velocity_map_release(hamil_vel_map);
-  }
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+    &velLocal, &velBasis, inp_vmap, false);
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -391,6 +391,7 @@ test_1x1v_spatially_varied(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -415,6 +416,7 @@ test_1x1v_spatially_varied(int poly_order)
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m)
@@ -443,6 +445,7 @@ test_1x1v_spatially_varied(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -502,6 +505,7 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 
@@ -580,14 +584,12 @@ test_1x2v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  { // Hamiltonian is built on the (identity) velocity map.
-    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-      &velLocal, &velBasis, inp_vmap, false);
-    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
-    gkyl_vlasov_velocity_map_release(hamil_vel_map);
-  }
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+    &velLocal, &velBasis, inp_vmap, false);
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -610,6 +612,7 @@ test_1x2v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -634,6 +637,7 @@ test_1x2v(int poly_order)
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m)
@@ -657,6 +661,7 @@ test_1x2v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -702,6 +707,7 @@ test_1x2v(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 
@@ -779,14 +785,12 @@ test_1x3v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  { // Hamiltonian is built on the (identity) velocity map.
-    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-      &velLocal, &velBasis, inp_vmap, false);
-    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
-    gkyl_vlasov_velocity_map_release(hamil_vel_map);
-  }
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+    &velLocal, &velBasis, inp_vmap, false);
+  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+    GKYL_MODEL_SR, vel_map, hamil, gamma_inv, false);
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -809,6 +813,7 @@ test_1x3v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   // Project LTE distribution function (and correct its density internally)
@@ -833,6 +838,7 @@ test_1x3v(int poly_order)
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_correct *corr_mj = gkyl_vlasov_lte_correct_inew( &inp_corr );
   // Correct the other moments (V_drift, T/m)
@@ -856,6 +862,7 @@ test_1x3v(int poly_order)
     .model_id = GKYL_MODEL_SR,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
   gkyl_vlasov_lte_moments_advance(lte_moms, &local, &confLocal, distf, moms);
@@ -908,6 +915,7 @@ test_1x3v(int poly_order)
   gkyl_proj_on_basis_release(proj_m1i);
   gkyl_proj_on_basis_release(proj_m2);
   gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 }
 

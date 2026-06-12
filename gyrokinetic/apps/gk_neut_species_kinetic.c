@@ -202,6 +202,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   }
 
   gkyl_velocity_map_release(ns->vel_map);
+  gkyl_vlasov_velocity_map_release(ns->vlasov_vel_map);
 
   // Release moment data.
   gk_neut_species_moment_release(app, &ns->m0);
@@ -673,6 +674,17 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   assert(s->info.mapc2p.mapping == 0); // mapped v-space not implemented for neutrals yet.
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
+
+  // Identity Vlasov velocity map: the Vlasov moment and LTE updaters always
+  // evaluate the velocity coordinate from the stored map.
+  struct gkyl_basis vel_basis;
+  if (app->poly_order > 1)
+    gkyl_cart_modal_serendip(&vel_basis, vdim, app->poly_order);
+  else
+    gkyl_cart_modal_tensor(&vel_basis, vdim, app->poly_order); // for canonical PB
+  struct gkyl_vlasov_velocity_map_inp inp_vvmap[GKYL_MAX_CDIM] = { 0 };
+  s->vlasov_vel_map = gkyl_vlasov_velocity_map_new(&s->grid_vel, &s->local_vel,
+    &vel_basis, inp_vvmap, app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // modify it in GK_IWL BCs without modifying the app's.
