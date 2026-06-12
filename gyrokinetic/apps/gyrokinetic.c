@@ -383,8 +383,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   const char* build_id = GIT_COMMIT_ID;
   const char* build_date = GKYL_BUILD_DATE;
   if (app->is_multib) {
-    gks->io_meta_basic_len = gk->metadata.num_attributes;
-    gks->io_meta_basic = gkyl_msgpack_map_elem_clone(gks->io_meta_basic_len, gk->metadata.attributes);
+    app->io_meta_basic_len = gk->metadata.num_attributes;
+    app->io_meta_basic = gkyl_msgpack_map_elem_clone(app->io_meta_basic_len, gk->metadata.attributes);
   }
   else {
     struct gkyl_msgpack_map_elem io_meta_basic_default[] = {

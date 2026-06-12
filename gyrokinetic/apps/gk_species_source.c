@@ -214,7 +214,7 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
       char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
 
-      if (gks->src.is_first_integ_write_call) {
+      if (gks->src.is_first_integ_write_call_adapt) {
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
           { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source particle injection rate." }
         };
@@ -223,7 +223,6 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
         struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
   
         gkyl_dynvec_write_wmeta(gks->src.part_diag, fileNm, mt);
-        gks->src.is_first_integ_write_call = false;
         gkyl_msgpack_data_release(mt);
       }
       else {
@@ -240,7 +239,7 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
       char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "temperature");
 
-      if (gks->src.is_first_integ_write_call) {
+      if (gks->src.is_first_integ_write_call_adapt) {
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
           { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source temperature." }
         };
@@ -249,7 +248,6 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
         struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
         gkyl_dynvec_write_wmeta(gks->src.temp_diag, fileNm, mt);
-        gks->src.is_first_integ_write_call = false;
         gkyl_msgpack_data_release(mt);
       }
       else {
@@ -257,6 +255,7 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
       }
     }
     gkyl_dynvec_clear(gks->src.temp_diag);
+    gks->src.is_first_integ_write_call_adapt = false;
   }
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
@@ -478,6 +477,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         // Allocate dynvecs to store the temperature and particle count diagnostics of the adaptive sources.
         src->temp_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
         src->part_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+        src->is_first_integ_write_call_adapt = true;
       }
 
       for (int k = 0; k < src->num_adapt_sources; ++k) {
