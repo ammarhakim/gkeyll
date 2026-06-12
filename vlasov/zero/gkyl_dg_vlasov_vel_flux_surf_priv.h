@@ -28,12 +28,12 @@ typedef void (*rad_alpha_quad_t)(const double *dxv,
   const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 typedef double (*lax_flux_nodal_to_modal_t)(const double *dxv, 
-  const double *jacob_vel, const double *alpha_quad, 
+  const double *jacob_vel_l, const double *jacob_vel, const double *alpha_quad, 
   const double *f_l, const double *f_c, 
   double *lax_nodal_quad, double* GKYL_RESTRICT vel_flux_surf); 
 
 typedef double (*vel_flux_surf_t)(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *phi_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf); 
 
@@ -147,7 +147,7 @@ vel_flux_surf_alpha_quad(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -159,7 +159,7 @@ vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -175,7 +175,7 @@ vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -187,7 +187,7 @@ vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -203,7 +203,7 @@ vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -215,7 +215,7 @@ vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -231,7 +231,7 @@ vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -244,7 +244,7 @@ vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -260,7 +260,7 @@ vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -273,7 +273,7 @@ vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -289,7 +289,7 @@ vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -302,7 +302,7 @@ vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -318,7 +318,7 @@ vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -331,7 +331,7 @@ vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -347,7 +347,7 @@ vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -359,7 +359,7 @@ vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -375,7 +375,7 @@ vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -387,7 +387,7 @@ vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -403,7 +403,7 @@ vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -415,7 +415,7 @@ vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -431,7 +431,7 @@ vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -444,7 +444,7 @@ vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -460,7 +460,7 @@ vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -473,7 +473,7 @@ vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -489,7 +489,7 @@ vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -502,7 +502,7 @@ vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -518,7 +518,7 @@ vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -531,7 +531,7 @@ vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -547,7 +547,7 @@ vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double 
 vel_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
@@ -560,7 +560,7 @@ vel_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 

@@ -75,11 +75,19 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
       else {
         gkyl_copy_int_arr(pdim, idx, idx_l);
         idx_l[cdim+dir] = idx_l[cdim+dir]-1;
-        long pidx_l = gkyl_range_idx(&phase_range, idx_l); 
-        const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);  
-        cflrate_d[0] += up->vel_flux_surf(up, dir, xcC, up->phase_grid.dx, 
-          jacob_vel_surf ? (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx) : 0, poisson_tensor_conf_d,
-          hamil_d, qmem_d, pot_tot_d, rad_d, f_l, f_c, flux);      
+        long pidx_l = gkyl_range_idx(&phase_range, idx_l);
+        const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);
+        // Velocity-space Jacobian of the lower neighbor in this direction, for
+        // the minimum-Jacobian time-step estimate of the C^0 linear map.
+        int idx_vel_l[GKYL_MAX_DIM];
+        for (int i=0; i<vdim; ++i) {
+          idx_vel_l[i] = idx_l[cdim+i];
+        }
+        long vidx_l = gkyl_range_idx(&up->vel_range, idx_vel_l);
+        cflrate_d[0] += up->vel_flux_surf(up, dir, xcC, up->phase_grid.dx,
+          (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx_l),
+          (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx), poisson_tensor_conf_d,
+          hamil_d, qmem_d, pot_tot_d, rad_d, f_l, f_c, flux);
       }
     }    
   }

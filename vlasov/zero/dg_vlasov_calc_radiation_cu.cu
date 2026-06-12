@@ -69,6 +69,9 @@ gkyl_dg_vlasov_calc_radiation_cu(const struct gkyl_rect_grid *vel_grid,
 {
   int nblocks = vel_range->nblocks;
   int nthreads = vel_range->nthreads;
+  // The velocity map is required: the kernels always evaluate the velocity
+  // coordinate from the stored map (identity map for uniform grids).
+  assert(vel_map);
   gkyl_dg_vlasov_calc_radiation_cu_kernel<<<nblocks, nthreads>>>(*vel_grid, *vel_basis, *vel_range,
-    radiation_id, vel_map ? vel_map->vmap->on_dev : 0, t_cool, p0, rad->on_dev);
+    radiation_id, vel_map->vmap->on_dev, t_cool, p0, rad->on_dev);
 }
