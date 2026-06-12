@@ -43,74 +43,6 @@ calc_tot_and_max_cuts(const struct gkyl_gk_block_geom *gk_block_geom, int tot_ma
   tot_max[1] = max_cuts;
 }
 
-// Construct the mpack meta-data for multi-block data files.
-static struct gkyl_msgpack_data *
-gyrokinetic_multib_meta(struct gyrokinetic_multib_output_meta meta)
-{
-  struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof *mt);
-
-  mt->meta_sz = 0;
-  mpack_writer_t writer;
-  mpack_writer_init_growable(&writer, &mt->meta, &mt->meta_sz);
-
-  // Add some data to mpack.
-  mpack_build_map(&writer);
-  
-  mpack_write_cstr(&writer, "time");
-  mpack_write_double(&writer, meta.stime);
-
-  mpack_write_cstr(&writer, "frame");
-  mpack_write_i64(&writer, meta.frame);
-
-  mpack_write_cstr(&writer, "topo_file");
-  mpack_write_cstr(&writer, meta.topo_file_name);
-
-  mpack_write_cstr(&writer, "app_name");
-  mpack_write_cstr(&writer, meta.app_name);
-
-  mpack_write_cstr(&writer, "Git_commit_hash");
-  mpack_write_cstr(&writer, GIT_COMMIT_ID);
-
-  mpack_complete_map(&writer);
-
-  int status = mpack_writer_destroy(&writer);
-
-  if (status != mpack_ok) {
-    free(mt->meta); // We need to use free here as mpack does its own malloc.
-    gkyl_free(mt);
-    mt = 0;
-  }
-
-  return mt;  
-}
-
-// Write out multi-block data files.
-static int
-gyrokinetic_multib_data_write(const char *fname, struct gyrokinetic_multib_output_meta meta)
-{
-  enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
-  FILE *fp = 0;
-  int err;
-  with_file (fp, fname, "w") {
-    struct gkyl_msgpack_data *amet = gyrokinetic_multib_meta(meta);
-    if (amet) {
-      status = gkyl_header_meta_write_fp( &(struct gkyl_array_header_info) {
-          .file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
-          .meta_size = amet->meta_sz,
-          .meta = amet->meta
-        },
-        fp
-      );
-      MPACK_FREE(amet->meta);
-      gkyl_free(amet);
-    }
-    else {
-      status = GKYL_ARRAY_RIO_META_FAILED;
-    }
-  }
-  return status;
-}
-
 // Construct single-block App geometry for given block ID.
 static struct gkyl_gyrokinetic_app *
 singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
@@ -164,6 +96,9 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   parallel_inp.comm = comm;
   // Copy parallelism input into app input.
   memcpy(&app_inp.parallelism, &parallel_inp, sizeof(struct gkyl_app_parallelism_inp));
+
+  app_inp.metadata.num_attributes = mbapp->io_meta_len;
+  app_inp.metadata.attributes = mbapp->io_meta;
 
   return gkyl_gyrokinetic_app_new_geom(&app_inp);
 }
@@ -428,7 +363,8 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   gkyl_gyrokinetic_app_new_solver(&app_inp, app);
 }
 
-gkyl_gyrokinetic_multib_app* gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
+gkyl_gyrokinetic_multib_app*
+gkyl_gyrokinetic_multib_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp)
 {
   int my_rank, num_ranks;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
@@ -523,6 +459,9 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
   for (int i=0; i<mbinp->num_neut_species; ++i)
     strcpy(mbapp->neut_species_name[i], mbinp->neut_species[i].name);  
 
+  // Write the block topo file.
+  gkyl_gyrokinetic_multib_app_write_topo(mbapp);
+
   // Create single-block grids and geometries.
   for (int i=0; i<num_local_blocks; ++i)
     mbapp->singleb_apps[i] = singleb_app_new_geom(mbinp, mbapp->local_blocks[i], mbapp);
@@ -602,6 +541,25 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   mbapp->num_local_blocks = num_local_blocks;  
 
+  // Write the block topo file.
+  gkyl_gyrokinetic_multib_app_write_topo(mbapp);
+
+  // Create multiblock metadata to pass to each block, and combine with user's metadata.
+  const char *fmt_btopo = "%s-block_topo.gkyl";
+  int sz = gkyl_calc_strlen(fmt_btopo, mbapp->name);
+  char fileNm_btopo[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm_btopo, sizeof fileNm_btopo, fmt_btopo, mbapp->name);
+
+  struct gkyl_msgpack_map_elem io_meta_default[] = {
+    { .key = "is_multib", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 1 },
+    { .key = "topo_file", .elem_type = GKYL_MP_STRING, .cval = fileNm_btopo }
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_union[] = {io_meta_default, mbinp->metadata.attributes};
+  int io_meta_union_len[] = {sizeof(io_meta_default)/sizeof(io_meta_default[0]), mbinp->metadata.num_attributes};
+
+  mbapp->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_union)/sizeof(io_meta_union[0]),
+    io_meta_union_len, io_meta_union, &mbapp->io_meta_len);
+
   printf("Rank %d handles %d Apps\n", my_rank, num_local_blocks);
   for (int i=0; i<num_local_blocks; ++i)
     printf("  Rank %d handles block %d\n", my_rank, mbapp->local_blocks[i]);
@@ -615,7 +573,6 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     mbapp->num_species = mbinp->num_species;
     mbapp->num_neut_species = mbinp->num_neut_species;
     mbapp->update_field = !mbinp->skip_field; // Note inversion of truth value (default: update field).
-
 
     mbapp->singleb_apps = gkyl_malloc(num_local_blocks*sizeof(struct gkyl_gyrokinetic_app*));
   }
@@ -1153,29 +1110,6 @@ gkyl_gyrokinetic_multib_app_write_field(gkyl_gyrokinetic_multib_app *app, double
   for (int b=0; b<app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_field(app->singleb_apps[b], tm, frame);
   }
-
-// MF 2024/10/20: This stuff is corrupting the file.
-//  if (app->update_field) {
-//    int rank;
-//    gkyl_comm_get_rank(app->comm, &rank);
-//    if (0 == rank) {
-//      cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-//      cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
-//      
-//      gyrokinetic_multib_data_write(file_name.str, (struct gyrokinetic_multib_output_meta) {
-//          .frame = frame,
-//          .stime = tm,
-//          .topo_file_name = topo_file_name.str,
-//          .app_name = app->name
-//        }
-//      );
-//      
-//      cstr_drop(&topo_file_name);
-//      cstr_drop(&file_name);
-//    }
-//  }
-//
-//  gkyl_comm_barrier(app->comm);
 }
 
 void
@@ -1242,27 +1176,6 @@ gkyl_gyrokinetic_multib_app_write_species(gkyl_gyrokinetic_multib_app* app, int 
   for (int b=0; b<app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_species(app->singleb_apps[b], sidx, tm, frame);
   }
-
-// MF 2024/10/20: This stuff is corrupting the file.
-//  int rank;
-//  gkyl_comm_get_rank(app->comm, &rank);
-//  if (0 == rank) {
-//    cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species_name[sidx], frame);
-//    cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
-//      
-//    gyrokinetic_multib_data_write(file_name.str, (struct gyrokinetic_multib_output_meta) {
-//        .frame = frame,
-//        .stime = tm,
-//        .topo_file_name = topo_file_name.str,
-//        .app_name = app->name
-//      }
-//    );
-//    
-//    cstr_drop(&topo_file_name);
-//    cstr_drop(&file_name);
-//  }
-//
-//  gkyl_comm_barrier(app->comm);
 }
 
 void
@@ -1271,27 +1184,6 @@ gkyl_gyrokinetic_multib_app_write_neut_species(gkyl_gyrokinetic_multib_app* app,
   for (int b=0; b<app->num_local_blocks; ++b) {
     gkyl_gyrokinetic_app_write_neut_species(app->singleb_apps[b], sidx, tm, frame);
   }
-
-// MF 2024/10/20: This stuff is corrupting the file.
-//  int rank;
-//  gkyl_comm_get_rank(app->comm, &rank);
-//  if (0 == rank) {
-//    cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->neut_species_name[sidx], frame);
-//    cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
-//      
-//    gyrokinetic_multib_data_write(file_name.str, (struct gyrokinetic_multib_output_meta) {
-//        .frame = frame,
-//        .stime = tm,
-//        .topo_file_name = topo_file_name.str,
-//        .app_name = app->name
-//      }
-//    );
-//    
-//    cstr_drop(&topo_file_name);
-//    cstr_drop(&file_name);
-//  }
-//
-//  gkyl_comm_barrier(app->comm);
 }
 
 void
@@ -1846,11 +1738,6 @@ gkyl_gyrokinetic_multib_app_print_timings(gkyl_gyrokinetic_multib_app* app, FILE
   gkyl_gyrokinetic_multib_app_cout(app, iostream, "    * Accounted for:                   %4.2f %%.\n", ratio_to_percent(stat->io_sum_tm, stat->io_tm, 100.0));
 }
 
-void gkyl_gyrokinetic_multib_app_species_ktm_rhs(gkyl_gyrokinetic_multib_app* app, int update_vol_term)
-{
-  // TO DO
-}
-
 void
 gkyl_gyrokinetic_multib_app_stat_write(gkyl_gyrokinetic_multib_app* app)
 {
@@ -1893,9 +1780,9 @@ gkyl_gyrokinetic_multib_app_save_dt(gkyl_gyrokinetic_multib_app* app, double tm,
   gkyl_dynvec_append(app->dts, tm, &dt);
 }
 
-void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp)
+void
+gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp)
 {
-
   if (mbapp->singleb_apps) {
     for (int i=0; i<mbapp->num_local_blocks; ++i)
       gkyl_gyrokinetic_app_release_geom(mbapp->singleb_apps[i]);
@@ -1921,10 +1808,13 @@ void gkyl_gyrokinetic_multib_app_release_geom(gkyl_gyrokinetic_multib_app* mbapp
   
   gkyl_comm_release(mbapp->comm);
 
+  gkyl_msgpack_map_elem_release(mbapp->io_meta_len, mbapp->io_meta);
+
   gkyl_free(mbapp);
 }
 
-void gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
+void
+gkyl_gyrokinetic_multib_app_release(gkyl_gyrokinetic_multib_app* mbapp)
 {
   for (int i=0; i<mbapp->num_neut_species; ++i) {
     for (int bI=0; bI<mbapp->num_local_blocks; ++bI) {

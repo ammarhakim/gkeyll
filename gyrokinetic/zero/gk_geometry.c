@@ -617,10 +617,12 @@ gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gk
   snprintf(fileNm, sizeof fileNm, fmt, efit->name);
 
   // Set extra metadata
+  char geqdsk_file_name[128];
+  get_filename_from_path(efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
   struct gkyl_msgpack_map_elem io_meta_rz[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
-    { .key = "geqdsk_name", .elem_type = GKYL_MP_STRING, .cval = efit->name},
+    { .key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
     { .key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
     { .key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
     { .key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},

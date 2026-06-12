@@ -1499,6 +1499,8 @@ struct gkyl_gyrokinetic_app {
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
+  
+  bool is_multib; // Is this a block in a multiblock sim?
 };
 
 /** gkyl_gyrokinetic_app private API */

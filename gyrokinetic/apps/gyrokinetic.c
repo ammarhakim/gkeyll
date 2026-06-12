@@ -63,7 +63,9 @@ gyrokinetic_cuts_check(struct gkyl_gyrokinetic_app* app, struct gkyl_comm *comm,
   }
 }
 
-static bool gyrokinetic_str_ends_in_b0(char *name){
+static bool
+gyrokinetic_str_ends_in_b0(char *name){
+  // Check if the string `name` ends in "b0".
   size_t len = strlen(name);
   int i = len - 1;
   int digit_count = 0;
@@ -92,6 +94,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   assert(gk->num_species <= GKYL_MAX_SPECIES);
 
   gkyl_gyrokinetic_app *app = gkyl_malloc(sizeof(gkyl_gyrokinetic_app));
+
+  // Check if this is a multiblock sim from metadata.
+  app->is_multib = gkyl_msgpack_map_elem_get_uint(gk->metadata.num_attributes, gk->metadata.attributes, "is_multib");
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
@@ -1105,8 +1110,10 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK && gyrokinetic_str_ends_in_b0(app->name))
-    gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
+  if (rank == 0 && geometry_inp->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+    if ((!app->is_multib) || (app->is_multib && gyrokinetic_str_ends_in_b0(app->name)))
+      gkyl_gk_geometry_write_efit(geometry_inp, app->io_meta_basic, app->io_meta_basic_len);
+  }
 
   // Gather geo into a global array
   struct gkyl_array* arr_ho1    = mkarr(false,           app->basis.num_basis, app->local_ext.volume);
@@ -1245,8 +1252,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 
     // Package metadata for node file.
     struct gkyl_msgpack_map_elem desc_nodes[] = {
-      { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "Physical coordinates of grid corner nodes." }
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Physical coordinates of grid corner nodes." }
     };
     int io_meta_nodes_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta_nodes[] = {app->io_meta_basic, app->gk_geom->io_meta, desc_nodes};
@@ -1281,8 +1287,7 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     sprintf(fileNm, fmt, app->name, "geo_int_nodes");
 
     struct gkyl_msgpack_map_elem desc_nodesint[] = {
-      { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "Physical coordinates of grid interior nodes." }
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Physical coordinates of grid interior nodes." }
     };
     int io_meta_nodesint_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta_nodesint[] = {app->io_meta_basic, app->gk_geom->io_meta, desc_nodesint};
@@ -1330,8 +1335,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
     struct gkyl_msgpack_map_elem io_meta_phi[] = {
-      { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "Electrostatic potential." }
+      { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic potential." }
     };
     int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len, 1};
     const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta, io_meta_phi};
