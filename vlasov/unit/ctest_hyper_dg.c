@@ -95,8 +95,12 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
   struct gkyl_array *gamma_inv = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &velBasis, inp_vmap, use_gpu);
+
   gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velRange, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, use_gpu); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, use_gpu);
 
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
@@ -105,10 +109,6 @@ test_vlasov_1x2v_p2_(bool use_gpu)
   struct gkyl_array *vel_flux_surf = mkarr1(use_gpu, basis.num_basis*vdim, phaseRange_ext.volume );
   struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
   struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
-
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &velBasis, inp_vmap, use_gpu);
 
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &phaseGrid, 
@@ -358,8 +358,12 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
   struct gkyl_array *gamma_inv = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &velBasis, inp_vmap, use_gpu);
+
   gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velRange, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, use_gpu); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, use_gpu);
 
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
@@ -368,10 +372,6 @@ test_vlasov_2x3v_p1_(bool use_gpu)
   struct gkyl_array *vel_flux_surf = mkarr1(use_gpu, basis.num_basis*vdim, phaseRange_ext.volume );
   struct gkyl_array *f_no_J = mkarr1(use_gpu, fin->ncomp, fin->size); ;
   struct gkyl_array *rad = mkarr1(use_gpu, vdim*velBasis.num_basis, velRange.volume);
-
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &velBasis, inp_vmap, use_gpu);
 
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
     .phase_grid = &phaseGrid, 

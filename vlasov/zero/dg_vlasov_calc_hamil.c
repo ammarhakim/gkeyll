@@ -22,7 +22,10 @@ gkyl_dg_vlasov_calc_hamil(const struct gkyl_rect_grid *vel_grid,
   }
 #endif
 
-  const struct gkyl_array *vmap = vel_map ? vel_map->vmap : 0;
+  // The velocity map is required: the kernels always evaluate the velocity
+  // coordinate from the stored map (identity map for uniform grids).
+  assert(vel_map);
+  const struct gkyl_array *vmap = vel_map->vmap;
 
   int vdim = vel_basis->ndim;
   int poly_order = vel_basis->poly_order;

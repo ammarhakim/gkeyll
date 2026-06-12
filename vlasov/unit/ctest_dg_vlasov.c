@@ -67,8 +67,12 @@ test_dg_vlasov()
     // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr1(false, vbasis.num_basis, velRange.volume);
   struct gkyl_array *gamma_inv = mkarr1(false, vbasis.num_basis, velRange.volume);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &vbasis, inp_vmap, false);
+
   gkyl_dg_vlasov_calc_hamil(&velGrid, &vbasis, &velRange, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, false); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, false);
 
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
@@ -78,10 +82,6 @@ test_dg_vlasov()
   struct gkyl_array *f_no_J = mkarr1(false, pbasis.num_basis, phaseRange_ext.volume); ;
   struct gkyl_array *rad = mkarr1(false, vdim*vbasis.num_basis, velRange.volume);
   struct gkyl_array *qmem = mkarr1(false, 8*cbasis.num_basis, confRange_ext.volume);
-
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &vbasis, inp_vmap, false);
 
   struct gkyl_dg_vlasov_inp inp_eqn = {
     .conf_basis = &cbasis,
@@ -173,8 +173,12 @@ test_cu_dg_vlasov()
     // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr1(true, vbasis.num_basis, velRange.volume);
   struct gkyl_array *gamma_inv = mkarr1(true, vbasis.num_basis, velRange.volume);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &vbasis, inp_vmap, true);
+
   gkyl_dg_vlasov_calc_hamil(&velGrid, &vbasis, &velRange, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, true); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, true);
 
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
@@ -184,10 +188,6 @@ test_cu_dg_vlasov()
   struct gkyl_array *f_no_J = mkarr1(true, pbasis.num_basis, phaseRange_ext.volume); ;
   struct gkyl_array *rad = mkarr1(true, vdim*vbasis.num_basis, velRange.volume);
   struct gkyl_array *qmem = mkarr1(true, 8*cbasis.num_basis, confRange_ext.volume);
-
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
-  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &vbasis, inp_vmap, true);
 
   struct gkyl_dg_vlasov_inp inp_eqn = {
     .conf_basis = &cbasis,

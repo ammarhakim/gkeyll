@@ -96,7 +96,7 @@ test_triad_1x1v_flat_conf(int poly_order)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0, 0};
   struct gkyl_range velLocal, velLocal_ext; 
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 

@@ -108,7 +108,7 @@ test_1x1v(int poly_order)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0, 0};
   struct gkyl_range velLocal, velLocal_ext; 
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -160,8 +160,14 @@ test_1x1v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
+  { // Hamiltonian is built on the (identity) velocity map.
+    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+      &velLocal, &velBasis, inp_vmap, false);
+    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
+    gkyl_vlasov_velocity_map_release(hamil_vel_map);
+  }
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -303,7 +309,7 @@ test_1x1v_spatially_varied(int poly_order)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0, 0};
   struct gkyl_range velLocal, velLocal_ext; 
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -355,8 +361,14 @@ test_1x1v_spatially_varied(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
+  { // Hamiltonian is built on the (identity) velocity map.
+    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+      &velLocal, &velBasis, inp_vmap, false);
+    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
+    gkyl_vlasov_velocity_map_release(hamil_vel_map);
+  }
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -568,8 +580,14 @@ test_1x2v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
+  { // Hamiltonian is built on the (identity) velocity map.
+    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+      &velLocal, &velBasis, inp_vmap, false);
+    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
+    gkyl_vlasov_velocity_map_release(hamil_vel_map);
+  }
 
   // create distribution function array
   struct gkyl_array *distf;
@@ -761,8 +779,14 @@ test_1x3v(int poly_order)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
-  gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_SR, 0, hamil, gamma_inv, false); 
+  { // Hamiltonian is built on the (identity) velocity map.
+    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+      &velLocal, &velBasis, inp_vmap, false);
+    gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
+      GKYL_MODEL_SR, hamil_vel_map, hamil, gamma_inv, false);
+    gkyl_vlasov_velocity_map_release(hamil_vel_map);
+  }
 
   // create distribution function array
   struct gkyl_array *distf;

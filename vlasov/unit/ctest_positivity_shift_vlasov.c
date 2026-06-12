@@ -139,8 +139,14 @@ test_1x2v(int poly_order, bool use_gpu)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(use_gpu, velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(use_gpu, velBasis.num_basis, velLocal.volume);
-  gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, use_gpu); 
+  { // Hamiltonian is built on the (identity) velocity map.
+    struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+    struct gkyl_vlasov_velocity_map *hamil_vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+      &velLocal, &velBasis, inp_vmap, use_gpu);
+    gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
+      GKYL_MODEL_DEFAULT, hamil_vel_map, hamil, gamma_inv, use_gpu);
+    gkyl_vlasov_velocity_map_release(hamil_vel_map);
+  }
 
   // Compute M0 of the original f.
   struct gkyl_mom_vlasov_inp inp_mom = {
