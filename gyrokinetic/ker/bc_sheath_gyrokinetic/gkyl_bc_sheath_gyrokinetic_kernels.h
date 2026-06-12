@@ -1,5 +1,6 @@
 #pragma once
 
+#include <gkyl_const.h>
 #include <gkyl_kann_net.h>
 #include <gkyl_util.h>
 #include <math.h>
