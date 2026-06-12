@@ -5,7 +5,8 @@
 #include <gkyl_array.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_velocity_map.h>
-#include <kann.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 // Object type
 typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
@@ -80,11 +81,12 @@ struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcutsq_range(struct gkyl_bc_sh
 
 /**
  * Get the pointer to the KANN surrogate model used in the sheath BC updater.
+ * Needs to be released by the caller using gkyl_kann_net_release after use.
  * 
  * @param up BC updater.
  * @return Pointer to KANN model.
  */
-kann_t *gkyl_bc_sheath_gyrokinetic_acquire_model(struct gkyl_bc_sheath_gyrokinetic *up);
+struct gkyl_kann_net *gkyl_bc_sheath_gyrokinetic_acquire_model(struct gkyl_bc_sheath_gyrokinetic *up);
 
 /**
  * Update the vcutsq array.
@@ -124,7 +126,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
  * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
  * @param out Pointer to array to store surrogate model output (vcut factor) corresponding to input mu values.
  */
-void gkyl_bc_sheath_gyrokinetic_evaluate_vcutsq_surrogate(kann_t *model, const double *mu_new, int n, double phi, double phi_wall,
+void gkyl_bc_sheath_gyrokinetic_evaluate_vcutsq_surrogate(struct gkyl_kann_net *model, const double *mu_new, int n, double phi, double phi_wall,
     double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
 
 /**

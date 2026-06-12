@@ -10,6 +10,7 @@
 #include <gkyl_const.h>
 #include <gkyl_util.h>
 #include <kann.h>
+#include <gkyl_kann_net.h>
 
 /* Number of points in the fixed mu-grid. */
 #define SRGRZ_N_MU 20
@@ -25,15 +26,6 @@ typedef struct {
 } srgrz_weights_t;
 
 EXTERN_C_BEG
-
-/**
- * Set the active KANN model used by all subsequent srgrz_predict / srgrz_eval_fact calls.
- * Call once at construction with the loaded model, and again with NULL at destruction.
- * The caller retains ownership of the model.
- *
- * @param model Pointer to a loaded kann_t, or NULL to clear.
- */
-void bc_sheath_gyrokinetic_srgrz_set_model(kann_t *model);
 
 /**
  * Runs the NN regression; writes SRGRZ_N_MU predicted v_par_cut values into out[].
@@ -71,7 +63,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interpf(const float *vcut, const dou
 /**
  * Eval the sheath BC surrogate to get vcutsq, normalises by 2 * e * (phi - phi_wall) / T.
  *
- * @param model:   pointer to the loaded KANN model
+ * @param model:   pointer to the loaded KANN model.
  * @param mu_new:  input array of size n containing the new mu points
  * @param n:       number of points in mu_new and out
  * @param phi:     sheath potential (V)
@@ -82,8 +74,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interpf(const float *vcut, const dou
  * @param bmag:    magnetic field strength (T)
  * @param impact_angle: magnetic impact angle (radians)
  */
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(kann_t *model, const double *mu_new, int n, double phi, double phi_wall,
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(struct gkyl_kann_net *model, const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out);
-
 EXTERN_C_END
 

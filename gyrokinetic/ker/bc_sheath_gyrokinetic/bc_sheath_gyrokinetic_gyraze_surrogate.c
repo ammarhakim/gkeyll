@@ -8,7 +8,6 @@
 #include "gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h"
 #include <math.h>
 
-#include <kann.h>
 #include <stdlib.h>
 #include <gkyl_util.h>
 
@@ -62,15 +61,6 @@ __device__ static const double srgrz_mugrid_d[SRGRZ_N_MU] = {0.00000000, 0.02000
 #  define SRGRZ_WEIGHTS srgrz_weights_h
 #  define SRGRZ_MUGRID srgrz_mugrid_h
 #endif
-
-/* Active KANN model — set once at construction via bc_sheath_gyrokinetic_srgrz_set_model(). */
-static kann_t *srgrz_model = NULL;
-
-void
-bc_sheath_gyrokinetic_srgrz_set_model(kann_t *model)
-{
-    srgrz_model = model;
-}
 
 static void
 srgrz_kann_infer(kann_t *model, double alpha, double gamma, double phi, double out[SRGRZ_N_MU])
@@ -401,7 +391,7 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_interpf(const float *vcut, const dou
     }
 }
 
-GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(kann_t *model, const double *mu_new,  int n, double phi, double phi_wall,
+GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(struct gkyl_kann_net *model, const double *mu_new,  int n, double phi, double phi_wall,
     double density, double temperature, double q2Dm, double bmag, double impact_angle, double *out)
 {
     double muref = temperature / bmag;
@@ -409,20 +399,9 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_srgrz_eval(kann_t *model, const double *mu
     double phinorm = (GKYL_ELEMENTARY_CHARGE * (phi - phi_wall)) / temperature;
     double alpha = impact_angle * 180/GKYL_PI;
 
-    double vcut_kann[SRGRZ_N_MU];
-    srgrz_kann_infer(model, alpha, gamma, phinorm, vcut_kann);
 
     double vcut[SRGRZ_N_MU];
     bc_sheath_gyrokinetic_srgrz_infer(alpha, gamma, phinorm, vcut);
-
-    // Check max error between the two surrogate models
-    double max_error = 0.0;
-    for (int i = 0; i < SRGRZ_N_MU; i++) {
-        double error = fabs(vcut_kann[i] - vcut[i])/fabs(vcut[i]);
-        max_error = fmax(max_error, error);
-    }
-    if (max_error > 1e-6)
-        printf("Warning: Maximum relative error between KANN and surrogate model is %e\n", max_error);
 
     bc_sheath_gyrokinetic_srgrz_interp(vcut, mu_new, n, muref, out);
     for (int i = 0; i < n; i++)

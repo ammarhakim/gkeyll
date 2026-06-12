@@ -2,7 +2,6 @@
 
 #include <gkyl_kann_net.h>
 #include <gkyl_bc_sheath_gyrokinetic_gyraze_surrogate.h> 
-#include <gkyl_knutils.h>
 #include <gkyl_util.h>
 #include <math.h>
 

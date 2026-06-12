@@ -5,8 +5,6 @@
 #include "gkyl_bc_sheath_gyrokinetic.h"
 #include "gkyl_bc_sheath_gyrokinetic_kernels.h"
 #include <assert.h>
-#include <kann.h>
-#include <gkyl_kann_net.h>
 
 // Function pointer type for sheath reflection kernels.
 typedef void (*sheath_reflectedf_t)(const double *vmap, const double *vcutsq, const double *f, double *fRefl);
@@ -136,7 +134,6 @@ struct gkyl_bc_sheath_gyrokinetic {
   void (*update_vcutsq) (const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
     const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
     const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcutsq array.
-  kann_t *kann_model; // Loaded KANN model for the surrogate (CPU only; NULL on GPU or when not using surrogate).
   struct gkyl_kann_net *kann_net; // KANN sheath surrogate.
   struct gkyl_kn_vec *kann_inp; // Input vector for KANN surrogate (3 x number of perp nodes).
   struct gkyl_kn_vec *kann_out; // Output vector for KANN surrogate (20 x number of perp nodes).
