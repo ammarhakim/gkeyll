@@ -1141,16 +1141,15 @@ gr_euler_print_prim_status(FILE *fp, const char *label,
       (unsigned long long)hllc_total,
       (unsigned long long)s->hllc.fallback_calls,
       100.0 * (double)s->hllc.fallback_calls / (double)hllc_total);
-    const char *reason_labels[7] = {
+    const char *reason_labels[6] = {
       "no fallback (star-state used)",
-      "RETIRED: degenerate bracket (now hard failure)",
       "λ* not finite",
       "|λ_L−λ*| < tol",
       "|λ_R−λ*| < tol",
       "vacuum side (excision absorbing BC)",
       "star state inadmissible (D*/s²* guard)",
     };
-    for (int r = 0; r < 7; r++) {
+    for (int r = 0; r < 6; r++) {
       if (s->hllc.fallback_reason_hist[r] > 0)
         fprintf(fp, "      [%d] %-40s : %llu\n", r, reason_labels[r],
           (unsigned long long)s->hllc.fallback_reason_hist[r]);

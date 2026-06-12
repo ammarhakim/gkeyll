@@ -1570,22 +1570,20 @@ run_direct_state_hllc_fallback_probe(void)
       eos, qC_tet, qR_tet, &stat_CR, waves_CR, speeds_CR);
 
     // fallback_reason key (see gkyl_wv_gr_euler_prim_priv.h):
-    //   1 = RETIRED (degenerate bracket is a hard failure now)
-    //   2 = λ* not finite (sqrt of negative discriminant; should be
+    //   1 = λ* not finite (sqrt of negative discriminant; should be
     //       caught by the disc<0 → 0 clamp inside, so rare)
-    //   3 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
-    //   4 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
-    //   5 = vacuum side, 6 = star-state admissibility guard
+    //   2 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
+    //   3 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
+    //   4 = vacuum side, 5 = star-state admissibility guard
     // λ* outside [λ_L, λ_R] (e.g. supersonic flow) is NOT a fallback
     // trigger — the wave decomposition is still conservative there.
     static const char *reason_str[] = {
       "—",                  // 0
-      "RETIRED",            // 1 (degenerate bracket → hard failure)
-      "λ* not finite",      // 2
-      "|λ_L−λ*| < tol",     // 3
-      "|λ_R−λ*| < tol",     // 4
-      "vacuum side",        // 5 (excision absorbing BC)
-      "star inadmissible",  // 6 (star-state guard)
+      "λ* not finite",      // 1
+      "|λ_L−λ*| < tol",     // 2
+      "|λ_R−λ*| < tol",     // 3
+      "vacuum side",        // 4 (excision absorbing BC)
+      "star inadmissible",  // 5 (star-state guard)
     };
     fprintf(stderr,
       "  [%-16s] τ_C/D_C=%.4f\n", cases[c].name, cases[c].tau_C / cases[c].D_C);

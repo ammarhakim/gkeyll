@@ -769,7 +769,8 @@ gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   // Input contract: at most one side is vacuum (the dispatch
   // short-circuits both-excised before any kernel runs). A violated
   // contract collapses the wave bracket → 0/0 below → honest NaN
-  // (-fno-finite-math-only) caught at the recovery chokepoint.
+  // (-fno-finite-math-only) caught by the app's per-step state NaN
+  // check (check_for_nans, mom_update_one_step.c).
   struct gkyl_gr_euler_prim pl, pr;
   gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
   gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
@@ -802,7 +803,7 @@ gkyl_gr_euler_tetrad_sr_hll_minkowski(struct gkyl_gr_euler_eos eos,
   // contract-satisfying inputs (the recovery pressure floor keeps each
   // side's cone width ≳ 1e-4/√ρ; the W² aberration route needs W ≳ 1e7
   // — HLLC_AUDIT_PLAN.md F1 analysis). If it ever happens, the divide
-  // produces honest NaN/Inf caught at the recovery chokepoint.
+  // NaN-poisons the state and the app's per-step check catches it.
   double qm[5];
   gr_euler_sr_hll_middle(ql_tet, qr_tet, fl, fr, sl, sr, qm);
 
@@ -865,7 +866,8 @@ gkyl_gr_euler_tetrad_sr_lax_minkowski(struct gkyl_gr_euler_eos eos,
   //   w_1 = 0.5·(Δq + ΔF/amax)
   // Then Σ s·w = amax·(w_1 − w_0) = ΔF (flux jump exact in tetrad).
   // amax = 0 is unreachable on contract-satisfying inputs (see sr_hll);
-  // the divide produces honest NaN/Inf caught at the recovery chokepoint.
+  // the divide NaN-poisons the state and the app's per-step check
+  // catches it.
   double *w0 = &waves_tet[0 * 5];
   double *w1 = &waves_tet[1 * 5];
   for (int i = 0; i < 5; i++) {
@@ -967,8 +969,8 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
 
   // Input contract: at most one side is vacuum (dispatch short-circuits
   // both-excised before any kernel runs); a violated contract collapses
-  // the bracket and the fallback emitter's divide produces honest
-  // NaN/Inf caught at the recovery chokepoint.
+  // the bracket and the fallback emitter's divide NaN-poisons the
+  // state, caught by the app's per-step check.
   struct gkyl_gr_euler_prim pl, pr;
   bool vac_l = gr_euler_sr_prims_vacuum_safe(eos, ql_tet, stat, &pl);
   bool vac_r = gr_euler_sr_prims_vacuum_safe(eos, qr_tet, stat, &pr);
@@ -1025,17 +1027,16 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
     stat->hllc.last_lambda_R = lambda_R;
   }
   // No degenerate-bracket guard: unreachable on contract-satisfying
-  // inputs (see sr_hll; the old reason-1 fallback fired 0 times across
-  // 333M production calls). A collapsed bracket NaN-poisons through the
-  // divides below and is caught at the recovery chokepoint.
-  // Fallback ladder. Reason 5 (vacuum side, fix #4) routes BEFORE the
+  // inputs (see sr_hll). A collapsed bracket NaN-poisons through the
+  // divides below and the app's per-step check catches it.
+  // Fallback ladder. Reason 4 (vacuum side, fix #4) routes BEFORE the
   // λ* construction — the fluid–vacuum Riemann problem has no contact
   // wave, so there is nothing for the quadratic to resolve. Otherwise
-  // compute λ* and catch the numerical pathologies (reasons 2–4).
+  // compute λ* and catch the numerical pathologies (reasons 1–3).
   int fb_reason = 0;
   double lambda_star = 0.0 / 0.0;  // NaN until computed
   if (vac_l || vac_r) {
-    fb_reason = 5;
+    fb_reason = 4;
   }
   else {
     double mx_hll  = (lambda_R * Sx_r  - lambda_L * Sx_l  + Fmx_l - Fmx_r) / lam_diff;
@@ -1088,9 +1089,9 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
     double dist_L = fabs(lambda_L - lambda_star);
     double dist_R = fabs(lambda_R - lambda_star);
     double tol = 1.0e-12 * scale;
-    fb_reason = !isfinite(lambda_star) ? 2
-              : (dist_L < tol)         ? 3
-              : (dist_R < tol)         ? 4
+    fb_reason = !isfinite(lambda_star) ? 1
+              : (dist_L < tol)         ? 2
+              : (dist_R < tol)         ? 3
               : 0;
   }
   if (stat) stat->hllc.last_lambda_star = lambda_star;
@@ -1135,7 +1136,7 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   // star states can exit the cone. Guard the production-admissibility
   // invariants (the same cone wave_prop's check_inv tests): D* > 0 and
   // s²* = (D*+τ*)² − |S*|² > 0 on both sides; on violation fall back to
-  // HLL (reason 6), whose middle state is admissible for admissible
+  // HLL (reason 5), whose middle state is admissible for admissible
   // inputs under this bracket — bounding HLLC below by HLL.
   // τ* < 0 is COUNTED (star_tau_neg) but is NOT a fallback trigger:
   // HLL's middle τ is no better in the τ/D ≪ 1 regime
@@ -1147,7 +1148,7 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
                - (Sxs_r*Sxs_r + Sys_r*Sys_r + Szs_r*Szs_r);
   if (stat && (taus_l < 0.0 || taus_r < 0.0)) stat->hllc.star_tau_neg++;
   if (!(Ds_l > 0.0) || !(Ds_r > 0.0) || !(s2s_l > 0.0) || !(s2s_r > 0.0)) {
-    return gr_euler_sr_hllc_fallback_hll(stat, 6, ql_tet, qr_tet,
+    return gr_euler_sr_hllc_fallback_hll(stat, 5, ql_tet, qr_tet,
       fl_ban, fr_ban, lambda_L, lambda_R, waves_tet, speeds);
   }
 

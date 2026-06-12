@@ -1,6 +1,5 @@
 #pragma once
 
-#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -451,24 +450,21 @@ struct gkyl_gr_euler_prim_status {
   // the most recent HLLC call for fine-grained inspection by single-state
   // tests (overwritten each call). Reason key:
   //   0 = no fallback (HLLC star-state used)
-  //   1 = RETIRED (degenerate bracket is a hard failure since
-  //       2026-06-11 — unreachable on non-vacuum inputs; bin kept for
-  //       layout)
-  //   2 = λ* not finite
-  //   3 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
-  //   4 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
-  //   5 = vacuum side (excision absorbing-BC: the fluid–vacuum Riemann
+  //   1 = λ* not finite
+  //   2 = |λ_L − λ*| < tol (would blow up 1/(λ_L − λ*) in U_L*)
+  //   3 = |λ_R − λ*| < tol (would blow up 1/(λ_R − λ*) in U_R*)
+  //   4 = vacuum side (excision absorbing-BC: the fluid–vacuum Riemann
   //       problem has no contact wave and the star construction on a
   //       vacuum side is inadmissible by design — HLLC_AUDIT_PLAN.md)
-  //   6 = reserved: star-state admissibility audit (Phase 3)
+  //   5 = star-state admissibility guard (D* > 0, s²* > 0 both sides)
   struct {
     uint64_t fallback_calls;             // HLLC calls that fell back to HLL
-    uint64_t fallback_reason_hist[7];    // bin by reason index
+    uint64_t fallback_reason_hist[6];    // bin by reason index
     uint64_t star_tau_neg;               // star states with τ* < 0 (counted,
                                          // NOT a fallback trigger — see the
                                          // audit comment in the kernel)
     int      last_did_fallback;          // 0 or 1
-    int      last_fallback_reason;       // 0..6
+    int      last_fallback_reason;       // 0..5
     double   last_lambda_L;
     double   last_lambda_R;
     double   last_lambda_star;
@@ -978,20 +974,6 @@ gkyl_gr_euler_recover_primitives(
   struct gkyl_gr_euler_prim_status *stat,
   struct gkyl_gr_euler_prim *out)
 {
-  // NaN/Inf chokepoint — the single funnel every GR-Euler solve path
-  // (SR kernels, curved Lax, prim_vars, source coupling) flows through.
-  // -fno-finite-math-only keeps NaN semantics honest, so a poisoned
-  // state propagates here within a step; fail loudly with the inputs
-  // rather than letting the repair machinery launder it. (A NaN cell
-  // fails the D > 0 admissibility comparison and would otherwise be
-  // silently "repaired" as just another bad cell.)
-  if (!isfinite(D + Sx + Sy + Sz + tau)) {
-    fprintf(stderr, "gr_euler recover_primitives: non-finite input state "
-      "(D=%.17e Sx=%.17e Sy=%.17e Sz=%.17e tau=%.17e)\n",
-      D, Sx, Sy, Sz, tau);
-    assert(false);
-  }
-
   out->admissible =
     gkyl_gr_euler_check_admissibility(D, Sx, Sy, Sz, tau, inv_g) == GR_EULER_ADM_OK;
 
