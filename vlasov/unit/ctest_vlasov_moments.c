@@ -22,6 +22,7 @@
 #include <math.h>
 
 #include <acutest.h>
+#include <assert.h> 
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
