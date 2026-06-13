@@ -89,6 +89,11 @@
 # define GKYL_DEF_ALIGN 64
 #endif
 
+// Maximum number of blocks
+#ifndef GKYL_MAX_BLOCKS
+# define GKYL_MAX_BLOCKS 12
+#endif
+
 // CUDA specific defines etc
 #ifdef __NVCC__
 

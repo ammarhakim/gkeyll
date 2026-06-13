@@ -653,7 +653,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
           bflux->boundaries_phase_skin[num_bound] = e==0? &gk_s->local_lower_skin[d] : &gk_s->local_upper_skin[d];
           bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->local_lower_ghost[d] : &gk_s->local_upper_ghost[d];
           bflux->boundaries_conf_skin_fullx[num_bound] = bflux->boundaries_conf_skin[num_bound];
-          if (e == 0? gk_s->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL : gk_s->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
+          if (d == app->cdim-1 && app->gk_geom->has_LCFS) {
             // Use SOL ranges only for parallel boundary fluxes.
             bflux->boundaries_conf_skin[num_bound] = e==0? &app->local_lower_skin_par_sol : &app->local_upper_skin_par_sol;
             bflux->boundaries_conf_ghost[num_bound] = e==0? &app->local_lower_ghost_par_sol : &app->local_upper_ghost_par_sol;

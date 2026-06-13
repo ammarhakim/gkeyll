@@ -390,6 +390,12 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
     }
   }
 
+  // Function pointers to twistshift function.
+  up->parallel_lower_bc_shift_func = geometry_inp->parallel_lower_bc_shift_func;
+  up->parallel_upper_bc_shift_func = geometry_inp->parallel_upper_bc_shift_func;
+  up->parallel_lower_bc_shift_ctx  = geometry_inp->parallel_lower_bc_shift_ctx ;
+  up->parallel_upper_bc_shift_ctx  = geometry_inp->parallel_upper_bc_shift_ctx ;
+
   gk_geometry_set_nodal_ranges(up) ;
 
   // Initialize surface basis abd allocate surface geo
