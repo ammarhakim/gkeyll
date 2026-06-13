@@ -32,11 +32,6 @@ pos_shift_gk_regions_coords_to_idx(struct gkyl_rect_grid grid, int cdim,
     idx_regions.idx_hi[r] = GKYL_MIN2(idx_hi, num_z_cells);
   }
 
-  printf("Positivity shift will be applied in the following z-index regions (1-based, inclusive):\n");
-  for (int r=0; r<idx_regions.num_regions; r++) {
-    printf("  Region %d: idx_lo = %d, idx_hi = %d\n", r, idx_regions.idx_lo[r], idx_regions.idx_hi[r]);
-  }
-
   return idx_regions;
 }
 
