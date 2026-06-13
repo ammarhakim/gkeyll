@@ -216,13 +216,6 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
           gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
           break;
-        case GKYL_BC_GK_SPECIES_IWL:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall_lo, f, &app->local);
-          if (cdim == 3) {
-            gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
-          }
-          break;
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
@@ -245,13 +238,6 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
           gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
           break;
-        case GKYL_BC_GK_SPECIES_IWL:
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall_up, f, &app->local);
-          if (cdim == 3) {
-            gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
-          }
-          break;
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
         case GKYL_BC_GK_SPECIES_ABSORB:
@@ -266,6 +252,12 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           break;
       }      
     }
+  }
+
+  if (app->gk_geom->has_LCFS && app->cdim == 3) {
+    // Apply twistshift.
+    gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
+    gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
   }
 
   gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
@@ -655,12 +647,6 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) { 
       gkyl_bc_twistshift_release(s->bc_ts_lo);
     }
-    else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) { 
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
-      if (app->cdim == 3) {
-        gkyl_bc_twistshift_release(s->bc_ts_lo);
-      }
-    }
     else if ( (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
@@ -674,18 +660,18 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       gkyl_bc_twistshift_release(s->bc_ts_up);
     }
-    else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
-      gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
-      if (app->cdim == 3) {
-        gkyl_bc_twistshift_release(s->bc_ts_up);
-      }
-    }
     else if ( (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
               (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_REFLECT) ||
               (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       gkyl_bc_basic_gyrokinetic_release(s->bc_up[d]);
     }
+  }
+
+  if (app->gk_geom->has_LCFS && app->cdim == 3) {
+    // Free twishift memory.
+    gkyl_bc_twistshift_release(s->bc_ts_lo);
+    gkyl_bc_twistshift_release(s->bc_ts_up);
   }
   
   if (app->use_gpu) {
@@ -806,15 +792,12 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   gks->L2norm = gkyl_dynvec_new(GKYL_DOUBLE, 1); // L2 norm.
   gks->is_first_L2norm_write_call = true;
   
-  for (int dir=0; dir<app->cdim; ++dir) {
-    if (
-        gks->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL || gks->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL ||
-        gks->lower_bc[dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT || gks->upper_bc[dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT
-	) {
-      // Make the parallel direction periodic so that we sync before applying TS BC.
-      gks->periodic_dirs[gks->num_periodic_dir] = app->cdim-1; // The last direction is the parallel one.
-      gks->num_periodic_dir += 1;
-    }
+  int par_dir = app->cdim-1; // The last direction is the parallel one.
+  if (gk_app_inp->geometry.has_LCFS ||
+      (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT || gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_TWISTSHIFT)) {
+    // Make the parallel direction periodic so that we sync before applying TS BC.
+    gks->periodic_dirs[gks->num_periodic_dir] = par_dir;
+    gks->num_periodic_dir += 1;
   }
   
   // Allocate buffer needed for BCs.
@@ -856,9 +839,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
   for (int d=0; d<cdim; ++d) {
     // Lower BC.
     if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
+      struct gkyl_range *sol_skin = gk_app_inp->geometry.has_LCFS? &gks->local_lower_skin_par_sol : &gks->local_lower_skin[d];
+      struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_lower_ghost_par_sol : &gks->local_lower_ghost[d];
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
-        &gks->local_lower_skin[d], &gks->local_lower_ghost[d], gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
+        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
     }
     else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
@@ -872,38 +856,17 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .num_ghost = ghost,
         .basis = gks->basis,
         .grid = gks->grid,
-        .shift_func = gks->lower_bc[d].aux_profile,
-        .shift_func_ctx = gks->lower_bc[d].aux_ctx,
         .use_gpu = app->use_gpu,
       };
+      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+        tsinp.shift_dg = app->delta_ts_x_lo;
+      else {
+        tsinp.shift_func     = app->gk_geom->parallel_lower_bc_shift_func;
+        tsinp.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
+      }
 
       gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp);
       
-    }
-    else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
-      gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
-        &gks->local_lower_skin_par_sol, &gks->local_lower_ghost_par_sol, gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
-
-      if (cdim == 3) {
-        // For 3x2v we need a twistshift BC in the core.
-        struct gkyl_bc_twistshift_inp tsinp = {
-          .bc_dir = d,
-          .shift_dir = 1, // y shift.
-          .shear_dir = 0, // shift varies with x.
-          .edge = GKYL_LOWER_EDGE,
-          .cdim = cdim,
-          .bcdir_ext_update_r = gks->local_par_ext_core,
-          .num_ghost = ghost,
-          .basis = gks->basis,
-          .grid = gks->grid,
-          .shift_func = gks->lower_bc[d].aux_profile,
-          .shift_func_ctx = gks->lower_bc[d].aux_ctx,
-          .use_gpu = app->use_gpu,
-        };
-
-        gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp);
-      }
     }
     else if ( (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
@@ -936,9 +899,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
 
     // Upper BC.
     if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
+      struct gkyl_range *sol_skin = gk_app_inp->geometry.has_LCFS? &gks->local_upper_skin_par_sol : &gks->local_upper_skin[d];
+      struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_upper_ghost_par_sol : &gks->local_upper_ghost[d];
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
-        &gks->local_upper_skin[d], &gks->local_upper_ghost[d], gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
+        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
     }
     else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
@@ -952,37 +916,16 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .num_ghost = ghost,
         .basis = gks->basis,
         .grid = gks->grid,
-        .shift_func = gks->upper_bc[d].aux_profile,
-        .shift_func_ctx = gks->upper_bc[d].aux_ctx,
         .use_gpu = app->use_gpu,
       };
+      if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+        tsinp.shift_dg = app->delta_ts_x_up;
+      else {
+        tsinp.shift_func     = app->gk_geom->parallel_upper_bc_shift_func;
+        tsinp.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
+      }
 
       gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp);
-    }
-    else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
-      gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
-        &gks->local_upper_skin_par_sol, &gks->local_upper_ghost_par_sol, gks->vel_map,
-        cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
-
-      if (cdim == 3) {
-        // For 3x2v we need a twistshift BC in the core.
-        struct gkyl_bc_twistshift_inp tsinp = {
-          .bc_dir = d,
-          .shift_dir = 1, // y shift.
-          .shear_dir = 0, // shift varies with x.
-          .edge = GKYL_UPPER_EDGE,
-          .cdim = cdim,
-          .bcdir_ext_update_r = gks->local_par_ext_core,
-          .num_ghost = ghost,
-          .basis = gks->basis,
-          .grid = gks->grid,
-          .shift_func = gks->upper_bc[d].aux_profile,
-          .shift_func_ctx = gks->upper_bc[d].aux_ctx,
-          .use_gpu = app->use_gpu,
-        };
-
-        gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp);
-      }
     }
     else if ( (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
@@ -1012,6 +955,49 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         gk_species_projection_release(app, &gk_proj_bc_up);
       }
     }
+  }
+
+  if (gk_app_inp->geometry.has_LCFS && app->cdim == 3) {
+    // Allocate a twistshift operator in the core.
+    struct gkyl_bc_twistshift_inp tsinp_lo = {
+      .bc_dir = par_dir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_LOWER_EDGE,
+      .cdim = cdim,
+      .bcdir_ext_update_r = gks->local_par_ext_core,
+      .num_ghost = ghost,
+      .basis = gks->basis,
+      .grid = gks->grid,
+      .use_gpu = app->use_gpu,
+    };
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+      tsinp_lo.shift_dg = app->delta_ts_x_lo;
+    else {
+      tsinp_lo.shift_func     = app->gk_geom->parallel_lower_bc_shift_func;
+      tsinp_lo.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
+    }
+    gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp_lo);
+    
+    struct gkyl_bc_twistshift_inp tsinp_up = {
+      .bc_dir = par_dir,
+      .shift_dir = 1, // y shift.
+      .shear_dir = 0, // shift varies with x.
+      .edge = GKYL_UPPER_EDGE,
+      .cdim = cdim,
+      .bcdir_ext_update_r = gks->local_par_ext_core,
+      .num_ghost = ghost,
+      .basis = gks->basis,
+      .grid = gks->grid,
+      .use_gpu = app->use_gpu,
+    };
+    if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
+      tsinp_up.shift_dg = app->delta_ts_x_up;
+    else {
+      tsinp_up.shift_func     = app->gk_geom->parallel_upper_bc_shift_func;
+      tsinp_up.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
+    }
+    gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp_up);
   }
 
   // Set function pointers.
@@ -1448,7 +1434,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
   
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
+  // add the parallel direction in case TS BCs are needed.
   gks->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<gks->num_periodic_dir; ++d)
     gks->periodic_dirs[d] = app->periodic_dirs[d];

@@ -687,7 +687,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     &vel_basis, inp_vvmap, app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
+  // add the parallel direction in case TS BCs are needed.
   s->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<s->num_periodic_dir; ++d)
     s->periodic_dirs[d] = app->periodic_dirs[d];
