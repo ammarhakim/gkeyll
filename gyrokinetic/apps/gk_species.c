@@ -1276,8 +1276,11 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
 
   if (inp.enforce_positivity) {
     // Positivity enforcing by shifting f (ps=positivity shift).
+    // Enforce positivity everywhere on the initial condition (no region restriction).
+    struct gkyl_positivity_shift_gyrokinetic_regions shift_everywhere = { .num_regions = 0 };
     struct gkyl_positivity_shift_gyrokinetic *pos_shift_op = gkyl_positivity_shift_gyrokinetic_new(app->basis,
-      gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext, app->use_gpu);
+      gks->basis, gks->grid, gks->info.mass, app->gk_geom, gks->vel_map, &app->local_ext,
+      shift_everywhere, app->use_gpu);
 
     gkyl_positivity_shift_gyrokinetic_advance(pos_shift_op, &app->local, &gks->local,
       gks->f, gks->m0.marr, gks->m0.marr);
