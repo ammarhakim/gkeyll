@@ -74,8 +74,16 @@ struct gk_multib_field {
   bool half_domain; // For use in double null
                     // Whether to set BCs for simulation of lower half (Z<0)
 
+  int num_blocks_below[GKYL_MAX_BLOCKS];
+  int num_blocks_above[GKYL_MAX_BLOCKS];
+
   struct gkyl_array **phi_local;
   struct gkyl_array **rho_c_local;
+
+  struct gkyl_array **rho_c_global_dg;
+
+  struct gkyl_array **phi_global_smooth;
+  struct gkyl_array **rho_c_global_smooth;
 
   //
   // Objects for parallel smoothing.
@@ -113,6 +121,11 @@ struct gk_multib_field {
   struct gkyl_array **rho_c_multib_perp;
   struct gkyl_array **epsilon_multib_perp; // Multib polarization weight.
   struct gkyl_fem_poisson_perp **fem_poisson; // Perpendicular Poisson solver.
+
+  // Functions to advance MB field
+  // Pointer to function to calculate the potential.
+  void (*rhs_func)(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[]);
 };
 
 /** Time stepping API */

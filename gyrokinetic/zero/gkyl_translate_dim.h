@@ -12,8 +12,9 @@ typedef struct gkyl_translate_dim gkyl_translate_dim;
  * donor field to those of a target field with a different
  * dimensionality by projecting onto the basis of the target field.
  *
- * For now this is meant for projecting:
- *   - 1x: x -> x,y
+ * This is meant for projecting:
+ *   - 1x:
+ *       x -> x,y
  *   - 2x:
  *       x,y -> x
  *       x,y -> y
@@ -22,9 +23,12 @@ typedef struct gkyl_translate_dim gkyl_translate_dim;
  *       x,y,z -> y,z
  *       x,y,z -> x,z
  *       x,y,z -> x,y
- *   - 1x2v z,vpar,mu -> 2x2v x,z,vpar,mu
- *   - 1x2v z,vpar,mu -> 3x2v x,y,z,vpar,mu
- *   - 2x2v x,z,vpar,mu -> 3x2v x,y,z,vpar,mu
+ *   - 1x2v:
+ *       z,vpar,mu -> 2x2v x,z,vpar,mu
+ *   - 1x2v:
+ *       z,vpar,mu -> 3x2v x,y,z,vpar,mu
+ *   - 2x2v:
+ *       x,z,vpar,mu -> 3x2v x,y,z,vpar,mu
  * In downprojecting cases one must choose which dimension to remove
  * via the 'dir' argument, in which case the (logical) variable in
  * that direction is evaluated at -1,0 or 1 within a cell depending
