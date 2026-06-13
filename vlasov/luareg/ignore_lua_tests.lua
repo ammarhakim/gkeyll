@@ -21,6 +21,13 @@ return {
       "rt_can_pb_bgk_surf_toroidal_sodshock_im_2x3v_p2",
       "rt_can_pb_bgk_surf_annulus_sodshock_im_2x2v_p1",
       "rt_vlasov_lbo_cross_1x2v_p2",
+      "rt_dg_incompress_euler_vortex_waltz_p1",
+      "rt_dg_incompress_euler_double_shear_p1",
+      "rt_dg_incompress_euler_vortex_waltz_p2",
+      "rt_dg_incompress_euler_double_shear_p2",
+      "rt_dg_hasegawa_mima_p2",
+      "rt_dg_hasegawa_mima_p1",
+      "rt_vlasov_sr_nonuniformv_twostream_1x1v",
    },
    gpu = {
    },
