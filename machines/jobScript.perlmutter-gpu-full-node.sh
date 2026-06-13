@@ -1,15 +1,20 @@
 #!/bin/bash -l
 
-#.Declare a name for this job, preferably with 16 or fewer characters.
+#.This jobscript is for full nodes (using all the GPUs/node).
+
+#.Declare a name for this job, preferably 16 or fewer characters.
 #SBATCH -J <Job Name>
+
+#.Enter the account to charge.
 #SBATCH -A <Account Number>
 
-#.Request the queue (enter the possible names, if omitted, default is the default)
-#.this job is going to use the default
+#.Specify a queue.
 #SBATCH -q regular
 
-#.Number of nodes to request (Perlmutter has 64 cores and 4 GPUs per node)
+#.Number of nodes to request (Perlmutter 4 GPUs per node).
 #SBATCH -N 2
+
+#.Number of MPI processes (and we match 1 process to 1 GPU).
 #SBATCH --ntasks 8
 
 #.Specify GPU needs:
@@ -40,6 +45,19 @@ export MPICH_GPU_SUPPORT_ENABLED=0
 export DVS_MAXNODES=24_
 export MPICH_MPIIO_DVS_MAXNODES=24
 
+# Safely route GPUDirect RDMA over the Host Bridge
+export NCCL_NET_GDR_LEVEL=PHB
+
+# Tell NCCL to use the Libfabric plugin
+export NCCL_NET="AWS Libfabric"
+export NCCL_CROSS_NIC=1
+
+# Disable host registration and eager messages to prevent Slingshot 11 hangs
+export FI_CXI_DISABLE_HOST_REGISTER=1
+export FI_CXI_RDZV_GET_MIN=0
+export FI_CXI_RDZV_THRESHOLD=0
+export FI_CXI_RDZV_EAGER_SIZE=0
+
 #.Run the rt_gk_sheath_2x2v_p1 executable using 1 GPU along x (-c 1) and 8
 #.GPUs along the field line (-d 8). See './rt_gk_sheath_2x2v_p1 -h' for
 #.more details/options on decomposition. It also assumes the executable is
@@ -48,7 +66,6 @@ export MPICH_MPIIO_DVS_MAXNODES=24
 
 echo "srun -u -n 8 --gpus 8 ./rt_gk_sheath_2x2v_p1 -g -M -c 1 -d 8"
 srun -u -n 8 --gpus 8 ./rt_gk_sheath_2x2v_p1 -g -M -c 1 -d 8
-
 
 
 
