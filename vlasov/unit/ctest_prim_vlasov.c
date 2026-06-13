@@ -459,15 +459,16 @@ test_func_cu(int cdim, int vdim, int poly_order,
   // create collision frequency array
   struct gkyl_array *nu, *nu_cu;
   nu = mkarr(confBasis.num_basis, confLocal_ext.volume);
-  nu_cu = mkarr(confBasis.num_basis, confLocal_ext.volume);
+  nu_cu = mkarr_cu(confBasis.num_basis, confLocal_ext.volume);
 
   // project collision frequency on basis
   gkyl_proj_on_basis_advance(projNu, 0.0, &confLocal_ext, nu);
   gkyl_array_copy(nu_cu, nu);
 
-  // build hamil and gamma_inv
-  struct gkyl_array *hamil = mkarr(velBasis.num_basis, velLocal.volume);
-  struct gkyl_array *gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  // build hamil and gamma_inv (device-resident: the device Hamiltonian
+  // calculation dereferences the gkyl_array structs on the GPU)
+  struct gkyl_array *hamil = mkarr_cu(velBasis.num_basis, velLocal.volume);
+  struct gkyl_array *gamma_inv = mkarr_cu(velBasis.num_basis, velLocal.volume);
   // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
