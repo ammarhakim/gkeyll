@@ -562,7 +562,8 @@ vlasov_species_lw_new(lua_State *L)
   vm_species.use_vierbein = use_vierbein;
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
-  vm_species.is_static = !evolve; 
+  vm_species.is_static = !evolve;
+  vm_species.no_collisionless_terms = glua_tbl_get_bool(L, "noCollisionlessTerms", false);
   bool write_cell_avg = glua_tbl_get_bool(L, "writeCellAvg", false);
   vm_species.write_cell_avg = write_cell_avg; 
 
