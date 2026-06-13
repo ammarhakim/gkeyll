@@ -26,12 +26,16 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   }
 
   if (vms->model_id == GKYL_MODEL_DEFAULT || vms->model_id == GKYL_MODEL_SR) {
-    // Hamiltonain is only a function of velocity space. 
-    vms->hamil_range = vms->local_vel; 
-    vms->hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
+    // Hamiltonain for computing the moments is only a function of velocity space. 
+    vms->mom_hamil_range = vms->local_vel; 
+    vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
-    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel,
-      vms->model_id, vms->vel_map, vms->hamil, vms->gamma_inv, app->use_gpu);
+    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
+      vms->model_id, vms->vel_map, vms->mom_hamil, vms->gamma_inv, app->use_gpu); 
+
+    // As the mom_hamil and hamil are identical, aquire hamil and hamil_range here
+    vms->hamil_range = vms->mom_hamil_range;
+    vms->hamil = gkyl_array_acquire(vms->mom_hamil);
 
     // If relativistic, allocate additional updater for computing derived relativistic moments,
     // such as the spatial component of the four-velocity and pressure.
@@ -48,23 +52,35 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   
     // Hamiltonain is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
-    vms->hamil_range = vms->local_vel; 
-    vms->hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
+    vms->mom_hamil_range = vms->local_vel; 
+    vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
-    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel,
-      GKYL_MODEL_DEFAULT, vms->vel_map, vms->hamil, vms->gamma_inv, app->use_gpu);
+    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
+      GKYL_MODEL_DEFAULT, vms->vel_map, vms->mom_hamil, vms->gamma_inv, app->use_gpu);
 
-    struct gkyl_vlasov_triad_geom_inp inp_triad_geom;
+    // As the mom_hamil and hamil are identical, aquire hamil and hamil_range here
+    vms->hamil_range = vms->mom_hamil_range;
+    vms->hamil = gkyl_array_acquire(vms->mom_hamil);
+
+    // Triad geometry context if needed for preset geometries.
+    struct gkyl_triad_geom_ctx preset_geom_ctx = {
+      .mass_bh = vms->geom->mass_bh,
+      .spin_bh = vms->geom->spin_bh,
+    };
+
+    struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
     inp_triad_geom.use_vierbein = vms->info.use_vierbein;
-    inp_triad_geom.use_preset_geom = vms->info.use_preset_geom;
+    inp_triad_geom.use_preset_geom = vms->geom->use_preset_geom;
     if ( (vms->info.use_vierbein) && (vms->info.vierbein) && (vms->info.vierbein_gradient) ) {
       inp_triad_geom.eval_vierbein = vms->info.vierbein;
       inp_triad_geom.eval_vierbein_gradient = vms->info.vierbein_gradient;
       inp_triad_geom.eval_vierbein_ctx = vms->info.vierbein_ctx;
       inp_triad_geom.eval_vierbein_gradient_ctx = vms->info.vierbein_gradient_ctx;
     }
-    else if (vms->info.use_preset_geom) {
-      inp_triad_geom.triad_preset_geom_type = vms->info.triad_preset_geom_type;
+    else if (vms->geom->use_preset_geom) {
+      inp_triad_geom.triad_preset_geom_type = vms->geom->triad_preset_geom_type;
+      inp_triad_geom.eval_vierbein_ctx = &preset_geom_ctx;
+      inp_triad_geom.eval_vierbein_gradient_ctx = &preset_geom_ctx;
     }
     else if ((vms->info.triad_basis) && (vms->info.triad_basis_gradient) && (vms->info.cov_tangent_basis))  {
       inp_triad_geom.eval_cov_tangent_basis = vms->info.cov_tangent_basis; 
@@ -76,6 +92,71 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     } 
     else {
       // Missing valid geometry inputs for triads
+      assert(false);
+    }
+
+    // The geometry comes from the tangents and triads
+    gkyl_vlasov_triad_geom_new(&app->grid, &app->local, app->basis, 
+      &vms->grid, &vms->local, vms->basis, inp_triad_geom, vms->conf_poisson_tensor_host);
+
+    // Copy Pi_conf onto the device.
+    if (app->use_gpu) {
+      gkyl_array_copy(vms->conf_poisson_tensor, vms->conf_poisson_tensor_host); 
+    }
+
+  }
+  else if (vms->model_id == GKYL_MODEL_TRIAD_GR) {
+
+    int cdim = app->cdim;
+    int vdim = app->vdim;  
+  
+
+    // NOTE: Two hamiltonians are built here. mom_hamil (1.) is used for local moments and hamil (2.) is 
+    // a function of the full phase space used for chateristics.
+    // 1. (mom_hamil)  H(\hat{p}_i) = \gamma
+    // 2. (hamil)      H(x^i,\hat{p}_i) = \alpha \gamma - \hat{p}_a e_i^a \beta^i 
+    
+    // 1. Build a velocity space only hamiltonian for moments.
+    // Hamiltonain is only a function of velocity space, non-relativistic only using the
+    // same infrastructure as GKYL_MODEL_DEFAULT
+    vms->mom_hamil_range = vms->local_vel; 
+    vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
+    vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
+    gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
+      GKYL_MODEL_SR, vms->vel_map, vms->mom_hamil, vms->gamma_inv, app->use_gpu);
+
+    // Hamiltonian (GR) is a full phase-space array. 
+    vms->hamil_range = vms->local; 
+    vms->hamil = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume);
+    vms->hamil_host = vms->hamil;
+    if (app->use_gpu){
+      vms->hamil_host = mkarr(false, vms->basis.num_basis, vms->local_ext.volume);
+    }
+
+    // Triad geometry context if needed for preset geometries.
+    struct gkyl_triad_geom_ctx preset_geom_ctx = {
+      .mass_bh = vms->geom->mass_bh,
+      .spin_bh = vms->geom->spin_bh,
+    };
+
+    // Evaluate specified hamiltonian function at nodes to ensure continuity of hamiltonian
+    struct gkyl_eval_on_nodes* hamil_proj = gkyl_eval_on_nodes_new(&vms->grid, &vms->basis, 1, gkyl_vlasov_triad_preset_hamil(cdim, vdim, vms->geom->triad_preset_geom_type), &preset_geom_ctx);
+    gkyl_eval_on_nodes_advance(hamil_proj, 0.0, &vms->local_ext, vms->hamil_host);
+    if (app->use_gpu){
+      gkyl_array_copy(vms->hamil, vms->hamil_host);
+    }
+    gkyl_eval_on_nodes_release(hamil_proj);
+
+    struct gkyl_vlasov_triad_geom_inp inp_triad_geom = { 0 };
+    inp_triad_geom.use_vierbein = vms->info.use_vierbein;
+    inp_triad_geom.use_preset_geom = vms->geom->use_preset_geom;
+    if (vms->geom->use_preset_geom) {
+      inp_triad_geom.triad_preset_geom_type = vms->geom->triad_preset_geom_type;
+      inp_triad_geom.eval_vierbein_ctx = &preset_geom_ctx;
+      inp_triad_geom.eval_vierbein_gradient_ctx = &preset_geom_ctx;
+    }
+    else {
+      // Only Preset Geometries are allowed for GKYL_MODEL_TRIAD_GR
       assert(false);
     }
 
@@ -167,6 +248,10 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
       gkyl_array_copy(vms->det_h, vms->det_h_host);
     }
     gkyl_eval_on_nodes_release(det_h_proj);    
+
+    // As the mom_hamil and hamil are identical, aquire hamil and hamil_range here
+    vms->mom_hamil_range = vms->hamil_range;
+    vms->mom_hamil = gkyl_array_acquire(vms->hamil);
 
     // Evaluate specified determinant metric function at nodes to ensure continuity of the background flows
     if (vms->info.use_extended_hamil_def) {
@@ -1179,6 +1264,9 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // the magnetic field volume update if magnetic fields are present. 
   vms->f_no_J = mkarr(app->use_gpu, vms->f->ncomp, vms->f->size); 
 
+  // Copy the geometry pointer
+  vms->geom = app->vm_geom;
+
   // Construct Hamiltonian. 
   vm_species_new_hamil(vm_app_inp, app, vms); 
 
@@ -1404,7 +1492,8 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
   gkyl_vlasov_velocity_map_release(vms->vel_map);
 
   // Release arrays for different types of Vlasov equations.
-  if (vms->model_id  == GKYL_MODEL_DEFAULT || vms->model_id  == GKYL_MODEL_SR || vms->model_id  == GKYL_MODEL_TRIAD) {
+  if (vms->model_id  == GKYL_MODEL_DEFAULT || vms->model_id  == GKYL_MODEL_SR 
+      || vms->model_id  == GKYL_MODEL_TRIAD || vms->model_id  == GKYL_MODEL_TRIAD_GR) {
     if (vms->model_id == GKYL_MODEL_SR) {
       gkyl_dg_calc_sr_vars_release(vms->sr_vars);
     }
@@ -1429,7 +1518,12 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
       }
     }
   }
-  gkyl_array_release(vms->hamil);  
+  gkyl_array_release(vms->hamil);
+  if (app->use_gpu && vms->model_id == GKYL_MODEL_TRIAD_GR) {
+    gkyl_array_release(vms->hamil_host);
+  }
+  gkyl_array_release(vms->mom_hamil);
+
   gkyl_array_release(vms->conf_poisson_tensor);
   if (app->use_gpu) {
     gkyl_array_release(vms->conf_poisson_tensor_host);

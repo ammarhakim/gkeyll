@@ -104,7 +104,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
 
     case GKYL_F_MOMENT_M1:
     case GKYL_F_MOMENT_M1_FROM_H:
-      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD) {
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
         mom_vlasov->momt.kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
@@ -120,7 +120,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
 
     case GKYL_F_MOMENT_M2:
     case GKYL_F_MOMENT_ENERGY:
-      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD) {
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
         mom_vlasov->momt.kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
@@ -155,7 +155,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       break;
 
     case GKYL_F_MOMENT_M0M1M2:
-      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD) {
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
         mom_vlasov->momt.kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
@@ -201,7 +201,7 @@ gkyl_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     mom_vlasov->hamil_dim = vdim; 
     mom_vlasov->hamil_offset = cdim; 
   }
@@ -283,7 +283,7 @@ set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_momen
 
   switch (mom_type) {
     case GKYL_F_MOMENT_M0M1M2:
-      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD) {
+      if (model_id == GKYL_MODEL_DEFAULT || model_id == GKYL_MODEL_SR || model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
         mom_vlasov->momt.kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
@@ -319,7 +319,7 @@ gkyl_int_mom_vlasov_cu_dev_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->momt.num_phase = inp->phase_basis->num_basis;
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
+  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     mom_vlasov->hamil_dim = vdim; 
     mom_vlasov->hamil_offset = cdim; 
   }

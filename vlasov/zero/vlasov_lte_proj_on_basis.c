@@ -379,7 +379,7 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
 #endif
 
   up->is_relativistic = false;
-  if (inp->model_id == GKYL_MODEL_SR) {
+  if (inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     up->is_relativistic = true;
   }
 

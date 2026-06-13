@@ -222,6 +222,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   app->geom = gkyl_wave_geom_new(&app->grid, &app->local_ext,
     app->mapc2p, app->c2p_ctx, app->use_gpu);
 
+  // allocate space to store vlasov-maxwell geometry objects
+  app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));
+  vm_geom_init(vm, app, app->vm_geom);
+
   app->has_field = !vm->skip_field; // note inversion of truth value
   if (app->has_field) {
     if (vm->is_electrostatic) {
@@ -385,7 +389,7 @@ vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
     vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluid[i]);
   }
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B)
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
       vm_field_apply_bc(app, app->field, emfield);
   }
 }
@@ -443,7 +447,7 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
 
-  if (app->field->field_id == GKYL_FIELD_E_B)
+  if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
     vm_field_apply_ic(app, app->field, t0);
   else if (app->field->field_id != GKYL_FIELD_NULL) {
     struct gkyl_array *distf[app->num_species];
@@ -948,12 +952,26 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
   struct gkyl_app_restart_status rstat = header_from_file(app, fname);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+    // Fixed-function field BCs are frozen from the initial conditions, so seed
+    // those buffers before the local solution is overwritten by restart data.
+    gkyl_vlasov_app_apply_ic_field(app, 0.0);
+
     rstat.io_status =
       gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field->em_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(app->field->em, app->field->em_host);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status)
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+
+      // For GR, rescale the primitive fields to the evolved quantities by multiplying
+      // by Jc
+      if (app->field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
+        gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
+          app->field->em_no_J, app->field->em, app->use_gpu);
+      }
+
       vm_field_apply_bc(app, app->field, app->field->em);
+    }
   }
 
   // Compute external EM field and applied current if present
@@ -1044,7 +1062,7 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 {
   struct gkyl_app_restart_status rstat;
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B) {
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
       cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
       rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
       cstr_drop(&fileNm);
@@ -1102,7 +1120,8 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
-    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_NULL)) {
+    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_GR_D_B) 
+      && (app->field->field_id != GKYL_FIELD_NULL)) {
       struct gkyl_array *distf[app->num_species];
       for (int i=0; i<app->num_species; ++i)
         distf[i] = app->species[i].f;
@@ -1144,6 +1163,8 @@ gkyl_vlasov_app_cout(const gkyl_vlasov_app* app, FILE *fp, const char *fmt, ...)
 void
 gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
+  vm_geom_release(app, app->vm_geom);
+  gkyl_free(app->vm_geom);
   for (int i=0; i<app->num_species; ++i)
     vm_species_release(app, &app->species[i]);
   for (int i=0; i<app->num_fluid_species; ++i)
@@ -1153,7 +1174,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   if (app->num_fluid_species > 0)
     gkyl_free(app->fluid_species);
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B)
+    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
       vm_field_release(app, app->field);
     else
       vp_field_release(app, app->field);

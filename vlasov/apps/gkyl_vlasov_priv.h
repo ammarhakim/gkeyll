@@ -33,6 +33,10 @@
 #include <gkyl_dg_calc_sr_vars.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
+#include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
+#include <gkyl_dg_gr_maxwell_divide_Jc.h>
+#include <gkyl_dg_gr_maxwell_geom.h>
+#include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_gaussian_filter.h>
 #include <gkyl_dg_maxwell.h>
@@ -118,6 +122,10 @@ struct vm_species_moment {
       struct gkyl_mom_calc *mom_calc; // Moment calculator. 
     };
   };
+
+  // Moment specific pointers for the moment hamiltonian and it's range
+  struct gkyl_array *mom_hamil;
+  struct gkyl_range *mom_hamil_range;
 
   bool is_vlasov_lte_moms;
   bool is_integrated; // =True means volume integrated moment.
@@ -395,6 +403,7 @@ struct vm_source {
   struct vm_species *adapt_source_species[GKYL_MAX_SPECIES]; // list of species to use for the source
   int adapt_source_species_idx[GKYL_MAX_SPECIES]; // list of indices of source species
   struct gkyl_array *scale_m0[GKYL_MAX_SPECIES]; // Time-dependent re-scaling of the density of the source. 
+  struct gkyl_array *scale_m0_host[GKYL_MAX_SPECIES]; // host copy for use in IO
   struct gkyl_mom_calc *m0_reduced[GKYL_MAX_SPECIES]; // Reduced density update for rescaling source. 
   struct gkyl_array *adapt_source[GKYL_MAX_SPECIES]; // adaptive source array
   int adapt_proj_source[GKYL_MAX_SPECIES]; // Index of projection function to use for adaptive source. 
@@ -415,6 +424,30 @@ struct vm_source {
   double *red_integ_diag; // for reduction of integrated moments
   gkyl_dynvec integ_diag; // integrated moments reduced across grid
   bool is_first_integ_write_call; // flag for integrated moments dynvec written first time
+};
+
+// geometry data
+struct vm_geom {
+  struct gkyl_vlasov_geom info; // data for vlasov geometry
+  double spin_bh, mass_bh; // Charge and mass.
+  bool use_preset_geom; // bool to determine if we are using triad input geom
+  enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
+  int theta_pole_lo[GKYL_MAX_CDIM]; // (lower bound) Determines if the theta pole BC is being used
+  int theta_pole_up[GKYL_MAX_CDIM]; // (lower bound) Determines if the theta pole BC is being used
+
+  // Geometry needed for GR-DG-Maxwells
+  bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells
+  struct gkyl_surf_and_vol_node_arrays *lapse; // lapse scalar (ADM \alpha)
+  struct gkyl_surf_and_vol_node_arrays *shift; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *h_ij; // Spatial metric, covaraint components, h_ij
+  struct gkyl_surf_and_vol_node_arrays *det_h; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+
+  // Geometry copy for initalization (for GPU only)
+  struct gkyl_surf_and_vol_node_arrays *lapse_init; // lapse scalar (ADM \alpha)
+  struct gkyl_surf_and_vol_node_arrays *shift_init; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *h_ij_init; // Spatial metric, covaraint components, h_ij
+  struct gkyl_surf_and_vol_node_arrays *det_h_init; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+
 };
 
 // species data
@@ -458,8 +491,16 @@ struct vm_species {
   // Organization of the different equation objects and the required data.
   bool has_rad; // Do we have a radiation drag force?
   struct gkyl_array *rad; // array for radiation drag force. 
+
+  // Geometry
+  struct vm_geom *geom; // Geometry structure for vm
+
+  // Organization of the different equation objects and the required data.
+  struct gkyl_range mom_hamil_range; // Range Hamiltonian (for moments) is defined over (only velocity-space or all phase-space).
+  struct gkyl_array *mom_hamil; // Specified Hamiltonian (for moments) function for canonical poisson bracket.
   struct gkyl_range hamil_range; // Range Hamiltonian is defined over (only velocity-space or all phase-space).
-  struct gkyl_array *hamil; // Specified Hamiltonian function for poisson bracket.
+  struct gkyl_array *hamil; // Specified Hamiltonian function for canonical poisson bracket.
+  struct gkyl_array *hamil_host; // Host-side Hamiltonian array for initial projection.
   struct gkyl_array *conf_poisson_tensor; // Configuration space Poisson tensor representation
   struct gkyl_array *conf_poisson_tensor_host; // Host-side configuration space Poisson tensor representation  
   union {
@@ -470,7 +511,6 @@ struct vm_species {
     };
     // Canonical Poisson Bracket using specified Hamiltonian in phase space. 
     struct {
-      struct gkyl_array *hamil_host; // Host-side Hamiltonian array for intial projection. 
       struct gkyl_array *h_ij; // Specified metric inverse for canonical poisson bracket
       struct gkyl_array *h_ij_host; // Host side metric inverse array for intial projection
       struct gkyl_array *h_ij_inv; // Specified metric inverse for canonical poisson bracket
@@ -573,6 +613,8 @@ struct vm_field {
       struct gkyl_array *em, *em1, *emnew; // arrays for updates
       struct gkyl_array *cflrate; // CFL rate in each cell
       struct gkyl_array *bc_buffer; // buffer for BCs (used for both copy and periodic)
+      struct gkyl_array *bc_buffer_lo_fixed[3], *bc_buffer_up_fixed[3]; // fixed buffers for time independent BCs
+      struct gkyl_array *bc_buffer_lo_fixed_no_J[3], *bc_buffer_up_fixed_no_J[3]; // fixed buffers for GR fields without Jc
 
       struct gkyl_array *em_host;  // host copy for use IO and initialization
 
@@ -626,6 +668,14 @@ struct vm_field {
       double *es_energy_red, *es_energy_red_global; // Memory for use in GPU reduction of ES energy.
     };
   };
+
+  struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
+  bool use_lax; // Boolean for determining if we are using lax fluxes for dg-gr-maxwell
+  struct gkyl_array *em_no_J; // arrays for storing em field without Jc
+  struct gkyl_array *em_no_J_host; // host copy of primitive GR fields for I/O
+  int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
+  struct gkyl_array *conf_flux_surf; // Modal expansion of surface fluxes at conf-space surfaces. 
+  struct gkyl_dg_gr_maxwell_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
 
   bool has_ext_em; // flag to indicate there are external electromagnetic fields (E, B)
   bool ext_em_evolve; // flag to indicate external electromagnetic fields are time dependent
@@ -832,6 +882,9 @@ struct gkyl_vlasov_app {
   void (*field_write)(gkyl_vlasov_app *app, double tm, int frame);
   // Function which writes out integrated field energy. 
   void (*field_energy_write)(gkyl_vlasov_app *app);
+
+  // geometry data
+  struct vm_geom *vm_geom;
 
   // species data
   int num_species;
@@ -1497,6 +1550,16 @@ void vm_species_source_release(const struct gkyl_vlasov_app *app, const struct v
 /** vm_species API */
 
 /**
+ * Initialize geom.
+ *
+ * @param vm Input VM data
+ * @param app Vlasov app object
+ * @param s On output, initialized geom object
+ */
+void vm_geom_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm_geom *s);
+
+
+/**
  * Initialize species.
  *
  * @param vm Input VM data
@@ -1659,6 +1722,14 @@ void vm_species_write_L2(gkyl_vlasov_app* app, struct vm_species *vms);
 void vm_species_n_iter_corr(gkyl_vlasov_app *app);
 
 /**
+ * Delete resources used in geom.
+ *
+ * @param app Vlasov app object
+ * @param species Geom object to delete
+ */
+void vm_geom_release(const gkyl_vlasov_app* app, const struct vm_geom *s);
+
+/**
  * Delete resources used in species.
  *
  * @param app Vlasov app object
@@ -1732,6 +1803,14 @@ void vm_field_accumulate_current(gkyl_vlasov_app *app,
  * @param em Input (and Output after limiting) EM fields
  */
 void vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em);
+
+/**
+ * Seed fixed-function field BC buffers from the stored field state.
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ */
+void vm_field_buffer_fixed_func_bc(gkyl_vlasov_app *app, struct vm_field *field);
 
 /**
  * Compute RHS from field equations

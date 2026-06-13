@@ -128,7 +128,6 @@ gkyl_vlasov_triad_geom_from_basis(const struct gkyl_rect_grid *cgrid, const stru
   gkyl_array_release(conf_poisson_tensor_at_nodes);
 }
 
-
 void
 gkyl_vlasov_triad_geom_from_vierbein(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
@@ -222,7 +221,6 @@ gkyl_vlasov_triad_geom_from_vierbein(const struct gkyl_rect_grid *cgrid, const s
   gkyl_array_release(conf_poisson_tensor_at_nodes);
 }
 
-
 void
 gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
@@ -247,5 +245,10 @@ gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl
     gkyl_vlasov_triad_geom_from_basis(cgrid, crange, cbasis, pgrid, prange, pbasis, 
       inp_triad_geom, conf_poisson_tensor);
   }
+}
 
+evalf_t
+gkyl_vlasov_triad_preset_hamil(const int cdim, const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type)
+{
+  return choose_hamil_kern(preset_geom_type, cdim, vdim);
 }

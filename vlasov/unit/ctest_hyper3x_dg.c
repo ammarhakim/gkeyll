@@ -246,9 +246,9 @@ test_vlasov_3x3v_p1_(bool use_gpu)
  -8.9881955180330422e+01,  1.0519429086504206e+02, -9.0736719130811949e+01,  1.4340145388468056e+02};
 
 
-  // printf("\nfirst cell rhs\n");
-  // for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
-  // for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
+  //printf("\nfirst cell rhs\n");
+  //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
+  //for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
   for (int i = 0; i < rhs->ncomp; ++i) {
     TEST_CHECK( gkyl_compare_double(rhs_d[i], expected_cell1[i], 1e-12) );
   }
@@ -259,9 +259,9 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
-  // printf("second cell rhs\n");
-  // for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
-  // for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
+  //printf("second cell rhs\n");
+  //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
+  //for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
   for (int i = 0; i < rhs->ncomp; ++i) {
     TEST_CHECK( gkyl_compare_double(rhs_d[i], expected_cell2[i], 1e-12) );
   }

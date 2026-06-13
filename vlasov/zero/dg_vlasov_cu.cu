@@ -74,8 +74,14 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         stream_boundary_surf_y_kernels = ser_stream_hamil_vel_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = ser_stream_hamil_vel_boundary_surf_z_kernels; 
       }
-      else if (model_id == GKYL_MODEL_TRIAD) {
-        vlasov->hamil_vol = ser_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+      else if (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
+        if (model_id == GKYL_MODEL_TRIAD) {
+          vlasov->hamil_vol = ser_nc_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else if (model_id == GKYL_MODEL_TRIAD_GR) {
+          // GR triads use the full phase-space Hamiltonian
+          vlasov->hamil_vol = ser_nc_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
+        }
 
         if ( use_lo ) {
           stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
@@ -173,7 +179,7 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
       break;    
   }
 
-  if (model_id == GKYL_MODEL_TRIAD) {
+  if (model_id == GKYL_MODEL_TRIAD || model_id == GKYL_MODEL_TRIAD_GR) {
     vlasov->stream_surf_from_flux[0] = stream_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[1] = stream_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[2] = stream_surf_from_flux_z_kernels[kernel_index].kernels[poly_order];
@@ -254,7 +260,7 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->conf_flux_surf = 0;
   struct gkyl_array *conf_flux_surf_ho = 0;
   vlasov->use_conf_flux_surf = false;
-  if ( inp->model_id == GKYL_MODEL_TRIAD) {
+  if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     vlasov->use_conf_flux_surf = true;
     conf_flux_surf_ho = gkyl_array_acquire(inp->conf_flux_surf);
     vlasov->conf_flux_surf = conf_flux_surf_ho->on_dev; 
@@ -300,4 +306,3 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   return &vlasov->eqn;
 }
-

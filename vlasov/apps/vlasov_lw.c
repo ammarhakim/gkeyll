@@ -56,14 +56,33 @@ static const struct gkyl_str_int_pair model_type[] = {
   { "CanonicalPB", GKYL_MODEL_CANONICAL_PB },
   { "CanonicalPBGR", GKYL_MODEL_CANONICAL_PB_GR },
   { "Triad", GKYL_MODEL_TRIAD},
+  { "TriadGR", GKYL_MODEL_TRIAD_GR},
+  { 0, 0 }
+};
+
+// Vlasov field type -> enum map.
+static const struct gkyl_str_int_pair field_type[] = {
+  { "Default", GKYL_FIELD_E_B },
+  { "Phi", GKYL_FIELD_PHI },
+  { "phiExtPotentials", GKYL_FIELD_PHI_EXT_POTENTIALS },
+  { "phiExtFields", GKYL_FIELD_PHI_EXT_FIELDS },
+  { "Null", GKYL_FIELD_NULL},
+  { "GR", GKYL_FIELD_GR_D_B},
   { 0, 0 }
 };
 
 // Vlasov model type -> enum map.
 static const struct gkyl_str_int_pair triad_geom_type[] = {
   { "None", GKYL_TRIAD_NONE },
+  { "Flat", GKYL_TRIAD_FLAT },
   { "Annulus", GKYL_TRIAD_ANNULUS },
   { "Cylindrical_rz", GKYL_TRIAD_CYLINDRICAL_RZ },
+  { "Spherical_rtheta", GKYL_TRIAD_SPHERICAL_RTHETA },
+  { "GR_KS_rphi", GKYL_TRIAD_GR_KERR_SCHILD_RPHI },
+  { "GR_KS_r", GKYL_TRIAD_GR_KERR_SCHILD_R },
+  { "GR_KS_rtheta", GKYL_TRIAD_GR_KERR_SCHILD_RTHETA },
+  { "GR_KS_3V", GKYL_TRIAD_GR_KERR_SCHILD_3V },
+  { "GR_KS_Cart_3V", GKYL_TRIAD_CART_GR_KERR_SCHILD_3V },
   { 0, 0 }
 };
 
@@ -114,6 +133,12 @@ gkyl_register_vlasov_model_types(lua_State *L)
 }
 
 void
+gkyl_register_vlasov_field_types(lua_State *L)
+{
+  register_types(L, field_type, "FieldModel");
+}
+
+void
 gkyl_register_vlasov_triad_geom_types(lua_State *L)
 {
   register_types(L, triad_geom_type, "TriadGeom");
@@ -144,6 +169,7 @@ enum vlasov_magic_ids {
   VLASOV_FIELD_DEFAULT, // Maxwell equations.
   VLASOV_FLUID_SPECIES_DEFAULT, // Fluid species.
   VLASOV_EQN_DEFAULT, // Equation object.
+  VLASOV_GEOM_DEFAULT, // Vlasov Geometry.
 };
 
 // Metatable name for equation object input struct.
@@ -505,8 +531,6 @@ vlasov_species_lw_new(lua_State *L)
   struct gkyl_vlasov_species vm_species = { };
 
   vm_species.model_id = glua_tbl_get_integer(L, "modelID", 0);
-
-  vm_species.triad_preset_geom_type = glua_tbl_get_integer(L, "triadPresetGeomType", 0);
   
   vm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
   vm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
@@ -536,9 +560,6 @@ vlasov_species_lw_new(lua_State *L)
 
   bool use_vierbein = glua_tbl_get_bool(L, "useVierbein", false);
   vm_species.use_vierbein = use_vierbein;
-
-  bool use_preset_geom = glua_tbl_get_bool(L, "usePresetGeom", false);
-  vm_species.use_preset_geom = use_preset_geom;
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_species.is_static = !evolve; 
@@ -799,6 +820,7 @@ vlasov_species_lw_new(lua_State *L)
         if (glua_tbl_iget_tbl(L, i + 1)) {
           if (glua_tbl_get_func(L, "crossNu")) {
             cross_nu_func_ref[i] = luaL_ref(L, LUA_REGISTRYINDEX);
+            has_cross_nu_func[i] = true;
           }
         }
         lua_pop(L, 1);
@@ -1205,6 +1227,52 @@ static struct luaL_Reg vm_species_ctor[] = {
   { 0, 0 }
 };
 
+/* **************** */
+/* Geometry methods */
+/* **************** */
+
+// Metatable name for species input struct.
+#define VLASOV_GEOM_METATABLE_NM "GkeyllZero.App.Vlasov.Geom"
+
+// Lua userdata object for constructing species input.
+struct vlasov_geom_lw {
+  int magic; // This must be first element in the struct.
+  struct gkyl_vlasov_geom vlasov_geom; // Input struct to construct geometry.
+
+};
+
+static int
+vlasov_geom_lw_new(lua_State *L)
+{
+
+  struct gkyl_vlasov_geom vm_geom = { };
+
+  vm_geom.mass_bh = glua_tbl_get_number(L, "massBH", 1.0);
+  vm_geom.spin_bh = glua_tbl_get_number(L, "spinBH", 0.0);
+
+  vm_geom.triad_preset_geom_type = glua_tbl_get_integer(L, "triadPresetGeomType", 0);
+
+  bool use_preset_geom = glua_tbl_get_bool(L, "usePresetGeom", false);
+  vm_geom.use_preset_geom = use_preset_geom;
+
+  struct vlasov_geom_lw *geom_lw = lua_newuserdata(L, sizeof(*geom_lw));
+  geom_lw->magic = VLASOV_GEOM_DEFAULT;
+  geom_lw->vlasov_geom = vm_geom;
+
+  // Set metatable.
+  luaL_getmetatable(L, VLASOV_GEOM_METATABLE_NM);
+  lua_setmetatable(L, -2);
+  
+  return 1;
+
+}
+
+// Geometry constructor.
+static struct luaL_Reg vm_geom_ctor[] = {
+  { "new", vlasov_geom_lw_new },
+  { 0, 0 }
+};
+
 /* ********************* */
 /* Fluid Species methods */
 /* ********************* */
@@ -1409,7 +1477,7 @@ vlasov_field_lw_new(lua_State *L)
   int vdim  = 0;
   struct gkyl_vlasov_field vm_field = { };
 
-  vm_field.field_id = GKYL_FIELD_E_B;
+  vm_field.field_id = glua_tbl_get_integer(L, "fieldID", 0);
   
   vm_field.epsilon0 = glua_tbl_get_number(L, "epsilon0", 1.0);
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
@@ -1425,6 +1493,9 @@ vlasov_field_lw_new(lua_State *L)
   if (glua_tbl_get_func(L, "init")) {
     init_ref = luaL_ref(L, LUA_REGISTRYINDEX);
   }
+
+  bool use_lax = glua_tbl_get_bool(L, "useLax", false);
+  vm_field.use_lax = use_lax;
 
   with_lua_tbl_tbl(L, "bcx") { 
     int nbc = glua_objlen(L);
@@ -2050,6 +2121,14 @@ vm_app_new(lua_State *L)
       vm.cells[d] = glua_tbl_iget_integer(L, d + 1, 0);
     }
   }
+  if (cdim == 0) {
+    return luaL_error(L, "App must define a non-empty \"cells\" table!");
+  }
+  for (int d = 0; d < cdim; d++) {
+    if (vm.cells[d] < 1) {
+      return luaL_error(L, "App \"cells[%d]\" must be > 0 (got %d)", d + 1, vm.cells[d]);
+    }
+  }
 
   int cuts[GKYL_MAX_DIM];
   for (int d = 0; d < cdim; d++) {
@@ -2094,6 +2173,19 @@ vm_app_new(lua_State *L)
       }
     }
   }
+
+  // Set all geom input.
+  with_lua_tbl_key(L, "geom") {
+    if (lua_type(L, -1) == LUA_TUSERDATA) {
+      struct vlasov_geom_lw *glw = lua_touserdata(L, -1);
+
+      if (glw->magic == VLASOV_GEOM_DEFAULT) {
+        vm.geom = glw->vlasov_geom;  
+      }
+
+    }
+  }
+
 
   struct vlasov_species_lw *species[GKYL_MAX_SPECIES];
 
@@ -2274,8 +2366,10 @@ vm_app_new(lua_State *L)
     vm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
       strcpy(vm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
-      vm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
-      vm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+      if (species[s]->has_cross_nu_func[i]) {
+        vm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
+        vm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+      }
     }
     vm.species[s].collisions.den_ref = app_lw->den_ref[s];
     vm.species[s].collisions.temp_ref = app_lw->temp_ref[s];
@@ -3172,6 +3266,13 @@ app_openlibs(lua_State *L)
   }
   while (0);
 
+  // Register Geometry input struct.
+  do {
+    luaL_newmetatable(L, VLASOV_GEOM_METATABLE_NM);
+    luaL_register(L, "G0.Vlasov.Geom", vm_geom_ctor);
+  }
+  while (0);
+
   // Register Species input struct.
   do {
     luaL_newmetatable(L, VLASOV_SPECIES_METATABLE_NM);
@@ -3211,6 +3312,7 @@ gkyl_vlasov_lw_openlibs(lua_State *L)
   // collision ID, source ID, and radiation ID initialization.
   gkyl_register_vlasov_projection_types(L);
   gkyl_register_vlasov_model_types(L);
+  gkyl_register_vlasov_field_types(L);
   gkyl_register_vlasov_triad_geom_types(L);
   gkyl_register_vlasov_collision_types(L);
   gkyl_register_vlasov_source_types(L); 

@@ -1,0 +1,58 @@
+#include <gkyl_nc_hamil_vol_comps_kernels.h> 
+GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp3_2x3v_ser_p1(const double *w, const double *dxv, const int dir,
+   const double *alpha, double* GKYL_RESTRICT out) 
+{ 
+  const double dx10 = 2.0/dxv[0]; 
+  const double dx11 = 2.0/dxv[1]; 
+  const double dv10 = 2.0/dxv[2]; 
+  const double dv11 = 2.0/dxv[3]; 
+  const double dv12 = 2.0/dxv[4]; 
+  
+  if (dir == 0) { 
+  } 
+
+  if (dir == 1) { 
+  } 
+
+  if (dir == 2) { 
+  out[0] += 0.3061862178478971*alpha[0]*dv10; 
+  out[1] += 0.3061862178478971*alpha[1]*dv10; 
+  out[2] += 0.3061862178478971*alpha[2]*dv10; 
+  out[3] += 0.3061862178478971*alpha[3]*dv10; 
+  out[4] += 0.3061862178478971*alpha[4]*dv10; 
+  out[5] += 0.3061862178478971*alpha[5]*dv10; 
+  out[6] += 0.3061862178478971*alpha[6]*dv10; 
+  out[7] += 0.3061862178478971*alpha[7]*dv10; 
+  out[8] += 0.3061862178478971*alpha[8]*dv10; 
+  out[9] += 0.3061862178478971*alpha[9]*dv10; 
+  out[10] += 0.3061862178478971*alpha[10]*dv10; 
+  out[11] += 0.3061862178478971*alpha[11]*dv10; 
+  out[12] += 0.3061862178478971*alpha[12]*dv10; 
+  out[13] += 0.3061862178478971*alpha[13]*dv10; 
+  out[14] += 0.3061862178478971*alpha[14]*dv10; 
+  out[15] += 0.3061862178478971*alpha[15]*dv10; 
+  out[16] += 0.3061862178478971*alpha[16]*dv10; 
+  out[17] += 0.3061862178478971*alpha[17]*dv10; 
+  out[18] += 0.3061862178478971*alpha[18]*dv10; 
+  out[19] += 0.3061862178478971*alpha[19]*dv10; 
+  out[20] += 0.3061862178478971*alpha[20]*dv10; 
+  out[21] += 0.3061862178478971*alpha[21]*dv10; 
+  out[22] += 0.3061862178478971*alpha[22]*dv10; 
+  out[23] += 0.3061862178478971*alpha[23]*dv10; 
+  out[24] += 0.3061862178478971*alpha[24]*dv10; 
+  out[25] += 0.3061862178478971*alpha[25]*dv10; 
+  out[26] += 0.3061862178478971*alpha[26]*dv10; 
+  out[27] += 0.3061862178478971*alpha[27]*dv10; 
+  out[28] += 0.3061862178478971*alpha[28]*dv10; 
+  out[29] += 0.3061862178478971*alpha[29]*dv10; 
+  out[30] += 0.3061862178478971*alpha[30]*dv10; 
+  out[31] += 0.3061862178478971*alpha[31]*dv10; 
+  } 
+
+  if (dir == 3) { 
+  } 
+
+  if (dir == 4) { 
+  } 
+
+} 

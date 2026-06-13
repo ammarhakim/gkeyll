@@ -41,6 +41,12 @@ midplane = 1.0 -- Radial midplane location designating jump in quantities.
 
 vlasovApp = Vlasov.App.new {
 
+  -- Use the vierbein inputs to contruct the Poisson Tensor
+  geom = Vlasov.Geom.new {
+    usePresetGeom = true,
+    triadPresetGeomType = G0.TriadGeom.Annulus,
+  },
+
   tEnd = t_end,
   nFrame = num_frames,
   fieldEnergyCalcs = field_energy_calcs,
@@ -67,11 +73,6 @@ vlasovApp = Vlasov.App.new {
   neut = Vlasov.Species.new {
     modelID = G0.Model.Triad,
     charge = charge, mass = mass,
-
-    -- Use the vierbein inputs to contruct the Poisson Tensor
-    useLo = false,
-    usePresetGeom = true,
-    triadPresetGeomType = G0.TriadGeom.Annulus,
 
     -- Velocity space grid.
     lower = { -vr_max, -vtheta_max },

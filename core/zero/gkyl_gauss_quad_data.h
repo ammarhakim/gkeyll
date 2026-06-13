@@ -4,7 +4,7 @@
 #include <stdlib.h>
 
 // Maximum order ordinate/weight data
-static const int gkyl_gauss_max = 8;
+enum { gkyl_gauss_max = 8 };
 
 // Ordinates
 static const double gkyl_gauss_ordinates_1[] =

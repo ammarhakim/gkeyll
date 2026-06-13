@@ -154,6 +154,15 @@ struct vlasov_mapc2p_vel {
   void (*mapc2p_vel_func)(double t, const double *xc, double *xp, void *ctx);
 };
 
+// Parameters for Vlasov geometry.
+struct gkyl_vlasov_geom {
+
+  double spin_bh, mass_bh; // Black hole charge and mass.
+  bool use_preset_geom; // bool to determine if we are using triad input geom
+  enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
+
+};
+
 // Parameters for Vlasov species.
 struct gkyl_vlasov_species {
   char name[128]; // Species name.
@@ -180,8 +189,6 @@ struct gkyl_vlasov_species {
 
   bool use_vierbein; // bool to determine if we are using vierbein input or by defult using tanget vectos/ triads
   bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
-  bool use_preset_geom; // bool to determine if we are using triad input geom
-  enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
   
   // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   double skip_cell_thresh; 
@@ -299,6 +306,8 @@ struct gkyl_vlasov_field {
   // Pointer to function defining external potentials (phi,A).
   void (*external_potentials)(double t, const double *xn, double *ext_pot, void *ctx);
   bool external_potentials_evolve; // Set to true if external potentials are time dependent.
+
+  bool use_lax; // Boolean for using lax fluxes in dg-gr-maxwell.
 };
 
 // Parameter for Vlasov fluid species
@@ -360,6 +369,8 @@ struct gkyl_vm {
 
   int num_periodic_dir; // number of periodic directions
   int periodic_dirs[3]; // list of periodic directions
+
+  struct gkyl_vlasov_geom geom; // geom object
 
   int num_species; // number of species
   struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
