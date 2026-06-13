@@ -1434,7 +1434,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gkyl_velocity_map_write(gks->vel_map, gks->comm, app->name, gks->info.name);
   
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in IWL without modifying the app's.
+  // add the parallel direction in case TS BCs are needed.
   gks->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<gks->num_periodic_dir; ++d)
     gks->periodic_dirs[d] = app->periodic_dirs[d];

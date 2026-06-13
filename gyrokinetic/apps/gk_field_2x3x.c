@@ -442,7 +442,7 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_integrate_release(f->calc_em_energy);
 
   if (app->gk_geom->has_LCFS) {
-    // Release IWL updaters.
+    // Release updaters for solve with a LCFS/separatrix.
     gkyl_free(f->fem_parproj_bias_line_list.bl);
     gkyl_fem_parproj_release(f->fem_parproj_rho_core);
     gkyl_fem_parproj_release(f->fem_parproj_phi_core);
