@@ -6,6 +6,7 @@
 #include <gkyl_mom_type.h>
 #include <gkyl_ref_count.h>
 #include <gkyl_mom_vlasov_kernels.h>
+#include <gkyl_vlasov_velocity_map.h>
 
 struct mom_type_vlasov {
   struct gkyl_mom_type momt;
@@ -15,8 +16,9 @@ struct mom_type_vlasov {
   struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute certain moments. 
   struct gkyl_range vel_range; // Range for indexing velocity-space Jacobian and velocity map. 
-  const struct gkyl_array *vmap; // Velocity-space mapping.  
-  const struct gkyl_array *jacob_vel; // Velocity-space Jacobian.  
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired host-side; 0 if not given).
+  const struct gkyl_array *vmap; // Velocity-space mapping (borrowed from vel_map; device pointer on GPUs).
+  const struct gkyl_array *jacob_vel; // Velocity-space Jacobian (borrowed from vel_map; device pointer on GPUs).
   double v_thresh; // Threshold velocity for integration of moments over a subset of the domain. 
   double f_thresh; // Threshold for whether we accumulate moment over subset of the domain. 
 };

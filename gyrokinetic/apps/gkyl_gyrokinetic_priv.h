@@ -98,6 +98,7 @@
 #include <gkyl_vlasov_lte_correct.h>
 #include <gkyl_vlasov_lte_moments.h>
 #include <gkyl_vlasov_lte_proj_on_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_util.h>
 
 // Definitions of private structs and APIs attached to these objects
@@ -1231,6 +1232,8 @@ struct gk_neut_species {
       struct gkyl_range local_vel, local_ext_vel; // Local, local-ext velocity-space ranges.
 
       struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
+      // Identity Vlasov velocity map, passed to the Vlasov moment/LTE updaters.
+      struct gkyl_vlasov_velocity_map *vlasov_vel_map;
 
       struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
       struct gkyl_array *hamil; // Specified hamiltonian function for canonical poisson bracket

@@ -30,9 +30,9 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     }
   }
 
-  // Divide out velocity-space Jacobian. 
-  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, fin, vms->f_no_J, app->use_gpu); 
+  // Divide out velocity-space Jacobian.
+  gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+    &vms->local, fin, vms->f_no_J);
 
   // Compute the surface expansion of the phase space flux in configuration space. 
   if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
@@ -40,9 +40,9 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
       vms->conf_poisson_tensor, vms->hamil, fin, vms->cflrate, cls->conf_flux_surf);
   }
 
-  // Compute the surface expansion of the phase space flux in velocity space. 
-  gkyl_dg_vlasov_vel_flux_surf_advance(cls->calc_vel_flux, &app->local, &vms->local, 
-    vms->jacob_vel_surf, vms->conf_poisson_tensor, vms->hamil, cls->qmem, cls->pot_tot, vms->rad, 
+  // Compute the surface expansion of the phase space flux in velocity space.
+  gkyl_dg_vlasov_vel_flux_surf_advance(cls->calc_vel_flux, &app->local, &vms->local,
+    vms->conf_poisson_tensor, vms->hamil, cls->qmem, cls->pot_tot, vms->rad,
     vms->f_no_J, vms->cflrate, cls->vel_flux_surf);
 
   gkyl_hyper_dg_advance(cls->slvr, &vms->local, fin, vms->cflrate, rhs);
@@ -165,10 +165,10 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   // Allocate nodal surface expansion of velocity space flux array (vel).
   cls->vel_flux_surf = mkarr(app->use_gpu, vdim*cls->num_surf_vel_nodes, vms->local_ext.volume);
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
-    .phase_grid = &vms->grid, 
+    .phase_grid = &vms->grid,
     .conf_basis = &app->basis,
     .phase_basis = &vms->basis,
-    .vel_range = &vms->local_vel,
+    .vel_map = vms->vel_map,
     .hamil_range = &vms->hamil_range,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
     .model_id = vms->model_id,
@@ -187,10 +187,8 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .conf_range =  &app->local,
     .hamil_range = &vms->hamil_range,
     .phase_range = &vms->local,
-    .vel_range = &vms->local_vel,
-    .use_vmap = vms->use_vmap, 
-    .jacob_vel = vms->jacob_vel, 
-    .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
+    .vel_map = vms->vel_map,
+    .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0,
     .model_id = vms->model_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 

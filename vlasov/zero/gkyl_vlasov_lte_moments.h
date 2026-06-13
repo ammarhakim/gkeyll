@@ -3,7 +3,8 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_range.h>
-#include <gkyl_rect_grid.h> 
+#include <gkyl_rect_grid.h>
+#include <gkyl_vlasov_velocity_map.h>
 
 // Object type
 typedef struct gkyl_vlasov_lte_moments gkyl_vlasov_lte_moments;
@@ -19,9 +20,7 @@ struct gkyl_vlasov_lte_moments_inp {
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // Velocity-space range
   const struct gkyl_range *phase_range; // Phase-space range
-  bool use_vmap; // bool to determine if we are using mapped velocity-space grids.
-  const struct gkyl_array *vmap; //  mapping for mapped velocity-space grids.
-  const struct gkyl_array *jacob_vel; // Jacobian for mapped velocity-space grids in each direction at 1V Gauss-Legendre quadrature points.
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic).
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute certain moments (such as energy or dH/dv moment). 

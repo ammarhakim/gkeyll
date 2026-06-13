@@ -5,9 +5,11 @@ GKYL_CU_DH void vlasov_hamil_vel_vol_1x2v_ser_p1(const double *w, const double *
 { 
   double dx10 = 2.0/dxv[0]; 
   double dv10 = 2.0/dxv[1]; 
-  out[1] += (1.5*f[3]*hamil[3]+1.5*f[0]*hamil[1])*dv10*dx10; 
-  out[4] += (1.5*hamil[3]*f[6]+1.5*hamil[1]*f[2])*dv10*dx10; 
-  out[5] += (1.5*f[0]*hamil[3]+1.5*hamil[1]*f[3])*dv10*dx10; 
-  out[7] += (1.5*hamil[1]*f[6]+1.5*f[2]*hamil[3])*dv10*dx10; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
+  out[1] += (1.5*f[3]*hamil[3]+1.5*f[0]*hamil[1])*dv10*dx10*jacob_vx_inv; 
+  out[4] += (1.5*hamil[3]*f[6]+1.5*hamil[1]*f[2])*dv10*dx10*jacob_vx_inv; 
+  out[5] += (1.5*f[0]*hamil[3]+1.5*hamil[1]*f[3])*dv10*dx10*jacob_vx_inv; 
+  out[7] += (1.5*hamil[1]*f[6]+1.5*f[2]*hamil[3])*dv10*dx10*jacob_vx_inv; 
 
 } 

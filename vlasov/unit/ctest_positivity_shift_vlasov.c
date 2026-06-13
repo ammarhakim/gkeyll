@@ -139,21 +139,24 @@ test_1x2v(int poly_order, bool use_gpu)
   // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr(use_gpu, velBasis.num_basis, velLocal.volume);
   struct gkyl_array *gamma_inv = mkarr(use_gpu, velBasis.num_basis, velLocal.volume);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velLocal, &velBasis, inp_vmap, use_gpu);
   gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, use_gpu); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, use_gpu);
 
   // Compute M0 of the original f.
   struct gkyl_mom_vlasov_inp inp_mom = {
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .vel_range = &velLocal,
-    .use_vmap = 0, 
-    .vmap = 0, 
     .hamil_range = &velLocal,
     .hamil = hamil,
     .model_id = GKYL_MODEL_DEFAULT,
     .mom_type = GKYL_F_MOMENT_M0, 
     .use_gpu = use_gpu,
+    .vel_map = vel_map,
   };
 
 
@@ -291,6 +294,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_mom_type_release(m0_mom_up);
   gkyl_mom_type_release(int_mom_up);
   gkyl_positivity_shift_vlasov_release(pos_shift);
+  gkyl_vlasov_velocity_map_release(vel_map);
 }
 
 void test_1x2v_ho()

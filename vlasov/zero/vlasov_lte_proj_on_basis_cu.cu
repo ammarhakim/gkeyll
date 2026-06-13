@@ -273,11 +273,13 @@ gkyl_vlasov_lte_proj_on_basis_f_lte_quad_ker(struct gkyl_rect_grid phase_grid,
         fq[linc2] += expamp_quad_d[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
       }
       else {
-        double efact = 0.0;        
+        double efact = 0.0;
         for (int d=0; d<vdim; ++d) {
           efact += (xmu[cdim+d]-V_drift_quad[tot_conf_quad*d + cqidx])*(xmu[cdim+d]-V_drift_quad[tot_conf_quad*d + cqidx]);
         }
-        fq[linc2] += expamp_quad_d[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
+        // The velocity-space Jacobian is included since the projected
+        // distribution is the evolved quantity Jf on mapped velocity grids.
+        fq[linc2] += jacob_vel_qidx*expamp_quad_d[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
       }
     }
   }

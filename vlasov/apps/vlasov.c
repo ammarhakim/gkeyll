@@ -1003,8 +1003,8 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
       // since output distribution function does not include velocity-space Jacobian. 
       // Need to do this before applying boundary conditions since we only know f on
       // the local range for the rescaling. 
-      gkyl_dg_vlasov_rescale_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-        vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+      gkyl_vlasov_velocity_map_rescale_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+        &vms->local, vms->f, vms->f_no_J);
       gkyl_array_copy(vms->f, vms->f_no_J);
       
       if (vms->calc_bflux) {                                                                

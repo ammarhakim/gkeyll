@@ -12,12 +12,7 @@
 #include <assert.h>
 #include <time.h>
 
-static void identity_vmap(double t, const double *vc, double *vp, void *ctx) 
-{
-  vp[0] = vc[0];
-}
-
-static void 
+static void
 vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct vm_species *vms)
 {
   int vdim = app->vdim;  
@@ -36,18 +31,18 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
-      vms->model_id, vms->vmap, vms->mom_hamil, vms->gamma_inv, app->use_gpu); 
+      vms->model_id, vms->vel_map, vms->mom_hamil, vms->gamma_inv, app->use_gpu); 
 
     // As the mom_hamil and hamil are identical, aquire hamil and hamil_range here
     vms->hamil_range = vms->mom_hamil_range;
     vms->hamil = gkyl_array_acquire(vms->mom_hamil);
 
     // If relativistic, allocate additional updater for computing derived relativistic moments,
-    // such as the spatial component of the four-velocity and pressure. 
+    // such as the spatial component of the four-velocity and pressure.
     if (vms->model_id == GKYL_MODEL_SR) {
       vms->sr_vars = gkyl_dg_calc_sr_vars_new(&vms->grid, &vms->grid_vel,
-        &app->basis,  &vms->basis_vel, &app->local, &vms->local_vel, 
-        vms->vmap, vms->use_vmap, app->use_gpu);   
+        &app->basis,  &vms->basis_vel, &app->local, &vms->local_vel,
+        vms->vel_map, app->use_gpu);
     }
   } 
   else if (vms->model_id == GKYL_MODEL_TRIAD) {
@@ -61,7 +56,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
-      GKYL_MODEL_DEFAULT, vms->vmap, vms->mom_hamil, vms->gamma_inv, app->use_gpu);
+      GKYL_MODEL_DEFAULT, vms->vel_map, vms->mom_hamil, vms->gamma_inv, app->use_gpu);
 
     // As the mom_hamil and hamil are identical, aquire hamil and hamil_range here
     vms->hamil_range = vms->mom_hamil_range;
@@ -128,7 +123,7 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
-      GKYL_MODEL_SR, vms->vmap, vms->mom_hamil, vms->gamma_inv, app->use_gpu);
+      GKYL_MODEL_SR, vms->vel_map, vms->mom_hamil, vms->gamma_inv, app->use_gpu);
 
     // Hamiltonian (GR) is a full phase-space array. 
     vms->hamil_range = vms->local; 
@@ -287,9 +282,9 @@ vm_species_new_radiation(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app
   vms->rad = mkarr(app->use_gpu, vdim*vms->basis_vel.num_basis, vms->local_vel.volume);
   if (radiation_id ==  GKYL_VM_COMPTON_RADIATION || radiation_id == GKYL_VM_CURVATURE_RADIATION) {
     vms->has_rad = true;
-    gkyl_dg_vlasov_calc_radiation(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
-      radiation_id, vms->vmap, vms->info.radiation.t_cool, vms->info.radiation.p0, 
-      vms->rad, app->use_gpu); 
+    gkyl_dg_vlasov_calc_radiation(&vms->grid_vel, &vms->basis_vel, &vms->local_vel,
+      radiation_id, vms->vel_map, vms->info.radiation.t_cool, vms->info.radiation.p0,
+      vms->rad, app->use_gpu);
   }
 }
 
@@ -565,11 +560,11 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
   // Divide out the velocity space Jacobian if present
   // We do the division before I/O to increase the accuracy since we know
   // the velocity-space Jacobian at specific quadrature points. 
-  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+  gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+    &vms->local, vms->f, vms->f_no_J);
 
   // If we are on device, copy the distribution function without the velocity-space
-  // Jacobian to the host, otherwise just write out the f_no_J array. 
+  // Jacobian to the host, otherwise just write out the f_no_J array.
   if (app->use_gpu) {
     gkyl_array_copy(vms->f_host, vms->f_no_J);
     gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt, vms->f_host, fileNm);
@@ -580,7 +575,9 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
     
   vlasov_array_meta_release(mt);  
 
-  if (vms->use_vmap && frame == 0) {
+  // The velocity map is static in time, so write it (uniform grids included)
+  // only with the first frame.
+  if (frame == 0) {
     struct gkyl_msgpack_data *mt_vel = vlasov_array_meta_new( (struct vlasov_output_meta) {
         .frame = frame,
         .stime = tm,
@@ -588,29 +585,10 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
         .basis_type = vms->basis_vel.id
       }
     );
-    int rank;
-    gkyl_comm_get_rank(vms->comm, &rank);
-    if (rank == 0) { 
-      const char *fmt_vmap = "%s-%s_vmap.gkyl";
-      int sz_vmap = gkyl_calc_strlen(fmt_vmap, app->name, vms->info.name);
-      char fileNm_vmap[sz_vmap+1]; // ensures no buffer overflow
-      snprintf(fileNm_vmap, sizeof fileNm_vmap, fmt_vmap, app->name, vms->info.name);
-
-      gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-        mt_vel, vms->vmap_pgkyl_host, fileNm_vmap);
-
-      if (vms->write_cell_avg) {
-        const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
-        int sz_vmap_avg = gkyl_calc_strlen(fmt_vmap_avg, app->name, vms->info.name);
-        char fileNm_vmap_avg[sz_vmap_avg+1]; // ensures no buffer overflow
-        snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app->name, vms->info.name);  
-
-        gkyl_grid_sub_array_write(&vms->grid_vel, &vms->local_vel, 
-          mt_vel, vms->vmap_avg_pgkyl_host, fileNm_vmap_avg);        
-      } 
-    }
-    vlasov_array_meta_release(mt_vel);  
-  }  
+    gkyl_vlasov_velocity_map_write(vms->vel_map, vms->comm, mt_vel,
+      app->name, vms->info.name, vms->write_cell_avg);
+    vlasov_array_meta_release(mt_vel);
+  }
 
   app->stat.species_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
@@ -674,8 +652,8 @@ vm_species_write_cell_avg_enabled(gkyl_vlasov_app* app, struct vm_species *vms, 
   // Divide out the velocity space Jacobian if present
   // We do the division before I/O to increase the accuracy since we know
   // the velocity-space Jacobian at specific quadrature points. 
-  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+  gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+    &vms->local, vms->f, vms->f_no_J);
 
   // Copy the cell average into a temporary array and re-scale
   gkyl_array_set_offset(vms->cflrate, 1.0/pow(2.0, (app->cdim+app->vdim)/2.0), vms->f_no_J, 0); 
@@ -717,8 +695,8 @@ vm_species_write_lte_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   // Divide out the velocity space Jacobian from LTE distribution if present
   // We do the division before I/O to increase the accuracy since we know
   // the velocity-space Jacobian at specific quadrature points. 
-  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, vms->lte.f_lte, vms->f_no_J, app->use_gpu); 
+  gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+    &vms->local, vms->lte.f_lte, vms->f_no_J);
 
   // If we are on device, copy the LTE distribution function without the velocity-space
   // Jacobian to the host, otherwise just write out the f_no_J array. 
@@ -859,8 +837,8 @@ vm_species_calc_L2_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double 
   struct timespec wst = gkyl_wall_clock();
 
   // L^2 energy with nonuniform velocity-space meshes is Jf*f
-  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, vms->f, vms->f_no_J, app->use_gpu); 
+  gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+    &vms->local, vms->f, vms->f_no_J);
   gkyl_dg_calc_prod_op_range(vms->basis, 0, vms->L2_f, 0, vms->f_no_J, 0, vms->f, vms->local);
   gkyl_array_scale_range(vms->L2_f, vms->grid.cellVolume, &vms->local); 
   
@@ -1267,72 +1245,18 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   vms->write_cell_avg = vms->info.write_cell_avg; // Write out only the cell averages?
 
-  vms->use_vmap = false;
-  if (vms->basis_vel.b_type == GKYL_BASIS_MODAL_TENSOR) {
-    vms->use_vmap = true;
-  }
-  // velocity map is always a C^1 cubic representation in each direction (up to 3V; 3*4=12 components)
-  vms->vmap = mkarr(app->use_gpu, vdim*4, vms->local_vel.volume);
-  // velocity-space Jacobian at quadrature points and "surface" quadrature points. Used to compute
-  // 1/Jvi nodally in volume and surface operations respectively, with surface operations utilizing
-  // more quadrature points to eliminate aliasing errors. 
-  vms->jacob_vel = mkarr(app->use_gpu, vdim*(vms->basis_vel.poly_order+1), vms->local_vel.volume);
-  vms->jacob_vel_surf = mkarr(app->use_gpu, vdim*(vms->basis_vel.poly_order+2), vms->local_vel.volume);
-  // need special basis sets to get the correct number of coefficients in 2V and 3V for constructing
-  // the mapping in post-processing, as well as storing the velocity-space Jacobian at quadrature points. 
-  struct gkyl_basis vmap_basis, jacob_vel_basis;
-  gkyl_cart_modal_serendip(&vmap_basis, vdim, 3); 
-  gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, vms->basis_vel.poly_order);
-  // velocity-space Jacobian at Gaussian quadrature points for projecting distribution functions
-  // and dividing out velocity-space Jacobian nodally. 
-  vms->jacob_vel_gauss = mkarr(app->use_gpu, jacob_vel_basis.num_basis, vms->local_vel.volume);
-
-  // host-side arrays for GPU initialization
-  if (app->use_gpu) {
-    vms->vmap_host = mkarr(false, vms->vmap->ncomp, vms->vmap->size);
-    vms->jacob_vel_host = mkarr(false, vms->jacob_vel->ncomp, vms->jacob_vel->size);
-    vms->jacob_vel_surf_host = mkarr(false, vms->jacob_vel_surf->ncomp, vms->jacob_vel_surf->size);
-    vms->jacob_vel_gauss_host = mkarr(false, vms->jacob_vel_gauss->ncomp, vms->jacob_vel_gauss->size);
-  }
-  else {
-    vms->vmap_host = gkyl_array_acquire(vms->vmap);
-    vms->jacob_vel_host = gkyl_array_acquire(vms->jacob_vel);
-    vms->jacob_vel_surf_host = gkyl_array_acquire(vms->jacob_vel_surf);
-    vms->jacob_vel_gauss_host = gkyl_array_acquire(vms->jacob_vel_gauss);
-  }
-
-  // velocity map for I/O 
-  vms->vmap_pgkyl_host = mkarr(false, vdim*vmap_basis.num_basis, vms->local_vel.volume);
-  vms->vmap_avg_pgkyl_host = mkarr(false, vdim, vms->local_vel.volume);
-
-  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM];
+  // Velocity-space mapping object. Always created: directions without a
+  // user-specified mapping get the identity map, so uniform and non-uniform
+  // velocity grids are handled transparently downstream.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   for (int v=0; v<vdim; ++v) {
     if (vms->info.mapc2p_vel[v].mapc2p_vel_func) {
-      vms->use_vmap = true; 
-      inp_vmap[v].eval_vmap = vms->info.mapc2p_vel[v].mapc2p_vel_func; 
-      inp_vmap[v].ctx = vms->info.mapc2p_vel[v].mapc2p_vel_ctx; 
-    }
-    else {
-      inp_vmap[v].eval_vmap = identity_vmap; 
-      inp_vmap[v].ctx = 0;       
+      inp_vmap[v].eval_vmap = vms->info.mapc2p_vel[v].mapc2p_vel_func;
+      inp_vmap[v].ctx = vms->info.mapc2p_vel[v].mapc2p_vel_ctx;
     }
   }
-
-  if ( vms->model_id != GKYL_MODEL_TRIAD && vms->model_id != GKYL_MODEL_TRIAD_GR 
-       && vms->model_id != GKYL_MODEL_CANONICAL_PB ) {
-    gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel, 
-      vms->basis_vel.poly_order, inp_vmap, 
-      vms->vmap_host, vms->jacob_vel_host, vms->jacob_vel_surf_host, 
-      vms->vmap_pgkyl_host, vms->vmap_avg_pgkyl_host, vms->jacob_vel_gauss_host);
-  }
-  
-  // Copy the mapping and velocity space Jacobian onto device. 
-  if (app->use_gpu) {
-    gkyl_array_copy(vms->vmap, vms->vmap_host); 
-    gkyl_array_copy(vms->jacob_vel, vms->jacob_vel_host); 
-    gkyl_array_copy(vms->jacob_vel_surf, vms->jacob_vel_surf_host); 
-    gkyl_array_copy(vms->jacob_vel_gauss, vms->jacob_vel_gauss_host); 
-  }
+  vms->vel_map = gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel,
+    &vms->basis_vel, inp_vmap, app->use_gpu);
 
   // Allocate array for dividing out velocity-space Jacobian. 
   // If the mesh is uniform, we simply copy the distribution function at that RK stage
@@ -1565,17 +1489,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
   gkyl_array_release(vms->rad); 
   gkyl_array_release(vms->f_no_J); 
 
-  gkyl_array_release(vms->vmap_host);
-  gkyl_array_release(vms->jacob_vel_host);
-  gkyl_array_release(vms->jacob_vel_surf_host);
-  gkyl_array_release(vms->vmap_pgkyl_host);
-  gkyl_array_release(vms->vmap_avg_pgkyl_host);
-  gkyl_array_release(vms->jacob_vel_gauss_host);
-
-  gkyl_array_release(vms->vmap);
-  gkyl_array_release(vms->jacob_vel);
-  gkyl_array_release(vms->jacob_vel_surf);
-  gkyl_array_release(vms->jacob_vel_gauss);
+  gkyl_vlasov_velocity_map_release(vms->vel_map);
 
   // Release arrays for different types of Vlasov equations.
   if (vms->model_id  == GKYL_MODEL_DEFAULT || vms->model_id  == GKYL_MODEL_SR 

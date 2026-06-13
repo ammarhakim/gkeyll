@@ -4,6 +4,7 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_basis.h>
+#include <gkyl_vlasov_velocity_map.h>
 
 // Object type
 typedef struct gkyl_dg_calc_sr_vars gkyl_dg_calc_sr_vars;
@@ -31,26 +32,25 @@ typedef struct gkyl_dg_calc_sr_vars gkyl_dg_calc_sr_vars;
  *                   for computing V_drift. Note range is stored so updater loops 
  *                   over consistent range solving linear systems since memory is pre-allocated.
  * @param vel_range  Momentum (four-velocity)-space
- * @param vmap       Mapping for momentum (four-velocity)-space for mapped grids
- * @param use_vmap   bool to determine if we are using mapped momentum (four-velocity)-space grids
+ * @param vel_map    Velocity-space mapping object. NULL => uniform momentum (four-velocity)-space grid.
  * @param use_gpu bool to determine if on GPU
  * @return New updater pointer.
  */
-struct gkyl_dg_calc_sr_vars* 
-gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, 
-  const struct gkyl_array *vmap, bool use_vmap, bool use_gpu);
+struct gkyl_dg_calc_sr_vars*
+gkyl_dg_calc_sr_vars_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range,
+  const struct gkyl_vlasov_velocity_map *vel_map, bool use_gpu);
 
 /**
  * Create new updater to compute relativistic variables on
  * NV-GPU. See new() method for documentation.
  */
-struct gkyl_dg_calc_sr_vars* 
-gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, 
-  const struct gkyl_array *vmap, bool use_vmap);
+struct gkyl_dg_calc_sr_vars*
+gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range,
+  const struct gkyl_vlasov_velocity_map *vel_map);
 
 /**
  * Compute the rest-frame density n = GammaV_inv*M0 where GammaV_inv = sqrt(1 - |V_drift|^2).

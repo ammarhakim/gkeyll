@@ -251,18 +251,25 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     inp->quad_type, num_quad,
     &up->conf_ordinates, &up->conf_weights, &up->conf_basis_at_ords, false);
 
+  up->vel_map = 0;
+  up->vmap = 0;
+  up->jacob_vel_gauss = 0;
   up->use_vmap = false;
-  if (inp->use_vmap) {
-    up->use_vmap = true;
-    if (up->use_gpu) {
-      up->vmap_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-      gkyl_cart_modal_tensor_cu_dev(up->vmap_basis_on_dev, 1, 3);
+  if (inp->vel_map) {
+    up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+    if (inp->vel_map->is_mapped) {
+      up->use_vmap = true;
+      if (up->use_gpu) {
+        up->vmap_basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
+        gkyl_cart_modal_tensor_cu_dev(up->vmap_basis_on_dev, 1, 3);
+      }
+      else {
+        gkyl_cart_modal_tensor(&up->vmap_basis, 1, 3);
+      }
+      // Borrowed pointers; kept alive by the acquired vel_map.
+      up->vmap = inp->vel_map->vmap;
+      up->jacob_vel_gauss = inp->vel_map->jacob_vel_gauss;
     }
-    else {
-      gkyl_cart_modal_tensor(&up->vmap_basis, 1, 3);
-    }
-    up->vmap = gkyl_array_acquire(inp->vmap);
-    up->jacob_vel_gauss = gkyl_array_acquire(inp->jacob_vel_gauss);
   }
 
   // initialize data needed for phase-space quadrature 
@@ -437,10 +444,8 @@ gkyl_vlasov_lte_proj_on_basis_inew(const struct gkyl_vlasov_lte_proj_on_basis_in
     .conf_range_ext = inp->conf_range_ext,
     .vel_range = inp->vel_range,
     .phase_range = inp->phase_range,
-    .use_vmap = inp->use_vmap, 
-    .vmap = inp->vmap, 
-    .jacob_vel = inp->jacob_vel, 
-    .hamil_range = inp->hamil_range, 
+    .vel_map = inp->vel_map,
+    .hamil_range = inp->hamil_range,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
     .gamma_inv = inp->gamma_inv,
@@ -662,11 +667,13 @@ gkyl_vlasov_lte_proj_on_basis_advance(gkyl_vlasov_lte_proj_on_basis *up,
             fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
           else {
-            double efact = 0.0;        
+            double efact = 0.0;
             for (int d=0; d<vdim; ++d) {
               efact += (xmu[cdim+d]-V_drift_quad[cqidx][d])*(xmu[cdim+d]-V_drift_quad[cqidx][d]);
             }
-            fq[0] += expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
+            // The velocity-space Jacobian is included since the projected
+            // distribution is the evolved quantity Jf on mapped velocity grids.
+            fq[0] += jacob_vel_qidx*expamp_quad[cqidx]*exp(-efact/(2.0*T_over_m_quad[cqidx]));
           }
         }
       }
@@ -704,9 +711,8 @@ gkyl_vlasov_lte_proj_on_basis_release(gkyl_vlasov_lte_proj_on_basis* up)
   gkyl_array_release(up->conf_basis_at_ords);
   gkyl_array_release(up->fun_at_ords);
 
-  if (up->use_vmap) {
-    gkyl_array_release(up->vmap);
-    gkyl_array_release(up->jacob_vel_gauss);
+  if (up->vel_map) {
+    gkyl_vlasov_velocity_map_release(up->vel_map);
   }
 
   gkyl_array_release(up->num_ratio);

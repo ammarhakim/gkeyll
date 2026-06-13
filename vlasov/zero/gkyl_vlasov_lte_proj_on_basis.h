@@ -5,7 +5,7 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_velocity_map.h>
+#include <gkyl_vlasov_velocity_map.h>
 
 // Object type
 typedef struct gkyl_vlasov_lte_proj_on_basis gkyl_vlasov_lte_proj_on_basis;
@@ -21,15 +21,11 @@ struct gkyl_vlasov_lte_proj_on_basis_inp {
   const struct gkyl_range *conf_range_ext; // Extended configuration-space range (for internal memory allocations)
   const struct gkyl_range *vel_range; // velocity space range
   const struct gkyl_range *phase_range; // phase space range
-  bool use_vmap; // bool to determine if we are using mapped velocity-space grids.
-  const struct gkyl_array *vmap; //  mapping for mapped velocity-space grids.
-  const struct gkyl_array *jacob_vel; // Jacobian for mapped velocity-space grids in each direction at 1V Gauss-Legendre quadrature points.
-  const struct gkyl_array *jacob_vel_gauss; // Total Jacobian for mapped velocity-space grids at (up to 3V) Gauss-Legendre quadrature points.
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. NULL => uniform velocity grid.
   const struct gkyl_range *hamil_range; // Range for indexing Hamiltonian (either velocity-space range or full phase-space range).
   const struct gkyl_array *hamil; // (Can-bp quantity) Hamiltonian
   enum gkyl_model_id model_id; // Enum identifier for model type (e.g., SR, see gkyl_eqn_type.h)
   const struct gkyl_array *gamma_inv; // SR quantitiy: 1/gamma = 1/sqrt(1 + p^2)
-  const struct gkyl_velocity_map *vel_map; // Velocity space mapping object.
   const struct gkyl_array *h_ij; // (Can-bp quantity) metric tensor (covariant components)
   const struct gkyl_array *h_ij_inv; // (Can-bp quantity) inverse of the metric tensor (contravariant components)
   const struct gkyl_array *det_h; // (Can-bp quantity) determinant of the metric tensor

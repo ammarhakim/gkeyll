@@ -31,9 +31,7 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       .conf_basis = &app->basis,
       .phase_basis = &vms->basis,
       .vel_range = &vms->local_vel,
-      .use_vmap = vms->use_vmap, 
-      .vmap = vms->vmap, 
-      .jacob_vel = vms->jacob_vel, 
+      .vel_map = vms->vel_map,
       .hamil_range = &vms->mom_hamil_range,
       .hamil = vms->mom_hamil,
       .model_id = vms->model_id,
@@ -267,8 +265,8 @@ vm_species_source_write(gkyl_vlasov_app* app,
   // Divide out the velocity space Jacobian from source distribution if present
   // We do the division before I/O to increase the accuracy since we know
   // the velocity-space Jacobian at specific quadrature points. 
-  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, src->source, vms->f_no_J, app->use_gpu); 
+  gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+    &vms->local, src->source, vms->f_no_J);
 
   // If we are on device, copy the source distribution function without the velocity-space
   // Jacobian to the host, otherwise just write out the f_no_J array. 
