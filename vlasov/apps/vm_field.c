@@ -9,6 +9,56 @@
 #include <float.h>
 #include <time.h>
 
+static bool
+vm_field_is_fixed_func_bc(const struct vm_field *field, int d)
+{
+  return field->lower_bc[d] == GKYL_FIELD_FIXED_FUNC || field->upper_bc[d] == GKYL_FIELD_FIXED_FUNC;
+}
+
+static struct gkyl_array *
+vm_field_get_fixed_func_bc_buffer(const struct vm_field *field, const struct gkyl_array *f,
+  int d, enum gkyl_edge_loc edge)
+{
+  bool use_no_J_buffer = field->field_id == GKYL_FIELD_GR_D_B && f == field->em_no_J;
+
+  if (edge == GKYL_LOWER_EDGE)
+    return use_no_J_buffer ? field->bc_buffer_lo_fixed_no_J[d] : field->bc_buffer_lo_fixed[d];
+
+  return use_no_J_buffer ? field->bc_buffer_up_fixed_no_J[d] : field->bc_buffer_up_fixed[d];
+}
+
+void
+vm_field_buffer_fixed_func_bc(gkyl_vlasov_app *app, struct vm_field *field)
+{
+  bool has_fixed_func_bc = false;
+  for (int d=0; d<app->cdim; ++d)
+    has_fixed_func_bc = has_fixed_func_bc || vm_field_is_fixed_func_bc(field, d);
+
+  if (!has_fixed_func_bc)
+    return;
+
+  if (field->field_id == GKYL_FIELD_GR_D_B) {
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
+      field->em, field->em_no_J, app->use_gpu);
+  }
+
+  for (int d=0; d<app->cdim; ++d) {
+    if (field->lower_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      gkyl_array_copy_to_buffer(field->bc_buffer_lo_fixed[d]->data, field->em, &app->lower_ghost[d]);
+      if (field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy_to_buffer(field->bc_buffer_lo_fixed_no_J[d]->data, field->em_no_J, &app->lower_ghost[d]);
+      }
+    }
+
+    if (field->upper_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      gkyl_array_copy_to_buffer(field->bc_buffer_up_fixed[d]->data, field->em, &app->upper_ghost[d]);
+      if (field->field_id == GKYL_FIELD_GR_D_B) {
+        gkyl_array_copy_to_buffer(field->bc_buffer_up_fixed_no_J[d]->data, field->em_no_J, &app->upper_ghost[d]);
+      }
+    }
+  }
+}
+
 // initialize field object
 struct vm_field* 
 vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
@@ -17,6 +67,20 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   f->info = vm->field;
   f->field_id = f->info.field_id;
+  for (int d=0; d<3; ++d) {
+    f->bc_buffer_lo_fixed[d] = f->bc_buffer_up_fixed[d] = 0;
+    f->bc_buffer_lo_fixed_no_J[d] = f->bc_buffer_up_fixed_no_J[d] = 0;
+  }
+
+  // Acquire the geometry object (only used for GR)
+  f->use_lax = false;
+  if ( f->field_id == GKYL_FIELD_GR_D_B ){
+    f->geom = app->vm_geom;
+    f->em_no_J = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+    f->em_no_J_host = app->use_gpu ? mkarr(false, f->em_no_J->ncomp, f->em_no_J->size)
+                                   : gkyl_array_acquire(f->em_no_J);
+    f->use_lax = f->info.use_lax;
+  }
 
   // allocate EM arrays
   f->em = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
@@ -79,7 +143,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // Vlasov-Maxwell doesn't presently use external potentials.
-  f->has_ext_pot = f->ext_pot_evolve = false;
+  f->has_ext_pot = f->ext_pot_evolve = false; 
 
   // Initialize applied currents (always used by implicit fluid sources, so always initialize) 
   f->app_current = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
@@ -113,7 +177,43 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
 
   struct gkyl_dg_eqn *eqn;
-  eqn = gkyl_dg_maxwell_new(&app->basis, c, ef, mf, app->use_gpu);
+
+  // Allocate nodal surface expansion of Configuration space flux array. 
+  if ( f->field_id == GKYL_FIELD_GR_D_B ){
+
+    // Compute the number of configuration space nodes, with case for hybrid-tensor.
+    f->num_surf_conf_nodes = pow(app->poly_order+1,app->cdim - 1);
+
+    // 
+    f->conf_flux_surf = mkarr(app->use_gpu, app->cdim*8*f->num_surf_conf_nodes, app->local_ext.volume);
+    struct gkyl_dg_gr_maxwell_conf_flux_surf_inp inp_conf_flux = {
+      .conf_basis = &app->basis,
+      .conf_grid = &app->grid,
+      .field_id = f->field_id,
+      .theta_pole_lo = app->vm_geom->theta_pole_lo,
+      .theta_pole_up = app->vm_geom->theta_pole_up,
+      .use_lax = f->info.use_lax,
+      .use_gpu = app->use_gpu,
+    }; 
+    f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 
+  }
+   
+  // Input structure for building the dg eqn object
+  struct gkyl_dg_maxwell_inp inp_dg_maxwell = {
+    .cbasis = &app->basis,
+    .crange = &app->local,
+    .conf_flux_surf = (f->field_id == GKYL_FIELD_GR_D_B ) ? f->conf_flux_surf : 0,
+    .lapse = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->lapse : 0,
+    .shift = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->shift : 0,
+    .h_ij = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij : 0,
+    .det_h = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->det_h : 0,
+    .lightSpeed = c,
+    .field_id = f->field_id,
+    .elcErrorSpeedFactor = ef,
+    .mgnErrorSpeedFactor = mf,
+    .use_gpu = app->use_gpu,
+  }; 
+  eqn = gkyl_dg_maxwell_inew(&inp_dg_maxwell);
 
   int up_dirs[GKYL_MAX_DIM] = {0, 1, 2}, zero_flux_flags[2*GKYL_MAX_DIM] = {false};
 
@@ -190,6 +290,10 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->lower_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
+    else if (f->lower_bc[d] == GKYL_FIELD_FIXED_FUNC)
+      bctype = GKYL_BC_FIXED_FUNC;
+    else if (f->lower_bc[d] == GKYL_FIELD_THETA_POLE)
+      bctype = GKYL_BC_MAXWELL_THETA_POLE;
 
     f->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, app->basis_on_dev,
       &app->lower_skin[d], &app->lower_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
@@ -203,9 +307,25 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       bctype = GKYL_BC_MAXWELL_SYM;
     else if (f->upper_bc[d] == GKYL_FIELD_RESERVOIR)
       bctype = GKYL_BC_MAXWELL_RESERVOIR;
-
+    else if (f->upper_bc[d] == GKYL_FIELD_FIXED_FUNC)
+      bctype = GKYL_BC_FIXED_FUNC;
+    else if (f->upper_bc[d] == GKYL_FIELD_THETA_POLE)
+      bctype = GKYL_BC_MAXWELL_THETA_POLE;
     f->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, app->basis_on_dev,
       &app->upper_skin[d], &app->upper_ghost[d], f->em->ncomp, app->cdim, app->use_gpu);
+
+    if (f->lower_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      f->bc_buffer_lo_fixed[d] = mkarr(app->use_gpu, f->em->ncomp, app->lower_ghost[d].volume);
+      if (f->field_id == GKYL_FIELD_GR_D_B) {
+        f->bc_buffer_lo_fixed_no_J[d] = mkarr(app->use_gpu, f->em->ncomp, app->lower_ghost[d].volume);
+      }
+    }
+    if (f->upper_bc[d] == GKYL_FIELD_FIXED_FUNC) {
+      f->bc_buffer_up_fixed[d] = mkarr(app->use_gpu, f->em->ncomp, app->upper_ghost[d].volume);
+      if (f->field_id == GKYL_FIELD_GR_D_B) {
+        f->bc_buffer_up_fixed_no_J[d] = mkarr(app->use_gpu, f->em->ncomp, app->upper_ghost[d].volume);
+      }
+    }
   }
 
   gkyl_dg_eqn_release(eqn);
@@ -229,9 +349,17 @@ vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
   gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, field->em_host);
   gkyl_proj_on_basis_release(proj);
 
-  if (app->use_gpu) {
+  if (field->field_id == GKYL_FIELD_GR_D_B) {
+    // The input function is specified in primitive variables. Preserve that in em_no_J
+    // and rescale to the conservative J-weighted fields used for evolution.
+    gkyl_array_copy(field->em_no_J, field->em_host);
+    gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
+      field->em_no_J, field->em, app->use_gpu);
+  }
+  else if (app->use_gpu) {
     gkyl_array_copy(field->em, field->em_host);
   }
+  vm_field_buffer_fixed_func_bc(app, field);
   // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
   vm_field_limiter(app, field, field->em);
 
@@ -336,11 +464,27 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
   gkyl_array_clear(field->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
+  if (field->field_id == GKYL_FIELD_GR_D_B) {
+    // Divide out configuration-space Jacobian. 
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h,
+       em, field->em_no_J, app->use_gpu); 
+
+    // Apply BCs after dividing out J so ghost cells are populated
+    // for conf_flux_surf which references the ghost cells for the flux
+    vm_field_apply_bc(app, field, field->em_no_J);
+    vm_field_apply_bc(app, field, em);
+
+    // Compute the surface expansion of the phase space flux in configuration space. 
+    gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 
+      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->det_h, em,
+      field->em_no_J, field->cflrate, field->conf_flux_surf);
+  }
+
   if (!field->info.is_static) {
     gkyl_hyper_dg_advance(field->slvr, &app->local, em, field->cflrate, rhs);
 
     // Accumulate resistive layer to EM fields if present. 
-    if (app->field->has_sigma) {
+    if (app->field->has_sigma && field->field_id != GKYL_FIELD_GR_D_B) {
       for (int i = 0; i < 6; ++i) {
         gkyl_dg_mul_op_range(app->basis, i, field->sigmaEM, 0,
           app->field->sigma, i, em, &app->local);
@@ -393,8 +537,14 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_THETA_POLE:
         case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_lo[d], field->bc_buffer, f);
+          break;
+
+        case GKYL_FIELD_FIXED_FUNC:
+          gkyl_bc_basic_advance(field->bc_lo[d],
+            vm_field_get_fixed_func_bc_buffer(field, f, d, GKYL_LOWER_EDGE), f);
           break;
 
         default:
@@ -405,8 +555,14 @@ vm_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gky
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_PEC_WALL:
         case GKYL_FIELD_SYM_WALL:
+        case GKYL_FIELD_THETA_POLE:
         case GKYL_FIELD_RESERVOIR:
           gkyl_bc_basic_advance(field->bc_up[d], field->bc_buffer, f);
+          break;
+
+        case GKYL_FIELD_FIXED_FUNC:
+          gkyl_bc_basic_advance(field->bc_up[d],
+            vm_field_get_fixed_func_bc_buffer(field, f, d, GKYL_UPPER_EDGE), f);
           break;
           
         default:
@@ -437,13 +593,24 @@ vm_field_write(gkyl_vlasov_app* app, double tm, int frame)
   int sz = gkyl_calc_strlen(fmt, app->name, frame);
   char fileNm[sz+1]; // Ensures no buffer overflow.
   snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
-  
-  // Copy data from device to host before writing it out.
-  if (app->use_gpu) {
-    gkyl_array_copy(app->field->em_host, app->field->em); 
+
+  const struct gkyl_array *field_to_write = app->field->em_host;
+  if (app->field->field_id == GKYL_FIELD_GR_D_B) {
+    // For GR Maxwell, write primitive D/B fields by default.
+    gkyl_dg_gr_maxwell_divide_Jc(&app->basis, &app->local, app->vm_geom->det_h,
+      app->field->em, app->field->em_no_J, app->use_gpu);
+
+    if (app->use_gpu) {
+      gkyl_array_copy(app->field->em_no_J_host, app->field->em_no_J);
+    }
+    field_to_write = app->field->em_no_J_host;
+  }
+  else if (app->use_gpu) {
+    // Copy data from device to host before writing it out.
+    gkyl_array_copy(app->field->em_host, app->field->em);
   }
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
-    app->field->em_host, fileNm);  
+    field_to_write, fileNm);
 
   if (app->field->has_ext_em) {
     // Only write out external fields at t=0 or if they are time-dependent.
@@ -547,6 +714,12 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
   gkyl_array_release(f->em);
   gkyl_array_release(f->em1);
   gkyl_array_release(f->emnew);
+  if ( f->field_id == GKYL_FIELD_GR_D_B ){
+    gkyl_array_release(f->em_no_J);
+    gkyl_array_release(f->em_no_J_host);
+    gkyl_dg_gr_maxwell_conf_flux_surf_release(f->calc_conf_flux);
+    gkyl_array_release(f->conf_flux_surf);
+  }
   gkyl_array_release(f->em_host);
   gkyl_array_release(f->em_dup);
   
@@ -590,10 +763,13 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
 
   // Copy BCs are allocated by default. Need to free.
   for (int d=0; d<app->cdim; ++d) {
+    if (f->bc_buffer_lo_fixed[d]) gkyl_array_release(f->bc_buffer_lo_fixed[d]);
+    if (f->bc_buffer_up_fixed[d]) gkyl_array_release(f->bc_buffer_up_fixed[d]);
+    if (f->bc_buffer_lo_fixed_no_J[d]) gkyl_array_release(f->bc_buffer_lo_fixed_no_J[d]);
+    if (f->bc_buffer_up_fixed_no_J[d]) gkyl_array_release(f->bc_buffer_up_fixed_no_J[d]);
     gkyl_bc_basic_release(f->bc_lo[d]);
     gkyl_bc_basic_release(f->bc_up[d]);
   }
 
   gkyl_free(f);
 }
-

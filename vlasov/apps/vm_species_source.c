@@ -34,8 +34,8 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       .use_vmap = vms->use_vmap, 
       .vmap = vms->vmap, 
       .jacob_vel = vms->jacob_vel, 
-      .hamil_range = &vms->hamil_range,
-      .hamil = vms->hamil,
+      .hamil_range = &vms->mom_hamil_range,
+      .hamil = vms->mom_hamil,
       .model_id = vms->model_id,
       .use_gpu = app->use_gpu,
     };
@@ -60,6 +60,8 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       gkyl_mom_type_release(m0_reduced); 
 
       src->scale_m0[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      src->scale_m0_host[i] = app->use_gpu ? mkarr(false, app->basis.num_basis, app->local_ext.volume)
+                                  : gkyl_array_acquire(src->scale_m0[i]); 
       src->adapt_source[i] = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume); 
       src->adapt_proj_source[i] = vms->info.source.source_with_proj[i];
     }
@@ -329,8 +331,13 @@ vm_species_source_write_mom(gkyl_vlasov_app* app,
     int sz_source_M0 = gkyl_calc_strlen(fmt_source_M0, app->name, vms->info.name, frame);
     char fileNm_source_M0[sz_source_M0+1]; // ensures no buffer overflow
     snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vms->info.name, frame);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, 
-      mt, src->scale_m0[0], fileNm_source_M0); 
+    if (app->use_gpu) {
+      gkyl_array_copy(src->scale_m0_host[0], src->scale_m0[0]);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->scale_m0_host[0], fileNm_source_M0);
+    }
+    else {
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->scale_m0[0], fileNm_source_M0);
+    }
   }  
 
   vlasov_array_meta_release(mt); 
@@ -386,6 +393,7 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
     for (int i=0; i<src->num_cross_source; i++) {
       gkyl_mom_calc_release(src->m0_reduced[i]);
       gkyl_array_release(src->scale_m0[i]);
+      gkyl_array_release(src->scale_m0_host[i]);
       gkyl_array_release(src->adapt_source[i]);
     }
     gkyl_dg_gaussian_filter_release(src->gauss_filter);

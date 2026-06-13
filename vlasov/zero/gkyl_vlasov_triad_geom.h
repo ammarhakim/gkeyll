@@ -7,11 +7,23 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
+// Triad geometry context if needed for preset geometries.
+struct gkyl_triad_geom_ctx {
+  double mass_bh; // Mass of the black hole (M)
+  double spin_bh; // Spin of the black hole (a = J/M)
+};
 
 enum gkyl_triad_preset_geom_type {
   GKYL_TRIAD_NONE = 0,
+  GKYL_TRIAD_FLAT,
   GKYL_TRIAD_ANNULUS,
   GKYL_TRIAD_CYLINDRICAL_RZ,
+  GKYL_TRIAD_SPHERICAL_RTHETA,
+  GKYL_TRIAD_GR_KERR_SCHILD_RPHI,
+  GKYL_TRIAD_GR_KERR_SCHILD_R,
+  GKYL_TRIAD_GR_KERR_SCHILD_RTHETA,
+  GKYL_TRIAD_GR_KERR_SCHILD_3V,
+  GKYL_TRIAD_CART_GR_KERR_SCHILD_3V,
 };
 
 struct gkyl_vlasov_triad_geom_inp {
@@ -47,3 +59,12 @@ struct gkyl_vlasov_triad_geom_inp {
 void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *conf_poisson_tensor);
+
+/**
+ * Preset function for the triad hamil 
+ *
+ * @param cdim Number of configuration space dimenions
+ * @param vdim Number of velocity space dimenions
+ * @param preset_geom_type Preset geometry type
+ */
+evalf_t gkyl_vlasov_triad_preset_hamil(const int cdim, const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);

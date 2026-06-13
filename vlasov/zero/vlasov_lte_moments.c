@@ -77,7 +77,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
   gkyl_mom_type_release(M2_type); 
 
   // Allocate model-specific data for obtaining LTE moments from base moments. 
-  if (up->model_id == GKYL_MODEL_SR) {
+  if (up->model_id == GKYL_MODEL_SR || up->model_id == GKYL_MODEL_TRIAD_GR) {
     // spatial components of the four-velocity squared, u_i^2 = (GammaV*V_drift)^2
     // and bulk four-velocity Lorentz boost factor GammaV = sqrt(1 + |u_i|^2) and its square
     if (inp->use_gpu) {
@@ -138,7 +138,7 @@ gkyl_vlasov_lte_density_moment_advance(struct gkyl_vlasov_lte_moments *lte_moms,
 
   // If we are relativistic, compute M1i and find the rest-frame density 
   // n = Gamma_inv*M0 where Gamma_inv = sqrt(1 - |V_drift|^2) and V_drift = M1i/M0
-  if (lte_moms->model_id == GKYL_MODEL_SR) {
+  if (lte_moms->model_id == GKYL_MODEL_SR || lte_moms->model_id == GKYL_MODEL_TRIAD_GR) {
     gkyl_mom_calc_advance(lte_moms->M1i_calc, phase_local, conf_local, fin, lte_moms->M1i); 
     gkyl_dg_calc_sr_vars_n(lte_moms->sr_vars, 
       lte_moms->M0, lte_moms->M1i, density_out);
@@ -160,7 +160,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
   gkyl_mom_calc_advance(lte_moms->M0_calc, phase_local, conf_local, fin, lte_moms->M0); 
   gkyl_mom_calc_advance(lte_moms->M1i_calc, phase_local, conf_local, fin, lte_moms->M1i); 
 
-  if (lte_moms->model_id == GKYL_MODEL_SR) {
+  if (lte_moms->model_id == GKYL_MODEL_SR || lte_moms->model_id == GKYL_MODEL_TRIAD_GR) {
     // If we are relativistic, first compute rest-frame density n = Gamma_inv*M0,
     // Gamma_inv = sqrt(1 - |V_drift|^2), and V_drift = M1i/M0 (using weak division).
     // Done as a separate operator for robustness checks which insure V_drift < c.
@@ -278,7 +278,7 @@ gkyl_vlasov_lte_moments_release(gkyl_vlasov_lte_moments *lte_moms)
     gkyl_array_release(lte_moms->M0_V);
     gkyl_array_release(lte_moms->effective_potential);
   }
-  if (lte_moms->model_id == GKYL_MODEL_SR) {
+  if (lte_moms->model_id == GKYL_MODEL_SR || lte_moms->model_id == GKYL_MODEL_TRIAD_GR) {
     gkyl_dg_calc_sr_vars_release(lte_moms->sr_vars);
     gkyl_array_release(lte_moms->V_drift_sq);
     gkyl_array_release(lte_moms->GammaV);

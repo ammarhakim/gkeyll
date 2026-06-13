@@ -141,14 +141,26 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
       }
       else if (model_id == GKYL_MODEL_TRIAD) {
         if ( use_lo ) {
-          up->hamil_alpha_quad[0] = ser_hamil_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[1] = ser_hamil_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[2] = ser_hamil_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[0] = ser_hamil_vel_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_vel_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_vel_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         } 
         else {
-          up->hamil_alpha_quad[0] = ser_hamil_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[1] = ser_hamil_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[2] = ser_hamil_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[0] = ser_hamil_vel_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_vel_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_vel_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else if (model_id == GKYL_MODEL_TRIAD_GR) {
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = ser_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_phase_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_phase_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        } 
+        else {
+          up->hamil_alpha_quad[0] = ser_hamil_phase_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = ser_hamil_phase_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = ser_hamil_phase_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         }
       }
 

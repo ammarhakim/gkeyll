@@ -61,6 +61,11 @@ gkyl_bc_basic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge, int cdim, e
       fout->func = maxwell_reservoir_bc;
       break;
 
+    // Maxwell's BC for theta pole in spherical coordiante
+    case GKYL_BC_MAXWELL_THETA_POLE:
+      fout->func = maxwell_theta_pole_bc;
+      break;
+
     // PKPM Reflecting wall for distribution function
     case GKYL_BC_PKPM_SPECIES_REFLECT:
       fout->func = pkpm_species_reflect_bc;
@@ -142,6 +147,7 @@ gkyl_bc_basic_advance(const struct gkyl_bc_basic *up, struct gkyl_array *buff_ar
     case GKYL_BC_MAXWELL_PEC:
     case GKYL_BC_MAXWELL_SYM:
     case GKYL_BC_MAXWELL_RESERVOIR:
+    case GKYL_BC_MAXWELL_THETA_POLE:
     case GKYL_BC_PKPM_MOM_REFLECT:
     case GKYL_BC_PKPM_MOM_NO_SLIP:
     case GKYL_BC_EULER_REFLECT:

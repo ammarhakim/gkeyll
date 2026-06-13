@@ -87,7 +87,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 
   vlasov->rad = gkyl_array_acquire(inp->rad);
   vlasov->use_conf_flux_surf = false;
-  if (inp->model_id == GKYL_MODEL_TRIAD ){
+  if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR){
     vlasov->use_conf_flux_surf = true;
     vlasov->conf_flux_surf = gkyl_array_acquire(inp->conf_flux_surf);
   }
@@ -154,8 +154,14 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         stream_boundary_surf_z_kernels = ser_stream_hamil_vel_boundary_surf_z_kernels; 
 
       }
-      else if (inp->model_id == GKYL_MODEL_TRIAD) {
-        vlasov->hamil_vol = ser_nc_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+      else if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
+
+        if (inp->model_id == GKYL_MODEL_TRIAD) {
+          vlasov->hamil_vol = ser_nc_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
+          vlasov->hamil_vol = ser_nc_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
+        }
 
         if ( inp->use_lo ) {
           stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
@@ -241,7 +247,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         stream_boundary_surf_y_kernels = tensor_stream_hamil_vel_boundary_surf_y_kernels;
         stream_boundary_surf_z_kernels = tensor_stream_hamil_vel_boundary_surf_z_kernels;         
       }
-      else if (inp->model_id == GKYL_MODEL_TRIAD) {
+      else if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
         gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_TRIAD not yet supported!"); 
       }
       else {
@@ -264,7 +270,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   }
 
 
-  if (inp->model_id == GKYL_MODEL_TRIAD) {
+  if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
     vlasov->stream_surf_from_flux[0] = stream_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[1] = stream_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[2] = stream_surf_from_flux_z_kernels[kernel_index].kernels[poly_order];
@@ -293,7 +299,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
-    if (inp->model_id == GKYL_MODEL_TRIAD) {
+    if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
       assert(vlasov->stream_surf_from_flux[i]);
       assert(vlasov->stream_boundary_surf_from_flux[i]);
     } else {
