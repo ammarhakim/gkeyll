@@ -28,6 +28,7 @@ return {
       "rt_dg_hasegawa_mima_p2",
       "rt_dg_hasegawa_mima_p1",
       "rt_vlasov_sr_nonuniformv_twostream_1x1v",
+      "rt_vlasov_sr_nonuniformv_twostream_ser_1x1v",
    },
    gpu = {
    },
