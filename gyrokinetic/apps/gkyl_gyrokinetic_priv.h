@@ -1375,8 +1375,9 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_ts_lo; // Fills lower core z-ghost with TS BC.
+  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_lo; // Fills lower core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
   
   // Pointer to functions that make phi continuous along z.
@@ -1465,7 +1466,12 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
-  
+  // Shift (for TS BC) as a function of x, and objects associated with it.
+  struct gkyl_range delta_ts_x_rng;
+  struct gkyl_basis delta_ts_x_basis;
+  struct gkyl_rect_grid delta_ts_x_grid;
+  struct gkyl_array *delta_ts_x_lo, *delta_ts_x_up; // Should live on the host.
+
   struct gkyl_position_map *position_map; // Position mapping object.
 
   struct gk_field *field; // pointer to field object
@@ -1539,8 +1545,22 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
  * @param gk Gyrokinetic input struct.
  * @param app Gyrokinetic app.
  */
-void
-gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
+void gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
+
+/**
+ * Deflate the shift used for twistshift BCs from 3D to 1D.
+ *
+ * @param app Gyrokinetic app object.
+ * @param delta_ts Shift in 3D array.
+ */
+void gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array *delta_ts);
+
+/**
+ * Write the twistshift shift.
+ *
+ * @param app Gyrokinetic app object.
+ */
+void gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app);
 
 /**
  * Find species with given name.
