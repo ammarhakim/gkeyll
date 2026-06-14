@@ -486,14 +486,6 @@ struct gkyl_msgpack_map_elem {
   };
 };
 
-#define GMPE_TAG(x) _Generic((x),           \
-      bool: GKYL_MP_BOOL,                   \
-      int: GKYL_MP_INT,                     \
-      unsigned int: GKYL_MP_UNSIGNED_INT,   \
-      float: GKYL_MP_FLOAT,                 \
-      double: GKYL_MP_DOUBLE,               \
-      char *: GKYL_MP_STRING)
-
 // The following functions and the macro reduce the errors in
 // constructing gkyl_msgpack_map_elem objects
 static inline struct gkyl_msgpack_map_elem
