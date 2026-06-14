@@ -243,6 +243,7 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
         gkyl_array_copy(gks->lbo.nu_prim_moms_host, cross_prim_moms_scratch);
         cross_prim_moms_io = gks->lbo.nu_prim_moms_host;
         gkyl_array_copy(gks->lbo.nu_sum_host, gks->lbo.cross_nu[i]);
+        cross_nu_io = gks->lbo.nu_sum_host;
       }
       else {
         cross_prim_moms_io = cross_prim_moms_scratch;
