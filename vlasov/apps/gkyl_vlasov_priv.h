@@ -880,8 +880,14 @@ struct gkyl_vlasov_app {
   void (*field_energy_calc)(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
   // Function which writes out electromagnetic/electrostatic fields. 
   void (*field_write)(gkyl_vlasov_app *app, double tm, int frame);
-  // Function which writes out integrated field energy. 
+  // Function which writes out integrated field energy.
   void (*field_energy_write)(gkyl_vlasov_app *app);
+  // Pointer to function that updates the field at the current time. For Vlasov-
+  // Maxwell (E_B/GR_D_B) this computes the RHS of Maxwell's equations (returning
+  // the max stable dt); for Vlasov-Poisson (PHI) this solves for the potential
+  // at the current time from the charge density (returning DBL_MAX, no CFL limit).
+  double (*field_update)(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+    const struct gkyl_array *emin, struct gkyl_array *emout);
 
   // geometry data
   struct vm_geom *vm_geom;
@@ -1822,6 +1828,30 @@ void vm_field_buffer_fixed_func_bc(gkyl_vlasov_app *app, struct vm_field *field)
  * @return Maximum stable time-step
  */
 double vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field, const struct gkyl_array *em, struct gkyl_array *rhs);
+
+/**
+ * Combine RK stages of the field state (out = c1*arr1 + c2*arr2). No-op for
+ * Vlasov-Poisson, whose potential is re-solved each stage rather than stepped.
+ */
+void vm_field_combine(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out,
+  double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2);
+
+/**
+ * Copy the field state (out = inp). No-op for Vlasov-Poisson.
+ */
+void vm_field_copy_range(gkyl_vlasov_app *app, struct vm_field *field,
+  struct gkyl_array *out, const struct gkyl_array *inp);
+
+/**
+ * Field-update dispatch functions assigned to app->field_update (see its
+ * declaration). Both compute the field at the current time: vm_field_update
+ * computes the RHS of Maxwell's equations; vp_field_update solves for the
+ * Vlasov-Poisson potential from the charge density.
+ */
+double vm_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout);
+double vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout);
 
 /**
  * Apply BCs to field

@@ -37,6 +37,16 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     }
   }
 
+  // Update the field at the start of the step so the species RHS sees the
+  // correct field/potential. For Vlasov-Maxwell this computes the RHS of
+  // Maxwell's equations (whose order relative to the species RHS does not
+  // matter); for Vlasov-Poisson this solves for the potential at the current
+  // time from the charge density (which the species RHS reads below).
+  if (app->has_field) {
+    double dt1 = app->field_update(app, tcurr, fin, emin, emout);
+    dtmin = fmin(dtmin, dt1);
+  }
+
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
     vm_species_lbo_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
@@ -85,14 +95,6 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_fluid_species_source_rhs(app, &app->fluid_species[i], &app->fluid_species[i].src, fluidin, fluidout);
     }
   }
-  // compute RHS of Maxwell equations
-  if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
-      double dt1 = vm_field_rhs(app, app->field, emin, emout);
-      dtmin = fmin(dtmin, dt1);
-    }
-  }
-
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).

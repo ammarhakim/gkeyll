@@ -452,6 +452,29 @@ vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array
   }
 }
 
+// Combine the RK stages of the field state (out = c1*arr1 + c2*arr2). The field
+// is part of the RK state vector only for Vlasov-Maxwell (E_B/GR_D_B); for
+// Vlasov-Poisson the potential is re-solved from the charge density each stage
+// (see vp_calc_field), so this is a no-op. Note: for Vlasov-Poisson the em/em1/
+// emnew pointers alias the Poisson scratch arrays via the vm_field union, so
+// skipping the combine here also avoids scribbling on them.
+void
+vm_field_combine(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out,
+  double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2)
+{
+  if (field->field_id == GKYL_FIELD_E_B || field->field_id == GKYL_FIELD_GR_D_B)
+    array_combine(out, c1, arr1, c2, arr2, &app->local_ext);
+}
+
+// Copy the field state (out = inp). No-op for Vlasov-Poisson (see vm_field_combine).
+void
+vm_field_copy_range(gkyl_vlasov_app *app, struct vm_field *field,
+  struct gkyl_array *out, const struct gkyl_array *inp)
+{
+  if (field->field_id == GKYL_FIELD_E_B || field->field_id == GKYL_FIELD_GR_D_B)
+    gkyl_array_copy_range(out, inp, &app->local_ext);
+}
+
 // Compute the RHS for field update, returning maximum stable time-step.
 double
 vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,

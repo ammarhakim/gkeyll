@@ -234,8 +234,9 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       app->field_app_current_calc = vp_field_calc_app_current;
       app->field_ext_pot_calc = vp_field_calc_ext_pot;
       app->field_energy_calc = vp_field_calc_energy;
-      app->field_write = vp_field_write; 
-      app->field_energy_write = vp_field_write_energy; 
+      app->field_write = vp_field_write;
+      app->field_energy_write = vp_field_write_energy;
+      app->field_update = vp_field_update;
     }
     else {
       app->field = vm_field_new(vm, app);
@@ -244,7 +245,8 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
       app->field_ext_pot_calc = vm_field_calc_ext_pot;
       app->field_energy_calc = vm_field_calc_energy;
       app->field_write = vm_field_write;
-      app->field_energy_write = vm_field_write_energy; 
+      app->field_energy_write = vm_field_write_energy;
+      app->field_update = vm_field_update;
     }
   }
 
@@ -416,6 +418,25 @@ vp_calc_field_and_apply_bc(gkyl_vlasov_app* app, double tcurr, struct gkyl_array
   for (int i=0; i<app->num_species; ++i) {
     vm_species_apply_bc(app, &app->species[i], distf[i], tcurr);
   }
+}
+
+double
+vm_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout)
+{
+  // Vlasov-Maxwell: compute the RHS of Maxwell's equations.
+  return vm_field_rhs(app, app->field, emin, emout);
+}
+
+double
+vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout)
+{
+  // Vlasov-Poisson: solve for the potential at the current time from the charge
+  // density. This is an elliptic solve (not part of the RK state vector) and
+  // imposes no CFL constraint of its own.
+  vp_calc_field(app, tcurr, fin);
+  return DBL_MAX;
 }
 
 void
