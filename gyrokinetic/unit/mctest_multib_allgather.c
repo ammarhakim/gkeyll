@@ -18,7 +18,7 @@
 
 // allocate array (filled with zeros)
 static struct gkyl_array*
-mkarr(long nc, long size, bool use_gpu)
+mkarr(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a = use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
                                 : gkyl_array_new(GKYL_DOUBLE, nc, size);
@@ -1207,7 +1207,8 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     for (int i=0; i<branks[bid]; ++i)
       if (rank_list[i] == my_rank) brank = i;
     array_local[bI] = mkarr(use_gpu, basis.num_basis, local_ranges_ext[bI]->volume);
-    array_local_ho[bI] = use_gpu ? mkarr(false, basis.num_basis, local_ranges_ext[bI]->volume) : gkyl_array_acquire(array_local[bI]);
+    array_local_ho[bI] = use_gpu ? mkarr(false, basis.num_basis, local_ranges_ext[bI]->volume)
+	                         : gkyl_array_acquire(array_local[bI]);
     gkyl_array_shiftc(array_local[bI], sqrt(pow(2,ndim)), 0); // Sets es_energy_fac=1.
     if (num_ranks > 1) 
       gkyl_array_scale(array_local[bI], 0.5*my_rank);

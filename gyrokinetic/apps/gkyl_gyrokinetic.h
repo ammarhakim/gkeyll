@@ -144,6 +144,10 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
+  bool has_adapt_particle_fraction; // Whether a recycling rate is provided or if we should just adapt to all the loss.
+  double adapt_particle_fraction; // Fraction of particle loss to adapt to (default is 1, full adaptation).
+  bool has_adapt_energy_fraction; // Whether to specify a fraction of the energy loss to adapt to.
+  double adapt_energy_fraction; // Fraction of energy loss to adapt to (default is 1, full adaptation).
   char adapt_to_species[16]; // Species to adapt the particle loss to ensure quasi neutrality.
   int num_boundaries; // Number of boundaries to adapt.
   int dir[GKYL_MAX_CDIM*2]; // Direction to adapt.
@@ -180,9 +184,11 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
 //    for external model
 struct gkyl_gyrokinetic_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
-  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x).
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x,y,z).
   void *rate_profile_ctx;
-  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x).
+  void (*feq_shape)(double t, const double *xn, double *fout, void *ctx); // F_eq(x,y,z,vpar,mu).
+  void *feq_shape_ctx;
+  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x,y,z).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
   double injection_time;  // Injection time for external source model
@@ -234,10 +240,17 @@ struct gkyl_gyrokinetic_geometry {
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
+  // Twist-shift functions for the tokamak core.
+  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
+  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
 };
 
 // Parameters for species radiation.
@@ -584,7 +597,7 @@ struct gkyl_gyrokinetic_eirene {
 
 // Top-level app parameters
 struct gkyl_gk {
-  char name[128]; // Name of app: used as output prefix.
+  char name[128]; // Name of app: used as output prefix. Should not end in _b#.
 
   int cdim; // Configuration-space dimensions.
   double lower[3], upper[3]; // Lower, upper bounds of config-space.
