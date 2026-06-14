@@ -71,7 +71,6 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
   { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN },
   { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
-  { "ElectrostaticIWL", GKYL_GK_FIELD_ES_IWL },
   { "Electromagnetic", GKYL_GK_FIELD_EM },
   { 0, 0 }
 };
@@ -139,7 +138,6 @@ static const struct gkyl_str_int_pair gk_bcs[] = {
   { "speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX }, // Zero flux.
   { "speciesSheath", GKYL_BC_GK_SPECIES_SHEATH }, // Sheath.
   { "speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE }, // Recycling.
-  { "speciesIWL", GKYL_BC_GK_SPECIES_IWL }, // Inner wall limited.
   { "speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC }, // Periodic.
   { "speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT }, // Twist-shift.
   // Field BCs.

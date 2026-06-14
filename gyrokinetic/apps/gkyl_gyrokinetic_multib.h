@@ -160,6 +160,9 @@ struct gkyl_gyrokinetic_multib {
 
   double cfl_frac; // CFL fraction to use (default 1.0)
   double cfl_frac_omegaH; // CFL fraction to use for omegaH (default 1.7)
+  
+  int num_periodic_dir; // Number of periodic directions.
+  int periodic_dirs[3]; // List of periodic directions.
 
   int num_species; // Number of species.
   // Species inputs.
@@ -172,6 +175,9 @@ struct gkyl_gyrokinetic_multib {
   bool skip_field; // Skip field update -> phi = 0 for all time.
   // Field inputs.
   struct gkyl_gyrokinetic_multib_field field;
+
+  // EIRENE inputs
+  struct gkyl_gyrokinetic_eirene eirene;
 
   // Communicator to use.  
   struct gkyl_comm *comm;  
