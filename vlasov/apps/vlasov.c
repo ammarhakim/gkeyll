@@ -228,26 +228,9 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 
   app->has_field = !vm->skip_field; // note inversion of truth value
   if (app->has_field) {
-    if (vm->is_electrostatic) {
-      app->field = vp_field_new(vm, app);
-      app->field_ext_em_calc = vp_field_calc_ext_em;
-      app->field_app_current_calc = vp_field_calc_app_current;
-      app->field_ext_pot_calc = vp_field_calc_ext_pot;
-      app->field_energy_calc = vp_field_calc_energy;
-      app->field_write = vp_field_write;
-      app->field_energy_write = vp_field_write_energy;
-      app->field_update = vp_field_update;
-    }
-    else {
-      app->field = vm_field_new(vm, app);
-      app->field_ext_em_calc = vm_field_calc_ext_em;
-      app->field_app_current_calc = vm_field_calc_app_current;
-      app->field_ext_pot_calc = vm_field_calc_ext_pot;
-      app->field_energy_calc = vm_field_calc_energy;
-      app->field_write = vm_field_write;
-      app->field_energy_write = vm_field_write_energy;
-      app->field_update = vm_field_update;
-    }
+    // Create the field, dispatching on field type (Maxwell vs Poisson). The
+    // constructor sets the field's dispatch methods; callers use vlasov_field_*.
+    app->field = vlasov_field_new(vm, app);
   }
 
   // allocate space to store species objects
@@ -391,8 +374,8 @@ vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
     vm_fluid_species_apply_bc(app, &app->fluid_species[i], fluid[i]);
   }
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
-      vm_field_apply_bc(app, app->field, emfield);
+    // No-op for Vlasov-Poisson (the potential has no EM boundary conditions).
+    vlasov_field_apply_bc(app, emfield);
   }
 }
 
@@ -404,39 +387,6 @@ vp_calc_field(gkyl_vlasov_app* app, double tcurr, const struct gkyl_array *fin[]
 
   // Solve the field equation.
   vp_field_solve(app, app->field);
-}
-
-void
-vp_calc_field_and_apply_bc(gkyl_vlasov_app* app, double tcurr, struct gkyl_array *distf[])
-{
-  // Compute the field.
-  // MF 2024/09/27/: Need the cast here for consistency. Fixing
-  // this may require removing 'const' from a lot of places.
-  vp_calc_field(app, tcurr, (const struct gkyl_array **) distf);
-
-  // Apply boundary conditions.
-  for (int i=0; i<app->num_species; ++i) {
-    vm_species_apply_bc(app, &app->species[i], distf[i], tcurr);
-  }
-}
-
-double
-vm_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout)
-{
-  // Vlasov-Maxwell: compute the RHS of Maxwell's equations.
-  return vm_field_rhs(app, app->field, emin, emout);
-}
-
-double
-vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
-  const struct gkyl_array *emin, struct gkyl_array *emout)
-{
-  // Vlasov-Poisson: solve for the potential at the current time from the charge
-  // density. This is an elliptic solve (not part of the RK state vector) and
-  // imposes no CFL constraint of its own.
-  vp_calc_field(app, tcurr, fin);
-  return DBL_MAX;
 }
 
 void
@@ -468,16 +418,16 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   app->tcurr = t0;
   struct timespec wtm = gkyl_wall_clock();
 
-  if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
-    vm_field_apply_ic(app, app->field, t0);
-  else if (app->field->field_id != GKYL_FIELD_NULL) {
+  if (app->field->field_id != GKYL_FIELD_NULL) {
     struct gkyl_array *distf[app->num_species];
     for (int i=0; i<app->num_species; ++i)
       distf[i] = app->species[i].f;
 
+    // Dispatches to the Maxwell or Poisson IC; the distribution fin is used only
+    // by Vlasov-Poisson (to form the charge density), ignored by Vlasov-Maxwell.
     // MF 2024/09/27/: Need the cast here for consistency. Fixing
     // this may require removing 'const' from a lot of places.
-    vp_field_apply_ic(app, app->field, (const struct gkyl_array **) distf, t0);
+    vlasov_field_apply_ic(app, (const struct gkyl_array **) distf, t0);
   }
 
   app->stat.init_field_tm += gkyl_time_diff_now_sec(wtm);
@@ -536,7 +486,7 @@ void
 gkyl_vlasov_app_calc_field_energy(gkyl_vlasov_app* app, double tm)
 {
   if (app->has_field) {
-    app->field_energy_calc(app, tm, app->field);
+    vlasov_field_calc_energy(app, tm);
   }
 }
 
@@ -557,7 +507,7 @@ gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 void
 gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 {
-  app->field_write(app, tm, frame); 
+  vlasov_field_write(app, tm, frame);
 }
 
 void
@@ -636,7 +586,7 @@ void
 gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 {
   if (app->has_field) {
-    app->field_energy_write(app);
+    vlasov_field_write_energy(app);
   }
 }
 
@@ -1195,10 +1145,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   if (app->num_fluid_species > 0)
     gkyl_free(app->fluid_species);
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B)
-      vm_field_release(app, app->field);
-    else
-      vp_field_release(app, app->field);
+    vlasov_field_release(app);
   }
   if (app->has_fluid_em_coupling)
     vm_fluid_em_coupling_release(app, app->fl_em);

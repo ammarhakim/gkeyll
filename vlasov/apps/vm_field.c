@@ -330,14 +330,34 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
   gkyl_dg_eqn_release(eqn);
 
+  // Set the type-specific dispatch methods (Vlasov-Maxwell).
+  f->update_func = vm_field_update;
+  f->combine_func = vm_field_combine;
+  f->copy_range_func = vm_field_copy_range;
+  f->apply_ic_func = vm_field_apply_ic;
+  f->apply_bc_func = vm_field_apply_bc;
+  f->limiter_func = vm_field_limiter;
+  f->complete_update_func = vm_field_complete_update;
+  f->calc_ext_em_func = vm_field_calc_ext_em;
+  f->calc_app_current_func = vm_field_calc_app_current;
+  f->calc_ext_pot_func = vm_field_calc_ext_pot;
+  f->calc_energy_func = vm_field_calc_energy;
+  f->write_func = vm_field_write;
+  f->write_energy_func = vm_field_write_energy;
+  f->release_func = vm_field_release;
+
   return f;
 }
 
 void
-vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field, double t0)
+vm_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
+  const struct gkyl_array *fin[], double t0)
 {
+  // fin is unused for Vlasov-Maxwell (its IC comes from the field init function);
+  // the signature matches the unified apply_ic_func dispatch.
+  (void) fin;
   if (!app->has_field) return;
-  
+
   int poly_order = app->poly_order;
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
     poly_order+1, 8, field->info.init, field->info.ctx);
@@ -462,8 +482,7 @@ void
 vm_field_combine(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out,
   double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2)
 {
-  if (field->field_id == GKYL_FIELD_E_B || field->field_id == GKYL_FIELD_GR_D_B)
-    array_combine(out, c1, arr1, c2, arr2, &app->local_ext);
+  array_combine(out, c1, arr1, c2, arr2, &app->local_ext);
 }
 
 // Copy the field state (out = inp). No-op for Vlasov-Poisson (see vm_field_combine).
@@ -471,8 +490,36 @@ void
 vm_field_copy_range(gkyl_vlasov_app *app, struct vm_field *field,
   struct gkyl_array *out, const struct gkyl_array *inp)
 {
-  if (field->field_id == GKYL_FIELD_E_B || field->field_id == GKYL_FIELD_GR_D_B)
-    gkyl_array_copy_range(out, inp, &app->local_ext);
+  gkyl_array_copy_range(out, inp, &app->local_ext);
+}
+
+// Vlasov-Maxwell field update: compute the RHS of Maxwell's equations.
+double
+vm_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout)
+{
+  return vm_field_rhs(app, app->field, emin, emout);
+}
+
+// Vlasov-Maxwell completion of the field update: accumulate the species current
+// onto the field RHS (unless the field is static), then finalize the explicit
+// step emout = emin + dt*RHS.
+void
+vm_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // (can't accumulate current when field is static)
+  if (!app->field->info.is_static) {
+    // accumulate current contribution from kinetic species to electric field terms
+    vm_field_accumulate_current(app, fin, fluidin, emout);
+    app->stat.current_tm += gkyl_time_diff_now_sec(wst);
+  }
+
+  // complete update of field (even when field is static, it is
+  // safest to do this accumulate as it ensure emout = emin)
+  gkyl_array_accumulate(gkyl_array_scale(emout, dt), 1.0, emin);
 }
 
 // Compute the RHS for field update, returning maximum stable time-step.

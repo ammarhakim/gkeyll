@@ -45,7 +45,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
           }
           if (app->has_field) {
-            vm_field_limiter(app, app->field, app->field->em1);
+            vlasov_field_limiter(app, app->field->em1);
           }
           dt = st.dt_actual;
           state = RK_STAGE_2;
@@ -78,7 +78,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
           }
           if (app->has_field) {
-            vm_field_limiter(app, app->field, app->field->emnew);
+            vlasov_field_limiter(app, app->field->emnew);
           }
           if (st.dt_actual < dt) {
             // collect stats
@@ -101,7 +101,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
               array_combine(app->fluid_species[i].fluid1,
                 3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, &app->local_ext);
             if (app->has_field)
-              vm_field_combine(app, app->field, app->field->em1,
+              vlasov_field_combine(app, app->field->em1,
                 3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew);
 
             state = RK_STAGE_3;
@@ -135,7 +135,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
           }
           if (app->has_field) {
-            vm_field_limiter(app, app->field, app->field->emnew);
+            vlasov_field_limiter(app, app->field->emnew);
           }
           if (st.dt_actual < dt) {
             // collect stats
@@ -164,9 +164,9 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
               gkyl_array_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
             }
             if (app->has_field) {
-              vm_field_combine(app, app->field, app->field->em1,
+              vlasov_field_combine(app, app->field->em1,
                 1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew);
-              vm_field_copy_range(app, app->field, app->field->em, app->field->em1);
+              vlasov_field_copy_range(app, app->field->em, app->field->em1);
             }
 
             state = RK_COMPLETE;

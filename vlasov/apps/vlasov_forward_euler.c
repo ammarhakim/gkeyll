@@ -21,13 +21,13 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // so does copy to GPU every call if app->use_gpu = true.
   if (app->has_field) {
     if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
-      app->field_app_current_calc(app, app->field, tcurr); 
+      vlasov_field_calc_app_current(app, tcurr);
     }
     if (app->field->ext_em_evolve) {
-      app->field_ext_em_calc(app, app->field, tcurr);
+      vlasov_field_calc_ext_em(app, tcurr);
     }
     if (app->field->ext_pot_evolve) {
-      app->field_ext_pot_calc(app, app->field, tcurr);
+      vlasov_field_calc_ext_pot(app, tcurr);
     }
   }
   // Compute applied acceleration if if present and time-dependent.
@@ -43,7 +43,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // matter); for Vlasov-Poisson this solves for the potential at the current
   // time from the charge density (which the species RHS reads below).
   if (app->has_field) {
-    double dt1 = app->field_update(app, tcurr, fin, emin, emout);
+    double dt1 = vlasov_field_update(app, tcurr, fin, emin, emout);
     dtmin = fmin(dtmin, dt1);
   }
 
@@ -121,20 +121,10 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
   }
 
+  // Complete the field update: for Vlasov-Maxwell, accumulate the species
+  // current onto the RHS and finalize emout = emin + dta*RHS; no-op for
+  // Vlasov-Poisson (whose potential was solved at the start of the step).
   if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
-      struct timespec wst = gkyl_wall_clock();
-
-      // (can't accumulate current when field is static)
-      if (!app->field->info.is_static) {
-        // accumulate current contribution from kinetic species to electric field terms
-        vm_field_accumulate_current(app, fin, fluidin, emout);
-        app->stat.current_tm += gkyl_time_diff_now_sec(wst);
-      }
-
-      // complete update of field (even when field is static, it is
-      // safest to do this accumulate as it ensure emout = emin)
-      gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
-    }
+    vlasov_field_complete_update(app, dta, fin, fluidin, emin, emout);
   }
 }
