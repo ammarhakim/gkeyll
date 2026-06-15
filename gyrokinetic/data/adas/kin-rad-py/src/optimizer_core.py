@@ -1,3 +1,9 @@
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
+#
+# optimizer_core.py
+# this script contains the core logic for the non-linear optimization of the fit parameters
 # script with functions to compute 
 # safe_integrand: the integrand in eq. 12 in Roeltgen's paper
 #### useful stuff #####
@@ -9,6 +15,7 @@ from scipy.integrate import quad
 from scipy.optimize import minimize, Bounds, LinearConstraint
 from scipy.optimize._numdiff import approx_derivative
 
+# just in case matlab optimizer is being used (no longer needed)
 # 1. STATE CONTAINER FOR MATLAB BRIDGE
 class MatlabBridgeState:
     Te = None
@@ -166,7 +173,7 @@ def run_single_optimization(initial_guess, Te_data, Li_target_data, weight_w, op
     # 5. Run the Optimizer
 
     # ---------------------------------------------------------
-    # ROUTE 1: IPOPT (The open-source interior-point replica)
+    # 1: IPOPT (The open-source interior-point replica)
     # ---------------------------------------------------------
     if optimizer_choice == 'ipopt':
 
@@ -209,7 +216,7 @@ def run_single_optimization(initial_guess, Te_data, Li_target_data, weight_w, op
         return result
 
     # ---------------------------------------------------------
-    # ROUTE 2: SLSQP (SciPy Native)
+    # 2: SLSQP (SciPy Native)
     # ---------------------------------------------------------
     elif optimizer_choice == 'slsqp':
         # SLSQP setup from previous steps...
@@ -237,7 +244,7 @@ def run_single_optimization(initial_guess, Te_data, Li_target_data, weight_w, op
         return result
 
     # ---------------------------------------------------------
-    # ROUTE 3: MATLAB FMINCON (via pyfmincon)
+    # 3: MATLAB FMINCON (via pyfmincon)
     # ---------------------------------------------------------
 
     if optimizer_choice == 'fmincon':

@@ -1,4 +1,6 @@
-# created with the help of ai, but designed by jaime caballero for my phd at differ.
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
 #
 # fit_batch.py
 # this is the main production engine for the kin-rad-gkeyll repository.
@@ -26,14 +28,14 @@ plt.rcParams.update({
     "legend.fontsize": 10
 })
 
-# we use tqdm for a sleek, terminal-friendly progress bar
+# tqdm for progress bar
 try:
     from tqdm import tqdm
 except ImportError:
     print("[error] tqdm is required for the batch progress bar. run: pip install tqdm")
     sys.exit(1)
 
-# hook into our engine scripts
+# hook into engine scripts
 sys.path.append(os.path.join(os.path.dirname(__file__), 'src'))
 from data_parser import load_roeltgen_formatted
 from optimizer_core import run_single_optimization, safe_integrand
@@ -54,6 +56,10 @@ from error_analysis import error_analysis
 #     # you can expand this for B, C, N, O, Ar as needed...
 # }
 
+# current density grid based on the actual densities used in roeltgen's original fits
+# to extract a density grid from radiation_fit_parameters.txt
+# you can use the get_densities.py script in this repository
+# densities are in log10(cm^-3) 
 DENSITY_GRID = {
     'H': { 0: [13.0, 15.3] },
     'He': { 0: [13.0], 1: [13.0] },
@@ -261,11 +267,13 @@ def compile_gkeyll_database(memory_db, filepath):
                     f.write(" ".join([f"{te:.6e}" for te in te_arr]) + "\n")
                     f.write(" ".join([f"{lz:.6e}" for lz in lz_arr]) + "\n")
 
-# this function are they associate variables (gkeyll_memory = {}) are no longer being used, instead the function below
+# the function above are they associate variables (gkeyll_memory = {}) are no longer being used, 
+# instead the function below
 # compile_database_from_csv reads the master csv and at the end compiles the database
 def compile_database_from_csv(csv_path, out_path):
     """
-    reads the master csv, fetches original adas data arrays, and compiles
+    reads the master csv (master db inside a folder fit, which actually is a .txt as well), 
+    fetches original adas data arrays, and compiles
     the strict gkeyll-ready .txt file. this avoids the append trap by
     treating the csv as the single source of truth.
     """
@@ -451,6 +459,7 @@ def main():
                         target_data_scaled = target_data_unscaled * Bs
                         
                         # optimizer bounds and setup
+                        # VERY IMPORTANT VARIABLES TO SET
                         initial_guess = [0.02, 8e3, 0.8, 1.5, -4.0] 
                         weight_powers = np.arange(0.1, 0.30, 0.05) 
                         
@@ -557,6 +566,7 @@ def main():
 
 
     finally:
+        # in case matlab optimizer is being used (no longer needed)
         if eng is not None:
             eng.quit()
 

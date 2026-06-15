@@ -1,3 +1,8 @@
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
+#
+# data_parser.py
 # script to get a function Li(ne, Te) out of interpolated ADAS data
 # this the equivalent of Li in eq. 1 of Roeltgen's paper
 

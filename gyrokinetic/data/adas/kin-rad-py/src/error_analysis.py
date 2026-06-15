@@ -1,3 +1,8 @@
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
+#
+# error_analysis.py
 # this script mimics the error_analysis script from Roeltgen's MATLAB code
 # here: https://github.com/jRoeltgen/radiation_operator/blob/main/error_analysis.m
 

@@ -1,3 +1,10 @@
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
+#
+# fetch_adas_plt.py
+# this script is responsible for fetching the raw ADAS plt (radiation) data files.
+
 import os
 import urllib.request
 import urllib.error

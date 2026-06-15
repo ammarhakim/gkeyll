@@ -1,11 +1,13 @@
-# created with the help of ai, but designed by jaime caballero for my phd at differ.
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
 #
 # download_data.py
 # this script is the entry point for the adas radiation data ingestion pipeline.
 # it reaches out to openadas, grabs the raw bremsstrahlung and line radiation 
 # files (.dat), and translates them into the strict 4-column layout defined 
-# by roeltgen. this gives us the clean L_z(T_e, n_e) grids we need to do our 
-# non-linear fitting later.
+# by roeltgen. this gives us the clean L_z(T_e, n_e) to do non-linear fitting.
+
 
 import os
 import sys
@@ -21,7 +23,7 @@ from format_adas import format_adas_to_roeltgen
 
 def main():
     parser = argparse.ArgumentParser(description="fetch and format adas radiation data.")
-    parser.add_argument("--element", type=str, default="all", 
+    parser.add_argument("--elements", type=str, default="all", 
                         help="element symbol (e.g., H, He, Li) or 'all' to ingest everything.")
     
     args = parser.parse_args()
@@ -35,12 +37,12 @@ def main():
     print("=========================================\n")
 
     # figure out which elements we are processing
-    if args.element.lower() == "all":
+    if args.elements.lower() == "all":
         elements_to_process = list(ADAS_PLT_FILES.keys())
     else:
-        element_cap = args.element.capitalize()
+        element_cap = args.elements.capitalize()
         if element_cap not in ADAS_PLT_FILES:
-            print(f"[error] element '{args.element}' is not supported.")
+            print(f"[error] element '{args.elements}' is not supported.")
             print(f"supported elements: {list(ADAS_PLT_FILES.keys())}")
             sys.exit(1)
         elements_to_process = [element_cap]

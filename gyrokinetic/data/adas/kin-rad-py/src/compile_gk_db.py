@@ -1,4 +1,6 @@
-# created with the help of ai, but designed by jaime caballero for my phd at differ.
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
 #
 # compile_db.py
 # this script acts as the "linker" for the repository. it reads the master csv
@@ -111,8 +113,11 @@ def main():
                     f.write(" ".join([f"{te:.6e}" for te in te_arr]) + "\n")
                     f.write(" ".join([f"{lz:.6e}" for lz in lz_arr]) + "\n")
 
-    print("compilation complete. ready for gkeyll coupling.")
-
+    print("compilation complete.")
+    print("if you want to run simulations with this database")
+    print("you put it in gkeyll/gyrokinetic/data/adas/ ")
+    print("with the name: radiation_fit_parameters.txt ")
+    print("and compile gkeyll.")
 if __name__ == "__main__":
     main()
 

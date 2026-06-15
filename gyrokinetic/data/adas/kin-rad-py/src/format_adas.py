@@ -1,3 +1,11 @@
+# created and designed by jaime caballero for my phd at differ and the gkeyll team
+# to mimic original https://github.com/jRoeltgen/radiation_operator/tree/main by J. Roeltgen
+# code written with some help of ai 
+#
+# format_adas.py
+# this script contains the logic to parse the raw ADAS ADF11 .dat files and
+# convert them into the strict 4-column format defined by Roeltgen. 
+
 import os
 import glob
 import argparse
