@@ -121,6 +121,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         src_inp.tov_gas_gamma = app->species[i].tov_gas_gamma;
         src_inp.tov_kappa = app->species[i].tov_kappa;
       }
+      src_inp.tov_p_atm = app->species[i].tov_p_atm;
     }
   }
 

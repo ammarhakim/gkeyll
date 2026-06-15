@@ -17,6 +17,7 @@
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_wv_gr_tov.h>
 #include <gkyl_wv_gr_tov_priv.h>
+#include "tov_solver.h"
 
 static inline double
 safe_r2(double r) // Numerical guard so we don't end up dividing by r = 0
@@ -248,6 +249,55 @@ gkyl_gr_tov_flux_at_radius(double gas_gamma, double kappa, const double q[8], do
   flux[0] = r_face2 * X * D * vel;
   flux[1] = r_face2 * X * (mom_r - D * vel); // tau-flux = energy-flux minus mass-flux
   flux[2] = r_face2 * X * (mom_r * vel + p);
+}
+
+// Well-balancing for the static TOV star. Returns deq[8], the jump in the r^2-weighted conserved variables of the "frozen initial TOV equilibrium" between the two cell-center radii r_l = ql[5], r_r = qr[5].
+// The HLL dissipation acts on Delta_q = qr - ql. Subtracting deq makes it act on delta_q = Delta_q - deq. For the static star the discrete state equals the reference, so delta_q -> 0 and the spurious dissipative mass/energy fluxes
+// vanish at every interface. 
+// Conservation is conserved: the wave construction keeps the physical face-flux jump fr - fl, and deq only redistributes dissipation between amdq/apdq (their sum stays fr - fl) for any deq.
+//
+// The reference is read from the frozen conserved slots q[6]=r^2*p_eq, q[7]=r^2*D_eq (snapshotted at t=0 by the IC projection), so deq matches Delta_q to machine precision at t=0.
+// Only the mass (0) and energy (1) channels get an equilibrium jump; at rest S = 0 so deq[2] = 0 and momentum stays fully HLL.
+
+static void
+gr_tov_wb_equilibrium_jump(const struct wv_gr_tov *gr_tov, const double* ql, const double* qr,
+  double r_face, double Phi_face, double m_face, double deq[8], double *dfeq2)
+{
+  for (int i = 0; i < 8; i++) {
+    deq[i] = 0.0;
+  }
+  *dfeq2 = 0.0;
+
+  double r_l = ql[5], r_r = qr[5];
+  if (r_l < 0.0 || r_r < 0.0) {
+    return; // center ghost (reflected, r < 0): no equilibrium lookup, let the wall BC act
+  }
+
+  // We read the equilibrium straight out of the frozen conserved slots q[6] = r^2*p_eq and q[7] = r^2*D_eq, snapshotted at t=0 by the IC projection.
+  // These undergo the IDENTICAL r^2-averaging as q[0] and q[1], so the cancellation is exact (machine precision) at t=0. 
+  // q[6] and q[7] are never modified by the flux waves, the source update, or the limiter, and never read by prims, so they remain a good frozen reference.
+  double gas_gamma = gr_tov->gas_gamma;
+  double r2p_l_eq = ql[6], r2p_r_eq = qr[6]; // r^2 * p_eq
+  double r2D_l_eq = ql[7], r2D_r_eq = qr[7]; // r^2 * D_eq
+
+  deq[0] = r2D_r_eq - r2D_l_eq; // jump in r^2*D_eq
+  deq[1] = (r2p_r_eq - r2p_l_eq) / (gas_gamma - 1.0); // tau_eq = p_eq/(g-1), so r^2*tau_eq = q[6]/(g-1)
+  deq[2] = 0.0; // S = 0 at rest; momentum dissipation stays HLL.
+
+  // Equilibrium momentum flux jump, using the SAME face geometry as the actual flux (gkyl_gr_tov_flux_at_radius) so the cancellation is exact at t = 0.
+  // The face equilibrium pressure jump is reconstructed from the frozen slots, converting r^2*p_eq back to a face-centered r_face^2 * X * p_eq.
+  double lapse = exp(Phi_face);
+  double compactness = 0.0;
+  if (fabs(r_face) > 1.0e-300) {
+    compactness = 2.0 * m_face / r_face;
+  }
+  double a = 1.0 / sqrt(1.0 - compactness);
+  double X = lapse / a;
+  double r_l2 = safe_r2(r_l), r_r2 = safe_r2(r_r);
+  double p_l_eq = r2p_l_eq / r_l2;
+  double p_r_eq = r2p_r_eq / r_r2;
+  double r_face2 = safe_r2(r_face);
+  *dfeq2 = r_face2 * X * (p_r_eq - p_l_eq);
 }
 
 static inline void
@@ -491,6 +541,103 @@ qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
   }
 }
 
+// Well-balanced HLL (Kappeli & Mishra 2014). Identical signal speeds and physical face fluxes as wave_hll; the ONLY change is that the dissipative jump fed to the wave construction is the equilibrium "deviation" delta_q = (qr - ql) - deq rather
+// than the raw jump qr - ql. The waves are set directly so that  sl*w0 + sr*w1 = fr - fl   (the physical face-flux jump is unchanged), so amdq + apdq = fr - fl is preserved exactly for any deq - I wanted to make it strictly conservative. 
+// deq only redistributes dissipation between amdq/apdq, and vanishes at a static equilibrium so the spurious mass/energy dissipation disappears there.
+static double
+wave_hll_wb(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_gr_tov *gr_tov = container_of(eqn, struct wv_gr_tov, eqn);
+  double gas_gamma = gr_tov->gas_gamma;
+  double kappa = gr_tov->kappa;
+
+  double vl[9], vr[9];
+  gkyl_gr_tov_prim_vars(gas_gamma, ql, vl);
+  gkyl_gr_tov_prim_vars(gas_gamma, qr, vr);
+
+  double rho_l = vl[6], rho_r = vr[6];
+  double p_l = vl[8], p_r = vr[8];
+  double eps_l = p_l / ((gas_gamma - 1.0) * rho_l);
+  double eps_r = p_r / ((gas_gamma - 1.0) * rho_r);
+  double h_l = 1.0 + eps_l + p_l / rho_l;
+  double h_r = 1.0 + eps_r + p_r / rho_r;
+  double cs2_l = gas_gamma * p_l / (rho_l * h_l);
+  double cs2_r = gas_gamma * p_r / (rho_r * h_r);
+  if (cs2_l < 0.0) { cs2_l = 0.0; }
+  if (cs2_l > 1.0 - 1.0e-12) { cs2_l = 1.0 - 1.0e-12; }
+  if (cs2_r < 0.0) { cs2_r = 0.0; }
+  if (cs2_r > 1.0 - 1.0e-12) { cs2_r = 1.0 - 1.0e-12; }
+  double c_sl = sqrt(cs2_l);
+  double c_sr = sqrt(cs2_r);
+  double vel_l = vl[7];
+  double vel_r = vr[7];
+
+  double lapse_l = exp(ql[3]);
+  double lapse_r = exp(qr[3]);
+  double a_l = 1.0 / sqrt(1.0 - (2.0 * ql[4] / ql[5]));
+  double a_r = 1.0 / sqrt(1.0 - (2.0 * qr[4] / qr[5]));
+  double metric_speed_l = lapse_l / a_l;
+  double metric_speed_r = lapse_r / a_r;
+
+  double slow_acoustic_eig_l = metric_speed_l * (vel_l - c_sl) / (1.0 - (vel_l * c_sl));
+  double fast_acoustic_eig_l = metric_speed_l * (vel_l + c_sl) / (1.0 + (vel_l * c_sl));
+  double slow_acoustic_eig_r = metric_speed_r * (vel_r - c_sr) / (1.0 - (vel_r * c_sr));
+  double fast_acoustic_eig_r = metric_speed_r * (vel_r + c_sr) / (1.0 + (vel_r * c_sr));
+
+  double sl = fmin(slow_acoustic_eig_l, slow_acoustic_eig_r);
+  double sr = fmax(fast_acoustic_eig_l, fast_acoustic_eig_r);
+  if (sr <= sl) {
+    double amax = fmax(gkyl_gr_tov_max_abs_speed(gas_gamma, ql), gkyl_gr_tov_max_abs_speed(gas_gamma, qr));
+    sl = -amax;
+    sr = amax;
+  }
+
+  double fl[8], fr[8];
+  double r_face = 0.5 * (ql[5] + qr[5]);
+  double Phi_face = 0.5 * (ql[3] + qr[3]);
+  double m_face = 0.5 * (ql[4] + qr[4]);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, ql, r_face, Phi_face, m_face, fl);
+  gkyl_gr_tov_flux_at_radius(gas_gamma, kappa, qr, r_face, Phi_face, m_face, fr);
+
+  // Equilibrium-subtracted jump: delta_q = (qr - ql) - deq; and the frozen equilibrium momentum flux jump dfeq2 (subtracted from df[2] only).
+  double deq[8], dfeq2 = 0.0;
+  gr_tov_wb_equilibrium_jump(gr_tov, ql, qr, r_face, Phi_face, m_face, deq, &dfeq2);
+
+  double *w0 = &waves[0], *w1 = &waves[8];
+  double inv = 1.0 / (sr - sl);
+  for (int i = 0; i < 8; i++) {
+    double dq = (qr[i] - ql[i]) - deq[i];
+    double df = fr[i] - fl[i];
+    if (i == 2) {
+      df -= dfeq2; // well-balance the momentum central flux: df[2] - df_eq[2] -> 0 at rest
+    }
+    w0[i] = (sr * dq - df) * inv; // left-going wave
+    w1[i] = (df - sl * dq) * inv; // right-going wave; sl*w0 + sr*w1 = df (- dfeq2 for mom)
+  }
+  for (int i = 0; i < 8; i++) {
+    if (i != 0 && i != 1 && i != 2) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
+  }
+
+  s[0] = sl;
+  s[1] = sr;
+
+  return fmax(fabs(sl), fabs(sr));
+}
+
+static double
+wave_hll_wb_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+{
+  if (type == GKYL_WV_HIGH_ORDER_FLUX) {
+    return wave_hll_wb(eqn, delta, ql, qr, waves, s);
+  }
+  else {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+}
+
 // HLLC Riemann solver (Mignone & Bodo 2005, MNRAS 364:126 for the relativistic
 // contact closure; Toro/Spruce/Speares 1994 for the base 3-wave structure).
 static double
@@ -729,8 +876,6 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
   double kappa = gr_tov->kappa;
 
   double fr[8], fl[8];
-  //gkyl_gr_tov_flux_total(gas_gamma, kappa, ql, fl);
-  //gkyl_gr_tov_flux_total(gas_gamma, kappa, qr, fr);
   double r_face = 0.5 * (ql[5] + qr[5]);
   double Phi_face = 0.5 * (ql[3] + qr[3]);
   double m_face = 0.5 * (ql[4] + qr[4]);
@@ -839,6 +984,11 @@ gkyl_wv_gr_tov_inew(const struct gkyl_wv_gr_tov_inp* inp)
     gr_tov->eqn.num_waves = 3;
     gr_tov->eqn.waves_func = wave_hllc_l;
     gr_tov->eqn.qfluct_func = qfluct_hllc_l;
+  }
+  else if (inp->rp_type == WV_GR_TOV_RP_HLL_WB) {
+    gr_tov->eqn.num_waves = 2;
+    gr_tov->eqn.waves_func = wave_hll_wb_l;
+    gr_tov->eqn.qfluct_func = qfluct_hll_l; // waves set directly; same fluctuation formula
   }
 
   gr_tov->eqn.flux_jump = flux_jump;

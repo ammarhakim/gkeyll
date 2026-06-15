@@ -8,6 +8,7 @@ enum gkyl_wv_gr_tov_rp {
   WV_GR_TOV_RP_ROE,
   WV_GR_TOV_RP_HLL,
   WV_GR_TOV_RP_HLLC,
+  WV_GR_TOV_RP_HLL_WB, // HLL with Kappeli-Mishra well-balanced (equilibrium-subtracted) dissipation.
 };
 
 // Input context, packaged as a struct.

@@ -168,7 +168,7 @@ evalGRTovInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   double Etot = ((e + p) * W * W) - p; // Eulerian-frame (conserved) energy dneisty 
   double mom_r = ((e + p) * W * W) * v_con[0]; // radial momenutm density
 
-  //Evolved conservative variables: dummy for D, tau, momentum_r, lapse
+  //Evolved conservative variables: D, tau, momentum_r, lapse
 
   double r2 = r * r;
   fout[0] = r2 * D;
@@ -177,8 +177,10 @@ evalGRTovInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fo
   fout[3] = bl.Phi; // Set Phi appearing in dt metric term
   fout[4] = bl.m;
   fout[5] = r;
-  fout[6] = 0;
-  fout[7] = 0;
+  // Frozen discrete well-balanced reference: we store the projected t=0 cell state (r^2*p and r^2*D) in the conserved slots q[6], q[7]. 
+  // These ride with the cell and are r^2-averaged by the FV projection IDENTICALLY to q[0] and q[1] (by r^2 over the cell, not the center), so the recovered equilibrium (p_eq=q[6]/r^2, D_eq=q[7]/r^2) matches the current state exactly at t=0. 
+  fout[6] = r2 * p;
+  fout[7] = r2 * D;
 
   // for (int i = 0; i < 3; i++) {
   //   gkyl_free(spatial_metric[i]);
@@ -217,14 +219,21 @@ calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_
   }
 }
 
-static void
-recover_idealgas_prim(double gas_gamma, const double q[8], double *rho, double *p, double *vel)
+static double
+recovery_r2(double r)
 {
-  double r = q[5];
   double r2 = r * r;
   if (r2 < 1.0e-300) {
     r2 = 1.0e-300;
   }
+  return r2;
+}
+
+static void
+recover_idealgas_prim(double gas_gamma, const double q[8], double *rho, double *p, double *vel)
+{
+  double r = q[5];
+  double r2 = recovery_r2(r); // cell-center r^2, floored
 
   double D = q[0] / r2;
   double tau = q[1] / r2;   // tau = Etot - D (Valencia energy)
@@ -290,220 +299,6 @@ recover_idealgas_prim(double gas_gamma, const double q[8], double *rho, double *
   *vel = v;
 }
 
-// Faithful mirror of the solver's gkyl_gr_tov_flux_at_radius: hydro state from
-// each cell's own q, but geometry (Phi, m) taken at the shared interface value.
-static void
-polytropic_flux_at_radius(const struct gr_tov_static_ctx *ctx, const double q[8], double r_face,
-  double Phi_face, double m_face, double flux[8])
-{
-  for (int i = 0; i < 8; i++) {
-    flux[i] = 0.0;
-  }
-
-  double rho, p, vel;
-  recover_idealgas_prim(ctx->gas_gamma, q, &rho, &p, &vel);
-
-  double r_cell = q[5];
-  double r2_cell = r_cell * r_cell;
-  if (r2_cell < 1.0e-300) {
-    r2_cell = 1.0e-300;
-  }
-
-  double D = q[0] / r2_cell;
-  double mom_r = q[2] / r2_cell;
-
-  double lapse = exp(Phi_face);
-  double compactness = 0.0;
-  if (fabs(r_face) > 1.0e-300) {
-    compactness = 2.0 * m_face / r_face;
-  }
-  double a = 1.0 / sqrt(1.0 - compactness);
-  double X = lapse / a;
-  double r_face2 = r_face * r_face;
-
-  flux[0] = r_face2 * X * D * vel;
-  flux[1] = r_face2 * X * (mom_r - D * vel); // tau-flux = energy-flux minus mass-flux
-  flux[2] = r_face2 * X * (mom_r * vel + p);
-}
-
-static double
-polytropic_momentum_source(const struct gr_tov_static_ctx *ctx, const double q[8])
-{
-  double rho, p, vel;
-  recover_idealgas_prim(ctx->gas_gamma, q, &rho, &p, &vel);
-
-  double Phi = q[3];
-  double m = q[4];
-  double r = q[5];
-  double r2 = r * r;
-  if (r2 < 1.0e-300) {
-    r2 = 1.0e-300;
-  }
-
-  double D = q[0] / r2;
-  double tau = q[1] / r2;
-  double Etot = tau + D; // physical energy, restored from tau
-  double mom_r = q[2] / r2;
-
-  double lapse = exp(Phi);
-  double a = 1.0 / sqrt(1.0 - (2.0 * m / r));
-  double THETA = (mom_r * vel - Etot) * (8.0 * M_PI * lapse * a * r * p + lapse * a * (m / (r * r)))
-    + (lapse * a * p * (m / (r * r)));
-
-  double X = lapse / a;
-  double sigma = THETA + (2.0 * X * p / r);
-  return r2 * sigma;
-}
-
-// HLL signal speeds, faithful to wave_hll in wv_gr_tov.c (per-cell metric speed).
-static void
-polytropic_hll_speeds(double gas_gamma, const double q[8], double *smin, double *smax)
-{
-  double rho, p, vel;
-  recover_idealgas_prim(gas_gamma, q, &rho, &p, &vel);
-  double rs = fmax(rho, 1.0e-15);
-  double eps = p / ((gas_gamma - 1.0) * rs);
-  double h = 1.0 + eps + p / rs;
-  double cs2 = gas_gamma * p / (rs * h);
-  if (cs2 < 0.0) cs2 = 0.0;
-  if (cs2 > 1.0 - 1.0e-12) cs2 = 1.0 - 1.0e-12;
-  double cs = sqrt(cs2);
-  double lapse = exp(q[3]);
-  double a = 1.0 / sqrt(1.0 - 2.0 * q[4] / q[5]);
-  double ms = lapse / a;
-  *smin = ms * (vel - cs) / (1.0 - vel * cs);
-  *smax = ms * (vel + cs) / (1.0 + vel * cs);
-}
-
-static void
-print_initial_polytropic_residual_diagnostic(const struct gr_tov_static_ctx *ctx, int NX)
-{
-  double dx = ctx->Lx / NX;
-  double lower = 0.5 * dx;
-
-  double *q = gkyl_malloc(sizeof(double[8*NX]));
-  double *flux_faces = gkyl_malloc(sizeof(double[8*(NX+1)]));
-
-  for (int i = 0; i < NX; i++) {
-    double x[1] = { lower + i * dx };
-    evalGRTovInit(0.0, x, &q[8*i], (void*) ctx);
-  }
-
-  for (int iface = 0; iface <= NX; iface++) {
-    const double *ql = 0;
-    if (iface == 0) {
-      ql = &q[0];
-    }
-    else {
-      ql = &q[8*(iface-1)];
-    }
-
-    const double *qr = 0;
-    if (iface == NX) {
-      qr = &q[8*(NX-1)];
-    }
-    else {
-      qr = &q[8*iface];
-    }
-    double ql_wall[8];
-    if (iface == 0) {
-      for (int m = 0; m < 8; m++) {
-        ql_wall[m] = q[m];
-      }
-      ql_wall[2] = -q[2];
-      ql_wall[4] = -q[4];
-      ql_wall[5] = -q[5];
-      ql = ql_wall;
-    }
-    double r_face = 0.5 * (ql[5] + qr[5]);
-    double Phi_face = 0.5 * (ql[3] + qr[3]);
-    double m_face = 0.5 * (ql[4] + qr[4]);
-
-    double fl[8], fr[8];
-    polytropic_flux_at_radius(ctx, ql, r_face, Phi_face, m_face, fl);
-    polytropic_flux_at_radius(ctx, qr, r_face, Phi_face, m_face, fr);
-
-    // Full HLL interface flux INCLUDING the dissipation term sr*sl*(qr-ql),
-    // faithful to the solver. F_HLL = (sr*fl - sl*fr + sr*sl*(qr-ql))/(sr-sl).
-    double sminl, smaxl, sminr, smaxr;
-    polytropic_hll_speeds(ctx->gas_gamma, ql, &sminl, &smaxl);
-    polytropic_hll_speeds(ctx->gas_gamma, qr, &sminr, &smaxr);
-    double sl = fmin(sminl, sminr);
-    double sr = fmax(smaxl, smaxr);
-    if (sr <= sl) {
-      double amax = fmax(fmax(fabs(sminl), fabs(smaxl)), fmax(fabs(sminr), fabs(smaxr)));
-      sl = -amax;
-      sr = amax;
-    }
-    for (int m = 0; m < 8; m++) {
-      flux_faces[8*iface + m] =
-        (sr * fl[m] - sl * fr[m] + sr * sl * (qr[m] - ql[m])) / (sr - sl);
-    }
-  }
-
-  double max_abs_res = 0.0, max_abs_flux = 0.0, max_abs_src = 0.0, l1_res = 0.0;
-  double max_dDdt = 0.0; int imax_D = 0;
-  double max_dtaudt = 0.0; int imax_tau = 0;
-  int imax = 0;
-  double first_res[8], first_dDdt[8], first_dtaudt[8], first_r[8];
-
-  int nfirst = 0;
-  if (NX < 8) {
-    nfirst = NX;
-  }
-  else {
-    nfirst = 8;
-  }
-  for (int i = 0; i < NX; i++) {
-    // dq/dt = -(F_{i+1/2} - F_{i-1/2})/dx + source. Mass (0) and energy/tau (1)
-    // have ZERO source, so any dq/dt there is purely numerical (HLL dissipation
-    // acting on the steep r^2*D, r^2*tau jumps at static equilibrium).
-    double dDdt = -(flux_faces[8*(i+1) + 0] - flux_faces[8*i + 0]) / dx;
-    double dtaudt = -(flux_faces[8*(i+1) + 1] - flux_faces[8*i + 1]) / dx;
-    double flux_grad = -(flux_faces[8*(i+1) + 2] - flux_faces[8*i + 2]) / dx;
-    double src = polytropic_momentum_source(ctx, &q[8*i]);
-    double res = flux_grad + src;
-    double abs_res = fabs(res);
-
-    if (abs_res > max_abs_res) {
-      max_abs_res = abs_res;
-      imax = i;
-    }
-    if (fabs(dDdt) > max_dDdt) { max_dDdt = fabs(dDdt); imax_D = i; }
-    if (fabs(dtaudt) > max_dtaudt) { max_dtaudt = fabs(dtaudt); imax_tau = i; }
-    max_abs_flux = fmax(max_abs_flux, fabs(flux_grad));
-    max_abs_src = fmax(max_abs_src, fabs(src));
-    l1_res += abs_res;
-
-    if (i < nfirst) {
-      first_r[i] = q[8*i + 5];
-      first_res[i] = res;
-      first_dDdt[i] = dDdt;
-      first_dtaudt[i] = dtaudt;
-    }
-  }
-
-  printf("\nInitial polytropic GR TOV residual diagnostic with current HLL flux split and source:\n");
-  printf("  NX = %d, dx = %.16e\n", NX, dx);
-  printf("  Momentum: max |residual| = %.16e at i = %d, r = %.16e, L1 avg = %.16e\n",
-    max_abs_res, imax, q[8*imax + 5], l1_res / NX);
-  printf("            max |flux-grad| = %.16e, max |source| = %.16e\n", max_abs_flux, max_abs_src);
-  printf("  Mass  (zero-source): max |dD/dt|   = %.16e at i = %d, r = %.16e\n",
-    max_dDdt, imax_D, q[8*imax_D + 5]);
-  printf("  Energy(zero-source): max |dtau/dt| = %.16e at i = %d, r = %.16e\n",
-    max_dtaudt, imax_tau, q[8*imax_tau + 5]);
-  printf("  First cells:\n");
-  printf("    i              r                 S residual        dD/dt(numeric)   dtau/dt(numeric)\n");
-  for (int i = 0; i < nfirst; i++) {
-    printf("    %-4d %.16e %+.8e %+.8e %+.8e\n",
-      i, first_r[i], first_res[i], first_dDdt[i], first_dtaudt[i]);
-  }
-  printf("\n");
-
-  gkyl_free(q);
-  gkyl_free(flux_faces);
-}
-
 static double
 compactness_diagnostic(gkyl_moment_app *app, double t_curr, bool print_crossing)
 {
@@ -552,31 +347,6 @@ compactness_diagnostic(gkyl_moment_app *app, double t_curr, bool print_crossing)
   return max_compact_global;
 }
 
-// --- BEGIN inner-cell dump (diagnostic only; remove when done) ---
-static void
-inner_cell_dump(const struct gr_tov_static_ctx *ctx, gkyl_moment_app *app, double t_curr, int ncells)
-{
-  struct gkyl_array *q = gkyl_moment_app_get_write_array_species(app, 0);
-  printf("inner-cell dump at t = %.6e\n", t_curr);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &app->local);
-  int count = 0;
-  while (gkyl_range_iter_next(&iter) && count < ncells) {
-    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
-    const double *qc = gkyl_array_cfetch(q, loc);
-    double rho, p, vel;
-    recover_idealgas_prim(ctx->gas_gamma, qc, &rho, &p, &vel);
-    double r = qc[5];
-    double r2 = r * r; if (r2 < 1.0e-300) r2 = 1.0e-300;
-    double D = qc[0] / r2, tau = qc[1] / r2, S = qc[2] / r2;
-    double Etot = tau + D;
-    printf("  i=%d r=%.6e D=%.10e Etot=%.10e tau=%.6e p=%.6e v=%.6e Phi=%.6e m=%.6e\n",
-      count, r, D, Etot, tau, p, vel, qc[3], qc[4]);
-    count++;
-  }
-}
-// --- END inner-cell dump ---
-
 static void
 polytropic_state_health_diagnostic(const struct gr_tov_static_ctx *ctx, gkyl_moment_app *app, double t_curr, bool force_print)
 {
@@ -586,7 +356,9 @@ polytropic_state_health_diagnostic(const struct gr_tov_static_ctx *ctx, gkyl_mom
   double min_enthalpy = DBL_MAX, r_min_enthalpy = 0.0;
   double min_invariant = DBL_MAX, r_min_invariant = 0.0;
   double max_abs_vel = 0.0, r_max_abs_vel = 0.0, vel_at_max = 0.0;
+  double max_abs_vel_int = 0.0, r_max_abs_vel_int = 0.0; // interior only (r < 0.85 R_star)
   double min_p = DBL_MAX, r_min_p = 0.0;
+  double R_star = gkyl_tov_star_radius(ctx->tov);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
@@ -631,12 +403,17 @@ polytropic_state_health_diagnostic(const struct gr_tov_static_ctx *ctx, gkyl_mom
       vel_at_max = vel;
       r_max_abs_vel = r;
     }
+    if (r > 0.0 && r < 0.85 * R_star && fabs(vel) > max_abs_vel_int) {
+      max_abs_vel_int = fabs(vel);
+      r_max_abs_vel_int = r;
+    }
   }
 
   bool should_print = force_print || max_abs_vel > 0.4 || min_D < 0.0 || min_enthalpy < 0.0 || min_invariant < 0.0;
   if (should_print) {
     printf("Polytropic state health at t = %.16e:\n", t_curr);
     printf("  max |v| = %.16e (v = %.16e) at r = %.16e\n", max_abs_vel, vel_at_max, r_max_abs_vel);
+    printf("  max |v| interior (r < 0.85 R_star = %.4e) = %.16e at r = %.16e\n", 0.85 * R_star, max_abs_vel_int, r_max_abs_vel_int);
     printf("  min D = %.16e at r = %.16e\n", min_D, r_min_D);
     printf("  min p = %.16e at r = %.16e\n", min_p, r_min_p);
     printf("  min Etot+p = %.16e at r = %.16e\n", min_enthalpy, r_min_enthalpy);
@@ -764,7 +541,6 @@ main(int argc, char **argv)
   struct gr_tov_static_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
-  print_initial_polytropic_residual_diagnostic(&ctx, NX);
   double lower = 0.5 * (ctx.Lx / NX);
   double upper = ctx.Lx + 0.5 * (ctx.Lx / NX);
 
@@ -777,7 +553,7 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *gr_tov = gkyl_wv_gr_tov_inew(&(struct gkyl_wv_gr_tov_inp) {
     .gas_gamma = ctx.gas_gamma,
     .kappa = ctx.kappa,
-    .rp_type = WV_GR_TOV_RP_HLL,
+    .rp_type = WV_GR_TOV_RP_HLL_WB,
     .use_gpu = app_args.use_gpu,
   });
 
@@ -933,7 +709,6 @@ main(int argc, char **argv)
   bool collapse_happened = false;
   double max_compactness_seen = compactness_diagnostic(app, t_curr, true);
   polytropic_state_health_diagnostic(&ctx, app, t_curr, true);
-  inner_cell_dump(&ctx, app, t_curr, 5);
   if (max_compactness_seen > 0.95) {
     collapse_happened = true;
   }
@@ -960,9 +735,6 @@ main(int argc, char **argv)
     t_curr += status.dt_actual;
     dt = status.dt_suggested;
 
-    if (step <= 3) {
-      inner_cell_dump(&ctx, app, t_curr, 5);
-    }
     calc_field_energy(&fe_trig, app, t_curr, false);
     calc_integrated_mom(&im_trig, app, t_curr, false);
     write_data(&io_trig, app, t_curr, false);

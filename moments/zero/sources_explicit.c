@@ -4,6 +4,7 @@
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
+#include "tov_solver.h"
 
 void
 explicit_nT_source_update_euler(const double mass, const double dt, double* fluid_old, double* fluid_new, const double* nT_sources)
@@ -475,13 +476,27 @@ explicit_gr_tov_source_update_euler(const gkyl_moment_em_coupling* mom_em, const
   double THETA = (mom_r * vel - Etot) * (8.0 * M_PI * lapse * a * r * p + lapse * a * (m / (r * r))) + (lapse * a * p * (m / (r * r)));
   double X = lapse / a;
   double sigma = THETA + (2.0 * X * p / r);
+
+  // Well-balanced source: we subtract the FROZEN DISCRETE equilibrium source sigma_eq, read straight from the frozen conserved slots q[6] = r^2*p_eq and
+  // q[7] = r^2*D_eq (snapshotted at t=0 by the IC projection). 
+  // Because these slots undergo the IDENTICAL r^2-averaging as q[0] and q[1] (by r^2 over the cell, not the center), sigma_eq exactly
+  // discretely matches sigma at t=0, so sigma - sigma_eq cancels to machine precision and the substep leaves q unchanged.
+
+  double p_eq = fluid_old[6] / r2;
+  double D_eq = fluid_old[7] / r2;
+  double tau_eq = p_eq / (gas_gamma - 1.0);
+  double Etot_eq = D_eq + tau_eq;                 // physical energy density (v=0)
+  double THETA_eq = (-Etot_eq) * (8.0 * M_PI * lapse * a * r * p_eq + lapse * a * (m / (r * r)))
+    + (lapse * a * p_eq * (m / (r * r)));
+  double sigma_eq = THETA_eq + (2.0 * X * p_eq / r);
+
   for (int i = 0; i < 8; i++) {
     fluid_new[i] = fluid_old[i];
   }
 
   fluid_new[0] += 0.0;
   fluid_new[1] += 0.0;
-  fluid_new[2] += dt * (r2 * sigma);
+  fluid_new[2] += dt * (r2 * (sigma - sigma_eq));
   fluid_new[3] += 0.0;
   fluid_new[4] += 0.0;
   fluid_new[5] += 0.0;

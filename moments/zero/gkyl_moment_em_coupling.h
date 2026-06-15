@@ -64,9 +64,10 @@ struct gkyl_moment_em_coupling_inp {
   double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
 
   bool has_gr_tov_sources; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
-  bool has_gr_tov_ultra_rel_sources; 
+  bool has_gr_tov_ultra_rel_sources;
   double tov_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double tov_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  double tov_p_atm; // Atmosphere pressure floor for the initial-equilibrium EOS.
 
   bool has_gr_ultra_rel_sources; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
   double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).

@@ -93,6 +93,7 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   if (mom_em->has_gr_tov_sources) {
     mom_em->tov_gas_gamma = inp.tov_gas_gamma;
     mom_em->tov_kappa = inp.tov_kappa;
+    mom_em->tov_p_atm = inp.tov_p_atm;
   }
 
   mom_em->has_gr_tov_ultra_rel_sources = inp.has_gr_tov_ultra_rel_sources;
