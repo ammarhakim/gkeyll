@@ -239,12 +239,12 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void
-gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r)
+gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
+  struct gkyl_array *distf, const struct gkyl_range *conf_r)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_bc_sheath_gyrokinetic_advance_cu(up, phi, phi_wall, distf, conf_r);
+    gkyl_bc_sheath_gyrokinetic_advance_cu(up, distf, conf_r);
     return;
   }
 #endif
@@ -276,8 +276,6 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
     long conf_loc = gkyl_range_idx(conf_r, iter.idx);
     long vel_loc = gkyl_range_idx(&up->vel_map->local_vel, vidx);
 
-    const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
-    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(up->vel_map->vmap, vel_loc);
     
     int vcutsq_dim = up->vcutsq_local.ndim;
@@ -302,26 +300,6 @@ gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
 void gkyl_bc_sheath_gyrokinetic_set_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcutsq)
 {
   gkyl_array_copy_range(up->vcutsq, vcutsq, &up->vcutsq_local);
-}
-
-struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcutsq(struct gkyl_bc_sheath_gyrokinetic *up)
-{
-  return gkyl_array_acquire(up->vcutsq);
-}
-
-struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcutsq_basis(struct gkyl_bc_sheath_gyrokinetic *up)
-{
-  return up->vcutsq_basis;
-}
-
-struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcutsq_range(struct gkyl_bc_sheath_gyrokinetic *up)
-{
-  return &up->vcutsq_local;
-}
-
-struct gkyl_kann_net *gkyl_bc_sheath_gyrokinetic_acquire_model(struct gkyl_bc_sheath_gyrokinetic *up)
-{
-  return gkyl_kann_net_acquire(up->kann_net);
 }
 
 void gkyl_bc_sheath_gyrokinetic_update_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 

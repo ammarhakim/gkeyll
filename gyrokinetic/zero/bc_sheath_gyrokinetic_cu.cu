@@ -88,8 +88,7 @@ __global__ static void
 gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_range skin_r, 
   const struct gkyl_range ghost_r, const struct gkyl_range conf_r, const struct gkyl_range vcut_r, 
   const struct gkyl_range vel_r, const struct gkyl_basis *basis, const struct gkyl_array *vmap, 
-  double q2Dm, const struct gkyl_array *phi, const struct gkyl_array *phi_wall, 
-  const struct gkyl_array *vcut_fact, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, 
+  double q2Dm, const struct gkyl_array *vcut_fact, struct gkyl_bc_sheath_gyrokinetic_kernels *kers, 
   struct gkyl_array *distf)
 {
   int fidx[GKYL_MAX_DIM]; // Flipped index.
@@ -126,8 +125,6 @@ gkyl_bc_sheath_gyrokinetic_advance_cu_ker(int cdim, int dir, const struct gkyl_r
     long conf_loc = gkyl_range_idx(&conf_r, pidx);
     long vel_loc = gkyl_range_idx(&vel_r, vidx);
 
-    const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
-    const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *vmap_p = (const double*) gkyl_array_cfetch(vmap, vel_loc);
 
     // Get vcut factor.
@@ -269,15 +266,15 @@ bc_gksheath_vcutsq_const_cu_ker(enum gkyl_edge_loc edge,
 }
 
 void
-gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r)
+gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, 
+  struct gkyl_array *distf, const struct gkyl_range *conf_r)
 {
   if (up->skin_r->volume > 0) {
     int nblocks = up->skin_r->nblocks, nthreads = up->skin_r->nthreads;
 
     gkyl_bc_sheath_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim, up->dir, *up->skin_r, *up->ghost_r,
-      *conf_r, up->vcutsq_local, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm, phi->on_dev, phi_wall->on_dev, up->vcutsq->on_dev,
-      up->kernels_cu, distf->on_dev);
+      *conf_r, up->vcutsq_local, up->vel_map->local_vel, up->basis, up->vel_map->vmap->on_dev, up->q2Dm, 
+      up->vcutsq->on_dev, up->kernels_cu, distf->on_dev);
   }
 }
 

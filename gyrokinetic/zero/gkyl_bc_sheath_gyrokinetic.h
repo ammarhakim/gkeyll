@@ -36,14 +36,11 @@ struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum 
  * Apply the sheath BC with the bc_sheath_gyrokinetic object.
  *
  * @param up BC updater.
- * @param phi Electrostatic potential.
- * @param phi_wall Wall potential.
- * @param vcut_fact Alpha parameter for sheath BCs.
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
-void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
+void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
+  struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
 /**
  * Set the vcut_fact array used in the sheath BC. 
@@ -110,30 +107,3 @@ void gkyl_bc_sheath_gyrokinetic_update_vcutsq(const struct gkyl_bc_sheath_gyroki
  * @param up BC updater.
  */
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up);
-
-/**
- * Auxiliary function to evaluate the surrogate model.
- * 
- * @param model The KANN surrogate model to evaluate.
- * @param mu_new Pointer to array of mu values to evaluate surrogate at.
- * @param n Number of mu values to evaluate surrogate at.
- * @param phi Electrostatic potential at the magnetic presheath entrance (simulation boundary).
- * @param phi_wall Electrostatic potential at the wall.
- * @param density Electron density at the magnetic presheath entrance.
- * @param temperature Electron temperature at the magnetic presheath entrance.
- * @param q2Dm 2 times Charge-to-mass ratio times.
- * @param bmag Magnetic field strength at the magnetic presheath entrance.
- * @param bimpact_angle Angle of the magnetic field with respect to the wall at the magnetic presheath entrance.
- * @param out Pointer to array to store surrogate model output (vcut factor) corresponding to input mu values.
- */
-void gkyl_bc_sheath_gyrokinetic_evaluate_vcutsq_surrogate(struct gkyl_kann_net *model, const double *mu_new, int n, double phi, double phi_wall,
-    double dens_e, double temp_e, double q2Dm, double bmag, double bimpact_angle, double *out);
-
-/**
- * Set (or replace) the surrogate KANN model on an existing updater.
- * The old model (if any) is freed and a new one is loaded from the given path.
- *
- * @param up BC updater.
- * @param path Absolute or relative path to the .kann file.
- */
-void gkyl_bc_sheath_gyrokinetic_set_surrogate_model_path(struct gkyl_bc_sheath_gyrokinetic *up, const char *path);
