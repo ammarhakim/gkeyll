@@ -142,17 +142,14 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
 void
 gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
-  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES], const struct gkyl_array* sigma, const struct gkyl_array* embed_mask[GKYL_MAX_SPECIES],
-  struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES])
+  struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES], const struct gkyl_array* sigma, struct gkyl_array* em, const struct gkyl_array* app_current, const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
   double *fluid_s[GKYL_MAX_SPECIES];
   const double *app_accel_s[GKYL_MAX_SPECIES];
-  const double *embed_mask_s[GKYL_MAX_SPECIES];
   const double *p_rhs_s[GKYL_MAX_SPECIES];
   const double *nT_sources_s[GKYL_MAX_SPECIES];
-  bool in_embed = false;
-
+  
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
 
@@ -164,10 +161,6 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, 
       app_accel_s[i] = gkyl_array_cfetch(app_accel[i], cell_idx);
       p_rhs_s[i] = gkyl_array_cfetch(p_rhs[i], cell_idx);
       nT_sources_s[i] = gkyl_array_cfetch(nT_sources[i], cell_idx);
-      embed_mask_s[i] = gkyl_array_cfetch(embed_mask[i], cell_idx);
-      if (embed_mask_s[i][0] < 0.0) {
-        in_embed = false;
-      }
     }
 
     double *em_arr = em ? gkyl_array_fetch(em, cell_idx) : 0;
@@ -175,9 +168,7 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling* mom_em, 
     const double *ext_em_arr = ext_em ? gkyl_array_cfetch(ext_em, cell_idx) : 0;
     const double *sigma_arr = sigma ? gkyl_array_cfetch(sigma, cell_idx) : 0;
 
-    if (!in_embed) {
-      implicit_source_coupling_update(mom_em, t_curr, dt, fluid_s, app_accel_s, p_rhs_s, em_arr, app_current_arr, ext_em_arr, sigma_arr, nT_sources_s);
-    }
+    implicit_source_coupling_update(mom_em, t_curr, dt, fluid_s, app_accel_s, p_rhs_s, em_arr, app_current_arr, ext_em_arr, sigma_arr, nT_sources_s);
   }
 }
 

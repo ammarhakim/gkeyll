@@ -11,6 +11,7 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wave_prop_priv.h>
+#include <gkyl_wv_embed_geo.h>
 
 #include <gkyl_level_set.h>
 
@@ -62,8 +63,8 @@ wave_prop_waves_qfluct(const gkyl_wv_eqn *eqn, int ndim, int dir, double cflm,
 static inline void
 wave_prop_first_order(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
   const struct gkyl_range *update_range, const struct gkyl_wave_geom *wg,
-  struct gkyl_array *amdq, struct gkyl_array *apdq, struct gkyl_array *flux2,
-  struct gkyl_array *qout)
+  const struct gkyl_array *phi, struct gkyl_array *amdq, struct gkyl_array *apdq,
+  struct gkyl_array *flux2, struct gkyl_array *qout)
 {
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
   int meqn = eqn->num_equations;
@@ -79,6 +80,8 @@ wave_prop_first_order(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
     long lidx = gkyl_range_idx(update_range, idxl);
     long ridx = gkyl_range_idx(update_range, idxr);
 
+    const double *phil = gkyl_array_cfetch(phi, lidx);
+
     double *apdq_local = gkyl_array_fetch(apdq, lidx);
     double *amdq_local = gkyl_array_fetch(amdq, ridx);
 
@@ -86,8 +89,13 @@ wave_prop_first_order(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
     double *flux2r = gkyl_array_fetch(flux2, ridx);
 
     const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wg, idxl);
-    calc_first_order_update(meqn, dtdx/cg->kappa, gkyl_array_fetch(qout, lidx),
-      amdq_local, apdq_local, flux2r, flux2l);
+    if (phil[0] < 0.0) {
+      eqn->embed_geo->embed_func(gkyl_array_fetch(qout, lidx), eqn->embed_geo->ctx);
+    }
+    else {
+      calc_first_order_update(meqn, dtdx/cg->kappa, gkyl_array_fetch(qout, lidx),
+        amdq_local, apdq_local, flux2r, flux2l);
+    }
   }
 }
 
@@ -146,8 +154,8 @@ wave_prop_check_inv(const gkyl_wv_eqn *eqn, int ndim, int dir, double cflm,
 static inline void
 wave_prop_first_order_redo(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtdx,
   const struct gkyl_range *update_range, const struct gkyl_wave_geom *wg,
-  struct gkyl_array *redo_fluct, struct gkyl_array *amdq, struct gkyl_array *apdq,
-  struct gkyl_array *qout)
+  struct gkyl_array *redo_fluct, const struct gkyl_array *phi, struct gkyl_array *amdq,
+  struct gkyl_array *apdq, struct gkyl_array *qout)
 {
   int idxl[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
   int meqn = eqn->num_equations;
@@ -166,6 +174,8 @@ wave_prop_first_order_redo(const gkyl_wv_eqn *eqn, int ndim, int dir, double dtd
     idxr[dir] = idxr[dir]+1;
     long lidx = gkyl_range_idx(update_range, idxl);
     long ridx = gkyl_range_idx(update_range, idxr);
+
+    const double *phil = gkyl_array_cfetch(phi, lidx);
 
     double *amdq_local = gkyl_array_fetch(amdq, ridx);
     double *apdq_local = gkyl_array_fetch(apdq, lidx);
@@ -383,7 +393,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
 
   // first order update
   wave_prop_first_order(wv->equation, ndim, dir, dtdx, update_range, wv->geom,
-    wv->amdq, wv->apdq, wv->flux2, qout);
+    phi, wv->amdq, wv->apdq, wv->flux2, qout);
   
   // Determine if we need to redo any flux computations
   if (wv->check_inv_domain) {
@@ -392,7 +402,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
       wv->redo_fluct, max_speed, cfla, is_cfl_violated, qout);
 
     wave_prop_first_order_redo(wv->equation, ndim, dir, dtdx, update_range, wv->geom,
-      wv->redo_fluct, wv->amdq, wv->apdq, qout);
+      wv->redo_fluct, phi, wv->amdq, wv->apdq, qout);
   }
   return (struct gkyl_wave_prop_status) {
     .success = is_cfl_violated[0] > 0.0 ? 0 : 1,

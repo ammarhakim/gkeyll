@@ -396,12 +396,12 @@ wave_embedded(const struct gkyl_wv_eqn *eqn, const double *delta,
   double deltaphi[8] = {0.0};
 
   if ((phil < 0.0) && (phir > 0.0)) {
-    eqn->embed_geo->embed_func(qr, qphi, deltaphi, eqn->embed_geo->ctx);
+    eqn->embed_geo->embed_bc(qr, qphi, deltaphi, eqn->embed_geo->ctx);
 
     for (int d=0; d<8; ++d) deltaphi[d] = qr[d] - qphi[d];
   }
   if ((phil > 0.0) && (phir < 0.0)) {
-    eqn->embed_geo->embed_func(ql, qphi, deltaphi, eqn->embed_geo->ctx);
+    eqn->embed_geo->embed_bc(ql, qphi, deltaphi, eqn->embed_geo->ctx);
 
     for (int d=0; d<8; ++d) deltaphi[d] = qphi[d] - ql[d];
   }

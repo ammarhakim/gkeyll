@@ -85,13 +85,25 @@ gkyl_wv_ten_moment_inew(const struct gkyl_wv_ten_moment_inp *inp)
 
   ten_moment->eqn.embed_geo = inp->embed_geo;
   if (ten_moment->eqn.embed_geo) {
-    switch (ten_moment->eqn.embed_geo->type) {
-      case GKYL_EMBED_ABSORB:
-        ten_moment->eqn.embed_geo->embed_func = wave_embed_absorb;
+    switch (ten_moment->eqn.embed_geo->bc_type) {
+      case GKYL_EMBED_BC_ABSORB:
+        ten_moment->eqn.embed_geo->embed_bc = wave_embed_absorb;
         break;
 
-      case GKYL_EMBED_REFLECT:
-        ten_moment->eqn.embed_geo->embed_func = wave_embed_reflect;
+      case GKYL_EMBED_BC_REFLECT:
+        ten_moment->eqn.embed_geo->embed_bc = wave_embed_reflect;
+        break;
+
+      case GKYL_EMBED_BC_FUNC:
+        break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
+    }
+    switch (ten_moment->eqn.embed_geo->type) {
+      case GKYL_EMBED_EXCISE:
+        ten_moment->eqn.embed_geo->embed_func = calc_embed_excise;
         break;
 
       case GKYL_EMBED_FUNC:

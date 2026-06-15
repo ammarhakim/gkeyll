@@ -167,6 +167,17 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
 
 GKYL_CU_DH
 static void
+calc_embed_excise(double *q, void *ctx)
+{
+  q[0] = 0.0;
+  q[1] = 0.0;
+  q[2] = 0.0;
+  q[3] = 0.0;
+  q[4] = 0.0;
+}
+
+GKYL_CU_DH
+static void
 wave_embed_absorb(const double *q, double *qphi, double *delta, void *ctx)
 {
   qphi[0] = DBL_EPSILON;
@@ -209,13 +220,14 @@ wave_embedded(const struct gkyl_wv_eqn *eqn,
     double sr = fabs(ur) + sqrt(gas_gamma*pr/rhor);
     amax = sr;
    
-    eqn->embed_geo->embed_func(qr, qphi, deltaphi, eqn->embed_geo->ctx);
+    eqn->embed_geo->embed_bc(qr, qphi, deltaphi, eqn->embed_geo->ctx);
 
     gkyl_euler_flux(gas_gamma, qphi, fl);
     gkyl_euler_flux(gas_gamma, qr, fr);
 
     double *w0 = &waves[0], *w1 = &waves[5];
     for (int i=0; i<5; ++i) {
+      w0[i] = 0.5*((qr[i]-qphi[i]) - (fr[i]-fl[i])/amax);
       w1[i] = 0.5*((qr[i]-qphi[i]) + (fr[i]-fl[i])/amax);
     }
   }
@@ -227,7 +239,7 @@ wave_embedded(const struct gkyl_wv_eqn *eqn,
     double sl = fabs(ul) + sqrt(gas_gamma*pl/rhol);
     amax = sl;
     
-    eqn->embed_geo->embed_func(ql, qphi, deltaphi, eqn->embed_geo->ctx);
+    eqn->embed_geo->embed_bc(ql, qphi, deltaphi, eqn->embed_geo->ctx);
 
     gkyl_euler_flux(gas_gamma, ql, fl);
     gkyl_euler_flux(gas_gamma, qphi, fr);
@@ -235,6 +247,7 @@ wave_embedded(const struct gkyl_wv_eqn *eqn,
     double *w0 = &waves[0], *w1 = &waves[5];
     for (int i=0; i<5; ++i) {
       w0[i] = 0.5*((qphi[i]-ql[i]) - (fr[i]-fl[i])/amax);
+      w1[i] = 0.5*((qphi[i]-ql[i]) + (fr[i]-fl[i])/amax);
     }
   }
 

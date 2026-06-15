@@ -285,7 +285,6 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
   const struct gkyl_array *app_accels[GKYL_MAX_SPECIES];
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
-  const struct gkyl_array *embed_mask[GKYL_MAX_SPECIES];
   const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
 
   double dt_suggested = DBL_MAX;
@@ -351,11 +350,6 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     pr_rhs_const[i] = src->pr_rhs[i];
   }
 
-  // Get the RHS pointer for accumulation during source update
-  for (int i=0; i<app->num_species; ++i) {
-    embed_mask[i] = app->species[i].embed_mask;
-  }
-
   for (int i=0; i<app->num_species; ++i) {
     if (app->species[i].proj_nT_source
         && !(app->species[i].nT_source_set_only_once
@@ -377,7 +371,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   }
   else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
-      fluids, app_accels, pr_rhs_const, app->field.resistivity, embed_mask, 
+      fluids, app_accels, pr_rhs_const, app->field.resistivity, 
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em, 
       nT_sources);
   }

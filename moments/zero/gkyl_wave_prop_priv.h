@@ -123,7 +123,8 @@ calc_jump(int n, const double *ql, const double *qr, double * GKYL_RESTRICT jump
 GKYL_CU_DH
 static inline void
 calc_first_order_update(int meqn, double dtdx,
-  double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l, const double *fr, const double *fl)
+  double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r,
+  const double * GKYL_RESTRICT apdq_l, const double *fr, const double *fl)
 {
   for (int i=0; i<meqn; ++i)
     q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i] + fr[i] - fl[i]);
