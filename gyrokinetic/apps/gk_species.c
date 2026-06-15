@@ -198,7 +198,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
   gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
     num_periodic_dir, species->periodic_dirs, f); 
 
-  if (species->alloc_srg_aux_var) {
+  if (species->alloc_surr_aux_var) {
     // Advance the Maxwellian moment computation to get density and temperature for surrogate BCs.
     // We can later optimize this by calling it for upper and lower skin cell range only.
     gkyl_gk_maxwellian_moments_advance(species->maxwell_mom, &species->local, &app->local, f, species->maxmom);
@@ -1028,11 +1028,11 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     }
   }
 
-  gks->alloc_srg_aux_var = false;
+  gks->alloc_surr_aux_var = false;
   for (int d=0; d<2*app->cdim; ++d)
-    gks->alloc_srg_aux_var = gks->alloc_srg_aux_var || gks->info.bcs[d].use_sheath_surrogate;
+    gks->alloc_surr_aux_var = gks->alloc_surr_aux_var || gks->info.bcs[d].use_sheath_surrogate;
 
-  if (gks->alloc_srg_aux_var) {
+  if (gks->alloc_surr_aux_var) {
     struct gkyl_gk_maxwellian_moments_inp inp_mom = {
       .phase_grid = &gks->grid,
       .conf_basis = &app->basis,
@@ -2046,7 +2046,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
     gkyl_deflated_fem_poisson_release(gks->flr_op);
   }
 
-  if (gks->alloc_srg_aux_var) {
+  if (gks->alloc_surr_aux_var) {
     gkyl_gk_maxwellian_moments_release(gks->maxwell_mom);
     gkyl_array_release(gks->maxmom);
     gkyl_array_release(gks->dens_sheath);

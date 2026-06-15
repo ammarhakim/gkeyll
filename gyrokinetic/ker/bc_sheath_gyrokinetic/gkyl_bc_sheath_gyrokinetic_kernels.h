@@ -21,7 +21,7 @@ static inline double invL(double x) {
 // are written into out[n]; clamps at the grid boundaries.
 GKYL_CU_DH
 static inline void
-bc_sheath_gyrokinetic_srgrz_interpf(const float *vcut, const double *mu_new, int n, double mu_ref, double *out)
+bc_sheath_gyrokinetic_surr_interpf(const float *vcut, const double *mu_new, int n, double mu_ref, double *out)
 {
   const double mu_grid[SRGRZ_N_MU] = {
     0.00, 0.02, 0.08, 0.18, 0.32, 0.50, 0.72, 0.98, 1.28, 1.62,

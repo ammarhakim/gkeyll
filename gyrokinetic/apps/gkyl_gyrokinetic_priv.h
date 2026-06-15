@@ -995,7 +995,7 @@ struct gk_species {
 
   struct gkyl_array *gyro_phi; // Gyroaveraged electrostatic potential.
 
-  bool alloc_srg_aux_var; // To know whether surrogate auxiliary variables are allocated.
+  bool alloc_surr_aux_var; // To know whether surrogate auxiliary variables are allocated.
   struct gkyl_gk_maxwellian_moments *maxwell_mom; // Maxwellian moment array to get temperature and density for surrogate BCs.
   struct gkyl_array *maxmom; // Array for maxwellian moments.
   struct gkyl_array *dens_sheath; // Zeroth maxwellian moment, at the sheath used for surrogate BCs.

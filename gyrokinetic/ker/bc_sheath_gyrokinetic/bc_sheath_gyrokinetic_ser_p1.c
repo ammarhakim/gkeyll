@@ -2519,12 +2519,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_1x2v_ser_p1(const double
 
   // node (mu)_0 
     mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+    bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
     vcutsq_n[0] = vcut*vcut * vthSq;
 
   // node (mu)_1 
     mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+    bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
     vcutsq_n[1] = vcut*vcut * vthSq;
 
   vcutsq_out[0] = 0.7071067811865475*(vcutsq_n[1]+vcutsq_n[0]); 
@@ -2543,12 +2543,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_1x2v_ser_p1(const double
 
   // node (mu)_0 
     mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+    bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
     vcutsq_n[0] = vcut*vcut * vthSq;
 
   // node (mu)_1 
     mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-    bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+    bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
     vcutsq_n[1] = vcut*vcut * vthSq;
 
   vcutsq_out[0] = 0.7071067811865475*(vcutsq_n[1]+vcutsq_n[0]); 
@@ -2574,12 +2574,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_2x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x)_1 
@@ -2590,12 +2590,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_2x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[1] = vcut*vcut * vthSq;
 
   vcutsq_out[0] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
@@ -2623,12 +2623,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_2x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x)_1 
@@ -2639,12 +2639,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_2x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[1] = vcut*vcut * vthSq;
 
   vcutsq_out[0] = 0.5*(vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
@@ -2674,12 +2674,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x,y)_1 
@@ -2690,12 +2690,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[1] = vcut*vcut * vthSq;
 
   // node (x,y)_2 
@@ -2706,12 +2706,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_2[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_2[1] = vcut*vcut * vthSq;
 
   // node (x,y)_3 
@@ -2722,12 +2722,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_lower_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_3[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_3[1] = vcut*vcut * vthSq;
 
   vcutsq_out[0] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0]); 
@@ -2761,12 +2761,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+0*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_0[1] = vcut*vcut * vthSq;
 
   // node (x,y)_1 
@@ -2777,12 +2777,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+1*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_1[1] = vcut*vcut * vthSq;
 
   // node (x,y)_2 
@@ -2793,12 +2793,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_2[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+2*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_2[1] = vcut*vcut * vthSq;
 
   // node (x,y)_3 
@@ -2809,12 +2809,12 @@ GKYL_CU_DH void bc_sheath_gyrokinetic_vcutsq_surr_upper_3x2v_ser_p1(const double
 
     // node (mu)_0 
       mu = 0.7071067811865475*vmap[2]-0.7071067811865475*vmap[3]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_3[0] = vcut*vcut * vthSq;
 
     // node (mu)_1 
       mu = 0.7071067811865475*vmap[3]+0.7071067811865475*vmap[2]; 
-      bc_sheath_gyrokinetic_srgrz_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
+      bc_sheath_gyrokinetic_surr_interpf(nn_out+3*n_out, &mu, 1, mu_ref, &vcut);
       vcutsq_n_3[1] = vcut*vcut * vthSq;
 
   vcutsq_out[0] = 0.3535533905932737*(vcutsq_n_3[1]+vcutsq_n_2[1]+vcutsq_n_1[1]+vcutsq_n_0[1]+vcutsq_n_3[0]+vcutsq_n_2[0]+vcutsq_n_1[0]+vcutsq_n_0[0]); 

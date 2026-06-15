@@ -33,9 +33,9 @@
 #include <kann.h>
 
 // Path to the KANN surrogate model used in surrogate tests.
-// Set to NULL (or set srgrz_test_enabled = false) to skip surrogate tests.
-static const char *srgrz_model_path = "/Users/ahoffman/gkeyll_sheath_ai/model/nn_model_conv_MPE.kann";
-static const bool srgrz_test_enabled = true;
+// Set to NULL (or set surr_test_enabled = false) to skip surrogate tests.
+static const char *surr_model_path = "/Users/ahoffman/gkeyll_sheath_ai/model/nn_model_conv_MPE.kann";
+static const bool surr_test_enabled = true;
 
 static struct gkyl_array*
 mkarr(bool use_gpu, long nc, long size)
@@ -1005,7 +1005,7 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
 
 void test_bc_sheath_gk_1x2v_ho()
 {
-  if (!srgrz_test_enabled || !srgrz_model_path) return;
+  if (!surr_test_enabled || !surr_model_path) return;
   bool write_fields;
 
   struct test_sheath_ctx pars = {
@@ -1023,7 +1023,7 @@ void test_bc_sheath_gk_1x2v_ho()
     .z0 = 0.0,
     .sigmaz = 1.0,
     .use_surrogate = true,
-    .surrogate_model_path = srgrz_model_path,
+    .surrogate_model_path = surr_model_path,
     .verbose = false,
   };
 
@@ -1106,7 +1106,7 @@ void test_bc_sheath_gk_2x2v_ho()
 }
 void test_bc_sheath_gk_3x2v_ho()
 {
-  if (!srgrz_test_enabled || !srgrz_model_path) return;
+  if (!surr_test_enabled || !surr_model_path) return;
   bool write_fields;
 
   struct test_sheath_ctx pars = {
@@ -1128,7 +1128,7 @@ void test_bc_sheath_gk_3x2v_ho()
     .z0 = 0.0,
     .sigmaz = 1.0,
     .use_surrogate = true,
-    .surrogate_model_path = srgrz_model_path,
+    .surrogate_model_path = surr_model_path,
     .verbose = false,
   };
 
