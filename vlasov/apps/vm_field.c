@@ -344,6 +344,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   f->calc_energy_func = vm_field_calc_energy;
   f->write_func = vm_field_write;
   f->write_energy_func = vm_field_write_energy;
+  f->read_func = vm_field_read_from_frame;
   f->release_func = vm_field_release;
 
   return f;
@@ -774,7 +775,17 @@ vm_field_write_energy(gkyl_vlasov_app *app)
   gkyl_dynvec_clear(app->field->integ_energy);  
 
   app->stat.n_field_diag_io += 1;
-  app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);  
+  app->stat.field_diag_io_tm += gkyl_time_diff_now_sec(wst);
+}
+
+// Read the Vlasov-Maxwell EM field from its restart file for the given frame.
+struct gkyl_app_restart_status
+vm_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_field(app, fileNm.str);
+  cstr_drop(&fileNm);
+  return rstat;
 }
 
 // release resources for field

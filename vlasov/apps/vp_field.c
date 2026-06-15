@@ -116,6 +116,7 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   vpf->calc_energy_func = vp_field_calc_energy;
   vpf->write_func = vp_field_write;
   vpf->write_energy_func = vp_field_write_energy;
+  vpf->read_func = vp_field_read_from_frame;
   vpf->release_func = vp_field_release;
 
   return vpf;
@@ -130,6 +131,15 @@ vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin
 {
   vp_calc_field(app, tcurr, fin);
   return DBL_MAX;
+}
+
+// Restart read for Vlasov-Poisson: a no-op. The potential is re-solved from the
+// restarted distribution in gkyl_vlasov_app_read_from_frame (after the species
+// are read), not read from a field file.
+struct gkyl_app_restart_status
+vp_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+{
+  return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0 };
 }
 
 // Vlasov-Poisson stage operations that are no-ops: the potential is re-solved

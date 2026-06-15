@@ -19,16 +19,15 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
-  if (app->has_field) {
-    if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
-      vlasov_field_calc_app_current(app, tcurr);
-    }
-    if (app->field->ext_em_evolve) {
-      vlasov_field_calc_ext_em(app, tcurr);
-    }
-    if (app->field->ext_pot_evolve) {
-      vlasov_field_calc_ext_pot(app, tcurr);
-    }
+  // A field object always exists; the null field has all evolve flags false.
+  if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
+    vlasov_field_calc_app_current(app, tcurr);
+  }
+  if (app->field->ext_em_evolve) {
+    vlasov_field_calc_ext_em(app, tcurr);
+  }
+  if (app->field->ext_pot_evolve) {
+    vlasov_field_calc_ext_pot(app, tcurr);
   }
   // Compute applied acceleration if if present and time-dependent.
   for (int i=0; i<app->num_species; ++i) {
@@ -42,10 +41,8 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Maxwell's equations (whose order relative to the species RHS does not
   // matter); for Vlasov-Poisson this solves for the potential at the current
   // time from the charge density (which the species RHS reads below).
-  if (app->has_field) {
-    double dt1 = vlasov_field_update(app, tcurr, fin, emin, emout);
-    dtmin = fmin(dtmin, dt1);
-  }
+  double dt1_field = vlasov_field_update(app, tcurr, fin, emin, emout);
+  dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
@@ -123,8 +120,6 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // Complete the field update: for Vlasov-Maxwell, accumulate the species
   // current onto the RHS and finalize emout = emin + dta*RHS; no-op for
-  // Vlasov-Poisson (whose potential was solved at the start of the step).
-  if (app->has_field) {
-    vlasov_field_complete_update(app, dta, fin, fluidin, emin, emout);
-  }
+  // Vlasov-Poisson (potential solved at the start of the step) and the null field.
+  vlasov_field_complete_update(app, dta, fin, fluidin, emin, emout);
 }

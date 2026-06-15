@@ -7,9 +7,101 @@
 // keeps field-type dispatch out of vlasov.c / the time steppers, mirroring how
 // vm_species and GK's gk_field are organized.
 
+// --- Null field (GKYL_FIELD_NULL) -----------------------------------------
+// Used when no field is present (skip_field). A config-space EM field is
+// negligible memory next to the phase-space distribution, so we always allocate
+// em (zeroed) and acquire em1/emnew from it (there is no RK state to step). This
+// lets the rest of the app hold a valid app->field->em and call the field
+// methods uniformly; all of the null field's methods are no-ops. The combine/
+// copy_range/apply_bc/limiter/complete_update no-ops are shared with Vlasov-
+// Poisson (vp_field_*); the remaining no-ops are null-specific.
+
+static double
+no_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout)
+{
+  return DBL_MAX; // no field force -> no CFL constraint
+}
+
+static void
+no_field_calc(gkyl_vlasov_app *app, struct vm_field *field, double tm) { }
+
+static void
+no_field_apply_ic(gkyl_vlasov_app *app, struct vm_field *field,
+  const struct gkyl_array *fin[], double t0) { }
+
+static void
+no_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *field) { }
+
+static void
+no_field_write(gkyl_vlasov_app *app, double tm, int frame) { }
+
+static void
+no_field_write_energy(gkyl_vlasov_app *app) { }
+
+static struct gkyl_app_restart_status
+no_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+{
+  return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0 };
+}
+
+static void
+no_field_release(const gkyl_vlasov_app *app, struct vm_field *f)
+{
+  gkyl_array_release(f->em_host);
+  gkyl_array_release(f->emnew);
+  gkyl_array_release(f->em1);
+  gkyl_array_release(f->em);
+  gkyl_free(f);
+}
+
+static struct vm_field*
+no_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
+{
+  struct vm_field *f = gkyl_malloc(sizeof(struct vm_field));
+  f->info = vm->field;
+  f->field_id = GKYL_FIELD_NULL;
+
+  // Always allocate em; em1/emnew/em_host alias it (nothing is stepped or written).
+  f->em = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  gkyl_array_clear(f->em, 0.0);
+  f->em1 = gkyl_array_acquire(f->em);
+  f->emnew = gkyl_array_acquire(f->em);
+  f->em_host = gkyl_array_acquire(f->em);
+
+  // No external fields/potentials/currents, nothing time-dependent.
+  f->has_ext_em = f->ext_em_evolve = false;
+  f->has_ext_pot = f->ext_pot_evolve = false;
+  f->has_app_current = f->app_current_evolve = false;
+  f->is_first_energy_write_call = true;
+
+  f->update_func = no_field_update;
+  f->combine_func = vp_field_combine;          // no-op (shared with Vlasov-Poisson)
+  f->copy_range_func = vp_field_copy_range;     // no-op
+  f->apply_ic_func = no_field_apply_ic;
+  f->apply_bc_func = vp_field_apply_bc;         // no-op
+  f->limiter_func = vp_field_limiter;           // no-op
+  f->complete_update_func = vp_field_complete_update; // no-op
+  f->calc_ext_em_func = no_field_calc;
+  f->calc_app_current_func = no_field_calc;
+  f->calc_ext_pot_func = no_field_calc;
+  f->calc_energy_func = no_field_calc_energy;
+  f->write_func = no_field_write;
+  f->write_energy_func = no_field_write_energy;
+  f->read_func = no_field_read_from_frame;
+  f->release_func = no_field_release;
+
+  return f;
+}
+
 struct vm_field*
 vlasov_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 {
+  // A field object is always created: a real Maxwell/Poisson field if one is
+  // present, otherwise a no-op null field (GKYL_FIELD_NULL). This lets callers
+  // treat app->field uniformly instead of branching on its existence.
+  if (vm->skip_field)
+    return no_field_new(vm, app);
   return vm->is_electrostatic ? vp_field_new(vm, app) : vm_field_new(vm, app);
 }
 
@@ -92,6 +184,12 @@ void
 vlasov_field_write_energy(gkyl_vlasov_app *app)
 {
   app->field->write_energy_func(app);
+}
+
+struct gkyl_app_restart_status
+vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame)
+{
+  return app->field->read_func(app, app->field, frame);
 }
 
 void

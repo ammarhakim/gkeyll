@@ -50,6 +50,10 @@ struct vm_field {
   void (*calc_energy_func)(gkyl_vlasov_app *app, double tm, const struct vm_field *field);
   void (*write_func)(gkyl_vlasov_app *app, double tm, int frame);
   void (*write_energy_func)(gkyl_vlasov_app *app);
+  // Read the field's restart data for the given frame. Vlasov-Maxwell reads the
+  // EM field from its restart file; Vlasov-Poisson (re-solved from the restarted
+  // distribution elsewhere) and the null field are no-ops.
+  struct gkyl_app_restart_status (*read_func)(gkyl_vlasov_app *app, struct vm_field *field, int frame);
   void (*release_func)(const gkyl_vlasov_app *app, struct vm_field *field);
 
   union {
@@ -183,6 +187,8 @@ void vlasov_field_calc_ext_pot(gkyl_vlasov_app *app, double tm);
 void vlasov_field_calc_energy(gkyl_vlasov_app *app, double tm);
 void vlasov_field_write(gkyl_vlasov_app *app, double tm, int frame);
 void vlasov_field_write_energy(gkyl_vlasov_app *app);
+// Read the field's restart data for the given frame (dispatches by field type).
+struct gkyl_app_restart_status vlasov_field_read_from_frame(gkyl_vlasov_app *app, int frame);
 void vlasov_field_release(gkyl_vlasov_app *app);
 
 /** vm_field API (Vlasov-Maxwell): concrete implementations in vm_field.c.
@@ -364,6 +370,17 @@ void vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field
 void vm_field_write_energy(gkyl_vlasov_app* app);
 
 /**
+ * Read the Vlasov-Maxwell EM field for the given restart frame.
+ *
+ * @param app Vlasov app object
+ * @param field Pointer to field
+ * @param frame Frame number
+ * @return Restart status
+ */
+struct gkyl_app_restart_status vm_field_read_from_frame(gkyl_vlasov_app *app,
+  struct vm_field *field, int frame);
+
+/**
  * Release resources allocated by field
  *
  * @param app Vlasov app object
@@ -520,6 +537,14 @@ void vp_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field
  * @param app Vlasov app object
  */
 void vp_field_write_energy(gkyl_vlasov_app* app);
+
+/**
+ * Restart read for Vlasov-Poisson: a no-op, since the potential is re-solved
+ * from the restarted distribution (see gkyl_vlasov_app_read_from_frame) rather
+ * than read from a field file.
+ */
+struct gkyl_app_restart_status vp_field_read_from_frame(gkyl_vlasov_app *app,
+  struct vm_field *field, int frame);
 
 /**
  * Release resources allocated by field.

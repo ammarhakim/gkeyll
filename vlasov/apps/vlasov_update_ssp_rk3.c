@@ -33,20 +33,18 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             fluidin[i] = app->fluid_species[i].fluid;
             fluidout[i] = app->fluid_species[i].fluid1;
           }
-          vlasov_forward_euler(app, tcurr, dt, fin, fluidin, app->has_field ? app->field->em : 0,
-            fout, fluidout, app->has_field ? app->field->em1 : 0,
+          vlasov_forward_euler(app, tcurr, dt, fin, fluidin, app->field->em,
+            fout, fluidout, app->field->em1,
             &st
           );
 
-          vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->em1 : 0);
+          vm_apply_bc(app, tcurr, fout, fluidout, app->field->em1);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
           }
-          if (app->has_field) {
-            vlasov_field_limiter(app, app->field->em1);
-          }
+          vlasov_field_limiter(app, app->field->em1); // no-op for the null field
           dt = st.dt_actual;
           state = RK_STAGE_2;
 
@@ -66,20 +64,18 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             fluidin[i] = app->fluid_species[i].fluid1;
             fluidout[i] = app->fluid_species[i].fluidnew;
           }
-          vlasov_forward_euler(app, tcurr+dt, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-            fout, fluidout, app->has_field ? app->field->emnew : 0,
+          vlasov_forward_euler(app, tcurr+dt, dt, fin, fluidin, app->field->em1,
+            fout, fluidout, app->field->emnew,
             &st
           );
 
-          vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->emnew : 0);
+          vm_apply_bc(app, tcurr, fout, fluidout, app->field->emnew);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
           }
-          if (app->has_field) {
-            vlasov_field_limiter(app, app->field->emnew);
-          }
+          vlasov_field_limiter(app, app->field->emnew); // no-op for the null field
           if (st.dt_actual < dt) {
             // collect stats
             double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
@@ -100,9 +96,8 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             for (int i=0; i<nfs; ++i)
               array_combine(app->fluid_species[i].fluid1,
                 3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, &app->local_ext);
-            if (app->has_field)
-              vlasov_field_combine(app, app->field->em1,
-                3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew);
+            vlasov_field_combine(app, app->field->em1,
+              3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew); // no-op for null field
 
             state = RK_STAGE_3;
           }
@@ -123,20 +118,18 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             fluidin[i] = app->fluid_species[i].fluid1;
             fluidout[i] = app->fluid_species[i].fluidnew;
           }
-          vlasov_forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->has_field ? app->field->em1 : 0,
-            fout, fluidout, app->has_field ? app->field->emnew : 0,
+          vlasov_forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->field->em1,
+            fout, fluidout, app->field->emnew,
             &st
           );
 
-          vm_apply_bc(app, tcurr, fout, fluidout, app->has_field ? app->field->emnew : 0);
+          vm_apply_bc(app, tcurr, fout, fluidout, app->field->emnew);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
             vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
           }
-          if (app->has_field) {
-            vlasov_field_limiter(app, app->field->emnew);
-          }
+          vlasov_field_limiter(app, app->field->emnew); // no-op for the null field
           if (st.dt_actual < dt) {
             // collect stats
             double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;
@@ -163,11 +156,10 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
                 1.0/3.0, app->fluid_species[i].fluid, 2.0/3.0, app->fluid_species[i].fluidnew, &app->local_ext);
               gkyl_array_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
             }
-            if (app->has_field) {
-              vlasov_field_combine(app, app->field->em1,
-                1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew);
-              vlasov_field_copy_range(app, app->field->em, app->field->em1);
-            }
+            // no-ops for the null field
+            vlasov_field_combine(app, app->field->em1,
+              1.0/3.0, app->field->em, 2.0/3.0, app->field->emnew);
+            vlasov_field_copy_range(app, app->field->em, app->field->em1);
 
             state = RK_COMPLETE;
           }

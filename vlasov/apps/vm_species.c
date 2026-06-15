@@ -1234,8 +1234,8 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
 
   // Store model type.
   vms->model_id = vms->info.model_id; 
-  // Store field type.
-  vms->field_id = app->has_field ? app->field->field_id : GKYL_FIELD_NULL; 
+  // Store field type (a field object always exists; GKYL_FIELD_NULL if none).
+  vms->field_id = app->field->field_id;
   
   // Allocate distribution function array.
   vms->f = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume);
