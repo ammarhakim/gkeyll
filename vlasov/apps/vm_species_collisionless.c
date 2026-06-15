@@ -14,19 +14,19 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     gkyl_array_accumulate_range(cls->qmem, 1.0, cls->app_accel, &app->local);
   }
 
-  if (app->has_field) {
-    if (app->field->has_ext_em) {
-      gkyl_array_accumulate_range(cls->qmem, cls->qbym, app->field->ext_em, &app->local);
-    }
+  // A field object always exists; for the null field (GKYL_FIELD_NULL) none of
+  // these force terms fire (has_ext_em is false and the field type matches none).
+  if (app->field->has_ext_em) {
+    gkyl_array_accumulate_range(cls->qmem, cls->qbym, app->field->ext_em, &app->local);
+  }
 
-    if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
-      gkyl_array_accumulate_range(cls->qmem, cls->qbym, em, &app->local);
-    }
-    else if (vms->field_id == GKYL_FIELD_PHI) {
-      gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
-      if (app->field->has_ext_pot) {
-        gkyl_array_accumulate_offset(cls->pot_tot, cls->qbym, app->field->ext_pot, 0);
-      }
+  if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
+    gkyl_array_accumulate_range(cls->qmem, cls->qbym, em, &app->local);
+  }
+  else if (vms->field_id == GKYL_FIELD_PHI) {
+    gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
+    if (app->field->has_ext_pot) {
+      gkyl_array_accumulate_offset(cls->pot_tot, cls->qbym, app->field->ext_pot, 0);
     }
   }
 
@@ -94,20 +94,21 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
 
   // Determine which forces we need based on combination of field ID and presence 
   // of applied accelerations and external fields/potentials. 
-  cls->has_E = false; 
-  cls->has_B = false; 
-  cls->has_phi = false; 
-  if (app->has_field) {
-    if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em || vms->field_id == GKYL_FIELD_GR_D_B) {
-      cls->has_E = true; 
-      cls->has_B = true; 
-    } 
-    if (vms->field_id == GKYL_FIELD_PHI) {
-      cls->has_phi = true; 
-    }
+  // A field object always exists (a null field with field_id == GKYL_FIELD_NULL
+  // when none is present), so dispatch on the field type. With no field force
+  // (GKYL_FIELD_NULL), an applied acceleration still acts as an electric force.
+  cls->has_E = false;
+  cls->has_B = false;
+  cls->has_phi = false;
+  if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em || vms->field_id == GKYL_FIELD_GR_D_B) {
+    cls->has_E = true;
+    cls->has_B = true;
   }
-  else if (cls->has_app_accel) {
-    cls->has_E = true; 
+  if (vms->field_id == GKYL_FIELD_PHI) {
+    cls->has_phi = true;
+  }
+  if (vms->field_id == GKYL_FIELD_NULL && cls->has_app_accel) {
+    cls->has_E = true;
   }
   cls->use_lo = false; 
   if (vms->info.use_lo == true) {

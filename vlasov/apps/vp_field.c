@@ -100,7 +100,77 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     1, GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, app->use_gpu);
   vpf->is_first_energy_write_call = true;
 
+  // Set the type-specific dispatch methods (Vlasov-Poisson). The potential is
+  // re-solved each stage (update_func) rather than carried in the RK state, so
+  // the combine/copy/BC/current/limiter stage operations are no-ops.
+  vpf->update_func = vp_field_update;
+  vpf->combine_func = vp_field_combine;
+  vpf->copy_range_func = vp_field_copy_range;
+  vpf->apply_ic_func = vp_field_apply_ic;
+  vpf->apply_bc_func = vp_field_apply_bc;
+  vpf->limiter_func = vp_field_limiter;
+  vpf->complete_update_func = vp_field_complete_update;
+  vpf->calc_ext_em_func = vp_field_calc_ext_em;
+  vpf->calc_app_current_func = vp_field_calc_app_current;
+  vpf->calc_ext_pot_func = vp_field_calc_ext_pot;
+  vpf->calc_energy_func = vp_field_calc_energy;
+  vpf->write_func = vp_field_write;
+  vpf->write_energy_func = vp_field_write_energy;
+  vpf->read_func = vp_field_read_from_frame;
+  vpf->release_func = vp_field_release;
+
   return vpf;
+}
+
+// Vlasov-Poisson field update: solve for the potential at the current time from
+// the charge density. Elliptic solve (not part of the RK state vector); imposes
+// no CFL constraint of its own.
+double
+vp_field_update(gkyl_vlasov_app *app, double tcurr, const struct gkyl_array *fin[],
+  const struct gkyl_array *emin, struct gkyl_array *emout)
+{
+  vp_calc_field(app, tcurr, fin);
+  return DBL_MAX;
+}
+
+// Restart read for Vlasov-Poisson: a no-op. The potential is re-solved from the
+// restarted distribution in gkyl_vlasov_app_read_from_frame (after the species
+// are read), not read from a field file.
+struct gkyl_app_restart_status
+vp_field_read_from_frame(gkyl_vlasov_app *app, struct vm_field *field, int frame)
+{
+  return (struct gkyl_app_restart_status) { .io_status = GKYL_ARRAY_RIO_SUCCESS, .frame = 0, .stime = 0.0 };
+}
+
+// Vlasov-Poisson stage operations that are no-ops: the potential is re-solved
+// each stage and there are no EM RK stages, applied currents, EM BCs, or EM
+// limiting for the electrostatic potential.
+void
+vp_field_combine(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *out,
+  double c1, const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2)
+{
+}
+
+void
+vp_field_copy_range(gkyl_vlasov_app *app, struct vm_field *field,
+  struct gkyl_array *out, const struct gkyl_array *inp)
+{
+}
+
+void
+vp_field_apply_bc(gkyl_vlasov_app *app, const struct vm_field *field, struct gkyl_array *em)
+{
+}
+
+void
+vp_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
+{
+}
+
+void
+vp_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_array *fin[],
+  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *emout)
+{
 }
 
 void
