@@ -8,11 +8,16 @@
 #include <gkyl_wv_eqn.h>
 
 // BC types in this updater.
-enum gkyl_embed_type {  
-  GKYL_EMBED_ABSORB = 0, 
-  GKYL_EMBED_REFLECT,
-  GKYL_EMBED_COPY_B,
-  GKYL_EMBED_PEC,
+enum gkyl_embed_bc_type {  
+  GKYL_EMBED_BC_ABSORB = 0, 
+  GKYL_EMBED_BC_REFLECT,
+  GKYL_EMBED_BC_COPY_B,
+  GKYL_EMBED_BC_PEC,
+  GKYL_EMBED_BC_FUNC,
+};
+
+enum gkyl_embed_type {
+  GKYL_EMBED_EXCISE = 0,  
   GKYL_EMBED_FUNC,
 };
 
@@ -22,7 +27,9 @@ typedef struct gkyl_wv_embed_geo gkyl_wv_embed_geo;
 struct gkyl_wv_embed_geo {
   void *ctx;
   void *mask_func;
+  enum gkyl_embed_bc_type bc_type;
   enum gkyl_embed_type type;
+  wv_embed_bc_t embed_bc;
   wv_embed_func_t embed_func;
 };
 
@@ -34,8 +41,9 @@ struct gkyl_wv_embed_geo {
  * @param ctx Context to pass to bcfunc.
  * @return New updater pointer.
  */
-gkyl_wv_embed_geo* gkyl_wv_embed_geo_new(enum gkyl_embed_type type, void *mask_func,
-  wv_embed_func_t embed_func, void *ctx);
+gkyl_wv_embed_geo* gkyl_wv_embed_geo_new(enum gkyl_embed_bc_type bc_type,
+  enum gkyl_embed_type type, void *mask_func, wv_embed_bc_t embed_bc,
+  wv_embed_func_t embed_func,void *ctx);
 
 void gkyl_wv_embed_geo_new_mask(struct gkyl_wv_embed_geo *geo,
   struct gkyl_rect_grid *grid, struct gkyl_range *rng, struct gkyl_array *mask);

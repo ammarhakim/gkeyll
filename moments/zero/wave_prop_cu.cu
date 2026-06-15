@@ -19,7 +19,7 @@ extern "C" {
 
 __global__ static void
 gkyl_wave_prop_waves_qfluct_cu_ker(gkyl_wv_eqn *eqn, 
-  int ndim, int dir, long size, double cflm, double dtdx, 
+  int ndim, int dir, double cflm, double dtdx, 
   enum gkyl_wv_flux_type ftype, struct gkyl_range update_range,
   struct gkyl_range fluctuation_range, const struct gkyl_wave_geom *wg,
   const struct gkyl_array *phi, const struct gkyl_array *qin,
@@ -70,7 +70,7 @@ gkyl_wave_prop_waves_qfluct_cu_ker(gkyl_wv_eqn *eqn,
 
 __global__ static void
 gkyl_wave_prop_redo_waves_qfluct_cu_ker(gkyl_wv_eqn *eqn, 
-  int ndim, int dir, long size, int meqn, 
+  int ndim, int dir, int meqn, 
   struct gkyl_range update_range, struct gkyl_range fluctuation_range, 
   const struct gkyl_wave_geom *wg, const struct gkyl_array *phi,
   const struct gkyl_array *qin, struct gkyl_array *waves,
@@ -129,7 +129,7 @@ gkyl_wave_prop_redo_waves_qfluct_cu_ker(gkyl_wv_eqn *eqn,
 
 __global__ static void
 gkyl_wave_prop_second_order_flux_cu_ker(enum gkyl_wave_limiter limiter, double dtdx, 
-  int ndim, int dir, long size, int meqn, int mwaves, 
+  int ndim, int dir, int meqn, int mwaves, 
   struct gkyl_range update_range, struct gkyl_range second_order_range, 
   const struct gkyl_wave_geom *wg, struct gkyl_array *waves,
   struct gkyl_array *waves_scaled, struct gkyl_array *speeds, struct gkyl_array *flux2)
@@ -251,8 +251,7 @@ gkyl_wave_prop_advance_cu(gkyl_wave_prop *wv,
   gkyl_range_shorten_from_above(&perp_range, update_range, dir, 1);
   int nthreads = GKYL_DEFAULT_NUM_THREADS;
   int nblocks_e = (perp_range.volume*(upidx - loidx))/nthreads + 1;
-  long size = perp_range.volume*(upidx - loidx);
-
+  
   // Extend the local range for indexing fluctuations
   struct gkyl_range fluctuation_range;
   int extend_lo[] = {0, 0, 0};
@@ -275,19 +274,17 @@ gkyl_wave_prop_advance_cu(gkyl_wave_prop *wv,
     GKYL_WV_LOW_ORDER_FLUX : GKYL_WV_HIGH_ORDER_FLUX;
 
   gkyl_wave_prop_waves_qfluct_cu_ker<<<nblocks_e, nthreads>>>(wv->equation->on_dev, 
-    ndim, dir, size, cflm, dtdx, ftype, *update_range, fluctuation_range, 
+    ndim, dir, cflm, dtdx, ftype, *update_range, fluctuation_range, 
     wv->geom->on_dev, phi->on_dev, qin->on_dev, wv->waves->on_dev,
     wv->speeds->on_dev, wv->amdq->on_dev, wv->apdq->on_dev, wv->cfla->on_dev,
     wv->is_cfl_violated->on_dev);
-  fflush(stdout);
-
+  
   // To avoid race conditions on the wave limiting, split the second order flux
   // computation into a separate kernel after waves and fluctuations computed
   int nblocks_f = (perp_range.volume*(upidx - loidx - 2))/nthreads + 1;
-  long size_f = perp_range.volume*(upidx - loidx);
   gkyl_array_clear(wv->flux2, 0.0);
   gkyl_wave_prop_second_order_flux_cu_ker<<<nblocks_f, nthreads>>>(wv->limiter, dtdx, 
-    ndim, dir, size_f, meqn, mwaves, *update_range, second_order_range, 
+    ndim, dir, meqn, mwaves, *update_range, second_order_range, 
     wv->geom->on_dev, wv->waves->on_dev, wv->waves_scaled->on_dev,
     wv->speeds->on_dev, wv->flux2->on_dev);
 
@@ -319,7 +316,7 @@ gkyl_wave_prop_advance_cu(gkyl_wave_prop *wv,
   // Determine if we need to redo any flux computations 
   if (wv->check_inv_domain) {
     gkyl_wave_prop_redo_waves_qfluct_cu_ker<<<update_range->nblocks, update_range->nthreads>>>(wv->equation->on_dev, 
-      ndim, dir, size, meqn, *update_range, fluctuation_range, 
+      ndim, dir, meqn, *update_range, fluctuation_range, 
       wv->geom->on_dev, phi->on_dev, qin->on_dev, wv->waves->on_dev,
       wv->speeds->on_dev, wv->amdq->on_dev, wv->apdq->on_dev, wv->flux2->on_dev,
       wv->redo_fluct->on_dev, qout->on_dev); 

@@ -212,8 +212,8 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  struct gkyl_wv_embed_geo *embed_geo = gkyl_wv_embed_geo_new(GKYL_EMBED_REFLECT,
-    evalPhiInit, NULL, &ctx);
+  struct gkyl_wv_embed_geo *embed_geo = gkyl_wv_embed_geo_new(GKYL_EMBED_BC_REFLECT,
+    GKYL_EMBED_EXCISE, evalPhiInit, NULL, NULL, &ctx);
 
   // Fluid equations.
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_inew(

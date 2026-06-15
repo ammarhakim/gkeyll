@@ -11,6 +11,7 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_prop.h>
 #include <gkyl_wave_prop_priv.h>
+#include <gkyl_wv_embed_geo.h>
 
 #include <gkyl_level_set.h>
 
@@ -286,12 +287,18 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
           long lidx = gkyl_range_idx(update_range, idxl);
 
           const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(wv->geom, idxl);
+          const double *phil = gkyl_array_cfetch(phi, lidx);
 
-          calc_first_order_update(meqn, dtdx/cg->kappa,
-            gkyl_array_fetch(qout, lidx), 
-            gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
-            gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
-          );
+          if (phil[0] < 0.0) {
+            wv->equation->embed_geo->embed_func(gkyl_array_fetch(qout, lidx),
+              wv->equation->embed_geo->ctx);
+          } else {
+            calc_first_order_update(meqn, dtdx/cg->kappa,
+              gkyl_array_fetch(qout, lidx), 
+              gkyl_array_cfetch(wv->amdq, gkyl_ridx(slice_range, i+1)),
+              gkyl_array_cfetch(wv->apdq, gkyl_ridx(slice_range, i))
+            );
+          }
         }
 
         if (state == WV_FIRST_SWEEP) {
@@ -444,7 +451,7 @@ gkyl_wave_prop_advance(gkyl_wave_prop *wv,
       .dt_suggested = dt_suggested,
       .max_speed = max_speed,
     };
-  
+
   // on success, suggest only bigger time-step; (Only way dt can
   // reduce is if the update fails. If the code comes here the update
   // succeeded and so we should not allow dt to reduce).

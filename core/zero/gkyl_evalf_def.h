@@ -38,12 +38,20 @@ typedef void (*wv_bc_func_t)(const struct gkyl_wv_eqn* eqn, double t, int ncomp,
 typedef void (*array_copy_func_t)(size_t nc, double *out, const double *inp, void *ctx);
 
 /**
- * Type of function to apply to embedded surface
+ * Type of function to apply at embedded surface boundary
  *
  * @param q Pointer to outside surface data.
  * @param qphi Pointer to inside surface data.
  * @param delta Difference across surface.
  * @param ctx Context for function evaluation. Can be NULL
  */
-typedef void (*wv_embed_func_t)(const double *q, double *qphi, double *delta,
+typedef void (*wv_embed_bc_t)(const double *q, double *qphi, double *delta,
   void *ctx);
+
+/**
+ * Type of function to apply inside embedded surface
+ *
+ * @param q Pointer to moment data.
+ * @param ctx Context for function evaluation. Can be NULL
+ */
+typedef void (*wv_embed_func_t)(double *q, void *ctx);

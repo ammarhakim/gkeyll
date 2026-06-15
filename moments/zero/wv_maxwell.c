@@ -129,16 +129,16 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
 
   maxwell->eqn.embed_geo = inp->embed_geo;
   if (maxwell->eqn.embed_geo) {
-    switch (maxwell->eqn.embed_geo->type) {
-      case GKYL_EMBED_COPY_B:
-        maxwell->eqn.embed_geo->embed_func = wave_embed_copy_B;
+    switch (maxwell->eqn.embed_geo->bc_type) {
+      case GKYL_EMBED_BC_COPY_B:
+        maxwell->eqn.embed_geo->embed_bc = wave_embed_copy_B;
         break;
 
-      case GKYL_EMBED_PEC:
-        maxwell->eqn.embed_geo->embed_func = wave_embed_pec;
+      case GKYL_EMBED_BC_PEC:
+        maxwell->eqn.embed_geo->embed_bc = wave_embed_pec;
         break;
 
-      case GKYL_EMBED_FUNC:
+      case GKYL_EMBED_BC_FUNC:
         break; // already set by gkyl_wv_embed_geo_new
 
       default:

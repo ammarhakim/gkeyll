@@ -86,13 +86,25 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 
   euler->eqn.embed_geo = inp->embed_geo;
   if (euler->eqn.embed_geo) {
-    switch (euler->eqn.embed_geo->type) {
-      case GKYL_EMBED_ABSORB:
-        euler->eqn.embed_geo->embed_func = wave_embed_absorb;
+    switch (euler->eqn.embed_geo->bc_type) {
+      case GKYL_EMBED_BC_ABSORB:
+        euler->eqn.embed_geo->embed_bc = wave_embed_absorb;
         break;
 
-      case GKYL_EMBED_REFLECT:
-        euler->eqn.embed_geo->embed_func = wave_embed_reflect;
+      case GKYL_EMBED_BC_REFLECT:
+        euler->eqn.embed_geo->embed_bc = wave_embed_reflect;
+        break;
+
+      case GKYL_EMBED_BC_FUNC:
+        break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
+    }
+    switch (euler->eqn.embed_geo->type) {
+      case GKYL_EMBED_EXCISE:
+        euler->eqn.embed_geo->embed_func = calc_embed_excise;
         break;
 
       case GKYL_EMBED_FUNC:
