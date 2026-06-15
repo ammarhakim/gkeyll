@@ -1,8 +1,10 @@
 // Construct a MLP with KANN and fit a simple 1D function
+// Uses the gkyl_kann_net wrapper (identical results to rt_kann_mlp)
+// Pass -g to run on GPU
+#include <gkyl_kann_net.h>
 #include <gkyl_knutils.h>
 #include <gkyl_util.h>
 
-#include <kann.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -30,6 +32,7 @@ struct train_inp {
   int nwidth;
   int ndepth;
   float learning_rate;
+  bool use_gpu;
 };
 
 void
@@ -42,12 +45,13 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
     t_net = kann_layer_dense(t_net, nn_inp->nwidth);
     t_net = kad_tanh(t_net);
   }
-  
-  t_net = kann_layer_cost(t_net, 1, KANN_C_MSE);
-  kann_t *ann = kann_new(t_net, 0);
 
-  // allocate memory for input/output vectors
-  int N = nn_inp->ntrain; // training samples
+  t_net = kann_layer_cost(t_net, 1, KANN_C_MSE);
+  struct gkyl_kann_net *net = gkyl_kann_net_new(t_net, nn_inp->use_gpu);
+
+  int N = nn_inp->ntrain;
+
+  // host kn_vecs for filling data
   struct gkyl_kn_vec *inp = gkyl_kn_vec_new(N, 1);
   struct gkyl_kn_vec *out = gkyl_kn_vec_new(N, 1);
 
@@ -57,39 +61,63 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
     .N = N
   };
 
-  // initialize input/output mapping
   for (int i=0; i<N; ++i) {
     inp->vals[i][0] = xrange_n(xr, i);
     out->vals[i][0] = ufunc(inp->vals[i][0]);
   }
 
-  // hyper-parameters for training
-  float lr = nn_inp->learning_rate; // learning rate
-  int mini_size = 64;
-  int max_epoch = 50;
-  int max_drop_streak = 10;
-  float frac_val = 0.1f; // fraction of samples to use for validation
-  
-  // run training
-  kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
-  kann_save(nn_name, ann); // save to file
-  
+  struct gkyl_kann_train_params params = {
+    .learning_rate = nn_inp->learning_rate,
+    .mini_size = 64,
+    .max_epoch = 50,
+    .max_drop_streak = 10,
+    .frac_val = 0.1f,
+  };
+
+  if (nn_inp->use_gpu) {
+    // create device kn_vecs and copy data H2D
+    struct gkyl_kn_vec *inp_cu = gkyl_kn_vec_cu_dev_new(N, 1);
+    struct gkyl_kn_vec *out_cu = gkyl_kn_vec_cu_dev_new(N, 1);
+    gkyl_kn_vec_copy(inp_cu, inp);
+    gkyl_kn_vec_copy(out_cu, out);
+
+    gkyl_kann_net_train_fnn1(net, &params, inp_cu, out_cu);
+
+    gkyl_kn_vec_release(inp_cu);
+    gkyl_kn_vec_release(out_cu);
+  } else {
+    gkyl_kann_net_train_fnn1(net, &params, inp, out);
+  }
+
+  gkyl_kann_net_save(net, nn_name);
+
   gkyl_kn_vec_release(inp);
   gkyl_kn_vec_release(out);
-  kann_delete(ann);  
+  gkyl_kann_net_release(net);
 }
 
 // run inference on N input values
 void
-infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+infer_ann(const char *nn_name, bool use_gpu,
+  struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
-  kann_t *ann = kann_load(nn_name);
-  const float *ov;
-  for (int i=0; i<inp->nvec; ++i) {
-    ov = kann_apply1(ann, inp->vals[i]);
-    for (int j=0; j<out->N; ++j) out->vals[i][j] = ov[j];
+  struct gkyl_kann_net *net = gkyl_kann_net_load(nn_name, use_gpu);
+
+  if (use_gpu) {
+    struct gkyl_kn_vec *inp_cu = gkyl_kn_vec_cu_dev_new(inp->nvec, inp->N);
+    struct gkyl_kn_vec *out_cu = gkyl_kn_vec_cu_dev_new(out->nvec, out->N);
+
+    gkyl_kn_vec_copy(inp_cu, inp);
+    gkyl_kann_net_apply(net, inp_cu, out_cu);
+    gkyl_kn_vec_copy(out, out_cu);
+
+    gkyl_kn_vec_release(inp_cu);
+    gkyl_kn_vec_release(out_cu);
+  } else {
+    gkyl_kann_net_apply(net, inp, out);
   }
-  kann_delete(ann);
+
+  gkyl_kann_net_release(net);
 }
 
 void
@@ -102,15 +130,15 @@ write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
     "BLUE = \"1\"\n"
     "RED = \"2\"\n"
     "set grid\n"
-    "plot \"rt_kann_mlp_data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
+    "plot \"rt_kann_mlp_gkw_data.txt\" using 1:2 with points pt 9 ps 3 title \"NN\", [-1:1] 1/(1+100*x**2) with lines ls @BLUE title \"Exact\"";
 
   FILE *fp = 0;
-  with_file(fp, "rt_kann_mlp.gp", "w") {
+  with_file(fp, "rt_kann_mlp_gkw.gp", "w") {
     fprintf(fp, "%s", gpcode);
   }
 
   fp = 0;
-  with_file(fp, "rt_kann_mlp_data.txt", "w") {
+  with_file(fp, "rt_kann_mlp_gkw_data.txt", "w") {
     for (int i=0; i<inp->nvec; ++i)
       fprintf(fp, "%.5g %.5g\n", inp->vals[i][0], out->vals[i][0]);
   }
@@ -120,17 +148,19 @@ int
 main(int argc, char *argv[])
 {
   int p_train = 0, p_infer = 0, p_verbose = 0, c;
-  while ((c = getopt(argc, argv, "+htiv")) != -1) {
+  bool use_gpu = false;
+  while ((c = getopt(argc, argv, "+htivg")) != -1) {
     switch (c)
     {
       case 'h':
-        fprintf(stdout, "rt_kann_mlp -i -t -v\n");
+        fprintf(stdout, "rt_kann_mlp_gkw -i -t -v -g\n");
         fprintf(stdout, "  -t Run Training\n");
         fprintf(stdout, "  -i Run Inference\n");
         fprintf(stdout, "  -v Verbose mode\n");
+        fprintf(stdout, "  -g Run on GPU\n");
         exit(0);
-        break;      
-      
+        break;
+
       case 't':
         p_train = 1;
         break;
@@ -142,29 +172,33 @@ main(int argc, char *argv[])
       case 'v':
         p_verbose = 3;
         break;
-      
+
+      case 'g':
+        use_gpu = true;
+        break;
+
       case '?':
         break;
     }
   }
 
-  kann_set_verbose_level(p_verbose);
+  gkyl_kann_net_set_verbose(p_verbose);
 
   if (p_train) {
-    fprintf(stdout, "*** Training\n");
+    fprintf(stdout, "*** Training%s\n", use_gpu ? " (GPU)" : "");
     train_ann( &(struct train_inp) {
         .ntrain = 1001,
         .ndepth = 2,
         .nwidth = 256,
-        .learning_rate = 1e-3f
+        .learning_rate = 1e-3f,
+        .use_gpu = use_gpu
       },
-      "rt_kann_mlp.kann"
+      "rt_kann_mlp_gkw.kann"
     );
   }
 
   if (p_infer) {
-    fprintf(stdout, "*** Inference\n");
-    // run inference
+    fprintf(stdout, "*** Inference%s\n", use_gpu ? " (GPU)" : "");
     int nvec = 11;
     struct gkyl_kn_vec *inp = gkyl_kn_vec_new(nvec, 1);
     struct gkyl_kn_vec *out = gkyl_kn_vec_new(nvec, 1);
@@ -172,13 +206,13 @@ main(int argc, char *argv[])
     struct xrange xr = { .xleft = -1.0, .xright = 1.0, .N = inp->nvec };
     for (int i=0; i<inp->nvec; ++i)
       inp->vals[i][0] = xrange_n(xr, i);
-  
-    infer_ann("rt_kann_mlp.kann", inp, out);
+
+    infer_ann("rt_kann_mlp_gkw.kann", use_gpu, inp, out);
     write_to_gplot(inp, out);
-    
+
     gkyl_kn_vec_release(inp);
     gkyl_kn_vec_release(out);
   }
-  
+
   return 0;
 }
