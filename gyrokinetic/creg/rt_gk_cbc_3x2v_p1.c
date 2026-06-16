@@ -519,6 +519,14 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
   vp[1] = mu_max_ion*pow(cmu,2);
 }
 
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct gk_app_ctx *app = ctx;
+
+  fout[0] = 0.1; // Diffusivity [m^2/s].
+}
+
 struct gk_app_ctx create_ctx(void)
 {
   int cdim = 3, vdim = 2; // Dimensionality.
@@ -776,6 +784,17 @@ main(int argc, char **argv)
       .write_diagnostics = true,
     },
 
+    .numerical_diffusion = {
+      .type = GKYL_GK_NUMERICAL_DIFF_CONST,
+      .num_dirs = 2,
+      .dirs = {0,1},
+      .D_profile = {
+        diffusion_D_func,
+        diffusion_D_func,
+      },
+      .D_profile_ctx = &ctx,
+    },
+
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bc, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bc, },
@@ -833,6 +852,17 @@ main(int argc, char **argv)
       .feq_shape = eval_canon_maxwellian_i,
       .feq_shape_ctx = &ctx,
       .write_diagnostics = true,
+    },
+
+    .numerical_diffusion = {
+      .type = GKYL_GK_NUMERICAL_DIFF_CONST,
+      .num_dirs = 2,
+      .dirs = {0,1},
+      .D_profile = {
+        diffusion_D_func,
+        diffusion_D_func,
+      },
+      .D_profile_ctx = &ctx,
     },
 
     .bcs = {
