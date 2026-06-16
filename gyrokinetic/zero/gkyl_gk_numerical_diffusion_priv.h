@@ -846,7 +846,7 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
 
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst,cdim,vdim,diff_order,poly_order,diffdir_linidx) lst[cdim+vdim-2].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]
-#define CKSURF(lst,cdim,vdim,diff_order,poly_order,dir) lst[dir-1].list[diff_order/2-1].list[cdim+vdim-2].kernels[poly_order-1]
+#define CKSURF(lst,cdim,vdim,diff_order,poly_order,dir) lst[dir].list[diff_order/2-1].list[cdim+vdim-2].kernels[poly_order-1]
 #define CKBSURF(lst,cdim,vdim,diff_order,poly_order) lst->list[diff_order/2-1].list[cdim+vdim-2].kernels[poly_order-1]
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
