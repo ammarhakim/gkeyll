@@ -472,8 +472,8 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   // Allocate 1/(J.B) using weak mul/div.
   struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   app->jacobtot_inv_weak = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_dg_mul_op_range(app->basis, 0, tmp, 0, app->gk_geom->geo_int.bmag, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
-  gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
+  gkyl_dg_mul_op_range(&app->basis, 0, tmp, 0, app->gk_geom->geo_int.bmag, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
+  gkyl_dg_inv_op_range(&app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
   // Create a global and local ranges, extended in the BC dir.
@@ -711,7 +711,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, parfac, 0, app->gk_geom->geo_int.cmag, 0, app->gk_geom->geo_int.jacobtot_inv, &app->local); 
+    gkyl_dg_mul_op_range(&app->basis, 0, parfac, 0, app->gk_geom->geo_int.cmag, 0, app->gk_geom->geo_int.jacobtot_inv, &app->local); 
     double kpar_max = M_PI*(app->poly_order+1)/app->grid.dx[app->cdim-1];
     gkyl_array_scale_range(parfac, kpar_max, &app->local);
 
@@ -732,7 +732,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 
     // Compute max(parfac*perpfac_inv) (using cell centers).
     struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
+    gkyl_dg_mul_op_range(&app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
     double *omegaH_gf_red;
     if (app->use_gpu)
       omegaH_gf_red = gkyl_cu_malloc(app->basis.num_basis*sizeof(double));

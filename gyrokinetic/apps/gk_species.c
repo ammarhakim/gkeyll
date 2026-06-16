@@ -1819,7 +1819,7 @@ gk_species_apply_ic_cross(gkyl_gyrokinetic_app *app, struct gk_species *gks_self
                                                      : gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
     struct gkyl_array *den_mod = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
 
-    gkyl_dg_div_op_range(div_mem, app->basis,
+    gkyl_dg_div_op_range(div_mem, &app->basis,
       0, den_mod, 0, npol, 0, gks_self->m0.marr, &app->local);
     gkyl_dg_mul_conf_phase_op_range(&app->basis, &gks_self->basis, gks_self->f,
       den_mod, gks_self->f, &app->local_ext, &gks_self->local_ext);

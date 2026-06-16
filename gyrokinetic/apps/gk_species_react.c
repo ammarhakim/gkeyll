@@ -26,7 +26,7 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
       // Divide the electron density by the Jacobian for reaction rates.
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -39,7 +39,7 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gks_donor->lte.moms.marr, &app->local);
 
         // Divide the donor density by the Jacobian for Maxwellian projection.
-        gkyl_dg_div_op_range(gks_donor->lte.moms.mem_geo, app->basis, 
+        gkyl_dg_div_op_range(gks_donor->lte.moms.mem_geo, &app->basis, 
           0, gks_donor->lte.moms.marr, 0, gks_donor->lte.moms.marr, 0, 
           app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -55,7 +55,7 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
         gkyl_array_set_range(react->Jm0_donor[i], 1.0, gkns_donor->lte.moms.marr, &app->local);
 
         // Divide the donor density by the Jacobian for Maxwellian projection.
-        gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, app->basis, 
+        gkyl_dg_div_op_range(gkns_donor->lte.moms.mem_geo, &app->basis, 
           0, gkns_donor->lte.moms.marr, 0, gkns_donor->lte.moms.marr, 0, 
           app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -79,7 +79,7 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
       // Divide the electron density by the Jacobian for reaction rates.
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -91,7 +91,7 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
       gkyl_array_set_range(react->Jm0_ion[i], 1.0, gks_ion->lte.moms.marr, &app->local);
 
       // Divide the ion density by the Jacobian for Maxwellian projection.
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
       
@@ -108,7 +108,7 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
       gkyl_array_set_range(react->Jm0_ion[i], 1.0, gks_ion->lte.moms.marr, &app->local);
 
       // Divide the ion density by the Jacobian.
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis, 
         0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -125,7 +125,7 @@ gks_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species 
         gkns_partner->local, app->local, fin_neut[react->partner_idx[i]]);  
 
       // Divide the partner density by the Jacobian.
-      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, &app->basis, 
         0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 

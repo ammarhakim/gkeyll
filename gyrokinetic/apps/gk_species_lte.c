@@ -101,8 +101,8 @@ gk_species_lte(gkyl_gyrokinetic_app *app, const struct gk_species *species,
   gk_species_moment_calc(&lte->moms, species->local, app->local, fin);
   
   // Divide out the Jacobian from the density.
-  gkyl_dg_div_op_range(lte->moms.mem_geo, app->basis, 
-    0, lte->moms.marr, 0, lte->moms.marr, 0, 
+  gkyl_dg_div_op_range(lte->moms.mem_geo, &app->basis,
+    0, lte->moms.marr, 0, lte->moms.marr, 0,
     app->gk_geom->geo_int.jacobgeo, &app->local);  
   app->stat.species_lte_tm += gkyl_time_diff_now_sec(wst);   
 

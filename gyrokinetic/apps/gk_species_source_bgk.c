@@ -61,16 +61,16 @@ gk_species_source_bgk_rhs_heating_enabled(gkyl_gyrokinetic_app *app, struct gk_s
 
   // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr, 
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, species->lte.moms.marr, 
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  
 
   // Volume integrate Jrate times the thermal M2.
-  gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_mom, 0, src->Jrate, 0, species->lte.moms.marr, &app->local);
-  gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 2, species->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, src->Jrate_mom, 0, src->Jrate, 0, species->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 2, species->lte.moms.marr, &app->local);
   double Jrate_M2thermal_int = GKYL_MAX2(0.0, gk_species_source_bgk_volume_integrate(app, src, src->Jrate_mom));
 
   // Volume integrate Jrate times the vtsq_shape time M0.
-  gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_mom, 0, src->Jrate_vtsq_shape, 0, species->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, src->Jrate_mom, 0, src->Jrate_vtsq_shape, 0, species->lte.moms.marr, &app->local);
   double Jrate_vtsq_shape_M0_int = GKYL_MAX2(0.0, gk_species_source_bgk_volume_integrate(app, src, src->Jrate_mom));
 
   // Thermal speed squared of the Maxwellian.
@@ -111,16 +111,16 @@ gk_species_source_bgk_rhs_accumulate_maxwellian(gkyl_gyrokinetic_app *app, struc
   //gkyl_array_set_offset(src->Jrate_cap, src->damping_factor, species->lte.moms.marr, 0*app->basis.num_basis);
 
   // Divide M0dot by the rate and add M0
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M0dot, 0, src->rate, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, src->Jrate_mom, 0, src->M0dot, 0, src->rate, &app->local);  
   gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, species->lte.moms.marr, 0*app->basis.num_basis);
   // Set the density
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 0*app->basis.num_basis);
 
   // Now do momentum
   // Divide M1dot by the rate, add on M1, divide by density to get upar
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M1dot, 0, src->rate, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, src->Jrate_mom, 0, src->M1dot, 0, src->rate, &app->local);  
   gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, src->correct_mom_op.marr, 1*app->basis.num_basis);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
   // Set the LTE moments for projection and project
   gkyl_array_set_offset(species->lte.moms.marr, 1.0, src->Jrate_mom, 1*app->basis.num_basis);
 
@@ -128,16 +128,16 @@ gk_species_source_bgk_rhs_accumulate_maxwellian(gkyl_gyrokinetic_app *app, struc
   // Set a minimum on vtsq so it doesn't go negative
   gkyl_array_set_offset(src->Jrate_cap, src->damping_factor, species->lte.moms.marr, 2*app->basis.num_basis);
   // T/m = M2dot/nu + M2 - n_s upar_s^2
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->M2dot, 0, src->rate, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, src->Jrate_mom, 0, src->M2dot, 0, src->rate, &app->local);  
   gkyl_array_accumulate_offset(src->Jrate_mom, 1.0, src->correct_mom_op.marr, 2*app->basis.num_basis);
 
-  gkyl_dg_mul_op_range(app->basis, 1, src->correct_mom_op.marr, 1, species->lte.moms.marr, 1, species->lte.moms.marr, &app->local);
-  gkyl_dg_mul_op_range(app->basis, 1, src->correct_mom_op.marr, 1, src->correct_mom_op.marr, 0, species->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 1, src->correct_mom_op.marr, 1, species->lte.moms.marr, 1, species->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 1, src->correct_mom_op.marr, 1, src->correct_mom_op.marr, 0, species->lte.moms.marr, &app->local);
 
   gkyl_array_accumulate_offset(src->Jrate_mom,-1.0, src->correct_mom_op.marr, 1*app->basis.num_basis);
 
   gkyl_array_scale(src->Jrate_mom, 1.0/3.0);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, src->Jrate_mom, 0, src->Jrate_mom, 0, species->lte.moms.marr, &app->local);  
   // Apply the cap so we don't drive the temperature negative
   gkyl_array_max_by_cell_per_cell_avg_range(src->Jrate_mom, src->Jrate_cap, &app->local);
   // Set the temperature
@@ -425,7 +425,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       gkyl_proj_on_basis_release(proj_rate);
       gkyl_array_release(rate_host);
       // Multiply the rate by the conf-space Jacobian.
-      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
 
       // Project the user provided function (we use here Jrate_df as a temporary array).
       struct gkyl_array *Jrate_fmax_host = app->use_gpu? mkarr(false, src->Jrate_df->ncomp, src->Jrate_df->size)
@@ -493,7 +493,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       gkyl_proj_on_basis_release(proj_rate);
       gkyl_array_release(rate_host);
       // Multiply the rate by the conf-space Jacobian.
-      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
 
       // source_bgk rate.
       src->vtsq_shape = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -508,7 +508,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
 
       // Multiply Jrate by the shape of v_t^2.
       src->Jrate_vtsq_shape = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate_vtsq_shape, 0, src->Jrate, 0, src->vtsq_shape, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, 0, src->Jrate_vtsq_shape, 0, src->Jrate, 0, src->vtsq_shape, &app->local);
 
       // Rate times a velocity moment.
       src->Jrate_mom = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -545,7 +545,7 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
       gkyl_array_shiftc(src->rate, pow(sqrt(2.0),app->cdim)/src->injection_time, 0); // Sets rate = 1/injection_time
 
       // Multiply the rate by the conf-space Jacobian.
-      gkyl_dg_mul_op_range(app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, 0, src->Jrate, 0, app->gk_geom->geo_int.jacobgeo, 0, src->rate, &app->local);
 
       // External source rates
       src->M0dot = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

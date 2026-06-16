@@ -490,7 +490,7 @@ gkyl_fem_poisson_perp_set_rhs(gkyl_fem_poisson_perp *up, struct gkyl_array *rhsi
     // Subtract the volume averaged RHS from the RHS.
     gkyl_array_clear(up->rhs_cellavg, 0.0);
 
-    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
+    gkyl_dg_calc_average_range(&up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
 
     gkyl_range_iter_init(&up->par_iter1d, &up->par_range1d);
     while (gkyl_range_iter_next(&up->par_iter1d)) {

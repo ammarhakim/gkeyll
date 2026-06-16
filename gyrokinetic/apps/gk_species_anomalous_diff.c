@@ -115,7 +115,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
     gkyl_array_release(diffD_ho);
 
     // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->basis, 0, gkad->diffD, 0, app->gk_geom->geo_int.gxxj, 0, gkad->diffD);
+    gkyl_dg_mul_op(&app->basis, 0, gkad->diffD, 0, app->gk_geom->geo_int.gxxj, 0, gkad->diffD);
 
     // Sync diffusivity.
     int num_periodic_dir = app->num_periodic_dir;

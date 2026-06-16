@@ -23,7 +23,7 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
         gks_elc->local, app->local, fin[react->elc_idx[i]]);
 
       // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -40,7 +40,7 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
       // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -49,8 +49,8 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
         gks_ion->local, app->local, fin[react->ion_idx[i]]);
 
       // divide out the Jacobian from the ion density for use in Maxwellian projection
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
-        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis,
+        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0,
         app->gk_geom->geo_int.jacobgeo, &app->local);
 
       // Construct ion vector velocity upar b_i
@@ -73,8 +73,8 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
         gks_ion->local, app->local, fin[react->ion_idx[i]]);
 
       // divide out the Jacobian from the ion density
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
-        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis,
+        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0,
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       // Construct ion vector velocity upar b_i
@@ -96,8 +96,8 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
       gkyl_array_set_range(react->Jm0_partner[i], 1.0, gkns_partner->lte.moms.marr, &app->local);
 
       // Divide out the Jacobian from the partner density.
-      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
-        0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
+      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, &app->basis,
+        0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0,
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
