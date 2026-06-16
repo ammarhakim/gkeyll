@@ -1,74 +1,53 @@
-#include <gkyl_dg_diffusion_gyrokinetic_kernels.h>
+#include <gkyl_gk_numerical_diffusion_kernels.h>
 
-GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p1_constcoeff(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double gk_numerical_diffusion_order2_surfx_1x1v_ser_p1_varnu(const double *w, const double *dx, const double *nul, const double *nuc, const double *nur, const double *jacobgeo_invl,  const double *jacobgeo_invc, const double *jacobgeo_invr, const double *Jfl, const double *Jfc, const double *Jfr, double* GKYL_RESTRICT out) 
 {
   // w[NDIM]: Cell-center coordinate.
   // dxv[NDIM]: Cell length.
-  // coeff: Diffusion coefficient.
-  // jacobgeo_inv: one divided by the configuration space Jacobian.
-  // ql: Input field in the left cell.
-  // qc: Input field in the center cell.
-  // qr: Input field in the right cell.
+  // nul: Diffusivity in the left cell.
+  // nuc: Diffusivity in the center cell.
+  // nur: Diffusivity in the right cell.
+  // jacobgeo_invl: reciprocal of the conf-space Jacobian in the left cell.
+  // jacobgeo_invc: reciprocal of the conf-space Jacobian in the center cell.
+  // jacobgeo_invr: reciprocal of the conf-space Jacobian in the right cell.
+  // Jfl: Input field times conf-space Jacobian in the left cell.
+  // Jfc: Input field times conf-space Jacobian in the center cell.
+  // Jfr: Input field times conf-space Jacobian in the right cell.
   // out: Incremented output.
 
-  const double rdx2Sq = pow(2./dx[0],2.);
-
-  out[0] += -0.0625*(8.660254037844386*coeff[0]*qr[1]-8.660254037844386*coeff[0]*ql[1]-9.0*coeff[0]*qr[0]-9.0*coeff[0]*ql[0]+18.0*coeff[0]*qc[0])*rdx2Sq; 
-  out[1] += -0.0625*(7.0*coeff[0]*qr[1]+7.0*coeff[0]*ql[1]+46.0*coeff[0]*qc[1]-8.660254037844386*coeff[0]*qr[0]+8.660254037844386*coeff[0]*ql[0])*rdx2Sq; 
-  out[2] += -0.0625*(8.660254037844386*coeff[0]*qr[3]-8.660254037844386*coeff[0]*ql[3]-9.0*coeff[0]*qr[2]-9.0*coeff[0]*ql[2]+18.0*coeff[0]*qc[2])*rdx2Sq; 
-  out[3] += -0.0625*(7.0*coeff[0]*qr[3]+7.0*coeff[0]*ql[3]+46.0*coeff[0]*qc[3]-8.660254037844386*coeff[0]*qr[2]+8.660254037844386*coeff[0]*ql[2])*rdx2Sq; 
-  out[4] += -0.0625*(8.660254037844387*coeff[0]*qr[5]-8.660254037844387*coeff[0]*ql[5]-9.0*coeff[0]*qr[4]-9.0*coeff[0]*ql[4]+18.0*coeff[0]*qc[4])*rdx2Sq; 
-  out[5] += -0.0625*(7.0*coeff[0]*qr[5]+7.0*coeff[0]*ql[5]+46.0*coeff[0]*qc[5]-8.660254037844387*coeff[0]*qr[4]+8.660254037844387*coeff[0]*ql[4])*rdx2Sq; 
-
-  return 0.;
-
-}
-
-GKYL_CU_DH double dg_diffusion_gyrokinetic_order2_surfx_1x1v_ser_p1_varcoeff(const double *w, const double *dx, const double *coeff, const double *jacobgeo_inv, const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out) 
-{
-  // w[NDIM]: Cell-center coordinate.
-  // dxv[NDIM]: Cell length.
-  // coeff: Diffusion coefficient.
-  // jacobgeo_inv: one divided by the configuration space Jacobian.
-  // ql: Input field in the left cell.
-  // qc: Input field in the center cell.
-  // qr: Input field in the right cell.
-  // out: Incremented output.
-
-  const double rdx2Sq = pow(2./dx[0],2.);
+  const double rdx2fac = pow(2./dx[0],2);
 
   double fl[6];
-  fl[0] = 0.7071067811865476*(jacobgeo_inv[1]*ql[1]+jacobgeo_inv[0]*ql[0]); 
-  fl[1] = 0.7071067811865476*(jacobgeo_inv[0]*ql[1]+ql[0]*jacobgeo_inv[1]); 
-  fl[2] = 0.7071067811865476*(jacobgeo_inv[1]*ql[3]+jacobgeo_inv[0]*ql[2]); 
-  fl[3] = 0.7071067811865476*(jacobgeo_inv[0]*ql[3]+jacobgeo_inv[1]*ql[2]); 
-  fl[4] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[1]*ql[5]+21.21320343559643*jacobgeo_inv[0]*ql[4]); 
-  fl[5] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[0]*ql[5]+21.21320343559643*jacobgeo_inv[1]*ql[4]); 
+  fl[0] = 0.7071067811865476*(Jfl[1]*jacobgeo_invl[1]+Jfl[0]*jacobgeo_invl[0]); 
+  fl[1] = 0.7071067811865476*(Jfl[0]*jacobgeo_invl[1]+jacobgeo_invl[0]*Jfl[1]); 
+  fl[2] = 0.7071067811865476*(jacobgeo_invl[1]*Jfl[3]+jacobgeo_invl[0]*Jfl[2]); 
+  fl[3] = 0.7071067811865476*(jacobgeo_invl[0]*Jfl[3]+jacobgeo_invl[1]*Jfl[2]); 
+  fl[4] = 0.03333333333333333*(21.21320343559643*jacobgeo_invl[1]*Jfl[5]+21.213203435596427*jacobgeo_invl[0]*Jfl[4]); 
+  fl[5] = 0.03333333333333333*(21.213203435596427*jacobgeo_invl[0]*Jfl[5]+21.21320343559643*jacobgeo_invl[1]*Jfl[4]); 
 
   double fc[6];
-  fc[0] = 0.7071067811865476*(jacobgeo_inv[1]*qc[1]+jacobgeo_inv[0]*qc[0]); 
-  fc[1] = 0.7071067811865476*(jacobgeo_inv[0]*qc[1]+qc[0]*jacobgeo_inv[1]); 
-  fc[2] = 0.7071067811865476*(jacobgeo_inv[1]*qc[3]+jacobgeo_inv[0]*qc[2]); 
-  fc[3] = 0.7071067811865476*(jacobgeo_inv[0]*qc[3]+jacobgeo_inv[1]*qc[2]); 
-  fc[4] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[1]*qc[5]+21.21320343559643*jacobgeo_inv[0]*qc[4]); 
-  fc[5] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[0]*qc[5]+21.21320343559643*jacobgeo_inv[1]*qc[4]); 
+  fc[0] = 0.7071067811865476*(Jfc[1]*jacobgeo_invc[1]+Jfc[0]*jacobgeo_invc[0]); 
+  fc[1] = 0.7071067811865476*(Jfc[0]*jacobgeo_invc[1]+jacobgeo_invc[0]*Jfc[1]); 
+  fc[2] = 0.7071067811865476*(jacobgeo_invc[1]*Jfc[3]+jacobgeo_invc[0]*Jfc[2]); 
+  fc[3] = 0.7071067811865476*(jacobgeo_invc[0]*Jfc[3]+jacobgeo_invc[1]*Jfc[2]); 
+  fc[4] = 0.03333333333333333*(21.21320343559643*jacobgeo_invc[1]*Jfc[5]+21.213203435596427*jacobgeo_invc[0]*Jfc[4]); 
+  fc[5] = 0.03333333333333333*(21.213203435596427*jacobgeo_invc[0]*Jfc[5]+21.21320343559643*jacobgeo_invc[1]*Jfc[4]); 
 
   double fr[6];
-  fr[0] = 0.7071067811865476*(jacobgeo_inv[1]*qr[1]+jacobgeo_inv[0]*qr[0]); 
-  fr[1] = 0.7071067811865476*(jacobgeo_inv[0]*qr[1]+qr[0]*jacobgeo_inv[1]); 
-  fr[2] = 0.7071067811865476*(jacobgeo_inv[1]*qr[3]+jacobgeo_inv[0]*qr[2]); 
-  fr[3] = 0.7071067811865476*(jacobgeo_inv[0]*qr[3]+jacobgeo_inv[1]*qr[2]); 
-  fr[4] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[1]*qr[5]+21.21320343559643*jacobgeo_inv[0]*qr[4]); 
-  fr[5] = 0.03333333333333333*(21.21320343559643*jacobgeo_inv[0]*qr[5]+21.21320343559643*jacobgeo_inv[1]*qr[4]); 
+  fr[0] = 0.7071067811865476*(Jfr[1]*jacobgeo_invr[1]+Jfr[0]*jacobgeo_invr[0]); 
+  fr[1] = 0.7071067811865476*(Jfr[0]*jacobgeo_invr[1]+jacobgeo_invr[0]*Jfr[1]); 
+  fr[2] = 0.7071067811865476*(jacobgeo_invr[1]*Jfr[3]+jacobgeo_invr[0]*Jfr[2]); 
+  fr[3] = 0.7071067811865476*(jacobgeo_invr[0]*Jfr[3]+jacobgeo_invr[1]*Jfr[2]); 
+  fr[4] = 0.03333333333333333*(21.21320343559643*jacobgeo_invr[1]*Jfr[5]+21.213203435596427*jacobgeo_invr[0]*Jfr[4]); 
+  fr[5] = 0.03333333333333333*(21.213203435596427*jacobgeo_invr[0]*Jfr[5]+21.21320343559643*jacobgeo_invr[1]*Jfr[4]); 
 
-  out[0] += -0.03125*((21.21320343559643*coeff[1]+12.24744871391589*coeff[0])*fr[1]+(21.21320343559643*coeff[1]-12.24744871391589*coeff[0])*fl[1]+42.42640687119286*coeff[1]*fc[1]+(22.0454076850486*fl[0]-22.0454076850486*fr[0])*coeff[1]-12.72792206135786*coeff[0]*fr[0]-12.72792206135786*coeff[0]*fl[0]+25.45584412271572*coeff[0]*fc[0])*rdx2Sq; 
-  out[1] += -0.03125*((17.14642819948224*coeff[1]+9.899494936611665*coeff[0])*fr[1]+(9.899494936611665*coeff[0]-17.14642819948224*coeff[1])*fl[1]+65.05382386916239*coeff[0]*fc[1]+((-21.21320343559643*fr[0])-21.21320343559643*fl[0]+42.42640687119286*fc[0])*coeff[1]-12.24744871391589*coeff[0]*fr[0]+12.24744871391589*coeff[0]*fl[0])*rdx2Sq; 
-  out[2] += -0.03125*((21.21320343559643*coeff[1]+12.24744871391589*coeff[0])*fr[3]+(21.21320343559643*coeff[1]-12.24744871391589*coeff[0])*fl[3]+42.42640687119286*coeff[1]*fc[3]+((-22.0454076850486*coeff[1])-12.72792206135786*coeff[0])*fr[2]+(22.0454076850486*coeff[1]-12.72792206135786*coeff[0])*fl[2]+25.45584412271572*coeff[0]*fc[2])*rdx2Sq; 
-  out[3] += -0.03125*((17.14642819948224*coeff[1]+9.899494936611665*coeff[0])*fr[3]+(9.899494936611665*coeff[0]-17.14642819948224*coeff[1])*fl[3]+65.05382386916239*coeff[0]*fc[3]+((-21.21320343559643*coeff[1])-12.24744871391589*coeff[0])*fr[2]+(12.24744871391589*coeff[0]-21.21320343559643*coeff[1])*fl[2]+42.42640687119286*coeff[1]*fc[2])*rdx2Sq; 
-  out[4] += -0.03125*((21.21320343559643*coeff[1]+12.24744871391589*coeff[0])*fr[5]+(21.21320343559643*coeff[1]-12.24744871391589*coeff[0])*fl[5]+42.42640687119286*coeff[1]*fc[5]+((-22.0454076850486*coeff[1])-12.72792206135786*coeff[0])*fr[4]+(22.0454076850486*coeff[1]-12.72792206135786*coeff[0])*fl[4]+25.45584412271572*coeff[0]*fc[4])*rdx2Sq; 
-  out[5] += -0.03125*((17.14642819948224*coeff[1]+9.899494936611665*coeff[0])*fr[5]+(9.899494936611665*coeff[0]-17.14642819948224*coeff[1])*fl[5]+65.05382386916239*coeff[0]*fc[5]+((-21.21320343559643*coeff[1])-12.24744871391589*coeff[0])*fr[4]+(12.24744871391589*coeff[0]-21.21320343559643*coeff[1])*fl[4]+42.42640687119286*coeff[1]*fc[4])*rdx2Sq; 
+  out[0] += (0.015625*((21.213203435596427*fr[1]+21.213203435596427*fc[1]-22.0454076850486*fr[0]+22.0454076850486*fc[0])*nur[1]+(-(21.213203435596427*fr[1])-21.213203435596427*fc[1]+22.0454076850486*fr[0]-22.0454076850486*fc[0])*nuc[1]+(-(12.24744871391589*nur[0])-12.24744871391589*nuc[0])*fr[1]+(-(12.24744871391589*nur[0])-12.24744871391589*nuc[0])*fc[1]+(12.727922061357857*fr[0]-12.727922061357857*fc[0])*nur[0]+(12.727922061357857*fr[0]-12.727922061357857*fc[0])*nuc[0])+0.015625*((21.213203435596427*fl[1]+21.213203435596427*fc[1]+22.0454076850486*fl[0]-22.0454076850486*fc[0])*nul[1]+(-(21.213203435596427*fl[1])-21.213203435596427*fc[1]-22.0454076850486*fl[0]+22.0454076850486*fc[0])*nuc[1]+(12.24744871391589*nul[0]+12.24744871391589*nuc[0])*fl[1]+(12.24744871391589*nul[0]+12.24744871391589*nuc[0])*fc[1]+(12.727922061357857*fl[0]-12.727922061357857*fc[0])*nul[0]+(12.727922061357857*fl[0]-12.727922061357857*fc[0])*nuc[0]))*rdx2fac; 
+  out[1] += (0.015625*((36.74234614174767*fr[1]+36.74234614174767*fc[1]-38.18376618407357*fr[0]+38.18376618407357*fc[0])*nur[1]+(-(36.74234614174767*fr[1])-36.74234614174767*fc[1]+38.18376618407357*fr[0]-38.18376618407357*fc[0])*nuc[1]+(-(21.213203435596427*nur[0])-21.213203435596427*nuc[0])*fr[1]+(-(21.213203435596427*nur[0])-21.213203435596427*nuc[0])*fc[1]+(22.0454076850486*fr[0]-22.0454076850486*fc[0])*nur[0]+(22.0454076850486*fr[0]-22.0454076850486*fc[0])*nuc[0])-0.015625*((36.74234614174767*fl[1]+36.74234614174767*fc[1]+38.18376618407357*fl[0]-38.18376618407357*fc[0])*nul[1]+(-(36.74234614174767*fl[1])-36.74234614174767*fc[1]-38.18376618407357*fl[0]+38.18376618407357*fc[0])*nuc[1]+(21.213203435596427*nul[0]+21.213203435596427*nuc[0])*fl[1]+(21.213203435596427*nul[0]+21.213203435596427*nuc[0])*fc[1]+(22.0454076850486*fl[0]-22.0454076850486*fc[0])*nul[0]+(22.0454076850486*fl[0]-22.0454076850486*fc[0])*nuc[0]))*rdx2fac; 
+  out[2] += (0.015625*((21.213203435596427*nur[1]-21.213203435596427*nuc[1]-12.24744871391589*nur[0]-12.24744871391589*nuc[0])*fr[3]+(21.213203435596427*nur[1]-21.213203435596427*nuc[1]-12.24744871391589*nur[0]-12.24744871391589*nuc[0])*fc[3]+(-(22.0454076850486*nur[1])+22.0454076850486*nuc[1]+12.727922061357857*nur[0]+12.727922061357857*nuc[0])*fr[2]+(22.0454076850486*nur[1]-22.0454076850486*nuc[1]-12.727922061357857*nur[0]-12.727922061357857*nuc[0])*fc[2])+0.015625*((21.213203435596427*nul[1]-21.213203435596427*nuc[1]+12.24744871391589*nul[0]+12.24744871391589*nuc[0])*fl[3]+(21.213203435596427*nul[1]-21.213203435596427*nuc[1]+12.24744871391589*nul[0]+12.24744871391589*nuc[0])*fc[3]+(22.0454076850486*nul[1]-22.0454076850486*nuc[1]+12.727922061357857*nul[0]+12.727922061357857*nuc[0])*fl[2]+(-(22.0454076850486*nul[1])+22.0454076850486*nuc[1]-12.727922061357857*nul[0]-12.727922061357857*nuc[0])*fc[2]))*rdx2fac; 
+  out[3] += (0.015625*((36.74234614174767*nur[1]-36.74234614174767*nuc[1]-21.213203435596427*nur[0]-21.213203435596427*nuc[0])*fr[3]+(36.74234614174767*nur[1]-36.74234614174767*nuc[1]-21.213203435596427*nur[0]-21.213203435596427*nuc[0])*fc[3]+(-(38.18376618407357*nur[1])+38.18376618407357*nuc[1]+22.0454076850486*nur[0]+22.0454076850486*nuc[0])*fr[2]+(38.18376618407357*nur[1]-38.18376618407357*nuc[1]-22.0454076850486*nur[0]-22.0454076850486*nuc[0])*fc[2])-0.015625*((36.74234614174767*nul[1]-36.74234614174767*nuc[1]+21.213203435596427*nul[0]+21.213203435596427*nuc[0])*fl[3]+(36.74234614174767*nul[1]-36.74234614174767*nuc[1]+21.213203435596427*nul[0]+21.213203435596427*nuc[0])*fc[3]+(38.18376618407357*nul[1]-38.18376618407357*nuc[1]+22.0454076850486*nul[0]+22.0454076850486*nuc[0])*fl[2]+(-(38.18376618407357*nul[1])+38.18376618407357*nuc[1]-22.0454076850486*nul[0]-22.0454076850486*nuc[0])*fc[2]))*rdx2fac; 
+  out[4] += (0.015625*((21.21320343559643*nur[1]-21.21320343559643*nuc[1]-12.247448713915892*nur[0]-12.247448713915892*nuc[0])*fr[5]+(21.21320343559643*nur[1]-21.21320343559643*nuc[1]-12.247448713915892*nur[0]-12.247448713915892*nuc[0])*fc[5]+(-(22.0454076850486*nur[1])+22.0454076850486*nuc[1]+12.727922061357857*nur[0]+12.727922061357857*nuc[0])*fr[4]+(22.0454076850486*nur[1]-22.0454076850486*nuc[1]-12.727922061357857*nur[0]-12.727922061357857*nuc[0])*fc[4])+0.015625*((21.21320343559643*nul[1]-21.21320343559643*nuc[1]+12.247448713915892*nul[0]+12.247448713915892*nuc[0])*fl[5]+(21.21320343559643*nul[1]-21.21320343559643*nuc[1]+12.247448713915892*nul[0]+12.247448713915892*nuc[0])*fc[5]+(22.0454076850486*nul[1]-22.0454076850486*nuc[1]+12.727922061357857*nul[0]+12.727922061357857*nuc[0])*fl[4]+(-(22.0454076850486*nul[1])+22.0454076850486*nuc[1]-12.727922061357857*nul[0]-12.727922061357857*nuc[0])*fc[4]))*rdx2fac; 
+  out[5] += (0.003125*((183.71173070873834*nur[1]-183.71173070873834*nuc[1]-106.06601717798213*nur[0]-106.06601717798213*nuc[0])*fr[5]+(183.71173070873834*nur[1]-183.71173070873834*nuc[1]-106.06601717798213*nur[0]-106.06601717798213*nuc[0])*fc[5]+(-(190.9188309203678*nur[1])+190.9188309203678*nuc[1]+110.22703842524304*nur[0]+110.22703842524304*nuc[0])*fr[4]+(190.9188309203678*nur[1]-190.9188309203678*nuc[1]-110.22703842524304*nur[0]-110.22703842524304*nuc[0])*fc[4])-0.003125*((183.71173070873834*nul[1]-183.71173070873834*nuc[1]+106.06601717798213*nul[0]+106.06601717798213*nuc[0])*fl[5]+(183.71173070873834*nul[1]-183.71173070873834*nuc[1]+106.06601717798213*nul[0]+106.06601717798213*nuc[0])*fc[5]+(190.9188309203678*nul[1]-190.9188309203678*nuc[1]+110.22703842524304*nul[0]+110.22703842524304*nuc[0])*fl[4]+(-(190.9188309203678*nul[1])+190.9188309203678*nuc[1]-110.22703842524304*nul[0]-110.22703842524304*nuc[0])*fc[4]))*rdx2fac; 
 
   return 0.;
-
 }
 
