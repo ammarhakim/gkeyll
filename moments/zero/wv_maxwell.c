@@ -147,6 +147,18 @@ gkyl_wv_maxwell_inew(const struct gkyl_wv_maxwell_inp* inp)
         assert(false);
         break;
     }
+    switch (maxwell->eqn.embed_geo->type) {
+      case GKYL_EMBED_EXCISE:
+        maxwell->eqn.embed_geo->embed_func = calc_embed_excise;
+        break;
+
+      case GKYL_EMBED_FUNC:
+        break; // already set by gkyl_wv_embed_geo_new
+
+      default:
+        assert(false);
+        break;
+    }
   }
 
   return &maxwell->eqn;
