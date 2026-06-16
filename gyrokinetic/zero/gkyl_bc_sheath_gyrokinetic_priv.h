@@ -235,8 +235,8 @@ bc_gksheath_choose_vcutsq_const_kernels(const struct gkyl_basis *basis, enum gky
  * @param distf Distribution function array to apply BC to.
  * @param conf_r Configuration space range (to index phi).
  */
-void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi,
-  const struct gkyl_array *phi_wall, struct gkyl_array *distf, const struct gkyl_range *conf_r);
+void gkyl_bc_sheath_gyrokinetic_advance_cu(const struct gkyl_bc_sheath_gyrokinetic *up, 
+  struct gkyl_array *distf, const struct gkyl_range *conf_r);
 
 /**
  * CUDA device function to update the vcutsq array with surrogate.
