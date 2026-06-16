@@ -360,6 +360,20 @@ qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, co
 
 GKYL_CU_DH
 static void
+calc_embed_excise(double *q, void *ctx)
+{
+  q[0] = 0.0;
+  q[1] = 0.0;
+  q[2] = 0.0;
+  q[3] = 0.0;
+  q[4] = 0.0;
+  q[5] = 0.0;
+  q[6] = 0.0;
+  q[7] = 0.0;
+}
+
+GKYL_CU_DH
+static void
 wave_embed_copy_B(const double *q, double *qphi, double *delta, void *ctx)
 {
   qphi[0] = 0.0;
