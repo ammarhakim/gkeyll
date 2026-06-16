@@ -57,6 +57,12 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
     }
   }
 
+  // Function pointers to twistshift function.
+  up->parallel_lower_bc_shift_func = geometry_inp->parallel_lower_bc_shift_func;
+  up->parallel_upper_bc_shift_func = geometry_inp->parallel_upper_bc_shift_func;
+  up->parallel_lower_bc_shift_ctx  = geometry_inp->parallel_lower_bc_shift_ctx;
+  up->parallel_upper_bc_shift_ctx  = geometry_inp->parallel_upper_bc_shift_ctx;
+
   if (up->grid.ndim > 1) {
     gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);
     up->num_surf_basis = up->surf_basis.num_basis;
@@ -76,28 +82,28 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
 
   // Store metadata for I/O.
   if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-    struct gkyl_msgpack_map_elem io_meta[] = {
+    struct gkyl_msgpack_map_elem io_meta_basic[] = {
       { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
       { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
       { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
     };
-    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+    up->io_meta_basic_len = sizeof(io_meta_basic)/sizeof(io_meta_basic[0]);
+    up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
   }
   else if (up->geometry_id == GKYL_GEOMETRY_MIRROR) {
-    struct gkyl_msgpack_map_elem io_meta[] = {
+    struct gkyl_msgpack_map_elem io_meta_basic[] = {
       { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
       { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
     };
-    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+    up->io_meta_basic_len = sizeof(io_meta_basic)/sizeof(io_meta_basic[0]);
+    up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
   }
   else {
-    struct gkyl_msgpack_map_elem io_meta[] = {
+    struct gkyl_msgpack_map_elem io_meta_basic[] = {
       { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
     };
-    up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-    up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+    up->io_meta_basic_len = sizeof(io_meta_basic)/sizeof(io_meta_basic[0]);
+    up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
   }
 
   up->flags = 0;
@@ -110,55 +116,55 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
 
 void gkyl_gk_geometry_reset_io_meta(struct gk_geometry *up)
 {
-  gkyl_msgpack_map_elem_set_uint(up->io_meta_len, up->io_meta, "geometry_type", up->geometry_id);
+  gkyl_msgpack_map_elem_set_uint(up->io_meta_basic_len, up->io_meta_basic, "geometry_type", up->geometry_id);
 
   if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK || up->geometry_id == GKYL_GEOMETRY_MIRROR) {
-    if (gkyl_msgpack_map_elem_has_key(up->io_meta_len, up->io_meta, "geqdsk_sign_convention")) {
+    if (gkyl_msgpack_map_elem_has_key(up->io_meta_basic_len, up->io_meta_basic, "geqdsk_sign_convention")) {
       // Element list has this key. Update its value.
-      gkyl_msgpack_map_elem_set_uint(up->io_meta_len, up->io_meta, "geqdsk_sign_convention", up->geqdsk_sign_convention);
+      gkyl_msgpack_map_elem_set_uint(up->io_meta_basic_len, up->io_meta_basic, "geqdsk_sign_convention", up->geqdsk_sign_convention);
     }
     else {
       // Element list doesn't have this key. Create a new list with it.
-      struct gkyl_msgpack_map_elem io_meta_new[] = {
+      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
         { .key = "geqdsk_sign_convention", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geqdsk_sign_convention },
       };
-      int io_meta_new_len = sizeof(io_meta_new)/sizeof(io_meta_new[0]);
+      int io_meta_basic_new_len = sizeof(io_meta_basic_new)/sizeof(io_meta_basic_new[0]);
 
-      struct gkyl_msgpack_map_elem *io_meta_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_len, up->io_meta);
-      int io_meta_buffer_len = up->io_meta_len;
-      gkyl_msgpack_map_elem_release(io_meta_buffer_len, up->io_meta); 
+      struct gkyl_msgpack_map_elem *io_meta_basic_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, up->io_meta_basic);
+      int io_meta_basic_buffer_len = up->io_meta_basic_len;
+      gkyl_msgpack_map_elem_release(io_meta_basic_buffer_len, up->io_meta_basic); 
 
-      int io_meta_list_len[] = {io_meta_new_len, io_meta_buffer_len};
-      const struct gkyl_msgpack_map_elem* io_meta_list[] = {io_meta_new, io_meta_buffer};
-      up->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_list_len)/sizeof(int),
-        io_meta_list_len, io_meta_list, &up->io_meta_len);
+      int io_meta_basic_list_len[] = {io_meta_basic_new_len, io_meta_basic_buffer_len};
+      const struct gkyl_msgpack_map_elem* io_meta_basic_list[] = {io_meta_basic_new, io_meta_basic_buffer};
+      up->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_list_len)/sizeof(int),
+        io_meta_basic_list_len, io_meta_basic_list, &up->io_meta_basic_len);
 
-      gkyl_msgpack_map_elem_release(io_meta_buffer_len, io_meta_buffer); 
+      gkyl_msgpack_map_elem_release(io_meta_basic_buffer_len, io_meta_basic_buffer); 
     }
   }
 
   if (up->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-    if (gkyl_msgpack_map_elem_has_key(up->io_meta_len, up->io_meta, "half_domain")) {
+    if (gkyl_msgpack_map_elem_has_key(up->io_meta_basic_len, up->io_meta_basic, "half_domain")) {
       // Element list has this key. Update its value.
-      gkyl_msgpack_map_elem_set_uint(up->io_meta_len, up->io_meta, "half_domain", up->half_domain);
+      gkyl_msgpack_map_elem_set_uint(up->io_meta_basic_len, up->io_meta_basic, "half_domain", up->half_domain);
     }
     else {
       // Element list doesn't have this key. Create a new list with it.
-      struct gkyl_msgpack_map_elem io_meta_new[] = {
+      struct gkyl_msgpack_map_elem io_meta_basic_new[] = {
         { .key = "half_domain", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->half_domain },
       };
-      int io_meta_new_len = sizeof(io_meta_new)/sizeof(io_meta_new[0]);
+      int io_meta_basic_new_len = sizeof(io_meta_basic_new)/sizeof(io_meta_basic_new[0]);
 
-      struct gkyl_msgpack_map_elem *io_meta_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_len, up->io_meta);
-      int io_meta_buffer_len = up->io_meta_len;
-      gkyl_msgpack_map_elem_release(io_meta_buffer_len, up->io_meta); 
+      struct gkyl_msgpack_map_elem *io_meta_basic_buffer = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, up->io_meta_basic);
+      int io_meta_basic_buffer_len = up->io_meta_basic_len;
+      gkyl_msgpack_map_elem_release(io_meta_basic_buffer_len, up->io_meta_basic); 
 
-      int io_meta_list_len[] = {io_meta_new_len, io_meta_buffer_len};
-      const struct gkyl_msgpack_map_elem* io_meta_list[] = {io_meta_new, io_meta_buffer};
-      up->io_meta = gkyl_msgpack_map_elem_union(sizeof(io_meta_list_len)/sizeof(int),
-        io_meta_list_len, io_meta_list, &up->io_meta_len);
+      int io_meta_basic_list_len[] = {io_meta_basic_new_len, io_meta_basic_buffer_len};
+      const struct gkyl_msgpack_map_elem* io_meta_basic_list[] = {io_meta_basic_new, io_meta_basic_buffer};
+      up->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_list_len)/sizeof(int),
+        io_meta_basic_list_len, io_meta_basic_list, &up->io_meta_basic_len);
 
-      gkyl_msgpack_map_elem_release(io_meta_buffer_len, io_meta_buffer); 
+      gkyl_msgpack_map_elem_release(io_meta_basic_buffer_len, io_meta_basic_buffer); 
     }
   }
 }
@@ -197,6 +203,7 @@ void gkyl_gk_geometry_populate_nodal(struct gk_geometry *gk_geom)
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 9, up_surf.normals_nodal, up_surf.normals, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.lenr_nodal, up_surf.lenr, dir);
+    gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.deltats_nodal, up_surf.deltats, dir);
     gkyl_nodal_ops_m2n_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &gk_geom->nrange_surf[dir], &local_ext_in_dir, 1, up_surf.bimpactangle_nodal, up_surf.bimpactangle, dir);
   }
   gkyl_nodal_ops_release(n2m);
@@ -580,6 +587,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].normcurlbhat, up->geo_surf[count].normcurlbhat, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].normals, up->geo_surf[count].normals, 9);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].lenr, up->geo_surf[count].lenr, 1);
+      gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].deltats, up->geo_surf[count].deltats, 1);
       gkyl_deflate_geo_surf_advance(deflator_surf, &local_ext_in_dir_3d, &local_ext_in_dir, up_3d->geo_surf[dir].bimpactangle, up->geo_surf[count].bimpactangle, 1);
       // deflate nodal quantities 
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].bmag_nodal, up->geo_surf[count].bmag_nodal, 1);
@@ -589,6 +597,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].b_i_nodal, up->geo_surf[count].b_i_nodal, 3);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].normals_nodal, up->geo_surf[count].normals_nodal, 9);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].lenr_nodal, up->geo_surf[count].lenr_nodal, 1);
+      gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].deltats_nodal, up->geo_surf[count].deltats_nodal, 1);
       gkyl_deflate_geo_surf_advance_nodal(deflator_surf, &up_3d->nrange_surf[dir], &up->nrange_surf[count], up_3d->geo_surf[dir].bimpactangle_nodal, up->geo_surf[count].bimpactangle_nodal, 1);
       count+=1;
       gkyl_deflate_geo_surf_release(deflator_surf);
@@ -596,8 +605,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   }
 
   // Copy metadata.
-  up->io_meta = gkyl_msgpack_map_elem_clone(up_3d->io_meta_len, up_3d->io_meta);
-  up->io_meta_len = up_3d->io_meta_len;
+  up->io_meta_basic = gkyl_msgpack_map_elem_clone(up_3d->io_meta_basic_len, up_3d->io_meta_basic);
+  up->io_meta_basic_len = up_3d->io_meta_basic_len;
  
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);
@@ -608,7 +617,8 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
 }
 
 void 
-gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gkyl_msgpack_map_elem* io_meta_basic, int io_meta_basic_len)
+gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp,
+  struct gkyl_msgpack_map_elem* io_meta_basic_basic, int io_meta_basic_basic_len)
 {
   struct gkyl_efit *efit = gkyl_efit_new(&geometry_inp->efit_info);
   const char *fmt = "%s-psi.gkyl";
@@ -617,10 +627,12 @@ gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gk
   snprintf(fileNm, sizeof fileNm, fmt, efit->name);
 
   // Set extra metadata
-  struct gkyl_msgpack_map_elem io_meta_rz[] = {
+  char geqdsk_file_name[128];
+  get_filename_from_path(efit->filepath, geqdsk_file_name, sizeof(geqdsk_file_name));
+  struct gkyl_msgpack_map_elem io_meta_basic_rz[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = efit->rzbasis.poly_order},
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = efit->rzbasis.id},
-    { .key = "geqdsk_name", .elem_type = GKYL_MP_STRING, .cval = efit->name},
+    { .key = "geqdsk_file", .elem_type = GKYL_MP_STRING, .cval = geqdsk_file_name},
     { .key = "psisep", .elem_type = GKYL_MP_DOUBLE, .dval = efit->psisep},
     { .key = "sibry", .elem_type = GKYL_MP_DOUBLE, .dval = efit->sibry},
     { .key = "simag", .elem_type = GKYL_MP_DOUBLE, .dval = efit->simag},
@@ -634,10 +646,10 @@ gkyl_gk_geometry_write_efit(struct gkyl_gk_geometry_inp *geometry_inp, struct gk
     { .key = "zmid", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zmid},
     { .key = "zdim", .elem_type = GKYL_MP_DOUBLE, .dval = efit->zdim},
   };
-  int io_meta_rz_len = sizeof(io_meta_rz)/sizeof(io_meta_rz[0]);
-  int io_meta_len[] = {io_meta_basic_len, io_meta_rz_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {io_meta_basic, io_meta_rz};
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  int io_meta_basic_rz_len = sizeof(io_meta_basic_rz)/sizeof(io_meta_basic_rz[0]);
+  int io_meta_basic_len[] = {io_meta_basic_basic_len, io_meta_basic_rz_len};
+  const struct gkyl_msgpack_map_elem* io_meta_basic[] = {io_meta_basic_basic, io_meta_basic_rz};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_basic_len)/sizeof(int), io_meta_basic_len, io_meta_basic);
   gkyl_grid_sub_array_write(&efit->rzgrid, &efit->rzlocal, mt, efit->psizr, fileNm);
 
   gkyl_msgpack_data_release(mt);
@@ -695,6 +707,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
     gkyl_array_release(up->geo_surf[dir].normcurlbhat);
     gkyl_array_release(up->geo_surf[dir].normals);
     gkyl_array_release(up->geo_surf[dir].lenr);
+    gkyl_array_release(up->geo_surf[dir].deltats);
     gkyl_array_release(up->geo_surf[dir].bimpactangle);
   }
 
@@ -704,7 +717,7 @@ gkyl_gk_geometry_free(const struct gkyl_ref_count *ref)
   for (int dir=0; dir<up->grid.ndim; ++dir)
     gk_geometry_surf_release_nodal(up, dir);
 
-  gkyl_msgpack_map_elem_release(up->io_meta_len, up->io_meta); 
+  gkyl_msgpack_map_elem_release(up->io_meta_basic_len, up->io_meta_basic); 
 
   if (gkyl_gk_geometry_is_cu_dev(up)) 
     gkyl_cu_free(up->on_dev); 
