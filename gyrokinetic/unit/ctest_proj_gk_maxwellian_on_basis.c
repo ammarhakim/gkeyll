@@ -64,9 +64,9 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   double mass = 1.0;
   double lower[] = {0.1, -6.0, 0.0}, upper[] = {1.0, 6.0, 6.0};
   int cells[] = {2, 16, 16};
-  const int vdim = 2;
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim-vdim;
+  int vdim = 2;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim-vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -305,9 +305,9 @@ test_3x2v_gk(int poly_order, bool use_gpu)
   double mass = 1.0;
   double lower[] = {0.1, 0.1, 0.1, -6.0, 0.0}, upper[] = {1.0, 1.0, 1.0, 6.0, 6.0};
   int cells[] = {2, 2, 2, 16, 16};
-  const int vdim = 2;
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim-vdim;
+  int vdim = 2;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim-vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];

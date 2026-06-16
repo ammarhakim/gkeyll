@@ -172,58 +172,57 @@ phi_func(double alpha_curr, double Z, void *ctx)
   // The idea for axisymmetry is that I am avoiding starting integrals at the x-point to minimize issues
   double ival = 0;
   double phi_ref = 0.0;
-  if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE){ 
-    if(actx->right==true){ // phi = alpha at outboard midplane
+  if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE){ // phi = alpha at outboard midplane
+    if(actx->right==true){
       if(Z<actx->zmaxis)
         ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
       else
         ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
     }
-    else{// alpha = phi at inboard midplane
-      if (Z<actx->zmaxis)
-        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
-      else
-        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
+    else{
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
+      phi_ref = actx->phi_right;
     }
   }
-  else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_L){ 
-    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo);
-    phi_ref = actx->phi_right;
+  else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_L){ // alpha = phi at inboard midplane
+    if(Z<actx->zmaxis)
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
+    else
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
 
-  else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_R){ 
+  else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_CORE_R){ // alpha = phi at outboard midplane
     if(Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
 
-  else if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID)){
+  else if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID)){ // alpha = phi at outboard midplane
     if (Z<actx->zmaxis)
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO){ // alpha = phi at lower plate and increases towards xpt
     ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP){ //alpha = phi at upper plate and decreases towards xpt
     ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-  if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) ){
+  if( (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN) || (actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) ){ // alpha = phi at inboard midplane
     if (Z<actx->zmaxis)
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmaxis, rclose, false, false, arc_memo);
     else
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmaxis, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO){
-    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO){ // alpha = phi at lower plate and decreases towards xpt
+    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP){
-    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP){// alpha = phi at upper plate and increases towards xpt
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_LSN_SOL || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_LSN_SOL  || actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID){
     // alpha = phi at outboard midplane
     if (actx->right==true){
       if (Z<actx->zmaxis)
@@ -236,17 +235,23 @@ phi_func(double alpha_curr, double Z, void *ctx)
       phi_ref = actx->phi_right;
     }
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_LO_R){
+  else if(actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO){ //alpha = phi at outer plate and increases towards xpt
+    ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
+  }
+  else if(actx->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP){ //alpha = phi at inner plate and decreases towards xpt
+    ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
+  }
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_LO_R){ // alpha = phi at outer plate and increases towards xpt
       ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_LO_L){
-      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);// + actx->phi_right;
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_LO_L){ //alpha = phi at inner plate and decreases towards xpt
+      ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, zmin, Z, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_UP_R){
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_UP_R){ // alpha = phi at outer plate and decreases towards Xpt
       ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
-  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_UP_L){
-      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);// + actx->phi_right;
+  else if(actx->ftype==GKYL_GEOMETRY_TOKAMAK_PF_UP_L){ // alpha = phi at inner plate and increases towards xpt
+      ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, zmax, rclose, false, false, arc_memo);
   }
   else if (actx->ftype==GKYL_GEOMETRY_TOKAMAK_IWL) {
     // phi = alpha at outboard midplane
@@ -258,11 +263,11 @@ phi_func(double alpha_curr, double Z, void *ctx)
     }
     else{
       if (Z<actx->zmaxis) {
-        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo) ;
+        ival = -integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo) ;
         phi_ref  = -actx->phi_right;
       }
       else {
-        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, actx->zmin, Z, rclose, false, false, arc_memo) ;
+        ival = integrate_phi_along_psi_contour_memo(actx->geo, psi, Z, actx->zmax, rclose, false, false, arc_memo) ;
         phi_ref  = actx->phi_right;
       }
     }
@@ -286,12 +291,12 @@ phi_func(double alpha_curr, double Z, void *ctx)
   double fpol = actx->geo->fbasis.eval_expand(&fx, coeffs);
   ival = ival*fpol;
 
-  while(ival < -M_PI){
-    ival +=2*M_PI;
-  }
-  while(ival > M_PI){
-    ival -=2*M_PI;
-  }
+  //while(ival < -M_PI){
+  //  ival +=2*M_PI;
+  //}
+  //while(ival > M_PI){
+  //  ival -=2*M_PI;
+  //}
   return alpha_curr + ival + phi_ref;
 }
 
@@ -1336,6 +1341,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           double *ddpsi_n = gkyl_array_fetch(up->geo_surf[dir].ddpsi_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, cidx));
           double *curlbhat_n = gkyl_array_fetch(up->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(nrange, cidx));
+          double *deltats_n = gkyl_array_fetch(up->geo_surf[dir].deltats_nodal, gkyl_range_idx(nrange, cidx));
 
           mc2p_fd_n[lidx+X_IDX] = r_curr;
           mc2p_fd_n[lidx+Y_IDX] = z_curr;
@@ -1348,6 +1354,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             ddpsi_n[0] = dPsi_dpsi;
             bmag_n[0] = bmag_func(r_curr, z_curr, &arc_ctx);
             curlbhat_func(psi_curr, r_curr, z_curr, phi_curr, curlbhat_n, &arc_ctx);
+            deltats_n[0] = phi_curr - alpha_curr;
           }
         }
       }
@@ -1391,6 +1398,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           double *ddpsi_n = gkyl_array_fetch(up->geo_surf[dir].ddpsi_nodal, gkyl_range_idx(nrange, cidx));
           double *bmag_n = gkyl_array_fetch(up->geo_surf[dir].bmag_nodal, gkyl_range_idx(nrange, cidx));
           double *curlbhat_n = gkyl_array_fetch(up->geo_surf[dir].curlbhat_nodal, gkyl_range_idx(nrange, cidx));
+          double *deltats_n = gkyl_array_fetch(up->geo_surf[dir].deltats_nodal, gkyl_range_idx(nrange, cidx));
 
           int donor_cidx[3] ;
           donor_cidx[AL_IDX] = nrange->lower[AL_IDX];
@@ -1412,6 +1420,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
             ddpsi_n[0] = donor_ddpsi_n[0];
             bmag_n[0] = donor_bmag_n[0];
             curlbhat_func(psi_curr, mc2p_fd_n[X_IDX], mc2p_fd_n[Y_IDX], mc2p_fd_n[Z_IDX], curlbhat_n, &arc_ctx);
+            deltats_n[0] = mc2p_fd_n[Z_IDX] - alpha_curr;
           }
         }
       }

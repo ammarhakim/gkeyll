@@ -144,6 +144,10 @@ struct gkyl_gyrokinetic_diffusion {
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
   bool adapt_energy; // Whether to adapt the energy source.
+  bool has_adapt_particle_fraction; // Whether a recycling rate is provided or if we should just adapt to all the loss.
+  double adapt_particle_fraction; // Fraction of particle loss to adapt to (default is 1, full adaptation).
+  bool has_adapt_energy_fraction; // Whether to specify a fraction of the energy loss to adapt to.
+  double adapt_energy_fraction; // Fraction of energy loss to adapt to (default is 1, full adaptation).
   char adapt_to_species[16]; // Species to adapt the particle loss to ensure quasi neutrality.
   int num_boundaries; // Number of boundaries to adapt.
   int dir[GKYL_MAX_CDIM*2]; // Direction to adapt.
@@ -180,9 +184,11 @@ struct gkyl_gyrokinetic_anomalous_diffusion {
 //    for external model
 struct gkyl_gyrokinetic_source_bgk {
   enum gkyl_source_bgk_id source_bgk_id; // Type of BGK source  term.
-  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x).
+  void (*rate_profile)(double t, const double *xn, double *fout, void *ctx); // nu_Q(x,y,z).
   void *rate_profile_ctx;
-  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x).
+  void (*feq_shape)(double t, const double *xn, double *fout, void *ctx); // F_eq(x,y,z,vpar,mu).
+  void *feq_shape_ctx;
+  void (*temp_shape)(double t, const double *xn, double *fout, void *ctx); // s_Q(x,y,z).
   void *temp_shape_ctx;
   double power; // Desired heating power (sets T_Q(t)).
   double injection_time;  // Injection time for external source model
@@ -236,10 +242,17 @@ struct gkyl_gyrokinetic_geometry {
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
+  // Twist-shift functions for the tokamak core.
+  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
+  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
 };
 
 // Parameters for species radiation.
@@ -365,18 +378,46 @@ struct gkyl_gyrokinetic_damping {
   int num_quad; // Number of quadrature points in each direction to use in projecting the rate.
 };
 
+// Types of df/dt multipliers: M(x,v,t) modifies df/dt -> M * df/dt.
 enum gkyl_gyrokinetic_fdot_multiplier_type {
-  GKYL_GK_FDOT_MULTIPLIER_NONE = 0,
-  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,
-  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
+  GKYL_GK_FDOT_MULTIPLIER_NONE = 0,           // No multiplier applied.
+  GKYL_GK_FDOT_MULTIPLIER_USER_INPUT,         // User-provided static profile M(z) via function pointer.
+  GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,          // M=1 in loss cone, M=0 in confined region.
+  GKYL_GK_FDOT_MULTIPLIER_CONSTANT,           // Dilates time by a fixed constant, time_dilation_scale_const.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT,           // dt floor from user-specified cfl_dt_min_value.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_FACTOR_TIMES_OMEGA_MAX, // dt floor from user-specified factor times maximum characteristic frequency. Specify cfl_factor_times_omega_max.
+  GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,    // dt floor from omega_H, an electrostatic GK wave.
+  GKYL_GK_FDOT_MULTIPLIER_DT_SET_BY_SPECIES,  // Set the dt floor based on the dt from another species.
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,   // Dilates time in cells where |J_tot*f| < threshold. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,  // Dilates time in cells where |J_tot*f| < threshold * local_max. Spatially dependent mask. Specify f_threshold
+  GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_GLOBAL, // Dilates time in cells where |J_tot*f| < threshold * global_max. Specify f_threshold
 };
 
+// Input parameters for a single component of the df/dt multiplier chain.
+struct gkyl_gyrokinetic_fdot_multiplier_comp {
+  enum gkyl_gyrokinetic_fdot_multiplier_type type; // Type of multiplier (see enum comments above).
+
+  // For USER_INPUT type: function pointer defining M(z).
+  void (*profile)(double t, const double *xn, double *fout, void *ctx);
+  void *profile_ctx;
+
+  bool cellwise_const;    // If true, multiplier is constant within each cell (p=0 basis).
+  bool write_diagnostics; // If true, write multiplier array to file.
+
+  // Parameters for time dilation types (FIXED_DT, MASK_F_*):
+  double cfl_dt_min_value; // For FIXED_DT: the minimum allowed dt value.
+  double f_threshold; // For MASK_F_* types: absolute value (THRESHOLD)
+    // or fraction 0-1 (FRAC_LOCAL, FRAC_GLOBAL).
+  double time_dilation_scale_const; // A constant which multiplies all of fdot and cfl to dilate time. Small number (0,1] so that dt *= 1/time_dilation_scale_const
+  double cfl_factor_times_omega_max; // For FIXED_FACTOR_TIMES_OMEGA_MAX: the factor multiplied by the maximum characteristic frequency to get the minimum dt value.
+
+  char dt_set_by_species[32]; // For DT_SET_BY_SPECIES: the name of the species whose dt we are using to set the maximum dt for this species. e.g. "elc"
+};
+
+// Parameters for a chain of df/dt multipliers. Components are applied in order.
 struct gkyl_gyrokinetic_fdot_multiplier {
-  enum gkyl_gyrokinetic_fdot_multiplier_type type;
-  void (*profile)(double t, const double *xn, double *fout, void *ctx); // Profile to multiply df/dt by.
-  void *profile_ctx; // Context for profile function.
-  bool cellwise_const; // Whether the multiplier has a single value per cell.
-  bool write_diagnostics; // Whether to output diagnostics.
+  int num_multipliers;
+  struct gkyl_gyrokinetic_fdot_multiplier_comp multiplier[GKYL_MAX_FDOT_MUL];
 };
 
 // Parameters for gk species.
@@ -399,7 +440,7 @@ struct gkyl_gyrokinetic_species {
   // Initial conditions from a file.
   struct gkyl_gyrokinetic_ic_import init_from_file;
 
-  // Phase-space field multiplying df/dt.
+  // Ordered list of phase-space fields multiplying df/dt.
   struct gkyl_gyrokinetic_fdot_multiplier time_rate_multiplier;
 
   double polarization_density; // Density factor in LHS of quasineutrality eqn.
@@ -556,9 +597,15 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
+// Additional metadata users can provide.
+struct gkyl_gyrokinetic_metadata_inp {
+  struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
+  int num_attributes; // Number of attributes.
+};
+
 // Top-level app parameters
 struct gkyl_gk {
-  char name[128]; // Name of app: used as output prefix.
+  char name[128]; // Name of app: used as output prefix. Should not end in _b#.
 
   int cdim; // Configuration-space dimensions.
   double lower[3], upper[3]; // Lower, upper bounds of config-space.
@@ -585,6 +632,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_eirene eirene; // EIRENE input
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
+
+  struct gkyl_gyrokinetic_metadata_inp metadata; // Optional metadata for output files.
 };
 
 // Simulation statistics
@@ -616,7 +665,7 @@ struct gkyl_gyrokinetic_stat {
   double species_coll_mom_tm; // time needed to compute various moments needed in collisions
   double species_coll_tm; // total time for collision updater (excluded moments)
   double species_damp_tm; // Time to accumulate species damping onto RHS.
-  double species_fdot_mult_tm; // Time to spent on the df/dt multiplier.
+  double species_fdot_mult_tm; // Time spent on the df/dt multiplier.
   double species_diffusion_tm; // Time to compute species diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
