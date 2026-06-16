@@ -4,7 +4,7 @@
 
 #include <gkyl_alloc.h>
 #include <gkyl_dg_eqn.h>
-#include <gkyl_dg_numerical_diffusion_gyrokinetic.h>
+#include <gkyl_gk_numerical_diffusion.h>
 #include <gkyl_dg_updater_gk_numerical_diffusion.h>
 #include <gkyl_dg_updater_gk_numerical_diffusion_priv.h>
 #include <gkyl_hyper_dg.h>
@@ -42,23 +42,23 @@ gkyl_dg_updater_gk_numerical_diffusion_new(const struct gkyl_rect_grid *grid,
   // ZERO_FLUX:  zero_flux   N/A         yes
   // ELSE:       local       local       yes
 
-  up->dgeqn = gkyl_dg_numerical_diffusion_gyrokinetic_new(basis, cbasis, conf_range,
-    has_diff_in_dir, diff_order, bc_lower, bc_upper, up->use_gpu);
+  up->dgeqn = gkyl_gk_numerical_diffusion_new(basis, cbasis, conf_range,
+    bc_lower, bc_upper, has_diff_in_dir, diff_order, up->use_gpu);
 
-  gkyl_dg_numerical_diffusion_gyrokinetic_set_auxfields(up->dgeqn, (struct gkyl_dg_numerical_diffusion_gyrokinetic_auxfields) {
+  gkyl_gk_numerical_diffusion_set_auxfields(up->dgeqn, (struct gkyl_gk_numerical_diffusion_auxfields) {
     .nu = nu, .jacobgeo_inv = jacobgeo_inv });
 
   int num_up_dirs = 0;
-  for (int d=0; d<cdim; d++) num_up_dirs += has_diff_in_dir[d]? 1 : 0;
+  for (int d=0; d<cdim; d++)
+    num_up_dirs += has_diff_in_dir[d]? 1 : 0;
 
-  int up_dirs[GKYL_MAX_DIM], zero_flux_flags[2*GKYL_MAX_DIM];
+  int up_dirs[GKYL_MAX_DIM];
   int linc = 0;
   for (int d=0; d<cdim; ++d) {
-    if (has_diff_in_dir[d]) up_dirs[linc] = d;
-    linc += 1;
+    if (has_diff_in_dir[d])
+      up_dirs[linc] = d;
 
-    zero_flux_flags[d] = is_zero_flux_bc[d]? 1 : 0;
-    zero_flux_flags[d+pdim] = is_zero_flux_bc[d+pdim]? 1 : 0;
+    linc += 1;
   }
 
   // Determine if hyper_dg should apply boundary_surf kernels.

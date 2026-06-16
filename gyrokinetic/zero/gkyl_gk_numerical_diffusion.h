@@ -5,6 +5,7 @@
 #include <gkyl_basis.h>
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
+#include <gkyl_gk_bc_type.h>
 
 // Struct containing the pointers to auxiliary fields.
 struct gkyl_gk_numerical_diffusion_auxfields { 
