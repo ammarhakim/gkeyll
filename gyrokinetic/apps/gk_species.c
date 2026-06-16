@@ -1049,6 +1049,29 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp_up);
   }
 
+  gks->alloc_surr_aux_var = false;
+  for (int d=0; d<2*app->cdim; ++d)
+    gks->alloc_surr_aux_var = gks->alloc_surr_aux_var || gks->info.bcs[d].use_sheath_surrogate;
+
+  if (gks->alloc_surr_aux_var) {
+    struct gkyl_gk_maxwellian_moments_inp inp_mom = {
+      .phase_grid = &gks->grid,
+      .conf_basis = &app->basis,
+      .phase_basis = &gks->basis,
+      .conf_range =  &app->local,
+      .conf_range_ext = &app->local_ext,
+      .mass = gks->info.mass, 
+      .gk_geom = app->gk_geom, 
+      .vel_map = gks->vel_map,
+      .divide_jacobgeo = true, 
+      .use_gpu = app->use_gpu,
+    };
+    gks->maxwell_mom = gkyl_gk_maxwellian_moments_inew( &inp_mom );
+    gks->maxmom = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
+    gks->dens_sheath = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    gks->temp_sheath = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+  }
+
   // Set function pointers.
   gks->rhs_func = gk_species_rhs_dynamic;
   gks->rhs_implicit_func = gk_species_rhs_implicit_dynamic;
