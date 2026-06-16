@@ -18,6 +18,7 @@ struct gk_app_ctx {
 
   // Geometry and magnetic field.
   double Lz;        // Domain size along magnetic field.
+  double Ly;        // Domain size in binormal direction
   double z_min;  double z_max;
   double psi_min;  double psi_max;
   double psi_LCFS;    // Radial location of the last closed flux surface.
@@ -38,6 +39,7 @@ struct gk_app_ctx {
 
   // Grid parameters.
   int Nz;
+  int Ny;
   int Nvpar;
   int Nmu;
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
@@ -53,18 +55,14 @@ struct gk_app_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-// For IWL, this function must return the corner of the limiter plate at the IMP
-// on the LCFS when s=0
 void pfunc_upper(double s, double* RZ){
-  RZ[0] = 0.1406517200151616;
-  RZ[1] = -s*0.6;
+  RZ[0] = 0.14047;
+  RZ[1] = -(s-0.061)*0.6;
 }
 
-// For IWL, this function must return the corner of the limiter plate at the IMP
-// on the LCFS when s=0
 void pfunc_lower(double s, double* RZ){
-  RZ[0] = 0.1406517200151616;
-  RZ[1] = s*0.6;
+  RZ[0] = 0.14047;
+  RZ[1] = (s-0.061)*0.6;
 }
 
 // Electron source profiles.
@@ -74,7 +72,7 @@ void density_src(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRIC
   double Lz = app->Lz;
   double n_src = app->n_src;
   double x = xn[0];
-  double z = xn[1];
+  double z = xn[2];
 
   if ( app->psi_max - x < app->Lx_core/6.0 ) {
     fout[0] = app->n_src;
@@ -158,18 +156,10 @@ void evalNuIonElc(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRI
   fout[0] = app->nuIonElc;
 }
 
-void
-diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-{
-  struct sheath_ctx *app = ctx;
-
-  fout[0] = 0.3; // Diffusivity [m^2/s].
-}
-
 struct gk_app_ctx
 create_ctx(void)
 {
-  int cdim = 2, vdim = 2; // Dimensionality.
+  int cdim = 3, vdim = 2; // Dimensionality.
 
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;
@@ -178,11 +168,12 @@ create_ctx(void)
   double qe = -eV; // electron charge
 
   // Geometry and magnetic field.
-  double Lz        = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
+  double Lz = 2.0*(M_PI-1e-14);    // Domain size along magnetic field.
+  double Ly = 2.0*M_PI/8.0;
   double B0 = 0.24;
-  double psi_LCFS = -0.0054760172700000; // psi at LCFS. Taken from efit
+  double psi_LCFS = 0.003172759514520552; // psi at LCFS. Taken from efit
   double psi_min = psi_LCFS - 0.0004; // inner flux surface of domain
-  double psi_max = psi_LCFS + 0.0012; // outer flux surface of domain
+  double psi_max = psi_LCFS + 0.0004; // outer flux surface of domain
   double Lx = psi_max - psi_min;
   double Lx_core = psi_LCFS - psi_min;
 
@@ -218,10 +209,11 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int Nx = 8;
-  int Nz = 12;
-  int Nvpar = 12;
-  int Nmu = 8;
+  int Nx = 4;
+  int Nz = 32;
+  int Ny = 2;
+  int Nvpar = 6;
+  int Nmu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -240,6 +232,7 @@ create_ctx(void)
     .cdim = cdim,
     .vdim = vdim,
     .Lz     = Lz    ,
+    .Ly     = Ly    ,
     .z_min = -Lz/2.,  .z_max = Lz/2.,
     .psi_min = psi_min,  .psi_max = psi_max,
     .psi_LCFS = psi_LCFS,
@@ -257,9 +250,10 @@ create_ctx(void)
     .n_src = n_src,  .Te_src = Te_src,  .Ti_src = Ti_src,
   
     .Nz = Nz,
+    .Ny = Ny,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nx, Nz, Nvpar, Nmu},
+    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc,  .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion,  .mu_max_ion = mu_max_ion,
@@ -335,13 +329,6 @@ int main(int argc, char **argv)
       .temp_ref = ctx.Te0,
     },
 
-    .anomalous_diffusion = {
-      .type = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-//      .write_diagnostics = true,
-    },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -404,13 +391,6 @@ int main(int argc, char **argv)
       .temp_ref = ctx.Ti0,
     },
 
-    .anomalous_diffusion = {
-      .type = GKYL_GK_ANOMALOUS_DIFF_D,
-      .D_profile = diffusion_D_func,
-      .D_profile_ctx = &ctx,
-//      .write_diagnostics = true,
-    },
-
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = 1,
@@ -442,12 +422,14 @@ int main(int argc, char **argv)
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0}, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0}, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC, .value = {0.0}, },
     },
   };
 
   struct gkyl_efit_inp efit_inp = {
     // psiRZ and related inputs
-    .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
+    .filepath = "gyrokinetic/data/eqdsk/ltx_miller.geqdsk",
     .rz_poly_order = 2,
     .flux_poly_order = 1,
     .reflect = true,
@@ -455,25 +437,21 @@ int main(int argc, char **argv)
 
   struct gkyl_tok_geo_grid_inp grid_inp = {
     .ftype = GKYL_GEOMETRY_TOKAMAK_IWL,
-    .rclose = 0.7,
     .rleft= 0.1,
     .rright = 0.7,
     .rmin = 0.1,
     .rmax = 0.7,
     .zmin = -0.35,
     .zmax = 0.35,
-    .plate_spec = true,
-    .plate_func_lower = pfunc_lower,
-    .plate_func_upper = pfunc_upper,
+    .plate_spec = false,
   }; 
 
   // GK app
   struct gkyl_gk app_inp = {
-
     .cdim = ctx.cdim,
-    .lower = { ctx.psi_min, ctx.z_min },
-    .upper = { ctx.psi_max, ctx.z_max },
-    .cells = { cells_x[0], cells_x[1] },
+    .lower = { ctx.psi_min, -ctx.Ly/2.0, ctx.z_min },
+    .upper = { ctx.psi_max, ctx.Ly/2.0, ctx.z_max },
+    .cells = { cells_x[0], cells_x[1], cells_x[2] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -486,8 +464,8 @@ int main(int argc, char **argv)
       .x_LCFS = ctx.psi_LCFS, // Location of last closed flux surface.
     },
 
-    .num_periodic_dir = 0,
-    .periodic_dirs = {  },
+    .num_periodic_dir = 1,
+    .periodic_dirs = {1},
 
     .num_species = 2,
     .species = { elc, ion },
@@ -495,13 +473,14 @@ int main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] , app_args.cuts[2]},
       .comm = comm,
     },
   };
 
   // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

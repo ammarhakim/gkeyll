@@ -22,6 +22,33 @@
 #include <gkyl_math.h>
 #include <rt_arg_parse.h>
 
+// Function to perform 1D linear interpolation based on a lookup table (LUT).
+double interp_1x_lut(double x, double *lut_grid, double *lut_val, int N)
+{
+  double x_min = lut_grid[0];
+  double x_max = lut_grid[N-1];
+  // Clamp values if x goes outside of the LUT range.
+  if (x <= x_min || x >= x_max) {
+    fprintf(stderr, "Warning: x = %g out of LUT range [%g, %g]. Clamping to boundaries.\n", x, x_min, x_max);
+    if (x <= x_min) return lut_val[0];
+    if (x >= x_max) return lut_val[N-1];
+  }
+  // Assume uniform spacing of the lookup table.
+  double dx = (x_max - x_min)/(N-1);
+  int idx = (int)((x - x_min)/dx);
+  // Safety check.
+  if (idx < 0 || idx >= N-1) {
+    fprintf(stderr, "Error: idx out of bounds in interp_Psi_lut: idx = %d, x = %g\n", idx, x);
+    return 0.0;
+  }
+  // Linear interpolation.
+  double x0 = lut_grid[idx];
+  double x1 = lut_grid[idx+1];
+  double f0 = lut_val[idx];
+  double f1 = lut_val[idx+1];
+  return f0 + (f1 - f0)*(x - x0)/(x1 - x0);
+}
+
 // Define the context of the simulation. This stores global parameters.
 struct gk_app_ctx {
     int cdim, vdim;
@@ -29,14 +56,17 @@ struct gk_app_ctx {
     double a_shift, Z_axis, R_axis, R0, a_mid, r0, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
     // Plasma parameters
     double me, qe, mi, qi, n0, Te0, Ti0;
-    bool static_elc; // Whether to use static electrons.
     // Collision parameters
     double nuFrac;
     // Initial condition parameters
     double Ln, LTe, LTi;
+    bool can_max;
+    // Krook and buffer parameters.
+    double nu_krook;
+    int num_cell_buff;
     // Grid parameters
     double Lx, Lz;
-    double x_min, x_max, z_min, z_max;
+    double x_min, z_min, x_max, z_max;
     int num_cell_x, num_cell_z, num_cell_vpar, num_cell_mu;
     int cells[GKYL_MAX_DIM], poly_order;
     double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
@@ -45,6 +75,12 @@ struct gk_app_ctx {
     int num_frames, int_diag_calc_num, num_failures_max;
     double dt_failure_tol;
     double max_run_time; // Maximum run time in seconds, 0 means no limit.
+    // Table for intPsi interpolation and lookup table (LUT).
+    int psi_lut_size;
+    double *r_lut;
+    double *psi_lut;
+    // Table for dPsidr.
+    double *dPsidr_int_lut;
 };
 
 // Geometry related functions 
@@ -57,8 +93,10 @@ double r_x(double x, double r0)
 double qprofile(double r, double a_mid, double qaxis, double qlcfs)
 {
   // Profile from Grandgirard et al. 2008
-  return 1.0 + 2.78 * pow(r/a_mid,2.8);
-
+  // return 1.0 + 2.78 * pow(r/a_mid,2.8);
+  // Profile from Qu et al. 2026 https://hal.science/hal-05342386v2
+  // return 0.86 - 0.16 * (r/a_mid) + 2.52 * pow(r/a_mid,2);
+  return 1.4;
 }
 
 double R_rtheta(double r, double theta, void *ctx)
@@ -121,14 +159,6 @@ struct integrand_ctx {
   double theta;
 };
 
-double integrand(double t, void *int_ctx)
-{
-  struct integrand_ctx *inctx = int_ctx;
-  double r = inctx->r;
-  struct gk_app_ctx *app = inctx->app_ctx;
-  return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
-}
-
 double Bphi(double R, void *ctx)
 {
   // Toroidal magnetic field.
@@ -138,17 +168,32 @@ double Bphi(double R, void *ctx)
   return B0*R0/R;
 }
 
+double integrand_JoRsq(double t, void *int_ctx)
+{
+  struct integrand_ctx *inctx = int_ctx;
+  double r = inctx->r;
+  struct gk_app_ctx *app = inctx->app_ctx;
+  return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
+}
+
+double intdPsidr(double r, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
+  struct gkyl_qr_res integral;
+  integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
+  return integral.res;
+}
+
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
   struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
   struct gkyl_qr_res integral;
-  integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
-
+  double integral_val = interp_1x_lut(r, app->r_lut, app->dPsidr_int_lut, app->psi_lut_size);
   double R = R_rtheta(r,theta,ctx);
   double Bt = Bphi(R,ctx);
-  double R_omp = R_rtheta(r,0.0,ctx);
-  return ( R*Bt/(2.*M_PI*qprofile(R_omp, app->a_mid, app->qaxis, app->qlcfs)))*integral.res;
+  return ( R*Bt/(2.*M_PI*qprofile(r, app->a_mid, app->qaxis, app->qlcfs)))*integral_val;
 }
 
 double integrant_dpsi(double r, void *int_ctx)
@@ -158,7 +203,7 @@ double integrant_dpsi(double r, void *int_ctx)
   double q = qprofile(r, app->a_mid, app->qaxis, app->qlcfs);
   double dpsi = -r/q; // This is valid in the circular limit. The minus sign comes dBtheta/r < 0
   return dpsi; // I am not sure about this sign, I think it must be from dx/dr = -1.
-  // return dPsidr(r, inctx->theta, app); // Exact but way more expensive.
+  // return -dPsidr(r, inctx->theta, app); // Seems to be the exact way but it makes the profile super flat (and -1 factor looks important here).
 }
 
 double intPsi(double r0, double r, double theta, void *ctx)
@@ -170,26 +215,35 @@ double intPsi(double r0, double r, double theta, void *ctx)
   return integral.res;
 }
 
+double compute_alpha_integral(double r, double twrap, void *ctx) {
+  struct gk_app_ctx *app = ctx;
+  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
+  struct gkyl_qr_res integral;
+
+  if (twrap == 0.0) return 0.0;
+  
+  if (0. < twrap) {
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, 0., twrap, 7, 1e-10);
+    return integral.res;
+  } else {
+    integral = gkyl_dbl_exp(integrand_JoRsq, &tmp_ctx, twrap, 0., 7, 1e-10);
+    return -integral.res;
+  }
+}
+
 double alpha(double r, double theta, double phi, void *ctx)
 {
+  struct gk_app_ctx *app = ctx;
   double twrap = theta;
   while (twrap < -M_PI) twrap = twrap+2.*M_PI;
   while (M_PI < twrap) twrap = twrap-2.*M_PI;
 
-  struct gk_app_ctx *app = ctx;
-  struct integrand_ctx tmp_ctx = {.app_ctx = app, .r = r};
-  struct gkyl_qr_res integral;
-  if (0. < twrap) {
-    integral = gkyl_dbl_exp(integrand, &tmp_ctx, 0., twrap, 7, 1e-10);
-  } else {
-    integral = gkyl_dbl_exp(integrand, &tmp_ctx, twrap, 0., 7, 1e-10);
-    integral.res = -integral.res;
-  }
+  double integral_val = compute_alpha_integral(r, twrap, ctx);
 
   double R = R_rtheta(r,theta,ctx);
   double Bt = Bphi(R,ctx);
 
-  return phi - R*Bt*integral.res/dPsidr(r,theta,ctx);
+  return phi - R*Bt*integral_val/dPsidr(r,theta,ctx);
 }
 
 double gradr(double r, double theta, void *ctx)
@@ -241,7 +295,11 @@ double rbar(double m, double q, double r, double theta, double vpar, double mu, 
   double r0 = app->r0;
   double R0 = app->R0;
   double q0 = app->q0;
-  double rpsi = q0/r0 * (intPsi(0, r, theta, ctx) - intPsi(0, r0, theta, ctx));
+
+  double psi_r = interp_1x_lut(r, app->r_lut, app->psi_lut, app->psi_lut_size);
+  double psi_r0 = interp_1x_lut(r0, app->r_lut, app->psi_lut, app->psi_lut_size);
+
+  double rpsi = q0/r0 * (psi_r - psi_r0);
   
   double rmin = r0 - app->x_min;
   double rmax = r0 + app->x_max;
@@ -260,66 +318,65 @@ double rbar(double m, double q, double r, double theta, double vpar, double mu, 
 
   double rbar = r0 - rpsi - rvpar;
 
-  return r;
-  // return rbar;
+  return app->can_max ? rbar : r;
+}
+
+// Static BGK source term to maintain eq. profile at lower x boundary. 
+void double_buffer_profile(double t, const double *xn, double *fout, void *ctx)
+{
+  double x = xn[0];
+  struct gk_app_ctx *app = ctx;
+  int nx = app->num_cell_x;
+  double x_max = app->x_max;
+  double x_min = app->x_min;
+  double Lx = app->Lx;
+  double Hbuff;
+  // See Eq. 49 of V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68
+  double Bs = 0.015; // Buffer transition width as a fraction of the domain size.
+  double Bl = app->num_cell_buff / (double)nx; // Buffer fraction.
+  Hbuff = 1 + 0.5 * (tanh((x - x_max + Bl*Lx)/(Bs*Lx)) - tanh((x - x_min - Bl*Lx)/(Bs*Lx)));
+  fout[0] = Hbuff * app->nu_krook;
+}
+
+void
+diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.5; // Diffusivity [m^2/s].
+}
+
+double tanh_profile(double x, double v0, double Lgrad, void *ctx)
+{
+  struct gk_app_ctx *app = ctx;
+  // Profile use in Gysela (see V. Grandgirard et al. / Computer Physics Communications 207 (2016) 35–68).
+  double buff_frac = (double)app->num_cell_buff / app->num_cell_x; 
+  double delta = 0.5*(1-buff_frac) * app->Lx;
+  double arg = x / (app->a_mid * delta);
+  double prof_factor = (app->a_mid * delta) / Lgrad;
+  return v0 * exp(-prof_factor * tanh(arg));
 }
 
 // Density initial condition (like TCV exp profile)
 double density_init(double x, void *ctx)
 {
-struct gk_app_ctx *app = ctx;
-  
-  // GYSELA CBC width parameter for density 
-  double delta_rho_n = 0.25 * app->Lx; 
-  double a_mid = app->a_mid;
-  double Ln = app->Ln;
-  // The argument for the tanh/cosh functions
-  double arg = x / (a_mid * delta_rho_n);
-  // Integrating the cosh^-2 gradient yields a tanh profile.
-  // The prefactor (a_mid * delta_rho_n / Ln) ensures the peak gradient exactly matches 1/Ln.
-  double prof_factor = (a_mid * delta_rho_n) / Ln;
-  
-  return app->n0 * exp(-prof_factor * tanh(arg));
+  struct gk_app_ctx *app = ctx;
+  return tanh_profile(x, app->n0, app->Ln, ctx);
 }
 
 // Electron temperature initial conditions
 double temp_init_elc(double x, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  
-  // GYSELA CBC width parameter for temperature 
-  double delta_rho_T = 0.25 * app->Lx;
-  double a_mid = app->a_mid;
-  double LTe = app->LTe;
-  double arg = x / (a_mid * delta_rho_T);
-  double prof_factor = (a_mid * delta_rho_T) / LTe;
-  
-  return app->Te0 * exp(-prof_factor * tanh(arg));
+  return tanh_profile(x, app->Te0, app->LTe, ctx);
 }
 
 // Ion temperature initial conditions
 double temp_init_ion(double x, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  
-  // GYSELA CBC width parameter for temperature 
-  double delta_rho_T = 0.25 * app->Lx;
-  double a_mid = app->a_mid;
-  double LTi = app->LTi;
-
-  double arg = x / (a_mid * delta_rho_T);
-  double prof_factor = (a_mid * delta_rho_T) / LTi;
-  
-  return app->Ti0 * exp(-prof_factor * tanh(arg));
+  return tanh_profile(x, app->Ti0, app->LTi, ctx);
 }
-
-// void
-// diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
-// {
-//   struct gk_app_ctx *app = ctx;
-
-//   fout[0] = 0.5; // Diffusivity [m^2/s].
-// }
 
 double maxellian(double m, double n, double T, double E)
 {
@@ -335,10 +392,13 @@ void eval_canon_maxwellian_e(double t, const double* GKYL_RESTRICT xn, double* G
   double r = r_x(x, app->r0);
   double theta = z;
 
-  double rb = rbar(app->me, app->qe, r, theta, vpar, mu, ctx);
+  double rb = app->can_max ? rbar(app->me, app->qe, r, theta, vpar, mu, ctx) : r;
   double xb = rb - app->r0;
   double dens = density_init(xb, ctx);
   double temp = temp_init_elc(xb, ctx);
+
+  double envelope = exp(-pow(xb / (app->Lx / 4.0), 2)) * exp(-pow((theta - M_PI) / (M_PI / 4.0), 2));
+  dens = dens * envelope;
 
   double energy = 0.5*m*pow(vpar,2) + mu*Bmag(r,theta,ctx);
 
@@ -354,7 +414,7 @@ void eval_canon_maxwellian_i(double t, const double* GKYL_RESTRICT xn, double* G
   double r = r_x(x, app->r0);
   double theta = z;
 
-  double rb = rbar(app->mi, app->qi, r, theta, vpar, mu, ctx);
+  double rb = app->can_max ? rbar(app->mi, app->qi, r, theta, vpar, mu, ctx) : r;
   double xb = rb - app->r0;
   double dens = density_init(xb, ctx);
   double temp = temp_init_ion(xb, ctx);
@@ -362,6 +422,21 @@ void eval_canon_maxwellian_i(double t, const double* GKYL_RESTRICT xn, double* G
   double energy = 0.5*m*pow(vpar,2) + mu*Bmag(r,theta,ctx);
 
   fout[0] = maxellian(m, dens, temp, energy);
+}
+
+void eval_dens_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  fout[0] = density_init(xn[0], ctx);
+}
+
+void eval_temp_elc_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  fout[0] = temp_init_elc(xn[0], ctx);
+}
+
+void eval_temp_ion_ic(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  fout[0] = temp_init_ion(xn[0], ctx);
 }
 
 // Geometry evaluation functions for the gk app
@@ -402,10 +477,6 @@ void mapc2p_vel_elc(double t, const double *vc, double* GKYL_RESTRICT vp, void *
     vp[0] =  vpar_max_elc*2.0*pow(cvpar,2);
   // Quadratic map in mu.
   vp[1] = mu_max_elc*pow(cmu,2);
-
-  // Linear map for testing.
-  // vp[0] = vpar_max_elc*cvpar;
-  // vp[1] = mu_max_elc*cmu;
 }
 
 void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *ctx)
@@ -423,10 +494,6 @@ void mapc2p_vel_ion(double t, const double *vc, double* GKYL_RESTRICT vp, void *
     vp[0] =  vpar_max_ion*2.0*pow(cvpar,2);
   // Quadratic map in mu.
   vp[1] = mu_max_ion*pow(cmu,2);
-
-  // Linear map for testing.
-  // vp[0] = vpar_max_ion*cvpar;
-  // vp[1] = mu_max_ion*cmu;
 }
 
 struct gk_app_ctx create_ctx(void)
@@ -460,8 +527,6 @@ struct gk_app_ctx create_ctx(void)
   double n0  = 4.5e19; // [1/m^3] according to Fig 5 of Greenfield et al. 1997.
   double nuFrac = 1.0; // Collision factor.
 
-  bool static_elc = false; // Whether to use static electrons.
-
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi); // Thermal speeds.
   double c_s = sqrt(Te0/mi);
   double omega_ci = fabs(qi*B0/mi);
@@ -471,7 +536,7 @@ struct gk_app_ctx create_ctx(void)
   double Cy = r0/q0; // Cylindrical coordinate shift for field-alignment.
 
   // Configuration domain parameters 
-  double Lx        = 50*rho_s;   // Domain size along x.
+  double Lx        = 150*rho_s;   // Domain size along x.
   double x_min     = -Lx/2;
   double x_max     = Lx/2;
   double Lz        = 2.*M_PI-1e-10;       // Domain size along magnetic field.
@@ -479,9 +544,7 @@ struct gk_app_ctx create_ctx(void)
   double z_max     =  Lz/2.;
 
   // Initial conditions and gradients
-  // Factor to multiply the gradient because the canonical maxwellian formulation reduce the gradient at HFS.
-  double canMaxFactor = 1.7;
-  double kTi = 6.92 * canMaxFactor; // R/LTi from Dimits et al. 2000.
+  double kTi = 6.92; // R/LTi from Dimits et al. 2000.
   double etai = 3.114; // Lni/LTi from Dimits et al. 2000.
   double LTi = R0/kTi; // Ion temperature gradient scale length [m].
   double Ln = LTi*etai; // Density gradient scale length [m].
@@ -498,41 +561,55 @@ struct gk_app_ctx create_ctx(void)
   double s0 = r0/q0*dq_dr;
 
   // Expected ITG growth rate and time scale
-  double gamma_itg_norm = 0.3; // Fig. 1 Dimits et al. 2000 (gamma Lne/vti)
-  double ky_itg_norm = 0.3; // Fig. 1 Dimits et al. 2000 (k*rho_i)
+  double gamma_itg_norm = 0.1; // Fig. 1 Dimits et al. 2000 (gamma R0/vti)
+  double ky_itg_norm = 0.1; // Fig. 1 Dimits et al. 2000 (k*rho_i)
   double gamma_itg = gamma_itg_norm*vti/Ln;
   double ky_itg = ky_itg_norm/rho_i;
-  double tau_itg = 1./gamma_itg;
+  double t_itg = 1.0/gamma_itg;
+  double taue = Te0/Ti0;
+  // Eq. 2.9 from Sugama & Watanabe, JPP 2006.
+  double wgam_sw2007 = sqrt(7.0 + 4.0*taue)/2.0 * q0 * (vti/R0/q0) * sqrt(1.0 + 2.0*(23.0 + 16.0*taue + 4.0*taue*taue)/pow(q0*(7.0 + 4.0*taue), 2));
+  double t_gam = 2.*M_PI/wgam_sw2007;
 
   double rhostar = rho_s/a_mid;
   double inv_asp_ratio = a_mid/R0;
-  
-  // printf("-- Simulation parameters and info ---\n");
-  // printf("vte = %1.2e, vti = %1.2e, c_s = %1.1e [m/s]\n", vte, vti, c_s);
-  // printf("Lx = %1.2g, rho_s = %1.2g [m]\n", Lx, rho_s);
-  // printf("x_min = %1.2g, x_max = %1.2g [m]\n", x_min, x_max);
-  // printf("Ln = %1.2g, LTe = %1.2g, LTi = %1.2g [m]\n", Ln, LTe, LTi);
-  // printf("q0 = %1.2g, qL = %1.2g, qR = %1.2g, s0 = %1.2g\n", q0, qL, qR, s0);
-  // printf("ε = %1.2g, ⍴* = 1/%2.2g\n", inv_asp_ratio, 1/rhostar);
-  // printf("R0/c_s = %1.2e [s]\n", t_unit);
 
   // Grid parameters
-  int num_cell_x = 8;
-  int num_cell_z = 8;
+  int num_cell_x = 4;
+  int num_cell_z = 4;
   int num_cell_vpar = 4;
-  int num_cell_mu = 4;
+  int num_cell_mu = 2;
   int poly_order = 1;
+
+  // IC, Krook, buffer, and integration lookup tables (LUTs) parameters.
+  double nu_krook = 1.0/1.0e-7;
+  int num_cell_buff = 2; // Number of cells in the buffer region on each side.
+  bool can_max = false; // Whether to use the canonical maxwellian formulation for the IC.
+  int psi_lut_nfact = 100*(poly_order+1); // Resolution factor for the psi lookup table.
+
   // Velocity box dimensions
   double vpar_max_elc = 4.*vte;
   double mu_max_elc = 7*Te0/B0;
   double vpar_max_ion = 4.*vti;
   double mu_max_ion = 7*Ti0/B0;
-  double final_time = 2.0*tau_itg;
+  double final_time = 0.01*t_itg;
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
+
+  // printf("-- Simulation parameters and info ---\n");
+  // printf("vte = %1.2e, vti = %1.2e, c_s = %1.1e [m/s]\n", vte, vti, c_s);
+  // printf("Lx = %1.2g, rho_s = %1.2g [m]\n", Lx, rho_s);
+  // printf("x_min = %1.2g, x_max = %1.2g [m]\n", x_min, x_max);
+  // printf("Ln = %1.2g, LTe = %1.2g, LTi = %1.2g [m]\n", Ln, LTe, LTi);
+  // printf("Cy = %1.2g, q0 = %1.2g, qL = %1.2g, qR = %1.2g, s0 = %1.2g\n", Cy, q0, qL, qR, s0);
+  // printf("ε = %1.2g, ⍴* = 1/%2.2g\n", inv_asp_ratio, 1/rhostar);
+  // printf("R0/c_s = %1.2e [s]\n", t_unit);
+  // printf("t_itg = %1.2e [s], t_gam = %1.2e [s]\n", t_itg, t_gam);
+  // printf("t_itg c_s/R0 = %1.2e, t_gam c_s/R0 = %1.2e\n", t_itg/t_unit, t_gam/t_unit);
+  // printf("Num cell for ky rhos = 0.5: %1.2g\n", (2.*M_PI/ky_itg)/(Ly/num_cell_y));
 
   struct gk_app_ctx ctx = {
     .cdim = cdim,
@@ -554,13 +631,15 @@ struct gk_app_ctx create_ctx(void)
     .LTi    = LTi   ,
     .Lx     = Lx    ,
     .Lz     = Lz    ,
+    .num_cell_buff = num_cell_buff,
+    .nu_krook = nu_krook,
+    .can_max = can_max,
     .x_min = x_min,  .x_max = x_max,
     .z_min = z_min,  .z_max = z_max,
     .me = me,  .qe = qe,
     .mi = mi,  .qi = qi,
     .n0 = n0,  .Te0 = Te0,  .Ti0 = Ti0,
     .nuFrac = nuFrac,
-    .static_elc = static_elc,
     .num_cell_x     = num_cell_x,
     .num_cell_z     = num_cell_z,
     .num_cell_vpar  = num_cell_vpar,
@@ -574,6 +653,7 @@ struct gk_app_ctx create_ctx(void)
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
+    .psi_lut_size = psi_lut_nfact*num_cell_x,
   };
   return ctx;
 }
@@ -609,6 +689,20 @@ main(int argc, char **argv)
     gkyl_comm_get_rank(comm, &my_rank);
 #endif
 
+  // Populate lookup tables to avoid integral redundancy in the geom and IC evaluations.
+  ctx.r_lut = malloc(ctx.psi_lut_size*sizeof(double));
+  ctx.dPsidr_int_lut = malloc(ctx.psi_lut_size * sizeof(double));
+  double r_lut_min = 0.0;
+  double r_lut_max = 2.0 * ctx.a_mid;
+  for (int i=0; i<ctx.psi_lut_size; i++) {
+    ctx.r_lut[i] = i * (r_lut_max - r_lut_min) / (ctx.psi_lut_size-1);
+    ctx.dPsidr_int_lut[i] = intdPsidr(ctx.r_lut[i], &ctx);
+  }
+  ctx.psi_lut = malloc(ctx.psi_lut_size*sizeof(double));
+  for (int i=0; i<ctx.psi_lut_size; i++) {
+    ctx.psi_lut[i] = intPsi(1e-12, ctx.r_lut[i], 0, &ctx);
+  }
+
   // electrons
   struct gkyl_gyrokinetic_projection elc_bc = {
     .proj_id = GKYL_PROJ_FUNC,
@@ -636,21 +730,29 @@ main(int argc, char **argv)
       .ctx_func = &ctx,
     },
 
-    .is_static = ctx.static_elc,
-
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    // .anomalous_diffusion = {
-    //   .type = GKYL_GK_ANOMALOUS_DIFF_D,
-    //   .D_profile = diffusion_D_func,
-    //   .D_profile_ctx = &ctx,
-    // },
+    .source_bgk = {
+      .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
+      .rate_profile = double_buffer_profile,
+      .rate_profile_ctx = &ctx,
+      .feq_shape = eval_canon_maxwellian_e,
+      .feq_shape_ctx = &ctx,
+      .write_diagnostics = true,
+    },
 
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bc, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = elc_bc, },
+    },
+
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
     },
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
@@ -696,17 +798,27 @@ main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
-    // .anomalous_diffusion = {
-    //   .type = GKYL_GK_ANOMALOUS_DIFF_D,
-    //   .D_profile = diffusion_D_func,
-    //   .D_profile_ctx = &ctx,
-    //   .write_diagnostics = true,
-    // },
+    .source_bgk = {
+      .source_bgk_id = GKYL_SOURCE_BGK_STATIC,
+      .rate_profile = double_buffer_profile,
+      .rate_profile_ctx = &ctx,
+      .feq_shape = eval_canon_maxwellian_i,
+      .feq_shape_ctx = &ctx,
+      .write_diagnostics = true,
+    },
 
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_bc, },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_FIXED_FUNC, .projection = ion_bc, },
     },
+
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
+    
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
@@ -804,6 +916,9 @@ main(int argc, char **argv)
   }
 #endif
   
-  
+  free(ctx.r_lut);
+  free(ctx.psi_lut);
+  free(ctx.dPsidr_int_lut);
+
   return 0;
 }
