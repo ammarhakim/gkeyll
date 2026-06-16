@@ -20,6 +20,8 @@ enum gkyl_eqn_type {
   GKYL_EQN_GR_MAXWELL_TETRAD, // General relativistic Maxwell equations in the tetrad basis.
   GKYL_EQN_GR_MEDIUM, // Coupled fluid-Einstein equations in plane-symmetric spacetimes.
   GKYL_EQN_GR_TWOFLUID, // General relativistic two-fluid equations.
+  GKYL_EQN_VACUUM_EINSTEIN, // Vacuum Einstein equations using the Bona-Masso formalism.
+  GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL, // Vacuum Einstein equations using the conformal Bona-Masso formalism.
   GKYL_EQN_GR_TWOFLUID_TETRAD, // General relativistic two-fluid equations in the tetrad basis.
   GKYL_EQN_GR_MHD, // General relativistic magnetohydrodynamics equations.
   GKYL_EQN_GR_MHD_TETRAD, // General relativistic magnetohydrodynamics equations in the tetrad basis.
@@ -74,10 +76,12 @@ enum gkyl_source_id {
   GKYL_BFLUX_SOURCE // Source which scales to boundary fluxes.
 };
 
-// Identifiers for specific heating source object types.
-enum gkyl_heating_id {
-  GKYL_NO_HEATING = 0, // No source. This is default.
-  GKYL_HEATING_DEFAULT, // Default heating source.
+// Identifiers for specific bgk source object types.
+enum gkyl_source_bgk_id {
+  GKYL_NO_SOURCE_BGK = 0, // No source. This is default.
+  GKYL_SOURCE_BGK_STATIC, // BGK source with user specified rate and eq. function.
+  GKYL_SOURCE_BGK_HEATING, // Only energy source.
+  GKYL_SOURCE_BGK_EXTERNAL, // External particle, momentum, and energy source.
 };
 
 // Identifiers for specific projection object types
