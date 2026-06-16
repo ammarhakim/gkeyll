@@ -21,7 +21,6 @@ struct gk_anomalous_diffusion {
   gk_anom_diff_boundary_surf_t boundary_diag[2]; // 2=lower,upper.
   struct gkyl_range conf_range;
   struct gkyl_gk_anomalous_diffusion_auxfields auxfields;
-  int num_basis;
 };
 
 #define _cfnu(idx) (const double *) gkyl_array_cfetch(gkad->auxfields.nu, gkyl_range_idx(&gkad->conf_range, idx))

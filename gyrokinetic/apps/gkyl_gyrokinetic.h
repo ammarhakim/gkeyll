@@ -132,14 +132,6 @@ struct gkyl_gyrokinetic_collisions {
   bool is_implicit; 
 };
 
-// Parameters for species diffusion.
-struct gkyl_gyrokinetic_diffusion {
-  int num_diff_dir; // Number of diffusion directions.
-  int diff_dirs[GKYL_MAX_CDIM]; // List of diffusion directions.
-  double D[GKYL_MAX_CDIM]; // Constant diffusion coefficient in each direction.
-  int order; // Order of the diffusion (4 for grad^4, 6 for grad^6, default is 2).
-};
-
 // Structure to hold parameters for adaptive source.
 struct gkyl_gyrokinetic_adapt_source {
   bool adapt_particle; // Whether to adapt the particle source.
@@ -167,11 +159,22 @@ struct gkyl_gyrokinetic_source {
   struct gkyl_phase_diagnostics_inp diagnostics;
 };
 
+// Parameters for species diffusion.
+struct gkyl_gyrokinetic_numerical_diffusion {
+  enum gkyl_gk_numerical_diff_id type; // Type of diffusion term.
+  int order; // Order of the diffusion (2 for grad^2, 4 for grad^4, default: 4).
+  int dirs[GKYL_MAX_CDIM]; // List of diffusion directions.
+  int num_dirs; // Number of diffusion directions.
+  void (*D_profile[GKYL_MAX_CDIM])(double t, const double *xn, double *fout, void *ctx); // Diffusivity in each direction.
+  void *D_profile_ctx; // Context for D_profile.
+  bool write_diagnostics; // Whether to output diagnostics.
+};
+
 // Parameters for the anomalous diffusion term, d/dx D(x) df/dx.
 struct gkyl_gyrokinetic_anomalous_diffusion {
-  enum gkyl_gk_anomalous_diff_id anomalous_diff_id; // Type of diffusion term.
-  void (*D_profile)(double t, const double *xn, double *fout, void *ctx); // D(x).
-  void *D_profile_ctx;
+  enum gkyl_gk_anomalous_diff_id type; // Type of diffusion term.
+  void (*D_profile)(double t, const double *xn, double *fout, void *ctx); // Diffusivity.
+  void *D_profile_ctx; // Context for D_profile.
   bool write_diagnostics; // Whether to output diagnostics.
 };
 
@@ -469,6 +472,9 @@ struct gkyl_gyrokinetic_species {
   // Anomalous diffusion.
   struct gkyl_gyrokinetic_anomalous_diffusion anomalous_diffusion;
 
+  // Numerical diffusion.
+  struct gkyl_gyrokinetic_numerical_diffusion numerical_diffusion;
+
   // BGK source.
   struct gkyl_gyrokinetic_source_bgk source_bgk;
 
@@ -649,7 +655,8 @@ struct gkyl_gyrokinetic_stat {
   double species_coll_tm; // total time for collision updater (excluded moments)
   double species_damp_tm; // Time to accumulate species damping onto RHS.
   double species_fdot_mult_tm; // Time spent on the df/dt multiplier.
-  double species_diffusion_tm; // Time to compute species diffusion term.
+  double species_anom_diffusion_tm; // Time to compute species anomalous diffusion term.
+  double species_nume_diffusion_tm; // Time to compute species numerical diffusion term.
   double species_rad_mom_tm; // total time to compute various moments needed in radiation operator
   double species_rad_tm; // total time for radiation operator
   double species_react_mom_tm; // total time to compute various moments needed in reactions 

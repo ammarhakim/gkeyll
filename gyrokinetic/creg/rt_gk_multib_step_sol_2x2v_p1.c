@@ -502,7 +502,7 @@ main(int argc, char **argv)
     },
 
     .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .type = GKYL_GK_ANOMALOUS_DIFF_D,
       .D_profile = diffusion_D_func,
       .D_profile_ctx = &ctx,
     }, 
@@ -603,7 +603,7 @@ main(int argc, char **argv)
     },
 
     .anomalous_diffusion = {
-      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .type = GKYL_GK_ANOMALOUS_DIFF_D,
       .D_profile = diffusion_D_func,
       .D_profile_ctx = &ctx,
     }, 

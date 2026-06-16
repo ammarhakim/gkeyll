@@ -91,96 +91,150 @@ conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
   int dir = mc->dir;
   int cdim = mc->cdim;
   enum gkyl_edge_loc edge = mc->edge;
+  int num_comp = mc->ncomp/mc->basis->num_basis;
 
   if (cdim == 1) {
     if (edge == GKYL_LOWER_EDGE) {
-      out[0] = inp[0]-1.7320508075688772*inp[1];
+      for (int c=0; c<num_comp; ++c) {
+        unsigned int off = c*mc->basis->num_basis;
+        out[off+0] = inp[off+0]-1.7320508075688772*inp[off+1];
+        out[off+1] = 0.0;
+      }
     }
     else {
-      out[0] = inp[0]+1.7320508075688772*inp[1];
+      for (int c=0; c<num_comp; ++c) {
+        unsigned int off = c*mc->basis->num_basis;
+        out[off+0] = inp[off+0]+1.7320508075688772*inp[off+1];
+        out[off+1] = 0.0;
+      }
     }
-    out[1] = 0.0;
   }
   else if (cdim == 2) {
     if (dir == 0) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-1.7320508075688772*inp[1];
-        out[2] = inp[2]-1.7320508075688772*inp[3];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]-1.7320508075688772*inp[off+1];
+          out[off+1] = 0.0;
+          out[off+2] = inp[off+2]-1.7320508075688772*inp[off+3];
+          out[off+3] = 0.0;
+        }
       }
       else {
-        out[0] = inp[0]+1.7320508075688772*inp[1];
-        out[2] = inp[2]+1.7320508075688772*inp[3];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]+1.7320508075688772*inp[off+1];
+          out[off+1] = 0.0;
+          out[off+2] = inp[off+2]+1.7320508075688772*inp[off+3];
+          out[off+3] = 0.0;
+        }
       }
-      out[1] = 0.0;
-      out[3] = 0.0;
     }
     else if (dir == 1) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-1.7320508075688772*inp[2];
-        out[1] = inp[1]-1.7320508075688772*inp[3];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]-1.7320508075688772*inp[off+2];
+          out[off+1] = inp[off+1]-1.7320508075688772*inp[off+3];
+          out[off+2] = 0.0;
+          out[off+3] = 0.0;
+        }
       }
       else {
-        out[0] = inp[0]+1.7320508075688772*inp[2];
-        out[1] = inp[1]+1.7320508075688772*inp[3];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]+1.7320508075688772*inp[off+2];
+          out[off+1] = inp[off+1]+1.7320508075688772*inp[off+3];
+          out[off+2] = 0.0;
+          out[off+3] = 0.0;
+        }
       }
-      out[2] = 0.0;
-      out[3] = 0.0;
     }
   }
   else if (cdim == 3) {
     if (dir == 0) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-1.7320508075688772*inp[1];
-        out[2] = inp[2]-1.7320508075688772*inp[4];
-        out[3] = inp[3]-1.7320508075688772*inp[5];
-        out[6] = inp[6]-1.7320508075688772*inp[7];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]-1.7320508075688772*inp[off+1];
+          out[off+1] = 0.0;
+          out[off+2] = inp[off+2]-1.7320508075688772*inp[off+4];
+          out[off+3] = inp[off+3]-1.7320508075688772*inp[off+5];
+          out[off+4] = 0.0;
+          out[off+5] = 0.0;
+          out[off+6] = inp[off+6]-1.7320508075688772*inp[off+7];
+          out[off+7] = 0.0;
+        }
       }
       else {
-        out[0] = inp[0]+1.7320508075688772*inp[1];
-        out[2] = inp[2]+1.7320508075688772*inp[4];
-        out[3] = inp[3]+1.7320508075688772*inp[5];
-        out[6] = inp[6]+1.7320508075688772*inp[7];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]+1.7320508075688772*inp[off+1];
+          out[off+1] = 0.0;
+          out[off+2] = inp[off+2]+1.7320508075688772*inp[off+4];
+          out[off+3] = inp[off+3]+1.7320508075688772*inp[off+5];
+          out[off+4] = 0.0;
+          out[off+5] = 0.0;
+          out[off+6] = inp[off+6]+1.7320508075688772*inp[off+7];
+          out[off+7] = 0.0;
+        }
       }
-      out[1] = 0.0;
-      out[4] = 0.0;
-      out[5] = 0.0;
-      out[7] = 0.0;
     }
     else if (dir == 1) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-1.7320508075688772*inp[2];
-        out[1] = inp[1]-1.7320508075688772*inp[4];
-        out[3] = inp[3]-1.7320508075688772*inp[6];
-        out[5] = inp[5]-1.7320508075688772*inp[7];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]-1.7320508075688772*inp[off+2];
+          out[off+2] = 0.0;
+          out[off+1] = inp[off+1]-1.7320508075688772*inp[off+4];
+          out[off+3] = inp[off+3]-1.7320508075688772*inp[off+6];
+          out[off+4] = 0.0;
+          out[off+5] = inp[off+5]-1.7320508075688772*inp[off+7];
+          out[off+6] = 0.0;
+          out[off+7] = 0.0;
+        }
       }
       else {
-        out[0] = inp[0]+1.7320508075688772*inp[2];
-        out[1] = inp[1]+1.7320508075688772*inp[4];
-        out[3] = inp[3]+1.7320508075688772*inp[6];
-        out[5] = inp[5]+1.7320508075688772*inp[7];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]+1.7320508075688772*inp[off+2];
+          out[off+1] = inp[off+1]+1.7320508075688772*inp[off+4];
+          out[off+2] = 0.0;
+          out[off+3] = inp[off+3]+1.7320508075688772*inp[off+6];
+          out[off+4] = 0.0;
+          out[off+5] = inp[off+5]+1.7320508075688772*inp[off+7];
+          out[off+6] = 0.0;
+          out[off+7] = 0.0;
+        }
       }
-      out[2] = 0.0;
-      out[4] = 0.0;
-      out[6] = 0.0;
-      out[7] = 0.0;
     }
     else if (dir == 2) {
       if (edge == GKYL_LOWER_EDGE) {
-        out[0] = inp[0]-1.7320508075688772*inp[3];
-        out[1] = inp[1]-1.7320508075688772*inp[5];
-        out[2] = inp[2]-1.7320508075688772*inp[6];
-        out[4] = inp[4]-1.7320508075688772*inp[7];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]-1.7320508075688772*inp[off+3];
+          out[off+1] = inp[off+1]-1.7320508075688772*inp[off+5];
+          out[off+2] = inp[off+2]-1.7320508075688772*inp[off+6];
+          out[off+3] = 0.0;
+          out[off+4] = inp[off+4]-1.7320508075688772*inp[off+7];
+          out[off+5] = 0.0;
+          out[off+6] = 0.0;
+          out[off+7] = 0.0;
+        }
       }
       else {
-        out[0] = inp[0]+1.7320508075688772*inp[3];
-        out[1] = inp[1]+1.7320508075688772*inp[5];
-        out[2] = inp[2]+1.7320508075688772*inp[6];
-        out[4] = inp[4]+1.7320508075688772*inp[7];
+        for (int c=0; c<num_comp; ++c) {
+          unsigned int off = c*mc->basis->num_basis;
+          out[off+0] = inp[off+0]+1.7320508075688772*inp[off+3];
+          out[off+1] = inp[off+1]+1.7320508075688772*inp[off+5];
+          out[off+2] = inp[off+2]+1.7320508075688772*inp[off+6];
+          out[off+3] = 0.0;
+          out[off+4] = inp[off+4]+1.7320508075688772*inp[off+7];
+          out[off+5] = 0.0;
+          out[off+6] = 0.0;
+          out[off+7] = 0.0;
+        }
       }
-      out[3] = 0.0;
-      out[5] = 0.0;
-      out[6] = 0.0;
-      out[7] = 0.0;
     }
   }
 }

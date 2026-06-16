@@ -103,6 +103,9 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   // Anomalous diffusion.
   gk_species_anomalous_diff_rhs(app, species, &species->anom_diff, fin, rhs);
 
+  // Numerical diffusion.
+  gk_species_numerical_diff_rhs(app, species, &species->nume_diff, fin, rhs);
+
   // Line radiation.
   gk_species_radiation_rhs(app, species, &species->rad, fin, rhs);
 
@@ -1559,6 +1562,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->anom_diff = (struct gk_anomalous_diff) { };
   gk_species_anomalous_diff_init(app, gks, &gks->anom_diff);
 
+  // Initialize an numerical diffusion term.
+  gks->nume_diff = (struct gk_numerical_diff) { };
+  gk_species_numerical_diff_init(app, gks, &gks->nume_diff);
+
   // Damping term -nu*f on RHS.
   gk_species_damping_init(app, gks, &gks->damping);
 
@@ -1969,6 +1976,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   gk_species_scaling_release(app, &gks->sca);
 
   gk_species_anomalous_diff_release(app, &gks->anom_diff);
+
+  gk_species_numerical_diff_release(app, &gks->nume_diff);
 
   // Release moment data.
   gk_species_moment_release(app, &gks->m0);

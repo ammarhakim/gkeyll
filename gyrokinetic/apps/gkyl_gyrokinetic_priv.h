@@ -459,6 +459,18 @@ struct gk_anomalous_diff {
     struct gk_anomalous_diff *gkad, double tm, int frame);
 };
 
+struct gk_numerical_diff {
+  enum gkyl_gk_numerical_diff_id num_diff_id; // Type of diffusion.
+  bool write_diagnostics; // Whether to write diagnostics out.
+  struct gkyl_array *diffD; // Diffusivity.
+  struct gkyl_dg_updater_gk_diffusion *slvr; // Diffusion equation solver.
+  // Methods chosen at runtime.
+  void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
+    struct gk_anomalous_diff *gknd, const struct gkyl_array *fin, struct gkyl_array *rhs);
+  void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_anomalous_diff *gknd, double tm, int frame);
+};
+
 enum gkyl_species_bflux_type {
   GK_SPECIES_BFLUX_NONE = 0, // Do nothing.
   GK_SPECIES_BFLUX_CALC_FLUX, // Put boundary fluxes in ghost of rhs.
@@ -1096,6 +1108,8 @@ struct gk_species {
   struct gk_fdot_multiplier fdot_mult; // Functions multiplying df/dt.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
+  
+  struct gk_numerical_diff nume_diff; // Numerical diffusion.
   
   struct gk_source_bgk bgk_src; // BGK source.
 

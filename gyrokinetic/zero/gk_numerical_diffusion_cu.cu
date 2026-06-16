@@ -4,8 +4,8 @@
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
-#include <gkyl_dg_diffusion_gyrokinetic.h>    
-#include <gkyl_dg_diffusion_gyrokinetic_priv.h>
+#include <gkyl_gk_numerical_diffusion.h>    
+#include <gkyl_gk_numerical_diffusion_priv.h>
 }
 
 #include <cassert>
@@ -14,36 +14,36 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel(const struct gkyl_dg_eqn* eqn, const struct gkyl_array* D, const struct gkyl_array* jacobgeo_inv)
+gkyl_gk_numerical_diffusion_set_auxfields_cu_kernel(const struct gkyl_dg_eqn* eqn, const struct gkyl_array* D, const struct gkyl_array* jacobgeo_inv)
 {
-  struct dg_diffusion_gyrokinetic* diffusion = container_of(eqn, struct dg_diffusion_gyrokinetic, eqn);
+  struct gk_numerical_diffusion* diffusion = container_of(eqn, struct gk_numerical_diffusion, eqn);
   diffusion->auxfields.D = D;
   diffusion->auxfields.jacobgeo_inv = jacobgeo_inv;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
 void
-gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn* eqn, struct gkyl_dg_diffusion_gyrokinetic_auxfields auxin)
+gkyl_gk_numerical_diffusion_set_auxfields_cu(const struct gkyl_dg_eqn* eqn, struct gkyl_gk_numerical_diffusion_auxfields auxin)
 {
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.D->on_dev, auxin.jacobgeo_inv->on_dev);
+  gkyl_gk_numerical_diffusion_set_auxfields_cu_kernel<<<1,1>>>(eqn, auxin.D->on_dev, auxin.jacobgeo_inv->on_dev);
 }
 
 __global__ void static
-dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffusion, enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, int diff_order, int diffdirs_linidx)
+gk_numerical_diffusion_set_cu_dev_ptrs(struct gk_numerical_diffusion *diffusion, enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, int diff_order, int diffdirs_linidx)
 {
   diffusion->auxfields.D = 0; 
   diffusion->auxfields.jacobgeo_inv = 0; 
 
-  const gkyl_dg_diffusion_gyrokinetic_vol_kern_list *vol_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_surf_kern_list *surfx_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_surf_kern_list *surfy_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_surf_kern_list *surfz_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_surfx_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_surfy_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_surfz_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_diagx_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_diagy_kernels;
-  const gkyl_dg_diffusion_gyrokinetic_boundary_surf_kern_list *boundary_diagz_kernels;
+  const gkyl_gk_numerical_diffusion_vol_kern_list *vol_kernels;
+  const gkyl_gk_numerical_diffusion_surf_kern_list *surfx_kernels;
+  const gkyl_gk_numerical_diffusion_surf_kern_list *surfy_kernels;
+  const gkyl_gk_numerical_diffusion_surf_kern_list *surfz_kernels;
+  const gkyl_gk_numerical_diffusion_boundary_surf_kern_list *boundary_surfx_kernels;
+  const gkyl_gk_numerical_diffusion_boundary_surf_kern_list *boundary_surfy_kernels;
+  const gkyl_gk_numerical_diffusion_boundary_surf_kern_list *boundary_surfz_kernels;
+  const gkyl_gk_numerical_diffusion_boundary_surf_kern_list *boundary_diagx_kernels;
+  const gkyl_gk_numerical_diffusion_boundary_surf_kern_list *boundary_diagy_kernels;
+  const gkyl_gk_numerical_diffusion_boundary_surf_kern_list *boundary_diagz_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -91,10 +91,10 @@ dg_diffusion_gyrokinetic_set_cu_dev_ptrs(struct dg_diffusion_gyrokinetic *diffus
 }
 
 struct gkyl_dg_eqn*
-gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
+gkyl_gk_numerical_diffusion_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
   bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
 {
-  struct dg_diffusion_gyrokinetic* diffusion = (struct dg_diffusion_gyrokinetic*) gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
+  struct gk_numerical_diffusion* diffusion = (struct gk_numerical_diffusion*) gkyl_malloc(sizeof(struct gk_numerical_diffusion));
 
   int cdim = cbasis->ndim;
   int vdim = basis->ndim - cdim;
@@ -110,12 +110,12 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis, const s
 
   diffusion->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(diffusion->eqn.flags);
-  diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_dg_diffusion_gyrokinetic_free);
+  diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_gk_numerical_diffusion_free);
 
   // copy the host struct to device struct
-  struct dg_diffusion_gyrokinetic* diffusion_cu = (struct dg_diffusion_gyrokinetic*) gkyl_cu_malloc(sizeof(struct dg_diffusion_gyrokinetic));
-  gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic), GKYL_CU_MEMCPY_H2D);
-  dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx);
+  struct gk_numerical_diffusion* diffusion_cu = (struct gk_numerical_diffusion*) gkyl_cu_malloc(sizeof(struct gk_numerical_diffusion));
+  gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct gk_numerical_diffusion), GKYL_CU_MEMCPY_H2D);
+  gk_numerical_diffusion_set_cu_dev_ptrs<<<1,1>>>(diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx);
 
   // set parent on_dev pointer
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

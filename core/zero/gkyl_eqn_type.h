@@ -178,6 +178,13 @@ enum gkyl_gk_anomalous_diff_id {
   GKYL_GK_ANOMALOUS_DIFF_D_CHI, // Specify D and chi.
 };
 
+// Gyrokinetic numerical diffusion models.
+enum gkyl_gk_numerical_diff_id {
+  GKYL_GK_NUMERICAL_DIFF_NONE = 0, // No anomalous diffusion.
+  GKYL_GK_NUMERICAL_DIFF_CONST, // Constant diffusivity.
+  GKYL_GK_NUMERICAL_DIFF_ADAPT_EXB_SHEAR, // Adapt diffusivity with ExB shear.
+};
+
 enum gkyl_gk_collisionless_type {
   GKYL_GK_COLLISIONLESS_NONE = 0, // Turns off collisionless terms.
   GKYL_GK_COLLISIONLESS_ES, // Electrostatic.
