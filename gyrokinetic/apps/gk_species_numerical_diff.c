@@ -16,7 +16,7 @@ gk_species_numerical_diff_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   gkyl_dg_updater_gk_numerical_diffusion_advance(gknd->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
-  app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_nume_diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -87,7 +87,7 @@ void
 gk_species_numerical_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   struct gk_numerical_diff *gknd)
 {
-  gknd->num_diff_id = gks->info.numerical_diffusion.numerical_diff_id;
+  gknd->num_diff_id = gks->info.numerical_diffusion.type;
   gknd->write_diagnostics = gks->info.numerical_diffusion.write_diagnostics;
 
   gknd->write_diags_func = gk_species_numerical_diff_write_diags_disabled;
@@ -97,7 +97,7 @@ gk_species_numerical_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     bool is_diff_dir[GKYL_MAX_CDIM] = {false};
 
-    int num_diff_dir = gks->info.diffusion.num_diff_dir;
+    int num_diff_dir = gks->info.numerical_diffusion.num_dirs;
     assert(num_diff_dir > 0 && num_diff_dir <= app->cdim);
 
     int szD = num_diff_dir*app->basis.num_basis;
@@ -105,7 +105,7 @@ gk_species_numerical_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     struct gkyl_array *diffD1 = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     struct gkyl_array *diffD1_ho = app->use_gpu? mkarr(false, diffD1->ncomp, diffD1->size)
-                                              : gkyl_array_acquire(diffD);
+                                              : gkyl_array_acquire(diffD1);
 
     // Project the diffusivity.
     for (int d=0; d<num_diff_dir; ++d) {
@@ -128,7 +128,7 @@ gk_species_numerical_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
       gkyl_array_accumulate_offset(gknd->diffD, 1.0, diffD1, d*app->basis.num_basis);
 
       // Multiply diffD by g^{ii}*jacobgeo.
-      struct gkyl_array *giij;
+      struct gkyl_array *giiJ;
       if (dir == 0)
         giiJ = app->gk_geom->geo_int.gxxj;
       else if (dir == 1)
@@ -142,8 +142,8 @@ gk_species_numerical_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     }
 
-    gkyl_array_release(diffD_ho);
-    gkyl_array_release(diffD_dev);
+    gkyl_array_release(diffD1_ho);
+    gkyl_array_release(diffD1);
 
     // Sync diffusivity.
     int num_periodic_dir = app->num_periodic_dir;
@@ -192,7 +192,7 @@ gk_species_numerical_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     // Create solver.
     gknd->slvr = gkyl_dg_updater_gk_numerical_diffusion_new(&gks->grid, &gks->basis, &app->basis,
-      is_diff_dir, diffusion_order, &app->local, bc_lower_type, bc_upper_type,
+      &app->local, bc_type_lower, bc_type_upper, is_diff_dir, diffusion_order, 
       gknd->diffD, app->gk_geom->geo_int.jacobgeo_inv, app->use_gpu);
 
     if (gknd->write_diagnostics) {

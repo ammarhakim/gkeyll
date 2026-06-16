@@ -29,8 +29,7 @@ typedef double (*gk_nume_diff_surf_t)(const double *w, const double *dx,
 
 typedef double (*gk_nume_diff_boundary_surf_t)(const double *wSkin, const double *dxSkin,
   const double *nuEdge, const double *nuSkin, const double *jacobgeo_invEdge, const double *jacobgeo_invSkin,
-  const double *nu, const double *jacobgeo_inv, int edge, const double *JfEdge, const double *JfSkin,
-  double* GKYL_RESTRICT out);
+  int edge, const double *JfEdge, const double *JfSkin, double* GKYL_RESTRICT out);
 
 struct gk_numerical_diffusion {
   struct gkyl_dg_eqn eqn;
@@ -85,13 +84,13 @@ GKYL_CU_DH static double ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu
   struct gk_numerical_diffusion* gknd = container_of(eqn, struct gk_numerical_diffusion, eqn);
   return gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsx(xc, dx, _cfnu(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct gk_numerical_diffusion* gknd = container_of(eqn, struct gk_numerical_diffusion, eqn);
   return gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsz(xc, dx, _cfnu(idx), _cfJacInv(idx), qIn, qRhsOut);
 }
-GKYL_CU_DH static double ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsxy(const struct gkyl_dg_eqn *eqn,
+GKYL_CU_DH static double ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsxz(const struct gkyl_dg_eqn *eqn,
   const double* xc, const double* dx, const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct gk_numerical_diffusion* gknd = container_of(eqn, struct gk_numerical_diffusion, eqn);
@@ -253,12 +252,12 @@ static const gkyl_gk_numerical_diffusion_vol_kern_list ser_vol_kernels_varnu[] =
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order2_vol_2x_ser_p1_varnu_diffdirsy,ker_gk_numerical_diffusion_order2_vol_2x_ser_p1_varnu_diffdirsxy,NULL,NULL,NULL,NULL},
+          {ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsz,ker_gk_numerical_diffusion_order2_vol_2x2v_ser_p1_varnu_diffdirsxz,NULL,NULL,NULL,NULL},
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 4th order diffusion.
       {.list={
-          {ker_gk_numerical_diffusion_order4_vol_2x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order4_vol_2x_ser_p1_varnu_diffdirsy,ker_gk_numerical_diffusion_order4_vol_2x_ser_p1_varnu_diffdirsxy,NULL,NULL,NULL,NULL},
+          {ker_gk_numerical_diffusion_order4_vol_2x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order4_vol_2x2v_ser_p1_varnu_diffdirsz,ker_gk_numerical_diffusion_order4_vol_2x2v_ser_p1_varnu_diffdirsxz,NULL,NULL,NULL,NULL},
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
     },
@@ -267,12 +266,12 @@ static const gkyl_gk_numerical_diffusion_vol_kern_list ser_vol_kernels_varnu[] =
   {.list={
       // 2nd order diffusion.
       {.list={
-          {ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order2_vol_3x_ser_p1_varnu_diffdirsy,ker_gk_numerical_diffusion_order2_vol_3x_ser_p1_varnu_diffdirsxy,ker_gk_numerical_diffusion_order2_vol_3x_ser_p1_varnu_diffdirsz,ker_gk_numerical_diffusion_order2_vol_3x_ser_p1_varnu_diffdirsxz,ker_gk_numerical_diffusion_order2_vol_3x_ser_p1_varnu_diffdirsyz,ker_gk_numerical_diffusion_order2_vol_3x_ser_p1_varnu_diffdirsxyz},
+          {ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsy,ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsxy,ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsz,ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsxz,ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsyz,ker_gk_numerical_diffusion_order2_vol_3x2v_ser_p1_varnu_diffdirsxyz},
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
       // 4th order diffusion.
       {.list={
-          {ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order4_vol_3x_ser_p1_varnu_diffdirsy,ker_gk_numerical_diffusion_order4_vol_3x_ser_p1_varnu_diffdirsxy,ker_gk_numerical_diffusion_order4_vol_3x_ser_p1_varnu_diffdirsz,ker_gk_numerical_diffusion_order4_vol_3x_ser_p1_varnu_diffdirsxz,ker_gk_numerical_diffusion_order4_vol_3x_ser_p1_varnu_diffdirsyz,ker_gk_numerical_diffusion_order4_vol_3x_ser_p1_varnu_diffdirsxyz},
+          {ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsx,ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsy,ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsxy,ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsz,ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsxz,ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsyz,ker_gk_numerical_diffusion_order4_vol_3x2v_ser_p1_varnu_diffdirsxyz},
           {NULL,NULL,NULL,NULL,NULL,NULL,NULL},},
       },
     },
@@ -303,16 +302,16 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_surf_kern_list ser_gyrokineti
   {.list={
       // 2nd order diffusion.
       {.list = {
-          { gk_numerical_diffusion_order2_surfy_1x1v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfy_1x2v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfy_2x2v_ser_p1_varnu, NULL },
+          { NULL, NULL },
+          { NULL, NULL },
+          { gk_numerical_diffusion_order2_surfz_2x2v_ser_p1_varnu, NULL },
           { gk_numerical_diffusion_order2_surfy_3x2v_ser_p1_varnu, NULL },},
       },
       // 4th order diffusion.
       {.list = {
-          { gk_numerical_diffusion_order2_surfy_1x1v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfy_1x2v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfy_2x2v_ser_p1_varnu, NULL },
+          { NULL, NULL },
+          { NULL, NULL },
+          { gk_numerical_diffusion_order2_surfz_2x2v_ser_p1_varnu, NULL },
           { gk_numerical_diffusion_order2_surfy_3x2v_ser_p1_varnu, NULL },},
       },
     },
@@ -321,16 +320,16 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_surf_kern_list ser_gyrokineti
   {.list={
       // 2nd order diffusion.
       {.list = {
-          { gk_numerical_diffusion_order2_surfz_1x1v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfz_1x2v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfz_2x2v_ser_p1_varnu, NULL },
+          { NULL, NULL },
+          { NULL, NULL },
+          { NULL, NULL },
           { gk_numerical_diffusion_order2_surfz_3x2v_ser_p1_varnu, NULL },},
       },
       // 4th order diffusion.
       {.list = {
-          { gk_numerical_diffusion_order2_surfz_1x1v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfz_1x2v_ser_p1_varnu, NULL },
-          { gk_numerical_diffusion_order2_surfz_2x2v_ser_p1_varnu, NULL },
+          { NULL, NULL },
+          { NULL, NULL },
+          { NULL, NULL },
           { gk_numerical_diffusion_order2_surfz_3x2v_ser_p1_varnu, NULL },},
       },
     },
@@ -363,17 +362,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfy_lower_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfy_lower_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfy_lower_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_surfz_lower_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfy_lower_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfy_lower_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfy_lower_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfy_lower_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_surfz_lower_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfy_lower_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -383,17 +382,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfz_lower_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfz_lower_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfz_lower_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfz_lower_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfz_lower_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfz_lower_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfz_lower_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfz_lower_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -426,17 +425,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfy_upper_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfy_upper_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfy_upper_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_surfz_upper_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfy_upper_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfy_upper_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfy_upper_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfy_upper_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_surfz_upper_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfy_upper_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -446,17 +445,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfz_upper_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfz_upper_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfz_upper_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfz_upper_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfz_upper_zero_flux_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfz_upper_zero_flux_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfz_upper_zero_flux_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfz_upper_zero_flux_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -490,17 +489,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfy_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfy_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfy_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_surfz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfy_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfy_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfy_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfy_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_surfz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfy_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -510,17 +509,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfz_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfz_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfz_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfz_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfz_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfz_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -553,17 +552,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfy_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfy_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfy_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_surfz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfy_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfy_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfy_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfy_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_surfz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfy_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -573,17 +572,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_surfz_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_surfz_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_surfz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_surfz_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_surfz_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_surfz_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_surfz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_surfz_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -617,17 +616,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -637,17 +636,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -680,17 +679,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -700,17 +699,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_local_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_local_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_local_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_local_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -744,17 +743,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagy_lower_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagy_lower_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -764,17 +763,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagz_lower_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagz_lower_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -807,17 +806,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagy_upper_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagy_upper_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -827,17 +826,17 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
   {.list= {
       // 2nd order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order2_boundary_diagz_upper_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
       // 4th order diffusion.
       {.list= {
-          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_recovery_1x1v_ser_p1_varnu, NULL }, // 1x1v
-          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_recovery_1x2v_ser_p1_varnu, NULL }, // 1x2v
-          { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_recovery_2x2v_ser_p1_varnu, NULL }, // 2x2v
+          { NULL, NULL }, // 1x1v
+          { NULL, NULL }, // 1x2v
+          { NULL, NULL }, // 2x2v
           { gk_numerical_diffusion_order4_boundary_diagz_upper_bound_recovery_3x2v_ser_p1_varnu, NULL }, // 3x2v
         },
       },
@@ -848,7 +847,7 @@ GKYL_CU_D static const gkyl_gk_numerical_diffusion_boundary_surf_kern_list ser_g
 // Macro for choosing volume and surface kernels.
 #define CKVOL(lst,cdim,vdim,diff_order,poly_order,diffdir_linidx) lst[cdim+vdim-2].list[diff_order/2-1].list[poly_order-1].kernels[diffdir_linidx]
 #define CKSURF(lst,cdim,vdim,diff_order,poly_order,dir) lst[dir-1].list[diff_order/2-1].list[cdim+vdim-2].kernels[poly_order-1]
-#define CKBSURF(lst,cdim,vdim,diff_order,poly_order) lst.list[diff_order/2-1].list[cdim+vdim-2].kernels[poly_order-1]
+#define CKBSURF(lst,cdim,vdim,diff_order,poly_order) lst->list[diff_order/2-1].list[cdim+vdim-2].kernels[poly_order-1]
 
 GKYL_CU_D static double surf(const struct gkyl_dg_eqn* eqn, int dir,
   const double* xcL, const double* xcC, const double* xcR, 

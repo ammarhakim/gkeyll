@@ -42,6 +42,7 @@
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_updater_gk_anomalous_diffusion.h>
+#include <gkyl_dg_updater_gk_numerical_diffusion.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
@@ -463,12 +464,12 @@ struct gk_numerical_diff {
   enum gkyl_gk_numerical_diff_id num_diff_id; // Type of diffusion.
   bool write_diagnostics; // Whether to write diagnostics out.
   struct gkyl_array *diffD; // Diffusivity.
-  struct gkyl_dg_updater_gk_diffusion *slvr; // Diffusion equation solver.
+  struct gkyl_dg_updater_gk_numerical_diffusion *slvr; // Diffusion equation solver.
   // Methods chosen at runtime.
   void (*rhs_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
-    struct gk_anomalous_diff *gknd, const struct gkyl_array *fin, struct gkyl_array *rhs);
+    struct gk_numerical_diff *gknd, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
-    struct gk_anomalous_diff *gknd, double tm, int frame);
+    struct gk_numerical_diff *gknd, double tm, int frame);
 };
 
 enum gkyl_species_bflux_type {
@@ -3074,6 +3075,50 @@ void gk_species_anomalous_diff_write_diags(gkyl_gyrokinetic_app* app, struct gk_
  * @param gkad Species anomalous diffusion object.
  */
 void gk_species_anomalous_diff_release(const struct gkyl_gyrokinetic_app *app, const struct gk_anomalous_diff *gkad);
+
+/** gk_numerical_diff API */
+
+/**
+ * Initialize species numerical diffusion object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param s Species object.
+ * @param gknd Species numerical diffusion object.
+ */
+void gk_species_numerical_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
+  struct gk_numerical_diff *gknd);
+
+/**
+ * Compute RHS contribution from numerical diffusion.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param gknd Species numerical diffusion object.
+ * @param fin Input distribution function.
+ * @param rhs numerical diffusion contribution to df/dt.
+ */
+void gk_species_numerical_diff_rhs(gkyl_gyrokinetic_app *app, struct gk_species *species,
+  struct gk_numerical_diff *gknd, const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+/**
+ * Write out diagnostics from the numerical diffusion term.
+ *
+ * @param app Gyrokinetic app object.
+ * @param species Pointer to species.
+ * @param gknd Species numerical diffusion object.
+ * @param tm Current simulation time.
+ * @param frame Current I/O frame.
+ */
+void gk_species_numerical_diff_write_diags(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gk_numerical_diff *gknd, double tm, int frame);
+
+/**
+ * Release species numerical diffusion object.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gknd Species numerical diffusion object.
+ */
+void gk_species_numerical_diff_release(const struct gkyl_gyrokinetic_app *app, const struct gk_numerical_diff *gknd);
 
 /** gk_source_bgk API */
 

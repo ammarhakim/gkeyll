@@ -16,7 +16,7 @@ gk_species_anomalous_diff_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   gkyl_dg_updater_gk_anomalous_diffusion_advance(gkad->slvr, &species->local, 
     fin, species->cflrate, rhs);
 
-  app->stat.species_diffusion_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.species_anom_diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
 
 static void
@@ -87,7 +87,7 @@ void
 gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, 
   struct gk_anomalous_diff *gkad)
 {
-  gkad->anom_diff_id = gks->info.anomalous_diffusion.anomalous_diff_id;
+  gkad->anom_diff_id = gks->info.anomalous_diffusion.type;
   gkad->write_diagnostics = gks->info.anomalous_diffusion.write_diagnostics;
 
   gkad->write_diags_func = gk_species_anomalous_diff_write_diags_disabled;
