@@ -1487,7 +1487,7 @@ main(int argc, char **argv)
                                         // Important for stability
   };
 
-  struct gkyl_gyrokinetic_multib *app_inp = gkyl_malloc(sizeof(struct gkyl_gyrokinetic_multib));
+  struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1,sizeof(struct gkyl_gyrokinetic_multib));
   app_inp->cdim = ctx.cdim;
   app_inp->poly_order = 1;
   app_inp->basis_type = app_args.basis_type;

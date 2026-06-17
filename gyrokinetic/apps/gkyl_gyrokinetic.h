@@ -241,10 +241,17 @@ struct gkyl_gyrokinetic_geometry {
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
+  // Twist-shift functions for the tokamak core.
+  void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
+  void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
+  void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
+
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.
   struct gkyl_position_map_inp position_map_info; // Position map object.
+
 };
 
 // Parameters for species radiation.
@@ -597,9 +604,15 @@ struct gkyl_gyrokinetic_eirene {
   char coupling_species[GKYL_MAX_SPECIES][128]; // Names of species to couple
 };
 
+// Additional metadata users can provide.
+struct gkyl_gyrokinetic_metadata_inp {
+  struct gkyl_msgpack_map_elem *attributes; // List of metadata elements to add to output files.
+  int num_attributes; // Number of attributes.
+};
+
 // Top-level app parameters
 struct gkyl_gk {
-  char name[128]; // Name of app: used as output prefix.
+  char name[128]; // Name of app: used as output prefix. Should not end in _b#.
 
   int cdim; // Configuration-space dimensions.
   double lower[3], upper[3]; // Lower, upper bounds of config-space.
@@ -626,6 +639,8 @@ struct gkyl_gk {
   struct gkyl_gyrokinetic_eirene eirene; // EIRENE input
 
   struct gkyl_app_parallelism_inp parallelism; // Parallelism-related inputs.
+
+  struct gkyl_gyrokinetic_metadata_inp metadata; // Optional metadata for output files.
 };
 
 // Simulation statistics
