@@ -223,7 +223,38 @@ gkyl_mat_mv(double alpha, double beta,
   return y;
 }
 
+struct gkyl_mat* gkyl_mat_accumulate(struct gkyl_mat *out, double a, const struct gkyl_mat *inp) {
+  assert(inp->nr == out->nr && inp->nc == out->nc);
 
+  double *out_d = out->data;
+  const double *inp_d = inp->data;
+
+  for (int i = 0; i < inp->nr * inp->nc; i++) {
+    out_d[i] = out_d[i] + (a * inp_d[i]);
+  }
+
+  return out;
+}
+
+struct gkyl_mat* gkyl_mat_scale(struct gkyl_mat *out, double a) {
+  for (int r = 0; r < out->nr; r++) {
+    for (int c = 0; c < out->nc; c++) {
+      gkyl_mat_set(out, r, c, a * gkyl_mat_get(out, r, c));
+    }
+  }
+
+  return out;
+}
+
+double gkyl_mat_L2_norm(struct gkyl_mat *mat) {
+  double sq_sum = 0;
+
+  for (int i = 0; i < mat->nc * mat->nr; i++) {
+    sq_sum += mat->data[i] * mat->data[i];
+  }
+
+  return sqrt(sq_sum);
+}
 
 bool
 gkyl_mat_linsolve_lu(struct gkyl_mat *A, struct gkyl_mat *x, void* ipiv)
@@ -301,6 +332,28 @@ gkyl_mat_new(size_t nr, size_t nc, double val)
   mat->on_dev = mat; // on CPU this is a self-reference
   mat->ref_count = gkyl_ref_count_init(mat_free);
   for (size_t i=0; i<nr*nc; ++i) mat->data[i] = val;
+  return mat;
+}
+
+struct gkyl_mat*
+gkyl_mat_identity(size_t size)
+{
+  struct gkyl_mat *mat = gkyl_malloc(sizeof(struct gkyl_mat));
+  mat->nr = size; mat->nc = size;
+  mat->flags = 0;
+  mat->data = gkyl_malloc(sizeof(double[size*size]));  
+  mat->on_dev = mat; // on CPU this is a self-reference
+  mat->ref_count = gkyl_ref_count_init(mat_free);
+  // for (size_t i=0; i<size*size; ++i) mat->data[i] = val;
+
+  for (size_t c=0; c<size; ++c) {
+      for (size_t r=0; r<size; ++r) {
+          size_t i = c*size + r;
+          if (r == c) mat->data[i] = 1;
+          else mat->data[i] = 0;
+      }
+  } 
+
   return mat;
 }
 

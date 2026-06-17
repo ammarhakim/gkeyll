@@ -455,7 +455,6 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     nT_sources[i] = app->species[i].nT_source;
     app->species[i].nT_source_is_set = true;
   }
-
   if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const,

@@ -57,9 +57,50 @@ typedef struct gkyl_mat_mm_array_mem gkyl_mat_mm_array_mem;
 struct gkyl_mat* gkyl_mat_new(size_t nr, size_t nc, double val);
 
 /**
+ * Construct new identity matrix.
+ * Delete using gkyl_mat_release method.
+ *
+ * @param size Size of square identity matrix
+ * @return Pointer to new matrix.
+ */
+struct gkyl_mat* gkyl_mat_identity(size_t size);
+
+/**
  * Clone matrix.
  */
 struct gkyl_mat* gkyl_mat_clone(const struct gkyl_mat *in);
+
+/**
+ * Set out = out + a * inp. Returns out
+ *
+ * @param out Output matrix
+ * @param a Factor to multiply input matrix
+ * @param inp Input matrix
+ *
+ * @return out matrix
+ */
+struct gkyl_mat* gkyl_mat_accumulate(struct gkyl_mat *out, double a, const struct gkyl_mat *in);
+
+/**
+ * Set out = a * out. Returns out
+ *
+ * @param out Output matrix
+ * @param a Factor to scale
+ *
+ * @return out matrix
+ */
+struct gkyl_mat* gkyl_mat_scale(struct gkyl_mat *out, double a);
+
+
+/**
+ * Returns the L2 norm for a matrix, defined as
+ * sqrt(sum_ij (A_ij)^2)
+ *
+ * @param mat Matrix we want the norm of
+ * 
+ * @return L2 norm of Mat
+ */
+double gkyl_mat_L2_norm(struct gkyl_mat *mat);
 
 /**
  * Set value in matrix.
