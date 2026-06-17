@@ -391,7 +391,7 @@ void implicit_em_non_linear_source_update(
     double fluid_rhs_s[GKYL_MAX_SPECIES][4], double *fluid_s[GKYL_MAX_SPECIES],
     const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
     const double *app_current, const double *ext_em) {
-  printf("Hello world"); 
+  printf("Hello world\n");
   double tol = 0.000001;
   // Number of fluids
   int num_species_eqs = 4;
@@ -407,7 +407,7 @@ void implicit_em_non_linear_source_update(
 
   struct gkyl_mat *Q_init = gkyl_mat_new(jac_size, 1, 0.0);
 
-  printf("Hello");
+  printf("Hello\n");
   for (int s = 0; s < nfluids; s++) {
     int s_i = s * 4;
     gkyl_mat_set(Q_init, s_i, 0, fluid_s[s][1]);
@@ -1187,11 +1187,11 @@ void implicit_source_coupling_update(
       p_tensor_new[i][5] = ((p_tensor_new[i][5] - p) / exp_nu) + p;
     }
   }
-  printf("Hello");
+  printf("Hello\n");
 
   if (mom_em->is_charged_species) {
     if (mom_em->use_rel) {
-      printf("Hello");
+      printf("Hello\n");
       implicit_em_non_linear_source_update(mom_em, t_curr, dt, fluid_rhs,
                                            fluid_s, app_accel_s, em,
                                            app_current, ext_em);
