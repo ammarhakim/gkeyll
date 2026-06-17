@@ -20,6 +20,7 @@ struct gkyl_dg_maxwell_inp {
   const struct gkyl_surf_and_vol_node_arrays *lapse; // nodal expansion of lapse
   const struct gkyl_surf_and_vol_node_arrays *shift; // nodal expansion of shift
   const struct gkyl_surf_and_vol_node_arrays *h_ij; // nodal expansion of spatial
+  const struct gkyl_surf_and_vol_node_arrays *h_ij_inv; // nodal expansion of inverse spatial metric
   const struct gkyl_surf_and_vol_node_arrays *det_h; // nodal expansion of spatial metric determinant
   bool use_gpu; // bool to determine if on GPU. 
 };

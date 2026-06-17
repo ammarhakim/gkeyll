@@ -31,6 +31,7 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
     gkyl_surf_and_vol_node_arrays_release(maxwell->lapse);
     gkyl_surf_and_vol_node_arrays_release(maxwell->shift);
     gkyl_surf_and_vol_node_arrays_release(maxwell->h_ij);
+    gkyl_surf_and_vol_node_arrays_release(maxwell->h_ij_inv);
     gkyl_surf_and_vol_node_arrays_release(maxwell->det_h);
   }
 
@@ -60,6 +61,7 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
     maxwell->lapse = gkyl_surf_and_vol_node_arrays_acquire(inp->lapse);
     maxwell->shift = gkyl_surf_and_vol_node_arrays_acquire(inp->shift);
     maxwell->h_ij = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij);
+    maxwell->h_ij_inv = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij_inv);
     maxwell->det_h = gkyl_surf_and_vol_node_arrays_acquire(inp->det_h);
   }
 
@@ -113,6 +115,8 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->maxwell_data.c = inp->lightSpeed;
   maxwell->maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
+  maxwell->gr_maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
+  maxwell->gr_maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
 
   // For volume kernel selection
   if ( maxwell->use_conf_flux_surf ) {

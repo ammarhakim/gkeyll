@@ -71,6 +71,13 @@ vlasovApp = Vlasov.App.new {
     -- Use GR field ID
     fieldID = G0.FieldModel.GR,
 
+    -- Use lax and speed factors
+    epsilon0 = 1.0,
+    mu0 = 1.0,
+    elcErrorSpeedFactor = 0.0, -- chi = c*elcErrorSpeedFactor = 1.
+    mgnErrorSpeedFactor = 0.0, -- gamma = c*mgnErrorSpeedFactor = 1.
+    useLax = true, -- Use Lax flux
+
     -- Initial conditions function.
     init = function (t, xn)
       local r, theta = xn[1], xn[2]

@@ -98,6 +98,8 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->maxwell_data.c = inp->lightSpeed;
   maxwell->maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
+  maxwell->gr_maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
+  maxwell->gr_maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
 
   maxwell->eqn.flags = 0;
   GKYL_SET_CU_ALLOC(maxwell->eqn.flags);
@@ -107,11 +109,13 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->lapse = 0;
   maxwell->shift = 0;
   maxwell->h_ij = 0;
+  maxwell->h_ij_inv = 0;
   maxwell->det_h = 0;
   struct gkyl_array *conf_flux_surf = 0;
   struct gkyl_surf_and_vol_node_arrays *lapse = 0;
   struct gkyl_surf_and_vol_node_arrays *shift = 0;
   struct gkyl_surf_and_vol_node_arrays *h_ij = 0;
+  struct gkyl_surf_and_vol_node_arrays *h_ij_inv = 0;
   struct gkyl_surf_and_vol_node_arrays *det_h = 0;
   maxwell->use_conf_flux_surf = false;
   if (inp->field_id == GKYL_FIELD_GR_D_B) {
@@ -124,10 +128,12 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
     lapse = gkyl_surf_and_vol_node_arrays_acquire(inp->lapse);
     shift = gkyl_surf_and_vol_node_arrays_acquire(inp->shift);
     h_ij = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij);
+    h_ij_inv = gkyl_surf_and_vol_node_arrays_acquire(inp->h_ij_inv);
     det_h = gkyl_surf_and_vol_node_arrays_acquire(inp->det_h);
     maxwell->lapse = lapse->on_dev;
     maxwell->shift = shift->on_dev;
     maxwell->h_ij = h_ij->on_dev;
+    maxwell->h_ij_inv = h_ij_inv->on_dev;
     maxwell->det_h = det_h->on_dev;
   }
 
@@ -145,6 +151,7 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->lapse = lapse;
   maxwell->shift = shift;
   maxwell->h_ij = h_ij;
+  maxwell->h_ij_inv = h_ij_inv;
   maxwell->det_h = det_h;
 
   return &maxwell->eqn;

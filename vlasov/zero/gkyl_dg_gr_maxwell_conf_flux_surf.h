@@ -17,6 +17,8 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf_inp {
   enum gkyl_field_id field_id; // enum to determine what type of Maxwell model (e.g., curved space non-relativistic vs. relativistic). 
   const int *theta_pole_lo; // (lower edge) Default zeros, but 1 if any directions use theta-pole BC's.
   const int *theta_pole_up; // (upper edge) Default zeros, but 1 if any directions use theta-pole BC's.
+  double chi; // Electric-field divergence correction speed.
+  double gamma; // Magnetic-field divergence correction speed.
   bool use_lax; // bool to determine if we are using lax flux option.
   bool use_gpu; // bool to determine if on GPU. 
 };
@@ -52,6 +54,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_co
  * @param lapse Lapse (ADM alpha) at the nodal surface points. 
  * @param shift shift (ADM \beta^i - contravaraint) at the nodal surface points. 
  * @param h_ij Spatial metric (ADM h_ij - covariant) at the nodal surface points. 
+ * @param h_ij_inv Inverse spatial metric (ADM h^ij - contravariant) at the nodal surface points.
  * @param det_h Spatial metric Jacobian (Jc = det_h = sqrt(det(h_ij))) at the nodal surface points.  
  * @param field_con Input contravariant (JD,JB) field components. 
  * @param field_no_J_con Input contravariant (D,B) field components (without determinant factor Jc) Used for edges.
@@ -62,7 +65,8 @@ void
 gkyl_dg_gr_maxwell_conf_flux_surf_advance(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
-  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *det_h, 
+  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *h_ij_inv,
+  const struct gkyl_surf_and_vol_node_arrays *det_h, 
   const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, struct gkyl_array *cflrate, 
   struct gkyl_array *conf_flux_surf);
 
@@ -73,7 +77,8 @@ void
 gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
-  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *det_h,
+  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *h_ij_inv,
+  const struct gkyl_surf_and_vol_node_arrays *det_h,
   const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, struct gkyl_array *cflrate, 
   struct gkyl_array *conf_flux_surf);
 

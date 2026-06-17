@@ -192,6 +192,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .field_id = f->field_id,
       .theta_pole_lo = app->vm_geom->theta_pole_lo,
       .theta_pole_up = app->vm_geom->theta_pole_up,
+      .chi = c*ef,
+      .gamma = c*mf,
       .use_lax = f->info.use_lax,
       .use_gpu = app->use_gpu,
     }; 
@@ -206,6 +208,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     .lapse = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->lapse : 0,
     .shift = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->shift : 0,
     .h_ij = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij : 0,
+    .h_ij_inv = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij_inv : 0,
     .det_h = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->det_h : 0,
     .lightSpeed = c,
     .field_id = f->field_id,
@@ -476,7 +479,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 
     // Compute the surface expansion of the phase space flux in configuration space. 
     gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 
-      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->det_h, em,
+      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->h_ij_inv, field->geom->det_h, em,
       field->em_no_J, field->cflrate, field->conf_flux_surf);
   }
 
