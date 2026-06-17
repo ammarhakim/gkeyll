@@ -354,6 +354,14 @@ gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
     }
   }
 
+  if (app->field.maxwell->embed_geo) {
+    if (frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s-embed_mask_%d.gkyl", app->name, "field", frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.embed_mask, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
   moment_array_meta_release(mt);
 }
 
