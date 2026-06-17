@@ -1605,7 +1605,7 @@ gkyl_wv_vacuum_einstein_new(double excision_threshold, enum gkyl_spacetime_slici
 struct gkyl_wv_eqn*
 gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
 {
-  struct wv_vacuum_einstein *vacuum_einstein = gkyl_malloc(sizeof(struct wv_vacuum_einstein));
+  struct wv_vacuum_einstein *vacuum_einstein = gkyl_calloc(1, sizeof(struct wv_vacuum_einstein));
 
   vacuum_einstein->eqn.type = GKYL_EQN_VACUUM_EINSTEIN;
   vacuum_einstein->eqn.num_equations = 64;

@@ -576,7 +576,7 @@ gkyl_wv_euler_mixture_new(int num_species, double* gas_gamma_s, bool use_gpu)
 struct gkyl_wv_eqn*
 gkyl_wv_euler_mixture_inew(const struct gkyl_wv_euler_mixture_inp* inp)
 {
-  struct wv_euler_mixture *euler_mixture = gkyl_malloc(sizeof(struct wv_euler_mixture));
+  struct wv_euler_mixture *euler_mixture = gkyl_calloc(1, sizeof(struct wv_euler_mixture));
 
   euler_mixture->eqn.type = GKYL_EQN_EULER_MIXTURE;
   euler_mixture->eqn.num_equations = 4 + (2 * inp->num_species);

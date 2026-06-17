@@ -422,7 +422,7 @@ gkyl_wv_euler_rgfm_new(int num_species, double* gas_gamma_s, int reinit_freq, bo
 struct gkyl_wv_eqn*
 gkyl_wv_euler_rgfm_inew(const struct gkyl_wv_euler_rgfm_inp* inp)
 {
-  struct wv_euler_rgfm *euler_rgfm = gkyl_malloc(sizeof(struct wv_euler_rgfm));
+  struct wv_euler_rgfm *euler_rgfm = gkyl_calloc(1, sizeof(struct wv_euler_rgfm));
 
   euler_rgfm->eqn.type = GKYL_EQN_EULER_RGFM;
   euler_rgfm->eqn.num_equations = 5 + (2 * inp->num_species);

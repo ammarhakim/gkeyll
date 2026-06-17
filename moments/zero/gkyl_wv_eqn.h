@@ -31,6 +31,12 @@ typedef bool (*wv_check_inv)(const struct gkyl_wv_eqn *eqn, const double *q);
 
 // Function pointer to compute maximum speed given local state
 typedef double (*wv_max_speed_t)(const struct gkyl_wv_eqn *eqn, const double *q);
+// Optional per-direction variant: max speed in coordinate direction @a dir.
+// Equations that provide it get a directionally-aware initial-dt seed in
+// gkyl_wave_prop_max_dt (dt ≤ cfl·dx_dir/λ_dir); others fall back to the
+// direction-agnostic max_speed_func.
+typedef double (*wv_max_speed_dir_t)(const struct gkyl_wv_eqn *eqn,
+  const double *q, int dir);
 
 // Function pointer to rotate conserved variables to local
 // tangent-normal frame: tau1 X tau2 = norm
@@ -103,6 +109,8 @@ struct gkyl_wv_eqn {
 
   wv_check_inv check_inv_func; // function to check invariant domains
   wv_max_speed_t max_speed_func; // function to compute max-speed
+  wv_max_speed_dir_t max_speed_dir_func; // optional per-direction max-speed
+                                         // (NULL → max_speed_func fallback)
   wv_rotate_to_local rotate_to_local_func; // function to rotate to local frame
   wv_rotate_to_global rotate_to_global_func; // function to rotate to global frame
 

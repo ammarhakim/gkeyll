@@ -2129,7 +2129,7 @@ gkyl_wv_gr_twofluid_tetrad_new(double mass_elc, double mass_ion, double charge_e
 struct gkyl_wv_eqn*
 gkyl_wv_gr_twofluid_tetrad_inew(const struct gkyl_wv_gr_twofluid_tetrad_inp* inp)
 {
-  struct wv_gr_twofluid_tetrad *gr_twofluid_tetrad = gkyl_malloc(sizeof(struct wv_gr_twofluid_tetrad));
+  struct wv_gr_twofluid_tetrad *gr_twofluid_tetrad = gkyl_calloc(1, sizeof(struct wv_gr_twofluid_tetrad));
 
   gr_twofluid_tetrad->eqn.type = GKYL_EQN_GR_TWOFLUID_TETRAD;
   gr_twofluid_tetrad->eqn.num_equations = 84;

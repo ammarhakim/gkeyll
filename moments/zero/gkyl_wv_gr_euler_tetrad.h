@@ -17,10 +17,10 @@ enum gkyl_wv_gr_euler_tetrad_rp {
 };
 
 // Auxfields handed to the modular tetrad-basis GR Euler equation object.
-// Mirrors gkyl_wv_gr_euler_mod_auxfields — the spacetime products layout is
-// identical for both mod variants (tetrad does not require stored basis
-// vectors; the flat-frame factorization is purely a flux-computation
-// strategy, see wv_gr_euler_tetrad.c).
+// The equation does not require stored basis vectors: the flat-frame
+// factorization is purely a flux-computation strategy (see
+// wv_gr_euler_tetrad.c); the spacetime enters via the shared products
+// array and the optional per-interface tetrad cache below.
 //
 // Per-callsite instrumentation buckets:
 //   prim_status_wave_prop:   updated by all wave-prop primitive recovery

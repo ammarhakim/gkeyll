@@ -55,7 +55,7 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
  * instead of from packed q[5..66]. Operates on the 5-element hydro state.
  */
 void
-gkyl_moment_spacetime_coupling_gr_euler_mod_source_euler(
+gkyl_moment_spacetime_coupling_gr_euler_source_euler(
   struct gkyl_gr_euler_eos eos, double t_curr, double dt,
   const double *prods,
   struct gkyl_gr_euler_prim_status *prim_stat,

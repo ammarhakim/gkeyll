@@ -208,11 +208,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   if (app->has_spacetime) {
     for (int i = 0; i < ns; i++) {
       enum gkyl_eqn_type t = app->species[i].eqn_type;
-      if (t == GKYL_EQN_GR_EULER_MOD) {
-        gkyl_gr_euler_mod_set_conf_range(app->species[i].equation, &app->local_ext);
-        gkyl_gr_euler_mod_set_auxfields(app->species[i].equation,
-          (struct gkyl_wv_gr_euler_mod_auxfields){ .prods = app->spacetime.prods });
-      } else if (t == GKYL_EQN_GR_EULER_TETRAD) {
+      if (t == GKYL_EQN_GR_EULER_TETRAD) {
         gkyl_gr_euler_tetrad_set_conf_range(app->species[i].equation, &app->local_ext);
         gkyl_gr_euler_tetrad_set_auxfields(app->species[i].equation,
           (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = app->spacetime.prods });
@@ -418,27 +414,22 @@ gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
       num_periodic_dir, app->periodic_dirs, app->spacetime.prods);
 
     // Build the per-interface tetrad cache now that prods is filled, then
-    // attach it to each tetrad-mod and non-tetrad-mod species. The cache
-    // reads cell-centered prods, applies the wave_geom rotation per face,
-    // and stores the resulting averaged-frame metric + Gram-Schmidt triad
-    // for direct consumption by wave_tetrad_high_order and (when present)
-    // the iface-flux Lax in wv_gr_euler_mod.c.
+    // attach it to each tetrad species. The cache reads cell-centered
+    // prods, applies the wave_geom rotation per face, and stores the
+    // resulting averaged-frame metric + Gram-Schmidt triad for direct
+    // consumption by wave_tetrad_high_order.
     bool need_wave_spacetime = false;
     for (int i = 0; i < app->num_species; i++)
-      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD ||
-          app->species[i].eqn_type == GKYL_EQN_GR_EULER_MOD) {
+      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
         need_wave_spacetime = true; break;
       }
     if (need_wave_spacetime && app->spacetime.wave_spacetime == NULL) {
       app->spacetime.wave_spacetime = gkyl_wave_spacetime_new(&app->grid,
         &app->local_ext, app->geom, app->spacetime.analytic_spacetime,
-        app->spacetime.prods, t0, app->spacetime.is_static, /*use_gpu=*/false);
+        app->spacetime.prods, t0, /*use_gpu=*/false);
       for (int i = 0; i < app->num_species; i++) {
         if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
           gkyl_gr_euler_tetrad_set_wave_spacetime(app->species[i].equation,
-            app->spacetime.wave_spacetime);
-        } else if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_MOD) {
-          gkyl_gr_euler_mod_set_wave_spacetime(app->species[i].equation,
             app->spacetime.wave_spacetime);
         }
       }
@@ -1150,18 +1141,22 @@ gr_euler_print_prim_status(FILE *fp, const char *label,
       (unsigned long long)hllc_total,
       (unsigned long long)s->hllc.fallback_calls,
       100.0 * (double)s->hllc.fallback_calls / (double)hllc_total);
-    const char *reason_labels[5] = {
+    const char *reason_labels[6] = {
       "no fallback (star-state used)",
-      "lam_diff~0 (degenerate Davis bracket)",
       "λ* not finite",
       "|λ_L−λ*| < tol",
       "|λ_R−λ*| < tol",
+      "vacuum side (excision absorbing BC)",
+      "star state inadmissible (D*/s²* guard)",
     };
-    for (int r = 0; r < 5; r++) {
+    for (int r = 0; r < 6; r++) {
       if (s->hllc.fallback_reason_hist[r] > 0)
         fprintf(fp, "      [%d] %-40s : %llu\n", r, reason_labels[r],
           (unsigned long long)s->hllc.fallback_reason_hist[r]);
     }
+    if (s->hllc.star_tau_neg > 0)
+      fprintf(fp, "      star τ* < 0 (counted, no fallback)        : %llu\n",
+        (unsigned long long)s->hllc.star_tau_neg);
   }
 }
 
@@ -1174,7 +1169,7 @@ gr_euler_print_repair_status(FILE *fp, const char *label,
   uint64_t total = s->bad_D_fixes + s->bad_tau_fixes + s->bad_s2_fixes;
   if (total + s->tau_limiter_fires + s->s2_limiter_fires == 0) return;
   fprintf(fp,
-    "  [%s repair_status] cascade fixes total %llu  (D≤0: %llu, τ<0: %llu, s²≤0: %llu)\n",
+    "  [%s repair_status] cascade fixes total %llu  (D≤0: %llu, τ<0: %llu, s²≤D²: %llu)\n",
     label, (unsigned long long)total,
     (unsigned long long)s->bad_D_fixes,
     (unsigned long long)s->bad_tau_fixes,
@@ -1186,21 +1181,21 @@ gr_euler_print_repair_status(FILE *fp, const char *label,
       (unsigned long long)s->s2_limiter_fires);
   }
   if (s->bad_s2_fixes > 0) {
-    double avg = s->sum_abs_s2_repair_W_prev / (double)s->bad_s2_fixes;
+    double avg = s->sum_s2_repair_clip / (double)s->bad_s2_fixes;
     fprintf(fp,
-      "    s²-repair |W_prev| anchor:  min=%.3e avg=%.3e max=%.3e last=%.3e (signed)\n",
-      s->min_abs_s2_repair_W_prev, avg,
-      s->max_abs_s2_repair_W_prev, s->last_s2_repair_W_prev);
-    const char *W_labels[GR_EULER_W_BINS] = {
-      "≤1.001", "1.001..1.1", "1.1..2", "2..10",
-      "10..100", "100..1e3", "1e3..1e4", "≥1e4",
+      "    s²-repair |S|² clip fraction:  min=%.3e avg=%.3e max=%.3e last=%.3e\n",
+      s->min_s2_repair_clip, avg,
+      s->max_s2_repair_clip, s->last_s2_repair_clip);
+    const char *clip_labels[8] = {
+      "<1e-12", "1e-12..1e-10", "1e-10..1e-8", "1e-8..1e-6",
+      "1e-6..1e-4", "1e-4..1e-2", "1e-2..1", "≥1",
     };
-    fprintf(fp, "    s²-repair |W_prev| distribution:\n");
-    for (int b = 0; b < GR_EULER_W_BINS; b++)
-      if (s->s2_repair_W_prev_hist[b] > 0)
-        fprintf(fp, "      %-15s : %llu (%.2f%%)\n", W_labels[b],
-          (unsigned long long)s->s2_repair_W_prev_hist[b],
-          100.0 * (double)s->s2_repair_W_prev_hist[b] / (double)s->bad_s2_fixes);
+    fprintf(fp, "    s²-repair clip distribution:\n");
+    for (int b = 0; b < 8; b++)
+      if (s->s2_repair_clip_hist[b] > 0)
+        fprintf(fp, "      %-15s : %llu (%.2f%%)\n", clip_labels[b],
+          (unsigned long long)s->s2_repair_clip_hist[b],
+          100.0 * (double)s->s2_repair_clip_hist[b] / (double)s->bad_s2_fixes);
   }
 }
 

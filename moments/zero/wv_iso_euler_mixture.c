@@ -535,7 +535,7 @@ gkyl_wv_iso_euler_mixture_new(int num_species, double* vt_s, bool use_gpu)
 struct gkyl_wv_eqn*
 gkyl_wv_iso_euler_mixture_inew(const struct gkyl_wv_iso_euler_mixture_inp* inp)
 {
-  struct wv_iso_euler_mixture *iso_euler_mixture = gkyl_malloc(sizeof(struct wv_iso_euler_mixture));
+  struct wv_iso_euler_mixture *iso_euler_mixture = gkyl_calloc(1, sizeof(struct wv_iso_euler_mixture));
 
   iso_euler_mixture->eqn.type = GKYL_EQN_EULER_MIXTURE;
   iso_euler_mixture->eqn.num_equations = 3 + (2 * inp->num_species);

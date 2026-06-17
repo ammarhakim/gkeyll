@@ -569,7 +569,7 @@ gkyl_wv_gr_maxwell_tetrad_new(double light_speed, double e_fact, double b_fact, 
 struct gkyl_wv_eqn*
 gkyl_wv_gr_maxwell_tetrad_inew(const struct gkyl_wv_gr_maxwell_tetrad_inp* inp)
 {
-  struct wv_gr_maxwell_tetrad *gr_maxwell_tetrad = gkyl_malloc(sizeof(struct wv_gr_maxwell_tetrad));
+  struct wv_gr_maxwell_tetrad *gr_maxwell_tetrad = gkyl_calloc(1, sizeof(struct wv_gr_maxwell_tetrad));
 
   gr_maxwell_tetrad->eqn.type = GKYL_EQN_GR_MAXWELL_TETRAD;
   gr_maxwell_tetrad->eqn.num_equations = 26;

@@ -12,10 +12,9 @@
 // The Banyuls inversion uses |S|² = γ^{ij}·S_i·S_j and recovers the
 // contravariant velocity v^i = γ^{ij}·S_j / (ρhW²); both lookups go
 // through gkyl_gr_euler_recover_primitives in
-// gkyl_wv_gr_euler_prim_priv.h. The packed-tetrad path
-// (wv_gr_euler_tetrad.c) and the non-tetrad mod path (wv_gr_euler_mod.c)
-// remain on the contravariant-momentum convention; only the modular
-// tetrad path defined here uses Convention A.
+// gkyl_wv_gr_euler_prim_priv.h. The legacy packed path (wv_gr_euler.c)
+// remains on the contravariant-momentum convention; the modular tetrad
+// path defined here uses Convention A.
 
 #include <math.h>
 #include <stdint.h>
@@ -51,14 +50,18 @@ typedef double (*gkyl_sr_riemann_kernel_t)(
   struct gkyl_gr_euler_prim_status *stat,
   double *waves_tet, double *speeds_tet);
 
-// Excision-boundary policy. Differs across solvers because HLLC's
-// star-state construction doesn't degrade gracefully to one-side vacuum.
+// Excision-boundary policy. All four solvers now use ZERO_VACUUM
+// (HLLC routes vacuum sides to its in-kernel HLL fallback, reason 4 —
+// HLLC_AUDIT_PLAN.md Phase 1). SHORT_CIRCUIT is retained as a policy
+// knob (zero waves = no-flux wall, i.e. REFLECTIVE semantics at the
+// horizon); it currently has no production user.
 enum gkyl_tetrad_excision_policy {
-  // Lax/HLL/Roe: feed q_tet=0 on the excised side and run the SR kernel
-  // using the active cell's geometry. SR kernels' zero-state short-
-  // circuits handle the resulting "vacuum" input cleanly.
+  // Feed q_tet=0 on the excised side and run the SR kernel using the
+  // active cell's geometry. SR kernels' zero-state short-circuits
+  // handle the resulting "vacuum" input cleanly (absorbing BC).
   GKYL_TETRAD_EXCISION_ZERO_VACUUM,
-  // HLLC: any-side excised → return zero waves with sentinel speeds.
+  // Any-side excised → return zero waves with sentinel speeds
+  // (reflective wall; unused by default).
   GKYL_TETRAD_EXCISION_SHORT_CIRCUIT,
 };
 
@@ -85,28 +88,20 @@ struct wv_gr_euler_tetrad {
   int cur_idxr[GKYL_MAX_DIM];
   int cur_cell_idx[GKYL_MAX_DIM];
 
-  // Per-side locally-rotated spacetime scratch buffers, mirroring the regular
-  // mod variant. The tetrad equation reads the same spacetime block (lapse,
-  // shift, γ_ij, γ^ij, √γ, excision) and does not require stored basis
-  // vectors — the "tetrad" name refers to the HIGH_ORDER Riemann-solver
-  // strategy (rotate state into a locally-flat orthonormal frame at the
-  // interface, solve SR Riemann, back-transform), not to the primitive-
-  // variable representation. LOW_ORDER curved Lax and F-wave callbacks
-  // use gkyl_gr_euler_banyuls_flux_cell directly.
-  double prodl_local[GKYL_GR_SP_NCOMP_BASE];
-  double prodr_local[GKYL_GR_SP_NCOMP_BASE];
-  int rot_call_parity;
+  // NOTE: per-interface face-local geometry lives in the wave_spacetime
+  // cache (cell_prods_local + iface entries), fetched by (index, dir) —
+  // there are no per-side scratch buffers or rotation-order contracts
+  // on this object (WAVE_SPACETIME_PARITY_PLAN.md).
 };
 
 // Free function for the reference-count callback.
 void gkyl_gr_euler_tetrad_free(const struct gkyl_ref_count *ref);
 
 // ---------------------------------------------------------------------------
-// Helpers ported from wv_gr_euler_tetrad.c but driven by the spacetime-products
-// layout (see gkyl_moment_spacetime_products.h) instead of the packed 71-comp
-// state vector. The math is split into a flat-space SR step and a GR
-// correction, matching the packed tetrad factorization. Declared here so
-// unit tests can call them directly for equivalence comparison.
+// Helpers driven by the spacetime-products layout (see
+// gkyl_moment_spacetime_products.h). The math is split into a flat-space
+// SR step and a GR correction (the tetrad-first factorization). Declared
+// here so unit tests can call them directly.
 // ---------------------------------------------------------------------------
 
 // Recovery helpers. Each accepts an optional prim_status pointer for
@@ -139,6 +134,15 @@ GKYL_CU_D
 double
 gkyl_gr_euler_tetrad_max_abs_speed(struct gkyl_gr_euler_eos eos,
   const double q[5], const double *prods,
+  struct gkyl_gr_euler_prim_status *stat);
+
+// Per-direction cell-level eigenvalue bound. With face-local prods and
+// d = 0 this is the curved-Lax normal-direction penalization (adopted
+// 2026-06-10); with global prods it is the directionally-aware dt seed.
+GKYL_CU_D
+double
+gkyl_gr_euler_tetrad_max_abs_speed_dir(struct gkyl_gr_euler_eos eos,
+  const double q[5], const double *prods, int d,
   struct gkyl_gr_euler_prim_status *stat);
 
 // Run a pure SR (Minkowski) Roe wave decomposition in the tetrad frame.
@@ -243,40 +247,10 @@ gkyl_gr_euler_tetrad_sr_hllc_minkowski(struct gkyl_gr_euler_eos eos,
   struct gkyl_gr_euler_prim_status *stat,
   double waves_tet[3 * 5], double speeds[3]);
 
-// Invert a 3×3 symmetric matrix in place. Returns det(g); fills inv_g
-// with g^{-1}. Used at the interface to derive a *consistent* (inv_g,
-// sqrt(det)) pair from g_iface, avoiding the O((Δγ)²) wave-sum residual
-// that arises when these three are independently averaged from L/R cells.
-// See TETRAD_REFACTOR_PLAN.md Phase 0(b) Fix 2.
-static inline double
-gkyl_gr_euler_tetrad_invert_metric_3x3(const double g[3][3],
-  double inv_g[3][3])
-{
-  double det = g[0][0] * (g[1][1]*g[2][2] - g[1][2]*g[1][2])
-             - g[0][1] * (g[0][1]*g[2][2] - g[1][2]*g[0][2])
-             + g[0][2] * (g[0][1]*g[1][2] - g[1][1]*g[0][2]);
-  double inv_det = 1.0 / det;
-  inv_g[0][0] =  (g[1][1]*g[2][2] - g[1][2]*g[1][2]) * inv_det;
-  inv_g[0][1] = -(g[0][1]*g[2][2] - g[1][2]*g[0][2]) * inv_det;
-  inv_g[0][2] =  (g[0][1]*g[1][2] - g[1][1]*g[0][2]) * inv_det;
-  inv_g[1][0] = inv_g[0][1];
-  inv_g[1][1] =  (g[0][0]*g[2][2] - g[0][2]*g[0][2]) * inv_det;
-  inv_g[1][2] = -(g[0][0]*g[1][2] - g[0][1]*g[0][2]) * inv_det;
-  inv_g[2][0] = inv_g[0][2];
-  inv_g[2][1] = inv_g[1][2];
-  inv_g[2][2] =  (g[0][0]*g[1][1] - g[0][1]*g[0][1]) * inv_det;
-  return det;
-}
-
-// Build a Gram-Schmidt-on-γ⁻¹ triad: e_0 aligned with the contravariant
-// x-direction, e_1, e_2 orthogonalized in γ. M[i][a] = e_a^i, M_inv =
-// M^T·γ. Eliminates the v_tet^x ↔ v^y, v^z mixing seen with Cholesky
-// for non-diagonal γ — see SESSION_NOTES_2.md §12.
-GKYL_CU_D
-void
-gkyl_gr_euler_tetrad_build_triad_contravariant_x(
-  const double g_ij[3][3], const double inv_g[3][3],
-  double M[3][3], double M_inv[3][3]);
+// The per-interface geometry helpers (metric inversion, Gram-Schmidt
+// triad, face-local rotations) live in gkyl_wave_spacetime.h — they are
+// the cache builder's own operations; the equation's cache-less fallback
+// reproduces them per call.
 
 // Forward transform of Convention-A covariant momentum onto the
 // contravariant-x triad: S_tet^a = M_inv[a][i]·γ^{ij}·S_j/√γ. For a=0

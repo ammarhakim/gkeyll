@@ -141,7 +141,7 @@ struct gkyl_moment_field {
 
 // Spacetime component: parallel to gkyl_moment_field, but for the
 // Bona-Masso / analytic GR background that drives the modular GR fluids
-// (wv_gr_euler_mod, etc.). Exactly one of analytic_spacetime and
+// (wv_gr_euler_tetrad, etc.). Exactly one of analytic_spacetime and
 // einstein_eqn must be non-NULL.
 //
 //   analytic_spacetime: static background where the spacetime callbacks

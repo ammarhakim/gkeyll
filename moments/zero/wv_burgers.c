@@ -256,7 +256,7 @@ gkyl_wv_burgers_new(bool use_gpu)
 struct gkyl_wv_eqn*
 gkyl_wv_burgers_inew(const struct gkyl_wv_burgers_inp* inp)
 {
-  struct wv_burgers *burgers = gkyl_malloc(sizeof(struct wv_burgers));
+  struct wv_burgers *burgers = gkyl_calloc(1, sizeof(struct wv_burgers));
 
   burgers->eqn.type = GKYL_EQN_BURGERS;
   burgers->eqn.num_equations = 1;

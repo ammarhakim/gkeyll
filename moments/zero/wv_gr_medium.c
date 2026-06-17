@@ -336,7 +336,7 @@ gkyl_wv_gr_medium_new(double gas_gamma, double kappa, bool use_gpu)
 struct gkyl_wv_eqn*
 gkyl_wv_gr_medium_inew(const struct gkyl_wv_gr_medium_inp* inp)
 {
-  struct wv_gr_medium *gr_medium = gkyl_malloc(sizeof(struct wv_gr_medium));
+  struct wv_gr_medium *gr_medium = gkyl_calloc(1, sizeof(struct wv_gr_medium));
 
   gr_medium->eqn.type = GKYL_EQN_GR_MEDIUM;
   gr_medium->eqn.num_equations = 15;

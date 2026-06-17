@@ -1958,7 +1958,7 @@ gkyl_wv_gr_mhd_new(double gas_gamma, double light_speed, double b_fact, enum gky
 struct gkyl_wv_eqn*
 gkyl_wv_gr_mhd_inew(const struct gkyl_wv_gr_mhd_inp* inp)
 {
-  struct wv_gr_mhd *gr_mhd = gkyl_malloc(sizeof(struct wv_gr_mhd));
+  struct wv_gr_mhd *gr_mhd = gkyl_calloc(1, sizeof(struct wv_gr_mhd));
 
   gr_mhd->eqn.type = GKYL_EQN_GR_MHD;
   gr_mhd->eqn.num_equations = 75;

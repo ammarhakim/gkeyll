@@ -322,7 +322,7 @@ gkyl_wv_iso_euler_new(double vt, bool use_gpu)
 struct gkyl_wv_eqn*
 gkyl_wv_iso_euler_inew(const struct gkyl_wv_iso_euler_inp* inp)
 {
-  struct wv_iso_euler *iso_euler = gkyl_malloc(sizeof(struct wv_iso_euler));
+  struct wv_iso_euler *iso_euler = gkyl_calloc(1, sizeof(struct wv_iso_euler));
 
   iso_euler->eqn.type = GKYL_EQN_ISO_EULER;
   iso_euler->eqn.num_equations = 4;

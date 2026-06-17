@@ -2078,7 +2078,7 @@ gkyl_wv_gr_mhd_tetrad_new(double gas_gamma, double light_speed, double b_fact, e
 struct gkyl_wv_eqn*
 gkyl_wv_gr_mhd_tetrad_inew(const struct gkyl_wv_gr_mhd_tetrad_inp* inp)
 {
-  struct wv_gr_mhd_tetrad *gr_mhd_tetrad = gkyl_malloc(sizeof(struct wv_gr_mhd_tetrad));
+  struct wv_gr_mhd_tetrad *gr_mhd_tetrad = gkyl_calloc(1, sizeof(struct wv_gr_mhd_tetrad));
 
   gr_mhd_tetrad->eqn.type = GKYL_EQN_GR_MHD_TETRAD;
   gr_mhd_tetrad->eqn.num_equations = 75;

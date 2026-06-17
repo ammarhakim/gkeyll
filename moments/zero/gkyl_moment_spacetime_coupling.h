@@ -12,14 +12,12 @@
 #include <gkyl_wv_gr_euler_prim_priv.h>  // struct gkyl_gr_euler_eos
 
 // Per-fluid configuration for the spacetime-coupling updater. Only the
-// modular GR fluid types (GKYL_EQN_GR_EULER_MOD, GKYL_EQN_GR_EULER_TETRAD)
-// are valid here; other equation types are owned by moment_em_coupling.
+// modular GR fluid type (GKYL_EQN_GR_EULER_TETRAD) is valid here; other
+// equation types are owned by moment_em_coupling.
 struct gkyl_moment_spacetime_coupling_data {
-  enum gkyl_eqn_type type;     // Equation type (mod variant).
+  enum gkyl_eqn_type type;      // Equation type.
   struct gkyl_gr_euler_eos eos; // Equation of state (IDEAL or
-                                // APPROXIMATE_SYNGE). GKYL_EQN_GR_EULER_MOD
-                                // is always IDEAL; only the tetrad mod
-                                // variant currently supports APPROXIMATE_SYNGE.
+                                // APPROXIMATE_SYNGE).
 };
 
 // Input for moment_spacetime_coupling. Mirrors gkyl_moment_em_coupling_inp's
