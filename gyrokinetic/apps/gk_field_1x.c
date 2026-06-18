@@ -68,6 +68,13 @@ gk_field_em_rhs_none(gkyl_gyrokinetic_app *app, struct gk_field *field, const st
 }
 
 static void
+gk_field_fem_projection_par_none(gkyl_gyrokinetic_app *app, struct gk_field *field,
+  struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
+{
+  // Do nothing.
+}
+
+static void
 gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
@@ -173,6 +180,7 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
   if (f->is_em) {
     f->em_rhs_func = f->info.is_apar_static ? gk_field_em_rhs_none : gk_field_em_rhs_enabled;
     f->ampere_solve = gk_field_ampere_solve_1x_enabled;
+    f->fem_projection_par_apar_func = gk_field_fem_projection_par_none;
   } else {
     f->em_rhs_func = gk_field_em_rhs_none;
     f->ampere_solve = gk_field_ampere_solve_1x_none;
