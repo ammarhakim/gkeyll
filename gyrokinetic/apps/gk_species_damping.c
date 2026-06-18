@@ -58,17 +58,18 @@ gk_species_damping_write_rate_enabled(gkyl_gyrokinetic_app *app, struct gk_speci
   struct gkyl_msgpack_map_elem mpe_drate[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Rate of the damping term." },
   };
-  int mpe_drate_len = sizeof(mpe_drate) / sizeof(mpe_drate[0]);
-  // Update app basic metadata with time/frame.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
+
+  int mpe_drate_len = sizeof(mpe_drate)/sizeof(mpe_drate[0]);
+  // Update app basic metada with time/frame.
+  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
   // Package metadata.
-  int io_meta_len[] = { app->io_meta_basic_len, mpe_drate_len, app->gk_geom->io_meta_len };
-  const struct gkyl_msgpack_map_elem *io_meta[] = { app->io_meta_basic, mpe_drate,
-                                                    app->gk_geom->io_meta };
-  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len) / sizeof(int),
-    io_meta_len, io_meta);
+  int io_meta_len[] = {app->io_meta_grid_len, mpe_drate_len, app->gk_geom->io_meta_basic_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, mpe_drate, app->gk_geom->io_meta_basic};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out the damping rate.
   const char *fmt = "%s-%s_damping_rate_%d.gkyl";
