@@ -345,7 +345,6 @@ int main(int argc, char **argv)
       .num_cross_collisions = 1,
       .collide_with = { "elc" },
       .write_diagnostics = true,
-      .write_cross_diagnostics = true,
     },
 
     .write_omega_cfl = true,

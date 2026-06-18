@@ -127,6 +127,13 @@ gklbo_calc_cross_prim_moms(gkyl_gyrokinetic_app *app, const struct gk_species *g
     gks->info.mass, lbo->nu_moms, lbo->prim_moms,
     lbo->other_m[coll_idx], lbo->collide_with[coll_idx]->lbo.moms.marr, lbo->other_prim_moms[coll_idx],
     lbo->nu_boundary_corrections, lbo->cross_nu[coll_idx], lbo->nu_boundary_corrections);
+
+    struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
+
+    // Floor the cell-average of vtSq_{sr} to zero, setting the rest of the coefficients to zero as well
+    gkyl_array_set_offset_range(lbo->cross_vtsq, 1.0, cross_prim_moms, 1*app->basis.num_basis, &app->local);
+    gkyl_array_max_by_cell_per_cell_avg_range(lbo->cross_vtsq, lbo->cross_vtsq_floor, &app->local);
+    gkyl_array_set_offset_range(cross_prim_moms, 1.0, lbo->cross_vtsq, 1*app->basis.num_basis, &app->local);
 }
 
 static void
@@ -141,6 +148,8 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
 
     // Scale upar_{sr} and vtSq_{sr} by nu_{sr} and accumulate.
     struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
+
+    // Scale upar_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, cross_prim_moms);
@@ -239,7 +248,15 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
     } else {
       prim_moms_io = gks->lbo.prim_moms;
     }
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, desc_nu_prim, prim_moms_io, fileNm_prim);
+    struct gkyl_msgpack_map_elem desc_prim[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
+        .cval = "Self drift velocity and thermal speed squared, before cross-species contributions." }
+    };
+    int io_meta_prim_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta_prim[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_prim};
+    struct gkyl_msgpack_data *mt_prim = gkyl_msgpack_create_union(sizeof(io_meta_prim_len)/sizeof(int), io_meta_prim_len, io_meta_prim);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt_prim, prim_moms_io, fileNm_prim);
+    gkyl_msgpack_data_release(mt_prim);
     app->stat.n_diag_io += 1;
     for (int i=0; i<gks->lbo.num_cross_collisions; ++i) {
       const char *other_name = gks->lbo.collide_with[i]->info.name;
@@ -435,6 +452,12 @@ gk_species_lbo_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_species *g
 
       // Morse's alpha_E.
       lbo->alpha_E = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+
+      // Scratch space for flooring the vtSq component of the cross-prim moments.
+      lbo->cross_vtsq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      lbo->cross_vtsq_floor = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+      gkyl_array_clear(lbo->cross_vtsq_floor, 0.0); // Floor value of zero.
+
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
         // Cross-species collision frequency, nu_sr.
         lbo->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
@@ -571,6 +594,8 @@ gk_species_lbo_release(const struct gkyl_gyrokinetic_app *app, const struct gk_l
         gkyl_array_release(lbo->cross_nu[i]);
 
       gkyl_array_release(lbo->alpha_E);
+      gkyl_array_release(lbo->cross_vtsq);
+      gkyl_array_release(lbo->cross_vtsq_floor);
     }
 
     gkyl_dg_updater_lbo_gyrokinetic_release(lbo->coll_slvr);
