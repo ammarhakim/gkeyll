@@ -18,8 +18,15 @@ moment_spacetime_init(const struct gkyl_moment *mom,
   sp->ctx        = mom_st->ctx;
   sp->init       = mom_st->init;
 
-  sp->analytic_spacetime = mom_st->analytic_spacetime;
-  sp->einstein_eqn       = mom_st->einstein_eqn;
+  // Acquire our own reference on the backend object. The Lua wrapper that
+  // created it (or a C driver) holds the only other reference; without this
+  // acquire the object can be garbage-collected/released out from under the
+  // app while it is still in use (a use-after-free that surfaces once enough
+  // other allocations — e.g. a Maxwell field — trigger a GC sweep mid-init).
+  sp->analytic_spacetime = mom_st->analytic_spacetime
+    ? gkyl_gr_spacetime_acquire(mom_st->analytic_spacetime) : NULL;
+  sp->einstein_eqn       = mom_st->einstein_eqn
+    ? gkyl_wv_eqn_acquire(mom_st->einstein_eqn) : NULL;
   sp->has_einstein_eqn   = (mom_st->einstein_eqn != NULL);
   sp->spacetime_gauge    = mom_st->spacetime_gauge;
   sp->reinit_freq        = mom_st->reinit_freq;
@@ -227,7 +234,14 @@ moment_spacetime_release(const struct moment_spacetime *sp)
   if (sp->prods) gkyl_array_release(sp->prods);
   if (sp->wave_spacetime) gkyl_wave_spacetime_release(sp->wave_spacetime);
 
-  if (!sp->has_einstein_eqn) return;
+  // Release the reference acquired in moment_spacetime_init.
+  if (sp->analytic_spacetime) gkyl_gr_spacetime_release(sp->analytic_spacetime);
+
+  if (!sp->has_einstein_eqn) {
+    return;
+  }
+
+  if (sp->einstein_eqn) gkyl_wv_eqn_release(sp->einstein_eqn);
 
   for (int d = 0; d < sp->ndim; d++) {
     if (sp->lower_bc[d]) gkyl_wv_apply_bc_release(sp->lower_bc[d]);

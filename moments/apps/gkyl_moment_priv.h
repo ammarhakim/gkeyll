@@ -209,6 +209,7 @@ struct moment_field {
   double t_ramp_curr; // linear ramp for turning on applied currents
 
   bool use_explicit_em_coupling; // flag to indicate if em coupling should be explicit, defaults implicit
+  bool use_gr_em_coupling; // flag to indicate explicit (special-)relativistic multi-fluid + Maxwell coupling (modular GR-Euler fluids, SI units)
   struct gkyl_array *app_current1; // additional array for applied currents (for use_explicit_em_coupling stages)
   struct gkyl_array *app_current2; // additional array for applied currents (for use_explicit_em_coupling stages)
 

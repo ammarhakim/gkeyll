@@ -128,6 +128,8 @@ struct gkyl_moment_field {
 
   bool use_explicit_em_coupling; // flag to indicate if using explicit em-coupling
 
+  bool use_gr_em_coupling; // flag to indicate explicit (special-)relativistic multi-fluid + Maxwell coupling (modular GR-Euler fluids, SI units)
+
   bool has_volume_sources; // Run with volume-based geometrical sources.
   double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
   double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.

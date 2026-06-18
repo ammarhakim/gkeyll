@@ -138,8 +138,16 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
 
         if (app->update_sources) {
           struct timespec src2_tm = gkyl_wall_clock();
-          moment_coupling_update(app, &app->sources, 1, tcurr, dt/2);
+          struct gkyl_update_status s = moment_coupling_update(app, &app->sources,
+            1, tcurr, dt/2);
           app->stat.sources_tm += gkyl_time_diff_now_sec(src2_tm);
+          if (!s.success) {
+            app->stat.nfail += 1;
+            dt = s.dt_suggested;
+            state = UPDATE_REDO;
+            break;
+          }
+          dt_suggested = fmin(dt_suggested, s.dt_suggested);
         }
         if (app->update_mhd_source) {
           struct timespec src2_tm = gkyl_wall_clock();

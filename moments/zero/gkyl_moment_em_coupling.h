@@ -9,6 +9,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_gr_spacetime.h>
+#include <gkyl_wv_gr_euler_prim_priv.h>  // struct gkyl_gr_euler_eos
 
 struct gkyl_moment_em_coupling_data {
   enum gkyl_eqn_type type; // Equation type.
@@ -90,10 +91,24 @@ struct gkyl_moment_em_coupling_inp {
   
   bool has_gr_mhd_sources; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
   double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+
+  bool has_gr_em_coupling; // Run with explicit (special-)relativistic multi-fluid + Maxwell coupling (SI units, separate fluid/EM inputs).
+  struct gkyl_gr_euler_eos gr_em_eos[GKYL_MAX_SPECIES]; // Per-species EOS (IDEAL or APPROXIMATE_SYNGE/RCC) for relativistic-Euler primitive recovery in the GR-EM coupling.
 };
 
 // Moment-EM coupling object.
 typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
+
+// Status returned by the relativistic explicit GR-EM coupling advance. The
+// explicit SSP-RK3 source solve is conditionally stable: it must resolve the
+// (relativistic) plasma and cyclotron frequencies. When it cannot at the given
+// dt, success is false and dt_suggested gives a stable time-step for the app to
+// retry with.
+struct gkyl_moment_em_coupling_status {
+  bool success; // False if dt under-resolves the plasma/cyclotron frequency.
+  double dt_suggested; // Largest stable time-step over the update range.
+  double omega_max; // Maximum plasma/cyclotron frequency over the update range.
+};
 
 /**
 * Create a new moment-EM coupling object, used for integrating the electromagnetic source terms that appear in the multi-fluid equations.
@@ -155,6 +170,27 @@ gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, 
   struct gkyl_array* fluid[GKYL_MAX_SPECIES], const struct gkyl_array* app_accel[GKYL_MAX_SPECIES], const struct gkyl_array* p_rhs[GKYL_MAX_SPECIES],
   struct gkyl_array* em, const struct gkyl_array *app_current, const struct gkyl_array* app_current1, const struct gkyl_array* app_current2,
   const struct gkyl_array* ext_em, const struct gkyl_array* nT_sources[GKYL_MAX_SPECIES], gkyl_fv_proj* proj_app_curr, int nstrang);
+
+/**
+* Integrate the (special-)relativistic multi-fluid + Maxwell coupling source terms using an explicit SSP-RK3 forcing solver, in SI units and with
+* the fluid species, geometry, and Maxwell field supplied as SEPARATE inputs (no packed state vector). Each fluid is a modular relativistic-Euler
+* state [D, S_x, S_y, S_z, tau]; the field is the standard 8-component Maxwell vector [E_x, E_y, E_z, B_x, B_y, B_z, phi, psi] (E and B are used
+* directly, with no vacuum constitutive relation). The geometry is assumed to be Minkowski (flat) in this first version. The solver is conditionally
+* stable and reports, via the returned status, whether the supplied dt resolves the relativistic plasma and cyclotron frequencies, along with a
+* stable dt_suggested for the app to retry with on failure.
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param update_range Range object over which to integrate the coupling sources.
+* @param fluid Array of fluid variables (array size = nfluids).
+* @param em Array of electromagnetic variables.
+* @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
+* @return Status indicating whether the explicit step resolved the plasma/cyclotron frequencies, with a suggested stable time-step.
+*/
+struct gkyl_moment_em_coupling_status
+gkyl_moment_em_coupling_gr_em_explicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
+  struct gkyl_array* fluid[GKYL_MAX_SPECIES], struct gkyl_array* em, const struct gkyl_array* ext_em);
 
 /**
 * Delete moment-EM coupling object.
