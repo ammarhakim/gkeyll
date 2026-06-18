@@ -546,6 +546,12 @@ int main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = temp_elc_src,  
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+      }
     },
 
     .bcs = {
@@ -606,6 +612,12 @@ int main(int argc, char **argv)
         .ctx_temp = &ctx,
         .temp = temp_ion_src,  
       }, 
+      .diagnostics = {
+        .num_diag_moments = 1,
+        .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+        .num_integrated_diag_moments = 1,
+        .integrated_diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
+      }
     },
 
     .bcs = {
