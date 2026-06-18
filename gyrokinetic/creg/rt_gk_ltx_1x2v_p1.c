@@ -128,6 +128,16 @@ double integrand(double t, void *int_ctx)
   struct gk_app_ctx *app = inctx->app_ctx;
   return Jr(r,t,app) / pow(R_rtheta(r,t,app),2);
 }
+
+double Bphi(double R, void *ctx)
+{
+  // Toroidal magnetic field.
+  struct gk_app_ctx *app = ctx;
+  double B0 = app->B0;
+  double R0 = app->R0;
+  return B0*R0/R;
+}
+
 double dPsidr(double r, double theta, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
@@ -140,8 +150,10 @@ double dPsidr(double r, double theta, void *ctx)
   double a_mid = app->a_mid;
   double qSep = app->qSep;
   double sSep = app->sSep;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return ( B0*R_axis/(2.*M_PI*qprofile(r,a_mid,qSep,sSep)) )*integral.res;
+  return ( Bt*R/(2.*M_PI*qprofile(r,a_mid,qSep,sSep)) )*integral.res;
 }
 
 double alpha(double r, double theta, double phi, void *ctx)
@@ -160,20 +172,12 @@ double alpha(double r, double theta, double phi, void *ctx)
     integral.res = -integral.res;
   }
 
-  double B0 = app->B0;
-  double R_axis = app->R_axis;
+  double R = R_rtheta(r,theta,ctx);
+  double Bt = Bphi(R,ctx);
 
-  return phi - B0*R_axis*integral.res/dPsidr(r,theta,ctx);
+  return phi - Bt*R*integral.res/dPsidr(r,theta,ctx);
 }
 
-double Bphi(double R, void *ctx)
-{
-  // Toroidal magnetic field.
-  struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
-  double R0 = app->R0;
-  return B0*R0/R;
-}
 double gradr(double r, double theta, void *ctx)
 {
   return (R_rtheta(r,theta,ctx)/Jr(r,theta,ctx))*sqrt(pow(dRdtheta(r,theta,ctx),2) + pow(dZdtheta(r,theta,ctx),2));
@@ -309,7 +313,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = kappa*r*sin(z);
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = q0/r0*y - alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -406,9 +410,9 @@ create_ctx(void)
   double Ti_src = 40*eV;
 
   // Grid parameters
-  int Nz = 64;
-  int Nvpar = 16;
-  int Nmu = 45;
+  int Nz = 16;
+  int Nvpar = 12;
+  int Nmu = 8;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
