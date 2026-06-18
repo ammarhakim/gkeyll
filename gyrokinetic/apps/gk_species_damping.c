@@ -108,12 +108,12 @@ gk_species_damping_write_fbar_cellwise_const(gkyl_gyrokinetic_app *app, struct g
   int io_meta_fbar_len[] = {
     app->io_meta_basic_len,
     (int)(sizeof(mpe_fbar_p0) / sizeof(mpe_fbar_p0[0])),
-    app->gk_geom->io_meta_len
+    app->gk_geom->io_meta_basic_len
   };
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
     app->io_meta_basic,
     mpe_fbar_p0,
-    app->gk_geom->io_meta
+    app->gk_geom->io_meta_basic
   };
   struct gkyl_msgpack_data *mt_fbar = gkyl_msgpack_create_union(
     sizeof(io_meta_fbar_len) / sizeof(int), io_meta_fbar_len, io_meta_fbar);
@@ -144,13 +144,13 @@ gk_species_damping_write_fbar_same_basis(gkyl_gyrokinetic_app *app, struct gk_sp
 
   int io_meta_fbar_len[] = {
     app->io_meta_basic_len,
-    gks->io_meta_len,
-    app->gk_geom->io_meta_len
+    gks->io_meta_grid_len,
+    app->gk_geom->io_meta_basic_len
   };
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
     app->io_meta_basic,
-    gks->io_meta,
-    app->gk_geom->io_meta
+    gks->io_meta_grid,
+    app->gk_geom->io_meta_basic
   };
   struct gkyl_msgpack_data *mt_fbar = gkyl_msgpack_create_union(
     sizeof(io_meta_fbar_len) / sizeof(int), io_meta_fbar_len, io_meta_fbar);
