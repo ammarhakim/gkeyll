@@ -82,4 +82,7 @@ struct gkyl_moment_em_coupling {
   
   bool has_gr_mhd_sources; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
   double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+
+  bool has_gr_em_coupling; // Run with explicit (special-)relativistic multi-fluid + Maxwell coupling (SI units, separate fluid/EM inputs).
+  struct gkyl_gr_euler_eos gr_em_eos[GKYL_MAX_SPECIES]; // Per-species EOS (IDEAL or APPROXIMATE_SYNGE/RCC) for relativistic-Euler primitive recovery in the GR-EM coupling.
 };

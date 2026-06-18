@@ -4,6 +4,12 @@
 // Forward-declaration of the private gkyl_moment_em_coupling object type.
 typedef struct gkyl_moment_em_coupling gkyl_moment_em_coupling;
 
+// Maximum allowed product omega_max * dt for the explicit SSP-RK3 relativistic
+// GR-EM coupling solver. SSP-RK3 is linearly stable on the imaginary axis out
+// to |lambda|*dt = sqrt(3) ~ 1.732; we hold a margin below that so the
+// oscillatory plasma/cyclotron modes stay inside the stability region.
+#define GR_EM_EXPLICIT_OMEGA_DT_MAX (1.5)
+
 /**
 * Integrate the number density and temperature source terms for a single fluid species within a single cell, using an explicit forcing solver
 * (specifically a simple first-order forward-Euler method).
@@ -510,3 +516,20 @@ void
 explicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, double* fluid_s[GKYL_MAX_SPECIES],
   const double* app_accel_s[GKYL_MAX_SPECIES], double* em, const double* app_current, const double* app_current1, const double* app_current2,
   const double* ext_em, int nstrang);
+
+/**
+* Integrate all (special-)relativistic multi-fluid + Maxwell coupling source terms within a single cell, using an explicit SSP-RK3 forcing solver, in
+* SI units and with the fluid species and Maxwell field supplied as separate inputs (Minkowski geometry). Each fluid is a modular relativistic-Euler
+* state [D, S_x, S_y, S_z, tau]; the field is the standard 8-component Maxwell vector.
+*
+* @param mom_em Moment-EM coupling object.
+* @param t_curr Current simulation time.
+* @param dt Current stable time-step.
+* @param fluid_s Array of fluid variables (array size = nfluids).
+* @param em Array of electromagnetic variables.
+* @param ext_em External electromagnetic variables (may be NULL).
+* @return Maximum plasma/cyclotron frequency over the species in this cell (for stability control).
+*/
+double
+explicit_gr_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt,
+  double* fluid_s[GKYL_MAX_SPECIES], double* em, const double* ext_em);

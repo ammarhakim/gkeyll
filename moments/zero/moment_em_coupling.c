@@ -1,3 +1,5 @@
+#include <float.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_fv_proj.h>
@@ -135,6 +137,13 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
     mom_em->gr_mhd_gas_gamma = inp.gr_mhd_gas_gamma;
   }
 
+  mom_em->has_gr_em_coupling = inp.has_gr_em_coupling;
+  if (mom_em->has_gr_em_coupling) {
+    for (int i = 0; i < mom_em->nfluids; i++) {
+      mom_em->gr_em_eos[i] = inp.gr_em_eos[i];
+    }
+  }
+
   return mom_em;
 }
 
@@ -206,6 +215,46 @@ gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling* mom_em, 
         ext_em_arr, nstrang);
     }
   }
+}
+
+struct gkyl_moment_em_coupling_status
+gkyl_moment_em_coupling_gr_em_explicit_advance(const gkyl_moment_em_coupling* mom_em, double t_curr, double dt, const struct gkyl_range* update_range,
+  struct gkyl_array* fluid[GKYL_MAX_SPECIES], struct gkyl_array* em, const struct gkyl_array* ext_em)
+{
+  int nfluids = mom_em->nfluids;
+  double *fluid_s[GKYL_MAX_SPECIES];
+
+  double omega_max = 0.0;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, update_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long cell_idx = gkyl_range_idx(update_range, iter.idx);
+
+    for (int i = 0; i < nfluids; i++) {
+      fluid_s[i] = gkyl_array_fetch(fluid[i], cell_idx);
+    }
+
+    double *em_arr = gkyl_array_fetch(em, cell_idx);
+    const double *ext_em_arr = ext_em ? gkyl_array_cfetch(ext_em, cell_idx) : 0;
+
+    double cell_omega = explicit_gr_em_source_update(mom_em, t_curr, dt, fluid_s, em_arr, ext_em_arr);
+    if (cell_omega > omega_max) {
+      omega_max = cell_omega;
+    }
+  }
+
+  // The explicit SSP-RK3 solve is conditionally stable; report whether dt
+  // resolved the plasma/cyclotron frequencies and a stable dt for retry.
+  // On failure the app discards this (mutated) sub-step from its backup copy
+  // and retries the whole step with dt_suggested.
+  struct gkyl_moment_em_coupling_status status;
+  status.omega_max = omega_max;
+  status.success = (omega_max * dt) <= GR_EM_EXPLICIT_OMEGA_DT_MAX;
+  status.dt_suggested = (omega_max > 0.0) ? (GR_EM_EXPLICIT_OMEGA_DT_MAX / omega_max) : DBL_MAX;
+
+  return status;
 }
 
 void

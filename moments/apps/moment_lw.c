@@ -5020,6 +5020,7 @@ moment_field_lw_new(lua_State *L)
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   mom_field.is_static = !evolve; 
   mom_field.use_explicit_em_coupling = glua_tbl_get_bool(L, "useExplicitEmCoupling", false);
+  mom_field.use_gr_em_coupling = glua_tbl_get_bool(L, "useGRExplicitEmCoupling", false);
 
   int init_ref = LUA_NOREF;
   if (glua_tbl_get_func(L, "init")) {

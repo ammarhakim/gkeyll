@@ -3,6 +3,7 @@
 #include <gkyl_fv_proj.h>
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_moment_em_coupling_priv.h>
+#include <gkyl_wv_gr_euler_prim_priv.h>
 #include <gkyl_mat.h>
 
 void
@@ -3418,4 +3419,187 @@ explicit_source_coupling_update(const gkyl_moment_em_coupling* mom_em, double t_
   else if (nstrang == 1) {
     explicit_higuera_cary_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, ext_em);
   }
+}
+
+// ---------------------------------------------------------------------------
+// Explicit (special-)relativistic multi-fluid + Maxwell coupling (SI units).
+//
+// The fluid species, geometry, and Maxwell field are supplied as SEPARATE
+// inputs (no packed state vector). Each fluid is a modular relativistic-Euler
+// state f = [D, S_x, S_y, S_z, tau]; the field is the standard 8-component
+// Maxwell vector em = [E_x, E_y, E_z, B_x, B_y, B_z, phi, psi] with E and B
+// used directly (no vacuum constitutive relation). Geometry is Minkowski
+// (flat) in this version, so the densitization factor sqrt(gamma) = 1 and
+// index raising/lowering is the identity.
+//
+// Source terms (Q = (m_i, tau_s, eps0 E) per species s; SI, no 4*pi):
+//   dS_i/dt      = (q/m) D (E + v x B)_i
+//   dtau/dt      = (q/m) D (v . E)
+//   d(eps0 E)/dt = -sum_s (q/m) D v_s,   with B, phi, psi unsourced
+// where D = rho W is the relativistic (lab-frame) mass density and v is the
+// contravariant 3-velocity from primitive recovery. The phi (electric
+// divergence-cleaning) source vanishes when the field's elcErrorSpeedFactor
+// is zero, which is the regime targeted here; it is left unsourced for now.
+// ---------------------------------------------------------------------------
+
+#define GR_EM_NUM_EQN 5 // Modular relativistic-Euler hydro state: [D, S_x, S_y, S_z, tau].
+
+// Recover the flat-space primitives of one relativistic-Euler fluid cell and
+// from them the lab-frame current density J = (q/m) D v and the squared
+// plasma+cyclotron frequency the explicit solver must resolve. The relativistic
+// plasma and cyclotron frequencies are (see header derivation):
+//   omega_p^2 = (q/m)^2 rho / (eps0 h),   omega_c = |q/m| |B| / (h W),
+// both of which fall out of the recovered (rho, h, W).
+static void
+gr_em_recover_flat(struct gkyl_gr_euler_eos eos, double q_over_m, double eps0, const double f[GR_EM_NUM_EQN],
+  const double B[3], double v_out[3], double J_out[3], double *omega_sq_out)
+{
+  static const double inv_g[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
+
+  double D = f[0]; // Flat space: sqrt(gamma) = 1, so D = rho W directly.
+
+  struct gkyl_gr_euler_prim prim;
+  gkyl_gr_euler_recover_primitives(eos, D, f[1], f[2], f[3], f[4], inv_g, NULL, &prim);
+
+  v_out[0] = prim.v[0]; v_out[1] = prim.v[1]; v_out[2] = prim.v[2];
+
+  J_out[0] = q_over_m * D * prim.v[0];
+  J_out[1] = q_over_m * D * prim.v[1];
+  J_out[2] = q_over_m * D * prim.v[2];
+
+  double rho = prim.rho, h = prim.h, W = prim.W;
+  double B_mag = sqrt((B[0] * B[0]) + (B[1] * B[1]) + (B[2] * B[2]));
+  double omega_p_sq = (q_over_m * q_over_m) * rho / (eps0 * h);
+  double omega_c = fabs(q_over_m) * B_mag / (h * W);
+
+  *omega_sq_out = omega_p_sq + (omega_c * omega_c);
+}
+
+// One forward-Euler stage of the coupled fluid + field system. Reads the stage
+// states (fluid_old_s, em_old) and writes the Euler-advanced states
+// (fluid_new_s, em_new). The maximum plasma/cyclotron frequency over the
+// species (evaluated at the stage state) is reported in *omega_max.
+static void
+explicit_gr_em_forward_euler(const gkyl_moment_em_coupling* mom_em, const double dt,
+  double* fluid_old_s[GKYL_MAX_SPECIES], const double em_old[8],
+  double* fluid_new_s[GKYL_MAX_SPECIES], double em_new[8], const double* ext_em, double *omega_max)
+{
+  int nfluids = mom_em->nfluids;
+  double eps0 = mom_em->epsilon0;
+
+  double Ex = em_old[0] + (ext_em ? ext_em[0] : 0.0);
+  double Ey = em_old[1] + (ext_em ? ext_em[1] : 0.0);
+  double Ez = em_old[2] + (ext_em ? ext_em[2] : 0.0);
+  double Bx = em_old[3] + (ext_em ? ext_em[3] : 0.0);
+  double By = em_old[4] + (ext_em ? ext_em[4] : 0.0);
+  double Bz = em_old[5] + (ext_em ? ext_em[5] : 0.0);
+  double B[3] = { Bx, By, Bz };
+
+  double J_tot[3] = { 0.0, 0.0, 0.0 };
+  *omega_max = 0.0;
+
+  for (int s = 0; s < nfluids; s++) {
+    double q_over_m = mom_em->param[s].charge / mom_em->param[s].mass;
+    // Per-species EOS carried on the coupling object (IDEAL or APPROXIMATE_SYNGE/
+    // RCC). Recovery and the enthalpy h used for the plasma/cyclotron frequency
+    // estimate then honor the same closure the wave step uses.
+    struct gkyl_gr_euler_eos eos = mom_em->gr_em_eos[s];
+
+    double *f_old = fluid_old_s[s];
+    double *f_new = fluid_new_s[s];
+
+    double v[3], J[3], omega_sq;
+    gr_em_recover_flat(eos, q_over_m, eps0, f_old, B, v, J, &omega_sq);
+
+    double qmD = q_over_m * f_old[0];
+
+    for (int j = 0; j < GR_EM_NUM_EQN; j++) {
+      f_new[j] = f_old[j];
+    }
+    // D (f[0]) is unsourced; Lorentz force on momentum, power on energy.
+    f_new[1] = f_old[1] + (dt * qmD * (Ex + ((v[1] * Bz) - (v[2] * By))));
+    f_new[2] = f_old[2] + (dt * qmD * (Ey + ((v[2] * Bx) - (v[0] * Bz))));
+    f_new[3] = f_old[3] + (dt * qmD * (Ez + ((v[0] * By) - (v[1] * Bx))));
+    f_new[4] = f_old[4] + (dt * qmD * ((v[0] * Ex) + (v[1] * Ey) + (v[2] * Ez)));
+
+    J_tot[0] += J[0]; J_tot[1] += J[1]; J_tot[2] += J[2];
+
+    double omega = sqrt(omega_sq);
+    if (omega > *omega_max) {
+      *omega_max = omega;
+    }
+  }
+
+  for (int i = 0; i < 8; i++) {
+    em_new[i] = em_old[i];
+  }
+  // SI Ampere law: d(eps0 E)/dt = -J  =>  dE/dt = -(1/eps0) J. B, phi, psi unsourced.
+  em_new[0] = em_old[0] - (dt * (J_tot[0] / eps0));
+  em_new[1] = em_old[1] - (dt * (J_tot[1] / eps0));
+  em_new[2] = em_old[2] - (dt * (J_tot[2] / eps0));
+}
+
+double
+explicit_gr_em_source_update(const gkyl_moment_em_coupling* mom_em, double t_curr, const double dt,
+  double* fluid_s[GKYL_MAX_SPECIES], double* em, const double* ext_em)
+{
+  (void) t_curr; // Source math is time-independent.
+  int nfluids = mom_em->nfluids;
+
+  // SSP-RK3 over the coupled fluid + field system. The field is carried
+  // alongside the fluids through every stage because the two are mutually
+  // coupled within a stage (the field current depends on the fluid velocities,
+  // and the fluid Lorentz force depends on the field).
+  double f_old[GKYL_MAX_SPECIES][GR_EM_NUM_EQN];
+  double f_stage1[GKYL_MAX_SPECIES][GR_EM_NUM_EQN];
+  double f_stage2[GKYL_MAX_SPECIES][GR_EM_NUM_EQN];
+  double f_new[GKYL_MAX_SPECIES][GR_EM_NUM_EQN];
+  double *p_old[GKYL_MAX_SPECIES], *p_stage1[GKYL_MAX_SPECIES], *p_stage2[GKYL_MAX_SPECIES], *p_new[GKYL_MAX_SPECIES];
+
+  for (int s = 0; s < nfluids; s++) {
+    for (int j = 0; j < GR_EM_NUM_EQN; j++) {
+      f_old[s][j] = fluid_s[s][j];
+    }
+    p_old[s] = f_old[s];
+    p_stage1[s] = f_stage1[s];
+    p_stage2[s] = f_stage2[s];
+    p_new[s] = f_new[s];
+  }
+
+  double em_old[8], em_stage1[8], em_stage2[8], em_new[8];
+  for (int i = 0; i < 8; i++) {
+    em_old[i] = em[i];
+  }
+
+  double omega_max = 0.0, omega_stage = 0.0;
+
+  // Stage 1: u1 = u^n + dt L(u^n).
+  explicit_gr_em_forward_euler(mom_em, dt, p_old, em_old, p_stage1, em_stage1, ext_em, &omega_stage);
+  omega_max = fmax(omega_max, omega_stage);
+
+  // Stage 2: u2 = (3/4) u^n + (1/4) (u1 + dt L(u1)).
+  explicit_gr_em_forward_euler(mom_em, dt, p_stage1, em_stage1, p_new, em_new, ext_em, &omega_stage);
+  omega_max = fmax(omega_max, omega_stage);
+  for (int s = 0; s < nfluids; s++) {
+    for (int j = 0; j < GR_EM_NUM_EQN; j++) {
+      f_stage2[s][j] = (0.75 * f_old[s][j]) + (0.25 * f_new[s][j]);
+    }
+  }
+  for (int i = 0; i < 8; i++) {
+    em_stage2[i] = (0.75 * em_old[i]) + (0.25 * em_new[i]);
+  }
+
+  // Stage 3: u^{n+1} = (1/3) u^n + (2/3) (u2 + dt L(u2)).
+  explicit_gr_em_forward_euler(mom_em, dt, p_stage2, em_stage2, p_new, em_new, ext_em, &omega_stage);
+  omega_max = fmax(omega_max, omega_stage);
+  for (int s = 0; s < nfluids; s++) {
+    for (int j = 0; j < GR_EM_NUM_EQN; j++) {
+      fluid_s[s][j] = ((1.0 / 3.0) * f_old[s][j]) + ((2.0 / 3.0) * f_new[s][j]);
+    }
+  }
+  for (int i = 0; i < 8; i++) {
+    em[i] = ((1.0 / 3.0) * em_old[i]) + ((2.0 / 3.0) * em_new[i]);
+  }
+
+  return omega_max;
 }

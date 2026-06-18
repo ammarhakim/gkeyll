@@ -201,6 +201,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   }
 
   fld->use_explicit_em_coupling = mom_fld->use_explicit_em_coupling;
+  fld->use_gr_em_coupling = mom_fld->use_gr_em_coupling;
 
   fld->embed_mask = mkarr(false, 1, app->local_ext.volume);
   gkyl_array_clear(fld->embed_mask, 1.0);

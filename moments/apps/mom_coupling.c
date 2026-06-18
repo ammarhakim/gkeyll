@@ -186,6 +186,21 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     }
   }
 
+  // Explicit (special-)relativistic multi-fluid + Maxwell coupling on modular
+  // GR-Euler fluids. The per-species adiabatic index comes from the EOS bundle
+  // carried on the tetrad equation object (the same closure the wave step uses).
+  src_inp.has_gr_em_coupling = app->field.use_gr_em_coupling;
+  if (src_inp.has_gr_em_coupling) {
+    for (int i = 0; i < app->num_species; i++) {
+      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
+        src_inp.gr_em_eos[i] = gkyl_wv_gr_euler_tetrad_eos(app->species[i].equation);
+      }
+      else {
+        src_inp.gr_em_eos[i] = gkyl_gr_euler_eos_ideal(0.0);
+      }
+    }
+  }
+
   // save the use-rel bool
   src_inp.use_rel = use_rel;
 
@@ -446,7 +461,24 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     nT_sources[i] = app->species[i].nT_source;
     app->species[i].nT_source_is_set = true;
   }
-  if (app->field.use_explicit_em_coupling) {
+  if (app->field.use_gr_em_coupling) {
+    // Explicit SSP-RK3 relativistic multi-fluid + Maxwell coupling on modular
+    // GR-Euler fluids (SI units). Conditionally stable: on under-resolution of
+    // the plasma/cyclotron frequency it reports failure and a stable dt for the
+    // app's UPDATE_REDO to retry with. The mutated sub-step is discarded from
+    // the backup copy on redo.
+    struct gkyl_moment_em_coupling_status gr_em_status =
+      gkyl_moment_em_coupling_gr_em_explicit_advance(src->slvr, tcurr, dt, &app->local,
+        fluids, app->field.f[sidx[nstrang]], app->field.ext_em);
+    if (!gr_em_status.success) {
+      return (struct gkyl_update_status) {
+        .success = false,
+        .dt_suggested = gr_em_status.dt_suggested
+      };
+    }
+    dt_suggested = fmin(dt_suggested, gr_em_status.dt_suggested);
+  }
+  else if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const,
       app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
