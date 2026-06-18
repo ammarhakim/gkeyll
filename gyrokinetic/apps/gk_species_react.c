@@ -304,9 +304,9 @@ gks_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, struc
     struct timespec wtm = gkyl_wall_clock();
 
     // Package metadata.
-    gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-    gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
-    int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+    gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+    gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+    int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
     struct gkyl_msgpack_data *mt;
 
     if (app->use_gpu)
@@ -323,7 +323,7 @@ gks_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, struc
       struct gkyl_msgpack_map_elem desc[] = {
         { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Ionization reaction rate." }
       };
-      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc};
       mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,  gkr->coeff_react_host[ridx], fileNm);
@@ -339,7 +339,7 @@ gks_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, struc
       struct gkyl_msgpack_map_elem desc[] = {
         { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Recombination reaction rate." }
       };
-      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc};
       mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,  gkr->coeff_react_host[ridx], fileNm);
@@ -355,7 +355,7 @@ gks_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, struc
       struct gkyl_msgpack_map_elem desc[] = {
         { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Charge exchange reaction rate." }
       };
-      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc};
       mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gkr->coeff_react_host[ridx], fileNm);

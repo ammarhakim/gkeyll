@@ -323,14 +323,14 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   gks->write_cfl_func(app, gks, tm, frame);
 
   // Metadata from app and geo object.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Distribution function times Jacobians." }
   };
   int io_meta_f_len = sizeof(io_meta_f)/sizeof(io_meta_f[0]);
-  int io_meta_len[] = {app->io_meta_grid_len, gks->io_meta_grid_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, gks->io_meta_grid, app->gk_geom->io_meta_basic, io_meta_f};
+  int io_meta_len[] = {app->io_meta_dg_len, gks->io_meta_grid_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, gks->io_meta_grid, app->gk_geom->io_meta_basic, io_meta_f};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   const char *fmt = "%s-%s_%d.gkyl";
@@ -370,11 +370,11 @@ gk_species_write_cfl_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
   };
   int mpe_cfl_len = sizeof(mpe_cfl)/sizeof(mpe_cfl[0]);
   // Update app basic metada with time/frame.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
   // Unionize metadata.
-  int io_meta_len[] = {app->io_meta_grid_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, mpe_cfl, app->gk_geom->io_meta_basic};
+  int io_meta_len[] = {app->io_meta_dg_len, mpe_cfl_len, app->gk_geom->io_meta_basic_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, mpe_cfl, app->gk_geom->io_meta_basic};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   const char *fmt = "%s-%s_cflrate_%d.gkyl";
@@ -401,8 +401,8 @@ static void
 gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   // Update time/frame metadata (shared fields, set once before the loop).
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
 
   for (int m=0; m<gks->info.num_diag_moments; ++m) {
     struct timespec wtm = gkyl_wall_clock();
@@ -422,8 +422,8 @@ gk_species_write_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, 
       { .key = "Description", .elem_type = GKYL_MP_STRING,
         .cval = (char*)gkyl_distribution_moments_descriptions[gks->info.diag_moments[m]] }
     };
-    int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, io_meta_mom};
+    int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, io_meta_mom};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-%s_%s_%d.gkyl";

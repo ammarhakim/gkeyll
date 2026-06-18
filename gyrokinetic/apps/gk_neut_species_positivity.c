@@ -31,14 +31,14 @@ gkns_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *
   struct gk_positivity *pos, double tm, int frame)
 {
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "M0M1M2 moments of the change in the distribution by the positivity shift." }
   };
-  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   struct timespec wst = gkyl_wall_clock();

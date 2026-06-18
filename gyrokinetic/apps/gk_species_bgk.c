@@ -164,13 +164,13 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
 {
   struct timespec wtm = gkyl_wall_clock();
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies." }
   };
-  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out nu_sum.

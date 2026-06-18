@@ -1501,8 +1501,8 @@ struct gkyl_gyrokinetic_app {
 
   struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
-  struct gkyl_msgpack_map_elem* io_meta_grid; // Metadata for I/O of grid quantities.
-  int io_meta_grid_len; // Number of elements in io_meta_grid.
+  struct gkyl_msgpack_map_elem* io_meta_dg; // Metadata for I/O of grid quantities.
+  int io_meta_dg_len; // Number of elements in io_meta_grid.
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.

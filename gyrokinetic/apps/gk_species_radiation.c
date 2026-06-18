@@ -97,34 +97,34 @@ gks_rad_write_drag_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
   struct timespec wtm = gkyl_wall_clock();
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
   struct gkyl_msgpack_map_elem desc_nvnu_surf[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "vpar surface drag coefficient." }
   };
-  int io_meta_surfvpar_len[] = {app->io_meta_grid_len, rad->io_meta_surfvpar_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_surfvpar[] = {app->io_meta_grid, rad->io_meta_surfvpar, app->gk_geom->io_meta_basic, desc_nvnu_surf};
+  int io_meta_surfvpar_len[] = {app->io_meta_dg_len, rad->io_meta_surfvpar_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_surfvpar[] = {app->io_meta_dg, rad->io_meta_surfvpar, app->gk_geom->io_meta_basic, desc_nvnu_surf};
   struct gkyl_msgpack_data *mt_surfvpar = gkyl_msgpack_create_union(sizeof(io_meta_surfvpar_len)/sizeof(int), io_meta_surfvpar_len, io_meta_surfvpar);
 
   struct gkyl_msgpack_map_elem desc_nvnu[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "vpar volume drag coefficient." }
   };
-  int io_meta_nvnu_len[] = {app->io_meta_grid_len, gks->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_nvnu[] = {app->io_meta_grid, gks->io_meta_grid, app->gk_geom->io_meta_basic, desc_nvnu};
+  int io_meta_nvnu_len[] = {app->io_meta_dg_len, gks->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nvnu[] = {app->io_meta_dg, gks->io_meta_grid, app->gk_geom->io_meta_basic, desc_nvnu};
   struct gkyl_msgpack_data *mt_nvnu = gkyl_msgpack_create_union(sizeof(io_meta_nvnu_len)/sizeof(int), io_meta_nvnu_len, io_meta_nvnu);
 
   struct gkyl_msgpack_map_elem desc_nvsqnu_surf[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "mu surface drag coefficient." }
   };
-  int io_meta_surfmu_len[] = {app->io_meta_grid_len, rad->io_meta_surfmu_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_surfmu[] = {app->io_meta_grid, rad->io_meta_surfmu, app->gk_geom->io_meta_basic, desc_nvsqnu_surf};
+  int io_meta_surfmu_len[] = {app->io_meta_dg_len, rad->io_meta_surfmu_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_surfmu[] = {app->io_meta_dg, rad->io_meta_surfmu, app->gk_geom->io_meta_basic, desc_nvsqnu_surf};
   struct gkyl_msgpack_data *mt_surfmu = gkyl_msgpack_create_union(sizeof(io_meta_surfmu_len)/sizeof(int), io_meta_surfmu_len, io_meta_surfmu);
 
   struct gkyl_msgpack_map_elem desc_nvsqnu[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "mu volume drag coefficient." }
   };
-  int io_meta_nvsqnu_len[] = {app->io_meta_grid_len, gks->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_nvsqnu[] = {app->io_meta_grid, gks->io_meta_grid, app->gk_geom->io_meta_basic, desc_nvsqnu};
+  int io_meta_nvsqnu_len[] = {app->io_meta_dg_len, gks->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nvsqnu[] = {app->io_meta_dg, gks->io_meta_grid, app->gk_geom->io_meta_basic, desc_nvsqnu};
   struct gkyl_msgpack_data *mt_nvsqnu = gkyl_msgpack_create_union(sizeof(io_meta_nvsqnu_len)/sizeof(int), io_meta_nvsqnu_len, io_meta_nvsqnu);
 
   // Construct the file handles for vparallel and mu drag
@@ -228,13 +228,13 @@ static void
 gks_rad_write_emissivity_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
   struct gkyl_msgpack_map_elem desc_emissivity[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emissivity density." }
   };
-  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_emissivity};
+  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_emissivity};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   struct timespec wst = gkyl_wall_clock();
