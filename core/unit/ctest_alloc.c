@@ -43,7 +43,7 @@ test_aligned_realloc()
 void test_mem_buff(bool use_gpu)
 {
   // Create a new memory buffer.
-  const int nelem = 7;
+  int nelem = 7;
   gkyl_mem_buff mbuff = use_gpu? gkyl_mem_buff_cu_new(nelem * sizeof(double))
                                : gkyl_mem_buff_new(nelem * sizeof(double));
 
@@ -78,7 +78,7 @@ void test_mem_buff(bool use_gpu)
     gkyl_free(mbuff_p2_ho);
 
   // Resize.
-  const int nelem_new = nelem*3;
+  int nelem_new = nelem*3;
   mbuff = gkyl_mem_buff_resize(mbuff, nelem_new * sizeof(double));
 
   // Assign new values.

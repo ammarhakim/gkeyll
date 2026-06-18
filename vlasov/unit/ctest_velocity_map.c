@@ -57,9 +57,9 @@ test_vmap_1x2v_p1(bool use_gpu)
   int poly_order = 1;
   double lower[] = {-M_PI, -1.0, 0.0}, upper[] = {M_PI, 1.0, 1.0};
   int cells[] = {2, 12, 6};
-  const int vdim = 2;
-  const int pdim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = pdim - vdim;
+  int vdim = 2;
+  int pdim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = pdim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
