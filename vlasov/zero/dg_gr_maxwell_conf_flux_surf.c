@@ -28,6 +28,8 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
   up->conf_grid = *inp->conf_grid;
   up->gr_maxwell_data.chi = inp->chi;
   up->gr_maxwell_data.gamma = inp->gamma;
+  up->gr_maxwell_data.K_phi = 0.0;
+  up->gr_maxwell_data.K_psi = 0.0;
   up->use_lax = inp->use_lax;
    
   switch (inp->conf_basis->b_type) {

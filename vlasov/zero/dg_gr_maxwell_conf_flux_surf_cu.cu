@@ -229,6 +229,8 @@ gkyl_dg_gr_maxwell_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_co
   up->cdim = cdim;
   up->gr_maxwell_data.chi = inp->chi;
   up->gr_maxwell_data.gamma = inp->gamma;
+  up->gr_maxwell_data.K_phi = 0.0;
+  up->gr_maxwell_data.K_psi = 0.0;
   up->use_gpu = true;
   up->use_lax = inp->use_lax;
 

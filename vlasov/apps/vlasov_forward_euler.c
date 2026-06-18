@@ -130,6 +130,11 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
         app->stat.current_tm += gkyl_time_diff_now_sec(wst);
       }
 
+      // accumulate geometric source terms
+      if (app->field->use_geom_sources) {
+        vm_field_accumulate_geom_sources(app, emin, app->vm_geom, emout);
+      }
+
       // complete update of field (even when field is static, it is
       // safest to do this accumulate as it ensure emout = emin)
       gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);

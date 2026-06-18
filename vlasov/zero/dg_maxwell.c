@@ -117,6 +117,8 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
   maxwell->gr_maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
   maxwell->gr_maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
+  maxwell->gr_maxwell_data.K_phi = 0.0;
+  maxwell->gr_maxwell_data.K_psi = 0.0;
 
   // For volume kernel selection
   if ( maxwell->use_conf_flux_surf ) {

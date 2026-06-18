@@ -1482,8 +1482,11 @@ vlasov_field_lw_new(lua_State *L)
   vm_field.mu0 = glua_tbl_get_number(L, "mu0", 1.0);
   vm_field.elcErrorSpeedFactor = glua_tbl_get_number(L, "elcErrorSpeedFactor", 0.0);
   vm_field.mgnErrorSpeedFactor = glua_tbl_get_number(L, "mgnErrorSpeedFactor", 0.0);
+  vm_field.K_phi = glua_tbl_get_number(L, "K_phi", 0.0);
+  vm_field.K_psi = glua_tbl_get_number(L, "K_psi", 0.0);
   vm_field.limit_em = glua_tbl_get_bool(L, "limitField", false);
   vm_field.use_ghost_current = glua_tbl_get_bool(L, "useGhostCurrent", false);
+  vm_field.use_geom_sources = glua_tbl_get_bool(L, "useGeomSources", true);
 
   bool evolve = glua_tbl_get_bool(L, "evolve", true);
   vm_field.is_static = !evolve;

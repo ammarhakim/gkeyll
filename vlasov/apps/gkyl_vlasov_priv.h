@@ -36,6 +36,7 @@
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
 #include <gkyl_dg_gr_maxwell_divide_Jc.h>
 #include <gkyl_dg_gr_maxwell_geom.h>
+#include <gkyl_dg_gr_maxwell_geom_source.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_euler.h>
 #include <gkyl_dg_gaussian_filter.h>
@@ -440,6 +441,7 @@ struct vm_geom {
   bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells
   struct gkyl_surf_and_vol_node_arrays *lapse; // lapse scalar (ADM \alpha)
   struct gkyl_surf_and_vol_node_arrays *shift; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *geom_factor_con; // contravariant geometric source factors
   struct gkyl_surf_and_vol_node_arrays *h_ij; // Spatial metric, covaraint components, h_ij
   struct gkyl_surf_and_vol_node_arrays *h_ij_inv; // Spatial metric, contravariant components, h^ij
   struct gkyl_surf_and_vol_node_arrays *det_h; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
@@ -447,6 +449,7 @@ struct vm_geom {
   // Geometry copy for initalization (for GPU only)
   struct gkyl_surf_and_vol_node_arrays *lapse_init; // lapse scalar (ADM \alpha)
   struct gkyl_surf_and_vol_node_arrays *shift_init; // shift vector - contravaraint radial component (ADM \beta^r)
+  struct gkyl_surf_and_vol_node_arrays *geom_factor_con_init; // contravariant geometric source factors
   struct gkyl_surf_and_vol_node_arrays *h_ij_init; // Spatial metric, covaraint components, h_ij
   struct gkyl_surf_and_vol_node_arrays *h_ij_inv_init; // Spatial metric, contravariant components, h^ij
   struct gkyl_surf_and_vol_node_arrays *det_h_init; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
@@ -656,6 +659,10 @@ struct vm_field {
       bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x
       struct gkyl_array *ghost_current; // Array for storying global average of current density
       double *red_ghost_current; // memory for use in GPU reduction of average of current density
+
+      bool use_geom_sources; // flag to indicate there is a geometric source term in Maxwell's equations
+      struct gkyl_array *geom_source; // geometric source contribution to EM RHS
+      struct gkyl_dg_gr_maxwell_geom_source *calc_geom_source; // updater for geometric source contribution
 
       // boundary conditions on lower/upper edges in each direction  
       enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
@@ -1811,6 +1818,17 @@ void vm_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double 
  */
 void vm_field_accumulate_current(gkyl_vlasov_app *app, 
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], struct gkyl_array *emout);
+
+/**
+ * Divergence cleaning RHS from field equations
+ *
+ * @param app Vlasov app object
+ * @param emin Input fields
+ * @param vm_geom Input geometry structure
+ * @param emout On output, the RHS from the field solver *with* accumulated current density
+ */
+void vm_field_accumulate_geom_sources(gkyl_vlasov_app *app, 
+  const struct gkyl_array *emin, const struct vm_geom *vm_geom, struct gkyl_array *emout);
 
 /**
  * Limit slopes of solution of EM variables

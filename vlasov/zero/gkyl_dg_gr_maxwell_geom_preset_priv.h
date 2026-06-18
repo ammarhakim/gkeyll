@@ -54,6 +54,15 @@ eval_flat_h_ij_inv(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
 }
 
 void
+eval_geom_factor_flat(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  // no contributions in cartesian coordinates
+  fout[0] = 0.0;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+}
+
+void
 eval_flat_det_h(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   
@@ -107,6 +116,19 @@ eval_annulus_h_ij_inv(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 }
 
 void
+eval_geom_factor_annulus(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  
+  // Only radial contributions
+  double r = xn[0];
+
+  // no contributions in cartesian coordinates
+  fout[0] = 1.0/r;
+  fout[1] = 0.0;
+  fout[2] = 0.0;
+}
+
+void
 eval_annulus_det_h(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   
@@ -145,7 +167,7 @@ void
 eval_spherical_h_ij_inv_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   
-  // theta = pi/2
+  // Coordrinates are r, theta which the problem depends on
   double r = xn[0];
   double theta = xn[1];
 
@@ -163,10 +185,24 @@ eval_spherical_h_ij_inv_rtheta(double t, const double* GKYL_RESTRICT xn, double*
 }
 
 void
+eval_geom_factor_sph_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  
+  // Only radial contributions
+  double r = xn[0];
+  double theta = xn[1];
+
+  // no contributions in cartesian coordinates
+  fout[0] = 2.0/r;
+  fout[1] = cos(theta)/(r*r*sin(theta));
+  fout[2] = 0.0;
+}
+
+void
 eval_spherical_det_h_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   
-  // determinant is simply r^2 sin(theta)
+  // determinant is simply r*r sin(theta)
   double r = xn[0];
   double theta = xn[1];
 
@@ -316,6 +352,24 @@ eval_ks_h_ij_inv_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRI
   fout[5] = -(- h_rt*h_rt + h_rr*h_tt)/(Jc_sq); // h_pp_inv
 }
 
+void
+eval_geom_factor_ks_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+
+  // Grab the geometry
+  const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
+  double a = geom->spin_bh;
+  double M = geom->mass_bh;
+  
+  // theta = pi/2
+  double r = xn[0];
+
+  fout[0] = (-2.0*M*M*a*a - M*a*a*r + 5.0*M*r*r*r + 2.0*r*r*r*r)/((r*r + 2.0*M*r)*(r*r + 2.0*M*r)*r);
+  fout[1] = 0.0;
+  fout[2] = -(M*a)/((r*r + 2.0*M*r)*r*r);
+}
+
+
 
 void
 eval_ks_h_ij_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
@@ -376,6 +430,29 @@ eval_ks_h_ij_inv_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_R
   fout[5] = -(- h_rt*h_rt + h_rr*h_tt)/(Jc_sq); // h_pp_inv
 }
 
+
+
+void
+eval_geom_factor_ks_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+
+  // Grab the geometry
+  const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
+  double a = geom->spin_bh;
+  double M = geom->mass_bh;
+  
+  double r = xn[0];
+  double theta = xn[1];
+
+  // Some simplfiying terms to make the algebra more readable
+  double rho_sq = r*r + a*a*cos(theta)*cos(theta);
+  double rho_sq_M  = rho_sq + 2*M*r;
+  double term1 = rho_sq*(r*r + a*a) + 2*M*a*a*r*sin(theta)*sin(theta);
+
+  fout[0] = (4*a*a*r + 4*r*r*r + 2*M*a*a*sin(theta)*sin(theta) - 2*a*a*r*sin(theta)*sin(theta))/(rho_sq_M*rho_sq) - (term1*((M + r)/rho_sq_M + r/rho_sq))/(rho_sq_M*rho_sq);
+  fout[1] = (cos(theta)*(rho_sq_M*rho_sq + 2*M*a*a*r*sin(theta)*sin(theta)))/(rho_sq_M*rho_sq*rho_sq*sin(theta));
+  fout[2] = (M*a*(a*a*cos(theta)*cos(theta) - r*r))/(rho_sq_M*rho_sq*rho_sq);
+}
 
 void
 eval_ks_det_h_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
@@ -460,6 +537,37 @@ choose_shift_kern(enum gkyl_triad_preset_geom_type type)
       return eval_ks_shift_rtheta;
       break;
       
+    default:
+      assert(false);
+  }
+}
+
+static evalf_t
+choose_geom_factor_con_kern(enum gkyl_triad_preset_geom_type type)
+{
+  switch(type) {
+    case GKYL_TRIAD_FLAT:
+      return eval_geom_factor_flat;
+      break;
+
+    case GKYL_TRIAD_ANNULUS:
+      return eval_geom_factor_annulus;
+      break;
+
+    case GKYL_TRIAD_SPHERICAL_RTHETA:
+      return eval_geom_factor_sph_rtheta;
+      break;
+
+    case GKYL_TRIAD_GR_KERR_SCHILD_RPHI:
+    case GKYL_TRIAD_GR_KERR_SCHILD_R:
+      return eval_geom_factor_ks_r;
+      break;
+
+    case GKYL_TRIAD_GR_KERR_SCHILD_RTHETA:
+    case GKYL_TRIAD_GR_KERR_SCHILD_3V:
+      return eval_geom_factor_ks_rtheta;
+      break;
+
     default:
       assert(false);
   }

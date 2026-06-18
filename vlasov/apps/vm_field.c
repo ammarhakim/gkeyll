@@ -175,6 +175,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // equation object
   double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
+  double K_phi = f->info.K_phi, K_psi = f->info.K_psi;
 
   struct gkyl_dg_eqn *eqn;
 
@@ -271,6 +272,29 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     if (app->use_gpu) {
       f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
     } 
+  }
+
+  f->use_geom_sources = false;
+  f->geom_source = 0;
+  f->calc_geom_source = 0;
+
+  // Geometric sources are only active for GR_D_B fields. For that model,
+  // use the input flag, which defaults to true in Lua.
+  bool use_geom_sources = f->field_id == GKYL_FIELD_GR_D_B && f->info.use_geom_sources;
+  if (use_geom_sources) {
+    f->use_geom_sources = true; 
+    f->geom_source = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_dg_gr_maxwell_geom_source_inp inp_geom_source = {
+      .conf_basis = &app->basis,
+      .conf_grid = &app->grid,
+      .field_id = f->field_id,
+      .chi = c*ef,
+      .gamma = c*mf,
+      .K_phi = K_phi,
+      .K_psi = K_psi,
+      .use_gpu = app->use_gpu,
+    };
+    f->calc_geom_source = gkyl_dg_gr_maxwell_geom_source_inew(&inp_geom_source);
   }
 
   // allocate buffer for applying BCs 
@@ -442,6 +466,21 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &app->local);
   }
 }
+
+void 
+vm_field_accumulate_geom_sources(gkyl_vlasov_app *app, 
+  const struct gkyl_array *emin, const struct vm_geom *vm_geom, struct gkyl_array *emout)
+{
+  // Accumulate the geometric source terms onto the fields .
+  // Accumulate *only* if there is geometry sources to accumulate.
+  if (app->field->use_geom_sources) {
+    gkyl_array_clear(app->field->geom_source, 0.0);
+    gkyl_dg_gr_maxwell_geom_source_advance(app->field->calc_geom_source, &app->local,
+      vm_geom->geom_factor_con, emin, app->field->geom_source);
+    gkyl_array_accumulate_range(emout, 1.0, app->field->geom_source, &app->local);
+  }
+}
+
 
 void
 vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
@@ -722,6 +761,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
     gkyl_array_release(f->em_no_J_host);
     gkyl_dg_gr_maxwell_conf_flux_surf_release(f->calc_conf_flux);
     gkyl_array_release(f->conf_flux_surf);
+    if (f->use_geom_sources) {
+      gkyl_dg_gr_maxwell_geom_source_release(f->calc_geom_source);
+      gkyl_array_release(f->geom_source);
+    }
   }
   gkyl_array_release(f->em_host);
   gkyl_array_release(f->em_dup);
