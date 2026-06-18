@@ -94,7 +94,7 @@ static void
 gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
-  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+  gkyl_msgpack_map_elem_release(ns->io_meta_grid_len, ns->io_meta_grid);
 
   gkyl_array_release(ns->f);
   gkyl_array_release(ns->f1);
@@ -254,11 +254,13 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   // Metadata for gk_neut_species app.
   struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = ns->basis.id }
   };
-  ns->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  ns->io_meta = gkyl_msgpack_map_elem_clone(ns->io_meta_len, io_meta);
+  ns->io_meta_grid_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  ns->io_meta_grid = gkyl_msgpack_map_elem_clone(ns->io_meta_grid_len, io_meta);
 
   // Allocate distribution function array for initialization and I/O.
   ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);

@@ -825,8 +825,9 @@ struct gk_source {
   struct gk_species_moment integ_moms; // Integrated moments.
   double *red_integ_diag, *red_integ_diag_global; // For reduction of integrated moments.
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid.
-  gkyl_dynvec temp_diag, part_diag; // Src temperature and particle count diags.
   bool is_first_integ_write_call; // Flag for integrated moments dynvec written first time.
+  gkyl_dynvec temp_diag, part_diag; // Src temperature and particle count diags.
+  bool is_first_integ_write_call_adapt; // Flag for integrated moments dynvec written first time.
   struct gk_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptation source.
   int num_adapt_sources; // Number of adaptive sources.
   // Functions chosen at runtime.
@@ -1022,8 +1023,8 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_grid; // Metadata for I/O of grid quantities.
+  int io_meta_grid_len; // Number of elements in io_meta_grid.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
@@ -1174,8 +1175,8 @@ struct gk_neut_species {
   struct gkyl_comm *comm;   // Communicator object for this species.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
 
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_grid; // Metadata for I/O of grid quantities.
+  int io_meta_grid_len; // Number of elements in io_meta_grid.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *f_host; // Host array for initialization and I/O.
@@ -1503,11 +1504,13 @@ struct gkyl_gyrokinetic_app {
 
   struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_grid; // Metadata for I/O of grid quantities.
+  int io_meta_grid_len; // Number of elements in io_meta_grid.
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
+  
+  bool is_multib; // Is this a block in a multiblock sim?
 };
 
 /** gkyl_gyrokinetic_app private API */
