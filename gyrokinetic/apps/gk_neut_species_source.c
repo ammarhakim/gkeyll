@@ -76,13 +76,13 @@ gk_neut_species_source_write(gkyl_gyrokinetic_app* app, struct gk_neut_species *
     struct timespec wtm = gkyl_wall_clock();
 
     // Package metadata.
-    gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
-    gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+    gkyl_msgpack_map_elem_set_double(gkns->io_meta_phase_len, gkns->io_meta_phase, "time", tm);
+    gkyl_msgpack_map_elem_set_uint(gkns->io_meta_phase_len, gkns->io_meta_phase, "frame", frame);
     struct gkyl_msgpack_map_elem desc_src[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Neutral species source." }
     };
-    int io_meta_len[] = {app->io_meta_dg_len, gkns->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, gkns->io_meta_grid, app->gk_geom->io_meta_basic, desc_src};
+    int io_meta_len[] = {gkns->io_meta_phase_len, gkns->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {gkns->io_meta_phase, gkns->io_meta_phase, app->gk_geom->io_meta_basic, desc_src};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     // Write out the source distribution function
@@ -109,13 +109,13 @@ gk_neut_species_source_write_mom(gkyl_gyrokinetic_app* app, struct gk_neut_speci
   if (gkns->src.source_id && (gkns->src.evolve || frame == 0)) {
 
     // Package metadata.
-    gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
-    gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+    gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
+    gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
     struct gkyl_msgpack_map_elem desc_src_mom[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Velocity-space moment of the neutral species source." }
     };
-    int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_src_mom};
+    int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc_src_mom};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     for (int m=0; m<gkns->info.num_diag_moments; ++m) {
@@ -197,8 +197,8 @@ gk_neut_species_source_write_integrated_mom(gkyl_gyrokinetic_app* app, struct gk
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
           { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of the neutral source." }
         };
-        int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-        const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        int io_meta_len[] = {gkns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem* io_meta[] = {gkns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
         struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
   
         gkyl_dynvec_write_wmeta(gkns->src.integ_diag, fileNm, mt);

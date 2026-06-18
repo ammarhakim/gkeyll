@@ -93,8 +93,8 @@ gk_neut_species_lte_kinetic_write_max_corr_status(gkyl_gyrokinetic_app* app, str
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
           { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Statistics on Maxwellian correction." }
         };
-        int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-        const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        int io_meta_len[] = {gk_ns->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem* io_meta[] = {gk_ns->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
         struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
         gkyl_dynvec_write_wmeta(gk_ns->lte.corr_stat, fileNm, mt);

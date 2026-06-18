@@ -196,8 +196,8 @@ gk_species_source_bgk_write_diags_heating_enabled(gkyl_gyrokinetic_app* app, str
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
         { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Squared thermal speed amplitude." }
       };
-      int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
       struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
       gkyl_dynvec_write_wmeta(src->vtsq_amp_diag, fileNm, mt);
@@ -219,14 +219,14 @@ gk_species_source_bgk_write_diags_external_enabled(gkyl_gyrokinetic_app* app, st
   struct gk_source_bgk *src, double tm, int frame)
 {
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc_bgk_moms[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "BGK source particle (M0), momentum (M1) or kinetic energy (M2) source/sink rate." }
   };
-  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_bgk_moms};
+  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_bgk_moms};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   if (app->use_gpu) {
@@ -330,8 +330,8 @@ gk_species_source_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
         { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moment of the BGK source." }
       };
-      int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
       struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
       gkyl_dynvec_write_wmeta(src->integ_diag, fileNm, mt);
@@ -351,20 +351,20 @@ gk_species_source_bgk_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
 static void
 gk_species_source_bgk_write_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_source_bgk *src, int frame, double stime, char* file_suffix, char* description,
-  struct gkyl_rect_grid grid, struct gkyl_range local,
+  struct gkyl_msgpack_map_elem *iom, int iom_len, struct gkyl_rect_grid grid, struct gkyl_range local,
   struct gkyl_array *arrout)
 {
   // Write out a conf-space or a phase-space array.
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", stime);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(iom_len, iom, "time", stime);
+  gkyl_msgpack_map_elem_set_uint(iom_len, iom, "frame", frame);
   struct gkyl_msgpack_map_elem io_meta_f[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description},
   };
   int io_meta_f_len = sizeof(io_meta_f)/sizeof(io_meta_f[0]);
-  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, io_meta_f};
+  int io_meta_len[] = {iom_len, app->gk_geom->io_meta_basic_len, io_meta_f_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {iom, app->gk_geom->io_meta_basic, io_meta_f};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Construct the file handles for collision frequency and primitive moments.
@@ -487,9 +487,9 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         src->update_integrated_diags_func = gk_species_source_bgk_update_integrated_diags_disabled;
         src->update_integrated_diags_rhs_func = gk_species_source_bgk_update_integrated_diags_enabled;
         gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate.", 
-          app->grid, app->local, src->rate);
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->rate);
         gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_feq", "BGK source equilibrium function.", 
-          gks->grid, gks->local, src->Jrate_df);
+          gks->io_meta_phase, gks->io_meta_phase_len, gks->grid, gks->local, src->Jrate_df);
       }
 
       // Multiply feq by the rate to get Jrate_df = nu*feq.
@@ -547,9 +547,9 @@ gk_species_source_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *
         src->vtsq_amp_diag = gkyl_dynvec_new(GKYL_DOUBLE, 1);
         // Write out the source_bgk rate and vtsq shape.
         gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_rate", "BGK source relaxation rate.", 
-          app->grid, app->local, src->rate);
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->rate);
         gk_species_source_bgk_write_array(app, gks, src, 0, 0.0, "source_bgk_temp_shape", "BGK source temperature shape.", 
-          app->grid, app->local, src->vtsq_shape);
+          gks->io_meta_conf, gks->io_meta_conf_len, app->grid, app->local, src->vtsq_shape);
       }
 
       // Methods chosen at runtime.

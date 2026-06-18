@@ -74,13 +74,13 @@ gk_species_collisionless_write_diags_enabled(gkyl_gyrokinetic_app* app, struct g
   struct timespec wst = gkyl_wall_clock();
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Collisionless flux at cell surface." }
   };
-  int io_meta_len[] = {app->io_meta_dg_len, gks->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, gks->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+  int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_phase, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write gkcls->flux_surf

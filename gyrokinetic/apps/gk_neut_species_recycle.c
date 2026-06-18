@@ -9,9 +9,9 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   // Output boundary flux from ions and neutral ghost cells
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
-  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  gkyl_msgpack_map_elem_set_double(s->io_meta_conf_len, s->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(s->io_meta_conf_len, s->io_meta_conf, "frame", frame);
+  int io_meta_len[] = {s->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
 
   const char *vars[] = {"x","y","z"};
   const char *edge[] = {"lower","upper"};
@@ -42,7 +42,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
     struct gkyl_msgpack_map_elem desc0[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Impacting boundary particle flux." }
     };
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc0};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {s->io_meta_conf, app->gk_geom->io_meta_basic, desc0};
     struct gkyl_msgpack_data *mt0 = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";
@@ -76,7 +76,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   struct gkyl_msgpack_map_elem desc1[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Emitted boundary particle flux." }
   };
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {s->io_meta_conf, app->gk_geom->io_meta_basic, desc1};
   struct gkyl_msgpack_data *mt1 = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   const char *fmt = "%s-%s_recycling_%s%s_%s_flux_%d.gkyl";

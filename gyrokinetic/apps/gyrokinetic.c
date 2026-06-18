@@ -473,16 +473,16 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   }
 
   // Metadata for grid quantities (including metadata optional from user).
-  struct gkyl_msgpack_map_elem io_meta_grid[] = {
+  struct gkyl_msgpack_map_elem io_meta_dg[] = {
     { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
     { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id }
   };
-  const struct gkyl_msgpack_map_elem *io_meta_grid_union[] = {app->io_meta_basic, io_meta_grid};
-  int io_meta_grid_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_grid)/sizeof(io_meta_grid[0])};
-  app->io_meta_dg = gkyl_msgpack_map_elem_union(sizeof(io_meta_grid_union)/sizeof(io_meta_grid_union[0]),
-    io_meta_grid_union_len, io_meta_grid_union, &app->io_meta_dg_len);
+  const struct gkyl_msgpack_map_elem *io_meta_dg_union[] = {app->io_meta_basic, io_meta_dg};
+  int io_meta_dg_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_dg)/sizeof(io_meta_dg[0])};
+  app->io_meta_dg = gkyl_msgpack_map_elem_union(sizeof(io_meta_dg_union)/sizeof(io_meta_dg_union[0]),
+    io_meta_dg_union_len, io_meta_dg_union, &app->io_meta_dg_len);
 
   // Allocate 1/(J.B) using weak mul/div.
   struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

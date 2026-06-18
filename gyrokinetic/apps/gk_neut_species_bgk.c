@@ -76,14 +76,13 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns,
 {
   struct timespec wtm = gkyl_wall_clock();
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
-    { .key = "Description", .elem_type = GKYL_MP_STRING,
-      .cval = "Total collision frequency summed over all species for the BGK neutral collision operator. For additional detail, documentation can be found at https://gkeyll.readthedocs.io/en/latest/" }
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies for BGK collisions." }
   };
-  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc};
+  int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out nu_sum.
