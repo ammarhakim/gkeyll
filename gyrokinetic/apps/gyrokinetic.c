@@ -1617,6 +1617,26 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
 //
 // ............. Field outputs ............... //
 // 
+static void write_field_with_metadata(struct gkyl_gyrokinetic_app *app, int frame, const char *field_suffix, 
+  const char *description, struct gkyl_array *field_host) 
+{
+    struct gkyl_msgpack_map_elem custom_meta[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description }
+    };
+    int io_meta_len[] = { app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1 };
+    const struct gkyl_msgpack_map_elem* io_meta[] = { app->io_meta_grid, app->gk_geom->io_meta_basic, custom_meta };
+    
+    struct gkyl_msgpack_data *mt_data = gkyl_msgpack_create_union(
+        sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta
+    );
+    const char *fmt = "%s-%s_%d.gkyl";
+    int sz = gkyl_calc_strlen(fmt, app->name, field_suffix, frame);
+    char fileNm[sz + 1];
+    snprintf(fileNm, sizeof(fileNm), fmt, app->name, field_suffix, frame);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt_data, field_host, fileNm);
+    gkyl_msgpack_data_release(mt_data);
+}
+
 void
 gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame)
 {
@@ -1627,9 +1647,13 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
       gkyl_array_copy(app->field->phi_host, app->field->phi_smooth);
     }
 
-    // Package metadata.
+    // Update metadata for the fields being written out.
     gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
     gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+
+    write_field_with_metadata(app, frame, "field","Electrostatic potential.", app->field->phi_host);
+
+    // Package metadata.
     struct gkyl_msgpack_map_elem io_meta_phi[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic potential." }
     };
@@ -1643,6 +1667,7 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     snprintf(fileNm, sizeof fileNm, fmt, app->name, frame);
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->phi_host, fileNm);
+    gkyl_msgpack_data_release(mt);
 
     if (app->field->is_em) {
       // Solve ampere to output it and compare with stepped apar.
@@ -1658,29 +1683,19 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
         gkyl_array_copy(app->field->apardot_host, app->field->apardot);
         gkyl_array_copy(app->field->amperesol_host, app->field->amperesol);
       }
-      const char *fmt_apar = "%s-apar_%d.gkyl";
-      int sz_apar = gkyl_calc_strlen(fmt_apar, app->name, frame);
-      char fileNm_apar[sz_apar+1]; // ensures no buffer overflow
-      snprintf(fileNm_apar, sizeof fileNm_apar, fmt_apar, app->name, frame);
 
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apar_host, fileNm_apar);
+      write_field_with_metadata(app, frame, "apar", 
+        "Stepped parallel component of the magnetic vector potential.", 
+        app->field->apar_host);
 
-      const char *fmt_apardot = "%s-apardot_%d.gkyl";
-      int sz_apardot = gkyl_calc_strlen(fmt_apardot, app->name, frame);
-      char fileNm_apardot[sz_apardot+1]; // ensures no buffer overflow
-      snprintf(fileNm_apardot, sizeof fileNm_apardot, fmt_apardot, app->name, frame);
+      write_field_with_metadata(app, frame, "apardot", 
+        "Time derivative of the parallel component of the magnetic vector potential obtained with Ohm's law.", 
+        app->field->apardot_host);
 
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->apardot_host, fileNm_apardot);
-
-      const char *fmt_amperesol = "%s-amperesol_%d.gkyl";
-      int sz_amperesol = gkyl_calc_strlen(fmt_amperesol, app->name, frame);
-      char fileNm_amperesol[sz_amperesol+1]; // ensures no buffer overflow
-      snprintf(fileNm_amperesol, sizeof fileNm_amperesol, fmt_amperesol, app->name, frame);
-
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field->amperesol_host, fileNm_amperesol);
-    }
-
-    gkyl_msgpack_data_release(mt);
+      write_field_with_metadata(app, frame, "amperesol", 
+        "Solution of the Ampere's law.", 
+        app->field->amperesol_host);
+      }
 
     app->stat.field_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_field_io += 1;
