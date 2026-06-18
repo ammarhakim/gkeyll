@@ -54,9 +54,11 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     snprintf(region_keys[2*r  ], sizeof(region_keys[0]), "positivity_shift_region_%d_lower", r);
     snprintf(region_keys[2*r+1], sizeof(region_keys[0]), "positivity_shift_region_%d_upper", r);
     mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem) {
-      .key = region_keys[2*r  ], .elem_type = GKYL_MP_DOUBLE, .dval = shift_regions->lower[r] };
+      .key = region_keys[2*r  ], .elem_type = GKYL_MP_DOUBLE, .dval = shift_regions->lower[r],
+    };
     mpe_pos[mpe_pos_len++] = (struct gkyl_msgpack_map_elem) {
-      .key = region_keys[2*r+1], .elem_type = GKYL_MP_DOUBLE, .dval = shift_regions->upper[r] };
+      .key = region_keys[2*r+1], .elem_type = GKYL_MP_DOUBLE, .dval = shift_regions->upper[r],
+    };
   }
 
   // Package metadata. Use app->io_meta_grid (the conf-space basis these moments
