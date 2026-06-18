@@ -8,7 +8,7 @@
 #include <stdio.h>
 
 // returns out
-static inline struct gkyl_mat* S(struct gkyl_mat *Q, const gkyl_moment_em_coupling *mom_em,
+static inline void S(struct gkyl_mat *Q, const gkyl_moment_em_coupling *mom_em,
                      double *fluid_s[GKYL_MAX_SPECIES], double *em, int Q_len, struct gkyl_mat *out) {
   double Ex = em[0];
   double Ey = em[1];
@@ -24,10 +24,10 @@ static inline struct gkyl_mat* S(struct gkyl_mat *Q, const gkyl_moment_em_coupli
 
     // Conserved Quantities
     double rho = fluid_s[s][0];
-    double momx = gkyl_mat_get(Q, s, 0);
-    double momy = gkyl_mat_get(Q, s + 1, 0);
-    double momz = gkyl_mat_get(Q, s + 2, 0);
-    double tau = gkyl_mat_get(Q, s + 3, 0);
+    double momx = gkyl_mat_get(Q, s_i, 0);
+    double momy = gkyl_mat_get(Q, s_i + 1, 0);
+    double momz = gkyl_mat_get(Q, s_i + 2, 0);
+    double tau = gkyl_mat_get(Q, s_i + 3, 0);
     double p = 0;
 
     double omega_ps_sq = (q_s * q_s * rho) / (mass_s * mom_em->epsilon0);
@@ -46,11 +46,9 @@ static inline struct gkyl_mat* S(struct gkyl_mat *Q, const gkyl_moment_em_coupli
   gkyl_mat_set(out, Q_len - 3, 0, epsilon0 * Ex);
   gkyl_mat_set(out, Q_len - 2, 0, epsilon0 * Ey);
   gkyl_mat_set(out, Q_len - 1, 0, epsilon0 * Ez);
-
-  return out;
 }
 
-static inline struct gkyl_mat* get_prim(struct gkyl_mat *Q, double *fluid_s[GKYL_MAX_SPECIES], const gkyl_moment_em_coupling *mom_em, struct gkyl_mat *P_out) {
+static inline void get_prim(struct gkyl_mat *Q, double *fluid_s[GKYL_MAX_SPECIES], const gkyl_moment_em_coupling *mom_em, struct gkyl_mat *P_out) {
   int nfluids = mom_em->nfluids;
   for (int s = 0; s < nfluids; s++) {
     double rho = fluid_s[s][0];
@@ -68,20 +66,19 @@ static inline struct gkyl_mat* get_prim(struct gkyl_mat *Q, double *fluid_s[GKYL
     gkyl_mat_set(P_out, 4 * s, 0, ux);
     gkyl_mat_set(P_out, 4 * s+1, 0, uy);
     gkyl_mat_set(P_out, 4 * s+2, 0, uz);
-    gkyl_mat_set(P_out, 5 * s+3, 0, (rho * w * h) - rho - tau);
+    gkyl_mat_set(P_out, 4 * s+3, 0, (rho * w * h) - rho - tau);
   }
 
-  double epEx = gkyl_mat_get(Q, 4 * nfluids + 1, 0);
-  double epEy = gkyl_mat_get(Q, 4 * nfluids + 2, 0);
-  double epEz = gkyl_mat_get(Q, 4 * nfluids + 3, 0);
+  double epEx = gkyl_mat_get(Q, 4 * nfluids, 0);
+  double epEy = gkyl_mat_get(Q, 4 * nfluids + 1, 0);
+  double epEz = gkyl_mat_get(Q, 4 * nfluids + 2, 0);
 
-  gkyl_mat_set(P_out, 4 * nfluids + 1, 0, epEx / mom_em->epsilon0); 
-  gkyl_mat_set(P_out, 4 * nfluids + 2, 0, epEy / mom_em->epsilon0); 
-  gkyl_mat_set(P_out, 4 * nfluids + 3, 0, epEz / mom_em->epsilon0); 
-  return P_out;
+  gkyl_mat_set(P_out, 4 * nfluids , 0, epEx / mom_em->epsilon0); 
+  gkyl_mat_set(P_out, 4 * nfluids + 1, 0, epEy / mom_em->epsilon0); 
+  gkyl_mat_set(P_out, 4 * nfluids + 2, 0, epEz / mom_em->epsilon0); 
 }
 
-static inline struct gkyl_mat* get_consv(struct gkyl_mat *P, double *fluid_s[GKYL_MAX_SPECIES], const gkyl_moment_em_coupling *mom_em, struct gkyl_mat *Q_out) {
+static inline void get_consv(struct gkyl_mat *P, double *fluid_s[GKYL_MAX_SPECIES], const gkyl_moment_em_coupling *mom_em, struct gkyl_mat *Q_out) {
 
   int nfluids = mom_em->nfluids;
   for (int s = 0; s < nfluids; s++) {
@@ -102,7 +99,7 @@ static inline struct gkyl_mat* get_consv(struct gkyl_mat *P, double *fluid_s[GKY
     gkyl_mat_set(Q_out, 4 * s, 0, momx);
     gkyl_mat_set(Q_out, 4 * s+1, 0, momy);
     gkyl_mat_set(Q_out, 4 * s+2, 0, momz);
-    gkyl_mat_set(Q_out, 5 * s+3, 0, tau);
+    gkyl_mat_set(Q_out, 4 * s+3, 0, tau);
   }
 
   double Ex = gkyl_mat_get(P, 4 * nfluids + 1, 0);
@@ -112,8 +109,6 @@ static inline struct gkyl_mat* get_consv(struct gkyl_mat *P, double *fluid_s[GKY
   gkyl_mat_set(Q_out, 4 * nfluids + 1, 0, Ex * mom_em->epsilon0); 
   gkyl_mat_set(Q_out, 4 * nfluids + 2, 0, Ey * mom_em->epsilon0); 
   gkyl_mat_set(Q_out, 4 * nfluids + 3, 0, Ez * mom_em->epsilon0);
-
-  return Q_out;
 }
 
 void pressure_tensor_rotate(double q_over_m, double dt, const double *em,
@@ -391,7 +386,6 @@ void implicit_em_non_linear_source_update(
     double fluid_rhs_s[GKYL_MAX_SPECIES][4], double *fluid_s[GKYL_MAX_SPECIES],
     const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
     const double *app_current, const double *ext_em) {
-  printf("Hello world"); 
   double tol = 0.000001;
   // Number of fluids
   int num_species_eqs = 4;
@@ -407,23 +401,23 @@ void implicit_em_non_linear_source_update(
 
   struct gkyl_mat *Q_init = gkyl_mat_new(jac_size, 1, 0.0);
 
-  printf("Hello");
   for (int s = 0; s < nfluids; s++) {
     int s_i = s * 4;
     gkyl_mat_set(Q_init, s_i, 0, fluid_s[s][1]);
     gkyl_mat_set(Q_init, s_i + 1, 0, fluid_s[s][2]);
     gkyl_mat_set(Q_init, s_i + 2, 0, fluid_s[s][3]);
     gkyl_mat_set(Q_init, s_i + 3, 0, fluid_s[s][4]);
+
   }
 
-  gkyl_mat_set(Q_init, jac_size - 1, 0, mom_em->epsilon0 * em[0]);
+  gkyl_mat_set(Q_init, jac_size - 3, 0, mom_em->epsilon0 * em[0]);
   gkyl_mat_set(Q_init, jac_size - 2, 0, mom_em->epsilon0 * em[1]);
-  gkyl_mat_set(Q_init, jac_size - 3, 0, mom_em->epsilon0 * em[2]);
+  gkyl_mat_set(Q_init, jac_size - 1, 0, mom_em->epsilon0 * em[2]);
 
 
   // Q_bar_init = Q_init + (dt / 4) S(Q_init)
-  struct gkyl_mat *S_init;
-  S_init = S(Q_init, mom_em, fluid_s, em, jac_size, S_init);
+  struct gkyl_mat *S_init = gkyl_mat_new(jac_size, 1, 0.0);
+  S(Q_init, mom_em, fluid_s, em, jac_size, S_init);
   struct gkyl_mat *Q_bar_init = gkyl_mat_new(jac_size, 1, 0.0);
 
   Q_bar_init = gkyl_mat_accumulate(Q_bar_init, 1.0, Q_init);
@@ -431,17 +425,17 @@ void implicit_em_non_linear_source_update(
 
   struct gkyl_mat *Q_bar_guess = gkyl_mat_clone(Q_bar_init);
   struct gkyl_mat *dFdP = gkyl_mat_new(jac_size, jac_size, 0.0);
-  struct gkyl_mat *P_buff = gkyl_mat_new(jac_size, jac_size, 0.0);
-  struct gkyl_mat *Q_buff = gkyl_mat_new(jac_size, jac_size, 0.0);
-  struct gkyl_mat *S_buff = gkyl_mat_new(jac_size, jac_size, 0.0);
+  struct gkyl_mat *P_buff = gkyl_mat_new(jac_size, 1, 0.0);
+  struct gkyl_mat *Q_buff = gkyl_mat_new(jac_size, 1, 0.0);
+  struct gkyl_mat *S_buff = gkyl_mat_new(jac_size, 1, 0.0);
   gkyl_mem_buff sol_buff = gkyl_mem_buff_new(sizeof(long[nfluids]));
 
   // Need RHS
   struct gkyl_mat *F_delta = gkyl_mat_new(jac_size, 1, 0.0);
 
   do {
-    dFdP = gkyl_mat_scale(dFdP, 0.0);
-    P_buff = get_consv(P_buff, fluid_s, mom_em, Q_bar_guess);
+    dFdP = gkyl_mat_clear(dFdP, 0.0);
+    get_consv(P_buff, fluid_s, mom_em, Q_bar_guess);
     
     double Ex = gkyl_mat_get(P_buff, jac_size - 1, 0);
     double Ey = gkyl_mat_get(P_buff, jac_size - 2, 0);
@@ -522,10 +516,11 @@ void implicit_em_non_linear_source_update(
     gkyl_mat_inc(dFdP, jac_size - 1, jac_size - 1, mom_em->epsilon0);
 
     // Q_buff now has our Q_bar guess
-    Q_buff = get_consv(P_buff, fluid_s, mom_em, Q_buff);
+    get_consv(P_buff, fluid_s, mom_em, Q_buff);
+
     F_delta = gkyl_mat_accumulate(F_delta, 1.0, Q_buff);
     F_delta = gkyl_mat_accumulate(F_delta, -1.0, Q_init);
-    S_buff = S(Q_buff, mom_em, fluid_s, em, jac_size, S_buff);
+    S(Q_buff, mom_em, fluid_s, em, jac_size, S_buff);
     F_delta = gkyl_mat_accumulate(F_delta, -dt / 2, S_buff);
   
     bool status = gkyl_mat_linsolve_lu(dFdP, F_delta, sol_buff);
@@ -542,15 +537,26 @@ void implicit_em_non_linear_source_update(
   Q_buff = gkyl_mat_accumulate(Q_buff, -1.0, Q_init);
 
   // Q_buff now has our new Q_t+1
-
+  
+  printf("Q_init\n");
   gkyl_mat_release(Q_init);
+  printf("S_init\n");
   gkyl_mat_release(S_init);
+  printf("Q_bar_init\n");
   gkyl_mat_release(Q_bar_init);
+  printf("Q_bar_guess\n");
   gkyl_mat_release(Q_bar_guess);
+  printf("F_delta\n");
+  gkyl_mat_release(F_delta);
+  printf("%f dFdP\n", gkyl_mat_get(dFdP, 0, 0));
   gkyl_mat_release(dFdP);
+  printf("P_buff\n");
   gkyl_mat_release(P_buff);
+  printf("Q_buff\n");
   gkyl_mat_release(Q_buff);
+  printf("S_buff\n");
   gkyl_mat_release(S_buff);
+  printf("sol_buff\n");
   gkyl_mem_buff_release(sol_buff);
 }
 
