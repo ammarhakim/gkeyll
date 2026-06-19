@@ -1500,8 +1500,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
  
   // Metadata for gk_species app.
   struct gkyl_msgpack_map_elem io_meta[] = {
-    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
-    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = gks->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = gks->basis.id }
   };
