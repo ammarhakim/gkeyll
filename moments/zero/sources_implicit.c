@@ -1193,11 +1193,9 @@ void implicit_source_coupling_update(
       p_tensor_new[i][5] = ((p_tensor_new[i][5] - p) / exp_nu) + p;
     }
   }
-  printf("Hello\n");
 
   if (mom_em->is_charged_species) {
     if (mom_em->use_rel) {
-      printf("Hello\n");
       implicit_em_non_linear_source_update(mom_em, t_curr, dt, fluid_rhs,
                                            fluid_s, app_accel_s, em,
                                            app_current, ext_em);

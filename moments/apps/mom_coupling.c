@@ -470,13 +470,21 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     struct gkyl_moment_em_coupling_status gr_em_status =
       gkyl_moment_em_coupling_gr_em_explicit_advance(src->slvr, tcurr, dt, &app->local,
         fluids, app->field.f[sidx[nstrang]], app->field.ext_em);
-    if (!gr_em_status.success) {
+
+    // Reduce locally computed CFL estimate from explicit sources across ranks. 
+    double gr_red_local[2]  = { gr_em_status.success ? 1.0 : 0.0, gr_em_status.dt_suggested };
+    double gr_red_global[2];
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 2, gr_red_local, gr_red_global);
+    bool gr_em_success = gr_red_global[0] > 0.5;
+    double gr_em_dt_suggested = gr_red_global[1];
+
+    if (!gr_em_success) {
       return (struct gkyl_update_status) {
         .success = false,
-        .dt_suggested = gr_em_status.dt_suggested
+        .dt_suggested = gr_em_dt_suggested
       };
     }
-    dt_suggested = fmin(dt_suggested, gr_em_status.dt_suggested);
+    dt_suggested = fmin(dt_suggested, gr_em_dt_suggested);
   }
   else if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
