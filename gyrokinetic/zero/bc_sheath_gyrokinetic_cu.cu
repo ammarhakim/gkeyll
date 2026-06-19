@@ -161,17 +161,23 @@ bc_gksheath_fill_kann_inp_cu_ker(enum gkyl_edge_loc edge,
 {
   int perp_idx[GKYL_MAX_CDIM];
   int cidx[GKYL_MAX_CDIM];
+  int surf_cidx[GKYL_MAX_CDIM];
   int cdim = conf_r.ndim;
 
   cidx[cdim-1] = (edge == GKYL_LOWER_EDGE) ? conf_r.lower[cdim-1] : conf_r.upper[cdim-1];
+  surf_cidx[cdim-1] = (edge == GKYL_LOWER_EDGE) ? conf_r.lower[cdim-1] : conf_r.upper[cdim-1] + 1;
 
   for (unsigned long linc = threadIdx.x + blockIdx.x*blockDim.x;
        linc < perp_r.volume; linc += blockDim.x*gridDim.x) {
 
     gkyl_sub_range_inv_idx(&perp_r, linc, perp_idx);
-    for (int d = 0; d < cdim-1; d++) cidx[d] = perp_idx[d];
+    for (int d = 0; d < cdim-1; d++) {
+      cidx[d] = perp_idx[d];
+      surf_cidx[d] = perp_idx[d];
+    }
 
     long conf_loc = gkyl_range_idx(&conf_r, cidx);
+    long surf_conf_loc = gkyl_range_idx(&conf_r, surf_cidx);
     // 0-based sequential perp cell index (gkyl_range_idx gives 0 at lower bound).
     long perp_k = gkyl_range_idx(&perp_r, perp_idx);
 
@@ -180,7 +186,7 @@ bc_gksheath_fill_kann_inp_cu_ker(enum gkyl_edge_loc edge,
     const double *dens_p         = (const double*) gkyl_array_cfetch(dens, conf_loc);
     const double *temp_p         = (const double*) gkyl_array_cfetch(temp, conf_loc);
     const double *bmag_p         = (const double*) gkyl_array_cfetch(bmag, conf_loc);
-    const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_loc);
+    const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, surf_conf_loc);
 
     // Cell perp_k occupies nodes [perp_k*n_nodes_per_cell, (perp_k+1)*n_nodes_per_cell)
     // in kann_inp_data, each node taking dim_in floats.

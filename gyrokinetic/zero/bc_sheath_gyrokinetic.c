@@ -27,10 +27,12 @@ void bc_gksheath_update_vcutsq_surrogate(const struct gkyl_bc_sheath_gyrokinetic
 #endif
 
   int cidx[GKYL_MAX_CDIM]; // Configuration space index.
+  int csurfidx[GKYL_MAX_CDIM]; // Configuration space surface index.
   int vidx[GKYL_MAX_VDIM]; // Velocity space index.
 
   // Set the fixed parallel config index and vpar lower index.
   cidx[up->cdim-1] = up->edge == GKYL_LOWER_EDGE ? up->skin_r->lower[up->cdim-1] : up->skin_r->upper[up->cdim-1];
+  csurfidx[up->cdim-1] = up->edge == GKYL_LOWER_EDGE ? cidx[up->cdim-1] : cidx[up->cdim-1] + 1;
   vidx[0] = up->skin_r->lower[up->cdim];
 
   // Loop over perpendicular config cells only to fill the KANN input vectors.
@@ -42,14 +44,16 @@ void bc_gksheath_update_vcutsq_surrogate(const struct gkyl_bc_sheath_gyrokinetic
   while (gkyl_range_iter_next(&iter_xy)) {
     for (int d = 0; d < up->cdim-1; d++) {
       cidx[d] = iter_xy.idx[d];
-    }    
+      csurfidx[d] = iter_xy.idx[d];
+    }
     long conf_loc = gkyl_range_idx(conf_r, cidx);
+    long conf_surf_loc = gkyl_range_idx(conf_r, csurfidx);
     const double *phi_p = (const double*) gkyl_array_cfetch(phi, conf_loc);
     const double *phi_wall_p = (const double*) gkyl_array_cfetch(phi_wall, conf_loc);
     const double *dens_p = (const double*) gkyl_array_cfetch(dens, conf_loc);
     const double *temp_p = (const double*) gkyl_array_cfetch(temp, conf_loc);
     const double *bmag_p = (const double*) gkyl_array_cfetch(bmag, conf_loc);
-    const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_loc);
+    const double *bimpact_angle_p = (const double*) gkyl_array_cfetch(bimpact_angle, conf_surf_loc);
 
     // Contiguous block stride for the input parameter of the NN.
     long perp_k = gkyl_range_idx(&up->perp_local, iter_xy.idx);
