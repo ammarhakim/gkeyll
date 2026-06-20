@@ -115,7 +115,7 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
 
   // complete update of fluid species
   for (int i=0; i<app->num_fluid_species; ++i) {
-    gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
+    vm_fluid_species_step_f(&app->fluid_species[i], fluidout[i], dta, fluidin[i]);
   }
 
   // Complete the field update: for Vlasov-Maxwell, accumulate the species

@@ -725,12 +725,25 @@ struct vm_fluid_species {
 
   double* omegaCfl_ptr;
 
-  // Function pointers for computing primitive/auxiliary variables, 
-  // and also write method, release method, and method for calculating integrated quantities. 
-  void (*prim_vars_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid); 
-  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm); 
-  void (*write_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame); 
-  void (*release_func)(const gkyl_vlasov_app *app, struct vm_fluid_species *f);   
+  // Function pointers selected at runtime. The time-stepping methods (apply_ic,
+  // rhs, step_f, combine, copy) mirror the distribution-aspect vtable on
+  // vm_species; a future PKPM species sets these to its own coupled-fluid
+  // implementations while a plain Vlasov fluid species uses the *_default ones.
+  void (*apply_ic_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double t0);
+  double (*rhs_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f,
+    const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs);
+  void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp);
+  void (*combine_func)(struct gkyl_array *out, double c1,
+    const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+    const struct gkyl_range *rng);
+  void (*copy_func)(struct gkyl_array *out, const struct gkyl_array *inp,
+    const struct gkyl_range *range);
+  // Function pointers for computing primitive/auxiliary variables,
+  // and also write method, release method, and method for calculating integrated quantities.
+  void (*prim_vars_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, const struct gkyl_array *fluid);
+  void (*calc_integrated_mom_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double tm);
+  void (*write_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f, double tm, int frame);
+  void (*release_func)(const gkyl_vlasov_app *app, struct vm_fluid_species *f);
 };
 
 // fluid-EM coupling data
@@ -1735,9 +1748,31 @@ void vm_fluid_species_limiter(gkyl_vlasov_app *app, struct vm_fluid_species *flu
  * @param rhs On output, the RHS from the fluid species solver
  * @return Maximum stable time-step
  */
-double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, 
-  const struct gkyl_array *fluid, const struct gkyl_array *em, 
+double vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
+  const struct gkyl_array *fluid, const struct gkyl_array *em,
   struct gkyl_array *rhs);
+
+/**
+ * Forward-Euler accumulate for the fluid state: out = dt*out + inp.
+ * Dispatches through the fluid species' step_f_func (mirrors vm_species_step_f).
+ */
+void vm_fluid_species_step_f(struct vm_fluid_species *fluid_species,
+  struct gkyl_array *out, double dt, const struct gkyl_array *inp);
+
+/**
+ * Combine fluid RK stages: out = c1*arr1 + c2*arr2 over rng.
+ * Dispatches through the fluid species' combine_func (mirrors vm_species_combine).
+ */
+void vm_fluid_species_combine(struct vm_fluid_species *fluid_species,
+  struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
+  double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng);
+
+/**
+ * Copy the fluid state: out = inp over range.
+ * Dispatches through the fluid species' copy_func (mirrors vm_species_copy_range).
+ */
+void vm_fluid_species_copy_range(struct vm_fluid_species *fluid_species,
+  struct gkyl_array *out, const struct gkyl_array *inp, const struct gkyl_range *range);
 
 /**
  * Apply BCs to fluid species

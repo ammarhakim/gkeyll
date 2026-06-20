@@ -94,7 +94,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
               vm_species_combine(vms, vms->f1, 3.0/4.0, vms->f, 1.0/4.0, vms->fnew, &vms->local_ext);
             }
             for (int i=0; i<nfs; ++i)
-              array_combine(app->fluid_species[i].fluid1,
+              vm_fluid_species_combine(&app->fluid_species[i], app->fluid_species[i].fluid1,
                 3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, &app->local_ext);
             vlasov_field_combine(app, app->field->em1,
               3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew); // no-op for null field
@@ -152,9 +152,9 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
               vm_species_copy_range(vms, vms->f, vms->f1, &vms->local_ext);
             }
             for (int i=0; i<nfs; ++i) {
-              array_combine(app->fluid_species[i].fluid1,
+              vm_fluid_species_combine(&app->fluid_species[i], app->fluid_species[i].fluid1,
                 1.0/3.0, app->fluid_species[i].fluid, 2.0/3.0, app->fluid_species[i].fluidnew, &app->local_ext);
-              gkyl_array_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
+              vm_fluid_species_copy_range(&app->fluid_species[i], app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
             }
             // no-ops for the null field
             vlasov_field_combine(app, app->field->em1,
