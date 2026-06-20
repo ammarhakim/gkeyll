@@ -26,12 +26,12 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           struct timespec rk3_s1_tm = gkyl_wall_clock();
 
           for (int i=0; i<ns; ++i) {
-            fin[i] = app->species[i].f;
-            fout[i] = app->species[i].f1;
+            fin[i] = app->species[i].dist->f;
+            fout[i] = app->species[i].dist->f1;
           }
           for (int i=0; i<nfs; ++i) {
-            fluidin[i] = app->fluid_species[i].fluid;
-            fluidout[i] = app->fluid_species[i].fluid1;
+            fluidin[i] = app->fluid_species[i].fluid->fluid;
+            fluidout[i] = app->fluid_species[i].fluid->fluid1;
           }
           vlasov_forward_euler(app, tcurr, dt, fin, fluidin, app->field->em,
             fout, fluidout, app->field->em1,
@@ -42,7 +42,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
-            vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
+            vm_fluid_species_limiter(app, app->fluid_species[i].fluid, fluidout[i]);
           }
           vlasov_field_limiter(app, app->field->em1); // no-op for the null field
           dt = st.dt_actual;
@@ -57,12 +57,12 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           struct timespec rk3_s2_tm = gkyl_wall_clock();
 
           for (int i=0; i<ns; ++i) {
-            fin[i] = app->species[i].f1;
-            fout[i] = app->species[i].fnew;
+            fin[i] = app->species[i].dist->f1;
+            fout[i] = app->species[i].dist->fnew;
           }
           for (int i=0; i<nfs; ++i) {
-            fluidin[i] = app->fluid_species[i].fluid1;
-            fluidout[i] = app->fluid_species[i].fluidnew;
+            fluidin[i] = app->fluid_species[i].fluid->fluid1;
+            fluidout[i] = app->fluid_species[i].fluid->fluidnew;
           }
           vlasov_forward_euler(app, tcurr+dt, dt, fin, fluidin, app->field->em1,
             fout, fluidout, app->field->emnew,
@@ -73,7 +73,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
-            vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
+            vm_fluid_species_limiter(app, app->fluid_species[i].fluid, fluidout[i]);
           }
           vlasov_field_limiter(app, app->field->emnew); // no-op for the null field
           if (st.dt_actual < dt) {
@@ -90,12 +90,12 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           } 
           else {
             for (int i=0; i<ns; ++i) {
-              struct vm_species *vms = &app->species[i];
+              struct vm_species *vms = app->species[i].dist;
               vm_species_combine(vms, vms->f1, 3.0/4.0, vms->f, 1.0/4.0, vms->fnew, &vms->local_ext);
             }
             for (int i=0; i<nfs; ++i)
-              vm_fluid_species_combine(&app->fluid_species[i], app->fluid_species[i].fluid1,
-                3.0/4.0, app->fluid_species[i].fluid, 1.0/4.0, app->fluid_species[i].fluidnew, &app->local_ext);
+              vm_fluid_species_combine(app->fluid_species[i].fluid, app->fluid_species[i].fluid->fluid1,
+                3.0/4.0, app->fluid_species[i].fluid->fluid, 1.0/4.0, app->fluid_species[i].fluid->fluidnew, &app->local_ext);
             vlasov_field_combine(app, app->field->em1,
               3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew); // no-op for null field
 
@@ -111,12 +111,12 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           struct timespec rk3_s3_tm = gkyl_wall_clock();
 
           for (int i=0; i<ns; ++i) {
-            fin[i] = app->species[i].f1;
-            fout[i] = app->species[i].fnew;
+            fin[i] = app->species[i].dist->f1;
+            fout[i] = app->species[i].dist->fnew;
           }
           for (int i=0; i<nfs; ++i) {
-            fluidin[i] = app->fluid_species[i].fluid1;
-            fluidout[i] = app->fluid_species[i].fluidnew;
+            fluidin[i] = app->fluid_species[i].fluid->fluid1;
+            fluidout[i] = app->fluid_species[i].fluid->fluidnew;
           }
           vlasov_forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->field->em1,
             fout, fluidout, app->field->emnew,
@@ -127,7 +127,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
           for (int i=0; i<nfs; ++i) {
-            vm_fluid_species_limiter(app, &app->fluid_species[i], fluidout[i]);
+            vm_fluid_species_limiter(app, app->fluid_species[i].fluid, fluidout[i]);
           }
           vlasov_field_limiter(app, app->field->emnew); // no-op for the null field
           if (st.dt_actual < dt) {
@@ -146,15 +146,15 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           }
           else {
             for (int i=0; i<ns; ++i) {
-              struct vm_species *vms = &app->species[i];
+              struct vm_species *vms = app->species[i].dist;
               // Step f.
               vm_species_combine(vms, vms->f1, 1.0/3.0, vms->f, 2.0/3.0, vms->fnew, &vms->local_ext);
               vm_species_copy_range(vms, vms->f, vms->f1, &vms->local_ext);
             }
             for (int i=0; i<nfs; ++i) {
-              vm_fluid_species_combine(&app->fluid_species[i], app->fluid_species[i].fluid1,
-                1.0/3.0, app->fluid_species[i].fluid, 2.0/3.0, app->fluid_species[i].fluidnew, &app->local_ext);
-              vm_fluid_species_copy_range(&app->fluid_species[i], app->fluid_species[i].fluid, app->fluid_species[i].fluid1, &app->local_ext);
+              vm_fluid_species_combine(app->fluid_species[i].fluid, app->fluid_species[i].fluid->fluid1,
+                1.0/3.0, app->fluid_species[i].fluid->fluid, 2.0/3.0, app->fluid_species[i].fluid->fluidnew, &app->local_ext);
+              vm_fluid_species_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid->fluid, app->fluid_species[i].fluid->fluid1, &app->local_ext);
             }
             // no-ops for the null field
             vlasov_field_combine(app, app->field->em1,

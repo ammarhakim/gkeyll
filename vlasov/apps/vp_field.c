@@ -210,7 +210,7 @@ vp_field_accumulate_charge_dens(gkyl_vlasov_app *app, struct vm_field *field,
   // Calculate the charge density.
   gkyl_array_clear(field->rho_c, 0.0);
   for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
+    struct vm_species *s = app->species[i].dist;
 
     vm_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
 

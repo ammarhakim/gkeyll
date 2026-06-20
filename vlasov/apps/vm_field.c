@@ -427,7 +427,7 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
   struct gkyl_array *emout)
 {
   for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = &app->species[i];
+    struct vm_species *s = app->species[i].dist;
     double qbyeps = s->info.charge/app->field->info.epsilon0; 
 
     vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);

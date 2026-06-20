@@ -752,6 +752,26 @@ struct vm_fluid_em_coupling {
   struct gkyl_dg_calc_fluid_em_coupling* slvr; // fluid-EM coupling solver
 };
 
+// Which evolved quantities a species owns. A species holds up to two aspects: a
+// distribution (dist) and a fluid moment vector (fluid). The type selects which
+// are allocated; NULL-ness of dist/fluid is the source of truth at use sites.
+enum gkyl_species_type {
+  GKYL_SPECIES_VLASOV, // kinetic distribution only (dist != NULL, fluid == NULL)
+  GKYL_SPECIES_FLUID,  // fluid moments only (dist == NULL, fluid != NULL)
+  GKYL_SPECIES_PKPM,   // both (reserved for the post-merge PKPM unification)
+};
+
+// Unified species container. Holds the optional per-aspect sub-objects by
+// pointer so a species carries only the aspects it has (no bloat). A plain
+// Vlasov species sets dist; a fluid species sets fluid; a PKPM species (later)
+// sets both. app->species is the single backing array of these; app->fluid_species
+// is a view into its fluid-typed tail (see vlasov.c construction).
+struct vlasov_species {
+  enum gkyl_species_type type;
+  struct vm_species *dist;        // kinetic aspect (NULL if absent)
+  struct vm_fluid_species *fluid; // fluid aspect (NULL if absent)
+};
+
 // Vlasov object: used as opaque pointer in user code
 struct gkyl_vlasov_app {
   char name[128]; // name of app
@@ -796,13 +816,17 @@ struct gkyl_vlasov_app {
   // geometry data
   struct vm_geom *vm_geom;
 
-  // species data
+  // species data. One backing array of unified containers: kinetic species
+  // occupy indices [0, num_species), fluid species [num_species, num_species +
+  // num_fluid_species). 'species' points at the head, 'fluid_species' is a view
+  // into the fluid-typed tail (so the fluid view stays dense/contiguous, which
+  // restart IO and the fluid-EM coupling rely on). 'species' owns the allocation.
   int num_species;
-  struct vm_species *species; // data for each species
-  
+  struct vlasov_species *species; // unified container array (owns the backing storage)
+
   // fluid data
   int num_fluid_species;
-  struct vm_fluid_species *fluid_species; // data for each fluid species
+  struct vlasov_species *fluid_species; // view into the fluid tail of 'species'
 
   bool has_fluid_em_coupling; // Boolean for if there is implicit fluid-EM coupling
   struct vm_fluid_em_coupling *fl_em; // fluid-EM coupling data
