@@ -2,6 +2,8 @@
 #include "gkyl_bc_sheath_gyrokinetic_priv.h"
 #include <gkyl_alloc.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_rect_decomp.h>
+#include <gkyl_array_rio.h>
 #include <assert.h>
 
 static struct gkyl_array*
@@ -13,6 +15,61 @@ mkarr(bool on_gpu, long nc, long size)
   else
     a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
+}
+
+static void
+bc_sheath_gyrokinetic_diag_init(struct gkyl_bc_sheath_gyrokinetic *up,
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_range *phase_global)
+{
+  // Decomposition is only along the parallel direction, so the (perpendicular
+  // conf-space + mu) vcutsq array is owned entirely by the single rank abutting
+  // this edge's boundary. That rank (non-empty skin range) writes it out
+  // serially; all others do nothing.
+  up->vcutsq_write = up->skin_r->volume > 0;
+  if (!phase_grid || !phase_global || !up->vcutsq_write)
+    return;
+
+  int cdim = up->cdim;
+  int pdim = phase_grid->ndim;
+  int vdim = pdim - cdim;
+  int vc_ndim = up->vcutsq_dim; // (cdim-1) + (vdim-1).
+
+  // vcutsq is only meaningful (and the sheath kernels only exist) for vdim>1.
+  if (vdim < 2)
+    return;
+
+  // Build the output grid spanning the perpendicular conf-space directions and
+  // mu, mapping the (already SOL-aware) vcutsq index range to physical coords.
+  double vc_lo[GKYL_MAX_DIM], vc_up[GKYL_MAX_DIM];
+  int vc_cells[GKYL_MAX_DIM];
+
+  int c = 0;
+  for (int d=0; d<cdim-1; d++) { // perpendicular conf-space directions.
+    int idx_lo = up->vcutsq_local.lower[c], idx_up = up->vcutsq_local.upper[c];
+    vc_lo[c] = phase_grid->lower[d] + (idx_lo - phase_global->lower[d])*phase_grid->dx[d];
+    vc_up[c] = phase_grid->lower[d] + (idx_up - phase_global->lower[d] + 1)*phase_grid->dx[d];
+    vc_cells[c] = idx_up - idx_lo + 1;
+    c++;
+  }
+  for (int d=cdim+1; d<pdim; d++) { // velocity directions other than vpar (mu, ...).
+    vc_lo[c] = phase_grid->lower[d];
+    vc_up[c] = phase_grid->upper[d];
+    vc_cells[c] = phase_grid->cells[d];
+    c++;
+  }
+  gkyl_rect_grid_init(&up->vcutsq_grid, vc_ndim, vc_lo, vc_up, vc_cells);
+
+  // Range matching the output grid (1-based), used to write the local array.
+  // Its shape matches up->vcutsq_local, so the flat data layout is identical.
+  int nghost[GKYL_MAX_DIM] = {0};
+  gkyl_create_grid_ranges(&up->vcutsq_grid, nghost, &up->vcutsq_diag_range_ext, &up->vcutsq_diag_range);
+
+  // Host output buffer. On CPU we alias the working array to avoid a copy.
+  up->vcutsq_ho = up->use_gpu?
+    gkyl_array_new(GKYL_DOUBLE, up->vcutsq_basis.num_basis, up->vcutsq_local.volume)
+    : gkyl_array_acquire(up->vcutsq);
+
+  up->vcutsq_diag_on = true;
 }
 
 void bc_gksheath_update_vcutsq_surrogate(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
@@ -130,7 +187,8 @@ void bc_gksheath_update_vcutsq_const(const struct gkyl_bc_sheath_gyrokinetic *up
 struct gkyl_bc_sheath_gyrokinetic*
 gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map,
-  int cdim, double q2Dm, bool use_surrogate, const char *surrogate_model_path, bool use_gpu)
+  int cdim, double q2Dm, bool use_surrogate, const char *surrogate_model_path,
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_range *phase_global, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -149,6 +207,12 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   int vdim = skin_r->ndim - cdim;
   up->update_vcutsq = bc_gksheath_update_vcutsq_const;
   up->vcutsq_dim = cdim-1 + vdim-1;
+
+  // vcutsq diagnostic output is set up below (bc_sheath_gyrokinetic_diag_init);
+  // these defaults keep release safe when the diagnostic is disabled.
+  up->vcutsq_diag_on = false;
+  up->vcutsq_write = false;
+  up->vcutsq_ho = NULL;
 
   // Get polynomial order
   int poly_order;
@@ -238,6 +302,9 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->kernels_cu = up->kernels;
 #endif
 
+  // Set up diagnostic output of the sheath velocity cutoff (vcutsq).
+  bc_sheath_gyrokinetic_diag_init(up, phase_grid, phase_global);
+
   return up;
 }
 
@@ -306,6 +373,22 @@ void gkyl_bc_sheath_gyrokinetic_set_vcutsq(const struct gkyl_bc_sheath_gyrokinet
   gkyl_array_copy_range(up->vcutsq, vcutsq, &up->vcutsq_local);
 }
 
+void
+gkyl_bc_sheath_gyrokinetic_write_vcutsq(struct gkyl_bc_sheath_gyrokinetic *up,
+  struct gkyl_msgpack_data *meta, const char *fname)
+{
+  if (!up->vcutsq_diag_on || !up->vcutsq_write)
+    return;
+
+  // Copy from device to the host buffer if needed (on CPU vcutsq_ho aliases vcutsq).
+  if (up->use_gpu)
+    gkyl_array_copy(up->vcutsq_ho, up->vcutsq);
+
+  // Serial write: this rank owns the entire (perp conf-space + mu) array.
+  gkyl_grid_sub_array_write(&up->vcutsq_grid, &up->vcutsq_diag_range, meta,
+    up->vcutsq_ho, fname);
+}
+
 void gkyl_bc_sheath_gyrokinetic_update_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
   const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
   const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
@@ -324,6 +407,9 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
   gkyl_free(up->kernels);
   gkyl_velocity_map_release(up->vel_map);
   gkyl_array_release(up->vcutsq);
+
+  if (up->vcutsq_diag_on && up->vcutsq_ho)
+    gkyl_array_release(up->vcutsq_ho);
 
   if (up->use_surrogate) {
     gkyl_kann_net_release(up->kann_net);

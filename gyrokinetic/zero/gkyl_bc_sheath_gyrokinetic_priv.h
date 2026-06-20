@@ -139,6 +139,13 @@ struct gkyl_bc_sheath_gyrokinetic {
   struct gkyl_kn_vec *kann_out; // Output vector for KANN surrogate (20 x number of perp nodes).
   struct gkyl_array *kann_infer_xy_out; // Output array for KANN on a perpendicular plane.
   double *nn_out; // Buffer to hold raw NN outputs for all perp nodes (device memory when using GPU).
+
+  // Diagnostic output of the vcutsq array.
+  bool vcutsq_diag_on; // Whether the vcutsq diagnostic output is set up.
+  bool vcutsq_write; // Whether this rank abuts the boundary and writes vcutsq.
+  struct gkyl_rect_grid vcutsq_grid; // Grid for vcutsq output (perp conf-space + mu).
+  struct gkyl_range vcutsq_diag_range, vcutsq_diag_range_ext; // Output ranges (matching vcutsq_grid).
+  struct gkyl_array *vcutsq_ho; // Host buffer for vcutsq output.
 };
 
 void

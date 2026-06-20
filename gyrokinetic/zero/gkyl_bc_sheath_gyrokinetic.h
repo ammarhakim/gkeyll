@@ -8,6 +8,9 @@
 #include <gkyl_kann_net.h>
 #include <gkyl_knutils.h>
 
+// Forward declaration of msgpack metadata (defined in gkyl_array_rio.h).
+struct gkyl_msgpack_data;
+
 // Object type
 typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
 
@@ -24,13 +27,16 @@ typedef struct gkyl_bc_sheath_gyrokinetic gkyl_bc_sheath_gyrokinetic;
  * @param q2Dm charge-to-mass ratio times 2.
  * @param use_surrogate Boolean to indicate whether to use surrogate model for vcut.
  * @param surrogate_model_path Path to the .kann surrogate model file (NULL if not using surrogate).
+ * @param phase_grid Phase-space grid, used to build the vcutsq diagnostic grid.
+ * @param phase_global Global phase-space range.
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
 struct gkyl_bc_sheath_gyrokinetic* gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
   const struct gkyl_basis *basis, const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
   const struct gkyl_velocity_map *vel_map, int cdim, double q2Dm, bool use_surrogate,
-  const char *surrogate_model_path, bool use_gpu);
+  const char *surrogate_model_path, const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_range *phase_global, bool use_gpu);
 
 /**
  * Apply the sheath BC with the bc_sheath_gyrokinetic object.
@@ -53,28 +59,14 @@ void gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic 
 void gkyl_bc_sheath_gyrokinetic_set_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *vcut_fact);
 
 /**
- * Acquire the vcut_fact array used in the sheath BC. The pointer needs to be released by the caller using gkyl_array_release.
- * 
+ * Write out the vcutsq array.
+ *
  * @param up BC updater.
- * @return The vcut_fact array used in the sheath BC.
+ * @param meta Metadata to write (may be NULL).
+ * @param fname Name of output file (including .gkyl extension).
  */
-struct gkyl_array* gkyl_bc_sheath_gyrokinetic_acquire_vcutsq(struct gkyl_bc_sheath_gyrokinetic *up);
-
-/**
- * Get the basis of the vcut_fact array used in the sheath BC.
- * 
- * @param up BC updater.
- * @return The basis of the vcut_fact array used in the sheath BC.
- */
-struct gkyl_basis gkyl_bc_sheath_gyrokinetic_get_vcutsq_basis(struct gkyl_bc_sheath_gyrokinetic *up);
-
-/**
- * Get the range of the vcut_fact array used in the sheath BC.
- * 
- * @param up BC updater.
- * @return The range of the vcut_fact array used in the sheath BC.
- */
-struct gkyl_range* gkyl_bc_sheath_gyrokinetic_get_vcutsq_range(struct gkyl_bc_sheath_gyrokinetic *up);
+void gkyl_bc_sheath_gyrokinetic_write_vcutsq(struct gkyl_bc_sheath_gyrokinetic *up,
+  struct gkyl_msgpack_data *meta, const char *fname);
 
 /**
  * Get the pointer to the KANN surrogate model used in the sheath BC updater.

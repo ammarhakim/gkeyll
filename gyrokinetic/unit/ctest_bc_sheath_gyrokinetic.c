@@ -415,7 +415,8 @@ test_bc_sheath_gyrokinetic_1x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
   gkyl_array_copy(phiw, phiw_ho);
 
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path,
+    NULL, NULL, use_gpu); // No vcutsq diagnostic output in this test.
 
   if (pars->surrogate_model_path) {
     pars->model = gkyl_kann_net_load(pars->surrogate_model_path, false);
@@ -638,7 +639,8 @@ test_bc_sheath_gyrokinetic_2x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
   gkyl_array_copy(phiw, phiw_ho);
 
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path,
+    NULL, NULL, use_gpu); // No vcutsq diagnostic output in this test.
 
   if (pars->surrogate_model_path) {
     pars->model = gkyl_kann_net_load(pars->surrogate_model_path, false);
@@ -860,7 +862,8 @@ test_bc_sheath_gyrokinetic_3x2v(struct test_sheath_ctx *pars, enum gkyl_edge_loc
   gkyl_array_copy(phiw, phiw_ho);
 
   struct gkyl_bc_sheath_gyrokinetic *bcsheath = gkyl_bc_sheath_gyrokinetic_new(dir, edge,
-    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path, use_gpu);
+    basis, &skin_r, &ghost_r, gvm, cdim, 2.*qs/ms, pars->use_surrogate, pars->surrogate_model_path,
+    NULL, NULL, use_gpu); // No vcutsq diagnostic output in this test.
 
   if (pars->surrogate_model_path) {
     pars->model = gkyl_kann_net_load(pars->surrogate_model_path, false);

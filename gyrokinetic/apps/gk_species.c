@@ -329,6 +329,39 @@ gk_species_copy_range_static(struct gkyl_array *out,
   // do nothing
 }
 
+// Write out the sheath BC velocity cutoff (vcutsq) at one boundary.
+static void
+gk_species_write_vcutsq(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+  struct gkyl_bc_sheath_gyrokinetic *bc_sheath, const char *edge_str, double tm, int frame)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  // Package metadata (time/frame + DG basis info).
+  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  struct gkyl_msgpack_map_elem mpe_vcutsq[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Square of the velocity cutoff used in the gyrokinetic sheath BC." }
+  };
+  int mpe_vcutsq_len = sizeof(mpe_vcutsq)/sizeof(mpe_vcutsq[0]);
+  int io_meta_len[] = {app->io_meta_grid_len, mpe_vcutsq_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, mpe_vcutsq};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+  const char *fmt = "%s-%s_vcutsq_%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, edge_str, frame);
+  char fileNm[sz+1]; // ensures no buffer overflow
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, edge_str, frame);
+
+  gkyl_bc_sheath_gyrokinetic_write_vcutsq(bc_sheath, mt, fileNm);
+
+  gkyl_msgpack_data_release(mt);
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_diag_io += 1;
+}
+
 static void
 gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
@@ -361,6 +394,13 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
 
   app->stat.species_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
+
+  // Write out the sheath BC velocity cutoff (vcutsq).
+  int par_dir = app->cdim-1; // Sheath BC acts in the parallel direction.
+  if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH)
+    gk_species_write_vcutsq(app, gks, gks->bc_sheath_lo, "lower", tm, frame);
+  if (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH)
+    gk_species_write_vcutsq(app, gks, gks->bc_sheath_up, "upper", tm, frame);
 }
 
 static void
@@ -888,9 +928,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       struct gkyl_range *sol_skin = gk_app_inp->geometry.has_LCFS? &gks->local_lower_skin_par_sol : &gks->local_lower_skin[d];
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_lower_ghost_par_sol : &gks->local_lower_ghost[d];
-      gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
-        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass), 
-        gks->lower_bc[d].use_sheath_surrogate,gks->lower_bc[d].surrogate_model_path,app->use_gpu);
+      gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev,
+        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass),
+        gks->lower_bc[d].use_sheath_surrogate, gks->lower_bc[d].surrogate_model_path,
+        &gks->grid, &gks->global, app->use_gpu);
     }
     else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
@@ -949,9 +990,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       struct gkyl_range *sol_skin = gk_app_inp->geometry.has_LCFS? &gks->local_upper_skin_par_sol : &gks->local_upper_skin[d];
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_upper_ghost_par_sol : &gks->local_upper_ghost[d];
-      gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
-        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass), 
-        gks->upper_bc[d].use_sheath_surrogate, gks->upper_bc[d].surrogate_model_path, app->use_gpu);
+      gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev,
+        sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass),
+        gks->upper_bc[d].use_sheath_surrogate, gks->upper_bc[d].surrogate_model_path,
+        &gks->grid, &gks->global, app->use_gpu);
     }
     else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
