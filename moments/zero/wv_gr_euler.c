@@ -6,6 +6,27 @@
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_priv.h>
 
+// Density/pressure floors for the prims recovery, they were 1.0e-8 before, now I just set a variable so gkyl_wv_gr_euler_inew can override them from inp->rho_atm / inp->p_atm when provided.
+// one set of floors per process; if two GR-Euler species ever need different floors, thread them through prim_vars per equation
+static double gr_euler_rho_floor = 1.0e-8;;
+static double gr_euler_p_floor = 1.0e-8;;
+
+// Build the static-TOV equilibrium conserved state q_eq at the same point/metric as q, for the optional well-balancing (gr_euler->tov_eq != NULL => num_equations == 73)
+//  The frozen discrete equilibrium rides in conserved slots q[71] = <sqrt(gamma) D_eq> and q[72] = <sqrt(gamma) Etot_eq> (Etot = the slot-[4] Valencia energy variable, = E - D; the driver names it Etot), projected at t=0 by the same FV averaging as q[0]/q[4] (so it matches the live cell-average exactly at t=0, unlike a continuous-table point value
+// We copy q (q_eq inherits the metric) and set the fluid to the frozen equilibrium with zero momentum (v=0).
+static void
+gr_euler_tov_equilibrium(const struct wv_gr_euler *gr_euler, const double q[73], double q_eq[71])
+{
+  for (int i = 0; i < 71; i++) {
+    q_eq[i] = q[i];
+  }
+  q_eq[0] = q[71]; // D_eq = <sqrt(gamma) rho_eq> (frozen, projected at t=0)
+  q_eq[1] = 0.0;
+  q_eq[2] = 0.0;
+  q_eq[3] = 0.0;
+  q_eq[4] = q[72]; // Etot_eq = <sqrt(gamma) Etot_eq> (slot-[4] Valencia energy E - D; frozen, projected at t=0)
+}
+
 void
 gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
 {
@@ -171,11 +192,11 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
     v[3] = momz / (v[0] * h * (W * W));
     v[4] = (v[0] * h * (W * W)) - D - Etot;
 
-    if (v[0] < pow(10.0, -8.0)) {
-      v[0] = pow(10.0, -8.0);
+    if (v[0] < gr_euler_rho_floor) {
+      v[0] = gr_euler_rho_floor;
     }
-    if (v[4] < pow(10.0, -8.0)) {
-      v[4] = pow(10.0, -8.0);
+    if (v[4] < gr_euler_p_floor) {
+      v[4] = gr_euler_p_floor;
     }
 
     v[5] = lapse;
@@ -789,6 +810,14 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   qlocal[68] = (qglobal[68] * norm[0]) + (qglobal[69] * norm[1]) + (qglobal[70] * norm[2]);
   qlocal[69] = (qglobal[68] * tau1[0]) + (qglobal[69] * tau1[1]) + (qglobal[70] * tau1[2]);
   qlocal[70] = (qglobal[68] * tau2[0]) + (qglobal[69] * tau2[1]) + (qglobal[70] * tau2[2]);
+
+  // Static-TOV well-balancing carries the frozen equilibrium in scalar slots q[71]=D_eq, q[72]=Etot_eq.
+  // They are scalars, so they are not rotated - still need to be carried into the local state (the wave solver reads the full local vector)
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  if (gr_euler->tov_eq != NULL) {
+    qlocal[71] = qglobal[71];
+    qlocal[72] = qglobal[72];
+  }
 }
 
 static inline void
@@ -1034,6 +1063,13 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   qglobal[68] = (qlocal[68] * norm[0]) + (qlocal[69] * tau1[0]) + (qlocal[70] * tau2[0]);
   qglobal[69] = (qlocal[68] * norm[1]) + (qlocal[69] * tau1[1]) + (qlocal[70] * tau2[1]);
   qglobal[70] = (qlocal[68] * norm[2]) + (qlocal[69] * tau1[2]) + (qlocal[70] * tau2[2]);
+
+  // Frozen-equilibrium WB slots: carry through unrotated because scalars
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  if (gr_euler->tov_eq != NULL) {
+    qglobal[71] = qlocal[71];
+    qglobal[72] = qlocal[72];
+  }
 }
 
 static double
@@ -1060,15 +1096,40 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     in_excision_region_r = true;
   }
 
-  double *w0 = &waves[0], *w1 = &waves[71];
+  // Optional static-TOV well-balancing: feed the wave construction the equilibrium deviation dq = (qr-ql) - deq and df = (fr-fl) - dfeq, where (deq, dfeq) are the frozen TOV equilibrium jumps in the conserved variables and their fluxes. 
+  // amdq + apdq stays (fr-fl) - dfeq, so mass/energy (dfeq = 0 at v = 0) remain strictly conserved and the momentum keeps its (gravity-sourced) balance; a static star produces ~0 net flux.
+  double deq[71] = { 0.0 }, dfeq[71] = { 0.0 };
+  if (gr_euler->tov_eq && !in_excision_region_l && !in_excision_region_r) {
+    double q_eq_l[71], q_eq_r[71], f_eq_l[71], f_eq_r[71];
+    gr_euler_tov_equilibrium(gr_euler, ql, q_eq_l);
+    gr_euler_tov_equilibrium(gr_euler, qr, q_eq_r);
+    gkyl_gr_euler_flux(gas_gamma, q_eq_l, f_eq_l);
+    gkyl_gr_euler_flux(gas_gamma, q_eq_r, f_eq_r);
+    for (int i = 0; i < 71; i++) {
+      deq[i] = q_eq_r[i] - q_eq_l[i];
+      dfeq[i] = f_eq_r[i] - f_eq_l[i];
+    }
+  }
+
+  int neq = eqn->num_equations;
+  double *w0 = &waves[0], *w1 = &waves[neq];
   if (!in_excision_region_l && !in_excision_region_r) {
     for (int i = 0; i < 71; i++) {
-      w0[i] = 0.5 * ((qr[i] - ql[i]) - (fr[i] - fl[i]) / amax);
-      w1[i] = 0.5 * ((qr[i] - ql[i]) + (fr[i] - fl[i]) / amax);
+      double dq = (qr[i] - ql[i]) - deq[i];
+      double df = (fr[i] - fl[i]) - dfeq[i];
+      w0[i] = 0.5 * (dq - (df / amax));
+      w1[i] = 0.5 * (dq + (df / amax));
     }
   }
   else {
     for (int i = 0; i < 71; i++) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
+  }
+  // The frozen-equilibrium slots q[71],q[72] carry zero waves, so they never evolve
+  if (gr_euler->tov_eq != NULL) {
+    for (int i = 71; i < neq; i++) {
       w0[i] = 0.0;
       w1[i] = 0.0;
     }
@@ -1083,11 +1144,12 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_lax(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double *w0 = &waves[0], *w1 = &waves[71];
+  int neq = eqn->num_equations;
+  const double *w0 = &waves[0], *w1 = &waves[neq];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
-  for (int i = 0; i < 71; i++) {
+  for (int i = 0; i < neq; i++) { // frozen slots (i>=71) have zero waves -> amdq=apdq=0 (frozen)
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
   }
@@ -1449,20 +1511,41 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   gkyl_gr_euler_flux(gas_gamma, ql, fl);
   gkyl_gr_euler_flux(gas_gamma, qr, fr);
 
-  double qm[71];
-  for (int i = 0; i < 71; i++) {
-    qm[i] = ((sr * qr[i]) - (sl * ql[i]) + (fl[i] - fr[i])) / (sr - sl);
+  // Optional static-TOV well-balancing (identical to the Lax path): feed the HLL wave construction the equilibrium DEVIATION (qr-ql)-deq and (fr-fl)-dfeq. The standard HLL waves w0 = qm-ql, w1 = qr-qm are algebraically w0 = (sr*dq - df)/(sr-sl),
+  // w1 = (df - sl*dq)/(sr-sl) with dq = qr-ql, df = fr-fl; so subtracting (deq, dfeq) keeps sl*w0 + sr*w1 = df = (fr-fl)-dfeq, i.e. amdq+apdq is unchanged -> strictly flux- and fluctuation-conservative (mass/energy: dfeq=0; momentum keeps its gravity-sourced balance).
+  double deq[71] = { 0.0 }, dfeq[71] = { 0.0 };
+  if (gr_euler->tov_eq && !in_excision_region_l && !in_excision_region_r) {
+    double q_eq_l[71], q_eq_r[71], f_eq_l[71], f_eq_r[71];
+    gr_euler_tov_equilibrium(gr_euler, ql, q_eq_l);
+    gr_euler_tov_equilibrium(gr_euler, qr, q_eq_r);
+    gkyl_gr_euler_flux(gas_gamma, q_eq_l, f_eq_l);
+    gkyl_gr_euler_flux(gas_gamma, q_eq_r, f_eq_r);
+    for (int i = 0; i < 71; i++) {
+      deq[i] = q_eq_r[i] - q_eq_l[i];
+      dfeq[i] = f_eq_r[i] - f_eq_l[i];
+    }
   }
 
-  double *w0 = &waves[0], *w1 = &waves[71];
+  double inv = 1.0 / (sr - sl);
+  int neq = eqn->num_equations;
+  double *w0 = &waves[0], *w1 = &waves[neq];
   if (!in_excision_region_l && !in_excision_region_r) {
     for (int i = 0; i < 71; i++) {
-      w0[i] = qm[i] - ql[i];
-      w1[i] = qr[i] - qm[i];
+      double dq = (qr[i] - ql[i]) - deq[i];
+      double df = (fr[i] - fl[i]) - dfeq[i];
+      w0[i] = ((sr * dq) - df) * inv;
+      w1[i] = (df - (sl * dq)) * inv;
     }
   }
   else {
     for (int i = 0; i < 71; i++) {
+      w0[i] = 0.0;
+      w1[i] = 0.0;
+    }
+  }
+  // Static-TOV well-balancing only: the frozen-equilibrium slots q[71],q[72] carry zero waves, so they never evolve
+  if (gr_euler->tov_eq != NULL) {
+    for (int i = 71; i < neq; i++) {
       w0[i] = 0.0;
       w1[i] = 0.0;
     }
@@ -1477,11 +1560,12 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
 static void
 qfluct_hll(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, const double* waves, const double* s, double* amdq, double* apdq)
 {
-  const double *w0 = &waves[0], *w1 = &waves[71];
+  int neq = eqn->num_equations;
+  const double *w0 = &waves[0], *w1 = &waves[neq];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]);
   double s0p = fmax(0.0, s[0]), s1p = fmax(0.0, s[1]);
 
-  for (int i = 0; i < 71; i++) {
+  for (int i = 0; i < neq; i++) { // frozen slots (i>=71) have zero waves -> amdq=apdq=0 (frozen)
     amdq[i] = (s0m * w0[i]) + (s1m * w1[i]);
     apdq[i] = (s0p * w0[i]) + (s1p * w1[i]);
   }
@@ -1510,6 +1594,30 @@ qfluct_hll_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const d
   else {
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
   }
+}
+
+// HLL/Lax: HLL in the bulk, Lax near the atmosphere/surface. 
+// Both wave constructions keep amdq+apdq=df (the qfluct is identical), so the blend is strictly flux- and fluctuation-conservative. 
+#define GR_EULER_BLEND_FACTOR 1.0e5  // Lax where rho < FACTOR * rho_atm (here ~1e-2 * rho_c)
+static double
+wave_hll_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, const double* qr, double* waves, double* s)
+{
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  double vl[71], vr[71];
+  gkyl_gr_euler_prim_vars(gr_euler->gas_gamma, ql, vl);
+  gkyl_gr_euler_prim_vars(gr_euler->gas_gamma, qr, vr);
+
+  double rho_min = fmin(vl[0], vr[0]);
+  if (rho_min < GR_EULER_BLEND_FACTOR * gr_euler_rho_floor) {
+    return wave_lax(eqn, delta, ql, qr, waves, s);
+  }
+  return wave_hll(eqn, delta, ql, qr, waves, s);
+}
+
+static double
+wave_hll_lax_l(const struct gkyl_wv_eqn* eqn, enum gkyl_wv_flux_type type, const double* delta, const double* ql, const double* qr, const double phil, const double phir, double* waves, double* s)
+{
+  return wave_hll_lax(eqn, delta, ql, qr, waves, s);
 }
 
 static double
@@ -1583,12 +1691,10 @@ gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
   }
 }
 
+// Raw geometric/gravitational source (no well-balancing); factored so it can also be evaluated at the frozen TOV equilibrium state for the WB subtraction below.
 static inline void
-gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+gr_euler_raw_source(double gas_gamma, const double* qin, double* sout)
 {
-  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
-  double gas_gamma = gr_euler->gas_gamma;
-
   double v[71] = { 0.0 };
   gkyl_gr_euler_prim_vars(gas_gamma, qin, v);
   double rho = v[0];
@@ -1716,6 +1822,26 @@ gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
   gkyl_free(stress_energy);
 }
 
+static void
+gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
+{
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+
+  gr_euler_raw_source(gr_euler->gas_gamma, qin, sout);
+
+  // Optional static-TOV well-balancing: subtract the equilibrium geometric source sigma_eq = source(q_eq), so a static star leaves the (gravity-sourced) momentum unmoved. 
+  // Only the fluid components (1..4) are touched; mass (0) and the metric (5..70) carry no source.
+  if (gr_euler->tov_eq) {
+    double q_eq[71];
+    gr_euler_tov_equilibrium(gr_euler, qin, q_eq);
+    double sout_eq[71] = { 0.0 };
+    gr_euler_raw_source(gr_euler->gas_gamma, q_eq, sout_eq);
+    for (int i = 0; i < 71; i++) {
+      sout[i] -= sout_eq[i];
+    }
+  }
+}
+
 void
 gkyl_gr_euler_free(const struct gkyl_ref_count* ref)
 {
@@ -1751,13 +1877,22 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
   struct wv_gr_euler *gr_euler = gkyl_malloc(sizeof(struct wv_gr_euler));
 
   gr_euler->eqn.type = GKYL_EQN_GR_EULER;
-  gr_euler->eqn.num_equations = 71;
+  if (inp->tov_eq != NULL) {
+    gr_euler->eqn.num_equations = 73;
+  }
+  else {
+    gr_euler->eqn.num_equations = 71;
+  }
   gr_euler->eqn.num_diag = 5;
 
   gr_euler->gas_gamma = inp->gas_gamma;
+  gr_euler->spacetime = inp->spacetime;
   gr_euler->spacetime_gauge = inp->spacetime_gauge;
   gr_euler->reinit_freq = inp->reinit_freq;
-  gr_euler->spacetime = inp->spacetime;
+  gr_euler->tov_eq = inp->tov_eq; // Optional static-TOV well-balancing (NULL -> inactive) (the equilibrium comes from the discrete slots, so no EOS constants needed)
+  
+  if (inp->rho_atm > 0.0) gr_euler_rho_floor = inp->rho_atm;
+  if (inp->p_atm > 0.0) gr_euler_p_floor = inp->p_atm;
 
   if (inp->rp_type == WV_GR_EULER_RP_LAX) {
     gr_euler->eqn.num_waves = 2;
@@ -1773,6 +1908,11 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
     gr_euler->eqn.num_waves = 2;
     gr_euler->eqn.waves_func = wave_hll_l;
     gr_euler->eqn.qfluct_func = qfluct_hll_l;
+  }
+  else if (inp->rp_type == WV_GR_EULER_RP_HLL_LAX) {
+    gr_euler->eqn.num_waves = 2;
+    gr_euler->eqn.waves_func = wave_hll_lax_l;
+    gr_euler->eqn.qfluct_func = qfluct_hll_l;  // identical to qfluct_lax;
   }
 
   gr_euler->eqn.flux_jump = flux_jump;
