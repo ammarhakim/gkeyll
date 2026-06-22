@@ -1,13 +1,14 @@
 /* -*- c++ -*- */
 
 extern "C" {
-#include <gkyl_array_ops_priv.h>
 #include <gkyl_dg_differentiate.h>
 #include <gkyl_dg_differentiate_priv.h>
 #include <gkyl_util.h>
 }
 
 #define START_ID (threadIdx.x + blockIdx.x*blockDim.x)
+// Compute size of 'arr' 
+#define NSIZE(arr) (arr->size)
 
 __global__ void
 gkyl_dg_differentiate_op_local_cu_kernel(struct gkyl_basis basis, int dir, int diff_order,

@@ -5,7 +5,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_dg_differentiate_local.h>
+#include <gkyl_dg_differentiate_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 

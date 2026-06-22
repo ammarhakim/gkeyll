@@ -70,14 +70,14 @@ test_dg_differentiate_1x(int poly_order, bool use_gpu)
 
   // Input field array.
   struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fin_ho = use_gpu? mkarr(use_gpu, fin->ncomp, fin->size)
+  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size)
                                      : gkyl_array_acquire(fin);
 
   gkyl_proj_on_basis_advance(proj_fin, 0.0, &local, fin_ho);
   gkyl_array_copy(fin, fin_ho);
 
   struct gkyl_array *derf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *derf_ho = use_gpu? mkarr(use_gpu, derf->ncomp, derf->size)
+  struct gkyl_array *derf_ho = use_gpu? mkarr(false, derf->ncomp, derf->size)
                                      : gkyl_array_acquire(derf);
   // Differentiate input field.
   int dir = 0;

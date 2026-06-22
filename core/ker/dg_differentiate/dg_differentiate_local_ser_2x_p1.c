@@ -1,4 +1,4 @@
-#include <gkyl_dg_differentiate.h>
+#include <gkyl_dg_differentiate_kernels.h>
 
 GKYL_CU_DH void 
 dg_differentiate_local_ser_2x_p1_dir0_order1(double dx, const double *fin, double *out) 
