@@ -111,14 +111,16 @@ __global__ static void
 gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   struct gkyl_array *bmag, struct gkyl_array *jacobgeo, struct gkyl_array *jacobgeo_ratio,
   struct gkyl_array *b_i, struct gkyl_array *cmag, struct gkyl_array *jacobtot_inv,
-  struct gkyl_array *B3, struct gkyl_array *normcurlbhat, struct gkyl_array *normals, struct gkyl_array *lenr, struct gkyl_array *bimpactangle,
+  struct gkyl_array *B3, struct gkyl_array *normcurlbhat, struct gkyl_array *normals, struct gkyl_array *lenr,
+  struct gkyl_array *bimpactangle, struct gkyl_array *deltats,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal,
-  struct gkyl_array *curlbhat_nodal, struct gkyl_array *normcurlbhat_nodal, struct gkyl_array *ddtheta_nodal, struct gkyl_array *ddpsi_nodal,
+  struct gkyl_array *curlbhat_nodal, struct gkyl_array *normcurlbhat_nodal, struct gkyl_array *ddtheta_nodal,
+  struct gkyl_array *ddpsi_nodal,
   struct gkyl_array *jacobgeo_nodal, struct gkyl_array *b_i_nodal, struct gkyl_array *b_i_nodal_fd,
   struct gkyl_array *cmag_nodal, struct gkyl_array *jacobtot_inv_nodal, struct gkyl_array *g_ij_nodal,
   struct gkyl_array *dxdz_nodal, struct gkyl_array *dzdx_nodal, struct gkyl_array *normals_nodal,
   struct gkyl_array *dualmag_nodal, struct gkyl_array *bcart_nodal, struct gkyl_array *B3_nodal,
-  struct gkyl_array *lenr_nodal, struct gkyl_array *bimpactangle_nodal
+  struct gkyl_array *lenr_nodal, struct gkyl_array *bimpactangle_nodal, struct gkyl_array *deltats_nodal
  )
 {
   // Expansions.
@@ -133,6 +135,7 @@ gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   gk_geom->geo_surf[dir].normals = normals;
   gk_geom->geo_surf[dir].lenr = lenr;
   gk_geom->geo_surf[dir].bimpactangle = bimpactangle;
+  gk_geom->geo_surf[dir].deltats = deltats;
   // Nodal.
   gk_geom->geo_surf[dir].mc2p_nodal_fd = mc2p_nodal_fd;
   gk_geom->geo_surf[dir].mc2p_nodal = mc2p_nodal;
@@ -155,6 +158,7 @@ gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   gk_geom->geo_surf[dir].B3_nodal = B3_nodal;
   gk_geom->geo_surf[dir].lenr_nodal = lenr_nodal;
   gk_geom->geo_surf[dir].bimpactangle_nodal = bimpactangle_nodal;
+  gk_geom->geo_surf[dir].deltats_nodal = deltats_nodal;
 }
 
 // Host-side wrapper for set_corn_cu_kernel
@@ -197,14 +201,14 @@ gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_
   gk_geometry_set_surf_cu_kernel<<<1,1>>>(gk_geom, dir,
     geo_surf->bmag->on_dev, geo_surf->jacobgeo->on_dev, geo_surf->jacobgeo_ratio->on_dev,
     geo_surf->b_i->on_dev, geo_surf->cmag->on_dev, geo_surf->jacobtot_inv->on_dev, geo_surf->B3->on_dev,
-    geo_surf->normcurlbhat->on_dev, geo_surf->normals->on_dev, geo_surf->lenr->on_dev, geo_surf->bimpactangle->on_dev,
+    geo_surf->normcurlbhat->on_dev, geo_surf->normals->on_dev, geo_surf->lenr->on_dev, geo_surf->bimpactangle->on_dev, geo_surf->deltats->on_dev,
     geo_surf->mc2p_nodal_fd->on_dev, geo_surf->mc2p_nodal->on_dev, geo_surf->bmag_nodal->on_dev,
     geo_surf->curlbhat_nodal->on_dev, geo_surf->normcurlbhat_nodal->on_dev, geo_surf->ddtheta_nodal->on_dev, geo_surf->ddpsi_nodal->on_dev,
     geo_surf->jacobgeo_nodal->on_dev, geo_surf->b_i_nodal->on_dev, geo_surf->b_i_nodal_fd->on_dev,
     geo_surf->cmag_nodal->on_dev, geo_surf->jacobtot_inv_nodal->on_dev, geo_surf->g_ij_nodal->on_dev,
     geo_surf->dxdz_nodal->on_dev, geo_surf->dzdx_nodal->on_dev, geo_surf->normals_nodal->on_dev,
     geo_surf->dualmag_nodal->on_dev, geo_surf->bcart_nodal->on_dev, geo_surf->B3_nodal->on_dev,
-    geo_surf->lenr_nodal->on_dev, geo_surf->bimpactangle->on_dev);
+    geo_surf->lenr_nodal->on_dev, geo_surf->bimpactangle->on_dev, geo_surf->deltats_nodal->on_dev);
 }
 
 struct gk_geom_corn*
@@ -372,6 +376,8 @@ gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
     up_surf_host.lenr->ncomp, up_surf_host.lenr->size);
   up_surf_dev->bimpactangle = gkyl_array_cu_dev_new(up_surf_host.bimpactangle->type,
     up_surf_host.bimpactangle->ncomp, up_surf_host.bimpactangle->size);
+  up_surf_dev->deltats = gkyl_array_cu_dev_new(up_surf_host.deltats->type,
+    up_surf_host.deltats->ncomp, up_surf_host.deltats->size);
   // Nodal.
   up_surf_dev->mc2p_nodal_fd = gkyl_array_cu_dev_new(up_surf_host.mc2p_nodal_fd->type,
     up_surf_host.mc2p_nodal_fd->ncomp, up_surf_host.mc2p_nodal_fd->size);
@@ -415,6 +421,8 @@ gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
     up_surf_host.lenr_nodal->ncomp, up_surf_host.lenr_nodal->size);
   up_surf_dev->bimpactangle_nodal = gkyl_array_cu_dev_new(up_surf_host.bimpactangle_nodal->type,
     up_surf_host.bimpactangle_nodal->ncomp, up_surf_host.bimpactangle_nodal->size);
+  up_surf_dev->deltats_nodal = gkyl_array_cu_dev_new(up_surf_host.deltats_nodal->type,
+    up_surf_host.deltats_nodal->ncomp, up_surf_host.deltats_nodal->size);
   return up_surf_dev;
 }
 
@@ -461,6 +469,12 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
       assert(false);
     }
   }
+
+  // Function pointers to twistshift function.
+  up->parallel_lower_bc_shift_func = geometry_inp->parallel_lower_bc_shift_func;
+  up->parallel_upper_bc_shift_func = geometry_inp->parallel_upper_bc_shift_func;
+  up->parallel_lower_bc_shift_ctx  = geometry_inp->parallel_lower_bc_shift_ctx ;
+  up->parallel_upper_bc_shift_ctx  = geometry_inp->parallel_upper_bc_shift_ctx ;
 
   struct gk_geom_corn *geo_corn_dev = gk_geometry_corn_cu_dev_alloc(geo_host->geo_corn);
   struct gk_geom_int *geo_int_dev = gk_geometry_int_cu_dev_alloc(geo_host->geo_int);
@@ -547,6 +561,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     gkyl_array_copy(geo_surf_dev[dir]->normals, geo_host->geo_surf[dir].normals);
     gkyl_array_copy(geo_surf_dev[dir]->lenr, geo_host->geo_surf[dir].lenr);
     gkyl_array_copy(geo_surf_dev[dir]->bimpactangle, geo_host->geo_surf[dir].bimpactangle);
+    gkyl_array_copy(geo_surf_dev[dir]->deltats, geo_host->geo_surf[dir].deltats);
     // Nodal.
     gkyl_array_copy(geo_surf_dev[dir]->mc2p_nodal_fd, geo_host->geo_surf[dir].mc2p_nodal_fd);
     gkyl_array_copy(geo_surf_dev[dir]->mc2p_nodal, geo_host->geo_surf[dir].mc2p_nodal);
@@ -569,6 +584,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     gkyl_array_copy(geo_surf_dev[dir]->B3_nodal, geo_host->geo_surf[dir].B3_nodal);
     gkyl_array_copy(geo_surf_dev[dir]->lenr_nodal, geo_host->geo_surf[dir].lenr_nodal);
     gkyl_array_copy(geo_surf_dev[dir]->bimpactangle_nodal, geo_host->geo_surf[dir].bimpactangle_nodal);
+    gkyl_array_copy(geo_surf_dev[dir]->deltats_nodal, geo_host->geo_surf[dir].deltats_nodal);
   }
 
   up->flags = 0;
@@ -667,6 +683,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     up->geo_surf[dir].normals = geo_surf_dev[dir]->normals;
     up->geo_surf[dir].lenr = geo_surf_dev[dir]->lenr;
     up->geo_surf[dir].bimpactangle = geo_surf_dev[dir]->bimpactangle;
+    up->geo_surf[dir].deltats = geo_surf_dev[dir]->deltats;
     // Nodal.
     up->geo_surf[dir].mc2p_nodal_fd = geo_surf_dev[dir]->mc2p_nodal_fd;
     up->geo_surf[dir].mc2p_nodal = geo_surf_dev[dir]->mc2p_nodal;
@@ -689,12 +706,13 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     up->geo_surf[dir].B3_nodal = geo_surf_dev[dir]->B3_nodal;
     up->geo_surf[dir].lenr_nodal = geo_surf_dev[dir]->lenr_nodal;
     up->geo_surf[dir].bimpactangle_nodal = geo_surf_dev[dir]->bimpactangle_nodal;
+    up->geo_surf[dir].deltats_nodal = geo_surf_dev[dir]->deltats_nodal;
     gkyl_free(geo_surf_dev[dir]);
   }
 
   // Copy metadata.
-  up->io_meta = gkyl_msgpack_map_elem_clone(geo_host->io_meta_len, geo_host->io_meta);
-  up->io_meta_len = geo_host->io_meta_len;
+  up->io_meta_basic = gkyl_msgpack_map_elem_clone(geo_host->io_meta_basic_len, geo_host->io_meta_basic);
+  up->io_meta_basic_len = geo_host->io_meta_basic_len;
  
   return up;
 }

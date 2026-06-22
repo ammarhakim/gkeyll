@@ -19,16 +19,15 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   // Compute external EM field or applied currents if present and time-dependent.
   // Note: external EM field and  applied currents use proj_on_basis 
   // so does copy to GPU every call if app->use_gpu = true.
-  if (app->has_field) {
-    if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
-      app->field_app_current_calc(app, app->field, tcurr); 
-    }
-    if (app->field->ext_em_evolve) {
-      app->field_ext_em_calc(app, app->field, tcurr);
-    }
-    if (app->field->ext_pot_evolve) {
-      app->field_ext_pot_calc(app, app->field, tcurr);
-    }
+  // A field object always exists; the null field has all evolve flags false.
+  if (app->field->app_current_evolve && !app->has_fluid_em_coupling) {
+    vlasov_field_calc_app_current(app, tcurr);
+  }
+  if (app->field->ext_em_evolve) {
+    vlasov_field_calc_ext_em(app, tcurr);
+  }
+  if (app->field->ext_pot_evolve) {
+    vlasov_field_calc_ext_pot(app, tcurr);
   }
   // Compute applied acceleration if if present and time-dependent.
   for (int i=0; i<app->num_species; ++i) {
@@ -36,6 +35,14 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_species_collisionless_app_accel(app, &app->species[i].collisionless, tcurr);
     }
   }
+
+  // Update the field at the start of the step so the species RHS sees the
+  // correct field/potential. For Vlasov-Maxwell this computes the RHS of
+  // Maxwell's equations (whose order relative to the species RHS does not
+  // matter); for Vlasov-Poisson this solves for the potential at the current
+  // time from the charge density (which the species RHS reads below).
+  double dt1_field = vlasov_field_update(app, tcurr, fin, emin, emout);
+  dtmin = fmin(dtmin, dt1_field); // null field returns DBL_MAX (no constraint)
 
   // compute necessary moments and boundary corrections for collisions
   for (int i=0; i<app->num_species; ++i) {
@@ -85,14 +92,6 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
       vm_fluid_species_source_rhs(app, &app->fluid_species[i], &app->fluid_species[i].src, fluidin, fluidout);
     }
   }
-  // compute RHS of Maxwell equations
-  if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
-      double dt1 = vm_field_rhs(app, app->field, emin, emout);
-      dtmin = fmin(dtmin, dt1);
-    }
-  }
-
   double dt_max_rel_diff = 0.01;
   // check if dtmin is slightly smaller than dt. Use dt if it is
   // (avoids retaking steps if dt changes are very small).
@@ -119,25 +118,8 @@ vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
     gkyl_array_accumulate(gkyl_array_scale(fluidout[i], dta), 1.0, fluidin[i]);
   }
 
-  if (app->has_field) {
-    if (app->field->field_id == GKYL_FIELD_E_B || app->field->field_id == GKYL_FIELD_GR_D_B) {
-      struct timespec wst = gkyl_wall_clock();
-
-      // (can't accumulate current when field is static)
-      if (!app->field->info.is_static) {
-        // accumulate current contribution from kinetic species to electric field terms
-        vm_field_accumulate_current(app, fin, fluidin, emout);
-        app->stat.current_tm += gkyl_time_diff_now_sec(wst);
-      }
-
-      // accumulate geometric source terms
-      if (app->field->use_geom_sources) {
-        vm_field_accumulate_geom_sources(app, emin, app->vm_geom, emout);
-      }
-
-      // complete update of field (even when field is static, it is
-      // safest to do this accumulate as it ensure emout = emin)
-      gkyl_array_accumulate(gkyl_array_scale(emout, dta), 1.0, emin);
-    }
-  }
+  // Complete the field update: for Vlasov-Maxwell, accumulate the species
+  // current onto the RHS and finalize emout = emin + dta*RHS; no-op for
+  // Vlasov-Poisson (potential solved at the start of the step) and the null field.
+  vlasov_field_complete_update(app, dta, fin, fluidin, emin, emout);
 }

@@ -6,6 +6,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_vlasov_kernels.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
@@ -83,7 +84,8 @@ struct dg_vlasov {
   struct gkyl_range conf_range; // Configuration-space range for use in indexing forces (EM fields, potentials, etc.)
   struct gkyl_range vel_range; // Velocity-space range for use in velocity-space Jacobian. 
   struct gkyl_range phase_range; // Range for indexing velocity-space flux.
-  const struct gkyl_array *jacob_vel; // Velocity-space Jacobian. 
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired host-side for lifetime safety; 0 if not given).
+  const struct gkyl_array *jacob_vel; // Velocity-space Jacobian (borrowed from vel_map; device pointer on GPUs).
   const struct gkyl_array *poisson_tensor_conf; // Hamiltonian utilized to compute advection in configuration and velocity space.
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).

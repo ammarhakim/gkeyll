@@ -14,25 +14,25 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     gkyl_array_accumulate_range(cls->qmem, 1.0, cls->app_accel, &app->local);
   }
 
-  if (app->has_field) {
-    if (app->field->has_ext_em) {
-      gkyl_array_accumulate_range(cls->qmem, cls->qbym, app->field->ext_em, &app->local);
-    }
+  // A field object always exists; for the null field (GKYL_FIELD_NULL) none of
+  // these force terms fire (has_ext_em is false and the field type matches none).
+  if (app->field->has_ext_em) {
+    gkyl_array_accumulate_range(cls->qmem, cls->qbym, app->field->ext_em, &app->local);
+  }
 
-    if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
-      gkyl_array_accumulate_range(cls->qmem, cls->qbym, em, &app->local);
-    }
-    else if (vms->field_id == GKYL_FIELD_PHI) {
-      gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
-      if (app->field->has_ext_pot) {
-        gkyl_array_accumulate_offset(cls->pot_tot, cls->qbym, app->field->ext_pot, 0);
-      }
+  if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
+    gkyl_array_accumulate_range(cls->qmem, cls->qbym, em, &app->local);
+  }
+  else if (vms->field_id == GKYL_FIELD_PHI) {
+    gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
+    if (app->field->has_ext_pot) {
+      gkyl_array_accumulate_offset(cls->pot_tot, cls->qbym, app->field->ext_pot, 0);
     }
   }
 
-  // Divide out velocity-space Jacobian. 
-  gkyl_dg_vlasov_divide_Jv(&app->basis, &vms->basis, &vms->local_vel, &vms->local, 
-    vms->jacob_vel_gauss, fin, vms->f_no_J, app->use_gpu); 
+  // Divide out velocity-space Jacobian.
+  gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+    &vms->local, fin, vms->f_no_J);
 
   // Compute the surface expansion of the phase space flux in configuration space. 
   if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
@@ -40,9 +40,9 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
       vms->conf_poisson_tensor, vms->hamil, fin, vms->cflrate, cls->conf_flux_surf);
   }
 
-  // Compute the surface expansion of the phase space flux in velocity space. 
-  gkyl_dg_vlasov_vel_flux_surf_advance(cls->calc_vel_flux, &app->local, &vms->local, 
-    vms->jacob_vel_surf, vms->conf_poisson_tensor, vms->hamil, cls->qmem, cls->pot_tot, vms->rad, 
+  // Compute the surface expansion of the phase space flux in velocity space.
+  gkyl_dg_vlasov_vel_flux_surf_advance(cls->calc_vel_flux, &app->local, &vms->local,
+    vms->conf_poisson_tensor, vms->hamil, cls->qmem, cls->pot_tot, vms->rad,
     vms->f_no_J, vms->cflrate, cls->vel_flux_surf);
 
   gkyl_hyper_dg_advance(cls->slvr, &vms->local, fin, vms->cflrate, rhs);
@@ -94,20 +94,21 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
 
   // Determine which forces we need based on combination of field ID and presence 
   // of applied accelerations and external fields/potentials. 
-  cls->has_E = false; 
-  cls->has_B = false; 
-  cls->has_phi = false; 
-  if (app->has_field) {
-    if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em || vms->field_id == GKYL_FIELD_GR_D_B) {
-      cls->has_E = true; 
-      cls->has_B = true; 
-    } 
-    if (vms->field_id == GKYL_FIELD_PHI) {
-      cls->has_phi = true; 
-    }
+  // A field object always exists (a null field with field_id == GKYL_FIELD_NULL
+  // when none is present), so dispatch on the field type. With no field force
+  // (GKYL_FIELD_NULL), an applied acceleration still acts as an electric force.
+  cls->has_E = false;
+  cls->has_B = false;
+  cls->has_phi = false;
+  if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em || vms->field_id == GKYL_FIELD_GR_D_B) {
+    cls->has_E = true;
+    cls->has_B = true;
   }
-  else if (cls->has_app_accel) {
-    cls->has_E = true; 
+  if (vms->field_id == GKYL_FIELD_PHI) {
+    cls->has_phi = true;
+  }
+  if (vms->field_id == GKYL_FIELD_NULL && cls->has_app_accel) {
+    cls->has_E = true;
   }
   cls->use_lo = false; 
   if (vms->info.use_lo == true) {
@@ -165,10 +166,10 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   // Allocate nodal surface expansion of velocity space flux array (vel).
   cls->vel_flux_surf = mkarr(app->use_gpu, vdim*cls->num_surf_vel_nodes, vms->local_ext.volume);
   struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
-    .phase_grid = &vms->grid, 
+    .phase_grid = &vms->grid,
     .conf_basis = &app->basis,
     .phase_basis = &vms->basis,
-    .vel_range = &vms->local_vel,
+    .vel_map = vms->vel_map,
     .hamil_range = &vms->hamil_range,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
     .model_id = vms->model_id,
@@ -187,10 +188,8 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .conf_range =  &app->local,
     .hamil_range = &vms->hamil_range,
     .phase_range = &vms->local,
-    .vel_range = &vms->local_vel,
-    .use_vmap = vms->use_vmap, 
-    .jacob_vel = vms->jacob_vel, 
-    .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
+    .vel_map = vms->vel_map,
+    .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0,
     .model_id = vms->model_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 

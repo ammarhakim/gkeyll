@@ -43,8 +43,8 @@ struct gkyl_dg_vlasov_conf_flux_surf {
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped. 
   int hamil_dim; // Dimensionality of Hamiltonian. 
   int hamil_offset; // Offset for indexing Hamiltonian from phase-space index. 
-  struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either Configuration-space range or full phase-space range).
-  struct gkyl_range vel_range; // Configuration-space range for use in Configuration-space Jacobian. 
+  struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either Velocity-space range or full phase-space range).
+  struct gkyl_range vel_range; // Velocity-space range for use in Velocity-space Jacobian. 
   hamil_alpha_quad_conf_t hamil_alpha_quad[3]; // Hamiltonian contribution to alpha_c at quadrature points. 
   lax_flux_nodal_to_modal_t lax_flux_nodal_to_modal[3]; // Convert nodal Lax-Friedrichs flux to modal surface expansion. 
   conf_flux_surf_t conf_flux_surf; // Assembly function for computing modal surface expansion of configuration-space fluxes. 
@@ -394,7 +394,6 @@ static const gkyl_conf_flux_surf_kern_list conf_flux_surf_kernels[] = {
   { NULL, conf_flux_surf_3x3v_p1, NULL, NULL }, // 6
 };
 
-
 // Nodal Lax-Friedrichs to modal Configuration-space flux conversion (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_lax_flux_nodal_to_modal_kern_list ser_lax_flux_nodal_to_modal_x_kernels[] = {
@@ -652,10 +651,6 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_ho_alpha_quad_z_kerne
   // 3x kernels
   { NULL, hamil_vel_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
 };
-
-
-
-
 
 // alpha_c evaluated at quadrature points for general (NC) Hamiltonian forces (Serendipity basis). 
 GKYL_CU_D

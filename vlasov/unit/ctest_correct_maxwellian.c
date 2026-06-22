@@ -102,7 +102,7 @@ test_1x1v(int poly_order, bool use_gpu)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0, 0};
   struct gkyl_range velLocal, velLocal_ext; 
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 
@@ -152,8 +152,12 @@ test_1x1v(int poly_order, bool use_gpu)
   struct gkyl_array *gamma_inv;
   hamil = mkarr(velBasis.num_basis, velLocal.volume);
   gamma_inv = mkarr(velBasis.num_basis, velLocal.volume);
+  // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
+    &velLocal, &velBasis, inp_vmap, false);
   gkyl_dg_vlasov_calc_hamil(&vel_grid, &velBasis, &velLocal, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, false); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, false);
 
   // projection updater to compute LTE distribution
   struct gkyl_vlasov_lte_proj_on_basis_inp inp_lte = {
@@ -169,9 +173,9 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
-    .use_vmap = false,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };  
   gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_lte);
   gkyl_vlasov_lte_proj_on_basis_advance(proj_lte, &local, &confLocal, moms, distf);
@@ -190,9 +194,9 @@ test_1x1v(int poly_order, bool use_gpu)
     .hamil = hamil,
     .hamil_range = &velLocal,
     .model_id = GKYL_MODEL_DEFAULT,
-    .use_vmap = false,
     .use_extended_hamil_def = false,
     .use_gpu = false,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_moments *lte_moms = gkyl_vlasov_lte_moments_inew( &inp_mom );
 
@@ -214,6 +218,7 @@ test_1x1v(int poly_order, bool use_gpu)
     .use_gpu = false,
     .max_iter = 100,
     .eps = 1e-12,
+    .vel_map = vel_map,
   };
   gkyl_vlasov_lte_correct *corr_lte = gkyl_vlasov_lte_correct_inew( &inp );
 
@@ -278,6 +283,7 @@ test_1x1v(int poly_order, bool use_gpu)
   }
 
   gkyl_array_release(hamil);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(gamma_inv);
 
   gkyl_array_release(m0_corr);

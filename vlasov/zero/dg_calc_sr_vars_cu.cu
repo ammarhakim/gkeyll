@@ -228,10 +228,10 @@ dg_calc_sr_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_sr_vars *up,
 }
 
 gkyl_dg_calc_sr_vars*
-gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis, 
-  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range, 
-  const struct gkyl_array *vmap, bool use_vmap)
+gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *vel_basis,
+  const struct gkyl_range *mem_range, const struct gkyl_range *vel_range,
+  const struct gkyl_vlasov_velocity_map *vel_map)
 {
   struct gkyl_dg_calc_sr_vars *up = (struct gkyl_dg_calc_sr_vars*) gkyl_malloc(sizeof(*up));
 
@@ -248,10 +248,10 @@ gkyl_dg_calc_sr_vars_cu_dev_new(const struct gkyl_rect_grid *phase_grid, const s
   up->mem_range = *mem_range;
 
   int vdim = vel_basis->ndim;
-  up->use_vmap = use_vmap;
-  up->vmap = 0; 
+  up->use_vmap = vel_map && vel_map->is_mapped;
+  up->vmap = 0;
   if (up->use_vmap) {
-    up->vmap = gkyl_array_acquire(vmap);
+    up->vmap = gkyl_array_acquire(vel_map->vmap);
   }
 
   // Linear system for solving for the drift velocity V_drift = M1i/M0 

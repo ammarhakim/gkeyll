@@ -105,6 +105,7 @@ gk_neut_species_kinetic_moment_init(struct gkyl_gyrokinetic_app *app, struct gk_
         .det_h = app->gk_geom->geo_int.jacobgeo,
         .hamil = s->hamil,
         .model_id = s->model_id,
+        .vel_map = s->vlasov_vel_map,
         .use_extended_hamil_def = false,
         .use_gpu = app->use_gpu,
       };

@@ -9,18 +9,23 @@
 #include <gkyl_util.h>
 
 void
-gkyl_dg_vlasov_calc_hamil(const struct gkyl_rect_grid *vel_grid, 
-  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range, 
-  enum gkyl_model_id model_id, const struct gkyl_array *vmap, 
+gkyl_dg_vlasov_calc_hamil(const struct gkyl_rect_grid *vel_grid,
+  const struct gkyl_basis *vel_basis, const struct gkyl_range *vel_range,
+  enum gkyl_model_id model_id, const struct gkyl_vlasov_velocity_map *vel_map,
   struct gkyl_array *hamil, struct gkyl_array *hamil_inv, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if(use_gpu) {
-    gkyl_dg_vlasov_calc_hamil_cu(vel_grid, vel_basis, vel_range, 
-      model_id, vmap, hamil, hamil_inv);
+    gkyl_dg_vlasov_calc_hamil_cu(vel_grid, vel_basis, vel_range,
+      model_id, vel_map, hamil, hamil_inv);
     return;
-  } 
-#endif 
+  }
+#endif
+
+  // The velocity map is required: the kernels always evaluate the velocity
+  // coordinate from the stored map (identity map for uniform grids).
+  assert(vel_map);
+  const struct gkyl_array *vmap = vel_map->vmap;
 
   int vdim = vel_basis->ndim;
   int poly_order = vel_basis->poly_order;

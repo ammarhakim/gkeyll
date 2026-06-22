@@ -5,7 +5,6 @@
 void
 eval_non_relativistic_lapse(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Flat Geometry, so lapse is 1.
   fout[0] = 1.0;
 }
@@ -13,18 +12,15 @@ eval_non_relativistic_lapse(double t, const double* GKYL_RESTRICT xn, double* GK
 void
 eval_non_relativistic_shift(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Flat Geometry, so shift is 0.
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 0.0;
 }
 
-
 void
 eval_flat_h_ij(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  
   // theta = pi/2
   double r = xn[0];
 
@@ -65,19 +61,14 @@ eval_geom_factor_flat(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 void
 eval_flat_det_h(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  
   // determinant is simply 1
   fout[0] = 1.0;
 
 }
 
-
-
-
 void
 eval_annulus_h_ij(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  
   // theta = pi/2
   double r = xn[0];
 
@@ -131,21 +122,15 @@ eval_geom_factor_annulus(double t, const double* GKYL_RESTRICT xn, double* GKYL_
 void
 eval_annulus_det_h(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  
   // determinant is simply r
   double r = xn[0];
 
   fout[0] = r;
 }
 
-
-
-
-
 void
 eval_spherical_h_ij_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  
   // theta = pi/2
   double r = xn[0];
   double theta = xn[1];
@@ -209,14 +194,9 @@ eval_spherical_det_h_rtheta(double t, const double* GKYL_RESTRICT xn, double* GK
   fout[0] = r * r * sin(theta);
 }
 
-
-
-
-
 void
 eval_ks_lapse_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
@@ -235,7 +215,6 @@ eval_ks_lapse_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 eval_ks_lapse_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
@@ -254,7 +233,6 @@ eval_ks_lapse_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
 void
 eval_ks_shift_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
@@ -275,7 +253,6 @@ eval_ks_shift_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 eval_ks_shift_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
@@ -296,7 +273,6 @@ eval_ks_shift_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_REST
 void
 eval_ks_h_ij_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
@@ -374,7 +350,6 @@ eval_geom_factor_ks_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RES
 void
 eval_ks_h_ij_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
@@ -457,7 +432,6 @@ eval_geom_factor_ks_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKY
 void
 eval_ks_det_h_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;
@@ -476,7 +450,6 @@ eval_ks_det_h_r(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void
 eval_ks_det_h_rtheta(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-
   // Grab the geometry
   const struct gkyl_dg_gr_maxwell_geom_ctx *geom = ctx;
   double a = geom->spin_bh;

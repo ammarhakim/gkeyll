@@ -8,20 +8,20 @@ extern "C" {
 #include <gkyl_alloc_flags_priv.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_ops_priv.h>
-#include <gkyl_dg_vlasov_divide_Jv.h>
-#include <gkyl_dg_vlasov_divide_Jv_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_velocity_map_priv.h>
 }
 
 __global__ void
-gkyl_dg_vlasov_divide_Jv_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_basis phase_basis, 
-  struct gkyl_range vel_range, struct gkyl_range phase_range, 
-  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *Jf, 
+gkyl_vlasov_velocity_map_divide_jacobvel_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_basis phase_basis,
+  struct gkyl_range vel_range, struct gkyl_range phase_range,
+  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *Jf,
   struct gkyl_array *f_no_J)
 {
-  int cdim = conf_basis.ndim; 
+  int cdim = conf_basis.ndim;
   int pdim = phase_basis.ndim;
-  int vdim = pdim - cdim; 
+  int vdim = pdim - cdim;
   int poly_order = phase_basis.poly_order;
   divide_Jv_t divide_Jv;
   switch (conf_basis.b_type) {
@@ -34,7 +34,7 @@ gkyl_dg_vlasov_divide_Jv_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_bas
 
     default:
       assert(false);
-      break;    
+      break;
   }
 
   int idx[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM];
@@ -56,34 +56,35 @@ gkyl_dg_vlasov_divide_Jv_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_bas
 
     const double *Jf_d = (const double*) gkyl_array_cfetch(Jf, pidx);
     double *f_no_J_d = (double*) gkyl_array_fetch(f_no_J, pidx);
-    divide_Jv(jacob_vel_gauss ? (const double*) gkyl_array_cfetch(jacob_vel_gauss, vidx) : 0,
+    divide_Jv((const double*) gkyl_array_cfetch(jacob_vel_gauss, vidx),
       Jf_d, f_no_J_d);
   }
 }
 
-// Host-side wrapper for dividing out velocity-space Jacobian from Jf. 
+// Host-side wrapper for dividing out velocity-space Jacobian from Jf.
 void
-gkyl_dg_vlasov_divide_Jv_cu(const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *vel_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *Jf, 
+gkyl_vlasov_velocity_map_divide_jacobvel_cu(const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *Jf,
   struct gkyl_array *f_no_J)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_vlasov_divide_Jv_cu_kernel<<<nblocks, nthreads>>>(*conf_basis, *phase_basis, 
-    *vel_range, *phase_range, jacob_vel_gauss ? jacob_vel_gauss->on_dev : 0, 
+  gkyl_vlasov_velocity_map_divide_jacobvel_cu_kernel<<<nblocks, nthreads>>>(*conf_basis, *phase_basis,
+    *vel_range, *phase_range, jacob_vel_gauss->on_dev,
     Jf->on_dev, f_no_J->on_dev);
 }
 
 __global__ void
-gkyl_dg_vlasov_rescale_Jv_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_basis phase_basis, 
-  struct gkyl_range vel_range, struct gkyl_range phase_range, 
-  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *f_no_J, 
+gkyl_vlasov_velocity_map_rescale_jacobvel_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_basis phase_basis,
+  struct gkyl_range vel_range, struct gkyl_range phase_range,
+  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *f_no_J,
   struct gkyl_array *Jf)
 {
-  int cdim = conf_basis.ndim; 
+  int cdim = conf_basis.ndim;
   int pdim = phase_basis.ndim;
-  int vdim = pdim - cdim; 
+  int vdim = pdim - cdim;
   int poly_order = phase_basis.poly_order;
   rescale_Jv_t rescale_Jv;
   switch (conf_basis.b_type) {
@@ -96,7 +97,7 @@ gkyl_dg_vlasov_rescale_Jv_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_ba
 
     default:
       assert(false);
-      break;    
+      break;
   }
 
   int idx[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM];
@@ -118,21 +119,22 @@ gkyl_dg_vlasov_rescale_Jv_cu_kernel(struct gkyl_basis conf_basis, struct gkyl_ba
 
     const double *f_no_J_d = (const double*) gkyl_array_cfetch(f_no_J, pidx);
     double *Jf_d = (double*) gkyl_array_fetch(Jf, pidx);
-    rescale_Jv(jacob_vel_gauss ? (const double*) gkyl_array_cfetch(jacob_vel_gauss, vidx) : 0,
+    rescale_Jv((const double*) gkyl_array_cfetch(jacob_vel_gauss, vidx),
       f_no_J_d, Jf_d);
   }
 }
 
-// Host-side wrapper for multiplying velocity-space Jacobian by f to obtain Jf. 
+// Host-side wrapper for multiplying velocity-space Jacobian by f to obtain Jf.
 void
-gkyl_dg_vlasov_rescale_Jv_cu(const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis, 
-  const struct gkyl_range *vel_range, const struct gkyl_range *phase_range, 
-  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *f_no_J, 
+gkyl_vlasov_velocity_map_rescale_jacobvel_cu(const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *vel_range, const struct gkyl_range *phase_range,
+  const struct gkyl_array *jacob_vel_gauss, const struct gkyl_array *f_no_J,
   struct gkyl_array *Jf)
 {
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
-  gkyl_dg_vlasov_rescale_Jv_cu_kernel<<<nblocks, nthreads>>>(*conf_basis, *phase_basis, 
-    *vel_range, *phase_range, jacob_vel_gauss ? jacob_vel_gauss->on_dev : 0, 
+  gkyl_vlasov_velocity_map_rescale_jacobvel_cu_kernel<<<nblocks, nthreads>>>(*conf_basis, *phase_basis,
+    *vel_range, *phase_range, jacob_vel_gauss->on_dev,
     f_no_J->on_dev, Jf->on_dev);
 }

@@ -101,7 +101,14 @@ vlasovApp = Vlasov.App.new {
       end,
       
       numCrossCollisions = 1,
-      collideWith = { "neut2" }
+      collideWith = { "neut2" },
+      collideWithCrossNu = {
+        {
+          crossNu = function (t, xn)
+            return math.sqrt(2.0) * (mass_neut2 / mass_neut1) * nu_neut2
+          end
+        }
+      }
     },
 
     evolve = true, -- Evolve species?
@@ -143,7 +150,14 @@ vlasovApp = Vlasov.App.new {
       end,
       
       numCrossCollisions = 1,
-      collideWith = { "neut1" }
+      collideWith = { "neut1" },
+      collideWithCrossNu = {
+        {
+          crossNu = function (t, xn)
+            return math.sqrt(2.0) * nu_neut2
+          end
+        }
+      }
     },
 
     evolve = true, -- Evolve species?

@@ -188,7 +188,7 @@ static void
 gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for kinetic neutral species.
-  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+  gkyl_msgpack_map_elem_release(ns->io_meta_grid_len, ns->io_meta_grid);
 
   gkyl_array_release(ns->f);
   if (ns->info.init_from_file.type == 0) {
@@ -202,6 +202,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   }
 
   gkyl_velocity_map_release(ns->vel_map);
+  gkyl_vlasov_velocity_map_release(ns->vlasov_vel_map);
 
   // Release moment data.
   gk_neut_species_moment_release(app, &ns->m0);
@@ -674,8 +675,19 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
+  // Identity Vlasov velocity map: the Vlasov moment and LTE updaters always
+  // evaluate the velocity coordinate from the stored map.
+  struct gkyl_basis vel_basis;
+  if (app->poly_order > 1)
+    gkyl_cart_modal_serendip(&vel_basis, vdim, app->poly_order);
+  else
+    gkyl_cart_modal_tensor(&vel_basis, vdim, app->poly_order); // for canonical PB
+  struct gkyl_vlasov_velocity_map_inp inp_vvmap[GKYL_MAX_CDIM] = { 0 };
+  s->vlasov_vel_map = gkyl_vlasov_velocity_map_new(&s->grid_vel, &s->local_vel,
+    &vel_basis, inp_vvmap, app->use_gpu);
+
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
+  // add the parallel direction in case TS BCs are needed.
   s->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<s->num_periodic_dir; ++d)
     s->periodic_dirs[d] = app->periodic_dirs[d];
@@ -707,11 +719,13 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
 
   // Metadata for gk_neut_species app.
   struct gkyl_msgpack_map_elem io_meta[] = {
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id }
   };
-  s->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  s->io_meta = gkyl_msgpack_map_elem_clone(s->io_meta_len, io_meta);
+  s->io_meta_grid_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  s->io_meta_grid = gkyl_msgpack_map_elem_clone(s->io_meta_grid_len, io_meta);
 
   // Allocate distribution function array for initialization and I/O.
   s->f = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);

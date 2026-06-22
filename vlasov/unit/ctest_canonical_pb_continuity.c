@@ -65,7 +65,7 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_rect_grid_init(&vel_grid, vdim, velLower, velUpper, velCells);
 
   // velocity range
-  int velGhost[] = {0};
+  int velGhost[] = {0, 0, 0};
   struct gkyl_range velLocal, velLocal_ext; 
   gkyl_create_grid_ranges(&vel_grid, velGhost, &velLocal_ext, &velLocal);
 

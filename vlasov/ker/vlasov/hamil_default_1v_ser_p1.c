@@ -3,16 +3,16 @@ GKYL_CU_DH void hamil_default_1v_ser_p1(const double *w, const double *dxv, cons
 { 
   // w:   Cell-center coordinates of velocity grid.
   // dxv: Cell spacing of velocity grid.
-  // vmap: Velocity-space map for nonuniform meshes.
+  // vmap: Velocity-space map (C^1 cubic for tensor bases, C^0 linear for Serendipity bases, stored in the same vdim*4 layout).
   // hamil: Particle Hamiltonian.
   // hamil_inv: Inverse particle Hamiltonian. Utilized by relativistic simulations. 
  
-  double wx1 = w[0], dv1 = dxv[0]; 
+  const double *vmap_vx = &vmap[0]; 
   double hamil_nodal[2] = {0.0};
   double hamil_inv_nodal[2] = {0.0};
-  hamil_nodal[0] = 0.5*(pow(wx1-0.5*dv1, 2.0));
+  hamil_nodal[0] = 0.5*(pow(0.7071067811865475*vmap_vx[0]-1.224744871391589*vmap_vx[1], 2.0));
   hamil_inv_nodal[0] = 1.0/hamil_nodal[0];
-  hamil_nodal[1] = 0.5*(pow(wx1+0.5*dv1, 2.0));
+  hamil_nodal[1] = 0.5*(pow(1.224744871391589*vmap_vx[1]+0.7071067811865475*vmap_vx[0], 2.0));
   hamil_inv_nodal[1] = 1.0/hamil_nodal[1];
 
   hamil[0] = 0.7071067811865475*hamil_nodal[1]+0.7071067811865475*hamil_nodal[0]; 

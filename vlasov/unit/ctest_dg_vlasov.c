@@ -9,6 +9,7 @@
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_priv.h>
+#include <gkyl_vlasov_velocity_map.h>
 #include <gkyl_hyper_dg.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -66,8 +67,12 @@ test_dg_vlasov()
     // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr1(false, vbasis.num_basis, velRange.volume);
   struct gkyl_array *gamma_inv = mkarr1(false, vbasis.num_basis, velRange.volume);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &vbasis, inp_vmap, false);
+
   gkyl_dg_vlasov_calc_hamil(&velGrid, &vbasis, &velRange, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, false); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, false);
 
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
@@ -84,9 +89,7 @@ test_dg_vlasov()
     .conf_range =  &confRange,
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
-    .vel_range = &velRange,
-    .use_vmap = false, 
-    .jacob_vel = false, 
+    .vel_map = vel_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
     .has_E = true, 
@@ -116,6 +119,7 @@ test_dg_vlasov()
   TEST_CHECK( vlasov->conf_range.volume == 100 );
 
   gkyl_dg_eqn_release(eqn);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(qmem);
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);
@@ -169,8 +173,12 @@ test_cu_dg_vlasov()
     // build hamil and gamma_inv
   struct gkyl_array *hamil = mkarr1(true, vbasis.num_basis, velRange.volume);
   struct gkyl_array *gamma_inv = mkarr1(true, vbasis.num_basis, velRange.volume);
+  struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &vbasis, inp_vmap, true);
+
   gkyl_dg_vlasov_calc_hamil(&velGrid, &vbasis, &velRange, 
-    GKYL_MODEL_DEFAULT, 0, hamil, gamma_inv, true); 
+    GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, true);
 
   // Sturcture pointers for input objects (but not used)
   int num_pt_indices[3] = { 1 , 6, 18 }; 
@@ -187,9 +195,7 @@ test_cu_dg_vlasov()
     .conf_range =  &confRange,
     .hamil_range = &velRange,
     .phase_range = &phaseRange,
-    .vel_range = &velRange,
-    .use_vmap = false, 
-    .jacob_vel = false, 
+    .vel_map = vel_map,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
     .has_E = true, 
@@ -219,6 +225,7 @@ test_cu_dg_vlasov()
   TEST_CHECK( vlasov->conf_range.volume == 100 );
 
   gkyl_dg_eqn_release(eqn);
+  gkyl_vlasov_velocity_map_release(vel_map);
   gkyl_array_release(qmem);
   gkyl_array_release(hamil);
   gkyl_array_release(gamma_inv);

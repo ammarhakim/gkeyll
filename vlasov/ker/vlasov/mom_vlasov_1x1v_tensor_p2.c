@@ -11,22 +11,31 @@ GKYL_CU_DH void mom_vlasov_M2ij_1x1v_tensor_p2(const double *w, const double *dx
   const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]/2; 
-  double wx1 = w[1], dv1 = dxv[1]; 
-  double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  out[0] += volFact*(1.4142135623730951*f[0]*wx1_sq+0.8164965809277261*f[2]*dv1*wx1+0.10540925533894596*f[5]*dv1_sq+0.11785113019775789*f[0]*dv1_sq); 
-  out[1] += volFact*(1.4142135623730951*f[1]*wx1_sq+0.8164965809277261*f[3]*dv1*wx1+0.105409255338946*f[7]*dv1_sq+0.11785113019775789*f[1]*dv1_sq); 
-  out[2] += volFact*(1.4142135623730951*f[4]*wx1_sq+0.816496580927726*f[6]*dv1*wx1+0.10540925533894596*f[8]*dv1_sq+0.11785113019775789*f[4]*dv1_sq); 
+  const double *vmap_vx = &vmap[0]; 
+  const double vmap_vx0_sq = vmap_vx[0]*vmap_vx[0]; 
+  const double vmap_vx1_sq = vmap_vx[1]*vmap_vx[1]; 
+  const double vmap_vx2_sq = vmap_vx[2]*vmap_vx[2]; 
+  const double vmap_vx3_sq = vmap_vx[3]*vmap_vx[3]; 
+  out[0] += (0.421637021355784*f[5]*vmap_vx3_sq+0.7071067811865475*f[0]*vmap_vx3_sq+0.45175395145262565*f[5]*vmap_vx2_sq+0.7071067811865475*f[0]*vmap_vx2_sq+0.6324555320336759*f[5]*vmap_vx1_sq+0.7071067811865475*f[0]*vmap_vx1_sq+0.7071067811865475*f[0]*vmap_vx0_sq+1.2421180068162374*vmap_vx[1]*vmap_vx[3]*f[5]+1.4142135623730951*vmap_vx[0]*vmap_vx[2]*f[5]+1.2421180068162374*f[2]*vmap_vx[2]*vmap_vx[3]+1.264911064067352*vmap_vx[1]*f[2]*vmap_vx[2]+1.4142135623730951*vmap_vx[0]*vmap_vx[1]*f[2])*volFact; 
+  out[1] += (0.4216370213557841*f[7]*vmap_vx3_sq+0.7071067811865475*f[1]*vmap_vx3_sq+0.4517539514526257*f[7]*vmap_vx2_sq+0.7071067811865475*f[1]*vmap_vx2_sq+0.632455532033676*f[7]*vmap_vx1_sq+0.7071067811865475*f[1]*vmap_vx1_sq+0.7071067811865475*f[1]*vmap_vx0_sq+1.2421180068162376*vmap_vx[1]*vmap_vx[3]*f[7]+1.4142135623730951*vmap_vx[0]*vmap_vx[2]*f[7]+1.2421180068162374*vmap_vx[2]*f[3]*vmap_vx[3]+1.264911064067352*vmap_vx[1]*vmap_vx[2]*f[3]+1.4142135623730951*vmap_vx[0]*vmap_vx[1]*f[3])*volFact; 
+  out[2] += (0.421637021355784*f[8]*vmap_vx3_sq+0.7071067811865475*f[4]*vmap_vx3_sq+0.45175395145262565*f[8]*vmap_vx2_sq+0.7071067811865475*f[4]*vmap_vx2_sq+0.6324555320336759*f[8]*vmap_vx1_sq+0.7071067811865475*f[4]*vmap_vx1_sq+0.7071067811865475*f[4]*vmap_vx0_sq+1.2421180068162374*vmap_vx[1]*vmap_vx[3]*f[8]+1.4142135623730951*vmap_vx[0]*vmap_vx[2]*f[8]+1.2421180068162376*vmap_vx[2]*vmap_vx[3]*f[6]+1.264911064067352*vmap_vx[1]*vmap_vx[2]*f[6]+1.4142135623730951*vmap_vx[0]*vmap_vx[1]*f[6])*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_M3ijk_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
   const double *vmap, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[1]/2; 
-  double wx1 = w[1], dv1 = dxv[1]; 
-  double wx1_sq = wx1*wx1, dv1_sq = dv1*dv1; 
-  double wx1_cu = wx1*wx1*wx1, dv1_cu = dv1*dv1*dv1; 
-  out[0] += volFact*(1.224744871391589*f[2]*dv1*wx1_sq+1.4142135623730951*f[0]*wx1_cu+0.3162277660168379*f[5]*dv1_sq*wx1+0.3535533905932737*f[0]*dv1_sq*wx1+0.06123724356957942*f[2]*dv1_cu); 
-  out[1] += volFact*(1.224744871391589*f[3]*dv1*wx1_sq+1.4142135623730951*f[1]*wx1_cu+0.31622776601683794*f[7]*dv1_sq*wx1+0.3535533905932737*f[1]*dv1_sq*wx1+0.06123724356957942*f[3]*dv1_cu); 
-  out[2] += volFact*(1.224744871391589*f[6]*dv1*wx1_sq+1.4142135623730951*f[4]*wx1_cu+0.3162277660168379*f[8]*dv1_sq*wx1+0.3535533905932737*f[4]*dv1_sq*wx1+0.06123724356957942*f[6]*dv1_cu); 
+  const double *vmap_vx = &vmap[0]; 
+  const double vmap_vx0_sq = vmap_vx[0]*vmap_vx[0]; 
+  const double vmap_vx0_cu = vmap_vx[0]*vmap_vx[0]*vmap_vx[0]; 
+  const double vmap_vx1_sq = vmap_vx[1]*vmap_vx[1]; 
+  const double vmap_vx1_cu = vmap_vx[1]*vmap_vx[1]*vmap_vx[1]; 
+  const double vmap_vx2_sq = vmap_vx[2]*vmap_vx[2]; 
+  const double vmap_vx2_cu = vmap_vx[2]*vmap_vx[2]*vmap_vx[2]; 
+  const double vmap_vx3_sq = vmap_vx[3]*vmap_vx[3]; 
+  const double vmap_vx3_cu = vmap_vx[3]*vmap_vx[3]*vmap_vx[3]; 
+  out[0] += (2.772727272727273*vmap_vx[2]*f[5]*vmap_vx3_sq+0.8944271909999159*vmap_vx[0]*f[5]*vmap_vx3_sq+0.8944271909999159*f[0]*vmap_vx[2]*vmap_vx3_sq+2.3*vmap_vx[1]*f[2]*vmap_vx3_sq+1.5*f[0]*vmap_vx[0]*vmap_vx3_sq+0.499917348540637*f[2]*vmap_vx3_cu+0.9583148474999099*vmap_vx[0]*f[5]*vmap_vx2_sq+1.963961012123931*f[2]*vmap_vx[3]*vmap_vx2_sq+2.357142857142857*vmap_vx[1]*f[2]*vmap_vx2_sq+1.5*f[0]*vmap_vx[0]*vmap_vx2_sq+1.0714285714285714*f[5]*vmap_vx2_cu+0.31943828249996997*f[0]*vmap_vx2_cu+2.357142857142857*vmap_vx[2]*f[5]*vmap_vx1_sq+1.3416407864998738*vmap_vx[0]*f[5]*vmap_vx1_sq+1.1783766072743584*f[2]*vmap_vx[3]*vmap_vx1_sq+1.3416407864998738*f[0]*vmap_vx[2]*vmap_vx1_sq+1.5*f[0]*vmap_vx[0]*vmap_vx1_sq+0.9*f[2]*vmap_vx1_cu+1.5*vmap_vx[2]*f[5]*vmap_vx0_sq+1.5*vmap_vx[1]*f[2]*vmap_vx0_sq+0.5*f[0]*vmap_vx0_cu+3.927922024247862*vmap_vx[1]*vmap_vx[2]*vmap_vx[3]*f[5]+2.6349301969610384*vmap_vx[0]*vmap_vx[1]*vmap_vx[3]*f[5]+2.6349301969610384*vmap_vx[0]*f[2]*vmap_vx[2]*vmap_vx[3]+2.6349301969610384*f[0]*vmap_vx[1]*vmap_vx[2]*vmap_vx[3]+2.6832815729997477*vmap_vx[0]*vmap_vx[1]*f[2]*vmap_vx[2])*volFact; 
+  out[1] += (2.7727272727272734*vmap_vx[2]*f[7]*vmap_vx3_sq+0.8944271909999161*vmap_vx[0]*f[7]*vmap_vx3_sq+2.3*vmap_vx[1]*f[3]*vmap_vx3_sq+0.8944271909999159*f[1]*vmap_vx[2]*vmap_vx3_sq+1.5*vmap_vx[0]*f[1]*vmap_vx3_sq+0.499917348540637*f[3]*vmap_vx3_cu+0.9583148474999098*vmap_vx[0]*f[7]*vmap_vx2_sq+1.963961012123931*f[3]*vmap_vx[3]*vmap_vx2_sq+2.357142857142857*vmap_vx[1]*f[3]*vmap_vx2_sq+1.5*vmap_vx[0]*f[1]*vmap_vx2_sq+1.0714285714285714*f[7]*vmap_vx2_cu+0.31943828249996997*f[1]*vmap_vx2_cu+2.357142857142857*vmap_vx[2]*f[7]*vmap_vx1_sq+1.3416407864998738*vmap_vx[0]*f[7]*vmap_vx1_sq+1.1783766072743584*f[3]*vmap_vx[3]*vmap_vx1_sq+1.3416407864998738*f[1]*vmap_vx[2]*vmap_vx1_sq+1.5*vmap_vx[0]*f[1]*vmap_vx1_sq+0.9*f[3]*vmap_vx1_cu+1.5*vmap_vx[2]*f[7]*vmap_vx0_sq+1.5*vmap_vx[1]*f[3]*vmap_vx0_sq+0.5*f[1]*vmap_vx0_cu+3.927922024247863*vmap_vx[1]*vmap_vx[2]*vmap_vx[3]*f[7]+2.6349301969610397*vmap_vx[0]*vmap_vx[1]*vmap_vx[3]*f[7]+2.6349301969610384*vmap_vx[0]*vmap_vx[2]*f[3]*vmap_vx[3]+2.6349301969610384*f[1]*vmap_vx[1]*vmap_vx[2]*vmap_vx[3]+2.6832815729997477*vmap_vx[0]*vmap_vx[1]*vmap_vx[2]*f[3])*volFact; 
+  out[2] += (2.772727272727273*vmap_vx[2]*f[8]*vmap_vx3_sq+0.8944271909999159*vmap_vx[0]*f[8]*vmap_vx3_sq+2.3000000000000003*vmap_vx[1]*f[6]*vmap_vx3_sq+0.8944271909999159*vmap_vx[2]*f[4]*vmap_vx3_sq+1.5*vmap_vx[0]*f[4]*vmap_vx3_sq+0.499917348540637*f[6]*vmap_vx3_cu+0.9583148474999099*vmap_vx[0]*f[8]*vmap_vx2_sq+1.9639610121239315*vmap_vx[3]*f[6]*vmap_vx2_sq+2.357142857142857*vmap_vx[1]*f[6]*vmap_vx2_sq+1.5*vmap_vx[0]*f[4]*vmap_vx2_sq+1.0714285714285714*f[8]*vmap_vx2_cu+0.31943828249996997*f[4]*vmap_vx2_cu+2.357142857142857*vmap_vx[2]*f[8]*vmap_vx1_sq+1.3416407864998738*vmap_vx[0]*f[8]*vmap_vx1_sq+1.1783766072743587*vmap_vx[3]*f[6]*vmap_vx1_sq+1.3416407864998738*vmap_vx[2]*f[4]*vmap_vx1_sq+1.5*vmap_vx[0]*f[4]*vmap_vx1_sq+0.8999999999999998*f[6]*vmap_vx1_cu+1.5*vmap_vx[2]*f[8]*vmap_vx0_sq+1.5*vmap_vx[1]*f[6]*vmap_vx0_sq+0.5*f[4]*vmap_vx0_cu+3.927922024247862*vmap_vx[1]*vmap_vx[2]*vmap_vx[3]*f[8]+2.6349301969610384*vmap_vx[0]*vmap_vx[1]*vmap_vx[3]*f[8]+2.6349301969610397*vmap_vx[0]*vmap_vx[2]*vmap_vx[3]*f[6]+2.6832815729997477*vmap_vx[0]*vmap_vx[1]*vmap_vx[2]*f[6]+2.6349301969610384*vmap_vx[1]*vmap_vx[2]*vmap_vx[3]*f[4])*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
