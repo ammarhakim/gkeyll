@@ -230,10 +230,9 @@ gk_neut_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       sca->boundaries_edge[j] = edge;
   
       // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-      if (edge == GKYL_LOWER_EDGE? gks_ion->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL
-                                 : gks_ion->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL)
-      {
-        sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->local_lower_ghost_par_sol : app->local_upper_ghost_par_sol;
+      if (dir == app->cdim-1 && app->gk_geom->has_LCFS) {
+        sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE? app->local_lower_ghost_par_sol
+                                                               : app->local_upper_ghost_par_sol;
       }
     }
 

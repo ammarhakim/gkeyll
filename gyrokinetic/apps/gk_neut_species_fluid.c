@@ -94,7 +94,7 @@ static void
 gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
-  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+  gkyl_msgpack_map_elem_release(ns->io_meta_grid_len, ns->io_meta_grid);
 
   gkyl_array_release(ns->f);
   gkyl_array_release(ns->f1);
@@ -228,7 +228,7 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->local = app->local;
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
+  // add the parallel direction in case TS BCs are needed.
   ns->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<ns->num_periodic_dir; ++d)
     ns->periodic_dirs[d] = app->periodic_dirs[d];
@@ -257,8 +257,8 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = ns->basis.id }
   };
-  ns->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  ns->io_meta = gkyl_msgpack_map_elem_clone(ns->io_meta_len, io_meta);
+  ns->io_meta_grid_len = sizeof(io_meta)/sizeof(io_meta[0]);
+  ns->io_meta_grid = gkyl_msgpack_map_elem_clone(ns->io_meta_grid_len, io_meta);
 
   // Allocate distribution function array for initialization and I/O.
   ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);

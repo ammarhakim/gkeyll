@@ -216,12 +216,12 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
+  int poly_order = 1;
   const double lower[] = {-2.0, -1.50, -3.0};
   const double upper[] = { 2.0,  1.50,  3.0};
-  const int vdim = 0;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int vdim = 0;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
@@ -455,12 +455,12 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
+  int poly_order = 1;
   const double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
   const double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
-  const int vdim = 2;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int vdim = 2;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
@@ -874,12 +874,12 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
+  int poly_order = 1;
   const double lower[] = {-2.0, -1.50, -3.0};
   const double upper[] = { 2.0,  1.50,  3.0};
-  const int vdim = 0;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int vdim = 0;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];
@@ -1190,12 +1190,12 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   double B0 = 1.0; // Magnetic field magnitude.
   int bc_dir = 2; // Direction in which to apply TS.
 
-  const int poly_order = 1;
+  int poly_order = 1;
   const double lower[] = {-2.0, -1.50, -3.0, -5.0*vt, 0.};
   const double upper[] = { 2.0,  1.50,  3.0,  5.0*vt, mass*(pow(5.0*vt,2))/(2.0*B0)};
-  const int vdim = 2;
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int cdim = ndim - vdim;
+  int vdim = 2;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
 
   double lower_conf[cdim], upper_conf[cdim];
   int cells_conf[cdim];

@@ -540,15 +540,15 @@ create_ctx(void)
   double alpha_oap = 0.01;
   double alpha_fdp = 1.0;
   // Duration of each phase.
-  double tau_oap = 2400.0e-9;
-  double tau_fdp = 24.0e-9;
+  double tau_oap = 100e-9;
+  double tau_fdp = 1e-9;
   double tau_fdp_extra = 2*tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
   int num_frames_oap = 1; // Frames per OAP phase
   int num_frames_fdp = 1; // Frames per FDP phase
-  int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
+  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -761,9 +761,12 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
     .scale_factor = pparams->alpha,
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
-    .type = pparams->fdot_mult_type,
-    .cellwise_const = true,
-    .write_diagnostics = true,
+    .num_multipliers = 1,
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    },
   };
   struct gkyl_gyrokinetic_field field_inp = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -793,13 +796,13 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps))
   {
-    if (step == 1 || step % 20 == 0)
+    if (step == 1 || step % 1 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
 
     dt = fmin(dt, t_end - t_curr); // Don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
 
-    if (step == 1 || step % 20 == 0)
+    if (step == 1 || step % 1 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success)
@@ -908,7 +911,7 @@ int main(int argc, char **argv)
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-	.density = eval_density_ion_source,
+        .density = eval_density_ion_source,
         .upar = eval_upar_ion_source,
         .temp = eval_temp_ion_source,
         .ctx_density = &ctx,
@@ -918,9 +921,12 @@ int main(int argc, char **argv)
     },
 
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
-      .cellwise_const = true,
-      .write_diagnostics = true,
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
 
     .positivity = {

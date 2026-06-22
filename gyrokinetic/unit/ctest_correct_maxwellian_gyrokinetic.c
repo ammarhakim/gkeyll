@@ -95,10 +95,10 @@ void test_1x1v(int poly_order, bool use_gpu)
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
   double lower[] = {-M_PI, -4.0*vt}, upper[] = {M_PI, 4.0*vt};
   int cells[] = {4, 16};
-  const int vdim = 1;
+  int vdim = 1;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -355,10 +355,10 @@ void test_1x2v(int poly_order, bool use_gpu)
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
   double lower[] = {-M_PI, -4.0*vt, 0.0}, upper[] = {M_PI, 4.0*vt, 4.0*vt*vt*mass};
   int cells[] = {4, 16, 16};
-  const int vdim = 2;
+  int vdim = 2;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -614,10 +614,10 @@ void test_2x2v(int poly_order, bool use_gpu)
   double vt = sqrt(10.0*1.602e-19/9.1e-31); // reference temperature
   double lower[] = {-M_PI, -M_PI, -4.0*vt, 0.0}, upper[] = {M_PI, M_PI, 4.0*vt, 4.0*vt*vt*mass};
   int cells[] = {4, 4, 16, 16};
-  const int vdim = 2;
+  int vdim = 2;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];

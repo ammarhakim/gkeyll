@@ -1,6 +1,20 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_nodal_ops.h>
 
+static inline void
+get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
+{
+  // Remove path from 'filepath' and output only the file name (including its extension)
+  // to the buffer 'out_buffer' of size 'out_size'.
+  const char *last_slash = strrchr(filepath, '/');
+  const char *filename_start = (last_slash) ? last_slash + 1 : filepath;
+
+  if (out_size > 0) {
+    strncpy(out_buffer, filename_start, out_size - 1);
+    out_buffer[out_size - 1] = '\0';
+  }
+}
+
 static double calc_running_coord(double coord_lo, int i, double dx) {
   double dels[2] = {1.0/sqrt(3), 1.0-1.0/sqrt(3) };
   double coord = coord_lo;
@@ -56,7 +70,7 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry* gk_geom, int dir)
   int num_fd_nodes = 13;
   gk_geom->geo_surf[dir].mc2p_nodal_fd = gkyl_array_new(GKYL_DOUBLE, 3*num_fd_nodes, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
-  // bmag.metrics and derived geo quantities
+  // bmag,metrics and derived geo quantities
   gk_geom->geo_surf[dir].bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].ddtheta_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].ddpsi_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
@@ -75,6 +89,8 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry* gk_geom, int dir)
   gk_geom->geo_surf[dir].bcart_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].B3_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].lenr_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
+  gk_geom->geo_surf[dir].bimpactangle_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
+  gk_geom->geo_surf[dir].deltats_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
 }
 
 static void
@@ -90,6 +106,8 @@ gk_geometry_surf_alloc_expansions(struct gk_geometry* up, int dir)
   up->geo_surf[dir].normcurlbhat = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].normals = gkyl_array_new(GKYL_DOUBLE, 9*up->num_surf_basis, up->local_ext.volume);
   up->geo_surf[dir].lenr = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
+  up->geo_surf[dir].bimpactangle = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
+  up->geo_surf[dir].deltats = gkyl_array_new(GKYL_DOUBLE, 1*up->num_surf_basis, up->local_ext.volume);
 }
 
 static void
@@ -115,6 +133,8 @@ gk_geometry_surf_release_nodal(struct gk_geometry* gk_geom, int dir)
   gkyl_array_release(gk_geom->geo_surf[dir].bcart_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].B3_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].lenr_nodal);
+  gkyl_array_release(gk_geom->geo_surf[dir].bimpactangle_nodal);
+  gkyl_array_release(gk_geom->geo_surf[dir].deltats_nodal);
 }
 
 static void
@@ -263,6 +283,8 @@ gk_geometry_surf_calc_expansions(struct gk_geometry* gk_geom, int dir,
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 9, up_surf.normals_nodal, up_surf.normals, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.lenr_nodal, up_surf.lenr, dir);
+  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.bimpactangle_nodal, up_surf.bimpactangle, dir);
+  gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf, &local_ext_in_dir, 1, up_surf.deltats_nodal, up_surf.deltats, dir);
 
   // jacobgeo_ratio is not used in single block.
   int cdim = gk_geom->grid.ndim;
