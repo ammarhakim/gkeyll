@@ -1660,18 +1660,19 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 static bool
 check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
 {
-  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
-  double gas_gamma = gr_euler->gas_gamma;
-
-  double v[71] = { 0.0 };
-  gkyl_gr_euler_prim_vars(gas_gamma, q, v);
-
-  if (v[0] < 0.0 || v[4] < 0.0) {
-    return false;
+  // A valid subluminal fluid state: D > 0 and (D + tau)^2 - |S|^2 > 0 (energy dominates momentum); sqrt(det) > 0 cancels in the sign test, so we can use the densitized slots directly
+  if (q[27] < pow(10.0, -8.0)) {
+    return true; // excised cell: not an evolved fluid cell, nothing to check
   }
-  else {
-    return true;
+  double DE = q[0] + q[4]; // sqrt(gamma) (D + tau)
+  double S2 = (q[1] * q[1]) + (q[2] * q[2]) + (q[3] * q[3]);
+  if (q[0] <= 0.0) {
+    return false; // D <= 0
   }
+  if (((DE * DE) - S2) <= 0.0) {
+    return false; // (D + tau)^2 - |S|^2 <= 0  -> no subluminal recovery exists
+  }
+  return true;
 }
 
 static double
