@@ -302,6 +302,7 @@ struct moment_spacetime {
     struct gkyl_array *dst, const struct gkyl_array *src);
   void (*calc_products_func)(gkyl_moment_app *app,
     struct moment_spacetime *sp, double tcurr);
+  void (*release_func)(const struct moment_spacetime *sp);
 };
 
 // Source data
