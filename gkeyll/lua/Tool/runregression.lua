@@ -1317,6 +1317,10 @@ end
 local function create_action(test, runDir, testType)
    local aDir = acceptedDir(test, testType)
    log(string.format("... saving accepted results to %s ...\n", aDir))
+   -- Remove any existing accepted directory first so stale files from a prior
+   -- run (e.g. a diagnostic that has since been renamed or removed) do not
+   -- linger and get compared against on a later check.
+   os.execute(string.format("rm -rf '%s'", aDir))
    mkdir(aDir)
    -- Copy all .gkyl output files from the scratch directory to the accepted dir.
    os.execute(string.format("cp -f '%s'/*.gkyl '%s/' 2>/dev/null", runDir, aDir))
