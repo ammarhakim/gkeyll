@@ -19,7 +19,7 @@ typedef void (*differentiate_op_t)(double dx, const double *fin, double *out);
 typedef struct { differentiate_op_t kernels[4]; } differentiate_op_kern_list;
 
 // Serendipity differentiation kernels.
-// [ndim-1][dir][diff_order-1].kernels[poly_order]
+// [ndim-1][dir][diff_order-1].kernels[poly_order-1]
 //   ndim  : 1..3
 //   dir   : 0..ndim-1
 //   order : 1..2
@@ -29,54 +29,54 @@ static const differentiate_op_kern_list ser_differentiate_list[3][3][2] = {
   {
     // dir0
     {
-      { NULL, dg_differentiate_local_ser_1x_p1_dir0_order1, dg_differentiate_local_ser_1x_p2_dir0_order1, NULL }, // order1
-      { NULL, dg_differentiate_local_ser_1x_p1_dir0_order2, dg_differentiate_local_ser_1x_p2_dir0_order2, NULL }, // order2
+      { dg_differentiate_local_ser_1x_p1_dir0_order1, dg_differentiate_local_ser_1x_p2_dir0_order1, NULL }, // order1
+      { dg_differentiate_local_ser_1x_p1_dir0_order2, dg_differentiate_local_ser_1x_p2_dir0_order2, NULL }, // order2
     },
     // dir1: not applicable for 1D
     {
-      { NULL, NULL, NULL, NULL },
-      { NULL, NULL, NULL, NULL },
+      { NULL, NULL, NULL },
+      { NULL, NULL, NULL },
     },
     // dir2: not applicable for 1D
     {
-      { NULL, NULL, NULL, NULL },
-      { NULL, NULL, NULL, NULL },
+      { NULL, NULL, NULL },
+      { NULL, NULL, NULL },
     },
   },
   // ndim = 2
   {
     // dir0
     {
-      { NULL, dg_differentiate_local_ser_2x_p1_dir0_order1, dg_differentiate_local_ser_2x_p2_dir0_order1, NULL }, // order1
-      { NULL, dg_differentiate_local_ser_2x_p1_dir0_order2, dg_differentiate_local_ser_2x_p2_dir0_order2, NULL }, // order2
+      { dg_differentiate_local_ser_2x_p1_dir0_order1, dg_differentiate_local_ser_2x_p2_dir0_order1, NULL }, // order1
+      { dg_differentiate_local_ser_2x_p1_dir0_order2, dg_differentiate_local_ser_2x_p2_dir0_order2, NULL }, // order2
     },
     // dir1
     {
-      { NULL, dg_differentiate_local_ser_2x_p1_dir1_order1, dg_differentiate_local_ser_2x_p2_dir1_order1, NULL }, // order1
-      { NULL, dg_differentiate_local_ser_2x_p1_dir1_order2, dg_differentiate_local_ser_2x_p2_dir1_order2, NULL }, // order2
+      { dg_differentiate_local_ser_2x_p1_dir1_order1, dg_differentiate_local_ser_2x_p2_dir1_order1, NULL }, // order1
+      { dg_differentiate_local_ser_2x_p1_dir1_order2, dg_differentiate_local_ser_2x_p2_dir1_order2, NULL }, // order2
     },
     // dir2: not applicable for 2D
     {
-      { NULL, NULL, NULL, NULL },
-      { NULL, NULL, NULL, NULL },
+      { NULL, NULL, NULL },
+      { NULL, NULL, NULL },
     },
   },
   // ndim = 3
   {
     // dir0
     {
-      { NULL, dg_differentiate_local_ser_3x_p1_dir0_order1, NULL, NULL }, // order1
-      { NULL, dg_differentiate_local_ser_3x_p1_dir0_order2, NULL, NULL }, // order2
+      { dg_differentiate_local_ser_3x_p1_dir0_order1, NULL, NULL }, // order1
+      { dg_differentiate_local_ser_3x_p1_dir0_order2, NULL, NULL }, // order2
     },
     // dir1
     {
-      { NULL, dg_differentiate_local_ser_3x_p1_dir1_order1, NULL, NULL }, // order1
-      { NULL, dg_differentiate_local_ser_3x_p1_dir1_order2, NULL, NULL }, // order2
+      { dg_differentiate_local_ser_3x_p1_dir1_order1, NULL, NULL }, // order1
+      { dg_differentiate_local_ser_3x_p1_dir1_order2, NULL, NULL }, // order2
     },
     // dir2
     {
-      { NULL, dg_differentiate_local_ser_3x_p1_dir2_order1, NULL, NULL }, // order1
-      { NULL, dg_differentiate_local_ser_3x_p1_dir2_order2, NULL, NULL }, // order2
+      { dg_differentiate_local_ser_3x_p1_dir2_order1, NULL, NULL }, // order1
+      { dg_differentiate_local_ser_3x_p1_dir2_order2, NULL, NULL }, // order2
     },
   },
 };
