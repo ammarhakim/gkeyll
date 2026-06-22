@@ -150,3 +150,13 @@ choose_ten_differentiate_kern(int ndim, int dir, int poly_order, int diff_order)
   assert(diff_order >= 1 && diff_order <= 2);
   return ten_differentiate_list[ndim-1][dir][diff_order-1].kernels[poly_order-1];
 }
+
+/**
+ * Host-side wrappers for GPU implementations.
+ */
+void gkyl_dg_differentiate_op_local_cu(const struct gkyl_basis *basis, int dir, int diff_order,
+  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp);
+
+void gkyl_dg_differentiate_op_local_range_cu(const struct gkyl_basis *basis, int dir, int diff_order,
+  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp,
+  const struct gkyl_range *range);
