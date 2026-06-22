@@ -367,17 +367,17 @@ struct gk_app_ctx create_ctx(void)
   double floor_srcCORE = 1e-10;
 
   // Grid parameters
-  int num_cell_z = 32;
-  int num_cell_vpar = 16;
-  int num_cell_mu = 8;
+  int num_cell_z = 16;
+  int num_cell_vpar = 8;
+  int num_cell_mu = 4;
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5.*vte;
   double mu_max_elc = me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-6; // Should take 8 time steps
-  int num_frames = 1;
+  double final_time = 1.e-3; // Should take 8 time steps
+  int num_frames = 250;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
