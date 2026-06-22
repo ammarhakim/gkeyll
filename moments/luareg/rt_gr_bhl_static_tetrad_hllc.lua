@@ -23,8 +23,8 @@ pos_x = 2.5
 pos_y = 2.5
 pos_z = 0.0
 
-Nx = 256
-Ny = 256
+Nx = 128
+Ny = 128
 Lx = 5.0
 Ly = 5.0
 cfl_frac = 0.5  -- Strict 2D directional-splitting CFL (cfla_x + cfla_y ≤ 1.0).

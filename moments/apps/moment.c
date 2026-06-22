@@ -344,97 +344,12 @@ gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
     moment_spacetime_apply_bc(app, t0, &app->spacetime, app->spacetime.fcurr);
   }
 
-  // Fill the products array over the extended range (interior + ghost
-  // cells), because wave_prop reads spacetime via the equation's auxfields
-  // at every interface — including those that touch the boundary ghost
-  // cells. For the static-analytic backend this is the only time it ever
-  // gets called; for the dynamic backend the orchestrator refreshes it
-  // each step (Phase B).
-  if (app->update_sources && app->sources.spacetime_slvr) {
-    gkyl_moment_spacetime_coupling_derive_products(app->sources.spacetime_slvr,
-      t0, &app->local_ext,
-      app->spacetime.has_einstein_eqn ? app->spacetime.fcurr : NULL,
-      app->spacetime.prods);
-
-    // Match packed's effective boundary semantic for the spacetime block:
-    // packed's bcCopy/bcWall/bcFunc functions all copy q[5..66] from skin
-    // to ghost, and then impose_gauge re-evaluates the spacetime at the
-    // (now-interior) q[68..70] coords stored in the ghost cell — so the
-    // ghost spacetime ends up equal to the interior spacetime. We achieve
-    // the same effect for the products array by mirror-copying skin →
-    // ghost on each non-periodic boundary: skin cell at offset k from the
-    // boundary (k = 1, 2, ...) maps to ghost cell at offset −k. This
-    // matches the mirror pairing in gkyl_wv_apply_bc_advance which packed
-    // uses for all of its species BC functions (bcCopy, bcWall, bcFunc;
-    // they only differ in how they modify hydro components, the spacetime
-    // block is always copied across).
-    int num_periodic_dir = app->num_periodic_dir;
-    int is_non_periodic[3] = { 1, 1, 1 };
-    for (int d = 0; d < num_periodic_dir; d++)
-      is_non_periodic[app->periodic_dirs[d]] = 0;
-    int nghost = 2;  // matches mom_field/mom_species; conservatively > minimum.
-    long ncomp = app->spacetime.prods_ncomp;
-    for (int d = 0; d < app->ndim; d++) {
-      if (!is_non_periodic[d]) continue;
-      // Lower edge: mirror skin (iy = lower .. lower+nghost-1) → ghost
-      // (iy = lower-1 .. lower-nghost), with the k-th skin layer going to
-      // the k-th ghost layer (closest-to-boundary → closest-to-boundary).
-      int lo = app->local.lower[d], up = app->local.upper[d];
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &app->skin_ghost.lower_skin[d]);
-      while (gkyl_range_iter_next(&iter)) {
-        int skin_idx[GKYL_MAX_DIM];
-        gkyl_copy_int_arr(app->ndim, iter.idx, skin_idx);
-        int ghost_idx[GKYL_MAX_DIM];
-        gkyl_copy_int_arr(app->ndim, iter.idx, ghost_idx);
-        ghost_idx[d] = 2 * lo - skin_idx[d] - 1;  // mirror across lo - 0.5
-        long sloc = gkyl_range_idx(&app->local_ext, skin_idx);
-        long gloc = gkyl_range_idx(&app->local_ext, ghost_idx);
-        memcpy(gkyl_array_fetch(app->spacetime.prods, gloc),
-               gkyl_array_cfetch(app->spacetime.prods, sloc),
-               ncomp * sizeof(double));
-      }
-      // Upper edge: same idea, mirror across up + 0.5.
-      gkyl_range_iter_init(&iter, &app->skin_ghost.upper_skin[d]);
-      while (gkyl_range_iter_next(&iter)) {
-        int skin_idx[GKYL_MAX_DIM];
-        gkyl_copy_int_arr(app->ndim, iter.idx, skin_idx);
-        int ghost_idx[GKYL_MAX_DIM];
-        gkyl_copy_int_arr(app->ndim, iter.idx, ghost_idx);
-        ghost_idx[d] = 2 * up - skin_idx[d] + 1;  // mirror across up + 0.5
-        long sloc = gkyl_range_idx(&app->local_ext, skin_idx);
-        long gloc = gkyl_range_idx(&app->local_ext, ghost_idx);
-        memcpy(gkyl_array_fetch(app->spacetime.prods, gloc),
-               gkyl_array_cfetch(app->spacetime.prods, sloc),
-               ncomp * sizeof(double));
-      }
-      (void)nghost; (void)up;  // silence unused warnings if dim is partial
-    }
-    gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
-      num_periodic_dir, app->periodic_dirs, app->spacetime.prods);
-
-    // Build the per-interface tetrad cache now that prods is filled, then
-    // attach it to each tetrad species. The cache reads cell-centered
-    // prods, applies the wave_geom rotation per face, and stores the
-    // resulting averaged-frame metric + Gram-Schmidt triad for direct
-    // consumption by wave_tetrad_high_order.
-    bool need_wave_spacetime = false;
-    for (int i = 0; i < app->num_species; i++)
-      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
-        need_wave_spacetime = true; break;
-      }
-    if (need_wave_spacetime && app->spacetime.wave_spacetime == NULL) {
-      app->spacetime.wave_spacetime = gkyl_wave_spacetime_new(&app->grid,
-        &app->local_ext, app->geom, app->spacetime.analytic_spacetime,
-        app->spacetime.prods, t0, /*use_gpu=*/false);
-      for (int i = 0; i < app->num_species; i++) {
-        if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
-          gkyl_gr_euler_tetrad_set_wave_spacetime(app->species[i].equation,
-            app->spacetime.wave_spacetime);
-        }
-      }
-    }
-  }
+  // Fill the derived spacetime quantities (cell-center products over the
+  // interior + ghost cells, plus the per-interface tetrad cache) that the fluid
+  // wave step consumes via the equation auxfields. For the static-analytic
+  // backend this is the only time it runs; the dynamic backend refreshes inside
+  // moment_spacetime_update each step.
+  moment_spacetime_calc_products(app, &app->spacetime, t0);
 }
 
 void

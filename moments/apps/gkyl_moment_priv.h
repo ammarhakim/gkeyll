@@ -292,6 +292,16 @@ struct moment_spacetime {
   enum gkyl_field_bc_type lower_bct[3], upper_bct[3];
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
   struct gkyl_array *bc_buffer;
+
+  // Methods chosen at runtime:
+  struct gkyl_update_status (*update_func)(gkyl_moment_app *app,
+    struct moment_spacetime *sp, double tcurr, double dt);
+  double (*max_dt_func)(const gkyl_moment_app *app,
+    const struct moment_spacetime *sp);
+  void (*copy_func)(const struct moment_spacetime *sp,
+    struct gkyl_array *dst, const struct gkyl_array *src);
+  void (*calc_products_func)(gkyl_moment_app *app,
+    struct moment_spacetime *sp, double tcurr);
 };
 
 // Source data
@@ -554,13 +564,24 @@ void moment_spacetime_init(const struct gkyl_moment *mom,
 void moment_spacetime_apply_bc(gkyl_moment_app *app, double tcurr,
   const struct moment_spacetime *sp, struct gkyl_array *f);
 
-// Maximum stable dt for the Einstein hyperbolic step (dynamic case).
+// Maximum stable dt for the Einstein hyperbolic step.
 double moment_spacetime_max_dt(const gkyl_moment_app *app,
   const struct moment_spacetime *sp);
 
-// Advance the Einstein state by dt; no-op when is_static.
+// Advance the spacetime state by dt (analytic: no-op; Einstein: wave-prop +
+// geometry refresh).
 struct gkyl_update_status moment_spacetime_update(gkyl_moment_app *app,
-  const struct moment_spacetime *sp, double tcurr, double dt);
+  struct moment_spacetime *sp, double tcurr, double dt);
+
+// Copy spacetime state arrays (analytic: no-op; Einstein: gkyl_array_copy). 
+// Used for the time-stepper backup/commit/restore.
+void moment_spacetime_copy(const struct moment_spacetime *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src);
+
+// Recompute the derived spacetime quantities the fluid solver consumes
+// (cell-center products + interface tetrad cache) from the current state.
+void moment_spacetime_calc_products(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double tcurr);
 
 // Release the spacetime object.
 void moment_spacetime_release(const struct moment_spacetime *sp);
