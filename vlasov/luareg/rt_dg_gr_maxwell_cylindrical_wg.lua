@@ -88,6 +88,8 @@ vlasovApp = Vlasov.App.new {
     mu0 = 1.0,
     elcErrorSpeedFactor = 1.0, -- chi = c*elcErrorSpeedFactor = 1.
     mgnErrorSpeedFactor = 1.0, -- gamma = c*mgnErrorSpeedFactor = 1.
+    K_phi = 1.0, -- Damping Constant (electric field).
+    K_psi = 1.0, -- Damping Constant (magnetic field).
     useLax = true, -- Use Lax flux
 
     -- Initial conditions function.

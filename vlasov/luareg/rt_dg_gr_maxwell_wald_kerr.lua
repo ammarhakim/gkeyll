@@ -10,7 +10,7 @@ pi = math.pi
 -- Simulation parameters.
 Nr = 48 -- 192 -- Cell count (r-direction).
 Ntheta = 192 -- Cell count (theta-direction).
-poly_order = 1 -- Polynomial order.
+poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
 cfl_frac = 1.0 -- CFL coefficient.
@@ -50,7 +50,7 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 1.5, 0 },
+  lower = { 0.9, 0 },
   upper = { 5.0, math.pi },
   cells = { Nr, Ntheta },
   cflFrac = cfl_frac,
@@ -76,6 +76,8 @@ vlasovApp = Vlasov.App.new {
     mu0 = 1.0,
     elcErrorSpeedFactor = 1.0, -- chi = c*elcErrorSpeedFactor = 1.
     mgnErrorSpeedFactor = 1.0, -- gamma = c*mgnErrorSpeedFactor = 1.
+    K_phi = 1.0, -- Damping Constant (electric field).
+    K_psi = 1.0, -- Damping Constant (magnetic field).
     useLax = true, -- Use Lax flux
 
     -- Initial conditions function.
