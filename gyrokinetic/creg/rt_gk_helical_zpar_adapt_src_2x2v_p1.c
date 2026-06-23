@@ -21,35 +21,31 @@ struct gk_app_ctx {
   double R0;
   double Rc;
   double Bv0;
-  double B0;
 
   // Plasma parameters.
   double me; double qe;
   double mi; double qi;
   double n0; double Te0; double Ti0; 
-  double kperp;
   double Ntot;
-  double center_ic[1], sigma_ic[1];
+  double center_ic[2], sigma_ic[2];
 
   // Collisions.
   double nu_frac;
 
-  // Source parameters.
-  double P_SOL;
-  double sourceFloor;
   // Adaptive source parameters.
+  double P_SOL;
   int num_sources;
-  bool adapt_energy_srcCORE, adapt_particle_srcCORE;
-  double center_srcCORE[1], sigma_srcCORE[1];
-  double energy_srcCORE, particle_srcCORE;
-  double floor_srcCORE;
+  double center_srcCORE[2], sigma_srcCORE[2];
+  double center_srcRECYlo[2], sigma_srcRECYlo[2];
+  double center_srcRECYup[2], sigma_srcRECYup[2];
+  double floor_src;
 
   // Grid parameters.
   double Lx; // Domain size in radial direction.
-  double Ly; // Domain size in binormal direction.
   double Lz; // Domain size along magnetic field.
-  double x; // Radial location
+  double x_min; double x_max;
   double z_min; double z_max;
+  int Nx;
   int Nz;
   int Nvpar;
   int Nmu;
@@ -75,6 +71,7 @@ double Rx(const double *xc, void *ctx)
 // Toroidal magnetic field.
 double Bphi(const double *xc, void *ctx)
 {
+  double x = xc[0];
   struct gk_app_ctx *app = ctx;
   double B_axis = app->B_axis;
   double R0 = app->R0;
@@ -142,6 +139,7 @@ void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
+
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = Rx(xc, ctx);
   double Z   = Zx(xc, ctx);
@@ -153,10 +151,18 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = X; xp[1] = Y; xp[2] = Z;
 }
 
+// Anomalous diffusion coefficient.
+void diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.5; // Diffusivity [m^2/s].
+}
+
 struct gk_app_ctx
 create_ctx(void)
 {
-  int cdim = 1, vdim = 2; // Dimensionality.
+  int cdim = 2, vdim = 2; // Dimensionality.
 
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;
@@ -169,8 +175,8 @@ create_ctx(void)
   // in the far SOL, near R=0.475 m.
   double AMU = 2.01410177811;
   double mi = mp*AMU; // Deuterium ions.
-  double Te0 = 20*eV;
-  double Ti0 = 20*eV;
+  double Te0 = 40*eV;
+  double Ti0 = 40*eV;
   double n0 = 7e18*10; // [1/m^3]
   double Ntot = 6.3e20; // Total number of particles in the simulation box.
 
@@ -182,14 +188,9 @@ create_ctx(void)
   double Lt = 8.0; // Toroidal length at x0.
   double Rc = R0 + a0;
   double B0 = B_axis*R0/Rc;
-  double kperpRhos = 0.15;
 
   double sintheta = Lp/Lt;
   double Bv0 = B0*sintheta;
-
-  // Source parameters.
-  double P_SOL = 8.1e5; // Power injected in the SOL [W].
-  double sourceFloor = 1e15; // [1/m^3], small but non-zero to avoid numerical issues with very low densities.
 
   // Collisions;
   double nuFrac = 0.1;
@@ -201,29 +202,35 @@ create_ctx(void)
   double rho_s = c_s/omega_ci; // Ion sound gyroradius.
 
   // Box size.
+  double Lx = 50*rho_s;
   double Lz = Lt; // [m]
 
-  // Adaptive source parameters.
-  // - Injects a fixed power P_SOL (energy not adapted).
-  // - Adapts the particle injection to compensate the losses through the sheath.
-  int num_sources = 1;
-  bool adapt_energy_srcCORE = false;
-  bool adapt_particle_srcCORE = true;
-  double energy_srcCORE = P_SOL; // What the source must inject in energy [W].
-  double particle_srcCORE = 0.0; // What the source must inject in particle [1/s].
-  double center_srcCORE[1] = {0.0}; // Source centered at z=0.
-  double sigma_srcCORE[1] = {Lz/16}; // Source width along z.
-  double floor_srcCORE = 1e-10;
-
-  double x = Rc;
+  double x_min = Rc - Lx/2;
+  double x_max = Rc + Lx/2;
   double z_min = -Lz/2;
   double z_max = Lz/2;
-  double center_ic[1] = {0.0}; // Initial condition centered at z=0.
-  double sigma_ic[1] = {Lz}; // Initial condition width along z.
+  double center_ic[2] = {x_min, 0.0}; // Initial condition centered at z=0.
+  double sigma_ic[2] = {Lx, Lz}; // Initial condition width along x and z.
+
+  // 1+2 adaptive source setup:
+  // - CORE: at the left boundary (x=xmin), injects a fixed power P_SOL 
+  //   and compensate for energy loss through inner radial boundary.
+  // - RECY: neutral recycling model, put back particles lost through wall 
+  //   at 5 eV, no energy compensation. one for up, one for low.
+  double P_SOL = 8.1e5; // Power injected in the SOL [W].
+  int num_sources = 3;
+  double center_srcCORE[2] = {x_min, 0.0}; // Source centered at x=xmin, z=0.
+  double sigma_srcCORE[2] = {Lx/16, Lz/8}; // Source width along x and z.
+  double center_srcRECYup[2] = {x_max, Lz/2}; // Source centered at x=xmax, z=Lz/2 (periodic).
+  double sigma_srcRECYup[2] = {Lx, Lz/16}; // Source width along x and z.
+  double center_srcRECYlo[2] = {x_max, -Lz/2}; // Source centered at x=xmax, z=-Lz/2 (periodic).
+  double sigma_srcRECYlo[2] = {Lx, Lz/16}; // Source width along x and z.
+  double floor_src = 1e-10;
 
   // Grid parameters
-  int Nz = 16;
-  int Nvpar = 6;
+  int Nx = 4;
+  int Nz = 4;
+  int Nvpar = 4;
   int Nmu = 4;
   int poly_order = 1;
 
@@ -246,36 +253,35 @@ create_ctx(void)
     .R0 = R0,
     .Rc = Rc,
     .Bv0 = Bv0,
-    .B0 = B0,
-    .x = x,
+    .Lx = Lx,
     .Lz = Lz,
+    .x_min = x_min, .x_max = x_max,
     .z_min = z_min, .z_max = z_max,
-    .kperp = kperpRhos/rho_s,
 
     .me = me, .qe = qe,
     .mi = mi, .qi = qi,
     .n0 = n0, .Te0 = Te0, .Ti0 = Ti0,
     .Ntot = Ntot,
-    .center_ic = {center_ic[0]},
-    .sigma_ic = {sigma_ic[0]},
+    .center_ic = {center_ic[0], center_ic[1]},
+    .sigma_ic = {sigma_ic[0], sigma_ic[1]},
+  
     .nu_frac = nuFrac,
     
     .P_SOL = P_SOL,
-    .sourceFloor = sourceFloor,
-
     .num_sources = num_sources,
-    .adapt_energy_srcCORE = adapt_energy_srcCORE,
-    .adapt_particle_srcCORE = adapt_particle_srcCORE,
-    .center_srcCORE = {center_srcCORE[0]},
-    .sigma_srcCORE = {sigma_srcCORE[0]},
-    .energy_srcCORE = energy_srcCORE,
-    .particle_srcCORE = particle_srcCORE,
-    .floor_srcCORE = floor_srcCORE,
-  
+    .center_srcCORE = {center_srcCORE[0], center_srcCORE[1]},
+    .sigma_srcCORE = {sigma_srcCORE[0], sigma_srcCORE[1]},
+    .center_srcRECYlo = {center_srcRECYlo[0], center_srcRECYlo[1]},
+    .sigma_srcRECYlo = {sigma_srcRECYlo[0], sigma_srcRECYlo[1]},
+    .center_srcRECYup = {center_srcRECYup[0], center_srcRECYup[1]},
+    .sigma_srcRECYup = {sigma_srcRECYup[0], sigma_srcRECYup[1]},
+    .floor_src = floor_src,
+
+    .Nx = Nx,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nz, Nvpar, Nmu},
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc, .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion, .mu_max_ion = mu_max_ion,
@@ -315,46 +321,65 @@ main(int argc, char **argv)
   // Construct communicator for use in app.
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
+
   // Projection parameters for the sources.
   struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcCORE[0]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0]},
-    .total_num_particles = ctx.particle_srcCORE,
-    .total_kin_energy = ctx.energy_srcCORE,
+    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
+    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
+    .total_num_particles = 0.0,
+    .total_kin_energy = ctx.P_SOL/2,
     .temp_max = 5.0*ctx.Te0,
     .temp_min = 0.1*ctx.Te0,
-    .f_floor = ctx.floor_srcCORE,
+    .f_floor = ctx.floor_src,
   };
-  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
-    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcCORE[0]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0]},
-    .total_num_particles = ctx.particle_srcCORE,
-    .total_kin_energy = ctx.energy_srcCORE,
-    .temp_max = 5.0*ctx.Ti0,
-    .temp_min = 0.1*ctx.Ti0,
-    .f_floor = ctx.floor_srcCORE,
-  };
-
-  // Source adaptation parameters. Adapt the particle injection to the losses
-  // through both sheath (z) boundaries to maintain quasi-neutrality.
   struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e = {
     .adapt_to_species = "elc",
-    .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 2,
-    .dir = {0, 0},
-    .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+    .adapt_particle = true,
+    .adapt_energy = true,
+    .num_boundaries = 1,
+    .dir = {0},
+    .edge = {GKYL_LOWER_EDGE},
   };
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i = {
-    .adapt_to_species = "ion",
-    .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 2,
-    .dir = {0, 0},
-    .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+
+  struct gkyl_gyrokinetic_projection proj_srcRECYlo_e = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = {ctx.center_srcRECYlo[0], ctx.center_srcRECYlo[1]},
+    .gaussian_std_dev = {ctx.sigma_srcRECYlo[0], ctx.sigma_srcRECYlo[1]},
+    .total_num_particles = 0.0,
+    .total_kin_energy = 0.0,
+    .temp_max = 5.0*ctx.Te0,
+    .temp_min = 5.0*1.602e-19, // 5 eV
+    .f_floor = ctx.floor_src,
   };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcRECYlo_e = {
+    .adapt_to_species = "ion", // ambipolar
+    .adapt_particle = true,
+    .adapt_energy = false,
+    .num_boundaries = 1,
+    .dir = {1},
+    .edge = {GKYL_LOWER_EDGE},
+  };
+
+  struct gkyl_gyrokinetic_projection proj_srcRECYup_e = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = {ctx.center_srcRECYup[0], ctx.center_srcRECYup[1]},
+    .gaussian_std_dev = {ctx.sigma_srcRECYup[0], ctx.sigma_srcRECYup[1]},
+    .total_num_particles = 0.0,
+    .total_kin_energy = 0.0,
+    .temp_max = 5.0*ctx.Te0,
+    .temp_min = 5.0*1.602e-19, // 5 eV
+    .f_floor = ctx.floor_src,
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcRECYup_e = {
+    .adapt_to_species = "ion", // ambipolar
+    .adapt_particle = true,
+    .adapt_energy = false,
+    .num_boundaries = 1,
+    .dir = {1},
+    .edge = {GKYL_UPPER_EDGE},
+  };
+
 
   // electrons
   struct gkyl_gyrokinetic_species elc = {
@@ -368,8 +393,8 @@ main(int argc, char **argv)
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-      .gaussian_mean = {ctx.center_ic[0]},
-      .gaussian_std_dev = {ctx.sigma_ic[0]},
+      .gaussian_mean = {ctx.center_ic[0], ctx.center_ic[1]},
+      .gaussian_std_dev = {ctx.sigma_ic[0], ctx.sigma_ic[1]},
       .total_num_particles = ctx.Ntot,
       .total_kin_energy = ctx.Te0 * ctx.Ntot,
       .temp_max = 5.0*ctx.Te0,
@@ -396,6 +421,10 @@ main(int argc, char **argv)
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_e,
       .adapt[0] = adapt_srcCORE_e,
+      .projection[1] = proj_srcRECYlo_e,
+      .adapt[1] = adapt_srcRECYlo_e,
+      .projection[2] = proj_srcRECYup_e,
+      .adapt[2] = adapt_srcRECYup_e,
       .diagnostics = {
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
@@ -403,12 +432,21 @@ main(int argc, char **argv)
     },
 
     .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
         .use_sheath_surrogate = true,
         .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
         .use_sheath_surrogate = true,
         .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
+    },
+
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
     },
 
     .num_diag_moments = 9,
@@ -420,16 +458,73 @@ main(int argc, char **argv)
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 
     .boundary_flux_diagnostics = {
-      // NOTE: frame-based boundary-flux moment grids (.num_diag_moments /
-      // .diag_moments) deadlock under MPI for cdim=1: the 1x write in
-      // gk_species_bflux.c is collective over app->comm but only invoked on the
-      // boundary-owning ranks. Request integrated diagnostics only (as TCV does).
+      .num_diag_moments = 1,
+      .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
     
     .time_rate_diagnostics = true,
   };
+
+  // Projection parameters for the sources.
+  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = {ctx.center_srcCORE[0], ctx.center_srcCORE[1]},
+    .gaussian_std_dev = {ctx.sigma_srcCORE[0], ctx.sigma_srcCORE[1]},
+    .total_num_particles = 0.0,
+    .total_kin_energy = ctx.P_SOL/2,
+    .temp_max = 5.0*ctx.Ti0,
+    .temp_min = 0.1*ctx.Ti0,
+    .f_floor = ctx.floor_src,
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i = {
+    .adapt_to_species = "ion",
+    .adapt_particle = true,
+    .adapt_energy = true,
+    .num_boundaries = 1,
+    .dir = {0},
+    .edge = {GKYL_LOWER_EDGE},
+  };
+
+  struct gkyl_gyrokinetic_projection proj_srcRECYlo_i = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = {ctx.center_srcRECYlo[0], ctx.center_srcRECYlo[1]},
+    .gaussian_std_dev = {ctx.sigma_srcRECYlo[0], ctx.sigma_srcRECYlo[1]},
+    .total_num_particles = 0.0,
+    .total_kin_energy = 0.0,
+    .temp_max = 5.0*ctx.Ti0,
+    .temp_min = 5.0*1.602e-19, // 5 eV
+    .f_floor = ctx.floor_src,
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcRECYlo_i = {
+    .adapt_to_species = "ion", // ambipolar
+    .adapt_particle = true,
+    .adapt_energy = false,
+    .num_boundaries = 1,
+    .dir = {1},
+    .edge = {GKYL_LOWER_EDGE},
+  };
+
+  struct gkyl_gyrokinetic_projection proj_srcRECYup_i = {
+    .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
+    .gaussian_mean = {ctx.center_srcRECYup[0], ctx.center_srcRECYup[1]},
+    .gaussian_std_dev = {ctx.sigma_srcRECYup[0], ctx.sigma_srcRECYup[1]},
+    .total_num_particles = 0.0,
+    .total_kin_energy = 0.0,
+    .temp_max = 5.0*ctx.Ti0,
+    .temp_min = 5.0*1.602e-19, // 5 eV
+    .f_floor = ctx.floor_src,
+  };
+  struct gkyl_gyrokinetic_adapt_source adapt_srcRECYup_i = {
+    .adapt_to_species = "ion", // ambipolar
+    .adapt_particle = true,
+    .adapt_energy = false,
+    .num_boundaries = 1,
+    .dir = {1},
+    .edge = {GKYL_UPPER_EDGE},
+  };
+
 
   // ions
   struct gkyl_gyrokinetic_species ion = {
@@ -443,15 +538,15 @@ main(int argc, char **argv)
 
     .projection = {
       .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-      .gaussian_mean = {ctx.center_ic[0]},
-      .gaussian_std_dev = {ctx.sigma_ic[0]},
+      .gaussian_mean = {ctx.center_ic[0], ctx.center_ic[1]},
+      .gaussian_std_dev = {ctx.sigma_ic[0], ctx.sigma_ic[1]},
       .total_num_particles = ctx.Ntot,
       .total_kin_energy = ctx.Ti0 * ctx.Ntot,
       .temp_max = 5.0*ctx.Ti0,
       .temp_min = 0.1*ctx.Ti0,
       .f_floor = 1e-10,
     },
-    
+
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
@@ -459,9 +554,9 @@ main(int argc, char **argv)
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .num_cross_collisions = 1,
-      .collide_with = { "ion" },
+      .collide_with = { "elc" },
       .den_ref = ctx.n0,
-      .temp_ref = ctx.Ti0, 
+      .temp_ref = ctx.Te0,
       .nu_frac = ctx.nu_frac,
     },
 
@@ -471,6 +566,10 @@ main(int argc, char **argv)
       .num_adapt_sources = ctx.num_sources,
       .projection[0] = proj_srcCORE_i,
       .adapt[0] = adapt_srcCORE_i,
+      .projection[1] = proj_srcRECYlo_i,
+      .adapt[1] = adapt_srcRECYlo_i,
+      .projection[2] = proj_srcRECYup_i,
+      .adapt[2] = adapt_srcRECYup_i,
       .diagnostics = {
         .num_integrated_diag_moments = 1,
         .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
@@ -478,8 +577,17 @@ main(int argc, char **argv)
     },
 
     .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+    },
+    
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
     },
     
     .num_diag_moments = 9,
@@ -491,10 +599,8 @@ main(int argc, char **argv)
     .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
 
     .boundary_flux_diagnostics = {
-      // NOTE: frame-based boundary-flux moment grids (.num_diag_moments /
-      // .diag_moments) deadlock under MPI for cdim=1: the 1x write in
-      // gk_species_bflux.c is collective over app->comm but only invoked on the
-      // boundary-owning ranks. Request integrated diagnostics only (as TCV does).
+      .num_diag_moments = 1,
+      .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
       .num_integrated_diag_moments = 1,
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
@@ -502,10 +608,12 @@ main(int argc, char **argv)
     .time_rate_diagnostics = true,
   };
 
-  // Field.
+  // field
   struct gkyl_gyrokinetic_field field = {
-    .kperpSq = ctx.kperp * ctx.kperp,
-    .polarization_bmag = ctx.B0,
+    .poisson_bcs = {
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
+    },
     .time_rate_diagnostics = true,
   };
 
@@ -516,19 +624,19 @@ main(int argc, char **argv)
     .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,
-    .lower = { ctx.z_min },
-    .upper = { ctx.z_max },
-    .cells = { cells_x[0] },
+    .lower = { ctx.x_min, ctx.z_min },
+    .upper = { ctx.x_max, ctx.z_max },
+    .cells = { cells_x[0], cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
     .geometry = {
       .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = { ctx.Rc, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func, // magnetic field
       .bfield_ctx = &ctx,
+      .world = {0.},
     },
 
     .num_species = 2,
@@ -538,7 +646,7 @@ main(int argc, char **argv)
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .comm = comm,
-      .cuts = { app_args.cuts[0] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
     }
   };
 
@@ -555,10 +663,6 @@ main(int argc, char **argv)
       .is_restart = app_args.is_restart,
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
-    },
-    .print_verbosity = {
-      .enabled = true,
-      .frequency = 0.01,
     },
   };
 
