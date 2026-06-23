@@ -819,7 +819,7 @@ int main(int argc, char **argv)
       .init_from_file = {
         .type = GKYL_IC_IMPORT_F,
         .file_name = "gk_wham_1x2v_p1-elc_0.gkyl",
-        .jacobtot_inv_file_name = "gk_wham_1x2v_p1-geo_int_jacobtot_inv.gkyl",
+        // .jacobtot_inv_file_name = "gk_wham_1x2v_p1-jacobtot_inv.gkyl",
       },
 
       .mapc2p = {
@@ -887,7 +887,7 @@ int main(int argc, char **argv)
       .init_from_file = {
         .type = GKYL_IC_IMPORT_F,
         .file_name = "gk_wham_1x2v_p1-ion_0.gkyl",
-        .jacobtot_inv_file_name = "gk_wham_1x2v_p1-geo_int_jacobtot_inv.gkyl",
+        .jacobtot_inv_file_name = "gk_wham_1x2v_p1-jacobtot_inv.gkyl",
       },
 
       .scale_with_polarization = true,
