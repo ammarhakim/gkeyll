@@ -514,45 +514,65 @@ gkyl_msgpack_create_union(int numlist_union, int *nvals_union, const struct gkyl
   mpack_writer_t writer;
   mpack_writer_init_growable(&writer, &mdata->meta, &mdata->meta_sz);
 
-  mpack_build_map(&writer);  
+  // Flatten the union of lists so we can detect duplicate keys. MessagePack
+  // maps must have unique keys; a map with duplicates is rejected by the
+  // reader (mpack_error_data), which would silently corrupt every lookup.
+  int nvals_tot = 0;
+  for (int j=0; j<numlist_union; ++j)
+    nvals_tot += nvals_union[j];
 
-  for (int j=0; j<numlist_union; ++j) {
+  const struct gkyl_msgpack_map_elem *flat[nvals_tot];
+  int fidx = 0;
+  for (int j=0; j<numlist_union; ++j)
+    for (int i=0; i<nvals_union[j]; ++i)
+      flat[fidx++] = &elist_union[j][i];
 
-    int nvals = nvals_union[j];
-    const struct gkyl_msgpack_map_elem *elist = elist_union[j];
+  mpack_build_map(&writer);
 
-    for (int i=0; i<nvals; ++i) {
-      mpack_write_cstr(&writer, elist[i].key);
-  
-      switch (elist[i].elem_type) {
-        case GKYL_MP_BOOL:
-          mpack_write_bool(&writer, elist[i].bval);
-          break;
-  
-        case GKYL_MP_UNSIGNED_INT:
-          mpack_write_u64(&writer, elist[i].uval);
-          break;
-  
-        case GKYL_MP_INT:
-          mpack_write_i64(&writer, elist[i].ival);
-          break;
-  
-        case GKYL_MP_FLOAT:
-          mpack_write_float(&writer, elist[i].fval);
-          break;
-  
-        case GKYL_MP_DOUBLE:
-          mpack_write_double(&writer, elist[i].dval);
-          break;
-  
-        case GKYL_MP_STRING:
-          mpack_write_cstr(&writer, elist[i].cval);
-          break;
-
-        default:
-          assert(false); // NYI.
-          break;
+  for (int k=0; k<nvals_tot; ++k) {
+    // Keep only the last occurrence of each key (later lists override earlier
+    // ones), so the emitted map never contains duplicate keys.
+    bool overridden = false;
+    for (int m=k+1; m<nvals_tot; ++m) {
+      if (strcmp(flat[k]->key, flat[m]->key) == 0) {
+        overridden = true;
+        break;
       }
+    }
+    if (overridden)
+      continue;
+
+    const struct gkyl_msgpack_map_elem *elem = flat[k];
+    mpack_write_cstr(&writer, elem->key);
+
+    switch (elem->elem_type) {
+      case GKYL_MP_BOOL:
+        mpack_write_bool(&writer, elem->bval);
+        break;
+
+      case GKYL_MP_UNSIGNED_INT:
+        mpack_write_u64(&writer, elem->uval);
+        break;
+
+      case GKYL_MP_INT:
+        mpack_write_i64(&writer, elem->ival);
+        break;
+
+      case GKYL_MP_FLOAT:
+        mpack_write_float(&writer, elem->fval);
+        break;
+
+      case GKYL_MP_DOUBLE:
+        mpack_write_double(&writer, elem->dval);
+        break;
+
+      case GKYL_MP_STRING:
+        mpack_write_cstr(&writer, elem->cval);
+        break;
+
+      default:
+        assert(false); // NYI.
+        break;
     }
   }
 
