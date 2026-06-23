@@ -362,21 +362,40 @@ moment_spacetime_copy(const struct moment_spacetime *sp,
 // tetrad cache. The two are inseparable — refreshing one without the other
 // would leave the cache stale — so they live in one call.
 
+// Fill the products array from the analytic background — closed-form, per cell,
+// over the interior + ghost cells (wave_prop reads spacetime at boundary-ghost
+// interfaces too). This is the static-backend derivation; it owns the geometry
+// here rather than going through the spacetime-coupling object.
 static void
-spacetime_calc_products_impl(gkyl_moment_app *app, struct moment_spacetime *sp,
-  double tcurr, const struct gkyl_array *einstein_state)
+spacetime_fill_products_analytic(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr)
 {
-  // (§5 will move the derivation onto this object; until then it is supplied by
-  // the spacetime-coupling object, which only exists when there are sources.)
-  if (!(app->update_sources && app->sources.spacetime_slvr)) return;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx = gkyl_range_idx(&app->local_ext, iter.idx);
+    double *prods_row = gkyl_array_fetch(sp->prods, cidx);
 
-  gkyl_moment_spacetime_coupling_derive_products(app->sources.spacetime_slvr,
-    tcurr, &app->local_ext, einstein_state, sp->prods);
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xc);
+    double x = app->ndim >= 1 ? xc[0] : 0.0;
+    double y = app->ndim >= 2 ? xc[1] : 0.0;
+    double z = app->ndim >= 3 ? xc[2] : 0.0;
 
-  // Match packed's effective boundary semantic for the spacetime block:
-  // mirror-copy the products from skin to ghost on each non-periodic boundary
-  // (skin layer k → ghost layer k), so the ghost spacetime equals the interior
-  // spacetime, then sync periodic directions.
+    gkyl_moment_spacetime_coupling_fill_products_analytic(sp->analytic_spacetime,
+      tcurr, x, y, z, prods_row);
+  }
+}
+
+// Post-process filled products (shared by both backends): mirror-copy skin →
+// ghost on each non-periodic boundary so the ghost spacetime equals the
+// interior spacetime (matching packed's BC semantic), sync periodic directions,
+// then build (lazily, attaching to each tetrad species) or refresh the
+// per-interface tetrad cache.
+static void
+spacetime_finish_products(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr)
+{
   int num_periodic_dir = app->num_periodic_dir;
   int is_non_periodic[3] = { 1, 1, 1 };
   for (int d = 0; d < num_periodic_dir; d++)
@@ -412,9 +431,6 @@ spacetime_calc_products_impl(gkyl_moment_app *app, struct moment_spacetime *sp,
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, app->periodic_dirs, sp->prods);
 
-  // Build the per-interface tetrad cache once prods is filled (lazily on first
-  // call, attaching it to each tetrad species), then refresh it from prods on
-  // every subsequent call.
   bool need_wave_spacetime = false;
   for (int i = 0; i < app->num_species; i++)
     if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
@@ -440,14 +456,17 @@ static void
 spacetime_calc_products_static(gkyl_moment_app *app, struct moment_spacetime *sp,
   double tcurr)
 {
-  spacetime_calc_products_impl(app, sp, tcurr, NULL);
+  spacetime_fill_products_analytic(app, sp, tcurr);
+  spacetime_finish_products(app, sp, tcurr);
 }
 
 static void
 spacetime_calc_products_dynamic(gkyl_moment_app *app, struct moment_spacetime *sp,
   double tcurr)
 {
-  spacetime_calc_products_impl(app, sp, tcurr, sp->fcurr);
+  // TODO(§6): derive the products from the evolved Einstein state (sp->fcurr).
+  // The post-processing (BC mirror + tetrad cache) is already shared below.
+  spacetime_finish_products(app, sp, tcurr);
 }
 
 void

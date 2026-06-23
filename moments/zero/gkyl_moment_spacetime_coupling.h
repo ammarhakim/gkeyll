@@ -90,6 +90,23 @@ gkyl_moment_spacetime_coupling_derive_products(
   struct gkyl_array *prods);
 
 /**
+ * Per-cell helper: fill one row of the products array from an analytic
+ * spacetime by evaluating its gr_spacetime callbacks at (t, x, y, z). Takes the
+ * spacetime object directly (no coupling object needed), so it is the geometry
+ * primitive the app's spacetime component and the tetrad-cache builder both
+ * use. Also exercised directly in unit tests.
+ *
+ * @param spacetime  Analytic spacetime object.
+ * @param t_curr     Current simulation time (passed through to callbacks).
+ * @param x, y, z    Cell-center coordinates.
+ * @param prods      One products row to fill (length = configured layout).
+ */
+void
+gkyl_moment_spacetime_coupling_fill_products_analytic(
+  struct gkyl_gr_spacetime *spacetime,
+  double t_curr, double x, double y, double z, double *prods);
+
+/**
  * Integrate the geometric source terms on the per-species hydro fluid
  * arrays using an SSP-RK3 forward-Euler scheme that mirrors
  * explicit_gr_euler_source_update in sources_explicit.c, but reads

@@ -39,16 +39,6 @@ struct gkyl_moment_spacetime_coupling {
 };
 
 /**
- * Per-cell helper: fill one row of the products array by evaluating the
- * gr_spacetime callbacks at (t, x, y, z). Exposed for unit testing the
- * derive-products path without needing a gkyl_array.
- */
-void
-gkyl_moment_spacetime_coupling_fill_products_analytic(
-  struct gkyl_gr_spacetime *spacetime,
-  double t_curr, double x, double y, double z, double *prods);
-
-/**
  * Per-cell forward-Euler source-term integrator for the modular GR Euler
  * equation. Mirrors explicit_gr_euler_source_update_euler in
  * sources_explicit.c but reads spacetime from the per-cell products row
