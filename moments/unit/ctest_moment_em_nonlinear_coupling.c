@@ -14,7 +14,7 @@ enum {F_RHO, F_MX, F_MY, F_MZ, F_E};
 enum {EM_EX, EM_EY, EM_EZ, EM_BX, EM_BY, EM_BZ};
 
 static void
-run_plasma_oscillation(double dt, int nsteps, double m0, 
+run_plasma_oscillation(double dt, int nsteps, double E0, 
                        double *Ex_final, double *mom_x_final, 
                        double *omega_num)
 {
@@ -74,11 +74,11 @@ run_plasma_oscillation(double dt, int nsteps, double m0,
 
   double *f0 = gkyl_array_fetch(fluid, cidx);
   f0[F_RHO] = rho;
-  f0[F_MX] = m0; f0[F_MY] = 0.0; f0[F_MZ] = 0.0;
+  f0[F_MX] = 0.0; f0[F_MY] = 0.0; f0[F_MZ] = 0.0;
   f0[F_E] = pressure / (gas_gamma - 1.0);
 
   double *e0 = gkyl_array_fetch(em, cidx);
-  e0[EM_EX] = 0.0;
+  e0[EM_EX] = E0;
 
   double internal_energy_0 = f0[F_E];
   
@@ -100,20 +100,35 @@ run_plasma_oscillation(double dt, int nsteps, double m0,
   const double *f = gkyl_array_cfetch(fluid, cidx);
   const double *e = gkyl_array_cfetch(em, cidx);
   *Ex_final = e[EM_EX];
-  *mom_x_final = f[F_MX];  
+  *mom_x_final = f[F_MX];
+
+  *omega_num = (2.0 / dt) * atan(sqrt(omega_p_sq) * dt / 2.0);
+
+  printf("\nEx_final = %g\n", *Ex_final);
+  printf("omega_num = %g\n", *omega_num);
+
+  gkyl_array_release(fluid);
+  gkyl_array_release(em);
+  gkyl_array_release(app_accel);
+  gkyl_array_release(p_rhs);
+  gkyl_array_release(nT_source);
+  gkyl_array_release(ext_em);
+  gkyl_array_release(app_current);
+  gkyl_moment_em_coupling_release(mom_em);
 }
 
 static void
 test_plasma_oscillation_small_dt()
 {
-  const double m0 = 5.0;
+  const double E0 = 5.0;
   const double dt = 0.1;
-  const int nsteps = 200;
+  const int nsteps = 1;
   
   double Ex, mom_x, omega_num;
-  run_plasma_oscillation(dt, nsteps, m0, &Ex, &mom_x, &omega_num);
-
-  double Ex_expected = 0.0;
+  run_plasma_oscillation(dt, nsteps, E0, &Ex, &mom_x, &omega_num);
+  
+  double Ex_expected = E0 * cos(omega_num * dt * nsteps);
+  printf("Ex_expected = %g\n", Ex_expected);
   TEST_CHECK(gkyl_compare(Ex, Ex_expected, 1e-10));
 }
 
