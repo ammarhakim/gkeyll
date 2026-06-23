@@ -206,7 +206,7 @@ create_ctx(void)
   double mi = mp*AMU; // Deuterium ions.
   double Te0 = 20*eV;
   double Ti0 = 20*eV;
-  double n0 = 7e18*10; // [1/m^3]
+  double n0 = 7e19; // [1/m^3] (10 times NSTX ref.)
   double Ntot = 6.0e18; // Total number of particles in the simulation box.
 
   // Geometry and magnetic field.
