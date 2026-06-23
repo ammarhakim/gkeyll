@@ -34,11 +34,11 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
         if (app->has_field)
           gkyl_array_copy(app->field.fdup, app->field.f[0]);
-        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static)
-          gkyl_array_copy(app->spacetime.fdup, app->spacetime.f[0]);
+        if (app->has_spacetime)
+          moment_spacetime_copy(&app->spacetime, app->spacetime.fdup, app->spacetime.f[0]);
 
         break;
-          
+
       case FIRST_COUPLING_UPDATE:
         state = FIELD_UPDATE; // next state
 
@@ -85,11 +85,10 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
       case SPACETIME_UPDATE:
         state = SPECIES_UPDATE; // next state
 
-        // No-op in Phase A (static spacetime). For the dynamic Bona-Masso
-        // backend, advance the Einstein state, then refresh the products
-        // array so the upcoming species hyperbolic update reads the
-        // locally-rotated spacetime at the new time.
-        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static) {
+        // Dispatch: a no-op for a static background; for the dynamic backend
+        // this advances the Einstein state and refreshes the derived geometry
+        // (products + tetrad cache) the upcoming species step consumes.
+        if (app->has_spacetime) {
           struct gkyl_update_status s =
             moment_spacetime_update(app, &app->spacetime, tcurr, dt);
           if (!s.success) {
@@ -99,16 +98,6 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
             break;
           }
           dt_suggested = fmin(dt_suggested, s.dt_suggested);
-          if (app->update_sources && app->sources.spacetime_slvr) {
-            gkyl_moment_spacetime_coupling_derive_products(
-              app->sources.spacetime_slvr, tcurr, &app->local_ext,
-              app->spacetime.fcurr, app->spacetime.prods);
-            if (app->spacetime.wave_spacetime)
-              gkyl_wave_spacetime_refresh(app->spacetime.wave_spacetime,
-                &app->grid, app->geom,
-                app->spacetime.analytic_spacetime,
-                app->spacetime.prods, tcurr);
-          }
         }
 
         break;
@@ -171,8 +160,8 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
 
         if (app->has_field)
           gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
-        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static)
-          gkyl_array_copy(app->spacetime.f[0], app->spacetime.f[ndim]);
+        if (app->has_spacetime)
+          moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.f[ndim]);
 
         break;
 
@@ -184,8 +173,8 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
         if (app->has_field)
           gkyl_array_copy(app->field.f[0], app->field.fdup);
-        if (app->has_spacetime && app->spacetime.has_einstein_eqn && !app->spacetime.is_static)
-          gkyl_array_copy(app->spacetime.f[0], app->spacetime.fdup);
+        if (app->has_spacetime)
+          moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.fdup);
 
         break;
 

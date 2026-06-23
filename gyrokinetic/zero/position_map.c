@@ -150,6 +150,7 @@ gkyl_position_map_new(struct gkyl_position_map_inp pmap_info, struct gkyl_rect_g
       }
       gpm->xpt_ctx->compression_factor = pmap_info.compression_factor;
       gpm->xpt_ctx->radial_compression_factor = pmap_info.radial_compression_factor;
+      gpm->xpt_ctx->compress_divertor = pmap_info.compress_divertor;
   }
 
   gpm->grid = grid;

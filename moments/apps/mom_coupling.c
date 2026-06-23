@@ -23,8 +23,9 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
-      // If gradient-based or neural network-based closure is present, k0=0.0 in source solve to avoid applying local closure.
-      .k0 = (app->species[i].has_grad_closure || app->species[i].has_nn_closure) ? 0.0 : app->species[i].k0,
+      // The gradient-based closure defines its heat flux through k0, so k0=0.0 in the source solve to avoid double-applying it.
+      // The neural-network closure supplies the heat flux directly, so k0 is retained here as the integrating-factor relaxation rate.
+      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0,
     };
 
   src_inp.has_collision = app->has_collision;
@@ -470,13 +471,21 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     struct gkyl_moment_em_coupling_status gr_em_status =
       gkyl_moment_em_coupling_gr_em_explicit_advance(src->slvr, tcurr, dt, &app->local,
         fluids, app->field.f[sidx[nstrang]], app->field.ext_em);
-    if (!gr_em_status.success) {
+
+    // Reduce locally computed CFL estimate from explicit sources across ranks. 
+    double gr_red_local[2]  = { gr_em_status.success ? 1.0 : 0.0, gr_em_status.dt_suggested };
+    double gr_red_global[2];
+    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 2, gr_red_local, gr_red_global);
+    bool gr_em_success = gr_red_global[0] > 0.5;
+    double gr_em_dt_suggested = gr_red_global[1];
+
+    if (!gr_em_success) {
       return (struct gkyl_update_status) {
         .success = false,
-        .dt_suggested = gr_em_status.dt_suggested
+        .dt_suggested = gr_em_dt_suggested
       };
     }
-    dt_suggested = fmin(dt_suggested, gr_em_status.dt_suggested);
+    dt_suggested = fmin(dt_suggested, gr_em_dt_suggested);
   }
   else if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,

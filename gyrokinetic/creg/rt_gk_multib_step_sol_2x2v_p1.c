@@ -651,29 +651,24 @@ main(int argc, char **argv)
     .bcs = field_phys_bcs,
   };
 
-  struct gkyl_gyrokinetic_multib app_inp = {
-
-    .cdim = ctx.cdim,
-    .poly_order = 1,
-    .basis_type = app_args.basis_type,
-    .use_gpu = app_args.use_gpu,
-
-    .gk_block_geom = bgeom,
-    .cfl_frac = 0.5,
-    
-    .num_species = 2,
-    .species = { elc, ion},
-
-    .field = field,
-
-    .comm = comm
-  };
+  struct gkyl_gyrokinetic_multib *app_inp = gkyl_calloc(1,sizeof(struct gkyl_gyrokinetic_multib));
+  app_inp->cdim = ctx.cdim;
+  app_inp->poly_order = 1;
+  app_inp->basis_type = app_args.basis_type;
+  app_inp->use_gpu = app_args.use_gpu;
+  app_inp->cfl_frac = 1.0;
+  app_inp->gk_block_geom = bgeom;
+  app_inp->num_species = 2;
+  app_inp->species[0] = elc;
+  app_inp->species[1] = ion;
+  app_inp->field = field;
+  app_inp->comm = comm;
 
   // Set app output name from the executable name (argv[0]).
-  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
+  snprintf(app_inp->name, sizeof(app_inp->name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_type = GKYL_GK_MULTIB,
-    .multib_app_inp = app_inp,
+    .multib_app_inp = *app_inp,
     .time_stepping = {
       .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
@@ -691,6 +686,7 @@ main(int argc, char **argv)
 
   gkyl_gk_block_geom_release(bgeom);
   gkyl_gyrokinetic_comms_release(comm);
+  gkyl_free(app_inp);
 
 #ifdef GKYL_HAVE_MPI
   if (app_args.use_mpi)

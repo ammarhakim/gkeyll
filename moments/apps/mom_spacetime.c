@@ -1,5 +1,42 @@
 #include <gkyl_moment_priv.h>
 
+// ---- Backend behavior variants (installed by moment_spacetime_init) ----
+// Two sets of {update, max_dt, copy, calc_products}: a no-op/analytic set and a
+// dynamic-Einstein set. moment_spacetime_init picks one; the public functions
+// at the bottom just dispatch through the stored pointers.
+
+// Analytic (static) backend.
+static struct gkyl_update_status spacetime_update_static(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double tcurr, double dt);
+static double spacetime_max_dt_static(const gkyl_moment_app *app,
+  const struct moment_spacetime *sp);
+static void spacetime_copy_static(const struct moment_spacetime *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src);
+static void spacetime_calc_products_static(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double tcurr);
+
+// Dynamic Einstein backend.
+static struct gkyl_update_status spacetime_update_dynamic(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double tcurr, double dt);
+static double spacetime_max_dt_dynamic(const gkyl_moment_app *app,
+  const struct moment_spacetime *sp);
+static void spacetime_copy_dynamic(const struct moment_spacetime *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src);
+static void spacetime_calc_products_dynamic(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double tcurr);
+
+// Per-backend init/release: each installs its own function set (incl. release)
+// and allocates/frees only the memory that backend uses, so neither the
+// initializer nor the releaser has to re-test which backend is active.
+static void spacetime_init_static(const struct gkyl_moment *mom,
+  const struct gkyl_moment_spacetime *mom_st, struct gkyl_moment_app *app,
+  struct moment_spacetime *sp);
+static void spacetime_init_dynamic(const struct gkyl_moment *mom,
+  const struct gkyl_moment_spacetime *mom_st, struct gkyl_moment_app *app,
+  struct moment_spacetime *sp);
+static void spacetime_release_static(const struct moment_spacetime *sp);
+static void spacetime_release_dynamic(const struct moment_spacetime *sp);
+
 // Initialize the spacetime component. Mirrors moment_field_init's shape but
 // for the GR-mod background. Allocates the shared spacetime-products array
 // (consumed by the modular GR fluid equation objects via auxfields). For
@@ -12,59 +49,97 @@ moment_spacetime_init(const struct gkyl_moment *mom,
   const struct gkyl_moment_spacetime *mom_st,
   struct gkyl_moment_app *app, struct moment_spacetime *sp)
 {
-  sp->ndim       = mom->ndim;
-  sp->is_static  = mom_st->is_static;
-  sp->has_tetrad = mom_st->has_tetrad;
-  sp->ctx        = mom_st->ctx;
-  sp->init       = mom_st->init;
+  sp->ndim             = mom->ndim;
+  sp->is_static        = mom_st->is_static;
+  sp->has_tetrad       = mom_st->has_tetrad;
+  sp->ctx              = mom_st->ctx;
+  sp->init             = mom_st->init;
+  sp->has_einstein_eqn = (mom_st->einstein_eqn != NULL);
+  sp->spacetime_gauge  = mom_st->spacetime_gauge;
+  sp->reinit_freq      = mom_st->reinit_freq;
 
+  // Exactly one backend must be configured.
+  assert((mom_st->analytic_spacetime != NULL) ^ (mom_st->einstein_eqn != NULL));
+
+  // The shared products array, common to both backends. Mod fluid equations
+  // point at this via gkyl_gr_euler_tetrad_set_auxfields. Zero-initialised here;
+  // calc_products fills it at IC time and (dynamic) as needed each step.
+  sp->prods_ncomp = mom_st->has_tetrad
+    ? GKYL_GR_SP_NCOMP_TETRAD
+    : GKYL_GR_SP_NCOMP_BASE;
+  sp->prods = mkarr(false, sp->prods_ncomp, app->local_ext.volume);
+  gkyl_array_clear(sp->prods, 0.0);
+
+  // The per-interface tetrad cache is allocated lazily on the first
+  // calc_products call. Zeroed here so equation objects fall back to per-call
+  // averaging until the cache is wired in.
+  sp->wave_spacetime = 0;
+
+  // Dispatch to the backend initializer: each acquires/allocates only what its
+  // backend needs and installs the full method set (incl. release_func), so the
+  // initializer/releaser never re-test which backend is active.
+  if (mom_st->einstein_eqn != NULL)
+    spacetime_init_dynamic(mom, mom_st, app, sp);
+  else
+    spacetime_init_static(mom, mom_st, app, sp);
+}
+
+// Static-analytic backend: acquire the analytic-spacetime reference (see the
+// GC-UAF note below), leave the Einstein-state plumbing NULL, install the
+// no-op/analytic method set.
+static void
+spacetime_init_static(const struct gkyl_moment *mom,
+  const struct gkyl_moment_spacetime *mom_st, struct gkyl_moment_app *app,
+  struct moment_spacetime *sp)
+{
   // Acquire our own reference on the backend object. The Lua wrapper that
   // created it (or a C driver) holds the only other reference; without this
   // acquire the object can be garbage-collected/released out from under the
   // app while it is still in use (a use-after-free that surfaces once enough
   // other allocations — e.g. a Maxwell field — trigger a GC sweep mid-init).
-  sp->analytic_spacetime = mom_st->analytic_spacetime
-    ? gkyl_gr_spacetime_acquire(mom_st->analytic_spacetime) : NULL;
-  sp->einstein_eqn       = mom_st->einstein_eqn
-    ? gkyl_wv_eqn_acquire(mom_st->einstein_eqn) : NULL;
-  sp->has_einstein_eqn   = (mom_st->einstein_eqn != NULL);
-  sp->spacetime_gauge    = mom_st->spacetime_gauge;
-  sp->reinit_freq        = mom_st->reinit_freq;
+  sp->analytic_spacetime = gkyl_gr_spacetime_acquire(mom_st->analytic_spacetime);
+  sp->einstein_eqn = 0;
 
-  // Exactly one backend must be configured.
-  assert((mom_st->analytic_spacetime != NULL) ^ (mom_st->einstein_eqn != NULL));
-
-  sp->prods_ncomp = mom_st->has_tetrad
-    ? GKYL_GR_SP_NCOMP_TETRAD
-    : GKYL_GR_SP_NCOMP_BASE;
-
-  // The shared products array. Mod fluid equations point at this via
-  // gkyl_gr_euler_tetrad_set_auxfields after construction. Zero-initialised
-  // here; the coupling object fills it at IC time and as needed each step.
-  sp->prods = mkarr(false, sp->prods_ncomp, app->local_ext.volume);
-  gkyl_array_clear(sp->prods, 0.0);
-
-  // The per-interface tetrad cache is allocated lazily after derive_products
-  // first fills prods (see moment.c IC path). NULL here so equation objects
-  // fall back to per-call averaging until the cache is wired in.
-  sp->wave_spacetime = NULL;
-
-  // Dynamic-case plumbing: Einstein-state arrays + wave-prop solvers + BCs.
-  // Skipped entirely when running with the static-analytic backend.
-  for (int d = 0; d < 3; d++) sp->slvr[d] = NULL;
-  for (int d = 0; d < 4; d++) sp->f[d] = NULL;
-  sp->fdup  = NULL;
-  sp->fcurr = NULL;
-  sp->bc_buffer = NULL;
+  // No evolving Einstein state for a fixed background.
   for (int d = 0; d < 3; d++) {
-    sp->lower_bc[d] = NULL;
-    sp->upper_bc[d] = NULL;
+    sp->slvr[d]     = 0;
+    sp->lower_bc[d] = 0;
+    sp->upper_bc[d] = 0;
   }
+  for (int d = 0; d < 4; d++) sp->f[d] = 0;
+  sp->fdup      = 0;
+  sp->fcurr     = 0;
+  sp->bc_buffer = 0;
 
-  if (!sp->has_einstein_eqn)
-    return;
+  sp->update_func        = spacetime_update_static;
+  sp->max_dt_func        = spacetime_max_dt_static;
+  sp->copy_func          = spacetime_copy_static;
+  sp->calc_products_func = spacetime_calc_products_static;
+  sp->release_func       = spacetime_release_static;
+}
 
-  // ---- Dynamic Bona-Masso backend (Phase B) ----
+// Dynamic Bona-Masso backend: acquire the Einstein equation, allocate the
+// Einstein-state arrays, wave-prop solvers, and BC handles, install the dynamic
+// method set.
+static void
+spacetime_init_dynamic(const struct gkyl_moment *mom,
+  const struct gkyl_moment_spacetime *mom_st, struct gkyl_moment_app *app,
+  struct moment_spacetime *sp)
+{
+  sp->analytic_spacetime = 0;
+  sp->einstein_eqn = gkyl_wv_eqn_acquire(mom_st->einstein_eqn);
+
+  sp->update_func        = spacetime_update_dynamic;
+  sp->max_dt_func        = spacetime_max_dt_dynamic;
+  sp->copy_func          = spacetime_copy_dynamic;
+  sp->calc_products_func = spacetime_calc_products_dynamic;
+  sp->release_func       = spacetime_release_dynamic;
+
+  // BC handles are created only for non-periodic directions below; zero them
+  // first so periodic directions are reliably null (the one case the releaser
+  // must guard).
+  for (int d = 0; d < 3; d++) { sp->lower_bc[d] = 0; sp->upper_bc[d] = 0; }
+
   int ndim    = mom->ndim;
   int ncomp   = sp->einstein_eqn->num_equations;
   enum gkyl_wave_limiter limiter =
@@ -187,70 +262,256 @@ moment_spacetime_apply_bc(gkyl_moment_app *app, double tcurr,
     num_periodic_dir, app->periodic_dirs, f);
 }
 
-// Maximum stable dt for the Einstein hyperbolic step. Returns DBL_MAX in the
-// static case (the spacetime imposes no CFL constraint of its own).
-double
-moment_spacetime_max_dt(const gkyl_moment_app *app,
-  const struct moment_spacetime *sp)
-{
-  if (!sp->has_einstein_eqn || sp->is_static) return DBL_MAX;
+// ---- max_dt ----------------------------------------------------------------
 
+// Analytic backend imposes no CFL constraint of its own.
+static double
+spacetime_max_dt_static(const gkyl_moment_app *app, const struct moment_spacetime *sp)
+{
+  return DBL_MAX;
+}
+
+// Einstein backend: CFL of the hyperbolic Einstein wave-prop.
+static double
+spacetime_max_dt_dynamic(const gkyl_moment_app *app, const struct moment_spacetime *sp)
+{
   double max_dt = DBL_MAX;
   for (int d = 0; d < app->ndim; d++)
     max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
   return max_dt;
 }
 
-// Advance the Einstein state by dt. No-op when is_static or when running
-// with the analytic backend (no Einstein state to evolve).
-struct gkyl_update_status
-moment_spacetime_update(gkyl_moment_app *app,
-  const struct moment_spacetime *sp, double tcurr, double dt)
+double
+moment_spacetime_max_dt(const gkyl_moment_app *app, const struct moment_spacetime *sp)
+{
+  return sp->max_dt_func(app, sp);
+}
+
+// ---- update ----------------------------------------------------------------
+
+// Analytic backend: nothing to evolve.
+static struct gkyl_update_status
+spacetime_update_static(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr, double dt)
+{
+  // Nothing to evolve for a fixed background.
+  return (struct gkyl_update_status) { .success = true, .dt_suggested = DBL_MAX };
+}
+
+// Einstein backend: hyperbolic wave-prop of the Einstein state + BC each
+// stage, then refresh the derived geometry the fluid step consumes.
+static struct gkyl_update_status
+spacetime_update_dynamic(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr, double dt)
 {
   struct gkyl_wave_prop_status stat = { true, DBL_MAX };
-
-  if (sp->has_einstein_eqn && !sp->is_static) {
-    int ndim = sp->ndim;
-    for (int d = 0; d < ndim; d++) {
-      stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local,
-        NULL, sp->f[d], sp->f[d + 1]);
-      if (!stat.success)
-        return (struct gkyl_update_status) {
-          .success = false, .dt_suggested = stat.dt_suggested,
-        };
-      moment_spacetime_apply_bc(app, tcurr, sp, sp->f[d + 1]);
-    }
+  int ndim = sp->ndim;
+  for (int d = 0; d < ndim; d++) {
+    stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local,
+      NULL, sp->f[d], sp->f[d + 1]);
+    if (!stat.success)
+      return (struct gkyl_update_status) {
+        .success = false, .dt_suggested = stat.dt_suggested,
+      };
+    moment_spacetime_apply_bc(app, tcurr, sp, sp->f[d + 1]);
   }
+
+  // Refresh products + tetrad cache from the advanced state so the upcoming
+  // fluid step reads the new geometry.
+  spacetime_calc_products_dynamic(app, sp, tcurr);
 
   return (struct gkyl_update_status) {
     .success = true, .dt_suggested = stat.dt_suggested,
   };
 }
 
-// Release everything owned by the spacetime component.
+struct gkyl_update_status
+moment_spacetime_update(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr, double dt)
+{
+  return sp->update_func(app, sp, tcurr, dt);
+}
+
+// ---- copy (time-stepper backup/commit/restore) -----------------------------
+
+// Analytic backend has no evolving state; the passed-in arrays are NULL.
+static void
+spacetime_copy_static(const struct moment_spacetime *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src)
+{
+  // No evolving state; the passed-in arrays are NULL.
+}
+
+static void
+spacetime_copy_dynamic(const struct moment_spacetime *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src)
+{
+  gkyl_array_copy(dst, src);
+}
+
+void
+moment_spacetime_copy(const struct moment_spacetime *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src)
+{
+  sp->copy_func(sp, dst, src);
+}
+
+// ---- calc_products ---------------------------------------------------------
+// Recompute the derived spacetime quantities the fluid solver consumes:
+// cell-center products (over interior + ghost cells) and the per-interface
+// tetrad cache. The two are inseparable — refreshing one without the other
+// would leave the cache stale — so they live in one call.
+
+// Fill the products array from the analytic background — closed-form, per cell,
+// over the interior + ghost cells (wave_prop reads spacetime at boundary-ghost
+// interfaces too). This is the static-backend derivation; it owns the geometry
+// here rather than going through the spacetime-coupling object.
+static void
+spacetime_fill_products_analytic(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx = gkyl_range_idx(&app->local_ext, iter.idx);
+    double *prods_row = gkyl_array_fetch(sp->prods, cidx);
+
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xc);
+    double x = app->ndim >= 1 ? xc[0] : 0.0;
+    double y = app->ndim >= 2 ? xc[1] : 0.0;
+    double z = app->ndim >= 3 ? xc[2] : 0.0;
+
+    gkyl_moment_spacetime_coupling_fill_products_analytic(sp->analytic_spacetime,
+      tcurr, x, y, z, prods_row);
+  }
+}
+
+// Post-process filled products (shared by both backends): mirror-copy skin →
+// ghost on each non-periodic boundary so the ghost spacetime equals the
+// interior spacetime (matching packed's BC semantic), sync periodic directions,
+// then build (lazily, attaching to each tetrad species) or refresh the
+// per-interface tetrad cache.
+static void
+spacetime_finish_products(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr)
+{
+  int num_periodic_dir = app->num_periodic_dir;
+  int is_non_periodic[3] = { 1, 1, 1 };
+  for (int d = 0; d < num_periodic_dir; d++)
+    is_non_periodic[app->periodic_dirs[d]] = 0;
+  long ncomp = sp->prods_ncomp;
+  for (int d = 0; d < app->ndim; d++) {
+    if (!is_non_periodic[d]) continue;
+    int lo = app->local.lower[d], up = app->local.upper[d];
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->skin_ghost.lower_skin[d]);
+    while (gkyl_range_iter_next(&iter)) {
+      int skin_idx[GKYL_MAX_DIM], ghost_idx[GKYL_MAX_DIM];
+      gkyl_copy_int_arr(app->ndim, iter.idx, skin_idx);
+      gkyl_copy_int_arr(app->ndim, iter.idx, ghost_idx);
+      ghost_idx[d] = 2 * lo - skin_idx[d] - 1;  // mirror across lo - 0.5
+      long sloc = gkyl_range_idx(&app->local_ext, skin_idx);
+      long gloc = gkyl_range_idx(&app->local_ext, ghost_idx);
+      memcpy(gkyl_array_fetch(sp->prods, gloc),
+             gkyl_array_cfetch(sp->prods, sloc), ncomp * sizeof(double));
+    }
+    gkyl_range_iter_init(&iter, &app->skin_ghost.upper_skin[d]);
+    while (gkyl_range_iter_next(&iter)) {
+      int skin_idx[GKYL_MAX_DIM], ghost_idx[GKYL_MAX_DIM];
+      gkyl_copy_int_arr(app->ndim, iter.idx, skin_idx);
+      gkyl_copy_int_arr(app->ndim, iter.idx, ghost_idx);
+      ghost_idx[d] = 2 * up - skin_idx[d] + 1;  // mirror across up + 0.5
+      long sloc = gkyl_range_idx(&app->local_ext, skin_idx);
+      long gloc = gkyl_range_idx(&app->local_ext, ghost_idx);
+      memcpy(gkyl_array_fetch(sp->prods, gloc),
+             gkyl_array_cfetch(sp->prods, sloc), ncomp * sizeof(double));
+    }
+  }
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, app->periodic_dirs, sp->prods);
+
+  bool need_wave_spacetime = false;
+  for (int i = 0; i < app->num_species; i++)
+    if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
+      need_wave_spacetime = true; break;
+    }
+  if (need_wave_spacetime) {
+    if (sp->wave_spacetime == NULL) {
+      sp->wave_spacetime = gkyl_wave_spacetime_new(&app->grid, &app->local_ext,
+        app->geom, sp->analytic_spacetime, sp->prods, tcurr, /*use_gpu=*/false);
+      for (int i = 0; i < app->num_species; i++)
+        if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD)
+          gkyl_gr_euler_tetrad_set_wave_spacetime(app->species[i].equation,
+            sp->wave_spacetime);
+    }
+    else {
+      gkyl_wave_spacetime_refresh(sp->wave_spacetime, &app->grid, app->geom,
+        sp->analytic_spacetime, sp->prods, tcurr);
+    }
+  }
+}
+
+static void
+spacetime_calc_products_static(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr)
+{
+  spacetime_fill_products_analytic(app, sp, tcurr);
+  spacetime_finish_products(app, sp, tcurr);
+}
+
+static void
+spacetime_calc_products_dynamic(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr)
+{
+  // TODO(§6): derive the products from the evolved Einstein state (sp->fcurr).
+  // The post-processing (BC mirror + tetrad cache) is already shared below.
+  spacetime_finish_products(app, sp, tcurr);
+}
+
+void
+moment_spacetime_calc_products(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr)
+{
+  sp->calc_products_func(app, sp, tcurr);
+}
+
+// ---- release ---------------------------------------------------------------
+
+// Static backend: release the acquired analytic-spacetime reference.
+static void
+spacetime_release_static(const struct moment_spacetime *sp)
+{
+  gkyl_gr_spacetime_release(sp->analytic_spacetime);
+}
+
+// Dynamic backend: release the Einstein equation reference and the wave-prop /
+// state-array / BC plumbing this backend allocates. Everything here is
+// unconditionally created by spacetime_init_dynamic, except the per-direction
+// BC handles, which exist only for non-periodic directions.
+static void
+spacetime_release_dynamic(const struct moment_spacetime *sp)
+{
+  gkyl_wv_eqn_release(sp->einstein_eqn);
+
+  for (int d = 0; d < sp->ndim; d++) {
+    if (sp->lower_bc[d]) gkyl_wv_apply_bc_release(sp->lower_bc[d]);
+    if (sp->upper_bc[d]) gkyl_wv_apply_bc_release(sp->upper_bc[d]);
+    gkyl_wave_prop_release(sp->slvr[d]);
+    gkyl_array_release(sp->f[d]);
+  }
+  gkyl_array_release(sp->f[sp->ndim]);
+  gkyl_array_release(sp->fdup);
+  gkyl_array_release(sp->bc_buffer);
+}
+
+// Release everything owned by the spacetime component: the shared products /
+// tetrad cache (common to both backends), then the backend-specific memory.
 void
 moment_spacetime_release(const struct moment_spacetime *sp)
 {
   if (sp->prods) gkyl_array_release(sp->prods);
   if (sp->wave_spacetime) gkyl_wave_spacetime_release(sp->wave_spacetime);
 
-  // Release the reference acquired in moment_spacetime_init.
-  if (sp->analytic_spacetime) gkyl_gr_spacetime_release(sp->analytic_spacetime);
-
-  if (!sp->has_einstein_eqn) {
-    return;
-  }
-
-  if (sp->einstein_eqn) gkyl_wv_eqn_release(sp->einstein_eqn);
-
-  for (int d = 0; d < sp->ndim; d++) {
-    if (sp->lower_bc[d]) gkyl_wv_apply_bc_release(sp->lower_bc[d]);
-    if (sp->upper_bc[d]) gkyl_wv_apply_bc_release(sp->upper_bc[d]);
-  }
-  for (int d = 0; d < sp->ndim; d++)
-    if (sp->slvr[d]) gkyl_wave_prop_release(sp->slvr[d]);
-  if (sp->fdup) gkyl_array_release(sp->fdup);
-  for (int d = 0; d < sp->ndim + 1; d++)
-    if (sp->f[d]) gkyl_array_release(sp->f[d]);
-  if (sp->bc_buffer) gkyl_array_release(sp->bc_buffer);
+  sp->release_func(sp);
 }

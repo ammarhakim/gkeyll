@@ -367,6 +367,7 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->grid = geometry_inp->geo_grid;
 
   up->geqdsk_sign_convention = 0;
+  up->half_domain = 0;
 
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
@@ -388,6 +389,12 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
       assert(false);
     }
   }
+
+  // Function pointers to twistshift function.
+  up->parallel_lower_bc_shift_func = geometry_inp->parallel_lower_bc_shift_func;
+  up->parallel_upper_bc_shift_func = geometry_inp->parallel_upper_bc_shift_func;
+  up->parallel_lower_bc_shift_ctx  = geometry_inp->parallel_lower_bc_shift_ctx ;
+  up->parallel_upper_bc_shift_ctx  = geometry_inp->parallel_upper_bc_shift_ctx ;
 
   gk_geometry_set_nodal_ranges(up) ;
 
@@ -422,11 +429,11 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   }
 
   // Store metadata for I/O.
-  struct gkyl_msgpack_map_elem io_meta[] = {
+  struct gkyl_msgpack_map_elem io_meta_basic[] = {
     { .key = "geometry_type", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = up->geometry_id },
   };
-  up->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  up->io_meta = gkyl_msgpack_map_elem_clone(up->io_meta_len, io_meta);
+  up->io_meta_basic_len = sizeof(io_meta_basic)/sizeof(io_meta_basic[0]);
+  up->io_meta_basic = gkyl_msgpack_map_elem_clone(up->io_meta_basic_len, io_meta_basic);
 
   up->flags = 0;
   GKYL_CLEAR_CU_ALLOC(up->flags);

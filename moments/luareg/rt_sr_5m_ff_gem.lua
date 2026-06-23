@@ -57,7 +57,7 @@ charge_elc = -1.0 -- Electron charge.
 mass_ion = 1.0 -- Positron mass.
 charge_ion = 1.0 -- Positron charge.
 
-sigma = 10.0 -- B^2/(mu0*n0*m*c^2)
+sigma = 1.0 -- B^2/(mu0*n0*m*c^2)
 n0 = 1.0 -- reference density
 T0 = 0.01 -- Reference temperature in units of mc^2
 
@@ -78,8 +78,8 @@ k_final = 20 -- Last wave mode to perturb with noise.
 noise_index = -1.0 -- Spectral index of the noise.
 
 -- Simulation parameters.
-Nx = 512 -- Cell count (configuration space: x-direction).
-Ny = 512 -- Cell count (configuration space: y-direction).
+Nx = 64 -- Cell count (configuration space: x-direction).
+Ny = 64 -- Cell count (configuration space: y-direction).
 Lx = 8.0*pi*de  -- Domain size (configuration space: x-direction).
 Ly = 8.0*pi*de  -- Domain size (configuration space: y-direction).
 cfl_frac = 0.95 -- CFL coefficient.
