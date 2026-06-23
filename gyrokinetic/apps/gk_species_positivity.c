@@ -64,14 +64,15 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   // Package metadata. Use app->io_meta_grid (the conf-space basis these moments
   // are written on) rather than gks->io_meta_grid (the phase-space basis), so the
   // file records the correct poly_order and basis_type for the moment data.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
   struct gkyl_msgpack_map_elem desc[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift." }
   };
   int io_meta_len[] = {app->io_meta_grid_len, mpe_pos_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, mpe_pos, app->gk_geom->io_meta_basic, desc};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, mpe_pos, app->gk_geom->io_meta_basic, desc};
+
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   struct timespec wst = gkyl_wall_clock();
@@ -179,8 +180,8 @@ gks_pos_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
       struct gkyl_msgpack_map_elem io_meta_phi[] = {
         { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of change in distribution due to positivity shift." }
       };
-      int io_meta_len[] = {app->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
-      const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
       struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
       gkyl_dynvec_write_wmeta(pos->integ_diag, fileNm, mt);
