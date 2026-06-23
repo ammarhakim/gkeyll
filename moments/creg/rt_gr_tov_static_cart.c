@@ -218,6 +218,12 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[71] = rho_rel; // = fout[0]
   fout[72] = Etot;    // = fout[4]
 
+  // Perturbation away from the equilibrium: small x-momentum kick in the stellar interior. 
+  // The slots [71],[72] above keep the unperturbed equilibrium, so w = q - q_eq = (0, dS, 0, 0, 0) is a genuine deviation the WB must evolve (not absorb). Pulsation should stay bounded.
+  // if (r < 0.5 * app->R_star) {
+  //   fout[1] += 1.0e-3 * rho_rel; // ~1e-3 coordinate velocity perturbation
+  // }
+
   if (in_excision_region) {
     for (int i = 0; i < 68; i++) fout[i] = 0.0;
     fout[27] = -1.0;
@@ -328,9 +334,9 @@ main(int argc, char **argv)
     .spacetime_gauge = ctx.spacetime_gauge,
     .reinit_freq = ctx.reinit_freq,
     .spacetime = ctx.spacetime,
-    .rp_type = WV_GR_EULER_RP_LAX, // pure Lax: most stable here (HLL bulk let the surface mode grow)
+    .rp_type = WV_GR_EULER_RP_LAX, // the Riemann solver the MP scheme uses at each reconstructed edge
     .use_gpu = app_args.use_gpu,
-    .tov_eq = ctx.tov,
+    .tov_eq = ctx.tov, // turns on the static-TOV well-balancing (MP flux-form WB under GKYL_MOMENT_MP)
     .p_atm = ctx.p_atm,
     .rho_atm = ctx.rho_atm, // C2P recovery floor matches the IC atmosphere (ET rho_rel_min=1e-7)
   });
@@ -339,7 +345,7 @@ main(int argc, char **argv)
     .name = "gr_euler",
     .equation = gr_euler,
     .init = evalGREulerInit,
-    .force_low_order_flux = true,
+    //.force_low_order_flux is a wave-prop-only flag; we use the MP scheme
     .ctx = &ctx,
 
     .has_gr_euler = true,
@@ -377,7 +383,7 @@ main(int argc, char **argv)
     .upper = {  0.5 * ctx.Lx,  0.5 * ctx.Ly },
     .cells = { NX, NY },
 
-    .scheme_type = GKYL_MOMENT_WAVE_PROP,
+    .scheme_type = GKYL_MOMENT_MP, // MP (Suresh-Huynh) flux-form scheme + well-balanced deviation reconstruction
     .mp_recon = app_args.mp_recon,
 
     .cfl_frac = ctx.cfl_frac,

@@ -307,6 +307,33 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       const double *phil = gkyl_array_cfetch(phi, loc+offsets[IM]);
       const double *phir = gkyl_array_cfetch(phi, loc+offsets[IP]);
 
+      // reconstruct the smooth deviation w = q - q_eq and add a single-valued edge equilibrium q_eq(edge) to both sides. 
+      // at a static equilibrium w = 0 -> qr_l = qr_r = q_eq(edge): no jump -> exact balance
+      bool wb = (mp->equation->type == GKYL_EQN_GR_EULER && meqn == 73);
+      if (wb) {
+        const double *qa[6] = { qavg[I3M], qavg[I2M], qavg[IM], qavg[IP], qavg[I2P], qavg[I3P] };
+        double weq[6][meqn], qeq[6][meqn];
+        for (int k = 0; k < 6; ++k) {
+          for (int m = 0; m < meqn; ++m) qeq[k][m] = qa[k][m]; // metric (5..70) + slots = equilibrium
+          qeq[k][0] = qa[k][71]; qeq[k][1] = 0.0; qeq[k][2] = 0.0; qeq[k][3] = 0.0; qeq[k][4] = qa[k][72];
+          for (int m = 0; m < meqn; ++m) weq[k][m] = qa[k][m] - qeq[k][m]; // deviation: fluid only, 0 elsewhere
+        }
+        double wl[meqn], wr[meqn];
+        mp->recovery_fn(meqn, weq[0], weq[1], weq[2], weq[3], weq[4], weq[5], wl, wr);
+        if (!mp->skip_mp_limiter) {
+          for (int m = 0; m < meqn; ++m) {
+            wr[m] = mp_limiter(wr[m], weq[5][m], weq[4][m], weq[3][m], weq[2][m], weq[1][m]);
+            wl[m] = mp_limiter(wl[m], weq[0][m], weq[1][m], weq[2][m], weq[3][m], weq[4][m]);
+          }
+        }
+        // single-valued (2nd-order centered, monotone) equilibrium at the edge, from the two adjacent cells
+        for (int m = 0; m < meqn; ++m) {
+          double qe = 0.5 * (qeq[2][m] + qeq[3][m]); // IM, IP
+          qr_l[m] = qe + wl[m];
+          qr_r[m] = qe + wr[m];
+        }
+      }
+      else {
       // recover variables at cell edge
       mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],
         qavg[IP], qavg[I2P], qavg[I3P],
@@ -323,6 +350,7 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
             qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
             qavg[IP][m], qavg[I2P][m]);
         }
+      }
       }
 
       const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(mp->geom, iter.idx);

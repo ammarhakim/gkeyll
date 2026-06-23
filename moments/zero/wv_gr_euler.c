@@ -1644,11 +1644,26 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
     for (int m = 0; m < 71; m++) {
       flux_jump[m] = fr[m] - fl[m];
     }
+    // subtract the equilibrium flux jump so this within-cell flux difference becomes the deviation flux jump
+    if (gr_euler->tov_eq != NULL) { // called by the MP scheme
+      double q_eq_l[71], q_eq_r[71], f_eq_l[71], f_eq_r[71];
+      gr_euler_tov_equilibrium(gr_euler, ql, q_eq_l);
+      gr_euler_tov_equilibrium(gr_euler, qr, q_eq_r);
+      gkyl_gr_euler_flux(gas_gamma, q_eq_l, f_eq_l);
+      gkyl_gr_euler_flux(gas_gamma, q_eq_r, f_eq_r);
+      for (int m = 0; m < 71; m++) {
+        flux_jump[m] -= (f_eq_r[m] - f_eq_l[m]);
+      }
+    }
   }
   else {
     for (int m = 0; m < 71; m++) {
       flux_jump[m] = 0.0;
     }
+  }
+  // Frozen WB slots (>= 71) carry no flux
+  for (int m = 71; m < eqn->num_equations; m++) {
+    flux_jump[m] = 0.0;
   }
 
   double amaxl = gkyl_gr_euler_max_abs_speed(gas_gamma, ql);
@@ -1891,7 +1906,7 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
   gr_euler->spacetime_gauge = inp->spacetime_gauge;
   gr_euler->reinit_freq = inp->reinit_freq;
   gr_euler->tov_eq = inp->tov_eq; // Optional static-TOV well-balancing (NULL -> inactive) (the equilibrium comes from the discrete slots, so no EOS constants needed)
-  
+
   if (inp->rho_atm > 0.0) gr_euler_rho_floor = inp->rho_atm;
   if (inp->p_atm > 0.0) gr_euler_p_floor = inp->p_atm;
 
