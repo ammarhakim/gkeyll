@@ -115,24 +115,18 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
  * The mod fluid arrays carry only the 5 hydro components; the products
  * array supplies all spacetime needed by the source-term math.
  *
- * prim_status_source / repair_status_source: per-species source-side
- * instrumentation. Indexed by species index 0..nfluids-1; entries for
- * non-GR-mod species are ignored. Pass NULL pointers (or NULL entries)
- * to skip instrumentation. The repair_status_source pointer must ALSO
- * be installed on each GR Euler tetrad-mod equation's auxfields (via
- * gkyl_gr_euler_tetrad_set_auxfields) before this call so the
- * repair_state callback (fired by REPAIR_ONCE inside the SSP-RK3
- * stages) can find it on the cur_repair_ctx = 0 branch.
+ * The source physics (rate, positivity limiter, admissibility repair) and its
+ * per-cell products lookup + prim/repair instrumentation all live on each
+ * sourced equation object (set via gkyl_gr_euler_tetrad_set_auxfields and
+ * gkyl_gr_euler_tetrad_set_conf_range), so this integrator is equation-agnostic.
  *
- * @param st                   Coupling object.
- * @param t_curr               Current simulation time.
- * @param dt                   Time step.
- * @param update_range         Range over which to integrate sources.
- * @param fluid                Per-species writable hydro arrays.
- * @param prods                Current spacetime-products array.
- * @param prim_status_source   Per-species prim_status for source recovery.
- * @param repair_status_source Per-species repair_status for source step
- *                             tau/s²-limiter firing counts.
+ * @param st            Coupling object.
+ * @param t_curr        Current simulation time (sources here are time-independent).
+ * @param dt            Time step.
+ * @param update_range  Range over which to integrate sources.
+ * @param fluid         Per-species writable hydro arrays (sourced where st->eqn[s] != NULL).
+ * @param spacetime     Writable spacetime (Einstein) state array for the dynamic
+ *                      backend; NULL for the static/analytic backend.
  */
 void
 gkyl_moment_spacetime_coupling_explicit_advance(
@@ -140,9 +134,7 @@ gkyl_moment_spacetime_coupling_explicit_advance(
   double t_curr, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  const struct gkyl_array *prods,
-  struct gkyl_gr_euler_prim_status *prim_status_source[GKYL_MAX_SPECIES],
-  struct gkyl_gr_euler_repair_status *repair_status_source[GKYL_MAX_SPECIES]);
+  struct gkyl_array *spacetime);
 
 /**
  * Release the coupling object.

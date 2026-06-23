@@ -161,183 +161,6 @@ gkyl_moment_spacetime_coupling_fill_products_analytic(
   gkyl_free(lapse_der);
 }
 
-// Compute the geometric source rate vector S(q) for the modular GR Euler
-// equation. dq/dt = S(q) for the Banyuls source terms; integrators wrap
-// this to take a time step. Excised cells return zero.
-//
-// Returns the rate of change of the densitized conservative state
-// d(√γ·U)/dt = α√γ·S(w), so callers get the same scaling the original
-// inlined source step used.
-//
-// The eos bundle controls the primitive-variable recovery closure
-// (IDEAL or APPROXIMATE_SYNGE). Everything downstream of the recovery
-// uses h directly from the recovered primitives — no further EOS
-// dispatch needed.
-static void
-compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
-  const double q[5], struct gkyl_gr_euler_prim_status *stat, double S_rate[5])
-{
-  bool in_excision_region = prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
-  if (in_excision_region) {
-    for (int i = 0; i < 5; i++) S_rate[i] = 0.0;
-    return;
-  }
-
-  double lapse   = prods[GKYL_GR_SP_LAPSE];
-  double shift_x = prods[GKYL_GR_SP_SHIFT + 0];
-  double shift_y = prods[GKYL_GR_SP_SHIFT + 1];
-  double shift_z = prods[GKYL_GR_SP_SHIFT + 2];
-  double spatial_det = prods[GKYL_GR_SP_SPATIAL_DET];
-
-  // Convention A primitive recovery via the shared helper.
-  double D    = q[0] / sqrt(spatial_det);
-  double momx = q[1] / sqrt(spatial_det);
-  double momy = q[2] / sqrt(spatial_det);
-  double momz = q[3] / sqrt(spatial_det);
-  double Etot = q[4] / sqrt(spatial_det);
-
-  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
-  double inv_g[3][3] = {
-    { ig[0], ig[1], ig[2] },
-    { ig[3], ig[4], ig[5] },
-    { ig[6], ig[7], ig[8] },
-  };
-
-  struct gkyl_gr_euler_prim prim;
-  gkyl_gr_euler_recover_primitives(eos,
-    D, momx, momy, momz, Etot, inv_g, stat, &prim);
-
-  double p = prim.p;
-
-  double shift[3] = { shift_x, shift_y, shift_z };
-
-  double inv_g4[4][4];
-  inv_g4[0][0] = - (1.0 / (lapse * lapse));
-  for (int i = 0; i < 3; i++) {
-    inv_g4[0][i + 1] = (1.0 / (lapse * lapse)) * shift[i];
-    inv_g4[i + 1][0] = (1.0 / (lapse * lapse)) * shift[i];
-  }
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      inv_g4[i + 1][j + 1] = prods[GKYL_GR_SP_INV_GIJ + 3*i + j]
-        - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
-
-  // Perfect-fluid stress-energy in conservative-paired form. The
-  // τ-equation identity ρhW² = τ + D + p (undensitized) eliminates ρh
-  // everywhere:
-  //   T^{00} = (τ + D) / α²                                  (linear)
-  //   T^{0i} = γ^{ij}·S_j / α − (τ + D)·β^i / α²             (linear)
-  //   T^{ij} = (τ + D + p)·ṽ^i·ṽ^j + p·γ₄^{ij},  ṽ = v − β/α
-  // The bilinear spatial block pairs a conservative SCALAR with the
-  // recovered velocity dyad ṽ⊗ṽ — one recovered object squared, so no
-  // S-vs-v cross-term to mismatch, and no 1/(τ+D+p) denominator. The
-  // pre-cone experiments that rejected conservative forms here (the
-  // mixed S^i·v^j rewrite and the Option-B denominator form) were
-  // measuring wrong-root recovery garbage at gap states; the post-cone
-  // A/B for this form is in SESSION_NOTES_P_GE_0_CONE.md.
-  double tauD = Etot + D;
-  double vtil[3] = {
-    prim.v[0] - shift_x / lapse,
-    prim.v[1] - shift_y / lapse,
-    prim.v[2] - shift_z / lapse,
-  };
-  double T[4][4];
-  T[0][0] = tauD / (lapse * lapse);
-  for (int i = 0; i < 3; i++) {
-    double mom_up = inv_g[i][0]*momx + inv_g[i][1]*momy + inv_g[i][2]*momz;
-    T[0][i + 1] = mom_up / lapse - tauD * shift[i] / (lapse * lapse);
-    T[i + 1][0] = T[0][i + 1];
-  }
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      T[i + 1][j + 1] = (tauD + p) * vtil[i] * vtil[j]
-                      + p * inv_g4[i + 1][j + 1];
-
-  // Spacetime-derivative lookups from products.
-  double lapse_der[3] = {
-    prods[GKYL_GR_SP_DALPHA + 0],
-    prods[GKYL_GR_SP_DALPHA + 1],
-    prods[GKYL_GR_SP_DALPHA + 2],
-  };
-
-  double shift_der[3][3];
-  for (int j = 0; j < 3; j++)
-    for (int i = 0; i < 3; i++)
-      shift_der[j][i] = prods[GKYL_GR_SP_DBETA + 3*j + i];
-
-  double spatial_metric_der[3][3][3];
-  for (int k = 0; k < 3; k++)
-    for (int i = 0; i < 3; i++)
-      for (int j = 0; j < 3; j++)
-        spatial_metric_der[k][i][j] = prods[GKYL_GR_SP_DGIJ + 9*k + 3*i + j];
-
-  double extrinsic_curvature[3][3];
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++)
-      extrinsic_curvature[i][j] = prods[GKYL_GR_SP_KIJ + 3*i + j];
-
-  const double *g_ij = &prods[GKYL_GR_SP_GIJ];
-
-  double shift_lower[3] = { 0.0, 0.0, 0.0 };
-  for (int m = 0; m < 3; m++)
-    for (int k = 0; k < 3; k++)
-      shift_lower[m] += g_ij[3*m + k] * shift[k];
-
-  for (int i = 0; i < 5; i++) S_rate[i] = 0.0;
-
-  double prefac = sqrt(spatial_det) * lapse;  // = α√γ = √(-g)
-
-  // Energy density source — see source_euler for derivation.
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      S_rate[4] += prefac * (T[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
-      S_rate[4] += prefac * (2.0 * T[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
-      S_rate[4] += prefac * (T[i + 1][j + 1] * extrinsic_curvature[i][j]);
-    }
-    S_rate[4] -= prefac * (T[0][0] * shift[i] * lapse_der[i]);
-    S_rate[4] -= prefac * (T[0][i + 1] * lapse_der[i]);
-  }
-
-  // Momentum density sources — full Banyuls (1/2)·T^{μν}·∂_j g_{μν}
-  // expansion. See source_euler for the per-term key.
-  for (int j = 0; j < 3; j++) {
-    S_rate[1 + j] -= prefac * (T[0][0] * lapse * lapse_der[j]);
-
-    for (int k = 0; k < 3; k++) {
-      for (int l = 0; l < 3; l++) {
-        S_rate[1 + j] += prefac * (0.5 * T[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
-        S_rate[1 + j] += prefac * (0.5 * T[k + 1][l + 1] * spatial_metric_der[j][k][l]);
-      }
-      S_rate[1 + j] += prefac * (T[0][0] * shift_lower[k] * shift_der[j][k]);
-
-      for (int i = 0; i < 3; i++) {
-        S_rate[1 + j] += prefac * (T[0][i + 1] * g_ij[3*i + k] * shift_der[j][k]);
-        S_rate[1 + j] += prefac * (T[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
-      }
-    }
-  }
-}
-
-// Per-cell forward-Euler source step for the modular GR Euler equation
-// with TAU + S² POSITIVITY LIMITERS.
-//
-// Naive forward Euler: q_new = q_old + dt·S(q_old).
-//
-// The limiters compute the largest α ∈ [0, 1] such that
-//   τ_new = τ + α·dt·S_τ ≥ 0
-// AND
-//   s²(q_new) = (D+τ + α·δDτ)² − γ^{ij}(S_i + α δS_i)(S_j + α δS_j)
-//             ≥ margin · (D+τ + α·δDτ)²
-// (where δ = dt·S). Both constraints reduce to picking a scalar α; the
-// final α = min(α_τ, α_s²) is applied uniformly to ALL components.
-// The cell gets a partial, physically-directed source contribution
-// rather than a hard clamp.
-//
-// SSP-RK3 compatibility: the outer integrator applies convex
-// combinations of (q_old, q_stage1, q_stage2). A_γ is convex, so a
-// convex combination of admissible states is admissible. Per-substage
-// limiting is safe.
-//
 // ---------------------------------------------------------------------------
 // Newton-iteration histogram bin-edges. Referenced by the static-inline
 // gkyl_gr_euler_recover_primitives via the extern declaration in
@@ -350,157 +173,44 @@ const int gkyl_gr_euler_newton_bin_edges[GR_EULER_NEWTON_HIST_NBINS] = {
   4, 8, 16, 32, 64, 99, 100
 };
 
-// Compute the largest α ∈ [0, 1] such that
-//   (1-ε)·((a + αb)² − (D + α·δD)²) − (P + 2αQ + α²R) ≥ 0
-// — the p≥0-cone bound s² > D² (see check_admissibility) with margin ε,
-// where a = D+τ, b = δD+δτ, P = γ^{ij}·S_i·S_j, Q = γ^{ij}·S_i·δS_j,
-// R = γ^{ij}·δS_i·δS_j. Equivalently:
-//   A α² + 2 B α + C ≥ 0
-// with A = (1-ε)(b² − δD²) − R, B = (1-ε)(ab − D·δD) − Q,
-// C = (1-ε)(a² − D²) − P. Assumes C ≥ 0 (input state q already
-// satisfies the margin); if not, returns 1.0 to let the cascade-repair
-// handle it downstream.
-static double
-compute_s2_limiter_alpha(const double *prods, double dt,
-  const double fluid_old[5], const double S_rate[5])
+
+
+// ---------------------------------------------------------------------------
+// Generic per-cell explicit source step over a wv_eqn. The source physics
+// lives on each equation object (eqn->source_func for the RHS, the optional
+// eqn->source_limiter_func for a positivity limiter, eqn->repair_state_func for
+// admissibility), so this integrator is equation-agnostic and is used
+// uniformly for the GR-Euler fluid species and the Einstein spacetime state.
+// ---------------------------------------------------------------------------
+
+#define GKYL_MOMENT_SOURCE_MAX_NEQN 64  // max state size sourced here (Einstein)
+
+// One explicit Euler step: out = q_in + alpha*dt*S(q_in), where S is the
+// equation's source RHS and alpha its optional positivity limiter (1 if none);
+// then repair if the equation flags q_out inadmissible (anchored on q_in).
+static void
+source_forward_euler(const struct gkyl_wv_eqn *eqn, double dt,
+  const double *q_in, double *q_out)
 {
-  const double margin = 1.0e-6;
+  int n = eqn->num_equations;
+  double S[GKYL_MOMENT_SOURCE_MAX_NEQN];
+  eqn->source_func(eqn, q_in, S);
+  double alpha = eqn->source_limiter_func
+    ? eqn->source_limiter_func(eqn, q_in, S, dt) : 1.0;
+  for (int j = 0; j < n; j++) q_out[j] = q_in[j] + (alpha * dt * S[j]);
 
-  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) return 1.0;
-  double sd = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
-  if (!(sd > 0.0)) return 1.0;
-  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
-
-  // Undensitize q and δq (where δq = dt·S_rate).
-  double D    = fluid_old[0] / sd;
-  double Sx   = fluid_old[1] / sd;
-  double Sy   = fluid_old[2] / sd;
-  double Sz   = fluid_old[3] / sd;
-  double tau  = fluid_old[4] / sd;
-  double dD   = dt * S_rate[0] / sd;
-  double dSx  = dt * S_rate[1] / sd;
-  double dSy  = dt * S_rate[2] / sd;
-  double dSz  = dt * S_rate[3] / sd;
-  double dtau = dt * S_rate[4] / sd;
-
-  double a = D + tau;
-  double b = dD + dtau;
-
-  // P, Q, R via curved metric contraction (symmetric inv_g).
-  double S_v[3]  = { Sx, Sy, Sz };
-  double dS_v[3] = { dSx, dSy, dSz };
-  double P = 0.0, Q = 0.0, R = 0.0;
-  for (int i = 0; i < 3; i++)
-    for (int j = 0; j < 3; j++) {
-      double inv_g_ij = ig[3*i + j];
-      P += inv_g_ij * S_v[i]  * S_v[j];
-      Q += inv_g_ij * S_v[i]  * dS_v[j];
-      R += inv_g_ij * dS_v[i] * dS_v[j];
-    }
-
-  double A = (1.0 - margin) * (b * b - dD * dD) - R;
-  double B = (1.0 - margin) * (a * b - D * dD) - Q;
-  double C = (1.0 - margin) * (a * a - D * D) - P;
-
-  if (C < 0.0) return 1.0;  // q already fails margin; let repair handle
-
-  // Linear-coefficient case.
-  if (fabs(A) < 1.0e-30) {
-    if (B >= 0.0) return 1.0;  // f non-decreasing, always ≥ 0 from C≥0
-    double alpha_root = -0.5 * C / B;
-    return fmin(1.0, fmax(0.0, alpha_root));
-  }
-
-  double disc = B*B - A*C;
-  if (disc < 0.0) {
-    // No real roots. f has the sign of A everywhere. If A > 0, f > 0
-    // always; if A < 0, f < 0 always — but C ≥ 0 already rules that out.
-    return 1.0;
-  }
-  double sd_disc = sqrt(disc);
-
-  // Safety pullback: scale the computed α by (1 - SAFETY_PULLBACK) so
-  // s²_new lands strictly inside the boundary rather than exactly on
-  // it. Floating-point error around the boundary would otherwise drop
-  // s²_new by ±ε, half the time triggering cascade-repair. With
-  // pullback, s²_new lands at (margin + SAFETY_PULLBACK·(D+τ)²)·(D+τ)²
-  // worth of slack, comfortably above the cascade threshold.
-  // Sweep results (BHL t=15, M=0.3) for source-s² fires (and wp s² in
-  // parens), holding the cascade-margin at 1e-6:
-  //   1e-4  → 4,897 (2,874)
-  //   1e-6  → 4,165 (2,818)
-  //   1e-8  → 3,791 (2,472)
-  //   1e-10 → 2,587 (1,757)  ← optimum
-  //   1e-12 → 4,770 (2,810)
-  //   1e-14 → 4,378 (2,312)
-  // Below 1e-10 the floating-point landing noise around the cascade
-  // boundary dominates the small benefit from a tighter pullback.
-  const double SAFETY_PULLBACK = 1.0e-10;
-
-  if (A > 0.0) {
-    // Parabola opens up; f < 0 strictly between roots. With C ≥ 0 and
-    // A > 0, both roots have the same sign as -B/A's sign. If α_- > 0,
-    // both roots > 0 and we cap at α_-. Otherwise both ≤ 0 and α=1 OK.
-    double alpha_minus = (-B - sd_disc) / A;
-    if (alpha_minus > 0.0)
-      return fmin(1.0, alpha_minus * (1.0 - SAFETY_PULLBACK));
-    return 1.0;
-  } else {
-    // A < 0; parabola opens down. f ≥ 0 in [α_lo, α_hi]. With C ≥ 0,
-    // 0 ∈ [α_lo, α_hi] so α_lo ≤ 0 ≤ α_hi. Max valid α = min(1, α_hi).
-    double r1 = (-B - sd_disc) / A;
-    double r2 = (-B + sd_disc) / A;
-    double a_hi = fmax(r1, r2);
-    if (a_hi <= 0.0) return 1.0;  // shouldn't happen given C ≥ 0
-    return fmin(1.0, a_hi * (1.0 - SAFETY_PULLBACK));
-  }
+  if (eqn->repair_state_func && eqn->check_inv_func
+      && !gkyl_wv_eqn_check_inv(eqn, q_out))
+    gkyl_wv_eqn_repair_state(eqn, q_in, q_out);
 }
 
-void
-gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-  struct gkyl_gr_euler_eos eos, double t_curr, double dt,
-  const double *prods,
-  struct gkyl_gr_euler_prim_status *prim_stat,
-  struct gkyl_gr_euler_repair_status *repair_stat,
-  const double fluid_old[5], double fluid_new[5])
+// RK convex combination: out = c0*a + c1*b over the equation's components.
+static void
+source_combine(const struct gkyl_wv_eqn *eqn, double c0, double c1,
+  const double *a, const double *b, double *out)
 {
-  (void)t_curr;  // Source math is time-independent.
-
-  double S_rate[5];
-  compute_source_rate(eos, prods, fluid_old, prim_stat, S_rate);
-
-  // TAU-POSITIVITY LIMITER. δτ = dt·S_τ. Target τ_new = TAU_TARGET
-  // (the same floor cascade-repair restores to) so that limited cells
-  // land strictly inside A_γ — well-separated from the floating-point
-  // ±ε region around 0 that would re-trigger cascade-repair.
-  //   α_τ = (τ_old - TAU_TARGET) / -δτ  when δτ < 0 and τ_old > TAU_TARGET
-  // If τ_old ≤ TAU_TARGET (already at or below floor), α=0 (no update).
-  // If δτ ≥ 0 or τ_new_unlimited ≥ TAU_TARGET, no limit needed.
-  const double TAU_TARGET = GR_EULER_TAU_REPAIR_FLOOR;
-  double alpha = 1.0;
-  double delta_tau = dt * S_rate[4];
-  double tau_new_unlimited = fluid_old[4] + delta_tau;
-  if (tau_new_unlimited < TAU_TARGET && delta_tau < 0.0) {
-    double headroom = fluid_old[4] - TAU_TARGET;
-    double alpha_tau = (headroom > 0.0) ? (headroom / -delta_tau) : 0.0;
-    if (alpha_tau < 0.0) alpha_tau = 0.0;
-    if (alpha_tau > 1.0) alpha_tau = 1.0;
-    alpha = fmin(alpha, alpha_tau);
-    if (repair_stat) repair_stat->tau_limiter_fires += 1;
-  }
-
-  // S²-POSITIVITY LIMITER. Solve the quadratic for max α s.t. the
-  // limited source step keeps q_new strictly inside the p≥0 cone,
-  // s²(q_new) − D² ≥ margin·((D+τ)² − D²).
-  double alpha_s2 = compute_s2_limiter_alpha(prods, dt, fluid_old, S_rate);
-  if (alpha_s2 < alpha) {
-    alpha = alpha_s2;
-    if (repair_stat) repair_stat->s2_limiter_fires += 1;
-  }
-
-  double dt_eff = alpha * dt;
-  for (int i = 0; i < 5; i++)
-    fluid_new[i] = fluid_old[i] + dt_eff * S_rate[i];
+  int n = eqn->num_equations;
+  for (int j = 0; j < n; j++) out[j] = (c0 * a[j]) + (c1 * b[j]);
 }
 
 // ---------------------------------------------------------------------------
@@ -579,80 +289,73 @@ gkyl_moment_spacetime_coupling_explicit_advance(
   double t_curr, double dt,
   const struct gkyl_range *update_range,
   struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  const struct gkyl_array *prods,
-  struct gkyl_gr_euler_prim_status *prim_status_source[GKYL_MAX_SPECIES],
-  struct gkyl_gr_euler_repair_status *repair_status_source[GKYL_MAX_SPECIES])
+  struct gkyl_array *spacetime)
 {
   int nfluids = st->nfluids;
+  const struct gkyl_wv_eqn *einstein_eqn = st->einstein_eqn;
+
+  // SSP-RK3 stage coefficients: each stage advances every state by
+  //   u <- c0*u^n + c1*(u_in + alpha*dt L(u_in)).
+  static const double c0[3] = { 0.0, 0.75, 1.0 / 3.0 };
+  static const double c1[3] = { 1.0, 0.25, 2.0 / 3.0 };
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, update_range);
 
   while (gkyl_range_iter_next(&iter)) {
     long cidx = gkyl_range_idx(update_range, iter.idx);
-    const double *prods_row = gkyl_array_cfetch(prods, cidx);
 
+    // Per-cell setup: copy each sourced state's start-of-step value (u^n) into a
+    // scratch buffer for the SSP-RK3 combines, and arm each equation's cell
+    // index (so source_func/check_inv/repair can fetch the cell's products row)
+    // and source-step repair context. A species with no source equation
+    // (st->eqn[s] == NULL) is skipped throughout.
+    double f_old[GKYL_MAX_SPECIES][5], f_cur[GKYL_MAX_SPECIES][5];
     for (int s = 0; s < nfluids; s++) {
-      if (st->fluid_param[s].type != GKYL_EQN_GR_EULER_TETRAD)
-        continue;
-
-      struct gkyl_gr_euler_eos eos = st->fluid_param[s].eos;
-      struct gkyl_gr_euler_prim_status   *pstat = prim_status_source
-                                                  ? prim_status_source[s] : NULL;
-      struct gkyl_gr_euler_repair_status *rstat = repair_status_source
-                                                  ? repair_status_source[s] : NULL;
-
-      double *f = gkyl_array_fetch(fluid[s], cidx);
-
-      // Per-cell setter so check_inv / repair_state can fetch the cell's
-      // row in the auxfields products array. Tag the repair context as
-      // "source-step" so the repair_state callback routes to the source-
-      // side repair_status (installed on auxfields by the app).
       const struct gkyl_wv_eqn *eqn = st->eqn[s];
-      bool can_repair = eqn && eqn->repair_state_func && eqn->check_inv_func;
-      if (can_repair) {
-        if (eqn->set_cell_idx_func) eqn->set_cell_idx_func(eqn, iter.idx);
-        ((struct gkyl_wv_eqn *)eqn)->cur_repair_ctx = 0;
+      if (!eqn) continue;
+      if (eqn->set_cell_idx_func) eqn->set_cell_idx_func(eqn, iter.idx);
+      if (eqn->repair_state_func && eqn->check_inv_func)
+        ((struct gkyl_wv_eqn *)eqn)->cur_repair_ctx = 0;  // route to source-side repair_status
+      const double *f = gkyl_array_cfetch(fluid[s], cidx);
+      for (int j = 0; j < 5; j++) { f_old[s][j] = f[j]; f_cur[s][j] = f[j]; }
+    }
+
+    double st_old[GKYL_MOMENT_SOURCE_MAX_NEQN];  // u^n (like f_old)
+    double st_cur[GKYL_MOMENT_SOURCE_MAX_NEQN];  // working state (like f_cur)
+    if (einstein_eqn) {
+      const double *q = gkyl_array_cfetch(spacetime, cidx);
+      for (int j = 0; j < einstein_eqn->num_equations; j++) { st_old[j] = q[j]; st_cur[j] = q[j]; }
+    }
+
+    // SSP-RK3: three stages stepping the fluid(s) AND the spacetime state on the
+    // same stages, each via the same generic forward-Euler + combine. The source
+    // physics (rate, positivity limiter, admissibility repair) lives on each
+    // equation object, so this loop is equation-agnostic.
+    for (int stage = 0; stage < 3; stage++) {
+      for (int s = 0; s < nfluids; s++) {
+        const struct gkyl_wv_eqn *eqn = st->eqn[s];
+        if (!eqn) continue;
+        double f_new[5];
+        source_forward_euler(eqn, dt, f_cur[s], f_new);
+        source_combine(eqn, c0[stage], c1[stage], f_old[s], f_new, f_cur[s]);
       }
+      if (einstein_eqn) {
+        double st_new[GKYL_MOMENT_SOURCE_MAX_NEQN];
+        source_forward_euler(einstein_eqn, dt, st_cur, st_new);
+        source_combine(einstein_eqn, c0[stage], c1[stage], st_old, st_new, st_cur);
+      }
+    }
 
-      // Single check + cascade-repair call. The cascade walks all three
-      // admissibility constraints in safe order (D, then τ, then S²) in
-      // one shot, so a single repair_state call always converges to
-      // admissible — no loop needed. qprev (this stage's input) is in
-      // A_γ by construction (every previous repair lands admissible),
-      // so the equation can use it as the "last valid state" anchor.
-      #define REPAIR_ONCE(qprev, qbuf) do {                              \
-        if (can_repair && !gkyl_wv_eqn_check_inv(eqn, (qbuf)))           \
-          gkyl_wv_eqn_repair_state(eqn, (qprev), (qbuf));                \
-      } while (0)
-
-      // SSP-RK3: three forward Euler stages, repair after each one. The
-      // two convex combinations (f_stage2, final f) are guaranteed
-      // admissible by convexity of the admissibility set, so no repair
-      // pass is needed there. Each stage's repair anchors on the stage
-      // input as the "last valid state" — that's the state from which
-      // this Euler update started, so it's by construction in A_γ.
-      double f_old[5], f_new[5], f_stage1[5], f_stage2[5];
-      for (int j = 0; j < 5; j++) f_old[j] = f[j];
-
-      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-        eos, t_curr, dt, prods_row, pstat, rstat, f_old, f_new);
-      REPAIR_ONCE(f_old, f_new);
-      for (int j = 0; j < 5; j++) f_stage1[j] = f_new[j];
-
-      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-        eos, t_curr + dt, dt, prods_row, pstat, rstat, f_stage1, f_new);
-      REPAIR_ONCE(f_stage1, f_new);
-      for (int j = 0; j < 5; j++)
-        f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
-
-      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-        eos, t_curr + 0.5 * dt, dt, prods_row, pstat, rstat, f_stage2, f_new);
-      REPAIR_ONCE(f_stage2, f_new);
-      for (int j = 0; j < 5; j++)
-        f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
-
-      #undef REPAIR_ONCE
+    // Commit results.
+    for (int s = 0; s < nfluids; s++) {
+      if (!st->eqn[s]) continue;
+      double *f = gkyl_array_fetch(fluid[s], cidx);
+      for (int j = 0; j < 5; j++) f[j] = f_cur[s][j];
+    }
+    if (einstein_eqn) {
+      double *q = gkyl_array_fetch(spacetime, cidx);
+      for (int j = 0; j < einstein_eqn->num_equations; j++) q[j] = st_cur[j];
     }
   }
 }

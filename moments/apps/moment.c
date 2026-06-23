@@ -233,12 +233,17 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   // simulations. 
   app->update_sources = false;
   if (app->field.has_volume_sources || app->field.has_app_current) {
-    app->update_sources = true; 
+    app->update_sources = true;
   }
   for (int s=0; s<app->num_species; ++s) {
     if (app->species[s].update_sources) {
-      app->update_sources = true; 
+      app->update_sources = true;
     }
+  }
+  // A dynamic Einstein spacetime needs the per-RK-stage vacuum-Einstein source
+  // even with no fluid species, so run the source path for it too.
+  if (app->has_spacetime && app->spacetime.einstein_eqn != NULL) {
+    app->update_sources = true;
   }
   if (app->update_sources) {
     moment_coupling_init(app, &app->sources);

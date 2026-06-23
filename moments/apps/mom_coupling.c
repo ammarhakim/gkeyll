@@ -231,7 +231,12 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         break;
       }
     }
-    if (any_mod) {
+    // Build the spacetime coupling when there are modular GR fluids feeling
+    // gravity, OR a dynamic Einstein backend whose state needs the vacuum-
+    // Einstein source — even with no fluid (the pure-spacetime case, analogous
+    // to running moment_em_coupling for an applied current with no fluid).
+    bool dynamic_einstein = (app->spacetime.einstein_eqn != NULL);
+    if (any_mod || dynamic_einstein) {
       struct gkyl_moment_spacetime_coupling_inp st_inp = {
         .grid               = &app->grid,
         .nfluids            = app->num_species,
@@ -295,6 +300,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
             .prods                   = app->spacetime.prods,
             .prim_status_wave_prop   = src->gr_euler_prim_status_wave_prop[i],
             .repair_status_wave_prop = src->gr_euler_repair_status_wave_prop[i],
+            .prim_status_source      = src->gr_euler_prim_status_source[i],
             .repair_status_source    = src->gr_euler_repair_status_source[i],
           });
       }
@@ -501,16 +507,15 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       nT_sources);
   }
 
-  // Spacetime coupling: integrate GR source terms on modular GR fluids.
-  // For Phase A (static-analytic) the products array was filled once at IC
-  // and stays valid for the simulation lifetime, so no derive_products call
-  // is needed here. For Phase B (dynamic Bona-Masso) we will bracket this
-  // call with derive_products invocations (TODO).
+  // Spacetime coupling: per-RK-stage GR source terms — gravity on the modular
+  // GR fluids (reads the products array), and the vacuum-Einstein source on the
+  // Einstein state for the dynamic backend (no-op for the static backend). The
+  // Einstein state for this Strang half-step is f[0] (nstrang 0) or f[ndim]
+  // (nstrang 1), matching the fluid Strang buffers; it is NULL for the static
+  // backend, which leaves the Einstein source a no-op.
   if (src->spacetime_slvr) {
     gkyl_moment_spacetime_coupling_explicit_advance(src->spacetime_slvr,
-      tcurr, dt, &app->local, fluids, app->spacetime.prods,
-      (struct gkyl_gr_euler_prim_status **)src->gr_euler_prim_status_source,
-      (struct gkyl_gr_euler_repair_status **)src->gr_euler_repair_status_source);
+      tcurr, dt, &app->local, fluids, app->spacetime.f[sidx[nstrang]]);
   }
 
   for (int i=0; i<app->num_species; ++i) {

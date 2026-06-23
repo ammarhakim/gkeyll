@@ -29,6 +29,49 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_eqn.h>
+#include <gkyl_wv_gr_euler_tetrad.h>
+
+// Build a 1-cell GR-Euler-tetrad equation for source-step unit testing, with a
+// fresh 1-cell products auxfield array (returned via *prods1_out). The equation
+// is the single source of truth: its source_func / source_limiter_func carry the
+// Banyuls rate + tau/s² positivity limiter, reading geometry from the auxfields.
+// Caller releases both (gkyl_wv_eqn_release + gkyl_array_release).
+static struct gkyl_wv_eqn *
+make_source_test_eqn(struct gkyl_gr_euler_eos eos, struct gkyl_array **prods1_out)
+{
+  int rl[1] = { 0 }, ru[1] = { 0 };  // single cell, index {0}
+  struct gkyl_range r1;
+  gkyl_range_init(&r1, 1, rl, ru);
+  struct gkyl_wv_eqn *eqn = gkyl_wv_gr_euler_tetrad_inew(
+    &(struct gkyl_wv_gr_euler_tetrad_inp){
+      .eos = eos, .conf_range = r1,
+      .rp_type = WV_GR_EULER_TETRAD_RP_HLL, .use_gpu = false });
+  struct gkyl_array *prods1 = gkyl_array_new(GKYL_DOUBLE, GKYL_GR_SP_NCOMP_BASE, 1);
+  gkyl_gr_euler_tetrad_set_auxfields(eqn,
+    (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods1 });
+  *prods1_out = prods1;
+  return eqn;
+}
+
+// One modular GR-Euler explicit source step driven through the equation's
+// function pointers (the same path the coupling uses): load this cell's products
+// row into the equation's 1-cell auxfield, then
+//   S = source_func(q);  alpha = source_limiter_func(q, S, dt);
+//   out = q + alpha*dt*S.
+static void
+mod_source_step(struct gkyl_wv_eqn *eqn, struct gkyl_array *prods1,
+  const double *prods_row, const double q[5], double dt, double out[5])
+{
+  double *p = gkyl_array_fetch(prods1, 0);
+  for (int i = 0; i < GKYL_GR_SP_NCOMP_BASE; i++) p[i] = prods_row[i];
+  int idx0[GKYL_MAX_DIM] = { 0 };
+  eqn->set_cell_idx_func(eqn, idx0);
+  double S[5];
+  eqn->source_func(eqn, q, S);
+  double alpha = eqn->source_limiter_func ? eqn->source_limiter_func(eqn, q, S, dt) : 1.0;
+  for (int i = 0; i < 5; i++) out[i] = q[i] + (alpha * dt * S[i]);
+}
 
 // Shared helper used by all the source-step tests. Returns a packed 71-comp
 // q[] populated from the spacetime callbacks at (x,y,z) plus the supplied
@@ -222,6 +265,11 @@ run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
   em_inp.gr_euler_gas_gamma   = gas_gamma;
   gkyl_moment_em_coupling *mom_em = gkyl_moment_em_coupling_new(em_inp);
 
+  // Modular source driven through a real GR-Euler-tetrad equation object.
+  struct gkyl_array *src_prods;
+  struct gkyl_wv_eqn *src_eqn =
+    make_source_test_eqn(gkyl_gr_euler_eos_ideal(gas_gamma), &src_prods);
+
   for (int x_ind = -half_extent; x_ind < half_extent + 1; x_ind++) {
     for (int y_ind = -half_extent; y_ind < half_extent + 1; y_ind++) {
       double x = step * x_ind;
@@ -252,9 +300,7 @@ run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
       explicit_gr_euler_source_update_euler(mom_em, gas_gamma, 0.0, dt, q_packed, f_packed_new);
 
       double f_mod_new[5];
-      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-        gkyl_gr_euler_eos_ideal(gas_gamma), 0.0, dt, prods,
-        NULL, NULL, q_mod, f_mod_new);
+      mod_source_step(src_eqn, src_prods, prods, q_mod, dt, f_mod_new);
 
       // Packed evolves S^i (contravariant); mod evolves S_i (covariant).
       // Lower the index on the packed momentum slots to compare directly.
@@ -283,6 +329,8 @@ run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
       comp[i], max_rel[i], max_rel_x[i], max_rel_y[i]);
 
   gkyl_moment_em_coupling_release(mom_em);
+  gkyl_wv_eqn_release(src_eqn);
+  gkyl_array_release(src_prods);
 }
 
 // Packed-vs-modular equivalence tolerances (Phase B2 decision,
@@ -385,10 +433,20 @@ run_explicit_advance_equivalence_tol(struct gkyl_gr_spacetime *spacetime,
     for (int i = 0; i < GKYL_GR_SP_NCOMP_BASE; i++) p[i] = prods_row[i];
   }
 
+  // The mod source is driven through a real GR-Euler-tetrad equation object,
+  // whose auxfields supply the products at the cell indexed by update_range.
+  struct gkyl_wv_eqn *mod_eqn = gkyl_wv_gr_euler_tetrad_inew(
+    &(struct gkyl_wv_gr_euler_tetrad_inp){
+      .eos = gkyl_gr_euler_eos_ideal(gas_gamma), .conf_range = update_range,
+      .rp_type = WV_GR_EULER_TETRAD_RP_HLL, .use_gpu = false });
+  gkyl_gr_euler_tetrad_set_auxfields(mod_eqn,
+    (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = prods_arr });
+
   struct gkyl_moment_spacetime_coupling_inp st_inp = {
     .grid               = &grid,
     .nfluids            = 1,
     .fluid_param        = {{ .type = GKYL_EQN_GR_EULER_TETRAD, .eos = gkyl_gr_euler_eos_ideal(gas_gamma) }},
+    .eqn                = { mod_eqn },
     .is_static          = true,
     .has_tetrad         = false,
     .analytic_spacetime = spacetime,
@@ -401,7 +459,7 @@ run_explicit_advance_equivalence_tol(struct gkyl_gr_spacetime *spacetime,
 
   struct gkyl_array *fluid_arrs[GKYL_MAX_SPECIES] = { fluid_mod };
   gkyl_moment_spacetime_coupling_explicit_advance(
-    st, 0.0, dt, &update_range, fluid_arrs, prods_arr, NULL, NULL);
+    st, 0.0, dt, &update_range, fluid_arrs, NULL);
 
   const double *f_mod_final = gkyl_array_cfetch(fluid_mod, 0);
 
@@ -433,6 +491,7 @@ run_explicit_advance_equivalence_tol(struct gkyl_gr_spacetime *spacetime,
   gkyl_array_release(prods_arr);
   gkyl_array_release(fluid_mod);
   gkyl_moment_spacetime_coupling_release(st);
+  gkyl_wv_eqn_release(mod_eqn);
   gkyl_moment_em_coupling_release(mom_em);
 }
 
@@ -564,6 +623,12 @@ run_tm_cross_check(struct gkyl_gr_spacetime *spacetime,
   double h_id = 1.0 + (p / rho) * (g_eff / (g_eff - 1.0));
   TEST_CHECK( gkyl_compare(h_id, h_tm, 1e-14) );
 
+  // One equation per EOS; both source steps driven through eqn->source_func.
+  struct gkyl_array *tm_prods, *id_prods;
+  struct gkyl_wv_eqn *tm_eqn = make_source_test_eqn(
+    (struct gkyl_gr_euler_eos){ .type = GR_EULER_EOS_APPROXIMATE_SYNGE, .use_rcc = false }, &tm_prods);
+  struct gkyl_wv_eqn *id_eqn = make_source_test_eqn(gkyl_gr_euler_eos_ideal(g_eff), &id_prods);
+
   for (int x_ind = -half_extent; x_ind < half_extent + 1; x_ind++) {
     for (int y_ind = -half_extent; y_ind < half_extent + 1; y_ind++) {
       double x = step * x_ind;
@@ -583,15 +648,10 @@ run_tm_cross_check(struct gkyl_gr_spacetime *spacetime,
       // returns the same h by construction — so the source rates must
       // agree to machine precision.
       double f_tm[5];
-      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-        (struct gkyl_gr_euler_eos){
-          .type = GR_EULER_EOS_APPROXIMATE_SYNGE, .use_rcc = false },
-        0.0, dt, prods, NULL, NULL, q_mod, f_tm);
+      mod_source_step(tm_eqn, tm_prods, prods, q_mod, dt, f_tm);
 
       double f_id[5];
-      gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-        gkyl_gr_euler_eos_ideal(g_eff),
-        0.0, dt, prods, NULL, NULL, q_mod, f_id);
+      mod_source_step(id_eqn, id_prods, prods, q_mod, dt, f_id);
 
       // The two source rates must agree to machine precision because they
       // see identical (ρ, v, p, h, W) at the input — only the EOS callback
@@ -600,6 +660,11 @@ run_tm_cross_check(struct gkyl_gr_spacetime *spacetime,
         TEST_CHECK( gkyl_compare(f_tm[i], f_id[i], 1e-12) );
     }
   }
+
+  gkyl_wv_eqn_release(tm_eqn);
+  gkyl_array_release(tm_prods);
+  gkyl_wv_eqn_release(id_eqn);
+  gkyl_array_release(id_prods);
 }
 
 static void

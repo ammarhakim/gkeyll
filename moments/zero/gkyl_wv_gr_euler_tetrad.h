@@ -46,6 +46,7 @@ struct gkyl_wv_gr_euler_tetrad_auxfields {
                                               // case.
   struct gkyl_gr_euler_prim_status   *prim_status_wave_prop;
   struct gkyl_gr_euler_repair_status *repair_status_wave_prop;
+  struct gkyl_gr_euler_prim_status   *prim_status_source;   // prim recovery status for the source step
   struct gkyl_gr_euler_repair_status *repair_status_source;
 };
 
