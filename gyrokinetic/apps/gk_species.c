@@ -337,8 +337,8 @@ gk_species_write_vcutsq(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct timespec wst = gkyl_wall_clock();
 
   // Package metadata (time/frame + DG basis info).
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+  gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
   struct gkyl_msgpack_map_elem mpe_vcutsq[] = {
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = "serendipity" },
@@ -346,8 +346,8 @@ gk_species_write_vcutsq(gkyl_gyrokinetic_app* app, struct gk_species *gks,
       .cval = "Square of the velocity cutoff used in the gyrokinetic sheath BC." }
   };
   int mpe_vcutsq_len = sizeof(mpe_vcutsq)/sizeof(mpe_vcutsq[0]);
-  int io_meta_len[] = {app->io_meta_grid_len, mpe_vcutsq_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, mpe_vcutsq};
+  int io_meta_len[] = {app->io_meta_dg_len, mpe_vcutsq_len};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, mpe_vcutsq};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   const char *fmt = "%s-%s_vcutsq_%s_%d.gkyl";
