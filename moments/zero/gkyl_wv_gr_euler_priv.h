@@ -10,6 +10,8 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
+struct gkyl_tov; // Frozen TOV equilibrium table, for optional well-balancing.
+
 struct wv_gr_euler {
   struct gkyl_wv_eqn eqn; // Base equation object.
   struct gkyl_gr_spacetime *spacetime; // Pointer to base spacetime object.
@@ -17,6 +19,11 @@ struct wv_gr_euler {
 
   enum gkyl_spacetime_gauge spacetime_gauge; // Spacetime gauge choice.
   int reinit_freq; // Spacetime reinitialization frequency.
+
+  // Optional well-balancing against a static TOV equilibrium. When active, the flux waves and the geometric source subtract a frozen discrete equilibrium: the t=0 cell-averaged conserved state,
+  // projected once and carried in the spare slots q[71]=<sqrt(g) D_eq>, q[72]=<sqrt(g) Etot_eq> (Etot is the Valencia energy variable in slot [4], = E - D; the driver calls it Etot).
+  // tov_eq below is the frozen TOV table, but here it is used only as the on/off switch (non-NULL => well-balance). The equilibrium values are not re-looked-up in the table at runtime; they are the discrete cell-averages in q[71],q[72]. 
+  const struct gkyl_tov *tov_eq; // NULL -> plain GR Euler, no WB. Used as a presence flag only.
 };
 
 /**

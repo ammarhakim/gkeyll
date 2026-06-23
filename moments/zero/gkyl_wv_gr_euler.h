@@ -8,7 +8,10 @@ enum gkyl_wv_gr_euler_rp {
   WV_GR_EULER_RP_HLL = 0, // Default (HLL fluxes).
   WV_GR_EULER_RP_ROE,
   WV_GR_EULER_RP_LAX,
+  WV_GR_EULER_RP_HLL_LAX, // HLL in the bulk, Lax near the atmosphere/surface (low density switch).
 };
+
+struct gkyl_tov; // Frozen TOV discrete equilibrium (from the q[71] and q[72] slots), for optional well-balancing.
 
 // Input context, packaged as a struct.
 struct gkyl_wv_gr_euler_inp {
@@ -19,6 +22,12 @@ struct gkyl_wv_gr_euler_inp {
 
   enum gkyl_wv_gr_euler_rp rp_type; // Type of Riemann-solver to use.
   bool use_gpu; // Whether the wave equation object is on the host (false) or the device (true).
+
+  // Optional static-TOV well-balancing. Leave tov_eq = NULL (the default) for all other problems (WB inactive)
+  const struct gkyl_tov *tov_eq; // Use the TOV slots for the well-balancing with discrete frozen equilibrium (NULL -> no WB and every other problem is untouched).
+
+  double rho_atm; // Atmosphere rest-mass density (recovery rho floor).
+  double p_atm; // Atmosphere pressure (recovery p floor).
 };
 
 /**
