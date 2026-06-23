@@ -514,9 +514,6 @@ gkyl_msgpack_create_union(int numlist_union, int *nvals_union, const struct gkyl
   mpack_writer_t writer;
   mpack_writer_init_growable(&writer, &mdata->meta, &mdata->meta_sz);
 
-  // Flatten the union of lists so we can detect duplicate keys. MessagePack
-  // maps must have unique keys; a map with duplicates is rejected by the
-  // reader (mpack_error_data), which would silently corrupt every lookup.
   int nvals_tot = 0;
   for (int j=0; j<numlist_union; ++j)
     nvals_tot += nvals_union[j];
@@ -530,8 +527,6 @@ gkyl_msgpack_create_union(int numlist_union, int *nvals_union, const struct gkyl
   mpack_build_map(&writer);
 
   for (int k=0; k<nvals_tot; ++k) {
-    // Keep only the last occurrence of each key (later lists override earlier
-    // ones), so the emitted map never contains duplicate keys.
     bool overridden = false;
     for (int m=k+1; m<nvals_tot; ++m) {
       if (strcmp(flat[k]->key, flat[m]->key) == 0) {
