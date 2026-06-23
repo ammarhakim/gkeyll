@@ -35,14 +35,14 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
  *
  * @param grid Grid object.
  * @param point The point to find the cell indices at.
- * @param pick_lower If point on cell boundary, pick lower cell if true, and upper if false.
+ * @param pick_lower If point is on a cell boundary, pick the lower cell if true (per direction).
  * @param known_index Any known indices of where the point is (<0 if not known).
  * @param cell_index Pointer to cell indices.
- * Asserts: point lies within cell(s) specified by knownIdx (if specified). 
+ * Asserts: point lies within cell(s) specified by knownIdx (if specified).
  */
 GKYL_CU_DH
 void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
-  bool pick_lower, const int *known_index, int *cell_index);
+  const bool *pick_lower, const int *known_index, int *cell_index);
 
 /**
  * Get cell-center coordinates. Note that idx is a 1-based cell index,
