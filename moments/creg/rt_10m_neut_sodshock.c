@@ -1,3 +1,10 @@
+// Neutral Sod-type shock tube for the 10-moment equations, set up to mirror the
+// PKPM neutral sod-shock (rt_pkpm_neut_sodshock_p1.c): same domain [0, Lx],
+// contact discontinuity at x = 0.5, same Sod state (left n=1, p=1; right
+// n=0.125, p=0.1), copy boundary conditions, and a machine-learned heat-flux
+// closure trained on that PKPM run. With no Maxwell field the closure's B->0
+// fallback gives a parallel direction b = x, matching the PKPM B = (B0,0,0).
+
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -19,13 +26,9 @@
 #include <gkyl_kann_net.h>
 #include <gkyl_knutils.h>
 
-struct expanding_sodshock_ctx
+struct sodshock_ctx
 {
   // Physical constants (using normalized code units).
-  double gas_gamma; // Adiabatic index.
-  double U0; // (Initial) comoving plasma velocity.
-  double R0; // (Initial) radial distance from expansion/contraction center.
-
   double rhol; // Left fluid mass density.
   double ul; // Left fluid velocity.
   double pl; // Left fluid pressure.
@@ -53,29 +56,25 @@ struct expanding_sodshock_ctx
   const char* nn_closure_file; // File path of neural network to use.
 };
 
-struct expanding_sodshock_ctx
+struct sodshock_ctx
 create_ctx(void)
 {
   // Physical constants (using normalized code units).
-  double gas_gamma = 5.0 / 3.0; // Adiabatic index.
-  double U0 = 1.0; // (Initial) comoving plasma velocity.
-  double R0 = 1.0; // (Initial) radial distance from expansion/contraction center.
-
-  double rhol = 3.0; // Left fluid mass density.
+  double rhol = 1.0; // Left fluid mass density.
   double ul = 0.0; // Left fluid velocity.
-  double pl = 3.0; // Left fluid pressure.
+  double pl = 1.0; // Left fluid pressure.
 
-  double rhor = 1.0; // Right fluid mass density.
+  double rhor = 0.125; // Right fluid mass density.
   double ur = 0.0; // Right fluid velocity.
-  double pr = 1.0; // Right fluid pressure.
+  double pr = 0.1; // Right fluid pressure.
 
   // Simulation parameters.
-  int Nx = 512; // Cell count (x-direction).
+  int Nx = 128; // Cell count (x-direction; matches the PKPM training resolution).
   double Lx = 1.0; // Domain size (x-direction).
-  double k0 = 0.1; // Closure parameter.
-  double cfl_frac = 0.95; // CFL coefficient.
+  double k0 = 10.0; // Integrating-factor relaxation rate (k0 = nu/vth), matching the PKPM collision frequency nu = 10.
+  double cfl_frac = 0.9; // CFL coefficient.
 
-  double t_end = 0.2; // Final simulation time.
+  double t_end = 0.1; // Final simulation time.
   int num_frames = 1; // Number of output frames.
   int field_energy_calcs = INT_MAX; // Number of times to calculate field energy.
   int integrated_mom_calcs = INT_MAX; // Number of times to calculate integrated moments.
@@ -83,14 +82,11 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   // Neural network parameters.
-  bool use_nn_closure = false; // Use neural network-based closure?
+  bool use_nn_closure = true; // Use neural network-based closure?
   int poly_order = 1; // Polynomial order of learned DG coefficients.
-  const char* nn_closure_file = "moments/data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to use.
+  const char* nn_closure_file = "rt_pkpm_neut_sodshock_p1_moms_nn_1"; // File path of neural network to use (trained by rt_pkpm_neut_sodshock_p1).
 
-  struct expanding_sodshock_ctx ctx = {
-    .gas_gamma = gas_gamma,
-    .U0 = U0,
-    .R0 = R0,
+  struct sodshock_ctx ctx = {
     .rhol = rhol,
     .ul = ul,
     .pl = pl,
@@ -119,7 +115,7 @@ void
 eval10mInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0];
-  struct expanding_sodshock_ctx *app = ctx;
+  struct sodshock_ctx *app = ctx;
 
   double rhol = app->rhol;
   double ul = app->ul;
@@ -133,7 +129,7 @@ eval10mInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double u = 0.0;
   double p = 0.0;
 
-  if (x < 0.75) {
+  if (x < 0.5) {
     rho = rhol; // Fluid mass density (left).
     u = ul; // Fluid velocity (left).
     p = pl; // Fluid pressure (left).
@@ -148,13 +144,13 @@ eval10mInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout
   double mom_y = 0.0; // Fluid momentum density (y-direction).
   double mom_z = 0.0; // Fluid momentum density (z-direction).
 
-  double pr_xx = p + (0.5 * rho * u * u); // Fluid pressure tensor (xx-component).
+  double pr_xx = p + 0.5 * (rho * u * u); // Fluid pressure tensor (xx-component).
   double pr_xy = 0.0; // Fluid pressure tensor (xy-component).
   double pr_xz = 0.0; // Fluid pressure tensor (xz-component).
   double pr_yy = p; // Fluid pressure tensor (yy-component).
   double pr_yz = 0.0; // Fluid pressure tensor (yz-component).
   double pr_zz = p; // Fluid pressure tensor (zz-component).
-  
+
   // Set fluid mass density.
   fout[0] = rho;
   // Set fluid momentum density.
@@ -211,16 +207,16 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct expanding_sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
+  struct sodshock_ctx ctx = create_ctx(); // Context for initialization functions.
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
 
   struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net*) * 1);
   if (ctx.use_nn_closure) {
     const char *fmt_10m = "%s-%s.dat";
-    int sz_10m = gkyl_calc_strlen(fmt_10m, ctx.nn_closure_file, "10m");
+    int sz_10m = gkyl_calc_strlen(fmt_10m, ctx.nn_closure_file, "neut");
     char fileNm_10m[sz_10m + 1];
-    snprintf(fileNm_10m, sizeof fileNm_10m, fmt_10m, ctx.nn_closure_file, "10m");
+    snprintf(fileNm_10m, sizeof fileNm_10m, fmt_10m, ctx.nn_closure_file, "neut");
     FILE *file_10m = fopen(fileNm_10m, "r");
     if (file_10m != NULL) {
       ann[0] = gkyl_kann_net_load(fileNm_10m, app_args.use_gpu);
@@ -237,16 +233,11 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure, ctx.poly_order, ann[0], app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
-    .name = "10m",
+    .name = "neut",
     .equation = ten_moment,
     
     .init = eval10mInit,
     .ctx = &ctx,
-
-    .has_volume_sources = true,
-    .volume_gas_gamma = ctx.gas_gamma,
-    .volume_U0 = ctx.U0,
-    .volume_R0 = ctx.R0,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
@@ -321,8 +312,8 @@ main(int argc, char **argv)
   struct gkyl_moment app_inp = {
 
     .ndim = 1,
-    .lower = { 0.25 },
-    .upper = { 0.25 + ctx.Lx }, 
+    .lower = { 0.0 },
+    .upper = { ctx.Lx },
     .cells = { NX },
 
     .cfl_frac = ctx.cfl_frac,
@@ -379,7 +370,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 
