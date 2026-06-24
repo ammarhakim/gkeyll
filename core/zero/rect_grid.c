@@ -24,6 +24,14 @@ gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   }
 }
 
+struct gkyl_rect_grid*
+gkyl_rect_grid_new(int ndim, const double *lower, const double *upper, const int *cells)
+{
+  struct gkyl_rect_grid* out = gkyl_calloc(1, sizeof(*out));
+  gkyl_rect_grid_init(out, ndim, lower, upper, cells);
+  return out;
+}
+
 bool
 gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2)
 {
@@ -198,3 +206,10 @@ gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp)
 
   return true;
 }
+
+void
+gkyl_rect_grid_release(struct gkyl_rect_grid *grid)
+{
+  gkyl_free(grid);
+}
+

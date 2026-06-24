@@ -225,6 +225,38 @@ struct gkyl_basis * gkyl_cart_modal_gkhybrid_new(int cdim, int vdim);
 struct gkyl_basis * gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim);
 
 /**
+ * Get the dimensionality of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Dimensionality of the basis.
+ */
+unsigned gkyl_cart_modal_basis_get_ndim(const struct gkyl_basis *basis);
+
+/**
+ * Get the polynomial order of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Polynomial order of the basis.
+ */
+unsigned gkyl_cart_modal_basis_get_poly_order(const struct gkyl_basis *basis);
+
+/**
+ * Get the num_basis of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Number of basis monomials.
+ */
+unsigned gkyl_cart_modal_basis_get_num_basis(const struct gkyl_basis *basis);
+
+/**
+ * Get the type of a basis (for opaque pointers).
+ *
+ * @param basis Basis object. 
+ * @return Type of the basis.
+ */
+enum gkyl_basis_type gkyl_cart_modal_basis_get_type(const struct gkyl_basis *basis);
+
+/**
  * Free the memory associated with basis objects
  * created with _new methods above.
  *

@@ -23,7 +23,7 @@ struct gkyl_dg_eval_at_coord_proj*
 gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct gkyl_basis *basis_tar,
   int num_eval_dirs, const int *eval_dirs, bool use_gpu)
 {
-  int ndim_do  = basis_do->ndim;
+  int ndim_do = basis_do->ndim;
   int ndim_tar = basis_tar ? basis_tar->ndim : 0;
 
   assert(ndim_do >= 1 && ndim_do <= 3);
@@ -33,10 +33,10 @@ gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct g
 
   struct gkyl_dg_eval_at_coord_proj *up = gkyl_malloc(sizeof(*up));
 
-  up->use_gpu       = use_gpu;
-  up->ndim_do       = ndim_do;
-  up->ndim_tar      = ndim_tar;
-  up->num_basis_do  = basis_do->num_basis;
+  up->use_gpu = use_gpu;
+  up->ndim_do = ndim_do;
+  up->ndim_tar = ndim_tar;
+  up->num_basis_do = basis_do->num_basis;
   up->num_basis_tar = (ndim_tar > 0 && basis_tar)? basis_tar->num_basis : 1;
   up->num_eval_dirs = num_eval_dirs;
 
@@ -117,11 +117,11 @@ gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, const 
   while (gkyl_range_iter_next(&iter)) {
     eval_at_coord_get_idx_do(up->is_eval, up->ndim_do, iter.idx, cell_idx, idx_do);
 
-    long linidx_do  = gkyl_range_idx(rng_do,  idx_do);
+    long linidx_do = gkyl_range_idx(rng_do, idx_do);
     long linidx_tar = gkyl_range_idx(rng_tar, iter.idx);
 
-    const double *fdo_c  = gkyl_array_cfetch(fdo,  linidx_do);
-    double       *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
+    const double *fdo_c = gkyl_array_cfetch(fdo, linidx_do);
+    double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
 
     for (int n=0; n<ncomp; n++)
       up->kernel(eval_coords_log, fdo_c+n*up->num_basis_do, ftar_c+n*up->num_basis_tar);

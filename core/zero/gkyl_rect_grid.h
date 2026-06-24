@@ -19,7 +19,7 @@ struct gkyl_rect_grid {
 };
 
 /**
- * Create new grid object.
+ * Initialize a grid object.
  *
  * @param grid Grid object to initialize.
  * @param ndim Dimension of grid
@@ -28,6 +28,18 @@ struct gkyl_rect_grid {
  * @param cells Number of cells in each direction
  */
 void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
+  const double *lower, const double *upper, const int *cells);
+
+/**
+ * Create and initialize a new grid object. Release with gkyl_rect_grid_release.
+ *
+ * @param grid Grid object to initialize.
+ * @param ndim Dimension of grid
+ * @param lower Coordinates of lower-left corner of grid
+ * @param upper Coordinates of upper-right corner of grid
+ * @param cells Number of cells in each direction
+ */
+struct gkyl_rect_grid* gkyl_rect_grid_new(int ndim,
   const double *lower, const double *upper, const int *cells);
 
 /**
@@ -139,3 +151,11 @@ void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FIL
  * @return True if read succeeded, false otherwise
  */
 bool gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp);
+
+/**
+ * Release grid object that was created with gkyl_rect_grid_new.
+ *
+ * @param grid Grid object.
+ */
+void gkyl_rect_grid_release(struct gkyl_rect_grid *grid);
+
