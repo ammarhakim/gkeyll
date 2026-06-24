@@ -23,22 +23,17 @@ mkarr(bool on_gpu, long nc, long size)
 }
 
 struct fin_ctx {
-  double fac_m0; // For cell average.
-  double fac_m1[GKYL_MAX_DIM]; // For linear monomials.
-  double fac_m2[GKYL_MAX_DIM]; // For quadratic monomials in 1 variable.
-  double fac_m3[3]; // For monomials in 2 variables.
-  double fac_m4; // For monomials in 3 variables.
+  double exp_c[20]; // Expansion coefficients in test function.
 };
 
 void fin_1x_func(double t, const double *xn, double* restrict fout, void *ctx)
 {
 
   struct fin_ctx *params = ctx;
-  double fac0 = params->fac_m0;
-  double fac1 = params->fac_m1[0];
+  const double *a = params->exp_c;
 
   double x = xn[0];
-  fout[0] = fac0 + fac1*x;
+  fout[0] = a[0] + a[1]*x;
 }
 
 void
@@ -49,8 +44,8 @@ test_dg_differentiate_1x(int poly_order, bool use_gpu)
 
   // Parameters for projected function.
   struct fin_ctx inp_params = {0};
-  inp_params.fac_m0 = 2.0;
-  inp_params.fac_m1[0] = 0.3;
+  inp_params.exp_c[0] = 2.0;
+  inp_params.exp_c[1] = 0.3;
 
   int ndim = sizeof(lower)/sizeof(lower[0]);
 
@@ -99,7 +94,7 @@ test_dg_differentiate_1x(int poly_order, bool use_gpu)
     double ref_val;
 
     m = 0;
-    ref_val = inp_params.fac_m1[0]*pow(sqrt(2.0),ndim);
+    ref_val = inp_params.exp_c[1]*pow(sqrt(2.0),ndim);
     TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
     TEST_MSG( "idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, derf_c[m], ref_val);
 
@@ -118,13 +113,10 @@ void fin_2x_func(double t, const double *xn, double* restrict fout, void *ctx)
 {
 
   struct fin_ctx *params = ctx;
-  double fac0 = params->fac_m0;
-  double fac1x = params->fac_m1[0];
-  double fac1y = params->fac_m1[1];
-  double fac3xy = params->fac_m3[0];
+  const double *a = params->exp_c;
 
   double x = xn[0], y = xn[1];
-  fout[0] = fac0 + fac1x*x + fac1y*y + fac3xy*x*y;
+  fout[0] = a[0] + a[1]*x + a[2]*y + a[3]*x*y;
 }
 
 void
@@ -135,10 +127,10 @@ test_dg_differentiate_2x(int poly_order, bool use_gpu)
 
   // Parameters for projected function.
   struct fin_ctx inp_params = {0};
-  inp_params.fac_m0 = 2.0;
-  inp_params.fac_m1[0] = 0.3;
-  inp_params.fac_m1[1] = 1.7;
-  inp_params.fac_m3[0] = 0.;
+  inp_params.exp_c[0] = 2.0;
+  inp_params.exp_c[1] = 0.3;
+  inp_params.exp_c[2] = 1.7;
+  inp_params.exp_c[3] = 1.1;
 
   int ndim = sizeof(lower)/sizeof(lower[0]);
 
@@ -186,8 +178,11 @@ test_dg_differentiate_2x(int poly_order, bool use_gpu)
     int m;
     double ref_val;
 
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+
     m = 0;
-    ref_val = inp_params.fac_m1[0]*pow(sqrt(2.0),ndim);
+    ref_val = (inp_params.exp_c[1]+xc[1]*inp_params.exp_c[3])*pow(sqrt(2.0),ndim);
     TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
     TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
 
@@ -197,7 +192,7 @@ test_dg_differentiate_2x(int poly_order, bool use_gpu)
     TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
 
     m = 2;
-    ref_val = inp_params.fac_m3[0]*2.0/sqrt(3.0);
+    ref_val = inp_params.exp_c[3]*grid.dx[1]/sqrt(3.0);
     TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
     TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
 
@@ -221,13 +216,16 @@ test_dg_differentiate_2x(int poly_order, bool use_gpu)
     int m;
     double ref_val;
 
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
+
     m = 0;
-    ref_val = inp_params.fac_m1[1]*pow(sqrt(2.0),ndim);
+    ref_val = (inp_params.exp_c[2]+xc[0]*inp_params.exp_c[3])*pow(sqrt(2.0),ndim);
     TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
     TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
 
     m = 1;
-    ref_val = inp_params.fac_m3[0]*2.0/sqrt(3.0);
+    ref_val = inp_params.exp_c[3]*grid.dx[0]/sqrt(3.0);
     TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
     TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
 
@@ -251,17 +249,11 @@ void fin_3x_func(double t, const double *xn, double* restrict fout, void *ctx)
 {
 
   struct fin_ctx *params = ctx;
-  double fac0 = params->fac_m0;
-  double fac1x = params->fac_m1[0];
-  double fac1y = params->fac_m1[1];
-  double fac1z = params->fac_m1[2];
-  double fac3xy = params->fac_m3[0];
-  double fac3xz = params->fac_m3[1];
-  double fac3yz = params->fac_m3[2];
-  double fac4 = params->fac_m4;
+  const double *a = params->exp_c;
 
   double x = xn[0], y = xn[1], z = xn[2];
-  fout[0] = fac0 + fac1x*x + fac1y*y + fac1z*z + fac3xy*x*y + fac3xz*x*z + fac3yz*y*z + fac4*x*y*z;
+  fout[0] = a[0] + a[1]*x + a[2]*y + a[3]*x*y + a[4]*z + a[5]*x*z + a[6]*y*z + a[7]*x*y*z;
+   
 }
 
 void
@@ -272,14 +264,14 @@ test_dg_differentiate_3x(int poly_order, bool use_gpu)
 
   // Parameters for projected function.
   struct fin_ctx inp_params = {0};
-  inp_params.fac_m0 = 2.0;
-  inp_params.fac_m1[0] = 0.3;
-  inp_params.fac_m1[1] = 1.7;
-  inp_params.fac_m1[2] = 0.9;
-  inp_params.fac_m3[0] = 0.;
-  inp_params.fac_m3[1] = 0.;
-  inp_params.fac_m3[2] = 0.;
-  inp_params.fac_m4 = 0.;
+  inp_params.exp_c[0] = 2.0;
+  inp_params.exp_c[1] = 0.3;
+  inp_params.exp_c[2] = 1.7;
+  inp_params.exp_c[3] = 1.1;
+  inp_params.exp_c[4] = 6.2;
+  inp_params.exp_c[5] = 3.0;
+  inp_params.exp_c[6] = 4.1;
+  inp_params.exp_c[7] = 0.5;
 
   int ndim = sizeof(lower)/sizeof(lower[0]);
 
@@ -312,42 +304,45 @@ test_dg_differentiate_3x(int poly_order, bool use_gpu)
   struct gkyl_array *derf_ho = use_gpu? mkarr(false, derf->ncomp, derf->size)
                                      : gkyl_array_acquire(derf);
   
+  int diff_dir;
+  int diff_order;
+  struct gkyl_range_iter iter;
+
   // Differentiate input field along x.
-  int diff_dir = 0;
-  int diff_order = 1;
+  diff_dir = 0;
+  diff_order = 1;
   gkyl_dg_differentiate_op_local_range(&basis, diff_dir, diff_order, grid.dx[diff_dir], 0, derf, 0, fin, &local);
 
   // Check results.
   gkyl_array_copy(derf_ho, derf);
-  struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&local, iter.idx);
     const double *derf_c = gkyl_array_cfetch(derf_ho, linidx);
-    int m;
-    double ref_val;
 
-    m = 0;
-    ref_val = inp_params.fac_m1[0]*pow(sqrt(2.0),ndim);
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double *dx = grid.dx;
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
 
-    m = 1;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double *a = inp_params.exp_c;
 
-    m = 2;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double ref_val[] = {
+      pow(sqrt(2),3)*xc[1]*xc[2]*a[7]+pow(sqrt(2),3)*xc[2]*a[5]+pow(sqrt(2),3)*xc[1]*a[3]+pow(sqrt(2),3)*a[1],
+      0,
+      (sqrt(2)*sqrt(3)*dx[1]*xc[2]*a[7]+sqrt(2)*sqrt(3)*dx[1]*a[3])/3,
+      (sqrt(2)*sqrt(3)*xc[1]*dx[2]*a[7]+sqrt(2)*sqrt(3)*dx[2]*a[5])/3,
+      0,
+      0,
+      (dx[1]*dx[2]*a[7])/(3*sqrt(2)),
+      0
+    };
 
-    m = 3;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    for (int m=0; m<basis.num_basis; m++) {
+      TEST_CHECK( gkyl_compare(derf_c[m], ref_val[m], 1e-10) );
+      TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val[m]);
+    }
   }
-
+  
   // Differentiate input field along y.
   diff_dir = 1;
   diff_order = 1;
@@ -359,31 +354,31 @@ test_dg_differentiate_3x(int poly_order, bool use_gpu)
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&local, iter.idx);
     const double *derf_c = gkyl_array_cfetch(derf_ho, linidx);
-    int m;
-    double ref_val;
 
-    m = 0;
-    ref_val = inp_params.fac_m1[1]*pow(sqrt(2.0),ndim);
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double *dx = grid.dx;
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
 
-    m = 1;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double *a = inp_params.exp_c;
 
-    m = 2;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double ref_val[] = {
+      pow(sqrt(2),3)*xc[0]*xc[2]*a[7]+pow(sqrt(2),3)*xc[2]*a[6]+pow(sqrt(2),3)*xc[0]*a[3]+pow(sqrt(2),3)*a[2],
+      (sqrt(2)*sqrt(3)*dx[0]*xc[2]*a[7]+sqrt(2)*sqrt(3)*dx[0]*a[3])/3,
+      0,
+      (sqrt(2)*sqrt(3)*xc[0]*dx[2]*a[7]+sqrt(2)*sqrt(3)*dx[2]*a[6])/3,
+      0,
+      (dx[0]*dx[2]*a[7])/(3*sqrt(2)),
+      0,
+      0
+    };
 
-    m = 3;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    for (int m=0; m<basis.num_basis; m++) {
+      TEST_CHECK( gkyl_compare(derf_c[m], ref_val[m], 1e-10) );
+      TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val[m]);
+    }
   }
-
-  // Differentiate input field along z.
+  
+  // Differentiate input field along x.
   diff_dir = 2;
   diff_order = 1;
   gkyl_dg_differentiate_op_local_range(&basis, diff_dir, diff_order, grid.dx[diff_dir], 0, derf, 0, fin, &local);
@@ -394,28 +389,28 @@ test_dg_differentiate_3x(int poly_order, bool use_gpu)
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&local, iter.idx);
     const double *derf_c = gkyl_array_cfetch(derf_ho, linidx);
-    int m;
-    double ref_val;
 
-    m = 0;
-    ref_val = inp_params.fac_m1[2]*pow(sqrt(2.0),ndim);
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double *dx = grid.dx;
+    double xc[GKYL_MAX_DIM];
+    gkyl_rect_grid_cell_center(&grid, iter.idx, xc);
 
-    m = 1;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double *a = inp_params.exp_c;
 
-    m = 2;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    const double ref_val[] = {
+      pow(sqrt(2),3)*xc[0]*xc[1]*a[7]+pow(sqrt(2),3)*xc[1]*a[6]+pow(sqrt(2),3)*xc[0]*a[5]+pow(sqrt(2),3)*a[4],
+      (sqrt(2)*sqrt(3)*dx[0]*xc[1]*a[7]+sqrt(2)*sqrt(3)*dx[0]*a[5])/3,
+      (sqrt(2)*sqrt(3)*xc[0]*dx[1]*a[7]+sqrt(2)*sqrt(3)*dx[1]*a[6])/3,
+      0,
+      (dx[0]*dx[1]*a[7])/(3*sqrt(2)),
+      0,
+      0,
+      0
+    };
 
-    m = 3;
-    ref_val = 0.0;
-    TEST_CHECK( gkyl_compare(derf_c[m], ref_val, 1e-10) );
-    TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val);
+    for (int m=0; m<basis.num_basis; m++) {
+      TEST_CHECK( gkyl_compare(derf_c[m], ref_val[m], 1e-10) );
+      TEST_MSG( "idx=%d,%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], iter.idx[1], m, derf_c[m], ref_val[m]);
+    }
   }
 
   gkyl_proj_on_basis_release(proj_fin);
