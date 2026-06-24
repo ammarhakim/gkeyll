@@ -213,7 +213,7 @@ create_ctx(void)
   double Te0 = 40*eV;
   double Ti0 = 40*eV;
   double n0 = 7e19; // [1/m^3] (10 times NSTX ref.)
-  double Ntot = 6.0e18; // Total number of particles in the simulation box.
+  double Ntot = 6.0e18 * 6; // The factor 6 comes from 3x2v scaling.
 
   // Geometry and magnetic field.
   double B_axis = 0.5;
