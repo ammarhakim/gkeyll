@@ -5,11 +5,11 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-// approximation for inverse Langevin function
+// approximation for inverse Langevin function 
 GKYL_CU_DH
 static inline double invL(double x) {
-  // from Kroger
-  return (3.*x-x*x*x*(6. + x*x - 2.*x*x*x*x)/5.)/(1.-x*x);
+  // from Kroger 
+  return (3.*x-x*x*x*(6. + x*x - 2.*x*x*x*x)/5.)/(1.-x*x); 
 }
 
 // Linear interpolation of the surrogate output vcut[ng] (defined on the mu-grid
