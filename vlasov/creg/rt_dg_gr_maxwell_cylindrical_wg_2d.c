@@ -218,7 +218,13 @@ main(int argc, char **argv)
   struct gkyl_vlasov_field field = {
     .epsilon0 = ctx.epsilon0, .mu0 = ctx.mu0,
     .field_id = GKYL_FIELD_GR_D_B,
-    
+
+    .elcErrorSpeedFactor = 1.0, // chi = c*elcErrorSpeedFactor = 1.
+    .mgnErrorSpeedFactor = 1.0, // gamma = c*mgnErrorSpeedFactor = 1.
+    .K_phi = 1.0, // Damping Constant (electric field).
+    .K_psi = 1.0, // Damping Constant (magnetic field).
+    .use_lax = true, // Use Lax flux
+
     .init = evalFieldInit,
     .ctx = &ctx,
 
