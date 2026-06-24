@@ -121,7 +121,7 @@ static void
 test_plasma_oscillation_small_dt()
 {
   const double E0 = 5.0;
-  const double dt = 0.1;
+  const double dt = 0.0001;
   const int nsteps = 1;
   
   double Ex, mom_x, omega_num;

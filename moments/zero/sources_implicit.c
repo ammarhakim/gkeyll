@@ -416,24 +416,26 @@ void implicit_em_non_linear_source_update(
   // Q_bar_init = Q_init + (dt / 4) S(Q_init)
   struct gkyl_mat *S_init = gkyl_mat_new(jac_size, 1, 0.0);
   S(Q_init, mom_em, fluid_s, em, jac_size, S_init);
-  struct gkyl_mat *Q_bar_init = gkyl_mat_new(jac_size, 1, 0.0);
+  struct gkyl_mat *Q_bar_guess = gkyl_mat_new(jac_size, 1, 0.0);
 
-  Q_bar_init = gkyl_mat_accumulate(Q_bar_init, 1.0, Q_init);
-  Q_bar_init = gkyl_mat_accumulate(Q_bar_init, dt / 4.0, S_init);
+  Q_bar_guess = gkyl_mat_accumulate(Q_bar_guess, 1.0, Q_init);
+  Q_bar_guess = gkyl_mat_accumulate(Q_bar_guess, dt / 4.0, S_init);
 
-  struct gkyl_mat *Q_bar_guess = gkyl_mat_clone(Q_bar_init);
   struct gkyl_mat *dFdP = gkyl_mat_new(jac_size, jac_size, 0.0);
   struct gkyl_mat *P_buff = gkyl_mat_new(jac_size, 1, 0.0);
-  struct gkyl_mat *Q_buff = gkyl_mat_new(jac_size, 1, 0.0);
+  // struct gkyl_mat *Q_buff = gkyl_mat_new(jac_size, 1, 0.0);
   struct gkyl_mat *S_buff = gkyl_mat_new(jac_size, 1, 0.0);
   // Need RHS
   struct gkyl_mat *F_delta = gkyl_mat_new(jac_size, 1, 0.0);
   gkyl_mem_buff sol_buff = gkyl_mem_buff_new(sizeof(long[jac_size]));
 
+  int count = 4;
+  get_prim(Q_bar_guess, fluid_s, mom_em, P_buff);
+  printf("\n");
   do {
+    printf("Count: %d\n", count);
     gkyl_mat_clear(dFdP, 0.0);
     gkyl_mat_clear(F_delta, 0.0);
-    get_consv(P_buff, fluid_s, mom_em, Q_bar_guess);
     
     double Ex = gkyl_mat_get(P_buff, jac_size - 1, 0);
     double Ey = gkyl_mat_get(P_buff, jac_size - 2, 0);
@@ -457,6 +459,7 @@ void implicit_em_non_linear_source_update(
       double qnw_m = (qn * w) / m;
       double h = 1.0;
       double dhdp = 1.0;
+      rho = rho / w;
 
       double hn = h * rho;
 
@@ -515,53 +518,62 @@ void implicit_em_non_linear_source_update(
     gkyl_mat_inc(dFdP, jac_size - 2, jac_size - 2, mom_em->epsilon0);
     gkyl_mat_inc(dFdP, jac_size - 1, jac_size - 1, mom_em->epsilon0);
 
-    // Q_buff now has our Q_bar guess
-    get_consv(P_buff, fluid_s, mom_em, Q_buff);
+    // Q_bar_guess now has our Q_bar guess
+    get_consv(P_buff, fluid_s, mom_em, Q_bar_guess);
 
-    F_delta = gkyl_mat_accumulate(F_delta, -1.0, Q_buff);
+    F_delta = gkyl_mat_accumulate(F_delta, -1.0, Q_bar_guess);
     F_delta = gkyl_mat_accumulate(F_delta, 1.0, Q_init);
-    S(Q_buff, mom_em, fluid_s, em, jac_size, S_buff);
+    S(Q_bar_guess, mom_em, fluid_s, em, jac_size, S_buff);
     F_delta = gkyl_mat_accumulate(F_delta, dt / 2, S_buff);
 
+    Q_bar_guess = gkyl_mat_accumulate(Q_bar_guess, -1.0, Q_init);
+    printf("Diff: %g\n", gkyl_mat_L2_norm(Q_bar_guess));
+    Q_bar_guess = gkyl_mat_accumulate(Q_bar_guess, 2.0, Q_init);
+
+    // Sets F_delta to \delta
     bool status = gkyl_mat_linsolve_lu(dFdP, F_delta, gkyl_mem_buff_data(sol_buff));
+    printf("Pre |P_buff| = %g\n", gkyl_mat_L2_norm(P_buff));
 
     // P_buff is now P_k+1 guess
     P_buff = gkyl_mat_accumulate(P_buff, 1.0, F_delta);
 
+    printf("Delta: %g, %g, %g, %g, %g, %g, %g\n", F_delta->data[0], F_delta->data[1], F_delta->data[2], F_delta->data[3], F_delta->data[4], F_delta->data[5], F_delta->data[6]);
+
+
     delta_norm = gkyl_mat_L2_norm(F_delta);
 
     printf("|delta| = %g\n", delta_norm);
-  } while (delta_norm > tol);
+    printf("Post |P_buff| = %g\n", gkyl_mat_L2_norm(P_buff));
+  } while(count--);
+    // } while (delta_norm > tol);
 
   // Q_{i+1} = 2 \Qbar - Q_init
-  Q_buff = gkyl_mat_scale(Q_buff, 2.0);
-  Q_buff = gkyl_mat_accumulate(Q_buff, -1.0, Q_init);
+  Q_bar_guess = gkyl_mat_scale(Q_bar_guess, 2.0);
+  Q_bar_guess = gkyl_mat_accumulate(Q_bar_guess, -1.0, Q_init);
 
   // Q_buff now has our new Q_t+1
   //
 
   for (int s = 0; s < nfluids; s++) {
     int s_i = 4 * s;
-    fluid_s[s][1] = gkyl_mat_get(Q_buff, s_i, 0);
-    fluid_s[s][2] = gkyl_mat_get(Q_buff, s_i + 1, 0);
-    fluid_s[s][3] = gkyl_mat_get(Q_buff, s_i + 2, 0);
-    fluid_s[s][4] = gkyl_mat_get(Q_buff, s_i + 3, 0);
+    fluid_s[s][1] = gkyl_mat_get(Q_bar_guess, s_i, 0);
+    fluid_s[s][2] = gkyl_mat_get(Q_bar_guess, s_i + 1, 0);
+    fluid_s[s][3] = gkyl_mat_get(Q_bar_guess, s_i + 2, 0);
+    fluid_s[s][4] = gkyl_mat_get(Q_bar_guess, s_i + 3, 0);
   }
 
-  em[0] = gkyl_mat_get(Q_buff, jac_size-3, 0);
-  em[1] = gkyl_mat_get(Q_buff, jac_size-2, 0);
-  em[2] = gkyl_mat_get(Q_buff, jac_size-1, 0);
+  em[0] = gkyl_mat_get(Q_bar_guess, jac_size-3, 0);
+  em[1] = gkyl_mat_get(Q_bar_guess, jac_size-2, 0);
+  em[2] = gkyl_mat_get(Q_bar_guess, jac_size-1, 0);
   
-  printf("EM from Q_buff, %g\n", gkyl_mat_get(Q_buff, jac_size - 3, 0));
+  printf("EM from Q_buff, %g\n", gkyl_mat_get(Q_bar_guess, jac_size - 3, 0));
   
   gkyl_mat_release(Q_init);
   gkyl_mat_release(S_init);
-  gkyl_mat_release(Q_bar_init);
   gkyl_mat_release(Q_bar_guess);
   gkyl_mat_release(F_delta);
   gkyl_mat_release(dFdP);
   gkyl_mat_release(P_buff);
-  gkyl_mat_release(Q_buff);
   gkyl_mat_release(S_buff);
   gkyl_mem_buff_release(sol_buff);
 }
