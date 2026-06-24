@@ -1,6 +1,7 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_sources_explicit_priv.h>
 
 // initialize species
 void
@@ -517,6 +518,32 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   else
     gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin, species->alpha,
       species->cflrate, rhs);
+
+  // Method-of-lines geometric source for GR Euler. 
+  if (species->has_gr_euler) {
+    const double gamma = species->gr_euler_gas_gamma;
+    const int meqn = species->num_equations;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+      const double *q = gkyl_array_cfetch(fin, loc);
+      double *rhs_c = gkyl_array_fetch(rhs, loc);
+
+      double q_in[71], q_new[71];
+      for (int m = 0; m < 71; m++) q_in[m] = q[m];
+      explicit_gr_euler_source_update_euler(0, gamma, app->tcurr, 1.0, q_in, q_new); // q_new = q + S(q)
+      for (int m = 1; m < 5; m++) rhs_c[m] += (q_new[m] - q_in[m]); // full geometric source
+
+      if (meqn > 71) { // static-TOV WB: subtract the frozen-equilibrium source S(q_eq)
+        double q_eq[71], q_eq_new[71];
+        for (int m = 0; m < 71; m++) q_eq[m] = q[m];
+        q_eq[0] = q[71]; q_eq[1] = 0.0; q_eq[2] = 0.0; q_eq[3] = 0.0; q_eq[4] = q[72];
+        explicit_gr_euler_source_update_euler(0, gamma, app->tcurr, 1.0, q_eq, q_eq_new);
+        for (int m = 1; m < 5; m++) rhs_c[m] -= (q_eq_new[m] - q_eq[m]);
+      }
+    }
+  }
 
   double omegaCfl[1];
   gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, &(app->local));
