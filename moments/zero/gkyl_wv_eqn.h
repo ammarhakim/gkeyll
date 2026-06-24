@@ -66,6 +66,13 @@ typedef void (*wv_cons_to_diag)(const struct gkyl_wv_eqn *eqn,
 // Function pointer to compute the forcing/source term vector.
 typedef void (*wv_source_func_t)(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout);
 
+// Optional function pointer returning a scalar limiter alpha in [0,1] for an
+// explicit source step q_new = q_old + alpha*dt*S(q_old), so an equation can
+// keep the limited update inside its admissible set (e.g. GR-Euler positivity).
+// NULL means no limiting (alpha = 1).
+typedef double (*wv_source_limiter_func_t)(const struct gkyl_wv_eqn* eqn,
+  const double* q_old, const double* sout, double dt);
+
 // Optional function pointers used by wave_prop (and similar drivers) to
 // inform the equation object of the relevant cell index before each callback
 // fires. Equations that need to fetch per-cell auxfield data implement these;
@@ -123,6 +130,7 @@ struct gkyl_wv_eqn {
   wv_cons_to_diag cons_to_diag; // function for diagnostic variables
 
   wv_source_func_t source_func; // function for computing the forcing/source term vector.
+  wv_source_limiter_func_t source_limiter_func; // optional positivity limiter for explicit source steps (NULL => no limiting).
 
   // Optional setters invoked by wave_prop (and similar drivers) before each
   // callback to communicate the relevant cell index/indices. NULL for

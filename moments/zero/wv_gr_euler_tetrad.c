@@ -48,6 +48,7 @@ gkyl_gr_euler_tetrad_set_auxfields(const struct gkyl_wv_eqn *eqn,
   grm->auxfields.wave_spacetime          = auxin.wave_spacetime;
   grm->auxfields.prim_status_wave_prop   = auxin.prim_status_wave_prop;
   grm->auxfields.repair_status_wave_prop = auxin.repair_status_wave_prop;
+  grm->auxfields.prim_status_source      = auxin.prim_status_source;
   grm->auxfields.repair_status_source    = auxin.repair_status_source;
 }
 
@@ -1671,12 +1672,275 @@ gr_euler_tetrad_cons_to_diag(const struct gkyl_wv_eqn *eqn, const double *qin,
   for (int i = 0; i < 5; i++) diag[i] = qin[i];
 }
 
-static inline void
+// Compute the geometric source rate vector S(q) for the modular GR Euler
+// equation (Banyuls form). dq/dt = S(q); the integrator wraps this to take a
+// time step. Excised cells return zero. Returns the rate of change of the
+// densitized conservative state d(√γ·U)/dt = α√γ·S(w). The eos bundle controls
+// the primitive recovery closure (IDEAL or APPROXIMATE_SYNGE). Convention A
+// (covariant momentum); the perfect-fluid T^{μν} is built from the conserved
+// variables via the τ-identity ρhW² = τ + D + p.
+static void
+gr_euler_tetrad_compute_source_rate(struct gkyl_gr_euler_eos eos, const double *prods,
+  const double q[5], struct gkyl_gr_euler_prim_status *stat, double S_rate[5])
+{
+  bool in_excision_region = prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0);
+  if (in_excision_region) {
+    for (int i = 0; i < 5; i++) S_rate[i] = 0.0;
+    return;
+  }
+
+  double lapse   = prods[GKYL_GR_SP_LAPSE];
+  double shift_x = prods[GKYL_GR_SP_SHIFT + 0];
+  double shift_y = prods[GKYL_GR_SP_SHIFT + 1];
+  double shift_z = prods[GKYL_GR_SP_SHIFT + 2];
+  double spatial_det = prods[GKYL_GR_SP_SPATIAL_DET];
+
+  // Convention A primitive recovery via the shared helper.
+  double D    = q[0] / sqrt(spatial_det);
+  double momx = q[1] / sqrt(spatial_det);
+  double momy = q[2] / sqrt(spatial_det);
+  double momz = q[3] / sqrt(spatial_det);
+  double Etot = q[4] / sqrt(spatial_det);
+
+  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+  double inv_g[3][3] = {
+    { ig[0], ig[1], ig[2] },
+    { ig[3], ig[4], ig[5] },
+    { ig[6], ig[7], ig[8] },
+  };
+
+  struct gkyl_gr_euler_prim prim;
+  gkyl_gr_euler_recover_primitives(eos,
+    D, momx, momy, momz, Etot, inv_g, stat, &prim);
+
+  double p = prim.p;
+
+  double shift[3] = { shift_x, shift_y, shift_z };
+
+  double inv_g4[4][4];
+  inv_g4[0][0] = - (1.0 / (lapse * lapse));
+  for (int i = 0; i < 3; i++) {
+    inv_g4[0][i + 1] = (1.0 / (lapse * lapse)) * shift[i];
+    inv_g4[i + 1][0] = (1.0 / (lapse * lapse)) * shift[i];
+  }
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      inv_g4[i + 1][j + 1] = prods[GKYL_GR_SP_INV_GIJ + 3*i + j]
+        - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+
+  // Perfect-fluid stress-energy in conservative-paired form. The
+  // τ-equation identity ρhW² = τ + D + p (undensitized) eliminates ρh
+  // everywhere:
+  //   T^{00} = (τ + D) / α²                                  (linear)
+  //   T^{0i} = γ^{ij}·S_j / α − (τ + D)·β^i / α²             (linear)
+  //   T^{ij} = (τ + D + p)·ṽ^i·ṽ^j + p·γ₄^{ij},  ṽ = v − β/α
+  double tauD = Etot + D;
+  double vtil[3] = {
+    prim.v[0] - shift_x / lapse,
+    prim.v[1] - shift_y / lapse,
+    prim.v[2] - shift_z / lapse,
+  };
+  double T[4][4];
+  T[0][0] = tauD / (lapse * lapse);
+  for (int i = 0; i < 3; i++) {
+    double mom_up = inv_g[i][0]*momx + inv_g[i][1]*momy + inv_g[i][2]*momz;
+    T[0][i + 1] = mom_up / lapse - tauD * shift[i] / (lapse * lapse);
+    T[i + 1][0] = T[0][i + 1];
+  }
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      T[i + 1][j + 1] = (tauD + p) * vtil[i] * vtil[j]
+                      + p * inv_g4[i + 1][j + 1];
+
+  // Spacetime-derivative lookups from products.
+  double lapse_der[3] = {
+    prods[GKYL_GR_SP_DALPHA + 0],
+    prods[GKYL_GR_SP_DALPHA + 1],
+    prods[GKYL_GR_SP_DALPHA + 2],
+  };
+
+  double shift_der[3][3];
+  for (int j = 0; j < 3; j++)
+    for (int i = 0; i < 3; i++)
+      shift_der[j][i] = prods[GKYL_GR_SP_DBETA + 3*j + i];
+
+  double spatial_metric_der[3][3][3];
+  for (int k = 0; k < 3; k++)
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        spatial_metric_der[k][i][j] = prods[GKYL_GR_SP_DGIJ + 9*k + 3*i + j];
+
+  double extrinsic_curvature[3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      extrinsic_curvature[i][j] = prods[GKYL_GR_SP_KIJ + 3*i + j];
+
+  const double *g_ij = &prods[GKYL_GR_SP_GIJ];
+
+  double shift_lower[3] = { 0.0, 0.0, 0.0 };
+  for (int m = 0; m < 3; m++)
+    for (int k = 0; k < 3; k++)
+      shift_lower[m] += g_ij[3*m + k] * shift[k];
+
+  for (int i = 0; i < 5; i++) S_rate[i] = 0.0;
+
+  double prefac = sqrt(spatial_det) * lapse;  // = α√γ = √(-g)
+
+  // Energy density source.
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      S_rate[4] += prefac * (T[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
+      S_rate[4] += prefac * (2.0 * T[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+      S_rate[4] += prefac * (T[i + 1][j + 1] * extrinsic_curvature[i][j]);
+    }
+    S_rate[4] -= prefac * (T[0][0] * shift[i] * lapse_der[i]);
+    S_rate[4] -= prefac * (T[0][i + 1] * lapse_der[i]);
+  }
+
+  // Momentum density sources — full Banyuls (1/2)·T^{μν}·∂_j g_{μν} expansion.
+  for (int j = 0; j < 3; j++) {
+    S_rate[1 + j] -= prefac * (T[0][0] * lapse * lapse_der[j]);
+
+    for (int k = 0; k < 3; k++) {
+      for (int l = 0; l < 3; l++) {
+        S_rate[1 + j] += prefac * (0.5 * T[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+        S_rate[1 + j] += prefac * (0.5 * T[k + 1][l + 1] * spatial_metric_der[j][k][l]);
+      }
+      S_rate[1 + j] += prefac * (T[0][0] * shift_lower[k] * shift_der[j][k]);
+
+      for (int i = 0; i < 3; i++) {
+        S_rate[1 + j] += prefac * (T[0][i + 1] * g_ij[3*i + k] * shift_der[j][k]);
+        S_rate[1 + j] += prefac * (T[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
+      }
+    }
+  }
+}
+
+// Largest α ∈ [0,1] keeping the limited source step inside the p≥0 cone
+// s² > D² (with margin). See the cone derivation in check_admissibility.
+static double
+gr_euler_tetrad_compute_s2_limiter_alpha(const double *prods, double dt,
+  const double fluid_old[5], const double S_rate[5])
+{
+  const double margin = 1.0e-6;
+
+  if (prods[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) return 1.0;
+  double sd = sqrt(prods[GKYL_GR_SP_SPATIAL_DET]);
+  if (!(sd > 0.0)) return 1.0;
+  const double *ig = &prods[GKYL_GR_SP_INV_GIJ];
+
+  // Undensitize q and δq (where δq = dt·S_rate).
+  double D    = fluid_old[0] / sd;
+  double Sx   = fluid_old[1] / sd;
+  double Sy   = fluid_old[2] / sd;
+  double Sz   = fluid_old[3] / sd;
+  double tau  = fluid_old[4] / sd;
+  double dD   = dt * S_rate[0] / sd;
+  double dSx  = dt * S_rate[1] / sd;
+  double dSy  = dt * S_rate[2] / sd;
+  double dSz  = dt * S_rate[3] / sd;
+  double dtau = dt * S_rate[4] / sd;
+
+  double a = D + tau;
+  double b = dD + dtau;
+
+  double S_v[3]  = { Sx, Sy, Sz };
+  double dS_v[3] = { dSx, dSy, dSz };
+  double P = 0.0, Q = 0.0, R = 0.0;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++) {
+      double inv_g_ij = ig[3*i + j];
+      P += inv_g_ij * S_v[i]  * S_v[j];
+      Q += inv_g_ij * S_v[i]  * dS_v[j];
+      R += inv_g_ij * dS_v[i] * dS_v[j];
+    }
+
+  double A = (1.0 - margin) * (b * b - dD * dD) - R;
+  double B = (1.0 - margin) * (a * b - D * dD) - Q;
+  double C = (1.0 - margin) * (a * a - D * D) - P;
+
+  if (C < 0.0) return 1.0;  // q already fails margin; let repair handle
+
+  if (fabs(A) < 1.0e-30) {
+    if (B >= 0.0) return 1.0;
+    double alpha_root = -0.5 * C / B;
+    return fmin(1.0, fmax(0.0, alpha_root));
+  }
+
+  double disc = B*B - A*C;
+  if (disc < 0.0) return 1.0;
+  double sd_disc = sqrt(disc);
+
+  const double SAFETY_PULLBACK = 1.0e-10;
+
+  if (A > 0.0) {
+    double alpha_minus = (-B - sd_disc) / A;
+    if (alpha_minus > 0.0)
+      return fmin(1.0, alpha_minus * (1.0 - SAFETY_PULLBACK));
+    return 1.0;
+  } else {
+    double r1 = (-B - sd_disc) / A;
+    double r2 = (-B + sd_disc) / A;
+    double a_hi = fmax(r1, r2);
+    if (a_hi <= 0.0) return 1.0;
+    return fmin(1.0, a_hi * (1.0 - SAFETY_PULLBACK));
+  }
+}
+
+// eqn->source_func: raw Banyuls source rate S(q). Reads the cell's spacetime
+// products from the auxfields (at cur_cell_idx) and the EOS from the equation;
+// the explicit-step increment and limiting live in the integrator.
+static void
 gr_euler_tetrad_source(const struct gkyl_wv_eqn *eqn, const double *qin,
   double *sout)
 {
-  // Integrated by moment_spacetime_coupling.
-  for (int i = 0; i < 5; i++) sout[i] = 0.0;
+  const struct wv_gr_euler_tetrad *grm = container_of(eqn,
+    struct wv_gr_euler_tetrad, eqn);
+  if (!grm->auxfields.prods) {
+    for (int i = 0; i < 5; i++) sout[i] = 0.0;
+    return;
+  }
+  long cidx = gkyl_range_idx(&grm->conf_range, grm->cur_cell_idx);
+  const double *prods = gkyl_array_cfetch(grm->auxfields.prods, cidx);
+  gr_euler_tetrad_compute_source_rate(grm->eos, prods, qin,
+    grm->auxfields.prim_status_source, sout);
+}
+
+// eqn->source_limiter_func: τ + s² positivity limiter scaling the explicit
+// source step so q_new = q_old + alpha*dt*S stays inside the admissible cone.
+static double
+gr_euler_tetrad_source_limiter(const struct gkyl_wv_eqn *eqn,
+  const double *q_old, const double *sout, double dt)
+{
+  const struct wv_gr_euler_tetrad *grm = container_of(eqn,
+    struct wv_gr_euler_tetrad, eqn);
+  if (!grm->auxfields.prods) return 1.0;
+  long cidx = gkyl_range_idx(&grm->conf_range, grm->cur_cell_idx);
+  const double *prods = gkyl_array_cfetch(grm->auxfields.prods, cidx);
+  struct gkyl_gr_euler_repair_status *repair_stat = grm->auxfields.repair_status_source;
+
+  // TAU-POSITIVITY LIMITER. Target τ_new = TAU_TARGET (the floor cascade-repair
+  // restores to) so limited cells land strictly inside A_γ.
+  const double TAU_TARGET = GR_EULER_TAU_REPAIR_FLOOR;
+  double alpha = 1.0;
+  double delta_tau = dt * sout[4];
+  double tau_new_unlimited = q_old[4] + delta_tau;
+  if (tau_new_unlimited < TAU_TARGET && delta_tau < 0.0) {
+    double headroom = q_old[4] - TAU_TARGET;
+    double alpha_tau = (headroom > 0.0) ? (headroom / -delta_tau) : 0.0;
+    if (alpha_tau < 0.0) alpha_tau = 0.0;
+    if (alpha_tau > 1.0) alpha_tau = 1.0;
+    alpha = fmin(alpha, alpha_tau);
+    if (repair_stat) repair_stat->tau_limiter_fires += 1;
+  }
+
+  // S²-POSITIVITY LIMITER.
+  double alpha_s2 = gr_euler_tetrad_compute_s2_limiter_alpha(prods, dt, q_old, sout);
+  if (alpha_s2 < alpha) {
+    alpha = alpha_s2;
+    if (repair_stat) repair_stat->s2_limiter_fires += 1;
+  }
+  return alpha;
 }
 
 // ---------------------------------------------------------------------------
@@ -1795,6 +2059,7 @@ gkyl_wv_gr_euler_tetrad_inew(
   grm->eqn.riem_to_cons = riem_to_cons;
   grm->eqn.cons_to_diag = gr_euler_tetrad_cons_to_diag;
   grm->eqn.source_func = gr_euler_tetrad_source;
+  grm->eqn.source_limiter_func = gr_euler_tetrad_source_limiter;
 
   grm->eqn.set_interface_idx_func = gr_euler_tetrad_set_interface_idx;
   grm->eqn.set_cell_idx_func = gr_euler_tetrad_set_cell_idx;

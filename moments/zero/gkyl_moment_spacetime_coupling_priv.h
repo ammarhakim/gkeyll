@@ -38,16 +38,3 @@ struct gkyl_moment_spacetime_coupling {
   struct gkyl_wv_eqn *einstein_eqn;
 };
 
-/**
- * Per-cell forward-Euler source-term integrator for the modular GR Euler
- * equation. Mirrors explicit_gr_euler_source_update_euler in
- * sources_explicit.c but reads spacetime from the per-cell products row
- * instead of from packed q[5..66]. Operates on the 5-element hydro state.
- */
-void
-gkyl_moment_spacetime_coupling_gr_euler_source_euler(
-  struct gkyl_gr_euler_eos eos, double t_curr, double dt,
-  const double *prods,
-  struct gkyl_gr_euler_prim_status *prim_stat,
-  struct gkyl_gr_euler_repair_status *repair_stat,
-  const double fluid_old[5], double fluid_new[5]);
