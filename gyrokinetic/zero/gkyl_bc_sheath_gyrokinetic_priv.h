@@ -136,7 +136,7 @@ struct gkyl_bc_sheath_gyrokinetic {
     const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r); // Function pointer to update vcutsq array.
   struct gkyl_kann_net *kann_net; // KANN sheath surrogate.
   struct gkyl_kn_vec *kann_inp; // Input vector for KANN surrogate (3 x number of perp nodes).
-  struct gkyl_kn_vec *kann_out; // Output vector for KANN surrogate (20 x number of perp nodes).
+  struct gkyl_kn_vec *kann_out; // Output vector for KANN surrogate: dim_out x number of perp nodes, where each node block is dim_out/2 vcut values followed by dim_out/2 mu-grid values.
   struct gkyl_array *kann_infer_xy_out; // Output array for KANN on a perpendicular plane.
   double *nn_out; // Buffer to hold raw NN outputs for all perp nodes (device memory when using GPU).
 

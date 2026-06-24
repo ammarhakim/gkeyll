@@ -258,7 +258,8 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
     up->kann_net = gkyl_kann_net_load(surrogate_model_path, up->use_gpu);
     int dim_in = gkyl_kann_net_dim_in(up->kann_net);
     int dim_out = gkyl_kann_net_dim_out(up->kann_net);
-    assert(dim_in == 3 && dim_out == SRGRZ_N_MU);
+    // The surrogate must be grid-augmented so dim_out is even.
+    assert(dim_in == 3 && dim_out > 0 && dim_out % 2 == 0);
     int nperp_nodes = up->perp_node_per_cell * up->perp_local.volume;
     up->kann_inp = up->use_gpu ? gkyl_kn_vec_cu_dev_new(nperp_nodes, dim_in) : gkyl_kn_vec_new(nperp_nodes, dim_in);
     up->kann_out = up->use_gpu ? gkyl_kn_vec_cu_dev_new(nperp_nodes, dim_out) : gkyl_kn_vec_new(nperp_nodes, dim_out);

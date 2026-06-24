@@ -5,10 +5,6 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-// Number of points in the fixed mu-grid that the GYRAZE sheath surrogate
-// predicts v_par_cut on (see gkeyll_sheath_ai).
-#define SRGRZ_N_MU 20
-
 // approximation for inverse Langevin function
 GKYL_CU_DH
 static inline double invL(double x) {
@@ -16,17 +12,14 @@ static inline double invL(double x) {
   return (3.*x-x*x*x*(6. + x*x - 2.*x*x*x*x)/5.)/(1.-x*x);
 }
 
-// Linear interpolation of the surrogate output vcut[SRGRZ_N_MU] (defined on the
-// fixed mu-grid below) onto mu_new[n], normalising mu by mu_ref (= T/B). Results
+// Linear interpolation of the surrogate output vcut[ng] (defined on the mu-grid
+// mu_grid[ng], which the surrogate model supplies as the second half of each
+// node's output block) onto mu_new[n], normalising mu by mu_ref (= T/B). Results
 // are written into out[n]; clamps at the grid boundaries.
 GKYL_CU_DH
 static inline void
-bc_sheath_gyrokinetic_surr_interpf(const float *vcut, const double *mu_new, int n, double mu_ref, double *out)
+bc_sheath_gyrokinetic_surr_interpf(const float *vcut, const float *mu_grid, int ng, const double *mu_new, int n, double mu_ref, double *out)
 {
-  const double mu_grid[SRGRZ_N_MU] = {
-    0.00, 0.02, 0.08, 0.18, 0.32, 0.50, 0.72, 0.98, 1.28, 1.62,
-    2.00, 2.42, 2.88, 3.38, 3.92, 4.50, 5.12, 5.78, 6.48, 7.22};
-  const int ng = SRGRZ_N_MU;
   for (int i = 0; i < n; i++) {
     double mu = mu_new[i]/mu_ref;
     if (mu <= mu_grid[0])      { out[i] = vcut[0];      continue; }
