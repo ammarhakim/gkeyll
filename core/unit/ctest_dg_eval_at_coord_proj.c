@@ -21,8 +21,8 @@ mkarr(bool use_gpu, long nc, long size)
 static void
 eval_f_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  // f(x) = 1 + 2x.
-  fout[0] = 1.0 + 2.0*xn[0];
+  double x = xn[0];
+  fout[0] = 1.0 + 2.0*x;
 }
 
 static void
@@ -355,217 +355,212 @@ test_2x_to_scalar(int poly_order, bool use_gpu)
 }
 
 static void
-eval_f_3d(double t, const double *xn, double *restrict fout, void *ctx)
+eval_f_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  // f(x,y,z) = 1 + 2x + 3y + 4z + 5xy + 6xz + 7yz + 8xyz.
-  fout[0] = 1.0 + 2.0*xn[0] + 3.0*xn[1] + 4.0*xn[2]
-          + 5.0*xn[0]*xn[1] + 6.0*xn[0]*xn[2] + 7.0*xn[1]*xn[2]
-          + 8.0*xn[0]*xn[1]*xn[2];
+  double x = xn[0], y = xn[1], z = xn[2];
+
+  fout[0] = 1.0 + 2.0*x + 3.0*y + 4.0*z
+    + 5.0*x*y + 6.0*x*z + 7.0*y*z + 8.0*x*y*z;
 }
 
 static void
-eval_f_3d_at_x0_yz(double t, const double *xn, double *restrict fout, void *ctx)
+eval_f_3x_at_coord(double t, const double *xn, double *restrict fout, void *ctx)
 {
-  // f(x0, y, z) = (1+2x0) + (3+5x0)*y + (4+6x0)*z + (7+8x0)*yz, with x0 from ctx.
-  double x0 = *(const double *)ctx;
-  fout[0] = (1.0 + 2.0*x0) + (3.0 + 5.0*x0)*xn[0] + (4.0 + 6.0*x0)*xn[1]
-          + (7.0 + 8.0*x0)*xn[0]*xn[1];
+  struct dg_evproj_tst_ctx *params = (struct dg_evproj_tst_ctx *) ctx;
+
+  int num_eval_dirs = params->num_eval_dirs;
+  int *eval_dirs = params->eval_dirs;
+  double *eval_coords = params->eval_coords;
+  int ndim_tar = params->ndim_tar;
+  int *dirs_tar = params->dirs_tar;
+
+  double xn_p[GKYL_MAX_DIM];
+  for (int d=0; d<num_eval_dirs; d++)
+    xn_p[eval_dirs[d]] = eval_coords[d];
+
+  for (int d=0; d<ndim_tar; d++)
+    xn_p[dirs_tar[d]] = xn[d];
+
+  eval_f_3x(t, xn_p, fout, NULL);
 }
 
 static void
-eval_f_3d_at_x0y0_z(double t, const double *xn, double *restrict fout, void *ctx)
+test_3x_ev_at_coord(int ndim_do, const double *lower_do, const double *upper_do, const int *cells_do,
+  int num_eval_dirs, const int *eval_dirs, const double *eval_coords, int poly_order, bool use_gpu)
 {
-  // f(x0, y0, z) = (1+2x0+3y0+5x0*y0) + (4+6x0+7y0+8x0*y0)*z, with (x0,y0) from ctx.
-  const double *c = (const double *)ctx;
-  double x0 = c[0], y0 = c[1];
-  fout[0] = (1.0 + 2.0*x0 + 3.0*y0 + 5.0*x0*y0)
-          + (4.0 + 6.0*x0 + 7.0*y0 + 8.0*x0*y0)*xn[0];
+  // Project a 3D DG field onto a lower-dimensional target by evaluating at
+  // fixed coordinates in eval_dirs. Verified by comparing against a direct
+  // projection of f at eval_coords onto the target basis.
+
+  // Donor grid.
+  struct gkyl_rect_grid grid_do;
+  gkyl_rect_grid_init(&grid_do, ndim_do, lower_do, upper_do, cells_do);
+
+  // Target grid: directions not in eval_dirs.
+  int ndim_tar = ndim_do - num_eval_dirs;
+  int dirs_tar[GKYL_MAX_DIM];
+  int c = 0;
+  for (int d=0; d<ndim_do; d++) {
+    bool in_eval_dirs = false;
+    for (int i=0; i<num_eval_dirs; i++) {
+      if (d == eval_dirs[i]) {
+        in_eval_dirs = true;
+        break;
+      }
+    }
+    if (!in_eval_dirs)
+      dirs_tar[c++] = d;
+  }
+  double lower_tar[GKYL_MAX_DIM], upper_tar[GKYL_MAX_DIM];
+  int cells_tar[GKYL_MAX_DIM];
+  for (int d=0; d<ndim_tar; d++) {
+    lower_tar[d] = lower_do[dirs_tar[d]];
+    upper_tar[d] = upper_do[dirs_tar[d]];
+    cells_tar[d] = cells_do[dirs_tar[d]];
+  }
+  struct gkyl_rect_grid grid_tar;
+  gkyl_rect_grid_init(&grid_tar, ndim_tar, lower_tar, upper_tar, cells_tar);
+
+  // Basis.
+  struct gkyl_basis basis_do, basis_tar;
+  gkyl_cart_modal_serendip(&basis_do, ndim_do, poly_order);
+  gkyl_cart_modal_serendip(&basis_tar, ndim_tar, poly_order);
+
+  // Ranges.
+  int num_ghost[] = {1, 1, 1, 1, 1, 1};
+  struct gkyl_range local_do, local_ext_do;
+  gkyl_create_grid_ranges(&grid_do, num_ghost, &local_ext_do, &local_do);
+
+  struct gkyl_range local_tar, local_ext_tar;
+  gkyl_create_grid_ranges(&grid_tar, num_ghost, &local_ext_tar, &local_tar);
+
+  // Project f(x,y,z).
+  struct gkyl_array *fdo = mkarr(use_gpu, basis_do.num_basis, local_ext_do.volume);
+  struct gkyl_array *fdo_ho = use_gpu? mkarr(false, fdo->ncomp, fdo->size)
+                                     : gkyl_array_acquire(fdo);
+  gkyl_proj_on_basis *proj_do = gkyl_proj_on_basis_new(&grid_do, &basis_do,
+    poly_order+1, 1, eval_f_3x, NULL);
+  gkyl_proj_on_basis_advance(proj_do, 0.0, &local_do, fdo_ho);
+  gkyl_array_copy(fdo, fdo_ho);
+
+  // Context for projecting reference solution.
+  struct dg_evproj_tst_ctx eval_params;
+  eval_params.ndim_do = ndim_do;
+  eval_params.num_eval_dirs = num_eval_dirs;
+  for (int d=0; d<num_eval_dirs; d++) {
+    eval_params.eval_dirs[d] = eval_dirs[d];
+    eval_params.eval_coords[d] = eval_coords[d];
+  }
+  eval_params.ndim_tar = ndim_tar;
+  for (int d=0; d<ndim_tar; d++)
+    eval_params.dirs_tar[d] = dirs_tar[d];
+
+  // Project f at eval_coords directly onto the target basis.
+  struct gkyl_array *fref_ho = mkarr(false, basis_tar.num_basis, local_ext_tar.volume);
+  gkyl_proj_on_basis *proj_tar = gkyl_proj_on_basis_new(&grid_tar, &basis_tar,
+    poly_order+1, 1, eval_f_3x_at_coord, &eval_params);
+  gkyl_proj_on_basis_advance(proj_tar, 0.0, &local_tar, fref_ho);
+
+  // Evaluate eval_coords and project.
+  struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
+    &basis_do, &basis_tar, num_eval_dirs, eval_dirs, use_gpu);
+
+  struct gkyl_array *ftar = mkarr(use_gpu, basis_tar.num_basis, local_ext_tar.volume);
+  struct gkyl_array *ftar_ho = use_gpu? mkarr(false, ftar->ncomp, ftar->size)
+                                      : gkyl_array_acquire(ftar);
+  bool pick_lower[] = {false, false, false, false, false, false};
+  int known_index[] = {-1, -1, -1, -1, -1, -1};
+  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index,
+    &local_do, &local_tar, fdo, ftar);
+
+  // Check answer.
+  gkyl_array_copy(ftar_ho, ftar);
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local_tar);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&local_tar, iter.idx);
+    const double *ftar_c = gkyl_array_cfetch(ftar_ho, linidx);
+    const double *fref_c = gkyl_array_cfetch(fref_ho, linidx);
+    for (int k = 0; k < basis_tar.num_basis; k++) {
+      TEST_CHECK(gkyl_compare(fref_c[k], ftar_c[k], 1e-14));
+      TEST_MSG(" k:%d | Expected %.6e | Got %.6e\n", k, fref_c[k], ftar_c[k]);
+    }
+  }
+
+  gkyl_dg_eval_at_coord_proj_release(up);
+  gkyl_proj_on_basis_release(proj_do);
+  gkyl_proj_on_basis_release(proj_tar);
+  gkyl_array_release(fdo);
+  gkyl_array_release(fdo_ho);
+  gkyl_array_release(ftar);
+  gkyl_array_release(ftar_ho);
+  gkyl_array_release(fref_ho);
 }
 
 static void
 test_3x_to_2x(int poly_order, bool use_gpu)
 {
-  // Project a 3D DG field onto 2D by evaluating in x at a fixed x0.
-  // Verified by comparing against a direct 2D projection of f(x0, y, z).
-
-  // 3D donor grid.
   double lower_do[] = {0.0, 0.0, 0.0}, upper_do[] = {1.0, 1.0, 1.0};
   int cells_do[] = {2, 2, 2};
-
-  double x0 = 0.75; // lies in the second x-cell [0.5, 1.0]
-
   int ndim_do = sizeof(cells_do)/sizeof(cells_do[0]);
-  struct gkyl_rect_grid grid_do;
-  gkyl_rect_grid_init(&grid_do, ndim_do, lower_do, upper_do, cells_do);
 
-  // 2D target grid spans the y-z directions.
-  double lower_tar[] = {lower_do[1], lower_do[2]};
-  double upper_tar[] = {upper_do[1], upper_do[2]};
-  int cells_tar[] = {cells_do[1], cells_do[2]};
-  int ndim_tar = sizeof(cells_tar)/sizeof(cells_tar[0]);
-  struct gkyl_rect_grid grid_tar;
-  gkyl_rect_grid_init(&grid_tar, ndim_tar, lower_tar, upper_tar, cells_tar);
-
-  // Basis.
-  struct gkyl_basis basis_do, basis_tar;
-  gkyl_cart_modal_serendip(&basis_do, ndim_do, poly_order);
-  gkyl_cart_modal_serendip(&basis_tar, ndim_tar, poly_order);
-
-  // Ranges.
-  int ghost_do[] = {1, 1, 1, 1, 1, 1};
-  struct gkyl_range local_do, local_ext_do;
-  gkyl_create_grid_ranges(&grid_do, ghost_do, &local_ext_do, &local_do);
-
-  int ghost_tar[] = {ghost_do[1], ghost_do[2]};
-  struct gkyl_range local_tar, local_ext_tar;
-  gkyl_create_grid_ranges(&grid_tar, ghost_tar, &local_ext_tar, &local_tar);
-
-  // Project f(x,y,z).
-  struct gkyl_array *fdo = mkarr(use_gpu, basis_do.num_basis, local_ext_do.volume);
-  struct gkyl_array *fdo_ho = use_gpu? mkarr(false, fdo->ncomp, fdo->size)
-                                     : gkyl_array_acquire(fdo);
-  gkyl_proj_on_basis *proj_do = gkyl_proj_on_basis_new(&grid_do, &basis_do,
-    poly_order+1, 1, eval_f_3d, NULL);
-  gkyl_proj_on_basis_advance(proj_do, 0.0, &local_do, fdo_ho);
-  gkyl_array_copy(fdo, fdo_ho);
-
-  // Project f(x0,y,z) directly onto the 2D basis.
-  struct gkyl_array *fref_ho = mkarr(false, basis_tar.num_basis, local_ext_tar.volume);
-  gkyl_proj_on_basis *proj_tar = gkyl_proj_on_basis_new(&grid_tar, &basis_tar,
-    poly_order+1, 1, eval_f_3d_at_x0_yz, &x0);
-  gkyl_proj_on_basis_advance(proj_tar, 0.0, &local_tar, fref_ho);
-
-  // Create the updater: evaluate in x (dir 0), keep y and z (2D target).
-  int eval_dirs[] = {0};
+  int eval_dirs[1];
+  double eval_coords[1];
   int num_eval_dirs = sizeof(eval_dirs)/sizeof(eval_dirs[0]);
-  struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
-    &basis_do, &basis_tar, num_eval_dirs, eval_dirs, use_gpu);
 
-  // Apply updater at x = x0.
-  struct gkyl_array *ftar = mkarr(use_gpu, basis_tar.num_basis, local_ext_tar.volume);
-  struct gkyl_array *ftar_ho = use_gpu? mkarr(false, ftar->ncomp, ftar->size)
-                                      : gkyl_array_acquire(ftar);
-  double eval_coords[] = {x0};
-  bool pick_lower[] = {false, false, false};
-  int known_index[] = {-1, -1, -1};
-  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index,
-    &local_do, &local_tar, fdo, ftar);
+  // Evaluate at x.
+  eval_dirs[0] = 0;
+  eval_coords[0] = 0.75;
+  test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs,
+    eval_dirs, eval_coords, poly_order, use_gpu);
 
-  // Check answer.
-  gkyl_array_copy(ftar_ho, ftar);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local_tar);
-  while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(&local_tar, iter.idx);
-    const double *ftar_c = gkyl_array_cfetch(ftar_ho, linidx);
-    const double *fref_c = gkyl_array_cfetch(fref_ho, linidx);
-    for (int k = 0; k < basis_tar.num_basis; k++) {
-      TEST_CHECK(gkyl_compare(fref_c[k], ftar_c[k], 1e-14));
-      TEST_MSG(" k:%d | Expected %.6e | Got %.6e\n", k, fref_c[k], ftar_c[k]);
-    }
-  }
+  // Evaluate at y.
+  eval_dirs[0] = 1;
+  eval_coords[0] = 0.25;
+  test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs,
+    eval_dirs, eval_coords, poly_order, use_gpu);
 
-  gkyl_dg_eval_at_coord_proj_release(up);
-  gkyl_proj_on_basis_release(proj_do);
-  gkyl_proj_on_basis_release(proj_tar);
-  gkyl_array_release(fdo);
-  gkyl_array_release(fdo_ho);
-  gkyl_array_release(ftar);
-  gkyl_array_release(ftar_ho);
-  gkyl_array_release(fref_ho);
+  // Evaluate at z.
+  eval_dirs[0] = 2;
+  eval_coords[0] = 0.6;
+  test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs,
+    eval_dirs, eval_coords, poly_order, use_gpu);
 }
 
 static void
 test_3x_to_1x(int poly_order, bool use_gpu)
 {
-  // Project a 3D DG field onto 1D by evaluating in x and y at fixed (x0, y0).
-  // Verified by comparing against a direct 1D projection of f(x0, y0, z).
-
-  // 3D donor grid.
   double lower_do[] = {0.0, 0.0, 0.0}, upper_do[] = {1.0, 1.0, 1.0};
   int cells_do[] = {2, 2, 2};
-
-  double x0 = 0.75, y0 = 0.25; // x0 in [0.5,1.0], y0 in [0.0,0.5]
-
   int ndim_do = sizeof(cells_do)/sizeof(cells_do[0]);
-  struct gkyl_rect_grid grid_do;
-  gkyl_rect_grid_init(&grid_do, ndim_do, lower_do, upper_do, cells_do);
 
-  // 1D target grid spans the z-direction.
-  double lower_tar[] = {lower_do[2]}, upper_tar[] = {upper_do[2]};
-  int cells_tar[] = {cells_do[2]};
-  int ndim_tar = sizeof(cells_tar)/sizeof(cells_tar[0]);
-  struct gkyl_rect_grid grid_tar;
-  gkyl_rect_grid_init(&grid_tar, ndim_tar, lower_tar, upper_tar, cells_tar);
-
-  // Basis.
-  struct gkyl_basis basis_do, basis_tar;
-  gkyl_cart_modal_serendip(&basis_do, ndim_do, poly_order);
-  gkyl_cart_modal_serendip(&basis_tar, ndim_tar, poly_order);
-
-  // Ranges.
-  int ghost_do[] = {1, 1, 1, 1, 1, 1};
-  struct gkyl_range local_do, local_ext_do;
-  gkyl_create_grid_ranges(&grid_do, ghost_do, &local_ext_do, &local_do);
-
-  int ghost_tar[] = {ghost_do[2]};
-  struct gkyl_range local_tar, local_ext_tar;
-  gkyl_create_grid_ranges(&grid_tar, ghost_tar, &local_ext_tar, &local_tar);
-
-  // Project f(x,y,z).
-  struct gkyl_array *fdo = mkarr(use_gpu, basis_do.num_basis, local_ext_do.volume);
-  struct gkyl_array *fdo_ho = use_gpu? mkarr(false, fdo->ncomp, fdo->size)
-                                     : gkyl_array_acquire(fdo);
-  gkyl_proj_on_basis *proj_do = gkyl_proj_on_basis_new(&grid_do, &basis_do,
-    poly_order+1, 1, eval_f_3d, NULL);
-  gkyl_proj_on_basis_advance(proj_do, 0.0, &local_do, fdo_ho);
-  gkyl_array_copy(fdo, fdo_ho);
-
-  // Project f(x0,y0,z) directly onto the 1D basis.
-  double ctx_ref[] = {x0, y0};
-  struct gkyl_array *fref_ho = mkarr(false, basis_tar.num_basis, local_ext_tar.volume);
-  gkyl_proj_on_basis *proj_tar = gkyl_proj_on_basis_new(&grid_tar, &basis_tar,
-    poly_order+1, 1, eval_f_3d_at_x0y0_z, ctx_ref);
-  gkyl_proj_on_basis_advance(proj_tar, 0.0, &local_tar, fref_ho);
-
-  // Create the updater: evaluate in x (dir 0) and y (dir 1), keep z (1D target).
-  int eval_dirs[] = {0, 1};
+  int eval_dirs[2];
+  double eval_coords[2];
   int num_eval_dirs = sizeof(eval_dirs)/sizeof(eval_dirs[0]);
-  struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
-    &basis_do, &basis_tar, num_eval_dirs, eval_dirs, use_gpu);
 
-  // Apply updater at (x0, y0).
-  struct gkyl_array *ftar = mkarr(use_gpu, basis_tar.num_basis, local_ext_tar.volume);
-  struct gkyl_array *ftar_ho = use_gpu? mkarr(false, ftar->ncomp, ftar->size)
-                                      : gkyl_array_acquire(ftar);
-  double eval_coords[] = {x0, y0};
-  bool pick_lower[] = {false, false, false};
-  int known_index[] = {-1, -1, -1};
-  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid_do, pick_lower, known_index,
-    &local_do, &local_tar, fdo, ftar);
+  // Evaluate at (x, y).
+  eval_dirs[0] = 0;
+  eval_dirs[1] = 1;
+  eval_coords[0] = 0.75;
+  eval_coords[1] = 0.25;
+  test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs,
+    eval_dirs, eval_coords, poly_order, use_gpu);
 
-  // Check answer.
-  gkyl_array_copy(ftar_ho, ftar);
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local_tar);
-  while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(&local_tar, iter.idx);
-    const double *ftar_c = gkyl_array_cfetch(ftar_ho, linidx);
-    const double *fref_c = gkyl_array_cfetch(fref_ho, linidx);
-    for (int k = 0; k < basis_tar.num_basis; k++) {
-      TEST_CHECK(gkyl_compare(fref_c[k], ftar_c[k], 1e-14));
-      TEST_MSG(" k:%d | Expected %.6e | Got %.6e\n", k, fref_c[k], ftar_c[k]);
-    }
-  }
+  // Evaluate at (x, z).
+  eval_dirs[0] = 0;
+  eval_dirs[1] = 2;
+  eval_coords[0] = 0.75;
+  eval_coords[1] = 0.6;
+  test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs,
+    eval_dirs, eval_coords, poly_order, use_gpu);
 
-  gkyl_dg_eval_at_coord_proj_release(up);
-  gkyl_proj_on_basis_release(proj_do);
-  gkyl_proj_on_basis_release(proj_tar);
-  gkyl_array_release(fdo);
-  gkyl_array_release(fdo_ho);
-  gkyl_array_release(ftar);
-  gkyl_array_release(ftar_ho);
-  gkyl_array_release(fref_ho);
+  // Evaluate at (y, z).
+  eval_dirs[0] = 1;
+  eval_dirs[1] = 2;
+  eval_coords[0] = 0.25;
+  eval_coords[1] = 0.6;
+  test_3x_ev_at_coord(ndim_do, lower_do, upper_do, cells_do, num_eval_dirs,
+    eval_dirs, eval_coords, poly_order, use_gpu);
 }
 
 static void
@@ -598,7 +593,7 @@ test_3x_to_scalar(int poly_order, bool use_gpu)
   struct gkyl_array *fdo_ho = use_gpu? mkarr(false, fdo->ncomp, fdo->size)
                                      : gkyl_array_acquire(fdo);
   gkyl_proj_on_basis *proj_do = gkyl_proj_on_basis_new(&grid_do, &basis_do,
-    poly_order+1, 1, eval_f_3d, NULL);
+    poly_order+1, 1, eval_f_3x, NULL);
   gkyl_proj_on_basis_advance(proj_do, 0.0, &local_do, fdo_ho);
   gkyl_array_copy(fdo, fdo_ho);
 
@@ -626,7 +621,7 @@ test_3x_to_scalar(int poly_order, bool use_gpu)
 
   // Reference: f(x0, y0, z0) / sqrt(2).
   double fref;
-  eval_f_3d(0.0, (const double[]){x0, y0, z0}, &fref, NULL);
+  eval_f_3x(0.0, (const double[]){x0, y0, z0}, &fref, NULL);
   fref /= sqrt(2.0);
 
   gkyl_array_copy(ftar_ho, ftar);
@@ -670,24 +665,12 @@ void test_dg_evproj_3x_to_2x_p1_ho(void) {
   test_3x_to_2x(1, false);
 }
 
-void test_dg_evproj_3x_to_2x_p2_ho(void) {
-  test_3x_to_2x(2, false);
-}
-
 void test_dg_evproj_3x_to_1x_p1_ho(void) {
   test_3x_to_1x(1, false);
 }
 
-void test_dg_evproj_3x_to_1x_p2_ho(void) {
-  test_3x_to_1x(2, false);
-}
-
 void test_dg_evproj_3x_to_scalar_p1_ho(void) {
   test_3x_to_scalar(1, false);
-}
-
-void test_dg_evproj_3x_to_scalar_p2_ho(void) {
-  test_3x_to_scalar(2, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -719,24 +702,12 @@ void test_dg_evproj_3x_to_2x_p1_dev(void) {
   test_3x_to_2x(1, true);
 }
 
-void test_dg_evproj_3x_to_2x_p2_dev(void) {
-  test_3x_to_2x(2, true);
-}
-
 void test_dg_evproj_3x_to_1x_p1_dev(void) {
   test_3x_to_1x(1, true);
 }
 
-void test_dg_evproj_3x_to_1x_p2_dev(void) {
-  test_3x_to_1x(2, true);
-}
-
 void test_dg_evproj_3x_to_scalar_p1_dev(void) {
   test_3x_to_scalar(1, true);
-}
-
-void test_dg_evproj_3x_to_scalar_p2_dev(void) {
-  test_3x_to_scalar(2, true);
 }
 #endif
 
@@ -748,11 +719,8 @@ TEST_LIST = {
   { "test_dg_evproj_2x_to_scalar_p1_ho", test_dg_evproj_2x_to_scalar_p1_ho },
   { "test_dg_evproj_2x_to_scalar_p2_ho", test_dg_evproj_2x_to_scalar_p2_ho },
   { "test_dg_evproj_3x_to_2x_p1_ho", test_dg_evproj_3x_to_2x_p1_ho },
-  { "test_dg_evproj_3x_to_2x_p2_ho", test_dg_evproj_3x_to_2x_p2_ho },
   { "test_dg_evproj_3x_to_1x_p1_ho", test_dg_evproj_3x_to_1x_p1_ho },
-  { "test_dg_evproj_3x_to_1x_p2_ho", test_dg_evproj_3x_to_1x_p2_ho },
   { "test_dg_evproj_3x_to_scalar_p1_ho", test_dg_evproj_3x_to_scalar_p1_ho },
-  { "test_dg_evproj_3x_to_scalar_p2_ho", test_dg_evproj_3x_to_scalar_p2_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_dg_evproj_1x_to_scalar_p1_dev", test_dg_evproj_1x_to_scalar_p1_dev },
   { "test_dg_evproj_1x_to_scalar_p2_dev", test_dg_evproj_1x_to_scalar_p2_dev },
@@ -761,11 +729,8 @@ TEST_LIST = {
   { "test_dg_evproj_2x_to_scalar_p1_dev", test_dg_evproj_2x_to_scalar_p1_dev },
   { "test_dg_evproj_2x_to_scalar_p2_dev", test_dg_evproj_2x_to_scalar_p2_dev },
   { "test_dg_evproj_3x_to_2x_p1_dev", test_dg_evproj_3x_to_2x_p1_dev },
-  { "test_dg_evproj_3x_to_2x_p2_dev", test_dg_evproj_3x_to_2x_p2_dev },
   { "test_dg_evproj_3x_to_1x_p1_dev", test_dg_evproj_3x_to_1x_p1_dev },
-  { "test_dg_evproj_3x_to_1x_p2_dev", test_dg_evproj_3x_to_1x_p2_dev },
   { "test_dg_evproj_3x_to_scalar_p1_dev", test_dg_evproj_3x_to_scalar_p1_dev },
-  { "test_dg_evproj_3x_to_scalar_p2_dev", test_dg_evproj_3x_to_scalar_p2_dev },
 #endif
   { NULL, NULL },
 };
