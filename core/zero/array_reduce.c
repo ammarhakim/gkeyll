@@ -428,7 +428,7 @@ gkyl_array_reduce_weighted_range(double *res, const struct gkyl_array *arr,
 
 	rms = sqrt(rms/n);
         for (long i=0; i<n; ++i)
-          res[i] += wgt_c[i]*rms;
+          res[i] += wgt_c[i]*rms*rms;
       }
       break;
     case GKYL_ABS:

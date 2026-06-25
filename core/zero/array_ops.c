@@ -852,7 +852,7 @@ gkyl_array_error_denom_fac_range(struct gkyl_array* out, double eps_rel, double 
     for (size_t k=0; k<inp->ncomp; ++k)
       sqsum += pow(inp_d[k],2);
 
-    double error_denom_fac = 1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs);
+    double error_denom_fac = pow(1.0/(eps_rel*sqrt(sqsum/inp->ncomp) + eps_abs), 2.0);
 
     for (size_t k=0; k<out->ncomp; ++k)
       out_d[k] = error_denom_fac;
