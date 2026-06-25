@@ -1,6 +1,7 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_gr_euler_priv.h>
 #include <gkyl_sources_explicit_priv.h>
 
 // initialize species
@@ -101,11 +102,15 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   sp->has_gr_euler = false;
   if (mom_sp->has_gr_euler) {
-    sp->update_sources = true; 
+    sp->update_sources = true;
     sp->has_gr_euler = true;
 
     sp->gr_euler_gas_gamma = mom_sp->gr_euler_gas_gamma;
+    sp->gr_euler_disable_well_balanced = mom_sp->gr_euler_disable_well_balanced;
   }
+
+  // No metric coupling partner until forward_euler wires it up each RK stage.
+  sp->coupling_partner_fin = NULL;
 
   sp->has_gr_twofluid = false;
   if (mom_sp->has_gr_twofluid) {
@@ -501,6 +506,107 @@ moment_species_update(gkyl_moment_app *app,
   };
 }
 
+// Add the fluid matter source to the vacuum-Einstein RHS (method-of-lines form of the standard ADM matter coupling)
+static void
+add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
+  double excision_threshold, double *rhs)
+{
+  double lapse = qe[9];
+  if (lapse < excision_threshold) {
+    return; // vacuum-Einstein cell is excised: no matter source.
+  }
+  if (qf[27] < pow(10.0, -8.0)) {
+    return; // fluid cell is excised: stress-energy tensor is not meaningful.
+  }
+
+  double shift[3] = { qe[52], qe[53], qe[54] };
+
+  double spatial_metric[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      spatial_metric[i][j] = qe[(3 * i) + j];
+    }
+  }
+
+  double shift_lower[3] = { 0.0, 0.0, 0.0 };
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      shift_lower[i] += spatial_metric[i][j] * shift[j];
+    }
+  }
+
+  double beta_sq = 0.0;
+  for (int i = 0; i < 3; i++) {
+    beta_sq += shift[i] * shift_lower[i];
+  }
+
+  // Explicit contravariant stress-energy tensor T^{mu nu} of the fluid (uses the fluid metric, which
+  // has been synced to the vacuum-Einstein metric for this stage, so it is consistent with qe).
+  double **T = gkyl_malloc(sizeof(double*[4]));
+  for (int a = 0; a < 4; a++) {
+    T[a] = gkyl_malloc(sizeof(double[4]));
+  }
+  gkyl_gr_euler_stress_energy_tensor(gas_gamma, qf, &T);
+
+  // 4D trace T = g_{mu nu} T^{mu nu}, with g_{00} = -alpha^2 + beta^2, g_{0i} = beta_i, g_{ij} = gamma_ij
+  double T_trace = (-(lapse * lapse) + beta_sq) * T[0][0];
+  for (int a = 0; a < 3; a++) {
+    T_trace += 2.0 * shift_lower[a] * T[0][a + 1];
+  }
+  for (int a = 0; a < 3; a++) {
+    for (int b = 0; b < 3; b++) {
+      T_trace += spatial_metric[a][b] * T[a + 1][b + 1];
+    }
+  }
+
+  // Spatial projection T_ij = g_{i mu} g_{j nu} T^{mu nu} (both indices lowered) = S_ij
+  double T_lower[3][3];
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      double t = shift_lower[i] * shift_lower[j] * T[0][0];
+      for (int b = 0; b < 3; b++) {
+        t += shift_lower[i] * spatial_metric[j][b] * T[0][b + 1];
+      }
+      for (int a = 0; a < 3; a++) {
+        t += spatial_metric[i][a] * shift_lower[j] * T[a + 1][0];
+      }
+      for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 3; b++) {
+          t += spatial_metric[i][a] * spatial_metric[j][b] * T[a + 1][b + 1];
+        }
+      }
+      T_lower[i][j] = t;
+    }
+  }
+
+  // Mixed projection T^0_k = g_{k nu} T^{0 nu} = beta_k T^{00} + gamma_{kb} T^{0b} = S_k / alpha
+  double T_0k[3];
+  for (int k = 0; k < 3; k++) {
+    double t = shift_lower[k] * T[0][0];
+    for (int b = 0; b < 3; b++) {
+      t += spatial_metric[k][b] * T[0][b + 1];
+    }
+    T_0k[k] = t;
+  }
+
+  // dK_ij/dt += -8*pi*alpha*(T_ij - 1/2 gamma_ij T) (standard ADM K_ij matter source)
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      rhs[10 + (3 * i) + j] += -8.0 * M_PI * lapse * (T_lower[i][j] - (0.5 * spatial_metric[i][j] * T_trace));
+    }
+  }
+
+  // dV_k/dt += +8*pi*alpha*T^0_k (momentum-density source for the Bona-Masso auxiliary vector)
+  for (int k = 0; k < 3; k++) {
+    rhs[49 + k] += 8.0 * M_PI * lapse * T_0k[k];
+  }
+
+  for (int a = 0; a < 4; a++) {
+    gkyl_free(T[a]);
+  }
+  gkyl_free(T);
+}
+
 // Compute RHS of moment equations
 double
 moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
@@ -535,12 +641,49 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
       explicit_gr_euler_source_update_euler(0, gamma, app->tcurr, 1.0, q_in, q_new); // q_new = q + S(q)
       for (int m = 1; m < 5; m++) rhs_c[m] += (q_new[m] - q_in[m]); // full geometric source
 
-      if (meqn > 71) { // static-TOV WB: subtract the frozen-equilibrium source S(q_eq)
+      if (meqn > 71 && !species->gr_euler_disable_well_balanced) { // WB: subtract the equilibrium source S(q_eq)
+        // Use the SAME equilibrium reference the flux subtracts (family or frozen), so the geometric source and the flux are consistent at the equilibrium (matched reference).
         double q_eq[71], q_eq_new[71];
-        for (int m = 0; m < 71; m++) q_eq[m] = q[m];
-        q_eq[0] = q[71]; q_eq[1] = 0.0; q_eq[2] = 0.0; q_eq[3] = 0.0; q_eq[4] = q[72];
+        gkyl_gr_euler_equilibrium(species->equation, q, q_eq);
         explicit_gr_euler_source_update_euler(0, gamma, app->tcurr, 1.0, q_eq, q_eq_new);
         for (int m = 1; m < 5; m++) rhs_c[m] -= (q_eq_new[m] - q_eq[m]);
+      }
+    }
+  }
+
+  if (species->has_vacuum_einstein || species->has_vacuum_einstein_conformal) {
+    const int meqn = species->num_equations;
+
+    // If coupled to a GR-Euler fluid, fetch the fluid adiabatic index for the matter source.
+    double matter_gas_gamma = 0.0;
+    double matter_excision_threshold = species->vacuum_einstein_excision_threshold;
+    if (species->coupling_partner_fin) {
+      for (int s = 0; s < app->num_species; ++s) {
+        if (app->species[s].has_gr_euler) {
+          matter_gas_gamma = app->species[s].gr_euler_gas_gamma;
+        }
+      }
+    }
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+
+      const double *q = gkyl_array_cfetch(fin, loc);
+      double *rhs_c = gkyl_array_fetch(rhs, loc);
+
+      double sout[meqn];
+      gkyl_wv_eqn_source(species->equation, q, sout);
+
+      for (int m = 0; m < meqn; ++m) {
+        rhs_c[m] += sout[m];
+      }
+
+      // Fluid -> spacetime matter coupling (standard Bona-Masso vacuum-Einstein only).
+      if (species->has_vacuum_einstein && species->coupling_partner_fin) {
+        const double *q_fluid = gkyl_array_cfetch(species->coupling_partner_fin, loc);
+        add_einstein_matter_source(q, q_fluid, matter_gas_gamma, matter_excision_threshold, rhs_c);
       }
     }
   }

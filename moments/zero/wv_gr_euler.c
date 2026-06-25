@@ -25,6 +25,92 @@ gr_euler_tov_equilibrium(const struct wv_gr_euler *gr_euler, const double q[73],
   q_eq[4] = q[72]; // Etot_eq = <sqrt(gamma) Etot_eq> (slot-[4] Valencia energy E - D; frozen, projected at t=0)
 }
 
+// Kappeli-Mishra equilibrium-family
+static void
+gr_euler_local_equilibrium(const struct wv_gr_euler *gr_euler, const double q[73], double q_eq[71])
+{
+  double gas_gamma = gr_euler->gas_gamma;
+  double C = gr_euler->equil_C;
+  double K = gr_euler->equil_K_poly;
+
+  for (int i = 0; i < 71; i++) {
+    q_eq[i] = q[i];
+  }
+
+  double lapse = q[5];
+  double shift[3] = { q[6], q[7], q[8] };
+
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = q[9];  spatial_metric[0][1] = q[10]; spatial_metric[0][2] = q[11];
+  spatial_metric[1][0] = q[12]; spatial_metric[1][1] = q[13]; spatial_metric[1][2] = q[14];
+  spatial_metric[2][0] = q[15]; spatial_metric[2][1] = q[16]; spatial_metric[2][2] = q[17];
+
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+  double sqrt_det = sqrt(spatial_det);
+
+  double beta_sq = 0.0;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      beta_sq += spatial_metric[i][j] * shift[i] * shift[j];
+    }
+  }
+  double ephi = sqrt(fmax(lapse * lapse - beta_sq, gr_euler_p_floor));
+
+  // Cold-isentropic equilibrium thermodynamics from the invariant: h = C / e^Phi, 
+  // then we invert the cold polytrope h = 1 + gamma/(gamma-1) K rho^(gamma-1) for rho, and p = K rho^gamma.
+  double h_eq = C / ephi;
+  double rho, p;
+  if (C > 0.0 && h_eq > 1.0) {
+    rho = pow((h_eq - 1.0) * (gas_gamma - 1.0) / (gas_gamma * K), 1.0 / (gas_gamma - 1.0));
+    p = K * pow(rho, gas_gamma);
+  }
+  else {
+    rho = gr_euler_rho_floor; // outside the star / atmosphere.
+    p = gr_euler_p_floor;
+  }
+  if (!(rho > gr_euler_rho_floor)) rho = gr_euler_rho_floor; // also catches NaN.
+  if (!(p > gr_euler_p_floor)) p = gr_euler_p_floor;
+
+  // Equilibrium Eulerian three-velocity v^i = beta^i / alpha (static star here)
+  double vel[3] = { shift[0] / lapse, shift[1] / lapse, shift[2] / lapse };
+  double v_sq = 0.0;
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+    }
+  }
+  double W = 1.0 / sqrt(1.0 - v_sq);
+  if (v_sq > 1.0 - pow(10.0, -8.0)) W = 1.0 / sqrt(pow(10.0, -8.0));
+
+  double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+
+  q_eq[0] = sqrt_det * rho * W;
+  q_eq[1] = sqrt_det * rho * h * (W * W) * vel[0];
+  q_eq[2] = sqrt_det * rho * h * (W * W) * vel[1];
+  q_eq[3] = sqrt_det * rho * h * (W * W) * vel[2];
+  q_eq[4] = sqrt_det * ((rho * h * (W * W)) - p - (rho * W));
+}
+
+static void
+gr_euler_equilibrium(const struct wv_gr_euler *gr_euler, const double q[73], double q_eq[71])
+{
+  if (gr_euler->wb_family) {
+    gr_euler_local_equilibrium(gr_euler, q, q_eq);
+  }
+  else {
+    gr_euler_tov_equilibrium(gr_euler, q, q_eq);
+  }
+}
+
+void
+gkyl_gr_euler_equilibrium(const struct gkyl_wv_eqn *eqn, const double q[73], double q_eq[71])
+{
+  const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
+  gr_euler_equilibrium(gr_euler, q, q_eq);
+}
+
 void
 gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
 {
@@ -1099,8 +1185,8 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double deq[71] = { 0.0 }, dfeq[71] = { 0.0 };
   if (gr_euler->tov_eq && !in_excision_region_l && !in_excision_region_r) {
     double q_eq_l[71], q_eq_r[71], f_eq_l[71], f_eq_r[71];
-    gr_euler_tov_equilibrium(gr_euler, ql, q_eq_l);
-    gr_euler_tov_equilibrium(gr_euler, qr, q_eq_r);
+    gr_euler_equilibrium(gr_euler, ql, q_eq_l);
+    gr_euler_equilibrium(gr_euler, qr, q_eq_r);
     gkyl_gr_euler_flux(gas_gamma, q_eq_l, f_eq_l);
     gkyl_gr_euler_flux(gas_gamma, q_eq_r, f_eq_r);
     for (int i = 0; i < 71; i++) {
@@ -1514,8 +1600,8 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double deq[71] = { 0.0 }, dfeq[71] = { 0.0 };
   if (gr_euler->tov_eq && !in_excision_region_l && !in_excision_region_r) {
     double q_eq_l[71], q_eq_r[71], f_eq_l[71], f_eq_r[71];
-    gr_euler_tov_equilibrium(gr_euler, ql, q_eq_l);
-    gr_euler_tov_equilibrium(gr_euler, qr, q_eq_r);
+    gr_euler_equilibrium(gr_euler, ql, q_eq_l);
+    gr_euler_equilibrium(gr_euler, qr, q_eq_r);
     gkyl_gr_euler_flux(gas_gamma, q_eq_l, f_eq_l);
     gkyl_gr_euler_flux(gas_gamma, q_eq_r, f_eq_r);
     for (int i = 0; i < 71; i++) {
@@ -1645,8 +1731,8 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
     // subtract the equilibrium flux jump so this within-cell flux difference becomes the deviation flux jump
     if (gr_euler->tov_eq != NULL) { // called by the MP scheme
       double q_eq_l[71], q_eq_r[71], f_eq_l[71], f_eq_r[71];
-      gr_euler_tov_equilibrium(gr_euler, ql, q_eq_l);
-      gr_euler_tov_equilibrium(gr_euler, qr, q_eq_r);
+      gr_euler_equilibrium(gr_euler, ql, q_eq_l);
+      gr_euler_equilibrium(gr_euler, qr, q_eq_r);
       gkyl_gr_euler_flux(gas_gamma, q_eq_l, f_eq_l);
       gkyl_gr_euler_flux(gas_gamma, q_eq_r, f_eq_r);
       for (int m = 0; m < 71; m++) {
@@ -1847,7 +1933,7 @@ gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
   // Only the fluid components (1..4) are touched; mass (0) and the metric (5..70) carry no source.
   if (gr_euler->tov_eq) {
     double q_eq[71];
-    gr_euler_tov_equilibrium(gr_euler, qin, q_eq);
+    gr_euler_equilibrium(gr_euler, qin, q_eq);
     double sout_eq[71] = { 0.0 };
     gr_euler_raw_source(gr_euler->gas_gamma, q_eq, sout_eq);
     for (int i = 0; i < 71; i++) {
@@ -1904,6 +1990,10 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
   gr_euler->spacetime_gauge = inp->spacetime_gauge;
   gr_euler->reinit_freq = inp->reinit_freq;
   gr_euler->tov_eq = inp->tov_eq; // Optional static-TOV well-balancing (NULL -> inactive) (the equilibrium comes from the discrete slots, so no EOS constants needed)
+
+  gr_euler->wb_family = inp->wb_family;
+  gr_euler->equil_C = inp->equil_C;
+  gr_euler->equil_K_poly = inp->equil_K_poly;
 
   if (inp->rho_atm > 0.0) gr_euler_rho_floor = inp->rho_atm;
   if (inp->p_atm > 0.0) gr_euler_p_floor = inp->p_atm;

@@ -1,5 +1,9 @@
-// Static TOV  star in Cartesian cooridnates: GR Euler (gamma-law) fluid on a fixed analytic TOV spacetime background 
-// provided by the gr_tov spacetime object (interior TOV + exterior Schwarzschild, regular at the origin), and is not evolved (GKYL_STATIC_GAUGE). 
+// Coupled TOV star in Cartesian coordinates: GR Euler (gamma-law) fluid dynamically coupled to the vacuum Einstein equations, 
+//  both evolved with the MP (Suresh-Huynh) flux-form scheme.  Coupled through the MP scheme by:
+//  - spacetime -> fluid: the live metric is synced into the fluid metric slots each RK stage (eqns 52/53 from the Multifluids paper)
+//  - fluid -> spacetime: the fluid stress-energy adds the standard ADM matter sources  -8*pi*alpha*(T_ij - 1/2 gamma_ij T) to K_ij and +8*pi*alpha*T^0_k to V_k.
+// The fluid still has the frozen-discrete well-balancing (toggle with gr_euler_disable_well_balanced). No WB for the spacetime for now.
+// Both species have the same analytic TOV spacetime object for their initial data only.
 
 #include <math.h>
 #include <stdio.h>
@@ -14,6 +18,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_euler.h>
+#include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_gr_tov.h>
 #include "tov_solver.h"
 
@@ -26,26 +31,32 @@
 
 #include <rt_arg_parse.h>
 
-
-struct gr_tov_cart_ctx
+struct gr_tov_coupled_ctx
 {
   double gas_gamma; // Adiabatic index (evolution EOS).
-  double K_poly; // Polytropic constant of the cold-IC EOS (p = K rho^gamma) - later gamma-law EOS
+  double K_poly; // Polytropic constant of the cold-IC EOS (p = K rho^gamma).
   double rho_c; // Central rest-mass density.
   double dr_tov; // TOV solver radial step.
   double rho_atm; // Atmosphere rest-mass density.
   double p_atm; // Atmosphere pressure floor.
 
-  struct gkyl_tov *tov; // Frozen TOV table
-  struct gkyl_gr_spacetime *spacetime; // TOV spacetime object (fixed background for now)
+  struct gkyl_tov *tov; // Frozen TOV table.
+  struct gkyl_gr_spacetime *spacetime; // TOV spacetime object (shared for initial data only).
   double M_star;
   double R_star;
 
-  enum gkyl_spacetime_gauge spacetime_gauge;
+  enum gkyl_spacetime_gauge spacetime_gauge; // Fluid-side gauge tag (GR Euler eqn).
   int reinit_freq;
 
+  // Vacuum Einstein evolution parameters.
+  double excision_threshold;
+  enum gkyl_spacetime_slicing spacetime_slicing;
+  enum gkyl_spacetime_evolution spacetime_evolution;
+
+  double perturb_frac; // x-momentum kick fraction in the inner star (0 => static test).
+
   int Nx, Ny;
-  double Lx, Ly; // Domain is [-Lx/2, Lx/2] x [-Ly/2, Ly/2], star centered at origin!!! Important not to get thtat confused for laters
+  double Lx, Ly; // Domain [-Lx/2, Lx/2] x [-Ly/2, Ly/2], star centered at origin.
   double cfl_frac;
 
   double t_end;
@@ -56,7 +67,7 @@ struct gr_tov_cart_ctx
   int num_failures_max;
 };
 
-struct gr_tov_cart_ctx
+struct gr_tov_coupled_ctx
 create_ctx(void)
 {
   double gas_gamma = 2.0;
@@ -64,7 +75,7 @@ create_ctx(void)
   double rho_c = 1.28e-3;
   double dr_tov = 0.01;
 
-  double rho_atm = 1e-7 * rho_c; // ETK rho_rel_min = 1e-7 (= 1.28e-10 for this canonical TOV, with this rho_c)
+  double rho_atm = 1e-7 * rho_c;
   double p_atm = K_poly * pow(rho_atm, gas_gamma);
 
   struct gkyl_tov *tov = gkyl_tov_new(K_poly, gas_gamma, rho_c, dr_tov);
@@ -74,9 +85,12 @@ create_ctx(void)
   printf("R_star = %e \n", R_star);
   printf("Compactness (2M_star / R_star) = %e \n", 2.0 * M_star / R_star);
 
+  // Areal (static) gauge holds the fluid bit-statically via the frozen WB (v=0). The Cartesian
+  // Kerr-Schild gauge (last arg -> true) is implemented and available,
+  // the moving equilibrium (v=beta/alpha) needs the equilibrium-family WB + near-vacuum limiter to be stable !!!!
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_tov_spacetime_new(false, tov, 0.0, 0.0, 0.0, false);
 
-  struct gr_tov_cart_ctx ctx = {
+  struct gr_tov_coupled_ctx ctx = {
     .gas_gamma = gas_gamma,
     .K_poly = K_poly,
     .rho_c = rho_c,
@@ -89,13 +103,17 @@ create_ctx(void)
     .R_star = R_star,
     .spacetime_gauge = GKYL_STATIC_GAUGE,
     .reinit_freq = 100,
-    .Nx = 240,
-    .Ny = 240,
+    .excision_threshold = 0.3,
+    .spacetime_slicing = GKYL_1PLUSLOG_SLICING,
+    .spacetime_evolution = GKYL_EINSTEIN_EVOLUTION,
+    .perturb_frac = 0.0, // set > 0 (e.g. 1.0e-3) for the momentum-perturbation test.
+    .Nx = 200,
+    .Ny = 200,
     .Lx = 24.0,
     .Ly = 24.0,
     .cfl_frac = 0.8,
-    .t_end = 50.0,
-    .num_frames = 1000,
+    .t_end = 20.0,
+    .num_frames = 40,
     .field_energy_calcs = INT_MAX,
     .integrated_mom_calcs = INT_MAX,
     .dt_failure_tol = 1.0e-4,
@@ -109,22 +127,17 @@ void
 evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
-  struct gr_tov_cart_ctx *app = ctx;
+  struct gr_tov_coupled_ctx *app = ctx;
 
   double gas_gamma = app->gas_gamma;
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-
-  double r = sqrt((x * x) + (y * y)); // this r is measured from the ORIGIN. 
-  // The spacetime object measures r from its center `pos` (gkyl_gr_tov_spacetime_new(..., pos_x,y,z)). 
-  // They agree ONLY because the star is at pos = (0,0,0). If we ever offset the star (pos != 0), 
-  // we must subtract the same pos here -> r = sqrt((x-pos_x)^2 + (y-pos_y)^2), or the fluid and the metric will reference different centers.
+  double r = sqrt((x * x) + (y * y));
   struct tov_eval_bl bl = { 0 };
   gkyl_tov_eval_bl(app->tov, r, &bl);
 
   double p = fmax(bl.P, app->p_atm);
-  double rho = pow(p / app->K_poly, 1.0 / gas_gamma); // cold polytrope inversion
-  double u = 0.0; // static star -> zero coordinate velocity
+  double rho = pow(p / app->K_poly, 1.0 / gas_gamma);
 
   double spatial_det, lapse;
   double *shift = gkyl_malloc(sizeof(double[3]));
@@ -157,8 +170,10 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &shift_der);
   spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &spatial_metric_der);
 
-  //(Valencia, v = 0 -> W = 1)
-  double vel[3] = { u, 0.0, 0.0 };
+  // Once and for all with the velocity (I'll make a note for myself for later): In the Kerr-Schild slicing the static star is not at rest w.r.t. the Eulerian observer: 
+  // a fluid element following the static Killing vector (zero coordinate velocity) has Eulerian 3-velocity v^i = beta^i / alpha (physical speed = 2m/r, subluminal for a regular star). 
+  // v=0 would initialize a moving fluid. (For the areal gauge beta^i=0, so this reduces to v=0.)
+  double vel[3] = { shift[0] / lapse, shift[1] / lapse, shift[2] / lapse };
   double v_sq = 0.0;
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
@@ -214,15 +229,14 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[67] = 0.0;
   fout[68] = x; fout[69] = y; fout[70] = 0.0;
 
-  // Frozen discrete well-balancing reference (num_equations = 73): store the t=0 conserved fluid in slots 71,72. 
-  fout[71] = rho_rel; // = fout[0]
-  fout[72] = Etot;    // = fout[4]
+  // Frozen-discrete well-balancing reference (num_equations = 73): t=0 conserved fluid in slots 71,72.
+  fout[71] = rho_rel;
+  fout[72] = Etot;
 
-  // Perturbation away from the equilibrium: small x-momentum kick in the stellar interior. 
-  // The slots [71],[72] above keep the unperturbed equilibrium, so w = q - q_eq = (0, dS, 0, 0, 0) is a genuine deviation the WB must evolve (not absorb). Pulsation should stay bounded.
-  // if (r < 0.5 * app->R_star) {
-  //   fout[1] += 1.0e-3 * rho_rel; // ~1e-3 coordinate velocity perturbation
-  // }
+  // Optional momentum perturbation in the inner star
+  if (app->perturb_frac > 0.0 && r < 0.5 * app->R_star) {
+    fout[1] += app->perturb_frac * rho_rel;
+  }
 
   if (in_excision_region) {
     for (int i = 0; i < 68; i++) fout[i] = 0.0;
@@ -237,6 +251,138 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 void
+evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  double x = xn[0], y = xn[1];
+  struct gr_tov_coupled_ctx *app = ctx;
+
+  struct gkyl_gr_spacetime *spacetime = app->spacetime;
+
+  double spatial_det, lapse;
+  double *shift = gkyl_malloc(sizeof(double[3]));
+  bool in_excision_region;
+
+  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+
+  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+
+  double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
+
+  double *lapse_der = gkyl_malloc(sizeof(double[3]));
+  double **shift_der = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) shift_der[i] = gkyl_malloc(sizeof(double[3]));
+
+  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  for (int i = 0; i < 3; i++) {
+    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+    for (int j = 0; j < 3; j++) spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+  }
+
+  double dl = pow(10.0, -8.0);
+  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
+  spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
+  spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
+  spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
+  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
+  spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &extrinsic_curvature);
+  spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &lapse_der);
+  spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &shift_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &spatial_metric_der);
+
+  // Bona-Masso conventions: 
+  // D_kij = 1/2 d_k gamma_ij, (1/2) d_i beta^j, A_i = d_i ln(alpha)
+  // (So what I calculate fits the vacuum einstein later)
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      for (int k = 0; k < 3; k++) {
+        spatial_metric_der[i][j][k] = 0.5 * spatial_metric_der[i][j][k];
+      }
+      shift_der[i][j] = 0.5 * shift_der[i][j];
+    }
+  }
+  for (int i = 0; i < 3; i++) {
+    lapse_der[i] = lapse_der[i] / lapse;
+  }
+
+  double spatial_metric_der_raised1[3][3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      for (int k = 0; k < 3; k++) {
+        spatial_metric_der_raised1[k][i][j] = 0.0;
+        for (int l = 0; l < 3; l++)
+          spatial_metric_der_raised1[k][i][j] += inv_spatial_metric[k][l] * spatial_metric_der[l][i][j];
+      }
+
+  double spatial_metric_der_raised3[3][3][3];
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      for (int k = 0; k < 3; k++) {
+        spatial_metric_der_raised3[i][j][k] = 0.0;
+        for (int l = 0; l < 3; l++)
+          spatial_metric_der_raised3[i][j][k] += inv_spatial_metric[l][k] * spatial_metric_der[i][j][l];
+      }
+
+  double aux_vect[3];
+  for (int i = 0; i < 3; i++) {
+    aux_vect[i] = 0.0;
+    for (int s = 0; s < 3; s++) {
+      aux_vect[i] += spatial_metric_der_raised3[i][s][s];
+      aux_vect[i] -= spatial_metric_der_raised1[s][s][i];
+    }
+  }
+
+  fout[0] = spatial_metric[0][0]; fout[1] = spatial_metric[0][1]; fout[2] = spatial_metric[0][2];
+  fout[3] = spatial_metric[1][0]; fout[4] = spatial_metric[1][1]; fout[5] = spatial_metric[1][2];
+  fout[6] = spatial_metric[2][0]; fout[7] = spatial_metric[2][1]; fout[8] = spatial_metric[2][2];
+
+  fout[9] = lapse;
+
+  fout[10] = extrinsic_curvature[0][0]; fout[11] = extrinsic_curvature[0][1]; fout[12] = extrinsic_curvature[0][2];
+  fout[13] = extrinsic_curvature[1][0]; fout[14] = extrinsic_curvature[1][1]; fout[15] = extrinsic_curvature[1][2];
+  fout[16] = extrinsic_curvature[2][0]; fout[17] = extrinsic_curvature[2][1]; fout[18] = extrinsic_curvature[2][2];
+
+  fout[19] = spatial_metric_der[0][0][0]; fout[20] = spatial_metric_der[0][0][1]; fout[21] = spatial_metric_der[0][0][2];
+  fout[22] = spatial_metric_der[0][1][0]; fout[23] = spatial_metric_der[0][1][1]; fout[24] = spatial_metric_der[0][1][2];
+  fout[25] = spatial_metric_der[0][2][0]; fout[26] = spatial_metric_der[0][2][1]; fout[27] = spatial_metric_der[0][2][2];
+
+  fout[28] = spatial_metric_der[1][0][0]; fout[29] = spatial_metric_der[1][0][1]; fout[30] = spatial_metric_der[1][0][2];
+  fout[31] = spatial_metric_der[1][1][0]; fout[32] = spatial_metric_der[1][1][1]; fout[33] = spatial_metric_der[1][1][2];
+  fout[34] = spatial_metric_der[1][2][0]; fout[35] = spatial_metric_der[1][2][1]; fout[36] = spatial_metric_der[1][2][2];
+
+  fout[37] = spatial_metric_der[2][0][0]; fout[38] = spatial_metric_der[2][0][1]; fout[39] = spatial_metric_der[2][0][2];
+  fout[40] = spatial_metric_der[2][1][0]; fout[41] = spatial_metric_der[2][1][1]; fout[42] = spatial_metric_der[2][1][2];
+  fout[43] = spatial_metric_der[2][2][0]; fout[44] = spatial_metric_der[2][2][1]; fout[45] = spatial_metric_der[2][2][2];
+
+  fout[46] = lapse_der[0]; fout[47] = lapse_der[1]; fout[48] = lapse_der[2];
+
+  fout[49] = aux_vect[0]; fout[50] = aux_vect[1]; fout[51] = aux_vect[2];
+
+  fout[52] = shift[0]; fout[53] = shift[1]; fout[54] = shift[2];
+
+  fout[55] = shift_der[0][0]; fout[56] = shift_der[0][1]; fout[57] = shift_der[0][2];
+  fout[58] = shift_der[1][0]; fout[59] = shift_der[1][1]; fout[60] = shift_der[1][2];
+  fout[61] = shift_der[2][0]; fout[62] = shift_der[2][1]; fout[63] = shift_der[2][2];
+
+  if (in_excision_region) {
+    for (int i = 0; i < 64; i++) fout[i] = 0.0;
+  }
+
+  gkyl_free(shift);
+  for (int i = 0; i < 3; i++) {
+    gkyl_free(spatial_metric[i]); gkyl_free(inv_spatial_metric[i]);
+    gkyl_free(extrinsic_curvature[i]); gkyl_free(shift_der[i]);
+    for (int j = 0; j < 3; j++) gkyl_free(spatial_metric_der[i][j]);
+    gkyl_free(spatial_metric_der[i]);
+  }
+  gkyl_free(spatial_metric); gkyl_free(inv_spatial_metric); gkyl_free(extrinsic_curvature);
+  gkyl_free(lapse_der); gkyl_free(shift_der); gkyl_free(spatial_metric_der);
+}
+
+void
 write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
@@ -244,14 +390,6 @@ write_data(struct gkyl_tm_trigger* iot, gkyl_moment_app* app, double t_curr, boo
     gkyl_moment_app_write(app, t_curr, frame);
     gkyl_moment_app_write_field_energy(app);
     gkyl_moment_app_write_integrated_mom(app);
-  }
-}
-
-void
-calc_field_energy(struct gkyl_tm_trigger* fet, gkyl_moment_app* app, double t_curr, bool force_calc)
-{
-  if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
-    gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
@@ -280,35 +418,56 @@ main(int argc, char **argv)
     gkyl_mem_debug_set(true);
   }
 
-  struct gr_tov_cart_ctx ctx = create_ctx();
+  struct gr_tov_coupled_ctx ctx = create_ctx();
 
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // Well-balanced against the frozen TOV equilibrium: pass tov_eq to switch WB on, plus the
-  // atmosphere rho/p so the C2P recovery floor matches the IC. Other GR-Euler problems leave
-  // tov_eq unset (NULL) and get plain GR Euler.
+  // GR Euler fluid (well-balanced against the frozen TOV equilibrium).
   struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp) {
     .gas_gamma = ctx.gas_gamma,
     .spacetime_gauge = ctx.spacetime_gauge,
     .reinit_freq = ctx.reinit_freq,
     .spacetime = ctx.spacetime,
-    .rp_type = WV_GR_EULER_RP_LAX, // the Riemann solver the MP scheme uses at each reconstructed edge
+    .rp_type = WV_GR_EULER_RP_LAX,
     .use_gpu = app_args.use_gpu,
-    .tov_eq = ctx.tov, // turns on the static-TOV well-balancing (MP flux-form WB under GKYL_MOMENT_MP)
+    .tov_eq = ctx.tov,
     .p_atm = ctx.p_atm,
-    .rho_atm = ctx.rho_atm, // C2P recovery floor matches the IC atmosphere (ET rho_rel_min=1e-7)
+    .rho_atm = ctx.rho_atm,
   });
+
+  // Vacuum Einstein (Bona-Masso), evolved with the MP scheme and coupled to the fluid.
+  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.excision_threshold,
+    ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",
     .equation = gr_euler,
     .init = evalGREulerInit,
-    //.force_low_order_flux is a wave-prop-only flag; we use the MP scheme
     .ctx = &ctx,
 
     .has_gr_euler = true,
     .gr_euler_gas_gamma = ctx.gas_gamma,
+    //  Note to self:
+    // Frozen-discrete WB (zero-momentum equilibrium) holds the fluid bit-statically in the areal gauge.
+    // For the Kerr-Schild gauge the static star has v=beta/alpha != 0, so the frozen WB is invalid there
+    // and the equilibrium-family WB (wb_family) is needed - which in turn needs the near-vacuum limiter.
+    .gr_euler_disable_well_balanced = false,
+
+    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+    .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
+  };
+
+  struct gkyl_moment_species einstein = {
+    .name = "vacuum_einstein",
+    .equation = vacuum_einstein,
+    .init = evalVacuumEinsteinInit,
+    .ctx = &ctx,
+
+    .has_vacuum_einstein = true,
+    .vacuum_einstein_excision_threshold = ctx.excision_threshold,
+    .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
+    .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
@@ -335,20 +494,20 @@ main(int argc, char **argv)
 #endif
 
   struct gkyl_moment app_inp = {
-    .name = "gr_tov_static_cart",
+    .name = "gr_tov_coupled_cart",
 
     .ndim = 2,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
     .upper = {  0.5 * ctx.Lx,  0.5 * ctx.Ly },
     .cells = { NX, NY },
 
-    .scheme_type = GKYL_MOMENT_MP, // MP (Suresh-Huynh) flux-form scheme + well-balanced deviation reconstruction
+    .scheme_type = GKYL_MOMENT_MP,
     .mp_recon = app_args.mp_recon,
 
     .cfl_frac = ctx.cfl_frac,
 
-    .num_species = 1,
-    .species = { fluid },
+    .num_species = 2,
+    .species = { fluid, einstein },
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
@@ -406,6 +565,7 @@ main(int argc, char **argv)
 
   gkyl_moment_app_release(app);
   gkyl_wv_eqn_release(gr_euler);
+  gkyl_wv_eqn_release(vacuum_einstein);
   gkyl_gr_tov_spacetime_free(&ctx.spacetime->ref_count);
   gkyl_tov_solution_release(ctx.tov);
   gkyl_comm_release(comm);

@@ -103,6 +103,7 @@ struct moment_species {
 
   bool has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
   double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
+  bool gr_euler_disable_well_balanced; // Disable frozen-discrete well-balancing for GR Euler (default false = WB enabled).
 
   bool has_gr_twofluid; // Run with general relativistic two-fluid source terms.
   double gr_twofluid_mass_elc; // Electron mass for general relativistic two-fluid equations.
@@ -177,6 +178,11 @@ struct moment_species {
 
   gkyl_dynvec integ_q; // integrated conserved quantities
   bool is_first_q_write_call; // flag for dynvec written first time
+
+  // GR fluid <-> vacuum Einstein coupling (through the MP scheme). Set per RK stage in forward_euler.
+  // NULL => this species is not coupled (uncoupled runs are bit-identical). For a coupled GR-Euler
+  // species this points to the vacuum-Einstein stage state, and vice versa.
+  const struct gkyl_array *coupling_partner_fin;
 };
 
 // Field data

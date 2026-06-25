@@ -1036,7 +1036,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     slicing_func_r = 1.0;
   }
   else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-    slicing_func_r = 2.0 / lapse_l;
+    slicing_func_r = 2.0 / lapse_r;
   }
 
   double **inv_spatial_metric_r = gkyl_malloc(sizeof(double*[3]));

@@ -28,6 +28,10 @@ struct gkyl_wv_gr_euler_inp {
 
   double rho_atm; // Atmosphere rest-mass density (recovery rho floor).
   double p_atm; // Atmosphere pressure (recovery p floor).
+
+  bool wb_family; // Use the Kappeli-Mishra equilibrium-family WB (false -> legacy frozen-discrete WB in slots 71,72).
+  double equil_C; // Global equilibrium invariant C = h*sqrt(-g_tt) (relativistic Bernoulli constant).
+  double equil_K_poly; // Cold polytrope constant K (p = K rho^gamma) defining the equilibrium EOS.
 };
 
 /**

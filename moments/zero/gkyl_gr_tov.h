@@ -17,13 +17,16 @@
 
 // Spacetime object.
 struct gr_tov {
-  struct gkyl_gr_spacetime spacetime; 
+  struct gkyl_gr_spacetime spacetime;
 
   const struct gkyl_tov *tov; // From frozen TOV table (areal-radius lookup of Phi, m)
 
   double pos_x; // Position of the stellar center (x-direction)
   double pos_y; // Position of the stellar center (y-direction)
   double pos_z; // Position of the stellar center (z-direction)
+
+  bool use_kerr_schild; // false: static Schwarzschild-like (areal) gauge (beta^i = 0, K_ij = 0)
+                        // true: ingoing Cartesian Kerr-Schild gauge (nonzero beta^i, K_ij != 0), the horizon-penetrating, evolution-stable slicing.
 };
 
 struct gkyl_gr_tov_inp {
@@ -34,6 +37,8 @@ struct gkyl_gr_tov_inp {
   double pos_x; // Position of the stellar center (x-direction)
   double pos_y; // Position of the stellar center (y-direction)
   double pos_z; // Position of the stellar center (z-direction)
+
+  bool use_kerr_schild; // Use the Cartesian Kerr-Schild gauge (see struct gr_tov).
 };
 
 /**
@@ -52,10 +57,11 @@ gkyl_gr_tov_spacetime_free(const struct gkyl_ref_count* ref);
 * @param pos_x Stellar center (x-direction)
 * @param pos_y Stellar center (y-direction)
 * @param pos_z Stellar center (z-direction)
+* @param use_kerr_schild Use the Cartesian Kerr-Schild gauge (false: static areal gauge).
 * @return Pointer to the TOV spacetime object.
 */
 struct gkyl_gr_spacetime*
-gkyl_gr_tov_spacetime_new(bool use_gpu, const struct gkyl_tov *tov, double pos_x, double pos_y, double pos_z);
+gkyl_gr_tov_spacetime_new(bool use_gpu, const struct gkyl_tov *tov, double pos_x, double pos_y, double pos_z, bool use_kerr_schild);
 
 /**
 * Create a new static TOV star spacetime object, from an input context struct.

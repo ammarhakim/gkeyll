@@ -24,6 +24,10 @@ struct wv_gr_euler {
   // projected once and carried in the spare slots q[71]=<sqrt(g) D_eq>, q[72]=<sqrt(g) Etot_eq> (Etot is the Valencia energy variable in slot [4], = E - D; the driver calls it Etot).
   // tov_eq below is the frozen TOV table, but here it is used only as the on/off switch (non-NULL => well-balance). The equilibrium values are not re-looked-up in the table at runtime; they are the discrete cell-averages in q[71],q[72]. 
   const struct gkyl_tov *tov_eq; // NULL -> plain GR Euler, no WB. Used as a presence flag only.
+
+  bool wb_family;
+  double equil_C;
+  double equil_K_poly;
 };
 
 /**
@@ -36,6 +40,16 @@ struct wv_gr_euler {
 GKYL_CU_D
 void
 gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71]);
+
+/**
+* Build the well-balancing equilibrium reference state q_eq (family or frozen, per the eqn config) at the cell's live metric. Used by the MP scheme's well-balanced reconstruction so the reconstructed face states share the same equilibrium the flux/source subtract.
+*
+* @param eqn Base equation object (must be GR Euler).
+* @param q Conserved variable vector (73 components, incl. metric and WB slots).
+* @param q_eq Equilibrium conserved + metric state (output, 0..70).
+*/
+void
+gkyl_gr_euler_equilibrium(const struct gkyl_wv_eqn *eqn, const double q[73], double q_eq[71]);
 
 /**
 * Compute primitive variables given the conserved variables.

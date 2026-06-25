@@ -4,6 +4,9 @@
 #include <gkyl_mp_scheme.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_vacuum_einstein.h>
+#include <gkyl_wv_vacuum_einstein_conformal.h>
+#include <gkyl_wv_gr_euler_priv.h>
 #include <gkyl_wave_geom.h>
 
 #include <float.h>
@@ -107,6 +110,30 @@ u5_recovery(int meqn,
     outl[m] = 1.0/30.0*f3m[m] - 13.0/60.0*f2m[m] + 47.0/60.0*fm[m] + 9.0/20.0*fp[m] - 1.0/20.0*f2p[m];
     outr[m] = -1.0/20.0*f2m[m] + 9.0/20.0*fm[m] + 47.0/60.0*fp[m] - 13.0/60.0*f2p[m] + 1.0/30.0*f3p[m];
   }
+}
+
+static inline bool
+vacuum_einstein_excision_in_stencil(const struct gkyl_wv_eqn *eqn,
+  const double *qavg[6])
+{
+  double excision_threshold = 0.0;
+  if (eqn->type == GKYL_EQN_VACUUM_EINSTEIN) {
+    excision_threshold = gkyl_wv_vacuum_einstein_excision_threshold(eqn);
+  }
+  else if (eqn->type == GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL) {
+    excision_threshold = gkyl_wv_vacuum_einstein_conformal_excision_threshold(eqn);
+  }
+  else {
+    return false;
+  }
+
+  for (int i = 0; i < 6; i++) {
+    if (qavg[i][9] < excision_threshold) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 static inline double
@@ -314,9 +341,11 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         const double *qa[6] = { qavg[I3M], qavg[I2M], qavg[IM], qavg[IP], qavg[I2P], qavg[I3P] };
         double weq[6][meqn], qeq[6][meqn];
         for (int k = 0; k < 6; ++k) {
-          for (int m = 0; m < meqn; ++m) qeq[k][m] = qa[k][m]; // metric (5..70) + slots = equilibrium
-          qeq[k][0] = qa[k][71]; qeq[k][1] = 0.0; qeq[k][2] = 0.0; qeq[k][3] = 0.0; qeq[k][4] = qa[k][72];
-          for (int m = 0; m < meqn; ++m) weq[k][m] = qa[k][m] - qeq[k][m]; // deviation: fluid only, 0 elsewhere
+          // Equilibrium reference family
+          double qeqk[71];
+          gkyl_gr_euler_equilibrium(mp->equation, qa[k], qeqk);
+          for (int m = 0; m < meqn; ++m) qeq[k][m] = (m < 71) ? qeqk[m] : qa[k][m]; // [71,72] carry through
+          for (int m = 0; m < meqn; ++m) weq[k][m] = qa[k][m] - qeq[k][m]; // deviation: fluid only, ~0 elsewhere
         }
         double wl[meqn], wr[meqn];
         mp->recovery_fn(meqn, weq[0], weq[1], weq[2], weq[3], weq[4], weq[5], wl, wr);
@@ -334,23 +363,31 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         }
       }
       else {
-      // recover variables at cell edge
-      mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],
-        qavg[IP], qavg[I2P], qavg[I3P],
-        qr_l, qr_r);
-
-      if (!mp->skip_mp_limiter) {
-        // apply MP limiter to left and right edge recovered values
-        for (int m=0; m<meqn; ++m) {
-          qr_r[m] = mp_limiter(qr_r[m],
-            qavg[I3P][m], qavg[I2P][m], qavg[IP][m],
-            qavg[IM][m], qavg[I2M][m]);
-          
-          qr_l[m] = mp_limiter(qr_l[m],
-            qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
-            qavg[IP][m], qavg[I2P][m]);
+        bool use_first_order_excision_buffer = vacuum_einstein_excision_in_stencil(mp->equation, qavg);
+        if (use_first_order_excision_buffer) {
+          u1_recovery(meqn, qavg[I3M], qavg[I2M], qavg[IM],
+            qavg[IP], qavg[I2P], qavg[I3P],
+            qr_l, qr_r);
         }
-      }
+        else {
+          // recover variables at cell edge
+          mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],
+            qavg[IP], qavg[I2P], qavg[I3P],
+            qr_l, qr_r);
+
+          if (!mp->skip_mp_limiter) {
+            // apply MP limiter to left and right edge recovered values
+            for (int m=0; m<meqn; ++m) {
+              qr_r[m] = mp_limiter(qr_r[m],
+                qavg[I3P][m], qavg[I2P][m], qavg[IP][m],
+                qavg[IM][m], qavg[I2M][m]);
+              
+              qr_l[m] = mp_limiter(qr_l[m],
+                qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
+                qavg[IP][m], qavg[I2P][m]);
+            }
+          }
+        }
       }
 
       const struct gkyl_wave_cell_geom *cg = gkyl_wave_geom_get(mp->geom, iter.idx);
