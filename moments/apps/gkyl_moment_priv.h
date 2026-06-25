@@ -293,6 +293,11 @@ struct moment_spacetime {
   gkyl_wv_apply_bc *lower_bc[3], *upper_bc[3];
   struct gkyl_array *bc_buffer;
 
+  // Embedding/excision mask (1 comp) consumed by the Einstein wave-prop; 1.0
+  // everywhere unless the equation carries an embed_geo. NULL in the static
+  // case (no hyperbolic update). Mirrors mom_species/mom_field.
+  struct gkyl_array *embed_mask;
+
   // Methods chosen at runtime:
   struct gkyl_update_status (*update_func)(gkyl_moment_app *app,
     struct moment_spacetime *sp, double tcurr, double dt);

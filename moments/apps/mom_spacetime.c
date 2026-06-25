@@ -107,9 +107,10 @@ spacetime_init_static(const struct gkyl_moment *mom,
     sp->upper_bc[d] = 0;
   }
   for (int d = 0; d < 4; d++) sp->f[d] = 0;
-  sp->fdup      = 0;
-  sp->fcurr     = 0;
-  sp->bc_buffer = 0;
+  sp->fdup       = 0;
+  sp->fcurr      = 0;
+  sp->bc_buffer  = 0;
+  sp->embed_mask = 0;
 
   sp->update_func        = spacetime_update_static;
   sp->max_dt_func        = spacetime_max_dt_static;
@@ -153,7 +154,13 @@ spacetime_init_dynamic(const struct gkyl_moment *mom,
         .limiter     = limiter,
         .num_up_dirs = app->is_dir_skipped[d] ? 0 : 1,
         .update_dirs = { d },
-        .check_inv_domain = false,
+        // Mirror mom_species: test each updated cell's admissibility via the
+        // equation's check_inv_func and fall back to low-order flux where the
+        // high-order update would leave the invariant domain. This is the
+        // stability fallback the species driver relies on; without it the
+        // stiff conformal Gowdy collapse diverges where production stays alive.
+        .check_inv_domain = true,
+        .force_low_order_flux = mom_st->force_low_order_flux,
         .cfl  = app->cfl,
         .geom = app->geom,
         .comm = app->comm,
@@ -163,6 +170,14 @@ spacetime_init_dynamic(const struct gkyl_moment *mom,
   for (int d = 0; d < ndim + 1; d++)
     sp->f[d] = mkarr(false, ncomp, app->local_ext.volume);
   sp->fcurr = sp->f[0];
+
+  // Embedding/excision mask the wave-prop reads (mirrors mom_species): 1.0
+  // everywhere unless the Einstein equation carries an embed_geo.
+  sp->embed_mask = mkarr(false, 1, app->local_ext.volume);
+  gkyl_array_clear(sp->embed_mask, 1.0);
+  if (sp->einstein_eqn->embed_geo)
+    gkyl_wv_embed_geo_new_mask(sp->einstein_eqn->embed_geo, &app->grid,
+      &app->local, sp->embed_mask);
 
   // Boundary conditions on the Einstein state array — mirrors the BC setup
   // in moment_field_init. Non-periodic directions only.
@@ -308,7 +323,7 @@ spacetime_update_dynamic(gkyl_moment_app *app, struct moment_spacetime *sp,
   int ndim = sp->ndim;
   for (int d = 0; d < ndim; d++) {
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local,
-      NULL, sp->f[d], sp->f[d + 1]);
+      sp->embed_mask, sp->f[d], sp->f[d + 1]);
     if (!stat.success)
       return (struct gkyl_update_status) {
         .success = false, .dt_suggested = stat.dt_suggested,
@@ -503,6 +518,7 @@ spacetime_release_dynamic(const struct moment_spacetime *sp)
   gkyl_array_release(sp->f[sp->ndim]);
   gkyl_array_release(sp->fdup);
   gkyl_array_release(sp->bc_buffer);
+  gkyl_array_release(sp->embed_mask);
 }
 
 // Release everything owned by the spacetime component: the shared products /

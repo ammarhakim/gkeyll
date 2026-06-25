@@ -383,6 +383,27 @@ gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame)
   gkyl_moment_app_write_field(app, tm, frame);
   for (int i=0; i<app->num_species; ++i)
     gkyl_moment_app_write_species(app, i, tm, frame);
+  gkyl_moment_app_write_spacetime(app, tm, frame);
+}
+
+void
+gkyl_moment_app_write_spacetime(const gkyl_moment_app* app, double tm, int frame)
+{
+  // Only the dynamic Bona-Masso backend carries an evolving Einstein state to
+  // write; the static-analytic background is reconstructed from its callbacks.
+  if (!app->has_spacetime || !app->spacetime.has_einstein_eqn) return;
+
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
+      .frame = frame,
+      .stime = tm
+    }
+  );
+
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "spacetime", frame);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->spacetime.fcurr, fileNm.str);
+  cstr_drop(&fileNm);
+
+  moment_array_meta_release(mt);
 }
 
 void
@@ -510,9 +531,9 @@ gkyl_moment_update(gkyl_moment_app* app, double dt)
   struct timespec wst = gkyl_wall_clock();
   struct gkyl_update_status status = app->update_func(app, dt);
   app->tcurr += status.dt_actual;
-  
+
   app->stat.total_tm += gkyl_time_diff_now_sec(wst);
-  
+
   return status;
 }
 
