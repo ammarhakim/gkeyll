@@ -112,7 +112,7 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
-../$(BUILD_DIR)/core/$(KERNELS_DIR)/dg_eval_at_coords_proj/%.c.o : $(KERNELS_DIR)/dg_eval_at_coords_proj/%.c
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/dg_eval_at_coord_proj/%.c.o : $(KERNELS_DIR)/dg_eval_at_coord_proj/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 

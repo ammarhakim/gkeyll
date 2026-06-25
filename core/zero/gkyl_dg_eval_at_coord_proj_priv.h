@@ -4,11 +4,9 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include <gkyl_array.h>
-#include <gkyl_basis.h>
+#include <gkyl_alloc.h>
 #include <gkyl_dg_eval_at_coord_proj.h>
 #include <gkyl_dg_eval_at_coord_proj_kernels.h>
-#include <gkyl_range.h>
 #include <gkyl_util.h>
 
 // Function pointer type for projection kernels.
@@ -23,6 +21,9 @@ typedef struct { double c[GKYL_MAX_DIM]; } dg_evproj_struct_double_t;
 
 // Struct with int array for passing cell index to CUDA kernels.
 typedef struct { int c[GKYL_MAX_DIM]; } dg_evproj_struct_int_t;
+
+// Struct with bool array for passing is_dir_eval to CUDA kernels.
+typedef struct { bool c[GKYL_MAX_DIM]; } dg_evproj_struct_bool_t;
 
 // Serendipity kernels.
 // Indexed as [ndim_do-1][dir_bitmask-1].kernels[poly_order-1]
@@ -135,23 +136,9 @@ eval_at_coord_get_idx_do(const bool *is_eval, int ndim_do,
   }
 }
 
-GKYL_CU_D static eval_at_coord_t
-choose_ser_eval_at_coord_kern(int ndim_do, int dir_mask, int poly_order)
-{
-  assert(ndim_do >= 1 && ndim_do <= 3);
-  assert(dir_mask >= 1 && dir_mask < (1 << ndim_do));
-  assert(poly_order >= 1 && poly_order <= 3);
-  return ser_eval_at_coord_list[ndim_do-1][dir_mask-1].kernels[poly_order-1];
-}
-
-GKYL_CU_D static eval_at_coord_t
-choose_ten_eval_at_coord_kern(int ndim_do, int dir_mask, int poly_order)
-{
-  assert(ndim_do >= 1 && ndim_do <= 3);
-  assert(dir_mask >= 1 && dir_mask < (1 << ndim_do));
-  assert(poly_order >= 1 && poly_order <= 3);
-  return ten_eval_at_coord_list[ndim_do-1][dir_mask-1].kernels[poly_order-1];
-}
+struct dg_ev_proj_kernels {
+  eval_at_coord_t ev_ker;      // Projection kernel.
+};
 
 // Primary struct for this updater.
 struct gkyl_dg_eval_at_coord_proj {
@@ -162,9 +149,8 @@ struct gkyl_dg_eval_at_coord_proj {
   int num_eval_dirs;           // Number of directions being evaluated.
   int eval_dirs[GKYL_MAX_DIM]; // Which directions are evaluated.
   bool is_eval[GKYL_MAX_DIM];  // Is direction evaluated.
-  int dir_mask;                // Bitmask encoding evaluated directions.
   bool use_gpu;                // Whether to run on GPU.
-  eval_at_coord_t kernel;      // Projection kernel.
+  struct dg_ev_proj_kernels *kers; // Projection kernel.
 };
 
 #ifdef GKYL_HAVE_CUDA
@@ -173,4 +159,55 @@ void gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up
   const struct gkyl_rect_grid *grid, const bool *pick_lower, const int *known_index,
   const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
   const struct gkyl_array *fdo, struct gkyl_array *ftar);
+
+struct dg_ev_proj_kernels* dg_eval_at_coord_choose_ker_cu(int ndim,
+  const struct gkyl_basis *basis, int num_eval_dirs, const int *eval_dirs);
 #endif
+
+GKYL_CU_DH static int
+eval_dirs_to_mask(int num_eval_dirs, const int *eval_dirs)
+{
+  // Encode eval_dirs as a bitmask: bit d is set iff direction d is evaluated.
+  // Used to index the dispatch table as [ndim_do-1][mask-1].
+  int mask = 0;
+  for (int i=0; i<num_eval_dirs; i++)
+    mask |= (1 << eval_dirs[i]);
+  return mask;
+}
+
+GKYL_CU_D static struct dg_ev_proj_kernels*
+dg_eval_at_coord_choose_ker(bool use_gpu, int ndim, const struct gkyl_basis *basis, int num_eval_dirs,
+  const int *eval_dirs)
+{
+  // Choose the projection kernel.
+
+#ifdef GKYL_HAVE_CUDA
+  if (use_gpu)
+    return dg_eval_at_coord_choose_ker_cu(ndim, basis, num_eval_dirs, eval_dirs);
+#endif
+
+  struct dg_ev_proj_kernels *kers = (struct dg_ev_proj_kernels *) gkyl_calloc(1, sizeof(struct dg_ev_proj_kernels));
+
+  int dir_mask = eval_dirs_to_mask(num_eval_dirs, eval_dirs);
+
+  int poly_order = basis->poly_order;
+
+  assert(ndim >= 1 && ndim <= 3);
+  assert(dir_mask >= 1 && dir_mask < (1 << ndim));
+  assert(poly_order >= 1 && poly_order <= 3);
+
+  switch (basis->b_type) {
+    case GKYL_BASIS_MODAL_SERENDIPITY:
+      kers->ev_ker = ser_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
+      break;
+    case GKYL_BASIS_MODAL_TENSOR:
+      kers->ev_ker = ten_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
+      break;
+    default:
+      assert(false);
+      break;
+  }
+  assert(kers->ev_ker);
+
+  return kers;
+}

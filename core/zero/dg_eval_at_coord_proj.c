@@ -1,23 +1,9 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include <gkyl_alloc.h>
 #include <gkyl_dg_eval_at_coord_proj.h>
 #include <gkyl_dg_eval_at_coord_proj_priv.h>
-#include <gkyl_range.h>
-#include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
-
-static int
-eval_dirs_to_mask(int num_eval_dirs, const int *eval_dirs)
-{
-  // Encode eval_dirs as a bitmask: bit d is set iff direction d is evaluated.
-  // Used to index the dispatch table as [ndim_do-1][mask-1].
-  int mask = 0;
-  for (int i=0; i<num_eval_dirs; i++)
-    mask |= (1 << eval_dirs[i]);
-  return mask;
-}
 
 struct gkyl_dg_eval_at_coord_proj*
 gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct gkyl_basis *basis_tar,
@@ -31,7 +17,7 @@ gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct g
   assert(ndim_tar == ndim_do - num_eval_dirs);
   assert(basis_do->poly_order >= 1 && basis_do->poly_order <= 3);
 
-  struct gkyl_dg_eval_at_coord_proj *up = gkyl_malloc(sizeof(*up));
+  struct gkyl_dg_eval_at_coord_proj *up = gkyl_calloc(1,sizeof(*up));
 
   up->use_gpu = use_gpu;
   up->ndim_do = ndim_do;
@@ -49,22 +35,7 @@ gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct g
   for (int i=0; i<num_eval_dirs; i++)
     up->is_eval[eval_dirs[i]] = true;
 
-  up->dir_mask = eval_dirs_to_mask(num_eval_dirs, eval_dirs);
-
-  int poly_order = basis_do->poly_order;
-
-  switch (basis_do->b_type) {
-    case GKYL_BASIS_MODAL_SERENDIPITY:
-      up->kernel = choose_ser_eval_at_coord_kern(ndim_do, up->dir_mask, poly_order);
-      break;
-    case GKYL_BASIS_MODAL_TENSOR:
-      up->kernel = choose_ten_eval_at_coord_kern(ndim_do, up->dir_mask, poly_order);
-      break;
-    default:
-      assert(false);
-      break;
-  }
-  assert(up->kernel);
+  up->kers = dg_eval_at_coord_choose_ker(use_gpu, ndim_do, basis_do, num_eval_dirs, eval_dirs);
 
   return up;
 }
@@ -124,12 +95,18 @@ gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, const 
     double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
 
     for (int n=0; n<ncomp; n++)
-      up->kernel(eval_coords_log, fdo_c+n*up->num_basis_do, ftar_c+n*up->num_basis_tar);
+      up->kers->ev_ker(eval_coords_log, fdo_c+n*up->num_basis_do, ftar_c+n*up->num_basis_tar);
   }
 }
 
 void
 gkyl_dg_eval_at_coord_proj_release(struct gkyl_dg_eval_at_coord_proj *up)
 {
+  if (!up->use_gpu)
+    gkyl_free(up->kers);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu)
+    gkyl_cu_free(up->kers);
+#endif
   gkyl_free(up);
 }
