@@ -30,7 +30,6 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
   up->gr_maxwell_data.gamma = inp->gamma;
   up->gr_maxwell_data.K_phi = 0.0;
   up->gr_maxwell_data.K_psi = 0.0;
-  up->use_lax = inp->use_lax;
    
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -38,11 +37,6 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
       up->lax_flux[0] = ser_lax_flux_x_kernels[cdim-1].kernels[poly_order];
       up->lax_flux[1] = ser_lax_flux_y_kernels[cdim-1].kernels[poly_order];
       up->lax_flux[2] = ser_lax_flux_z_kernels[cdim-1].kernels[poly_order];
-
-      // Kernels to compute the Roe fluxes.
-      up->roe_flux[0] = ser_roe_flux_x_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[1] = ser_roe_flux_y_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[2] = ser_roe_flux_z_kernels[cdim-1].kernels[poly_order];
 
       // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
       up->dg_gr_maxwell_alpha_quad[0] = ser_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
@@ -56,11 +50,6 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
       up->lax_flux[0] = ten_lax_flux_x_kernels[cdim-1].kernels[poly_order];
       up->lax_flux[1] = ten_lax_flux_y_kernels[cdim-1].kernels[poly_order];
       up->lax_flux[2] = ten_lax_flux_z_kernels[cdim-1].kernels[poly_order];
-
-      // Kernels to compute the Roe fluxes.
-      up->roe_flux[0] = ten_roe_flux_x_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[1] = ten_roe_flux_y_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[2] = ten_roe_flux_z_kernels[cdim-1].kernels[poly_order];
 
       // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
       up->dg_gr_maxwell_alpha_quad[0] = ten_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
@@ -85,7 +74,6 @@ gkyl_dg_gr_maxwell_conf_flux_surf_inew(const struct gkyl_dg_gr_maxwell_conf_flux
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
     assert(up->lax_flux[i]);
-    assert(up->roe_flux[i]);
     assert(up->dg_gr_maxwell_alpha_quad[i]);
   }
 

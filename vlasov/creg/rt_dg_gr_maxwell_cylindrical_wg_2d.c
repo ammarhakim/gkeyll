@@ -223,7 +223,6 @@ main(int argc, char **argv)
     .mgnErrorSpeedFactor = 1.0, // gamma = c*mgnErrorSpeedFactor = 1.
     .K_phi = 1.0, // Damping Constant (electric field).
     .K_psi = 1.0, // Damping Constant (magnetic field).
-    .use_lax = true, // Use Lax flux
 
     .init = evalFieldInit,
     .ctx = &ctx,

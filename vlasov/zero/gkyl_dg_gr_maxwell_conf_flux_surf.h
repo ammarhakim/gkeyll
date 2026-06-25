@@ -19,7 +19,6 @@ struct gkyl_dg_gr_maxwell_conf_flux_surf_inp {
   const int *theta_pole_up; // (upper edge) Default zeros, but 1 if any directions use theta-pole BC's.
   double chi; // Electric-field divergence correction speed.
   double gamma; // Magnetic-field divergence correction speed.
-  bool use_lax; // bool to determine if we are using lax flux option.
   bool use_gpu; // bool to determine if on GPU. 
 };
 

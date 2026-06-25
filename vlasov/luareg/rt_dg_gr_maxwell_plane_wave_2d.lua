@@ -74,13 +74,10 @@ vlasovApp = Vlasov.App.new {
     -- Field constants, divergence-cleaning speeds, and damping.
     epsilon0 = 1.0,
     mu0 = 1.0,
-    elcErrorSpeedFactor = 0.0, -- chi = c*elcErrorSpeedFactor = 1.
-    mgnErrorSpeedFactor = 0.0, -- gamma = c*mgnErrorSpeedFactor = 1.
-    K_phi = 0.0, -- Damping constant (electric field).
-    K_psi = 0.0, -- Damping constant (magnetic field).
-    useLax = true, -- Use Lax flux.
-    bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- Copy boundary conditions (x-direction).
-    bcy = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- Copy boundary conditions (y-direction).
+    elcErrorSpeedFactor = 1.0, -- chi = c*elcErrorSpeedFactor = 1.
+    mgnErrorSpeedFactor = 1.0, -- gamma = c*mgnErrorSpeedFactor = 1.
+    K_phi = 1.0, -- Damping constant (electric field).
+    K_psi = 1.0, -- Damping constant (magnetic field).
 
     -- Initial conditions function.
     init = function (t, xn)
@@ -113,6 +110,10 @@ vlasovApp = Vlasov.App.new {
     end,
     evolveAppliedCurrent = false, -- Evolve applied current.
   }
+
+  -- BCs
+  bcx = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- Copy boundary conditions (x-direction).
+  bcy = { G0.FieldBc.bcCopy, G0.FieldBc.bcCopy }, -- Copy boundary conditions (y-direction).
 }
 
 -- Run application.

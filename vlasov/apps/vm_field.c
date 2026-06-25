@@ -73,13 +73,11 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // Acquire the geometry object (only used for GR)
-  f->use_lax = false;
   if ( f->field_id == GKYL_FIELD_GR_D_B ){
     f->geom = app->vm_geom;
     f->em_no_J = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
     f->em_no_J_host = app->use_gpu ? mkarr(false, f->em_no_J->ncomp, f->em_no_J->size)
                                    : gkyl_array_acquire(f->em_no_J);
-    f->use_lax = f->info.use_lax;
   }
 
   // allocate EM arrays
@@ -195,7 +193,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .theta_pole_up = app->vm_geom->theta_pole_up,
       .chi = c*ef,
       .gamma = c*mf,
-      .use_lax = f->info.use_lax,
       .use_gpu = app->use_gpu,
     }; 
     f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 

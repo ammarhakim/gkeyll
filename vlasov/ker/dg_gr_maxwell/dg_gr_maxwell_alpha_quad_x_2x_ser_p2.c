@@ -3,7 +3,6 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_2x_ser_p2(const gkyl_dg_gr_maxwell_in
       const int theta_pole, const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal, 
       const double *h_ij_inv_nodal, const double *J_c, const double *field_con_l, const double *field_con_r, 
       const double *field_no_J_con_l, const double *field_no_J_con_r, 
-      double* GKYL_RESTRICT A_plus_dQ, double* GKYL_RESTRICT A_minus_dQ,
       double* GKYL_RESTRICT flux_l, double* GKYL_RESTRICT flux_r, double* GKYL_RESTRICT max_alpha_quad) 
 { 
   const double chi = meq->chi, gamma = meq->gamma; 
@@ -474,61 +473,6 @@ GKYL_CU_DH void dg_gr_maxwell_alpha_quad_x_2x_ser_p2(const gkyl_dg_gr_maxwell_in
       max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_5[i] ));
       max_alpha_quad[i] = fmax(max_alpha_quad[i], fabs( lambda_6[i] ));
   }
-  }
-  // If at the theta pole (assumes for Roe), dU = dQ = 0, so A_plus_dQ = A_minus_dQ = 0
-  if (theta_pole == 0) {    double dQ_n[8] = {0.0};
-    double lambda_plus_n[8] = {0.0};
-    double lambda_minus_n[8] = {0.0};
-    double A_plus_dQ_n[8] = {0.0};
-    double A_minus_dQ_n[8] = {0.0};
-    for (int i=0; i<3; ++i) {
-      dQ_n[0] = (JDx_con_r_n[i] - JDx_con_l_n[i]);
-      dQ_n[1] = (JDy_con_r_n[i] - JDy_con_l_n[i]);
-      dQ_n[2] = (JDz_con_r_n[i] - JDz_con_l_n[i]);
-      dQ_n[3] = (JBx_con_r_n[i] - JBx_con_l_n[i]);
-      dQ_n[4] = (JBy_con_r_n[i] - JBy_con_l_n[i]);
-      dQ_n[5] = (JBz_con_r_n[i] - JBz_con_l_n[i]);
-      dQ_n[6] = (Jphi_r_n[i] - Jphi_l_n[i]);
-      dQ_n[7] = (Jpsi_r_n[i] - Jpsi_l_n[i]);
-      lambda_plus_n[0] = (lambda_1[i] > 0.0) ? lambda_1[i] : 0.0;
-      lambda_plus_n[1] = (lambda_2[i] > 0.0) ? lambda_2[i] : 0.0;
-      lambda_plus_n[2] = (lambda_3[i] > 0.0) ? lambda_3[i] : 0.0;
-      lambda_plus_n[3] = (lambda_4[i] > 0.0) ? lambda_4[i] : 0.0;
-      lambda_plus_n[4] = (lambda_5[i] > 0.0) ? lambda_5[i] : 0.0;
-      lambda_plus_n[5] = (lambda_5[i] > 0.0) ? lambda_5[i] : 0.0;
-      lambda_plus_n[6] = (lambda_6[i] > 0.0) ? lambda_6[i] : 0.0;
-      lambda_plus_n[7] = (lambda_6[i] > 0.0) ? lambda_6[i] : 0.0;
-      lambda_minus_n[0] = (lambda_1[i] < 0.0) ? lambda_1[i] : 0.0;
-      lambda_minus_n[1] = (lambda_2[i] < 0.0) ? lambda_2[i] : 0.0;
-      lambda_minus_n[2] = (lambda_3[i] < 0.0) ? lambda_3[i] : 0.0;
-      lambda_minus_n[3] = (lambda_4[i] < 0.0) ? lambda_4[i] : 0.0;
-      lambda_minus_n[4] = (lambda_5[i] < 0.0) ? lambda_5[i] : 0.0;
-      lambda_minus_n[5] = (lambda_5[i] < 0.0) ? lambda_5[i] : 0.0;
-      lambda_minus_n[6] = (lambda_6[i] < 0.0) ? lambda_6[i] : 0.0;
-      lambda_minus_n[7] = (lambda_6[i] < 0.0) ? lambda_6[i] : 0.0;
-      A_dQ_x_calc(lapse_nodal[i], shift_nodal_x[i], shift_nodal_y[i], shift_nodal_z[i], 
-                      h_xx_nodal[i], h_xy_nodal[i], h_xz_nodal[i], h_yy_nodal[i], h_yz_nodal[i], h_zz_nodal[i], 
-                      J_c[i], lambda_plus_n, dQ_n, A_plus_dQ_n);
-      A_plus_dQ[i + 0*3] = A_plus_dQ_n[0]; 
-      A_plus_dQ[i + 1*3] = A_plus_dQ_n[1]; 
-      A_plus_dQ[i + 2*3] = A_plus_dQ_n[2]; 
-      A_plus_dQ[i + 3*3] = A_plus_dQ_n[3]; 
-      A_plus_dQ[i + 4*3] = A_plus_dQ_n[4]; 
-      A_plus_dQ[i + 5*3] = A_plus_dQ_n[5]; 
-      A_plus_dQ[i + 6*3] = A_plus_dQ_n[6]; 
-      A_plus_dQ[i + 7*3] = A_plus_dQ_n[7]; 
-      A_dQ_x_calc(lapse_nodal[i], shift_nodal_x[i], shift_nodal_y[i], shift_nodal_z[i], 
-                      h_xx_nodal[i], h_xy_nodal[i], h_xz_nodal[i], h_yy_nodal[i], h_yz_nodal[i], h_zz_nodal[i], 
-                      J_c[i], lambda_minus_n, dQ_n, A_minus_dQ_n);
-      A_minus_dQ[i + 0*3] = A_minus_dQ_n[0]; 
-      A_minus_dQ[i + 1*3] = A_minus_dQ_n[1]; 
-      A_minus_dQ[i + 2*3] = A_minus_dQ_n[2]; 
-      A_minus_dQ[i + 3*3] = A_minus_dQ_n[3]; 
-      A_minus_dQ[i + 4*3] = A_minus_dQ_n[4]; 
-      A_minus_dQ[i + 5*3] = A_minus_dQ_n[5]; 
-      A_minus_dQ[i + 6*3] = A_minus_dQ_n[6]; 
-      A_minus_dQ[i + 7*3] = A_minus_dQ_n[7]; 
-    }
   }
 
 } 

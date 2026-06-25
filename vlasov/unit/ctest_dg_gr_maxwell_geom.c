@@ -965,13 +965,9 @@ test_ks_r_theta_2x_geom_p1()
       double alpha_quad_x[3] = {0.0}; 
       double flux_l_x[18] = {0.0};
       double flux_r_x[18] = {0.0};
-      double A_plus_dQ_x[18] = {0.0};
-      double A_minus_dQ_x[18] = {0.0};
       double alpha_quad_y[3] = {0.0}; 
       double flux_l_y[18] = {0.0};
       double flux_r_y[18] = {0.0};
-      double A_plus_dQ_y[18] = {0.0};
-      double A_minus_dQ_y[18] = {0.0};
 
       gkyl_dg_gr_maxwell_inp meq_struct;
       const gkyl_dg_gr_maxwell_inp *meq = &meq_struct;
@@ -981,14 +977,14 @@ test_ks_r_theta_2x_geom_p1()
       // Compute the fluxes in the first two directions
       if (dir == 0) { 
         dg_gr_maxwell_alpha_quad_x_2x_ser_p1(meq, xcC, confGrid.dx, theta_pole,
-          lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_x, A_minus_dQ_x, flux_l_x, flux_r_x, alpha_quad_x);
+          lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux_l_x, flux_r_x, alpha_quad_x);
           
         double cflrate = lax_flux_x_2x_ser_p1(confGrid.dx, theta_pole, det_h_d, flux_l_x, flux_r_x, alpha_quad_x,
           field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux);
       }
       else if (dir == 1) { 
         dg_gr_maxwell_alpha_quad_y_2x_ser_p1(meq, xcC, confGrid.dx, theta_pole,
-          lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, A_plus_dQ_y, A_minus_dQ_y, flux_l_y, flux_r_y, alpha_quad_y);
+          lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux_l_y, flux_r_y, alpha_quad_y);
           
         double cflrate = lax_flux_y_2x_ser_p1(confGrid.dx, theta_pole, det_h_d, flux_l_y, flux_r_y, alpha_quad_y,
           field_con_l, field_con_c, field_no_J_con_l, field_no_J_con_c, flux);
@@ -1233,8 +1229,6 @@ test_ks_r_theta_2x_geom_p1()
           for (int j = 0; j<12; ++j) {
             //printf("(theta-pole): dU[%d] %1.16e, Ur: %1.16e, Ul: %1.16e\n", j, dU[j], Ur[j], Ul[j]);
             TEST_CHECK(gkyl_compare_double(dU[j], 0.0, 1e-12));
-            TEST_CHECK(gkyl_compare_double(A_plus_dQ_y[j], 0.0, 1e-12));
-            TEST_CHECK(gkyl_compare_double(A_minus_dQ_y[j], 0.0, 1e-12));
           }
         }
 
@@ -1475,7 +1469,7 @@ test_ks_r_theta_2x_geom_p1()
         for (int j = 0; j<12; ++j) {
           // printf("(Index: %d) A_plus_dQ_x: %1.16e, A_minus_dQ_x: %1.16e, flux_l_x: %1.16e, flux_r_x: %1.16e\n",j,A_plus_dQ_x[j], A_minus_dQ_x[j], flux_l_x[j], flux_r_x[j]);
           //printf("(Index: %d) A_plus_dQ_x + A_minus_dQ_x: %1.16e, flux_r_x - flux_l_x: %1.16e\n",j,A_plus_dQ_x[j] + A_minus_dQ_x[j], flux_r_x[j] - flux_l_x[j]);
-          TEST_CHECK(gkyl_compare_double(A_plus_dQ_x[j] + A_minus_dQ_x[j], flux_r_x[j] - flux_l_x[j], 1e-12));
+          //TEST_CHECK(gkyl_compare_double(A_plus_dQ_x[j] + A_minus_dQ_x[j], flux_r_x[j] - flux_l_x[j], 1e-12));
         }
 
         // print the comparison in the Jumps
