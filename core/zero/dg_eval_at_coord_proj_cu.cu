@@ -26,6 +26,9 @@ dg_eval_at_coord_choose_ker_cu_ker(int ndim, struct gkyl_basis basis, int num_ev
     case GKYL_BASIS_MODAL_TENSOR:
       kers->ev_ker = ten_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
       break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      kers->ev_ker = gkhyb_eval_at_coord_list[ndim-2][dir_mask-1].kernels[poly_order-1];
+      break;
     default:
       assert(false);
       break;

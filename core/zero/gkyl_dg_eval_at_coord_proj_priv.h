@@ -27,47 +27,35 @@ typedef struct { bool c[GKYL_MAX_DIM]; } dg_evproj_struct_bool_t;
 
 // Serendipity kernels.
 // Indexed as [ndim_do-1][dir_bitmask-1].kernels[poly_order-1]
-//   ndim_do = 1 -> index 0   (1 valid mask:  {x}=1)
-//   ndim_do = 2 -> index 1   (3 valid masks: 1..3)
-//   ndim_do = 3 -> index 2   (7 valid masks: 1..7)
-//   ndim_do = 4 -> index 3   (15 valid masks: 1..15; p1 and p2)
-//   ndim_do = 5 -> index 4   (31 valid masks: 1..31; p1 only)
-//   ndim_do = 6 -> index 5   (63 valid masks: 1..63; p1 only)
-// Unlisted entries are zero-initialized (NULL kernels).
+//   ndim_do = 1 -> index 0   (1  combos)
+//   ndim_do = 2 -> index 1   (3  combos)
+//   ndim_do = 3 -> index 2   (7  combos)
+//   ndim_do = 4 -> index 3   (15 combos)
+//   ndim_do = 5 -> index 4   (31 combos)
+//   ndim_do = 6 -> index 5   (63 combos)
 GKYL_CU_D
 static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
-  // ndim_do = 1: mask=1 valid; masks 2..63 zero-initialized
+  // ndim_do = 1.
   {
-    // mask=1: eval_x (1x -> scalar)
     { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0, gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0, NULL },
   },
-  // ndim_do = 2: masks 1..3 valid; masks 4..63 zero-initialized
+  // ndim_do = 2.
   {
-    // mask=1: eval_x (2x -> 1D in y)
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0 , gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_0 , NULL },
-    // mask=2: eval_y (2x -> 1D in x)
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_1 , gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_1 , NULL },
-    // mask=3: eval_xy (2x -> scalar)
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_01, gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_01, NULL },
   },
-  // ndim_do = 3: masks 1..7 valid, p1 only; masks 8..63 zero-initialized
+  // ndim_do = 3.
   {
-    // mask=1: eval_x (3x -> 2D in y,z)
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_0  , NULL, NULL },
-    // mask=2: eval_y (3x -> 2D in x,z)
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_1  , NULL, NULL },
-    // mask=3: eval_xy (3x -> 1D in z)
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_01 , NULL, NULL },
-    // mask=4: eval_z (3x -> 2D in x,y)
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_2  , NULL, NULL },
-    // mask=5: eval_xz (3x -> 1D in y)
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_02 , NULL, NULL },
-    // mask=6: eval_yz (3x -> 1D in x)
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_12 , NULL, NULL },
-    // mask=7: eval_xyz (3x -> scalar)
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_012, NULL, NULL },
   },
-  // ndim_do = 4: masks 1..15, p1 and p2; masks 16..63 zero-initialized
+  // ndim_do = 4.
   {
     { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_0   , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_0   , NULL },
     { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_1   , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_1   , NULL },
@@ -85,7 +73,7 @@ static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
     { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_123 , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_123 , NULL },
     { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_0123, gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_0123, NULL },
   },
-  // ndim_do = 5: masks 1..31, p1 only; masks 32..63 zero-initialized
+  // ndim_do = 5.
   {
     { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_0    , NULL, NULL },
     { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_1    , NULL, NULL },
@@ -119,7 +107,7 @@ static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
     { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_1234 , NULL, NULL },
     { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_01234, NULL, NULL },
   },
-  // ndim_do = 6: masks 1..63, p1 only
+  // ndim_do = 6.
   {
     { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0     , NULL, NULL },
     { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_1     , NULL, NULL },
@@ -190,7 +178,7 @@ static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
 // Tensor kernels.
 GKYL_CU_D
 static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = {
-  // ndim_do = 1 (tensor p1 = ser p1, no tensor p2 for 1D)
+  // ndim_do = 1.
   {
     { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0, NULL, NULL },
     { NULL, NULL, NULL },
@@ -200,35 +188,99 @@ static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = {
     { NULL, NULL, NULL },
     { NULL, NULL, NULL },
   },
-  // ndim_do = 2
+  // ndim_do = 2.
   {
-    // mask=1: eval_x  (p1 reuses ser; p2 uses tensor kernel)
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0 , gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_0 , NULL },
-    // mask=2: eval_y
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_1 , gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_1 , NULL },
-    // mask=3: eval_xy
     { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_01, gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_01, NULL },
     { NULL, NULL, NULL },
     { NULL, NULL, NULL },
     { NULL, NULL, NULL },
     { NULL, NULL, NULL },
   },
-  // ndim_do = 3
+  // ndim_do = 3.
   {
-    // mask=1: eval_x
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_0  , NULL, NULL },
-    // mask=2: eval_y
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_1  , NULL, NULL },
-    // mask=3: eval_xy
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_01 , NULL, NULL },
-    // mask=4: eval_z
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_2  , NULL, NULL },
-    // mask=5: eval_xz
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_02 , NULL, NULL },
-    // mask=6: eval_yz
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_12 , NULL, NULL },
-    // mask=7: eval_xyz
     { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_012, NULL, NULL },
+  },
+};
+
+// GK-hybrid kernels.
+// Indexed as [cdim+vdim-2][dir_bitmask-1].kernels[poly_order-1]
+GKYL_CU_D
+static const eval_at_coord_kern_list gkhyb_eval_at_coord_list[4][31] = {
+  // 1x1v.
+  {
+    { gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_0 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_1 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_01, NULL, NULL },
+  },
+  // 1x2v.
+  {
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_0  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_1  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_01 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_2  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_02 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_12 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_012, NULL, NULL },
+  },
+  // 2x2v.
+  {
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_0   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_1   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_01  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_2   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_02  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_12  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_012 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_3   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_03  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_13  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_013 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_23  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_023 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_123 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_0123, NULL, NULL },
+  },
+  // 3x2v.
+  {
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_1    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_01   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_2    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_02   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_12   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_012  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_3    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_03   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_13   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_013  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_23   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_023  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_123  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0123 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_4    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_04   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_14   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_014  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_24   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_024  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_124  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0124 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_34   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_034  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_134  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0134 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_234  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0234 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_1234 , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_01234, NULL, NULL },
   },
 };
 
@@ -312,6 +364,9 @@ dg_eval_at_coord_choose_ker(bool use_gpu, int cdim, int ndim, const struct gkyl_
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       kers->ev_ker = ten_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
+      break;
+    case GKYL_BASIS_MODAL_GKHYBRID:
+      kers->ev_ker = gkhyb_eval_at_coord_list[ndim-2][dir_mask-1].kernels[poly_order-1];
       break;
     default:
       assert(false);
