@@ -24,14 +24,13 @@ typedef struct gkyl_dg_eval_at_coord_proj gkyl_dg_eval_at_coord_proj;
  *   3x -> scalar : eval_dirs = {0, 1, 2}
  *
  * @param basis_do      Basis of the donor field.
- * @param basis_tar     Basis of the target field (NULL if all dims are evaluated).
  * @param num_eval_dirs Number of directions to evaluate / eliminate.
  * @param eval_dirs     Sorted list of direction indices to evaluate (0-based).
  * @param use_gpu       Whether to run on GPU.
  * @return New updater object.
  */
 struct gkyl_dg_eval_at_coord_proj*
-gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct gkyl_basis *basis_tar,
+gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do,
   int num_eval_dirs, const int *eval_dirs, bool use_gpu);
 
 /**

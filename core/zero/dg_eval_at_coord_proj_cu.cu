@@ -86,6 +86,11 @@ gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up, con
 {
   int ncomp = fdo->ncomp / up->num_basis_do;
 
+  // We assume that if fdo has multiple DG fields (vector components), ftar has the
+  // same number of vector components.
+  int ncomp = fdo->ncomp / up->num_basis_do;
+  int num_basis_tar = fdo->ncomp / ncomp;
+
   // Build full ndim_do-dimensional point for gkyl_rect_grid_find_cell.
   double point[GKYL_MAX_DIM];
   int eval_ctr = 0;
@@ -114,7 +119,7 @@ gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up, con
   int nblocks = rng_tar->nblocks;
   int nthreads = rng_tar->nthreads;
 
-  dg_eval_at_coord_proj_range_cu_kernel<<<nblocks, nthreads>>>(up->num_basis_do, up->num_basis_tar,
+  dg_eval_at_coord_proj_range_cu_kernel<<<nblocks, nthreads>>>(up->num_basis_do, num_basis_tar,
    ncomp, is_eval, eval_coords_log, cell_idx, up->kers,
    *rng_do, *rng_tar, fdo->on_dev, ftar->on_dev);
 }

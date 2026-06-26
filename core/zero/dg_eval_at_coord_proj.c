@@ -6,11 +6,11 @@
 #include <gkyl_util.h>
 
 struct gkyl_dg_eval_at_coord_proj*
-gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct gkyl_basis *basis_tar,
+gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do,
   int num_eval_dirs, const int *eval_dirs, bool use_gpu)
 {
   int ndim_do = basis_do->ndim;
-  int ndim_tar = basis_tar ? basis_tar->ndim : 0;
+  int ndim_tar = ndim_do - num_eval_dirs;
 
   assert(ndim_do >= 1 && ndim_do <= 3);
   assert(num_eval_dirs >= 1 && num_eval_dirs <= ndim_do);
@@ -23,7 +23,6 @@ gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do, const struct g
   up->ndim_do = ndim_do;
   up->ndim_tar = ndim_tar;
   up->num_basis_do = basis_do->num_basis;
-  up->num_basis_tar = (ndim_tar > 0 && basis_tar)? basis_tar->num_basis : 1;
   up->num_eval_dirs = num_eval_dirs;
 
   for (int i=0; i<num_eval_dirs; i++)
@@ -54,6 +53,11 @@ gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, const 
   }
 #endif
 
+  // We assume that if fdo has multiple DG fields (vector components), ftar has the
+  // same number of vector components.
+  int ncomp = fdo->ncomp / up->num_basis_do;
+  int num_basis_tar = fdo->ncomp / ncomp;
+
   // Build full ndim_do-dimensional point for gkyl_rect_grid_find_cell.
   // Evaluated directions use eval_coords[i]; non-evaluated dirs use the
   // center of the lowest cell in rng_do for that direction.
@@ -81,7 +85,6 @@ gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, const 
   }
 
   int idx_do[GKYL_MAX_DIM] = {0};
-  int ncomp = fdo->ncomp / up->num_basis_do;
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, rng_tar);
@@ -95,7 +98,7 @@ gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, const 
     double *ftar_c = gkyl_array_fetch(ftar, linidx_tar);
 
     for (int n=0; n<ncomp; n++)
-      up->kers->ev_ker(eval_coords_log, fdo_c+n*up->num_basis_do, ftar_c+n*up->num_basis_tar);
+      up->kers->ev_ker(eval_coords_log, fdo_c+n*up->num_basis_do, ftar_c+n*num_basis_tar);
   }
 }
 
