@@ -71,7 +71,7 @@ test_1x_to_scalar(int poly_order, bool use_gpu)
   int eval_dirs[] = {0};
   int num_eval_dirs = sizeof(eval_dirs)/sizeof(eval_dirs[0]);
   struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
-    &basis_do, num_eval_dirs, eval_dirs, use_gpu);
+    basis_do.ndim, &basis_do, num_eval_dirs, eval_dirs, use_gpu);
 
   // Apply updater at x = x0.
   double eval_coords[] = {x0};
@@ -218,7 +218,7 @@ test_2x_ev_at_1dcoord(int ndim_do, const double *lower_do, const double *upper_d
 
   // Evaluate eval_coords and project.
   struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
-    &basis_do, num_eval_dirs, eval_dirs, use_gpu);
+    basis_do.ndim, &basis_do, num_eval_dirs, eval_dirs, use_gpu);
 
   struct gkyl_array *ftar = mkarr(use_gpu, basis_tar.num_basis, local_ext_tar.volume);
   struct gkyl_array *ftar_ho = use_gpu? mkarr(false, ftar->ncomp, ftar->size)
@@ -326,7 +326,7 @@ test_2x_to_scalar(int poly_order, bool use_gpu)
   int eval_dirs[] = {0, 1};
   int num_eval_dirs = sizeof(eval_dirs)/sizeof(eval_dirs[0]);
   struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
-    &basis_do, num_eval_dirs, eval_dirs, use_gpu);
+    basis_do.ndim, &basis_do, num_eval_dirs, eval_dirs, use_gpu);
 
   // Apply updater at (x0, y0).
   double eval_coords[] = {x0, y0};
@@ -463,7 +463,7 @@ test_3x_ev_at_coord(int ndim_do, const double *lower_do, const double *upper_do,
 
   // Evaluate eval_coords and project.
   struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
-    &basis_do, num_eval_dirs, eval_dirs, use_gpu);
+    basis_do.ndim, &basis_do, num_eval_dirs, eval_dirs, use_gpu);
 
   struct gkyl_array *ftar = mkarr(use_gpu, basis_tar.num_basis, local_ext_tar.volume);
   struct gkyl_array *ftar_ho = use_gpu? mkarr(false, ftar->ncomp, ftar->size)
@@ -610,7 +610,7 @@ test_3x_to_scalar(int poly_order, bool use_gpu)
   int eval_dirs[] = {0, 1, 2};
   int num_eval_dirs = sizeof(eval_dirs)/sizeof(eval_dirs[0]);
   struct gkyl_dg_eval_at_coord_proj *up = gkyl_dg_eval_at_coord_proj_new(
-    &basis_do, num_eval_dirs, eval_dirs, use_gpu);
+    basis_do.ndim, &basis_do, num_eval_dirs, eval_dirs, use_gpu);
 
   // Apply updater at (x0, y0, z0).
   double eval_coords[] = {x0, y0, z0};

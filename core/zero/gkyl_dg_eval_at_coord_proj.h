@@ -15,22 +15,20 @@ typedef struct gkyl_dg_eval_at_coord_proj gkyl_dg_eval_at_coord_proj;
  * onto lower dimensions by evaluating the polynomial at specified
  * reference coordinates and projecting onto the target basis.
  *
- * Supported cases:
- *   1x -> scalar : eval_dirs = {0}
- *   2x -> 1x     : eval_dirs = {0} or {1}
- *   2x -> scalar : eval_dirs = {0, 1}
- *   3x -> 2x     : eval_dirs = {0}, {1}, or {2}
- *   3x -> 1x     : eval_dirs = {0,1}, {0,2}, or {1,2}
- *   3x -> scalar : eval_dirs = {0, 1, 2}
+ * Supported cases (serendipity basis):
+ *   1x-3x : p1 and p2; any subset of directions
+ *   4x    : p1 and p2; any subset of directions
+ *   5x-6x : p1 only;   any subset of directions
  *
- * @param basis_do      Basis of the donor field.
+ * @param cdim_do       Number of configuration-space dimensions in the donor field.
+ * @param basis_do      Basis of the donor field (ndim may exceed cdim_do for phase-space fields).
  * @param num_eval_dirs Number of directions to evaluate / eliminate.
  * @param eval_dirs     Sorted list of direction indices to evaluate (0-based).
  * @param use_gpu       Whether to run on GPU.
  * @return New updater object.
  */
 struct gkyl_dg_eval_at_coord_proj*
-gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do,
+gkyl_dg_eval_at_coord_proj_new(int cdim_do, const struct gkyl_basis *basis_do,
   int num_eval_dirs, const int *eval_dirs, bool use_gpu);
 
 /**

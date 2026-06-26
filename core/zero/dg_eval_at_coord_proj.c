@@ -6,13 +6,13 @@
 #include <gkyl_util.h>
 
 struct gkyl_dg_eval_at_coord_proj*
-gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do,
+gkyl_dg_eval_at_coord_proj_new(int cdim_do, const struct gkyl_basis *basis_do,
   int num_eval_dirs, const int *eval_dirs, bool use_gpu)
 {
   int ndim_do = basis_do->ndim;
   int ndim_tar = ndim_do - num_eval_dirs;
 
-  assert(ndim_do >= 1 && ndim_do <= 3);
+  assert(ndim_do >= 1 && ndim_do <= 6);
   assert(num_eval_dirs >= 1 && num_eval_dirs <= ndim_do);
   assert(ndim_tar == ndim_do - num_eval_dirs);
   assert(basis_do->poly_order >= 1 && basis_do->poly_order <= 3);
@@ -34,7 +34,7 @@ gkyl_dg_eval_at_coord_proj_new(const struct gkyl_basis *basis_do,
   for (int i=0; i<num_eval_dirs; i++)
     up->is_eval[eval_dirs[i]] = true;
 
-  up->kers = dg_eval_at_coord_choose_ker(use_gpu, ndim_do, basis_do, num_eval_dirs, eval_dirs);
+  up->kers = dg_eval_at_coord_choose_ker(use_gpu, cdim_do, ndim_do, basis_do, num_eval_dirs, eval_dirs);
 
   return up;
 }
