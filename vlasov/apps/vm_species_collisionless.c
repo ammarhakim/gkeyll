@@ -20,8 +20,13 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     gkyl_array_accumulate_range(cls->qmem, cls->qbym, app->field->ext_em, &app->local);
   }
 
-  if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
+  if (vms->field_id == GKYL_FIELD_E_B) {
     gkyl_array_accumulate_range(cls->qmem, cls->qbym, em, &app->local);
+  }
+  else if (cls->has_gr_em_triad_coupling) {
+    gkyl_dg_gr_maxwell_lorentz_conf_advance(cls->calc_lorentz, &app->local,
+      app->vm_geom->lapse, app->vm_geom->shift, app->vm_geom->h_ij, app->vm_geom->h_ij_inv,
+      app->vm_geom->det_h, app->vm_geom->vierb_cov, app->vm_geom->vierb_con, em, cls->qmem);
   }
   else if (vms->field_id == GKYL_FIELD_PHI) {
     gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
@@ -70,7 +75,12 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   // Note: the potentials are the total potentials and thus can include both (or either) gravitational
   // or electrostatic interactions. 
   cls->qbym = vms->info.charge/vms->info.mass;
+  cls->has_gr_em_triad_coupling = app->vm_geom->has_gr_em_triad_coupling &&
+    (vms->field_id == GKYL_FIELD_GR_D_B) &&
+    (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR);
   cls->qmem = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+  cls->calc_lorentz = 0;
+  cls->calc_current_dep = 0;
   cls->pot_tot = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);
 
   // Initialize applied acceleration for use in force update. 
@@ -100,7 +110,11 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   cls->has_E = false;
   cls->has_B = false;
   cls->has_phi = false;
-  if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em || vms->field_id == GKYL_FIELD_GR_D_B) {
+  if (cls->has_gr_em_triad_coupling) {
+    cls->has_E = true;
+    cls->has_B = true;
+  }
+  else if (vms->field_id == GKYL_FIELD_E_B || app->field->has_ext_em) {
     cls->has_E = true;
     cls->has_B = true;
   }
@@ -110,6 +124,30 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   if (vms->field_id == GKYL_FIELD_NULL && cls->has_app_accel) {
     cls->has_E = true;
   }
+
+  if (cls->has_gr_em_triad_coupling) {
+    struct gkyl_dg_gr_maxwell_lorentz_conf_inp inp_lorentz = {
+      .conf_grid = &app->grid,
+      .conf_basis = &app->basis,
+      .vdim = app->vdim,
+      .qbym = cls->qbym,
+      .chi = app->field->info.elcErrorSpeedFactor,
+      .gamma = app->field->info.mgnErrorSpeedFactor,
+      .K_phi = app->field->info.K_phi,
+      .K_psi = app->field->info.K_psi,
+      .use_gpu = app->use_gpu,
+    };
+    cls->calc_lorentz = gkyl_dg_gr_maxwell_lorentz_conf_inew(&inp_lorentz);
+  }
+  if (cls->has_gr_em_triad_coupling) {
+    struct gkyl_dg_gr_maxwell_current_deposition_inp inp_current_dep = {
+      .conf_basis = &app->basis,
+      .vdim = vdim,
+      .use_gpu = app->use_gpu,
+    };
+    cls->calc_current_dep = gkyl_dg_gr_maxwell_current_deposition_inew(&inp_current_dep);
+  }
+
   cls->use_lo = false; 
   if (vms->info.use_lo == true) {
     cls->use_lo = true; 
@@ -269,6 +307,12 @@ vm_species_collisionless_release(const struct gkyl_vlasov_app *app,
   }
   gkyl_dg_vlasov_vel_flux_surf_release(cls->calc_vel_flux);
   gkyl_array_release(cls->qmem); 
+  if (cls->has_gr_em_triad_coupling) {
+    gkyl_dg_gr_maxwell_lorentz_conf_release(cls->calc_lorentz);
+  }
+  if (cls->has_gr_em_triad_coupling) {
+    gkyl_dg_gr_maxwell_current_deposition_release(cls->calc_current_dep);
+  }
   gkyl_array_release(cls->pot_tot); 
   gkyl_array_release(cls->app_accel);
   if (cls->has_app_accel) {

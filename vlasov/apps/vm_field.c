@@ -171,7 +171,14 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // equation object
-  double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
+  double c = 1.0;
+  if (f->field_id == GKYL_FIELD_GR_D_B) {
+    // Check that the speed of light is in natural units for GR.
+    assert(fabs(f->info.epsilon0*f->info.mu0 - 1.0) < 1e-12);
+  }
+  else {
+    c = 1/sqrt(f->info.epsilon0*f->info.mu0);
+  }
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
   double K_phi = f->info.K_phi, K_psi = f->info.K_psi;
 
@@ -191,8 +198,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .field_id = f->field_id,
       .theta_pole_lo = app->vm_geom->theta_pole_lo,
       .theta_pole_up = app->vm_geom->theta_pole_up,
-      .chi = c*ef,
-      .gamma = c*mf,
+      .chi = ef,
+      .gamma = mf,
       .use_gpu = app->use_gpu,
     }; 
     f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 
@@ -268,7 +275,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->ghost_current = mkarr(app->use_gpu, 1, app->local_ext.volume);
     if (app->use_gpu) {
       f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
-    } 
+    }
   }
 
   f->use_geom_sources = false;
@@ -285,8 +292,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .conf_basis = &app->basis,
       .conf_grid = &app->grid,
       .field_id = f->field_id,
-      .chi = c*ef,
-      .gamma = c*mf,
+      .chi = ef,
+      .gamma = mf,
       .K_phi = K_phi,
       .K_psi = K_psi,
       .use_gpu = app->use_gpu,
@@ -455,7 +462,18 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     double qbyeps = s->info.charge/app->field->info.epsilon0; 
 
     vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-    gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
+
+    // GR specific current deposition
+    if (s->collisionless.has_gr_em_triad_coupling) {
+      vm_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
+      // The GR kernel forms q/eps0*(rho*beta - alpha*e^i_a*Jhat^a).
+      gkyl_dg_gr_maxwell_current_deposition_advance(s->collisionless.calc_current_dep,
+        &app->local, qbyeps, app->field->geom->lapse, app->field->geom->shift,
+        app->field->geom->vierb_con, s->m0.marr, s->m1i.marr, emout);
+    }
+    else {
+      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
+    }
 
     if (app->field->use_ghost_current) {
       double avals_ghost_current[1], avals_ghost_current_global[1]; 

@@ -34,8 +34,10 @@
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_canonical_pb_fluid.h>
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
+#include <gkyl_dg_gr_maxwell_current_deposition.h>
 #include <gkyl_dg_gr_maxwell_divide_Jc.h>
 #include <gkyl_dg_gr_maxwell_geom.h>
+#include <gkyl_dg_gr_maxwell_lorentz_conf.h>
 #include <gkyl_dg_gr_maxwell_geom_source.h>
 #include <gkyl_dg_gr_maxwell_surf_and_vol_nodes.h>
 #include <gkyl_dg_euler.h>
@@ -206,11 +208,12 @@ struct vm_collisionless {
   bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
 
   double qbym; // Charge (q) divided by mass (m).
-  struct gkyl_array *qmem; // array for q/m*(E,B) 
+  struct gkyl_array *qmem; // array for q/m*(E,B)
   struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
   bool has_E; // Do we have electric fields? 
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
   bool has_B; // Do we have magnetic fields? 
+  bool has_gr_em_triad_coupling; // Do we need GR-Maxwell Lorentz-force fields for triad species?
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
   int num_surf_vel_nodes; // number of surface nodes at velocity-space surfaces
 
@@ -218,6 +221,8 @@ struct vm_collisionless {
   struct gkyl_array *vel_flux_surf; // Modal expansion of surface fluxes at velocity-space surfaces. 
   struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux; // Updater for computing modal expansion of surface fluxes (conf). 
   struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux; // Updater for computing modal expansion of surface fluxes (vel).   
+  struct gkyl_dg_gr_maxwell_lorentz_conf *calc_lorentz; // Updater for local GR Lorentz-force fields.
+  struct gkyl_dg_gr_maxwell_current_deposition *calc_current_dep; // Updater for GR current deposition.
 
   struct gkyl_dg_eqn *eqn; // Vlasov equation object.
   struct gkyl_hyper_dg *slvr; // Vlasov solver.  
@@ -443,12 +448,15 @@ struct vm_geom {
 
   // Geometry needed for GR-DG-Maxwells
   bool has_gr_fields; // Boolean for determining if we have fields for GR-DG-Maxwells
+  bool has_gr_em_triad_coupling; // Boolean for GR-DG-Maxwell coupled to triad species
   struct gkyl_surf_and_vol_node_arrays *lapse; // lapse scalar (ADM \alpha)
   struct gkyl_surf_and_vol_node_arrays *shift; // shift vector - contravaraint radial component (ADM \beta^r)
   struct gkyl_surf_and_vol_node_arrays *geom_factor_con; // contravariant geometric source factors
   struct gkyl_surf_and_vol_node_arrays *h_ij; // Spatial metric, covaraint components, h_ij
   struct gkyl_surf_and_vol_node_arrays *h_ij_inv; // Spatial metric, contravariant components, h^ij
   struct gkyl_surf_and_vol_node_arrays *det_h; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+  struct gkyl_surf_and_vol_node_arrays *vierb_cov; // Covariant vierbein components
+  struct gkyl_surf_and_vol_node_arrays *vierb_con; // Contravariant vierbein components
 
   // Geometry copy for initalization (for GPU only)
   struct gkyl_surf_and_vol_node_arrays *lapse_init; // lapse scalar (ADM \alpha)
@@ -457,6 +465,8 @@ struct vm_geom {
   struct gkyl_surf_and_vol_node_arrays *h_ij_init; // Spatial metric, covaraint components, h_ij
   struct gkyl_surf_and_vol_node_arrays *h_ij_inv_init; // Spatial metric, contravariant components, h^ij
   struct gkyl_surf_and_vol_node_arrays *det_h_init; // Squareroot of the spatial determinant from Jc = sqrt(det(h_ij))
+  struct gkyl_surf_and_vol_node_arrays *vierb_cov_init; // Covariant vierbein components
+  struct gkyl_surf_and_vol_node_arrays *vierb_con_init; // Contravariant vierbein components
 
 };
 

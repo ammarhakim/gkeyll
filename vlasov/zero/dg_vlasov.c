@@ -210,6 +210,18 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         }     
       }
       if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_B) {
+        if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
+          vlasov->Bx_vol = ser_Bx_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = ser_By_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = ser_Bz_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          vlasov->Bx_vol = ser_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = ser_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = ser_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+      }
       if (inp->has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
 
 
@@ -259,6 +271,18 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_CAN_PB or GKYL_MODEL_CANONICAL_PB_GR not yet supported!"); 
       }
       if (inp->has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (inp->has_B) {
+        if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
+          vlasov->Bx_vol = tensor_Bx_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = tensor_By_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = tensor_Bz_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          vlasov->Bx_vol = tensor_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = tensor_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = tensor_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+      }
       if (inp->has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;

@@ -13,12 +13,12 @@ n0 = 1.0 -- Reference number density.
 T = 0.04 -- Temperature (units of mc^2).
 Vx_drift = 0.9 -- Drift velocity (x-direction).
 
-alpha = 1.0e-8 -- Applied perturbation amplitude.
-kx = 0.5 -- Perturbed wave number (x-direction).
-
 -- Derived physical quantities (using normalized code units).
 gamma = 1.0 / math.sqrt(1.0 - (Vx_drift * Vx_drift)) -- Gamma factor.
 Vx_drift_SR = gamma * Vx_drift -- Relativistic drift velocity (x-direction).
+
+alpha = 1.0e-8 -- Applied perturbation amplitude.
+kx = 0.5 -- Perturbed wave number (x-direction).
 
 -- Simulation parameters.
 Nx = 64 -- Cell count (configuration space: x-direction).
@@ -40,6 +40,15 @@ num_failures_max = 20 -- Maximum allowable number of consecutive small time-step
 
 vlasovApp = Vlasov.App.new {
 
+  -- Flat preset geometry makes the GR triad/GR-Maxwell system reduce to the
+  -- standard Cartesian two-stream setup.
+  geom = Vlasov.Geom.new {
+    usePresetGeom = true,
+    triadPresetGeomType = G0.TriadGeom.Flat,
+    massBH = 0.0,
+    spinBH = 0.0,
+  },
+
   tEnd = t_end,
   nFrame = num_frames,
   fieldEnergyCalcs = field_energy_calcs,
@@ -57,16 +66,16 @@ vlasovApp = Vlasov.App.new {
   timeStepper = time_stepper,
 
   -- Decomposition for configuration space.
-  decompCuts = { 1 }, -- Cuts in each coodinate direction (x-direction only).
+  decompCuts = { 1 }, -- Cuts in each coordinate direction (x-direction only).
 
   -- Boundary conditions for configuration space.
-  periodicDirs = { 1 }, -- Periodic directions (x-direction only).
+  periodicDirs = { 1 }, -- Periodic direction (x-direction only).
 
   -- Electrons.
   elc = Vlasov.Species.new {
-    modelID = G0.Model.SR,
+    modelID = G0.Model.TriadGR,
     charge = charge_elc, mass = mass_elc,
-    
+
     -- Velocity space grid.
     lower = { -vx_max },
     upper = { vx_max },
@@ -75,15 +84,16 @@ vlasovApp = Vlasov.App.new {
     -- Initial conditions.
     numInit = 2,
     projections = {
-      -- Two counter-streaming Maxwellians.
+      -- Two counter-streaming relativistic LTE distributions.
       {
         projectionID = G0.Projection.LTE,
 
         densityInit = function (t, xn)
           local x = xn[1]
 
-          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0 -- Total number density.
-          return n
+          local metric_det = 1.0
+          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0
+          return metric_det * n
         end,
         temperatureInit = function (t, xn)
           return T -- Isotropic temperature.
@@ -101,8 +111,9 @@ vlasovApp = Vlasov.App.new {
         densityInit = function (t, xn)
           local x = xn[1]
 
-          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0 -- Total number density.
-          return n
+          local metric_det = 1.0
+          local n = 0.5 * (1.0 + alpha * math.cos(kx * x)) * n0
+          return metric_det * n
         end,
         temperatureInit = function (t, xn)
           return T -- Isotropic temperature.
@@ -123,21 +134,27 @@ vlasovApp = Vlasov.App.new {
   field = Vlasov.Field.new {
     epsilon0 = epsilon0, mu0 = mu0,
 
+    -- Use GR-Maxwell field model in the flat limit.
+    fieldID = G0.FieldModel.GR,
+
     -- Initial conditions function.
     init = function (t, xn)
       local x = xn[1]
 
-      local Ex = -alpha * gamma * math.sin(kx * x) / kx -- Total electric field (x-direction).
-      local Ey = 0.0 -- Total electric field (y-direction).
-      local Ez = 0.0 -- Total electric field (z-direction).
+      local Dx = -alpha * gamma * math.sin(kx * x) / kx -- Electric displacement (x-direction).
+      local Dy = 0.0 -- Electric displacement (y-direction).
+      local Dz = 0.0 -- Electric displacement (z-direction).
 
-      local Bx = 0.0 -- Total magnetic field (x-direction).
-      local By = 0.0 -- Total magnetic field (y-direction).
-      local Bz = 0.0 -- Total magnetic field (z-direction).
+      local Bx = 0.0 -- Magnetic field (x-direction).
+      local By = 0.0 -- Magnetic field (y-direction).
+      local Bz = 0.0 -- Magnetic field (z-direction).
 
-      return Ex, Ey, Ez, Bx, By, Bz, 0.0, 0.0
+      local metric_det = 1.0
+
+      return metric_det * Dx, metric_det * Dy, metric_det * Dz,
+        metric_det * Bx, metric_det * By, metric_det * Bz, 0.0, 0.0
     end,
-    
+
     evolve = true, -- Evolve field?
     elcErrorSpeedFactor = 0.0,
     mgnErrorSpeedFactor = 0.0

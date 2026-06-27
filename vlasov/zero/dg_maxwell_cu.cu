@@ -1,5 +1,7 @@
 /* -*- c++ -*- */
 
+#include <math.h>
+
 extern "C" {
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -95,11 +97,12 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
 
   // set basic parameters
   maxwell->eqn.num_equations = 8;
+  if (inp->field_id == GKYL_FIELD_GR_D_B) assert(fabs(inp->lightSpeed - 1.0) < 1e-12);
   maxwell->maxwell_data.c = inp->lightSpeed;
   maxwell->maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
-  maxwell->gr_maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
-  maxwell->gr_maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
+  maxwell->gr_maxwell_data.chi = inp->elcErrorSpeedFactor;
+  maxwell->gr_maxwell_data.gamma = inp->mgnErrorSpeedFactor;
   maxwell->gr_maxwell_data.K_phi = 0.0;
   maxwell->gr_maxwell_data.K_psi = 0.0;
 

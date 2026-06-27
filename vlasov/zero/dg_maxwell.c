@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -112,11 +113,12 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
   maxwell->eqn.surf_term = surf;
   maxwell->eqn.boundary_surf_term = boundary_surf;
 
+  if (inp->field_id == GKYL_FIELD_GR_D_B) assert(fabs(inp->lightSpeed - 1.0) < 1e-12);
   maxwell->maxwell_data.c = inp->lightSpeed;
   maxwell->maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
   maxwell->maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
-  maxwell->gr_maxwell_data.chi = inp->lightSpeed*inp->elcErrorSpeedFactor;
-  maxwell->gr_maxwell_data.gamma = inp->lightSpeed*inp->mgnErrorSpeedFactor;
+  maxwell->gr_maxwell_data.chi = inp->elcErrorSpeedFactor;
+  maxwell->gr_maxwell_data.gamma = inp->mgnErrorSpeedFactor;
   maxwell->gr_maxwell_data.K_phi = 0.0;
   maxwell->gr_maxwell_data.K_psi = 0.0;
 

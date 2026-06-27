@@ -68,3 +68,19 @@ void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct
  * @param preset_geom_type Preset geometry type
  */
 evalf_t gkyl_vlasov_triad_preset_hamil(const int cdim, const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);
+
+/**
+ * Preset function for the covariant vierbein.
+ *
+ * @param vdim Number of velocity-space dimensions
+ * @param preset_geom_type Preset geometry type
+ */
+evalf_t gkyl_vlasov_triad_preset_vierbein(const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);
+
+/**
+ * Preset function for the contravariant vierbein.
+ *
+ * @param vdim Number of velocity-space dimensions
+ * @param preset_geom_type Preset geometry type
+ */
+evalf_t gkyl_vlasov_triad_preset_vierbein_inv(const int vdim, enum gkyl_triad_preset_geom_type preset_geom_type);
