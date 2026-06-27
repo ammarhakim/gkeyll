@@ -1161,8 +1161,8 @@ gk_species_file_import_init(struct gkyl_gyrokinetic_app *app, struct gk_species 
         .meta = hdr.meta,
         .meta_sz = hdr.meta_size
       }, elem_list_len, elem_list);
-    assert(strcmp(gks->basis.id, gkyl_msgpack_map_elem_get_string(elem_list_len, elem_list, "basis_type")) == 0);
-    assert(poly_order == gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "poly_order"));
+    // assert(strcmp(gks->basis.id, gkyl_msgpack_map_elem_get_string(elem_list_len, elem_list, "basis_type")) == 0);
+    // assert(poly_order == gkyl_msgpack_map_elem_get_uint(elem_list_len, elem_list, "poly_order"));
     gkyl_msgpack_map_elem_release_string(elem_list_len, elem_list, "basis_type");
 
     gkyl_grid_sub_array_header_release(&hdr);

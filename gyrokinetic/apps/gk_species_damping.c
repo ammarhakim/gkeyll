@@ -142,12 +142,12 @@ gk_species_damping_write_fbar_same_basis(gkyl_gyrokinetic_app *app, struct gk_sp
 
   int io_meta_fbar_len[] = {
     app->io_meta_basic_len,
-    gks->io_meta_grid_len,
+    gks->io_meta_phase_len,
     app->gk_geom->io_meta_basic_len
   };
   const struct gkyl_msgpack_map_elem *io_meta_fbar[] = {
     app->io_meta_basic,
-    gks->io_meta_grid,
+    gks->io_meta_phase,
     app->gk_geom->io_meta_basic
   };
   struct gkyl_msgpack_data *mt_fbar = gkyl_msgpack_create_union(

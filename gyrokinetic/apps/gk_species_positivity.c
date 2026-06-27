@@ -70,7 +70,7 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift." }
   };
-  int io_meta_len[] = {app->io_meta_grid_len, mpe_pos_len, app->gk_geom->io_meta_basic_len, 1};
+  int io_meta_len[] = {gks->io_meta_conf_len, mpe_pos_len, app->gk_geom->io_meta_basic_len, 1};
   const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, mpe_pos, app->gk_geom->io_meta_basic, desc};
 
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);

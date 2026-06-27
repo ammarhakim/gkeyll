@@ -210,8 +210,8 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "Cross-species drift velocity and thermal speed squared, or cross-species collision frequency." }
   };
-  int io_meta_nu_cross_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_nu_cross[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nu_cross};
+  int io_meta_nu_cross_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nu_cross[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_nu_cross};
   struct gkyl_msgpack_data *mt_nu_cross = gkyl_msgpack_create_union(sizeof(io_meta_nu_cross_len)/sizeof(int), io_meta_nu_cross_len, io_meta_nu_cross);
 
   // Write out nu_sum and nu_prim_moms.
@@ -253,8 +253,8 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
       { .key = "Description", .elem_type = GKYL_MP_STRING,
         .cval = "Self drift velocity and thermal speed squared, before cross-species contributions." }
     };
-    int io_meta_prim_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta_prim[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_prim};
+    int io_meta_prim_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta_prim[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc_prim};
     struct gkyl_msgpack_data *mt_prim = gkyl_msgpack_create_union(sizeof(io_meta_prim_len)/sizeof(int), io_meta_prim_len, io_meta_prim);
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt_prim, prim_moms_io, fileNm_prim);
     gkyl_msgpack_data_release(mt_prim);
