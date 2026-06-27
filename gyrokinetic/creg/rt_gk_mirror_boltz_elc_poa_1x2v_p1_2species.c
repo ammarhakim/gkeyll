@@ -430,7 +430,7 @@ create_ctx(void)
   int num_phases = 2 * num_cycles + 1;
   int num_frames = num_cycles * (num_frames_oap + num_frames_fdp) + num_frames_fdp_extra;
 
-  struct gk_poa_phase_params *poa_phases = gkyl_malloc(num_phases *
+  struct gk_poa_phase_params *poa_phases = gkyl_calloc(num_phases,
     sizeof(struct gk_poa_phase_params));
   for (int i = 0; i < (num_phases - 1) / 2; i++) {
     // OAPs.
@@ -778,8 +778,10 @@ int main(int argc, char **argv)
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .den_ref = ctx.n0,
-      .temp_ref = ctx.Te0,
+      .temp_ref = ctx.Ti0,
       .write_diagnostics = true,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -849,7 +851,7 @@ int main(int argc, char **argv)
       .correct_all_moms = true,
     },
 
-    .collisions = {
+    .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .num_cross_collisions = 1,
       .collide_with = { "ion" },
@@ -875,6 +877,16 @@ int main(int argc, char **argv)
     .is_static = false,
   };
 
+
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .filename_psi = "/global/homes/m/mhrosen/scratch/gkylmax/generate_efit/lorentzian_R32.geqdsk_psi.gkyl", // psi file to use
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.5,  // Z of lower boundary
+    .zmax =  2.5,  // Z of upper boundary
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+  };
+
   struct gkyl_gk app_inp = {  // GK app
     .cdim = ctx.cdim,
     .lower = {ctx.z_min},
@@ -884,13 +896,18 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_GEOMETRY_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MIRROR,
       .world = {ctx.psi_eval, 0.0},
-      .mapc2p = mapc2p, // Mapping of computational to physical space.
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func, // Magnetic field.
-      .bfield_ctx = &ctx,
+      .mirror_grid_info = grid_inp,
+      .position_map_info = {
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+        .map_strength = 0.5,
+        .maximum_slope_at_min_B = 2,
+        .gaussian_std = 0.25,
+        .gaussian_max_integration_width = 0.5,
+      },
     },
+
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
