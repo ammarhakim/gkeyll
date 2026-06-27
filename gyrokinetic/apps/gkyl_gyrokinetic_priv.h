@@ -1096,6 +1096,10 @@ struct gk_species {
   struct gk_damping damping; // Damping term: -nu(z)*f.
 
   struct gk_fdot_multiplier fdot_mult; // Functions multiplying df/dt.
+  struct gkyl_array *fdot_bmag_global; // Cached global (gathered) bmag for the loss-cone
+                                       // fdot multiplier. Gathered once from static geometry
+                                       // and reused across resets (avoids re-issuing an
+                                       // allgather mid-run). NULL if never needed.
 
   struct gk_anomalous_diff anom_diff; // Anomalous diffusion.
   
