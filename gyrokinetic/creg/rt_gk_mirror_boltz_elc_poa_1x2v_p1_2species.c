@@ -48,19 +48,23 @@ struct gk_mirror_ctx {
   double logLambdaIon;
   double nuIon;
   double vti;
+  double vte; // Electron thermal speed.
   double RatZeq0; // Radius of the field line at Z=0.
   // Axial coordinate Z extents. Endure that Z=0 is not on
   double z_min;
   double z_max;
-  double psi_max;
-  double psi_min;
+  double psi_eval;
   // Physics parameters at mirror throat
   double vpar_max_ion;
   double mu_max_ion;
+  double vpar_max_elc; // Electron velocity-space extents.
+  double mu_max_elc;
   int Npsi;
   int Nz;
   int Nvpar;
   int Nmu;
+  int Nvpar_elc; // Electron velocity-space cells.
+  int Nmu_elc;
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   int poly_order;
 
@@ -240,7 +244,7 @@ void
 eval_density_ion(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[1];
+  double z = xn[0];
   fout[0] = 1e17 * exp(-2 * pow(fabs(z), 2));
 }
 
@@ -263,7 +267,7 @@ eval_density_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_R
   void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[1];
+  double z = xn[0];
   double src_amp = app->ion_source_amplitude;
   double z_src = 0.0;
   double src_sigma = app->ion_source_sigma;
@@ -288,7 +292,7 @@ eval_temp_ion_source(double t, const double *GKYL_RESTRICT xn, double *GKYL_REST
   void *ctx)
 {
   struct gk_mirror_ctx *app = ctx;
-  double z = xn[1];
+  double z = xn[0];
   double TSrc0 = app->ion_source_temp;
   double Tfloor = TSrc0 * 1e-2;
   if (fabs(z) <= 0.98) {
@@ -311,10 +315,34 @@ void mapc2p_vel_ion(double t, const double *vc, double *GKYL_RESTRICT vp, void *
   vp[1] = mu_max_ion * pow(cmu, 3);
 }
 
+// Electron species support (added to deform toward rt_gk_failure).
+void
+eval_temp_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  fout[0] = app->Te0;
+}
+
+void
+eval_zero(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+{
+  fout[0] = 0.0;
+}
+
+void mapc2p_vel_elc(double t, const double *vc, double *GKYL_RESTRICT vp, void *ctx)
+{
+  struct gk_mirror_ctx *app = ctx;
+  double mu_max_elc = app->mu_max_elc;
+  double vpar_max_elc = app->vpar_max_elc;
+  double cvpar = vc[0], cmu = vc[1];
+  vp[0] = vpar_max_elc * cvpar;
+  vp[1] = mu_max_elc * pow(cmu, 4); // Quartic map in mu.
+}
+
 struct gk_mirror_ctx
 create_ctx(void)
 {
-  int cdim = 2, vdim = 2; // Dimensionality.
+  int cdim = 1, vdim = 2; // Dimensionality.
   int poly_order = 1;
 
   // Universal constant parameters.
@@ -343,14 +371,18 @@ create_ctx(void)
 
   // Thermal speeds.
   double vti = sqrt(Ti0 / mi);
+  double vte = sqrt(Te0 / me);
 
   // Grid parameters
   double vpar_max_ion = 16 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
+  double vpar_max_elc = 4 * vte;
+  double mu_max_elc = me * pow(4. * vte, 2.) / (2. * B_p);
   int Nz = 64;
-  int Npsi = 4;
   int Nvpar = 32; // 96 uniform
   int Nmu = 16;  // 192 uniform
+  int Nvpar_elc = 16;
+  int Nmu_elc = 8;
 
   // Source parameters
   double ion_source_amplitude = 1.e20;
@@ -368,15 +400,17 @@ create_ctx(void)
   // POA parameters
   double alpha_oap = 5e-6;  // Factor multiplying collisionless terms.
   double alpha_fdp = 1.0;
-  double tau_oap = 0.001;  // Duration of each phase.
-  double tau_fdp = 7e-9;
-  double tau_fdp_extra = 2e-9;
+
+  // Duration of each phase.
+  double tau_oap = 100e-9;
+  double tau_fdp = 1e-9;
+  double tau_fdp_extra = 2*tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 1;        // Frames per OAP phase
-  int num_frames_fdp = 1;        // Frames per FDP phase
-  int num_frames_fdp_extra = 2;  // Frames for the extra FDP phase
+  int num_frames_oap = 1; // Frames per OAP phase
+  int num_frames_fdp = 1; // Frames per FDP phase
+  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -384,7 +418,7 @@ create_ctx(void)
 
   // Whether positivity is enabled.
   bool is_positivity_enabled_oap = false;
-  bool is_positivity_enabled_fdp = false;
+  bool is_positivity_enabled_fdp = true;
 
   // Type of df/dt multipler.
   enum gkyl_gyrokinetic_fdot_multiplier_type fdot_mult_type_oap = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE;
@@ -448,14 +482,18 @@ create_ctx(void)
     .logLambdaIon = logLambdaIon,
     .nuIon = nuIon,
     .vti = vti,
+    .vte = vte,
     .RatZeq0 = RatZeq0,
     .vpar_max_ion = vpar_max_ion,
     .mu_max_ion = mu_max_ion,
-    .Npsi = Npsi,
+    .vpar_max_elc = vpar_max_elc,
+    .mu_max_elc = mu_max_elc,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = { Npsi, Nz, Nvpar, Nmu },
+    .Nvpar_elc = Nvpar_elc,
+    .Nmu_elc = Nmu_elc,
+    .cells = { Nz, Nvpar, Nmu },
     .poly_order = poly_order,
     .t_end = t_end,
     .num_frames = num_frames,
@@ -478,10 +516,9 @@ create_ctx(void)
   };
 
   // Populate a couple more values in the context.
-  ctx.psi_max = psi_RZ(ctx.RatZeq0, 0., &ctx);
-  ctx.psi_min = psi_RZ(ctx.RatZeq0 / 10, 0., &ctx);
-  ctx.z_min = z_psiZ(ctx.psi_max, ctx.Z_min, &ctx);
-  ctx.z_max = z_psiZ(ctx.psi_max, ctx.Z_max, &ctx);
+  ctx.psi_eval = psi_RZ(ctx.RatZeq0, 0., &ctx);
+  ctx.z_min = z_psiZ(ctx.psi_eval, ctx.Z_min, &ctx);
+  ctx.z_max = z_psiZ(ctx.psi_eval, ctx.Z_max, &ctx);
 
   return ctx;
 }
@@ -590,7 +627,7 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
       .type = pparams->fdot_mult_type,
       .cellwise_const = true,
       .write_diagnostics = true,
-    }
+    },
   };
   struct gkyl_gyrokinetic_field field_inp = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -618,13 +655,21 @@ void run_phase(gkyl_gyrokinetic_app *app, struct gk_mirror_ctx *ctx, double num_
   int num_failures = 0, num_failures_max = ctx->num_failures_max;
 
   long step = 1;
-  while ((t_curr < t_end) && (step <= num_steps)) {
-    gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step %ld at t = %g ...", step, t_curr);
-    dt = t_end - t_curr; // Ensure we don't step beyond t_end.
+
+  while ((t_curr < t_end) && (step <= num_steps))
+  {
+    if (step == 1 || step % 1 == 0)
+      gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
+
+    dt = fmin(dt, t_end - t_curr); // Don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
     gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
-    if (!status.success) {
+    if (step == 1 || step % 1 == 0)
+      gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
+
+    if (!status.success)
+    {
       gkyl_gyrokinetic_app_cout(app, stdout, "** Update method failed! Aborting simulation ....\n");
       break;
     }
@@ -724,17 +769,19 @@ int main(int argc, char **argv)
     .time_rate_multiplier = {
       .num_multipliers = 1,
       .multiplier[0] = {
-        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
         .cellwise_const = true,
         .write_diagnostics = true,
-      }
+      },
     },
 
     .collisions = {
       .collision_id = GKYL_LBO_COLLISIONS,
       .den_ref = ctx.n0,
-      .temp_ref = ctx.Te0,
+      .temp_ref = ctx.Ti0,
       .write_diagnostics = true,
+      .num_cross_collisions = 1,
+      .collide_with = { "elc" },
     },
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
@@ -758,10 +805,8 @@ int main(int argc, char **argv)
     },
 
     .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ABSORB },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH, },
     },
     .write_omega_cfl = true,
     .num_diag_moments = 8,
@@ -777,6 +822,53 @@ int main(int argc, char **argv)
       .integrated_diag_moments = { GKYL_F_MOMENT_M0M1M2PARM2PERP },
     },
   };
+  // Second species (Boltzmann-scaled kinetic electrons), added to deform toward
+  // rt_gk_failure. It has no fdot multiplier; only "ion" is reset each phase.
+  struct gkyl_gyrokinetic_species elc = {
+    .name = "elc",
+    .charge = ctx.qe,
+    .mass = ctx.me,
+    .vdim = ctx.vdim,
+    .lower = { -1.0, 0.0 },
+    .upper = { 1.0, 1.0 },
+    .cells = { ctx.Nvpar_elc, ctx.Nmu_elc },
+
+    .polarization_density = ctx.n0,
+
+    .mapc2p = {
+      .mapping = mapc2p_vel_elc,
+      .ctx = &ctx,
+    },
+
+    .projection = {
+      .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM,
+      .density = eval_density_ion,
+      .ctx_density = &ctx,
+      .upar = eval_zero,
+      .ctx_upar = &ctx,
+      .temp = eval_temp_elc,
+      .ctx_temp = &ctx,
+      .correct_all_moms = true,
+    },
+
+    .collisions =  {
+      .collision_id = GKYL_LBO_COLLISIONS,
+      .num_cross_collisions = 1,
+      .collide_with = { "ion" },
+      .den_ref = ctx.n0,
+      .temp_ref = ctx.Te0,
+      .not_in_dfdt = true,
+      .write_diagnostics = true,
+    },
+
+    .scaling = {
+      .type = GKYL_GK_SPECIES_SCALING_BOLTZMANN,
+    },
+
+    .num_diag_moments = 1,
+    .diag_moments = { GKYL_F_MOMENT_MAXWELLIAN },
+  };
+
   struct gkyl_gyrokinetic_field field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .electron_mass = ctx.me,
@@ -785,35 +877,49 @@ int main(int argc, char **argv)
     .is_static = false,
   };
 
+
+  struct gkyl_mirror_geo_grid_inp grid_inp = {
+    .filename_psi = "/global/homes/m/mhrosen/scratch/gkylmax/generate_efit/lorentzian_R32.geqdsk_psi.gkyl", // psi file to use
+    .rclose = 0.2, // closest R to region of interest
+    .zmin = -2.5,  // Z of lower boundary
+    .zmax =  2.5,  // Z of upper boundary
+    .include_axis = false, // Include R=0 axis in grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+  };
+
   struct gkyl_gk app_inp = {  // GK app
-    .name = "gk_mirror_boltz_elc_poa_2x2v_p1",
     .cdim = ctx.cdim,
-    .upper = { ctx.psi_max, ctx.Z_max },
-    .lower = { ctx.psi_min, ctx.Z_min },
-    .cells = { cells_x[0], cells_x[1] },
+    .lower = {ctx.z_min},
+    .upper = {ctx.z_max},
+    .cells = { cells_x[0] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = { 0.0 },
-      .mapc2p = mapc2p, // Mapping of computational to physical space.
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func, // Magnetic field.
-      .bfield_ctx = &ctx,
+      .geometry_id = GKYL_GEOMETRY_MIRROR,
+      .world = {ctx.psi_eval, 0.0},
+      .mirror_grid_info = grid_inp,
+      .position_map_info = {
+        .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
+        .map_strength = 0.5,
+        .maximum_slope_at_min_B = 2,
+        .gaussian_std = 0.25,
+        .gaussian_max_integration_width = 0.5,
+      },
     },
+
 
     .num_periodic_dir = 0,
     .periodic_dirs = {},
 
-    .num_species = 1,
-    .species = { ion },
+    .num_species = 2,
+    .species = { ion, elc },
 
     .field = field,
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
+      .cuts = { app_args.cuts[0] },
       .comm = comm,
     },
   };
