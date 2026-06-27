@@ -1258,6 +1258,11 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->vel_map = gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel,
     &vms->basis_vel, inp_vmap, app->use_gpu);
 
+  // Configuration-space mapping object. Created once on the app and shared by
+  // all species (configuration space is common to every species); acquire a
+  // reference here.
+  vms->pos_map = gkyl_vlasov_position_map_acquire(app->pos_map);
+
   // Allocate array for dividing out velocity-space Jacobian. 
   // If the mesh is uniform, we simply copy the distribution function at that RK stage
   // into this array for use in the velocity-space surface flux computation and 
@@ -1490,6 +1495,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
   gkyl_array_release(vms->f_no_J); 
 
   gkyl_vlasov_velocity_map_release(vms->vel_map);
+  gkyl_vlasov_position_map_release(vms->pos_map);
 
   // Release arrays for different types of Vlasov equations.
   if (vms->model_id  == GKYL_MODEL_DEFAULT || vms->model_id  == GKYL_MODEL_SR 

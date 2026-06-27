@@ -80,6 +80,7 @@
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
@@ -489,8 +490,9 @@ struct vm_species {
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
 
   struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (owns all velocity map arrays).
+  struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (acquired reference to the app's pos_map).
 
-  struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. 
+  struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian.
                              // When using uniform velocity-space mesh, just stores the distribution function at that RK stage. 
 
   // Organization of the different equation objects and the required data.
@@ -775,6 +777,8 @@ struct gkyl_vlasov_app {
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   struct gkyl_wave_geom *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 11/24/23)
+
+  struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (owns all position map arrays); shared by all species.
 
   bool has_field; // has field
   struct vm_field *field; // pointer to field object (its dispatch methods are
