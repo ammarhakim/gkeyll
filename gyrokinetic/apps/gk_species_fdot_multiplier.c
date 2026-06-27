@@ -280,7 +280,7 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
     fdmul->proj_on_basis_c2p_ctx.pos_map = app->position_map;
 
     fdmul->time_dilation_scale_const = fdot_mult_inp->time_dilation_scale_const;
-    if (fdmul->time_dilation_scale_const <= 0.0) {
+    if (fdmul->time_dilation_scale_const <= 0.0 || fdmul->time_dilation_scale_const >= 1.0) {
       fdmul->time_dilation_scale_const = 1.0;
     }
 

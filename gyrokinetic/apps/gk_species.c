@@ -140,7 +140,7 @@ gk_species_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species,
   }
 
   double dt_out = app->cfl/omega_cfl_ho[0];
-
+  
   // Apply omega_H constraint on dt.
   species->dt_omegaH = gk_species_omegaH_dt(app, species, fin);
   dt_out = fmin(dt_out, species->dt_omegaH);
