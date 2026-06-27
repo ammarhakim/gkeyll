@@ -1613,10 +1613,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   // Damping term -nu*f on RHS.
   gk_species_damping_init(app, gks, &gks->damping);
 
-  // Function multiplying df/dt. The cached global bmag is gathered lazily on the
-  // first loss-cone multiplier init (in this app-creation context) and reused
-  // across resets, so the allgather is never re-issued mid-run.
-  gks->fdot_bmag_global = NULL;
+  // Function multiplying df/dt.
   gk_species_fdot_multiplier_init(app, gks, &gks->fdot_mult);
 
   // Allocate data for diagnostic moments.
@@ -2038,8 +2035,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   gk_species_damping_release(app, &gks->damping);
 
   gk_species_fdot_multiplier_release(app, &gks->fdot_mult);
-  if (gks->fdot_bmag_global)
-    gkyl_array_release(gks->fdot_bmag_global);
 
   gk_species_lbo_release(app, &gks->lbo);
 

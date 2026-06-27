@@ -322,19 +322,12 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
       fdmul->buffer = mkarr(app->use_gpu, basis_mult.num_basis, gks->local_ext.volume);
+      fdmul->bmag_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.bmag->ncomp,
+        app->global_ext.volume);
       fdmul->phi_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
 
-      // bmag is static geometry, so its global (gathered) representation only needs to
-      // be assembled once. Cache it on the species and reuse it across resets: re-issuing
-      // this allgather mid-run (i.e. from a reset) hangs/corrupts on some MPI+NCCL stacks,
-      // whereas the gather done here during app construction is reliable.
-      if (gks->fdot_bmag_global == NULL) {
-        gks->fdot_bmag_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.bmag->ncomp,
-          app->global_ext.volume);
-        gkyl_comm_array_allgather(app->comm, &app->local, &app->global,
-          app->gk_geom->geo_corn.bmag, gks->fdot_bmag_global);
-      }
-      fdmul->bmag_global = gkyl_array_acquire(gks->fdot_bmag_global);
+      gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_corn.bmag,
+        fdmul->bmag_global);
 
       fdmul->advance_func = gk_species_fdot_multiplier_advance_loss_cone_mult;
     }
