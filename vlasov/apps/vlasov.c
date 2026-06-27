@@ -382,12 +382,10 @@ void
 vm_apply_bc(gkyl_vlasov_app* app, double tcurr,
   struct gkyl_array *distf[], struct gkyl_array *fluid[], struct gkyl_array *emfield)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    vm_species_apply_bc(app, app->species[i].dist, distf[i], tcurr);
-  }
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    vm_fluid_species_apply_bc(app, app->fluid_species[i].fluid, fluid[i]);
-  }
+  // distf[] and fluid[] are indexed over the overall species count.
+  int num_species = app->num_species + app->num_fluid_species;
+  for (int i=0; i<num_species; ++i)
+    vlasov_species_apply_bc(app, &app->species[i], distf[i], fluid[i], tcurr);
   // No-op for Vlasov-Poisson and the null field (no EM boundary conditions).
   vlasov_field_apply_bc(app, emfield);
 }
@@ -414,12 +412,16 @@ gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 
   gkyl_vlasov_app_apply_ic_field(app, t0); // no-op for the null field
 
-  struct gkyl_array *distf[app->num_species];
-  struct gkyl_array *fluid[app->num_fluid_species];
-  for (int i=0; i<app->num_species; ++i)
-    distf[i] = app->species[i].dist->f;
-  for (int i=0; i<app->num_fluid_species; ++i)
-    fluid[i] = app->fluid_species[i].fluid->fluid;
+  // Arrays indexed over the overall species count (kinetic + fluid); NULL where
+  // a species lacks that aspect.
+  int num_species = app->num_species + app->num_fluid_species;
+  struct gkyl_array *distf[num_species];
+  struct gkyl_array *fluid[num_species];
+  for (int i=0; i<num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    distf[i] = sp->dist  ? sp->dist->f      : 0;
+    fluid[i] = sp->fluid ? sp->fluid->fluid : 0;
+  }
   // BCs must be done after all species initialize for emission BCs to work.
   vm_apply_bc(app, t0, distf, fluid, app->field->em);
 }

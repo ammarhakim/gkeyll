@@ -1,18 +1,51 @@
 #include <gkyl_vlasov_priv.h>
 
+// Set the per-stage RK input/output array pointers for every species, indexed
+// over the overall species count. 'in'/'out' select which of the kinetic RK
+// buffers (f/f1/fnew) and fluid RK buffers (fluid/fluid1/fluidnew) this stage
+// reads and writes; entries are NULL where a species lacks that aspect.
+enum vm_rk_buf { VM_RK_F, VM_RK_F1, VM_RK_FNEW };
+
+static struct gkyl_array*
+dist_buf(struct vm_species *d, enum vm_rk_buf b)
+{
+  return b == VM_RK_F ? d->f : (b == VM_RK_F1 ? d->f1 : d->fnew);
+}
+static struct gkyl_array*
+fluid_buf(struct vm_fluid_species *f, enum vm_rk_buf b)
+{
+  return b == VM_RK_F ? f->fluid : (b == VM_RK_F1 ? f->fluid1 : f->fluidnew);
+}
+
+static void
+set_rk_arrays(gkyl_vlasov_app *app, enum vm_rk_buf in, enum vm_rk_buf out,
+  const struct gkyl_array *fin[], struct gkyl_array *fout[],
+  const struct gkyl_array *fluidin[], struct gkyl_array *fluidout[])
+{
+  int num_species = app->num_species + app->num_fluid_species;
+  for (int i=0; i<num_species; ++i) {
+    struct vlasov_species *sp = &app->species[i];
+    fin[i]      = sp->dist  ? dist_buf(sp->dist, in)   : 0;
+    fout[i]     = sp->dist  ? dist_buf(sp->dist, out)  : 0;
+    fluidin[i]  = sp->fluid ? fluid_buf(sp->fluid, in)  : 0;
+    fluidout[i] = sp->fluid ? fluid_buf(sp->fluid, out) : 0;
+  }
+}
+
 // Take time-step using the RK3 method. Also sets the status object
 // which has the actual and suggested dts used. These can be different
 // from the actual time-step.
 struct gkyl_update_status
 vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
 {
-  int ns = app->num_species;  
-  int nfs = app->num_fluid_species;  
+  // Single count over the overall species (kinetic + fluid); the vlasov_species_*
+  // wrappers dispatch to whichever aspects each species owns.
+  int num_species = app->num_species + app->num_fluid_species;
 
-  const struct gkyl_array *fin[ns];
-  struct gkyl_array *fout[ns];
-  const struct gkyl_array *fluidin[nfs];
-  struct gkyl_array *fluidout[nfs];
+  const struct gkyl_array *fin[num_species];
+  struct gkyl_array *fout[num_species];
+  const struct gkyl_array *fluidin[num_species];
+  struct gkyl_array *fluidout[num_species];
   struct gkyl_update_status st = { .success = true };
 
   // time-stepper state
@@ -25,14 +58,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
         do {
           struct timespec rk3_s1_tm = gkyl_wall_clock();
 
-          for (int i=0; i<ns; ++i) {
-            fin[i] = app->species[i].dist->f;
-            fout[i] = app->species[i].dist->f1;
-          }
-          for (int i=0; i<nfs; ++i) {
-            fluidin[i] = app->fluid_species[i].fluid->fluid;
-            fluidout[i] = app->fluid_species[i].fluid->fluid1;
-          }
+          set_rk_arrays(app, VM_RK_F, VM_RK_F1, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(app, tcurr, dt, fin, fluidin, app->field->em,
             fout, fluidout, app->field->em1,
             &st
@@ -41,29 +67,21 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->em1);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
-          for (int i=0; i<nfs; ++i) {
-            vm_fluid_species_limiter(app, app->fluid_species[i].fluid, fluidout[i]);
-          }
+          for (int i=0; i<num_species; ++i)
+            vlasov_species_limiter(app, &app->species[i], fluidout[i]);
           vlasov_field_limiter(app, app->field->em1); // no-op for the null field
           dt = st.dt_actual;
           state = RK_STAGE_2;
 
           app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s1_tm);
-        } while(0);  
+        } while(0);
         break;
 
       case RK_STAGE_2:
         do {
           struct timespec rk3_s2_tm = gkyl_wall_clock();
 
-          for (int i=0; i<ns; ++i) {
-            fin[i] = app->species[i].dist->f1;
-            fout[i] = app->species[i].dist->fnew;
-          }
-          for (int i=0; i<nfs; ++i) {
-            fluidin[i] = app->fluid_species[i].fluid->fluid1;
-            fluidout[i] = app->fluid_species[i].fluid->fluidnew;
-          }
+          set_rk_arrays(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(app, tcurr+dt, dt, fin, fluidin, app->field->em1,
             fout, fluidout, app->field->emnew,
             &st
@@ -72,9 +90,8 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->emnew);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
-          for (int i=0; i<nfs; ++i) {
-            vm_fluid_species_limiter(app, app->fluid_species[i].fluid, fluidout[i]);
-          }
+          for (int i=0; i<num_species; ++i)
+            vlasov_species_limiter(app, &app->species[i], fluidout[i]);
           vlasov_field_limiter(app, app->field->emnew); // no-op for the null field
           if (st.dt_actual < dt) {
             // collect stats
@@ -87,15 +104,10 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
 
             dt = st.dt_actual;
             state = RK_STAGE_1; // restart from stage 1
-          } 
+          }
           else {
-            for (int i=0; i<ns; ++i) {
-              struct vm_species *vms = app->species[i].dist;
-              vm_species_combine(vms, vms->f1, 3.0/4.0, vms->f, 1.0/4.0, vms->fnew, &vms->local_ext);
-            }
-            for (int i=0; i<nfs; ++i)
-              vm_fluid_species_combine(app->fluid_species[i].fluid, app->fluid_species[i].fluid->fluid1,
-                3.0/4.0, app->fluid_species[i].fluid->fluid, 1.0/4.0, app->fluid_species[i].fluid->fluidnew, &app->local_ext);
+            for (int i=0; i<num_species; ++i)
+              vlasov_species_combine(app, &app->species[i], 3.0/4.0, 1.0/4.0);
             vlasov_field_combine(app, app->field->em1,
               3.0/4.0, app->field->em, 1.0/4.0, app->field->emnew); // no-op for null field
 
@@ -103,21 +115,14 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           }
 
           app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s2_tm);
-        } while(0); 
+        } while(0);
         break;
 
       case RK_STAGE_3:
         do {
           struct timespec rk3_s3_tm = gkyl_wall_clock();
 
-          for (int i=0; i<ns; ++i) {
-            fin[i] = app->species[i].dist->f1;
-            fout[i] = app->species[i].dist->fnew;
-          }
-          for (int i=0; i<nfs; ++i) {
-            fluidin[i] = app->fluid_species[i].fluid->fluid1;
-            fluidout[i] = app->fluid_species[i].fluid->fluidnew;
-          }
+          set_rk_arrays(app, VM_RK_F1, VM_RK_FNEW, fin, fout, fluidin, fluidout);
           vlasov_forward_euler(app, tcurr+dt/2, dt, fin, fluidin, app->field->em1,
             fout, fluidout, app->field->emnew,
             &st
@@ -126,9 +131,8 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           vm_apply_bc(app, tcurr, fout, fluidout, app->field->emnew);
 
           // Limit fluid and EM solutions if desired (done after update as post-hoc fix)
-          for (int i=0; i<nfs; ++i) {
-            vm_fluid_species_limiter(app, app->fluid_species[i].fluid, fluidout[i]);
-          }
+          for (int i=0; i<num_species; ++i)
+            vlasov_species_limiter(app, &app->species[i], fluidout[i]);
           vlasov_field_limiter(app, app->field->emnew); // no-op for the null field
           if (st.dt_actual < dt) {
             // collect stats
@@ -145,16 +149,9 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
             app->stat.nstage_2_fail += 1;
           }
           else {
-            for (int i=0; i<ns; ++i) {
-              struct vm_species *vms = app->species[i].dist;
-              // Step f.
-              vm_species_combine(vms, vms->f1, 1.0/3.0, vms->f, 2.0/3.0, vms->fnew, &vms->local_ext);
-              vm_species_copy_range(vms, vms->f, vms->f1, &vms->local_ext);
-            }
-            for (int i=0; i<nfs; ++i) {
-              vm_fluid_species_combine(app->fluid_species[i].fluid, app->fluid_species[i].fluid->fluid1,
-                1.0/3.0, app->fluid_species[i].fluid->fluid, 2.0/3.0, app->fluid_species[i].fluid->fluidnew, &app->local_ext);
-              vm_fluid_species_copy_range(app->fluid_species[i].fluid, app->fluid_species[i].fluid->fluid, app->fluid_species[i].fluid->fluid1, &app->local_ext);
+            for (int i=0; i<num_species; ++i) {
+              vlasov_species_combine(app, &app->species[i], 1.0/3.0, 2.0/3.0);
+              vlasov_species_copy_range(app, &app->species[i]);
             }
             // no-ops for the null field
             vlasov_field_combine(app, app->field->em1,
@@ -165,7 +162,7 @@ vlasov_update_ssp_rk3(gkyl_vlasov_app* app, double dt0)
           }
 
           app->stat.rk3_tm += gkyl_time_diff_now_sec(rk3_s3_tm);
-        } while(0); 
+        } while(0);
         break;
 
       case RK_COMPLETE: // can't happen: suppresses warning

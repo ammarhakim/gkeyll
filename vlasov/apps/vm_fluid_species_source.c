@@ -37,9 +37,10 @@ void
 vm_fluid_species_source_rhs(gkyl_vlasov_app *app, const struct vm_fluid_species *species,
   struct vm_fluid_source *src, const struct gkyl_array *fluid[], struct gkyl_array *rhs[])
 {
-  int species_idx;
-  species_idx = vm_find_fluid_species_idx(app, species->info.name);
-  
+  // rhs[] is indexed over the overall species count; fluid species occupy the
+  // tail [num_species, num_species + num_fluid_species), so offset by num_species.
+  int species_idx = app->num_species + vm_find_fluid_species_idx(app, species->info.name);
+
   gkyl_array_accumulate(rhs[species_idx], 1.0, src->source);
 }
 
