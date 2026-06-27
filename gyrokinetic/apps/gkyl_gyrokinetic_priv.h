@@ -789,6 +789,8 @@ struct gk_adapt_source {
   bool adapt_particle, adapt_energy; // Adaptation flags.
   struct gk_species *adapt_species; // Non-owning pointer to the species whose particle loss is being adapted; lifetime managed elsewhere.
   int adapt_species_idx; // Index of the species whose particle loss is being adapted.
+  double adapt_particle_fraction; // Fraction of particle loss to adapt to.
+  double adapt_energy_fraction; // Fraction of energy loss to adapt to.
 
   int num_boundaries; // Number of boundaries to adapt to.
   int dir[2*GKYL_MAX_CDIM]; // Direction to adapt.
@@ -822,8 +824,9 @@ struct gk_source {
   struct gk_species_moment integ_moms; // Integrated moments.
   double *red_integ_diag, *red_integ_diag_global; // For reduction of integrated moments.
   gkyl_dynvec integ_diag; // Integrated moments reduced across grid.
-  gkyl_dynvec temp_diag, part_diag; // Src temperature and particle count diags.
   bool is_first_integ_write_call; // Flag for integrated moments dynvec written first time.
+  gkyl_dynvec temp_diag, part_diag; // Src temperature and particle count diags.
+  bool is_first_integ_write_call_adapt; // Flag for integrated moments dynvec written first time.
   struct gk_adapt_source adapt[GKYL_MAX_SOURCES]; // Adaptation source.
   int num_adapt_sources; // Number of adaptive sources.
   // Functions chosen at runtime.
@@ -902,9 +905,10 @@ struct gk_source_bgk {
   double norm_power; // Normalized power, 2*P/(vdim_phys*m).
   struct gkyl_array *rate; // Sourcing rate.
   struct gkyl_array *Jrate; // Sourcing rate times the conf-space Jacobian.
-  struct gkyl_array *vtsq_shape; // Spatial profile of the Maxwellian's v_t^2.
+  struct gkyl_array *vtsq_shape; // Spatial profile of the eq. Maxwellian's v_t^2.
   struct gkyl_array *Jrate_vtsq_shape; // Jrate times vtsq_shape.
-  struct gkyl_array *Jrate_fmax; // Jrate times the Maxwellian.
+  struct gkyl_array *Jrate_df; // Jrate times the difference between current and eq. distribution.
+  struct gkyl_proj_on_basis *proj_feq; // Operator to project the equilibrium distribution function.
   struct gkyl_array *Jrate_mom; // Jrate times a velocity moment.
   struct gkyl_array *Jrate_cap; // Max value for Jrate_mom.
   struct gkyl_array_integrate *vol_integ_op; // Volume integrator.
@@ -918,6 +922,7 @@ struct gk_source_bgk {
   bool implicit_step; // Whether or not to take an implcit BGK step.
   double dt_implicit; // Timestep used by the implicit collisions.
   struct gk_species_moment integ_mom_op; // Integrated moments.
+  double *int_mom_global; // Integrated moments reduced across grid.
   struct gk_species_moment correct_mom_op; // Correction moments.
   gkyl_dynvec vtsq_amp_diag; // Stores vtsq_amplitude for diagnostics.
   double *red_integ_diag, *red_integ_diag_global; // Reduced integrated moments.
@@ -928,6 +933,10 @@ struct gk_source_bgk {
     struct gk_source_bgk *src, const struct gkyl_array *fin, struct gkyl_array *rhs);
   void (*write_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_source_bgk *src, double tm, int frame);
+  void (*update_integrated_diags_rhs_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_source_bgk *src, double tm);
+  void (*update_integrated_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
+    struct gk_source_bgk *src, double tm);
   void (*calc_integrated_diags_func)(gkyl_gyrokinetic_app* app, struct gk_species *gks,
     struct gk_source_bgk *src, double tm);
   void (*write_integrated_diags_func)(gkyl_gyrokinetic_app *app, struct gk_species *gks,
@@ -1010,8 +1019,12 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O (e.g. int diags).
+  struct gkyl_msgpack_map_elem* io_meta_phase; // Metadata for I/O of phase grid quantities.
+  struct gkyl_msgpack_map_elem* io_meta_conf; // Metadata for I/O of conf grid quantities.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  int io_meta_phase_len; // Number of elements in io_meta_phase.
+  int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
@@ -1162,8 +1175,12 @@ struct gk_neut_species {
   struct gkyl_comm *comm;   // Communicator object for this species.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
 
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O (e.g. int diags).
+  struct gkyl_msgpack_map_elem* io_meta_phase; // Metadata for I/O of phase grid quantities.
+  struct gkyl_msgpack_map_elem* io_meta_conf; // Metadata for I/O of conf grid quantities.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  int io_meta_phase_len; // Number of elements in io_meta_phase.
+  int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *f_host; // Host array for initialization and I/O.
@@ -1364,8 +1381,9 @@ struct gk_field {
   void (*calc_energy_dt_func)(gkyl_gyrokinetic_app *app, const struct gk_field *field, double dt, double *energy_reduced);
 
   // Objects used in IWL simulations and TS BCs.
-  struct gkyl_bc_twistshift *bc_ts_lo; // Fills lower core z-ghost with TS BC.
+  struct gkyl_bc_twistshift *bc_ts_lo, *bc_ts_up;
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_up; // Fills upper core  z-ghost with skin  boundary value.
+  struct gkyl_bc_basic_gyrokinetic *gfss_bc_op_core_lo; // Fills lower core  z-ghost with skin  boundary value.
   struct gkyl_array *bc_buffer; // Buffer for bc_basic.
   
   // Pointer to functions that make phi continuous along z.
@@ -1454,7 +1472,12 @@ struct gkyl_gyrokinetic_app {
   struct gkyl_gk_dg_geom *gk_dg_geom;
   struct gkyl_array *jacobtot_inv_weak; // 1/(J.B) computed via weak mul and div.
   double omegaH_gf; // Geometry and field model dependent part of omega_H.
-  
+  // Shift (for TS BC) as a function of x, and objects associated with it.
+  struct gkyl_range delta_ts_x_rng;
+  struct gkyl_basis delta_ts_x_basis;
+  struct gkyl_rect_grid delta_ts_x_grid;
+  struct gkyl_array *delta_ts_x_lo, *delta_ts_x_up; // Should live on the host.
+
   struct gkyl_position_map *position_map; // Position mapping object.
 
   struct gk_field *field; // pointer to field object
@@ -1483,11 +1506,13 @@ struct gkyl_gyrokinetic_app {
 
   struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
-  struct gkyl_msgpack_map_elem* io_meta; // Metadata for I/O.
-  int io_meta_len; // Number of elements in io_meta.
+  struct gkyl_msgpack_map_elem* io_meta_dg; // Metadata for I/O of grid quantities.
+  int io_meta_dg_len; // Number of elements in io_meta_grid.
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
+  
+  bool is_multib; // Is this a block in a multiblock sim?
 };
 
 /** gkyl_gyrokinetic_app private API */
@@ -1528,8 +1553,22 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk);
  * @param gk Gyrokinetic input struct.
  * @param app Gyrokinetic app.
  */
-void
-gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
+void gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app);
+
+/**
+ * Deflate the shift used for twistshift BCs from 3D to 1D.
+ *
+ * @param app Gyrokinetic app object.
+ * @param delta_ts Shift in 3D array.
+ */
+void gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array *delta_ts);
+
+/**
+ * Write the twistshift shift.
+ *
+ * @param app Gyrokinetic app object.
+ */
+void gyrokinetic_app_write_ts_shift(gkyl_gyrokinetic_app* app);
 
 /**
  * Find species with given name.
