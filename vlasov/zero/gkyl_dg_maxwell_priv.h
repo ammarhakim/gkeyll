@@ -13,6 +13,7 @@
 
 // Types for various kernels
 typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq, const double *w, const double *dx,
+  const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r,
   const double *ql, const double *qc, const double *qr, double* GKYL_RESTRICT out);
 
 typedef double (*maxwell_surf_from_flux_t)(const double *w, const double *dx,
@@ -27,11 +28,20 @@ typedef struct { maxwell_surf_t kernels[4]; } gkyl_dg_maxwell_surf_kern_list;
 typedef struct { maxwell_gr_maxwell_vol_t kernels[4]; } gkyl_dg_maxwell_gr_maxwell_vol_kern_list;
 typedef struct { maxwell_surf_from_flux_t kernels[4]; } gkyl_dg_maxwell_surf_from_flux_kern_list;
 
+// Identity configuration-space Jacobian block used when no position map is
+// present (uniform grid): the curl kernels read jacob_pos[(poly_order+1)*dir],
+// which is 1 for the identity map, so this leaves them bit-identical to the
+// uniform-grid kernels. Sized for up to cdim=3, poly_order=3.
+static const double maxwell_jacob_pos_iden[12] = {
+  1.0,1.0,1.0,1.0, 1.0,1.0,1.0,1.0, 1.0,1.0,1.0,1.0
+};
+
 struct dg_maxwell {
-  struct gkyl_dg_eqn eqn; // Base object    
+  struct gkyl_dg_eqn eqn; // Base object
   gkyl_maxwell_inp maxwell_data; // Parameters needed by kernels
-  struct gkyl_range crange; // Configuration-space range for use in indexing conf_flux
-  
+  struct gkyl_range crange; // Configuration-space range for use in indexing conf_flux/jacob_pos
+  const struct gkyl_array *jacob_pos; // Configuration-space position-map Jacobian (borrowed); NULL => identity.
+
   maxwell_surf_t surf[3]; // pointers to surface kernels
   bool use_conf_flux_surf; // If using configuration-space fluxes for streaming terms (GR Maxwell).
   const struct gkyl_array *conf_flux_surf; // Nodal expansion of fluxes at configuration space surfaces. 
@@ -55,7 +65,9 @@ kernel_maxwell_vol_1x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_1x_ser_p1(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_1x_ser_p1(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -64,7 +76,9 @@ kernel_maxwell_vol_1x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_1x_ser_p2(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_1x_ser_p2(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -73,7 +87,9 @@ kernel_maxwell_vol_1x_ser_p3(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_1x_ser_p3(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_1x_ser_p3(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -82,7 +98,9 @@ kernel_maxwell_vol_2x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_2x_ser_p1(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_2x_ser_p1(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -91,7 +109,9 @@ kernel_maxwell_vol_2x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_2x_ser_p2(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_2x_ser_p2(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -100,7 +120,9 @@ kernel_maxwell_vol_2x_ser_p3(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_2x_ser_p3(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_2x_ser_p3(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -109,7 +131,9 @@ kernel_maxwell_vol_2x_tensor_p2(const struct gkyl_dg_eqn *eqn, const double* xc,
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_2x_tensor_p2(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_2x_tensor_p2(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -118,7 +142,9 @@ kernel_maxwell_vol_2x_tensor_p3(const struct gkyl_dg_eqn *eqn, const double* xc,
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_2x_tensor_p3(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_2x_tensor_p3(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -127,7 +153,9 @@ kernel_maxwell_vol_3x_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_3x_ser_p1(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_3x_ser_p1(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -136,7 +164,9 @@ kernel_maxwell_vol_3x_ser_p2(const struct gkyl_dg_eqn *eqn, const double* xc, co
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_3x_ser_p2(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_3x_ser_p2(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 GKYL_CU_DH
@@ -145,7 +175,9 @@ kernel_maxwell_vol_3x_tensor_p2(const struct gkyl_dg_eqn *eqn, const double* xc,
   const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
 {
   struct dg_maxwell *maxwell = container_of(eqn, struct dg_maxwell, eqn);
-  return maxwell_vol_3x_tensor_p2(&maxwell->maxwell_data, xc, dx, qIn, qRhsOut);
+  long cidx = gkyl_range_idx(&maxwell->crange, idx);
+  const double *jacob_pos_d = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx) : maxwell_jacob_pos_iden;
+  return maxwell_vol_3x_tensor_p2(&maxwell->maxwell_data, xc, dx, jacob_pos_d, qIn, qRhsOut);
 }
 
 // Volume kernel list (Serendipity basis)
@@ -354,8 +386,18 @@ surf(const struct gkyl_dg_eqn *eqn,
       conf_flux_surf_l, conf_flux_surf_r, qRhsOut);
   }
   else {
+    // Position-map Jacobian of the left, center, and right cells; the surface
+    // kernel divides each side's stored J*field by its own normal-direction
+    // Jacobian to recover the physical field for the interface flux. NULL map
+    // => identity (uniform grid), bit-identical to before.
+    long cidxL = gkyl_range_idx(&maxwell->crange, idxL);
+    long cidxC = gkyl_range_idx(&maxwell->crange, idxC);
+    long cidxR = gkyl_range_idx(&maxwell->crange, idxR);
+    const double *jpl = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidxL) : maxwell_jacob_pos_iden;
+    const double *jpc = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidxC) : maxwell_jacob_pos_iden;
+    const double *jpr = maxwell->jacob_pos ? (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidxR) : maxwell_jacob_pos_iden;
     return maxwell->surf[dir](&maxwell->maxwell_data, xcC, dxC,
-      qInL, qInC, qInR, qRhsOut);
+      jpl, jpc, jpr, qInL, qInC, qInR, qRhsOut);
   }
 }
 

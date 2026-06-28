@@ -132,6 +132,8 @@ struct vm_field {
 
   struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
   bool use_lax; // Boolean for determining if we are using lax fluxes for dg-gr-maxwell
+  bool weight_by_pos_jacob; // True for the standard E_B Maxwell field on a non-identity position map:
+                            // em stores J*E, J*B; em_no_J holds the physical E, B for force/I/O.
   struct gkyl_array *em_no_J; // arrays for storing em field without Jc
   struct gkyl_array *em_no_J_host; // host copy of primitive GR fields for I/O
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces

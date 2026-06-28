@@ -216,7 +216,8 @@ struct vm_collisionless {
   bool use_extended_hamil_def; // bool to determine if we are using the extended hamil defintions which includes potentials
 
   double qbym; // Charge (q) divided by mass (m).
-  struct gkyl_array *qmem; // array for q/m*(E,B) 
+  struct gkyl_array *qmem; // array for q/m*(E,B)
+  struct gkyl_array *em_no_J; // physical E,B (stored field J*E,J*B divided by the conf Jacobian) for the Lorentz force on a mapped grid
   struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
   bool has_E; // Do we have electric fields? 
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?

@@ -208,3 +208,17 @@ void gkyl_vlasov_position_map_rescale_jacobpos(const struct gkyl_vlasov_position
 void gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
   const struct gkyl_range *conf_range, int num_coeff_divide,
   const struct gkyl_array *Jmom, struct gkyl_array *mom_no_J);
+
+/**
+ * Multiply every component of a configuration-space field by the per-cell
+ * constant total conf Jacobian J (host-side). Inverse of the full-component
+ * divide; used to convert a physical conf field to the J-weighted form used for
+ * evolution, e.g. E -> J*E for the Vlasov-Maxwell field at IC/restart.
+ *
+ * @param vpm Position map object.
+ * @param conf_range Configuration-space range to update.
+ * @param a_no_J Input physical configuration-space field.
+ * @param Ja Output J-weighted configuration-space field.
+ */
+void gkyl_vlasov_position_map_rescale_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
+  const struct gkyl_range *conf_range, const struct gkyl_array *a_no_J, struct gkyl_array *Ja);

@@ -963,6 +963,13 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
         gkyl_dg_gr_maxwell_rescale_Jc(&app->basis, &app->local_ext, app->vm_geom->det_h,
           app->field->em_no_J, app->field->em, app->use_gpu);
       }
+      else if (app->field->weight_by_pos_jacob) {
+        // Restart files hold the physical E, B; rescale to the evolved J*E, J*B on
+        // the interior (BCs re-fill the ghost cells below).
+        gkyl_array_copy(app->field->em_no_J, app->field->em_host);
+        gkyl_vlasov_position_map_rescale_jacobpos_conf(app->pos_map, &app->local,
+          app->field->em_no_J, app->field->em);
+      }
 
       vm_field_apply_bc(app, app->field, app->field->em);
     }

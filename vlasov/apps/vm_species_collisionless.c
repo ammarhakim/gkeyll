@@ -21,7 +21,15 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
   }
 
   if (vms->field_id == GKYL_FIELD_E_B || vms->field_id == GKYL_FIELD_GR_D_B) {
-    gkyl_array_accumulate_range(cls->qmem, cls->qbym, em, &app->local);
+    // The Lorentz force uses the physical E, B. On a mapped grid the field stores
+    // J*E, J*B, so divide out the conf Jacobian first (identity map => no buffer).
+    const struct gkyl_array *em_force = em;
+    if (cls->em_no_J) {
+      gkyl_vlasov_position_map_divide_jacobpos_conf(vms->pos_map, &app->local,
+        cls->em_no_J->ncomp, em, cls->em_no_J);
+      em_force = cls->em_no_J;
+    }
+    gkyl_array_accumulate_range(cls->qmem, cls->qbym, em_force, &app->local);
   }
   else if (vms->field_id == GKYL_FIELD_PHI) {
     gkyl_array_set_offset(cls->pot_tot, cls->qbym, app->field->phi, 0);
@@ -72,6 +80,11 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   cls->qbym = vms->info.charge/vms->info.mass;
   cls->qmem = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
   cls->pot_tot = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);
+  // Buffer for the physical E, B (field stores J*E, J*B on a mapped grid) used in
+  // the Lorentz force; only allocated when the standard Maxwell field is on a
+  // non-identity position map.
+  cls->em_no_J = ((vms->field_id == GKYL_FIELD_E_B) && (!vms->pos_map->is_identity)) ?
+    mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume) : 0;
 
   // Initialize applied acceleration for use in force update. 
   cls->app_accel = mkarr(app->use_gpu, 3*app->basis.num_basis, app->local_ext.volume);
@@ -270,7 +283,8 @@ vm_species_collisionless_release(const struct gkyl_vlasov_app *app,
     gkyl_array_release(cls->conf_flux_surf);
   }
   gkyl_dg_vlasov_vel_flux_surf_release(cls->calc_vel_flux);
-  gkyl_array_release(cls->qmem); 
+  gkyl_array_release(cls->qmem);
+  if (cls->em_no_J) gkyl_array_release(cls->em_no_J); 
   gkyl_array_release(cls->pot_tot); 
   gkyl_array_release(cls->app_accel);
   if (cls->has_app_accel) {

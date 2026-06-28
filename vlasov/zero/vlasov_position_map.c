@@ -281,14 +281,18 @@ gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *vpm,
   struct gkyl_basis b1;
   gkyl_cart_modal_tensor(&b1, 1, 3);
 
-  // Find the index of the cell containing xc.
+  // Find the index of the (interior) cell containing xc. grid_pos.lower is the
+  // interior lower edge, so the base must be the interior range's lower index
+  // (mirrors gkyl_vlasov_velocity_map_eval_c2p, which uses local_vel). Using the
+  // extended range's lower here would shift every cell into its lower neighbour
+  // (the first interior cell would resolve to the lower ghost). Coordinates in
+  // the ghost region clamp to the nearest interior cell, so they pick up the
+  // skin cell's map (the ghost-copies-skin convention).
   int idx_xc[GKYL_MAX_CDIM];
   for (int d=0; d<cdim; ++d) {
-    int idx = vpm->local_ext_pos.lower[d] + (int) floor((xc[d] - vpm->grid_pos.lower[d])/vpm->grid_pos.dx[d]);
-    // Bound to the (extended) range the arrays are defined on. If it falls
-    // outside that is due to floating-point arithmetic, or due to an error.
-    idx = GKYL_MIN2(idx, vpm->local_ext_pos.upper[d]);
-    idx = GKYL_MAX2(idx, vpm->local_ext_pos.lower[d]);
+    int idx = vpm->local_pos.lower[d] + (int) floor((xc[d] - vpm->grid_pos.lower[d])/vpm->grid_pos.dx[d]);
+    idx = GKYL_MIN2(idx, vpm->local_pos.upper[d]);
+    idx = GKYL_MAX2(idx, vpm->local_pos.lower[d]);
     idx_xc[d] = idx;
   }
 
@@ -441,6 +445,33 @@ gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_
       mom_no_J_d[k] = jacob_inv*Jmom_d[k];
     for (int k=num_coeff_divide; k<ncomp; ++k)
       mom_no_J_d[k] = Jmom_d[k];
+  }
+}
+
+void
+gkyl_vlasov_position_map_rescale_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
+  const struct gkyl_range *conf_range, const struct gkyl_array *a_no_J, struct gkyl_array *Ja)
+{
+  // Host-side multiplication of a configuration-space field (e.g. the EM field)
+  // by the per-cell constant total conf Jacobian J. Inverse of
+  // gkyl_vlasov_position_map_divide_jacobpos_conf with the full component count;
+  // converts a physical conf field to the J-weighted form used for evolution
+  // (e.g. E -> J*E at initialization/restart). Exact (J constant in cell).
+  int ncomp = a_no_J->ncomp;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx_jac = gkyl_range_idx(&vpm->local_pos, iter.idx);
+    long cidx_a = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *jacob_pos_gauss_d = gkyl_array_cfetch(vpm->jacob_pos_gauss_host, cidx_jac);
+    double jacob = jacob_pos_gauss_d[0];
+    const double *a_no_J_d = gkyl_array_cfetch(a_no_J, cidx_a);
+    double *Ja_d = gkyl_array_fetch(Ja, cidx_a);
+    for (int k=0; k<ncomp; ++k)
+      Ja_d[k] = jacob*a_no_J_d[k];
   }
 }
 
