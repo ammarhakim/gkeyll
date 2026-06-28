@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include <float.h>
+#include <math.h>
 #include <time.h>
 
 struct vm_field*
@@ -32,14 +33,57 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   // Create global subrange we'll copy the field solver solution from (into local).
   int intersect = gkyl_sub_range_intersect(&vpf->global_sub_range, &app->global, &app->local);
 
-  // Set the permittivity in the Poisson equation.
-  vpf->epsilon = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-  gkyl_array_clear(vpf->epsilon, 0.0);
-  gkyl_array_shiftc(vpf->epsilon, vpf->info.epsilon0*pow(sqrt(2.0),app->cdim), 0);
+  // Set the permittivity in the Poisson equation. On a uniform grid (identity
+  // position map) this is the constant scalar epsilon0. On a non-uniform conf
+  // mesh it is the diagonal metric permittivity tensor
+  //   eps^{ii} = epsilon0 * J / J_xi^2   (off-diagonals 0, diagonal position map)
+  // with J = prod_i J_xi the total conf Jacobian (per cell constant). This makes
+  // the weak Poisson operator int eps^{ij} d_i(phi) d_j(psi) dxi equal the
+  // physical int epsilon0 grad(phi).grad(psi) dx; the RHS rho_c already carries J.
+  int cdim = app->cdim, nb = app->basis.num_basis;
+  double dg0 = pow(sqrt(2.0), cdim); // 0th DG coeff representing a constant value.
+  bool eps_const = app->pos_map->is_identity;
+  // Symmetric permittivity tensor component count: 1x->1, 2x->3, 3x->6.
+  int epsnum = eps_const ? 1 : cdim + (int) ceil((pow(3.0, cdim-1) - cdim)/2.0);
 
-  // Create Poisson solver.
+  vpf->epsilon = mkarr(app->use_gpu, epsnum*nb, app->global_ext.volume);
+  gkyl_array_clear(vpf->epsilon, 0.0);
+  if (eps_const) {
+    gkyl_array_shiftc(vpf->epsilon, vpf->info.epsilon0*dg0, 0);
+  }
+  else {
+    // Build the local diagonal tensor from the position map, then allgather to
+    // the global array the FEM solver reads (mirrors the rho_c allgather).
+    struct gkyl_array *eps_local = mkarr(app->use_gpu, epsnum*nb, app->local_ext.volume);
+    struct gkyl_array *eps_local_ho = app->use_gpu ? mkarr(false, epsnum*nb, app->local_ext.volume)
+                                                   : gkyl_array_acquire(eps_local);
+    gkyl_array_clear(eps_local_ho, 0.0);
+    int stride = app->basis.poly_order + 1; // per-direction block stride in jacob_pos.
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &app->local);
+    while (gkyl_range_iter_next(&iter)) {
+      long cidx = gkyl_range_idx(&app->local, iter.idx);
+      const double *jacob_pos = gkyl_array_cfetch(app->pos_map->jacob_pos_host, cidx);
+      const double *jacob_pos_gauss = gkyl_array_cfetch(app->pos_map->jacob_pos_gauss_host, cidx);
+      double Jtot = jacob_pos_gauss[0];
+      double *eps_d = gkyl_array_fetch(eps_local_ho, cidx);
+      for (int i=0; i<cdim; ++i) {
+        double Jxi = jacob_pos[i*stride];
+        int diag = i*cdim - (i*(i-1))/2; // index of (i,i) in symmetric upper-triangular storage.
+        eps_d[diag*nb] = vpf->info.epsilon0 * Jtot/(Jxi*Jxi) * dg0;
+      }
+    }
+    if (app->use_gpu) {
+      gkyl_array_copy(eps_local, eps_local_ho);
+    }
+    gkyl_comm_array_allgather(app->comm, &app->local, &app->global, eps_local, vpf->epsilon);
+    gkyl_array_release(eps_local);
+    gkyl_array_release(eps_local_ho);
+  }
+
+  // Create Poisson solver (variable permittivity when the conf mesh is mapped).
   vpf->fem_poisson = gkyl_fem_poisson_new(&app->global, &app->grid, app->basis,
-    &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, true, app->use_gpu);
+    &vpf->info.poisson_bcs, NULL, vpf->epsilon, NULL, eps_const, app->use_gpu);
 
   vpf->field_id = GKYL_FIELD_PHI;
 
