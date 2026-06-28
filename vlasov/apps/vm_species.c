@@ -750,6 +750,21 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, doubl
       gkyl_array_copy(vms->moms[m].marr_host, vms->moms[m].marr);
     }
 
+    // Moments of the stored J_x J_v f carry the configuration-space Jacobian J
+    // (it factors out of the velocity integral). Divide it out so the written
+    // moment field is physical. The map is C^0 linear, so this is an exact
+    // per-cell scalar division. For the LTE moment diagnostic (n, V_drift, T/m)
+    // only the density n (the first num_basis coefficients) carries J; V_drift
+    // and T/m are velocity ratios in which J cancels, so they are left alone.
+    // Pure moments (M0, M1i, M2, ...) carry J in every component. (Identity
+    // map: skip, leaving output unchanged.)
+    if (!vms->pos_map->is_identity) {
+      int num_coeff_divide = vms->moms[m].is_vlasov_lte_moms ?
+        app->basis.num_basis : vms->moms[m].marr_host->ncomp;
+      gkyl_vlasov_position_map_divide_jacobpos_conf(vms->pos_map, &app->local,
+        num_coeff_divide, vms->moms[m].marr_host, vms->moms[m].marr_host);
+    }
+
     const char *fmt = "%s-%s_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);

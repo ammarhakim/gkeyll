@@ -183,3 +183,28 @@ void gkyl_vlasov_position_map_divide_jacobpos(const struct gkyl_vlasov_position_
 void gkyl_vlasov_position_map_rescale_jacobpos(const struct gkyl_vlasov_position_map *vpm,
   const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
   const struct gkyl_array *f_no_J, struct gkyl_array *Jf);
+
+/**
+ * Divide the leading components of a configuration-space field (e.g. a velocity
+ * moment) by the per-cell constant total conf Jacobian J. Moments of the stored
+ * J_x J_v f carry J (the J_x factors out of the velocity integral), so this
+ * converts them to physical moments for I/O. Operates on HOST arrays over the
+ * configuration range (moment I/O is host-side).
+ *
+ * Only the first num_coeff_divide coefficients of each cell are scaled by 1/J;
+ * the remaining coefficients are copied through unchanged. This supports
+ * derived moment diagnostics (e.g. the LTE moments n, V_drift, T/m) where only
+ * the extensive density n (the first num_basis coefficients) carries J while
+ * the intensive V_drift and T/m are velocity ratios in which J cancels. For
+ * pure moments (M0, M1i, M2, ...) every component carries J, so pass the full
+ * component count (mom->ncomp).
+ *
+ * @param vpm Position map object.
+ * @param conf_range Configuration-space range to update.
+ * @param num_coeff_divide Number of leading coefficients per cell to divide by J.
+ * @param Jmom Input configuration-space field carrying the conf Jacobian weight.
+ * @param mom_no_J Output configuration-space field with the conf Jacobian divided out.
+ */
+void gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
+  const struct gkyl_range *conf_range, int num_coeff_divide,
+  const struct gkyl_array *Jmom, struct gkyl_array *mom_no_J);

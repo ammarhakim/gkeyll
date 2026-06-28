@@ -24,6 +24,17 @@
 #include <gkyl_vlasov.h>
 
 struct vm_geom; // geometry data, defined in gkyl_vlasov_priv.h, owned by the app.
+struct gkyl_vlasov_position_map; // configuration-space position map, defined in zero/, owned by the app.
+
+// Coordinate-map context for projecting external fields/potentials on a
+// non-uniform configuration mesh: the projection's computational quadrature
+// coordinates are mapped to physical ones via the position map before the
+// user-supplied function is evaluated. Identity map -> identity c2p (transparent
+// for uniform grids). Lives in the field struct so it outlives the projection
+// objects that capture a pointer to it.
+struct vm_field_proj_c2p_ctx {
+  const struct gkyl_vlasov_position_map *pos_map; // configuration-space position map.
+};
 
 // field data
 struct vm_field {
@@ -144,6 +155,7 @@ struct vm_field {
   struct gkyl_array *ext_pot; // external potentials
   struct gkyl_array *ext_pot_host; // host copy for use in IO and projecting
   gkyl_eval_on_nodes *ext_pot_proj; // projector for external potentials
+  struct vm_field_proj_c2p_ctx ext_c2p_ctx; // comp->phys map for external-field projection on mapped grids
 
   gkyl_dynvec integ_energy; // integrated energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time

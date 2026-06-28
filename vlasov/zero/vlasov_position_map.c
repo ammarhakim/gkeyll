@@ -411,6 +411,39 @@ gkyl_vlasov_position_map_rescale_jacobpos(const struct gkyl_vlasov_position_map 
   }
 }
 
+void
+gkyl_vlasov_position_map_divide_jacobpos_conf(const struct gkyl_vlasov_position_map *vpm,
+  const struct gkyl_range *conf_range, int num_coeff_divide,
+  const struct gkyl_array *Jmom, struct gkyl_array *mom_no_J)
+{
+  // Host-side division of a configuration-space field (e.g. a velocity moment)
+  // by the per-cell constant total conf Jacobian. Moments of the stored
+  // J_x J_v f carry J (the conf Jacobian factors out of the velocity integral),
+  // so dividing by it yields physical moments for I/O. The map is C^0 linear so
+  // J is constant in the cell and the division is exact. Only the first
+  // num_coeff_divide coefficients are scaled (the J-carrying components); the
+  // rest are copied through (intensive/ratio components, e.g. LTE V_drift, T/m).
+  // Uses the host Jacobian since moment I/O is host-side.
+  int ncomp = Jmom->ncomp;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, conf_range);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx_jac = gkyl_range_idx(&vpm->local_pos, iter.idx);
+    long cidx_mom = gkyl_range_idx(conf_range, iter.idx);
+
+    const double *jacob_pos_gauss_d = gkyl_array_cfetch(vpm->jacob_pos_gauss_host, cidx_jac);
+    double jacob_inv = 1.0/jacob_pos_gauss_d[0];
+    const double *Jmom_d = gkyl_array_cfetch(Jmom, cidx_mom);
+    double *mom_no_J_d = gkyl_array_fetch(mom_no_J, cidx_mom);
+    for (int k=0; k<num_coeff_divide; ++k)
+      mom_no_J_d[k] = jacob_inv*Jmom_d[k];
+    for (int k=num_coeff_divide; k<ncomp; ++k)
+      mom_no_J_d[k] = Jmom_d[k];
+  }
+}
+
 struct gkyl_vlasov_position_map*
 gkyl_vlasov_position_map_acquire(const struct gkyl_vlasov_position_map *vpm)
 {
