@@ -1000,8 +1000,13 @@ gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
       gkyl_vlasov_velocity_map_rescale_jacobvel(vms->vel_map, &app->basis, &vms->basis,
         &vms->local, vms->f, vms->f_no_J);
       gkyl_array_copy(vms->f, vms->f_no_J);
-      
-      if (vms->calc_bflux) {                                                                
+      // Also rescale by the configuration-space Jacobian since the output
+      // distribution does not include it either (stored f is J_x*J_v*f).
+      gkyl_vlasov_position_map_rescale_jacobpos(vms->pos_map, &vms->basis,
+        &vms->local, vms->f, vms->f_no_J);
+      gkyl_array_copy(vms->f, vms->f_no_J);
+
+      if (vms->calc_bflux) {
         vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
       }
       vm_species_apply_bc(app, vms, vms->f, rstat.stime);

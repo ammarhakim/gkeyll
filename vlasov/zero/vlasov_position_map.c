@@ -1,5 +1,6 @@
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -182,6 +183,7 @@ gkyl_vlasov_position_map_new(const struct gkyl_rect_grid *cgrid, const struct gk
   // indexing of the local phase range); it is a sub-range of crange_ext and
   // shares its layout, so it indexes the (extended) arrays correctly.
   vpm->local_pos = *crange;
+  vpm->local_ext_pos = *crange_ext;
   vpm->basis_pos = *conf_basis;
 
   vpm->is_identity = true;
@@ -265,6 +267,42 @@ bool
 gkyl_vlasov_position_map_is_cu_dev(const struct gkyl_vlasov_position_map *vpm)
 {
   return GKYL_IS_CU_ALLOC(vpm->flags);
+}
+
+void
+gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *vpm,
+  const double *xc, double *xp)
+{
+  // Evaluate the stored (DG) position map at the computational coordinate xc.
+  // The map is stored per direction in the degenerate-cubic 4-slot layout, so a
+  // 1D p=3 modal basis evaluates each direction's expansion (linear here: only
+  // the first two modes are nonzero). Mirrors gkyl_velocity_map_eval_c2p.
+  int cdim = vpm->grid_pos.ndim;
+  struct gkyl_basis b1;
+  gkyl_cart_modal_tensor(&b1, 1, 3);
+
+  // Find the index of the cell containing xc.
+  int idx_xc[GKYL_MAX_CDIM];
+  for (int d=0; d<cdim; ++d) {
+    int idx = vpm->local_ext_pos.lower[d] + (int) floor((xc[d] - vpm->grid_pos.lower[d])/vpm->grid_pos.dx[d]);
+    // Bound to the (extended) range the arrays are defined on. If it falls
+    // outside that is due to floating-point arithmetic, or due to an error.
+    idx = GKYL_MIN2(idx, vpm->local_ext_pos.upper[d]);
+    idx = GKYL_MAX2(idx, vpm->local_ext_pos.lower[d]);
+    idx_xc[d] = idx;
+  }
+
+  // Fetch DG coefficients of the position map in idx_xc.
+  long lidx_xc = gkyl_range_idx(&vpm->local_ext_pos, idx_xc);
+  const double *pmap_c = gkyl_array_cfetch(vpm->pmap_host, lidx_xc);
+
+  double xc_cc[GKYL_MAX_CDIM];
+  gkyl_rect_grid_cell_center(&vpm->grid_pos, idx_xc, xc_cc);
+  for (int d=0; d<cdim; ++d) {
+    // Convert computational to logical coord, then evaluate the expansion.
+    double xlog = (xc[d] - xc_cc[d])/(0.5*vpm->grid_pos.dx[d]);
+    xp[d] = b1.eval_expand(&xlog, &pmap_c[d*4]);
+  }
 }
 
 void

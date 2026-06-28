@@ -1,5 +1,6 @@
 #include <string.h>
 #include <assert.h>
+#include <math.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -365,6 +366,39 @@ bool
 gkyl_vlasov_velocity_map_is_cu_dev(const struct gkyl_vlasov_velocity_map *vvm)
 {
   return GKYL_IS_CU_ALLOC(vvm->flags);
+}
+
+void
+gkyl_vlasov_velocity_map_eval_c2p(const struct gkyl_vlasov_velocity_map *vvm,
+  const double *vc, double *vp)
+{
+  // Evaluate the stored (DG) velocity map at the computational velocity vc. The
+  // map is stored per direction in the 4-slot (cubic) layout, so a 1D p=3 modal
+  // basis evaluates each direction's expansion.
+  int vdim = vvm->grid_vel.ndim;
+  struct gkyl_basis b1;
+  gkyl_cart_modal_tensor(&b1, 1, 3);
+
+  // Find the index of the cell containing vc.
+  int idx_vc[GKYL_MAX_VDIM];
+  for (int d=0; d<vdim; ++d) {
+    int idx = vvm->local_vel.lower[d] + (int) floor((vc[d] - vvm->grid_vel.lower[d])/vvm->grid_vel.dx[d]);
+    idx = GKYL_MIN2(idx, vvm->local_vel.upper[d]);
+    idx = GKYL_MAX2(idx, vvm->local_vel.lower[d]);
+    idx_vc[d] = idx;
+  }
+
+  // Fetch DG coefficients of the velocity map in idx_vc.
+  long lidx_vc = gkyl_range_idx(&vvm->local_vel, idx_vc);
+  const double *vmap_c = gkyl_array_cfetch(vvm->vmap_host, lidx_vc);
+
+  double vc_cc[GKYL_MAX_VDIM];
+  gkyl_rect_grid_cell_center(&vvm->grid_vel, idx_vc, vc_cc);
+  for (int d=0; d<vdim; ++d) {
+    // Convert computational to logical coord, then evaluate the expansion.
+    double vlog = (vc[d] - vc_cc[d])/(0.5*vvm->grid_vel.dx[d]);
+    vp[d] = b1.eval_expand(&vlog, &vmap_c[d*4]);
+  }
 }
 
 void

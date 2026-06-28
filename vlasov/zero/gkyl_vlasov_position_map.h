@@ -49,7 +49,8 @@ struct gkyl_vlasov_position_map_inp {
 // safety) and unpack raw device pointers inside their _cu.cu initialization.
 struct gkyl_vlasov_position_map {
   struct gkyl_rect_grid grid_pos; // Configuration-space grid.
-  struct gkyl_range local_pos; // Configuration-space range the arrays are defined on.
+  struct gkyl_range local_pos; // Interior configuration-space range (I/O sub-range; conf indexing of the local phase range).
+  struct gkyl_range local_ext_pos; // Extended configuration-space range the arrays are actually defined on (includes ghost cells).
   struct gkyl_basis basis_pos; // Configuration-space basis (b_type and poly_order drive consumers).
   bool is_identity; // True if no user mapping was given in any direction.
 
@@ -120,6 +121,20 @@ void gkyl_vlasov_position_map_release(const struct gkyl_vlasov_position_map *vpm
  * @return True if the solver arrays live on device.
  */
 bool gkyl_vlasov_position_map_is_cu_dev(const struct gkyl_vlasov_position_map *vpm);
+
+/**
+ * Evaluate the (DG) computational-to-physical configuration-space map at a
+ * computational coordinate. Used as the c2p coordinate transform when
+ * projecting initial conditions / sources on a non-uniform conf mesh, so the
+ * projection samples the user function at the same physical coordinates the
+ * solver kernels assume. Host-side only (uses the host map array).
+ *
+ * @param vpm Position map object.
+ * @param xc Computational configuration-space coordinate (cdim components).
+ * @param xp On output, the physical configuration-space coordinate (cdim components).
+ */
+void gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *vpm,
+  const double *xc, double *xp);
 
 /**
  * Write the position map to %s-%s_pmap.gkyl and, if write_cell_avg, its cell

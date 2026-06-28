@@ -140,9 +140,19 @@ struct vm_species_moment {
 // forward declare species struct
 struct vm_species;
 
+// Context for the computational->physical coordinate transform (c2p) used when
+// projecting on non-uniform meshes: configuration coords are mapped by the
+// position map, velocity coords (for phase-space projections) by the velocity map.
+struct vm_proj_c2p_ctx {
+  int cdim; // number of configuration-space dimensions
+  const struct gkyl_vlasov_position_map *pos_map; // configuration-space map
+  const struct gkyl_vlasov_velocity_map *vel_map; // velocity-space map
+};
+
 struct vm_proj {
   enum gkyl_projection_id proj_id; // type of projection
   enum gkyl_model_id model_id;
+  struct vm_proj_c2p_ctx c2p_ctx; // coordinate-map context for projections (captured by proj_on_basis)
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
