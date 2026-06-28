@@ -7,12 +7,13 @@
 #include <gkyl_eqn_type.h>
 #include <gkyl_vlasov_kernels.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
 // Types for various kernels
-typedef void (*hamil_vol_t)(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out);
+typedef void (*hamil_vol_t)(const double *w, const double *dxv,
+  const double *jacob_vel, const double *jacob_pos, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*E_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *qmem, const double *f, double* GKYL_RESTRICT out);
@@ -26,12 +27,14 @@ typedef void (*B_vol_t)(const double *w, const double *dxv,
 typedef void (*rad_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *rad, const double *f, double* GKYL_RESTRICT out);
 
-typedef double (*vlasov_stream_surf_t)(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
+typedef double (*vlasov_stream_surf_t)(const double *w, const double *dxv,
+  const double *jacob_vel, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r,
+  const double *poisson_tensor_conf, const double *hamil,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
-typedef double (*vlasov_stream_boundary_surf_t)(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
+typedef double (*vlasov_stream_boundary_surf_t)(const double *w, const double *dxv,
+  const double *jacob_vel, const double *jacob_pos_edge, const double *jacob_pos_skin,
+  const double *poisson_tensor_conf, const double *hamil,
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_stream_surf_from_flux_t)(const double *w, const double *dxv,
@@ -86,6 +89,8 @@ struct dg_vlasov {
   struct gkyl_range phase_range; // Range for indexing velocity-space flux.
   const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired host-side for lifetime safety; 0 if not given).
   const struct gkyl_array *jacob_vel; // Velocity-space Jacobian (borrowed from vel_map; device pointer on GPUs).
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (acquired host-side for lifetime safety; 0 if not given).
+  const struct gkyl_array *jacob_pos; // Configuration-space (position-map) Jacobian, per-conf-cell constant (borrowed from pos_map; device pointer on GPUs; defined on the extended conf range).
   const struct gkyl_array *poisson_tensor_conf; // Hamiltonian utilized to compute advection in configuration and velocity space.
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).
@@ -137,16 +142,18 @@ no_rad_vol(const double *w, const double *dxv,
 
 GKYL_CU_DH
 static double
-no_stream_surf(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
+no_stream_surf(const double *w, const double *dxv,
+  const double *jacob_vel, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r,
+  const double *poisson_tensor_conf, const double *hamil,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out)
 {
   return 0.0;
 }
 GKYL_CU_DH
-static double 
-no_stream_boundary_surf(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
+static double
+no_stream_boundary_surf(const double *w, const double *dxv,
+  const double *jacob_vel, const double *jacob_pos_edge, const double *jacob_pos_skin,
+  const double *poisson_tensor_conf, const double *hamil,
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out)
 {
   return 0.0;
@@ -178,11 +185,12 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
   long hidx = gkyl_range_idx(&vlasov->hamil_range, idx_hamil);
   long pidx = gkyl_range_idx(&vlasov->phase_range, idx);
 
-  vlasov->hamil_vol(xc, dx, 
+  vlasov->hamil_vol(xc, dx,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx), 
-    (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
-    qIn, qRhsOut); 
+    vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
+    (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
+    (const double*) gkyl_array_cfetch(vlasov->hamil, hidx),
+    qIn, qRhsOut);
   vlasov->E_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
@@ -1311,11 +1319,18 @@ surf(const struct gkyl_dg_eqn *eqn,
   }
 
   if (dir < vlasov->cdim) {
-    int idx_conf[GKYL_MAX_DIM];
+    int idx_conf[GKYL_MAX_DIM], idx_confL[GKYL_MAX_DIM], idx_confR[GKYL_MAX_DIM];
     for (int i=0; i<vlasov->cdim; ++i) {
       idx_conf[i] = idxC[i];
+      idx_confL[i] = idxL[i];
+      idx_confR[i] = idxR[i];
     }
     long cidx = gkyl_range_idx(&vlasov->conf_range, idx_conf);
+    // Conf indices of the left/center/right cells: a conf-space surface
+    // separates different conf cells, so the streaming kernel needs each cell's
+    // (per-cell constant) position-map Jacobian.
+    long cidxL = gkyl_range_idx(&vlasov->conf_range, idx_confL);
+    long cidxR = gkyl_range_idx(&vlasov->conf_range, idx_confR);
 
     int idx_vel[GKYL_MAX_DIM];
     for (int i=0; i<vlasov->pdim-vlasov->cdim; ++i) {
@@ -1340,10 +1355,13 @@ surf(const struct gkyl_dg_eqn *eqn,
         conf_flux_surf_l, conf_flux_surf_r, qRhsOut);
     }
     else {
-      return vlasov->stream_surf[dir](xcC, dxC, 
+      return vlasov->stream_surf[dir](xcC, dxC,
         vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
-        (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx), 
-        (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
+        vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidxL) : 0,
+        vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
+        vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidxR) : 0,
+        (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
+        (const double*) gkyl_array_cfetch(vlasov->hamil, hidx),
         qInL, qInC, qInR, qRhsOut);
     }
   }
@@ -1376,11 +1394,14 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
   }
 
   if (dir < vlasov->cdim) {
-    int idx_conf[GKYL_MAX_DIM];
+    int idx_conf[GKYL_MAX_DIM], idx_conf_edge[GKYL_MAX_DIM];
     for (int i=0; i<vlasov->cdim; ++i) {
       idx_conf[i] = idxSkin[i];
+      idx_conf_edge[i] = idxEdge[i];
     }
     long cidx = gkyl_range_idx(&vlasov->conf_range, idx_conf);
+    // Conf index of the edge (ghost) cell for its position-map Jacobian.
+    long cidx_edge = gkyl_range_idx(&vlasov->conf_range, idx_conf_edge);
 
     int idx_vel[GKYL_MAX_DIM];
     for (int i=0; i<vlasov->pdim-vlasov->cdim; ++i) {
@@ -1413,6 +1434,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     else {
       return vlasov->stream_boundary_surf[dir](xcSkin, dxSkin,
         vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
+        vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx_edge) : 0,
+        vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
         (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
         (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), edge, qInEdge, qInSkin, qRhsOut);
     } 

@@ -29,6 +29,9 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   if (vlasov->vel_map) {
     gkyl_vlasov_velocity_map_release(vlasov->vel_map);
   }
+  if (vlasov->pos_map) {
+    gkyl_vlasov_position_map_release(vlasov->pos_map);
+  }
   if (vlasov->use_conf_flux_surf) {
     gkyl_array_release(vlasov->conf_flux_surf);
   }
@@ -86,6 +89,11 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
     // Borrowed pointer; kept alive by the acquired vel_map.
     vlasov->jacob_vel = inp->vel_map->jacob_vel;
   }
+  // The position map is required: it provides the (per-conf-cell constant)
+  // configuration-space Jacobian used to transform the streaming term.
+  assert(inp->pos_map);
+  vlasov->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  vlasov->jacob_pos = inp->pos_map->jacob_pos; // Borrowed; kept alive by the acquired pos_map.
   vlasov->poisson_tensor_conf = gkyl_array_acquire(inp->poisson_tensor_conf); 
   vlasov->hamil = gkyl_array_acquire(inp->hamil); 
   vlasov->qmem = gkyl_array_acquire(inp->qmem); 

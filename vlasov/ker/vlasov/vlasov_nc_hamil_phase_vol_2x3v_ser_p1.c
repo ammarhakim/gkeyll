@@ -11,7 +11,7 @@ GKYL_CU_DH static inline void zero_pb_list(double *pb_list)
 } 
   
 GKYL_CU_DH void vlasov_nc_hamil_phase_vol_2x3v_ser_p1(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+  const double *jacob_vel, const double *jacob_pos, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double alphai[32] = {0.0}; 
   double bracket_w_Hi[32] = {0.0}; 
