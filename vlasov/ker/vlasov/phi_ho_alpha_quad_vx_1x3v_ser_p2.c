@@ -1,10 +1,12 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *phi, double* GKYL_RESTRICT alpha_quad) 
+GKYL_CU_DH void phi_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad) 
 { 
   double dx10 = 2.0/dxv[0]; 
+  const double *jacob_cx = &jacob_pos[0]; 
+  const double jacob_cx_inv = 1.0/jacob_cx[0]; 
 
   double force_quad = 0.0;
-  force_quad = 1.224744871391589*phi[1]-4.084728180770504*phi[2];
+  force_quad = jacob_cx_inv*(1.224744871391589*phi[1]-4.084728180770504*phi[2]);
   alpha_quad[0] -= dx10*force_quad;
   alpha_quad[1] -= dx10*force_quad;
   alpha_quad[2] -= dx10*force_quad;
@@ -22,7 +24,7 @@ GKYL_CU_DH void phi_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double
   alpha_quad[14] -= dx10*force_quad;
   alpha_quad[15] -= dx10*force_quad;
 
-  force_quad = 1.224744871391589*phi[1]-1.612671688513684*phi[2];
+  force_quad = jacob_cx_inv*(1.224744871391589*phi[1]-1.6126716885136845*phi[2]);
   alpha_quad[16] -= dx10*force_quad;
   alpha_quad[17] -= dx10*force_quad;
   alpha_quad[18] -= dx10*force_quad;
@@ -40,7 +42,7 @@ GKYL_CU_DH void phi_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double
   alpha_quad[30] -= dx10*force_quad;
   alpha_quad[31] -= dx10*force_quad;
 
-  force_quad = 1.612671688513684*phi[2]+1.224744871391589*phi[1];
+  force_quad = jacob_cx_inv*(1.6126716885136845*phi[2]+1.224744871391589*phi[1]);
   alpha_quad[32] -= dx10*force_quad;
   alpha_quad[33] -= dx10*force_quad;
   alpha_quad[34] -= dx10*force_quad;
@@ -58,7 +60,7 @@ GKYL_CU_DH void phi_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double
   alpha_quad[46] -= dx10*force_quad;
   alpha_quad[47] -= dx10*force_quad;
 
-  force_quad = 4.084728180770504*phi[2]+1.224744871391589*phi[1];
+  force_quad = jacob_cx_inv*(4.084728180770504*phi[2]+1.224744871391589*phi[1]);
   alpha_quad[48] -= dx10*force_quad;
   alpha_quad[49] -= dx10*force_quad;
   alpha_quad[50] -= dx10*force_quad;

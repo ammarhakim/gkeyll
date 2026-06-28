@@ -18,8 +18,8 @@ extern "C" {
 __global__ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_surf *up, 
   struct gkyl_range conf_range, struct gkyl_range phase_range, 
-  const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
-  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad, 
+  const struct gkyl_array *jacob_pos, const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
+  const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
   int pdim = up->pdim;
@@ -85,6 +85,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
         }
         long vidx_l = gkyl_range_idx(&up->vel_range, idx_vel_l);
         cflrate_d[0] += up->vel_flux_surf(up, dir, xcC, up->phase_grid.dx,
+          jacob_pos ? (const double*) gkyl_array_cfetch(jacob_pos, cidx) : 0,
           (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx_l),
           (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx), poisson_tensor_conf_d,
           hamil_d, qmem_d, pot_tot_d, rad_d, f_l, f_c, flux);
@@ -103,7 +104,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
   gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev,
-    *conf_range, *phase_range, up->jacob_vel_surf->on_dev, poisson_tensor_conf->on_dev,
+    *conf_range, *phase_range, up->jacob_pos->on_dev, up->jacob_vel_surf->on_dev, poisson_tensor_conf->on_dev,
     hamil->on_dev, qmem->on_dev, pot_tot->on_dev, rad->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);
 }
 
@@ -312,9 +313,12 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   // The host pointers below are not dereferenced on device (the advance wrapper
   // passes the raw device array pointer to the kernel as an argument).
   assert(inp->vel_map);
+  assert(inp->pos_map);
   up->vel_range = inp->vel_map->local_vel;
   up->vel_map = 0;
   up->jacob_vel_surf = 0;
+  up->pos_map = 0;
+  up->jacob_pos = 0;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
@@ -331,6 +335,8 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   // Host-side updater stores the acquired map and host array pointers.
   up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
   up->jacob_vel_surf = inp->vel_map->jacob_vel_surf;
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
 
   return up;
 }

@@ -13,13 +13,13 @@
 
 // Types for various kernels
 typedef void (*hamil_vol_t)(const double *w, const double *dxv,
-  const double *jacob_vel, const double *jacob_pos, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out);
+  const double *jacob_pos, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*E_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *qmem, const double *f, double* GKYL_RESTRICT out);
 
-typedef void (*phi_vol_t)(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out);
+typedef void (*phi_vol_t)(const double *w, const double *dxv,
+  const double *jacob_pos, const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*B_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out);
@@ -28,12 +28,12 @@ typedef void (*rad_vol_t)(const double *w, const double *dxv,
   const double *jacob_vel, const double *rad, const double *f, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_stream_surf_t)(const double *w, const double *dxv,
-  const double *jacob_vel, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r,
+  const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel,
   const double *poisson_tensor_conf, const double *hamil,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out);
 
 typedef double (*vlasov_stream_boundary_surf_t)(const double *w, const double *dxv,
-  const double *jacob_vel, const double *jacob_pos_edge, const double *jacob_pos_skin,
+  const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel,
   const double *poisson_tensor_conf, const double *hamil,
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out);
 
@@ -123,8 +123,8 @@ no_E_vol(const double *w, const double *dxv,
 }
 GKYL_CU_DH
 static void 
-no_phi_vol(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out)
+no_phi_vol(const double *w, const double *dxv,
+  const double *jacob_pos, const double *jacob_vel, const double *phi, const double *f, double* GKYL_RESTRICT out)
 {
 }
 GKYL_CU_DH
@@ -143,7 +143,7 @@ no_rad_vol(const double *w, const double *dxv,
 GKYL_CU_DH
 static double
 no_stream_surf(const double *w, const double *dxv,
-  const double *jacob_vel, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r,
+  const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel,
   const double *poisson_tensor_conf, const double *hamil,
   const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out)
 {
@@ -152,7 +152,7 @@ no_stream_surf(const double *w, const double *dxv,
 GKYL_CU_DH
 static double
 no_stream_boundary_surf(const double *w, const double *dxv,
-  const double *jacob_vel, const double *jacob_pos_edge, const double *jacob_pos_skin,
+  const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel,
   const double *poisson_tensor_conf, const double *hamil,
   const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out)
 {
@@ -186,8 +186,8 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
   long pidx = gkyl_range_idx(&vlasov->phase_range, idx);
 
   vlasov->hamil_vol(xc, dx,
-    vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
+    vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx),
     qIn, qRhsOut);
@@ -195,10 +195,11 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
     qIn, qRhsOut); 
-  vlasov->phi_vol(xc, dx, 
+  vlasov->phi_vol(xc, dx,
+    vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(vlasov->pot_tot, cidx), 
-    qIn, qRhsOut); 
+    (const double*) gkyl_array_cfetch(vlasov->pot_tot, cidx),
+    qIn, qRhsOut);
   // Nonuniform mesh kernels utilize f without the velocity-space Jacobian to handle
   // the transverse derivatives in the 1/Jvi grad_vi(H) x B cross product. 
   vlasov->Bx_vol(xc, dx, 
@@ -1356,10 +1357,10 @@ surf(const struct gkyl_dg_eqn *eqn,
     }
     else {
       return vlasov->stream_surf[dir](xcC, dxC,
-        vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
         vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidxL) : 0,
         vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
         vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidxR) : 0,
+        vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
         (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
         (const double*) gkyl_array_cfetch(vlasov->hamil, hidx),
         qInL, qInC, qInR, qRhsOut);
@@ -1433,9 +1434,9 @@ boundary_surf(const struct gkyl_dg_eqn *eqn,
     } 
     else {
       return vlasov->stream_boundary_surf[dir](xcSkin, dxSkin,
-        vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
         vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx_edge) : 0,
         vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
+        vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
         (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
         (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), edge, qInEdge, qInSkin, qRhsOut);
     } 
