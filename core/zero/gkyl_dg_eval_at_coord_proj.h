@@ -51,6 +51,20 @@ void gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, c
   const struct gkyl_array *fdo, struct gkyl_array *ftar);
 
 /**
+ * Return the properties of the target basis.
+ *
+ * @param up         Updater object.
+ * @param cdim       Conf-space dimensionality.
+ * @param ndim       Dimensionality.
+ * @param btype      Basis type.
+ * @param poly_order Polynomial order.
+ * @param num_basis  Number of basis functions.
+ */
+void
+gkyl_dg_eval_at_coord_proj_target_basis(struct gkyl_dg_eval_at_coord_proj *up,
+  int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis);
+
+/**
  * Release the memory associated with this updater.
  *
  * @param up Updater to release.

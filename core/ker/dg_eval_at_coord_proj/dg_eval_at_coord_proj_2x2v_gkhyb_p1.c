@@ -227,3 +227,153 @@ GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_1(const doubl
   ftar[11] = 0.1414213562373095*(8.660254037844387*coords[0]*fdo[23]+5.0*fdo[21]); 
 }
 
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_3_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 2;
+  *ndim = 3;
+  *btype = GKYL_BASIS_MODAL_HYBRID;
+  *poly_order = 1;
+  *num_basis = 12;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_23_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 2;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 4;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_023_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 2;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_0123_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 0;
+  *num_basis = 1;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_123_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 2;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_03_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_HYBRID;
+  *poly_order = 1;
+  *num_basis = 6;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_013_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 0;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 3;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_13_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_HYBRID;
+  *poly_order = 1;
+  *num_basis = 6;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_2_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 2;
+  *ndim = 3;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 8;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_02_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 4;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_012_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 0;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 2;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_12_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 4;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_0_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 3;
+  *btype = GKYL_BASIS_MODAL_GKHYBRID;
+  *poly_order = 1;
+  *num_basis = 12;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_01_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 0;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_GKHYBRID_VEL;
+  *poly_order = 1;
+  *num_basis = 6;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_1_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 3;
+  *btype = GKYL_BASIS_MODAL_GKHYBRID;
+  *poly_order = 1;
+  *num_basis = 12;
+}
+

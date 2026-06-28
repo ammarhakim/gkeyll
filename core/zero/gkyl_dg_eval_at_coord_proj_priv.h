@@ -9,12 +9,15 @@
 #include <gkyl_dg_eval_at_coord_proj_kernels.h>
 #include <gkyl_util.h>
 
-// Function pointer type for projection kernels.
-// coords[i] is the reference coordinate for the i-th evaluated direction.
+// Function pointer type for evaluation-projection kernels.
 typedef void (*eval_at_coord_t)(const double *coords, const double *fdo, double *ftar);
 
+// Function pointer type for kernels returning target basis.
+typedef void (*basis_tar_t)(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis);
+
 // For use in kernel tables.
-typedef struct { eval_at_coord_t kernels[3]; } eval_at_coord_kern_list;  // [poly_order-1]
+typedef struct { eval_at_coord_t kernels[3]; } eval_at_coord_kern_list;
+typedef struct { basis_tar_t kernels[3]; } basis_tar_kern_list;
 
 // Struct with double array for passing coordinates to CUDA kernels.
 typedef struct { double c[GKYL_MAX_DIM]; } dg_evproj_struct_double_t;
@@ -175,6 +178,148 @@ static const eval_at_coord_kern_list ser_eval_at_coord_list[6][63] = {
   },
 };
 
+GKYL_CU_D
+static const basis_tar_kern_list ser_basis_tar_list[6][63] = {
+  // ndim_do = 1.
+  {
+    { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0_target_basis, gkyl_dg_eval_at_coord_proj_1x_ser_p2_eval_dirs_0_target_basis, NULL },
+  },
+  // ndim_do = 2.
+  {
+    { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0_target_basis , gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_0_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_1_target_basis , gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_1_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_01_target_basis, gkyl_dg_eval_at_coord_proj_2x_ser_p2_eval_dirs_01_target_basis, NULL },
+  },
+  // ndim_do = 3.
+  {
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_0_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_1_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_01_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_2_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_02_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_12_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_012_target_basis, NULL, NULL },
+  },
+  // ndim_do = 4.
+  {
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_0_target_basis   , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_0_target_basis   , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_1_target_basis   , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_1_target_basis   , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_01_target_basis  , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_01_target_basis  , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_2_target_basis   , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_2_target_basis   , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_02_target_basis  , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_02_target_basis  , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_12_target_basis  , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_12_target_basis  , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_012_target_basis , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_012_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_3_target_basis   , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_3_target_basis   , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_03_target_basis  , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_03_target_basis  , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_13_target_basis  , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_13_target_basis  , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_013_target_basis , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_013_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_23_target_basis  , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_23_target_basis  , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_023_target_basis , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_023_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_123_target_basis , gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_123_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_4x_ser_p1_eval_dirs_0123_target_basis, gkyl_dg_eval_at_coord_proj_4x_ser_p2_eval_dirs_0123_target_basis, NULL },
+  },
+  // ndim_do = 5.
+  {
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_0_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_1_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_01_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_2_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_02_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_12_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_012_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_3_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_03_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_13_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_013_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_23_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_023_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_123_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_0123_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_4_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_04_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_14_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_014_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_24_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_024_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_124_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_0124_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_34_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_034_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_134_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_0134_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_234_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_0234_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_1234_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_5x_ser_p1_eval_dirs_01234_target_basis, NULL, NULL },
+  },
+  // ndim_do = 6.
+  {
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0_target_basis     , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_1_target_basis     , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_01_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_2_target_basis     , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_02_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_12_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_012_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_3_target_basis     , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_03_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_13_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_013_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_23_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_023_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_123_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0123_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_4_target_basis     , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_04_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_14_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_014_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_24_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_024_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_124_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0124_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_34_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_034_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_134_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0134_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_234_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0234_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_1234_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_01234_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_5_target_basis     , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_05_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_15_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_015_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_25_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_025_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_125_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0125_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_35_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_035_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_135_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0135_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_235_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0235_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_1235_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_01235_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_45_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_045_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_145_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0145_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_245_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0245_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_1245_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_01245_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_345_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_0345_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_1345_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_01345_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_2345_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_02345_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_12345_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_6x_ser_p1_eval_dirs_012345_target_basis, NULL, NULL },
+  },
+};
+
 // Tensor kernels.
 GKYL_CU_D
 static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = {
@@ -210,8 +355,41 @@ static const eval_at_coord_kern_list ten_eval_at_coord_list[3][7] = {
   },
 };
 
+GKYL_CU_D
+static const basis_tar_kern_list ten_basis_tar_list[3][7] = {
+  // ndim_do = 1.
+  {
+    { gkyl_dg_eval_at_coord_proj_1x_ser_p1_eval_dirs_0_target_basis, NULL, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+  },
+  // ndim_do = 2.
+  {
+    { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_0_target_basis , gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_0_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_1_target_basis , gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_1_target_basis , NULL },
+    { gkyl_dg_eval_at_coord_proj_2x_ser_p1_eval_dirs_01_target_basis, gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_01_target_basis, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+    { NULL, NULL, NULL },
+  },
+  // ndim_do = 3.
+  {
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_0_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_1_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_01_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_2_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_02_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_12_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x_ser_p1_eval_dirs_012_target_basis, NULL, NULL },
+  },
+};
+
 // GK-hybrid kernels.
-// Indexed as [cdim+vdim-2][dir_bitmask-1].kernels[poly_order-1]
 GKYL_CU_D
 static const eval_at_coord_kern_list gkhyb_eval_at_coord_list[4][31] = {
   // 1x1v.
@@ -284,6 +462,78 @@ static const eval_at_coord_kern_list gkhyb_eval_at_coord_list[4][31] = {
   },
 };
 
+GKYL_CU_D
+static const basis_tar_kern_list gkhyb_basis_tar_list[4][31] = {
+  // 1x1v.
+  {
+    { gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_0_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_1_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_01_target_basis, NULL, NULL },
+  },
+  // 1x2v.
+  {
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_0_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_1_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_01_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_2_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_02_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_12_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_1x2v_gkhyb_p1_eval_dirs_012_target_basis, NULL, NULL },
+  },
+  // 2x2v.
+  {
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_0_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_1_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_01_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_2_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_02_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_12_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_012_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_3_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_03_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_13_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_013_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_23_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_023_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_123_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_2x2v_gkhyb_p1_eval_dirs_0123_target_basis, NULL, NULL },
+  },
+  // 3x2v.
+  {
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_1_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_01_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_2_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_02_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_12_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_012_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_3_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_03_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_13_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_013_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_23_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_023_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_123_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0123_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_4_target_basis    , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_04_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_14_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_014_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_24_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_024_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_124_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0124_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_34_target_basis   , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_034_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_134_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0134_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_234_target_basis  , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_0234_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_1234_target_basis , NULL, NULL },
+    { gkyl_dg_eval_at_coord_proj_3x2v_gkhyb_p1_eval_dirs_01234_target_basis, NULL, NULL },
+  },
+};
+
 GKYL_CU_DH static void
 eval_at_coord_get_idx_do(const bool *is_eval, int ndim_do,
   const int *idx_tar, const int *cell_idx, int *idx_do)
@@ -299,7 +549,8 @@ eval_at_coord_get_idx_do(const bool *is_eval, int ndim_do,
 }
 
 struct dg_ev_proj_kernels {
-  eval_at_coord_t ev_ker;      // Projection kernel.
+  eval_at_coord_t ev_ker; // Projection kernel.
+  basis_tar_t basis_ker; // Target basis kernel.
 };
 
 // Primary struct for this updater.
@@ -361,12 +612,15 @@ dg_eval_at_coord_choose_ker(bool use_gpu, int cdim, int ndim, const struct gkyl_
   switch (basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kers->ev_ker = ser_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
+      kers->basis_ker = ser_basis_tar_list[ndim-1][dir_mask-1].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       kers->ev_ker = ten_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
+      kers->basis_ker = ten_basis_tar_list[ndim-1][dir_mask-1].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_GKHYBRID:
       kers->ev_ker = gkhyb_eval_at_coord_list[ndim-2][dir_mask-1].kernels[poly_order-1];
+      kers->basis_ker = gkhyb_basis_tar_list[ndim-2][dir_mask-1].kernels[poly_order-1];
       break;
     default:
       assert(false);

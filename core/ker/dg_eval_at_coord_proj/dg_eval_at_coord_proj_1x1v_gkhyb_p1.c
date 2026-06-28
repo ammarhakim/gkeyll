@@ -35,3 +35,33 @@ GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_0(const doubl
   ftar[2] = 0.1414213562373095*(8.660254037844387*coords[0]*fdo[5]+5.0*fdo[4]); 
 }
 
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_1_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 1;
+  *num_basis = 2;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_01_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 0;
+  *num_basis = 1;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_1x1v_gkhyb_p1_eval_dirs_0_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 0;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 3;
+}
+

@@ -38,3 +38,33 @@ GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_1(const double
   ftar[2] = 0.07071067811865474*((33.54101966249685*coords0R2-11.18033988749895)*fdo[8]+17.320508075688775*coords[0]*fdo[6]+10.0*fdo[4]); 
 }
 
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_0_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_TENSOR;
+  *poly_order = 2;
+  *num_basis = 3;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_01_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 0;
+  *num_basis = 1;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_2x_tensor_p2_eval_dirs_1_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_TENSOR;
+  *poly_order = 2;
+  *num_basis = 3;
+}
+

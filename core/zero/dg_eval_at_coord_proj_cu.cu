@@ -22,12 +22,15 @@ dg_eval_at_coord_choose_ker_cu_ker(int ndim, struct gkyl_basis basis, int num_ev
   switch (basis.b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       kers->ev_ker = ser_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
+      kers->basis_ker = ser_basis_tar_list[ndim-1][dir_mask-1].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_TENSOR:
       kers->ev_ker = ten_eval_at_coord_list[ndim-1][dir_mask-1].kernels[poly_order-1];
+      kers->basis_ker = ten_basis_tar_list[ndim-1][dir_mask-1].kernels[poly_order-1];
       break;
     case GKYL_BASIS_MODAL_GKHYBRID:
       kers->ev_ker = gkhyb_eval_at_coord_list[ndim-2][dir_mask-1].kernels[poly_order-1];
+      kers->basis_ker = gkhyb_basis_tar_list[ndim-2][dir_mask-1].kernels[poly_order-1];
       break;
     default:
       assert(false);

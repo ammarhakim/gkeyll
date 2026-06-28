@@ -103,6 +103,13 @@ gkyl_dg_eval_at_coord_proj_advance(struct gkyl_dg_eval_at_coord_proj *up, const 
 }
 
 void
+gkyl_dg_eval_at_coord_proj_target_basis(struct gkyl_dg_eval_at_coord_proj *up,
+  int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis)
+{
+  up->kers->basis_ker(cdim, ndim, btype, poly_order, num_basis);
+}
+
+void
 gkyl_dg_eval_at_coord_proj_release(struct gkyl_dg_eval_at_coord_proj *up)
 {
   if (!up->use_gpu)

@@ -109,3 +109,73 @@ GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_2(const double *c
   ftar[7] = 0.1*(12.247448713915892*coords[0]*fdo[18]+7.0710678118654755*fdo[12]); 
 }
 
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_0_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 8;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_01_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 3;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_012_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 0;
+  *num_basis = 1;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_02_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 3;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_1_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 8;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_12_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 1;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 3;
+}
+
+GKYL_CU_DH void gkyl_dg_eval_at_coord_proj_3x_ser_p2_eval_dirs_2_target_basis(int *cdim, int *ndim, enum gkyl_basis_type *btype, int *poly_order, int *num_basis) 
+{
+
+  *cdim = 1;
+  *ndim = 2;
+  *btype = GKYL_BASIS_MODAL_SERENDIPITY;
+  *poly_order = 2;
+  *num_basis = 8;
+}
+
