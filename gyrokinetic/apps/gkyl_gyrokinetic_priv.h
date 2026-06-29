@@ -1026,8 +1026,12 @@ struct gk_species {
 
   struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
 
-  struct gkyl_msgpack_map_elem* io_meta_grid; // Metadata for I/O of grid quantities.
-  int io_meta_grid_len; // Number of elements in io_meta_grid.
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O (e.g. int diags).
+  struct gkyl_msgpack_map_elem* io_meta_phase; // Metadata for I/O of phase grid quantities.
+  struct gkyl_msgpack_map_elem* io_meta_conf; // Metadata for I/O of conf grid quantities.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  int io_meta_phase_len; // Number of elements in io_meta_phase.
+  int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *cflrate; // CFL rate in each cell.
@@ -1189,8 +1193,12 @@ struct gk_neut_species {
   struct gkyl_comm *comm;   // Communicator object for this species.
   int nghost[GKYL_MAX_DIM]; // Number of ghost-cells in each direction
 
-  struct gkyl_msgpack_map_elem* io_meta_grid; // Metadata for I/O of grid quantities.
-  int io_meta_grid_len; // Number of elements in io_meta_grid.
+  struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O (e.g. int diags).
+  struct gkyl_msgpack_map_elem* io_meta_phase; // Metadata for I/O of phase grid quantities.
+  struct gkyl_msgpack_map_elem* io_meta_conf; // Metadata for I/O of conf grid quantities.
+  int io_meta_basic_len; // Number of elements in io_meta_basic.
+  int io_meta_phase_len; // Number of elements in io_meta_phase.
+  int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
   struct gkyl_array *f_host; // Host array for initialization and I/O.
@@ -1572,8 +1580,8 @@ struct gkyl_gyrokinetic_app {
 
   struct gkyl_msgpack_map_elem* io_meta_basic; // Basic metadata for I/O.
   int io_meta_basic_len; // Number of elements in io_meta_basic.
-  struct gkyl_msgpack_map_elem* io_meta_grid; // Metadata for I/O of grid quantities.
-  int io_meta_grid_len; // Number of elements in io_meta_grid.
+  struct gkyl_msgpack_map_elem* io_meta_dg; // Metadata for I/O of grid quantities.
+  int io_meta_dg_len; // Number of elements in io_meta_grid.
 
   gkyl_dynvec dts; // Record time step over time.
   bool is_first_dt_write_call; // Flag for integrated moments dynvec written first time.
