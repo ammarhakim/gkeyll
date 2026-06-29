@@ -1623,8 +1623,8 @@ static void write_field_with_metadata(struct gkyl_gyrokinetic_app *app, int fram
     struct gkyl_msgpack_map_elem custom_meta[] = {
         { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description }
     };
-    int io_meta_len[] = { app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1 };
-    const struct gkyl_msgpack_map_elem* io_meta[] = { app->io_meta_grid, app->gk_geom->io_meta_basic, custom_meta };
+    int io_meta_len[] = { app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1 };
+    const struct gkyl_msgpack_map_elem* io_meta[] = { app->io_meta_dg, app->gk_geom->io_meta_basic, custom_meta };
     
     struct gkyl_msgpack_data *mt_data = gkyl_msgpack_create_union(
         sizeof(io_meta_len) / sizeof(int), io_meta_len, io_meta

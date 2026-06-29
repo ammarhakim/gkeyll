@@ -30,7 +30,7 @@ gk_field_ohm_solve_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field, 
   gkyl_array_accumulate_range(field->dApartdtSlvr_lhs_factor, 1.0, field->lapWeightAmpere, &app->local);
 
   // Weak division method dApar/dt = sum_s q_s int dv vpar d/dt(F_s) / ( (k_perp^2/mu_0 + sum_s q_s^2/m_s int dv F_s) )
-  gkyl_dg_div_op_range(field->div_mem, app->basis, 0, out, 0, field->currentDensdot, 
+  gkyl_dg_div_op_range(field->div_mem, &app->basis, 0, out, 0, field->currentDensdot,
     0, field->dApartdtSlvr_lhs_factor, &app->local);
   
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
@@ -42,7 +42,7 @@ gk_field_ampere_solve_1x_enabled(gkyl_gyrokinetic_app *app, struct gk_field *fie
   struct timespec wst = gkyl_wall_clock();
 
   // Weak division method Apar = sum_s q_s int dv vpar F_s / (k_perp^2/mu_0)
-  gkyl_dg_div_op_range(field->div_mem, app->basis, 0, out, 0, field->currentDens, 
+  gkyl_dg_div_op_range(field->div_mem, &app->basis, 0, out, 0, field->currentDens,
     0, field->lapWeightAmpere, &app->local);
 
   app->stat.field_apar_solve_tm += gkyl_time_diff_now_sec(wst);
