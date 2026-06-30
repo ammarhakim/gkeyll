@@ -354,14 +354,13 @@ struct gk_app_ctx create_ctx(void)
   // Source parameters
   int num_sources = 1;
   double P_exp = 0.34e6; // P_sol measured [W]
-  double recycling_rate = 1.0; // High recycling regime.
   // Core source:
   // - Injects energy only in the core region (0.25MW per species).
   // - The particles injection is only the one that are lost through the inner radial boundary.
   bool adapt_energy_srcCORE = false; // The source will compensate the losses in energy according to given boundaries.
-  bool adapt_particle_srcCORE = true; // The source will compensate the losses in particle according to given boundaries.
+  bool adapt_particle_srcCORE = false; // The source will compensate the losses in particle according to given boundaries.
   double energy_srcCORE = P_exp; // What the source must inject in energy [W]
-  double particle_srcCORE = 0.0;// What the source must inject in particle [1/s]
+  double particle_srcCORE = Ti0/P_exp;// What the source must inject in particle [1/s]
   double center_srcCORE[2] = {0.0}; // This is the position of the ion source,
   double sigma_srcCORE[2] = {Lz/6}; //  the electron source will be at +Lz/2.
   double floor_srcCORE = 1e-10;
