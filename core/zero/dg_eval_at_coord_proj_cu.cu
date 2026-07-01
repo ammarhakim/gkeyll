@@ -8,7 +8,7 @@ extern "C" {
 }
 
 __global__ void
-dg_eval_at_coord_choose_ker_cu_ker(int ndim, struct gkyl_basis basis, int num_eval_dirs,
+dg_eval_at_coord_choose_ker_cu_ker(int cdim, int ndim, struct gkyl_basis basis, int num_eval_dirs,
   dg_evproj_struct_int_t eval_dirs, struct dg_ev_proj_kernels *kers)
 {
   int dir_mask = eval_dirs_to_mask(num_eval_dirs, eval_dirs.c);
@@ -40,7 +40,7 @@ dg_eval_at_coord_choose_ker_cu_ker(int ndim, struct gkyl_basis basis, int num_ev
 }
 
 struct dg_ev_proj_kernels*
-dg_eval_at_coord_choose_ker_cu(int ndim, const struct gkyl_basis *basis,
+dg_eval_at_coord_choose_ker_cu(int cdim, int ndim, const struct gkyl_basis *basis,
   int num_eval_dirs, const int *eval_dirs)
 {
   struct dg_ev_proj_kernels *kers = (struct dg_ev_proj_kernels *) gkyl_cu_malloc(sizeof(struct dg_ev_proj_kernels));
@@ -49,7 +49,7 @@ dg_eval_at_coord_choose_ker_cu(int ndim, const struct gkyl_basis *basis,
   for (int i=0; i<num_eval_dirs; i++)
     eval_dirs_st.c[i] = eval_dirs[i];
 
-  dg_eval_at_coord_choose_ker_cu_ker<<<1,1>>>(ndim, *basis, num_eval_dirs, eval_dirs_st, kers);
+  dg_eval_at_coord_choose_ker_cu_ker<<<1,1>>>(cdim, ndim, *basis, num_eval_dirs, eval_dirs_st, kers);
 
   return kers;
 }
