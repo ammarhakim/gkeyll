@@ -508,8 +508,7 @@ moment_species_update(gkyl_moment_app *app,
 
 // Add the fluid matter source to the vacuum-Einstein RHS (method-of-lines form of the standard ADM matter coupling)
 static void
-add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
-  double excision_threshold, double *rhs)
+add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma, double excision_threshold, bool is_conformal, double *rhs)
 {
   double lapse = qe[9];
   if (lapse < excision_threshold) {
@@ -521,10 +520,25 @@ add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
 
   double shift[3] = { qe[52], qe[53], qe[54] };
 
+  double metric_scale = 1.0;
+  if (is_conformal) {
+    // conformal Einstein state stores chi = psi^-2 and tilde(gamma)_ij = psi^-4 gamma_ij => gamma_ij = chi^-2 tilde(gamma)_ij
+    double chi = qe[64];
+    if (chi <= 0.0) {
+      return;
+    }
+    metric_scale = 1.0 / (chi * chi);
+  }
+
   double spatial_metric[3][3];
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      spatial_metric[i][j] = qe[(3 * i) + j];
+      if (is_conformal) {
+        spatial_metric[i][j] = metric_scale * qe[(3 * i) + j];
+      }
+      else {
+        spatial_metric[i][j] = qe[(3 * i) + j];
+      }
     }
   }
 
@@ -589,6 +603,7 @@ add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
     T_0k[k] = t;
   }
 
+  // For conformal, the factors are already present in gamma_ij and therefore in T_ij and T above => no change here
   // dK_ij/dt += -8*pi*alpha*(T_ij - 1/2 gamma_ij T) (standard ADM K_ij matter source)
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
@@ -636,12 +651,15 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
       const double *q = gkyl_array_cfetch(fin, loc);
       double *rhs_c = gkyl_array_fetch(rhs, loc);
 
+      static int no_src = -1; // TEMP isolation diagnostic: GKYL_NO_GR_SOURCE=1 zeros the geometric source.
+      if (no_src < 0) no_src = (getenv("GKYL_NO_GR_SOURCE") != NULL) ? 1 : 0;
+
       double q_in[71], q_new[71];
       for (int m = 0; m < 71; m++) q_in[m] = q[m];
       explicit_gr_euler_source_update_euler(0, gamma, app->tcurr, 1.0, q_in, q_new); // q_new = q + S(q)
-      for (int m = 1; m < 5; m++) rhs_c[m] += (q_new[m] - q_in[m]); // full geometric source
+      if (!no_src) for (int m = 1; m < 5; m++) rhs_c[m] += (q_new[m] - q_in[m]); // full geometric source
 
-      if (meqn > 71 && !species->gr_euler_disable_well_balanced) { // WB: subtract the equilibrium source S(q_eq)
+      if (!no_src && meqn > 71 && !species->gr_euler_disable_well_balanced) { // WB: subtract the equilibrium source S(q_eq)
         // Use the SAME equilibrium reference the flux subtracts (family or frozen), so the geometric source and the flux are consistent at the equilibrium (matched reference).
         double q_eq[71], q_eq_new[71];
         gkyl_gr_euler_equilibrium(species->equation, q, q_eq);
@@ -656,7 +674,14 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
 
     // If coupled to a GR-Euler fluid, fetch the fluid adiabatic index for the matter source.
     double matter_gas_gamma = 0.0;
-    double matter_excision_threshold = species->vacuum_einstein_excision_threshold;
+    bool is_conformal = species->has_vacuum_einstein_conformal;
+    double matter_excision_threshold = 0.0;
+    if (is_conformal) {
+      matter_excision_threshold = species->vacuum_einstein_conformal_excision_threshold;
+    }
+    else {
+      matter_excision_threshold = species->vacuum_einstein_excision_threshold;
+    }
     if (species->coupling_partner_fin) {
       for (int s = 0; s < app->num_species; ++s) {
         if (app->species[s].has_gr_euler) {
@@ -680,10 +705,10 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
         rhs_c[m] += sout[m];
       }
 
-      // Fluid -> spacetime matter coupling (standard Bona-Masso vacuum-Einstein only).
-      if (species->has_vacuum_einstein && species->coupling_partner_fin) {
+      // Fluid -> spacetime matter coupling (standard Bona-Masso vacuum-Einstein and conformal share physical lapse, shift, K_ij, and the covariant momentum projection; the conformal branch reconstructs gamma_ij
+      if (species->coupling_partner_fin) {
         const double *q_fluid = gkyl_array_cfetch(species->coupling_partner_fin, loc);
-        add_einstein_matter_source(q, q_fluid, matter_gas_gamma, matter_excision_threshold, rhs_c);
+        add_einstein_matter_source(q, q_fluid, matter_gas_gamma, matter_excision_threshold, is_conformal, rhs_c);
       }
     }
   }

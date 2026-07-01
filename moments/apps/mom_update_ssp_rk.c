@@ -2,18 +2,69 @@
 
 // Remap a vacuum-Einstein state vector into the metric slots of a GR-Euler fluid state vector. 
 static void
-sync_fluid_metric_from_einstein(const double *qe, double *qf, double excision_threshold)
+sync_fluid_metric_from_einstein(const double *qe, double *qf, double excision_threshold, bool is_conformal)
 {
   double lapse = qe[9];
 
-  qf[5] = lapse;                                       // lapse
-  qf[6] = qe[52]; qf[7] = qe[53]; qf[8] = qe[54];      // shift^i
-  for (int n = 0; n < 9; n++) qf[9 + n] = qe[0 + n];   // gamma_ij
-  for (int n = 0; n < 9; n++) qf[18 + n] = qe[10 + n]; // K_ij
-  qf[27] = (lapse < excision_threshold) ? -1.0 : 1.0;  // excision flag (lapse-based)
-  for (int n = 0; n < 3; n++) qf[28 + n] = lapse * qe[46 + n];  // d_i alpha = alpha * A_i
-  for (int n = 0; n < 9; n++) qf[31 + n] = 2.0 * qe[55 + n];    // d_i beta^j = 2 * (1/2 d_i beta^j)
-  for (int n = 0; n < 27; n++) qf[40 + n] = 2.0 * qe[19 + n];   // d_k gamma_ij = 2 * D_kij
+  qf[5] = lapse; // lapse
+  qf[6] = qe[52]; qf[7] = qe[53]; qf[8] = qe[54]; // shift^i
+
+  if (!is_conformal) {
+    for (int n = 0; n < 9; n++) qf[9 + n] = qe[n]; // gamma_ij
+    for (int n = 0; n < 9; n++) qf[18 + n] = qe[10 + n]; // K_ij
+    if (lapse < excision_threshold) { // excision flag (lapse-based)
+      qf[27] = -1.0;
+    }
+    else {
+      qf[27] = 1.0;
+    }
+    for (int n = 0; n < 3; n++) qf[28 + n] = lapse * qe[46 + n];  // d_i alpha = alpha * A_i
+    for (int n = 0; n < 9; n++) qf[31 + n] = 2.0 * qe[55 + n]; // d_i beta^j = 2 * (1/2 d_i beta^j)
+    for (int n = 0; n < 27; n++) qf[40 + n] = 2.0 * qe[19 + n]; // d_k gamma_ij = 2 * D_kij
+    return;
+  }
+
+  // The conformal system stores chi = psi^-2 and tilde(gamma)_ij = psi^-4 gamma_ij => gamma_ij = chi^-2 tilde(gamma)_ij
+  double chi = qe[64];
+  if (lapse < excision_threshold || chi <= 0.0) {
+    for (int n = 0; n < 9; n++) qf[9 + n] = 0.0;
+    for (int n = 0; n < 9; n++) qf[18 + n] = 0.0;
+    qf[27] = -1.0;
+    for (int n = 0; n < 3; n++) qf[28 + n] = 0.0;
+    for (int n = 0; n < 9; n++) qf[31 + n] = 0.0;
+    for (int n = 0; n < 27; n++) qf[40 + n] = 0.0;
+    return;
+  }
+
+  double inv_chi = 1.0 / chi;
+  double psi4 = inv_chi * inv_chi;
+
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      int ij = (3 * i) + j;
+      qf[9 + ij] = psi4 * qe[ij];
+      qf[18 + ij] = qe[10 + ij];
+    }
+  }
+  qf[27] = 1.0;
+
+  for (int k = 0; k < 3; k++) {
+    qf[28 + k] = lapse * qe[46 + k]; // A_i = d_i ln(alpha)
+  }
+  for (int n = 0; n < 9; n++) {
+    qf[31 + n] = 2.0 * qe[55 + n]; // shift reduction var is 1/2 d_i beta^j
+  }
+
+  for (int k = 0; k < 3; k++) {
+    double dchi_over_chi = qe[65 + k] * inv_chi;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        int ij = (3 * i) + j;
+        int kij = (9 * k) + ij;
+        qf[40 + kij] = psi4 * (2.0 * qe[19 + kij] - (2.0 * dchi_over_chi * qe[ij])); // d_k gamma_ij = chi^-2 [2 tilde(D)_kij - 2 (d_k chi / chi) tilde(gamma)_ij].
+      }
+    }
+  }
 }
 
 // Wire up the GR-Euler <-> vacuum-Einstein coupling for the current RK stage
@@ -23,7 +74,9 @@ couple_gr_fluid_spacetime(gkyl_moment_app* app, const struct gkyl_array *fin[])
   int fluid_idx = -1, einstein_idx = -1;
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].has_gr_euler) fluid_idx = i;
-    if (app->species[i].has_vacuum_einstein) einstein_idx = i;
+    if (app->species[i].has_vacuum_einstein || app->species[i].has_vacuum_einstein_conformal) {
+      einstein_idx = i;
+    }
     app->species[i].coupling_partner_fin = NULL;
   }
 
@@ -34,7 +87,14 @@ couple_gr_fluid_spacetime(gkyl_moment_app* app, const struct gkyl_array *fin[])
   app->species[fluid_idx].coupling_partner_fin = fin[einstein_idx];
   app->species[einstein_idx].coupling_partner_fin = fin[fluid_idx];
 
-  double excision_threshold = app->species[einstein_idx].vacuum_einstein_excision_threshold;
+  bool is_conformal = app->species[einstein_idx].has_vacuum_einstein_conformal;
+  double excision_threshold = 0.0;
+  if (is_conformal) {
+    excision_threshold = app->species[einstein_idx].vacuum_einstein_conformal_excision_threshold;
+  }
+  else {
+    excision_threshold = app->species[einstein_idx].vacuum_einstein_excision_threshold;
+  }
   const struct gkyl_array *einstein_f = fin[einstein_idx];
   struct gkyl_array *fluid_f = (struct gkyl_array *) fin[fluid_idx]; // metric slots are mutable scratch.
 
@@ -44,7 +104,7 @@ couple_gr_fluid_spacetime(gkyl_moment_app* app, const struct gkyl_array *fin[])
     long loc = gkyl_range_idx(&app->local_ext, iter.idx);
     const double *qe = gkyl_array_cfetch(einstein_f, loc);
     double *qf = gkyl_array_fetch(fluid_f, loc);
-    sync_fluid_metric_from_einstein(qe, qf, excision_threshold);
+    sync_fluid_metric_from_einstein(qe, qf, excision_threshold, is_conformal);
   }
 }
 
@@ -118,12 +178,13 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
   double dta = st->dt_actual = dt < dtmin ? dt : dtmin;
   st->dt_suggested = dtmin;
 
-  // complete update of species
-  for (int i=0; i<app->num_species; ++i) {
-    gkyl_array_accumulate_range(gkyl_array_scale_range(fout[i], dta, &(app->local)),
-      1.0, fin[i], &(app->local));
+  // complete update and apply excision before boundary conditions
+  for (int i = 0; i < app->num_species; i++) {
+    gkyl_array_accumulate_range(
+      gkyl_array_scale_range(fout[i], dta, &app->local),
+      1.0, fin[i], &app->local);
     apply_vacuum_einstein_excision_in_step(app, &app->species[i], fout[i]);
-    moment_species_apply_bc(app, tcurr, &app->species[i], fout[i]);
+    moment_species_apply_bc(app, tcurr + dta, &app->species[i], fout[i]);
   }
   if (app->has_field) {
     // complete update of field (even when field is static, it is
@@ -158,6 +219,9 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
         forward_euler(app, tcurr, dt, fin, app->has_field ? app->field.f0 : 0,
           fout, app->has_field ? app->field.f1 : 0,
           &st);
+	if (!st.success) {
+          return st;
+        }
 	dt = st.dt_actual;
         state = RK_STAGE_2;
         break;
@@ -170,6 +234,9 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
         forward_euler(app, tcurr+dt, dt, fin, app->has_field ? app->field.f1 : 0,
           fout, app->has_field ? app->field.fnew : 0,
           &st);
+	if (!st.success) {
+          return st;
+        }
 	if (st.dt_actual < dt) {
 
           // collect stats
@@ -203,6 +270,9 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
         forward_euler(app, tcurr+dt/2, dt, fin, app->has_field ? app->field.f1 : 0,
           fout, app->has_field ? app->field.fnew : 0,
           &st);
+        if (!st.success) {
+          return st;
+        }
         if (st.dt_actual < dt) {
           // collect stats
           double dt_rel_diff = (dt-st.dt_actual)/st.dt_actual;

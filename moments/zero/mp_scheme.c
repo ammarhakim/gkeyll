@@ -146,6 +146,78 @@ minmod_2(double x, double y)
   return 0.0;
 }
 
+// DISABLED for now. The WB-aware physical-constraint-preserving (PCP) limiter scaled the GR-Euler WB reconstruction's deviation toward
+// the admissible equilibrium so the face states stay in {D>0, (D+tau)^2-|S|^2>0} (convex, contains q_eq),
+// limiting the RECONSTRUCTION only (single-valued flux => conservation untouched). Parked with the
+// near-vacuum / equilibrium-family WB work. To re-enable: uncomment these two functions and the call site
+// in gkyl_mp_scheme_advance.
+/*
+static inline double
+gr_euler_smallest_pos_root(double A, double B, double Cz)
+{
+  if (fabs(A) < 1.0e-300) {
+    if (B < 0.0) return -Cz / B; // single root, positive since Cz >= 0
+    return 2.0; // increasing/flat from Cz >= 0: never crosses for t > 0
+  }
+  double disc = (B * B) - (4.0 * A * Cz);
+  if (disc < 0.0) return 2.0; // no real root: same sign as the value at t=0 (>= 0)
+  double sq = sqrt(disc);
+  double r1 = (-B - sq) / (2.0 * A);
+  double r2 = (-B + sq) / (2.0 * A);
+  double lo = fmin(r1, r2), hi = fmax(r1, r2);
+  if (lo > 0.0) return lo;
+  if (hi > 0.0) return hi;
+  return 2.0;
+}
+
+static inline double
+gr_euler_pcp_theta(const double qe[5], const double w[5])
+{
+  const double frac = 1.0e-4; // keep the face D and cone at >= frac of the equilibrium's own margin.
+
+  double a = qe[0] + qe[4];                                       // E_eq = D_eq + tau_eq
+  double b = w[0] + w[4];                                         // dE
+  double Seq2 = (qe[1] * qe[1]) + (qe[2] * qe[2]) + (qe[3] * qe[3]);
+  double C = (a * a) - Seq2;                                      // g(0) = equilibrium cone (> 0)
+  double Dmin = frac * qe[0];
+  double gmin = frac * C;
+
+  // Unlimited (theta = 1) face state.
+  double D1 = qe[0] + w[0];
+  double E1 = a + b;
+  double S1sq = ((qe[1] + w[1]) * (qe[1] + w[1])) + ((qe[2] + w[2]) * (qe[2] + w[2])) + ((qe[3] + w[3]) * (qe[3] + w[3]));
+  double g1 = (E1 * E1) - S1sq;
+  if (D1 >= Dmin && g1 >= gmin) {
+    return 1.0; // already admissible with margin: no limiting.
+  }
+
+  double theta = 1.0;
+
+  // D(theta) = qe[0] + theta*w[0] >= Dmin (only binds when the deviation lowers D).
+  if (w[0] < 0.0) {
+    double thD = (Dmin - qe[0]) / w[0];
+    if (thD < theta) theta = thD;
+  }
+
+  // g(theta) = A theta^2 + B theta + C >= gmin. value at theta=0 is C >= gmin (since gmin = frac*C).
+  if (theta > 0.0) {
+    double Eth = a + theta * b;
+    double Sth2 = ((qe[1] + theta * w[1]) * (qe[1] + theta * w[1])) + ((qe[2] + theta * w[2]) * (qe[2] + theta * w[2]))
+      + ((qe[3] + theta * w[3]) * (qe[3] + theta * w[3]));
+    if ((Eth * Eth) - Sth2 < gmin) {
+      double A = (b * b) - ((w[1] * w[1]) + (w[2] * w[2]) + (w[3] * w[3]));
+      double B = 2.0 * ((a * b) - ((qe[1] * w[1]) + (qe[2] * w[2]) + (qe[3] * w[3])));
+      double thg = gr_euler_smallest_pos_root(A, B, C - gmin);
+      if (thg < theta) theta = thg;
+    }
+  }
+
+  if (theta < 0.0) theta = 0.0;
+  if (theta > 1.0) theta = 1.0;
+  return theta;
+}
+*/
+
 static inline double
 minmod_4(double x, double y, double z, double w)
 {
@@ -334,10 +406,16 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       const double *phil = gkyl_array_cfetch(phi, loc+offsets[IM]);
       const double *phir = gkyl_array_cfetch(phi, loc+offsets[IP]);
 
+      bool use_first_order_excision_buffer = vacuum_einstein_excision_in_stencil(
+        mp->equation, qavg);
+      if (use_first_order_excision_buffer) {
+        // This face is shared by the cells on both sides => replacing its reconstruction once preserves the flux cancellation
+        u1_recovery(meqn, qavg[I3M], qavg[I2M], qavg[IM],
+          qavg[IP], qavg[I2P], qavg[I3P], qr_l, qr_r);
+      }
       // reconstruct the smooth deviation w = q - q_eq and add a single-valued edge equilibrium q_eq(edge) to both sides. 
       // at a static equilibrium w = 0 -> qr_l = qr_r = q_eq(edge): no jump -> exact balance
-      bool wb = (mp->equation->type == GKYL_EQN_GR_EULER && meqn == 73);
-      if (wb) {
+      else if (mp->equation->type == GKYL_EQN_GR_EULER && meqn == 73) {
         const double *qa[6] = { qavg[I3M], qavg[I2M], qavg[IM], qavg[IP], qavg[I2P], qavg[I3P] };
         double weq[6][meqn], qeq[6][meqn];
         for (int k = 0; k < 6; ++k) {
@@ -362,30 +440,25 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
           qr_r[m] = qe + wr[m];
         }
       }
-      else {
-        bool use_first_order_excision_buffer = vacuum_einstein_excision_in_stencil(mp->equation, qavg);
-        if (use_first_order_excision_buffer) {
-          u1_recovery(meqn, qavg[I3M], qavg[I2M], qavg[IM],
-            qavg[IP], qavg[I2P], qavg[I3P],
-            qr_l, qr_r);
-        }
-        else {
-          // recover variables at cell edge
-          mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],
-            qavg[IP], qavg[I2P], qavg[I3P],
-            qr_l, qr_r);
 
-          if (!mp->skip_mp_limiter) {
-            // apply MP limiter to left and right edge recovered values
-            for (int m=0; m<meqn; ++m) {
-              qr_r[m] = mp_limiter(qr_r[m],
-                qavg[I3P][m], qavg[I2P][m], qavg[IP][m],
-                qavg[IM][m], qavg[I2M][m]);
-              
-              qr_l[m] = mp_limiter(qr_l[m],
-                qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
-                qavg[IP][m], qavg[I2P][m]);
-            }
+        // NOTE: the WB-aware PCP limiter (gr_euler_pcp_theta / gr_euler_smallest_pos_root, commented out above) is disabled for now. 
+        // It kept the reconstructed face states in the admissible set by scaling the deviation toward the equilibrium, but it is not currently used (the near-vacuum / equilibrium-family WB work it supported is paused).      }
+      else {
+        // recover variables at cell edge
+        mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],
+          qavg[IP], qavg[I2P], qavg[I3P],
+          qr_l, qr_r);
+
+        if (!mp->skip_mp_limiter) {
+          // apply MP limiter to left and right edge recovered values
+          for (int m=0; m<meqn; ++m) {
+            qr_r[m] = mp_limiter(qr_r[m],
+              qavg[I3P][m], qavg[I2P][m], qavg[IP][m],
+              qavg[IM][m], qavg[I2M][m]);
+
+            qr_l[m] = mp_limiter(qr_l[m],
+              qavg[I3M][m], qavg[I2M][m], qavg[IM][m],
+              qavg[IP][m], qavg[I2P][m]);
           }
         }
       }
@@ -432,7 +505,7 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       double amax = gkyl_wv_eqn_flux_jump(mp->equation, qlocal_l, qlocal_r, deltaf_local);
 
       // rotate deltaf back to global frame
-      mp->equation->rotate_to_local_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], deltaf_local, deltaf);
+      mp->equation->rotate_to_global_func(mp->equation, cg->tau1[dir], cg->tau2[dir], cg->norm[dir], deltaf_local, deltaf);
 
       const double *amdq_p = gkyl_array_cfetch(amdq, loc);
       const double *apdq_p = gkyl_array_cfetch(apdq, loc);

@@ -1,5 +1,5 @@
-// Coupled TOV star in Cartesian coordinates: GR Euler (gamma-law) fluid dynamically coupled to the vacuum Einstein equations, 
-//  both evolved with the MP (Suresh-Huynh) flux-form scheme.  Coupled through the MP scheme by:
+// Coupled TOV star in Cartesian coordinates: GR Euler (gamma-law) fluid dynamically coupled to the conformal vacuum Einstein equations,
+//  both evolved with the MP flux-form scheme.  Coupled through the MP scheme by:
 //  - spacetime -> fluid: the live metric is synced into the fluid metric slots each RK stage (eqns 52/53 from the Multifluids paper)
 //  - fluid -> spacetime: the fluid stress-energy adds the standard ADM matter sources  -8*pi*alpha*(T_ij - 1/2 gamma_ij T) to K_ij and +8*pi*alpha*T^0_k to V_k.
 // The fluid still has the frozen-discrete well-balancing (toggle with gr_euler_disable_well_balanced). No WB for the spacetime for now.
@@ -18,8 +18,8 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_euler.h>
-#include <gkyl_wv_gr_euler_priv.h>
-#include <gkyl_wv_vacuum_einstein.h>
+#include <gkyl_wv_gr_euler_priv.h> // gkyl_gr_euler_prim_vars, for the admissibility/floor diagnostic.
+#include <gkyl_wv_vacuum_einstein_conformal.h>
 #include <gkyl_gr_tov.h>
 #include "tov_solver.h"
 
@@ -49,7 +49,7 @@ struct gr_tov_coupled_ctx
   enum gkyl_spacetime_gauge spacetime_gauge; // Fluid-side gauge tag (GR Euler eqn).
   int reinit_freq;
 
-  // Vacuum Einstein evolution parameters.
+  // Conformal vacuum Einstein evolution parameters.
   double excision_threshold;
   enum gkyl_spacetime_slicing spacetime_slicing;
   enum gkyl_spacetime_evolution spacetime_evolution;
@@ -86,9 +86,6 @@ create_ctx(void)
   printf("R_star = %e \n", R_star);
   printf("Compactness (2M_star / R_star) = %e \n", 2.0 * M_star / R_star);
 
-  // Areal (static) gauge holds the fluid bit-statically via the frozen WB (v=0). The Cartesian
-  // Kerr-Schild gauge (last arg -> true) is implemented and available,
-  // the moving equilibrium (v=beta/alpha) needs the equilibrium-family WB + near-vacuum limiter to be stable !!!!
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_tov_spacetime_new(false, tov, 0.0, 0.0, 0.0, false);
 
   struct gr_tov_coupled_ctx ctx = {
@@ -252,22 +249,22 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 }
 
 void
-evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+evalVacuumEinsteinConformalInit(double t, const double* GKYL_RESTRICT xn,
+  double* GKYL_RESTRICT fout, void* ctx)
 {
   double x = xn[0], y = xn[1];
   struct gr_tov_coupled_ctx *app = ctx;
-
   struct gkyl_gr_spacetime *spacetime = app->spacetime;
 
-  double spatial_det, lapse;
+  double lapse, psi, chi;
   double *shift = gkyl_malloc(sizeof(double[3]));
   bool in_excision_region;
 
-  double **spatial_metric = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  double **conformal_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) conformal_metric[i] = gkyl_malloc(sizeof(double[3]));
 
-  double **inv_spatial_metric = gkyl_malloc(sizeof(double*[3]));
-  for (int i = 0; i < 3; i++) inv_spatial_metric[i] = gkyl_malloc(sizeof(double[3]));
+  double **inv_conformal_metric = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) inv_conformal_metric[i] = gkyl_malloc(sizeof(double[3]));
 
   double **extrinsic_curvature = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) extrinsic_curvature[i] = gkyl_malloc(sizeof(double[3]));
@@ -276,69 +273,88 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
   double **shift_der = gkyl_malloc(sizeof(double*[3]));
   for (int i = 0; i < 3; i++) shift_der[i] = gkyl_malloc(sizeof(double[3]));
 
-  double ***spatial_metric_der = gkyl_malloc(sizeof(double**[3]));
+  double ***conformal_metric_der = gkyl_malloc(sizeof(double**[3]));
   for (int i = 0; i < 3; i++) {
-    spatial_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
-    for (int j = 0; j < 3; j++) spatial_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
+    conformal_metric_der[i] = gkyl_malloc(sizeof(double*[3]));
+    for (int j = 0; j < 3; j++) conformal_metric_der[i][j] = gkyl_malloc(sizeof(double[3]));
   }
 
-  double dl = pow(10.0, -8.0);
-  spacetime->spatial_metric_det_func(spacetime, 0.0, x, y, 0.0, &spatial_det);
+  double *psi_der = gkyl_malloc(sizeof(double[3]));
+  double *chi_der = gkyl_malloc(sizeof(double[3]));
+  double **chi_der2 = gkyl_malloc(sizeof(double*[3]));
+  for (int i = 0; i < 3; i++) chi_der2[i] = gkyl_malloc(sizeof(double[3]));
+
+  double dl = 1.0e-8;
+  double dl2 = 1.0e-6;
   spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse);
   spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift);
   spacetime->excision_region_func(spacetime, 0.0, x, y, 0.0, &in_excision_region);
-  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
-  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
+  spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &conformal_metric);
+  spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_conformal_metric);
   spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &extrinsic_curvature);
+  spacetime->conformal_factor_func(spacetime, 0.0, x, y, 0.0, &psi);
+  spacetime->bssn_conformal_factor_func(spacetime, 0.0, x, y, 0.0, &chi);
+  spacetime->conformal_factor_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &psi_der);
+  spacetime->bssn_conformal_factor_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &chi_der);
+  spacetime->bssn_conformal_factor_der2_func(spacetime, 0.0, x, y, 0.0,
+    dl2, dl2, dl2, &chi_der2);
   spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &lapse_der);
   spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &shift_der);
-  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, dl, dl, dl, &spatial_metric_der);
+  spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0,
+    dl, dl, dl, &conformal_metric_der);
 
-  // Bona-Masso conventions: 
-  // D_kij = 1/2 d_k gamma_ij, (1/2) d_i beta^j, A_i = d_i ln(alpha)
-  // (So what I calculate fits the vacuum einstein later)
+  double psi4 = psi * psi * psi * psi;
+  for (int k = 0; k < 3; k++) psi_der[k] /= psi;
+
+  // Convert gamma_ij and its inverse to tilde(gamma)_ij and
+  // tilde(gamma)^ij. The derivative reduction variable is
+  // tilde(D)_kij = 1/2 d_k tilde(gamma)_ij.
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
+      conformal_metric[i][j] /= psi4;
+      inv_conformal_metric[i][j] *= psi4;
       for (int k = 0; k < 3; k++) {
-        spatial_metric_der[i][j][k] = 0.5 * spatial_metric_der[i][j][k];
+        conformal_metric_der[k][i][j] =
+          (0.5 * conformal_metric_der[k][i][j] / psi4)
+          - (2.0 * psi_der[k] * conformal_metric[i][j]);
       }
       shift_der[i][j] = 0.5 * shift_der[i][j];
     }
   }
-  for (int i = 0; i < 3; i++) {
-    lapse_der[i] = lapse_der[i] / lapse;
-  }
+  for (int i = 0; i < 3; i++) lapse_der[i] /= lapse;
 
-  double spatial_metric_der_raised1[3][3][3];
+  double conformal_metric_der_raised1[3][3][3];
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       for (int k = 0; k < 3; k++) {
-        spatial_metric_der_raised1[k][i][j] = 0.0;
+        conformal_metric_der_raised1[k][i][j] = 0.0;
         for (int l = 0; l < 3; l++)
-          spatial_metric_der_raised1[k][i][j] += inv_spatial_metric[k][l] * spatial_metric_der[l][i][j];
+          conformal_metric_der_raised1[k][i][j] +=
+            inv_conformal_metric[k][l] * conformal_metric_der[l][i][j];
       }
 
-  double spatial_metric_der_raised3[3][3][3];
+  double conformal_metric_der_raised3[3][3][3];
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
       for (int k = 0; k < 3; k++) {
-        spatial_metric_der_raised3[i][j][k] = 0.0;
+        conformal_metric_der_raised3[i][j][k] = 0.0;
         for (int l = 0; l < 3; l++)
-          spatial_metric_der_raised3[i][j][k] += inv_spatial_metric[l][k] * spatial_metric_der[i][j][l];
+          conformal_metric_der_raised3[i][j][k] +=
+            inv_conformal_metric[l][k] * conformal_metric_der[i][j][l];
       }
 
-  double aux_vect[3];
+  double conformal_aux_vect[3];
   for (int i = 0; i < 3; i++) {
-    aux_vect[i] = 0.0;
+    conformal_aux_vect[i] = -4.0 * psi_der[i];
     for (int s = 0; s < 3; s++) {
-      aux_vect[i] += spatial_metric_der_raised3[i][s][s];
-      aux_vect[i] -= spatial_metric_der_raised1[s][s][i];
+      conformal_aux_vect[i] += conformal_metric_der_raised3[i][s][s];
+      conformal_aux_vect[i] -= conformal_metric_der_raised1[s][s][i];
     }
   }
 
-  fout[0] = spatial_metric[0][0]; fout[1] = spatial_metric[0][1]; fout[2] = spatial_metric[0][2];
-  fout[3] = spatial_metric[1][0]; fout[4] = spatial_metric[1][1]; fout[5] = spatial_metric[1][2];
-  fout[6] = spatial_metric[2][0]; fout[7] = spatial_metric[2][1]; fout[8] = spatial_metric[2][2];
+  fout[0] = conformal_metric[0][0]; fout[1] = conformal_metric[0][1]; fout[2] = conformal_metric[0][2];
+  fout[3] = conformal_metric[1][0]; fout[4] = conformal_metric[1][1]; fout[5] = conformal_metric[1][2];
+  fout[6] = conformal_metric[2][0]; fout[7] = conformal_metric[2][1]; fout[8] = conformal_metric[2][2];
 
   fout[9] = lapse;
 
@@ -346,21 +362,16 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
   fout[13] = extrinsic_curvature[1][0]; fout[14] = extrinsic_curvature[1][1]; fout[15] = extrinsic_curvature[1][2];
   fout[16] = extrinsic_curvature[2][0]; fout[17] = extrinsic_curvature[2][1]; fout[18] = extrinsic_curvature[2][2];
 
-  fout[19] = spatial_metric_der[0][0][0]; fout[20] = spatial_metric_der[0][0][1]; fout[21] = spatial_metric_der[0][0][2];
-  fout[22] = spatial_metric_der[0][1][0]; fout[23] = spatial_metric_der[0][1][1]; fout[24] = spatial_metric_der[0][1][2];
-  fout[25] = spatial_metric_der[0][2][0]; fout[26] = spatial_metric_der[0][2][1]; fout[27] = spatial_metric_der[0][2][2];
-
-  fout[28] = spatial_metric_der[1][0][0]; fout[29] = spatial_metric_der[1][0][1]; fout[30] = spatial_metric_der[1][0][2];
-  fout[31] = spatial_metric_der[1][1][0]; fout[32] = spatial_metric_der[1][1][1]; fout[33] = spatial_metric_der[1][1][2];
-  fout[34] = spatial_metric_der[1][2][0]; fout[35] = spatial_metric_der[1][2][1]; fout[36] = spatial_metric_der[1][2][2];
-
-  fout[37] = spatial_metric_der[2][0][0]; fout[38] = spatial_metric_der[2][0][1]; fout[39] = spatial_metric_der[2][0][2];
-  fout[40] = spatial_metric_der[2][1][0]; fout[41] = spatial_metric_der[2][1][1]; fout[42] = spatial_metric_der[2][1][2];
-  fout[43] = spatial_metric_der[2][2][0]; fout[44] = spatial_metric_der[2][2][1]; fout[45] = spatial_metric_der[2][2][2];
+  for (int k = 0; k < 3; k++) {
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        fout[19 + (9 * k) + (3 * i) + j] = conformal_metric_der[k][i][j];
+      }
+    }
+  }
 
   fout[46] = lapse_der[0]; fout[47] = lapse_der[1]; fout[48] = lapse_der[2];
-
-  fout[49] = aux_vect[0]; fout[50] = aux_vect[1]; fout[51] = aux_vect[2];
+  fout[49] = conformal_aux_vect[0]; fout[50] = conformal_aux_vect[1]; fout[51] = conformal_aux_vect[2];
 
   fout[52] = shift[0]; fout[53] = shift[1]; fout[54] = shift[2];
 
@@ -368,19 +379,27 @@ evalVacuumEinsteinInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RE
   fout[58] = shift_der[1][0]; fout[59] = shift_der[1][1]; fout[60] = shift_der[1][2];
   fout[61] = shift_der[2][0]; fout[62] = shift_der[2][1]; fout[63] = shift_der[2][2];
 
+  fout[64] = chi;
+  fout[65] = chi_der[0]; fout[66] = chi_der[1]; fout[67] = chi_der[2];
+  fout[68] = chi_der2[0][0]; fout[69] = chi_der2[0][1]; fout[70] = chi_der2[0][2];
+  fout[71] = chi_der2[1][0]; fout[72] = chi_der2[1][1]; fout[73] = chi_der2[1][2];
+  fout[74] = chi_der2[2][0]; fout[75] = chi_der2[2][1]; fout[76] = chi_der2[2][2];
+
   if (in_excision_region) {
-    for (int i = 0; i < 64; i++) fout[i] = 0.0;
+    for (int i = 0; i < 77; i++) fout[i] = 0.0;
   }
 
   gkyl_free(shift);
   for (int i = 0; i < 3; i++) {
-    gkyl_free(spatial_metric[i]); gkyl_free(inv_spatial_metric[i]);
+    gkyl_free(conformal_metric[i]); gkyl_free(inv_conformal_metric[i]);
     gkyl_free(extrinsic_curvature[i]); gkyl_free(shift_der[i]);
-    for (int j = 0; j < 3; j++) gkyl_free(spatial_metric_der[i][j]);
-    gkyl_free(spatial_metric_der[i]);
+    gkyl_free(chi_der2[i]);
+    for (int j = 0; j < 3; j++) gkyl_free(conformal_metric_der[i][j]);
+    gkyl_free(conformal_metric_der[i]);
   }
-  gkyl_free(spatial_metric); gkyl_free(inv_spatial_metric); gkyl_free(extrinsic_curvature);
-  gkyl_free(lapse_der); gkyl_free(shift_der); gkyl_free(spatial_metric_der);
+  gkyl_free(conformal_metric); gkyl_free(inv_conformal_metric); gkyl_free(extrinsic_curvature);
+  gkyl_free(lapse_der); gkyl_free(shift_der); gkyl_free(conformal_metric_der);
+  gkyl_free(psi_der); gkyl_free(chi_der); gkyl_free(chi_der2);
 }
 
 void
@@ -437,8 +456,8 @@ main(int argc, char **argv)
     .rho_atm = ctx.rho_atm,
   });
 
-  // Vacuum Einstein (Bona-Masso), evolved with the MP scheme and coupled to the fluid.
-  struct gkyl_wv_eqn *vacuum_einstein = gkyl_wv_vacuum_einstein_new(ctx.excision_threshold,
+  // Conformal vacuum Einstein (Bona-Masso), evolved with MP and coupled to the fluid.
+  struct gkyl_wv_eqn *vacuum_einstein_conformal = gkyl_wv_vacuum_einstein_conformal_new(ctx.excision_threshold,
     ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = {
@@ -459,16 +478,16 @@ main(int argc, char **argv)
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };
 
-  struct gkyl_moment_species einstein = {
-    .name = "vacuum_einstein",
-    .equation = vacuum_einstein,
-    .init = evalVacuumEinsteinInit,
+  struct gkyl_moment_species einstein_conformal = {
+    .name = "vacuum_einstein_conformal",
+    .equation = vacuum_einstein_conformal,
+    .init = evalVacuumEinsteinConformalInit,
     .ctx = &ctx,
 
-    .has_vacuum_einstein = true,
-    .vacuum_einstein_excision_threshold = ctx.excision_threshold,
-    .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
-    .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
+    .has_vacuum_einstein_conformal = true,
+    .vacuum_einstein_conformal_excision_threshold = ctx.excision_threshold,
+    .vacuum_einstein_conformal_spacetime_slicing = ctx.spacetime_slicing,
+    .vacuum_einstein_conformal_spacetime_evolution = ctx.spacetime_evolution,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
@@ -495,7 +514,7 @@ main(int argc, char **argv)
 #endif
 
   struct gkyl_moment app_inp = {
-    .name = "gr_tov_coupled_cart",
+    .name = "gr_tov_conformal_coupled_cart",
 
     .ndim = 2,
     .lower = { -0.5 * ctx.Lx, -0.5 * ctx.Ly },
@@ -508,7 +527,7 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .num_species = 2,
-    .species = { fluid, einstein },
+    .species = { fluid, einstein_conformal },
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
@@ -566,7 +585,7 @@ main(int argc, char **argv)
 
   gkyl_moment_app_release(app);
   gkyl_wv_eqn_release(gr_euler);
-  gkyl_wv_eqn_release(vacuum_einstein);
+  gkyl_wv_eqn_release(vacuum_einstein_conformal);
   gkyl_gr_tov_spacetime_free(&ctx.spacetime->ref_count);
   gkyl_tov_solution_release(ctx.tov);
   gkyl_comm_release(comm);

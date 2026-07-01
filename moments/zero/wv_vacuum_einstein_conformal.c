@@ -706,6 +706,19 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   qlocal[65] = (qglobal[65] * norm[0]) + (qglobal[66] * norm[1]) + (qglobal[67] * norm[2]);
   qlocal[66] = (qglobal[65] * tau1[0]) + (qglobal[66] * tau1[1]) + (qglobal[67] * tau1[2]);
   qlocal[67] = (qglobal[65] * tau2[0]) + (qglobal[66] * tau2[1]) + (qglobal[67] * tau2[2]);
+
+  const double *basis[3] = { norm, tau1, tau2 };
+  for (int a = 0; a < 3; a++) {
+    for (int b = 0; b < 3; b++) {
+      qlocal[68 + (3 * a) + b] = 0.0;
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          qlocal[68 + (3 * a) + b] += basis[a][i] * basis[b][j]
+            * qglobal[68 + (3 * i) + j];
+        }
+      }
+    }
+  }
 }
 
 static inline void
@@ -948,6 +961,19 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   qglobal[65] = (qlocal[65] * norm[0]) + (qlocal[66] * tau1[0]) + (qlocal[67] * tau2[0]);
   qglobal[66] = (qlocal[65] * norm[1]) + (qlocal[66] * tau1[1]) + (qlocal[67] * tau2[1]);
   qglobal[67] = (qlocal[65] * norm[2]) + (qlocal[66] * tau1[2]) + (qlocal[67] * tau2[2]);
+
+  const double *basis[3] = { norm, tau1, tau2 };
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      qglobal[68 + (3 * i) + j] = 0.0;
+      for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 3; b++) {
+          qglobal[68 + (3 * i) + j] += basis[a][i] * basis[b][j]
+            * qlocal[68 + (3 * a) + b];
+        }
+      }
+    }
+  }
 }
 
 static double
@@ -1074,7 +1100,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     slicing_func_r = 1.0 / (conformal_fact_r * conformal_fact_r * conformal_fact_r * conformal_fact_r);
   }
   else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-    slicing_func_r = 2.0 / (conformal_lapse_l / (conformal_fact_r * conformal_fact_r * conformal_fact_r * conformal_fact_r));
+    slicing_func_r = 2.0 / (conformal_lapse_r * (conformal_fact_r * conformal_fact_r * conformal_fact_r * conformal_fact_r));
   }
 
   double **inv_conformal_spatial_metric_r = gkyl_malloc(sizeof(double*[3]));
@@ -1217,12 +1243,24 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 static bool
 check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
 {
-  if (q[9] < 0.0) {
-    return false;
+  const struct wv_vacuum_einstein_conformal *vacuum_einstein_conformal =
+    container_of(eqn, struct wv_vacuum_einstein_conformal, eqn);
+
+  for (int m = 0; m < 77; m++) {
+    if (!isfinite(q[m])) {
+      return false;
+    }
   }
-  else {
+
+  // The excision update purposely stores a zero state - it is outside the evolved physical domain and must not trigger positivity recovery!
+  if (q[9] < vacuum_einstein_conformal->excision_threshold) {
     return true;
   }
+
+  if (q[9] < 0.0 || q[64] <= 0.0) {
+    return false;
+  }
+  return true;
 }
 
 static double
