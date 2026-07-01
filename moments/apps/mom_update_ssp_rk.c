@@ -1,7 +1,7 @@
 #include <gkyl_moment_priv.h>
 
 // Remap a vacuum-Einstein state vector into the metric slots of a GR-Euler fluid state vector. 
-static void
+void
 sync_fluid_metric_from_einstein(const double *qe, double *qf, double excision_threshold, bool is_conformal)
 {
   double lapse = qe[9];
@@ -73,8 +73,9 @@ couple_gr_fluid_spacetime(gkyl_moment_app* app, const struct gkyl_array *fin[])
 {
   int fluid_idx = -1, einstein_idx = -1;
   for (int i = 0; i < app->num_species; ++i) {
-    if (app->species[i].has_gr_euler) fluid_idx = i;
-    if (app->species[i].has_vacuum_einstein || app->species[i].has_vacuum_einstein_conformal) {
+    if (app->species[i].has_gr_euler && app->species[i].scheme_type == GKYL_MOMENT_MP) fluid_idx = i;
+    if ((app->species[i].has_vacuum_einstein || app->species[i].has_vacuum_einstein_conformal)
+      && app->species[i].scheme_type == GKYL_MOMENT_MP) {
       einstein_idx = i;
     }
     app->species[i].coupling_partner_fin = NULL;
@@ -158,6 +159,7 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
 
   // compute RHS of fluid equations
   for (int i=0; i<app->num_species; ++i) {
+    if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) continue;
     double dt1 = moment_species_rhs(app, &app->species[i], fin[i], fout[i]);
     dtmin = fmin(dtmin, dt1);
   }
@@ -180,6 +182,7 @@ forward_euler(gkyl_moment_app* app, double tcurr, double dt,
 
   // complete update and apply excision before boundary conditions
   for (int i = 0; i < app->num_species; i++) {
+    if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) continue;
     gkyl_array_accumulate_range(
       gkyl_array_scale_range(fout[i], dta, &app->local),
       1.0, fin[i], &app->local);
@@ -213,6 +216,7 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
     switch (state) {
       case RK_STAGE_1:
         for (int i=0; i<app->num_species; ++i) {
+          if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) continue;
           fin[i] = app->species[i].f0;
           fout[i] = app->species[i].f1;
         }
@@ -228,6 +232,7 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
 
       case RK_STAGE_2:
         for (int i=0; i<app->num_species; ++i) {
+          if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) continue;
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
@@ -251,9 +256,11 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
           state = RK_STAGE_1; // restart from stage 1
 
         } else {
-          for (int i=0; i<app->num_species; ++i)
+          for (int i=0; i<app->num_species; ++i) {
+            if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) continue;
             array_combine(app->species[i].f1,
               3.0/4.0, app->species[i].f0, 1.0/4.0, app->species[i].fnew, &app->local_ext);
+          }
           if (app->has_field)
             array_combine(app->field.f1,
               3.0/4.0, app->field.f0, 1.0/4.0, app->field.fnew, &app->local_ext);
@@ -264,6 +271,7 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
 
       case RK_STAGE_3:
         for (int i=0; i<app->num_species; ++i) {
+          if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) continue;
           fin[i] = app->species[i].f1;
           fout[i] = app->species[i].fnew;
         }
@@ -289,6 +297,7 @@ moment_update_ssp_rk3(gkyl_moment_app* app, double dt0)
         }
         else {
           for (int i=0; i<app->num_species; ++i) {
+            if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) continue;
             array_combine(app->species[i].f1,
               1.0/3.0, app->species[i].f0, 2.0/3.0, app->species[i].fnew, &app->local_ext);
             gkyl_array_copy_range(app->species[i].f0, app->species[i].f1, &app->local_ext);

@@ -154,7 +154,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->gr_mhd_gas_gamma = mom_sp->gr_mhd_gas_gamma;
   }
 
-  sp->scheme_type = mom->scheme_type;
+  // Per-species scheme override is only consulted (and required) under GKYL_MOMENT_MIXED;
+  // otherwise every species inherits the single app-wide scheme, as before.
+  sp->scheme_type = (mom->scheme_type == GKYL_MOMENT_MIXED) ? mom_sp->scheme_type : mom->scheme_type;
 
   // choose default limiter
   enum gkyl_wave_limiter limiter =
@@ -507,7 +509,8 @@ moment_species_update(gkyl_moment_app *app,
 }
 
 // Add the fluid matter source to the vacuum-Einstein RHS (method-of-lines form of the standard ADM matter coupling)
-static void
+// (Non-static: also reused by the mixed scheme in mom_update_mixed.c; declared in gkyl_moment_priv.h.)
+void
 add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma, double excision_threshold, bool is_conformal, double *rhs)
 {
   double lapse = qe[9];
@@ -632,7 +635,7 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   gkyl_array_clear(species->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
-  if (app->scheme_type == GKYL_MOMENT_MP)
+  if (species->scheme_type == GKYL_MOMENT_MP)
     gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
       app->ql, app->qr, app->amdq, app->apdq,
       species->cflrate, species->embed_mask, rhs);

@@ -83,10 +83,12 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   
   if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
     app->update_func = moment_update_one_step;
-  else if (app->scheme_type == GKYL_MOMENT_MP) 
+  else if (app->scheme_type == GKYL_MOMENT_MP)
     app->update_func = moment_update_ssp_rk3;
   else if (app->scheme_type == GKYL_MOMENT_KEP)
     app->update_func = moment_update_ssp_rk3;
+  else if (app->scheme_type == GKYL_MOMENT_MIXED)
+    app->update_func = moment_update_mixed;
 
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
   if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
@@ -158,8 +160,9 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
 
   double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
   app->cfl = 1.0*cfl_frac;
-  if (app->scheme_type == GKYL_MOMENT_MP)
+  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_MIXED)
     app->cfl = 0.4*cfl_frac; // this should be 1/(1+alpha) = 0.2 but is set to a larger value
+                             // (MIXED shares one dt across both sectors, so use the MP fluid's CFL)
 
   app->num_periodic_dir = mom->num_periodic_dir;
   for (int d=0; d<ndim; ++d)
@@ -226,7 +229,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   }
 
   // allocate work array for use in MP scheme
-  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
+  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP || app->scheme_type == GKYL_MOMENT_MIXED) {
     int max_eqn = 0;
     for (int i=0; i<ns; ++i)
       max_eqn = int_max(max_eqn, app->species[i].num_equations);
@@ -277,7 +280,7 @@ gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
   if (app->has_field != 1) return;
   
   app->tcurr = t0;
-  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
+  int num_quad = app->field.scheme_type == GKYL_MOMENT_MP ? 4 : 2;
   gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, 8, app->field.init, app->field.ctx);
   
   gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
@@ -299,7 +302,7 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   assert(sidx < app->num_species);
 
   app->tcurr = t0;
-  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;  
+  int num_quad = app->species[sidx].scheme_type == GKYL_MOMENT_MP ? 4 : 2;
   gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, app->species[sidx].num_equations,
     app->species[sidx].init, app->species[sidx].ctx);
   
@@ -664,8 +667,8 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
     gkyl_moment_app_cout(app, fp, " field_tm : %lg,\n", stat.field_tm);
     gkyl_moment_app_cout(app, fp, " sources_tm : %lg\n", stat.sources_tm);
   }
-  else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
-    
+  else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP || app->scheme_type == GKYL_MOMENT_MIXED) {
+
     gkyl_moment_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
     gkyl_moment_app_cout(app, fp, " nstage_2_fail : %ld,\n", stat.nstage_2_fail);
     gkyl_moment_app_cout(app, fp, " nstage_3_fail : %ld,\n", stat.nstage_3_fail);
@@ -692,7 +695,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   for (int i = 0; i < app->num_species; ++i) {
     long tot_bad_cells = 0L;
     
-    if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) {
       for (int d = 0; d < app->ndim; ++d) {
         struct gkyl_wave_prop_stats wvs_local = gkyl_wave_prop_stats(app->species[i].slvr[d]);
         struct gkyl_wave_prop_stats wvs = {};
@@ -890,7 +893,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   gkyl_wave_geom_release(app->geom);
 
-  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
+  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP || app->scheme_type == GKYL_MOMENT_MIXED) {
     gkyl_array_release(app->ql);
     gkyl_array_release(app->qr);
     gkyl_array_release(app->amdq);

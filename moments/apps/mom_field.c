@@ -13,8 +13,10 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   fld->ctx = mom_fld->ctx;
   fld->init = mom_fld->init;
 
-  fld->scheme_type = mom->scheme_type;
-  
+  // The mixed scheme does not couple an EM field; keep the (unused) field object well-formed by
+  // falling back to the wave-propagation solver so its solver/arrays are still allocated as usual.
+  fld->scheme_type = (mom->scheme_type == GKYL_MOMENT_MIXED) ? GKYL_MOMENT_WAVE_PROP : mom->scheme_type;
+
   // choose default limiter
   enum gkyl_wave_limiter limiter =
     mom_fld->limiter == 0 ? GKYL_MONOTONIZED_CENTERED : mom_fld->limiter;

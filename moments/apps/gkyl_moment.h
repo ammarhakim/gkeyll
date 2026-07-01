@@ -13,6 +13,14 @@
 
 #include <time.h>
 
+// Choices of schemes to use in the fluid solver
+enum gkyl_moment_scheme {
+  GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
+  GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
+  GKYL_MOMENT_KEP, // Kinetic-energy preserving scheme
+  GKYL_MOMENT_MIXED // per-species mixed scheme (each species set its own scheme_type)
+};
+
 // Parameters for moment species
 struct gkyl_moment_species {
   char name[128]; // species name
@@ -96,7 +104,10 @@ struct gkyl_moment_species {
   // boundary conditions
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
   // for function BCs these should be set
-  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];  
+  wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
+
+  // Per-species scheme override. Only consulted when the top-level app scheme_type is GKYL_MOMENT_MIXED, in which case it is required. Ignored otherwise.
+  enum gkyl_moment_scheme scheme_type;
 };
 
 // Parameter for EM field
@@ -137,13 +148,6 @@ struct gkyl_moment_field {
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
   // for function BCs these should be set
   wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
-};
-
-// Choices of schemes to use in the fluid solver
-enum gkyl_moment_scheme {
-  GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
-  GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
-  GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
 };
 
 // Top-level app parameters

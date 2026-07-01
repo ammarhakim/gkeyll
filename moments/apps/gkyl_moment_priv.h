@@ -514,6 +514,19 @@ struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
 struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
   double dt0);
 
+// Take a single time-step using the per-species mixed scheme (spacetime -> wave_prop, fluid -> MP, coupled each step). Used when app->scheme_type == GKYL_MOMENT_MIXED.
+struct gkyl_update_status moment_update_mixed(gkyl_moment_app *app,
+  double dt0);
+
+// GR-Euler <-> vacuum-Einstein coupling helpers, reused by the mixed scheme.
+// Remap a vacuum-Einstein state vector into the metric slots of a GR-Euler fluid state vector (from mom_update_ssp_rk.c)
+void sync_fluid_metric_from_einstein(const double *qe, double *qf, double excision_threshold,
+  bool is_conformal);
+
+// Add the fluid matter source to the vacuum-Einstein RHS (method-of-lines form of the standard ADM matter coupling): dK_ij += -8*pi*alpha*(T_ij - 1/2 gamma_ij T), dV_k += +8*pi*alpha*T^0_k (from mom_species.c)
+void add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
+  double excision_threshold, bool is_conformal, double *rhs);
+
 /**
  * Create new array meta header from input struct. Free returned
  * object with moment_array_meta_release.
