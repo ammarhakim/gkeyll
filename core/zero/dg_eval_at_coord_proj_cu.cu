@@ -90,7 +90,6 @@ gkyl_dg_eval_at_coord_proj_advance_cu(struct gkyl_dg_eval_at_coord_proj *up, con
   const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
   const struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
-  int ncomp = fdo->ncomp / up->num_basis_do;
 
   // We assume that if fdo has multiple DG fields (vector components), ftar has the
   // same number of vector components.
