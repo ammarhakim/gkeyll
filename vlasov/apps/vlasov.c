@@ -239,32 +239,16 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   int ntot = ns + nsf;
   app->species = ntot>0 ? gkyl_malloc(sizeof(struct vlasov_species[ntot])) : 0;
   app->fluid_species = app->species ? app->species + ns : 0;
-  for (int i=0; i<ntot; ++i)
-    app->species[i] = (struct vlasov_species) { };
 
-  // Allocate the kinetic aspect (dist) of each Vlasov species.
-  for (int i=0; i<ns; ++i) {
-    app->species[i].type = GKYL_SPECIES_VLASOV;
-    app->species[i].dist = gkyl_malloc(sizeof(struct vm_species));
-    *app->species[i].dist = (struct vm_species) { };
-  }
-
-  // Allocate the fluid aspect of each fluid species.
-  for (int i=0; i<nsf; ++i) {
-    app->fluid_species[i].type = GKYL_SPECIES_FLUID;
-    app->fluid_species[i].fluid = gkyl_malloc(sizeof(struct vm_fluid_species));
-    *app->fluid_species[i].fluid = (struct vm_fluid_species) { };
-  }
-
-  // set info for each species: this needs to be done here as we need
-  // to access species name from vm_species_init
+  // Construct each species container: allocates the aspect sub-object, stores
+  // its info (needed before the init loops below, which look up species by
+  // name), hoists the identity, and wires the container's dispatch methods.
+  // The heavy aspect initialization follows in vm_species_init /
+  // vm_fluid_species_init once all containers exist.
   for (int i=0; i<ns; ++i)
-    app->species[i].dist->info = vm->species[i];
-
-  // set info for each fluid species: this needs to be done here as we
-  // need to access species name from vm_fluid_species_init
+    vlasov_kinetic_species_new(app, &vm->species[i], &app->species[i]);
   for (int i=0; i<nsf; ++i)
-    app->fluid_species[i].fluid->info = vm->fluid_species[i];
+    vlasov_fluid_species_new(app, &vm->fluid_species[i], &app->fluid_species[i]);
 
   // initialize each species
   for (int i=0; i<ns; ++i) 
@@ -433,9 +417,12 @@ gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0)
   struct timespec wtm = gkyl_wall_clock();
 
   if (app->field->field_id != GKYL_FIELD_NULL) {
-    struct gkyl_array *distf[app->num_species];
-    for (int i=0; i<app->num_species; ++i)
-      distf[i] = app->species[i].dist->f;
+    // Indexed over the overall species count (NULL where a species has no
+    // kinetic aspect), matching the per-species field-coupling dispatch.
+    int num_species = app->num_species + app->num_fluid_species;
+    struct gkyl_array *distf[num_species];
+    for (int i=0; i<num_species; ++i)
+      distf[i] = app->species[i].dist ? app->species[i].dist->f : 0;
 
     // Dispatches to the Maxwell or Poisson IC; the distribution fin is used only
     // by Vlasov-Poisson (to form the charge density), ignored by Vlasov-Maxwell.
@@ -1097,11 +1084,14 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Compute the fields and apply BCs.
-    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_GR_D_B) 
+    if ((app->field->field_id != GKYL_FIELD_E_B) && (app->field->field_id != GKYL_FIELD_GR_D_B)
       && (app->field->field_id != GKYL_FIELD_NULL)) {
-      struct gkyl_array *distf[app->num_species];
-      for (int i=0; i<app->num_species; ++i)
-        distf[i] = app->species[i].dist->f;
+      // Indexed over the overall species count (NULL where a species has no
+      // kinetic aspect), matching the per-species field-coupling dispatch.
+      int num_species = app->num_species + app->num_fluid_species;
+      struct gkyl_array *distf[num_species];
+      for (int i=0; i<num_species; ++i)
+        distf[i] = app->species[i].dist ? app->species[i].dist->f : 0;
 
       // MF 2024/09/27/: Need the cast here for consistency. Fixing
       // this may require removing 'const' from a lot of places.

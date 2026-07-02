@@ -422,36 +422,17 @@ vm_field_calc_app_current(gkyl_vlasov_app *app, struct vm_field *field, double t
 }
 
 void
-vm_field_accumulate_current(gkyl_vlasov_app *app, 
-  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], 
+vm_field_accumulate_current(gkyl_vlasov_app *app,
+  const struct gkyl_array *fin[], const struct gkyl_array *fluidin[],
   struct gkyl_array *emout)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = app->species[i].dist;
-    double qbyeps = s->info.charge/app->field->info.epsilon0; 
+  // Each species owns its explicit contribution (kinetic species accumulate
+  // -q/eps0 * m1i; implicitly-coupled fluid species are a no-op); the field
+  // only owns this loop and the applied current below.
+  int num_species = app->num_species + app->num_fluid_species;
+  for (int i=0; i<num_species; ++i)
+    vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], fluidin[i], emout);
 
-    vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-    gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
-
-    if (app->field->use_ghost_current) {
-      double avals_ghost_current[1], avals_ghost_current_global[1]; 
-      // First set the scalar ghost current array to the cell average 
-      // current/(epsilon0*nx) where nx is the number of x cells. 
-      gkyl_array_set_range(app->field->ghost_current, qbyeps/app->grid.cells[0], s->m1i.marr, &app->local); 
-      // Integrate the current over the whole domain to find the globally averaged ghost current. 
-      if (app->use_gpu) {
-        gkyl_array_reduce_range(app->field->red_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
-        gkyl_cu_memcpy(avals_ghost_current, app->field->red_ghost_current, sizeof(double[1]), GKYL_CU_MEMCPY_D2H);
-      }
-      else { 
-        gkyl_array_reduce_range(avals_ghost_current, app->field->ghost_current, GKYL_SUM, &app->local);
-      }
-      gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, avals_ghost_current, avals_ghost_current_global);
-      // Set the scalar ghost current array to the global average current and accumulate to the electric field. 
-      gkyl_array_clear(app->field->ghost_current, avals_ghost_current_global[0]);
-      gkyl_array_accumulate_range(emout, 1.0, app->field->ghost_current, &app->local);   
-    }    
-  } 
   // Accumulate applied current to electric field terms.
   // *Only* accumulate applied currents if num_fluid_species = 0 and there is no fluid-EM coupling.
   // If there are fluid species, then applied current coupling handled by implicit fluid-EM coupling

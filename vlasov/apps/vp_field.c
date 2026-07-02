@@ -207,15 +207,15 @@ void
 vp_field_accumulate_charge_dens(gkyl_vlasov_app *app, struct vm_field *field,
   const struct gkyl_array *fin[])
 {
-  // Calculate the charge density.
+  // Calculate the charge density. Each species owns its explicit contribution
+  // (kinetic species accumulate q * m0; species without a Poisson coupling are
+  // a no-op); the field only owns this loop and the solve. fin[] is indexed
+  // over the overall species count. There is no fluid state to pass here (the
+  // fluid coupling slot is a no-op under Poisson).
   gkyl_array_clear(field->rho_c, 0.0);
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *s = app->species[i].dist;
-
-    vm_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
-
-    gkyl_array_accumulate_range(field->rho_c, s->info.charge, s->m0.marr, &app->local);
-  }
+  int num_species = app->num_species + app->num_fluid_species;
+  for (int i=0; i<num_species; ++i)
+    vlasov_species_accumulate_field_coupling(app, &app->species[i], fin[i], 0, field->rho_c);
 }
 
 void

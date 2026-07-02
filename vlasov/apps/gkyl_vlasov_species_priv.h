@@ -720,10 +720,65 @@ enum gkyl_species_type {
 // Vlasov species sets dist; a fluid species sets fluid; a PKPM species (later)
 // sets both. app->species is the single backing array of these; app->fluid_species
 // is a view into its fluid-typed tail (see vlasov.c construction).
+//
+// The container carries a vtable wired once by its constructor
+// (vlasov_kinetic_species_new / vlasov_fluid_species_new), mirroring how
+// vm_field_new/vp_field_new wire the field's dispatch methods: the
+// vlasov_species_* wrappers forward through these pointers instead of
+// branching on species type at every call site. Aspect-flavor dispatch
+// (dynamic/static kinetic, Euler/advection/can-PB fluid) stays on the
+// aspect-level vtables; the container vtable only encodes which aspects a
+// species has and how they compose.
 struct vlasov_species {
   enum gkyl_species_type type;
+
+  // Hoisted identity, shared by all aspects: used by type-agnostic consumers
+  // (field-coupling loop, implicit gather, cross-species lookups by name, IO)
+  // so they need not reach into an aspect's info struct.
+  char name[128];
+  double charge, mass;
+
   struct vm_species *dist;        // kinetic aspect (NULL if absent)
   struct vm_fluid_species *fluid; // fluid aspect (NULL if absent)
+
+  // Container vtable: one pointer per driver-level operation, set at
+  // construction. Signatures match the vlasov_species_* wrappers below.
+  void (*calc_app_accel_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    double tcurr);
+  void (*calc_self_moms_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    const struct gkyl_array *fin);
+  void (*calc_cross_moms_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    const struct gkyl_array *fin, const struct gkyl_array *fluidin);
+  double (*rhs_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    const struct gkyl_array *fin, const struct gkyl_array *fluidin,
+    const struct gkyl_array *emin,
+    struct gkyl_array *fout, struct gkyl_array *fluidout);
+  // Explicit field-particle coupling: accumulate this species' source
+  // contribution onto the field's target array. Wired at construction from
+  // (species type x field type): kinetic x Maxwell accumulates -q/eps0 * m1i
+  // onto the EM RHS, kinetic x Poisson accumulates q * m0 onto the charge
+  // density, fluid species are a no-op (their EM coupling is the implicit
+  // op-split; an explicit-source fluid mode wires a real method here later).
+  // The field decides when to call this and what 'target' is (Maxwell: emout
+  // at the end of the step; Poisson: rho_c before the solve at the start).
+  void (*accumulate_field_coupling_func)(gkyl_vlasov_app *app,
+    struct vlasov_species *sp, const struct gkyl_array *fin,
+    const struct gkyl_array *fluidin, struct gkyl_array *target);
+  void (*calc_source_moms_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    const struct gkyl_array *fin);
+  void (*source_rhs_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    double tcurr, const struct gkyl_array *fin[], const struct gkyl_array *fluidin[],
+    struct gkyl_array *fout[], struct gkyl_array *fluidout[]);
+  void (*step_f_func)(struct vlasov_species *sp, double dt,
+    const struct gkyl_array *fin, const struct gkyl_array *fluidin,
+    struct gkyl_array *fout, struct gkyl_array *fluidout);
+  void (*combine_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    double c1, double c2);
+  void (*copy_range_func)(gkyl_vlasov_app *app, struct vlasov_species *sp);
+  void (*apply_bc_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    struct gkyl_array *f, struct gkyl_array *fluid, double tcurr);
+  void (*limiter_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    struct gkyl_array *fluid);
 };
 
 // ============================================================================
@@ -1639,10 +1694,36 @@ void vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_specie
 
 // ============================================================================
 // vlasov_species unified dispatch API (implemented in vlasov_species.c).
-// Type-agnostic wrappers over the unified container; each applies the operation
-// to whichever aspects (dist/fluid) the species owns. RK-state arrays are
-// indexed over the overall species count.
+// Constructors allocate the aspect sub-object(s) for a species and wire the
+// container vtable; the type-agnostic wrappers below forward through it.
+// RK-state arrays are indexed over the overall species count.
 // ============================================================================
+
+/**
+ * Construct a kinetic (Vlasov) species container in place: allocates and
+ * zero-initializes the dist aspect, stores the input info on it, hoists the
+ * species identity (name/charge/mass), and wires the container vtable.
+ * The heavy aspect initialization remains vm_species_init.
+ *
+ * @param app Vlasov app object (field already constructed).
+ * @param info Kinetic species input.
+ * @param sp Container to construct.
+ */
+void vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
+  const struct gkyl_vlasov_species *info, struct vlasov_species *sp);
+
+/**
+ * Construct a fluid species container in place: allocates and zero-initializes
+ * the fluid aspect, stores the input info on it, hoists the species identity,
+ * and wires the container vtable. The heavy aspect initialization remains
+ * vm_fluid_species_init.
+ *
+ * @param app Vlasov app object (field already constructed).
+ * @param info Fluid species input.
+ * @param sp Container to construct.
+ */
+void vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
+  const struct gkyl_vlasov_fluid_species *info, struct vlasov_species *sp);
 
 void vlasov_species_calc_app_accel(gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr);
 void vlasov_species_calc_self_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
@@ -1652,6 +1733,8 @@ void vlasov_species_calc_cross_moms(gkyl_vlasov_app *app, struct vlasov_species 
 double vlasov_species_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin, const struct gkyl_array *emin,
   struct gkyl_array *fout, struct gkyl_array *fluidout);
+void vlasov_species_accumulate_field_coupling(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *target);
 void vlasov_species_calc_source_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin);
 void vlasov_species_source_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr,
