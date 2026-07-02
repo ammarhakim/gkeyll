@@ -24,15 +24,9 @@ struct gk_app_ctx {
   double nuFrac, nuElc, nuIon;
   // Source parameters
   int num_sources;
-  bool adapt_energy_srcCORE, adapt_particle_srcCORE; 
-  double center_srcCORE[2], sigma_srcCORE[2];
-  double energy_srcCORE, particle_srcCORE;
-  double floor_srcCORE;
-  bool adapt_energy_srcRECY, adapt_particle_srcRECY;
-  double adapt_particle_fraction_srcRECY;
-  double center_srcRECY[2], sigma_srcRECY[2];
-  double energy_srcRECY, particle_srcRECY;
-  double floor_srcRECY;
+  double center_src[2], sigma_src[2];
+  double energy_src, particle_src;
+  double floor_src;
   // Grid parameters
   double x;
   double Lz;
@@ -354,29 +348,27 @@ struct gk_app_ctx create_ctx(void)
   // Source parameters
   int num_sources = 1;
   double P_exp = 0.34e6; // P_sol measured [W]
-  // Core source:
+  // Fixed source:
   // - Injects energy only in the core region (0.25MW per species).
   // - The particles injection is only the one that are lost through the inner radial boundary.
-  bool adapt_energy_srcCORE = false; // The source will compensate the losses in energy according to given boundaries.
-  bool adapt_particle_srcCORE = false; // The source will compensate the losses in particle according to given boundaries.
-  double energy_srcCORE = P_exp; // What the source must inject in energy [W]
-  double particle_srcCORE = Ti0/P_exp;// What the source must inject in particle [1/s]
-  double center_srcCORE[2] = {0.0}; // This is the position of the ion source,
-  double sigma_srcCORE[2] = {Lz/6}; //  the electron source will be at +Lz/2.
-  double floor_srcCORE = 1e-10;
+  double energy_src = P_exp; // What the source must inject in energy [W]
+  double particle_src = Ti0/P_exp;// What the source must inject in particle [1/s]
+  double center_src[2] = {0.0}; // This is the position of the ion source,
+  double sigma_src[2] = {Lz/6}; //  the electron source will be at +Lz/2.
+  double floor_src = 1e-10;
 
   // Grid parameters
   int num_cell_z = 16;
   int num_cell_vpar = 8;
-  int num_cell_mu = 4;
+  int num_cell_mu = 8;
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5.*vte;
   double mu_max_elc = me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-3; // Should take 8 time steps
-  int num_frames = 250;
+  double final_time = 1.e-6; // Should take 8 time steps
+  int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
@@ -405,12 +397,10 @@ struct gk_app_ctx create_ctx(void)
     .nuFrac = nuFrac, .nuElc = nuElc, .nuIon = nuIon,
     .num_sources = num_sources,
 
-    .adapt_energy_srcCORE = adapt_energy_srcCORE,
-    .adapt_particle_srcCORE = adapt_particle_srcCORE,
-    .center_srcCORE = {center_srcCORE[0], center_srcCORE[1]},
-    .sigma_srcCORE = {sigma_srcCORE[0], sigma_srcCORE[1]},
-    .energy_srcCORE = energy_srcCORE, .particle_srcCORE = particle_srcCORE,
-    .floor_srcCORE = floor_srcCORE,
+    .center_src = {center_src[0]},
+    .sigma_src = {sigma_src[0]},
+    .energy_src = energy_src, .particle_src = particle_src,
+    .floor_src = floor_src,
 
     .num_cell_z = num_cell_z,
     .num_cell_vpar = num_cell_vpar,
@@ -455,43 +445,25 @@ main(int argc, char **argv)
   struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
 
   // Projection parameters for the sources.
-  struct gkyl_gyrokinetic_projection proj_srcCORE_e = {
+  struct gkyl_gyrokinetic_projection proj_src_e = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN,
-    .gaussian_mean = {ctx.center_srcCORE[0]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0]},
-    .total_num_particles = ctx.particle_srcCORE,
-    .total_kin_energy = ctx.energy_srcCORE,
+    .gaussian_mean = {ctx.center_src[0]},
+    .gaussian_std_dev = {ctx.sigma_src[0]},
+    .total_num_particles = ctx.particle_src,
+    .total_kin_energy = ctx.energy_src,
     .temp_max = 5.0*ctx.Te0,
     .temp_min = 0.1*ctx.Te0,
-    .f_floor = ctx.floor_srcCORE,
+    .f_floor = ctx.floor_src,
   };
-  struct gkyl_gyrokinetic_projection proj_srcCORE_i = {
+  struct gkyl_gyrokinetic_projection proj_src_i = {
     .proj_id = GKYL_PROJ_MAXWELLIAN_GAUSSIAN  ,
-    .gaussian_mean = {ctx.center_srcCORE[0]},
-    .gaussian_std_dev = {ctx.sigma_srcCORE[0]},
-    .total_num_particles = ctx.particle_srcCORE,
-    .total_kin_energy = ctx.energy_srcCORE,
+    .gaussian_mean = {ctx.center_src[0]},
+    .gaussian_std_dev = {ctx.sigma_src[0]},
+    .total_num_particles = ctx.particle_src,
+    .total_kin_energy = ctx.energy_src,
     .temp_max = 5.0*ctx.Te0,
     .temp_min = 0.1*ctx.Te0,
-    .f_floor = ctx.floor_srcCORE,
-  };
-  
-  // Source adaptation parameters.
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_e ={
-    .adapt_to_species = "elc",
-    .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 2, // Only the inner radial boundary.
-    .dir = {0,0},
-    .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
-  };
-  struct gkyl_gyrokinetic_adapt_source adapt_srcCORE_i ={
-    .adapt_to_species = "ion",
-    .adapt_particle = ctx.adapt_particle_srcCORE,
-    .adapt_energy = ctx.adapt_energy_srcCORE,
-    .num_boundaries = 2, // Only the inner radial boundary.
-    .dir = {0,0},
-    .edge = {GKYL_LOWER_EDGE, GKYL_UPPER_EDGE},
+    .f_floor = ctx.floor_src,
   };
 
   // Fill the species structures.
@@ -535,9 +507,7 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
-      .num_adapt_sources = ctx.num_sources,
-      .projection[0] = proj_srcCORE_e,
-      .adapt[0] = adapt_srcCORE_e,
+      .projection[0] = proj_src_e,
       .diagnostics = {
         .num_diag_moments = 1,
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
@@ -547,12 +517,8 @@ main(int argc, char **argv)
     },
 
     .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
-        .use_sheath_surrogate = true,
-        .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann" },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
-        .use_sheath_surrogate = true,
-        .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann" },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
     },
 
     .num_diag_moments = 9,
@@ -609,9 +575,7 @@ main(int argc, char **argv)
     .source = {
       .source_id = GKYL_PROJ_SOURCE,
       .num_sources = ctx.num_sources,
-      .num_adapt_sources = ctx.num_sources,
-      .projection[0] = proj_srcCORE_i,
-      .adapt[0] = adapt_srcCORE_i,
+      .projection[0] = proj_src_i,
       .diagnostics = {
         .num_diag_moments = 1,
         .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN},
