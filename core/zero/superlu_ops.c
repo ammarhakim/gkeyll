@@ -320,6 +320,13 @@ gkyl_superlu_solve(struct gkyl_superlu_prob *prob)
 }
 
 void
+gkyl_superlu_mat_vec(struct gkyl_superlu_prob *prob, const double *x, double *y)
+{
+  char trans[2] = "N";
+  sp_dgemv(trans, 1.0, prob->A[0], (double *) x, 1, 0.0, y, 1);
+}
+
+void
 gkyl_superlu_amat_update_from_triples(struct gkyl_superlu_prob *prob, struct gkyl_mat_triples **tri)
 {
   for (size_t k=0; k<prob->nprob; k++) {
