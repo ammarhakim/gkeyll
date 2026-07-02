@@ -269,6 +269,42 @@ fluid_limiter(gkyl_vlasov_app *app, struct vlasov_species *sp, struct gkyl_array
 
 // --- Constructors ------------------------------------------------------------
 
+// Construct a species from a unified input: validate the declared type against
+// the blocks, hoist the top-level identity into the selected block, and
+// dispatch to the typed constructor.
+void
+vlasov_species_new(struct gkyl_vlasov_app *app,
+  const struct gkyl_vlasov_species_inp *inp, struct vlasov_species *sp)
+{
+  switch (inp->type) {
+    case GKYL_SPECIES_VLASOV: {
+      assert(inp->kinetic.cells[0] > 0); // kinetic species require a velocity grid
+      assert(!inp->fluid.equation); // ... and must not carry a fluid equation object
+
+      struct gkyl_vlasov_species ki = inp->kinetic;
+      strcpy(ki.name, inp->name);
+      ki.charge = inp->charge;
+      ki.mass = inp->mass;
+      vlasov_kinetic_species_new(app, &ki, sp);
+      break;
+    }
+    case GKYL_SPECIES_FLUID: {
+      assert(inp->fluid.equation); // fluid species require an equation object
+      assert(inp->kinetic.cells[0] == 0); // ... and must not declare a velocity grid
+
+      struct gkyl_vlasov_fluid_species fi = inp->fluid;
+      strcpy(fi.name, inp->name);
+      fi.charge = inp->charge;
+      fi.mass = inp->mass;
+      vlasov_fluid_species_new(app, &fi, sp);
+      break;
+    }
+    default:
+      assert(false); // GKYL_SPECIES_PKPM is not wired in the Vlasov app yet
+      break;
+  }
+}
+
 void
 vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *info, struct vlasov_species *sp)

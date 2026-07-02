@@ -2695,7 +2695,36 @@ vm_app_new(lua_State *L)
     printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
     luaL_error(L, "Number of ranks and cuts do not match!");
   }
-  
+
+  // The per-kind arrays above were used as assembly scratch; hand the app the
+  // unified species list (the preferred input API), hoisting each block's
+  // identity to the top level and tagging the type by the Lua constructor the
+  // species came from (Vlasov.Species vs Vlasov.FluidSpecies). The copied
+  // blocks carry pointers into app_lw (Lua callback contexts), which remain
+  // valid. Kinetic-first order keeps the species indices used by the app_lw
+  // write wrappers unchanged.
+  vm.num_species_inp = vm.num_species + vm.num_fluid_species;
+  for (int s = 0; s < vm.num_species; s++) {
+    vm.species_inp[s] = (struct gkyl_vlasov_species_inp) {
+      .type = GKYL_SPECIES_VLASOV,
+      .charge = vm.species[s].charge,
+      .mass = vm.species[s].mass,
+      .kinetic = vm.species[s],
+    };
+    strcpy(vm.species_inp[s].name, vm.species[s].name);
+  }
+  for (int s = 0; s < vm.num_fluid_species; s++) {
+    vm.species_inp[vm.num_species + s] = (struct gkyl_vlasov_species_inp) {
+      .type = GKYL_SPECIES_FLUID,
+      .charge = vm.fluid_species[s].charge,
+      .mass = vm.fluid_species[s].mass,
+      .fluid = vm.fluid_species[s],
+    };
+    strcpy(vm.species_inp[vm.num_species + s].name, vm.fluid_species[s].name);
+  }
+  vm.num_species = 0;
+  vm.num_fluid_species = 0;
+
   app_lw->app = gkyl_vlasov_app_new(&vm);
 
   gkyl_comm_release(comm);

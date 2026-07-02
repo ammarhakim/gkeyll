@@ -310,6 +310,14 @@ struct gkyl_vlasov_field {
   bool use_lax; // Boolean for using lax fluxes in dg-gr-maxwell.
 };
 
+// Which evolved quantities a species owns: a kinetic distribution function, a
+// fluid moment vector, or (for the future PKPM species type) both.
+enum gkyl_species_type {
+  GKYL_SPECIES_VLASOV, // kinetic distribution only
+  GKYL_SPECIES_FLUID,  // fluid moments only
+  GKYL_SPECIES_PKPM,   // both (reserved; not yet wired in the Vlasov app)
+};
+
 // Parameter for Vlasov fluid species
 struct gkyl_vlasov_fluid_species {
   char name[128]; // species name
@@ -349,6 +357,25 @@ struct gkyl_vlasov_fluid_species {
   enum gkyl_species_bc_type bcx[2], bcy[2], bcz[2];
 };
 
+// Unified species input: declares one species of any kind. The type states
+// explicitly which aspect(s) this species owns and selects which block(s) are
+// read: GKYL_SPECIES_VLASOV reads 'kinetic', GKYL_SPECIES_FLUID reads 'fluid'
+// (a future PKPM type reads both). Identity (name/charge/mass) is declared
+// once at the top level; the identity fields inside the blocks are ignored.
+// The declared type is validated against the blocks at construction: a kinetic
+// species must set a velocity grid and must not carry a fluid equation object;
+// a fluid species must carry an equation object and must not set a velocity
+// grid.
+struct gkyl_vlasov_species_inp {
+  char name[128]; // Species name.
+  double charge, mass; // Charge and mass.
+
+  enum gkyl_species_type type; // Which aspect(s) this species owns.
+
+  struct gkyl_vlasov_species kinetic; // Kinetic block (velocity grid, projections, collisions, ...).
+  struct gkyl_vlasov_fluid_species fluid; // Fluid block (equation, init, diffusion, ...).
+};
+
 // Top-level app parameters
 struct gkyl_vm {
   char name[128]; // name of app: used as output prefix
@@ -372,12 +399,23 @@ struct gkyl_vm {
 
   struct gkyl_vlasov_geom geom; // geom object
 
+  // Legacy per-kind species arrays. Supported for a deprecation window; new
+  // inputs should use the unified species_inp list below. When species_inp is
+  // used these must be empty (and vice versa).
   int num_species; // number of species
   struct gkyl_vlasov_species species[GKYL_MAX_SPECIES]; // species objects
 
   int num_fluid_species; // number of fluid species
   struct gkyl_vlasov_fluid_species fluid_species[GKYL_MAX_SPECIES]; // fluid species objects
-  
+
+  // Unified species list: the preferred way to declare species. Kinetic and
+  // fluid species may be declared in any order (internally they are stably
+  // partitioned kinetic-first; the relative declaration order within each kind
+  // is preserved and determines diagnostic/restart file naming). The legacy
+  // arrays above are assembled into this form internally.
+  int num_species_inp; // number of unified species entries
+  struct gkyl_vlasov_species_inp species_inp[GKYL_MAX_SPECIES]; // unified species entries
+
   bool skip_field; // Skip field update or no field specified
   struct gkyl_vlasov_field field; // field object
   bool is_electrostatic; // Indicate whether to use Vlasov-Poisson.

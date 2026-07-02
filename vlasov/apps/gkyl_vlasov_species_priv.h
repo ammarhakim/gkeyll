@@ -706,15 +706,11 @@ struct vm_fluid_species {
 };
 
 // ---- unified species container ----
-// Which evolved quantities a species owns. A species holds up to two aspects: a
-// distribution (dist) and a fluid moment vector (fluid). The type selects which
-// are allocated; NULL-ness of dist/fluid is the source of truth at use sites.
-enum gkyl_species_type {
-  GKYL_SPECIES_VLASOV, // kinetic distribution only (dist != NULL, fluid == NULL)
-  GKYL_SPECIES_FLUID,  // fluid moments only (dist == NULL, fluid != NULL)
-  GKYL_SPECIES_PKPM,   // both (reserved for the post-merge PKPM unification)
-};
-
+// A species holds up to two aspects: a distribution (dist) and a fluid moment
+// vector (fluid). The type (enum gkyl_species_type, public in gkyl_vlasov.h)
+// selects which are allocated; NULL-ness of dist/fluid is the source of truth
+// at use sites.
+//
 // Unified species container. Holds the optional per-aspect sub-objects by
 // pointer so a species carries only the aspects it has (no bloat). A plain
 // Vlasov species sets dist; a fluid species sets fluid; a PKPM species (later)
@@ -1709,6 +1705,20 @@ void vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_specie
 // container vtable; the type-agnostic wrappers below forward through it.
 // RK-state arrays are indexed over the overall species count.
 // ============================================================================
+
+/**
+ * Construct a species container in place from a unified species input,
+ * dispatching on the declared type to the typed constructors below. Validates
+ * the declared type against the blocks (kinetic species require a velocity
+ * grid and no fluid equation; fluid species require an equation and no
+ * velocity grid) and hoists the top-level identity into the selected block.
+ *
+ * @param app Vlasov app object (field already constructed).
+ * @param inp Unified species input.
+ * @param sp Container to construct.
+ */
+void vlasov_species_new(struct gkyl_vlasov_app *app,
+  const struct gkyl_vlasov_species_inp *inp, struct vlasov_species *sp);
 
 /**
  * Construct a kinetic (Vlasov) species container in place: allocates and
