@@ -1354,10 +1354,8 @@ struct gk_field {
 
   // Objects needed for FLR effects.
   bool use_flr; // Whether to apply FLR effects.
-  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function inverting  FLR  operator.
-  struct gkyl_array *flr_rhoSq_sum; // Laplacian weight in FLR operator.
-  struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
-  struct gkyl_deflated_fem_poisson *flr_op; // Helmholtz solver to invert FLR operator.
+  void (*invert_flr)(gkyl_gyrokinetic_app *app, struct gk_field *field, struct gkyl_array *phi); // Function retrieving phi from the modified potential Phi_0 by inverting the FLR operator, i.e. applying A = 1 - rho^2*nabla_perp^2.
+  struct gkyl_array *flr_rhoSq; // rho^2 weight (times J*g^ij) in the perpendicular Laplacian of A.
 
   struct gkyl_array_integrate *calc_em_energy; // Operator computing EM energy.
   double *em_energy_red, *em_energy_red_global; // memory for use in GPU reduction of EM energy

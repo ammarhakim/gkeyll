@@ -1564,10 +1564,10 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     double flr_weight = gks->info.flr.Tperp*gks->info.mass/(pow(gks->info.charge*gyroradius_bmag,2.0));
     // Initialize the weight in the Laplacian operator.
     gks->flr_rhoSqD2 = mkarr(app->use_gpu, (2*(app->cdim-1)-1)*app->basis.num_basis, app->local_ext.volume);
-    gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxxj, 0*app->basis.num_basis);
+    gkyl_array_set_offset(gks->flr_rhoSqD2, 0.5*flr_weight, app->gk_geom->geo_int.gxxj, 0*app->basis.num_basis);
     if (app->cdim > 2) {
-      gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gxyj, 1*app->basis.num_basis);
-      gkyl_array_set_offset(gks->flr_rhoSqD2, flr_weight, app->gk_geom->geo_int.gyyj, 2*app->basis.num_basis);
+      gkyl_array_set_offset(gks->flr_rhoSqD2, 0.5*flr_weight, app->gk_geom->geo_int.gxyj, 1*app->basis.num_basis);
+      gkyl_array_set_offset(gks->flr_rhoSqD2, 0.5*flr_weight, app->gk_geom->geo_int.gyyj, 2*app->basis.num_basis);
     }
     // Initialize the factor multiplying the field in the FLR operator.
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
