@@ -132,9 +132,16 @@ struct vm_geom {
 
 };
 
-// fluid-EM coupling data
+// Implicit fluid-EM coupling data: an app-level assembly object. Participation
+// is a property of the species (it has a fluid aspect, under a dynamic Maxwell
+// field), so construction gathers the fluid-bearing species from app->species[]
+// by scanning for that property -- in declaration order, giving the grid-local
+// kernel the dense, stably-indexed lists it needs -- rather than assuming any
+// layout of the species array.
 struct vm_fluid_em_coupling {
-  double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each species
+  int num_fluid; // number of gathered fluid-bearing species
+  struct vlasov_species *species[GKYL_MAX_SPECIES]; // gathered species, in declaration order
+  double qbym[GKYL_MAX_SPECIES]; // charge/mass ratio for each gathered species
   struct gkyl_dg_calc_fluid_em_coupling* slvr; // fluid-EM coupling solver
 };
 
@@ -186,7 +193,8 @@ struct gkyl_vlasov_app {
   // occupy indices [0, num_species), fluid species [num_species, num_species +
   // num_fluid_species). 'species' points at the head, 'fluid_species' is a view
   // into the fluid-typed tail (so the fluid view stays dense/contiguous, which
-  // restart IO and the fluid-EM coupling rely on). 'species' owns the allocation.
+  // restart IO relies on; the fluid-EM coupling gathers its own species list by
+  // property scan). 'species' owns the allocation.
   int num_species;
   struct vlasov_species *species; // unified container array (owns the backing storage)
 
@@ -213,10 +221,13 @@ void vlasov_forward_euler(gkyl_vlasov_app* app, double tcurr, double dt,
   struct gkyl_array *fout[], struct gkyl_array *fluidout[], struct gkyl_array *emout, 
   struct gkyl_update_status *st);
 
-// Calls the vlasov implicit contribution for all vm species
-void vlasov_update_implicit_coll(gkyl_vlasov_app *app,  double dt0);
+// The implicit half of the op-split step: per-species implicit collisions
+// (BGK) followed by the holistic implicit fluid-EM coupling, both taken with
+// the explicit step's actual dt. Checks its own participation flags; a no-op
+// when neither implicit scheme is active.
+void vlasov_update_implicit(gkyl_vlasov_app *app, double dt0);
 
-// Take a single time-step using a first-order operator split 
+// Take a single time-step using a first-order operator split
 // implicit fluid-EM coupling and/or implicit BGK collisions + SSP RK3
 struct gkyl_update_status vlasov_update_op_split(gkyl_vlasov_app *app,  double dt0);
 

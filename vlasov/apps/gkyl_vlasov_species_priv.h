@@ -764,6 +764,17 @@ struct vlasov_species {
   void (*accumulate_field_coupling_func)(gkyl_vlasov_app *app,
     struct vlasov_species *sp, const struct gkyl_array *fin,
     const struct gkyl_array *fluidin, struct gkyl_array *target);
+  // Implicit (op-split) collision update, in the same three phases as the
+  // driver loops in vlasov_update_implicit: moments for all species, then the
+  // implicit RHS (whose cross moments read other species' moments, hence the
+  // phase barrier), then BCs + copy-back into the solution. No-ops for species
+  // without an implicit collision operator (all fluid species today).
+  void (*calc_implicit_moms_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    const struct gkyl_array *fin);
+  void (*rhs_implicit_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    const struct gkyl_array *fin, struct gkyl_array *fout, double dt);
+  void (*finish_implicit_update_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
+    struct gkyl_array *fout, double tcurr);
   void (*calc_source_moms_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
     const struct gkyl_array *fin);
   void (*source_rhs_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
@@ -1735,6 +1746,12 @@ double vlasov_species_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp,
   struct gkyl_array *fout, struct gkyl_array *fluidout);
 void vlasov_species_accumulate_field_coupling(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *target);
+void vlasov_species_calc_implicit_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin);
+void vlasov_species_rhs_implicit(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double dt);
+void vlasov_species_finish_implicit_update(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  struct gkyl_array *fout, double tcurr);
 void vlasov_species_calc_source_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin);
 void vlasov_species_source_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr,

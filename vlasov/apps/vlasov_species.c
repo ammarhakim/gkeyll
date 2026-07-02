@@ -38,6 +38,17 @@ species_no_field_coupling(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
   struct gkyl_array *target) { }
 
+// No per-species implicit collision operator (all fluid species today; their
+// implicit update is the holistic fluid-EM coupling, an app-level assembly,
+// not a per-species hook).
+static void
+species_no_rhs_implicit(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double dt) { }
+
+static void
+species_no_finish_implicit_update(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  struct gkyl_array *fout, double tcurr) { }
+
 // --- Kinetic (dist-aspect) implementations ----------------------------------
 
 static void
@@ -115,6 +126,33 @@ kinetic_accumulate_charge_dens(gkyl_vlasov_app *app, struct vlasov_species *sp,
 
   vm_species_moment_calc(&s->m0, s->local, app->local, fin);
   gkyl_array_accumulate_range(target, sp->charge, s->m0.marr, &app->local);
+}
+
+// Implicit (op-split) BGK collisions, phase 1: moments of the input distribution.
+static void
+kinetic_calc_implicit_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin)
+{
+  vm_species_bgk_moms_implicit(app, sp->dist, &sp->dist->bgk, fin);
+}
+
+// Implicit BGK collisions, phase 2: the implicit RHS (also computes cross
+// moments, which is why all species' phase-1 moments must precede it).
+static void
+kinetic_rhs_implicit(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double dt)
+{
+  vm_species_rhs_implicit(app, sp->dist, fin, fout, dt);
+}
+
+// Implicit BGK collisions, phase 3: BCs on the updated distribution, then
+// copy it back into the solution.
+static void
+kinetic_finish_implicit_update(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  struct gkyl_array *fout, double tcurr)
+{
+  vm_species_apply_bc(app, sp->dist, fout, tcurr);
+  gkyl_array_copy_range(sp->dist->f, fout, &sp->dist->local_ext);
 }
 
 static void
@@ -266,6 +304,9 @@ vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
       sp->accumulate_field_coupling_func = kinetic_accumulate_current;
       break;
   }
+  sp->calc_implicit_moms_func = kinetic_calc_implicit_moms;
+  sp->rhs_implicit_func = kinetic_rhs_implicit;
+  sp->finish_implicit_update_func = kinetic_finish_implicit_update;
   sp->calc_source_moms_func = kinetic_calc_source_moms;
   sp->source_rhs_func = kinetic_source_rhs;
   sp->step_f_func = kinetic_step_f;
@@ -295,6 +336,9 @@ vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
   sp->calc_cross_moms_func = fluid_calc_cross_moms;
   sp->rhs_func = fluid_rhs;
   sp->accumulate_field_coupling_func = species_no_field_coupling;
+  sp->calc_implicit_moms_func = species_no_calc_moms;
+  sp->rhs_implicit_func = species_no_rhs_implicit;
+  sp->finish_implicit_update_func = species_no_finish_implicit_update;
   sp->calc_source_moms_func = species_no_calc_moms;
   sp->source_rhs_func = fluid_source_rhs;
   sp->step_f_func = fluid_step_f;
@@ -347,6 +391,31 @@ vlasov_species_accumulate_field_coupling(gkyl_vlasov_app *app, struct vlasov_spe
   const struct gkyl_array *fin, const struct gkyl_array *fluidin, struct gkyl_array *target)
 {
   sp->accumulate_field_coupling_func(app, sp, fin, fluidin, target);
+}
+
+// Implicit (op-split) collision update, phase 1: moments of the input distribution.
+void
+vlasov_species_calc_implicit_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin)
+{
+  sp->calc_implicit_moms_func(app, sp, fin);
+}
+
+// Implicit collision update, phase 2: the implicit RHS. Run after phase 1 for
+// all species (the RHS also computes cross moments).
+void
+vlasov_species_rhs_implicit(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *fout, double dt)
+{
+  sp->rhs_implicit_func(app, sp, fin, fout, dt);
+}
+
+// Implicit collision update, phase 3: BCs and copy-back into the solution.
+void
+vlasov_species_finish_implicit_update(gkyl_vlasov_app *app, struct vlasov_species *sp,
+  struct gkyl_array *fout, double tcurr)
+{
+  sp->finish_implicit_update_func(app, sp, fout, tcurr);
 }
 
 // Pre-compute moments needed to rescale adaptive sources.
