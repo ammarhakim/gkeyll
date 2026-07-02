@@ -5173,6 +5173,7 @@ moment_spacetime_lw_new(lua_State *L)
   mom_st.is_static  = !evolve;
   mom_st.has_tetrad = glua_tbl_get_bool(L, "hasTetrad", false);
   mom_st.limiter    = glua_tbl_get_integer(L, "limiter", GKYL_MONOTONIZED_CENTERED);
+  mom_st.force_low_order_flux = glua_tbl_get_bool(L, "forceLowOrderFlux", false);
   mom_st.spacetime_gauge = glua_tbl_get_integer(L, "spacetimeGauge", GKYL_STATIC_GAUGE);
   mom_st.reinit_freq     = glua_tbl_get_integer(L, "reinitFreq", 100);
 

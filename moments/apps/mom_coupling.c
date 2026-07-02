@@ -516,6 +516,14 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   if (src->spacetime_slvr) {
     gkyl_moment_spacetime_coupling_explicit_advance(src->spacetime_slvr,
       tcurr, dt, &app->local, fluids, app->spacetime.f[sidx[nstrang]]);
+    // The source just modified the interior of the Einstein state; refresh its
+    // ghost cells so the subsequent hyperbolic update (and the next Strang
+    // half-step) read consistent boundary data. Production drives the Einstein
+    // state as a species and gets this from the per-species apply_bc below; the
+    // pure-spacetime path has no species, so we apply the spacetime BC here.
+    // No-op for the static/analytic backend (no Einstein state to evolve).
+    moment_spacetime_apply_bc(app, tcurr, &app->spacetime,
+      app->spacetime.f[sidx[nstrang]]);
   }
 
   for (int i=0; i<app->num_species; ++i) {

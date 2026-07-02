@@ -166,6 +166,8 @@ struct gkyl_moment_spacetime {
   void (*init)(double t, const double *xn, double *fout, void *ctx);
 
   enum gkyl_wave_limiter limiter;
+  bool force_low_order_flux;  // use Lax (low-order) fluxes for the Einstein
+                              // wave-prop; needed for stiff collapses.
 
   // Boundary conditions on the Einstein state array (dynamic case).
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -406,6 +408,16 @@ void gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame);
  * @param frame Frame number
  */
 void gkyl_moment_app_write_field(const gkyl_moment_app *app, double tm, int frame);
+
+/**
+ * Write the evolving Einstein (Bona-Masso) spacetime state to file. No-op for
+ * the static-analytic background (no evolving state to write).
+ *
+ * @param app App object.
+ * @param tm Time-stamp
+ * @param frame Frame number
+ */
+void gkyl_moment_app_write_spacetime(const gkyl_moment_app *app, double tm, int frame);
 
 /**
  * Write species data to file.

@@ -183,7 +183,7 @@ const int gkyl_gr_euler_newton_bin_edges[GR_EULER_NEWTON_HIST_NBINS] = {
 // uniformly for the GR-Euler fluid species and the Einstein spacetime state.
 // ---------------------------------------------------------------------------
 
-#define GKYL_MOMENT_SOURCE_MAX_NEQN 64  // max state size sourced here (Einstein)
+#define GKYL_MOMENT_SOURCE_MAX_NEQN 128  // max state size sourced here (conformal Einstein = 77)
 
 // One explicit Euler step: out = q_in + alpha*dt*S(q_in), where S is the
 // equation's source RHS and alpha its optional positivity limiter (1 if none);
