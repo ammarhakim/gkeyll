@@ -25,8 +25,8 @@ GKYL_CU_DH double lbo_gyrokinetic_diff_vol_1x2v_ser_p1(const double *dxv, const 
 
   // Expand 2*m*nuVtSqSum/bmag/mu'^2 in conf basis.
   double facDiffMu[2] = {0.};
-  facDiffMu[0] = 1.414213562373095*(bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0])*rdvVmapPrimeSq4[1]*m_; 
-  facDiffMu[1] = 1.414213562373095*(bmag_inv[0]*nuVtSqSum[1]+nuVtSqSum[0]*bmag_inv[1])*rdvVmapPrimeSq4[1]*m_; 
+  facDiffMu[0] = 1.4142135623730951*(bmag_inv[1]*nuVtSqSum[1]+bmag_inv[0]*nuVtSqSum[0])*rdvVmapPrimeSq4[1]*m_; 
+  facDiffMu[1] = 1.4142135623730951*(bmag_inv[0]*nuVtSqSum[1]+nuVtSqSum[0]*bmag_inv[1])*rdvVmapPrimeSq4[1]*m_; 
 
   out[3] += 1.5*facDiffMu[1]*fin[1]*vmap[3]+1.5*facDiffMu[0]*fin[0]*vmap[3]; 
   out[5] += 1.5*facDiffMu[0]*fin[1]*vmap[3]+1.5*fin[0]*facDiffMu[1]*vmap[3]; 

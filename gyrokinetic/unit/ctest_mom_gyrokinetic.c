@@ -67,10 +67,10 @@ test_mom_gyrokinetic()
   int poly_order = 1;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
   int cells[] = {4, 2, 2};
-  const int vdim = 2;
+  int vdim = 2;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -196,10 +196,10 @@ test_1x1v(int polyOrder, bool use_gpu)
   int poly_order = 1;
   double lower[] = {-M_PI, -2.0}, upper[] = {M_PI, 2.0};
   int cells[] = {4, 2};
-  const int vdim = 1;
+  int vdim = 1;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -448,10 +448,10 @@ test_1x2v(int poly_order, bool use_gpu)
   double charge = 1.0;
   double lower[] = {-M_PI, -2.0, 0.0}, upper[] = {M_PI, 2.0, 2.0};
   int cells[] = {4, 2, 2};
-  const int vdim = 2;
+  int vdim = 2;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];
@@ -682,10 +682,10 @@ test_2x2v(int poly_order, bool use_gpu)
   double charge = 1.0;
   double lower[] = {-M_PI, -M_PI, -2.0, 0.0}, upper[] = {M_PI, M_PI, 2.0, 2.0};
   int cells[] = {4, 4, 2, 2};
-  const int vdim = 2;
+  int vdim = 2;
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim];
   int confCells[cdim];

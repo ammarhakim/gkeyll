@@ -19,6 +19,7 @@ gkyl_cart_modal_serendip_cu_dev_kern(struct gkyl_basis *basis, int ndim, int pol
   basis->ndim = ndim;
   basis->poly_order = poly_order;
   basis->num_basis = num_basis_list[ndim].count[poly_order];
+  basis->num_quad = num_quad_list[ndim].count[poly_order];
   basis->b_type = GKYL_BASIS_MODAL_SERENDIPITY;  
   
   // function pointers

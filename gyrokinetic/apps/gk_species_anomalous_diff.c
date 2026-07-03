@@ -36,16 +36,19 @@ gk_species_anomalous_diff_write_diags_enabled(gkyl_gyrokinetic_app* app, struct 
 
 static void
 gk_anomalous_diff_write_conf_array(gkyl_gyrokinetic_app* app, struct gk_species *gks,
-  struct gk_anomalous_diff *gkad, int frame, double stime, char* file_suffix,
+  struct gk_anomalous_diff *gkad, int frame, double stime, char* file_suffix, char* description,
   struct gkyl_array *arrout, struct gkyl_array *arrout_host)
 {
   // Write out a conf-space array.
   
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_basic_len, app->io_meta_basic, "time", stime);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_basic_len, app->io_meta_basic, "frame", frame);
-  int io_meta_len[] = {app->io_meta_basic_len, app->io_meta_len, app->gk_geom->io_meta_len};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_basic, app->io_meta, app->gk_geom->io_meta};
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", stime);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+  struct gkyl_msgpack_map_elem desc[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = description }
+  };
+  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Construct the file handles for collision frequency and primitive moments.
@@ -115,7 +118,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
     gkyl_array_release(diffD_ho);
 
     // Multiply diffD by g^xx*jacobgeo.
-    gkyl_dg_mul_op(app->basis, 0, gkad->diffD, 0, app->gk_geom->geo_int.gxxj, 0, gkad->diffD);
+    gkyl_dg_mul_op(&app->basis, 0, gkad->diffD, 0, app->gk_geom->geo_int.gxxj, 0, gkad->diffD);
 
     // Sync diffusivity.
     int num_periodic_dir = app->num_periodic_dir;
@@ -129,8 +132,8 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
           (b == 1 && ((gks->upper_bc[0].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) || (gks->upper_bc[0].type == GKYL_BC_GK_SPECIES_ABSORB))) ) {
         int dir = 0;
         enum gkyl_edge_loc edge = b==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
-        struct gkyl_range *skin_r = b==0? &app->lower_skin[dir] : &app->upper_skin[dir];
-        struct gkyl_range *ghost_r = b==0? &app->lower_ghost[dir] : &app->upper_ghost[dir];
+        struct gkyl_range *skin_r = b==0? &app->local_lower_skin[dir] : &app->local_upper_skin[dir];
+        struct gkyl_range *ghost_r = b==0? &app->local_lower_ghost[dir] : &app->local_upper_ghost[dir];
 
         long vol = skin_r->volume;
         long buff_sz = 1;
@@ -155,7 +158,7 @@ gk_species_anomalous_diff_init(struct gkyl_gyrokinetic_app *app, struct gk_speci
 
     if (gkad->write_diagnostics) {
       // Write out the diffusivity.
-      gk_anomalous_diff_write_conf_array(app, gks, gkad, 0, 0.0, "anomalous_diffusivity", gkad->diffD, 0);
+      gk_anomalous_diff_write_conf_array(app, gks, gkad, 0, 0.0, "anom_diff", "Anomalous diffusivity.", gkad->diffD, 0);
     }
 
     // Methods chosen at runtime.

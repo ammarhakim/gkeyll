@@ -14,7 +14,7 @@ gk_neut_species_scaling_cross_moms_enabled(gkyl_gyrokinetic_app *app, const stru
     gks_elc->local, app->local, fin[sca->elc_idx]);
 
   // Divide the electron density by the Jacobian.
-  gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 0, gks_elc->lte.moms.marr,
+  gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 0, gks_elc->lte.moms.marr,
     0, gks_elc->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
 
   // Compute ionization reactivity <sigma v>_iz.
@@ -40,9 +40,9 @@ gk_neut_species_scaling_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_sp
   struct gk_species *gks_elc = &app->species[sca->elc_idx];
 
   // Compute (J*n_neut)*n_elc*<sigma v>_iz.
-  gkyl_dg_mul_op_range(app->basis, 0, sca->dndt_react,
+  gkyl_dg_mul_op_range(&app->basis, 0, sca->dndt_react,
     0, sca->Jm0_init, 0, sca->reactivity, &app->local);  
-  gkyl_dg_mul_op_range(app->basis, 0, sca->dndt_react,
+  gkyl_dg_mul_op_range(&app->basis, 0, sca->dndt_react,
     0, gks_elc->lte.moms.marr, 0, sca->dndt_react, &app->local);  
 
   // Volume integrate the reaction contribution.
@@ -100,11 +100,11 @@ gk_neut_species_scaling_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_
     // Divide by the present J*rho, and multiply by neut_scaling_fac*mass*Jm0_init.
     gkyl_array_set_offset_range(sca->dndt_react, 1.0, fin, 0, &app->local);
     for (int i=0; i<ns->num_moments; ++i)
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, i, fin,
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis, i, fin,
         i, fin, 0, sca->dndt_react, &app->local); 
   
     for (int i=0; i<ns->num_moments; ++i)
-      gkyl_dg_mul_op_range(app->basis, i, fin,
+      gkyl_dg_mul_op_range(&app->basis, i, fin,
         i, fin, 0, sca->Jm0_init, &app->local);  
 
     gkyl_array_scale(fin, neut_scaling_fac*ns->info.mass);
@@ -225,15 +225,14 @@ gk_neut_species_scaling_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       }
   
       // Default scenario: we set the ranges to the full range of the ghost cells.
-      sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
+      sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->local_lower_ghost[dir] : app->local_upper_ghost[dir];
       sca->boundaries_dir[j]  = dir;
       sca->boundaries_edge[j] = edge;
   
       // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-      if (edge == GKYL_LOWER_EDGE? gks_ion->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL
-                                 : gks_ion->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL)
-      {
-        sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
+      if (dir == app->cdim-1 && app->gk_geom->has_LCFS) {
+        sca->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE? app->local_lower_ghost_par_sol
+                                                               : app->local_upper_ghost_par_sol;
       }
     }
 

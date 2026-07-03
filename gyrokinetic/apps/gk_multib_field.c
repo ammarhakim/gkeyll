@@ -302,8 +302,8 @@ gk_multib_field_new_par_smooth(const struct gkyl_gyrokinetic_multib *mbinp,
     if (mbf->cdim == 2 && (ftype == GKYL_GEOMETRY_TOKAMAK_CORE || ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L) && !mbf->info.half_domain)
       fem_parbc = GKYL_FEM_PARPROJ_PERIODIC;
 
-    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI],
-      &sbapp->basis, fem_parbc, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
+    mbf->fem_parproj[bI] = gkyl_fem_parproj_new(mbf->multibz_ranges[bI], &sbapp->grid,
+      &sbapp->basis, fem_parbc, 0, mbf->lhs_weight_multibz[bI], mbf->rhs_weight_multibz[bI], mbapp->use_gpu);
   }
 }
 
@@ -405,46 +405,14 @@ gk_multib_field_new_perp_solve(const struct gkyl_gyrokinetic_multib *mbinp,
     }
 
     mbf->fem_poisson[bI] = gkyl_fem_poisson_perp_new(mbf->multib_perp_ranges[bI], &sbapp->grid, sbapp->basis,
-      &bcs, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
+      &bcs, mbf->info.bias_line_list, mbf->epsilon_multib_perp[bI], NULL, mbapp->use_gpu);
   }
 
-}
-
-// Initialize multib field object
-struct gk_multib_field* 
-gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp)
-{
-  struct gk_multib_field *mbf = gkyl_malloc(sizeof(struct gk_multib_field));
-
-  mbf->info = mbinp->field;
-  mbf->gkfield_id = mbf->info.gkfield_id? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
-  mbf->num_local_blocks = mbapp->num_local_blocks;
-  mbf->cdim = mbapp->block_topo->ndim;
-  mbf->half_domain = mbf->info.half_domain ? mbf->info.half_domain : false;
-
-  // Allocate local arrays for charge density and potential.
-  mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  mbf->rho_c_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
-  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-    mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
-    mbf->rho_c_local[bI] = gkyl_array_acquire(sbapp->field->rho_c);
-  }
-
-  // Initialize objects needed for the multiblock parallel smoothing.
-  gk_multib_field_new_par_smooth(mbinp, mbapp, mbf);
-
-  if (mbf->cdim > 1) {
-    // Initialize objects needed for the multiblock perpendicular solve.
-    gk_multib_field_new_perp_solve(mbinp, mbapp, mbf);
-  }
-
-  return mbf;
 }
 
 // Compute the electrostatic potential.
-void
-gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+static void
+gk_multib_field_1x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
   // Every local block calculates its charge density.
@@ -473,64 +441,266 @@ gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *
     gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->rho_c_multibz_smooth[bI]);
   }
 
-  if (mbf->cdim == 1) {
-    // Copy continuous charge density back to apps.
-    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->rho_c_multibz_smooth[bI],
-        &mbapp->singleb_apps[bI]->local, mbf->block_subrangesz[bI]);
-    }
-  }
-  else {
-    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-      // Copy continuous charge density back to apps.
-      gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
-        mbf->rho_c_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
-      // Copy from block-global to block local.
-      gkyl_array_copy_range_to_range(sbapp->field->rho_c, sbapp->field->rho_c_global_smooth,
-        &sbapp->local, &sbapp->field->global_sub_range);
-    }
-
-    //
-    // Solve the perpendicular Poisson problem.
-    //
-    // Gather the charge density in the perpendicular direction.
-    int stat_perp = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
-      mbf->mbcc_allgather_perp_send, mbf->mbcc_allgather_perp_recv, mbf->rho_c_local, mbf->rho_c_multib_perp);
-    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-      // Solve the perp problem.
-      gkyl_fem_poisson_perp_set_rhs(mbf->fem_poisson[bI], mbf->rho_c_multib_perp[bI]);
-      gkyl_fem_poisson_perp_solve(mbf->fem_poisson[bI], mbf->phi_multib_perp[bI]);
-      // Copy the potential from the mulib range to local.
-      gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->phi_multib_perp[bI],
-        &mbapp->singleb_apps[bI]->local, mbf->block_subranges_perp[bI]);
-    }
-    //
-    // Finished solving the perpendicular Poisson problem.
-    //
-
-    // Gather the potential along the magnetic field.
-    int stat_par_phi = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
-      mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
-    // Make the potential continuous along B on the multibz range.
-    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
-      gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
-    }
-    // Copy continuous potential back to apps.
-    for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
-      struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
-      // Copy from multib to block global.
-      gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
-        mbf->phi_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
-      // Copy from block-global to block local.
-      gkyl_array_copy_range_to_range(sbapp->field->phi_smooth, sbapp->field->rho_c_global_smooth,
-        &sbapp->local, &sbapp->field->global_sub_range);
-    }
+  // Copy continuous charge density back to apps.
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->rho_c_multibz_smooth[bI],
+      &mbapp->singleb_apps[bI]->local, mbf->block_subrangesz[bI]);
   }
 
   mbapp->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
+}
+
+// Compute the electrostatic potential.
+static void
+gk_multib_field_2x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
+{
+  // Every local block calculates its charge density.
+  for (int bI=0; bI<mbf->num_local_blocks; bI++) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    // Construct fin for the local block.
+    const struct gkyl_array *fin_local_block[mbapp->num_species];
+    struct gkyl_array **bflux_local_block[mbapp->num_species];
+    int lin_idx = bI * mbapp->num_species;
+    for (int i=0; i<mbapp->num_species; ++i) {
+      fin_local_block[i] = fin[lin_idx+i];
+      bflux_local_block[i] = bflux[lin_idx+i];
+    }
+    // Accumulate rho_c in local block.
+    gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block, bflux_local_block);
+  }
+
+  struct timespec wst = gkyl_wall_clock();
+
+  // Gather the charge density along the magnetic field.
+  int stat_par_rho = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
+    mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->rho_c_local, mbf->rho_c_multibz_dg);
+  // Make charge density continuous on the multibz range.
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->rho_c_multibz_dg[bI], mbf->rho_c_multibz_dg[bI]);
+    gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->rho_c_multibz_smooth[bI]);
+  }
+
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    // Copy continuous charge density back to apps.
+    gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
+      mbf->rho_c_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
+    // Copy from block-global to block local.
+    gkyl_array_copy_range_to_range(sbapp->field->rho_c, sbapp->field->rho_c_global_smooth,
+      &sbapp->local, &sbapp->field->global_sub_range);
+  }
+
+  //
+  // Solve the perpendicular Poisson problem.
+  //
+  // Gather the charge density in the perpendicular direction.
+  int stat_perp = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
+    mbf->mbcc_allgather_perp_send, mbf->mbcc_allgather_perp_recv, mbf->rho_c_local, mbf->rho_c_multib_perp);
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    // Solve the perp problem.
+    gkyl_fem_poisson_perp_set_rhs(mbf->fem_poisson[bI], mbf->rho_c_multib_perp[bI]);
+    gkyl_fem_poisson_perp_solve(mbf->fem_poisson[bI], mbf->phi_multib_perp[bI]);
+    // Copy the potential from the mulib range to local.
+    gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->phi_multib_perp[bI],
+      &mbapp->singleb_apps[bI]->local, mbf->block_subranges_perp[bI]);
+  }
+  //
+  // Finished solving the perpendicular Poisson problem.
+  //
+
+  // Gather the potential along the magnetic field.
+  int stat_par_phi = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
+    mbf->mbcc_allgatherz_send, mbf->mbcc_allgatherz_recv, mbf->phi_local, mbf->phi_multibz_dg);
+  // Make the potential continuous along B on the multibz range.
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    gkyl_fem_parproj_set_rhs(mbf->fem_parproj[bI], mbf->phi_multibz_dg[bI], mbf->phi_multibz_dg[bI]);
+    gkyl_fem_parproj_solve(mbf->fem_parproj[bI], mbf->phi_multibz_smooth[bI]);
+  }
+  // Copy continuous potential back to apps.
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    // Copy from multib to block global.
+    gkyl_array_copy_range_to_range(sbapp->field->rho_c_global_smooth,
+      mbf->phi_multibz_smooth[bI], &sbapp->global, mbf->parent_subrangesz[bI]);
+    // Copy from block-global to block local.
+    gkyl_array_copy_range_to_range(sbapp->field->phi_smooth, sbapp->field->rho_c_global_smooth,
+      &sbapp->local, &sbapp->field->global_sub_range);
+  }
+
+  mbapp->stat.field_phi_solve_tm += gkyl_time_diff_now_sec(wst);
+}
+
+
+void
+gk_multib_field_twistshift_and_smooth(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  struct gkyl_array **arr_local, struct gkyl_array **arr_global_dg, struct gkyl_array **arr_global_smooth)
+{
+  // There are three arrays:
+  // 1) The local one (field->rho_c = rho_c_local[bI])
+  // 2) The global non-smooth one (field->rho_c_global_dg) needs an mb equivalent
+  // 3) The global smooth one
+  // Now apply TS in place on rho for each block
+  int par_dir = mbf->cdim-1; // Parallel direction index.
+  for (int bI=0; bI<mbapp->num_local_blocks; bI++) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    struct gk_field *field = sbapp->field;
+    gkyl_comm_array_allgather(sbapp->comm, &sbapp->local, &sbapp->global, 
+      arr_local[bI], arr_global_dg[bI]);
+
+    // Apply TS BC in the lower parallel boundary, and
+    // fill upper parallel boundary ghost with skin boundary value.
+    if (mbf->num_blocks_below[bI] > 0) {
+      gkyl_bc_twistshift_advance(field->bc_ts_lo, arr_global_dg[bI], arr_global_dg[bI]);
+    }
+    else{
+      gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_lo, field->bc_buffer, arr_global_dg[bI]);
+    }
+   
+    // Apply TS BC in the upper parallel boundary, and
+    // fill lower parallel boundary ghost with skin boundary value.
+    if (mbf->num_blocks_above[bI] > 0) {
+      gkyl_bc_twistshift_advance(field->bc_ts_up, arr_global_dg[bI], arr_global_dg[bI]);
+    }
+    else {
+      gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, arr_global_dg[bI]);
+    }
+
+    // Smooth the the DG array.
+    gkyl_fem_parproj_set_rhs(field->fem_parproj_phi_core, arr_global_dg[bI], arr_global_dg[bI]);
+    gkyl_fem_parproj_solve(field->fem_parproj_phi_core, arr_global_smooth[bI]);
+
+    // Copy global, continuous FEM array to a local array.
+    gkyl_array_copy_range_to_range(arr_local[bI], arr_global_smooth[bI], &sbapp->local, &field->global_sub_range);
+  }
+}
+
+// Compute the electrostatic potential.
+static void
+gk_multib_field_3x_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
+{
+  // Every local block calculates its charge density.
+  for (int bI=0; bI<mbf->num_local_blocks; bI++) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    // Construct fin for the local block.
+    const struct gkyl_array *fin_local_block[mbapp->num_species];
+    struct gkyl_array **bflux_local_block[mbapp->num_species];
+    int lin_idx = bI * mbapp->num_species;
+    for (int i=0; i<mbapp->num_species; ++i) {
+      fin_local_block[i] = fin[lin_idx+i];
+      bflux_local_block[i] = bflux[lin_idx+i];
+    }
+    // Accumulate rho_c in local block.
+    gk_field_accumulate_rho_c(sbapp, sbapp->field, fin_local_block, bflux_local_block);
+  }
+
+  // Now sync the charge density
+  struct gkyl_array *rhos[mbapp->num_local_blocks];
+  for (int bI=0; bI<mbapp->num_local_blocks; bI++) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    rhos[bI] = sbapp->field->rho_c;
+  }
+  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, rhos, rhos);
+
+  // Now apply TS in place on rho for each block
+  gk_multib_field_twistshift_and_smooth(mbapp, mbf, mbf->rho_c_local, mbf->rho_c_global_dg, mbf->rho_c_global_smooth);
+  // Done applying TS now we need to solve the field
+
+  //
+  // Solve the perpendicular Poisson problem.
+  //
+  // Gather the charge density in the perpendicular direction.
+  int stat_perp = gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbf->num_local_blocks, mbapp->local_blocks,
+    mbf->mbcc_allgather_perp_send, mbf->mbcc_allgather_perp_recv, mbf->rho_c_local, mbf->rho_c_multib_perp);
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    // Solve the perp problem.
+    gkyl_fem_poisson_perp_set_rhs(mbf->fem_poisson[bI], mbf->rho_c_multib_perp[bI]);
+    gkyl_fem_poisson_perp_solve(mbf->fem_poisson[bI], mbf->phi_multib_perp[bI]);
+    // Copy the potential from the mulib range to local.
+    gkyl_array_copy_range_to_range(mbapp->singleb_apps[bI]->field->phi_smooth, mbf->phi_multib_perp[bI],
+      &mbapp->singleb_apps[bI]->local, mbf->block_subranges_perp[bI]);
+  }
+  //
+  // Finished solving the perpendicular Poisson problem.
+  //
+
+  // Now sync the charge density
+  struct gkyl_array *phis[mbapp->num_local_blocks];
+  for (int bI=0; bI<mbapp->num_local_blocks; bI++) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    phis[bI] = sbapp->field->phi_smooth;
+  }
+  gkyl_multib_comm_conn_array_transfer(mbapp->comm, mbapp->num_local_blocks, mbapp->local_blocks,
+    mbapp->mbcc_sync_conf->send, mbapp->mbcc_sync_conf->recv, phis, phis);
+
+  // Now apply TS in place on phi for each block
+  gk_multib_field_twistshift_and_smooth(mbapp, mbf, mbf->phi_local, mbf->rho_c_global_dg, mbf->phi_global_smooth);
+  // Done with TS and smooth of phi
+}
+
+// Initialize multib field object
+struct gk_multib_field* 
+gk_multib_field_new(const struct gkyl_gyrokinetic_multib *mbinp, struct gkyl_gyrokinetic_multib_app *mbapp)
+{
+  struct gk_multib_field *mbf = gkyl_malloc(sizeof(struct gk_multib_field));
+
+  mbf->info = mbinp->field;
+  mbf->gkfield_id = mbf->info.gkfield_id? mbf->info.gkfield_id : GKYL_GK_FIELD_ES;
+  mbf->num_local_blocks = mbapp->num_local_blocks;
+  mbf->cdim = mbapp->block_topo->ndim;
+  mbf->half_domain = mbf->info.half_domain ? mbf->info.half_domain : false;
+
+  // Allocate local arrays for charge density and potential.
+  mbf->phi_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->rho_c_local = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->rho_c_global_dg = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->phi_global_smooth = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  mbf->rho_c_global_smooth = gkyl_malloc(mbf->num_local_blocks* sizeof(struct gkyl_array*));
+  for (int bI=0; bI<mbf->num_local_blocks; ++bI) {
+    struct gkyl_gyrokinetic_app *sbapp = mbapp->singleb_apps[bI];
+    mbf->phi_local[bI] = gkyl_array_acquire(sbapp->field->phi_smooth);
+    mbf->rho_c_local[bI] = gkyl_array_acquire(sbapp->field->rho_c);
+    mbf->rho_c_global_dg[bI] = gkyl_array_acquire(sbapp->field->rho_c_global_dg);
+    mbf->phi_global_smooth[bI] = gkyl_array_acquire(sbapp->field->phi_fem);
+    mbf->rho_c_global_smooth[bI] = gkyl_array_acquire(sbapp->field->rho_c_global_smooth);
+  }
+
+  // Initialize objects needed for the multiblock parallel smoothing.
+  gk_multib_field_new_par_smooth(mbinp, mbapp, mbf);
+
+  if (mbf->cdim > 1) {
+    // Initialize objects needed for the multiblock perpendicular solve.
+    gk_multib_field_new_perp_solve(mbinp, mbapp, mbf);
+  }
+
+  for (int bI = 0; bI < mbapp->num_local_blocks; bI++) {
+    int dir = mbf->cdim-1;
+    mbf->num_blocks_below[bI] = gkyl_multib_conn_get_num_connected(mbapp->block_topo,
+      mbapp->local_blocks[bI], dir, 0, GKYL_CONN_BELOW);
+    mbf->num_blocks_above[bI] = gkyl_multib_conn_get_num_connected(mbapp->block_topo,
+      mbapp->local_blocks[bI], dir, 0, GKYL_CONN_ABOVE);
+  }
+
+  if (mbf->cdim == 1)
+    mbf->rhs_func = gk_multib_field_1x_rhs;
+  if (mbf->cdim == 2)
+    mbf->rhs_func = gk_multib_field_2x_rhs;
+  if (mbf->cdim == 3)
+    mbf->rhs_func = gk_multib_field_3x_rhs;
+
+  return mbf;
+}
+
+void
+gk_multib_field_rhs(gkyl_gyrokinetic_multib_app *mbapp, struct gk_multib_field *mbf,
+  const struct gkyl_array *fin[], struct gkyl_array **bflux[])
+{
+  // Compute the electrostatic potential.
+  mbf->rhs_func(mbapp, mbf, fin, bflux);
 }
 
 // Release resources for multib field.
@@ -540,9 +710,15 @@ gk_multib_field_release(struct gk_multib_field *mbf)
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {
     gkyl_array_release(mbf->phi_local[bI]);
     gkyl_array_release(mbf->rho_c_local[bI]);
+    gkyl_array_release(mbf->rho_c_global_dg[bI]);
+    gkyl_array_release(mbf->phi_global_smooth[bI]);
+    gkyl_array_release(mbf->rho_c_global_smooth[bI]);
   }
   gkyl_free(mbf->phi_local);
   gkyl_free(mbf->rho_c_local);
+  gkyl_free(mbf->rho_c_global_dg);
+  gkyl_free(mbf->phi_global_smooth);
+  gkyl_free(mbf->rho_c_global_smooth);
 
   // Free memory allocated for parallel smoothing.
   for (int bI= 0; bI<mbf->num_local_blocks; bI++) {

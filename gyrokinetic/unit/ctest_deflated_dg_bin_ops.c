@@ -131,7 +131,7 @@ test_bop(bool use_gpu)
 
   // Get C = rho.J
   struct gkyl_array *Cxz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
-  gkyl_dg_mul_op(basis, 0, Cxz, 0,rho, 0, jac);
+  gkyl_dg_mul_op(&basis, 0, Cxz, 0,rho, 0, jac);
   //gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
 
   struct gkyl_array *Cxz_dev =  use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) : gkyl_array_acquire(Cxz);
@@ -159,7 +159,7 @@ test_bop(bool use_gpu)
   //gkyl_grid_sub_array_write(&grid, &local, 0, Exz, "Exz.gkyl");
 
   // Smooth E
-  struct gkyl_fem_parproj *fem_parproj = gkyl_fem_parproj_new(&local, &basis, GKYL_FEM_PARPROJ_NONE, 0, 0, use_gpu);
+  struct gkyl_fem_parproj *fem_parproj = gkyl_fem_parproj_new(&local, &grid, &basis, GKYL_FEM_PARPROJ_NONE, 0, 0, 0, use_gpu);
   gkyl_fem_parproj_set_rhs(fem_parproj, Exz_dev, Exz_dev);
   gkyl_fem_parproj_solve(fem_parproj, Exz_smooth_dev);
   gkyl_fem_parproj_release(fem_parproj);

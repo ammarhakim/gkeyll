@@ -6,7 +6,9 @@
 #include <stdarg.h>
 #include "kann.h"
 
-int kann_verbose = 0;
+static int kann_verbose = 0;
+
+void kann_set_verbose_level(int level) { kann_verbose = level; }
 
 /******************************************
  *** @@BASIC: fundamental KANN routines ***

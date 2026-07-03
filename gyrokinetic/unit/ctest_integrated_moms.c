@@ -88,9 +88,9 @@ test_2x_option(bool use_gpu)
   double lower[] = {0.0, 0.0, -vpar_max_ion, 0.0};
   double upper[] = {1.0, 1.0, vpar_max_ion, mu_max_ion};
   int cells[] = {10, 16, 16, 20};
-  const int vdim = 2;
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int cdim = ndim - vdim;
+  int vdim = 2;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int cdim = ndim - vdim;
 
   double confLower[cdim], confUpper[cdim], vLower[vdim], vUpper[vdim];
   int confCells[cdim], vCells[vdim];
@@ -293,7 +293,11 @@ test_2x_option(bool use_gpu)
 
   if (use_gpu) {
     gkyl_array_release(m0_dev);
-    gkyl_array_release(prim_moms_dev);   
+    gkyl_array_release(prim_moms_dev);
+    gkyl_cu_free(red_integ_diag_global);
+  }
+  else {
+    gkyl_free(red_integ_diag_global);
   }
 
   gkyl_dg_updater_moment_gyrokinetic_release(mcalc);

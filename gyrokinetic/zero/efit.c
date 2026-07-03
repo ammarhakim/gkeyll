@@ -18,7 +18,7 @@
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
-  gkyl_efit *up = gkyl_malloc(sizeof(struct gkyl_efit));
+  gkyl_efit *up = gkyl_calloc(1, sizeof(struct gkyl_efit));
 
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
@@ -38,7 +38,7 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   FILE *ptr = fopen(up->filepath,"r"); 
 
   // Read the last two ints in the first line, assuming they are N_R and N_Z.
-  const int MAX_LINE_LENGTH = 256;
+  int MAX_LINE_LENGTH = 256;
   char first_line[MAX_LINE_LENGTH];
   char *token;
   if (fgets(first_line, sizeof(first_line), ptr) != NULL) {
@@ -255,10 +255,21 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
  
   // Now lets read the q profile
   struct gkyl_array *qflux_n = gkyl_array_new(GKYL_DOUBLE, 1, flux_nrange.volume);
-  for (int i = up->nr-1; i>=0; i--){
-    fidx[0] = i;
-    double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
-    status = fscanf(ptr,"%lf", q_n);
+  int geqdsk_sign_convention = up->sibry > up->simag ? 0 : 1;
+  if (geqdsk_sign_convention) {
+    // psi increases toward magnetic axis.
+    for (int i = up->nr-1; i>=0; i--) {
+      fidx[0] = i;
+      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", q_n);
+    }
+  } else {
+    // psi increases away from magnetic axis.
+    for (int i = 0; i<up->nr; i++) {
+      fidx[0] = i;
+      double *q_n= gkyl_array_fetch(qflux_n, gkyl_range_idx(&flux_nrange, fidx));
+      status = fscanf(ptr, "%lf", q_n);
+    }
   }
   gkyl_nodal_ops_n2m(n2m_flux, &up->fluxbasis, &up->fluxgrid, 
     &flux_nrange, &up->fluxlocal, 1, qflux_n, up->qflux, false);
@@ -366,8 +377,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   double Zxpt[num_max_xpts];
 
   up->num_xpts = find_xpts(up, Rxpt, Zxpt);
-  up->Rxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
-  up->Zxpt = gkyl_malloc(sizeof(double)*up->num_xpts);
+  up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
   for (int i = 0; i < up->num_xpts; i++) {
     up->Rxpt[i] = Rxpt[i];
     up->Zxpt[i] = Zxpt[i];
@@ -376,8 +387,8 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   }
 
   up->num_xpts_cubic = find_xpts_cubic(up, Rxpt, Zxpt);
-  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
-  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*up->num_xpts_cubic);
+  up->Rxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
+  up->Zxpt_cubic = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts_cubic));
   for (int i = 0; i < up->num_xpts_cubic; i++) {
     up->Rxpt_cubic[i] = Rxpt[i];
     up->Zxpt_cubic[i] = Zxpt[i];

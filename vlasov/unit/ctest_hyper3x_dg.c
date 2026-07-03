@@ -129,7 +129,7 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   // check data in first non-ghost cell
   rhs_d = gkyl_array_fetch(rhs_h, linl);
 
-  printf("\nfirst cell rhs\n");
+  // printf("\nfirst cell rhs\n");
   //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
   //for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
   TEST_CHECK( gkyl_compare_double(rhs_d[0], 3.8735549798502387e+00, 1e-12) );
@@ -299,7 +299,7 @@ test_vlasov_3x3v_p1_(bool use_gpu)
   int linl2 = gkyl_range_idx(&phaseRange, idx2);
   rhs_d = gkyl_array_fetch(rhs_h, linl2);
 
-  printf("second cell rhs\n");
+  // printf("second cell rhs\n");
   //for(int i=0; i<rhs->ncomp; i++) printf("%.16e\n", rhs_d[i]);
   //for(int i=0; i<rhs->ncomp; i++) printf("  TEST_CHECK( gkyl_compare_double(rhs_d[%d], %.16e, 1e-12) );\n", i, rhs_d[i]);
   TEST_CHECK( gkyl_compare_double(rhs_d[0], 7.0283701215299565e-01, 1e-12) );

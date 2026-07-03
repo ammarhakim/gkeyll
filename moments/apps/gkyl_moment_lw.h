@@ -67,4 +67,20 @@ gkyl_register_braginskii_types(lua_State *L);
 void
 gkyl_register_spacetime_gauge_types(lua_State *L);
 
+/**
+* Add spacetime slicing type flags for Einstein equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_spacetime_slicing_types(lua_State *L);
+
+/**
+* Add spacetime evolution type flags for Einstein equations into Lua interpreter.
+*
+* @param L Lua state to use.
+ */
+void
+gkyl_register_spacetime_evolution_types(lua_State *L);
+
 #endif

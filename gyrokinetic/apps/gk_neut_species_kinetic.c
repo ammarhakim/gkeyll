@@ -188,7 +188,9 @@ static void
 gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for kinetic neutral species.
-  gkyl_msgpack_map_elem_release(ns->io_meta_len, ns->io_meta);
+  gkyl_msgpack_map_elem_release(ns->io_meta_basic_len, ns->io_meta_basic);
+  gkyl_msgpack_map_elem_release(ns->io_meta_conf_len , ns->io_meta_conf );
+  gkyl_msgpack_map_elem_release(ns->io_meta_phase_len, ns->io_meta_phase);
 
   gkyl_array_release(ns->f);
   if (ns->info.init_from_file.type == 0) {
@@ -273,7 +275,7 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
   // Allocate buffer needed for BCs.
   long buff_sz = 0;
   for (int dir=0; dir<cdim; ++dir) {
-    long vol = GKYL_MAX2(s->lower_skin[dir].volume, s->upper_skin[dir].volume);
+    long vol = GKYL_MAX2(s->local_lower_skin[dir].volume, s->local_upper_skin[dir].volume);
     buff_sz = buff_sz > vol ? buff_sz : vol;
   }
   s->bc_buffer = mkarr(app->use_gpu, s->basis.num_basis, buff_sz);
@@ -295,7 +297,7 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
               (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) ) {
       enum gkyl_bc_basic_type bctype = gkyl_gyrokinetic_translate_bc_basic_type(s->lower_bc[d].type);
       s->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, s->basis_on_dev,
-        &s->lower_skin[d], &s->lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+        &s->local_lower_skin[d], &s->local_lower_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
       if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
@@ -319,7 +321,7 @@ gk_neut_species_kinetic_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic
       // Upper BC updater. Copy BCs by default.
       enum gkyl_bc_basic_type bctype = gkyl_gyrokinetic_translate_bc_basic_type(s->upper_bc[d].type);
       s->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, s->basis_on_dev,
-        &s->upper_skin[d], &s->upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
+        &s->local_upper_skin[d], &s->local_upper_ghost[d], s->f->ncomp, app->cdim, app->use_gpu);
 
       if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_FIXED_FUNC) {
         // Fill the buffer used for BCs.
@@ -552,7 +554,7 @@ gk_neut_species_kinetic_file_import_init(struct gkyl_gyrokinetic_app *app, struc
     }
   }
 
-  if (inp.type == GKYL_IC_IMPORT_AF || inp.type == GKYL_IC_IMPORT_AF_B) {
+  if (inp.type == GKYL_IC_IMPORT_AF) {
     // Scale f by a conf-space factor.
     gkyl_proj_on_basis *proj_conf_scale = gkyl_proj_on_basis_new(&app->grid, &app->basis,
       poly_order+1, 1, inp.conf_scale, inp.conf_scale_ctx);
@@ -565,14 +567,6 @@ gk_neut_species_kinetic_file_import_init(struct gkyl_gyrokinetic_app *app, struc
     gkyl_proj_on_basis_release(proj_conf_scale);
     gkyl_array_release(xfac_ho);
     gkyl_array_release(xfac);
-  }
-  if (inp.type == GKYL_IC_IMPORT_F_B || inp.type == GKYL_IC_IMPORT_AF_B) {
-    // Add a phase factor to f.
-    struct gk_proj proj_phase_add;
-    gk_neut_species_projection_init(app, s, inp.phase_add, &proj_phase_add);
-    gk_neut_species_projection_calc(app, s, &proj_phase_add, s->fnew, 0.0);
-    gkyl_array_accumulate_range(s->f, 1.0, s->fnew, &s->local);
-    gk_neut_species_projection_release(app, &proj_phase_add);
   }
 
   // Multiply f by the Jacobian.
@@ -683,7 +677,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
+  // add the parallel direction in case TS BCs are needed.
   s->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<s->num_periodic_dir; ++d)
     s->periodic_dirs[d] = app->periodic_dirs[d];
@@ -713,13 +707,44 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     }
   }
 
-  // Metadata for gk_neut_species app.
-  struct gkyl_msgpack_map_elem io_meta[] = {
-    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order },
-    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id }
+  // Species properties metadata.
+  struct gkyl_msgpack_map_elem io_meta_sprop[] = {
+    { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = s->info.mass },
+    { .key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->info.vdim },
   };
-  s->io_meta_len = sizeof(io_meta)/sizeof(io_meta[0]);
-  s->io_meta = gkyl_msgpack_map_elem_clone(s->io_meta_len, io_meta);
+
+  // Metadata for integrated quantities.
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {app->io_meta_basic, io_meta_sprop};
+  int io_meta_basic_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0])};
+  s->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union)/sizeof(io_meta_basic_union[0]),
+    io_meta_basic_union_len, io_meta_basic_union, &s->io_meta_basic_len);
+
+  // Metadata for conf-space quantities.
+  struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {app->io_meta_basic, io_meta_sprop, io_meta_conf};
+  int io_meta_conf_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_conf)/sizeof(io_meta_conf[0])};
+  s->io_meta_conf = gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union)/sizeof(io_meta_conf_union[0]),
+    io_meta_conf_union_len, io_meta_conf_union, &s->io_meta_conf_len);
+
+  // Metadata for phase-space quantities.
+  struct gkyl_msgpack_map_elem io_meta_phase[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = s->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = s->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_phase_union[] = {app->io_meta_basic, io_meta_sprop, io_meta_phase};
+  int io_meta_phase_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_phase)/sizeof(io_meta_phase[0])};
+  s->io_meta_phase = gkyl_msgpack_map_elem_union(sizeof(io_meta_phase_union)/sizeof(io_meta_phase_union[0]),
+    io_meta_phase_union_len, io_meta_phase_union, &s->io_meta_phase_len);
 
   // Allocate distribution function array for initialization and I/O.
   s->f = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
@@ -769,26 +794,16 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->collisionless = (struct gk_collisionless) { };
   gk_neut_species_collisionless_init(app, s, &s->collisionless);
 
-  // Create skin/ghost ranges fir applying BCs. Only used for dynamic neutrals but included here to avoid
-  // code duplication since the "ghost" array is needed.
+  // Create skin/ghost ranges.
   for (int dir=0; dir<cdim; ++dir) {
-    // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->lower_skin[dir], &s->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
-    // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&s->upper_skin[dir], &s->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
-  }
-
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&s->local_lower_skin[dir], &s->local_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &s->local_ext, ghost);
+    gkyl_skin_ghost_ranges(&s->local_upper_skin[dir], &s->local_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
     gkyl_skin_ghost_ranges(&s->global_lower_skin[dir], &s->global_lower_ghost[dir],
       dir, GKYL_LOWER_EDGE, &s->global_ext, ghost); 
-    gkyl_sub_range_intersect(&s->global_lower_skin[dir], &s->local_ext, &s->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&s->global_lower_ghost[dir], &s->local_ext, &s->global_lower_ghost[dir]);
     gkyl_skin_ghost_ranges(&s->global_upper_skin[dir], &s->global_upper_ghost[dir],
       dir, GKYL_UPPER_EDGE, &s->local_ext, ghost);
-    gkyl_sub_range_intersect(&s->global_upper_skin[dir], &s->local_ext, &s->global_upper_skin[dir]);
-    gkyl_sub_range_intersect(&s->global_upper_ghost[dir], &s->local_ext, &s->global_upper_ghost[dir]);
   }
 
   if (s->info.init_from_file.type == 0) {
