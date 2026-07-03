@@ -755,7 +755,12 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, doubl
     app->stat.n_diag_io += 1;
   }
   
-  vlasov_array_meta_release(mt); 
+  vlasov_array_meta_release(mt);
+
+  // Collision diagnostics (nu_sum, nu_prim_moms), no-ops unless the species
+  // has collisions with write_coll_diagnostics set.
+  vm_species_lbo_write_mom(app, vms, tm, frame);
+  vm_species_bgk_write_mom(app, vms, tm, frame);
 
   app->stat.n_diag += 1;
 }
@@ -1313,11 +1318,11 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   // Projection routine optionally corrects all the Maxwellian/LTE moments.
   // This routine is utilized by BGK collisions.
   vms->lte = (struct vm_lte) { };
-  struct correct_all_moms_inp corr_inp = { 
-    .correct_all_moms = vms->info.correct.correct_all_moms, 
-    .max_iter = vms->info.correct.max_iter > 0 ? vms->info.correct.max_iter : 50, 
-    .iter_eps = vms->info.correct.iter_eps > 0 ? vms->info.correct.iter_eps : 1e-10, 
-    .use_last_converged = vms->info.correct.use_last_converged, 
+  struct correct_all_moms_inp corr_inp = {
+    .correct_all_moms = vms->info.correct.correct_all_moms,
+    .max_iter = vms->info.correct.max_iter > 0 ? vms->info.correct.max_iter : 100,
+    .iter_eps = vms->info.correct.iter_eps > 0 ? vms->info.correct.iter_eps : 1e-12,
+    .use_last_converged = vms->info.correct.use_last_converged,
   };
   vm_species_lte_init(app, vms, &vms->lte, corr_inp);
 

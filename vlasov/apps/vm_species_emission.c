@@ -57,25 +57,31 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *v
       app->use_gpu);
   }
 
-  struct gkyl_mom_vlasov_inp inp_mom = {
-    .conf_basis = &app->basis,
-    .phase_basis = &vms->basis,
-    .vel_range = &vms->local_vel,
-    .vel_map = vms->vel_map,
-    .hamil_range = &vms->hamil_range,
-    .hamil = vms->hamil,
-    .model_id = vms->model_id,
-    .mom_type = GKYL_F_MOMENT_M0M1M2, 
-    .use_gpu = app->use_gpu,
-  };
-  emit->mom_type = gkyl_int_mom_vlasov_inew(&inp_mom);
-
   // Initialize inelastic emission spectrums
   for (int i=0; i<emit->num_species; ++i) {
     emit->impact_species[i] = vm_find_species(app, emit->params->in_species[i]);
-    emit->impact_grid[i] = &emit->impact_species[i]->bflux.boundary_grid[bdir];
+    // in_species must name an existing *kinetic* species (a typo, or a fluid
+    // species, returns NULL and would segfault below without a message).
+    assert(emit->impact_species[i]);
+    struct vm_species *imp = emit->impact_species[i];
+    emit->impact_grid[i] = &imp->bflux.boundary_grid[bdir];
 
-    emit->flux_slvr[i] = gkyl_mom_calc_new(emit->impact_grid[i], emit->mom_type, app->use_gpu);
+    // Boundary-flux moments of the impact species' distribution: the moment
+    // type captures that species' basis/velocity map/Hamiltonian.
+    struct gkyl_mom_vlasov_inp inp_mom = {
+      .conf_basis = &app->basis,
+      .phase_basis = &imp->basis,
+      .vel_range = &imp->local_vel,
+      .vel_map = imp->vel_map,
+      .hamil_range = &imp->hamil_range,
+      .hamil = imp->hamil,
+      .model_id = imp->model_id,
+      .mom_type = GKYL_F_MOMENT_M0M1M2,
+      .use_gpu = app->use_gpu,
+    };
+    emit->mom_type[i] = gkyl_int_mom_vlasov_inew(&inp_mom);
+
+    emit->flux_slvr[i] = gkyl_mom_calc_new(emit->impact_grid[i], emit->mom_type[i], app->use_gpu);
 
     emit->impact_skin_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_skin[emit->dir] : &emit->impact_species[i]->upper_skin[emit->dir];
     emit->impact_ghost_r[i] = (emit->edge == GKYL_LOWER_EDGE) ? &emit->impact_species[i]->lower_ghost[emit->dir] : &emit->impact_species[i]->upper_ghost[emit->dir];
@@ -162,13 +168,13 @@ vm_species_emission_release(const struct vm_emitting_wall *emit)
     gkyl_array_release(emit->elastic_yield);
     gkyl_bc_emission_elastic_release(emit->elastic_update);
   }
-  gkyl_mom_type_release(emit->mom_type);
   for (int i=0; i<emit->num_species; ++i) {
     gkyl_array_release(emit->yield[i]);
     gkyl_array_release(emit->spectrum[i]);
     gkyl_array_release(emit->weight[i]);
     gkyl_array_release(emit->flux[i]);
     gkyl_array_release(emit->k[i]);
+    gkyl_mom_type_release(emit->mom_type[i]);
     gkyl_mom_calc_release(emit->flux_slvr[i]);
     gkyl_bc_emission_spectrum_release(emit->update[i]);
   }

@@ -222,6 +222,7 @@ vm_species_bgk_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
 
   // Empty methods.
   bgk->moms_func = vmbgk_moms_disabled;
+  bgk->moms_func_implicit = vmbgk_moms_disabled;
   bgk->rhs_func = vmbgk_rhs_disabled;
   bgk->rhs_func_implicit = vmbgk_rhs_disabled;
   bgk->fixed_temp_calc_func = vmbgk_fixed_temp_disabled; 
@@ -362,6 +363,9 @@ vm_species_bgk_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
       int my_idx_in_other[GKYL_MAX_SPECIES];
       for (int i=0; i<bgk->num_cross_collisions; ++i) {
         bgk->collide_with[i] = vm_find_species(app, vms->info.collisions.collide_with[i]);
+        // collide_with must name an existing *kinetic* species (a typo, or a
+        // fluid species, returns NULL and would segfault below without a message).
+        assert(bgk->collide_with[i]);
         my_idx_in_other[i] = -1;
         for (int j=0; j<bgk->collide_with[i]->bgk.num_cross_collisions; ++j) {
           if (0 == strcmp(vms->name, bgk->collide_with[i]->info.collisions.collide_with[j])) {
@@ -369,6 +373,10 @@ vm_species_bgk_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
             break;
           }
         }
+        // Cross collisions must be specified symmetrically: the partner must
+        // list this species in its own collide_with (my_idx_in_other indexes the
+        // partner's cross arrays below).
+        assert(my_idx_in_other[i] >= 0);
       }
 
       // Morse's alpha_E.

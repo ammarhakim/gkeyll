@@ -15,6 +15,12 @@ vmlbo_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
+  // Compute LTE moments (n, V_drift, T/m) if a computed (Spitzer) collision
+  // frequency needs them: this species' own self/cross nu, or a partner's
+  // computed cross nu, which reads this species' LTE moments (see cross_init).
+  if (lbo->needs_lte_moms)
+    vm_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
+
   // Compute M0, M1i, M2 moments .
   vm_species_moment_calc(&lbo->moms, species->local, app->local, fin);
   
@@ -42,20 +48,24 @@ vmlbo_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *species,
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
+// Every stage rebuilds nu_sum = self_nu + sum_r cross_nu_sr: the self method
+// (const or computed) resets it and each cross method accumulates onto it, so
+// the four self/cross mode combinations compose correctly (mirrors the BGK
+// methods in vm_species_bgk.c).
 static void
 vmlbo_self_nu_calc_constNu(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
-  // Empty method.
+  // self_nu is static (projected at init); reset nu_sum from it so the cross
+  // methods accumulate onto a fresh sum each stage.
+  gkyl_array_set(lbo->nu_sum, 1.0, lbo->self_nu);
 }
 
 static void
 vmlbo_self_nu_calc_normNu(gkyl_vlasov_app *app, const struct vm_species *species,
   struct vm_lbo_collisions *lbo, const struct gkyl_array *fin)
 {
-  // Calculate nu_ss(x,t).
-  vm_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-
+  // Calculate nu_ss(x,t) (LTE moments are staged by vmlbo_moms_enabled).
   gkyl_spitzer_coll_freq_advance_normnu(lbo->spitzer_calc, &app->local, species->lte.moms.marr, lbo->vtsq_min,
     species->lte.moms.marr, lbo->vtsq_min, lbo->norm_nu_fac_self, lbo->self_nu);
 
@@ -66,7 +76,8 @@ static void
 vmlbo_cross_nu_calc_constNu(gkyl_vlasov_app *app, const struct vm_species *s,
   struct vm_lbo_collisions *lbo, int coll_idx)
 {
-  // Empty method.
+  // cross_nu is static (projected at init); accumulate onto the freshly-reset nu_sum.
+  gkyl_array_accumulate(lbo->nu_sum, 1.0, lbo->cross_nu[coll_idx]);
 }
 
 static void
@@ -290,8 +301,9 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
   
       // Set pointers to functions chosen at runtime.
       lbo->self_nu_func = vmlbo_self_nu_calc_normNu;
+      lbo->needs_lte_moms = true; // Spitzer self nu reads this species' LTE moments.
     }
-  
+
     // Create moment calculator to get M0, M1, M2 for primitive moments.
     vm_species_moment_init(app, vms, &lbo->moms, GKYL_F_MOMENT_M0M1M2, false);
     lbo->nu_moms = mkarr(app->use_gpu, lbo->moms.marr->ncomp, lbo->moms.marr->size);
@@ -355,6 +367,9 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
       int my_idx_in_other[GKYL_MAX_SPECIES];
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
         lbo->collide_with[i] = vm_find_species(app, vms->info.collisions.collide_with[i]);
+        // collide_with must name an existing *kinetic* species (a typo, or a
+        // fluid species, returns NULL and would segfault below without a message).
+        assert(lbo->collide_with[i]);
         my_idx_in_other[i] = -1;
         for (int j=0; j<lbo->collide_with[i]->lbo.num_cross_collisions; ++j) {
           if (0 == strcmp(vms->name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
@@ -362,6 +377,10 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
             break;
           }
         }
+        // Cross collisions must be specified symmetrically: the partner must
+        // list this species in its own collide_with (my_idx_in_other indexes the
+        // partner's cross arrays below).
+        assert(my_idx_in_other[i] >= 0);
       }
 
       // Morse's alpha_E.
@@ -457,6 +476,14 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         // Set pointers to functions chosen at runtime.
         lbo->cross_nu_func = vmlbo_cross_nu_calc_normNu;
         lbo->alpha_E_func = vmlbo_alpha_E_normNu;
+
+        // The Spitzer cross nu reads both this species' and each partner's LTE
+        // moments, so mark both for the per-stage LTE moment calculation in
+        // vmlbo_moms_enabled. (Safe here: all lbo_init calls complete before
+        // any cross_init runs, and flags are only ever set, never cleared.)
+        lbo->needs_lte_moms = true;
+        for (int i=0; i<lbo->num_cross_collisions; ++i)
+          lbo->collide_with[i]->lbo.needs_lte_moms = true;
       }
 
       // Cross-primitive moment calculator.

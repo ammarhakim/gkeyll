@@ -801,7 +801,7 @@ vlasov_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "collisions") {
     collision_id = glua_tbl_get_integer(L, "collisionID", 0);
     nu_frac = glua_tbl_get_number(L, "nuFrac", 1.0);
-    write_coll_diagnostics = glua_tbl_get_bool(L, "writeSource", false);
+    write_coll_diagnostics = glua_tbl_get_bool(L, "writeDiagnostics", false);
 
     if (glua_tbl_get_func(L, "selfNu")) {
       self_nu_func_ref = luaL_ref(L, LUA_REGISTRYINDEX);
@@ -2328,6 +2328,12 @@ vm_app_new(lua_State *L)
 
   // Set all fluid species input.
   int num_fluid_species = get_fluid_species_inp(L, cdim, fluid_species);
+  // Kinetic and fluid species share the single vm.species[] array; check the
+  // combined count before writing the fluid tail below (the C-side assert in
+  // gkyl_vlasov_app_new only fires after vm would already be overrun).
+  if (num_kinetic_species + num_fluid_species > GKYL_MAX_SPECIES)
+    return luaL_error(L, "Too many species: %d kinetic + %d fluid exceeds GKYL_MAX_SPECIES (%d)!",
+      num_kinetic_species, num_fluid_species, GKYL_MAX_SPECIES);
   vm.num_species = num_kinetic_species + num_fluid_species;
 
   // Need to sort the fluid_species[] array by name of the fluid species before

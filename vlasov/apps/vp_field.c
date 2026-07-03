@@ -57,7 +57,8 @@ vp_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
 
     vpf->ext_pot_host = app->use_gpu ? mkarr(false, vpf->ext_pot->ncomp, vpf->ext_pot->size)
                                      : gkyl_array_acquire(vpf->ext_pot);
-    vpf->ext_pot_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, app->basis.poly_order+1,
+    // 4 components: phi and the three components of A.
+    vpf->ext_pot_proj = gkyl_eval_on_nodes_new(&app->grid, &app->basis, 4,
       vpf->info.external_potentials, vpf->info.external_potentials_ctx);
   }
 
@@ -176,7 +177,7 @@ vp_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_arra
 void
 vp_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double tm)
 {
-  if (field->has_ext_em) {  
+  if (field->has_ext_pot) {
     gkyl_eval_on_nodes_advance(field->ext_pot_proj, tm, &app->local, field->ext_pot_host);
     if (app->use_gpu) {
       // Note: ext_pot_host is same as ext_pot when not on GPUs.

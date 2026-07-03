@@ -229,6 +229,9 @@ struct vm_lbo_collisions {
   int num_cross_collisions; // number of species we cross-collide with
   struct vm_species *collide_with[GKYL_MAX_SPECIES]; // pointers to cross-species we collide with
   bool norm_nu_cross; // Whether to compute cross-species collision frequency in space and time.
+  bool needs_lte_moms; // Whether the per-stage LTE moments (n, V_drift, T/m) must be computed:
+                       // set if this species' self or cross nu is computed (Spitzer), or if a
+                       // partner's computed cross nu reads this species' LTE moments.
   double norm_nu_fac_cross[GKYL_MAX_SPECIES]; // Cross collision frequency without factor of n_r/(v_ts^2+v_tr^2)^(3/2).
   double alpha_E_fac[GKYL_MAX_SPECIES]; // Time-independent factor in alpha_E.
   double betaGreenep1; // Galue of Greene's factor beta + 1.
@@ -359,7 +362,10 @@ struct vm_emitting_wall {
   struct gkyl_array *k[GKYL_MAX_SPECIES];
   struct vm_species *impact_species[GKYL_MAX_SPECIES]; // pointers to impacting species
   struct gkyl_range impact_normal_r[GKYL_MAX_SPECIES];
-  struct gkyl_mom_type *mom_type;
+  // Moment type per impact species: the boundary-flux moments are taken of each
+  // impact species' distribution, so the type must capture *that* species'
+  // basis/velocity map/Hamiltonian, not the emitting species'.
+  struct gkyl_mom_type *mom_type[GKYL_MAX_SPECIES];
   struct gkyl_mom_calc *flux_slvr[GKYL_MAX_SPECIES]; // integrated moments
 
   struct gkyl_rect_grid *impact_grid[GKYL_MAX_SPECIES];
@@ -385,10 +391,12 @@ struct vm_source {
   struct vm_species *source_species; // species to use for the source
   int source_species_idx; // index of source species
 
-  bool rescale_m0; // boolean for if we are rescaling M0 
+  bool rescale_m0; // boolean for if we are rescaling M0
   int num_cross_source; // how many other species are we obtaining sources from?
   struct vm_species *adapt_source_species[GKYL_MAX_SPECIES]; // list of species to use for the source
   int adapt_source_species_idx[GKYL_MAX_SPECIES]; // list of indices of source species
+  int adapt_source_slot[GKYL_MAX_SPECIES]; // this species' slot in each partner's source_with list
+                                           // (indexes the partner's scale_m0 in the cross rescale)
   struct gkyl_array *scale_m0[GKYL_MAX_SPECIES]; // Time-dependent re-scaling of the density of the source. 
   struct gkyl_array *scale_m0_host[GKYL_MAX_SPECIES]; // host copy for use in IO
   struct gkyl_mom_calc *m0_reduced[GKYL_MAX_SPECIES]; // Reduced density update for rescaling source. 

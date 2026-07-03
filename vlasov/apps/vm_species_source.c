@@ -37,10 +37,28 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *vms, stru
       .model_id = vms->model_id,
       .use_gpu = app->use_gpu,
     };
-    src->num_cross_source = vms->info.source.num_cross_source; 
+    src->num_cross_source = vms->info.source.num_cross_source;
     for (int i=0; i<src->num_cross_source; i++) {
       src->adapt_source_species[i] = vm_find_species(app, vms->info.source.source_with[i]);
       src->adapt_source_species_idx[i] = vm_find_species_idx(app, vms->info.source.source_with[i]);
+      // source_with must name an existing *kinetic* species (a typo, or a fluid
+      // species, returns NULL and would segfault in the adapt phase otherwise).
+      assert(src->adapt_source_species[i]);
+      // Cross-species adaptive sourcing is reciprocal: the adapt phase reads the
+      // partner's scale_m0 at the slot where the partner lists this species, so
+      // the partner must itself be adaptive and must include us in its
+      // source_with. (Read from info, not the partner's src: source objects are
+      // initialized one species at a time, and the partner's may not exist yet.)
+      const struct vm_species *other = src->adapt_source_species[i];
+      assert(other->info.source.source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE);
+      src->adapt_source_slot[i] = -1;
+      for (int j=0; j<other->info.source.num_cross_source; ++j) {
+        if (0 == strcmp(vms->name, other->info.source.source_with[j])) {
+          src->adapt_source_slot[i] = j;
+          break;
+        }
+      }
+      assert(src->adapt_source_slot[i] >= 0);
       // Threshold velocity for integration of moments over a subset of the domain. 
       // Also set threshold for whether we accumulate moment over subset of the domain. 
       inp_mom.v_thresh = vms->info.source.source_with_v_thresh[i];
@@ -157,22 +175,22 @@ vm_species_source_adapt_moms(gkyl_vlasov_app *app, const struct vm_species *vms,
 }
 
 void
-vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms, 
+vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms,
   struct vm_source *src)
 {
-  int species_idx;
-  species_idx = vm_find_species_idx(app, vms->name);  
   if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
     gkyl_array_clear(src->source, 0.0);
     for (int i=0; i<src->num_cross_source; i++) {
-      // First compute the adaptive source from self-sourcing. 
-      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source, 
-        1.0, src->scale_m0[i], src->adapt_source[i], &app->local, &vms->local); 
+      // First compute the adaptive source from self-sourcing.
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source,
+        1.0, src->scale_m0[i], src->adapt_source[i], &app->local, &vms->local);
 
-      // Next compute the adaptive source from the cross species. 
-      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source, 
-        1.0, src->adapt_source_species[i]->src.scale_m0[i], src->adapt_source[i], &app->local, &vms->local); 
-    } 
+      // Next compute the adaptive source from the cross species, reading the
+      // partner's scale_m0 at the slot where the partner lists this species.
+      gkyl_dg_mul_conf_phase_op_accumulate_range(&app->basis, &vms->basis, src->source,
+        1.0, src->adapt_source_species[i]->src.scale_m0[src->adapt_source_slot[i]],
+        src->adapt_source[i], &app->local, &vms->local);
+    }
   }
 }
 
@@ -394,7 +412,9 @@ vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_sou
       gkyl_array_release(src->scale_m0_host[i]);
       gkyl_array_release(src->adapt_source[i]);
     }
-    gkyl_dg_gaussian_filter_release(src->gauss_filter);
+    if (src->filter) {
+      gkyl_dg_gaussian_filter_release(src->gauss_filter);
+    }
   }
 
   for (int k=0; k<src->num_sources; k++) {

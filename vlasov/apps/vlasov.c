@@ -1008,9 +1008,10 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
   // its tail, so it must not be freed separately.
   if (app->species)
     gkyl_free(app->species);
-  if (app->has_field) {
-    vlasov_field_release(app);
-  }
+  // A field object always exists (the null field when skip_field is set), so
+  // release it unconditionally; each field type's release_func frees what it
+  // allocated.
+  vlasov_field_release(app);
   if (app->has_fluid_em_coupling)
     vm_fluid_em_coupling_release(app, app->fl_em);
 

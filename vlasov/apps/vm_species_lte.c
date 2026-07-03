@@ -36,8 +36,9 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
   lte->proj_lte = gkyl_vlasov_lte_proj_on_basis_inew( &inp_proj );
 
   lte->correct_all_moms = corr_inp.correct_all_moms;
-  int max_iter = corr_inp.max_iter > 0 ? vms->info.correct.max_iter : 100;
-  double iter_eps = corr_inp.iter_eps > 0 ? vms->info.correct.iter_eps  : 1e-12;
+  // corr_inp arrives with defaults already applied by the caller (vm_species_init).
+  int max_iter = corr_inp.max_iter;
+  double iter_eps = corr_inp.iter_eps;
   bool use_last_converged = corr_inp.use_last_converged;
   
   if (lte->correct_all_moms) {
