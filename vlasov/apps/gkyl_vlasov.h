@@ -163,11 +163,17 @@ struct gkyl_vlasov_geom {
 
 };
 
+// Which evolved quantities a species owns: a kinetic distribution function, a
+// fluid moment vector, or both.
+enum gkyl_species_type {
+  GKYL_SPECIES_VLASOV, // kinetic distribution only
+  GKYL_SPECIES_FLUID,  // fluid moments only
+  GKYL_SPECIES_PKPM,   // both (reserved; not supported by the Vlasov app)
+};
+
 // Parameters for the kinetic block of a Vlasov species: the velocity-space
 // grid, distribution-function initial conditions, collisions, sources, and
 // kinetic BCs. Declared as the 'kinetic' block of struct gkyl_vlasov_species.
-// Species identity (name/charge/mass) is NOT part of this block: it is
-// declared exactly once, at the top level of struct gkyl_vlasov_species.
 struct gkyl_vlasov_kinetic_species {
   enum gkyl_model_id model_id; // Type of model
                                // (e.g., SR, general geometry, see gkyl_eqn_type.h).
@@ -311,19 +317,9 @@ struct gkyl_vlasov_field {
   bool use_lax; // Boolean for using lax fluxes in dg-gr-maxwell.
 };
 
-// Which evolved quantities a species owns: a kinetic distribution function, a
-// fluid moment vector, or both.
-enum gkyl_species_type {
-  GKYL_SPECIES_VLASOV, // kinetic distribution only
-  GKYL_SPECIES_FLUID,  // fluid moments only
-  GKYL_SPECIES_PKPM,   // both (reserved; not supported by the Vlasov app)
-};
-
 // Parameters for the fluid block of a Vlasov species: the equation object,
 // fluid initial condition, advection/diffusion, and fluid BCs. Declared as the
-// 'fluid' block of struct gkyl_vlasov_species. Species identity
-// (name/charge/mass) is NOT part of this block: it is declared exactly once,
-// at the top level of struct gkyl_vlasov_species.
+// 'fluid' block of struct gkyl_vlasov_species. 
 struct gkyl_vlasov_fluid_species {
   void *ctx; // context for initial condition init function
   // pointer to initialization function
