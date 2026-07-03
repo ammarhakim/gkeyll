@@ -81,7 +81,7 @@ create_ctx(void)
   double vpar_max_elc = 4.0*vte; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc = mass_elc*pow(vpar_max_elc,2.0)/(2.0*B0); // Domain boundary (electron velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
-  double cfl_frac = 0.50; // CFL coefficient.
+  double cfl_frac = 1.0; // CFL coefficient.
 
   double t_end = 100.; // Final simulation time.
   int num_frames = 100; // Number of output frames.
@@ -258,12 +258,7 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_gyrokinetic_field field = {
-    .poisson_bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_PERIODIC },
-    },
+    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
     .zero_init_field = true,
     .is_static = true,
   };
@@ -320,6 +315,10 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
+//    .print_verbosity = {
+//      .enabled = true,
+//      .disable_timings = true,
+//    },
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
