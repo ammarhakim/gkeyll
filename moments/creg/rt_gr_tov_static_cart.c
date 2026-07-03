@@ -297,9 +297,6 @@ main(int argc, char **argv)
     .rp_type = WV_GR_EULER_RP_LAX, // the Riemann solver the MP scheme uses at each reconstructed edge
     .use_gpu = app_args.use_gpu,
     .tov_eq = ctx.tov, // turns on the static-TOV well-balancing (MP flux-form WB under GKYL_MOMENT_MP)
-    // .wb_family = wb_family, //for the WB-aware PCP, 
-    // .equil_C = equil_C, //for the WB-aware PCP, 
-    .equil_K_poly = ctx.K_poly,
     .p_atm = ctx.p_atm,
     .rho_atm = ctx.rho_atm, // C2P recovery floor matches the IC atmosphere (ET rho_rel_min=1e-7)
   });

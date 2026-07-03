@@ -141,12 +141,8 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
   }
 
   // 2. Advance the fluid (MP SSP-RK3)
-  // temp diagnostic: GKYL_FREEZE_FLUID=1 holds the fluid at its (static) initial state and evolves ONLY the spacetime 
-  static int freeze_fluid = -1;
-  if (freeze_fluid < 0) freeze_fluid = (getenv("GKYL_FREEZE_FLUID") != NULL) ? 1 : 0;
-
   double dt = dt_use;
-  if (fluid_idx >= 0 && !freeze_fluid) {
+  if (fluid_idx >= 0) {
     struct gkyl_update_status fluid_st = moment_update_ssp_rk3(app, dt_use);
     if (!fluid_st.success) {
       return fluid_st;
@@ -160,11 +156,8 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
     struct moment_species *esp = &app->species[einstein_idx];
     int ndim = esp->ndim;
 
-    // Frozen fluid state and adiabatic index for the matter source.
-    // temp diagnostic: GKYL_NO_MATTER_SOURCE=1 evolves the spacetime with NO fluid matter source
-    static int no_matter = -1;
-    if (no_matter < 0) no_matter = (getenv("GKYL_NO_MATTER_SOURCE") != NULL) ? 1 : 0;
-    const struct gkyl_array *fluid_f = (coupled && !no_matter) ? app->species[fluid_idx].fcurr : NULL;
+    // Frozen (post-fluid-step) fluid state and adiabatic index for the matter source.
+    const struct gkyl_array *fluid_f = coupled ? app->species[fluid_idx].fcurr : NULL;
     double gas_gamma = coupled ? app->species[fluid_idx].gr_euler_gas_gamma : 0.0;
 
     // 3a. Pre-transport half source on f[0] (= fcurr); refresh ghosts for the transport reconstruction.

@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
@@ -146,12 +148,11 @@ minmod_2(double x, double y)
   return 0.0;
 }
 
-// DISABLED for now. The WB-aware physical-constraint-preserving (PCP) limiter scaled the GR-Euler WB reconstruction's deviation toward
-// the admissible equilibrium so the face states stay in {D>0, (D+tau)^2-|S|^2>0} (convex, contains q_eq),
-// limiting the RECONSTRUCTION only (single-valued flux => conservation untouched). Parked with the
-// near-vacuum / equilibrium-family WB work. To re-enable: uncomment these two functions and the call site
-// in gkyl_mp_scheme_advance.
-/*
+// Physical-constraint-preserving (PCP / Wu-Tang) limiter for GR-Euler. 
+// gr_euler_pcp_theta(anchor, w) returns the largest theta in [0,1] such that anchor + theta*w stays in the admissible set
+// {D>0, (D+tau)^2-|S|^2>0} (convex, contains any admissible anchor). Applied to the reconstruction only (single-valued flux => conservation untouched). 
+// For a static equilibrium the deviation w -> 0 so theta=1 and the WB is untouched; during collapse, anchoring at the (admissible) cell average keeps the
+// face states admissible => admissibility-preserving updates (Wu & Tang 2015/2017).
 static inline double
 gr_euler_smallest_pos_root(double A, double B, double Cz)
 {
@@ -216,7 +217,6 @@ gr_euler_pcp_theta(const double qe[5], const double w[5])
   if (theta > 1.0) theta = 1.0;
   return theta;
 }
-*/
 
 static inline double
 minmod_4(double x, double y, double z, double w)
@@ -413,17 +413,25 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         u1_recovery(meqn, qavg[I3M], qavg[I2M], qavg[IM],
           qavg[IP], qavg[I2P], qavg[I3P], qr_l, qr_r);
       }
-      // reconstruct the smooth deviation w = q - q_eq and add a single-valued edge equilibrium q_eq(edge) to both sides. 
-      // at a static equilibrium w = 0 -> qr_l = qr_r = q_eq(edge): no jump -> exact balance
-      else if (mp->equation->type == GKYL_EQN_GR_EULER && meqn == 73) {
+      // GR-Euler with the static-TOV slots (meqn==76). When well-balanced, reconstruct the smooth
+      // deviation w = q - q_eq and add a single-valued edge equilibrium q_eq(edge) to both sides (at a
+      // static equilibrium w = 0 -> qr_l = qr_r = q_eq(edge): no jump -> exact balance). When the WB is
+      // disabled (collapse stage), q_eq = 0 -> plain reconstruction of q. The PCP admissibility limiter
+      // is applied afer either path (independent of the WB), so it also protects the no-WB collapse.
+      else if (mp->equation->type == GKYL_EQN_GR_EULER && meqn == 76) {
+        bool wb = !gkyl_gr_euler_wb_disabled(mp->equation);
         const double *qa[6] = { qavg[I3M], qavg[I2M], qavg[IM], qavg[IP], qavg[I2P], qavg[I3P] };
         double weq[6][meqn], qeq[6][meqn];
         for (int k = 0; k < 6; ++k) {
-          // Equilibrium reference family
-          double qeqk[71];
-          gkyl_gr_euler_equilibrium(mp->equation, qa[k], qeqk);
-          for (int m = 0; m < meqn; ++m) qeq[k][m] = (m < 71) ? qeqk[m] : qa[k][m]; // [71,72] carry through
-          for (int m = 0; m < meqn; ++m) weq[k][m] = qa[k][m] - qeq[k][m]; // deviation: fluid only, ~0 elsewhere
+          if (wb) {
+            double qeqk[71];
+            gkyl_gr_euler_equilibrium(mp->equation, qa[k], qeqk);
+            for (int m = 0; m < meqn; ++m) qeq[k][m] = (m < 71) ? qeqk[m] : qa[k][m]; // reference slots carry through
+          }
+          else {
+            for (int m = 0; m < meqn; ++m) qeq[k][m] = 0.0; // no WB: reconstruct q directly (plain)
+          }
+          for (int m = 0; m < meqn; ++m) weq[k][m] = qa[k][m] - qeq[k][m];
         }
         double wl[meqn], wr[meqn];
         mp->recovery_fn(meqn, weq[0], weq[1], weq[2], weq[3], weq[4], weq[5], wl, wr);
@@ -435,14 +443,23 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
         }
         // single-valued (2nd-order centered, monotone) equilibrium at the edge, from the two adjacent cells
         for (int m = 0; m < meqn; ++m) {
-          double qe = 0.5 * (qeq[2][m] + qeq[3][m]); // IM, IP
+          double qe = 0.5 * (qeq[2][m] + qeq[3][m]); // IM, IP (zero when WB disabled)
           qr_l[m] = qe + wl[m];
           qr_r[m] = qe + wr[m];
         }
-      }
 
-        // NOTE: the WB-aware PCP limiter (gr_euler_pcp_theta / gr_euler_smallest_pos_root, commented out above) is disabled for now. 
-        // It kept the reconstructed face states in the admissible set by scaling the deviation toward the equilibrium, but it is not currently used (the near-vacuum / equilibrium-family WB work it supported is paused).      }
+        // PCP (Wu-Tang) admissibility limiter: scale each reconstructed face toward its own (admissible) cell average so the face states stay in {D>0, (D+tau)^2-|S|^2>0}, making the updates
+        // admissibility-preserving (Wu & Tang 2015/2017). Applied whether or not the WB is active. At a static equilibrium the deviation ~0 so theta=1 => WB reconstruction untouched.
+        static int pcp_on = -1;
+        if (pcp_on < 0) pcp_on = (getenv("GKYL_PCP") != NULL) ? 1 : 0;
+        if (pcp_on) {
+          double devl[5], devr[5];
+          for (int m = 0; m < 5; ++m) { devl[m] = qr_l[m] - qa[2][m]; devr[m] = qr_r[m] - qa[3][m]; }
+          double thl = gr_euler_pcp_theta(qa[2], devl); // qa[2] = qavg[IM], left cell average
+          double thr = gr_euler_pcp_theta(qa[3], devr); // qa[3] = qavg[IP], right cell average
+          for (int m = 0; m < 5; ++m) { qr_l[m] = qa[2][m] + (thl * devl[m]); qr_r[m] = qa[3][m] + (thr * devr[m]); }
+        }
+      }
       else {
         // recover variables at cell edge
         mp->recovery_fn(meqn, qavg[I3M], qavg[I2M], qavg[IM],

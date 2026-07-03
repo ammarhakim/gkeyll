@@ -106,7 +106,6 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->has_gr_euler = true;
 
     sp->gr_euler_gas_gamma = mom_sp->gr_euler_gas_gamma;
-    sp->gr_euler_disable_well_balanced = mom_sp->gr_euler_disable_well_balanced;
   }
 
   // No metric coupling partner until forward_euler wires it up each RK stage.
@@ -654,16 +653,13 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
       const double *q = gkyl_array_cfetch(fin, loc);
       double *rhs_c = gkyl_array_fetch(rhs, loc);
 
-      static int no_src = -1; // TEMP isolation diagnostic: GKYL_NO_GR_SOURCE=1 zeros the geometric source.
-      if (no_src < 0) no_src = (getenv("GKYL_NO_GR_SOURCE") != NULL) ? 1 : 0;
-
       double q_in[71], q_new[71];
       for (int m = 0; m < 71; m++) q_in[m] = q[m];
       explicit_gr_euler_source_update_euler(0, gamma, app->tcurr, 1.0, q_in, q_new); // q_new = q + S(q)
-      if (!no_src) for (int m = 1; m < 5; m++) rhs_c[m] += (q_new[m] - q_in[m]); // full geometric source
+      for (int m = 1; m < 5; m++) rhs_c[m] += (q_new[m] - q_in[m]); // full geometric source
 
-      if (!no_src && meqn > 71 && !species->gr_euler_disable_well_balanced) { // WB: subtract the equilibrium source S(q_eq)
-        // Use the SAME equilibrium reference the flux subtracts (family or frozen), so the geometric source and the flux are consistent at the equilibrium (matched reference).
+      if (meqn > 71 && !gkyl_gr_euler_wb_disabled(species->equation)) { // WB: subtract the equilibrium source S(q_eq)
+        // Use the SAME equilibrium reference the flux subtracts, so the geometric source and the flux are consistent at the equilibrium (matched reference).
         double q_eq[71], q_eq_new[71];
         gkyl_gr_euler_equilibrium(species->equation, q, q_eq);
         explicit_gr_euler_source_update_euler(0, gamma, app->tcurr, 1.0, q_eq, q_eq_new);

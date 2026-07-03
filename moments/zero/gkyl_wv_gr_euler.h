@@ -24,14 +24,13 @@ struct gkyl_wv_gr_euler_inp {
   bool use_gpu; // Whether the wave equation object is on the host (false) or the device (true).
 
   // Optional static-TOV well-balancing. Leave tov_eq = NULL (the default) for all other problems (WB inactive)
-  const struct gkyl_tov *tov_eq; // Use the TOV slots for the well-balancing with discrete frozen equilibrium (NULL -> no WB and every other problem is untouched).
+  const struct gkyl_tov *tov_eq; // Use the TOV slots for the well-balancing with discrete frozen equilibrium (NULL -> no WB). Enables num_equations=76 (frozen equilibrium D_eq, Etot_eq, S_eq in slots 71-75).
 
   double rho_atm; // Atmosphere rest-mass density (recovery rho floor).
   double p_atm; // Atmosphere pressure (recovery p floor).
 
-  bool wb_family; // Use the Kappeli-Mishra equilibrium-family WB (false -> legacy frozen-discrete WB in slots 71,72).
-  double equil_C; // Global equilibrium invariant C = h*sqrt(-g_tt) (relativistic Bernoulli constant).
-  double equil_K_poly; // Cold polytrope constant K (p = K rho^gamma) defining the equilibrium EOS.
+  // When tov_eq is set, disable_well_balanced switches OFF the frozen-equilibrium subtraction in all three WB sites together (reconstruction, flux jump, MoL source) => plain GR-Euler (for the collapse)
+  bool disable_well_balanced;
 };
 
 /**

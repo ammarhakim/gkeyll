@@ -103,7 +103,6 @@ struct moment_species {
 
   bool has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
   double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
-  bool gr_euler_disable_well_balanced; // Disable frozen-discrete well-balancing for GR Euler (default false = WB enabled).
 
   bool has_gr_twofluid; // Run with general relativistic two-fluid source terms.
   double gr_twofluid_mass_elc; // Electron mass for general relativistic two-fluid equations.

@@ -25,9 +25,7 @@ struct wv_gr_euler {
   // tov_eq below is the frozen TOV table, but here it is used only as the on/off switch (non-NULL => well-balance). The equilibrium values are not re-looked-up in the table at runtime; they are the discrete cell-averages in q[71],q[72]. 
   const struct gkyl_tov *tov_eq; // NULL -> plain GR Euler, no WB. Used as a presence flag only.
 
-  bool wb_family;
-  double equil_C;
-  double equil_K_poly;
+  bool disable_well_balanced; // tov_eq set but WB subtraction switched off everywhere (collapse stage).
 };
 
 /**
@@ -49,7 +47,13 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71]);
 * @param q_eq Equilibrium conserved + metric state (output, 0..70).
 */
 void
-gkyl_gr_euler_equilibrium(const struct gkyl_wv_eqn *eqn, const double q[73], double q_eq[71]);
+gkyl_gr_euler_equilibrium(const struct gkyl_wv_eqn *eqn, const double q[76], double q_eq[71]);
+
+/**
+* Whether the WB subtraction is switched off for this GR-Euler equation (collapse stage). Single source of truth for the three WB sites (reconstruction, flux jump, MoL source).
+*/
+bool
+gkyl_gr_euler_wb_disabled(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Compute primitive variables given the conserved variables.

@@ -474,7 +474,6 @@ main(int argc, char **argv)
     // Frozen-discrete WB (zero-momentum equilibrium) holds the fluid bit-statically in the areal gauge.
     // For the Kerr-Schild gauge the static star has v=beta/alpha != 0, so the frozen WB is invalid there
     // and the equilibrium-family WB (wb_family) is needed - which in turn needs the near-vacuum limiter.
-    .gr_euler_disable_well_balanced = false,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

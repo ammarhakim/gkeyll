@@ -90,11 +90,7 @@ create_ctx(void)
   printf("R_star = %e \n", R_star);
   printf("Compactness (2M_star / R_star) = %e \n", 2.0 * M_star / R_star);
 
-  // Areal (static) gauge holds the fluid bit-statically via the frozen WB (v=0). The Cartesian
-  // Kerr-Schild gauge is implemented and available; the moving equilibrium (v=beta/alpha) needs the
-  // equilibrium-family WB + near-vacuum limiter to be stable, so with the frozen WB use it together with
-  // GKYL_FREEZE_FLUID=1 to isolate the spacetime gauge.
-  // TEMP diagnostic gauge sweep (env): GKYL_USE_KERR_SCHILD=1 -> Kerr-Schild geometry;
+  // Gauge selection (env): GKYL_USE_KERR_SCHILD=1 -> Kerr-Schild geometry (horizon-penetrating, for collapse); default is the areal (static Schwarzschild-like) gauge. 
   // GKYL_SLICING = harmonic | 1pluslog | geodesic (default 1pluslog).
   bool use_kerr_schild = (getenv("GKYL_USE_KERR_SCHILD") != NULL);
   enum gkyl_spacetime_slicing slicing = GKYL_1PLUSLOG_SLICING;
@@ -246,9 +242,12 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[67] = 0.0;
   fout[68] = x; fout[69] = y; fout[70] = 0.0;
 
-  // Frozen-discrete well-balancing reference (num_equations = 73): t=0 conserved fluid in slots 71,72.
+  // Frozen-discrete well-balancing reference: t=0 conserved equilibrium fluid.
   fout[71] = rho_rel;
   fout[72] = Etot;
+  fout[73] = mom_x;
+  fout[74] = mom_y;
+  fout[75] = mom_z;
 
   // Optional momentum perturbation in the inner star
   if (app->perturb_frac > 0.0 && r < 0.5 * app->R_star) {
@@ -420,6 +419,7 @@ calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_
 
 
 
+
 int
 main(int argc, char **argv)
 {
@@ -442,7 +442,12 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  // GR Euler fluid (well-balanced against the frozen TOV equilibrium).
+  // Stage switch (WB on for the quasi-static hold, off for the collapse): GKYL_WB_OFF disables the
+  // frozen-discrete WB in ALL sites (reconstruction, flux jump, MoL source) consistently, via the eqn.
+  // The frozen WB stores the FULL t=0 equilibrium (D_eq, Etot_eq, S_eq in slots 71-75), so it holds the
+  // star bit-static in BOTH areal (v=0) AND Kerr-Schild (v=beta/alpha != 0) gauges - no family WB needed.
+  bool wb_off = (getenv("GKYL_WB_OFF") != NULL);
+  printf("WB: disable_well_balanced=%d\n", (int) wb_off);
   struct gkyl_wv_eqn *gr_euler = gkyl_wv_gr_euler_inew(&(struct gkyl_wv_gr_euler_inp) {
     .gas_gamma = ctx.gas_gamma,
     .spacetime_gauge = ctx.spacetime_gauge,
@@ -451,6 +456,7 @@ main(int argc, char **argv)
     .rp_type = WV_GR_EULER_RP_LAX,
     .use_gpu = app_args.use_gpu,
     .tov_eq = ctx.tov,
+    .disable_well_balanced = wb_off,
     .p_atm = ctx.p_atm,
     .rho_atm = ctx.rho_atm,
   });
@@ -469,11 +475,6 @@ main(int argc, char **argv)
 
     .has_gr_euler = true,
     .gr_euler_gas_gamma = ctx.gas_gamma,
-    //  Note to self:
-    // Frozen-discrete WB (zero-momentum equilibrium) holds the fluid bit-statically in the areal gauge.
-    // For the Kerr-Schild gauge the static star has v=beta/alpha != 0, so the frozen WB is invalid there
-    // and the equilibrium-family WB (wb_family) is needed - which in turn needs the near-vacuum limiter.
-    .gr_euler_disable_well_balanced = false,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
