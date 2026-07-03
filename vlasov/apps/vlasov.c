@@ -405,11 +405,8 @@ void
 gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0)
 {
   app->tcurr = t0;
-  for (int i=0; i<app->num_species; ++i)
-    gkyl_vlasov_app_apply_ic_species(app, i, t0);
-
-  for (int i=0; i<app->num_fluid_species; ++i)
-    gkyl_vlasov_app_apply_ic_fluid_species(app, i, t0);
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_apply_ic(app, &app->species[i], t0);
 
   gkyl_vlasov_app_apply_ic_field(app, t0); // no-op for the null field
 
@@ -455,49 +452,28 @@ void
 gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
   assert(sidx < app->num_species);
-
-  app->tcurr = t0;
-  struct timespec wtm = gkyl_wall_clock();
-  vm_species_apply_ic(app, app->species[sidx].dist, t0);
-  app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
+  vlasov_species_apply_ic(app, &app->species[sidx], t0);
 }
 
 void
 gkyl_vlasov_app_apply_ic_fluid_species(gkyl_vlasov_app* app, int sidx, double t0)
 {
   assert(sidx < app->num_fluid_species);
-
-  app->tcurr = t0;
-  struct timespec wtm = gkyl_wall_clock();
-  vm_fluid_species_apply_ic(app, app->fluid_species[sidx].fluid, t0);
-  app->stat.init_fluid_species_tm += gkyl_time_diff_now_sec(wtm);
+  vlasov_species_apply_ic(app, &app->fluid_species[sidx], t0);
 }
 
 void
 gkyl_vlasov_app_calc_integrated_mom(gkyl_vlasov_app* app, double tm)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = app->species[i].dist;
-    vm_species_calc_integrated_mom(app, vms, tm); 
-
-    if (vms->src.write_source) {
-      vm_species_source_calc_integrated_mom(app, vms, &vms->src, tm); 
-    }
-  }
-
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    struct vm_fluid_species *f = app->fluid_species[i].fluid;
-    vm_fluid_species_calc_integrated_mom(app, f, tm); 
-  }
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_calc_integrated_mom(app, &app->species[i], tm);
 }
 
 void
 gkyl_vlasov_app_calc_integrated_L2_f(gkyl_vlasov_app* app, double tm)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = app->species[i].dist;
-    vm_species_calc_L2(app, vms, tm); 
-  }
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_calc_integrated_L2_f(app, &app->species[i], tm);
 }
 
 void
@@ -510,12 +486,8 @@ void
 gkyl_vlasov_app_write(gkyl_vlasov_app* app, double tm, int frame)
 {
   gkyl_vlasov_app_write_field(app, tm, frame); // no-op for the null field
-  for (int i=0; i<app->num_species; ++i) {
-    gkyl_vlasov_app_write_species(app, i, tm, frame);
-  }
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    gkyl_vlasov_app_write_fluid_species(app, i, tm, frame);
-  }
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_write(app, &app->species[i], tm, frame);
 }
 
 void
@@ -526,74 +498,35 @@ gkyl_vlasov_app_write_field(gkyl_vlasov_app* app, double tm, int frame)
 
 void
 gkyl_vlasov_app_write_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
-{  
-  struct vm_species *vms = app->species[sidx].dist;
-  vm_species_write(app, vms, tm, frame); 
-
-  if (vms->src.write_source) {
-    vm_species_source_write(app, vms, &vms->src, tm, frame); 
-  }
-
-  struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = vms->basis.id
-    }
-  );
-
-  if (app->species[sidx].dist->emit_lo) {
-    vm_species_emission_write(app, vms, &vms->bc_emission_lo, mt, frame);
-  }
-  if (app->species[sidx].dist->emit_up) {
-    vm_species_emission_write(app, vms, &vms->bc_emission_up, mt, frame);
-  }
-  vlasov_array_meta_release(mt);  
+{
+  vlasov_species_write(app, &app->species[sidx], tm, frame);
 }
 
 void
 gkyl_vlasov_app_write_fluid_species(gkyl_vlasov_app* app, int sidx, double tm, int frame)
 {
-  struct vm_fluid_species *vm_fs = app->fluid_species[sidx].fluid;
-  vm_fluid_species_write(app, vm_fs, tm, frame);    
+  vlasov_species_write(app, &app->fluid_species[sidx], tm, frame);
 }
 
 void
 gkyl_vlasov_app_write_mom(gkyl_vlasov_app* app, double tm, int frame)
-{  
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = app->species[i].dist;
-    vm_species_write_mom(app, vms, tm, frame); 
-    if (vms->src.write_source) {
-      vm_species_source_write_mom(app, vms, &vms->src, tm, frame); 
-    }
-  }
+{
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_write_mom(app, &app->species[i], tm, frame);
 }
 
 void
 gkyl_vlasov_app_write_integrated_mom(gkyl_vlasov_app *app)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = app->species[i].dist;
-    vm_species_write_integrated_mom(app, vms); 
-    if (vms->src.write_source) {
-      vm_species_source_write_integrated_mom(app, vms, &vms->src); 
-    }
-  }
-
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    struct vm_fluid_species *f = app->fluid_species[i].fluid;
-    vm_fluid_species_write_integrated_mom(app, f); 
-  }  
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_write_integrated_mom(app, &app->species[i]);
 }
 
 void
 gkyl_vlasov_app_write_integrated_L2_f(gkyl_vlasov_app* app)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = app->species[i].dist;
-    vm_species_write_L2(app, vms); 
-  }
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_write_integrated_L2_f(app, &app->species[i]);
 }
 
 void
@@ -605,10 +538,8 @@ gkyl_vlasov_app_write_field_energy(gkyl_vlasov_app* app)
 void
 gkyl_vlasov_app_write_lte_corr_status(gkyl_vlasov_app* app)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    struct vm_species *vms = app->species[i].dist;
-    vm_species_lte_write_max_corr_status(app, vms); 
-  } 
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_write_lte_corr_status(app, &app->species[i]);
 }
 
 struct gkyl_update_status
@@ -890,8 +821,8 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
 
 }
 
-static struct gkyl_app_restart_status
-header_from_file(gkyl_vlasov_app *app, const char *fname)
+struct gkyl_app_restart_status
+vlasov_header_from_file(gkyl_vlasov_app *app, const char *fname)
 {
   struct gkyl_app_restart_status rstat = { .io_status = 0 };
   
@@ -935,7 +866,7 @@ gkyl_vlasov_app_from_file_field(gkyl_vlasov_app *app, const char *fname)
       .stime = 0.0
     };
 
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
+  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
     // Fixed-function field BCs are frozen from the initial conditions, so seed
@@ -974,73 +905,14 @@ struct gkyl_app_restart_status
 gkyl_vlasov_app_from_file_species(gkyl_vlasov_app *app, int sidx,
   const char *fname)
 {
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
-
-  struct vm_species *vms = app->species[sidx].dist;
-  
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(vms->comm, &vms->grid, &vms->local, vms->f_host, fname);
-    if (app->use_gpu) {
-      gkyl_array_copy(vms->f, vms->f_host);
-    }
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      // Rescale distribution function by velocity-space Jacobian if present
-      // since output distribution function does not include velocity-space Jacobian. 
-      // Need to do this before applying boundary conditions since we only know f on
-      // the local range for the rescaling. 
-      gkyl_vlasov_velocity_map_rescale_jacobvel(vms->vel_map, &app->basis, &vms->basis,
-        &vms->local, vms->f, vms->f_no_J);
-      gkyl_array_copy(vms->f, vms->f_no_J);
-      
-      if (vms->calc_bflux) {                                                                
-        vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
-      }
-      vm_species_apply_bc(app, vms, vms->f, rstat.stime);
-      if (vms->source_id) {
-        vm_species_source_calc(app, vms, &vms->src, 0.0);
-      }
-    }
-  }
-
-  // Compute applied acceleration if present.
-  // Computation necessary in case applied acceleration
-  // is time-independent and not computed in the time-stepping loop
-  // since it is not read-in as part of restarts. 
-  vm_species_collisionless_app_accel(app, &vms->collisionless, rstat.stime);
-
-  return rstat;
+  return vlasov_species_from_file(app, &app->species[sidx], fname);
 }
 
 struct gkyl_app_restart_status 
 gkyl_vlasov_app_from_file_fluid_species(gkyl_vlasov_app *app, int sidx,
   const char *fname)
 {
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
-
-  struct vm_fluid_species *vm_fs = app->fluid_species[sidx].fluid;
-  
-  if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, vm_fs->fluid_host, fname);
-    if (app->use_gpu) {
-      gkyl_array_copy(vm_fs->fluid, vm_fs->fluid_host);
-    }
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      vm_fluid_species_apply_bc(app, vm_fs, vm_fs->fluid);
-      if (vm_fs->source_id) {
-        vm_fluid_species_source_calc(app, vm_fs, 0.0);
-      }
-    }
-  }
-
-  // Compute applied acceleration if present.
-  // Computation necessary in case applied acceleration
-  // is time-independent and not computed in the time-stepping loop
-  // since it is not read-in as part of restarts. 
-  vm_fluid_species_calc_app_accel(app, vm_fs, rstat.stime);
-
-  return rstat;
+  return vlasov_species_from_file(app, &app->fluid_species[sidx], fname);
 }
 
 struct gkyl_app_restart_status
@@ -1059,29 +931,13 @@ gkyl_vlasov_app_from_frame_field(gkyl_vlasov_app *app, int frame)
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
 {
-  // First call the apply_ic function; the interior cells will be overwritten by the read,
-  // but we need to fill quantities such as the fixed function boundary conditions with the
-  // data from the *initial* conditions. 
-  gkyl_vlasov_app_apply_ic_species(app, sidx, 0.0);
-
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].dist->name, frame);
-  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_species(app, sidx, fileNm.str);
-  app->species[sidx].dist->is_first_integ_write_call = false; // append to existing diagnostic
-  app->species[sidx].dist->is_first_integ_L2_write_call = false; // append to existing diagnostic
-  cstr_drop(&fileNm);
-  
-  return rstat;
+  return vlasov_species_read_from_frame(app, &app->species[sidx], frame);
 }
 
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame)
 {
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->fluid_species[sidx].fluid->name, frame);
-  struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_fluid_species(app, sidx, fileNm.str);
-  app->fluid_species[sidx].fluid->is_first_integ_write_call = false; // append to existing diagnostic
-  cstr_drop(&fileNm);
-  
-  return rstat;
+  return vlasov_species_read_from_frame(app, &app->fluid_species[sidx], frame);
 }
 
 struct gkyl_app_restart_status
@@ -1092,11 +948,8 @@ gkyl_vlasov_app_read_from_frame(gkyl_vlasov_app *app, int frame)
   // Field always exists; from_frame_field sorts by field type (no-op for null).
   rstat = gkyl_vlasov_app_from_frame_field(app, frame);
 
-  for (int i = 0; i < app->num_species; i++) {
-    rstat = gkyl_vlasov_app_from_frame_species(app, i, frame);
-  }
-  for (int i = 0; i < app->num_fluid_species; i++) {
-    rstat = gkyl_vlasov_app_from_frame_fluid_species(app, i, frame);
+  for (int i = 0; i < app->num_species + app->num_fluid_species; i++) {
+    rstat = vlasov_species_read_from_frame(app, &app->species[i], frame);
   }
 
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
@@ -1149,14 +1002,8 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
 {
   vm_geom_release(app, app->vm_geom);
   gkyl_free(app->vm_geom);
-  for (int i=0; i<app->num_species; ++i) {
-    vm_species_release(app, app->species[i].dist);
-    gkyl_free(app->species[i].dist);
-  }
-  for (int i=0; i<app->num_fluid_species; ++i) {
-    vm_fluid_species_release(app, app->fluid_species[i].fluid);
-    gkyl_free(app->fluid_species[i].fluid);
-  }
+  for (int i=0; i<app->num_species + app->num_fluid_species; ++i)
+    vlasov_species_release(app, &app->species[i]);
   // 'species' owns the single backing array; 'fluid_species' is only a view into
   // its tail, so it must not be freed separately.
   if (app->species)

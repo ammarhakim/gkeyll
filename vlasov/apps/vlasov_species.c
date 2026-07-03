@@ -369,3 +369,216 @@ vlasov_species_limiter(gkyl_vlasov_app *app, struct vlasov_species *sp, struct g
 {
   if (sp->fluid) vm_fluid_species_limiter(app, sp->fluid, fluid);
 }
+
+// --- IC, diagnostics, IO, restart, and release (per-aspect) -------------------
+// These are the operations a user consults to understand output and restart
+// semantics: what each species writes, how a frame is read back, and in what
+// order the pieces are seeded/overwritten on restart.
+
+// Project initial conditions for each present aspect.
+void
+vlasov_species_apply_ic(gkyl_vlasov_app *app, struct vlasov_species *sp, double t0)
+{
+  app->tcurr = t0;
+  if (sp->dist) {
+    struct timespec wtm = gkyl_wall_clock();
+    vm_species_apply_ic(app, sp->dist, t0);
+    app->stat.init_species_tm += gkyl_time_diff_now_sec(wtm);
+  }
+  if (sp->fluid) {
+    struct timespec wtm = gkyl_wall_clock();
+    vm_fluid_species_apply_ic(app, sp->fluid, t0);
+    app->stat.init_fluid_species_tm += gkyl_time_diff_now_sec(wtm);
+  }
+}
+
+// Compute integrated diagnostic moments for each present aspect.
+void
+vlasov_species_calc_integrated_mom(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm)
+{
+  if (sp->dist) {
+    vm_species_calc_integrated_mom(app, sp->dist, tm);
+    if (sp->dist->src.write_source)
+      vm_species_source_calc_integrated_mom(app, sp->dist, &sp->dist->src, tm);
+  }
+  if (sp->fluid)
+    vm_fluid_species_calc_integrated_mom(app, sp->fluid, tm);
+}
+
+// Compute the integrated L2 norm of the distribution (kinetic aspect only).
+void
+vlasov_species_calc_integrated_L2_f(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm)
+{
+  if (sp->dist)
+    vm_species_calc_L2(app, sp->dist, tm);
+}
+
+// Write the evolved state (and attendant diagnostics: sources, emission
+// spectra, fluid primitive variables) of each present aspect for this frame.
+void
+vlasov_species_write(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm, int frame)
+{
+  if (sp->dist) {
+    struct vm_species *vms = sp->dist;
+    vm_species_write(app, vms, tm, frame);
+
+    if (vms->src.write_source)
+      vm_species_source_write(app, vms, &vms->src, tm, frame);
+
+    struct gkyl_msgpack_data *mt = vlasov_array_meta_new( (struct vlasov_output_meta) {
+        .frame = frame,
+        .stime = tm,
+        .poly_order = app->poly_order,
+        .basis_type = vms->basis.id
+      }
+    );
+    if (vms->emit_lo)
+      vm_species_emission_write(app, vms, &vms->bc_emission_lo, mt, frame);
+    if (vms->emit_up)
+      vm_species_emission_write(app, vms, &vms->bc_emission_up, mt, frame);
+    vlasov_array_meta_release(mt);
+  }
+  if (sp->fluid)
+    vm_fluid_species_write(app, sp->fluid, tm, frame);
+}
+
+// Write diagnostic moments (kinetic aspect only).
+void
+vlasov_species_write_mom(gkyl_vlasov_app *app, struct vlasov_species *sp, double tm, int frame)
+{
+  if (sp->dist) {
+    vm_species_write_mom(app, sp->dist, tm, frame);
+    if (sp->dist->src.write_source)
+      vm_species_source_write_mom(app, sp->dist, &sp->dist->src, tm, frame);
+  }
+}
+
+// Append integrated diagnostic moments for each present aspect.
+void
+vlasov_species_write_integrated_mom(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  if (sp->dist) {
+    vm_species_write_integrated_mom(app, sp->dist);
+    if (sp->dist->src.write_source)
+      vm_species_source_write_integrated_mom(app, sp->dist, &sp->dist->src);
+  }
+  if (sp->fluid)
+    vm_fluid_species_write_integrated_mom(app, sp->fluid);
+}
+
+// Append the integrated L2 norm of the distribution (kinetic aspect only).
+void
+vlasov_species_write_integrated_L2_f(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  if (sp->dist)
+    vm_species_write_L2(app, sp->dist);
+}
+
+// Append the LTE-correction iteration status (kinetic aspect only).
+void
+vlasov_species_write_lte_corr_status(gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  if (sp->dist)
+    vm_species_lte_write_max_corr_status(app, sp->dist);
+}
+
+// Read each present aspect's evolved state from the named file, then rebuild
+// the derived state a restart does not carry: velocity-space Jacobian rescale
+// and boundary fluxes (kinetic), BCs, sources, and time-independent applied
+// accelerations (recomputed here since the time-stepping loop will not).
+struct gkyl_app_restart_status
+vlasov_species_from_file(gkyl_vlasov_app *app, struct vlasov_species *sp, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = vlasov_header_from_file(app, fname);
+
+  if (sp->dist) {
+    struct vm_species *vms = sp->dist;
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+      rstat.io_status =
+        gkyl_comm_array_read(vms->comm, &vms->grid, &vms->local, vms->f_host, fname);
+      if (app->use_gpu) {
+        gkyl_array_copy(vms->f, vms->f_host);
+      }
+      if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+        // Rescale distribution function by velocity-space Jacobian if present
+        // since output distribution function does not include velocity-space Jacobian.
+        // Need to do this before applying boundary conditions since we only know f on
+        // the local range for the rescaling.
+        gkyl_vlasov_velocity_map_rescale_jacobvel(vms->vel_map, &app->basis, &vms->basis,
+          &vms->local, vms->f, vms->f_no_J);
+        gkyl_array_copy(vms->f, vms->f_no_J);
+
+        if (vms->calc_bflux) {
+          vm_species_bflux_rhs(app, vms, &vms->bflux, vms->f, vms->f);
+        }
+        vm_species_apply_bc(app, vms, vms->f, rstat.stime);
+        if (vms->source_id) {
+          vm_species_source_calc(app, vms, &vms->src, 0.0);
+        }
+      }
+    }
+    vm_species_collisionless_app_accel(app, &vms->collisionless, rstat.stime);
+  }
+
+  if (sp->fluid) {
+    struct vm_fluid_species *vm_fs = sp->fluid;
+    if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
+      rstat.io_status =
+        gkyl_comm_array_read(app->comm, &app->grid, &app->local, vm_fs->fluid_host, fname);
+      if (app->use_gpu) {
+        gkyl_array_copy(vm_fs->fluid, vm_fs->fluid_host);
+      }
+      if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+        vm_fluid_species_apply_bc(app, vm_fs, vm_fs->fluid);
+        if (vm_fs->source_id) {
+          vm_fluid_species_source_calc(app, vm_fs, 0.0);
+        }
+      }
+    }
+    vm_fluid_species_calc_app_accel(app, vm_fs, rstat.stime);
+  }
+
+  return rstat;
+}
+
+// Restart a species from a frame. The kinetic aspect is first seeded from the
+// initial conditions -- the interior is overwritten by the read, but fixed-
+// function boundary buffers are frozen from the ICs and must be filled before
+// the read. Diagnostic dynvectors are then marked to append rather than
+// truncate. The frame file is named by the species (each aspect's evolved
+// state is one file; a species type owning both aspects must disambiguate the
+// fluid aspect's file name here).
+struct gkyl_app_restart_status
+vlasov_species_read_from_frame(gkyl_vlasov_app *app, struct vlasov_species *sp, int frame)
+{
+  if (sp->dist)
+    vlasov_species_apply_ic(app, sp, 0.0);
+
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, sp->name, frame);
+  struct gkyl_app_restart_status rstat = vlasov_species_from_file(app, sp, fileNm.str);
+  cstr_drop(&fileNm);
+
+  if (sp->dist) {
+    sp->dist->is_first_integ_write_call = false; // append to existing diagnostic
+    sp->dist->is_first_integ_L2_write_call = false; // append to existing diagnostic
+  }
+  if (sp->fluid) {
+    sp->fluid->is_first_integ_write_call = false; // append to existing diagnostic
+  }
+
+  return rstat;
+}
+
+// Release each present aspect and the aspect allocations themselves.
+void
+vlasov_species_release(const gkyl_vlasov_app *app, struct vlasov_species *sp)
+{
+  if (sp->dist) {
+    vm_species_release(app, sp->dist);
+    gkyl_free(sp->dist);
+  }
+  if (sp->fluid) {
+    vm_fluid_species_release(app, sp->fluid);
+    gkyl_free(sp->fluid);
+  }
+}

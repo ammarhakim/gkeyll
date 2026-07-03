@@ -248,6 +248,17 @@ struct gkyl_msgpack_data*
 vlasov_array_meta_new(struct vlasov_output_meta meta);
 
 /**
+ * Read the grid/array header of a restart file.
+ *
+ * @param app App object.
+ * @param fname File to read the header from.
+ * @return Restart status: IO status plus the frame number and simulation time
+ *   from the file's embedded metadata.
+ */
+struct gkyl_app_restart_status vlasov_header_from_file(gkyl_vlasov_app *app,
+  const char *fname);
+
+/**
  * Free memory for array metadata object.
  *
  * @param mt Array metadata object.
