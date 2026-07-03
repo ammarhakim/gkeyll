@@ -52,7 +52,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *v
   if (emit->elastic) {
     emit->elastic_yield = mkarr(app->use_gpu, vms->basis.num_basis, emit->emit_buff_r->volume);
     emit->elastic_update = gkyl_bc_emission_elastic_new(emit->params->elastic_model,
-      emit->elastic_yield, emit->dir, emit->edge, cdim, vdim, vms->info.mass, vms->f->ncomp, emit->emit_grid,
+      emit->elastic_yield, emit->dir, emit->edge, cdim, vdim, vms->mass, vms->f->ncomp, emit->emit_grid,
       emit->emit_buff_r, app->poly_order, vms->basis_on_dev, &vms->basis, proj_buffer,
       app->use_gpu);
   }
@@ -95,7 +95,7 @@ vm_species_emission_cross_init(struct gkyl_vlasov_app *app, struct vm_species *v
     
     emit->update[i] = gkyl_bc_emission_spectrum_new(emit->params->spectrum_model[i],
       emit->params->yield_model[i], emit->yield[i], emit->spectrum[i], emit->dir, emit->edge,
-      cdim, vdim, emit->impact_species[i]->info.mass, vms->info.mass, emit->impact_buff_r[i],
+      cdim, vdim, emit->impact_species[i]->mass, vms->mass, emit->impact_buff_r[i],
       emit->emit_buff_r, emit->impact_grid[i], emit->emit_grid, app->poly_order,
       &vms->basis, proj_buffer, app->use_gpu);
   }
@@ -121,7 +121,7 @@ vm_species_emission_apply_bc(struct gkyl_vlasov_app *app, const struct vm_specie
   // Inelastic emission contribution
   for (int i=0; i<emit->num_species; ++i) {
     int species_idx;
-    species_idx = vm_find_species_idx(app, emit->impact_species[i]->info.name);
+    species_idx = vm_find_species_idx(app, emit->impact_species[i]->name);
     gkyl_mom_calc_advance(emit->flux_slvr[i], &emit->impact_normal_r[i],
       emit->impact_cbuff_r[i], emit->bflux_arr[i], emit->flux[i]);
     
@@ -142,9 +142,9 @@ vm_species_emission_write(struct gkyl_vlasov_app *app, struct vm_species *vms,
   struct vm_emitting_wall *emit, struct gkyl_msgpack_data *mt, int frame)
 {
   const char *fmt = (emit->edge == GKYL_LOWER_EDGE) ? "%s-%s_bc_lo_%d.gkyl" : "%s-%s_bc_up_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
 
   if (emit->write) {
     if (app->use_gpu)

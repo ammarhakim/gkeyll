@@ -134,9 +134,9 @@ vm_species_lte_write_max_corr_status(gkyl_vlasov_app* app, struct vm_species *vm
     if (rank == 0) {
       // Write out correction status.
       const char *fmt = "%s-%s-%s.gkyl";
-      int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "corr-max-stat");
+      int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "corr-max-stat");
       char fileNm[sz+1]; // ensures no buffer overflow
-      snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "corr-max-stat");
+      snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "corr-max-stat");
 
       if (vms->lte.is_first_corr_status_write_call) {
         // Write to a new file (this ensure previous output is removed).

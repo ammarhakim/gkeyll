@@ -401,6 +401,11 @@ struct vlasov_species_lw {
   int magic; // This must be first element in the struct.
   
   struct gkyl_vlasov_kinetic_species vm_species; // Input struct to construct species.
+  // Species identity: read from the Lua table (charge/mass) and the App table
+  // key (name); carried here because identity lives only at the top level of
+  // the unified species input, not in the kinetic block.
+  char name[128];
+  double charge, mass;
   int vdim; // Velocity space dimensions.
 
   bool has_cov_tangent_basis_func; // Is there a covariant tangent basis function?
@@ -532,8 +537,8 @@ vlasov_species_lw_new(lua_State *L)
 
   vm_species.model_id = glua_tbl_get_integer(L, "modelID", 0);
   
-  vm_species.charge = glua_tbl_get_number(L, "charge", 0.0);
-  vm_species.mass = glua_tbl_get_number(L, "mass", 1.0);
+  double sp_charge = glua_tbl_get_number(L, "charge", 0.0);
+  double sp_mass = glua_tbl_get_number(L, "mass", 1.0);
 
   with_lua_tbl_tbl(L, "cells") {
     vdim = glua_objlen(L);
@@ -983,6 +988,8 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->magic = VLASOV_SPECIES_DEFAULT;
   vms_lw->vdim = vdim;
   vms_lw->vm_species = vm_species;
+  vms_lw->charge = sp_charge;
+  vms_lw->mass = sp_mass;
 
   for (int i = 0; i < vdim; i++) {
     vms_lw->has_mapc2p_vel_func[i] = has_mapc2p_vel_func[i];
@@ -1286,6 +1293,9 @@ struct vlasov_fluid_species_lw {
   int magic; // This must be first element in the struct.
   
   struct gkyl_vlasov_fluid_species vlasov_fluid_species; // Input struct to construct fluid species.
+  // Species identity (see vlasov_species_lw).
+  char name[128];
+  double charge, mass;
   struct lua_func_ctx init_ctx; // Lua registry reference to initialization function.
 
   bool has_app_advect_func; // Is there an applied advection function?
@@ -1304,8 +1314,8 @@ vlasov_fluid_species_lw_new(lua_State *L)
   int vdim  = 0;
   struct gkyl_vlasov_fluid_species vm_fluid_species = { };
 
-  vm_fluid_species.charge = glua_tbl_get_number(L, "charge", 0.0);
-  vm_fluid_species.mass = glua_tbl_get_number(L, "mass", 1.0);
+  double sp_charge = glua_tbl_get_number(L, "charge", 0.0);
+  double sp_mass = glua_tbl_get_number(L, "mass", 1.0);
 
   bool has_eqn = false;
   with_lua_tbl_key(L, "equation") {
@@ -1396,6 +1406,8 @@ vlasov_fluid_species_lw_new(lua_State *L)
   struct vlasov_fluid_species_lw *vmfs_lw = lua_newuserdata(L, sizeof(*vmfs_lw));
   vmfs_lw->magic = VLASOV_FLUID_SPECIES_DEFAULT;
   vmfs_lw->vlasov_fluid_species = vm_fluid_species;
+  vmfs_lw->charge = sp_charge;
+  vmfs_lw->mass = sp_mass;
 
   vmfs_lw->init_ctx = (struct lua_func_ctx) {
     .func_ref = init_ref,
@@ -1918,7 +1930,7 @@ get_species_inp(lua_State *L, int cdim, struct vlasov_species_lw *species[GKYL_M
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
           const char *key = lua_tolstring(L, TKEY, 0);
-          strcpy(vms->vm_species.name, key);
+          strcpy(vms->name, key);
         }
         species[curr++] = vms;
       }
@@ -1935,7 +1947,7 @@ species_compare_func(const void *a, const void *b)
 {
   const struct vlasov_species_lw *const *spa = a;
   const struct vlasov_species_lw *const *spb = b;
-  return strcmp((*spa)->vm_species.name, (*spb)->vm_species.name);
+  return strcmp((*spa)->name, (*spb)->name);
 }
 
 // Gets all fluid species objects from the App table, which must on top of
@@ -1959,7 +1971,7 @@ get_fluid_species_inp(lua_State *L, int cdim, struct vlasov_fluid_species_lw *fl
         
         if (lua_type(L,TKEY) == LUA_TSTRING) {
           const char *key = lua_tolstring(L, TKEY, 0);
-          strcpy(vmfs->vlasov_fluid_species.name, key);
+          strcpy(vmfs->name, key);
         }
         fluid_species[curr++] = vmfs;
       }
@@ -1976,7 +1988,7 @@ fluid_species_compare_func(const void *a, const void *b)
 {
   const struct vlasov_fluid_species_lw *const *spa = a;
   const struct vlasov_fluid_species_lw *const *spb = b;
-  return strcmp((*spa)->vlasov_fluid_species.name, (*spb)->vlasov_fluid_species.name);
+  return strcmp((*spa)->name, (*spb)->name);
 }
 
 static struct gkyl_tool_args *
@@ -2201,9 +2213,9 @@ vm_app_new(lua_State *L)
   for (int s = 0; s < num_kinetic_species; s++) {
     vm.species[s].type = GKYL_SPECIES_VLASOV;
     vm.species[s].kinetic = species[s]->vm_species;
-    strcpy(vm.species[s].name, species[s]->vm_species.name);
-    vm.species[s].charge = species[s]->vm_species.charge;
-    vm.species[s].mass = species[s]->vm_species.mass;
+    strcpy(vm.species[s].name, species[s]->name);
+    vm.species[s].charge = species[s]->charge;
+    vm.species[s].mass = species[s]->mass;
     vm.vdim = species[s]->vdim;
 
     for (int i = 0; i < species[s]->vdim; i++) {
@@ -2517,9 +2529,9 @@ vm_app_new(lua_State *L)
   for (int s = 0; s < num_fluid_species; s++) {
     vm.species[num_kinetic_species + s].type = GKYL_SPECIES_FLUID;
     vm.species[num_kinetic_species + s].fluid = fluid_species[s]->vlasov_fluid_species;
-    strcpy(vm.species[num_kinetic_species + s].name, fluid_species[s]->vlasov_fluid_species.name);
-    vm.species[num_kinetic_species + s].charge = fluid_species[s]->vlasov_fluid_species.charge;
-    vm.species[num_kinetic_species + s].mass = fluid_species[s]->vlasov_fluid_species.mass;
+    strcpy(vm.species[num_kinetic_species + s].name, fluid_species[s]->name);
+    vm.species[num_kinetic_species + s].charge = fluid_species[s]->charge;
+    vm.species[num_kinetic_species + s].mass = fluid_species[s]->mass;
 
     fluid_species[s]->init_ctx.ndim = cdim; 
     app_lw->fluid_species_init_ctx[s] = fluid_species[s]->init_ctx;

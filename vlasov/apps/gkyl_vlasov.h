@@ -166,12 +166,9 @@ struct gkyl_vlasov_geom {
 // Parameters for the kinetic block of a Vlasov species: the velocity-space
 // grid, distribution-function initial conditions, collisions, sources, and
 // kinetic BCs. Declared as the 'kinetic' block of struct gkyl_vlasov_species.
+// Species identity (name/charge/mass) is NOT part of this block: it is
+// declared exactly once, at the top level of struct gkyl_vlasov_species.
 struct gkyl_vlasov_kinetic_species {
-  // Species identity. Do not set in input files: identity is declared once at
-  // the top level of struct gkyl_vlasov_species and the app fills these from it.
-  char name[128]; // Species name.
-  double charge, mass; // Charge and mass.
-
   enum gkyl_model_id model_id; // Type of model
                                // (e.g., SR, general geometry, see gkyl_eqn_type.h).
 
@@ -315,23 +312,19 @@ struct gkyl_vlasov_field {
 };
 
 // Which evolved quantities a species owns: a kinetic distribution function, a
-// fluid moment vector, or (for the future PKPM species type) both.
+// fluid moment vector, or both.
 enum gkyl_species_type {
   GKYL_SPECIES_VLASOV, // kinetic distribution only
   GKYL_SPECIES_FLUID,  // fluid moments only
-  GKYL_SPECIES_PKPM,   // both (reserved; not yet wired in the Vlasov app)
+  GKYL_SPECIES_PKPM,   // both (reserved; not supported by the Vlasov app)
 };
 
 // Parameters for the fluid block of a Vlasov species: the equation object,
 // fluid initial condition, advection/diffusion, and fluid BCs. Declared as the
-// 'fluid' block of struct gkyl_vlasov_species.
+// 'fluid' block of struct gkyl_vlasov_species. Species identity
+// (name/charge/mass) is NOT part of this block: it is declared exactly once,
+// at the top level of struct gkyl_vlasov_species.
 struct gkyl_vlasov_fluid_species {
-  // Species identity. Do not set in input files: identity is declared once at
-  // the top level of struct gkyl_vlasov_species and the app fills these from it.
-  char name[128]; // species name
-  double charge, mass; // charge and mass
-
-
   void *ctx; // context for initial condition init function
   // pointer to initialization function
   void (*init)(double t, const double *xn, double *fout, void *ctx);
@@ -367,13 +360,13 @@ struct gkyl_vlasov_fluid_species {
 
 // Parameters for one Vlasov species, of any kind. The type states explicitly
 // which aspect(s) this species owns and selects which block(s) are read:
-// GKYL_SPECIES_VLASOV reads 'kinetic', GKYL_SPECIES_FLUID reads 'fluid' (a
-// future PKPM type reads both). Identity (name/charge/mass) is declared once
-// here at the top level; the identity fields inside the blocks are filled by
-// the app and must not be set in input files. The declared type is validated
-// against the blocks at construction: a kinetic species must set a velocity
-// grid and must not carry a fluid equation object; a fluid species must carry
-// an equation object and must not set a velocity grid.
+// GKYL_SPECIES_VLASOV reads 'kinetic', GKYL_SPECIES_FLUID reads 'fluid'.
+// Identity (name/charge/mass) is declared here
+// at the top level -- the single canonical place; the blocks carry no
+// identity fields. The declared type is validated against the blocks at
+// construction: a kinetic species must set a velocity grid and must not carry
+// a fluid equation object; a fluid species must carry an equation object and
+// must not set a velocity grid.
 struct gkyl_vlasov_species {
   char name[128]; // Species name.
   double charge, mass; // Charge and mass.
@@ -515,20 +508,21 @@ void gkyl_vlasov_app_apply_ic(gkyl_vlasov_app* app, double t0);
 void gkyl_vlasov_app_apply_ic_field(gkyl_vlasov_app* app, double t0);
 
 /**
- * Initialize species by projecting initial conditions on basis
- * functions. Species index (sidx) is the same index used to specify
- * the species in the gkyl_vm object used to construct app.
+ * Initialize a kinetic species by projecting initial conditions on basis
+ * functions. The species index (sidx) counts the GKYL_SPECIES_VLASOV entries
+ * of gkyl_vm's species[] list, in declaration order (kinetic and fluid
+ * species are indexed separately by the per-kind app functions).
  *
  * @param app App object.
- * @param sidx Index of species to initialize.
+ * @param sidx Index of kinetic species to initialize.
  * @param t0 Time for initial conditions
  */
 void gkyl_vlasov_app_apply_ic_species(gkyl_vlasov_app* app, int sidx, double t0);
 
 /**
- * Initialize fluid species by projecting initial conditions on basis
- * functions. Fluid species index (sidx) is the same index used to specify
- * the species in the gkyl_vm object used to construct app.
+ * Initialize a fluid species by projecting initial conditions on basis
+ * functions. The fluid species index (sidx) counts the GKYL_SPECIES_FLUID
+ * entries of gkyl_vm's species[] list, in declaration order.
  *
  * @param app App object.
  * @param sidx Index of fluid species to initialize.

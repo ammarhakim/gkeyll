@@ -161,7 +161,7 @@ vm_species_source_adapt(gkyl_vlasov_app *app, const struct vm_species *vms,
   struct vm_source *src)
 {
   int species_idx;
-  species_idx = vm_find_species_idx(app, vms->info.name);  
+  species_idx = vm_find_species_idx(app, vms->name);  
   if (vms->source_id == GKYL_PROJ_ADAPT_DENSITY_SOURCE) {
     gkyl_array_clear(src->source, 0.0);
     for (int i=0; i<src->num_cross_source; i++) {
@@ -182,7 +182,7 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *vms,
   struct vm_source *src, const struct gkyl_array *fin[], struct gkyl_array *rhs[])
 {
   int species_idx;
-  species_idx = vm_find_species_idx(app, vms->info.name);
+  species_idx = vm_find_species_idx(app, vms->name);
   // use boundary fluxes to scale source profile
   if (src->calc_bflux) {
     src->scale_factor = 0.0;
@@ -255,9 +255,9 @@ vm_species_source_write(gkyl_vlasov_app* app,
     }
   );
   const char *fmt = "%s-%s_source_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // Ensures no buffer overflow.
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   
   // Calculate adaptive source before I/O if source is adaptive. 
   vm_species_source_adapt(app, vms, src); 
@@ -308,10 +308,10 @@ vm_species_source_write_mom(gkyl_vlasov_app* app,
     }
 
     const char *fmt = "%s-%s_source_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name,
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name,
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
@@ -326,9 +326,9 @@ vm_species_source_write_mom(gkyl_vlasov_app* app,
     vm_species_source_adapt_moms(app, vms, src, vms->f); 
 
     const char *fmt_source_M0 = "%s-%s_source_M0_adapt_%d.gkyl";
-    int sz_source_M0 = gkyl_calc_strlen(fmt_source_M0, app->name, vms->info.name, frame);
+    int sz_source_M0 = gkyl_calc_strlen(fmt_source_M0, app->name, vms->name, frame);
     char fileNm_source_M0[sz_source_M0+1]; // ensures no buffer overflow
-    snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vms->info.name, frame);
+    snprintf(fileNm_source_M0, sizeof fileNm_source_M0, fmt_source_M0, app->name, vms->name, frame);
     if (app->use_gpu) {
       gkyl_array_copy(src->scale_m0_host[0], src->scale_m0[0]);
       gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, src->scale_m0_host[0], fileNm_source_M0);
@@ -354,9 +354,9 @@ vm_species_source_write_integrated_mom(gkyl_vlasov_app* app,
   if (rank == 0) {
     // Write integrated diagnostic moments.
     const char *fmt = "%s-%s-source-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "imom");
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "imom");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "imom");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "imom");
     
     if (src->is_first_integ_write_call) {
       gkyl_dynvec_write(src->integ_diag, fileNm);

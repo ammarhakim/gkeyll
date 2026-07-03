@@ -9,11 +9,10 @@
 // 1. Per-aspect operations (rhs, step/combine/copy, BCs, limiter, sources, the
 //    implicit collision phases): structurally identical for every species
 //    type -- "apply to whichever aspects are present" -- so the wrappers
-//    NULL-test sp->dist / sp->fluid directly. A future PKPM species (both
-//    aspects allocated) runs both halves sequentially with NO new dispatch
-//    code here; per-aspect flavor differences (e.g. PKPM's dg_vlasov_pkpm vs
-//    the default Vlasov equation) live on the aspect-level vtables wired by
-//    the aspect inits.
+//    NULL-test sp->dist / sp->fluid directly. A species owning both aspects
+//    runs both halves sequentially through the same wrappers; per-aspect
+//    flavor differences live on the aspect-level vtables wired by the aspect
+//    inits.
 //
 // 2. Type-composed operations, wired once at construction through the
 //    container vtable (mirroring vm_field_new/vp_field_new):
@@ -23,8 +22,7 @@
 //      fluids give a no-op.
 //    - calc_self_moms_func / calc_cross_moms_func: the staging phases that
 //      fill the pre-RHS auxiliary arrays. These genuinely differ by type
-//      (kinetic: collision moments; fluid: primitive variables; PKPM later:
-//      its own moments/vars machinery reading both aspects) rather than
+//      (kinetic: collision moments; fluid: primitive variables) rather than
 //      composing per-aspect.
 //
 // The RK-state arrays passed in (fin/fluidin/fout/fluidout) are indexed over
@@ -40,8 +38,7 @@ species_no_calc_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin) { }
 
 // No explicit field coupling: wired for the null field, and for fluid species
-// whose EM coupling is the implicit op-split (see vm_fluid_em_coupling.c). An
-// explicit-source fluid mode later wires a real method here instead.
+// whose EM coupling is the implicit op-split (see vm_fluid_em_coupling.c).
 static void
 species_no_field_coupling(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin,
@@ -119,55 +116,46 @@ kinetic_accumulate_charge_dens(gkyl_vlasov_app *app, struct vlasov_species *sp,
 // --- Constructors ------------------------------------------------------------
 
 // Construct a species from a unified input: validate the declared type against
-// the blocks, hoist the top-level identity into the selected block, and
-// dispatch to the typed constructor.
+// the blocks and dispatch to the typed constructor.
 void
 vlasov_species_new(struct gkyl_vlasov_app *app,
   const struct gkyl_vlasov_species *inp, struct vlasov_species *sp)
 {
   switch (inp->type) {
-    case GKYL_SPECIES_VLASOV: {
+    case GKYL_SPECIES_VLASOV:
       assert(inp->kinetic.cells[0] > 0); // kinetic species require a velocity grid
       assert(!inp->fluid.equation); // ... and must not carry a fluid equation object
-
-      struct gkyl_vlasov_kinetic_species ki = inp->kinetic;
-      strcpy(ki.name, inp->name);
-      ki.charge = inp->charge;
-      ki.mass = inp->mass;
-      vlasov_kinetic_species_new(app, &ki, sp);
+      vlasov_kinetic_species_new(app, inp, sp);
       break;
-    }
-    case GKYL_SPECIES_FLUID: {
+    case GKYL_SPECIES_FLUID:
       assert(inp->fluid.equation); // fluid species require an equation object
       assert(inp->kinetic.cells[0] == 0); // ... and must not declare a velocity grid
-
-      struct gkyl_vlasov_fluid_species fi = inp->fluid;
-      strcpy(fi.name, inp->name);
-      fi.charge = inp->charge;
-      fi.mass = inp->mass;
-      vlasov_fluid_species_new(app, &fi, sp);
+      vlasov_fluid_species_new(app, inp, sp);
       break;
-    }
     default:
-      assert(false); // GKYL_SPECIES_PKPM is not wired in the Vlasov app yet
+      assert(false); // GKYL_SPECIES_PKPM is reserved and not supported here
       break;
   }
 }
 
 void
 vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
-  const struct gkyl_vlasov_kinetic_species *info, struct vlasov_species *sp)
+  const struct gkyl_vlasov_species *inp, struct vlasov_species *sp)
 {
   *sp = (struct vlasov_species) { };
   sp->type = GKYL_SPECIES_VLASOV;
 
-  strcpy(sp->name, info->name);
-  sp->charge = info->charge;
-  sp->mass = info->mass;
+  strcpy(sp->name, inp->name);
+  sp->charge = inp->charge;
+  sp->mass = inp->mass;
 
   sp->dist = gkyl_malloc(sizeof(struct vm_species));
   *sp->dist = (struct vm_species) { };
-  sp->dist->info = *info;
+  sp->dist->info = inp->kinetic;
+  // Thread the identity into the aspect: aspect code is container-ignorant.
+  strcpy(sp->dist->name, inp->name);
+  sp->dist->charge = inp->charge;
+  sp->dist->mass = inp->mass;
 
   sp->calc_self_moms_func = kinetic_calc_self_moms;
   sp->calc_cross_moms_func = kinetic_calc_cross_moms;
@@ -191,18 +179,22 @@ vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
 
 void
 vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
-  const struct gkyl_vlasov_fluid_species *info, struct vlasov_species *sp)
+  const struct gkyl_vlasov_species *inp, struct vlasov_species *sp)
 {
   *sp = (struct vlasov_species) { };
   sp->type = GKYL_SPECIES_FLUID;
 
-  strcpy(sp->name, info->name);
-  sp->charge = info->charge;
-  sp->mass = info->mass;
+  strcpy(sp->name, inp->name);
+  sp->charge = inp->charge;
+  sp->mass = inp->mass;
 
   sp->fluid = gkyl_malloc(sizeof(struct vm_fluid_species));
   *sp->fluid = (struct vm_fluid_species) { };
-  sp->fluid->info = *info;
+  sp->fluid->info = inp->fluid;
+  // Thread the identity into the aspect: aspect code is container-ignorant.
+  strcpy(sp->fluid->name, inp->name);
+  sp->fluid->charge = inp->charge;
+  sp->fluid->mass = inp->mass;
 
   sp->calc_self_moms_func = species_no_calc_moms;
   sp->calc_cross_moms_func = fluid_calc_cross_moms;
@@ -249,9 +241,9 @@ vlasov_species_calc_app_accel(gkyl_vlasov_app *app, struct vlasov_species *sp, d
 }
 
 // Compute the species RHS, returning the maximum stable time-step across
-// aspects. Each aspect advances through its own vtable (flavor dispatch); the
-// coupling between a PKPM species' aspects is pre-staged in the moms/vars
-// phases, so the aspect RHSs are independent here.
+// aspects. Each aspect advances through its own vtable (flavor dispatch); any
+// cross-aspect coupling is pre-staged in the moms/vars phases, so the aspect
+// RHSs are independent here.
 double
 vlasov_species_rhs(gkyl_vlasov_app *app, struct vlasov_species *sp,
   const struct gkyl_array *fin, const struct gkyl_array *fluidin, const struct gkyl_array *emin,

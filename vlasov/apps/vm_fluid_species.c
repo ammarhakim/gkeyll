@@ -72,9 +72,9 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, f->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, frame);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -86,9 +86,9 @@ vm_fluid_species_euler_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   // Also write out the primitive variables (u, p)
   vm_fluid_species_prim_vars(app, f, f->fluid);
   const char *fmt_prim = "%s-%s_prim_vars_%d.gkyl";
-  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, f->info.name, frame);
+  int sz_prim = gkyl_calc_strlen(fmt_prim, app->name, f->name, frame);
   char fileNm_prim[sz_prim+1]; // ensures no buffer overflow
-  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, f->info.name, frame);
+  snprintf(fileNm_prim, sizeof fileNm_prim, fmt_prim, app->name, f->name, frame);
 
   // copy data to single array and then from device to host (if on GPUs) before writing it out
   gkyl_array_set(f->prim_vars, 1.0, f->u); 
@@ -242,9 +242,9 @@ vm_fluid_species_advect_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, f->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, frame);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -256,9 +256,9 @@ vm_fluid_species_advect_write(gkyl_vlasov_app *app, struct vm_fluid_species *f,
   // If frame = 0, as part of initial conditions also write out the applied advection. 
   if (frame == 0) {
     const char *fmt_advect = "%s-%s_advect_%d.gkyl";
-    int sz_advect = gkyl_calc_strlen(fmt_advect, app->name, f->info.name, frame);
+    int sz_advect = gkyl_calc_strlen(fmt_advect, app->name, f->name, frame);
     char fileNm_advect[sz_advect+1]; // ensures no buffer overflow
-    snprintf(fileNm_advect, sizeof fileNm_advect, fmt_advect, app->name, f->info.name, frame);
+    snprintf(fileNm_advect, sizeof fileNm_advect, fmt_advect, app->name, f->name, frame);
 
     // copy data from device to host before writing it out
     if (app->use_gpu) {
@@ -414,9 +414,9 @@ vm_fluid_species_can_pb_fluid_write(gkyl_vlasov_app *app, struct vm_fluid_specie
   );
 
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, f->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, frame);
 
   // copy data from device to host before writing it out
   if (app->use_gpu) {
@@ -604,8 +604,7 @@ vm_fluid_species_can_pb_fluid_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *a
 
 // Concrete time-stepping methods for a (present, evolving) Vlasov fluid aspect,
 // assigned to the fluid vtable in vm_fluid_species_init below. The "_enabled"
-// suffix mirrors the kinetic side and pairs with future "_disabled" no-ops for
-// species that have no fluid aspect.
+// suffix mirrors the kinetic-side naming convention.
 static void
 vm_fluid_species_apply_ic_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
 {
@@ -741,8 +740,7 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
 
   // Time-stepping methods are common to all Vlasov fluid equation types (the
-  // variant inits above set the equation-specific prim_vars/write/etc.). A PKPM
-  // fluid species would instead set these to its coupled-fluid implementations.
+  // variant inits above set the equation-specific prim_vars/write/etc.).
   f->apply_ic_func = vm_fluid_species_apply_ic_enabled;
   f->rhs_func = vm_fluid_species_rhs_enabled;
   f->step_f_func = vm_fluid_species_step_f_enabled;
@@ -1079,9 +1077,9 @@ vm_fluid_species_write_integrated_mom(gkyl_vlasov_app *app, struct vm_fluid_spec
   if (rank == 0) {
     // write out integrated diagnostic moments
     const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, f->info.name, "imom");
+    int sz = gkyl_calc_strlen(fmt, app->name, f->name, "imom");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, f->info.name, "imom");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, f->name, "imom");
 
     if (f->is_first_integ_write_call) {
       gkyl_dynvec_write(f->integ_diag, fileNm);

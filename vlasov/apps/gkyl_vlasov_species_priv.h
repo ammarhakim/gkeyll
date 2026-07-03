@@ -418,6 +418,11 @@ struct vm_source {
 struct vm_species {
   struct gkyl_vlasov_kinetic_species info; // data for species
 
+  // Species identity, set by the container constructor from the unified
+  // input's top level (the single place identity is declared).
+  char name[128];
+  double charge, mass;
+
   struct gkyl_basis basis; // Phase-space basis. 
   struct gkyl_basis basis_vel; // Velocity-space basis. 
   struct gkyl_basis basis_surf; // Surface basis at velocity-space surfaces for velocity-space fluxes. 
@@ -578,6 +583,11 @@ struct vm_fluid_source {
 struct vm_fluid_species {
   struct gkyl_vlasov_fluid_species info; // data for fluid
 
+  // Species identity, set by the container constructor from the unified
+  // input's top level (the single place identity is declared).
+  char name[128];
+  double charge, mass;
+
   struct gkyl_job_pool *job_pool; // Job pool  
   struct gkyl_array *fluid, *fluid1, *fluidnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
@@ -686,8 +696,7 @@ struct vm_fluid_species {
 
   // Function pointers selected at runtime. The time-stepping methods (apply_ic,
   // rhs, step_f, combine, copy) mirror the distribution-aspect vtable on
-  // vm_species; a future PKPM species sets these to its own coupled-fluid
-  // implementations while a plain Vlasov fluid species uses the *_default ones.
+  // vm_species.
   void (*apply_ic_func)(gkyl_vlasov_app* app, struct vm_fluid_species *f, double t0);
   double (*rhs_func)(gkyl_vlasov_app *app, struct vm_fluid_species *f,
     const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs);
@@ -713,22 +722,22 @@ struct vm_fluid_species {
 //
 // Unified species container. Holds the optional per-aspect sub-objects by
 // pointer so a species carries only the aspects it has (no bloat). A plain
-// Vlasov species sets dist; a fluid species sets fluid; a PKPM species (later)
-// sets both. app->species is the single backing array of these; app->fluid_species
-// is a view into its fluid-typed tail (see vlasov.c construction).
+// Vlasov species sets dist; a fluid species sets fluid; a species type owning
+// both sets both. app->species is the single backing array of these;
+// app->fluid_species is a view into its fluid-typed tail (see vlasov.c
+// construction).
 //
 // The container dispatch is a deliberate mix (see vlasov_species.c):
 // per-aspect operations (rhs, step/combine/copy, BCs, limiter, sources, the
 // implicit collision phases) are structurally identical for every species type
 // -- "apply to whichever aspects are present" -- so their vlasov_species_*
-// wrappers NULL-test dist/fluid directly and a PKPM species runs both halves
-// with no new dispatch code. Only the operations whose COMPOSITION genuinely
-// differs by type carry constructor-wired vtable slots below: the explicit
-// field coupling (selected by species type x field type) and the two staging
-// phases (whose PKPM implementations are their own moments/vars machinery, not
-// a per-aspect sequence). Aspect-flavor dispatch (dynamic/static kinetic,
-// Euler/advection/can-PB fluid, PKPM flavors later) stays on the aspect-level
-// vtables wired by the aspect inits.
+// wrappers NULL-test dist/fluid directly; a species owning both aspects runs
+// both halves through the same wrappers. Only the operations whose COMPOSITION
+// genuinely differs by type carry constructor-wired vtable slots below: the
+// explicit field coupling (selected by species type x field type) and the two
+// staging phases (wired per type, not composed per aspect). Aspect-flavor
+// dispatch (dynamic/static kinetic, Euler/advection/can-PB fluid) stays on the
+// aspect-level vtables wired by the aspect inits.
 struct vlasov_species {
   enum gkyl_species_type type;
 
@@ -742,9 +751,8 @@ struct vlasov_species {
   struct vm_fluid_species *fluid; // fluid aspect (NULL if absent)
 
   // Staging phases: fill the pre-RHS auxiliary arrays (kinetic: collision
-  // moments; fluid: primitive variables; PKPM later: its own moments/vars
-  // machinery reading both aspects). Two slots because cross moments must run
-  // after all species' self moments.
+  // moments; fluid: primitive variables). Two slots because cross moments must
+  // run after all species' self moments.
   void (*calc_self_moms_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
     const struct gkyl_array *fin);
   void (*calc_cross_moms_func)(gkyl_vlasov_app *app, struct vlasov_species *sp,
@@ -1678,9 +1686,9 @@ void vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_specie
 // Constructors allocate the aspect sub-object(s) for a species and wire the
 // type-composed vtable slots. Of the wrappers below, the staging-phase and
 // field-coupling ones forward through the vtable; the rest are per-aspect
-// operations that NULL-test dist/fluid directly (a PKPM species runs both
-// aspects sequentially with no new dispatch code). RK-state arrays are indexed
-// over the overall species count.
+// operations that NULL-test dist/fluid directly (a species owning both aspects
+// runs them sequentially). RK-state arrays are indexed over the overall
+// species count.
 // ============================================================================
 
 /**
@@ -1688,7 +1696,7 @@ void vm_fluid_species_release(const gkyl_vlasov_app* app, struct vm_fluid_specie
  * dispatching on the declared type to the typed constructors below. Validates
  * the declared type against the blocks (kinetic species require a velocity
  * grid and no fluid equation; fluid species require an equation and no
- * velocity grid) and hoists the top-level identity into the selected block.
+ * velocity grid).
  *
  * @param app Vlasov app object (field already constructed).
  * @param inp Unified species input.
@@ -1699,29 +1707,30 @@ void vlasov_species_new(struct gkyl_vlasov_app *app,
 
 /**
  * Construct a kinetic (Vlasov) species container in place: allocates and
- * zero-initializes the dist aspect, stores the input info on it, hoists the
- * species identity (name/charge/mass), and wires the container vtable.
- * The heavy aspect initialization remains vm_species_init.
+ * zero-initializes the dist aspect, stores the kinetic block on it, threads
+ * the top-level identity (name/charge/mass) into the container and the
+ * aspect, and wires the container vtable. The heavy aspect initialization
+ * remains vm_species_init.
  *
  * @param app Vlasov app object (field already constructed).
- * @param info Kinetic species input.
+ * @param inp Unified species input (identity + kinetic block).
  * @param sp Container to construct.
  */
 void vlasov_kinetic_species_new(struct gkyl_vlasov_app *app,
-  const struct gkyl_vlasov_kinetic_species *info, struct vlasov_species *sp);
+  const struct gkyl_vlasov_species *inp, struct vlasov_species *sp);
 
 /**
  * Construct a fluid species container in place: allocates and zero-initializes
- * the fluid aspect, stores the input info on it, hoists the species identity,
- * and wires the container vtable. The heavy aspect initialization remains
- * vm_fluid_species_init.
+ * the fluid aspect, stores the fluid block on it, threads the top-level
+ * identity into the container and the aspect, and wires the container vtable.
+ * The heavy aspect initialization remains vm_fluid_species_init.
  *
  * @param app Vlasov app object (field already constructed).
- * @param info Fluid species input.
+ * @param inp Unified species input (identity + fluid block).
  * @param sp Container to construct.
  */
 void vlasov_fluid_species_new(struct gkyl_vlasov_app *app,
-  const struct gkyl_vlasov_fluid_species *info, struct vlasov_species *sp);
+  const struct gkyl_vlasov_species *inp, struct vlasov_species *sp);
 
 void vlasov_species_calc_app_accel(gkyl_vlasov_app *app, struct vlasov_species *sp, double tcurr);
 void vlasov_species_calc_self_moms(gkyl_vlasov_app *app, struct vlasov_species *sp,

@@ -69,7 +69,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   // Allocate array to store q/m*(E,B) or potentials (q/m*phi + m*phi_g, q/m*A) depending on equation system. 
   // Note: the potentials are the total potentials and thus can include both (or either) gravitational
   // or electrostatic interactions. 
-  cls->qbym = vms->info.charge/vms->info.mass;
+  cls->qbym = vms->charge/vms->mass;
   cls->qmem = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
   cls->pot_tot = mkarr(app->use_gpu, 4*app->basis.num_basis, app->local_ext.volume);
 

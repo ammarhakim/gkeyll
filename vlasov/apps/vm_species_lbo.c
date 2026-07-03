@@ -129,7 +129,7 @@ vmlbo_cross_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *vms,
     // Recycle the boundary_corrections array because we don't need those anymore.
     struct gkyl_array *cross_prim_moms = lbo->nu_boundary_corrections;
     gkyl_prim_lbo_cross_calc_advance(lbo->cross_calc, &app->local, lbo->alpha_E, 
-      vms->info.mass, lbo->nu_moms, lbo->prim_moms,
+      vms->mass, lbo->nu_moms, lbo->prim_moms,
       lbo->other_m[i], lbo->collide_with[i]->lbo.moms.marr, lbo->other_prim_moms[i],
       lbo->nu_boundary_corrections, lbo->cross_nu[i], cross_prim_moms);
 
@@ -183,14 +183,14 @@ vmlbo_write_mom_enabled(gkyl_vlasov_app* app, struct vm_species *vms, double tm,
 
   // Write out nu_sum and nu_prim_moms.
   const char *fmt = "%s-%s_lbo_nu_sum_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   
   const char *fmt_nu_prim = "%s-%s_lbo_nu_prim_moms_%d.gkyl";
-  int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, vms->info.name, frame);
+  int sz_nu_prim = gkyl_calc_strlen(fmt_nu_prim, app->name, vms->name, frame);
   char fileNm_nu_prim[sz_nu_prim+1]; // ensures no buffer overflow
-  snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, vms->info.name, frame);
+  snprintf(fileNm_nu_prim, sizeof fileNm_nu_prim, fmt_nu_prim, app->name, vms->name, frame);
   
   // Copy data from device to host before writing it out.
   if (app->use_gpu) {
@@ -285,7 +285,7 @@ vm_species_lbo_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
       // cheaper and yields an electron isotropization rate that agrees better with the FPO's.
       lbo->norm_nu_fac_self = nu_frac * gkyl_calc_Morse_alpha_E_const(
         vms->info.collisions.den_ref, vms->info.collisions.den_ref, 
-        vms->info.mass, vms->info.mass, vms->info.charge, vms->info.charge,
+        vms->mass, vms->mass, vms->charge, vms->charge,
         vms->info.collisions.temp_ref, vms->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
   
       // Set pointers to functions chosen at runtime.
@@ -357,7 +357,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         lbo->collide_with[i] = vm_find_species(app, vms->info.collisions.collide_with[i]);
         my_idx_in_other[i] = -1;
         for (int j=0; j<lbo->collide_with[i]->lbo.num_cross_collisions; ++j) {
-          if (0 == strcmp(vms->info.name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
+          if (0 == strcmp(vms->name, lbo->collide_with[i]->info.collisions.collide_with[j])) {
             my_idx_in_other[i] = j;
             break;
           }
@@ -369,7 +369,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
       for (int i=0; i<lbo->num_cross_collisions; ++i) {
         // Cross-species collision frequency, nu_sr.
         lbo->cross_nu[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-        lbo->other_m[i] = lbo->collide_with[i]->info.mass;
+        lbo->other_m[i] = lbo->collide_with[i]->mass;
         lbo->other_prim_moms[i] = lbo->collide_with[i]->lbo.prim_moms;
       }
 
@@ -383,11 +383,11 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         double eV = vms->info.collisions.eV ? vms->info.collisions.eV: GKYL_ELEMENTARY_CHARGE;
         // Vlasov does not use reference magnetic field for cyclotron frequency contribution to log(Lambda)
         double bmag_ref = 0.0;
-        double mass_self = vms->info.mass, mass_other = lbo->collide_with[i]->info.mass;
+        double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
 
         alpha_E_norm[i] = nu_frac * gkyl_calc_Morse_alpha_E_const(
           vms->info.collisions.den_ref, lbo->collide_with[i]->info.collisions.den_ref,
-          mass_self, mass_other, vms->info.charge, lbo->collide_with[i]->info.charge,
+          mass_self, mass_other, vms->charge, lbo->collide_with[i]->charge,
           vms->info.collisions.temp_ref, lbo->collide_with[i]->info.collisions.temp_ref, bmag_ref, eps0, hbar, eV);
       }
 
@@ -419,7 +419,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
           assert(lbo->collide_with[i]->info.collisions.den_ref);
           assert(vms->info.collisions.temp_ref);
           assert(lbo->collide_with[i]->info.collisions.temp_ref);
-          double mass_self = vms->info.mass, mass_other = lbo->collide_with[i]->info.mass;
+          double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
           double den_s = vms->info.collisions.den_ref;
           double den_r = lbo->collide_with[i]->info.collisions.den_ref;
           double vtsq_s = vms->info.collisions.temp_ref/mass_self;
@@ -446,7 +446,7 @@ vm_species_lbo_cross_init(struct gkyl_vlasov_app *app, struct vm_species *vms, s
         }
 
         for (int i=0; i<lbo->num_cross_collisions; ++i) {
-          double mass_self = vms->info.mass, mass_other = lbo->collide_with[i]->info.mass;
+          double mass_self = vms->mass, mass_other = lbo->collide_with[i]->mass;
 
           lbo->norm_nu_fac_cross[i] = alpha_E_norm[i]
             * (mass_self+mass_other)/(lbo->delta_sr*lbo->betaGreenep1*mass_self);

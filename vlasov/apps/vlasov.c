@@ -347,7 +347,7 @@ struct vm_species *
 vm_find_species(const gkyl_vlasov_app *app, const char *nm)
 {
   for (int i=0; i<app->num_species; ++i)
-    if (strcmp(nm, app->species[i].dist->info.name) == 0)
+    if (strcmp(nm, app->species[i].dist->name) == 0)
       return app->species[i].dist;
   return 0;
 }
@@ -356,7 +356,7 @@ int
 vm_find_species_idx(const gkyl_vlasov_app *app, const char *nm)
 {
   for (int i=0; i<app->num_species; ++i)
-    if (strcmp(nm, app->species[i].dist->info.name) == 0)
+    if (strcmp(nm, app->species[i].dist->name) == 0)
       return i;
   return -1;
 }
@@ -365,7 +365,7 @@ struct vm_fluid_species *
 vm_find_fluid_species(const gkyl_vlasov_app *app, const char *nm)
 {
   for (int i=0; i<app->num_fluid_species; ++i)
-    if (strcmp(nm, app->fluid_species[i].fluid->info.name) == 0)
+    if (strcmp(nm, app->fluid_species[i].fluid->name) == 0)
       return app->fluid_species[i].fluid;
   return 0;
 }
@@ -374,7 +374,7 @@ int
 vm_find_fluid_species_idx(const gkyl_vlasov_app *app, const char *nm)
 {
   for (int i=0; i<app->num_fluid_species; ++i)
-    if (strcmp(nm, app->fluid_species[i].fluid->info.name) == 0)
+    if (strcmp(nm, app->fluid_species[i].fluid->name) == 0)
       return i;
   return -1;
 }
@@ -813,7 +813,7 @@ gkyl_vlasov_app_stat_write(gkyl_vlasov_app* app)
   gkyl_vlasov_app_cout(app, fp, " num_ranks : %d,\n", num_ranks); 
   
   for (int s=0; s<app->num_species; ++s)
-    range_stat_write(app, app->species[s].dist->info.name, &app->species[s].dist->global, fp);
+    range_stat_write(app, app->species[s].dist->name, &app->species[s].dist->global, fp);
   
   gkyl_vlasov_app_cout(app, fp, " nup : %ld,\n", stat.nup);
   gkyl_vlasov_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
@@ -1064,7 +1064,7 @@ gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
   // data from the *initial* conditions. 
   gkyl_vlasov_app_apply_ic_species(app, sidx, 0.0);
 
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].dist->info.name, frame);
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].dist->name, frame);
   struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_species(app, sidx, fileNm.str);
   app->species[sidx].dist->is_first_integ_write_call = false; // append to existing diagnostic
   app->species[sidx].dist->is_first_integ_L2_write_call = false; // append to existing diagnostic
@@ -1076,7 +1076,7 @@ gkyl_vlasov_app_from_frame_species(gkyl_vlasov_app *app, int sidx, int frame)
 struct gkyl_app_restart_status
 gkyl_vlasov_app_from_frame_fluid_species(gkyl_vlasov_app *app, int sidx, int frame)
 {
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->fluid_species[sidx].fluid->info.name, frame);
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->fluid_species[sidx].fluid->name, frame);
   struct gkyl_app_restart_status rstat = gkyl_vlasov_app_from_file_fluid_species(app, sidx, fileNm.str);
   app->fluid_species[sidx].fluid->is_first_integ_write_call = false; // append to existing diagnostic
   cstr_drop(&fileNm);

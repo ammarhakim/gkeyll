@@ -553,9 +553,9 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
     }
   );
   const char *fmt = "%s-%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // Ensures no buffer overflow.
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   
   // Divide out the velocity space Jacobian if present
   // We do the division before I/O to increase the accuracy since we know
@@ -586,7 +586,7 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
       }
     );
     gkyl_vlasov_velocity_map_write(vms->vel_map, vms->comm, mt_vel,
-      app->name, vms->info.name, vms->write_cell_avg);
+      app->name, vms->name, vms->write_cell_avg);
     vlasov_array_meta_release(mt_vel);
   }
 
@@ -613,9 +613,9 @@ vm_species_write_cfl_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   );
 
   const char *fmt = "%s-%s-cflrate_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
   gkyl_array_copy(vms->cflrate_host, vms->cflrate);
   gkyl_comm_array_write(vms->comm, &vms->grid, &vms->local, mt,
     vms->cflrate_host, fileNm);
@@ -645,9 +645,9 @@ vm_species_write_cell_avg_enabled(gkyl_vlasov_app* app, struct vm_species *vms, 
   );
 
   const char *fmt = "%s-%s_avg_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
 
   // Divide out the velocity space Jacobian if present
   // We do the division before I/O to increase the accuracy since we know
@@ -686,9 +686,9 @@ vm_species_write_lte_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   );
 
   const char *fmt = "%s-%s_%d_lte.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, frame);
+  int sz = gkyl_calc_strlen(fmt, app->name, vms->name, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, frame);
 
   vm_species_lte(app, vms, &vms->lte, vms->f);
   
@@ -743,10 +743,10 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, doubl
     }
 
     const char *fmt = "%s-%s_%s_%d.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name,
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name,
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name,
       gkyl_distribution_moments_strs[vms->info.diag_moments[m]], frame);
     
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
@@ -807,9 +807,9 @@ vm_species_write_integrated_mom_dynamic(gkyl_vlasov_app *app, struct vm_species 
   if (rank == 0) {
     // Write integrated diagnostic moments.
     const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "imom");
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "imom");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "imom");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "imom");
     
     if (vms->is_first_integ_write_call) {
       gkyl_dynvec_write(vms->integ_diag, fileNm);
@@ -875,9 +875,9 @@ vm_species_write_L2_dynamic(gkyl_vlasov_app* app, struct vm_species *vms)
   if (rank == 0) {
     // Write the L2 norm.
     const char *fmt = "%s-%s-%s.gkyl";
-    int sz = gkyl_calc_strlen(fmt, app->name, vms->info.name, "L2");
+    int sz = gkyl_calc_strlen(fmt, app->name, vms->name, "L2");
     char fileNm[sz+1]; // ensures no buffer overflow
-    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->info.name, "L2");
+    snprintf(fileNm, sizeof fileNm, fmt, app->name, vms->name, "L2");
 
     if (vms->is_first_integ_L2_write_call) {
       gkyl_dynvec_write(vms->integ_L2_f, fileNm);
