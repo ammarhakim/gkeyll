@@ -260,17 +260,17 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_vel_sparse_vol_kernels
 
 // Hamiltonian, general phase space, volume kernels (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_gen_vol_kernels[] = {
+static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_phase_vol_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_hamil_gen_vol_1x1v_ser_p1, vlasov_hamil_gen_vol_1x1v_ser_p2, vlasov_hamil_gen_vol_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_gen_vol_1x2v_ser_p1, vlasov_hamil_gen_vol_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_gen_vol_1x3v_ser_p1, vlasov_hamil_gen_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_phase_vol_1x1v_ser_p1, vlasov_hamil_phase_vol_1x1v_ser_p2, vlasov_hamil_phase_vol_1x1v_ser_p3 }, // 0
+  { NULL, vlasov_hamil_phase_vol_1x2v_ser_p1, vlasov_hamil_phase_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_phase_vol_1x3v_ser_p1, vlasov_hamil_phase_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_hamil_gen_vol_2x1v_ser_p1, vlasov_hamil_gen_vol_2x1v_ser_p2, vlasov_hamil_gen_vol_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_gen_vol_2x2v_ser_p1, vlasov_hamil_gen_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_vol_2x3v_ser_p1, vlasov_hamil_gen_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_phase_vol_2x1v_ser_p1, vlasov_hamil_phase_vol_2x1v_ser_p2, vlasov_hamil_phase_vol_2x1v_ser_p3 }, // 3
+  { NULL, vlasov_hamil_phase_vol_2x2v_ser_p1, vlasov_hamil_phase_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_vol_2x3v_ser_p1, vlasov_hamil_phase_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Non-canonical Poisson Bracket, hamil vel space dependance only, volume kernels (Serendipity basis). 
@@ -800,37 +800,37 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_vel_sparse
 
 // Streaming phase-space Hamiltonian surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_phase_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_hamil_gen_surfx_1x1v_ser_p1, vlasov_hamil_gen_surfx_1x1v_ser_p2, vlasov_hamil_gen_surfx_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_gen_surfx_1x2v_ser_p1, vlasov_hamil_gen_surfx_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_gen_surfx_1x3v_ser_p1, vlasov_hamil_gen_surfx_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_phase_surfx_1x1v_ser_p1, vlasov_hamil_phase_surfx_1x1v_ser_p2, vlasov_hamil_phase_surfx_1x1v_ser_p3 }, // 0
+  { NULL, vlasov_hamil_phase_surfx_1x2v_ser_p1, vlasov_hamil_phase_surfx_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_phase_surfx_1x3v_ser_p1, vlasov_hamil_phase_surfx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_hamil_gen_surfx_2x1v_ser_p1, vlasov_hamil_gen_surfx_2x1v_ser_p2, vlasov_hamil_gen_surfx_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_gen_surfx_2x2v_ser_p1, vlasov_hamil_gen_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_surfx_2x3v_ser_p1, vlasov_hamil_gen_surfx_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_phase_surfx_2x1v_ser_p1, vlasov_hamil_phase_surfx_2x1v_ser_p2, vlasov_hamil_phase_surfx_2x1v_ser_p3 }, // 3
+  { NULL, vlasov_hamil_phase_surfx_2x2v_ser_p1, vlasov_hamil_phase_surfx_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_surfx_2x3v_ser_p1, vlasov_hamil_phase_surfx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_surfx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_phase_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, no_stream_surf, no_stream_surf, no_stream_surf }, // 3  
-  { NULL, vlasov_hamil_gen_surfy_2x2v_ser_p1, vlasov_hamil_gen_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_surfy_2x3v_ser_p1, vlasov_hamil_gen_surfy_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_phase_surfy_2x2v_ser_p1, vlasov_hamil_phase_surfy_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_surfy_2x3v_ser_p1, vlasov_hamil_phase_surfy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_surfy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_phase_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -840,43 +840,43 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_surf_z_ke
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_surfz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 
 // Streaming phase-space Hamiltonian surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_ho_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_phase_ho_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_hamil_gen_surfx_1x1v_ser_p1, vlasov_hamil_gen_ho_surfx_1x1v_ser_p2, vlasov_hamil_gen_ho_surfx_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_gen_surfx_1x2v_ser_p1, vlasov_hamil_gen_ho_surfx_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_gen_surfx_1x3v_ser_p1, vlasov_hamil_gen_ho_surfx_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_phase_surfx_1x1v_ser_p1, vlasov_hamil_phase_ho_surfx_1x1v_ser_p2, vlasov_hamil_phase_ho_surfx_1x1v_ser_p3 }, // 0
+  { NULL, vlasov_hamil_phase_surfx_1x2v_ser_p1, vlasov_hamil_phase_ho_surfx_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_phase_surfx_1x3v_ser_p1, vlasov_hamil_phase_ho_surfx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_hamil_gen_surfx_2x1v_ser_p1, vlasov_hamil_gen_ho_surfx_2x1v_ser_p2, vlasov_hamil_gen_ho_surfx_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_gen_surfx_2x2v_ser_p1, vlasov_hamil_gen_ho_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_surfx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_phase_surfx_2x1v_ser_p1, vlasov_hamil_phase_ho_surfx_2x1v_ser_p2, vlasov_hamil_phase_ho_surfx_2x1v_ser_p3 }, // 3
+  { NULL, vlasov_hamil_phase_surfx_2x2v_ser_p1, vlasov_hamil_phase_ho_surfx_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_surfx_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_surfx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_ho_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_phase_ho_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, no_stream_surf, no_stream_surf, no_stream_surf }, // 3  
-  { NULL, vlasov_hamil_gen_surfy_2x2v_ser_p1, vlasov_hamil_gen_ho_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_surfy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_phase_surfy_2x2v_ser_p1, vlasov_hamil_phase_ho_surfy_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_surfy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_ho_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_phase_ho_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -886,7 +886,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_gen_ho_surf_z
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_surfz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming general (NC) Hamiltonian surface kernel list: x-direction (Serendipity basis)
@@ -1297,37 +1297,37 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_v
 
 // Streaming phase-space Hamiltonian boundary surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_boundary_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_phase_boundary_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfx_1x1v_ser_p1, vlasov_hamil_gen_boundary_surfx_1x1v_ser_p2, vlasov_hamil_gen_boundary_surfx_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_gen_boundary_surfx_1x2v_ser_p1, vlasov_hamil_gen_boundary_surfx_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_gen_boundary_surfx_1x3v_ser_p1, vlasov_hamil_gen_boundary_surfx_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_phase_boundary_surfx_1x1v_ser_p1, vlasov_hamil_phase_boundary_surfx_1x1v_ser_p2, vlasov_hamil_phase_boundary_surfx_1x1v_ser_p3 }, // 0
+  { NULL, vlasov_hamil_phase_boundary_surfx_1x2v_ser_p1, vlasov_hamil_phase_boundary_surfx_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_phase_boundary_surfx_1x3v_ser_p1, vlasov_hamil_phase_boundary_surfx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfx_2x1v_ser_p1, vlasov_hamil_gen_boundary_surfx_2x1v_ser_p2, vlasov_hamil_gen_boundary_surfx_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_gen_boundary_surfx_2x2v_ser_p1, vlasov_hamil_gen_boundary_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_boundary_surfx_2x3v_ser_p1, vlasov_hamil_gen_boundary_surfx_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_phase_boundary_surfx_2x1v_ser_p1, vlasov_hamil_phase_boundary_surfx_2x1v_ser_p2, vlasov_hamil_phase_boundary_surfx_2x1v_ser_p3 }, // 3
+  { NULL, vlasov_hamil_phase_boundary_surfx_2x2v_ser_p1, vlasov_hamil_phase_boundary_surfx_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_boundary_surfx_2x3v_ser_p1, vlasov_hamil_phase_boundary_surfx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian boundary surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_boundary_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_phase_boundary_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, no_stream_boundary_surf, no_stream_boundary_surf, no_stream_boundary_surf }, // 3  
-  { NULL, vlasov_hamil_gen_boundary_surfy_2x2v_ser_p1, vlasov_hamil_gen_boundary_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_boundary_surfy_2x3v_ser_p1, vlasov_hamil_gen_boundary_surfy_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_phase_boundary_surfy_2x2v_ser_p1, vlasov_hamil_phase_boundary_surfy_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_boundary_surfy_2x3v_ser_p1, vlasov_hamil_phase_boundary_surfy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian boundary surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_boundary_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_phase_boundary_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -1337,42 +1337,42 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian boundary surface kernel list: x-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_boundary_ho_surf_x_kernels[] = {
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_phase_boundary_ho_surf_x_kernels[] = {
   // 1x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfx_1x1v_ser_p1, vlasov_hamil_gen_boundary_ho_surfx_1x1v_ser_p2, vlasov_hamil_gen_boundary_ho_surfx_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_gen_boundary_surfx_1x2v_ser_p1, vlasov_hamil_gen_boundary_ho_surfx_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_gen_boundary_surfx_1x3v_ser_p1, vlasov_hamil_gen_boundary_ho_surfx_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_phase_boundary_surfx_1x1v_ser_p1, vlasov_hamil_phase_boundary_ho_surfx_1x1v_ser_p2, vlasov_hamil_phase_boundary_ho_surfx_1x1v_ser_p3 }, // 0
+  { NULL, vlasov_hamil_phase_boundary_surfx_1x2v_ser_p1, vlasov_hamil_phase_boundary_ho_surfx_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_phase_boundary_surfx_1x3v_ser_p1, vlasov_hamil_phase_boundary_ho_surfx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfx_2x1v_ser_p1, vlasov_hamil_gen_boundary_ho_surfx_2x1v_ser_p2, vlasov_hamil_gen_boundary_ho_surfx_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_gen_boundary_surfx_2x2v_ser_p1, vlasov_hamil_gen_boundary_ho_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_boundary_surfx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_phase_boundary_surfx_2x1v_ser_p1, vlasov_hamil_phase_boundary_ho_surfx_2x1v_ser_p2, vlasov_hamil_phase_boundary_ho_surfx_2x1v_ser_p3 }, // 3
+  { NULL, vlasov_hamil_phase_boundary_surfx_2x2v_ser_p1, vlasov_hamil_phase_boundary_ho_surfx_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_boundary_surfx_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian boundary surface kernel list: y-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_boundary_ho_surf_y_kernels[] = {
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_phase_boundary_ho_surf_y_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, no_stream_boundary_surf, no_stream_boundary_surf, no_stream_boundary_surf }, // 3  
-  { NULL, vlasov_hamil_gen_boundary_surfy_2x2v_ser_p1, vlasov_hamil_gen_boundary_ho_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_gen_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_hamil_phase_boundary_surfy_2x2v_ser_p1, vlasov_hamil_phase_boundary_ho_surfy_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_phase_boundary_surfy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming phase-space Hamiltonian boundary surface kernel list: z-direction (Serendipity basis)
 GKYL_CU_D
-static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_boundary_ho_surf_z_kernels[] = {
+static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_phase_boundary_ho_surf_z_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -1382,7 +1382,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_gen_
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_gen_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming general (NC) Hamiltonian boundary surface kernel list: x-direction (Serendipity basis)

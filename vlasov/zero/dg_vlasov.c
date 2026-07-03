@@ -216,25 +216,25 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         }
       }
       else {
-        vlasov->hamil_vol = ser_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+        vlasov->hamil_vol = ser_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
 
         if ( inp->use_lo ) {
-          stream_surf_x_kernels = ser_stream_hamil_gen_surf_x_kernels;
-          stream_surf_y_kernels = ser_stream_hamil_gen_surf_y_kernels;
-          stream_surf_z_kernels = ser_stream_hamil_gen_surf_z_kernels;
+          stream_surf_x_kernels = ser_stream_hamil_phase_surf_x_kernels;
+          stream_surf_y_kernels = ser_stream_hamil_phase_surf_y_kernels;
+          stream_surf_z_kernels = ser_stream_hamil_phase_surf_z_kernels;
           
-          stream_boundary_surf_x_kernels = ser_stream_hamil_gen_boundary_surf_x_kernels;
-          stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_surf_y_kernels;
-          stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_surf_z_kernels;    
+          stream_boundary_surf_x_kernels = ser_stream_hamil_phase_boundary_surf_x_kernels;
+          stream_boundary_surf_y_kernels = ser_stream_hamil_phase_boundary_surf_y_kernels;
+          stream_boundary_surf_z_kernels = ser_stream_hamil_phase_boundary_surf_z_kernels;    
         } 
         else {
-          stream_surf_x_kernels = ser_stream_hamil_gen_ho_surf_x_kernels;
-          stream_surf_y_kernels = ser_stream_hamil_gen_ho_surf_y_kernels;
-          stream_surf_z_kernels = ser_stream_hamil_gen_ho_surf_z_kernels;
+          stream_surf_x_kernels = ser_stream_hamil_phase_ho_surf_x_kernels;
+          stream_surf_y_kernels = ser_stream_hamil_phase_ho_surf_y_kernels;
+          stream_surf_z_kernels = ser_stream_hamil_phase_ho_surf_z_kernels;
           
-          stream_boundary_surf_x_kernels = ser_stream_hamil_gen_boundary_ho_surf_x_kernels;
-          stream_boundary_surf_y_kernels = ser_stream_hamil_gen_boundary_ho_surf_y_kernels;
-          stream_boundary_surf_z_kernels = ser_stream_hamil_gen_boundary_ho_surf_z_kernels;    
+          stream_boundary_surf_x_kernels = ser_stream_hamil_phase_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_y_kernels = ser_stream_hamil_phase_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_z_kernels = ser_stream_hamil_phase_boundary_ho_surf_z_kernels;    
         }     
       }
       if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];

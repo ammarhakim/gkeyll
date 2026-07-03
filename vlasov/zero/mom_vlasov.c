@@ -84,9 +84,9 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
   // choose kernel tables based on basis-function type
-  const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
-    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels,
-    *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_gen_kernels;
+  const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_phase_kernels,
+    *m2_hamil_vel_kernels, *m2_hamil_phase_kernels, *m3i_hamil_vel_kernels,
+    *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_phase_kernels;
 
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -97,9 +97,9 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       m2_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m2_kernels : ser_hamil_vel_dense_m2_kernels;
       m3i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m3i_kernels : ser_hamil_vel_dense_m3i_kernels;
       five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_five_moments_kernels : ser_hamil_vel_dense_five_moments_kernels;
-      m1i_hamil_gen_kernels = ser_hamil_gen_m1i_kernels;
-      m2_hamil_gen_kernels = ser_hamil_gen_m2_kernels;
-      five_moments_hamil_gen_kernels = ser_hamil_gen_five_moments_kernels;
+      m1i_hamil_phase_kernels = ser_hamil_phase_m1i_kernels;
+      m2_hamil_phase_kernels = ser_hamil_phase_m2_kernels;
+      five_moments_hamil_phase_kernels = ser_hamil_phase_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -134,10 +134,10 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     }
     else {
       if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov M1i hamil_gen: Not currently supported in tensor basis.");
+        gkyl_exit("mom_vlasov M1i hamil_phase: Not currently supported in tensor basis.");
       }
-      assert(NULL != m1i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = m1i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      assert(NULL != m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      mom_vlasov->momt.kernel = m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
     mom_vlasov->momt.num_mom = vdim;
   }
@@ -151,10 +151,10 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     }
     else {
       if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov M2 hamil_gen: Not currently supported in tensor basis.");
+        gkyl_exit("mom_vlasov M2 hamil_phase: Not currently supported in tensor basis.");
       }
-      assert(NULL != m2_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = m2_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      assert(NULL != m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      mom_vlasov->momt.kernel = m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     } 
     mom_vlasov->momt.num_mom = 1;
   }
@@ -197,10 +197,10 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     }
     else {
       if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov five moments hamil_gen: Not currently supported in tensor basis.");
+        gkyl_exit("mom_vlasov five moments hamil_phase: Not currently supported in tensor basis.");
       }
-      assert(NULL != five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      assert(NULL != five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      mom_vlasov->momt.kernel = five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     } 
     mom_vlasov->momt.num_mom = 2+vdim;
   }
@@ -284,12 +284,12 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
   // Choose kernel tables based on basis-function type.
-  const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_gen_kernels;
+  const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_phase_kernels;
 
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       int_five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_int_five_moments_kernels : ser_hamil_vel_dense_int_five_moments_kernels;
-      int_five_moments_hamil_gen_kernels = ser_hamil_gen_int_five_moments_kernels;
+      int_five_moments_hamil_phase_kernels = ser_hamil_phase_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -310,10 +310,10 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     }
     else {
       if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov integrated moments hamil_gen: Not currently supported in tensor basis.");
+        gkyl_exit("mom_vlasov integrated moments hamil_phase: Not currently supported in tensor basis.");
       }
-      assert(NULL != int_five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
-      mom_vlasov->momt.kernel = int_five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+      assert(NULL != int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
+      mom_vlasov->momt.kernel = int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     } 
     mom_vlasov->momt.num_mom = 2+vdim;
   }

@@ -66,9 +66,9 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
   bool hamil_sparse = (hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
   // choose kernel tables based on basis-function type
-  const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
-    *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels, 
-    *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_gen_kernels;
+  const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_phase_kernels,
+    *m2_hamil_vel_kernels, *m2_hamil_phase_kernels, *m3i_hamil_vel_kernels, 
+    *m2ij_kernels, *m3ijk_kernels, *five_moments_hamil_vel_kernels, *five_moments_hamil_phase_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -79,9 +79,9 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       m2_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m2_kernels : ser_hamil_vel_dense_m2_kernels;
       m3i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m3i_kernels : ser_hamil_vel_dense_m3i_kernels;
       five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_five_moments_kernels : ser_hamil_vel_dense_five_moments_kernels;
-      m1i_hamil_gen_kernels = ser_hamil_gen_m1i_kernels;
-      m2_hamil_gen_kernels = ser_hamil_gen_m2_kernels;
-      five_moments_hamil_gen_kernels = ser_hamil_gen_five_moments_kernels;
+      m1i_hamil_phase_kernels = ser_hamil_phase_m1i_kernels;
+      m2_hamil_phase_kernels = ser_hamil_phase_m2_kernels;
+      five_moments_hamil_phase_kernels = ser_hamil_phase_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -112,7 +112,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       }
       else {
         if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = m1i_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+          mom_vlasov->momt.kernel = m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
         }
         else {
           assert(false); 
@@ -128,7 +128,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       }
       else {
         if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = m2_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+          mom_vlasov->momt.kernel = m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
         }
         else {
           assert(false); 
@@ -163,7 +163,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       }
       else {
         if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+          mom_vlasov->momt.kernel = five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
         }
         else {
           assert(false); 
@@ -270,12 +270,12 @@ set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_momen
   bool hamil_sparse = (hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
   // Choose kernel tables based on basis-function type.
-  const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_gen_kernels;
+  const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_phase_kernels;
 
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       int_five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_int_five_moments_kernels : ser_hamil_vel_dense_int_five_moments_kernels;
-      int_five_moments_hamil_gen_kernels = ser_hamil_gen_int_five_moments_kernels;
+      int_five_moments_hamil_phase_kernels = ser_hamil_phase_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
@@ -294,7 +294,7 @@ set_int_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_momen
       }
       else {
         if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = int_five_moments_hamil_gen_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
+          mom_vlasov->momt.kernel = int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
         }
         else {
           assert(false); 
