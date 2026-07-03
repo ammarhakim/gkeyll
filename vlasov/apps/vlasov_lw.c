@@ -1225,6 +1225,15 @@ vlasov_species_lw_new(lua_State *L)
   // Set metatable.
   luaL_getmetatable(L, VLASOV_SPECIES_METATABLE_NM);
   lua_setmetatable(L, -2);
+
+  // Anchor the constructor's input table as this userdata's environment: any
+  // Lua-wrapped objects it contains (e.g. a fluid species' equation object)
+  // then live exactly as long as this object. Composes with the App-level
+  // anchor, so inputs-of-inputs stay reachable for the app's lifetime.
+  if (lua_istable(L, 1)) {
+    lua_pushvalue(L, 1);
+    lua_setfenv(L, -2);
+  }
   
   return 1;
 }
@@ -1270,6 +1279,15 @@ vlasov_geom_lw_new(lua_State *L)
   // Set metatable.
   luaL_getmetatable(L, VLASOV_GEOM_METATABLE_NM);
   lua_setmetatable(L, -2);
+
+  // Anchor the constructor's input table as this userdata's environment: any
+  // Lua-wrapped objects it contains (e.g. a fluid species' equation object)
+  // then live exactly as long as this object. Composes with the App-level
+  // anchor, so inputs-of-inputs stay reachable for the app's lifetime.
+  if (lua_istable(L, 1)) {
+    lua_pushvalue(L, 1);
+    lua_setfenv(L, -2);
+  }
   
   return 1;
 
@@ -1323,22 +1341,7 @@ vlasov_fluid_species_lw_new(lua_State *L)
     has_eqn = true;
   }
 
-  if (has_eqn) {
-    // We need to store a reference to equation object in a global
-    // table as otherwise it gets garbage-collected while the
-    // simulation is being set up.
-    lua_getfield(L, -1, "equation");
-    int eq_ref = luaL_ref(L, LUA_REGISTRYINDEX);
-    
-    lua_getglobal(L, "__vlasov_ref_table");
-    int eqtbl_len = glua_objlen(L);
-    lua_pushinteger(L, eqtbl_len+1);    
-    lua_rawgeti(L, LUA_REGISTRYINDEX, eq_ref);
-    lua_rawset(L, -3);
-
-    lua_pop(L, 1);
-  }
-  else {
+  if (!has_eqn) {
     return luaL_error(L, "Fluid species \"equation\" not specfied or incorrect type!");
   }
 
@@ -1443,6 +1446,16 @@ vlasov_fluid_species_lw_new(lua_State *L)
   // Set metatable.
   luaL_getmetatable(L, VLASOV_FLUID_SPECIES_METATABLE_NM);
   lua_setmetatable(L, -2);
+
+  // Anchor the constructor's input table as this userdata's environment: any
+  // Lua-wrapped objects it contains (e.g. a fluid species' equation object)
+  // then live exactly as long as this object. Composes with the App-level
+  // anchor, so inputs-of-inputs stay reachable for the app's lifetime.
+  if (lua_istable(L, 1)) {
+  
+    lua_pushvalue(L, 1);
+    lua_setfenv(L, -2);
+  }
   
   return 1;
 }
@@ -1667,6 +1680,15 @@ vlasov_field_lw_new(lua_State *L)
   // Set metatable.
   luaL_getmetatable(L, VLASOV_FIELD_METATABLE_NM);
   lua_setmetatable(L, -2);
+
+  // Anchor the constructor's input table as this userdata's environment: any
+  // Lua-wrapped objects it contains (e.g. a fluid species' equation object)
+  // then live exactly as long as this object. Composes with the App-level
+  // anchor, so inputs-of-inputs stay reachable for the app's lifetime.
+  if (lua_istable(L, 1)) {
+    lua_pushvalue(L, 1);
+    lua_setfenv(L, -2);
+  }
   
   return 1;
 }
@@ -3104,13 +3126,6 @@ app_openlibs(lua_State *L)
   }
   while (0);
 
-  // Add globals and other parameters.
-  do {
-    // Table to store references so the objects do not get garbage-collected.
-    lua_newtable(L);
-    lua_setglobal(L, "__vlasov_ref_table");
-  }
-  while (0);
 }
 
 void
