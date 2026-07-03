@@ -3,7 +3,7 @@
 #include <gkyl_util.h> 
 EXTERN_C_BEG 
 
-GKYL_CU_DH void vlasov_nc_hamil_vel_vol_alpha_1x3v_ser_p2(const double *w, const double *dxv, const int dir,
+GKYL_CU_DH void vlasov_nc_hamil_vel_dense_vol_alpha_1x3v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp0_1x3v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *alpha, double* GKYL_RESTRICT out); 
@@ -105,7 +105,7 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp47_1x3v_ser_p2(const double *w, cons
 GKYL_CU_DH void vlasov_nc_hamil_phase_vol_alpha_1x3v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH void vlasov_nc_hamil_vel_vol_alpha_2x2v_ser_p2(const double *w, const double *dxv, const int dir,
+GKYL_CU_DH void vlasov_nc_hamil_vel_dense_vol_alpha_2x2v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp0_2x2v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *alpha, double* GKYL_RESTRICT out); 
@@ -207,7 +207,7 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp47_2x2v_ser_p2(const double *w, cons
 GKYL_CU_DH void vlasov_nc_hamil_phase_vol_alpha_2x2v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH void vlasov_nc_hamil_vel_vol_alpha_2x3v_ser_p1(const double *w, const double *dxv, const int dir,
+GKYL_CU_DH void vlasov_nc_hamil_vel_dense_vol_alpha_2x3v_ser_p1(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp0_2x3v_ser_p1(const double *w, const double *dxv, const int dir,
         const double *alpha, double* GKYL_RESTRICT out); 
@@ -277,7 +277,7 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp31_2x3v_ser_p1(const double *w, cons
 GKYL_CU_DH void vlasov_nc_hamil_phase_vol_alpha_2x3v_ser_p1(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH void vlasov_nc_hamil_vel_vol_alpha_2x3v_ser_p2(const double *w, const double *dxv, const int dir,
+GKYL_CU_DH void vlasov_nc_hamil_vel_dense_vol_alpha_2x3v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp0_2x3v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *alpha, double* GKYL_RESTRICT out); 
@@ -507,7 +507,7 @@ GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp111_2x3v_ser_p2(const double *w, con
 GKYL_CU_DH void vlasov_nc_hamil_phase_vol_alpha_2x3v_ser_p2(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 
-GKYL_CU_DH void vlasov_nc_hamil_vel_vol_alpha_3x3v_ser_p1(const double *w, const double *dxv, const int dir,
+GKYL_CU_DH void vlasov_nc_hamil_vel_dense_vol_alpha_3x3v_ser_p1(const double *w, const double *dxv, const int dir,
         const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT out); 
 GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp0_3x3v_ser_p1(const double *w, const double *dxv, const int dir,
         const double *alpha, double* GKYL_RESTRICT out); 

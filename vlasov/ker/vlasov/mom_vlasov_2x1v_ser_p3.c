@@ -58,7 +58,7 @@ GKYL_CU_DH void mom_vlasov_M3ijk_2x1v_ser_p3(const double *w, const double *dxv,
   out[10] += (1.5*vmap_vx[0]*f[23]*vmap_vx1_sq+0.8999999999999999*f[29]*vmap_vx1_cu+1.4999999999999998*vmap_vx[1]*f[29]*vmap_vx0_sq+0.5*f[23]*vmap_vx0_cu)*volFact; 
   out[11] += (1.5*vmap_vx[0]*f[24]*vmap_vx1_sq+0.8999999999999999*f[30]*vmap_vx1_cu+1.4999999999999998*vmap_vx[1]*f[30]*vmap_vx0_sq+0.5*f[24]*vmap_vx0_cu)*volFact; 
 } 
-GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
+GKYL_CU_DH void mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
@@ -78,7 +78,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M1i_2x1v_ser_p3(const double *w, const doub
   out[10] += (3.8729833462074166*hamil[2]*f[29]+2.6457513110645907*hamil[3]*f[23]+1.7320508075688772*hamil[1]*f[23])*dv10*jacob_vx_inv*volFact; 
   out[11] += (3.8729833462074166*hamil[2]*f[30]+2.6457513110645907*hamil[3]*f[24]+1.7320508075688772*hamil[1]*f[24])*dv10*jacob_vx_inv*volFact; 
 } 
-GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
+GKYL_CU_DH void mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
@@ -95,7 +95,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M2_2x1v_ser_p3(const double *w, const doubl
   out[10] += (1.0*hamil[1]*f[29]+hamil[0]*f[23])*volFact; 
   out[11] += (1.0*hamil[1]*f[30]+hamil[0]*f[24])*volFact; 
 } 
-GKYL_CU_DH void mom_vlasov_hamil_vel_M3i_2x1v_ser_p3(const double *w, const double *dxv, const int *idx,
+GKYL_CU_DH void mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p3(const double *w, const double *dxv, const int *idx,
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
@@ -120,7 +120,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_M3i_2x1v_ser_p3(const double *w, const doub
   out[10] += (0.6210590034081187*dH_dpx[2]*hamil[3]*f[29]+0.6324555320336759*dH_dpx[1]*hamil[2]*f[29]+0.6324555320336759*hamil[1]*dH_dpx[2]*f[29]+0.7071067811865474*dH_dpx[0]*hamil[1]*f[29]+0.7071067811865474*hamil[0]*dH_dpx[1]*f[29]+0.7071067811865475*dH_dpx[2]*hamil[2]*f[23]+0.7071067811865475*dH_dpx[1]*hamil[1]*f[23]+0.7071067811865475*dH_dpx[0]*hamil[0]*f[23])*volFact; 
   out[11] += (0.6210590034081187*dH_dpx[2]*hamil[3]*f[30]+0.6324555320336759*dH_dpx[1]*hamil[2]*f[30]+0.6324555320336759*hamil[1]*dH_dpx[2]*f[30]+0.7071067811865474*dH_dpx[0]*hamil[1]*f[30]+0.7071067811865474*hamil[0]*dH_dpx[1]*f[30]+0.7071067811865475*dH_dpx[2]*hamil[2]*f[24]+0.7071067811865475*dH_dpx[1]*hamil[1]*f[24]+0.7071067811865475*dH_dpx[0]*hamil[0]*f[24])*volFact; 
 } 
-GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
+GKYL_CU_DH void mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[2]/2; 
@@ -164,7 +164,7 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_five_moments_2x1v_ser_p3(const double *w, c
   out[34] += (1.0*hamil[1]*f[29]+hamil[0]*f[23])*volFact; 
   out[35] += (1.0*hamil[1]*f[30]+hamil[0]*f[24])*volFact; 
 } 
-GKYL_CU_DH void mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
+GKYL_CU_DH void mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p3(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 
   double volFact = dxv[0]*dxv[1]*dxv[2]*0.125; 
