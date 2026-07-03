@@ -96,56 +96,25 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
 {
   disable_denorm_float();
 
-  assert(vm->num_species + vm->num_fluid_species + vm->num_species_inp <= GKYL_MAX_SPECIES);
+  assert(vm->num_species <= GKYL_MAX_SPECIES);
 
   gkyl_vlasov_app *app = gkyl_malloc(sizeof(gkyl_vlasov_app));
 
-  // Assemble the unified species input list: either directly from
-  // vm->species_inp (the preferred API) or from the two legacy per-kind arrays
-  // (deprecation shim). Entries are stably partitioned kinetic-first so the
-  // internal container array keeps the kinetic-head/fluid-tail layout restart
-  // IO relies on; relative declaration order within each kind is preserved
-  // (it determines diagnostic/restart file naming).
-  struct gkyl_vlasov_species_inp *sinp =
-    gkyl_malloc(sizeof(struct gkyl_vlasov_species_inp[GKYL_MAX_SPECIES]));
+  // Stably partition the species input kinetic-first so the internal container
+  // array keeps the kinetic-head/fluid-tail layout restart IO relies on;
+  // relative declaration order within each kind is preserved (it determines
+  // diagnostic/restart file naming).
+  struct gkyl_vlasov_species *sinp =
+    gkyl_malloc(sizeof(struct gkyl_vlasov_species[GKYL_MAX_SPECIES]));
   int ntot = 0, ns = 0, nsf = 0;
-  if (vm->num_species_inp > 0) {
-    assert(vm->num_species == 0 && vm->num_fluid_species == 0);
-    for (int i=0; i<vm->num_species_inp; ++i)
-      if (vm->species_inp[i].type != GKYL_SPECIES_FLUID)
-        sinp[ntot++] = vm->species_inp[i];
-    ns = ntot;
-    for (int i=0; i<vm->num_species_inp; ++i)
-      if (vm->species_inp[i].type == GKYL_SPECIES_FLUID)
-        sinp[ntot++] = vm->species_inp[i];
-    nsf = ntot - ns;
-  }
-  else {
-    // Legacy shim: hoist each block's identity to the unified top level and
-    // tag the type by which array it came from.
-    for (int i=0; i<vm->num_species; ++i) {
-      sinp[ntot] = (struct gkyl_vlasov_species_inp) {
-        .type = GKYL_SPECIES_VLASOV,
-        .charge = vm->species[i].charge,
-        .mass = vm->species[i].mass,
-        .kinetic = vm->species[i],
-      };
-      strcpy(sinp[ntot].name, vm->species[i].name);
-      ntot += 1;
-    }
-    ns = ntot;
-    for (int i=0; i<vm->num_fluid_species; ++i) {
-      sinp[ntot] = (struct gkyl_vlasov_species_inp) {
-        .type = GKYL_SPECIES_FLUID,
-        .charge = vm->fluid_species[i].charge,
-        .mass = vm->fluid_species[i].mass,
-        .fluid = vm->fluid_species[i],
-      };
-      strcpy(sinp[ntot].name, vm->fluid_species[i].name);
-      ntot += 1;
-    }
-    nsf = vm->num_fluid_species;
-  }
+  for (int i=0; i<vm->num_species; ++i)
+    if (vm->species[i].type != GKYL_SPECIES_FLUID)
+      sinp[ntot++] = vm->species[i];
+  ns = ntot;
+  for (int i=0; i<vm->num_species; ++i)
+    if (vm->species[i].type == GKYL_SPECIES_FLUID)
+      sinp[ntot++] = vm->species[i];
+  nsf = ntot - ns;
 
   int cdim = app->cdim = vm->cdim;
   int vdim = app->vdim = vm->vdim;

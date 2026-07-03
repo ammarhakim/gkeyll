@@ -400,7 +400,7 @@ eqn_openlibs(lua_State *L)
 struct vlasov_species_lw {
   int magic; // This must be first element in the struct.
   
-  struct gkyl_vlasov_species vm_species; // Input struct to construct species.
+  struct gkyl_vlasov_kinetic_species vm_species; // Input struct to construct species.
   int vdim; // Velocity space dimensions.
 
   bool has_cov_tangent_basis_func; // Is there a covariant tangent basis function?
@@ -528,7 +528,7 @@ static int
 vlasov_species_lw_new(lua_State *L)
 {
   int vdim  = 0;
-  struct gkyl_vlasov_species vm_species = { };
+  struct gkyl_vlasov_kinetic_species vm_species = { };
 
   vm_species.model_id = glua_tbl_get_integer(L, "modelID", 0);
   
@@ -2191,23 +2191,27 @@ vm_app_new(lua_State *L)
   struct vlasov_species_lw *species[GKYL_MAX_SPECIES];
 
   // Set all species input.
-  vm.num_species = get_species_inp(L, cdim, species);
+  int num_kinetic_species = get_species_inp(L, cdim, species);
 
   // Need to sort the species[] array by name of the species before
   // proceeding as there is no way to ensure that all cores loop over
   // Lua tables in the same order.
-  qsort(species, vm.num_species, sizeof(struct vlasov_species_lw *), species_compare_func);  
+  qsort(species, num_kinetic_species, sizeof(struct vlasov_species_lw *), species_compare_func);  
   
-  for (int s = 0; s < vm.num_species; s++) {
-    vm.species[s] = species[s]->vm_species;
+  for (int s = 0; s < num_kinetic_species; s++) {
+    vm.species[s].type = GKYL_SPECIES_VLASOV;
+    vm.species[s].kinetic = species[s]->vm_species;
+    strcpy(vm.species[s].name, species[s]->vm_species.name);
+    vm.species[s].charge = species[s]->vm_species.charge;
+    vm.species[s].mass = species[s]->vm_species.mass;
     vm.vdim = species[s]->vdim;
 
     for (int i = 0; i < species[s]->vdim; i++) {
       app_lw->has_mapc2p_vel_func[s][i] = species[s]->has_mapc2p_vel_func[i];
       app_lw->mapc2p_vel_func_ctx[s][i] = species[s]->mapc2p_vel_func_ref[i];
       if (species[s]->has_mapc2p_vel_func[i]) {
-        vm.species[s].mapc2p_vel[i].mapc2p_vel_func = gkyl_lw_eval_cb;
-        vm.species[s].mapc2p_vel[i].mapc2p_vel_ctx = &app_lw->mapc2p_vel_func_ctx[s][i];
+        vm.species[s].kinetic.mapc2p_vel[i].mapc2p_vel_func = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.mapc2p_vel[i].mapc2p_vel_ctx = &app_lw->mapc2p_vel_func_ctx[s][i];
       }
     }
 
@@ -2239,48 +2243,48 @@ vm_app_new(lua_State *L)
     app_lw->metric_determinant_func_ctx[s] = species[s]->metric_determinant_func_ref;
 
     if (species[s]->has_cov_tangent_basis_func) {
-      vm.species[s].cov_tangent_basis = gkyl_lw_eval_cb;
-      vm.species[s].cov_tangent_basis_ctx = &app_lw->cov_tangent_basis_func_ctx[s];
+      vm.species[s].kinetic.cov_tangent_basis = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.cov_tangent_basis_ctx = &app_lw->cov_tangent_basis_func_ctx[s];
     }
 
     if (species[s]->has_triad_basis_func) {
-      vm.species[s].triad_basis = gkyl_lw_eval_cb;
-      vm.species[s].triad_basis_ctx = &app_lw->triad_basis_func_ctx[s];
+      vm.species[s].kinetic.triad_basis = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.triad_basis_ctx = &app_lw->triad_basis_func_ctx[s];
     }
 
     if (species[s]->has_triad_basis_gradient_func) {
-      vm.species[s].triad_basis_gradient = gkyl_lw_eval_cb;
-      vm.species[s].triad_basis_gradient_ctx = &app_lw->triad_basis_gradient_func_ctx[s];
+      vm.species[s].kinetic.triad_basis_gradient = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.triad_basis_gradient_ctx = &app_lw->triad_basis_gradient_func_ctx[s];
     }
 
     if (species[s]->has_vierbein_func) {
-      vm.species[s].vierbein = gkyl_lw_eval_cb;
-      vm.species[s].vierbein_ctx = &app_lw->vierbein_func_ctx[s];
+      vm.species[s].kinetic.vierbein = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.vierbein_ctx = &app_lw->vierbein_func_ctx[s];
     }
 
     if (species[s]->has_vierbein_gradient_func) {
-      vm.species[s].vierbein_gradient = gkyl_lw_eval_cb;
-      vm.species[s].vierbein_gradient_ctx = &app_lw->vierbein_gradient_func_ctx[s];
+      vm.species[s].kinetic.vierbein_gradient = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.vierbein_gradient_ctx = &app_lw->vierbein_gradient_func_ctx[s];
     }
     
     if (species[s]->has_hamiltonian_func) {
-      vm.species[s].hamil = gkyl_lw_eval_cb;
-      vm.species[s].hamil_ctx = &app_lw->hamiltonian_func_ctx[s];
+      vm.species[s].kinetic.hamil = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.hamil_ctx = &app_lw->hamiltonian_func_ctx[s];
     }
 
     if (species[s]->has_metric_func) {
-      vm.species[s].h_ij = gkyl_lw_eval_cb;
-      vm.species[s].h_ij_ctx = &app_lw->metric_func_ctx[s];
+      vm.species[s].kinetic.h_ij = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.h_ij_ctx = &app_lw->metric_func_ctx[s];
     }
 
     if (species[s]->has_inverse_metric_func) {
-      vm.species[s].h_ij_inv = gkyl_lw_eval_cb;
-      vm.species[s].h_ij_inv_ctx = &app_lw->inverse_metric_func_ctx[s];
+      vm.species[s].kinetic.h_ij_inv = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.h_ij_inv_ctx = &app_lw->inverse_metric_func_ctx[s];
     }
 
     if (species[s]->has_metric_determinant_func) {
-      vm.species[s].det_h = gkyl_lw_eval_cb;
-      vm.species[s].det_h_ctx = &app_lw->metric_determinant_func_ctx[s];
+      vm.species[s].kinetic.det_h = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.det_h_ctx = &app_lw->metric_determinant_func_ctx[s];
     }
 
     app_lw->num_init[s] = species[s]->num_init;
@@ -2305,34 +2309,34 @@ vm_app_new(lua_State *L)
       app_lw->use_last_converged[s][i] = species[s]->use_last_converged[i];
     }
 
-    vm.species[s].num_init = app_lw->num_init[s];
+    vm.species[s].kinetic.num_init = app_lw->num_init[s];
     for (int i = 0; i < app_lw->num_init[s]; i++) {
-      vm.species[s].projection[i].proj_id = app_lw->proj_id[s][i];
+      vm.species[s].kinetic.projection[i].proj_id = app_lw->proj_id[s][i];
 
       if (species[s]->has_init_func[i]) {
-        vm.species[s].projection[i].func = gkyl_lw_eval_cb;
-        vm.species[s].projection[i].ctx_func = &app_lw->init_func_ctx[s][i];
+        vm.species[s].kinetic.projection[i].func = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.projection[i].ctx_func = &app_lw->init_func_ctx[s][i];
       }
 
       if (species[s]->has_density_init_func[i]) {
-        vm.species[s].projection[i].density = gkyl_lw_eval_cb;
-        vm.species[s].projection[i].ctx_density = &app_lw->density_init_func_ctx[s][i];
+        vm.species[s].kinetic.projection[i].density = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.projection[i].ctx_density = &app_lw->density_init_func_ctx[s][i];
       }
 
       if (species[s]->has_V_drift_init_func[i]) {
-        vm.species[s].projection[i].V_drift = gkyl_lw_eval_cb;
-        vm.species[s].projection[i].ctx_V_drift = &app_lw->V_drift_init_func_ctx[s][i];
+        vm.species[s].kinetic.projection[i].V_drift = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.projection[i].ctx_V_drift = &app_lw->V_drift_init_func_ctx[s][i];
       }
 
       if (species[s]->has_temp_init_func[i]) {
-        vm.species[s].projection[i].temp = gkyl_lw_eval_cb;
-        vm.species[s].projection[i].ctx_temp = &app_lw->temp_init_func_ctx[s][i];
+        vm.species[s].kinetic.projection[i].temp = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.projection[i].ctx_temp = &app_lw->temp_init_func_ctx[s][i];
       }
 
-      vm.species[s].projection[i].correct_all_moms = app_lw->correct_all_moms[s][i];
-      vm.species[s].projection[i].iter_eps = app_lw->iter_eps[s][i];
-      vm.species[s].projection[i].max_iter = app_lw->max_iter[s][i];
-      vm.species[s].projection[i].use_last_converged = app_lw->use_last_converged[s][i];
+      vm.species[s].kinetic.projection[i].correct_all_moms = app_lw->correct_all_moms[s][i];
+      vm.species[s].kinetic.projection[i].iter_eps = app_lw->iter_eps[s][i];
+      vm.species[s].kinetic.projection[i].max_iter = app_lw->max_iter[s][i];
+      vm.species[s].kinetic.projection[i].use_last_converged = app_lw->use_last_converged[s][i];
     }
 
     app_lw->collision_id[s] = species[s]->collision_id;
@@ -2356,29 +2360,29 @@ vm_app_new(lua_State *L)
     app_lw->fixed_temp_relax[s] = species[s]->fixed_temp_relax;
     app_lw->is_implicit[s] = species[s]->is_implicit;
     
-    vm.species[s].collisions.collision_id = app_lw->collision_id[s];
-    vm.species[s].collisions.nu_frac = app_lw->nu_frac[s];
-    vm.species[s].collisions.write_coll_diagnostics = app_lw->write_coll_diagnostics[s];
+    vm.species[s].kinetic.collisions.collision_id = app_lw->collision_id[s];
+    vm.species[s].kinetic.collisions.nu_frac = app_lw->nu_frac[s];
+    vm.species[s].kinetic.collisions.write_coll_diagnostics = app_lw->write_coll_diagnostics[s];
     if (species[s]->has_self_nu_func) {
-      vm.species[s].collisions.self_nu = gkyl_lw_eval_cb;
-      vm.species[s].collisions.self_nu_ctx = &app_lw->self_nu_func_ctx[s];
+      vm.species[s].kinetic.collisions.self_nu = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.collisions.self_nu_ctx = &app_lw->self_nu_func_ctx[s];
     }
 
-    vm.species[s].collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
+    vm.species[s].kinetic.collisions.num_cross_collisions = app_lw->num_cross_collisions[s];
     for (int i = 0; i < app_lw->num_cross_collisions[s]; i++) {
-      strcpy(vm.species[s].collisions.collide_with[i], app_lw->collide_with[s][i]);
+      strcpy(vm.species[s].kinetic.collisions.collide_with[i], app_lw->collide_with[s][i]);
       if (species[s]->has_cross_nu_func[i]) {
-        vm.species[s].collisions.cross_nu[i] = gkyl_lw_eval_cb;
-        vm.species[s].collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
+        vm.species[s].kinetic.collisions.cross_nu[i] = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.collisions.cross_nu_ctx[i] = &app_lw->cross_nu_func_ctx[s][i];
       }
     }
-    vm.species[s].collisions.den_ref = app_lw->den_ref[s];
-    vm.species[s].collisions.temp_ref = app_lw->temp_ref[s];
-    vm.species[s].collisions.hbar = app_lw->hbar[s];
-    vm.species[s].collisions.eps0 = app_lw->eps0[s];
-    vm.species[s].collisions.eV = app_lw->eV[s]; 
-    vm.species[s].collisions.fixed_temp_relax = app_lw->fixed_temp_relax[s];
-    vm.species[s].collisions.is_implicit = app_lw->is_implicit[s];
+    vm.species[s].kinetic.collisions.den_ref = app_lw->den_ref[s];
+    vm.species[s].kinetic.collisions.temp_ref = app_lw->temp_ref[s];
+    vm.species[s].kinetic.collisions.hbar = app_lw->hbar[s];
+    vm.species[s].kinetic.collisions.eps0 = app_lw->eps0[s];
+    vm.species[s].kinetic.collisions.eV = app_lw->eV[s]; 
+    vm.species[s].kinetic.collisions.fixed_temp_relax = app_lw->fixed_temp_relax[s];
+    vm.species[s].kinetic.collisions.is_implicit = app_lw->is_implicit[s];
 
     app_lw->lte_correct_all_moms[s] = species[s]->lte_correct_all_moms;
     app_lw->lte_iter_eps[s] = species[s]->lte_iter_eps;
@@ -2386,11 +2390,11 @@ vm_app_new(lua_State *L)
     app_lw->lte_use_last_converged[s] = species[s]->lte_use_last_converged;
     app_lw->output_f_lte[s] = species[s]->output_f_lte;  
 
-    vm.species[s].correct.correct_all_moms = app_lw->lte_correct_all_moms[s];
-    vm.species[s].correct.iter_eps = app_lw->lte_iter_eps[s];
-    vm.species[s].correct.max_iter = app_lw->lte_max_iter[s];
-    vm.species[s].correct.use_last_converged = app_lw->lte_use_last_converged[s];
-    vm.species[s].correct.output_f_lte = app_lw->output_f_lte[s];
+    vm.species[s].kinetic.correct.correct_all_moms = app_lw->lte_correct_all_moms[s];
+    vm.species[s].kinetic.correct.iter_eps = app_lw->lte_iter_eps[s];
+    vm.species[s].kinetic.correct.max_iter = app_lw->lte_max_iter[s];
+    vm.species[s].kinetic.correct.use_last_converged = app_lw->lte_use_last_converged[s];
+    vm.species[s].kinetic.correct.output_f_lte = app_lw->output_f_lte[s];
 
     app_lw->source_id[s] = species[s]->source_id;
 
@@ -2432,103 +2436,108 @@ vm_app_new(lua_State *L)
       app_lw->source_use_last_converged[s][i] = species[s]->source_use_last_converged[i];
     }
 
-    vm.species[s].source.source_id = app_lw->source_id[s];
+    vm.species[s].kinetic.source.source_id = app_lw->source_id[s];
 
-    vm.species[s].source.source_length = app_lw->source_length[s];
-    strcpy(vm.species[s].source.source_species, app_lw->source_species[s]);
+    vm.species[s].kinetic.source.source_length = app_lw->source_length[s];
+    strcpy(vm.species[s].kinetic.source.source_species, app_lw->source_species[s]);
 
-    vm.species[s].source.num_cross_source = app_lw->num_cross_source[s];
+    vm.species[s].kinetic.source.num_cross_source = app_lw->num_cross_source[s];
     for (int i = 0; i < app_lw->num_cross_source[s]; i++) {
-      strcpy(vm.species[s].source.source_with[i], app_lw->source_with[s][i]);
-      vm.species[s].source.source_with_v_thresh[i] = app_lw->source_with_v_thresh[s][i];
-      vm.species[s].source.source_with_f_thresh[i] = app_lw->source_with_f_thresh[s][i];
-      vm.species[s].source.source_with_upper_half[i] = app_lw->source_with_upper_half[s][i];
-      vm.species[s].source.source_with_proj[i] = app_lw->source_with_proj[s][i];
+      strcpy(vm.species[s].kinetic.source.source_with[i], app_lw->source_with[s][i]);
+      vm.species[s].kinetic.source.source_with_v_thresh[i] = app_lw->source_with_v_thresh[s][i];
+      vm.species[s].kinetic.source.source_with_f_thresh[i] = app_lw->source_with_f_thresh[s][i];
+      vm.species[s].kinetic.source.source_with_upper_half[i] = app_lw->source_with_upper_half[s][i];
+      vm.species[s].kinetic.source.source_with_proj[i] = app_lw->source_with_proj[s][i];
     }
-    vm.species[s].source.write_source = app_lw->write_source[s];
-    vm.species[s].source.evolve_source = app_lw->evolve_source[s];
-    vm.species[s].source.filter = app_lw->filter[s];
-    vm.species[s].source.num_filters = app_lw->num_filters[s];
+    vm.species[s].kinetic.source.write_source = app_lw->write_source[s];
+    vm.species[s].kinetic.source.evolve_source = app_lw->evolve_source[s];
+    vm.species[s].kinetic.source.filter = app_lw->filter[s];
+    vm.species[s].kinetic.source.num_filters = app_lw->num_filters[s];
 
-    vm.species[s].source.num_sources = app_lw->num_sources[s];
+    vm.species[s].kinetic.source.num_sources = app_lw->num_sources[s];
     for (int i = 0; i < app_lw->num_sources[s]; i++) {
-      vm.species[s].source.projection[i].proj_id = app_lw->source_proj_id[s][i];
+      vm.species[s].kinetic.source.projection[i].proj_id = app_lw->source_proj_id[s][i];
 
       if (species[s]->source_has_init_func[i]) {
-        vm.species[s].source.projection[i].func = gkyl_lw_eval_cb;
-        vm.species[s].source.projection[i].ctx_func = &app_lw->source_init_func_ctx[s][i];
+        vm.species[s].kinetic.source.projection[i].func = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.source.projection[i].ctx_func = &app_lw->source_init_func_ctx[s][i];
       }
 
       if (species[s]->source_has_density_init_func[i]) {
-        vm.species[s].source.projection[i].density = gkyl_lw_eval_cb;
-        vm.species[s].source.projection[i].ctx_density = &app_lw->source_density_init_func_ctx[s][i];
+        vm.species[s].kinetic.source.projection[i].density = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.source.projection[i].ctx_density = &app_lw->source_density_init_func_ctx[s][i];
       }
 
       if (species[s]->source_has_V_drift_init_func[i]) {
-        vm.species[s].source.projection[i].V_drift = gkyl_lw_eval_cb;
-        vm.species[s].source.projection[i].ctx_V_drift = &app_lw->source_V_drift_init_func_ctx[s][i];
+        vm.species[s].kinetic.source.projection[i].V_drift = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.source.projection[i].ctx_V_drift = &app_lw->source_V_drift_init_func_ctx[s][i];
       }
 
       if (species[s]->source_has_temp_init_func[i]) {
-        vm.species[s].source.projection[i].temp = gkyl_lw_eval_cb;
-        vm.species[s].source.projection[i].ctx_temp = &app_lw->source_temp_init_func_ctx[s][i];
+        vm.species[s].kinetic.source.projection[i].temp = gkyl_lw_eval_cb;
+        vm.species[s].kinetic.source.projection[i].ctx_temp = &app_lw->source_temp_init_func_ctx[s][i];
       }
 
-      vm.species[s].source.projection[i].correct_all_moms = app_lw->source_correct_all_moms[s][i];
-      vm.species[s].source.projection[i].iter_eps = app_lw->source_iter_eps[s][i];
-      vm.species[s].source.projection[i].max_iter = app_lw->source_max_iter[s][i];
-      vm.species[s].source.projection[i].use_last_converged = app_lw->source_use_last_converged[s][i];
+      vm.species[s].kinetic.source.projection[i].correct_all_moms = app_lw->source_correct_all_moms[s][i];
+      vm.species[s].kinetic.source.projection[i].iter_eps = app_lw->source_iter_eps[s][i];
+      vm.species[s].kinetic.source.projection[i].max_iter = app_lw->source_max_iter[s][i];
+      vm.species[s].kinetic.source.projection[i].use_last_converged = app_lw->source_use_last_converged[s][i];
     }
 
     app_lw->radiation_id[s] = species[s]->radiation_id;
     app_lw->t_cool[s] = species[s]->t_cool;
     app_lw->p0[s] = species[s]->p0;
 
-    vm.species[s].radiation.radiation_id = app_lw->radiation_id[s];
-    vm.species[s].radiation.t_cool = app_lw->t_cool[s];
-    vm.species[s].radiation.p0 = app_lw->p0[s];
+    vm.species[s].kinetic.radiation.radiation_id = app_lw->radiation_id[s];
+    vm.species[s].kinetic.radiation.t_cool = app_lw->t_cool[s];
+    vm.species[s].kinetic.radiation.p0 = app_lw->p0[s];
 
     if (species[s]->has_app_accel_func) {
       species[s]->app_accel_func_ref.ndim = cdim;
 
       app_lw->app_accel_func_ctx[s] = species[s]->app_accel_func_ref;
-      vm.species[s].app_accel = gkyl_lw_eval_cb;
-      vm.species[s].app_accel_ctx = &app_lw->app_accel_func_ctx;
+      vm.species[s].kinetic.app_accel = gkyl_lw_eval_cb;
+      vm.species[s].kinetic.app_accel_ctx = &app_lw->app_accel_func_ctx;
 
-      vm.species[s].app_accel_evolve = species[s]->evolve_app_accel;
+      vm.species[s].kinetic.app_accel_evolve = species[s]->evolve_app_accel;
     }    
   }
 
   struct vlasov_fluid_species_lw *fluid_species[GKYL_MAX_SPECIES];
 
   // Set all fluid species input.
-  vm.num_fluid_species = get_fluid_species_inp(L, cdim, fluid_species);
+  int num_fluid_species = get_fluid_species_inp(L, cdim, fluid_species);
+  vm.num_species = num_kinetic_species + num_fluid_species;
 
   // Need to sort the fluid_species[] array by name of the fluid species before
   // proceeding as there is no way to ensure that all cores loop over
   // Lua tables in the same order.
-  qsort(fluid_species, vm.num_fluid_species, sizeof(struct vlasov_fluid_species_lw *), fluid_species_compare_func);
+  qsort(fluid_species, num_fluid_species, sizeof(struct vlasov_fluid_species_lw *), fluid_species_compare_func);
   
-  for (int s = 0; s < vm.num_fluid_species; s++) {
-    vm.fluid_species[s] = fluid_species[s]->vlasov_fluid_species;
+  for (int s = 0; s < num_fluid_species; s++) {
+    vm.species[num_kinetic_species + s].type = GKYL_SPECIES_FLUID;
+    vm.species[num_kinetic_species + s].fluid = fluid_species[s]->vlasov_fluid_species;
+    strcpy(vm.species[num_kinetic_species + s].name, fluid_species[s]->vlasov_fluid_species.name);
+    vm.species[num_kinetic_species + s].charge = fluid_species[s]->vlasov_fluid_species.charge;
+    vm.species[num_kinetic_species + s].mass = fluid_species[s]->vlasov_fluid_species.mass;
 
     fluid_species[s]->init_ctx.ndim = cdim; 
     app_lw->fluid_species_init_ctx[s] = fluid_species[s]->init_ctx;
-    vm.fluid_species[s].init = gkyl_lw_eval_cb;
-    vm.fluid_species[s].ctx = &app_lw->fluid_species_init_ctx[s];
+    vm.species[num_kinetic_species + s].fluid.init = gkyl_lw_eval_cb;
+    vm.species[num_kinetic_species + s].fluid.ctx = &app_lw->fluid_species_init_ctx[s];
 
     if (fluid_species[s]->has_app_advect_func) {
       fluid_species[s]->app_advect_func_ref.ndim = cdim; 
       app_lw->app_advect_func_ctx[s] = fluid_species[s]->app_advect_func_ref;
-      vm.fluid_species[s].advection.velocity = gkyl_lw_eval_cb;
-      vm.fluid_species[s].advection.velocity_ctx = &app_lw->app_advect_func_ctx[s];
+      vm.species[num_kinetic_species + s].fluid.advection.velocity = gkyl_lw_eval_cb;
+      vm.species[num_kinetic_species + s].fluid.advection.velocity_ctx = &app_lw->app_advect_func_ctx[s];
     }
 
     if (fluid_species[s]->has_n0_func) {
       fluid_species[s]->n0_func_ref.ndim = cdim; 
       app_lw->n0_func_ctx[s] = fluid_species[s]->n0_func_ref;
-      vm.fluid_species[s].can_pb_n0 = gkyl_lw_eval_cb;
-      vm.fluid_species[s].can_pb_n0_ctx = &app_lw->n0_func_ctx[s];
+      vm.species[num_kinetic_species + s].fluid.can_pb_n0 = gkyl_lw_eval_cb;
+      vm.species[num_kinetic_species + s].fluid.can_pb_n0_ctx = &app_lw->n0_func_ctx[s];
     }
 
     if (fluid_species[s]->has_diffusion_func) {
@@ -2540,8 +2549,8 @@ vm_app_new(lua_State *L)
         fluid_species[s]->diffusion_func_ref.nret = 6;
       }
       app_lw->diffusion_func_ctx[s] = fluid_species[s]->diffusion_func_ref;
-      vm.fluid_species[s].diffusion.Dij = gkyl_lw_eval_cb;
-      vm.fluid_species[s].diffusion.Dij_ctx = &app_lw->diffusion_func_ctx[s];
+      vm.species[num_kinetic_species + s].fluid.diffusion.Dij = gkyl_lw_eval_cb;
+      vm.species[num_kinetic_species + s].fluid.diffusion.Dij_ctx = &app_lw->diffusion_func_ctx[s];
     }
   }
 
@@ -2695,35 +2704,6 @@ vm_app_new(lua_State *L)
     printf("tot_cuts = %d (%d)\n", tot_cuts, comm_sz);
     luaL_error(L, "Number of ranks and cuts do not match!");
   }
-
-  // The per-kind arrays above were used as assembly scratch; hand the app the
-  // unified species list (the preferred input API), hoisting each block's
-  // identity to the top level and tagging the type by the Lua constructor the
-  // species came from (Vlasov.Species vs Vlasov.FluidSpecies). The copied
-  // blocks carry pointers into app_lw (Lua callback contexts), which remain
-  // valid. Kinetic-first order keeps the species indices used by the app_lw
-  // write wrappers unchanged.
-  vm.num_species_inp = vm.num_species + vm.num_fluid_species;
-  for (int s = 0; s < vm.num_species; s++) {
-    vm.species_inp[s] = (struct gkyl_vlasov_species_inp) {
-      .type = GKYL_SPECIES_VLASOV,
-      .charge = vm.species[s].charge,
-      .mass = vm.species[s].mass,
-      .kinetic = vm.species[s],
-    };
-    strcpy(vm.species_inp[s].name, vm.species[s].name);
-  }
-  for (int s = 0; s < vm.num_fluid_species; s++) {
-    vm.species_inp[vm.num_species + s] = (struct gkyl_vlasov_species_inp) {
-      .type = GKYL_SPECIES_FLUID,
-      .charge = vm.fluid_species[s].charge,
-      .mass = vm.fluid_species[s].mass,
-      .fluid = vm.fluid_species[s],
-    };
-    strcpy(vm.species_inp[vm.num_species + s].name, vm.fluid_species[s].name);
-  }
-  vm.num_species = 0;
-  vm.num_fluid_species = 0;
 
   app_lw->app = gkyl_vlasov_app_new(&vm);
 

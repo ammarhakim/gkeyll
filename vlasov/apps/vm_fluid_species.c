@@ -603,17 +603,121 @@ vm_fluid_species_can_pb_fluid_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *a
 }
 
 // Concrete time-stepping methods for a (present, evolving) Vlasov fluid aspect,
-// assigned to the fluid vtable in vm_fluid_species_init. Defined below; the
-// "_enabled" suffix mirrors the kinetic side and pairs with future "_disabled"
-// no-ops for species that have no fluid aspect.
-static void vm_fluid_species_apply_ic_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0);
-static double vm_fluid_species_rhs_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs);
-static void vm_fluid_species_step_f_enabled(struct gkyl_array* out, double dt, const struct gkyl_array* inp);
-static void vm_fluid_species_combine_enabled(struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng);
-static void vm_fluid_species_copy_range_enabled(struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *range);
+// assigned to the fluid vtable in vm_fluid_species_init below. The "_enabled"
+// suffix mirrors the kinetic side and pairs with future "_disabled" no-ops for
+// species that have no fluid aspect.
+static void
+vm_fluid_species_apply_ic_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
+{
+  int poly_order = app->poly_order;
+
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
+    poly_order+1, fluid_species->num_equations, fluid_species->info.init, fluid_species->info.ctx);
+
+  // run updater
+  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
+  gkyl_proj_on_basis_release(proj);
+
+  if (app->use_gpu) {
+    gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
+  }
+  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
+  vm_fluid_species_limiter(app, fluid_species, fluid_species->fluid);
+
+  // Pre-compute applied acceleration in case it's time-independent
+  vm_fluid_species_calc_app_accel(app, fluid_species, t0);
+
+  // we are pre-computing source for now as it is time-independent
+  vm_fluid_species_source_calc(app, fluid_species, t0);
+}
+// Compute the RHS for fluid species update, returning maximum stable
+// time-step.
+static double
+vm_fluid_species_rhs_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
+  const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  double omegaCfl = 1/DBL_MAX;
+
+  gkyl_array_clear(fluid_species->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  // If we are solving a Poisson equation, need to compute 
+  // surface characteristics from potential and source update.
+  if (fluid_species->has_poisson) {
+    struct timespec tm = gkyl_wall_clock();
+
+    // Compute the surface characteristics from the potential. 
+    gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(fluid_species->calc_can_pb_fluid_vars, 
+      &app->local, &app->local_ext, fluid_species->phi, 
+      fluid_species->alpha_surf, fluid_species->sgn_alpha_surf, fluid_species->const_sgn_alpha); 
+
+    // Increment the source contribution for certain canonical PB fluids onto the RHS. 
+    gkyl_canonical_pb_fluid_vars_source(fluid_species->calc_can_pb_fluid_vars, 
+      &app->local, fluid_species->phi, fluid_species->can_pb_n0, fluid, rhs); 
+
+    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm); 
+  }
+
+  gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
+    &app->local, fluid, fluid_species->cflrate, rhs);
+
+  // Accumulate explicit source contribution, e.g., external forces
+  // Only done if there are external forces and no EM fields, as fluid-EM coupling
+  // is handled by implicit source solve, see vm_fluid_em_coupling.c. 
+  if (fluid_species->has_app_accel && !app->has_field) {
+    gkyl_dg_calc_fluid_vars_source(fluid_species->calc_fluid_vars, &app->local, 
+      fluid_species->app_accel, fluid, rhs); 
+  }
+
+  if (fluid_species->has_diffusion) {
+    if (fluid_species->info.diffusion.Dij) {
+      gkyl_dg_updater_diffusion_gen_advance(fluid_species->diff_slvr_gen,
+        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
+    }
+    else if (fluid_species->info.diffusion.D) {
+      gkyl_dg_updater_diffusion_fluid_advance(fluid_species->diff_slvr,
+        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
+    }
+  }
+
+  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &app->local);
+
+  double omegaCfl_ho[1];
+  if (app->use_gpu) {
+    gkyl_cu_memcpy(omegaCfl_ho, fluid_species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
+  }
+  else {
+    omegaCfl_ho[0] = fluid_species->omegaCfl_ptr[0];
+  }
+  omegaCfl = omegaCfl_ho[0];
+
+  app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);
+
+  return app->cfl/omegaCfl;
+}
+// Forward-Euler accumulate for the fluid state (out = dt*out + inp).
+static void
+vm_fluid_species_step_f_enabled(struct gkyl_array* out, double dt, const struct gkyl_array* inp)
+{
+  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
+}
+// Combine fluid RK stages (out = c1*arr1 + c2*arr2 over rng).
+static void
+vm_fluid_species_combine_enabled(struct gkyl_array *out, double c1,
+  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
+  const struct gkyl_range *rng)
+{
+  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng), c2, arr2, rng);
+}
+// Copy the fluid state (out = inp over range).
+static void
+vm_fluid_species_copy_range_enabled(struct gkyl_array *out,
+  const struct gkyl_array *inp, const struct gkyl_range *range)
+{
+  gkyl_array_copy_range(out, inp, range);
+}
 
 // initialize fluid species object
 void
@@ -826,31 +930,6 @@ vm_fluid_species_init(struct gkyl_vm *vm, struct gkyl_vlasov_app *app, struct vm
   }
 }
 
-static void
-vm_fluid_species_apply_ic_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
-{
-  int poly_order = app->poly_order;
-
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&app->grid, &app->basis,
-    poly_order+1, fluid_species->num_equations, fluid_species->info.init, fluid_species->info.ctx);
-
-  // run updater
-  gkyl_proj_on_basis_advance(proj, t0, &app->local_ext, fluid_species->fluid_host);
-  gkyl_proj_on_basis_release(proj);
-
-  if (app->use_gpu) {
-    gkyl_array_copy(fluid_species->fluid, fluid_species->fluid_host);
-  }
-  // Apply limiter at t=0 to insure slopes are well-behaved at beginning of simulation
-  vm_fluid_species_limiter(app, fluid_species, fluid_species->fluid);
-
-  // Pre-compute applied acceleration in case it's time-independent
-  vm_fluid_species_calc_app_accel(app, fluid_species, t0);
-
-  // we are pre-computing source for now as it is time-independent
-  vm_fluid_species_source_calc(app, fluid_species, t0);
-}
-
 void
 vm_fluid_species_apply_ic(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species, double t0)
 {
@@ -893,86 +972,11 @@ vm_fluid_species_limiter(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_sp
   }
 }
 
-// Compute the RHS for fluid species update, returning maximum stable
-// time-step.
-static double
-vm_fluid_species_rhs_enabled(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
-  const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs)
-{
-  struct timespec wst = gkyl_wall_clock();
-
-  double omegaCfl = 1/DBL_MAX;
-
-  gkyl_array_clear(fluid_species->cflrate, 0.0);
-  gkyl_array_clear(rhs, 0.0);
-
-  // If we are solving a Poisson equation, need to compute 
-  // surface characteristics from potential and source update.
-  if (fluid_species->has_poisson) {
-    struct timespec tm = gkyl_wall_clock();
-
-    // Compute the surface characteristics from the potential. 
-    gkyl_dg_calc_canonical_pb_fluid_vars_alpha_surf(fluid_species->calc_can_pb_fluid_vars, 
-      &app->local, &app->local_ext, fluid_species->phi, 
-      fluid_species->alpha_surf, fluid_species->sgn_alpha_surf, fluid_species->const_sgn_alpha); 
-
-    // Increment the source contribution for certain canonical PB fluids onto the RHS. 
-    gkyl_canonical_pb_fluid_vars_source(fluid_species->calc_can_pb_fluid_vars, 
-      &app->local, fluid_species->phi, fluid_species->can_pb_n0, fluid, rhs); 
-
-    app->stat.fluid_species_vars_tm += gkyl_time_diff_now_sec(tm); 
-  }
-
-  gkyl_dg_updater_fluid_advance(fluid_species->advect_slvr, 
-    &app->local, fluid, fluid_species->cflrate, rhs);
-
-  // Accumulate explicit source contribution, e.g., external forces
-  // Only done if there are external forces and no EM fields, as fluid-EM coupling
-  // is handled by implicit source solve, see vm_fluid_em_coupling.c. 
-  if (fluid_species->has_app_accel && !app->has_field) {
-    gkyl_dg_calc_fluid_vars_source(fluid_species->calc_fluid_vars, &app->local, 
-      fluid_species->app_accel, fluid, rhs); 
-  }
-
-  if (fluid_species->has_diffusion) {
-    if (fluid_species->info.diffusion.Dij) {
-      gkyl_dg_updater_diffusion_gen_advance(fluid_species->diff_slvr_gen,
-        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
-    }
-    else if (fluid_species->info.diffusion.D) {
-      gkyl_dg_updater_diffusion_fluid_advance(fluid_species->diff_slvr,
-        &app->local, fluid_species->diffD, fluid, fluid_species->cflrate, rhs);
-    }
-  }
-
-  gkyl_array_reduce_range(fluid_species->omegaCfl_ptr, fluid_species->cflrate, GKYL_MAX, &app->local);
-
-  double omegaCfl_ho[1];
-  if (app->use_gpu) {
-    gkyl_cu_memcpy(omegaCfl_ho, fluid_species->omegaCfl_ptr, sizeof(double), GKYL_CU_MEMCPY_D2H);
-  }
-  else {
-    omegaCfl_ho[0] = fluid_species->omegaCfl_ptr[0];
-  }
-  omegaCfl = omegaCfl_ho[0];
-
-  app->stat.fluid_species_rhs_tm += gkyl_time_diff_now_sec(wst);
-
-  return app->cfl/omegaCfl;
-}
-
 double
 vm_fluid_species_rhs(gkyl_vlasov_app *app, struct vm_fluid_species *fluid_species,
   const struct gkyl_array *fluid, const struct gkyl_array *em, struct gkyl_array *rhs)
 {
   return fluid_species->rhs_func(app, fluid_species, fluid, em, rhs);
-}
-
-// Forward-Euler accumulate for the fluid state (out = dt*out + inp).
-static void
-vm_fluid_species_step_f_enabled(struct gkyl_array* out, double dt, const struct gkyl_array* inp)
-{
-  gkyl_array_accumulate(gkyl_array_scale(out, dt), 1.0, inp);
 }
 
 void
@@ -982,29 +986,12 @@ vm_fluid_species_step_f(struct vm_fluid_species *fluid_species,
   fluid_species->step_f_func(out, dt, inp);
 }
 
-// Combine fluid RK stages (out = c1*arr1 + c2*arr2 over rng).
-static void
-vm_fluid_species_combine_enabled(struct gkyl_array *out, double c1,
-  const struct gkyl_array *arr1, double c2, const struct gkyl_array *arr2,
-  const struct gkyl_range *rng)
-{
-  gkyl_array_accumulate_range(gkyl_array_set_range(out, c1, arr1, rng), c2, arr2, rng);
-}
-
 void
 vm_fluid_species_combine(struct vm_fluid_species *fluid_species,
   struct gkyl_array *out, double c1, const struct gkyl_array *arr1,
   double c2, const struct gkyl_array *arr2, const struct gkyl_range *rng)
 {
   fluid_species->combine_func(out, c1, arr1, c2, arr2, rng);
-}
-
-// Copy the fluid state (out = inp over range).
-static void
-vm_fluid_species_copy_range_enabled(struct gkyl_array *out,
-  const struct gkyl_array *inp, const struct gkyl_range *range)
-{
-  gkyl_array_copy_range(out, inp, range);
 }
 
 void

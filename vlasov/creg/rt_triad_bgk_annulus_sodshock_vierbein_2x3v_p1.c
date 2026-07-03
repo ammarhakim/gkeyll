@@ -386,10 +386,8 @@ main(int argc, char **argv)
   };
 
   // Neutral species.
-  struct gkyl_vlasov_species neut = {
-    .name = "neut",
+  struct gkyl_vlasov_kinetic_species neut = {
     .model_id = GKYL_MODEL_TRIAD,
-    .charge = ctx.charge, .mass = ctx.mass,
     .lower = { -ctx.vr_max, -ctx.vz_max, -ctx.vtheta_max },
     .upper = { ctx.vr_max, ctx.vz_max, ctx.vtheta_max },
     .cells = { NVR, NVZ, NVTHETA },
@@ -450,7 +448,10 @@ main(int argc, char **argv)
    .geom = geom,
 
    .num_species = 1,
-   .species = { neut },
+    .species = {
+      { .name = "neut", .charge = ctx.charge, .mass = ctx.mass,
+        .type = GKYL_SPECIES_VLASOV, .kinetic = neut },
+    },
 
    .skip_field = true,
 
