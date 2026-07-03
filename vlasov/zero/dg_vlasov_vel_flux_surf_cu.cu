@@ -113,8 +113,10 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
 __global__ static void 
 gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf *up,
   enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, 
-  enum gkyl_model_id model_id, bool has_E, bool has_phi, bool has_B, bool has_rad, bool use_lo)
+  enum gkyl_model_id model_id, enum gkyl_hamil_id hamil_id, bool has_E, bool has_phi, bool has_B, bool has_rad, bool use_lo)
 {
+  // Sparse (separable) vs. dense velocity-space Hamiltonian kernel selection.
+  bool hamil_sparse = (hamil_id == GKYL_HAMIL_VEL_SPARSE);
   // By default, we have no forces from Hamiltonian, E, B, or phi. 
   for (int d=0; d<vdim; ++d) {
     up->hamil_alpha_quad[d] = no_hamil_alpha_quad; 
@@ -153,14 +155,26 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
       }
       else if (model_id == GKYL_MODEL_TRIAD) {
         if ( use_lo ) {
-          up->hamil_alpha_quad[0] = ser_nc_hamil_vel_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[1] = ser_nc_hamil_vel_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[2] = ser_nc_hamil_vel_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            ser_nc_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            ser_nc_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            ser_nc_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            ser_nc_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            ser_nc_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            ser_nc_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         } 
         else {
-          up->hamil_alpha_quad[0] = ser_nc_hamil_vel_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[1] = ser_nc_hamil_vel_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[2] = ser_nc_hamil_vel_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            ser_nc_hamil_vel_sparse_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            ser_nc_hamil_vel_dense_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            ser_nc_hamil_vel_sparse_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            ser_nc_hamil_vel_dense_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            ser_nc_hamil_vel_sparse_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            ser_nc_hamil_vel_dense_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
       }
       else if (model_id == GKYL_MODEL_TRIAD_GR) {
@@ -190,9 +204,15 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         }
 
         if (has_B) {
-          up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[0] = hamil_sparse ?
+            ser_B_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            ser_B_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = hamil_sparse ?
+            ser_B_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            ser_B_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = hamil_sparse ?
+            ser_B_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            ser_B_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
 
         if (has_rad) {
@@ -215,9 +235,15 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         }
 
         if (has_B) {
-          up->B_alpha_quad[0] = ser_B_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[1] = ser_B_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[2] = ser_B_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[0] = hamil_sparse ?
+            ser_B_sparse_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            ser_B_dense_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = hamil_sparse ?
+            ser_B_sparse_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            ser_B_dense_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = hamil_sparse ?
+            ser_B_sparse_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            ser_B_dense_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
 
         if (has_rad) {
@@ -253,9 +279,15 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
       }
 
       if (has_B) {
-        up->B_alpha_quad[0] = tensor_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[1] = tensor_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[2] = tensor_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[0] = hamil_sparse ?
+          tensor_B_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+          tensor_B_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[1] = hamil_sparse ?
+          tensor_B_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+          tensor_B_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+        up->B_alpha_quad[2] = hamil_sparse ?
+          tensor_B_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+          tensor_B_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
       }
 
       if (has_rad) {
@@ -300,13 +332,13 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
   up->hamil_range = *inp->hamil_range; 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
-    up->hamil_dim = vdim; 
-    up->hamil_offset = cdim; 
+  if (inp->hamil_id == GKYL_HAMIL_PHASE) {
+    up->hamil_dim = pdim;
+    up->hamil_offset = 0;
   }
   else {
-    up->hamil_dim = pdim; 
-    up->hamil_offset = 0; 
+    up->hamil_dim = vdim;
+    up->hamil_offset = cdim;
   }
   // The velocity map is required: it provides the velocity-space Jacobian at
   // surface quadrature points and the velocity-space range used to index it.
@@ -327,7 +359,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_vlasov_vel_flux_surf), GKYL_CU_MEMCPY_H2D);
 
   gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs<<<1,1>>>(up_cu, inp->conf_basis->b_type,
-    cdim, vdim, poly_order, inp->model_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);
+    cdim, vdim, poly_order, inp->model_id, inp->hamil_id, inp->has_E, inp->has_phi, inp->has_B, inp->has_rad, inp->use_lo);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

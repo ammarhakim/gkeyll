@@ -154,6 +154,7 @@ test_1x2v(int poly_order, bool use_gpu)
     .hamil_range = &velLocal,
     .hamil = hamil,
     .model_id = GKYL_MODEL_DEFAULT,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_DEFAULT),
     .mom_type = GKYL_F_MOMENT_M0, 
     .use_gpu = use_gpu,
     .vel_map = vel_map,

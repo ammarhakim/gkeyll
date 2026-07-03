@@ -57,6 +57,7 @@ gkyl_vlasov_lte_moments_inew(const struct gkyl_vlasov_lte_moments_inp *inp)
     .hamil_range = inp->hamil_range,
     .hamil = inp->hamil,
     .model_id = inp->model_id,
+    .hamil_id = inp->hamil_id,
     .use_gpu = inp->use_gpu,
   };  
   inp_mom.mom_type = GKYL_F_MOMENT_M0;

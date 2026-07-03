@@ -1576,7 +1576,22 @@ kernel_mom_vlasov_hamil_vel_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt, co
 
 // M1i (dH/dv moment, velocity-space Hamiltonian) kernel list (Serendipity basis)
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list ser_hamil_vel_m1i_kernels[] = {
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_dense_m1i_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p3 }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x2v_ser_p2, NULL }, // 1
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M1i_2x1v_ser_p3 }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_2x2v_ser_p2, NULL }, // 4
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M1i_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m1i_kernels[] = {
   // 1x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M1i_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_M1i_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M1i_1x2v_ser_p2, NULL }, // 1
@@ -1773,7 +1788,22 @@ kernel_mom_vlasov_hamil_vel_M1i_2x2v_tensor_p2(const struct gkyl_mom_type *momt,
 
 // M1i (dH/dv moment, velocity-space Hamiltonian) kernel list (Tensor basis)
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_m1i_kernels[] = {
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_m1i_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M1i_2x1v_tensor_p3 }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m1i_kernels[] = {
   // 1x kernels
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M1i_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M1i_1x2v_tensor_p2, NULL }, // 1
@@ -2422,7 +2452,22 @@ kernel_mom_vlasov_hamil_vel_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, con
 
 // M2 (H moment, velocity-space Hamiltonian) kernel list (Serendipity basis)
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list ser_hamil_vel_m2_kernels[] = {
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_dense_m2_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p3 }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p2, NULL }, // 1
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M2_2x1v_ser_p3 }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_2x2v_ser_p2, NULL }, // 4
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M2_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m2_kernels[] = {
   // 1x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M2_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M2_1x2v_ser_p2, NULL }, // 1
@@ -2556,7 +2601,22 @@ kernel_mom_vlasov_hamil_vel_M2_2x2v_tensor_p2(const struct gkyl_mom_type *momt, 
 
 // M2 (H moment, velocity-space Hamiltonian) kernel list (Tensor basis)
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_m2_kernels[] = {
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_m2_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M2_2x1v_tensor_p3 }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m2_kernels[] = {
   // 1x kernels
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_M2_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_M2_1x2v_tensor_p2, NULL }, // 1
@@ -3214,7 +3274,22 @@ kernel_mom_vlasov_hamil_vel_M3i_3x3v_ser_p1(const struct gkyl_mom_type *momt, co
 
 // M3i (H*dH/dv moment, velocity-space Hamiltonian) kernel list (Serendipity basis)
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list ser_hamil_vel_m3i_kernels[] = {
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_dense_m3i_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M3i_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M3i_1x1v_ser_p3 }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_M3i_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_1x2v_ser_p2, NULL }, // 1
+  { NULL, kernel_mom_vlasov_hamil_vel_M3i_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M3i_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M3i_2x1v_ser_p3 }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_M3i_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_2x2v_ser_p2, NULL }, // 4
+  { NULL, kernel_mom_vlasov_hamil_vel_M3i_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_M3i_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m3i_kernels[] = {
   // 1x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_M3i_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_M3i_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_M3i_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_M3i_1x2v_ser_p2, NULL }, // 1
@@ -3230,7 +3305,22 @@ static const gkyl_vlasov_mom_kern_list ser_hamil_vel_m3i_kernels[] = {
 // M3i (H*dH/dv moment, velocity-space Hamiltonian) kernel list (Tensor basis)
 // Not yet implemented
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_m3i_kernels[] = {
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_m3i_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_m3i_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -3636,7 +3726,22 @@ kernel_mom_vlasov_hamil_vel_five_moments_3x3v_ser_p1(const struct gkyl_mom_type 
 // Five moments (Zeroth, First, and Second moment together) kernel list (Serendipity basis)
 // {1, dH/dv, H} moments for velocity-space Hamiltonian. 
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list ser_hamil_vel_five_moments_kernels[] = {
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_dense_five_moments_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p3 }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_ser_p2, NULL }, // 1
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_ser_p3 }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_2x2v_ser_p2, NULL }, // 4
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_five_moments_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_five_moments_kernels[] = {
   // 1x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_ser_p2, NULL }, // 1
@@ -3834,7 +3939,22 @@ kernel_mom_vlasov_hamil_vel_five_moments_2x2v_tensor_p2(const struct gkyl_mom_ty
 // Five moments (Zeroth, First, and Second moment together) kernel list (Tensor basis)
 // {1, dH/dv, H} moments for velocity-space Hamiltonian. 
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_five_moments_kernels[] = {
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_five_moments_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_five_moments_2x1v_tensor_p3 }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_five_moments_kernels[] = {
   // 1x kernels
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_five_moments_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_five_moments_1x2v_tensor_p2, NULL }, // 1
@@ -4620,7 +4740,22 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_3x3v_ser_p1(const struct gkyl_mom_t
 // Integrated five moments (Zeroth, First, and Second moment together) kernel list (Serendipity basis)
 // {1, dH/dv, H} moments for velocity-space Hamiltonian. 
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list ser_hamil_vel_int_five_moments_kernels[] = {
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_dense_int_five_moments_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p3 }, // 0
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_ser_p2, NULL }, // 1
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x3v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_ser_p3 }, // 3
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_ser_p2, NULL }, // 4
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_int_five_moments_kernels[] = {
   // 1x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_ser_p3 }, // 0
   { NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_ser_p1, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_ser_p2, NULL }, // 1
@@ -4818,7 +4953,22 @@ kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_tensor_p2(const struct gkyl_mo
 // Integrated five moments (Zeroth, First, and Second moment together) kernel list (Tensor basis)
 // {1, dH/dv, H} moments for velocity-space Hamiltonian. 
 GKYL_CU_D
-static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_int_five_moments_kernels[] = {
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_dense_int_five_moments_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_2x1v_tensor_p3 }, // 3
+  { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_vlasov_mom_kern_list tensor_hamil_vel_sparse_int_five_moments_kernels[] = {
   // 1x kernels
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p2, kernel_mom_vlasov_hamil_vel_int_five_moments_1x1v_tensor_p3 }, // 0
   { NULL, NULL, kernel_mom_vlasov_hamil_vel_int_five_moments_1x2v_tensor_p2, NULL }, // 1

@@ -49,13 +49,13 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
-    mom_vlasov->hamil_dim = vdim; 
-    mom_vlasov->hamil_offset = cdim; 
+  if (inp->hamil_id == GKYL_HAMIL_PHASE) {
+    mom_vlasov->hamil_dim = pdim;
+    mom_vlasov->hamil_offset = 0;
   }
   else {
-    mom_vlasov->hamil_dim = pdim; 
-    mom_vlasov->hamil_offset = 0; 
+    mom_vlasov->hamil_dim = vdim;
+    mom_vlasov->hamil_offset = cdim;
   }
   mom_vlasov->hamil_range = *inp->hamil_range;
   mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
@@ -80,6 +80,9 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   mom_vlasov->v_thresh = inp->v_thresh > 0.0 ? inp->v_thresh : 0.0; 
   mom_vlasov->f_thresh = inp->f_thresh > 0.0 ? inp->f_thresh : 0.0; 
 
+  // Sparse (separable) vs. dense velocity-space Hamiltonian kernel selection.
+  bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
+
   // choose kernel tables based on basis-function type
   const gkyl_vlasov_mom_kern_list *m0_kernels, *m1i_hamil_vel_kernels, *m1i_hamil_gen_kernels,
     *m2_hamil_vel_kernels, *m2_hamil_gen_kernels, *m3i_hamil_vel_kernels,
@@ -90,10 +93,10 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       m0_kernels = ser_m0_kernels;
       m2ij_kernels = ser_m2ij_kernels;
       m3ijk_kernels = ser_m3ijk_kernels;
-      m1i_hamil_vel_kernels = ser_hamil_vel_m1i_kernels;
-      m2_hamil_vel_kernels = ser_hamil_vel_m2_kernels;
-      m3i_hamil_vel_kernels = ser_hamil_vel_m3i_kernels;
-      five_moments_hamil_vel_kernels = ser_hamil_vel_five_moments_kernels;
+      m1i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m1i_kernels : ser_hamil_vel_dense_m1i_kernels;
+      m2_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m2_kernels : ser_hamil_vel_dense_m2_kernels;
+      m3i_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_m3i_kernels : ser_hamil_vel_dense_m3i_kernels;
+      five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_five_moments_kernels : ser_hamil_vel_dense_five_moments_kernels;
       m1i_hamil_gen_kernels = ser_hamil_gen_m1i_kernels;
       m2_hamil_gen_kernels = ser_hamil_gen_m2_kernels;
       five_moments_hamil_gen_kernels = ser_hamil_gen_five_moments_kernels;
@@ -103,10 +106,10 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       m0_kernels = tensor_m0_kernels;
       m2ij_kernels = tensor_m2ij_kernels;
       m3ijk_kernels = tensor_m3ijk_kernels;
-      m1i_hamil_vel_kernels = tensor_hamil_vel_m1i_kernels;
-      m2_hamil_vel_kernels = tensor_hamil_vel_m2_kernels;
-      m3i_hamil_vel_kernels = tensor_hamil_vel_m3i_kernels;
-      five_moments_hamil_vel_kernels = tensor_hamil_vel_five_moments_kernels;
+      m1i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m1i_kernels : tensor_hamil_vel_dense_m1i_kernels;
+      m2_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m2_kernels : tensor_hamil_vel_dense_m2_kernels;
+      m3i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m3i_kernels : tensor_hamil_vel_dense_m3i_kernels;
+      five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_five_moments_kernels : tensor_hamil_vel_dense_five_moments_kernels;
       break;
 
     default:
@@ -125,7 +128,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // As part of Hamiltonian Vlasov refactor, assume user wants dH/dv moment when they
     // request M1 in some form. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);    
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
+    if (inp->hamil_id != GKYL_HAMIL_PHASE) {
       assert(NULL != m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -142,7 +145,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // As part of Hamiltonian Vlasov refactor, assume user wants H moment when they
     // request M2 in some form. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
+    if (inp->hamil_id != GKYL_HAMIL_PHASE) {
       assert(NULL != m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -159,7 +162,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // As part of Hamiltonian Vlasov refactor, assume user wants H*dH/dv moment when they
     // request M3 in some form. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD) {
+    if (inp->hamil_id != GKYL_HAMIL_PHASE && inp->model_id != GKYL_MODEL_TRIAD_GR) {
       assert(NULL != m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m3i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -188,7 +191,7 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     // As part of Hamiltonian Vlasov refactor, assume user wants {1, dH/dv, H} moments when they
     // request five_moments/M0M1M2. JJ 07/25/25
     assert(cv_index[cdim].vdim[vdim] != -1);
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
+    if (inp->hamil_id != GKYL_HAMIL_PHASE) {
       assert(NULL != five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -251,13 +254,13 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
   // Determine Hamiltonian dimensionality and index offset for indexing Hamiltonian
   // from an input phase space index. 
-  if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
-    mom_vlasov->hamil_dim = vdim; 
-    mom_vlasov->hamil_offset = cdim; 
+  if (inp->hamil_id == GKYL_HAMIL_PHASE) {
+    mom_vlasov->hamil_dim = pdim;
+    mom_vlasov->hamil_offset = 0;
   }
   else {
-    mom_vlasov->hamil_dim = pdim; 
-    mom_vlasov->hamil_offset = 0; 
+    mom_vlasov->hamil_dim = vdim;
+    mom_vlasov->hamil_offset = cdim;
   }
   mom_vlasov->hamil_range = *inp->hamil_range;
   mom_vlasov->hamil = gkyl_array_acquire(inp->hamil); 
@@ -277,17 +280,20 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     }
   }
 
+  // Sparse (separable) vs. dense velocity-space Hamiltonian kernel selection.
+  bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
+
   // Choose kernel tables based on basis-function type.
   const gkyl_vlasov_mom_kern_list *int_five_moments_hamil_vel_kernels, *int_five_moments_hamil_gen_kernels;
 
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
-      int_five_moments_hamil_vel_kernels = ser_hamil_vel_int_five_moments_kernels;
+      int_five_moments_hamil_vel_kernels = hamil_sparse ? ser_hamil_vel_sparse_int_five_moments_kernels : ser_hamil_vel_dense_int_five_moments_kernels;
       int_five_moments_hamil_gen_kernels = ser_hamil_gen_int_five_moments_kernels;
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      int_five_moments_hamil_vel_kernels = tensor_hamil_vel_int_five_moments_kernels;
+      int_five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_int_five_moments_kernels : tensor_hamil_vel_dense_int_five_moments_kernels;
       break;
 
     default:
@@ -298,7 +304,7 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
   assert(cv_index[cdim].vdim[vdim] != -1);   
 
   if (inp->mom_type == GKYL_F_MOMENT_M0M1M2) { // Zeroth, First, and Second moment computed together
-    if (inp->model_id == GKYL_MODEL_DEFAULT || inp->model_id == GKYL_MODEL_SR || inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
+    if (inp->hamil_id != GKYL_HAMIL_PHASE) {
       assert(NULL != int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }

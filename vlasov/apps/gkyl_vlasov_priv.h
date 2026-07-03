@@ -497,7 +497,13 @@ struct vm_species {
   bool write_cell_avg; // Boolean for only writing cell average of f.
 
   enum gkyl_field_id field_id; // Type of field equation.
-  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).  
+  enum gkyl_model_id model_id; // type of Vlasov equation (e.g., non-relativistic vs. relativistic).
+  enum gkyl_hamil_id hamil_id; // Representation of the equation-object Hamiltonian (hamil):
+                               // sparse/dense velocity-space expansion or phase-space expansion.
+  enum gkyl_hamil_id mom_hamil_id; // Representation of the moment Hamiltonian (mom_hamil).
+                                   // Differs from hamil_id for triad-GR: the equation Hamiltonian
+                                   // is a phase-space expansion while moments use the dense
+                                   // velocity-space (SR) Hamiltonian.
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
 
   struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (owns all velocity map arrays).

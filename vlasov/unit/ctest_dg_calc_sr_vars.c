@@ -191,6 +191,7 @@ test_sr_vars(int vdim, int poly_order, bool use_tensor, bool use_nonuniform, boo
     .hamil = gamma,
     .gamma_inv = gamma_inv,
     .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
     .use_gpu = use_gpu,
   };
   struct gkyl_vlasov_lte_proj_on_basis *proj_lte = gkyl_vlasov_lte_proj_on_basis_inew(&inp_proj);
@@ -205,6 +206,7 @@ test_sr_vars(int vdim, int poly_order, bool use_tensor, bool use_nonuniform, boo
     .hamil_range = &vel_local,
     .hamil = gamma,
     .model_id = GKYL_MODEL_SR,
+    .hamil_id = gkyl_hamil_id_from_model_id(GKYL_MODEL_SR),
     .mom_type = GKYL_F_MOMENT_M0,
     .use_gpu = use_gpu,
     .vel_map = vvm,

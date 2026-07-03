@@ -49,6 +49,8 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
     assert(false); // Should not be here for other models
   }
   up->vel_range = *inp->vel_range; 
+  // Sparse (separable) vs. dense velocity-space Hamiltonian kernel selection.
+  bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
   int kernel_index = cv_index[cdim].vdim[vdim];   
   switch (inp->conf_basis->b_type) {
@@ -71,14 +73,26 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
       }
       else if (inp->model_id == GKYL_MODEL_TRIAD) {
         if ( inp->use_lo ) {
-          up->hamil_alpha_quad[0] = ser_hamil_vel_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[1] = ser_hamil_vel_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[2] = ser_hamil_vel_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            ser_hamil_vel_sparse_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            ser_hamil_vel_sparse_alpha_quad_y_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            ser_hamil_vel_sparse_alpha_quad_z_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         } 
         else {
-          up->hamil_alpha_quad[0] = ser_hamil_vel_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[1] = ser_hamil_vel_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
-          up->hamil_alpha_quad[2] = ser_hamil_vel_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[0] = hamil_sparse ?
+            ser_hamil_vel_sparse_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = hamil_sparse ?
+            ser_hamil_vel_sparse_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = hamil_sparse ?
+            ser_hamil_vel_sparse_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         }
       }
       else if (inp->model_id == GKYL_MODEL_TRIAD_GR) {

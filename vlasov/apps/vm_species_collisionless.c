@@ -170,6 +170,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
       .hamil_range = &vms->hamil_range,
       .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
       .model_id = vms->model_id,
+      .hamil_id = vms->hamil_id,
       .use_lo = cls->use_lo,
       .use_gpu = app->use_gpu,
     }; 
@@ -187,6 +188,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .hamil_range = &vms->hamil_range,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
     .model_id = vms->model_id,
+    .hamil_id = vms->hamil_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 
     .has_B = cls->has_B, 
@@ -206,6 +208,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     .pos_map = vms->pos_map,
     .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0,
     .model_id = vms->model_id,
+    .hamil_id = vms->hamil_id,
     .has_E = cls->has_E, 
     .has_phi = cls->has_phi, 
     .has_B = cls->has_B, 

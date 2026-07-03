@@ -809,7 +809,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_ho_alpha_quad_vz_kernels[
 
 // alpha_v evaluated at quadrature points for Hamil (NC) - vel dependance only - Hamiltonian forces (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_alpha_quad_vx_kernels[] = {
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_dense_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vx_1x1v_ser_p1, nc_hamil_vel_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
+  { NULL, nc_hamil_vel_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_alpha_quad_vx_1x3v_ser_p1, nc_hamil_vel_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_vel_alpha_quad_vx_2x2v_ser_p1, nc_hamil_vel_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_alpha_quad_vx_2x3v_ser_p1, nc_hamil_vel_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, nc_hamil_vel_alpha_quad_vx_1x1v_ser_p1, nc_hamil_vel_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
   { NULL, nc_hamil_vel_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
@@ -823,7 +838,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_alpha_quad_vx_kern
 };
 
 GKYL_CU_D
-static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_alpha_quad_vy_kernels[] = {
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_dense_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, nc_hamil_vel_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_alpha_quad_vy_1x3v_ser_p1, nc_hamil_vel_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_vel_alpha_quad_vy_2x2v_ser_p1, nc_hamil_vel_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_alpha_quad_vy_2x3v_ser_p1, nc_hamil_vel_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, nc_hamil_vel_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
@@ -837,7 +867,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_alpha_quad_vy_kern
 };
 
 GKYL_CU_D
-static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_alpha_quad_vz_kernels[] = {
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_dense_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, nc_hamil_vel_alpha_quad_vz_1x3v_ser_p1, nc_hamil_vel_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, nc_hamil_vel_alpha_quad_vz_2x3v_ser_p1, nc_hamil_vel_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -853,7 +898,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_alpha_quad_vz_kern
 // alpha_v evaluated at quadrature points for Hamil (NC) - vel dependance only - Hamiltonian forces (Serendipity basis).
 // high-order intergation used (_ho)
 GKYL_CU_D
-static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_ho_alpha_quad_vx_kernels[] = {
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_dense_ho_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vx_1x1v_ser_p1, nc_hamil_vel_ho_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
+  { NULL, nc_hamil_vel_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_alpha_quad_vx_1x3v_ser_p1, nc_hamil_vel_ho_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_vel_alpha_quad_vx_2x2v_ser_p1, nc_hamil_vel_ho_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_ho_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, nc_hamil_vel_alpha_quad_vx_1x1v_ser_p1, nc_hamil_vel_ho_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
   { NULL, nc_hamil_vel_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
@@ -867,7 +927,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_ho_alpha_quad_vx_k
 };
 
 GKYL_CU_D
-static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_ho_alpha_quad_vy_kernels[] = {
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_dense_ho_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, nc_hamil_vel_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_alpha_quad_vy_1x3v_ser_p1, nc_hamil_vel_ho_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, nc_hamil_vel_alpha_quad_vy_2x2v_ser_p1, nc_hamil_vel_ho_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_ho_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, nc_hamil_vel_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
@@ -881,7 +956,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_ho_alpha_quad_vy_k
 };
 
 GKYL_CU_D
-static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_ho_alpha_quad_vz_kernels[] = {
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_dense_ho_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, nc_hamil_vel_alpha_quad_vz_1x3v_ser_p1, nc_hamil_vel_ho_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, nc_hamil_vel_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, nc_hamil_vel_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_ho_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -1245,7 +1335,22 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vz_kernels[] = 
 
 // alpha_v evaluated at quadrature points for the magnetic field Lorentz force (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vx_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_dense_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_alpha_quad_vx_1x2v_ser_p1, B_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_alpha_quad_vx_1x3v_ser_p1, B_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_alpha_quad_vx_2x2v_ser_p1, B_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_alpha_quad_vx_2x3v_ser_p1, B_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_sparse_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
   { NULL, B_alpha_quad_vx_1x2v_ser_p1, B_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
@@ -1259,7 +1364,22 @@ static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vx_kernels[] = {
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vy_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_dense_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_alpha_quad_vy_1x2v_ser_p1, B_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_alpha_quad_vy_1x3v_ser_p1, B_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_alpha_quad_vy_2x2v_ser_p1, B_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, B_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_sparse_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, B_alpha_quad_vy_1x2v_ser_p1, B_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
@@ -1273,7 +1393,22 @@ static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vy_kernels[] = {
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vz_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_dense_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_alpha_quad_vz_1x3v_ser_p1, B_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, B_alpha_quad_vz_2x3v_ser_p1, B_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_sparse_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -1288,7 +1423,22 @@ static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vz_kernels[] = {
 
 // alpha_v evaluated at quadrature points for the magnetic field Lorentz force (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vx_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_dense_ho_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_alpha_quad_vx_1x2v_ser_p1, B_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_alpha_quad_vx_1x3v_ser_p1, B_ho_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_alpha_quad_vx_2x2v_ser_p1, B_ho_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, B_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_sparse_ho_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
   { NULL, B_alpha_quad_vx_1x2v_ser_p1, B_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
@@ -1302,7 +1452,22 @@ static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vx_kernels[] = {
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vy_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_dense_ho_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_alpha_quad_vy_1x2v_ser_p1, B_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_alpha_quad_vy_1x3v_ser_p1, B_ho_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_alpha_quad_vy_2x2v_ser_p1, B_ho_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, B_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_sparse_ho_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, B_alpha_quad_vy_1x2v_ser_p1, B_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
@@ -1316,7 +1481,22 @@ static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vy_kernels[] = {
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vz_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_dense_ho_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_alpha_quad_vz_1x3v_ser_p1, B_ho_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, B_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, B_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_sparse_ho_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -1331,7 +1511,22 @@ static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vz_kernels[] = {
 
 // alpha_v evaluated at quadrature points for the magnetic field Lorentz force (Tensor basis). 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vx_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list tensor_B_dense_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, NULL, B_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, B_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, NULL, B_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_sparse_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 0
   { NULL, NULL, B_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
@@ -1345,7 +1540,22 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vx_kernels[] = {
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vy_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list tensor_B_dense_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, B_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, B_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, B_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_sparse_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, B_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
@@ -1359,7 +1569,22 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vy_kernels[] = {
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vz_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list tensor_B_dense_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, B_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+// Sparse-Hamiltonian variant; currently identical to the dense table
+// (points at the same kernels) until the sparse kernels land.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_sparse_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1

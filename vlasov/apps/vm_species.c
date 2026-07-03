@@ -26,8 +26,13 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   }
 
   if (vms->model_id == GKYL_MODEL_DEFAULT || vms->model_id == GKYL_MODEL_SR) {
-    // Hamiltonain for computing the moments is only a function of velocity space. 
-    vms->mom_hamil_range = vms->local_vel; 
+    // H = v^2/2 is separable (sparse velocity-space expansion); the relativistic
+    // H = sqrt(1 + p^2) is a dense velocity-space expansion.
+    vms->hamil_id = gkyl_hamil_id_from_model_id(vms->model_id);
+    vms->mom_hamil_id = vms->hamil_id;
+
+    // Hamiltonain for computing the moments is only a function of velocity space.
+    vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
@@ -48,8 +53,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
   else if (vms->model_id == GKYL_MODEL_TRIAD) {
 
     int cdim = app->cdim;
-    int vdim = app->vdim;  
-  
+    int vdim = app->vdim;
+
+    // Triad bracket with the separable H = v^2/2 (sparse velocity-space expansion).
+    vms->hamil_id = GKYL_HAMIL_VEL_SPARSE;
+    vms->mom_hamil_id = GKYL_HAMIL_VEL_SPARSE;
+
     // Hamiltonain is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
     vms->mom_hamil_range = vms->local_vel; 
@@ -116,10 +125,15 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     // 1. (mom_hamil)  H(\hat{p}_i) = \gamma
     // 2. (hamil)      H(x^i,\hat{p}_i) = \alpha \gamma - \hat{p}_a e_i^a \beta^i 
     
+    // The characteristics Hamiltonian is a phase-space expansion; the moment
+    // Hamiltonian is the dense velocity-space (SR) expansion.
+    vms->hamil_id = GKYL_HAMIL_PHASE;
+    vms->mom_hamil_id = GKYL_HAMIL_VEL_DENSE;
+
     // 1. Build a velocity space only hamiltonian for moments.
     // Hamiltonain is only a function of velocity space, non-relativistic only using the
     // same infrastructure as GKYL_MODEL_DEFAULT
-    vms->mom_hamil_range = vms->local_vel; 
+    vms->mom_hamil_range = vms->local_vel;
     vms->mom_hamil = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     vms->gamma_inv = mkarr(app->use_gpu, vms->basis_vel.num_basis, vms->local_vel.volume);
     gkyl_dg_vlasov_calc_hamil(&vms->grid_vel, &vms->basis_vel, &vms->local_vel, 
@@ -171,8 +185,12 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
 
   }
   else {
-    // Hamiltonian is a full phase-space array. 
-    vms->hamil_range = vms->local; 
+    // Canonical-PB models carry a general phase-space Hamiltonian.
+    vms->hamil_id = GKYL_HAMIL_PHASE;
+    vms->mom_hamil_id = GKYL_HAMIL_PHASE;
+
+    // Hamiltonian is a full phase-space array.
+    vms->hamil_range = vms->local;
     vms->hamil = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume);
     vms->hamil_host = vms->hamil;
     if (app->use_gpu){
