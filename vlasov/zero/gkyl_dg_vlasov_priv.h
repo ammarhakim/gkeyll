@@ -248,14 +248,14 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_vel_sparse_vol_kernels[] = {
   // 1x kernels
   { NULL, vlasov_hamil_vel_dense_vol_1x1v_ser_p1, vlasov_hamil_vel_dense_vol_1x1v_ser_p2, vlasov_hamil_vel_dense_vol_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_vel_dense_vol_1x2v_ser_p1, vlasov_hamil_vel_dense_vol_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_vel_dense_vol_1x3v_ser_p1, vlasov_hamil_vel_dense_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_vel_sparse_vol_1x2v_ser_p1, vlasov_hamil_vel_sparse_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_vel_sparse_vol_1x3v_ser_p1, vlasov_hamil_vel_sparse_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, vlasov_hamil_vel_dense_vol_2x1v_ser_p1, vlasov_hamil_vel_dense_vol_2x1v_ser_p2, vlasov_hamil_vel_dense_vol_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_vel_dense_vol_2x2v_ser_p1, vlasov_hamil_vel_dense_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_dense_vol_2x3v_ser_p1, vlasov_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_vel_sparse_vol_2x2v_ser_p1, vlasov_hamil_vel_sparse_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_vel_sparse_vol_2x3v_ser_p1, vlasov_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_vel_dense_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Hamiltonian, general phase space, volume kernels (Serendipity basis). 
@@ -338,11 +338,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_vel_sparse_vol_kernels[] = {
   // 1x kernels
   { NULL, NULL, vlasov_hamil_vel_dense_vol_1x1v_tensor_p2, vlasov_hamil_vel_dense_vol_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, vlasov_hamil_vel_dense_vol_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_hamil_vel_dense_vol_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, vlasov_hamil_vel_sparse_vol_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_hamil_vel_sparse_vol_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, vlasov_hamil_vel_dense_vol_2x1v_tensor_p2, vlasov_hamil_vel_dense_vol_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, vlasov_hamil_vel_dense_vol_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_hamil_vel_sparse_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -429,13 +429,13 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_Bx_hamil_vel_sparse_vol_kernels[
   // 1x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
   { NULL, no_B_vol, no_B_vol, NULL }, // 1
-  { NULL, vlasov_Bx_hamil_vel_dense_vol_1x3v_ser_p1, vlasov_Bx_hamil_vel_dense_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_Bx_hamil_vel_sparse_vol_1x3v_ser_p1, vlasov_Bx_hamil_vel_sparse_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_Bx_hamil_vel_dense_vol_2x3v_ser_p1, vlasov_Bx_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_Bx_hamil_vel_sparse_vol_2x3v_ser_p1, vlasov_Bx_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_Bx_hamil_vel_dense_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_Bx_hamil_vel_sparse_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Magnetic field in x-direction Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
@@ -459,7 +459,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_vel_sparse_vol_kerne
   // 1x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 0
   { NULL, NULL, no_B_vol, NULL }, // 1
-  { NULL, NULL, vlasov_Bx_hamil_vel_dense_vol_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, vlasov_Bx_hamil_vel_sparse_vol_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 3
   { NULL, NULL, no_B_vol, NULL }, // 4
@@ -489,13 +489,13 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_vel_sparse_vol_kernels[
   // 1x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
   { NULL, no_B_vol, no_B_vol, NULL }, // 1
-  { NULL, vlasov_By_hamil_vel_dense_vol_1x3v_ser_p1, vlasov_By_hamil_vel_dense_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_By_hamil_vel_sparse_vol_1x3v_ser_p1, vlasov_By_hamil_vel_sparse_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_By_hamil_vel_dense_vol_2x3v_ser_p1, vlasov_By_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_By_hamil_vel_sparse_vol_2x3v_ser_p1, vlasov_By_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_By_hamil_vel_dense_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_By_hamil_vel_sparse_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Magnetic field in y-direction Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
@@ -519,7 +519,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_vel_sparse_vol_kerne
   // 1x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 0
   { NULL, NULL, no_B_vol, NULL }, // 1
-  { NULL, NULL, vlasov_By_hamil_vel_dense_vol_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, vlasov_By_hamil_vel_sparse_vol_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 3
   { NULL, NULL, no_B_vol, NULL }, // 4
@@ -548,14 +548,14 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_vel_sparse_vol_kernels[] = {
   // 1x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
-  { NULL, vlasov_Bz_hamil_vel_dense_vol_1x2v_ser_p1, vlasov_Bz_hamil_vel_dense_vol_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_Bz_hamil_vel_dense_vol_1x3v_ser_p1, vlasov_Bz_hamil_vel_dense_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_Bz_hamil_vel_sparse_vol_1x2v_ser_p1, vlasov_Bz_hamil_vel_sparse_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_Bz_hamil_vel_sparse_vol_1x3v_ser_p1, vlasov_Bz_hamil_vel_sparse_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
-  { NULL, vlasov_Bz_hamil_vel_dense_vol_2x2v_ser_p1, vlasov_Bz_hamil_vel_dense_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_Bz_hamil_vel_dense_vol_2x3v_ser_p1, vlasov_Bz_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_Bz_hamil_vel_sparse_vol_2x2v_ser_p1, vlasov_Bz_hamil_vel_sparse_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_Bz_hamil_vel_sparse_vol_2x3v_ser_p1, vlasov_Bz_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_Bz_hamil_vel_dense_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_Bz_hamil_vel_sparse_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Magnetic field in z-direction Lorentz force volume kernels with velocity-space Hamiltonian (Tensor basis). 
@@ -578,11 +578,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_vel_sparse_vol_kernels[] = {
   // 1x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 0
-  { NULL, NULL, vlasov_Bz_hamil_vel_dense_vol_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_Bz_hamil_vel_dense_vol_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, vlasov_Bz_hamil_vel_sparse_vol_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_Bz_hamil_vel_sparse_vol_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 3
-  { NULL, NULL, vlasov_Bz_hamil_vel_dense_vol_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_Bz_hamil_vel_sparse_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -638,14 +638,14 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_vel_sparse_surf_x_kernels[] = {
   // 1x kernels
   { NULL, vlasov_hamil_vel_dense_surfx_1x1v_ser_p1, vlasov_hamil_vel_dense_surfx_1x1v_ser_p2, vlasov_hamil_vel_dense_surfx_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_vel_dense_surfx_1x2v_ser_p1, vlasov_hamil_vel_dense_surfx_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_vel_dense_surfx_1x3v_ser_p1, vlasov_hamil_vel_dense_surfx_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_vel_sparse_surfx_1x2v_ser_p1, vlasov_hamil_vel_sparse_surfx_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_vel_sparse_surfx_1x3v_ser_p1, vlasov_hamil_vel_sparse_surfx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, vlasov_hamil_vel_dense_surfx_2x1v_ser_p1, vlasov_hamil_vel_dense_surfx_2x1v_ser_p2, vlasov_hamil_vel_dense_surfx_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_vel_dense_surfx_2x2v_ser_p1, vlasov_hamil_vel_dense_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_dense_surfx_2x3v_ser_p1, vlasov_hamil_vel_dense_surfx_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_vel_sparse_surfx_2x2v_ser_p1, vlasov_hamil_vel_sparse_surfx_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_vel_sparse_surfx_2x3v_ser_p1, vlasov_hamil_vel_dense_surfx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_vel_dense_surfx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming velocity-space Hamiltonian surface kernel list: x-direction (Tensor basis)
@@ -668,11 +668,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_vel_sparse_surf_x_kernels[] = {
   // 1x kernels
   { NULL, NULL, vlasov_hamil_vel_dense_surfx_1x1v_tensor_p2, vlasov_hamil_vel_dense_surfx_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, vlasov_hamil_vel_dense_surfx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_hamil_vel_dense_surfx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, vlasov_hamil_vel_sparse_surfx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_hamil_vel_sparse_surfx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, vlasov_hamil_vel_dense_surfx_2x1v_tensor_p2, vlasov_hamil_vel_dense_surfx_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, vlasov_hamil_vel_dense_surfx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_hamil_vel_sparse_surfx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL}, // 6
@@ -702,10 +702,10 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_vel_sparse_su
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, no_stream_surf, no_stream_surf, no_stream_surf }, // 3  
-  { NULL, vlasov_hamil_vel_dense_surfy_2x2v_ser_p1, vlasov_hamil_vel_dense_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_dense_surfy_2x3v_ser_p1, vlasov_hamil_vel_dense_surfy_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_vel_sparse_surfy_2x2v_ser_p1, vlasov_hamil_vel_sparse_surfy_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_vel_sparse_surfy_2x3v_ser_p1, vlasov_hamil_vel_dense_surfy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_vel_dense_surfy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming velocity-space Hamiltonian surface kernel list: y-direction (Tensor basis)
@@ -732,7 +732,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list tensor_stream_hamil_vel_sparse
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, NULL, no_stream_surf, no_stream_surf }, // 3  
-  { NULL, NULL, vlasov_hamil_vel_dense_surfy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_hamil_vel_sparse_surfy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -765,7 +765,7 @@ static const gkyl_dg_vlasov_stream_surf_kern_list ser_stream_hamil_vel_sparse_su
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_vel_dense_surfz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming velocity-space Hamiltonian surface kernel list: z-direction (Tensor basis)
@@ -1135,14 +1135,14 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_vel_sparse_boundary_surf_x_kernels[] = {
   // 1x kernels
   { NULL, vlasov_hamil_vel_dense_boundary_surfx_1x1v_ser_p1, vlasov_hamil_vel_dense_boundary_surfx_1x1v_ser_p2, vlasov_hamil_vel_dense_boundary_surfx_1x1v_ser_p3 }, // 0
-  { NULL, vlasov_hamil_vel_dense_boundary_surfx_1x2v_ser_p1, vlasov_hamil_vel_dense_boundary_surfx_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_hamil_vel_dense_boundary_surfx_1x3v_ser_p1, vlasov_hamil_vel_dense_boundary_surfx_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfx_1x2v_ser_p1, vlasov_hamil_vel_sparse_boundary_surfx_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfx_1x3v_ser_p1, vlasov_hamil_vel_sparse_boundary_surfx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, vlasov_hamil_vel_dense_boundary_surfx_2x1v_ser_p1, vlasov_hamil_vel_dense_boundary_surfx_2x1v_ser_p2, vlasov_hamil_vel_dense_boundary_surfx_2x1v_ser_p3 }, // 3
-  { NULL, vlasov_hamil_vel_dense_boundary_surfx_2x2v_ser_p1, vlasov_hamil_vel_dense_boundary_surfx_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_dense_boundary_surfx_2x3v_ser_p1, vlasov_hamil_vel_dense_boundary_surfx_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfx_2x2v_ser_p1, vlasov_hamil_vel_sparse_boundary_surfx_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfx_2x3v_ser_p1, vlasov_hamil_vel_dense_boundary_surfx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_vel_dense_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming velocity-space Hamiltonian boundary surface kernel list: x-direction (Tensor basis)
@@ -1165,11 +1165,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_vel_sparse_boundary_surf_x_kernels[] = {
   // 1x kernels
   { NULL, NULL, vlasov_hamil_vel_dense_boundary_surfx_1x1v_tensor_p2, vlasov_hamil_vel_dense_boundary_surfx_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, vlasov_hamil_vel_dense_boundary_surfx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, vlasov_hamil_vel_dense_boundary_surfx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, vlasov_hamil_vel_sparse_boundary_surfx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, vlasov_hamil_vel_sparse_boundary_surfx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, vlasov_hamil_vel_dense_boundary_surfx_2x1v_tensor_p2, vlasov_hamil_vel_dense_boundary_surfx_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, vlasov_hamil_vel_dense_boundary_surfx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_hamil_vel_sparse_boundary_surfx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL}, // 6
@@ -1199,10 +1199,10 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_vel_
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, no_stream_boundary_surf, no_stream_boundary_surf, no_stream_boundary_surf }, // 3  
-  { NULL, vlasov_hamil_vel_dense_boundary_surfy_2x2v_ser_p1, vlasov_hamil_vel_dense_boundary_surfy_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_vel_dense_boundary_surfy_2x3v_ser_p1, vlasov_hamil_vel_dense_boundary_surfy_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfy_2x2v_ser_p1, vlasov_hamil_vel_sparse_boundary_surfy_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfy_2x3v_ser_p1, vlasov_hamil_vel_dense_boundary_surfy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_vel_dense_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming velocity-space Hamiltonian boundary surface kernel list: y-direction (Tensor basis)
@@ -1229,7 +1229,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list tensor_stream_hamil_v
   { NULL, NULL, NULL, NULL }, // 2  
   // 2x kernels
   { NULL, NULL, no_stream_boundary_surf, no_stream_boundary_surf }, // 3  
-  { NULL, NULL, vlasov_hamil_vel_dense_boundary_surfy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, vlasov_hamil_vel_sparse_boundary_surfy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1262,7 +1262,7 @@ static const gkyl_dg_vlasov_stream_boundary_surf_kern_list ser_stream_hamil_vel_
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_hamil_vel_dense_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_boundary_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Streaming velocity-space Hamiltonian boundary surface kernel list: z-direction (Tensor basis)
