@@ -155,6 +155,12 @@ gk_species_collisionless_init_passive(struct gkyl_gyrokinetic_app *app, struct g
   gkyl_eval_on_nodes_release(speeds_proj);
   gkyl_array_copy(gkcls->passive_speeds, gkcls->passive_speeds_ho);
 
+  // Sync speeds.
+  int num_periodic_dir = app->num_periodic_dir;
+  gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
+    num_periodic_dir, app->periodic_dirs, gkcls->passive_speeds); 
+  gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, gkcls->passive_speeds);
+
   gkcls->passive_surf_flux_op = gkyl_gk_collisionless_passive_flux_new(&gks->grid, &app->basis, &gks->basis,
     gkcls->passive_speeds, gks->info.charge, gks->info.mass,
     app->gk_geom, app->dg_geom, app->gk_dg_geom, gks->vel_map, bctype_conf, app->use_gpu);
