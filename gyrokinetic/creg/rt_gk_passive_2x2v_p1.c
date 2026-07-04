@@ -23,19 +23,17 @@ struct passive_ctx
   double n0; // Reference number density (1 / m^3).
   double B0; // Reference magnetic field strength (Tesla).
   
-  double ux, uy, uz; // Passive advection velocity.
+  double ux, uz; // Passive advection velocity.
   double f_amplitude; // Amplitude of the distribution.
   double f_floor; // Floor of the distribution.
 
   // Simulation parameters.
   int Nx; // Cell count (configuration space: x-direction).
-  int Ny; // Cell count (configuration space: y-direction).
   int Nz; // Cell count (configuration space: z-direction).
   int Nvpar; // Cell count (velocity space: parallel velocity direction).
   int Nmu; // Cell count (velocity space: magnetic moment direction).
   int cells[GKYL_MAX_DIM]; // Number of cells in all directions.
   double Lx; // Domain size (configuration space: x-direction).
-  double Ly; // Domain size (configuration space: y-direction).
   double Lz; // Domain size (configuration space: z-direction).
   double vpar_max_elc; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc; // Domain boundary (electron velocity space: magnetic moment direction).
@@ -53,7 +51,7 @@ struct passive_ctx
 struct passive_ctx
 create_ctx(void)
 {
-  int cdim = 3, vdim = 2; // Dimensionality.
+  int cdim = 2, vdim = 2; // Dimensionality.
 
   // Physical constants (using non-normalized physical units).
   double mass_elc = GKYL_ELECTRON_MASS; // Electron mass.
@@ -63,7 +61,7 @@ create_ctx(void)
   double n0 = 1.0e18; //  Reference number density (1 / m^3).
   double B0 = 1.0; // Reference magnetic field.
 
-  double ux = 0.0, uy = 0.0, uz = 1.0; // Passive advection velocity.
+  double ux = 0.0, uz = 1.0; // Passive advection velocity.
   double f_amplitude = 1.0; // Amplitude of the distribution.
   double f_floor = 1.0e-10; // Floor of the distribution.
 
@@ -71,20 +69,18 @@ create_ctx(void)
 
   // Simulation parameters.
   int Nx = 16; // Cell count (configuration space: x-direction).
-  int Ny = 16; // Cell count (configuration space: y-direction).
   int Nz = 16; // Cell count (configuration space: z-direction).
   int Nvpar = 2; // Cell count (velocity space: parallel velocity direction).
   int Nmu = 2; // Cell count (velocity space: magnetic moment direction).
   double Lx = 1.0; // Domain size (configuration space: x-direction).
-  double Ly = 1.0; // Domain size (configuration space: y-direction).
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max_elc = 4.0*vte; // Domain boundary (electron velocity space: parallel velocity direction).
   double mu_max_elc = mass_elc*pow(vpar_max_elc,2.0)/(2.0*B0); // Domain boundary (electron velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 4.; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 1.0; // Final simulation time.
+  int num_frames = 10; // Number of output frames.
   double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -98,17 +94,15 @@ create_ctx(void)
     .Te = Te,
     .n0 = n0,
     .B0 = B0,
-    .ux = ux, .uy = uy, uz = uz,
+    .ux = ux, uz = uz,
     .f_amplitude = f_amplitude,
     .f_floor = f_floor,
     .Nx = Nx,
-    .Ny = Ny,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .Lx = Lx,
-    .Ly = Ly,
     .Lz = Lz,
     .vpar_max_elc = vpar_max_elc,
     .mu_max_elc = mu_max_elc,
@@ -128,21 +122,19 @@ create_ctx(void)
 void
 distf_elc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2], vpar = xn[3], mu = xn[4];
+  double x = xn[0], z = xn[1], vpar = xn[2], mu = xn[3];
 
   struct passive_ctx *app = ctx;
   double Lx = app->Lx;
-  double Ly = app->Ly;
   double Lz = app->Lz;
   double f_amplitude = app->f_amplitude;
   double f_floor = app->f_floor;
 
   // Cube
   double rx2 = pow(x-Lx/2,2);
-  double ry2 = pow(y-Ly/2,2);
   double rz2 = pow(z-Lz/2,2);
 
-  if (rx2 < pow(Lx/4,2) && ry2 < pow(Ly/4,2) && rz2 < pow(Lz/4,2))
+  if (rx2 < pow(Lx/4,2) && rz2 < pow(Lz/4,2))
     fout[0] = f_amplitude;
   else
     fout[0] = f_floor;
@@ -151,24 +143,21 @@ distf_elc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, 
 void
 passive_velocity_elc(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
 
   struct passive_ctx *app = ctx;
   double ux = app->ux;
-  double uy = app->uy;
   double uz = app->uz;
 
   fout[0] = ux;
-  fout[1] = uy;
-  fout[2] = uz;
+  fout[1] = uz;
 }
 
 static inline void
 mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void* ctx)
 {
-  double x = zc[0], y = zc[1], z = zc[2];
-
   struct passive_ctx *app = ctx;
+  double x = zc[0], y = zc[1], z = zc[2];
 
   xp[0] = x; xp[1] = y; xp[2] = z;
 }
@@ -176,9 +165,9 @@ mapc2p(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT xp, void*
 void
 bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout, void* ctx)
 {
+  struct passive_ctx *app = ctx;
   double x = zc[0], y = zc[1], z = zc[2];
 
-  struct passive_ctx *app = ctx;
   double B0 = app->B0;
 
   // zc are computational coords. 
@@ -186,21 +175,6 @@ bfield_func(double t, const double* GKYL_RESTRICT zc, double* GKYL_RESTRICT fout
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = B0;
-}
-
-void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  double x = xc[0], y = xc[1], z = xc[2];
-
-  struct gk_app_ctx *app = ctx;
-
-  fout[0] = x-0.5;
-}
-
-void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
-{
-  bc_shift_func_lo(t,xc,fout,ctx);
-  fout[0] *= -1.0;
 }
 
 int
@@ -251,10 +225,10 @@ main(int argc, char **argv)
       .write_diagnostics = true,
     },
 
-    .bcs = {
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
-    },
+//    .bcs = {
+//      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
+//      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT, },
+//    },
 
     .num_diag_moments = 3,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, },
@@ -283,9 +257,9 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
 
     .cdim = ctx.cdim,
-    .lower = { 0.0   , 0.0   , 0.0    },
-    .upper = { ctx.Lx, ctx.Ly, ctx.Lz },
-    .cells = { cells_x[0], cells_x[1], cells_x[2] },
+    .lower = { 0.0   , 0.0    },
+    .upper = { ctx.Lx, ctx.Lz },
+    .cells = { cells_x[0], cells_x[1], },
 
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
@@ -297,11 +271,7 @@ main(int argc, char **argv)
       .mapc2p = mapc2p,
       .c2p_ctx = &ctx,
       .bfield_func = bfield_func,
-      .bfield_ctx = &ctx,
-      .parallel_lower_bc_shift_func = bc_shift_func_lo,
-      .parallel_upper_bc_shift_func = bc_shift_func_up,
-      .parallel_lower_bc_shift_ctx = &ctx,
-      .parallel_upper_bc_shift_ctx = &ctx,
+      .bfield_ctx = &ctx
     },
 
     .num_periodic_dir = 1,
@@ -314,7 +284,7 @@ main(int argc, char **argv)
 
     .parallelism = {
       .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1], },
       .comm = comm,
     },
   };
