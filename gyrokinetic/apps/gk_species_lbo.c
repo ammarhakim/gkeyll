@@ -152,7 +152,7 @@ gklbo_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *gks
     // Scale upar_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<2; d++)
       gkyl_dg_mul_op(&app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
-      
+
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, cross_prim_moms);
   }
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);
@@ -210,8 +210,8 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
     { .key = "Description", .elem_type = GKYL_MP_STRING,
       .cval = "Cross-species drift velocity and thermal speed squared, or cross-species collision frequency." }
   };
-  int io_meta_nu_cross_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta_nu_cross[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nu_cross};
+  int io_meta_nu_cross_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta_nu_cross[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nu_cross};
   struct gkyl_msgpack_data *mt_nu_cross = gkyl_msgpack_create_union(sizeof(io_meta_nu_cross_len)/sizeof(int), io_meta_nu_cross_len, io_meta_nu_cross);
 
   // Write out nu_sum and nu_prim_moms.
@@ -253,8 +253,8 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
       { .key = "Description", .elem_type = GKYL_MP_STRING,
         .cval = "Self drift velocity and thermal speed squared, before cross-species contributions." }
     };
-    int io_meta_prim_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta_prim[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_prim};
+    int io_meta_prim_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta_prim[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_prim};
     struct gkyl_msgpack_data *mt_prim = gkyl_msgpack_create_union(sizeof(io_meta_prim_len)/sizeof(int), io_meta_prim_len, io_meta_prim);
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt_prim, prim_moms_io, fileNm_prim);
     gkyl_msgpack_data_release(mt_prim);
