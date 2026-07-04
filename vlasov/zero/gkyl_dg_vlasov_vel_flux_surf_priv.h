@@ -28,7 +28,7 @@ typedef void (*B_alpha_quad_t)(const double *dxv,
 typedef void (*rad_alpha_quad_t)(const double *dxv, 
   const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
-typedef double (*lax_flux_nodal_to_modal_t)(const double *dxv, 
+typedef double (*lax_flux_nodal_t)(const double *dxv, 
   const double *jacob_vel_l, const double *jacob_vel, const double *alpha_quad, 
   const double *f_l, const double *f_c, 
   double *lax_nodal_quad, double* GKYL_RESTRICT vel_flux_surf); 
@@ -59,7 +59,7 @@ typedef struct { E_alpha_quad_t kernels[4]; } gkyl_E_alpha_quad_kern_list;
 typedef struct { phi_alpha_quad_t kernels[4]; } gkyl_phi_alpha_quad_kern_list;  
 typedef struct { B_alpha_quad_t kernels[4]; } gkyl_B_alpha_quad_kern_list;  
 typedef struct { rad_alpha_quad_t kernels[4]; } gkyl_rad_alpha_quad_kern_list;    
-typedef struct { lax_flux_nodal_to_modal_t kernels[4]; } gkyl_lax_flux_nodal_to_modal_kern_list;  
+typedef struct { lax_flux_nodal_t kernels[4]; } gkyl_lax_flux_nodal_kern_list;  
 typedef struct { vel_flux_surf_t kernels[4]; } gkyl_vel_flux_surf_kern_list;  
 
 struct gkyl_dg_vlasov_vel_flux_surf {
@@ -80,7 +80,7 @@ struct gkyl_dg_vlasov_vel_flux_surf {
   phi_alpha_quad_t phi_alpha_quad[3]; // Scalar potential, -grad(phi), force contribution to alpha_v at quadrature points. 
   B_alpha_quad_t B_alpha_quad[3]; // Lorentz force contribution from magnetic field to alpha_v at quadrature points. 
   rad_alpha_quad_t rad_alpha_quad[3]; // Radiation drag force contribution to alpha_v at quadrature points. 
-  lax_flux_nodal_to_modal_t lax_flux_nodal_to_modal[3]; // Convert nodal Lax-Friedrichs flux to modal surface expansion. 
+  lax_flux_nodal_t lax_flux_nodal[3]; // Convert nodal Lax-Friedrichs flux to modal surface expansion. 
   vel_flux_surf_t vel_flux_surf; // Assembly function for computing modal surface expansion of velocity-space fluxes. 
   vel_flux_surf_edge_t vel_flux_surf_edge; // Edge-of-velocity-space Assembly function for computing velocity-space fluxes. 
 
@@ -162,7 +162,7 @@ vel_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -190,7 +190,7 @@ vel_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -218,7 +218,7 @@ vel_flux_surf_1x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -247,7 +247,7 @@ vel_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -276,7 +276,7 @@ vel_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -305,7 +305,7 @@ vel_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -334,7 +334,7 @@ vel_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -362,7 +362,7 @@ vel_flux_surf_2x1v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -390,7 +390,7 @@ vel_flux_surf_2x1v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -418,7 +418,7 @@ vel_flux_surf_2x1v_p3(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -447,7 +447,7 @@ vel_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -476,7 +476,7 @@ vel_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -505,7 +505,7 @@ vel_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -534,7 +534,7 @@ vel_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -563,7 +563,7 @@ vel_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_vel_flux_surf *up,
   vel_flux_surf_alpha_quad(up, dir, w, dxv, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, qmem, pot_tot, rad, alpha_quad); 
 
   // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal_to_modal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
+  double cflrate = up->lax_flux_nodal[dir](dxv, jacob_vel_l, jacob_vel, alpha_quad, 
     f_l, f_c, lax_nodal_quad, vel_flux_surf); 
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
@@ -593,82 +593,82 @@ static const gkyl_vel_flux_surf_kern_list vel_flux_surf_kernels[] = {
 
 // Nodal Lax-Friedrichs to modal velocity-space flux conversion (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list ser_lax_flux_nodal_to_modal_vx_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list ser_lax_flux_nodal_vx_kernels[] = {
   // 1x kernels
-  { NULL, lax_flux_nodal_to_modal_vx_1x1v_ser_p1, lax_flux_nodal_to_modal_vx_1x1v_ser_p2, lax_flux_nodal_to_modal_vx_1x1v_ser_p3 }, // 0
-  { NULL, lax_flux_nodal_to_modal_vx_1x2v_ser_p1, lax_flux_nodal_to_modal_vx_1x2v_ser_p2, NULL }, // 1
-  { NULL, lax_flux_nodal_to_modal_vx_1x3v_ser_p1, lax_flux_nodal_to_modal_vx_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vx_1x1v_ser_p1, lax_flux_nodal_vx_1x1v_ser_p2, lax_flux_nodal_vx_1x1v_ser_p3 }, // 0
+  { NULL, lax_flux_nodal_vx_1x2v_ser_p1, lax_flux_nodal_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_vx_1x3v_ser_p1, lax_flux_nodal_vx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, lax_flux_nodal_to_modal_vx_2x1v_ser_p1, lax_flux_nodal_to_modal_vx_2x1v_ser_p2, lax_flux_nodal_to_modal_vx_2x1v_ser_p3 }, // 3
-  { NULL, lax_flux_nodal_to_modal_vx_2x2v_ser_p1, lax_flux_nodal_to_modal_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vx_2x3v_ser_p1, lax_flux_nodal_to_modal_vx_2x3v_ser_p2, NULL }, // 5
+  { NULL, lax_flux_nodal_vx_2x1v_ser_p1, lax_flux_nodal_vx_2x1v_ser_p2, lax_flux_nodal_vx_2x1v_ser_p3 }, // 3
+  { NULL, lax_flux_nodal_vx_2x2v_ser_p1, lax_flux_nodal_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_vx_2x3v_ser_p1, lax_flux_nodal_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_to_modal_vx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list ser_lax_flux_nodal_to_modal_vy_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list ser_lax_flux_nodal_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, lax_flux_nodal_to_modal_vy_1x2v_ser_p1, lax_flux_nodal_to_modal_vy_1x2v_ser_p2, NULL }, // 1
-  { NULL, lax_flux_nodal_to_modal_vy_1x3v_ser_p1, lax_flux_nodal_to_modal_vy_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vy_1x2v_ser_p1, lax_flux_nodal_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_vy_1x3v_ser_p1, lax_flux_nodal_vy_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, lax_flux_nodal_to_modal_vy_2x2v_ser_p1, lax_flux_nodal_to_modal_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vy_2x3v_ser_p1, lax_flux_nodal_to_modal_vy_2x3v_ser_p2, NULL }, // 5
+  { NULL, lax_flux_nodal_vy_2x2v_ser_p1, lax_flux_nodal_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_vy_2x3v_ser_p1, lax_flux_nodal_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_to_modal_vy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list ser_lax_flux_nodal_to_modal_vz_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list ser_lax_flux_nodal_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, lax_flux_nodal_to_modal_vz_1x3v_ser_p1, lax_flux_nodal_to_modal_vz_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vz_1x3v_ser_p1, lax_flux_nodal_vz_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vz_2x3v_ser_p1, lax_flux_nodal_to_modal_vz_2x3v_ser_p2, NULL }, // 5
+  { NULL, lax_flux_nodal_vz_2x3v_ser_p1, lax_flux_nodal_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_to_modal_vz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Nodal Lax-Friedrichs to modal velocity-space flux conversion (Tensor basis). 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_lax_flux_nodal_to_modal_vx_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, lax_flux_nodal_to_modal_vx_1x1v_tensor_p2, lax_flux_nodal_to_modal_vx_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, lax_flux_nodal_to_modal_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_to_modal_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, lax_flux_nodal_vx_1x1v_tensor_p2, lax_flux_nodal_vx_1x1v_tensor_p3 }, // 0
+  { NULL, NULL, lax_flux_nodal_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, lax_flux_nodal_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, lax_flux_nodal_to_modal_vx_2x1v_tensor_p2, lax_flux_nodal_to_modal_vx_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, lax_flux_nodal_to_modal_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, lax_flux_nodal_vx_2x1v_tensor_p2, lax_flux_nodal_vx_2x1v_tensor_p3 }, // 3
+  { NULL, NULL, lax_flux_nodal_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_lax_flux_nodal_to_modal_vy_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, lax_flux_nodal_to_modal_vy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_to_modal_vy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, lax_flux_nodal_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, lax_flux_nodal_vy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, lax_flux_nodal_to_modal_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, lax_flux_nodal_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_lax_flux_nodal_to_modal_vz_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_to_modal_vz_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, lax_flux_nodal_vz_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -679,45 +679,45 @@ static const gkyl_lax_flux_nodal_to_modal_kern_list tensor_lax_flux_nodal_to_mod
 
 // Nodal Lax-Friedrichs to modal velocity-space flux conversion (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_modal_vx_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list ser_ho_lax_flux_nodal_vx_kernels[] = {
   // 1x kernels
-  { NULL, lax_flux_nodal_to_modal_vx_1x1v_ser_p1, ho_lax_flux_nodal_to_modal_vx_1x1v_ser_p2, ho_lax_flux_nodal_to_modal_vx_1x1v_ser_p3 }, // 0
-  { NULL, lax_flux_nodal_to_modal_vx_1x2v_ser_p1, ho_lax_flux_nodal_to_modal_vx_1x2v_ser_p2, NULL }, // 1
-  { NULL, lax_flux_nodal_to_modal_vx_1x3v_ser_p1, ho_lax_flux_nodal_to_modal_vx_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vx_1x1v_ser_p1, ho_lax_flux_nodal_vx_1x1v_ser_p2, ho_lax_flux_nodal_vx_1x1v_ser_p3 }, // 0
+  { NULL, lax_flux_nodal_vx_1x2v_ser_p1, ho_lax_flux_nodal_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_vx_1x3v_ser_p1, ho_lax_flux_nodal_vx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
-  { NULL, lax_flux_nodal_to_modal_vx_2x1v_ser_p1, ho_lax_flux_nodal_to_modal_vx_2x1v_ser_p2, ho_lax_flux_nodal_to_modal_vx_2x1v_ser_p3 }, // 3
-  { NULL, lax_flux_nodal_to_modal_vx_2x2v_ser_p1, ho_lax_flux_nodal_to_modal_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_vx_2x1v_ser_p1, ho_lax_flux_nodal_vx_2x1v_ser_p2, ho_lax_flux_nodal_vx_2x1v_ser_p3 }, // 3
+  { NULL, lax_flux_nodal_vx_2x2v_ser_p1, ho_lax_flux_nodal_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_vx_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_to_modal_vx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_modal_vy_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list ser_ho_lax_flux_nodal_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, lax_flux_nodal_to_modal_vy_1x2v_ser_p1, ho_lax_flux_nodal_to_modal_vy_1x2v_ser_p2, NULL }, // 1
-  { NULL, lax_flux_nodal_to_modal_vy_1x3v_ser_p1, ho_lax_flux_nodal_to_modal_vy_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vy_1x2v_ser_p1, ho_lax_flux_nodal_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_vy_1x3v_ser_p1, ho_lax_flux_nodal_vy_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, lax_flux_nodal_to_modal_vy_2x2v_ser_p1, ho_lax_flux_nodal_to_modal_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_vy_2x2v_ser_p1, ho_lax_flux_nodal_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_vy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_to_modal_vy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_lax_flux_nodal_to_modal_kern_list ser_ho_lax_flux_nodal_to_modal_vz_kernels[] = {
+static const gkyl_lax_flux_nodal_kern_list ser_ho_lax_flux_nodal_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, lax_flux_nodal_to_modal_vz_1x3v_ser_p1, ho_lax_flux_nodal_to_modal_vz_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vz_1x3v_ser_p1, ho_lax_flux_nodal_vz_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, lax_flux_nodal_to_modal_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, lax_flux_nodal_vz_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_to_modal_vz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for general Hamiltonian forces (Serendipity basis). 

@@ -126,14 +126,14 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if ( use_lo ) {
-        up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = ser_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = ser_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = ser_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       }
       else {
-        up->lax_flux_nodal_to_modal[0] = ser_ho_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = ser_ho_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = ser_ho_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = ser_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = ser_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = ser_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       }
 
       // Only have Hamiltonian forces in general geometry. 
@@ -182,14 +182,14 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
 
     case GKYL_BASIS_MODAL_TENSOR:
       if (use_lo) {
-        up->lax_flux_nodal_to_modal[0] = tensor_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = tensor_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = tensor_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = tensor_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       } 
       else {
-        up->lax_flux_nodal_to_modal[0] = tensor_ho_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = tensor_ho_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = tensor_ho_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = tensor_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       }
       
       // Only have Hamiltonian forces in general geometry. 

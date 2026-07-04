@@ -56,14 +56,14 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
   switch (inp->conf_basis->b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if ( inp->use_lo ) {
-        up->lax_flux_nodal_to_modal[0] = ser_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = ser_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = ser_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = ser_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = ser_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = ser_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       } 
       else {
-        up->lax_flux_nodal_to_modal[0] = ser_ho_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = ser_ho_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = ser_ho_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = ser_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = ser_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = ser_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       }
 
       // Only have Hamiltonian forces in general geometry. 
@@ -112,14 +112,14 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
 
     case GKYL_BASIS_MODAL_TENSOR:
       if ( inp->use_lo ) {
-        up->lax_flux_nodal_to_modal[0] = tensor_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = tensor_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = tensor_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = tensor_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       } 
       else {
-        up->lax_flux_nodal_to_modal[0] = tensor_ho_lax_flux_nodal_to_modal_x_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[1] = tensor_ho_lax_flux_nodal_to_modal_y_kernels[kernel_index].kernels[poly_order];
-        up->lax_flux_nodal_to_modal[2] = tensor_ho_lax_flux_nodal_to_modal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[0] = tensor_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       } 
 
       break;      
@@ -133,7 +133,7 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
-    assert(up->lax_flux_nodal_to_modal[i]);
+    assert(up->lax_flux_nodal[i]);
     assert(up->hamil_alpha_quad[i]);
   }
 
