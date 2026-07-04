@@ -293,14 +293,14 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_vel_sparse_vol_kernels[] = {
   // 1x kernels
   { NULL, vlasov_nc_hamil_vel_dense_vol_1x1v_ser_p1, vlasov_nc_hamil_vel_dense_vol_1x1v_ser_p2, NULL }, // 0
-  { NULL, vlasov_nc_hamil_vel_dense_vol_1x2v_ser_p1, vlasov_nc_hamil_vel_dense_vol_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_nc_hamil_vel_dense_vol_1x3v_ser_p1, vlasov_nc_hamil_vel_dense_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_1x2v_ser_p1, vlasov_nc_hamil_vel_sparse_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_1x3v_ser_p1, vlasov_nc_hamil_vel_dense_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, vlasov_nc_hamil_vel_dense_vol_2x2v_ser_p1, vlasov_nc_hamil_vel_dense_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_nc_hamil_vel_dense_vol_2x3v_ser_p1, vlasov_nc_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_2x2v_ser_p1, vlasov_nc_hamil_vel_dense_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_2x3v_ser_p1, vlasov_nc_hamil_vel_dense_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_nc_hamil_vel_dense_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // Non-canonical Poisson Bracket, hamil phase space dependance, volume kernels (Serendipity basis). 

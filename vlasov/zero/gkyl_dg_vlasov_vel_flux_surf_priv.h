@@ -827,14 +827,14 @@ GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, nc_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p1, nc_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p1, nc_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p1, nc_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p1, nc_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -856,14 +856,14 @@ GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p1, nc_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p1, nc_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p1, nc_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -886,13 +886,13 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_alpha_quad_
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p1, nc_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p1, nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for Hamil (NC) - vel dependance only - Hamiltonian forces (Serendipity basis).
@@ -916,14 +916,14 @@ GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_ho_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, nc_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vx_1x1v_ser_p2, NULL }, // 0
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p1, nc_hamil_vel_sparse_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p1, nc_hamil_vel_sparse_ho_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p1, nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -945,14 +945,14 @@ GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_ho_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p1, nc_hamil_vel_sparse_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p1, nc_hamil_vel_sparse_ho_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p1, nc_hamil_vel_sparse_ho_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -975,13 +975,13 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_vel_sparse_ho_alpha_qu
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p1, nc_hamil_vel_dense_ho_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p1, nc_hamil_vel_sparse_ho_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, nc_hamil_vel_dense_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, nc_hamil_vel_sparse_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 
