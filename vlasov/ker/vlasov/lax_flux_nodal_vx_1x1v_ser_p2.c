@@ -1,30 +1,103 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH double lax_flux_nodal_vx_1x1v_ser_p2(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, 
-  const double *alpha_quad, const double *f_l, const double *f_r, 
+// Exact factorized evaluation of the phase basis at the surface tensor-product nodes: 
+// phi_k = coef[k] * (outer shape cmap[k])(outer vars) * (inner shape)(normal, inner vars). 
+// Cm[i*3 + a]: outer shape a at outer node i; Vl/Vr[j*NM + m]: inner shape m at the 
+// +1/-1 edge and inner node j. Flat surface node index n = i*1 + j (inner fastest). 
+static const double lax_flux_nodal_vx_1x1v_ser_p2_Cm[9] = { 
+  1.0, 
+  -1.9364916731037085, 
+  -1.5384615384615385, 
+  1.0, 
+  0.0, 
+  1.9230769230769231, 
+  1.0, 
+  1.9364916731037085, 
+  -1.5384615384615385, 
+}; 
+static const double lax_flux_nodal_vx_1x1v_ser_p2_Vl[3] = { 
+  1.0, 
+  2.5, 
+  -3.8461538461538463, 
+}; 
+static const double lax_flux_nodal_vx_1x1v_ser_p2_Vr[3] = { 
+  1.0, 
+  -2.5, 
+  -3.8461538461538463, 
+}; 
+static const double lax_flux_nodal_vx_1x1v_ser_p2_coef[8] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  -0.2906888370749726, 
+  -0.20139513400278566, 
+  -0.20139513400278566, 
+}; 
+static const int lax_flux_nodal_vx_1x1v_ser_p2_cmap[8] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  0, 
+  2, 
+  1, 
+}; 
+static const int lax_flux_nodal_vx_1x1v_ser_p2_vlmap[8] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+}; 
+static const int lax_flux_nodal_vx_1x1v_ser_p2_vrmap[8] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+}; 
+GKYL_CU_DH double lax_flux_nodal_vx_1x1v_ser_p2(const double *dxv, const double *jacob_vel_surf_l, const double *jacob_vel_surf_r,
+  const double *alpha_quad, const double *f_l, const double *f_r,
   double *lax, double* GKYL_RESTRICT Fhat_nodal) 
 { 
   double dv10 = 2.0/dxv[1]; 
 
   double *out = &Fhat_nodal[0]; 
   const double jacob_vel_surf_min = fmin(jacob_vel_surf_l[0], jacob_vel_surf_r[0]); 
+  double G_l[3]; 
+  double G_r[3]; 
+  for (int q = 0; q < 3; ++q) { G_l[q] = 0.0; G_r[q] = 0.0; } 
+  for (int k = 0; k < 8; ++k) { 
+    const int a = lax_flux_nodal_vx_1x1v_ser_p2_cmap[k]; 
+    const double cfl = lax_flux_nodal_vx_1x1v_ser_p2_coef[k]*f_l[k]; 
+    const double cfr = lax_flux_nodal_vx_1x1v_ser_p2_coef[k]*f_r[k]; 
+    for (int j = 0; j < 1; ++j) { 
+      G_l[j*3 + a] += lax_flux_nodal_vx_1x1v_ser_p2_Vl[j*3 + lax_flux_nodal_vx_1x1v_ser_p2_vlmap[k]]*cfl; 
+      G_r[j*3 + a] += lax_flux_nodal_vx_1x1v_ser_p2_Vr[j*3 + lax_flux_nodal_vx_1x1v_ser_p2_vrmap[k]]*cfr; 
+    } 
+  } 
   double alpha_max = 0.0; 
-  double f_l_quad = 0.0; 
-  double f_r_quad = 0.0; 
-  alpha_max = fmax(alpha_max, fabs(alpha_quad[0])); 
-  f_l_quad = -(1.5*f_l[7])+0.7745966692414833*f_l[6]+1.118033988749895*f_l[5]+0.4472135954999579*f_l[4]-1.1618950038622249*f_l[3]+0.8660254037844386*f_l[2]-0.6708203932499369*f_l[1]+0.5*f_l[0]; 
-  f_r_quad = -(1.5*f_r[7])-0.7745966692414833*f_r[6]+1.118033988749895*f_r[5]+0.4472135954999579*f_r[4]+1.1618950038622249*f_r[3]-0.8660254037844386*f_r[2]-0.6708203932499369*f_r[1]+0.5*f_r[0]; 
-  out[0] = 0.5*(1)*(alpha_quad[0]*(f_r_quad + f_l_quad) - fabs(alpha_quad[0])*(f_r_quad - f_l_quad)); 
-
-  alpha_max = fmax(alpha_max, fabs(alpha_quad[1])); 
-  f_l_quad = -(0.9682458365518543*f_l[6])+1.118033988749895*f_l[5]-0.5590169943749475*f_l[4]+0.8660254037844386*f_l[2]+0.5*f_l[0]; 
-  f_r_quad = 0.9682458365518543*f_r[6]+1.118033988749895*f_r[5]-0.5590169943749475*f_r[4]-0.8660254037844386*f_r[2]+0.5*f_r[0]; 
-  out[1] = 0.5*(1)*(alpha_quad[1]*(f_r_quad + f_l_quad) - fabs(alpha_quad[1])*(f_r_quad - f_l_quad)); 
-
-  alpha_max = fmax(alpha_max, fabs(alpha_quad[2])); 
-  f_l_quad = 1.5*f_l[7]+0.7745966692414833*f_l[6]+1.118033988749895*f_l[5]+0.4472135954999579*f_l[4]+1.1618950038622249*f_l[3]+0.8660254037844386*f_l[2]+0.6708203932499369*f_l[1]+0.5*f_l[0]; 
-  f_r_quad = 1.5*f_r[7]-0.7745966692414833*f_r[6]+1.118033988749895*f_r[5]+0.4472135954999579*f_r[4]-1.1618950038622249*f_r[3]-0.8660254037844386*f_r[2]+0.6708203932499369*f_r[1]+0.5*f_r[0]; 
-  out[2] = 0.5*(1)*(alpha_quad[2]*(f_r_quad + f_l_quad) - fabs(alpha_quad[2])*(f_r_quad - f_l_quad)); 
-
+  for (int i = 0; i < 3; ++i) { 
+    for (int j = 0; j < 1; ++j) { 
+      const int n = i*1 + j; 
+      double f_l_quad = 0.0; 
+      double f_r_quad = 0.0; 
+      for (int a = 0; a < 3; ++a) { 
+        f_l_quad += lax_flux_nodal_vx_1x1v_ser_p2_Cm[i*3 + a]*G_l[j*3 + a]; 
+        f_r_quad += lax_flux_nodal_vx_1x1v_ser_p2_Cm[i*3 + a]*G_r[j*3 + a]; 
+      } 
+      alpha_max = fmax(alpha_max, fabs(alpha_quad[n])); 
+      out[n] = 0.5*(alpha_quad[n]*(f_r_quad + f_l_quad) - fabs(alpha_quad[n])*(f_r_quad - f_l_quad)); 
+    } 
+  } 
   return 2.5*dv10*alpha_max/jacob_vel_surf_min;
 
 } 
