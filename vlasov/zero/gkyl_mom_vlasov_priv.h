@@ -1732,6 +1732,32 @@ kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_ser_p2(const struct gkyl_mom_type *mo
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_dense_M1i_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -1807,7 +1833,7 @@ static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m1i_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_dense_M1i_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x2v_ser_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_M1i_2x3v_ser_p2, NULL }, // 5
+  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M1i_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -2840,6 +2866,23 @@ kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_ser_p2(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p2(xc, dx, idx, 
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_dense_M2_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -2897,7 +2940,7 @@ static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m2_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_dense_M2_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_M2_2x2v_ser_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_M2_2x3v_ser_p2, NULL }, // 5
+  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M2_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -3903,6 +3946,32 @@ kernel_mom_vlasov_hamil_vel_dense_M3i_2x3v_ser_p2(const struct gkyl_mom_type *mo
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_dense_M3i_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -3978,7 +4047,7 @@ static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_m3i_kernels[] = {
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_dense_M3i_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M3i_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_M3i_2x2v_ser_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_M3i_2x3v_ser_p2, NULL }, // 5
+  { NULL, kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_M3i_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -4562,6 +4631,32 @@ kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_ser_p2(const struct gkyl_mom
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_dense_five_moments_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -4638,7 +4733,7 @@ static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_five_moments_kernels
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x2v_ser_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_five_moments_2x3v_ser_p2, NULL }, // 5
+  { NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_five_moments_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -5862,6 +5957,32 @@ kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_ser_p2(const struct gkyl
 
 GKYL_CU_DH
 static void
+kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
+  const int *idx, const double *f, double* out, void *param)
+{
+  struct mom_type_vlasov *mom_vlasov = container_of(momt, struct mom_type_vlasov, momt);
+  int cdim = mom_vlasov->momt.cdim;
+  int pdim = mom_vlasov->momt.pdim;  
+
+  int idx_vel[GKYL_MAX_DIM];
+  for (int i=0; i<pdim-cdim; ++i) {
+    idx_vel[i] = idx[cdim+i];
+  }
+  long vidx = gkyl_range_idx(&mom_vlasov->vel_range, idx_vel);
+
+  int idx_hamil[GKYL_MAX_DIM];
+  for (int i=0; i<mom_vlasov->hamil_dim; ++i) {
+    idx_hamil[i] = idx[mom_vlasov->hamil_offset+i];
+  }
+  long hidx = gkyl_range_idx(&mom_vlasov->hamil_range, idx_hamil);
+
+  return mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p2(xc, dx, idx, 
+    mom_vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(mom_vlasov->jacob_vel, vidx) : 0,
+    (const double*) gkyl_array_cfetch(mom_vlasov->hamil, hidx), f, out);  
+}
+
+GKYL_CU_DH
+static void
 kernel_mom_vlasov_hamil_vel_dense_int_five_moments_3x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc, const double *dx,
   const int *idx, const double *f, double* out, void *param)
 {
@@ -5938,7 +6059,7 @@ static const gkyl_vlasov_mom_kern_list ser_hamil_vel_sparse_int_five_moments_ker
   // 2x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p2, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p3 }, // 3
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x2v_ser_p2, NULL }, // 4
-  { NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_ser_p2, NULL }, // 5
+  { NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p1, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, kernel_mom_vlasov_hamil_vel_sparse_int_five_moments_3x3v_ser_p1, NULL, NULL }, // 6
 };

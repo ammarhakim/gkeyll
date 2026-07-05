@@ -378,3 +378,177 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_dense_int_five_moments_2x3v_ser_p2(const do
   out[3] += (3.464101615137755*hamil[18]*f[42]+3.464101615137755*hamil[17]*f[39]+7.745966692414834*hamil[19]*f[30]+3.464101615137755*hamil[14]*f[19]+3.464101615137755*hamil[13]*f[18]+7.745966692414834*f[15]*hamil[16]+7.745966692414834*f[14]*hamil[15]+3.4641016151377544*hamil[10]*f[11]+7.745966692414834*f[5]*hamil[9]+3.4641016151377544*f[4]*hamil[6]+3.4641016151377544*f[3]*hamil[5]+3.4641016151377544*f[0]*hamil[3])*dv12*jacob_vz_inv*volFact; 
   out[4] += (2.0*hamil[19]*f[85]+2.0*hamil[18]*f[79]+2.0*hamil[17]*f[76]+2.0*hamil[16]*f[50]+2.0*hamil[15]*f[49]+2.0*hamil[14]*f[46]+2.0*hamil[13]*f[45]+2.0*hamil[12]*f[42]+2.0*hamil[11]*f[39]+2.0*hamil[10]*f[30]+2.0*hamil[9]*f[20]+2.0*hamil[8]*f[19]+2.0*hamil[7]*f[18]+2.0*hamil[6]*f[15]+2.0*hamil[5]*f[14]+2.0*hamil[4]*f[11]+2.0*hamil[3]*f[5]+2.0*hamil[2]*f[4]+2.0*hamil[1]*f[3]+2.0*f[0]*hamil[0])*volFact; 
 } 
+GKYL_CU_DH void mom_vlasov_hamil_vel_sparse_M1i_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
+    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
+  double dv10 = 2.0/dxv[2]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
+  double dv11 = 2.0/dxv[3]; 
+  const double *jacob_vy = &jacob_vel[3]; 
+  const double jacob_vy_inv = 1.0/jacob_vy[0]; 
+  double dv12 = 2.0/dxv[4]; 
+  const double *jacob_vz = &jacob_vel[6]; 
+  const double jacob_vz_inv = 1.0/jacob_vz[0]; 
+  out[0] += (3.872983346207417*f[3]*hamil[7]+1.7320508075688772*f[0]*hamil[1])*dv10*jacob_vx_inv*volFact; 
+  out[1] += (3.872983346207417*f[7]*hamil[7]+1.7320508075688772*f[1]*hamil[1])*dv10*jacob_vx_inv*volFact; 
+  out[2] += (3.872983346207417*hamil[7]*f[8]+1.7320508075688772*hamil[1]*f[2])*dv10*jacob_vx_inv*volFact; 
+  out[3] += (3.872983346207417*hamil[7]*f[21]+1.7320508075688772*hamil[1]*f[6])*dv10*jacob_vx_inv*volFact; 
+  out[4] += (3.872983346207417*hamil[7]*f[33]+1.7320508075688772*hamil[1]*f[16])*dv10*jacob_vx_inv*volFact; 
+  out[5] += (3.872983346207417*hamil[7]*f[34]+1.7320508075688772*hamil[1]*f[17])*dv10*jacob_vx_inv*volFact; 
+  out[6] += (3.872983346207417*hamil[7]*f[56]+1.7320508075688772*hamil[1]*f[31])*dv10*jacob_vx_inv*volFact; 
+  out[7] += (3.872983346207417*hamil[7]*f[57]+1.7320508075688772*hamil[1]*f[32])*dv10*jacob_vx_inv*volFact; 
+  out[8] += (3.872983346207417*f[4]*hamil[8]+1.7320508075688772*f[0]*hamil[2])*dv11*jacob_vy_inv*volFact; 
+  out[9] += (3.872983346207417*hamil[8]*f[9]+1.7320508075688772*f[1]*hamil[2])*dv11*jacob_vy_inv*volFact; 
+  out[10] += (3.872983346207417*hamil[8]*f[10]+1.7320508075688772*f[2]*hamil[2])*dv11*jacob_vy_inv*volFact; 
+  out[11] += (3.872983346207417*hamil[8]*f[22]+1.7320508075688772*hamil[2]*f[6])*dv11*jacob_vy_inv*volFact; 
+  out[12] += (3.872983346207417*hamil[8]*f[37]+1.7320508075688772*hamil[2]*f[16])*dv11*jacob_vy_inv*volFact; 
+  out[13] += (3.872983346207417*hamil[8]*f[38]+1.7320508075688772*hamil[2]*f[17])*dv11*jacob_vy_inv*volFact; 
+  out[14] += (3.872983346207417*hamil[8]*f[59]+1.7320508075688772*hamil[2]*f[31])*dv11*jacob_vy_inv*volFact; 
+  out[15] += (3.872983346207417*hamil[8]*f[60]+1.7320508075688772*hamil[2]*f[32])*dv11*jacob_vy_inv*volFact; 
+  out[16] += (3.872983346207417*f[5]*hamil[9]+1.7320508075688772*f[0]*hamil[3])*dv12*jacob_vz_inv*volFact; 
+  out[17] += (3.872983346207417*hamil[9]*f[12]+1.7320508075688772*f[1]*hamil[3])*dv12*jacob_vz_inv*volFact; 
+  out[18] += (3.872983346207417*hamil[9]*f[13]+1.7320508075688772*f[2]*hamil[3])*dv12*jacob_vz_inv*volFact; 
+  out[19] += (3.872983346207417*hamil[9]*f[25]+1.7320508075688772*hamil[3]*f[6])*dv12*jacob_vz_inv*volFact; 
+  out[20] += (3.872983346207417*hamil[9]*f[43]+1.7320508075688772*hamil[3]*f[16])*dv12*jacob_vz_inv*volFact; 
+  out[21] += (3.872983346207417*hamil[9]*f[44]+1.7320508075688772*hamil[3]*f[17])*dv12*jacob_vz_inv*volFact; 
+  out[22] += (3.872983346207417*hamil[9]*f[68]+1.7320508075688772*hamil[3]*f[31])*dv12*jacob_vz_inv*volFact; 
+  out[23] += (3.872983346207417*hamil[9]*f[69]+1.7320508075688772*hamil[3]*f[32])*dv12*jacob_vz_inv*volFact; 
+} 
+GKYL_CU_DH void mom_vlasov_hamil_vel_sparse_M2_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
+    const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
+  out[0] += (hamil[9]*f[20]+hamil[8]*f[19]+hamil[7]*f[18]+hamil[3]*f[5]+hamil[2]*f[4]+hamil[1]*f[3]+f[0]*hamil[0])*volFact; 
+  out[1] += (1.0000000000000002*hamil[9]*f[47]+1.0000000000000002*hamil[8]*f[40]+1.0000000000000002*hamil[7]*f[35]+hamil[3]*f[12]+hamil[2]*f[9]+hamil[1]*f[7]+hamil[0]*f[1])*volFact; 
+  out[2] += (1.0000000000000002*hamil[9]*f[48]+1.0000000000000002*hamil[8]*f[41]+1.0000000000000002*hamil[7]*f[36]+hamil[3]*f[13]+hamil[2]*f[10]+hamil[1]*f[8]+hamil[0]*f[2])*volFact; 
+  out[3] += (hamil[9]*f[80]+hamil[8]*f[65]+hamil[7]*f[58]+hamil[3]*f[25]+hamil[2]*f[22]+hamil[1]*f[21]+hamil[0]*f[6])*volFact; 
+  out[4] += (1.0000000000000002*hamil[3]*f[43]+1.0000000000000002*hamil[2]*f[37]+1.0000000000000002*hamil[1]*f[33]+hamil[0]*f[16])*volFact; 
+  out[5] += (1.0000000000000002*hamil[3]*f[44]+1.0000000000000002*hamil[2]*f[38]+1.0000000000000002*hamil[1]*f[34]+hamil[0]*f[17])*volFact; 
+  out[6] += (1.0000000000000002*hamil[3]*f[68]+1.0000000000000002*hamil[2]*f[59]+1.0000000000000002*hamil[1]*f[56]+hamil[0]*f[31])*volFact; 
+  out[7] += (1.0000000000000002*hamil[3]*f[69]+1.0000000000000002*hamil[2]*f[60]+1.0000000000000002*hamil[1]*f[57]+hamil[0]*f[32])*volFact; 
+} 
+GKYL_CU_DH void mom_vlasov_hamil_vel_sparse_M3i_2x3v_ser_p2(const double *w, const double *dxv, const int *idx,
+    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
+  double dv10 = 2.0/dxv[2]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
+  double dv11 = 2.0/dxv[3]; 
+  const double *jacob_vy = &jacob_vel[3]; 
+  const double jacob_vy_inv = 1.0/jacob_vy[0]; 
+  double dv12 = 2.0/dxv[4]; 
+  const double *jacob_vz = &jacob_vel[6]; 
+  const double jacob_vz_inv = 1.0/jacob_vz[0]; 
+  double dH_dpx[20] = {0.0}; 
+  dH_dpx[0] = 1.7320508075688772*hamil[1]*dv10*jacob_vx_inv; 
+  dH_dpx[1] = 3.872983346207417*hamil[7]*dv10*jacob_vx_inv; 
+
+  double dH_dpy[20] = {0.0}; 
+  dH_dpy[0] = 1.7320508075688772*hamil[2]*dv11*jacob_vy_inv; 
+  dH_dpy[2] = 3.872983346207417*hamil[8]*dv11*jacob_vy_inv; 
+
+  double dH_dpz[20] = {0.0}; 
+  dH_dpz[0] = 1.7320508075688772*hamil[3]*dv12*jacob_vz_inv; 
+  dH_dpz[3] = 3.872983346207417*hamil[9]*dv12*jacob_vz_inv; 
+
+  out[0] += (0.3535533905932737*dH_dpx[1]*hamil[9]*f[49]+0.3535533905932737*dH_dpx[1]*hamil[8]*f[42]+0.3535533905932737*dH_dpx[0]*hamil[9]*f[20]+0.3535533905932737*dH_dpx[0]*hamil[8]*f[19]+0.3535533905932737*dH_dpx[0]*hamil[7]*f[18]+0.3162277660168379*dH_dpx[1]*hamil[1]*f[18]+0.3535533905932737*dH_dpx[1]*hamil[3]*f[14]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[11]+0.3162277660168379*dH_dpx[1]*f[3]*hamil[7]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[5]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[4]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[3]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[3]+0.3535533905932737*f[0]*dH_dpx[1]*hamil[1]+0.3535533905932737*dH_dpx[0]*f[0]*hamil[0])*volFact; 
+  out[1] += (0.3535533905932737*dH_dpx[1]*hamil[9]*f[81]+0.3535533905932737*dH_dpx[1]*hamil[8]*f[66]+0.3535533905932737*dH_dpx[0]*hamil[9]*f[47]+0.3535533905932737*dH_dpx[0]*hamil[8]*f[40]+0.3535533905932737*dH_dpx[0]*hamil[7]*f[35]+0.31622776601683794*dH_dpx[1]*hamil[1]*f[35]+0.3535533905932737*dH_dpx[1]*hamil[3]*f[26]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[23]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[12]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[9]+0.3162277660168379*dH_dpx[1]*f[7]*hamil[7]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[7]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[7]+0.3535533905932737*dH_dpx[1]*f[1]*hamil[1]+0.3535533905932737*dH_dpx[0]*hamil[0]*f[1])*volFact; 
+  out[2] += (0.3535533905932737*dH_dpx[1]*hamil[9]*f[82]+0.3535533905932737*dH_dpx[1]*hamil[8]*f[67]+0.3535533905932737*dH_dpx[0]*hamil[9]*f[48]+0.3535533905932737*dH_dpx[0]*hamil[8]*f[41]+0.3535533905932737*dH_dpx[0]*hamil[7]*f[36]+0.31622776601683794*dH_dpx[1]*hamil[1]*f[36]+0.3535533905932737*dH_dpx[1]*hamil[3]*f[27]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[24]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[13]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[10]+0.3162277660168379*dH_dpx[1]*hamil[7]*f[8]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[8]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[8]+0.3535533905932737*dH_dpx[1]*hamil[1]*f[2]+0.3535533905932737*dH_dpx[0]*hamil[0]*f[2])*volFact; 
+  out[3] += (0.3535533905932737*dH_dpx[1]*hamil[9]*f[103]+0.3535533905932737*dH_dpx[1]*hamil[8]*f[90]+0.3535533905932737*dH_dpx[0]*hamil[9]*f[80]+0.3535533905932737*dH_dpx[0]*hamil[8]*f[65]+0.3535533905932737*dH_dpx[0]*hamil[7]*f[58]+0.3162277660168379*dH_dpx[1]*hamil[1]*f[58]+0.3535533905932737*dH_dpx[1]*hamil[3]*f[52]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[51]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[25]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[22]+0.3162277660168379*dH_dpx[1]*hamil[7]*f[21]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[21]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[21]+0.3535533905932737*dH_dpx[1]*hamil[1]*f[6]+0.3535533905932737*dH_dpx[0]*hamil[0]*f[6])*volFact; 
+  out[4] += (0.3535533905932737*dH_dpx[1]*hamil[3]*f[70]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[61]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[43]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[37]+0.31622776601683794*dH_dpx[1]*hamil[7]*f[33]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[33]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[33]+0.3535533905932737*dH_dpx[1]*hamil[1]*f[16]+0.3535533905932737*dH_dpx[0]*hamil[0]*f[16])*volFact; 
+  out[5] += (0.3535533905932737*dH_dpx[1]*hamil[3]*f[71]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[62]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[44]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[38]+0.31622776601683794*dH_dpx[1]*hamil[7]*f[34]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[34]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[34]+0.3535533905932737*dH_dpx[1]*hamil[1]*f[17]+0.3535533905932737*dH_dpx[0]*hamil[0]*f[17])*volFact; 
+  out[6] += (0.3535533905932737*dH_dpx[1]*hamil[3]*f[91]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[87]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[68]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[59]+0.31622776601683794*dH_dpx[1]*hamil[7]*f[56]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[56]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[56]+0.3535533905932737*dH_dpx[1]*hamil[1]*f[31]+0.3535533905932737*dH_dpx[0]*hamil[0]*f[31])*volFact; 
+  out[7] += (0.3535533905932737*dH_dpx[1]*hamil[3]*f[92]+0.3535533905932737*dH_dpx[1]*hamil[2]*f[88]+0.3535533905932737*dH_dpx[0]*hamil[3]*f[69]+0.3535533905932737*dH_dpx[0]*hamil[2]*f[60]+0.31622776601683794*dH_dpx[1]*hamil[7]*f[57]+0.3535533905932737*dH_dpx[0]*hamil[1]*f[57]+0.3535533905932737*hamil[0]*dH_dpx[1]*f[57]+0.3535533905932737*dH_dpx[1]*hamil[1]*f[32]+0.3535533905932737*dH_dpx[0]*hamil[0]*f[32])*volFact; 
+  out[8] += (0.3535533905932737*dH_dpy[2]*hamil[9]*f[50]+0.3535533905932737*dH_dpy[2]*hamil[7]*f[39]+0.3535533905932737*dH_dpy[0]*hamil[9]*f[20]+0.3535533905932737*dH_dpy[0]*hamil[8]*f[19]+0.3162277660168379*dH_dpy[2]*hamil[2]*f[19]+0.3535533905932737*dH_dpy[0]*hamil[7]*f[18]+0.3535533905932737*dH_dpy[2]*hamil[3]*f[15]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[11]+0.3162277660168379*dH_dpy[2]*f[4]*hamil[8]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[5]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[4]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[4]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[3]+0.3535533905932737*f[0]*dH_dpy[2]*hamil[2]+0.3535533905932737*dH_dpy[0]*f[0]*hamil[0])*volFact; 
+  out[9] += (0.3535533905932737*dH_dpy[2]*hamil[9]*f[83]+0.3535533905932737*dH_dpy[2]*hamil[7]*f[63]+0.3535533905932737*dH_dpy[0]*hamil[9]*f[47]+0.3535533905932737*dH_dpy[0]*hamil[8]*f[40]+0.31622776601683794*dH_dpy[2]*hamil[2]*f[40]+0.3535533905932737*dH_dpy[0]*hamil[7]*f[35]+0.3535533905932737*dH_dpy[2]*hamil[3]*f[28]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[23]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[12]+0.3162277660168379*dH_dpy[2]*hamil[8]*f[9]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[9]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[9]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[7]+0.3535533905932737*f[1]*dH_dpy[2]*hamil[2]+0.3535533905932737*dH_dpy[0]*hamil[0]*f[1])*volFact; 
+  out[10] += (0.3535533905932737*dH_dpy[2]*hamil[9]*f[84]+0.3535533905932737*dH_dpy[2]*hamil[7]*f[64]+0.3535533905932737*dH_dpy[0]*hamil[9]*f[48]+0.3535533905932737*dH_dpy[0]*hamil[8]*f[41]+0.31622776601683794*dH_dpy[2]*hamil[2]*f[41]+0.3535533905932737*dH_dpy[0]*hamil[7]*f[36]+0.3535533905932737*dH_dpy[2]*hamil[3]*f[29]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[24]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[13]+0.3162277660168379*dH_dpy[2]*hamil[8]*f[10]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[10]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[10]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[8]+0.3535533905932737*dH_dpy[2]*f[2]*hamil[2]+0.3535533905932737*dH_dpy[0]*hamil[0]*f[2])*volFact; 
+  out[11] += (0.3535533905932737*dH_dpy[2]*hamil[9]*f[104]+0.3535533905932737*dH_dpy[2]*hamil[7]*f[89]+0.3535533905932737*dH_dpy[0]*hamil[9]*f[80]+0.3535533905932737*dH_dpy[0]*hamil[8]*f[65]+0.3162277660168379*dH_dpy[2]*hamil[2]*f[65]+0.3535533905932737*dH_dpy[0]*hamil[7]*f[58]+0.3535533905932737*dH_dpy[2]*hamil[3]*f[53]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[51]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[25]+0.3162277660168379*dH_dpy[2]*hamil[8]*f[22]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[22]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[22]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[21]+0.3535533905932737*dH_dpy[2]*hamil[2]*f[6]+0.3535533905932737*dH_dpy[0]*hamil[0]*f[6])*volFact; 
+  out[12] += (0.3535533905932737*dH_dpy[2]*hamil[3]*f[74]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[61]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[43]+0.31622776601683794*dH_dpy[2]*hamil[8]*f[37]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[37]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[37]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[33]+0.3535533905932737*dH_dpy[2]*hamil[2]*f[16]+0.3535533905932737*dH_dpy[0]*hamil[0]*f[16])*volFact; 
+  out[13] += (0.3535533905932737*dH_dpy[2]*hamil[3]*f[75]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[62]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[44]+0.31622776601683794*dH_dpy[2]*hamil[8]*f[38]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[38]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[38]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[34]+0.3535533905932737*dH_dpy[2]*hamil[2]*f[17]+0.3535533905932737*dH_dpy[0]*hamil[0]*f[17])*volFact; 
+  out[14] += (0.3535533905932737*dH_dpy[2]*hamil[3]*f[94]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[87]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[68]+0.31622776601683794*dH_dpy[2]*hamil[8]*f[59]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[59]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[59]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[56]+0.3535533905932737*dH_dpy[2]*hamil[2]*f[31]+0.3535533905932737*dH_dpy[0]*hamil[0]*f[31])*volFact; 
+  out[15] += (0.3535533905932737*dH_dpy[2]*hamil[3]*f[95]+0.3535533905932737*hamil[1]*dH_dpy[2]*f[88]+0.3535533905932737*dH_dpy[0]*hamil[3]*f[69]+0.31622776601683794*dH_dpy[2]*hamil[8]*f[60]+0.3535533905932737*dH_dpy[0]*hamil[2]*f[60]+0.3535533905932737*hamil[0]*dH_dpy[2]*f[60]+0.3535533905932737*dH_dpy[0]*hamil[1]*f[57]+0.3535533905932737*dH_dpy[2]*hamil[2]*f[32]+0.3535533905932737*dH_dpy[0]*hamil[0]*f[32])*volFact; 
+  out[16] += (0.3535533905932737*dH_dpz[3]*hamil[8]*f[46]+0.3535533905932737*dH_dpz[3]*hamil[7]*f[45]+0.3535533905932737*dH_dpz[0]*hamil[9]*f[20]+0.3162277660168379*dH_dpz[3]*hamil[3]*f[20]+0.3535533905932737*dH_dpz[0]*hamil[8]*f[19]+0.3535533905932737*dH_dpz[0]*hamil[7]*f[18]+0.3535533905932737*hamil[2]*dH_dpz[3]*f[15]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[14]+0.3162277660168379*dH_dpz[3]*f[5]*hamil[9]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[5]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[5]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[4]+0.3535533905932737*f[0]*dH_dpz[3]*hamil[3]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[3]+0.3535533905932737*dH_dpz[0]*f[0]*hamil[0])*volFact; 
+  out[17] += (0.3535533905932737*dH_dpz[3]*hamil[8]*f[77]+0.3535533905932737*dH_dpz[3]*hamil[7]*f[72]+0.3535533905932737*dH_dpz[0]*hamil[9]*f[47]+0.31622776601683794*dH_dpz[3]*hamil[3]*f[47]+0.3535533905932737*dH_dpz[0]*hamil[8]*f[40]+0.3535533905932737*dH_dpz[0]*hamil[7]*f[35]+0.3535533905932737*hamil[2]*dH_dpz[3]*f[28]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[26]+0.3162277660168379*dH_dpz[3]*hamil[9]*f[12]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[12]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[12]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[9]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[7]+0.3535533905932737*f[1]*dH_dpz[3]*hamil[3]+0.3535533905932737*dH_dpz[0]*hamil[0]*f[1])*volFact; 
+  out[18] += (0.3535533905932737*dH_dpz[3]*hamil[8]*f[78]+0.3535533905932737*dH_dpz[3]*hamil[7]*f[73]+0.3535533905932737*dH_dpz[0]*hamil[9]*f[48]+0.31622776601683794*dH_dpz[3]*hamil[3]*f[48]+0.3535533905932737*dH_dpz[0]*hamil[8]*f[41]+0.3535533905932737*dH_dpz[0]*hamil[7]*f[36]+0.3535533905932737*hamil[2]*dH_dpz[3]*f[29]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[27]+0.3162277660168379*dH_dpz[3]*hamil[9]*f[13]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[13]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[13]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[10]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[8]+0.3535533905932737*f[2]*dH_dpz[3]*hamil[3]+0.3535533905932737*dH_dpz[0]*hamil[0]*f[2])*volFact; 
+  out[19] += (0.3535533905932737*dH_dpz[3]*hamil[8]*f[100]+0.3535533905932737*dH_dpz[3]*hamil[7]*f[93]+0.3535533905932737*dH_dpz[0]*hamil[9]*f[80]+0.3162277660168379*dH_dpz[3]*hamil[3]*f[80]+0.3535533905932737*dH_dpz[0]*hamil[8]*f[65]+0.3535533905932737*dH_dpz[0]*hamil[7]*f[58]+0.3535533905932737*hamil[2]*dH_dpz[3]*f[53]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[52]+0.3162277660168379*dH_dpz[3]*hamil[9]*f[25]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[25]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[25]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[22]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[21]+0.3535533905932737*dH_dpz[3]*hamil[3]*f[6]+0.3535533905932737*dH_dpz[0]*hamil[0]*f[6])*volFact; 
+  out[20] += (0.3535533905932737*hamil[2]*dH_dpz[3]*f[74]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[70]+0.31622776601683794*dH_dpz[3]*hamil[9]*f[43]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[43]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[43]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[37]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[33]+0.3535533905932737*dH_dpz[3]*hamil[3]*f[16]+0.3535533905932737*dH_dpz[0]*hamil[0]*f[16])*volFact; 
+  out[21] += (0.3535533905932737*hamil[2]*dH_dpz[3]*f[75]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[71]+0.31622776601683794*dH_dpz[3]*hamil[9]*f[44]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[44]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[44]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[38]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[34]+0.3535533905932737*dH_dpz[3]*hamil[3]*f[17]+0.3535533905932737*dH_dpz[0]*hamil[0]*f[17])*volFact; 
+  out[22] += (0.3535533905932737*hamil[2]*dH_dpz[3]*f[94]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[91]+0.31622776601683794*dH_dpz[3]*hamil[9]*f[68]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[68]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[68]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[59]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[56]+0.3535533905932737*dH_dpz[3]*hamil[3]*f[31]+0.3535533905932737*dH_dpz[0]*hamil[0]*f[31])*volFact; 
+  out[23] += (0.3535533905932737*hamil[2]*dH_dpz[3]*f[95]+0.3535533905932737*hamil[1]*dH_dpz[3]*f[92]+0.31622776601683794*dH_dpz[3]*hamil[9]*f[69]+0.3535533905932737*dH_dpz[0]*hamil[3]*f[69]+0.3535533905932737*hamil[0]*dH_dpz[3]*f[69]+0.3535533905932737*dH_dpz[0]*hamil[2]*f[60]+0.3535533905932737*dH_dpz[0]*hamil[1]*f[57]+0.3535533905932737*dH_dpz[3]*hamil[3]*f[32]+0.3535533905932737*dH_dpz[0]*hamil[0]*f[32])*volFact; 
+} 
+GKYL_CU_DH void mom_vlasov_hamil_vel_sparse_five_moments_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
+    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[2]*dxv[3]*dxv[4]/8; 
+  double dv10 = 2.0/dxv[2]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
+  double dv11 = 2.0/dxv[3]; 
+  const double *jacob_vy = &jacob_vel[3]; 
+  const double jacob_vy_inv = 1.0/jacob_vy[0]; 
+  double dv12 = 2.0/dxv[4]; 
+  const double *jacob_vz = &jacob_vel[6]; 
+  const double jacob_vz_inv = 1.0/jacob_vz[0]; 
+  out[0] += 2.8284271247461907*f[0]*volFact; 
+  out[1] += 2.8284271247461907*f[1]*volFact; 
+  out[2] += 2.8284271247461907*f[2]*volFact; 
+  out[3] += 2.8284271247461907*f[6]*volFact; 
+  out[4] += 2.8284271247461907*f[16]*volFact; 
+  out[5] += 2.8284271247461907*f[17]*volFact; 
+  out[6] += 2.8284271247461907*f[31]*volFact; 
+  out[7] += 2.8284271247461907*f[32]*volFact; 
+  out[8] += (3.872983346207417*f[3]*hamil[7]+1.7320508075688772*f[0]*hamil[1])*dv10*jacob_vx_inv*volFact; 
+  out[9] += (3.872983346207417*f[7]*hamil[7]+1.7320508075688772*f[1]*hamil[1])*dv10*jacob_vx_inv*volFact; 
+  out[10] += (3.872983346207417*hamil[7]*f[8]+1.7320508075688772*hamil[1]*f[2])*dv10*jacob_vx_inv*volFact; 
+  out[11] += (3.872983346207417*hamil[7]*f[21]+1.7320508075688772*hamil[1]*f[6])*dv10*jacob_vx_inv*volFact; 
+  out[12] += (3.872983346207417*hamil[7]*f[33]+1.7320508075688772*hamil[1]*f[16])*dv10*jacob_vx_inv*volFact; 
+  out[13] += (3.872983346207417*hamil[7]*f[34]+1.7320508075688772*hamil[1]*f[17])*dv10*jacob_vx_inv*volFact; 
+  out[14] += (3.872983346207417*hamil[7]*f[56]+1.7320508075688772*hamil[1]*f[31])*dv10*jacob_vx_inv*volFact; 
+  out[15] += (3.872983346207417*hamil[7]*f[57]+1.7320508075688772*hamil[1]*f[32])*dv10*jacob_vx_inv*volFact; 
+  out[16] += (3.872983346207417*f[4]*hamil[8]+1.7320508075688772*f[0]*hamil[2])*dv11*jacob_vy_inv*volFact; 
+  out[17] += (3.872983346207417*hamil[8]*f[9]+1.7320508075688772*f[1]*hamil[2])*dv11*jacob_vy_inv*volFact; 
+  out[18] += (3.872983346207417*hamil[8]*f[10]+1.7320508075688772*f[2]*hamil[2])*dv11*jacob_vy_inv*volFact; 
+  out[19] += (3.872983346207417*hamil[8]*f[22]+1.7320508075688772*hamil[2]*f[6])*dv11*jacob_vy_inv*volFact; 
+  out[20] += (3.872983346207417*hamil[8]*f[37]+1.7320508075688772*hamil[2]*f[16])*dv11*jacob_vy_inv*volFact; 
+  out[21] += (3.872983346207417*hamil[8]*f[38]+1.7320508075688772*hamil[2]*f[17])*dv11*jacob_vy_inv*volFact; 
+  out[22] += (3.872983346207417*hamil[8]*f[59]+1.7320508075688772*hamil[2]*f[31])*dv11*jacob_vy_inv*volFact; 
+  out[23] += (3.872983346207417*hamil[8]*f[60]+1.7320508075688772*hamil[2]*f[32])*dv11*jacob_vy_inv*volFact; 
+  out[24] += (3.872983346207417*f[5]*hamil[9]+1.7320508075688772*f[0]*hamil[3])*dv12*jacob_vz_inv*volFact; 
+  out[25] += (3.872983346207417*hamil[9]*f[12]+1.7320508075688772*f[1]*hamil[3])*dv12*jacob_vz_inv*volFact; 
+  out[26] += (3.872983346207417*hamil[9]*f[13]+1.7320508075688772*f[2]*hamil[3])*dv12*jacob_vz_inv*volFact; 
+  out[27] += (3.872983346207417*hamil[9]*f[25]+1.7320508075688772*hamil[3]*f[6])*dv12*jacob_vz_inv*volFact; 
+  out[28] += (3.872983346207417*hamil[9]*f[43]+1.7320508075688772*hamil[3]*f[16])*dv12*jacob_vz_inv*volFact; 
+  out[29] += (3.872983346207417*hamil[9]*f[44]+1.7320508075688772*hamil[3]*f[17])*dv12*jacob_vz_inv*volFact; 
+  out[30] += (3.872983346207417*hamil[9]*f[68]+1.7320508075688772*hamil[3]*f[31])*dv12*jacob_vz_inv*volFact; 
+  out[31] += (3.872983346207417*hamil[9]*f[69]+1.7320508075688772*hamil[3]*f[32])*dv12*jacob_vz_inv*volFact; 
+  out[32] += (hamil[9]*f[20]+hamil[8]*f[19]+hamil[7]*f[18]+hamil[3]*f[5]+hamil[2]*f[4]+hamil[1]*f[3]+f[0]*hamil[0])*volFact; 
+  out[33] += (1.0000000000000002*hamil[9]*f[47]+1.0000000000000002*hamil[8]*f[40]+1.0000000000000002*hamil[7]*f[35]+hamil[3]*f[12]+hamil[2]*f[9]+hamil[1]*f[7]+hamil[0]*f[1])*volFact; 
+  out[34] += (1.0000000000000002*hamil[9]*f[48]+1.0000000000000002*hamil[8]*f[41]+1.0000000000000002*hamil[7]*f[36]+hamil[3]*f[13]+hamil[2]*f[10]+hamil[1]*f[8]+hamil[0]*f[2])*volFact; 
+  out[35] += (hamil[9]*f[80]+hamil[8]*f[65]+hamil[7]*f[58]+hamil[3]*f[25]+hamil[2]*f[22]+hamil[1]*f[21]+hamil[0]*f[6])*volFact; 
+  out[36] += (1.0000000000000002*hamil[3]*f[43]+1.0000000000000002*hamil[2]*f[37]+1.0000000000000002*hamil[1]*f[33]+hamil[0]*f[16])*volFact; 
+  out[37] += (1.0000000000000002*hamil[3]*f[44]+1.0000000000000002*hamil[2]*f[38]+1.0000000000000002*hamil[1]*f[34]+hamil[0]*f[17])*volFact; 
+  out[38] += (1.0000000000000002*hamil[3]*f[68]+1.0000000000000002*hamil[2]*f[59]+1.0000000000000002*hamil[1]*f[56]+hamil[0]*f[31])*volFact; 
+  out[39] += (1.0000000000000002*hamil[3]*f[69]+1.0000000000000002*hamil[2]*f[60]+1.0000000000000002*hamil[1]*f[57]+hamil[0]*f[32])*volFact; 
+} 
+GKYL_CU_DH void mom_vlasov_hamil_vel_sparse_int_five_moments_2x3v_ser_p2(const double *w, const double *dxv, const int *idx, 
+    const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  double volFact = dxv[0]*dxv[1]*dxv[2]*dxv[3]*dxv[4]*0.03125; 
+  double dv10 = 2.0/dxv[2]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
+  double dv11 = 2.0/dxv[3]; 
+  const double *jacob_vy = &jacob_vel[3]; 
+  const double jacob_vy_inv = 1.0/jacob_vy[0]; 
+  double dv12 = 2.0/dxv[4]; 
+  const double *jacob_vz = &jacob_vel[6]; 
+  const double jacob_vz_inv = 1.0/jacob_vz[0]; 
+  out[0] += 5.656854249492382*f[0]*volFact; 
+  out[1] += (7.745966692414834*f[3]*hamil[7]+3.4641016151377544*f[0]*hamil[1])*dv10*jacob_vx_inv*volFact; 
+  out[2] += (7.745966692414834*f[4]*hamil[8]+3.4641016151377544*f[0]*hamil[2])*dv11*jacob_vy_inv*volFact; 
+  out[3] += (7.745966692414834*f[5]*hamil[9]+3.4641016151377544*f[0]*hamil[3])*dv12*jacob_vz_inv*volFact; 
+  out[4] += (2.0*hamil[9]*f[20]+2.0*hamil[8]*f[19]+2.0*hamil[7]*f[18]+2.0*hamil[3]*f[5]+2.0*hamil[2]*f[4]+2.0*hamil[1]*f[3]+2.0*f[0]*hamil[0])*volFact; 
+} 

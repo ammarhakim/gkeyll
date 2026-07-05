@@ -6,14 +6,41 @@ GKYL_CU_DH double vlasov_surfvx_1x2v_ser_p1(const double *w, const double *dxv,
 
   const double *Fhat_l_nodal_c = &Fhat_l_nodal[0]; 
   const double *Fhat_r_nodal_c = &Fhat_r_nodal[0]; 
-  out[0] += ((-0.3535533905932737*Fhat_r_nodal_c[3])+0.3535533905932737*Fhat_l_nodal_c[3]-0.3535533905932737*Fhat_r_nodal_c[2]+0.3535533905932737*Fhat_l_nodal_c[2]-0.3535533905932737*Fhat_r_nodal_c[1]+0.3535533905932737*Fhat_l_nodal_c[1]-0.3535533905932737*Fhat_r_nodal_c[0]+0.3535533905932737*Fhat_l_nodal_c[0])*dv10; 
-  out[1] += ((-0.3535533905932737*Fhat_r_nodal_c[3])+0.3535533905932737*Fhat_l_nodal_c[3]-0.3535533905932737*Fhat_r_nodal_c[2]+0.3535533905932737*(Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1])-0.3535533905932737*Fhat_l_nodal_c[1]+0.3535533905932737*Fhat_r_nodal_c[0]-0.3535533905932737*Fhat_l_nodal_c[0])*dv10; 
-  out[2] += -0.6123724356957944*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0])*dv10; 
-  out[3] += ((-0.3535533905932737*Fhat_r_nodal_c[3])+0.3535533905932737*(Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2])-0.3535533905932737*(Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1])+0.3535533905932737*(Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0])-0.3535533905932737*Fhat_l_nodal_c[0])*dv10; 
-  out[4] += (0.6123724356957944*(Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0])-0.6123724356957944*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2]))*dv10; 
-  out[5] += ((-0.3535533905932737*Fhat_r_nodal_c[3])+0.3535533905932737*(Fhat_l_nodal_c[3]+Fhat_r_nodal_c[2])-0.3535533905932737*Fhat_l_nodal_c[2]+0.3535533905932737*Fhat_r_nodal_c[1]-0.3535533905932737*(Fhat_l_nodal_c[1]+Fhat_r_nodal_c[0])+0.3535533905932737*Fhat_l_nodal_c[0])*dv10; 
-  out[6] += ((-0.6123724356957944*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]))+0.6123724356957944*(Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2])-0.6123724356957944*(Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1])+0.6123724356957944*(Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv10; 
-  out[7] += ((-0.6123724356957944*(Fhat_r_nodal_c[3]+Fhat_l_nodal_c[3]))+0.6123724356957944*(Fhat_r_nodal_c[2]+Fhat_l_nodal_c[2]+Fhat_r_nodal_c[1]+Fhat_l_nodal_c[1])-0.6123724356957944*(Fhat_r_nodal_c[0]+Fhat_l_nodal_c[0]))*dv10; 
+  double G1[4] = {0.0}; 
+  double Ghat[4] = {0.0}; 
+  G1[0] = 0.7071067811865475*Fhat_l_nodal_c[1]+0.7071067811865475*Fhat_l_nodal_c[0]; 
+  G1[1] = 0.7071067811865475*Fhat_l_nodal_c[1]-0.7071067811865475*Fhat_l_nodal_c[0]; 
+  G1[2] = 0.7071067811865475*Fhat_l_nodal_c[3]+0.7071067811865475*Fhat_l_nodal_c[2]; 
+  G1[3] = 0.7071067811865475*Fhat_l_nodal_c[3]-0.7071067811865475*Fhat_l_nodal_c[2]; 
+  Ghat[0] = 0.7071067811865475*G1[2]+0.7071067811865475*G1[0]; 
+  Ghat[1] = 0.7071067811865475*G1[2]-0.7071067811865475*G1[0]; 
+  Ghat[2] = 0.7071067811865475*G1[3]+0.7071067811865475*G1[1]; 
+  Ghat[3] = 0.7071067811865475*G1[3]-0.7071067811865475*G1[1]; 
+  out[0] += 0.7071067811865475*Ghat[0]*dv10; 
+  out[1] += 0.7071067811865475*Ghat[1]*dv10; 
+  out[2] += -(1.224744871391589*Ghat[0]*dv10); 
+  out[3] += 0.7071067811865475*Ghat[2]*dv10; 
+  out[4] += -(1.224744871391589*Ghat[1]*dv10); 
+  out[5] += 0.7071067811865475*Ghat[3]*dv10; 
+  out[6] += -(1.224744871391589*Ghat[2]*dv10); 
+  out[7] += -(1.224744871391589*Ghat[3]*dv10); 
+
+  G1[0] = 0.7071067811865475*Fhat_r_nodal_c[1]+0.7071067811865475*Fhat_r_nodal_c[0]; 
+  G1[1] = 0.7071067811865475*Fhat_r_nodal_c[1]-0.7071067811865475*Fhat_r_nodal_c[0]; 
+  G1[2] = 0.7071067811865475*Fhat_r_nodal_c[3]+0.7071067811865475*Fhat_r_nodal_c[2]; 
+  G1[3] = 0.7071067811865475*Fhat_r_nodal_c[3]-0.7071067811865475*Fhat_r_nodal_c[2]; 
+  Ghat[0] = 0.7071067811865475*G1[2]+0.7071067811865475*G1[0]; 
+  Ghat[1] = 0.7071067811865475*G1[2]-0.7071067811865475*G1[0]; 
+  Ghat[2] = 0.7071067811865475*G1[3]+0.7071067811865475*G1[1]; 
+  Ghat[3] = 0.7071067811865475*G1[3]-0.7071067811865475*G1[1]; 
+  out[0] += -(0.7071067811865475*Ghat[0]*dv10); 
+  out[1] += -(0.7071067811865475*Ghat[1]*dv10); 
+  out[2] += -(1.224744871391589*Ghat[0]*dv10); 
+  out[3] += -(0.7071067811865475*Ghat[2]*dv10); 
+  out[4] += -(1.224744871391589*Ghat[1]*dv10); 
+  out[5] += -(0.7071067811865475*Ghat[3]*dv10); 
+  out[6] += -(1.224744871391589*Ghat[2]*dv10); 
+  out[7] += -(1.224744871391589*Ghat[3]*dv10); 
 
   return 0.0;
 

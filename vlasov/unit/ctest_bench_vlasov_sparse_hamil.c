@@ -347,6 +347,7 @@ static void bench_1x2v_p2(void) { bench_case(GKYL_MODEL_DEFAULT, 1, 2, 2, (int[]
 static void bench_1x3v_p1(void) { bench_case(GKYL_MODEL_DEFAULT, 1, 3, 1, (int[]){ 16 }, (int[]){ 12, 12, 12 }, 1e-11); }
 static void bench_1x3v_p2(void) { bench_case(GKYL_MODEL_DEFAULT, 1, 3, 2, (int[]){ 8 }, (int[]){ 8, 8, 8 }, 1e-11); }
 static void bench_2x3v_p1(void) { bench_case(GKYL_MODEL_DEFAULT, 2, 3, 1, (int[]){ 8, 8 }, (int[]){ 8, 8, 8 }, 1e-11); }
+static void bench_2x3v_p2(void) { bench_case(GKYL_MODEL_DEFAULT, 2, 3, 2, (int[]){ 4, 4 }, (int[]){ 6, 6, 6 }, 1e-11); }
 static void bench_3x3v_p1(void) { bench_case(GKYL_MODEL_DEFAULT, 3, 3, 1, (int[]){ 4, 4, 4 }, (int[]){ 8, 8, 8 }, 1e-11); }
 // non-canonical bracket (triads; same separable H, Poisson-tensor forces)
 static void bench_triad_1x2v_p1(void) { bench_case(GKYL_MODEL_TRIAD, 1, 2, 1, (int[]){ 32 }, (int[]){ 16, 16 }, 1e-11); }
@@ -357,7 +358,11 @@ static void bench_triad_1x3v_p1(void) { bench_case(GKYL_MODEL_TRIAD, 1, 3, 1, (i
 // cell (alpha projection truncates): observed ~3e-4 relative rhs difference,
 // machine-identical when the tensor is cell-wise constant.
 static void bench_triad_1x3v_p2(void) { bench_case(GKYL_MODEL_TRIAD, 1, 3, 2, (int[]){ 8 }, (int[]){ 8, 8, 8 }, 1e-3); }
+// 2x2v/2x3v p2: same inline-exact-bracket vs precomputed-alpha discretization
+// split as 1x3v p2 (see above); candidates being evaluated.
+static void bench_triad_2x2v_p2(void) { bench_case(GKYL_MODEL_TRIAD, 2, 2, 2, (int[]){ 8, 8 }, (int[]){ 8, 8 }, 1e-3); }
 static void bench_triad_2x3v_p1(void) { bench_case(GKYL_MODEL_TRIAD, 2, 3, 1, (int[]){ 8, 8 }, (int[]){ 8, 8, 8 }, 1e-11); }
+static void bench_triad_2x3v_p2(void) { bench_case(GKYL_MODEL_TRIAD, 2, 3, 2, (int[]){ 4, 4 }, (int[]){ 6, 6, 6 }, 1e-3); }
 static void bench_triad_3x3v_p1(void) { bench_case(GKYL_MODEL_TRIAD, 3, 3, 1, (int[]){ 4, 4, 4 }, (int[]){ 8, 8, 8 }, 1e-11); }
 
 TEST_LIST = {
@@ -366,12 +371,15 @@ TEST_LIST = {
   { "bench_1x3v_p1", bench_1x3v_p1 },
   { "bench_1x3v_p2", bench_1x3v_p2 },
   { "bench_2x3v_p1", bench_2x3v_p1 },
+  { "bench_2x3v_p2", bench_2x3v_p2 },
   { "bench_3x3v_p1", bench_3x3v_p1 },
   { "bench_triad_1x2v_p1", bench_triad_1x2v_p1 },
   { "bench_triad_1x2v_p2", bench_triad_1x2v_p2 },
   { "bench_triad_1x3v_p1", bench_triad_1x3v_p1 },
   { "bench_triad_1x3v_p2", bench_triad_1x3v_p2 },
+  { "bench_triad_2x2v_p2", bench_triad_2x2v_p2 },
   { "bench_triad_2x3v_p1", bench_triad_2x3v_p1 },
+  { "bench_triad_2x3v_p2", bench_triad_2x3v_p2 },
   { "bench_triad_3x3v_p1", bench_triad_3x3v_p1 },
   { NULL, NULL },
 };
