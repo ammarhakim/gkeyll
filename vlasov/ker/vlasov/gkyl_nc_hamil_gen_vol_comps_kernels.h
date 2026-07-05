@@ -1,11 +1,11 @@
 #pragma once 
-// These component kernels evaluate the volume-term Galerkin contraction
-// <grad(phi), alpha f> from a PRECOMPUTED modal phase-space alpha. They are
-// agnostic to the form of the Hamiltonian -- the alpha handed to them has
-// already been projected onto the dense phase basis -- hence the hamil_gen
-// naming. Only the vel_dense and phase Hamiltonian flavors use this
-// machinery: the sparse (separable) Hamiltonian always uses the inline
-// exact-bracket volume kernels and never calls these components.
+// These component kernels evaluate the volume-term Galerkin contraction 
+// <grad(phi), alpha f> from a PRECOMPUTED modal phase-space alpha. They are 
+// agnostic to the form of the Hamiltonian -- the alpha handed to them has 
+// already been projected onto the dense phase basis -- hence the hamil_gen 
+// naming. Only the vel_dense and phase Hamiltonian flavors use this 
+// machinery: the sparse (separable) Hamiltonian always uses the inline 
+// exact-bracket volume kernels and never calls these components. 
 #include <math.h> 
 #include <gkyl_util.h> 
 EXTERN_C_BEG 
