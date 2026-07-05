@@ -40,3 +40,91 @@ __attribute__((unused)) static const int vst_1x1v_tensor_p2_vel_sparse_idx[3] = 
   1, 
   2, 
 }; 
+__attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_Cm[12] = { 
+  1.0, 
+  -2.1528407789851314, 
+  -2.355129310456592, 
+  1.0, 
+  -0.8499526089621406, 
+  1.2562282115554928, 
+  1.0, 
+  0.8499526089621406, 
+  1.2562282115554928, 
+  1.0, 
+  2.1528407789851314, 
+  -2.355129310456592, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_CmD[12] = { 
+  0.0, 
+  2.5, 
+  9.936188210700607, 
+  0.0, 
+  2.5, 
+  3.92285819520988, 
+  0.0, 
+  2.5, 
+  -3.92285819520988, 
+  0.0, 
+  2.5, 
+  -9.936188210700607, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_V[3] = { 
+  1.0, 
+  2.5, 
+  -3.8461538461538463, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_coefl[9] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  -0.2906888370749726, 
+  -0.20139513400278566, 
+  -0.20139513400278566, 
+  0.169, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_tensor_p2_ph_v0_coefr[9] = { 
+  0.5, 
+  0.34641016151377546, 
+  -0.34641016151377546, 
+  -0.24, 
+  -0.2906888370749726, 
+  -0.2906888370749726, 
+  0.20139513400278566, 
+  -0.20139513400278566, 
+  0.169, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_tensor_p2_ph_v0_cmap[9] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  0, 
+  2, 
+  1, 
+  2, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_tensor_p2_ph_v0_vlmap[9] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_tensor_p2_ph_v0_vrmap[9] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+  2, 
+}; 
