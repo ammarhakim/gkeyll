@@ -1,4 +1,4 @@
-#include <gkyl_nc_hamil_vol_comps_kernels.h> 
+#include <gkyl_nc_hamil_gen_vol_comps_kernels.h> 
 GKYL_CU_DH void vlasov_nc_hamil_gen_vol_comp11_3x3v_ser_p1(const double *w, const double *dxv, const int dir,
    const double *alpha, double* GKYL_RESTRICT out) 
 { 

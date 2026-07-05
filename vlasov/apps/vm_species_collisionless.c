@@ -43,7 +43,7 @@ vm_species_collisionless_rhs_enabled(gkyl_vlasov_app *app, struct vm_species *vm
     &vms->local, fin, vms->f_no_J);
 
   // Compute the surface expansion of the phase space flux in configuration space. 
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
     gkyl_dg_vlasov_conf_flux_surf_advance(cls->calc_conf_flux, &app->local, &vms->local, &vms->local_ext, 
       vms->conf_poisson_tensor, vms->hamil, fin, vms->cflrate, cls->conf_flux_surf);
   }
@@ -153,7 +153,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   }
 
   // Allocate nodal surface expansion of velocity space flux array (conf). 
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
 
     // Compute the number of configuration space nodes, with case for hybrid-tensor.
     cls->num_surf_conf_nodes = pow(app->poly_order+1+highorder,pdim - 1);
@@ -281,7 +281,7 @@ void
 vm_species_collisionless_release(const struct gkyl_vlasov_app *app, 
   const struct vm_species *vms, const struct vm_collisionless *cls)
 {
-  if (vms->model_id == GKYL_MODEL_TRIAD || vms->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (vms->model_id == GKYL_MODEL_TRIAD || vms->hamil_id == GKYL_HAMIL_PHASE) {
     gkyl_dg_vlasov_conf_flux_surf_release(cls->calc_conf_flux);
     gkyl_array_release(cls->conf_flux_surf);
   }

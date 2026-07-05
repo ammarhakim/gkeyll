@@ -41,9 +41,11 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
     up->hamil_dim = vdim; 
     up->hamil_offset = cdim; 
   }
-  else if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
-    up->hamil_dim = pdim; 
-    up->hamil_offset = 0; 
+  else if (inp->model_id == GKYL_MODEL_TRIAD_GR
+    || inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+    // Full phase-space Hamiltonian.
+    up->hamil_dim = pdim;
+    up->hamil_offset = 0;
   }
   else {
     assert(false); // Should not be here for other models
@@ -66,12 +68,8 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
         up->lax_flux_nodal[2] = ser_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       }
 
-      // Only have Hamiltonian forces in general geometry. 
-      if (inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        // Only triads are supported currently for configuration space nodal fluxes.
-        assert(false);
-      }
-      else if (inp->model_id == GKYL_MODEL_TRIAD) {
+      // Only have Hamiltonian forces in general geometry.
+      if (inp->model_id == GKYL_MODEL_TRIAD) {
         if ( inp->use_lo ) {
           up->hamil_alpha_quad[0] = hamil_sparse ?
             ser_hamil_vel_sparse_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
@@ -95,7 +93,11 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
             ser_hamil_vel_dense_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         }
       }
-      else if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
+      else if (inp->model_id == GKYL_MODEL_TRIAD_GR
+        || inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+        // Full phase-space Hamiltonian: alpha_dir = P . grad_v H evaluated at
+        // the surface nodes. Canonical-PB models supply the identity Poisson
+        // tensor, reducing this to the canonical streaming speed dH/dv_dir.
         if ( inp->use_lo ) {
           up->hamil_alpha_quad[0] = ser_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = ser_hamil_phase_alpha_quad_y_kernels[kernel_index].kernels[poly_order];

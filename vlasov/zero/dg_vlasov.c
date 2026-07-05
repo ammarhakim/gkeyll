@@ -100,7 +100,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 
   vlasov->rad = gkyl_array_acquire(inp->rad);
   vlasov->use_conf_flux_surf = false;
-  if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR){
+  if (inp->model_id == GKYL_MODEL_TRIAD || inp->hamil_id == GKYL_HAMIL_PHASE){
     vlasov->use_conf_flux_surf = true;
     vlasov->conf_flux_surf = gkyl_array_acquire(inp->conf_flux_surf);
   }
@@ -197,45 +197,50 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         }
 
         if ( inp->use_lo ) {
-          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_surf_x_kernels;
-          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_surf_y_kernels;
-          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_surf_z_kernels;
+          stream_surf_from_flux_x_kernels = ser_stream_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_surf_z_kernels;
           
-          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_surf_x_kernels;
-          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_surf_y_kernels;
-          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_surf_z_kernels; 
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_boundary_surf_z_kernels; 
         } 
         else {
-          stream_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_ho_surf_x_kernels;
-          stream_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_ho_surf_y_kernels;
-          stream_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_ho_surf_z_kernels;
+          stream_surf_from_flux_x_kernels = ser_stream_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_ho_surf_z_kernels;
           
-          stream_boundary_surf_from_flux_x_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_x_kernels;
-          stream_boundary_surf_from_flux_y_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_y_kernels;
-          stream_boundary_surf_from_flux_z_kernels = ser_stream_nc_hamil_gen_boundary_ho_surf_z_kernels; 
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_boundary_ho_surf_z_kernels; 
         }
       }
       else {
+        // Canonical-PB models: volume term keeps the inline phase-Hamiltonian
+        // kernels; streaming goes through the precomputed configuration-space
+        // fluxes (conf_flux_surf updater with the identity Poisson tensor) and
+        // the Hamiltonian-agnostic from-flux surface consumers, exactly like
+        // the triad models.
         vlasov->hamil_vol = ser_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
 
         if ( inp->use_lo ) {
-          stream_surf_x_kernels = ser_stream_hamil_phase_surf_x_kernels;
-          stream_surf_y_kernels = ser_stream_hamil_phase_surf_y_kernels;
-          stream_surf_z_kernels = ser_stream_hamil_phase_surf_z_kernels;
-          
-          stream_boundary_surf_x_kernels = ser_stream_hamil_phase_boundary_surf_x_kernels;
-          stream_boundary_surf_y_kernels = ser_stream_hamil_phase_boundary_surf_y_kernels;
-          stream_boundary_surf_z_kernels = ser_stream_hamil_phase_boundary_surf_z_kernels;    
-        } 
+          stream_surf_from_flux_x_kernels = ser_stream_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_boundary_surf_z_kernels;
+        }
         else {
-          stream_surf_x_kernels = ser_stream_hamil_phase_ho_surf_x_kernels;
-          stream_surf_y_kernels = ser_stream_hamil_phase_ho_surf_y_kernels;
-          stream_surf_z_kernels = ser_stream_hamil_phase_ho_surf_z_kernels;
-          
-          stream_boundary_surf_x_kernels = ser_stream_hamil_phase_boundary_ho_surf_x_kernels;
-          stream_boundary_surf_y_kernels = ser_stream_hamil_phase_boundary_ho_surf_y_kernels;
-          stream_boundary_surf_z_kernels = ser_stream_hamil_phase_boundary_ho_surf_z_kernels;    
-        }     
+          stream_surf_from_flux_x_kernels = ser_stream_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = ser_stream_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = ser_stream_ho_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = ser_stream_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = ser_stream_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = ser_stream_boundary_ho_surf_z_kernels;
+        }
       }
       if (inp->has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
       if (inp->has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
@@ -322,7 +327,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   }
 
 
-  if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
+  if (inp->model_id == GKYL_MODEL_TRIAD || inp->hamil_id == GKYL_HAMIL_PHASE) {
     vlasov->stream_surf_from_flux[0] = stream_surf_from_flux_x_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[1] = stream_surf_from_flux_y_kernels[kernel_index].kernels[poly_order];
     vlasov->stream_surf_from_flux[2] = stream_surf_from_flux_z_kernels[kernel_index].kernels[poly_order];
@@ -351,7 +356,7 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
-    if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
+    if (inp->model_id == GKYL_MODEL_TRIAD || inp->hamil_id == GKYL_HAMIL_PHASE) {
       assert(vlasov->stream_surf_from_flux[i]);
       assert(vlasov->stream_boundary_surf_from_flux[i]);
     } else {

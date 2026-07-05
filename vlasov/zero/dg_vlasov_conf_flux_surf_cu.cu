@@ -136,12 +136,8 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
         up->lax_flux_nodal[2] = ser_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
       }
 
-      // Only have Hamiltonian forces in general geometry. 
-      if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        // Only triads are supported currently for configuration space nodal fluxes.
-        assert(false);
-      }
-      else if (model_id == GKYL_MODEL_TRIAD) {
+      // Only have Hamiltonian forces in general geometry.
+      if (model_id == GKYL_MODEL_TRIAD) {
         if ( use_lo ) {
           up->hamil_alpha_quad[0] = hamil_sparse ?
             ser_hamil_vel_sparse_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
@@ -165,7 +161,11 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
             ser_hamil_vel_dense_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
         }
       }
-      else if (model_id == GKYL_MODEL_TRIAD_GR) {
+      else if (model_id == GKYL_MODEL_TRIAD_GR
+        || model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+        // Full phase-space Hamiltonian: alpha_dir = P . grad_v H evaluated at
+        // the surface nodes. Canonical-PB models supply the identity Poisson
+        // tensor, reducing this to the canonical streaming speed dH/dv_dir.
         if ( use_lo ) {
           up->hamil_alpha_quad[0] = ser_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = ser_hamil_phase_alpha_quad_y_kernels[kernel_index].kernels[poly_order];

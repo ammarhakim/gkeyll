@@ -189,6 +189,16 @@ vm_species_new_hamil(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, st
     vms->hamil_id = GKYL_HAMIL_PHASE;
     vms->mom_hamil_id = GKYL_HAMIL_PHASE;
 
+    // Canonical bracket = identity Poisson tensor: streaming through the
+    // configuration-space flux machinery uses alpha_dir = P . grad_v H, which
+    // reduces to dH/dv_dir with P[dir][j] = delta_dir,j. Set the cell-constant
+    // coefficient of each diagonal block to the modal representation of 1.
+    gkyl_array_clear(vms->conf_poisson_tensor, 0.0);
+    for (int d = 0; d < app->cdim; ++d) {
+      gkyl_array_shiftc(vms->conf_poisson_tensor, pow(sqrt(2.0), app->cdim),
+        app->basis.num_basis*(d*vdim + d));
+    }
+
     // Hamiltonian is a full phase-space array.
     vms->hamil_range = vms->local;
     vms->hamil = mkarr(app->use_gpu, vms->basis.num_basis, vms->local_ext.volume);

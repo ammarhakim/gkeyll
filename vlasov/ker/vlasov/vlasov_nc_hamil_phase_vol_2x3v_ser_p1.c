@@ -1,4 +1,4 @@
-#include <gkyl_nc_hamil_vol_comps_kernels.h> 
+#include <gkyl_nc_hamil_gen_vol_comps_kernels.h> 
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH static void dot_pb_2x3v_ser_p1(const double *list_1, const double *list_2, double* GKYL_RESTRICT out) 
 { 
