@@ -1,33 +1,19 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void B_dense_ho_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel_surf, 
+#include <gkyl_vlasov_surf_tables_1x2v_ser_p2.h> 
+GKYL_CU_DH void B_dense_ho_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel_surf,
   const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad) 
 { 
 
-  const double *Bz = &qmem[15]; 
+  double dH_dvx[4]; 
+  for (int j = 0; j < 4; ++j) { 
+    dH_dvx[j] = 0.0; 
+    for (int b = 0; b < 8; ++b) dH_dvx[j] += vst_1x2v_ser_p2_ho_vel_dv0_v1[j*8 + b]*hamil[b]; 
+  } 
   const double *jacob_vel_surf_vx = &jacob_vel_surf[0]; 
-  double Bz_quad = 0.0;
-  Bz_quad = 0.9681844646844028*Bz[2]-1.0546722811938851*Bz[1]+0.7071067811865475*Bz[0];
-  alpha_quad[0] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+5.002749890427371*hamil[6]-2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[1] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+1.9751113797455495*hamil[6]-1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[2] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-1.9751113797455495*hamil[6]+1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[3] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-5.002749890427371*hamil[6]+2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-
-  Bz_quad = -(0.5164305132317774*Bz[2])-0.41639003950091297*Bz[1]+0.7071067811865475*Bz[0];
-  alpha_quad[4] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+5.002749890427371*hamil[6]-2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[5] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+1.9751113797455495*hamil[6]-1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[6] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-1.9751113797455495*hamil[6]+1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[7] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-5.002749890427371*hamil[6]+2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-
-  Bz_quad = -(0.5164305132317774*Bz[2])+0.41639003950091297*Bz[1]+0.7071067811865475*Bz[0];
-  alpha_quad[8] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+5.002749890427371*hamil[6]-2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[9] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+1.9751113797455495*hamil[6]-1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[10] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-1.9751113797455495*hamil[6]+1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[11] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-5.002749890427371*hamil[6]+2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-
-  Bz_quad = 0.9681844646844028*Bz[2]+1.0546722811938851*Bz[1]+0.7071067811865475*Bz[0];
-  alpha_quad[12] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+5.002749890427371*hamil[6]-2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[13] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]+1.9751113797455495*hamil[6]-1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[14] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-1.9751113797455495*hamil[6]+1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[15] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*(1.9364916731037085*hamil[7]-5.002749890427371*hamil[6]+2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*Bz_quad;
-
+  const double *Bz = &qmem[15]; 
+  for (int i = 0; i < 4; ++i) { 
+    double Bz_quad = 0.0; 
+    for (int a = 0; a < 3; ++a) Bz_quad += vst_1x2v_ser_p2_ho_conf_ev[i*3 + a]*Bz[a]; 
+    for (int j = 0; j < 4; ++j) alpha_quad[i*4 + j] -= 2.0/(dxv[1]*jacob_vel_surf_vx[0])*dH_dvx[j]*Bz_quad; 
+  } 
 } 

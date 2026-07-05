@@ -1,13 +1,16 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_1x1v_ser_p3(const double *dxv, 
+#include <gkyl_vlasov_surf_tables_1x1v_ser_p3.h> 
+GKYL_CU_DH void rad_ho_alpha_quad_vx_1x1v_ser_p3(const double *dxv,
   const double *rad, double* GKYL_RESTRICT alpha_quad) 
 { 
   const double *rad_vx = &rad[0]; 
 
-  alpha_quad[0] += (-1.870828693386971*rad_vx[3])+1.58113883008419*rad_vx[2]-1.224744871391589*rad_vx[1]+0.7071067811865475*rad_vx[0]; 
-  alpha_quad[1] += (-1.870828693386971*rad_vx[3])+1.58113883008419*rad_vx[2]-1.224744871391589*rad_vx[1]+0.7071067811865475*rad_vx[0]; 
-  alpha_quad[2] += (-1.870828693386971*rad_vx[3])+1.58113883008419*rad_vx[2]-1.224744871391589*rad_vx[1]+0.7071067811865475*rad_vx[0]; 
-  alpha_quad[3] += (-1.870828693386971*rad_vx[3])+1.58113883008419*rad_vx[2]-1.224744871391589*rad_vx[1]+0.7071067811865475*rad_vx[0]; 
-  alpha_quad[4] += (-1.870828693386971*rad_vx[3])+1.58113883008419*rad_vx[2]-1.224744871391589*rad_vx[1]+0.7071067811865475*rad_vx[0]; 
-
+  double rad_quad[1]; 
+  for (int j = 0; j < 1; ++j) { 
+    rad_quad[j] = 0.0; 
+    for (int b = 0; b < 4; ++b) rad_quad[j] += vst_1x1v_ser_p3_ho_vel_ev_v0[j*4 + b]*rad_vx[b]; 
+  } 
+  for (int i = 0; i < 5; ++i) { 
+    for (int j = 0; j < 1; ++j) alpha_quad[i*1 + j] += rad_quad[j]; 
+  } 
 } 

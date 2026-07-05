@@ -1,17 +1,22 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void B_sparse_alpha_quad_vx_1x2v_ser_p1(const double *dxv, const double *jacob_vel_surf, 
+#include <gkyl_vlasov_surf_tables_1x2v_ser_p1.h> 
+GKYL_CU_DH void B_sparse_alpha_quad_vx_1x2v_ser_p1(const double *dxv, const double *jacob_vel_surf,
   const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad) 
 { 
 
-  const double *Bz = &qmem[10]; 
+  double dH_dvy[2]; 
+  for (int j = 0; j < 2; ++j) { 
+    dH_dvy[j] = 0.0; 
+    for (int s = 0; s < 3; ++s) { 
+      const int b = vst_1x2v_ser_p1_vel_sparse_idx[s]; 
+      dH_dvy[j] += vst_1x2v_ser_p1_vel_dv1_v0[j*4 + b]*hamil[b]; 
+    } 
+  } 
   const double *jacob_vel_surf_vy = &jacob_vel_surf[3]; 
-  double Bz_quad = 0.0;
-  Bz_quad = 0.7071067811865475*Bz[0]-0.7071067811865475*Bz[1];
-  alpha_quad[0] += 2.0/(dxv[2]*jacob_vel_surf_vy[0])*(0.8660254037844386*hamil[2])*Bz_quad;
-  alpha_quad[1] += 2.0/(dxv[2]*jacob_vel_surf_vy[0])*(0.8660254037844386*hamil[2])*Bz_quad;
-
-  Bz_quad = 0.7071067811865475*Bz[1]+0.7071067811865475*Bz[0];
-  alpha_quad[2] += 2.0/(dxv[2]*jacob_vel_surf_vy[0])*(0.8660254037844386*hamil[2])*Bz_quad;
-  alpha_quad[3] += 2.0/(dxv[2]*jacob_vel_surf_vy[0])*(0.8660254037844386*hamil[2])*Bz_quad;
-
+  const double *Bz = &qmem[10]; 
+  for (int i = 0; i < 2; ++i) { 
+    double Bz_quad = 0.0; 
+    for (int a = 0; a < 2; ++a) Bz_quad += vst_1x2v_ser_p1_conf_ev[i*2 + a]*Bz[a]; 
+    for (int j = 0; j < 2; ++j) alpha_quad[i*2 + j] += 2.0/(dxv[2]*jacob_vel_surf_vy[0])*dH_dvy[j]*Bz_quad; 
+  } 
 } 

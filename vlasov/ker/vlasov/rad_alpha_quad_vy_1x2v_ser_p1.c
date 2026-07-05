@@ -1,12 +1,16 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void rad_alpha_quad_vy_1x2v_ser_p1(const double *dxv, 
+#include <gkyl_vlasov_surf_tables_1x2v_ser_p1.h> 
+GKYL_CU_DH void rad_alpha_quad_vy_1x2v_ser_p1(const double *dxv,
   const double *rad, double* GKYL_RESTRICT alpha_quad) 
 { 
   const double *rad_vy = &rad[4]; 
 
-  alpha_quad[0] += 0.8660254037844386*rad_vy[3]-0.8660254037844386*rad_vy[2]-0.5*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[1] += (-0.8660254037844386*rad_vy[3])-0.8660254037844386*rad_vy[2]+0.5*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[2] += 0.8660254037844386*rad_vy[3]-0.8660254037844386*rad_vy[2]-0.5*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[3] += (-0.8660254037844386*rad_vy[3])-0.8660254037844386*rad_vy[2]+0.5*rad_vy[1]+0.5*rad_vy[0]; 
-
+  double rad_quad[2]; 
+  for (int j = 0; j < 2; ++j) { 
+    rad_quad[j] = 0.0; 
+    for (int b = 0; b < 4; ++b) rad_quad[j] += vst_1x2v_ser_p1_vel_ev_v1[j*4 + b]*rad_vy[b]; 
+  } 
+  for (int i = 0; i < 2; ++i) { 
+    for (int j = 0; j < 2; ++j) alpha_quad[i*2 + j] += rad_quad[j]; 
+  } 
 } 

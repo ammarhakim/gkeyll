@@ -1,25 +1,22 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void B_sparse_alpha_quad_vy_2x2v_ser_p1(const double *dxv, const double *jacob_vel_surf, 
+#include <gkyl_vlasov_surf_tables_2x2v_ser_p1.h> 
+GKYL_CU_DH void B_sparse_alpha_quad_vy_2x2v_ser_p1(const double *dxv, const double *jacob_vel_surf,
   const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad) 
 { 
 
-  const double *Bz = &qmem[20]; 
+  double dH_dvx[2]; 
+  for (int j = 0; j < 2; ++j) { 
+    dH_dvx[j] = 0.0; 
+    for (int s = 0; s < 3; ++s) { 
+      const int b = vst_2x2v_ser_p1_vel_sparse_idx[s]; 
+      dH_dvx[j] += vst_2x2v_ser_p1_vel_dv0_v1[j*4 + b]*hamil[b]; 
+    } 
+  } 
   const double *jacob_vel_surf_vx = &jacob_vel_surf[0]; 
-  double Bz_quad = 0.0;
-  Bz_quad = 0.5*Bz[3]-0.5*Bz[2]-0.5*Bz[1]+0.5*Bz[0];
-  alpha_quad[0] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[1] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-
-  Bz_quad = -(0.5*Bz[3])+0.5*Bz[2]-0.5*Bz[1]+0.5*Bz[0];
-  alpha_quad[2] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[3] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-
-  Bz_quad = -(0.5*Bz[3])-0.5*Bz[2]+0.5*Bz[1]+0.5*Bz[0];
-  alpha_quad[4] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[5] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-
-  Bz_quad = 0.5*Bz[3]+0.5*Bz[2]+0.5*Bz[1]+0.5*Bz[0];
-  alpha_quad[6] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-  alpha_quad[7] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*(0.8660254037844386*hamil[1])*Bz_quad;
-
+  const double *Bz = &qmem[20]; 
+  for (int i = 0; i < 4; ++i) { 
+    double Bz_quad = 0.0; 
+    for (int a = 0; a < 4; ++a) Bz_quad += vst_2x2v_ser_p1_conf_ev[i*4 + a]*Bz[a]; 
+    for (int j = 0; j < 2; ++j) alpha_quad[i*2 + j] -= 2.0/(dxv[2]*jacob_vel_surf_vx[0])*dH_dvx[j]*Bz_quad; 
+  } 
 } 

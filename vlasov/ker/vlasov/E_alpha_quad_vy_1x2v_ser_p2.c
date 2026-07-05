@@ -1,22 +1,12 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_1x2v_ser_p2.h> 
 GKYL_CU_DH void E_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *qmem, double* GKYL_RESTRICT alpha_quad) 
 { 
   const double *Ey = &qmem[3]; 
 
-  double force_quad = 0.0;
-  force_quad = 0.6324555320336759*Ey[2]-0.9486832980505137*Ey[1]+0.7071067811865475*Ey[0];
-  alpha_quad[0] += force_quad;
-  alpha_quad[1] += force_quad;
-  alpha_quad[2] += force_quad;
-
-  force_quad = 0.7071067811865475*Ey[0]-0.7905694150420947*Ey[2];
-  alpha_quad[3] += force_quad;
-  alpha_quad[4] += force_quad;
-  alpha_quad[5] += force_quad;
-
-  force_quad = 0.6324555320336759*Ey[2]+0.9486832980505137*Ey[1]+0.7071067811865475*Ey[0];
-  alpha_quad[6] += force_quad;
-  alpha_quad[7] += force_quad;
-  alpha_quad[8] += force_quad;
-
+  for (int i = 0; i < 3; ++i) { 
+    double force_quad = 0.0; 
+    for (int a = 0; a < 3; ++a) force_quad += vst_1x2v_ser_p2_conf_ev[i*3 + a]*Ey[a]; 
+    for (int j = 0; j < 3; ++j) alpha_quad[i*3 + j] += force_quad; 
+  } 
 } 

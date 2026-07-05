@@ -1,17 +1,16 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void rad_alpha_quad_vy_1x2v_ser_p2(const double *dxv, 
+#include <gkyl_vlasov_surf_tables_1x2v_ser_p2.h> 
+GKYL_CU_DH void rad_alpha_quad_vy_1x2v_ser_p2(const double *dxv,
   const double *rad, double* GKYL_RESTRICT alpha_quad) 
 { 
   const double *rad_vy = &rad[8]; 
 
-  alpha_quad[0] += (-1.5*rad_vy[7])-0.7745966692414833*rad_vy[6]+1.118033988749895*rad_vy[5]+0.4472135954999579*rad_vy[4]+1.161895003862225*rad_vy[3]-0.8660254037844386*rad_vy[2]-0.6708203932499369*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[1] += 0.9682458365518543*rad_vy[6]+1.118033988749895*rad_vy[5]-0.5590169943749475*rad_vy[4]-0.8660254037844386*rad_vy[2]+0.5*rad_vy[0]; 
-  alpha_quad[2] += 1.5*rad_vy[7]-0.7745966692414833*rad_vy[6]+1.118033988749895*rad_vy[5]+0.4472135954999579*rad_vy[4]-1.161895003862225*rad_vy[3]-0.8660254037844386*rad_vy[2]+0.6708203932499369*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[3] += (-1.5*rad_vy[7])-0.7745966692414833*rad_vy[6]+1.118033988749895*rad_vy[5]+0.4472135954999579*rad_vy[4]+1.161895003862225*rad_vy[3]-0.8660254037844386*rad_vy[2]-0.6708203932499369*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[4] += 0.9682458365518543*rad_vy[6]+1.118033988749895*rad_vy[5]-0.5590169943749475*rad_vy[4]-0.8660254037844386*rad_vy[2]+0.5*rad_vy[0]; 
-  alpha_quad[5] += 1.5*rad_vy[7]-0.7745966692414833*rad_vy[6]+1.118033988749895*rad_vy[5]+0.4472135954999579*rad_vy[4]-1.161895003862225*rad_vy[3]-0.8660254037844386*rad_vy[2]+0.6708203932499369*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[6] += (-1.5*rad_vy[7])-0.7745966692414833*rad_vy[6]+1.118033988749895*rad_vy[5]+0.4472135954999579*rad_vy[4]+1.161895003862225*rad_vy[3]-0.8660254037844386*rad_vy[2]-0.6708203932499369*rad_vy[1]+0.5*rad_vy[0]; 
-  alpha_quad[7] += 0.9682458365518543*rad_vy[6]+1.118033988749895*rad_vy[5]-0.5590169943749475*rad_vy[4]-0.8660254037844386*rad_vy[2]+0.5*rad_vy[0]; 
-  alpha_quad[8] += 1.5*rad_vy[7]-0.7745966692414833*rad_vy[6]+1.118033988749895*rad_vy[5]+0.4472135954999579*rad_vy[4]-1.161895003862225*rad_vy[3]-0.8660254037844386*rad_vy[2]+0.6708203932499369*rad_vy[1]+0.5*rad_vy[0]; 
-
+  double rad_quad[3]; 
+  for (int j = 0; j < 3; ++j) { 
+    rad_quad[j] = 0.0; 
+    for (int b = 0; b < 8; ++b) rad_quad[j] += vst_1x2v_ser_p2_vel_ev_v1[j*8 + b]*rad_vy[b]; 
+  } 
+  for (int i = 0; i < 3; ++i) { 
+    for (int j = 0; j < 3; ++j) alpha_quad[i*3 + j] += rad_quad[j]; 
+  } 
 } 

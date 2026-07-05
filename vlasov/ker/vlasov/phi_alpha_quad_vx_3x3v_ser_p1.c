@@ -1,57 +1,15 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_3x3v_ser_p1.h> 
 GKYL_CU_DH void phi_alpha_quad_vx_3x3v_ser_p1(const double *dxv, const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad) 
 { 
   double dx10 = 2.0/dxv[0]; 
   const double *jacob_cx = &jacob_pos[0]; 
   const double jacob_cx_inv = 1.0/jacob_cx[0]; 
 
-  double force_quad = 0.0;
-  force_quad = jacob_cx_inv*(0.6123724356957944*phi[7]-0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[0] -= dx10*force_quad;
-  alpha_quad[1] -= dx10*force_quad;
-  alpha_quad[2] -= dx10*force_quad;
-  alpha_quad[3] -= dx10*force_quad;
-
-  force_quad = jacob_cx_inv*(-(0.6123724356957944*phi[7])+0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[4] -= dx10*force_quad;
-  alpha_quad[5] -= dx10*force_quad;
-  alpha_quad[6] -= dx10*force_quad;
-  alpha_quad[7] -= dx10*force_quad;
-
-  force_quad = jacob_cx_inv*(-(0.6123724356957944*phi[7])-0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[8] -= dx10*force_quad;
-  alpha_quad[9] -= dx10*force_quad;
-  alpha_quad[10] -= dx10*force_quad;
-  alpha_quad[11] -= dx10*force_quad;
-
-  force_quad = jacob_cx_inv*(0.6123724356957944*phi[7]+0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[12] -= dx10*force_quad;
-  alpha_quad[13] -= dx10*force_quad;
-  alpha_quad[14] -= dx10*force_quad;
-  alpha_quad[15] -= dx10*force_quad;
-
-  force_quad = jacob_cx_inv*(0.6123724356957944*phi[7]-0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[16] -= dx10*force_quad;
-  alpha_quad[17] -= dx10*force_quad;
-  alpha_quad[18] -= dx10*force_quad;
-  alpha_quad[19] -= dx10*force_quad;
-
-  force_quad = jacob_cx_inv*(-(0.6123724356957944*phi[7])+0.6123724356957944*phi[5]-0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[20] -= dx10*force_quad;
-  alpha_quad[21] -= dx10*force_quad;
-  alpha_quad[22] -= dx10*force_quad;
-  alpha_quad[23] -= dx10*force_quad;
-
-  force_quad = jacob_cx_inv*(-(0.6123724356957944*phi[7])-0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[24] -= dx10*force_quad;
-  alpha_quad[25] -= dx10*force_quad;
-  alpha_quad[26] -= dx10*force_quad;
-  alpha_quad[27] -= dx10*force_quad;
-
-  force_quad = jacob_cx_inv*(0.6123724356957944*phi[7]+0.6123724356957944*phi[5]+0.6123724356957944*phi[4]+0.6123724356957944*phi[1]);
-  alpha_quad[28] -= dx10*force_quad;
-  alpha_quad[29] -= dx10*force_quad;
-  alpha_quad[30] -= dx10*force_quad;
-  alpha_quad[31] -= dx10*force_quad;
-
+  for (int i = 0; i < 8; ++i) { 
+    double force_quad = 0.0; 
+    for (int a = 0; a < 8; ++a) force_quad += vst_3x3v_ser_p1_conf_dx0[i*8 + a]*phi[a]; 
+    force_quad *= jacob_cx_inv; 
+    for (int j = 0; j < 4; ++j) alpha_quad[i*4 + j] -= dx10*force_quad; 
+  } 
 } 

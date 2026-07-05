@@ -1,33 +1,15 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_2x3v_ser_p1.h> 
 GKYL_CU_DH void phi_alpha_quad_vy_2x3v_ser_p1(const double *dxv, const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad) 
 { 
   double dx11 = 2.0/dxv[1]; 
   const double *jacob_cy = &jacob_pos[2]; 
   const double jacob_cy_inv = 1.0/jacob_cy[0]; 
 
-  double force_quad = 0.0;
-  force_quad = jacob_cy_inv*(0.8660254037844386*phi[2]-0.8660254037844386*phi[3]);
-  alpha_quad[0] -= dx11*force_quad;
-  alpha_quad[1] -= dx11*force_quad;
-  alpha_quad[2] -= dx11*force_quad;
-  alpha_quad[3] -= dx11*force_quad;
-
-  force_quad = jacob_cy_inv*(0.8660254037844386*phi[2]-0.8660254037844386*phi[3]);
-  alpha_quad[4] -= dx11*force_quad;
-  alpha_quad[5] -= dx11*force_quad;
-  alpha_quad[6] -= dx11*force_quad;
-  alpha_quad[7] -= dx11*force_quad;
-
-  force_quad = jacob_cy_inv*(0.8660254037844386*phi[3]+0.8660254037844386*phi[2]);
-  alpha_quad[8] -= dx11*force_quad;
-  alpha_quad[9] -= dx11*force_quad;
-  alpha_quad[10] -= dx11*force_quad;
-  alpha_quad[11] -= dx11*force_quad;
-
-  force_quad = jacob_cy_inv*(0.8660254037844386*phi[3]+0.8660254037844386*phi[2]);
-  alpha_quad[12] -= dx11*force_quad;
-  alpha_quad[13] -= dx11*force_quad;
-  alpha_quad[14] -= dx11*force_quad;
-  alpha_quad[15] -= dx11*force_quad;
-
+  for (int i = 0; i < 4; ++i) { 
+    double force_quad = 0.0; 
+    for (int a = 0; a < 4; ++a) force_quad += vst_2x3v_ser_p1_conf_dx1[i*4 + a]*phi[a]; 
+    force_quad *= jacob_cy_inv; 
+    for (int j = 0; j < 4; ++j) alpha_quad[i*4 + j] -= dx11*force_quad; 
+  } 
 } 
