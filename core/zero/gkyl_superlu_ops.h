@@ -66,12 +66,12 @@ void gkyl_superlu_brhs_from_array(struct gkyl_superlu_prob *prob, const double *
 void gkyl_superlu_solve(struct gkyl_superlu_prob *prob);
 
 /**
- * Compute the matrix-vector product y = A*x for the (single) problem matrix A.
- * Assumes nprob=1. Does not require A to be factorized.
+ * Compute the matrix-vector products y_i = A_i*x_i for each of the nprob
+ * problem matrices A_i. Does not require the A_i to be factorized.
  *
- * @param prob SuperLu struct holding the assembled A matrix.
- * @param x Input vector (length ncol).
- * @param y Output vector (length mrow).
+ * @param prob SuperLu struct holding the assembled A matrices.
+ * @param x Input vector (length nprob*ncol).
+ * @param y Output vector (length nprob*mrow).
  */
 void gkyl_superlu_mat_vec(struct gkyl_superlu_prob *prob, const double *x, double *y);
 
