@@ -83,6 +83,42 @@ __attribute__((unused)) static const double vst_2x1v_ser_p1_ph_v0_CmD[16] = {
   0.0, 
   3.6084391824351614, 
 }; 
+__attribute__((unused)) static const double vst_2x1v_ser_p1_ph_v0_CmDx0[16] = { 
+  0.0, 
+  2.5, 
+  0.0, 
+  -3.6084391824351614, 
+  0.0, 
+  2.5, 
+  0.0, 
+  3.6084391824351614, 
+  0.0, 
+  2.5, 
+  0.0, 
+  -3.6084391824351614, 
+  0.0, 
+  2.5, 
+  0.0, 
+  3.6084391824351614, 
+}; 
+__attribute__((unused)) static const double vst_2x1v_ser_p1_ph_v0_CmDx1[16] = { 
+  0.0, 
+  0.0, 
+  2.5, 
+  -3.6084391824351614, 
+  0.0, 
+  0.0, 
+  2.5, 
+  -3.6084391824351614, 
+  0.0, 
+  0.0, 
+  2.5, 
+  3.6084391824351614, 
+  0.0, 
+  0.0, 
+  2.5, 
+  3.6084391824351614, 
+}; 
 __attribute__((unused)) static const double vst_2x1v_ser_p1_ph_v0_V[2] = { 
   1.0, 
   2.5, 
@@ -136,6 +172,50 @@ __attribute__((unused)) static const int vst_2x1v_ser_p1_ph_v0_vrmap[8] = {
   1, 
   1, 
   1, 
+}; 
+__attribute__((unused)) static const double vst_2x1v_ser_p1_ph_v0_Vd0[2] = { 
+  0.0, 
+  2.5, 
+}; 
+__attribute__((unused)) static const int vst_2x1v_ser_p1_ph_v0_vld0map[8] = { 
+  0, 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  1, 
+  1, 
+}; 
+__attribute__((unused)) static const int vst_2x1v_ser_p1_ph_v0_vrd0map[8] = { 
+  0, 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  1, 
+  1, 
+}; 
+__attribute__((unused)) static const double vst_2x1v_ser_p1_ph_v0_dcoefl0[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
+}; 
+__attribute__((unused)) static const double vst_2x1v_ser_p1_ph_v0_dcoefr0[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
 }; 
 __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x1v_ser_p1_ph_v0_meta = { .nb = 8, .na = 4, .nmv = 2, .no = 4, .ni = 1, .ns = 2, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_2x1v_ser_p1_vel_vol_dv0[4] = { 

@@ -20,6 +20,16 @@ typedef double (*lax_flux_nodal_t)(int i, int j, double alpha,
 
 typedef double (*lax_cfl_t)(const double *dxv, double alpha_max); 
 
+
+// Whole-surface (array-ABI) kernel types: the original wrappers with
+// hard-coded loop bounds INSIDE the kernel body, composed by the CPU
+// dispatch (the per-node types above are the GPU 2D-launcher decomposition).
+typedef void (*hamil_alpha_quad_conf_arr_t)(const double *w, const double *dxv, const int hamil_pt_edge,
+  const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad);
+
+typedef double (*lax_flux_arr_t)(const double *dxv, const double *jacob_vel_surf,
+  const double *alpha_quad, const double *f_l, const double *f_r, double* GKYL_RESTRICT Fhat_nodal);
+
 typedef double (*conf_flux_surf_t)(struct gkyl_dg_vlasov_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
   const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf); 
@@ -38,6 +48,8 @@ static struct { int vdim[4]; } cv_index[] = {
 typedef struct { hamil_alpha_quad_conf_t kernels[4]; } gkyl_hamil_alpha_quad_kern_list;     
 typedef struct { lax_flux_nodal_t kernels[4]; } gkyl_lax_flux_nodal_kern_list;  
 typedef struct { lax_cfl_t kernels[4]; } gkyl_lax_cfl_kern_list;  
+typedef struct { hamil_alpha_quad_conf_arr_t kernels[4]; } gkyl_hamil_alpha_quad_arr_kern_list;  
+typedef struct { lax_flux_arr_t kernels[4]; } gkyl_lax_flux_arr_kern_list;  
 
 struct gkyl_dg_vlasov_conf_flux_surf {
   struct gkyl_rect_grid phase_grid; // Phase-space grid. 
@@ -51,6 +63,8 @@ struct gkyl_dg_vlasov_conf_flux_surf {
   hamil_alpha_quad_conf_t hamil_alpha_quad[3]; // Hamiltonian contribution to alpha_c at quadrature points. 
   lax_flux_nodal_t lax_flux_nodal[3]; // Convert nodal Lax-Friedrichs flux to modal surface expansion. 
   lax_cfl_t lax_cfl[3]; // CFL finalizer for the node-loop's alpha_max reduction. 
+  hamil_alpha_quad_conf_arr_t hamil_alpha_quad_arr[3]; // Whole-surface (hard-coded-loop) variants for the CPU dispatch. 
+  lax_flux_arr_t lax_flux_arr[3]; // Whole-surface Lax flux; returns the surface CFL estimate. 
   int num_nodes_conf; // Remaining configuration-space surface nodes per configuration surface. 
   int num_nodes_vel; // Velocity-space volume nodes per configuration surface. 
   conf_flux_surf_t conf_flux_surf; // Assembly function for computing modal surface expansion of configuration-space fluxes. 
@@ -67,6 +81,12 @@ no_hamil_alpha_quad(int i, int m, int hamil_pt_edge, const double *w, const doub
   const double *poisson_tensor_conf, const double *hamil)
 {
   return 0.0;
+}
+GKYL_CU_DH
+static void 
+no_hamil_alpha_quad_arr(const double *w, const double *dxv, const int hamil_pt_edge,
+  const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad)
+{
 }
 
 // Configuration-space flux assembly (Design A per-node dispatch): the
@@ -87,6 +107,31 @@ conf_flux_surf_nodes(struct gkyl_dg_vlasov_conf_flux_surf *up,
     }
   }
   double cflrate = up->lax_cfl[dir](dxv, alpha_max);
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  return cflrate; 
+}
+
+
+// Configuration-space flux assembly (whole-surface CPU dispatch): the
+// Hamiltonian producer accumulates alpha at all surface nodes via the
+// original wrapper (hard-coded loop bounds inside the kernel), then the
+// nodal Lax flux wrapper consumes the buffer and returns the surface CFL.
+GKYL_CU_DH
+static double
+conf_flux_surf_arrays(struct gkyl_dg_vlasov_conf_flux_surf *up,
+  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
+  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
+{
+  double alpha_quad[256];
+  const int nn = up->num_nodes_conf*up->num_nodes_vel;
+  for (int n = 0; n < nn; ++n) alpha_quad[n] = 0.0;
+  up->hamil_alpha_quad_arr[dir](w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad);
+  double cflrate = up->lax_flux_arr[dir](dxv, NULL, alpha_quad, f_l, f_c, conf_flux_surf);
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
   if (fabs(f_l[0]) < up->skip_cell_thresh && 
@@ -696,4 +741,427 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_phase_ho_alpha_quad_z_ker
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, hamil_phase_alpha_quad_z_3x3v_ser_p1_node, NULL, NULL }, // 6
+};
+
+// Whole-surface (array-ABI) wrapper tables for the CPU dispatch: same
+// coverage as the per-node tables above, entries are the original
+// full-surface wrappers (table name gains _arr, entries drop _node).
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list ser_lax_flux_nodal_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, lax_flux_nodal_x_1x1v_ser_p1, lax_flux_nodal_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, lax_flux_nodal_x_1x2v_ser_p1, lax_flux_nodal_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_x_1x3v_ser_p1, lax_flux_nodal_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_x_2x2v_ser_p1, lax_flux_nodal_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_x_2x3v_ser_p1, lax_flux_nodal_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list ser_lax_flux_nodal_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_y_2x2v_ser_p1, lax_flux_nodal_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_y_2x3v_ser_p1, lax_flux_nodal_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list ser_lax_flux_nodal_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_z_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list ser_ho_lax_flux_nodal_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, lax_flux_nodal_x_1x1v_ser_p1, ho_lax_flux_nodal_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, lax_flux_nodal_x_1x2v_ser_p1, ho_lax_flux_nodal_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_x_1x3v_ser_p1, ho_lax_flux_nodal_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_x_2x2v_ser_p1, ho_lax_flux_nodal_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_x_2x3v_ser_p1, ho_lax_flux_nodal_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list ser_ho_lax_flux_nodal_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_y_2x2v_ser_p1, ho_lax_flux_nodal_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_y_2x3v_ser_p1, ho_lax_flux_nodal_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list ser_ho_lax_flux_nodal_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_z_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_dense_alpha_quad_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, hamil_vel_dense_alpha_quad_x_1x2v_ser_p1, hamil_vel_dense_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, hamil_vel_dense_alpha_quad_x_1x3v_ser_p1, hamil_vel_dense_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_dense_alpha_quad_x_2x2v_ser_p1, hamil_vel_dense_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_x_2x3v_ser_p1, hamil_vel_dense_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_dense_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_sparse_alpha_quad_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p1, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p1, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p1, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p1, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_sparse_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_dense_alpha_quad_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_dense_alpha_quad_y_2x2v_ser_p1, hamil_vel_dense_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_y_2x3v_ser_p1, hamil_vel_dense_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_dense_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_sparse_alpha_quad_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p1, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p1, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_sparse_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_dense_alpha_quad_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_dense_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_sparse_alpha_quad_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_dense_ho_alpha_quad_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, hamil_vel_dense_alpha_quad_x_1x2v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, hamil_vel_dense_alpha_quad_x_1x3v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_dense_alpha_quad_x_2x2v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_x_2x3v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_dense_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_sparse_ho_alpha_quad_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_sparse_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_dense_ho_alpha_quad_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_dense_alpha_quad_y_2x2v_ser_p1, hamil_vel_dense_ho_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_y_2x3v_ser_p1, hamil_vel_dense_ho_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_dense_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_sparse_ho_alpha_quad_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p1, hamil_vel_sparse_ho_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p1, hamil_vel_sparse_ho_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_sparse_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_dense_ho_alpha_quad_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_dense_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_vel_sparse_ho_alpha_quad_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_phase_alpha_quad_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_phase_alpha_quad_x_1x1v_ser_p1, hamil_phase_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, hamil_phase_alpha_quad_x_1x2v_ser_p1, hamil_phase_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, hamil_phase_alpha_quad_x_1x3v_ser_p1, hamil_phase_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_x_2x2v_ser_p1, hamil_phase_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_x_2x3v_ser_p1, hamil_phase_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_phase_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_phase_alpha_quad_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_y_2x2v_ser_p1, hamil_phase_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_y_2x3v_ser_p1, hamil_phase_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_phase_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_phase_alpha_quad_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_phase_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_phase_ho_alpha_quad_x_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_phase_alpha_quad_x_1x1v_ser_p1, hamil_phase_ho_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
+  { NULL, hamil_phase_alpha_quad_x_1x2v_ser_p1, hamil_phase_ho_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
+  { NULL, hamil_phase_alpha_quad_x_1x3v_ser_p1, hamil_phase_ho_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_x_2x2v_ser_p1, hamil_phase_ho_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_x_2x3v_ser_p1, hamil_phase_ho_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_phase_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_phase_ho_alpha_quad_y_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_y_2x2v_ser_p1, hamil_phase_ho_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_y_2x3v_ser_p1, hamil_phase_ho_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_phase_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list ser_hamil_phase_ho_alpha_quad_z_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, hamil_phase_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
 };

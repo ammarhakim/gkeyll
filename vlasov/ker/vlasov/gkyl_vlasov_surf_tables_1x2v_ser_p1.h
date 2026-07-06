@@ -25,6 +25,10 @@ __attribute__((unused)) static const double vst_1x2v_ser_p1_vel_ev_v0[8] = {
   0.5, 
   -0.8660254037844386, 
 }; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_vel_nodes_v0[2] = { 
+  -0.5773502691896258, 
+  0.5773502691896258, 
+}; 
 __attribute__((unused)) static const double vst_1x2v_ser_p1_vel_dv1_v0[8] = { 
   0.0, 
   0.0, 
@@ -44,6 +48,10 @@ __attribute__((unused)) static const double vst_1x2v_ser_p1_vel_ev_v1[8] = {
   0.5, 
   -0.8660254037844386, 
   -0.8660254037844386, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_vel_nodes_v1[2] = { 
+  -0.5773502691896258, 
+  0.5773502691896258, 
 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p1_vel_dv0_v1[8] = { 
   0.0, 
@@ -67,6 +75,12 @@ __attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_Cm[4] = {
   1.4433756729740645, 
 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_CmD[4] = { 
+  0.0, 
+  2.5, 
+  0.0, 
+  2.5, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_CmDx0[4] = { 
   0.0, 
   2.5, 
   0.0, 
@@ -132,12 +146,114 @@ __attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v0_vrmap[8] = {
   3, 
   3, 
 }; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_Vd0[6] = { 
+  0.0, 
+  2.5, 
+  -3.6084391824351614, 
+  0.0, 
+  2.5, 
+  3.6084391824351614, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v0_vld0map[8] = { 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  0, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v0_vrd0map[8] = { 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  0, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_dcoefl0[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_dcoefr0[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_Vd1[6] = { 
+  0.0, 
+  2.5, 
+  6.25, 
+  0.0, 
+  2.5, 
+  6.25, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v0_vld1map[8] = { 
+  0, 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v0_vrd1map[8] = { 
+  0, 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_dcoefl1[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v0_dcoefr1[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  -0.16970562748477142, 
+  -0.11757550765359256, 
+}; 
 __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p1_ph_v0_meta = { .nb = 8, .na = 2, .nmv = 4, .no = 2, .ni = 2, .ns = 3, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_Cm[4] = { 
   1.0, 
   -1.4433756729740645, 
   1.0, 
   1.4433756729740645, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_CmDx0[4] = { 
+  0.0, 
+  2.5, 
+  0.0, 
+  2.5, 
 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_V[8] = { 
   1.0, 
@@ -198,6 +314,102 @@ __attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v1_vrmap[8] = {
   2, 
   3, 
   3, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_Vd0[6] = { 
+  0.0, 
+  2.5, 
+  6.25, 
+  0.0, 
+  2.5, 
+  6.25, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v1_vld0map[8] = { 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  0, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v1_vrd0map[8] = { 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  0, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_dcoefl0[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_dcoefr0[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  -0.16970562748477142, 
+  -0.11757550765359256, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_Vd1[6] = { 
+  0.0, 
+  2.5, 
+  -3.6084391824351614, 
+  0.0, 
+  2.5, 
+  3.6084391824351614, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v1_vld1map[8] = { 
+  0, 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const int vst_1x2v_ser_p1_ph_v1_vrd1map[8] = { 
+  0, 
+  0, 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  2, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_dcoefl1[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
+}; 
+__attribute__((unused)) static const double vst_1x2v_ser_p1_ph_v1_dcoefr1[8] = { 
+  0.3535533905932737, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.2449489742783178, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.16970562748477142, 
+  0.11757550765359256, 
 }; 
 __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p1_ph_v1_meta = { .nb = 8, .na = 2, .nmv = 4, .no = 2, .ni = 2, .ns = 3, .fhat_off = 4 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p1_vel_vol_dv0[16] = { 

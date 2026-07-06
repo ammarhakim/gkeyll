@@ -532,4 +532,120 @@ GKYL_CU_DH double hamil_vel_dense_alpha_quad_z_3x3v_ser_p1_node(int i, int m, in
 GKYL_CU_DH double hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1_node(int i, int m, int hamil_pt_edge, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
 GKYL_CU_DH double hamil_phase_alpha_quad_z_3x3v_ser_p1_node(int i, int m, int hamil_pt_edge, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_1x1v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vx_1x1v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_1x1v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_1x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_1x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vx_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vx_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vy_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vy_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vy_1x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vz_1x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vx_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vx_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vy_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vy_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vy_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vz_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vz_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vz_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vz_1x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_2x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_2x2v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vx_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vy_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vy_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vy_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vz_2x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vx_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vx_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vy_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vy_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vy_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vz_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_ho_alpha_quad_vz_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_ho_alpha_quad_vz_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vz_2x3v_ser_p2_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vx_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vx_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vy_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vy_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vy_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_dense_alpha_quad_vz_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_vel_sparse_alpha_quad_vz_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vz_3x3v_ser_p1_node(int i, int j, const double *w, const double *dxv, const double *poisson_tensor_conf, const double *hamil); 
+
 EXTERN_C_END 

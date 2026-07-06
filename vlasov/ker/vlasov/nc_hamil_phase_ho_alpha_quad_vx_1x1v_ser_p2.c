@@ -1,16 +1,29 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_1x1v_ser_p2.h> 
+GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_1x1v_ser_p2_node(int i, int j, const double *w, const double *dxv,
+  const double *poisson_tensor_conf, const double *hamil) 
+{ 
+  double G[3]; 
+  for (int a = 0; a < 3; ++a) { G[a] = 0.0; } 
+  for (int k = 0; k < 8; ++k) { 
+    const int a = vst_1x1v_ser_p2_ho_ph_v0_cmap[k]; 
+    G[a] += vst_1x1v_ser_p2_ho_ph_v0_V[j*3 + vst_1x1v_ser_p2_ho_ph_v0_vrmap[k]]*(vst_1x1v_ser_p2_ho_ph_v0_coefr[k]*hamil[k]); 
+  } 
+  const double dx10 = 2.0/dxv[0]; 
+  const double *poisson_tensor_conf_x0 = &poisson_tensor_conf[0]; 
+  double px0_q = 0.0; 
+  for (int a = 0; a < 3; ++a) { 
+    px0_q += vst_1x1v_ser_p2_ho_conf_ev[i*3 + a]*poisson_tensor_conf_x0[a]; 
+  } 
+  double dH_dx0 = 0.0; 
+  for (int a = 0; a < 3; ++a) dH_dx0 += vst_1x1v_ser_p2_ho_ph_v0_CmDx0[i*3 + a]*G[a]; 
+  return -(px0_q*dH_dx0*dx10); 
+} 
+
 GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_1x1v_ser_p2(const double *w, const double *dxv, const double *poisson_tensor_conf,
   const double *hamil, double* GKYL_RESTRICT alpha_quad) 
 { 
-
-  const double wx1 = w[1]; 
-  const double dv0 = dxv[1]; 
-  const double dx10 = 2.0/dxv[0]; 
-  const double dv10 = 2.0/dxv[1]; 
-  const double *poisson_tensor_conf_x0 = &poisson_tensor_conf[0]; 
-  alpha_quad[0] += -1.0*(0.9681844646844028*poisson_tensor_conf_x0[2]-1.054672281193885*poisson_tensor_conf_x0[1]+0.7071067811865475*poisson_tensor_conf_x0[0])*(1.936491673103709*hamil[7]+5.002749890427371*hamil[6]-2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*dx10; 
-  alpha_quad[1] += -1.0*((-0.5164305132317774*poisson_tensor_conf_x0[2])-0.416390039500913*poisson_tensor_conf_x0[1]+0.7071067811865475*poisson_tensor_conf_x0[0])*(1.936491673103709*hamil[7]+1.97511137974555*hamil[6]-1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*dx10; 
-  alpha_quad[2] += -1.0*((-0.5164305132317774*poisson_tensor_conf_x0[2])+0.416390039500913*poisson_tensor_conf_x0[1]+0.7071067811865475*poisson_tensor_conf_x0[0])*(1.936491673103709*hamil[7]-1.97511137974555*hamil[6]+1.140331086775586*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*dx10; 
-  alpha_quad[3] += -1.0*(0.9681844646844028*poisson_tensor_conf_x0[2]+1.054672281193885*poisson_tensor_conf_x0[1]+0.7071067811865475*poisson_tensor_conf_x0[0])*(1.936491673103709*hamil[7]-5.002749890427371*hamil[6]+2.888338995926613*hamil[4]-1.5*hamil[3]+0.8660254037844386*hamil[1])*dx10; 
-
+  for (int i = 0; i < 4; ++i) { 
+    for (int j = 0; j < 1; ++j) alpha_quad[i*1 + j] += nc_hamil_phase_ho_alpha_quad_vx_1x1v_ser_p2_node(i, j, w, dxv, poisson_tensor_conf, hamil); 
+  } 
 } 

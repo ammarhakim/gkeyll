@@ -87,6 +87,24 @@ __attribute__((unused)) static const double vst_1x1v_ser_p3_ph_v0_CmD[16] = {
   -9.936188210700607, 
   -9.231063871803565, 
 }; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ph_v0_CmDx0[16] = { 
+  0.0, 
+  2.5, 
+  9.936188210700607, 
+  -9.231063871803565, 
+  0.0, 
+  2.5, 
+  3.92285819520988, 
+  1.438856079595774, 
+  0.0, 
+  2.5, 
+  -3.92285819520988, 
+  1.438856079595774, 
+  0.0, 
+  2.5, 
+  -9.936188210700607, 
+  -9.231063871803565, 
+}; 
 __attribute__((unused)) static const double vst_1x1v_ser_p3_ph_v0_V[4] = { 
   1.0, 
   2.5, 
@@ -162,6 +180,68 @@ __attribute__((unused)) static const int vst_1x1v_ser_p3_ph_v0_vrmap[12] = {
   3, 
   1, 
   3, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ph_v0_Vd0[4] = { 
+  0.0, 
+  2.5, 
+  -11.538461538461538, 
+  -13.636363636363637, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_ser_p3_ph_v0_vld0map[12] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+  0, 
+  3, 
+  1, 
+  3, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_ser_p3_ph_v0_vrd0map[12] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+  0, 
+  3, 
+  1, 
+  3, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ph_v0_dcoefl0[12] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  -0.2906888370749726, 
+  -0.20139513400278566, 
+  -0.20139513400278566, 
+  -0.58206528843421, 
+  -0.58206528843421, 
+  -0.40326666115611387, 
+  -0.40326666115611387, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ph_v0_dcoefr0[12] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  0.2906888370749726, 
+  -0.20139513400278566, 
+  0.20139513400278566, 
+  -0.58206528843421, 
+  -0.58206528843421, 
+  -0.40326666115611387, 
+  -0.40326666115611387, 
 }; 
 __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x1v_ser_p3_ph_v0_meta = { .nb = 12, .na = 4, .nmv = 4, .no = 4, .ni = 1, .ns = 4, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x1v_ser_p3_vel_vol_dv0[16] = { 
@@ -512,6 +592,28 @@ __attribute__((unused)) static const double vst_1x1v_ser_p3_ho_ph_v0_CmD[20] = {
   -10.455921299292276, 
   -10.587987156569671, 
 }; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ho_ph_v0_CmDx0[20] = { 
+  0.0, 
+  2.5, 
+  10.455921299292276, 
+  -10.587987156569671, 
+  0.0, 
+  2.5, 
+  6.213107424296344, 
+  -1.533224964642448, 
+  0.0, 
+  2.5, 
+  0.0, 
+  3.409090909090909, 
+  0.0, 
+  2.5, 
+  -6.213107424296344, 
+  -1.533224964642448, 
+  0.0, 
+  2.5, 
+  -10.455921299292276, 
+  -10.587987156569671, 
+}; 
 __attribute__((unused)) static const double vst_1x1v_ser_p3_ho_ph_v0_V[4] = { 
   1.0, 
   2.5, 
@@ -587,6 +689,68 @@ __attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_v0_vrmap[12] = {
   3, 
   1, 
   3, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ho_ph_v0_Vd0[4] = { 
+  0.0, 
+  2.5, 
+  -11.538461538461538, 
+  -13.636363636363637, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_v0_vld0map[12] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+  0, 
+  3, 
+  1, 
+  3, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_ser_p3_ho_ph_v0_vrd0map[12] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+  0, 
+  3, 
+  1, 
+  3, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ho_ph_v0_dcoefl0[12] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  -0.2906888370749726, 
+  -0.20139513400278566, 
+  -0.20139513400278566, 
+  -0.58206528843421, 
+  -0.58206528843421, 
+  -0.40326666115611387, 
+  -0.40326666115611387, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p3_ho_ph_v0_dcoefr0[12] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+  -0.2906888370749726, 
+  0.2906888370749726, 
+  -0.20139513400278566, 
+  0.20139513400278566, 
+  -0.58206528843421, 
+  -0.58206528843421, 
+  -0.40326666115611387, 
+  -0.40326666115611387, 
 }; 
 __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x1v_ser_p3_ho_ph_v0_meta = { .nb = 12, .na = 4, .nmv = 4, .no = 5, .ni = 1, .ns = 4, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x1v_ser_p3_ho_vel_vol_dv0[20] = { 

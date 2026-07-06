@@ -59,18 +59,24 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if ( inp->use_lo ) {
         up->lax_flux_nodal[0] = ser_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[0] = ser_lax_flux_nodal_x_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[0] = ser_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = ser_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[1] = ser_lax_flux_nodal_y_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[1] = ser_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = ser_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[2] = ser_lax_flux_nodal_z_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[2] = ser_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       } 
       else {
         up->lax_flux_nodal[0] = ser_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[0] = ser_ho_lax_flux_nodal_x_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[0] = ser_ho_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = ser_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[1] = ser_ho_lax_flux_nodal_y_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[1] = ser_ho_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = ser_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[2] = ser_ho_lax_flux_nodal_z_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[2] = ser_ho_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       }
 
@@ -80,23 +86,41 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
           up->hamil_alpha_quad[0] = hamil_sparse ?
             ser_hamil_vel_sparse_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
             ser_hamil_vel_dense_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = hamil_sparse ?
+            ser_hamil_vel_sparse_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = hamil_sparse ?
             ser_hamil_vel_sparse_alpha_quad_y_kernels[kernel_index].kernels[poly_order] :
             ser_hamil_vel_dense_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = hamil_sparse ?
+            ser_hamil_vel_sparse_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[2] = hamil_sparse ?
             ser_hamil_vel_sparse_alpha_quad_z_kernels[kernel_index].kernels[poly_order] :
             ser_hamil_vel_dense_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = hamil_sparse ?
+            ser_hamil_vel_sparse_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order];
         } 
         else {
           up->hamil_alpha_quad[0] = hamil_sparse ?
             ser_hamil_vel_sparse_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order] :
             ser_hamil_vel_dense_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = hamil_sparse ?
+            ser_hamil_vel_sparse_ho_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_ho_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = hamil_sparse ?
             ser_hamil_vel_sparse_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order] :
             ser_hamil_vel_dense_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = hamil_sparse ?
+            ser_hamil_vel_sparse_ho_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_ho_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[2] = hamil_sparse ?
             ser_hamil_vel_sparse_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order] :
             ser_hamil_vel_dense_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = hamil_sparse ?
+            ser_hamil_vel_sparse_ho_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order] :
+            ser_hamil_vel_dense_ho_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order];
         }
       }
       else if (inp->model_id == GKYL_MODEL_TRIAD_GR
@@ -106,13 +130,19 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
         // tensor, reducing this to the canonical streaming speed dH/dv_dir.
         if ( inp->use_lo ) {
           up->hamil_alpha_quad[0] = ser_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = ser_hamil_phase_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = ser_hamil_phase_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = ser_hamil_phase_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[2] = ser_hamil_phase_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = ser_hamil_phase_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order];
         } 
         else {
           up->hamil_alpha_quad[0] = ser_hamil_phase_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = ser_hamil_phase_ho_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[1] = ser_hamil_phase_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = ser_hamil_phase_ho_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad[2] = ser_hamil_phase_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = ser_hamil_phase_ho_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order];
         }
       }
 
@@ -121,18 +151,24 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
     case GKYL_BASIS_MODAL_TENSOR:
       if ( inp->use_lo ) {
         up->lax_flux_nodal[0] = tensor_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[0] = tensor_lax_flux_nodal_x_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[0] = tensor_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = tensor_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[1] = tensor_lax_flux_nodal_y_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[1] = tensor_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = tensor_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[2] = tensor_lax_flux_nodal_z_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[2] = tensor_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       } 
       else {
         up->lax_flux_nodal[0] = tensor_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[0] = tensor_ho_lax_flux_nodal_x_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[0] = tensor_ho_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = tensor_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[1] = tensor_ho_lax_flux_nodal_y_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[1] = tensor_ho_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = tensor_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[2] = tensor_ho_lax_flux_nodal_z_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[2] = tensor_ho_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       } 
 
@@ -143,7 +179,7 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
       break;    
   } 
   // Set assembly functions for computing fluxes. 
-  up->conf_flux_surf = conf_flux_surf_nodes;
+  up->conf_flux_surf = conf_flux_surf_arrays;
   // Surface node counts for the per-node dispatch: (p+1) points per direction,
   // p+2 for the higher-order (anti-aliasing) kernels.
   int nq = poly_order + 1;

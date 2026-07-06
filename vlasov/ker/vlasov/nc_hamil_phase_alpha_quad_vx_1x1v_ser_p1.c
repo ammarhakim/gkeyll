@@ -1,14 +1,29 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_1x1v_ser_p1.h> 
+GKYL_CU_DH double nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1_node(int i, int j, const double *w, const double *dxv,
+  const double *poisson_tensor_conf, const double *hamil) 
+{ 
+  double G[2]; 
+  for (int a = 0; a < 2; ++a) { G[a] = 0.0; } 
+  for (int k = 0; k < 4; ++k) { 
+    const int a = vst_1x1v_ser_p1_ph_v0_cmap[k]; 
+    G[a] += vst_1x1v_ser_p1_ph_v0_V[j*2 + vst_1x1v_ser_p1_ph_v0_vrmap[k]]*(vst_1x1v_ser_p1_ph_v0_coefr[k]*hamil[k]); 
+  } 
+  const double dx10 = 2.0/dxv[0]; 
+  const double *poisson_tensor_conf_x0 = &poisson_tensor_conf[0]; 
+  double px0_q = 0.0; 
+  for (int a = 0; a < 2; ++a) { 
+    px0_q += vst_1x1v_ser_p1_conf_ev[i*2 + a]*poisson_tensor_conf_x0[a]; 
+  } 
+  double dH_dx0 = 0.0; 
+  for (int a = 0; a < 2; ++a) dH_dx0 += vst_1x1v_ser_p1_ph_v0_CmDx0[i*2 + a]*G[a]; 
+  return -(px0_q*dH_dx0*dx10); 
+} 
+
 GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1(const double *w, const double *dxv, const double *poisson_tensor_conf,
   const double *hamil, double* GKYL_RESTRICT alpha_quad) 
 { 
-
-  const double wx1 = w[1]; 
-  const double dv0 = dxv[1]; 
-  const double dx10 = 2.0/dxv[0]; 
-  const double dv10 = 2.0/dxv[1]; 
-  const double *poisson_tensor_conf_x0 = &poisson_tensor_conf[0]; 
-  alpha_quad[0] += -1.0*(0.7071067811865475*poisson_tensor_conf_x0[0]-0.7071067811865475*poisson_tensor_conf_x0[1])*(0.8660254037844386*hamil[1]-1.5*hamil[3])*dx10; 
-  alpha_quad[1] += -1.0*(0.7071067811865475*poisson_tensor_conf_x0[1]+0.7071067811865475*poisson_tensor_conf_x0[0])*(0.8660254037844386*hamil[1]-1.5*hamil[3])*dx10; 
-
+  for (int i = 0; i < 2; ++i) { 
+    for (int j = 0; j < 1; ++j) alpha_quad[i*1 + j] += nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1_node(i, j, w, dxv, poisson_tensor_conf, hamil); 
+  } 
 } 

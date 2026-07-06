@@ -35,6 +35,12 @@ __attribute__((unused)) static const double vst_1x1v_ser_p1_ph_v0_CmD[4] = {
   0.0, 
   2.5, 
 }; 
+__attribute__((unused)) static const double vst_1x1v_ser_p1_ph_v0_CmDx0[4] = { 
+  0.0, 
+  2.5, 
+  0.0, 
+  2.5, 
+}; 
 __attribute__((unused)) static const double vst_1x1v_ser_p1_ph_v0_V[2] = { 
   1.0, 
   2.5, 
@@ -68,6 +74,34 @@ __attribute__((unused)) static const int vst_1x1v_ser_p1_ph_v0_vrmap[4] = {
   0, 
   1, 
   1, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p1_ph_v0_Vd0[2] = { 
+  0.0, 
+  2.5, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_ser_p1_ph_v0_vld0map[4] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+}; 
+__attribute__((unused)) static const int vst_1x1v_ser_p1_ph_v0_vrd0map[4] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p1_ph_v0_dcoefl0[4] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
+}; 
+__attribute__((unused)) static const double vst_1x1v_ser_p1_ph_v0_dcoefr0[4] = { 
+  0.5, 
+  0.34641016151377546, 
+  0.34641016151377546, 
+  0.24, 
 }; 
 __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x1v_ser_p1_ph_v0_meta = { .nb = 4, .na = 2, .nmv = 2, .no = 2, .ni = 1, .ns = 2, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x1v_ser_p1_vel_vol_dv0[4] = { 
