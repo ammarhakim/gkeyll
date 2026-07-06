@@ -115,6 +115,7 @@ struct test_bc_twistshift_ctx {
   double B0;
   double vt;
   double mass;
+  enum gkyl_edge_loc edge;
 };
 
 void
@@ -1182,6 +1183,293 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
 }
 
 void
+init_donor_3x_fig14(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0], y = xn[1], z = xn[2];
+
+  struct test_bc_twistshift_ctx *pars = ctx;
+  double Lx[3] = {
+    pars->upper[0]-pars->lower[0],
+    pars->upper[1]-pars->lower[1],
+    pars->upper[2]-pars->lower[2],
+  };
+
+  double f_amplitude = 1.0;
+  double f_floor = 1.0e-10;
+
+  // Cube
+  double rx2 = pow(x-Lx[0]/2,2);
+  double ry2 = pow(y-Lx[1]/2,2);
+  double rz2 = pow(z-Lx[2]/2,2);
+
+  if (rx2 < pow(Lx[0]/4,2) && ry2 < pow(Lx[1]/4,2))
+    fout[0] = f_amplitude;
+  else
+    fout[0] = f_floor;
+}
+
+void
+shift_fig14(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  double x = xn[0];
+
+  struct test_bc_twistshift_ctx *pars = ctx;
+  double Lx[3] = {
+    pars->upper[0]-pars->lower[0],
+    pars->upper[1]-pars->lower[1],
+    pars->upper[2]-pars->lower[2],
+  };
+  double dx[3] = {
+    Lx[0]/pars->cells[0],
+    Lx[1]/pars->cells[1],
+    Lx[2]/pars->cells[2],
+  };
+  enum gkyl_edge_loc edge = pars->edge;
+
+  fout[0] = x-0.5;
+
+  if (edge == GKYL_UPPER_EDGE)
+    fout[0] *= -1.0;
+}
+
+void
+test_bc_twistshift_3x_fig14_wcells(const int *cells, enum gkyl_edge_loc edge,
+  int apply_in_half_x, bool check_distf, bool use_gpu, bool write_f)
+{
+  double vt = 1.0; // Thermal speed.
+  double mass = 1.0;
+  double B0 = 1.0; // Magnetic field magnitude.
+  int bc_dir = 2; // Direction in which to apply TS.
+
+  int poly_order = 1;
+  const double lower[] = {0.0, 0.0, 0.0};
+  const double upper[] = {1.0, 1.0, 1.0};
+  int vdim = 0;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int cdim = ndim - vdim;
+
+  double lower_conf[cdim], upper_conf[cdim];
+  int cells_conf[cdim];
+  for (int d=0; d<cdim; d++) {
+    lower_conf[d] = lower[d];
+    upper_conf[d] = upper[d];
+    cells_conf[d] = cells[d];
+  }
+
+  // Grid.
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid grid_conf;
+  gkyl_rect_grid_init(&grid_conf, cdim, lower_conf, upper_conf, cells_conf);
+
+  // Basis functions.
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  struct gkyl_basis basis_conf;
+  gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
+
+  // Ranges.
+  int ghost_conf[cdim];
+  for (int d=0; d<cdim; d++) ghost_conf[d] = 1;
+  struct gkyl_range local_conf, local_ext_conf; // local, local-ext position-space ranges
+  gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_ext_conf, &local_conf);
+
+  int ghost[ndim];
+  for (int d=0; d<cdim; d++) ghost[d] = ghost_conf[d];
+  struct gkyl_range local, local_ext; // local, local-ext phase-space ranges
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct skin_ghost_ranges skin_ghost; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+  struct skin_ghost_ranges skin_ghost_conf; // skin/ghost.
+  skin_ghost_ranges_init(&skin_ghost_conf, &local_ext_conf, ghost_conf);
+
+  // Pick skin and ghost ranges based on 'edge'.
+  struct gkyl_range skin_rng, ghost_rng;
+  struct gkyl_range skin_rng_conf, ghost_rng_conf;
+  if (edge == GKYL_LOWER_EDGE) {
+    skin_rng = skin_ghost.upper_skin[bc_dir];
+    ghost_rng = skin_ghost.lower_ghost[bc_dir];
+    skin_rng_conf = skin_ghost_conf.upper_skin[bc_dir];
+    ghost_rng_conf = skin_ghost_conf.lower_ghost[bc_dir];
+  }
+  else {
+    skin_rng = skin_ghost.lower_skin[bc_dir];
+    ghost_rng = skin_ghost.upper_ghost[bc_dir];
+    skin_rng_conf = skin_ghost_conf.lower_skin[bc_dir];
+    ghost_rng_conf = skin_ghost_conf.upper_ghost[bc_dir];
+  }
+
+  struct test_bc_twistshift_ctx proj_ctx = {
+    .lower = {lower[0], lower[1], lower[2]},
+    .upper = {upper[0], upper[1], upper[2]},
+    .cells = {cells[0], cells[1], cells[2]},
+    .B0 = B0,
+    .vt = vt,
+    .mass = mass,
+    .edge = edge,
+  };
+
+  // Initialize the distribution
+  struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho = use_gpu? mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(distf);
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+      .grid = &grid,
+      .basis = &basis,
+      .num_ret_vals = 1,
+      .eval = init_donor_3x_fig14,
+      .ctx = &proj_ctx,
+    }
+  );
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
+  struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new( (struct test_bc_twistshift_output_meta) {
+      .poly_order = poly_order,
+      .basis_type = basis.id
+    }
+  );
+  if (write_f)
+    gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho, "ctest_bc_twistshift_3x_fig14_do.gkyl");
+
+  // Create a range only extended in bc_dir.
+  struct gkyl_range update_rng;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int d=0; d<ndim; d++) {
+    lower_bcdir_ext[d] = local.lower[d];
+    upper_bcdir_ext[d] = local.upper[d];
+  }
+  lower_bcdir_ext[bc_dir] = local.lower[bc_dir] - ghost[bc_dir];
+  upper_bcdir_ext[bc_dir] = local.upper[bc_dir] + ghost[bc_dir];
+  gkyl_sub_range_init(&update_rng, &local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+  if (apply_in_half_x < 0) {
+    // Apply the BC only on the lower half of the domain.
+    int x_half_len = (update_rng.upper[0] - update_rng.lower[0] + 1)/2;
+    gkyl_range_shorten_from_above(&update_rng, &update_rng, 0, x_half_len);
+  }
+  else if (apply_in_half_x > 0) {
+    // Apply the BC only on the upper half of the domain.
+    int x_half_len = (update_rng.upper[0] - update_rng.lower[0] + 1)/2;
+    gkyl_range_shorten_from_below(&update_rng, &update_rng, 0, x_half_len);
+  }
+
+  // Create the twist-shift updater and shift the donor field.
+  struct gkyl_bc_twistshift_inp tsinp = {
+    .bc_dir = bc_dir,
+    .shift_dir = 1, // y shift.
+    .shear_dir = 0, // shift varies with x.
+    .edge = edge,
+    .cdim = cdim,
+    .bcdir_ext_update_r = update_rng,
+    .num_ghost = ghost,
+    .basis = basis,
+    .grid = grid,
+    .shift_func = shift_fig14,
+    .shift_func_ctx = &proj_ctx,
+    .use_gpu = use_gpu,
+  };
+
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+
+  // First apply periodicity in z.
+  struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
+  apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
+
+  gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_array_copy(distf_ho, distf);
+
+  // Write out the target in the extended range.
+  if (write_f) {
+    double lower_ext[ndim], upper_ext[ndim];
+    int cells_ext[ndim];
+    for (int d=0; d<ndim; d++) {
+      double dx = (upper[d]-lower[d])/cells[d];
+      lower_ext[d] = lower[d]-dx*ghost[d];
+      upper_ext[d] = upper[d]+dx*ghost[d];
+      cells_ext[d] = cells[d]+2*ghost[d];
+    }
+    struct gkyl_rect_grid grid_ext;
+    gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho, "ctest_bc_twistshift_3x_fig14_tar.gkyl");
+  }
+
+  if (check_distf) {
+    // Check 0th, 1st, 2nd and 6th DG coeffs.
+    const double f0[] =
+    {
+    };
+    const double f1[] =
+    {
+    };
+    const double f2[] =
+    {
+    };
+    const double f6[] =
+    {
+    };
+
+    struct gkyl_range check_ghost_rng, check_other_ghost_rng;
+    if (apply_in_half_x < 0) {
+      // Applied the BC only on the lower half of the domain.
+      int x_half_len = (ghost_rng.upper[0] - ghost_rng.lower[0] + 1)/2;
+      gkyl_range_shorten_from_above(&check_ghost_rng, &ghost_rng, 0, x_half_len);
+      gkyl_range_shorten_from_below(&check_other_ghost_rng, &ghost_rng, 0, x_half_len);
+    }
+    else if (apply_in_half_x > 0) {
+      // Applied the BC only on the upper half of the domain.
+      int x_half_len = (ghost_rng.upper[0] - ghost_rng.lower[0] + 1)/2;
+      gkyl_range_shorten_from_below(&check_ghost_rng, &ghost_rng, 0, x_half_len);
+      gkyl_range_shorten_from_above(&check_other_ghost_rng, &ghost_rng, 0, x_half_len);
+    }
+    else
+      check_ghost_rng = ghost_rng;
+
+//    struct gkyl_range_iter iter;
+//    gkyl_range_iter_init(&iter, &check_ghost_rng);
+//    while (gkyl_range_iter_next(&iter)) {
+//      long linidx = gkyl_range_idx(&check_ghost_rng, iter.idx);
+//      double *f_c = gkyl_array_fetch(distf_ho, linidx);
+//      int refidx = (iter.idx[0]-1)*cells[1] + iter.idx[1]-1;
+//      TEST_CHECK( gkyl_compare(f0[refidx], f_c[0], 1e-13) );
+//      TEST_CHECK( gkyl_compare(f1[refidx], f_c[1], 1e-13) );
+//      TEST_CHECK( gkyl_compare(f2[refidx], f_c[2], 1e-12) );
+//      TEST_CHECK( gkyl_compare(f6[refidx], f_c[6], 1e-12) );
+//    }
+//
+//    if (apply_in_half_x != 0) {
+//      // Check that the other half is untouched. 
+//      int skin_idx[GKYL_MAX_DIM];
+//      gkyl_range_iter_init(&iter, &check_other_ghost_rng);
+//      while (gkyl_range_iter_next(&iter)) {
+//        long linidx = gkyl_range_idx(&check_other_ghost_rng, iter.idx);
+//        double *f_c = gkyl_array_fetch(distf_ho, linidx);
+//  
+//        for (int d=0; d<check_other_ghost_rng.ndim; d++)
+//          skin_idx[d] = iter.idx[d];
+//        if (edge == GKYL_LOWER_EDGE)
+//          skin_idx[bc_dir] = local.upper[bc_dir];
+//        else
+//          skin_idx[bc_dir] = local.lower[bc_dir];
+//  
+//        linidx = gkyl_range_idx(&local_ext, skin_idx);
+//        double *fskin_c = gkyl_array_fetch(distf_ho, linidx);
+//  
+//        for (int k=0; k<distf_ho->ncomp; k++)
+//          TEST_CHECK( gkyl_compare(fskin_c[k], f_c[k], 1e-15) );
+//      }
+//    }
+  }
+
+  gkyl_array_release(buff_per);
+  test_bc_twistshift_array_meta_release(mt);
+  gkyl_bc_twistshift_release(tsup);
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_array_release(distf_ho);
+  gkyl_array_release(distf);
+
+}
+
+void
 test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   int apply_in_half_x, bool check_distf, bool use_gpu, bool write_f)
 {
@@ -1664,6 +1952,37 @@ test_bc_twistshift_3x_fig11(bool use_gpu)
 }
 
 void
+test_bc_twistshift_3x_fig14(bool use_gpu)
+{
+  const int cells0[] = {8 , 8 , 4};
+  const int cells1[] = {16, 16, 4};
+  const int cells2[] = {32, 32, 4};
+  const int cells3[] = {64, 32, 4};
+
+  enum gkyl_edge_loc edgelo = GKYL_LOWER_EDGE; // Lower edge.
+//  test_bc_twistshift_3x_fig14_wcells(cells0, edgelo, 0, true, use_gpu, true);
+//  test_bc_twistshift_3x_fig14_wcells(cells1, edgelo, 0, false, use_gpu, true);
+//  test_bc_twistshift_3x_fig14_wcells(cells2, edgelo, 0, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig14_wcells(cells3, edgelo, 0, false, use_gpu, true);
+//
+  enum gkyl_edge_loc edgeup = GKYL_UPPER_EDGE; // Upper edge.
+//  test_bc_twistshift_3x_fig14_wcells(cells0, edgeup, 0, true, use_gpu, false);
+  test_bc_twistshift_3x_fig14_wcells(cells1, edgeup, 0, false, use_gpu, true);
+//  test_bc_twistshift_3x_fig14_wcells(cells2, edgeup, 0, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig14_wcells(cells3, edgeup, 0, false, use_gpu, true);
+//
+//  // Apply the TS BC on the lower half of the x domain.
+//  test_bc_twistshift_3x_fig14_wcells(cells0, edgelo, -1, true, use_gpu, false);
+//  test_bc_twistshift_3x_fig14_wcells(cells1, edgelo, -1, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig14_wcells(cells2, edgelo, -1, false, use_gpu, false);
+//
+//  // Apply the TS BC on the upper half of the x domain.
+//  test_bc_twistshift_3x_fig14_wcells(cells0, edgelo, 1, true, use_gpu, false);
+//  test_bc_twistshift_3x_fig14_wcells(cells1, edgelo, 1, false, use_gpu, false);
+//  test_bc_twistshift_3x_fig14_wcells(cells2, edgelo, 1, false, use_gpu, false);
+}
+
+void
 test_bc_twistshift_3x2v_fig11(bool use_gpu)
 {
   const int cells0[] = {10, 5,  4, 2, 1};
@@ -1696,6 +2015,7 @@ test_bc_twistshift_3x2v_fig11(bool use_gpu)
 
 void test_bc_twistshift_3x_fig6_ho(){ test_bc_twistshift_3x_fig6(false); }
 void test_bc_twistshift_3x_fig11_ho(){ test_bc_twistshift_3x_fig11(false); }
+void test_bc_twistshift_3x_fig14_ho(){ test_bc_twistshift_3x_fig14(false); }
 
 void test_bc_twistshift_3x2v_fig6_ho(){ test_bc_twistshift_3x2v_fig6(false); }
 void test_bc_twistshift_3x2v_fig11_ho(){ test_bc_twistshift_3x2v_fig11(false); }
@@ -1706,16 +2026,19 @@ void test_bc_twistshift_3x_fig11_dev(){ test_bc_twistshift_3x_fig11(true); }
 
 void test_bc_twistshift_3x2v_fig6_dev(){ test_bc_twistshift_3x2v_fig6(true); }
 void test_bc_twistshift_3x2v_fig11_dev(){ test_bc_twistshift_3x2v_fig11(true); }
+void test_bc_twistshift_3x_fig14_dev(){ test_bc_twistshift_3x_fig14(true); }
 #endif
 
 TEST_LIST = {
   { "test_bc_twistshift_3x_fig6_ho", test_bc_twistshift_3x_fig6_ho },
   { "test_bc_twistshift_3x_fig11_ho", test_bc_twistshift_3x_fig11_ho },
+  { "test_bc_twistshift_3x_fig14_ho", test_bc_twistshift_3x_fig14_ho },
   { "test_bc_twistshift_3x2v_fig6_ho", test_bc_twistshift_3x2v_fig6_ho },
   { "test_bc_twistshift_3x2v_fig11_ho", test_bc_twistshift_3x2v_fig11_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_bc_twistshift_3x_fig6_dev", test_bc_twistshift_3x_fig6_dev },
   { "test_bc_twistshift_3x_fig11_dev", test_bc_twistshift_3x_fig11_dev },
+  { "test_bc_twistshift_3x_fig14_dev", test_bc_twistshift_3x_fig14_dev },
   { "test_bc_twistshift_3x2v_fig6_dev", test_bc_twistshift_3x2v_fig6_dev },
   { "test_bc_twistshift_3x2v_fig11_dev", test_bc_twistshift_3x2v_fig11_dev },
 #endif
