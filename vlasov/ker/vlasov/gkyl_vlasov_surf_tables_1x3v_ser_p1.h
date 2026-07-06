@@ -2,6 +2,7 @@
 // Generated nodal surface-evaluation tables (see surf-eval-tables.mac). 
 // Header-static so both host and device instantiations of GKYL_CU_DH 
 // kernels can read them; unused arrays are elided per TU. 
+#include <gkyl_vlasov_surf_meta.h> 
 __attribute__((unused)) static const double vst_1x3v_ser_p1_conf_ev[4] = { 
   0.7071067811865475, 
   -0.7071067811865475, 
@@ -462,6 +463,7 @@ __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v0_vrmap[16] = {
   7, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x3v_ser_p1_ph_v0_meta = { .nb = 16, .na = 2, .nmv = 8, .no = 2, .ni = 4, .ns = 4, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x3v_ser_p1_ph_v1_Cm[4] = { 
   1.0, 
   -1.4433756729740645, 
@@ -592,6 +594,7 @@ __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v1_vrmap[16] = {
   7, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x3v_ser_p1_ph_v1_meta = { .nb = 16, .na = 2, .nmv = 8, .no = 2, .ni = 4, .ns = 4, .fhat_off = 8 }; 
 __attribute__((unused)) static const double vst_1x3v_ser_p1_ph_v2_Cm[4] = { 
   1.0, 
   -1.4433756729740645, 
@@ -722,6 +725,7 @@ __attribute__((unused)) static const int vst_1x3v_ser_p1_ph_v2_vrmap[16] = {
   7, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x3v_ser_p1_ph_v2_meta = { .nb = 16, .na = 2, .nmv = 8, .no = 2, .ni = 4, .ns = 4, .fhat_off = 16 }; 
 __attribute__((unused)) static const double vst_1x3v_ser_p1_vel_vol_dv0[64] = { 
   0.0, 
   0.6123724356957944, 
@@ -1589,3 +1593,4 @@ __attribute__((unused)) static const double vst_1x3v_ser_p1_ph_x0_dcoefr2[16] = 
   0.0831384387633061, 
   -0.0576, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x3v_ser_p1_ph_x0_meta = { .nb = 16, .na = 1, .nmv = 16, .no = 1, .ni = 8, .ns = 4, .fhat_off = 0 }; 

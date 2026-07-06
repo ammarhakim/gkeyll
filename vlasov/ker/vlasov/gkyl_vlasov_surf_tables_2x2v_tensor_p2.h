@@ -2,6 +2,7 @@
 // Generated nodal surface-evaluation tables (see surf-eval-tables.mac). 
 // Header-static so both host and device instantiations of GKYL_CU_DH 
 // kernels can read them; unused arrays are elided per TU. 
+#include <gkyl_vlasov_surf_meta.h> 
 __attribute__((unused)) static const double vst_2x2v_tensor_p2_conf_ev[144] = { 
   0.5, 
   -0.7457659219616816, 
@@ -1344,6 +1345,7 @@ __attribute__((unused)) static const int vst_2x2v_tensor_p2_ph_v0_vrmap[81] = {
   8, 
   8, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_tensor_p2_ph_v0_meta = { .nb = 81, .na = 9, .nmv = 9, .no = 16, .ni = 4, .ns = 5, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_2x2v_tensor_p2_ph_v1_Cm[144] = { 
   1.0, 
   -2.1528407789851314, 
@@ -2089,3 +2091,4 @@ __attribute__((unused)) static const int vst_2x2v_tensor_p2_ph_v1_vrmap[81] = {
   8, 
   8, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_tensor_p2_ph_v1_meta = { .nb = 81, .na = 9, .nmv = 9, .no = 16, .ni = 4, .ns = 5, .fhat_off = 64 }; 

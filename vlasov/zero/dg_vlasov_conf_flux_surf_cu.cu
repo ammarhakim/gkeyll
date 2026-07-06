@@ -127,13 +127,19 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
     case GKYL_BASIS_MODAL_SERENDIPITY:
       if ( use_lo ) {
         up->lax_flux_nodal[0] = ser_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[0] = ser_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = ser_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[1] = ser_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = ser_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[2] = ser_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       }
       else {
         up->lax_flux_nodal[0] = ser_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[0] = ser_ho_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = ser_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[1] = ser_ho_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = ser_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[2] = ser_ho_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       }
 
       // Only have Hamiltonian forces in general geometry.
@@ -183,13 +189,19 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
     case GKYL_BASIS_MODAL_TENSOR:
       if (use_lo) {
         up->lax_flux_nodal[0] = tensor_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[0] = tensor_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = tensor_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[1] = tensor_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = tensor_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[2] = tensor_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       } 
       else {
         up->lax_flux_nodal[0] = tensor_ho_lax_flux_nodal_x_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[0] = tensor_ho_lax_flux_nodal_x_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[1] = tensor_ho_lax_flux_nodal_y_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[1] = tensor_ho_lax_flux_nodal_y_cfl_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_nodal[2] = tensor_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[2] = tensor_ho_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       }
       
       // Only have Hamiltonian forces in general geometry. 
@@ -204,7 +216,15 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
       break;    
   } 
   // Set assembly functions for computing fluxes. 
-  up->conf_flux_surf = conf_flux_surf_kernels[kernel_index].kernels[poly_order];
+  up->conf_flux_surf = conf_flux_surf_nodes;
+  // Surface node counts for the per-node dispatch: (p+1) points per direction,
+  // p+2 for the higher-order (anti-aliasing) kernels.
+  int nq = poly_order + 1;
+  if ((poly_order > 1) && !use_lo) nq = poly_order + 2;
+  up->num_nodes_conf = 1;
+  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq;
+  up->num_nodes_vel = 1;
+  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq;
 }
 
 gkyl_dg_vlasov_conf_flux_surf*

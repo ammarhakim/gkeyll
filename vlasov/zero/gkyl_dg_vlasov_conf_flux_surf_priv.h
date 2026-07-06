@@ -6,16 +6,19 @@
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
 #include <gkyl_vlasov_kernels.h>
+#include <gkyl_vlasov_surf_node_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 #include <assert.h> 
 
-typedef void (*hamil_alpha_quad_conf_t)(const double *w, const double *dxv, const int hamil_pt_edge, 
-  const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
+typedef double (*hamil_alpha_quad_conf_t)(int i, int m, int hamil_pt_edge, const double *w, const double *dxv, 
+  const double *poisson_tensor_conf, const double *hamil); 
 
-typedef double (*lax_flux_nodal_t)(const double *dxv, const double *jacob_vel_surf, const double *alpha_quad,
-  const double *f_l, const double *f_c, double *lax_nodal_quad, double* GKYL_RESTRICT conf_flux_surf); 
+typedef double (*lax_flux_nodal_t)(int i, int j, double alpha,
+  const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf); 
+
+typedef double (*lax_cfl_t)(const double *dxv, double alpha_max); 
 
 typedef double (*conf_flux_surf_t)(struct gkyl_dg_vlasov_conf_flux_surf *up, 
   int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
@@ -34,7 +37,7 @@ static struct { int vdim[4]; } cv_index[] = {
 // for use in kernel tables
 typedef struct { hamil_alpha_quad_conf_t kernels[4]; } gkyl_hamil_alpha_quad_kern_list;     
 typedef struct { lax_flux_nodal_t kernels[4]; } gkyl_lax_flux_nodal_kern_list;  
-typedef struct { conf_flux_surf_t kernels[4]; } gkyl_conf_flux_surf_kern_list;  
+typedef struct { lax_cfl_t kernels[4]; } gkyl_lax_cfl_kern_list;  
 
 struct gkyl_dg_vlasov_conf_flux_surf {
   struct gkyl_rect_grid phase_grid; // Phase-space grid. 
@@ -47,6 +50,9 @@ struct gkyl_dg_vlasov_conf_flux_surf {
   struct gkyl_range vel_range; // Velocity-space range for use in Velocity-space Jacobian. 
   hamil_alpha_quad_conf_t hamil_alpha_quad[3]; // Hamiltonian contribution to alpha_c at quadrature points. 
   lax_flux_nodal_t lax_flux_nodal[3]; // Convert nodal Lax-Friedrichs flux to modal surface expansion. 
+  lax_cfl_t lax_cfl[3]; // CFL finalizer for the node-loop's alpha_max reduction. 
+  int num_nodes_conf; // Remaining configuration-space surface nodes per configuration surface. 
+  int num_nodes_vel; // Velocity-space volume nodes per configuration surface. 
   conf_flux_surf_t conf_flux_surf; // Assembly function for computing modal surface expansion of configuration-space fluxes. 
 
   uint32_t flags;
@@ -56,357 +62,67 @@ struct gkyl_dg_vlasov_conf_flux_surf {
 
 // Empty function pointers for cases where these forces do not exist. 
 GKYL_CU_DH
-static void 
-no_hamil_alpha_quad(const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, double* GKYL_RESTRICT alpha_quad)
+static double 
+no_hamil_alpha_quad(int i, int m, int hamil_pt_edge, const double *w, const double *dxv,
+  const double *poisson_tensor_conf, const double *hamil)
 {
+  return 0.0;
 }
 
+// Configuration-space flux assembly (Design A per-node dispatch): the
+// Hamiltonian producer returns alpha at each surface node (register), the
+// per-node Lax flux consumes it, and the CFL is finalized from the
+// node-loop's alpha_max reduction.
 GKYL_CU_DH
-static void inline
-conf_flux_surf_alpha_quad(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf, 
-  const double *hamil, double* GKYL_RESTRICT alpha_quad)
+static double
+conf_flux_surf_nodes(struct gkyl_dg_vlasov_conf_flux_surf *up,
+  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
+  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
 {
-  up->hamil_alpha_quad[dir](w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad);  
+  double alpha_max = 0.0;
+  for (int i = 0; i < up->num_nodes_conf; ++i) {
+    for (int m = 0; m < up->num_nodes_vel; ++m) {
+      double alpha = up->hamil_alpha_quad[dir](i, m, hamil_pt_edge, w, dxv, poisson_tensor_conf, hamil);
+      alpha_max = fmax(alpha_max, up->lax_flux_nodal[dir](i, m, alpha, f_l, f_c, conf_flux_surf));
+    }
+  }
+  double cflrate = up->lax_cfl[dir](dxv, alpha_max);
+
+  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
+  if (fabs(f_l[0]) < up->skip_cell_thresh && 
+      fabs(f_c[0]) < up->skip_cell_thresh) {
+    return 0.0; 
+  }
+  return cflrate; 
 }
-
-// Configuration-space flux computation.
-// Separated like this to correctly allocate stack-side arrays for quadrature evaluation.  
-GKYL_CU_DH
-static double 
-conf_flux_surf_1x1v_p1(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a cubic in configuration space, so 2^1 = 2 quadrature points. 
-  double alpha_quad[2] = {0.0};
-  double lax_nodal_quad[2] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_1x1v_p2(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a sixth order polynomial in configuration space, so 4^1 = 4 quadrature points. 
-  double alpha_quad[4] = {0.0};
-  double lax_nodal_quad[4] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_1x2v_p1(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a cubic in configuration space, and a 
-  // quadratic/cubic in velocity space so 2^1*2^1 = 4 quadrature points. 
-  double alpha_quad[4] = {0.0};
-  double lax_nodal_quad[4] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  } 
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_1x2v_p2(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a sixth order polynomial in configuration space, and a
-  // sixth order polynomial in velocity space, so 4^1*4^1 = 16 quadrature points. 
-  double alpha_quad[16] = {0.0};
-  double lax_nodal_quad[16] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_1x3v_p1(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a cubic in configuration space, and a 
-  // quadratic/cubic in velocity space so 2^1*2^2 = 8 quadrature points. 
-  double alpha_quad[8] = {0.0};
-  double lax_nodal_quad[8] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_1x3v_p2(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a sixth order polynomial in configuration space, and a
-  // sixth order polynomial in velocity space, so 4^1*4^2 = 36 quadrature points. 
-  double alpha_quad[64] = {0.0};
-  double lax_nodal_quad[64] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_2x2v_p1(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a cubic in configuration space, and a 
-  // quadratic/cubic in velocity space so 2^2*2^1 = 8 quadrature points. 
-  double alpha_quad[8] = {0.0};
-  double lax_nodal_quad[8] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_2x2v_p2(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a sixth order polynomial in configuration space, and a
-  // sixth order polynomial in velocity space, so 3^3 = 27 quadrature points. 
-  double alpha_quad[64] = {0.0};
-  double lax_nodal_quad[64] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  } 
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_2x3v_p1(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a cubic in configuration space, and a 
-  // quadratic in velocity space so 2^2*2^2 = 16 quadrature points. 
-  double alpha_quad[16] = {0.0};
-  double lax_nodal_quad[16] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_2x3v_p2(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a sixth order polynomial in configuration space, and a
-  // sixth order polynomial in velocity space, so 4^2*4^2 = 256 quadrature points. 
-  double alpha_quad[256] = {0.0};
-  double lax_nodal_quad[256] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  } 
-} 
-
-GKYL_CU_DH
-static double 
-conf_flux_surf_3x3v_p1(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
-  const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
-{
-  // Needs to integrate a cubic in configuration space, and a 
-  // quadratic in velocity space so 2^3*2^2 = 32 quadrature points. 
-  double alpha_quad[32] = {0.0};
-  double lax_nodal_quad[32] = {0.0};
-
-  // Accumulate forces to construct total alpha_c at each quadrature point. 
-  conf_flux_surf_alpha_quad(up, dir, w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad); 
-
-  // Compute nodal Lax-Friedrichs flux and convert back to modal expansion of flux.
-  double cflrate = up->lax_flux_nodal[dir](dxv, 0, alpha_quad,
-    f_l, f_c, lax_nodal_quad, conf_flux_surf); 
-
-  // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
-  if (fabs(f_l[0]) < up->skip_cell_thresh && 
-      fabs(f_c[0]) < up->skip_cell_thresh) {
-    return 0.0; 
-  }
-  else {
-    return cflrate; 
-  }
-} 
-
-// Configuration-space flux computation assembly function. 
-GKYL_CU_D
-static const gkyl_conf_flux_surf_kern_list conf_flux_surf_kernels[] = {
-  // 1x kernels
-  { NULL, conf_flux_surf_1x1v_p1, conf_flux_surf_1x1v_p2, NULL }, // 0
-  { NULL, conf_flux_surf_1x2v_p1, conf_flux_surf_1x2v_p2, NULL }, // 1
-  { NULL, conf_flux_surf_1x3v_p1, conf_flux_surf_1x3v_p2, NULL }, // 2
-  // 2x kernels
-  { NULL, NULL, NULL, NULL }, // 3
-  { NULL, conf_flux_surf_2x2v_p1, conf_flux_surf_2x2v_p2, NULL }, // 4
-  { NULL, conf_flux_surf_2x3v_p1, conf_flux_surf_2x3v_p2, NULL }, // 5
-  // 3x kernels
-  { NULL, conf_flux_surf_3x3v_p1, NULL, NULL }, // 6
-};
 
 // Nodal Lax-Friedrichs to modal Configuration-space flux conversion (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list ser_lax_flux_nodal_x_kernels[] = {
   // 1x kernels
-  { NULL, lax_flux_nodal_x_1x1v_ser_p1, lax_flux_nodal_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, lax_flux_nodal_x_1x2v_ser_p1, lax_flux_nodal_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, lax_flux_nodal_x_1x3v_ser_p1, lax_flux_nodal_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_x_1x1v_ser_p1_node, lax_flux_nodal_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, lax_flux_nodal_x_1x2v_ser_p1_node, lax_flux_nodal_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, lax_flux_nodal_x_1x3v_ser_p1_node, lax_flux_nodal_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, lax_flux_nodal_x_2x2v_ser_p1, lax_flux_nodal_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_x_2x3v_ser_p1, lax_flux_nodal_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, lax_flux_nodal_x_2x2v_ser_p1_node, lax_flux_nodal_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, lax_flux_nodal_x_2x3v_ser_p1_node, lax_flux_nodal_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_x_3x3v_ser_p1_node, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list ser_lax_flux_nodal_x_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, lax_flux_nodal_x_1x1v_ser_p1_cfl, lax_flux_nodal_x_1x1v_ser_p2_cfl, NULL }, // 0
+  { NULL, lax_flux_nodal_x_1x2v_ser_p1_cfl, lax_flux_nodal_x_1x2v_ser_p2_cfl, NULL }, // 1
+  { NULL, lax_flux_nodal_x_1x3v_ser_p1_cfl, lax_flux_nodal_x_1x3v_ser_p2_cfl, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_x_2x2v_ser_p1_cfl, lax_flux_nodal_x_2x2v_ser_p2_cfl, NULL }, // 4
+  { NULL, lax_flux_nodal_x_2x3v_ser_p1_cfl, lax_flux_nodal_x_2x3v_ser_p2_cfl, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_x_3x3v_ser_p1_cfl, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -417,10 +133,24 @@ static const gkyl_lax_flux_nodal_kern_list ser_lax_flux_nodal_y_kernels[] = {
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, lax_flux_nodal_y_2x2v_ser_p1, lax_flux_nodal_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_y_2x3v_ser_p1, lax_flux_nodal_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, lax_flux_nodal_y_2x2v_ser_p1_node, lax_flux_nodal_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, lax_flux_nodal_y_2x3v_ser_p1_node, lax_flux_nodal_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_y_3x3v_ser_p1_node, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list ser_lax_flux_nodal_y_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_y_2x2v_ser_p1_cfl, lax_flux_nodal_y_2x2v_ser_p2_cfl, NULL }, // 4
+  { NULL, lax_flux_nodal_y_2x3v_ser_p1_cfl, lax_flux_nodal_y_2x3v_ser_p2_cfl, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_y_3x3v_ser_p1_cfl, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -434,12 +164,40 @@ static const gkyl_lax_flux_nodal_kern_list ser_lax_flux_nodal_z_kernels[] = {
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_z_3x3v_ser_p1_node, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list ser_lax_flux_nodal_z_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_z_3x3v_ser_p1_cfl, NULL, NULL }, // 6
 };
 
 // Nodal Lax-Friedrichs to modal Configuration-space flux conversion (Tensor basis). 
 GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_x_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_x_cfl_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -467,7 +225,35 @@ static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_y_kernels[] = {
 };
 
 GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_y_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_z_cfl_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -484,15 +270,29 @@ static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_z_kernels[] = {
 GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list ser_ho_lax_flux_nodal_x_kernels[] = {
   // 1x kernels
-  { NULL, lax_flux_nodal_x_1x1v_ser_p1, ho_lax_flux_nodal_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, lax_flux_nodal_x_1x2v_ser_p1, ho_lax_flux_nodal_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, lax_flux_nodal_x_1x3v_ser_p1, ho_lax_flux_nodal_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_x_1x1v_ser_p1_node, ho_lax_flux_nodal_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, lax_flux_nodal_x_1x2v_ser_p1_node, ho_lax_flux_nodal_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, lax_flux_nodal_x_1x3v_ser_p1_node, ho_lax_flux_nodal_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, lax_flux_nodal_x_2x2v_ser_p1, ho_lax_flux_nodal_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_x_2x3v_ser_p1, ho_lax_flux_nodal_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, lax_flux_nodal_x_2x2v_ser_p1_node, ho_lax_flux_nodal_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, lax_flux_nodal_x_2x3v_ser_p1_node, ho_lax_flux_nodal_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_x_3x3v_ser_p1_node, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list ser_ho_lax_flux_nodal_x_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, lax_flux_nodal_x_1x1v_ser_p1_cfl, ho_lax_flux_nodal_x_1x1v_ser_p2_cfl, NULL }, // 0
+  { NULL, lax_flux_nodal_x_1x2v_ser_p1_cfl, ho_lax_flux_nodal_x_1x2v_ser_p2_cfl, NULL }, // 1
+  { NULL, lax_flux_nodal_x_1x3v_ser_p1_cfl, ho_lax_flux_nodal_x_1x3v_ser_p2_cfl, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_x_2x2v_ser_p1_cfl, ho_lax_flux_nodal_x_2x2v_ser_p2_cfl, NULL }, // 4
+  { NULL, lax_flux_nodal_x_2x3v_ser_p1_cfl, ho_lax_flux_nodal_x_2x3v_ser_p2_cfl, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_x_3x3v_ser_p1_cfl, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -503,10 +303,24 @@ static const gkyl_lax_flux_nodal_kern_list ser_ho_lax_flux_nodal_y_kernels[] = {
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, lax_flux_nodal_y_2x2v_ser_p1, ho_lax_flux_nodal_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, lax_flux_nodal_y_2x3v_ser_p1, ho_lax_flux_nodal_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, lax_flux_nodal_y_2x2v_ser_p1_node, ho_lax_flux_nodal_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, lax_flux_nodal_y_2x3v_ser_p1_node, ho_lax_flux_nodal_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_y_3x3v_ser_p1_node, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list ser_ho_lax_flux_nodal_y_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, lax_flux_nodal_y_2x2v_ser_p1_cfl, ho_lax_flux_nodal_y_2x2v_ser_p2_cfl, NULL }, // 4
+  { NULL, lax_flux_nodal_y_2x3v_ser_p1_cfl, ho_lax_flux_nodal_y_2x3v_ser_p2_cfl, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_y_3x3v_ser_p1_cfl, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -520,12 +334,40 @@ static const gkyl_lax_flux_nodal_kern_list ser_ho_lax_flux_nodal_z_kernels[] = {
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, lax_flux_nodal_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, lax_flux_nodal_z_3x3v_ser_p1_node, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list ser_ho_lax_flux_nodal_z_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, lax_flux_nodal_z_3x3v_ser_p1_cfl, NULL, NULL }, // 6
 };
 
 // Nodal Lax-Friedrichs to modal Configuration-space flux conversion (Tensor basis). 
 GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_x_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_x_cfl_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -553,7 +395,35 @@ static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_y_kernels[] 
 };
 
 GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_y_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_z_cfl_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -570,30 +440,30 @@ static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_z_kernels[] 
 GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_dense_alpha_quad_x_kernels[] = {
   // 1x kernels
-  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, hamil_vel_dense_alpha_quad_x_1x2v_ser_p1, hamil_vel_dense_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, hamil_vel_dense_alpha_quad_x_1x3v_ser_p1, hamil_vel_dense_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1_node, hamil_vel_dense_alpha_quad_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, hamil_vel_dense_alpha_quad_x_1x2v_ser_p1_node, hamil_vel_dense_alpha_quad_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, hamil_vel_dense_alpha_quad_x_1x3v_ser_p1_node, hamil_vel_dense_alpha_quad_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_dense_alpha_quad_x_2x2v_ser_p1, hamil_vel_dense_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_dense_alpha_quad_x_2x3v_ser_p1, hamil_vel_dense_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_dense_alpha_quad_x_2x2v_ser_p1_node, hamil_vel_dense_alpha_quad_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_x_2x3v_ser_p1_node, hamil_vel_dense_alpha_quad_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_dense_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_dense_alpha_quad_x_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
 GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_sparse_alpha_quad_x_kernels[] = {
   // 1x kernels
-  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p1, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p1, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1_node, hamil_vel_dense_alpha_quad_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p1_node, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p1_node, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p1, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p1, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p1_node, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p1_node, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_sparse_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_sparse_alpha_quad_x_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -604,10 +474,10 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_dense_alpha_quad_y_ke
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_dense_alpha_quad_y_2x2v_ser_p1, hamil_vel_dense_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_dense_alpha_quad_y_2x3v_ser_p1, hamil_vel_dense_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_dense_alpha_quad_y_2x2v_ser_p1_node, hamil_vel_dense_alpha_quad_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_y_2x3v_ser_p1_node, hamil_vel_dense_alpha_quad_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_dense_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_dense_alpha_quad_y_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -619,10 +489,10 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_sparse_alpha_quad_y_k
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p1, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p1, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p1_node, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p1_node, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_sparse_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_sparse_alpha_quad_y_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -636,7 +506,7 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_dense_alpha_quad_z_ke
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_dense_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_dense_alpha_quad_z_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -651,37 +521,37 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_sparse_alpha_quad_z_k
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 // alpha_c evaluated at quadrature points for general (NC) Hamiltonian forces (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_dense_ho_alpha_quad_x_kernels[] = {
   // 1x kernels
-  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, hamil_vel_dense_alpha_quad_x_1x2v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, hamil_vel_dense_alpha_quad_x_1x3v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, hamil_vel_dense_alpha_quad_x_1x2v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, hamil_vel_dense_alpha_quad_x_1x3v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_dense_alpha_quad_x_2x2v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_dense_alpha_quad_x_2x3v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_dense_alpha_quad_x_2x2v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_x_2x3v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_dense_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_dense_alpha_quad_x_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
 GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_sparse_ho_alpha_quad_x_kernels[] = {
   // 1x kernels
-  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1, hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, hamil_vel_dense_alpha_quad_x_1x1v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x2v_ser_p1_node, hamil_vel_sparse_ho_alpha_quad_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, hamil_vel_sparse_alpha_quad_x_1x3v_ser_p1_node, hamil_vel_sparse_ho_alpha_quad_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p1, hamil_vel_sparse_ho_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x2v_ser_p1_node, hamil_vel_sparse_ho_alpha_quad_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_x_2x3v_ser_p1_node, hamil_vel_sparse_ho_alpha_quad_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_sparse_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_sparse_alpha_quad_x_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -692,10 +562,10 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_dense_ho_alpha_quad_y
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_dense_alpha_quad_y_2x2v_ser_p1, hamil_vel_dense_ho_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_dense_alpha_quad_y_2x3v_ser_p1, hamil_vel_dense_ho_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_dense_alpha_quad_y_2x2v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_dense_alpha_quad_y_2x3v_ser_p1_node, hamil_vel_dense_ho_alpha_quad_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_dense_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_dense_alpha_quad_y_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -707,10 +577,10 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_sparse_ho_alpha_quad_
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p1, hamil_vel_sparse_ho_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p1, hamil_vel_sparse_ho_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x2v_ser_p1_node, hamil_vel_sparse_ho_alpha_quad_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_vel_sparse_alpha_quad_y_2x3v_ser_p1_node, hamil_vel_sparse_ho_alpha_quad_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_sparse_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_sparse_alpha_quad_y_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -724,7 +594,7 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_dense_ho_alpha_quad_z
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_dense_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_dense_alpha_quad_z_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -739,22 +609,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_vel_sparse_ho_alpha_quad_
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 // alpha_c evaluated at quadrature points for general (NC) Hamiltonian forces (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_hamil_phase_alpha_quad_x_kernels[] = {
   // 1x kernels
-  { NULL, hamil_phase_alpha_quad_x_1x1v_ser_p1, hamil_phase_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, hamil_phase_alpha_quad_x_1x2v_ser_p1, hamil_phase_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, hamil_phase_alpha_quad_x_1x3v_ser_p1, hamil_phase_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, hamil_phase_alpha_quad_x_1x1v_ser_p1_node, hamil_phase_alpha_quad_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, hamil_phase_alpha_quad_x_1x2v_ser_p1_node, hamil_phase_alpha_quad_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, hamil_phase_alpha_quad_x_1x3v_ser_p1_node, hamil_phase_alpha_quad_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_phase_alpha_quad_x_2x2v_ser_p1, hamil_phase_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_x_2x3v_ser_p1, hamil_phase_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_phase_alpha_quad_x_2x2v_ser_p1_node, hamil_phase_alpha_quad_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_x_2x3v_ser_p1_node, hamil_phase_alpha_quad_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_phase_alpha_quad_x_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -765,10 +635,10 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_phase_alpha_quad_y_kernel
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_phase_alpha_quad_y_2x2v_ser_p1, hamil_phase_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_y_2x3v_ser_p1, hamil_phase_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_phase_alpha_quad_y_2x2v_ser_p1_node, hamil_phase_alpha_quad_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_y_2x3v_ser_p1_node, hamil_phase_alpha_quad_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_phase_alpha_quad_y_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -782,22 +652,22 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_phase_alpha_quad_z_kernel
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_phase_alpha_quad_z_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 // alpha_c evaluated at quadrature points for general (NC) Hamiltonian forces (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_hamil_alpha_quad_kern_list ser_hamil_phase_ho_alpha_quad_x_kernels[] = {
   // 1x kernels
-  { NULL, hamil_phase_alpha_quad_x_1x1v_ser_p1, hamil_phase_ho_alpha_quad_x_1x1v_ser_p2, NULL }, // 0
-  { NULL, hamil_phase_alpha_quad_x_1x2v_ser_p1, hamil_phase_ho_alpha_quad_x_1x2v_ser_p2, NULL }, // 1
-  { NULL, hamil_phase_alpha_quad_x_1x3v_ser_p1, hamil_phase_ho_alpha_quad_x_1x3v_ser_p2, NULL }, // 2
+  { NULL, hamil_phase_alpha_quad_x_1x1v_ser_p1_node, hamil_phase_ho_alpha_quad_x_1x1v_ser_p2_node, NULL }, // 0
+  { NULL, hamil_phase_alpha_quad_x_1x2v_ser_p1_node, hamil_phase_ho_alpha_quad_x_1x2v_ser_p2_node, NULL }, // 1
+  { NULL, hamil_phase_alpha_quad_x_1x3v_ser_p1_node, hamil_phase_ho_alpha_quad_x_1x3v_ser_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_phase_alpha_quad_x_2x2v_ser_p1, hamil_phase_ho_alpha_quad_x_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_x_2x3v_ser_p1, hamil_phase_ho_alpha_quad_x_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_phase_alpha_quad_x_2x2v_ser_p1_node, hamil_phase_ho_alpha_quad_x_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_x_2x3v_ser_p1_node, hamil_phase_ho_alpha_quad_x_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_x_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_phase_alpha_quad_x_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -808,10 +678,10 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_phase_ho_alpha_quad_y_ker
   { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, hamil_phase_alpha_quad_y_2x2v_ser_p1, hamil_phase_ho_alpha_quad_y_2x2v_ser_p2, NULL }, // 4
-  { NULL, hamil_phase_alpha_quad_y_2x3v_ser_p1, hamil_phase_ho_alpha_quad_y_2x3v_ser_p2, NULL }, // 5
+  { NULL, hamil_phase_alpha_quad_y_2x2v_ser_p1_node, hamil_phase_ho_alpha_quad_y_2x2v_ser_p2_node, NULL }, // 4
+  { NULL, hamil_phase_alpha_quad_y_2x3v_ser_p1_node, hamil_phase_ho_alpha_quad_y_2x3v_ser_p2_node, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_y_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_phase_alpha_quad_y_3x3v_ser_p1_node, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
@@ -825,5 +695,5 @@ static const gkyl_hamil_alpha_quad_kern_list ser_hamil_phase_ho_alpha_quad_z_ker
   { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, hamil_phase_alpha_quad_z_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, hamil_phase_alpha_quad_z_3x3v_ser_p1_node, NULL, NULL }, // 6
 };

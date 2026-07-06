@@ -2,6 +2,7 @@
 // Generated nodal surface-evaluation tables (see surf-eval-tables.mac). 
 // Header-static so both host and device instantiations of GKYL_CU_DH 
 // kernels can read them; unused arrays are elided per TU. 
+#include <gkyl_vlasov_surf_meta.h> 
 __attribute__((unused)) static const double vst_1x2v_ser_p2_conf_ev[9] = { 
   0.7071067811865475, 
   -0.9486832980505137, 
@@ -293,6 +294,7 @@ __attribute__((unused)) static const int vst_1x2v_ser_p2_ph_v0_vrmap[20] = {
   6, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p2_ph_v0_meta = { .nb = 20, .na = 3, .nmv = 8, .no = 3, .ni = 3, .ns = 5, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p2_ph_v1_Cm[9] = { 
   1.0, 
   -1.9364916731037085, 
@@ -440,6 +442,7 @@ __attribute__((unused)) static const int vst_1x2v_ser_p2_ph_v1_vrmap[20] = {
   6, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p2_ph_v1_meta = { .nb = 20, .na = 3, .nmv = 8, .no = 3, .ni = 3, .ns = 5, .fhat_off = 9 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p2_vel_vol_dv0[72] = { 
   0.0, 
   0.8660254037844386, 
@@ -1307,6 +1310,7 @@ __attribute__((unused)) static const double vst_1x2v_ser_p2_ph_x0_dcoefr1[20] = 
   0.0986630629972534, 
   0.0986630629972534, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p2_ph_x0_meta = { .nb = 20, .na = 1, .nmv = 20, .no = 1, .ni = 9, .ns = 5, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p2_ho_conf_ev[12] = { 
   0.7071067811865475, 
   -1.0546722811938851, 
@@ -1650,6 +1654,7 @@ __attribute__((unused)) static const int vst_1x2v_ser_p2_ho_ph_v0_vrmap[20] = {
   6, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p2_ho_ph_v0_meta = { .nb = 20, .na = 3, .nmv = 8, .no = 4, .ni = 4, .ns = 5, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p2_ho_ph_v1_Cm[12] = { 
   1.0, 
   -2.1528407789851314, 
@@ -1808,6 +1813,7 @@ __attribute__((unused)) static const int vst_1x2v_ser_p2_ho_ph_v1_vrmap[20] = {
   6, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p2_ho_ph_v1_meta = { .nb = 20, .na = 3, .nmv = 8, .no = 4, .ni = 4, .ns = 5, .fhat_off = 16 }; 
 __attribute__((unused)) static const double vst_1x2v_ser_p2_ho_vel_vol_dv0[128] = { 
   0.0, 
   0.8660254037844386, 
@@ -3109,3 +3115,4 @@ __attribute__((unused)) static const double vst_1x2v_ser_p2_ho_ph_x0_dcoefr1[20]
   0.0986630629972534, 
   0.0986630629972534, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_1x2v_ser_p2_ho_ph_x0_meta = { .nb = 20, .na = 1, .nmv = 20, .no = 1, .ni = 16, .ns = 5, .fhat_off = 0 }; 

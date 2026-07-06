@@ -2,6 +2,7 @@
 // Generated nodal surface-evaluation tables (see surf-eval-tables.mac). 
 // Header-static so both host and device instantiations of GKYL_CU_DH 
 // kernels can read them; unused arrays are elided per TU. 
+#include <gkyl_vlasov_surf_meta.h> 
 __attribute__((unused)) static const double vst_2x3v_ser_p1_conf_ev[16] = { 
   0.5, 
   -0.5, 
@@ -608,6 +609,7 @@ __attribute__((unused)) static const int vst_2x3v_ser_p1_ph_v0_vrmap[32] = {
   7, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x3v_ser_p1_ph_v0_meta = { .nb = 32, .na = 4, .nmv = 8, .no = 4, .ni = 4, .ns = 4, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_2x3v_ser_p1_ph_v1_Cm[16] = { 
   1.0, 
   -1.4433756729740645, 
@@ -848,6 +850,7 @@ __attribute__((unused)) static const int vst_2x3v_ser_p1_ph_v1_vrmap[32] = {
   7, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x3v_ser_p1_ph_v1_meta = { .nb = 32, .na = 4, .nmv = 8, .no = 4, .ni = 4, .ns = 4, .fhat_off = 16 }; 
 __attribute__((unused)) static const double vst_2x3v_ser_p1_ph_v2_Cm[16] = { 
   1.0, 
   -1.4433756729740645, 
@@ -1070,6 +1073,7 @@ __attribute__((unused)) static const int vst_2x3v_ser_p1_ph_v2_vrmap[32] = {
   7, 
   7, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x3v_ser_p1_ph_v2_meta = { .nb = 32, .na = 4, .nmv = 8, .no = 4, .ni = 4, .ns = 4, .fhat_off = 32 }; 
 __attribute__((unused)) static const double vst_2x3v_ser_p1_vel_vol_dv0[64] = { 
   0.0, 
   0.6123724356957944, 
@@ -2224,6 +2228,7 @@ __attribute__((unused)) static const double vst_2x3v_ser_p1_ph_x0_dcoefr2[32] = 
   0.040729350596345144, 
   -0.028218121836862214, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x3v_ser_p1_ph_x0_meta = { .nb = 32, .na = 2, .nmv = 16, .no = 2, .ni = 8, .ns = 4, .fhat_off = 0 }; 
 __attribute__((unused)) static const double vst_2x3v_ser_p1_confsurf_x1_ev_l[8] = { 
   0.5, 
   -0.5, 
@@ -3180,3 +3185,4 @@ __attribute__((unused)) static const double vst_2x3v_ser_p1_ph_x1_dcoefr2[32] = 
   -0.040729350596345144, 
   -0.028218121836862214, 
 }; 
+__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x3v_ser_p1_ph_x1_meta = { .nb = 32, .na = 2, .nmv = 16, .no = 2, .ni = 8, .ns = 4, .fhat_off = 16 }; 
