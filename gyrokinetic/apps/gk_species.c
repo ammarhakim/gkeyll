@@ -33,8 +33,7 @@ gk_species_gyroaverage_enabled(gkyl_gyrokinetic_app *app, struct gk_species *spe
   // get the gyroaveraged potential used in the Hamiltonian.
   struct timespec wst = gkyl_wall_clock();
   // Gyroaverage input field.
-  gkyl_fem_poisson_perp_set_rhs(species->flr_op, field_in);
-  gkyl_fem_poisson_perp_solve(species->flr_op, field_gyroavg);
+  gkyl_deflated_fem_poisson_advance(species->flr_op, field_in, field_in, field_gyroavg);
   app->stat.species_gyroavg_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -1576,10 +1575,29 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(gks->flr_kSq, -pow(sqrt(2.0),app->cdim), 0); // Sets kSq=-1.
 
-    // Use the same solver and BCs as the field solve so the gyroaverage and
-    // the FLR inversion of phi use the same discretization.
-    gks->flr_op = gkyl_fem_poisson_perp_new(&app->local, &app->grid, app->basis,
-      &app->field->poisson_bcs, 0, gks->flr_rhoSqD2, gks->flr_kSq, app->use_gpu);
+    // The gyroaverage uses varying-Dirichlet BCs (input field as its own
+    // boundary value) so no FLR correction is applied at the wall.
+    struct gkyl_poisson_bc flr_bc;
+    for (int d=0; d<app->cdim-1; d++) {
+      struct gkyl_gyrokinetic_bc *bc_lo = gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2*app->cdim, d, GKYL_LOWER_EDGE);
+      if (bc_lo != 0) {
+        if (bc_lo->type == GKYL_BC_GK_FIELD_PERIODIC)
+          flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+        else
+          flr_bc.lo_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+      }
+
+      struct gkyl_gyrokinetic_bc *bc_up = gk_fetch_bc_with_dir_edge(app->field->info.poisson_bcs, 2*app->cdim, d, GKYL_UPPER_EDGE);
+      if (bc_up != 0) {
+        if (bc_up->type == GKYL_BC_GK_FIELD_PERIODIC)
+          flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_PERIODIC);
+        else
+          flr_bc.up_type[d] = gkyl_gyrokinetic_translate_poisson_bc_type(GKYL_BC_GK_FIELD_DIRICHLET_VARYING);
+      }
+    }
+    // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
+    gks->flr_op = gkyl_deflated_fem_poisson_new(app->grid, app->basis_on_dev, app->basis,
+      app->local, app->local, gks->flr_rhoSqD2, gks->flr_kSq, flr_bc, NULL, app->use_gpu);
   }
   else {
     gks->gyroaverage = gk_species_gyroaverage_disabled;
@@ -2045,7 +2063,7 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   if (gks->info.flr.type) {
     gkyl_array_release(gks->flr_rhoSqD2);
     gkyl_array_release(gks->flr_kSq);
-    gkyl_fem_poisson_perp_release(gks->flr_op);
+    gkyl_deflated_fem_poisson_release(gks->flr_op);
   }
 
   gks->release_func(app, gks);

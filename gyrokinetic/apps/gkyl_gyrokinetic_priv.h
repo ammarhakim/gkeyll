@@ -1148,7 +1148,7 @@ struct gk_species {
   struct gkyl_array *m0_gyroavg; // Gyroaveraged particle density.
   struct gkyl_array *flr_rhoSqD2; // Laplacian weight in FLR operator.
   struct gkyl_array *flr_kSq; // Field multiplying phi in FLR operator.
-  struct gkyl_fem_poisson_perp *flr_op; // Screened Poisson solver used to gyroaverage fields.
+  struct gkyl_deflated_fem_poisson *flr_op; // Screened Poisson solver used to gyroaverage fields.
   // Pointer to function that performs the gyroaverage.
   void (*gyroaverage)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gkyl_array *field_in, struct gkyl_array *field_gyroavg);
