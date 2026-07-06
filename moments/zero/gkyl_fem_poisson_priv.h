@@ -1964,6 +1964,8 @@ struct gkyl_fem_poisson {
   // Objects to apply the LHS operator (M+K), used to apply 1-rho^2*Lap.
   bool has_lhs_apply; // Whether the LHS-apply objects are allocated.
   struct gkyl_poisson_bc bcs; // Saved BCs (used to build the mass solver).
+  struct gkyl_poisson_bias_plane_list bias_list_ho; // Host-side copy of the bias
+                                                    // plane list (used to build the mass solver).
   struct gkyl_fem_poisson *mass; // Mass-matrix (M) solver for the LHS apply.
   double *lhs_dual; // Host global dual (M+K)*x vector.
   double *lhs_dual_cu; // Device global dual (M+K)*x vector.

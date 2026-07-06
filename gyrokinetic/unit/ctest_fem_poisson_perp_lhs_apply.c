@@ -68,7 +68,8 @@ static void evalFunc_3x(double t, const double *xn, double *fout, void *ctx)
 }
 
 static void
-test_perp_lhs_apply(int dim, int cells[], double rho, enum gkyl_poisson_bc_type bc_type, bool use_gpu)
+test_perp_lhs_apply(int dim, int cells[], double rho, enum gkyl_poisson_bc_type bc_type,
+  struct gkyl_poisson_bias_line_list *bias_list, bool use_gpu)
 {
   double lower[GKYL_MAX_CDIM], upper[GKYL_MAX_CDIM];
   for (int d=0; d<dim-1; d++) { lower[d] = -M_PI; upper[d] = M_PI; }
@@ -118,7 +119,7 @@ test_perp_lhs_apply(int dim, int cells[], double rho, enum gkyl_poisson_bc_type 
   gkyl_array_copy(kSq, kSq_ho);
   gkyl_array_copy(src, src_ho);
 
-  gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&local, &grid, basis, &bcs, NULL,
+  gkyl_fem_poisson_perp *poisson = gkyl_fem_poisson_perp_new(&local, &grid, basis, &bcs, bias_list,
     epsilon, kSq, use_gpu);
 
   // Field w = A^{-1}*src, continuous in the perpendicular direction(s).
@@ -165,30 +166,48 @@ test_perp_lhs_apply(int dim, int cells[], double rho, enum gkyl_poisson_bc_type 
   gkyl_fem_poisson_perp_release(poisson);
 }
 
+// One line at (x,z)=(0,0) biased to 0.5.
+static struct gkyl_poisson_bias_line bias_line_3x[] = {
+  { .perp_dirs = {0, 2}, .perp_coords = {0.0, 0.0}, .val = 0.5 },
+};
+static struct gkyl_poisson_bias_line_list bias_list_3x = {
+  .num_bias_line = 1, .bl = bias_line_3x,
+};
+
 void test_2x_p1(void) {
   int cells[] = {24, 8};
-  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_DIRICHLET, false);
-  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_PERIODIC, false);
+  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_DIRICHLET, NULL, false);
+  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_PERIODIC, NULL, false);
 }
 
 void test_3x_p1(void) {
   int cells[] = {16, 16, 8};
-  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, false);
-  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_PERIODIC, false);
+  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, NULL, false);
+  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_PERIODIC, NULL, false);
+}
+
+void test_3x_p1_bias(void) {
+  int cells[] = {16, 16, 8};
+  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, &bias_list_3x, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
 void gpu_test_2x_p1(void) {
   int cells[] = {24, 8};
-  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_DIRICHLET, true);
-  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_PERIODIC, true);
+  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_DIRICHLET, NULL, true);
+  test_perp_lhs_apply(2, cells, 0.3, GKYL_POISSON_PERIODIC, NULL, true);
 }
 
 void gpu_test_3x_p1(void) {
   int cells[] = {16, 16, 8};
-  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, true);
-  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_PERIODIC, true);
+  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, NULL, true);
+  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_PERIODIC, NULL, true);
+}
+
+void gpu_test_3x_p1_bias(void) {
+  int cells[] = {16, 16, 8};
+  test_perp_lhs_apply(3, cells, 0.3, GKYL_POISSON_DIRICHLET, &bias_list_3x, true);
 }
 
 #endif
@@ -196,9 +215,11 @@ void gpu_test_3x_p1(void) {
 TEST_LIST = {
   { "test_2x_p1", test_2x_p1 },
   { "test_3x_p1", test_3x_p1 },
+  { "test_3x_p1_bias", test_3x_p1_bias },
 #ifdef GKYL_HAVE_CUDA
   { "gpu_test_2x_p1", gpu_test_2x_p1 },
   { "gpu_test_3x_p1", gpu_test_3x_p1 },
+  { "gpu_test_3x_p1_bias", gpu_test_3x_p1_bias },
 #endif
   { NULL, NULL },
 };

@@ -78,6 +78,18 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
 
   up->has_lhs_apply = false;
   up->bcs = *bcs;
+  // Keep a host-side copy of the bias line list (used to build the mass
+  // solver in the LHS apply).
+  up->bias_list_ho.num_bias_line = 0;
+  up->bias_list_ho.bl = 0;
+  if (bias_lines) {
+    if (bias_lines->num_bias_line > 0) {
+      up->bias_list_ho.num_bias_line = bias_lines->num_bias_line;
+      size_t bl_sz = bias_lines->num_bias_line * sizeof(struct gkyl_poisson_bias_line);
+      up->bias_list_ho.bl = gkyl_malloc(bl_sz);
+      memcpy(up->bias_list_ho.bl, bias_lines->bl, bl_sz);
+    }
+  }
   up->solve_range = solve_range;
   up->ndim = grid->ndim;
   up->ndim_perp = up->ndim-1;
@@ -676,7 +688,9 @@ fem_poisson_perp_lhs_apply_init(gkyl_fem_poisson_perp *up)
   gkyl_array_clear(kSq_mass, 0.0);
   gkyl_array_shiftc(kSq_mass, -pow(sqrt(2.0), up->ndim), 0);
 
-  up->mass = gkyl_fem_poisson_perp_new(up->solve_range, &up->grid, up->basis, &up->bcs, NULL,
+  // Bias the mass solver like the LHS so biased values pass through the apply.
+  struct gkyl_poisson_bias_line_list *bias_list = up->bias_list_ho.num_bias_line > 0? &up->bias_list_ho : NULL;
+  up->mass = gkyl_fem_poisson_perp_new(up->solve_range, &up->grid, up->basis, &up->bcs, bias_list,
     eps_zero, kSq_mass, up->use_gpu);
 
   long numnodes_tot = up->numnodes_global*up->par_range.volume;
@@ -695,7 +709,6 @@ void
 gkyl_fem_poisson_perp_lhs_apply(gkyl_fem_poisson_perp *up, struct gkyl_array *xin, struct gkyl_array *xout)
 {
   assert(up->ishelmholtz);
-  assert(up->num_bias_line == 0); // Biased mass solve not implemented.
   if (!up->has_lhs_apply) fem_poisson_perp_lhs_apply_init(up);
 
 #ifdef GKYL_HAVE_CUDA
@@ -737,6 +750,9 @@ void gkyl_fem_poisson_perp_release(struct gkyl_fem_poisson_perp *up)
       gkyl_cu_free(up->lhs_dual_cu);
 #endif
   }
+
+  if (up->bias_list_ho.num_bias_line > 0)
+    gkyl_free(up->bias_list_ho.bl);
 
   if (up->isdomperiodic) {
     gkyl_array_release(up->rhs_cellavg);

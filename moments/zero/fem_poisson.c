@@ -64,6 +64,18 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
 
   up->has_lhs_apply = false;
   up->bcs = *bcs;
+  // Keep a host-side copy of the bias plane list (used to build the mass
+  // solver in the LHS apply).
+  up->bias_list_ho.num_bias_plane = 0;
+  up->bias_list_ho.bp = 0;
+  if (bias_planes) {
+    if (bias_planes->num_bias_plane > 0) {
+      up->bias_list_ho.num_bias_plane = bias_planes->num_bias_plane;
+      size_t bp_sz = bias_planes->num_bias_plane * sizeof(struct gkyl_poisson_bias_plane);
+      up->bias_list_ho.bp = gkyl_malloc(bp_sz);
+      memcpy(up->bias_list_ho.bp, bias_planes->bp, bp_sz);
+    }
+  }
   up->solve_range = solve_range;
   up->ndim = grid->ndim;
   up->grid = *grid;
@@ -428,7 +440,9 @@ fem_poisson_lhs_apply_init(gkyl_fem_poisson *up)
   gkyl_array_clear(kSq_mass, 0.0);
   gkyl_array_shiftc(kSq_mass, -pow(sqrt(2.0), up->ndim), 0);
 
-  up->mass = gkyl_fem_poisson_new(up->solve_range, &up->grid, up->basis, &up->bcs, NULL,
+  // Bias the mass solver like the LHS so biased values pass through the apply.
+  struct gkyl_poisson_bias_plane_list *bias_list = up->bias_list_ho.num_bias_plane > 0? &up->bias_list_ho : NULL;
+  up->mass = gkyl_fem_poisson_new(up->solve_range, &up->grid, up->basis, &up->bcs, bias_list,
     eps_zero, kSq_mass, true, up->use_gpu);
 
   up->lhs_dual = gkyl_malloc(sizeof(double[up->numnodes_global]));
@@ -476,6 +490,9 @@ void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
       gkyl_cu_free(up->lhs_dual_cu);
 #endif
   }
+
+  if (up->bias_list_ho.num_bias_plane > 0)
+    gkyl_free(up->bias_list_ho.bp);
 
   if (up->isdomperiodic) {
     gkyl_array_release(up->rhs_cellavg);
