@@ -323,7 +323,8 @@ void
 gkyl_superlu_mat_vec(struct gkyl_superlu_prob *prob, const double *x, double *y)
 {
   char trans[2] = "N";
-  sp_dgemv(trans, 1.0, prob->A[0], (double *) x, 1, 0.0, y, 1);
+  for (size_t k=0; k<prob->nprob; k++)
+    sp_dgemv(trans, 1.0, prob->A[k], (double *) &x[k*prob->ncol], 1, 0.0, &y[k*prob->mrow], 1);
 }
 
 void

@@ -67,12 +67,12 @@ void gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl
 void gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob);
 
 /**
- * Compute the matrix-vector product y = A*x (on the device) for the (single)
- * problem matrix A. Assumes nprob=1. Uses cuSPARSE on the CSR arrays.
+ * Compute the matrix-vector products y_i = A_i*x_i (on the device) for each
+ * of the nprob problem matrices A_i. Uses cuSPARSE on the CSR arrays.
  *
- * @param prob cuDSS struct holding the assembled A matrix.
- * @param x Input vector on the device (length ncol).
- * @param y Output vector on the device (length mrow).
+ * @param prob cuDSS struct holding the assembled A matrices.
+ * @param x Input vector on the device (length nprob*ncol).
+ * @param y Output vector on the device (length nprob*mrow).
  */
 void gkyl_culinsolver_mat_vec(struct gkyl_culinsolver_prob *prob, const double *x, double *y);
 
