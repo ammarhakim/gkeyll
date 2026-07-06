@@ -1575,10 +1575,13 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     gks->flr_kSq = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
     gkyl_array_shiftc(gks->flr_kSq, -pow(sqrt(2.0),app->cdim), 0); // Sets kSq=-1.
 
-    // Gyroaverage BCs: the input field is its own boundary value.
+    // Gyroaverage BCs: the input field is its own boundary value at
+    // non-periodic boundaries.
     struct gkyl_poisson_bc flr_bc = app->field->poisson_bcs;
     for (int d=0; d<app->cdim-1; d++) {
+      if (flr_bc.lo_type[d] != GKYL_POISSON_PERIODIC)
         flr_bc.lo_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
+      if (flr_bc.up_type[d] != GKYL_POISSON_PERIODIC)
         flr_bc.up_type[d] = GKYL_POISSON_DIRICHLET_VARYING;
     }
     // Deflated Poisson solve is performed on range assuming decomposition is *only* in z.
