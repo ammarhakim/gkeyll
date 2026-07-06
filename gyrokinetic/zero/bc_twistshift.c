@@ -221,9 +221,7 @@ ts_check_shifted_test_point(struct gkyl_bc_twistshift *up, const double *test_pt
     up->ts_grid.lower[up->shift_dir_in_ts_grid], up->ts_grid.upper[up->shift_dir_in_ts_grid],
     false) }; // Shifted test point.
   int shift_dir_idx_test_pt[1];
-//  gkyl_rect_grid_coord_idx(&up->shift_grid, shifted_test_pt, shift_dir_idx_test_pt); 
-  bool pick_lower_arr[] = {pick_lower};
-  gkyl_rect_grid_find_cell(&up->shift_grid, shifted_test_pt, pick_lower_arr, (int[]) {-1}, shift_dir_idx_test_pt);
+  gkyl_rect_grid_find_cell(&up->shift_grid, shifted_test_pt, (bool[]) {pick_lower}, (int[]) {-1}, shift_dir_idx_test_pt);
 
   // Get the linear index to the list of donors for this target.
   long linidx = ts_shift_dir_idx_do_linidx(up->num_do,
@@ -257,7 +255,10 @@ ts_find_donors(struct gkyl_bc_twistshift *up)
 {
   // Find the donor cells for each target cell in the TS grid.
 
-  double delta_frac = 1.e-9; // Distance away from the boundary, as fraction of cell length.
+  double delta_frac = 1.e-4; // Distance away from the boundary, as fraction of cell length.
+  // Must be larger than the eps=1e-6 tolerance in is_in_cell (used by
+  // gkyl_rect_grid_find_cell) so that shifted test points are never
+  // ambiguously on a cell boundary.
   int num_test_pt[2] = {10, 10}; // Number of test points taken along each side of the cell.
 
   double step_sz[2] = {0.0}; // Size of the step between test points.
