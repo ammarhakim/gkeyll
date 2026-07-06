@@ -22,12 +22,8 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     rhoSq_ref = pow(f->info.flr.gyroradius, 2.0);
   }
   else {
-    // GKYL_GK_FLR_PADE_CONST_SUM, or field-level FLR options not set (default):
     // polarization-weighted average of the species gyroradii,
     //   rho^2 = sum_s eps_s0*rho_s0^2 / sum_s eps_s0,  eps_s0 = n_s0*m_s/B^2,
-    // which suppresses the electron contribution by m_e/m_i and reduces to
-    // rho_i0^2 for a single ion species. Species without FLR enabled
-    // contribute rho_s0^2 = 0.
     double polarization_bmag = f->info.polarization_bmag ? f->info.polarization_bmag : app->bmag_ref;
     double eps_sum = 0.0;
     for (int i = 0; i < app->num_species; ++i) {
@@ -40,8 +36,7 @@ gk_field_flr_new(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
     }
     rhoSq_ref /= eps_sum;
   }
-  // Weight in the perpendicular Laplacian of A, staged for the forthcoming
-  // Laplacian-apply infrastructure.
+  // Weight in the perpendicular Laplacian.
   f->flr_rhoSq = mkarr(app->use_gpu, (2 * (app->cdim - 1) - 1) * app->basis.num_basis, app->local_ext.volume);
   gkyl_array_set_offset(f->flr_rhoSq, rhoSq_ref, app->gk_geom->geo_int.gxxj, 0 * app->basis.num_basis);
   if (app->cdim > 2) {
