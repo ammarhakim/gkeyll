@@ -213,12 +213,12 @@ main(int argc, char **argv)
     .init = evalReactiveEulerInit,
     .ctx = &ctx,
 
-    .has_reactivity = true,
-    .reactivity_gas_gamma = ctx.gas_gamma,
-    .reactivity_specific_heat_capacity = ctx.specific_heat_capacity,
-    .reactivity_energy_of_formation = ctx.energy_of_formation,
-    .reactivity_ignition_temperature = ctx.ignition_temperature,
-    .reactivity_reaction_rate = ctx.reaction_rate,
+    .reactivity.enabled = true,
+    .reactivity.gas_gamma = ctx.gas_gamma,
+    .reactivity.specific_heat_capacity = ctx.specific_heat_capacity,
+    .reactivity.energy_of_formation = ctx.energy_of_formation,
+    .reactivity.ignition_temperature = ctx.ignition_temperature,
+    .reactivity.reaction_rate = ctx.reaction_rate,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

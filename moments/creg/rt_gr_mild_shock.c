@@ -356,8 +356,8 @@ main(int argc, char **argv)
     .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
-    .has_gr_euler = true,
-    .gr_euler_gas_gamma = ctx.gas_gamma,
+    .gr_euler.enabled = true,
+    .gr_euler.gas_gamma = ctx.gas_gamma,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

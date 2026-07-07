@@ -434,14 +434,14 @@ main(int argc, char **argv)
     .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
-    .has_gr_twofluid = true,
-    .gr_twofluid_mass_elc = ctx.mass_elc,
-    .gr_twofluid_mass_ion = ctx.mass_ion,
-    .gr_twofluid_charge_elc = ctx.charge_elc,
-    .gr_twofluid_charge_ion = ctx.charge_ion,
-    .gr_twofluid_gas_gamma_elc = ctx.gas_gamma_elc,
-    .gr_twofluid_gas_gamma_ion = ctx.gas_gamma_ion,
-    .gr_twofluid_e_fact = ctx.e_fact,
+    .gr_twofluid.enabled = true,
+    .gr_twofluid.mass_elc = ctx.mass_elc,
+    .gr_twofluid.mass_ion = ctx.mass_ion,
+    .gr_twofluid.charge_elc = ctx.charge_elc,
+    .gr_twofluid.charge_ion = ctx.charge_ion,
+    .gr_twofluid.gas_gamma_elc = ctx.gas_gamma_elc,
+    .gr_twofluid.gas_gamma_ion = ctx.gas_gamma_ion,
+    .gr_twofluid.e_fact = ctx.e_fact,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

@@ -468,8 +468,8 @@ main(int argc, char **argv)
     .limiter = GKYL_MIN_MOD,
     .ctx = &ctx,
 
-    .has_gr_mhd = true,
-    .gr_mhd_gas_gamma = ctx.gas_gamma,
+    .gr_mhd.enabled = true,
+    .gr_mhd.gas_gamma = ctx.gas_gamma,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

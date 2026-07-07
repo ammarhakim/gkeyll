@@ -348,10 +348,10 @@ main(int argc, char **argv)
     .force_low_order_flux = false, // Use HLL fluxes.
     .ctx = &ctx,
 
-    .has_vacuum_einstein = true,
-    .vacuum_einstein_excision_threshold = ctx.excision_threshold,
-    .vacuum_einstein_spacetime_slicing = ctx.spacetime_slicing,
-    .vacuum_einstein_spacetime_evolution = ctx.spacetime_evolution,
+    .vacuum_einstein.enabled = true,
+    .vacuum_einstein.excision_threshold = ctx.excision_threshold,
+    .vacuum_einstein.slicing = ctx.spacetime_slicing,
+    .vacuum_einstein.evolution = ctx.spacetime_evolution,
   };
 
   int nrank = 1; // Number of processes in simulation.

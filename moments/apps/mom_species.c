@@ -107,111 +107,27 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
 
   // check if we are running with Braginskii transport and fetch Braginskii type
   if (app->has_braginskii) {
-    sp->update_sources = true; 
+    sp->update_sources = true;
     sp->type_brag = mom_sp->type_brag;
   }
 
-  if (mom_sp->has_friction) {
-    sp->update_sources = true; 
-    sp->has_friction = true;
-    sp->use_explicit_friction = mom_sp->use_explicit_friction;
-
-    sp->friction_Z = mom_sp->friction_Z;
-    sp->friction_T_elc = mom_sp->friction_T_elc;
-    sp->friction_Lambda_ee = mom_sp->friction_Lambda_ee;
-  }
-  else {
-    sp->has_friction = false;
-    sp->use_explicit_friction = false;
-  }
-
-  sp->has_volume_sources = false;
-  if (mom_sp->has_volume_sources) {
-    sp->update_sources = true; 
-    sp->has_volume_sources = true;
-
-    sp->volume_gas_gamma = mom_sp->volume_gas_gamma;
-    sp->volume_U0 = mom_sp->volume_U0;
-    sp->volume_R0 = mom_sp->volume_R0;
-  }
-
-  sp->has_reactivity = false;
-  if (mom_sp->has_reactivity) {
-    sp->update_sources = true; 
-    sp->has_reactivity = true;
-
-    sp->reactivity_gas_gamma = mom_sp->reactivity_gas_gamma;
-    sp->reactivity_specific_heat_capacity = mom_sp->reactivity_specific_heat_capacity;
-    sp->reactivity_energy_of_formation = mom_sp->reactivity_energy_of_formation;
-    sp->reactivity_ignition_temperature = mom_sp->reactivity_ignition_temperature;
-    sp->reactivity_reaction_rate = mom_sp->reactivity_reaction_rate;
-  }
-
-  sp->has_einstein_medium = false;
-  if (mom_sp->has_einstein_medium) {
-    sp->update_sources = true; 
-    sp->has_einstein_medium = true;
-
-    sp->medium_gas_gamma = mom_sp->medium_gas_gamma;
-    sp->medium_kappa = mom_sp->medium_kappa;
-  }
-
-  sp->has_gr_ultra_rel = false;
-  if (mom_sp->has_gr_ultra_rel) {
-    sp->update_sources = true; 
-    sp->has_gr_ultra_rel = true;
-
-    sp->gr_ultra_rel_gas_gamma = mom_sp->gr_ultra_rel_gas_gamma;
-  }
-
-  sp->has_gr_euler = false;
-  if (mom_sp->has_gr_euler) {
-    sp->update_sources = true; 
-    sp->has_gr_euler = true;
-
-    sp->gr_euler_gas_gamma = mom_sp->gr_euler_gas_gamma;
-  }
-
-  sp->has_gr_twofluid = false;
-  if (mom_sp->has_gr_twofluid) {
-    sp->update_sources = true; 
-    sp->has_gr_twofluid = true;
-
-    sp->gr_twofluid_mass_elc = mom_sp->gr_twofluid_mass_elc;
-    sp->gr_twofluid_mass_ion = mom_sp->gr_twofluid_mass_ion;
-    sp->gr_twofluid_charge_elc = mom_sp->gr_twofluid_charge_elc;
-    sp->gr_twofluid_charge_ion = mom_sp->gr_twofluid_charge_ion;
-    sp->gr_twofluid_gas_gamma_elc = mom_sp->gr_twofluid_gas_gamma_elc;
-    sp->gr_twofluid_gas_gamma_ion = mom_sp->gr_twofluid_gas_gamma_ion;
-    sp->gr_twofluid_e_fact = mom_sp->gr_twofluid_e_fact;
-  }
-
-  sp->has_vacuum_einstein = false;
-  if (mom_sp->has_vacuum_einstein) {
+  // Source-family parameter bundles travel by struct assignment; any enabled
+  // family requires the operator-split source update.
+  sp->friction = mom_sp->friction;
+  sp->volume_sources = mom_sp->volume_sources;
+  sp->reactivity = mom_sp->reactivity;
+  sp->einstein_medium = mom_sp->einstein_medium;
+  sp->gr_ultra_rel = mom_sp->gr_ultra_rel;
+  sp->gr_euler = mom_sp->gr_euler;
+  sp->gr_twofluid = mom_sp->gr_twofluid;
+  sp->vacuum_einstein = mom_sp->vacuum_einstein;
+  sp->vacuum_einstein_conformal = mom_sp->vacuum_einstein_conformal;
+  sp->gr_mhd = mom_sp->gr_mhd;
+  if (sp->friction.enabled || sp->volume_sources.enabled || sp->reactivity.enabled ||
+    sp->einstein_medium.enabled || sp->gr_ultra_rel.enabled || sp->gr_euler.enabled ||
+    sp->gr_twofluid.enabled || sp->vacuum_einstein.enabled ||
+    sp->vacuum_einstein_conformal.enabled || sp->gr_mhd.enabled) {
     sp->update_sources = true;
-    sp->has_vacuum_einstein = true;
-
-    sp->vacuum_einstein_excision_threshold = mom_sp->vacuum_einstein_excision_threshold;
-    sp->vacuum_einstein_spacetime_slicing = mom_sp->vacuum_einstein_spacetime_slicing;
-    sp->vacuum_einstein_spacetime_evolution = mom_sp->vacuum_einstein_spacetime_evolution;
-  }
-
-  sp->has_vacuum_einstein_conformal = false;
-  if (mom_sp->has_vacuum_einstein_conformal) {
-    sp->update_sources = true;
-    sp->has_vacuum_einstein_conformal = true;
-
-    sp->vacuum_einstein_conformal_excision_threshold = mom_sp->vacuum_einstein_conformal_excision_threshold;
-    sp->vacuum_einstein_conformal_spacetime_slicing = mom_sp->vacuum_einstein_conformal_spacetime_slicing;
-    sp->vacuum_einstein_conformal_spacetime_evolution = mom_sp->vacuum_einstein_conformal_spacetime_evolution;
-  }
-  
-  sp->has_gr_mhd = false;
-  if (mom_sp->has_gr_mhd) {
-    sp->update_sources = true; 
-    sp->has_gr_mhd = true;
-
-    sp->gr_mhd_gas_gamma = mom_sp->gr_mhd_gas_gamma;
   }
 
   sp->scheme_type = mom->scheme_type;
@@ -461,10 +377,12 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   }
   sp->bc_buffer = mkarr(false, meqn, buff_sz);
 
-  if (mom_sp->equation->type == GKYL_EQN_EULER)
-    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, 6); // KE and PE are stored independently
-  else
-    sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
+  // Size the integrated-diagnostics vector by the equation's diagnostic
+  // count, which the equation declares (Euler: 6, KE and PE stored
+  // independently; GR Euler: 5; vacuum Einstein: 1; ...). Sizing it by
+  // num_equations instead reads past the num_diag-sized buffer that
+  // calc_integ_quant fills whenever num_diag < num_equations.
+  sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, mom_sp->equation->num_diag);
 
   sp->is_first_q_write_call = true;
 

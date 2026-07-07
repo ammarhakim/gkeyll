@@ -48,9 +48,13 @@ struct moment_coupling {
 
   gkyl_moment_em_coupling *slvr; // source solver function
 
-  // Zero-field scratch array for the closure/Braginskii solvers (which read
-  // an EM array unconditionally) when the app has no field. NULL otherwise.
+  // Zero scratch arrays standing in for the field state when the app has no
+  // field: several source paths (closures, Braginskii, volume sources,
+  // implicit friction) read the EM/external-EM/applied-current arrays
+  // unconditionally. NULL when a field is present.
   struct gkyl_array *nofield_em;
+  struct gkyl_array *nofield_ext_em;
+  struct gkyl_array *nofield_app_current;
 
   // Spacetime-coupling object for modular GR fluids. Non-NULL only when at
   // least one species is a modular GR variant. Drives both derive_products

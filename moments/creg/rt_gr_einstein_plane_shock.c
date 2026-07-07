@@ -227,9 +227,9 @@ main(int argc, char **argv)
     .init = evalGRMediumInit,
     .ctx = &ctx,
 
-    .has_einstein_medium = true,
-    .medium_gas_gamma = ctx.gas_gamma,
-    .medium_kappa = ctx.kappa,
+    .einstein_medium.enabled = true,
+    .einstein_medium.gas_gamma = ctx.gas_gamma,
+    .einstein_medium.kappa = ctx.kappa,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

@@ -412,10 +412,10 @@ main(int argc, char **argv)
     .force_low_order_flux = false, // Use HLL fluxes.
     .ctx = &ctx,
 
-    .has_vacuum_einstein_conformal = true,
-    .vacuum_einstein_conformal_excision_threshold = ctx.excision_threshold,
-    .vacuum_einstein_conformal_spacetime_slicing = ctx.spacetime_slicing,
-    .vacuum_einstein_conformal_spacetime_evolution = ctx.spacetime_evolution,
+    .vacuum_einstein_conformal.enabled = true,
+    .vacuum_einstein_conformal.excision_threshold = ctx.excision_threshold,
+    .vacuum_einstein_conformal.slicing = ctx.spacetime_slicing,
+    .vacuum_einstein_conformal.evolution = ctx.spacetime_evolution,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

@@ -233,10 +233,10 @@ main(int argc, char **argv)
     .init = evalEulerInit,
     .ctx = &ctx,
 
-    .has_volume_sources = true,
-    .volume_gas_gamma = ctx.gas_gamma,
-    .volume_U0 = ctx.U0,
-    .volume_R0 = ctx.R0,
+    .volume_sources.enabled = true,
+    .volume_sources.gas_gamma = ctx.gas_gamma,
+    .volume_sources.U0 = ctx.U0,
+    .volume_sources.R0 = ctx.R0,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
   };

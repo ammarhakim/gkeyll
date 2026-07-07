@@ -380,8 +380,8 @@ main(int argc, char **argv)
     .force_low_order_flux = true, // Use Lax fluxes.
     .ctx = &ctx,
 
-    .has_gr_ultra_rel = true,
-    .gr_ultra_rel_gas_gamma = ctx.gas_gamma,
+    .gr_ultra_rel.enabled = true,
+    .gr_ultra_rel.gas_gamma = ctx.gas_gamma,
 
     .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },
     .bcy = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY },

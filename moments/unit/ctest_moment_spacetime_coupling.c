@@ -261,8 +261,8 @@ run_source_euler_equivalence(struct gkyl_gr_spacetime *spacetime,
   em_inp.nfluids            = 1;
   em_inp.param[0].type      = GKYL_EQN_GR_EULER;
   em_inp.param[0].mass      = 1.0;
-  em_inp.has_gr_euler_sources = true;
-  em_inp.gr_euler_gas_gamma   = gas_gamma;
+  em_inp.gr_euler.enabled = true;
+  em_inp.gr_euler.gas_gamma   = gas_gamma;
   gkyl_moment_em_coupling *mom_em = gkyl_moment_em_coupling_new(em_inp);
 
   // Modular source driven through a real GR-Euler-tetrad equation object.
@@ -410,8 +410,8 @@ run_explicit_advance_equivalence_tol(struct gkyl_gr_spacetime *spacetime,
   em_inp.nfluids              = 1;
   em_inp.param[0].type        = GKYL_EQN_GR_EULER;
   em_inp.param[0].mass        = 1.0;
-  em_inp.has_gr_euler_sources = true;
-  em_inp.gr_euler_gas_gamma   = gas_gamma;
+  em_inp.gr_euler.enabled = true;
+  em_inp.gr_euler.gas_gamma   = gas_gamma;
   gkyl_moment_em_coupling *mom_em = gkyl_moment_em_coupling_new(em_inp);
 
   double f_packed[71];

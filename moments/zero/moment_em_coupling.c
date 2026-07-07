@@ -67,75 +67,18 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 
   mom_em->has_nT_sources = inp.has_nT_sources;
 
-  mom_em->has_frictional_sources = inp.has_frictional_sources;
-  if (mom_em->has_frictional_sources) {
-    mom_em->use_explicit_friction = inp.use_explicit_friction;
-    mom_em->friction_Z = inp.friction_Z;
-    mom_em->friction_T_elc = inp.friction_T_elc;
-    mom_em->friction_Lambda_ee = inp.friction_Lambda_ee;
-  }
-
-  mom_em->has_volume_sources = inp.has_volume_sources;
-  if (mom_em->has_volume_sources) {
-    mom_em->volume_gas_gamma = inp.volume_gas_gamma;
-    mom_em->volume_U0 = inp.volume_U0;
-    mom_em->volume_R0 = inp.volume_R0;
-  }
-
-  mom_em->has_reactive_sources = inp.has_reactive_sources;
-  if (mom_em->has_reactive_sources) {
-    mom_em->reactivity_gas_gamma = inp.reactivity_gas_gamma;
-    mom_em->reactivity_specific_heat_capacity = inp.reactivity_specific_heat_capacity;
-    mom_em->reactivity_energy_of_formation = inp.reactivity_energy_of_formation;
-    mom_em->reactivity_ignition_temperature = inp.reactivity_ignition_temperature;
-    mom_em->reactivity_reaction_rate = inp.reactivity_reaction_rate;
-  }
-
-  mom_em->has_einstein_medium_sources = inp.has_einstein_medium_sources;
-  if (mom_em->has_einstein_medium_sources) {
-    mom_em->medium_gas_gamma = inp.medium_gas_gamma;
-    mom_em->medium_kappa = inp.medium_kappa;
-  }
-
-  mom_em->has_gr_ultra_rel_sources = inp.has_gr_ultra_rel_sources;
-  if (mom_em->has_gr_ultra_rel_sources) {
-    mom_em->gr_ultra_rel_gas_gamma = inp.gr_ultra_rel_gas_gamma;
-  }
-
-  mom_em->has_gr_euler_sources = inp.has_gr_euler_sources;
-  if (mom_em->has_gr_euler_sources) {
-    mom_em->gr_euler_gas_gamma = inp.gr_euler_gas_gamma;
-  }
-
-  mom_em->has_gr_twofluid_sources = inp.has_gr_twofluid_sources;
-  if (mom_em->has_gr_twofluid_sources) {
-    mom_em->gr_twofluid_mass_elc = inp.gr_twofluid_mass_elc;
-    mom_em->gr_twofluid_mass_ion = inp.gr_twofluid_mass_ion;
-    mom_em->gr_twofluid_charge_elc = inp.gr_twofluid_charge_elc;
-    mom_em->gr_twofluid_charge_ion = inp.gr_twofluid_charge_ion;
-    mom_em->gr_twofluid_gas_gamma_elc = inp.gr_twofluid_gas_gamma_elc;
-    mom_em->gr_twofluid_gas_gamma_ion = inp.gr_twofluid_gas_gamma_ion;
-    mom_em->gr_twofluid_e_fact = inp.gr_twofluid_e_fact;
-  }
-
-  mom_em->has_vacuum_einstein_sources = inp.has_vacuum_einstein_sources;
-  if (mom_em->has_vacuum_einstein_sources) {
-    mom_em->vacuum_einstein_excision_threshold = inp.vacuum_einstein_excision_threshold;
-    mom_em->vacuum_einstein_spacetime_slicing = inp.vacuum_einstein_spacetime_slicing;
-    mom_em->vacuum_einstein_spacetime_evolution = inp.vacuum_einstein_spacetime_evolution;
-  }
-
-  mom_em->has_vacuum_einstein_conformal_sources = inp.has_vacuum_einstein_conformal_sources;
-  if (mom_em->has_vacuum_einstein_conformal_sources) {
-    mom_em->vacuum_einstein_conformal_excision_threshold = inp.vacuum_einstein_conformal_excision_threshold;
-    mom_em->vacuum_einstein_conformal_spacetime_slicing = inp.vacuum_einstein_conformal_spacetime_slicing;
-    mom_em->vacuum_einstein_conformal_spacetime_evolution = inp.vacuum_einstein_conformal_spacetime_evolution;
-  }
-  
-  mom_em->has_gr_mhd_sources = inp.has_gr_mhd_sources;
-  if (mom_em->has_gr_mhd_sources) {
-    mom_em->gr_mhd_gas_gamma = inp.gr_mhd_gas_gamma;
-  }
+  // Source-family parameter bundles travel by struct assignment; each
+  // family's parameters are read only when its 'enabled' flag is set.
+  mom_em->friction = inp.friction;
+  mom_em->volume_sources = inp.volume_sources;
+  mom_em->reactivity = inp.reactivity;
+  mom_em->einstein_medium = inp.einstein_medium;
+  mom_em->gr_ultra_rel = inp.gr_ultra_rel;
+  mom_em->gr_euler = inp.gr_euler;
+  mom_em->gr_twofluid = inp.gr_twofluid;
+  mom_em->vacuum_einstein = inp.vacuum_einstein;
+  mom_em->vacuum_einstein_conformal = inp.vacuum_einstein_conformal;
+  mom_em->gr_mhd = inp.gr_mhd;
 
   mom_em->has_gr_em_coupling = inp.has_gr_em_coupling;
   if (mom_em->has_gr_em_coupling) {

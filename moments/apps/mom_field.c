@@ -337,10 +337,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
       mom_fld->app_current, mom_fld->app_current_ctx);  
   }
 
-  fld->has_volume_sources = mom_fld->has_volume_sources;
-  fld->volume_gas_gamma = mom_fld->volume_gas_gamma;
-  fld->volume_U0 = mom_fld->volume_U0;
-  fld->volume_R0 = mom_fld->volume_R0;
+  fld->volume_sources = mom_fld->volume_sources;
 
   // allocate buffer for applying BCs (used for periodic BCs)
   long buff_sz = 0;

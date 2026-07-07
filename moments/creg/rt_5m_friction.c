@@ -226,11 +226,11 @@ main(int argc, char **argv)
     .init = evalElcInit,
     .ctx = &ctx,
 
-    .has_friction = true,
-    .use_explicit_friction = true,
-    .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee,
+    .friction.enabled = true,
+    .friction.use_explicit = true,
+    .friction.Z = ctx.friction_Z,
+    .friction.T_elc = ctx.friction_T_elc,
+    .friction.Lambda_ee = ctx.friction_Lambda_ee,
   };
 
   struct gkyl_moment_species ion = {
@@ -241,11 +241,11 @@ main(int argc, char **argv)
     .init = evalIonInit,
     .ctx = &ctx,  
 
-    .has_friction = true,
-    .use_explicit_friction = true,
-    .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee,
+    .friction.enabled = true,
+    .friction.use_explicit = true,
+    .friction.Z = ctx.friction_Z,
+    .friction.T_elc = ctx.friction_T_elc,
+    .friction.Lambda_ee = ctx.friction_Lambda_ee,
   };
 
   // Field.

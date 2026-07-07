@@ -46,148 +46,81 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int n=0;  n<app->num_species; ++n) 
     use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR) || app->field.use_explicit_em_coupling;
 
-  src_inp.has_frictional_sources = false;
-  src_inp.use_explicit_friction = false;
+  // Merge the per-species source-family bundles into the solver input. A
+  // family is enabled if any species enables it; preserving the historical
+  // merge, its parameters are taken from the last enabling species that set
+  // any of them (the vacuum-Einstein families take the last enabling
+  // species' parameters unconditionally).
   for (int i = 0; i < app->num_species; i++) {
-    if(app->species[i].has_friction) {
-      src_inp.has_frictional_sources = true;
+    const struct moment_species *msp = &app->species[i];
 
-      if (app->species[i].friction_Z != 0.0 || app->species[i].friction_T_elc != 0.0 || app->species[i].friction_Lambda_ee != 0.0) {
-        src_inp.friction_Z = app->species[i].friction_Z;
-        src_inp.friction_T_elc = app->species[i].friction_T_elc;
-        src_inp.friction_Lambda_ee = app->species[i].friction_Lambda_ee;
-      }
+    if (msp->friction.enabled) {
+      bool use_explicit = src_inp.friction.use_explicit || msp->friction.use_explicit;
+      if (msp->friction.Z != 0.0 || msp->friction.T_elc != 0.0 || msp->friction.Lambda_ee != 0.0)
+        src_inp.friction = msp->friction;
+      src_inp.friction.enabled = true;
+      src_inp.friction.use_explicit = use_explicit;
     }
 
-    if(app->species[i].use_explicit_friction) {
-      src_inp.use_explicit_friction = true;
+    if (msp->volume_sources.enabled) {
+      if (msp->volume_sources.gas_gamma != 0.0 || msp->volume_sources.U0 != 0.0 || msp->volume_sources.R0 != 0.0)
+        src_inp.volume_sources = msp->volume_sources;
+      src_inp.volume_sources.enabled = true;
     }
+
+    if (msp->reactivity.enabled) {
+      if (msp->reactivity.gas_gamma != 0.0 || msp->reactivity.specific_heat_capacity != 0.0 ||
+        msp->reactivity.energy_of_formation != 0.0 || msp->reactivity.ignition_temperature != 0.0 ||
+        msp->reactivity.reaction_rate != 0.0)
+        src_inp.reactivity = msp->reactivity;
+      src_inp.reactivity.enabled = true;
+    }
+
+    if (msp->einstein_medium.enabled) {
+      if (msp->einstein_medium.gas_gamma != 0.0 || msp->einstein_medium.kappa != 0.0)
+        src_inp.einstein_medium = msp->einstein_medium;
+      src_inp.einstein_medium.enabled = true;
+    }
+
+    if (msp->gr_ultra_rel.enabled) {
+      if (msp->gr_ultra_rel.gas_gamma != 0.0)
+        src_inp.gr_ultra_rel = msp->gr_ultra_rel;
+      src_inp.gr_ultra_rel.enabled = true;
+    }
+
+    if (msp->gr_euler.enabled) {
+      if (msp->gr_euler.gas_gamma != 0.0)
+        src_inp.gr_euler = msp->gr_euler;
+      src_inp.gr_euler.enabled = true;
+    }
+
+    if (msp->gr_twofluid.enabled) {
+      if (msp->gr_twofluid.mass_elc != 0.0 || msp->gr_twofluid.mass_ion != 0.0 ||
+        msp->gr_twofluid.charge_elc != 0.0 || msp->gr_twofluid.charge_ion != 0.0 ||
+        msp->gr_twofluid.gas_gamma_elc != 0.0 || msp->gr_twofluid.gas_gamma_ion != 0.0 ||
+        msp->gr_twofluid.e_fact != 0.0)
+        src_inp.gr_twofluid = msp->gr_twofluid;
+      src_inp.gr_twofluid.enabled = true;
+    }
+
+    if (msp->gr_mhd.enabled) {
+      if (msp->gr_mhd.gas_gamma != 0.0)
+        src_inp.gr_mhd = msp->gr_mhd;
+      src_inp.gr_mhd.enabled = true;
+    }
+
+    if (msp->vacuum_einstein.enabled)
+      src_inp.vacuum_einstein = msp->vacuum_einstein;
+    if (msp->vacuum_einstein_conformal.enabled)
+      src_inp.vacuum_einstein_conformal = msp->vacuum_einstein_conformal;
   }
 
-  src_inp.has_volume_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_volume_sources) {
-      src_inp.has_volume_sources = true;
-
-      if(app->species[i].volume_gas_gamma != 0.0 || app->species[i].volume_U0 != 0.0 || app->species[i].volume_R0 != 0.0) {
-        src_inp.volume_gas_gamma = app->species[i].volume_gas_gamma;
-        src_inp.volume_U0 = app->species[i].volume_U0;
-        src_inp.volume_R0 = app->species[i].volume_R0;
-      }
-    }
-  }
-  if(app->field.has_volume_sources) {
-    src_inp.has_volume_sources = true;
-
-    if(app->field.volume_gas_gamma != 0.0 || app->field.volume_U0 != 0.0 || app->field.volume_R0 != 0.0) {
-      src_inp.volume_gas_gamma = app->field.volume_gas_gamma;
-      src_inp.volume_U0 = app->field.volume_U0;
-      src_inp.volume_R0 = app->field.volume_R0;
-    }
-  }
-
-  src_inp.has_reactive_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_reactivity) {
-      src_inp.has_reactive_sources = true;
-
-      if (app->species[i].reactivity_gas_gamma != 0.0 || app->species[i].reactivity_specific_heat_capacity != 0.0 ||
-        app->species[i].reactivity_energy_of_formation != 0.0 || app->species[i].reactivity_ignition_temperature != 0.0 ||
-        app->species[i].reactivity_reaction_rate != 0.0) {
-
-        src_inp.reactivity_gas_gamma = app->species[i].reactivity_gas_gamma;
-        src_inp.reactivity_specific_heat_capacity = app->species[i].reactivity_specific_heat_capacity;
-        src_inp.reactivity_energy_of_formation = app->species[i].reactivity_energy_of_formation;
-        src_inp.reactivity_ignition_temperature = app->species[i].reactivity_ignition_temperature;
-        src_inp.reactivity_reaction_rate = app->species[i].reactivity_reaction_rate;
-      }
-    }
-  }
-  
-  src_inp.has_einstein_medium_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_einstein_medium) {
-      src_inp.has_einstein_medium_sources = true;
-
-      if (app->species[i].medium_gas_gamma != 0.0 || app->species[i].medium_kappa != 0.0) {
-        src_inp.medium_gas_gamma = app->species[i].medium_gas_gamma;
-        src_inp.medium_kappa = app->species[i].medium_kappa;
-      }
-    }
-  }
-
-  src_inp.has_gr_ultra_rel_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_gr_ultra_rel) {
-      src_inp.has_gr_ultra_rel_sources = true;
-
-      if (app->species[i].gr_ultra_rel_gas_gamma != 0.0) {
-        src_inp.gr_ultra_rel_gas_gamma = app->species[i].gr_ultra_rel_gas_gamma;
-      }
-    }
-  }
-
-  src_inp.has_gr_euler_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_gr_euler) {
-      src_inp.has_gr_euler_sources = true;
-
-      if (app->species[i].gr_euler_gas_gamma != 0.0) {
-        src_inp.gr_euler_gas_gamma = app->species[i].gr_euler_gas_gamma;
-      }
-    }
-  }
-
-  src_inp.has_gr_twofluid_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_gr_twofluid) {
-      src_inp.has_gr_twofluid_sources = true;
-
-      if (app->species[i].gr_twofluid_mass_elc != 0.0 || app->species[i].gr_twofluid_mass_ion != 0.0 || app->species[i].gr_twofluid_charge_elc != 0.0 ||
-        app->species[i].gr_twofluid_charge_ion != 0.0 || app->species[i].gr_twofluid_gas_gamma_elc != 0.0 || app->species[i].gr_twofluid_gas_gamma_ion != 0.0 ||
-        app->species[i].gr_twofluid_e_fact != 0.0) {
-        src_inp.gr_twofluid_mass_elc = app->species[i].gr_twofluid_mass_elc;
-        src_inp.gr_twofluid_mass_ion = app->species[i].gr_twofluid_mass_ion;
-        src_inp.gr_twofluid_charge_elc = app->species[i].gr_twofluid_charge_elc;
-        src_inp.gr_twofluid_charge_ion = app->species[i].gr_twofluid_charge_ion;
-        src_inp.gr_twofluid_gas_gamma_elc = app->species[i].gr_twofluid_gas_gamma_elc;
-        src_inp.gr_twofluid_gas_gamma_ion = app->species[i].gr_twofluid_gas_gamma_ion;
-        src_inp.gr_twofluid_e_fact = app->species[i].gr_twofluid_e_fact;
-      }
-    }
-  }
-
-  src_inp.has_gr_mhd_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_gr_mhd) {
-      src_inp.has_gr_mhd_sources = true;
-
-      if (app->species[i].gr_mhd_gas_gamma != 0.0) {
-        src_inp.gr_mhd_gas_gamma = app->species[i].gr_mhd_gas_gamma;
-      }
-    }
-  }
-
-  src_inp.has_vacuum_einstein_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_vacuum_einstein) {
-      src_inp.has_vacuum_einstein_sources = true;
-
-      src_inp.vacuum_einstein_excision_threshold = app->species[i].vacuum_einstein_excision_threshold;
-      src_inp.vacuum_einstein_spacetime_slicing = app->species[i].vacuum_einstein_spacetime_slicing;
-      src_inp.vacuum_einstein_spacetime_evolution = app->species[i].vacuum_einstein_spacetime_evolution;
-    }
-  }
-
-  src_inp.has_vacuum_einstein_conformal_sources = false;
-  for (int i = 0; i < app->num_species; i++) {
-    if (app->species[i].has_vacuum_einstein_conformal) {
-      src_inp.has_vacuum_einstein_conformal_sources = true;
-
-      src_inp.vacuum_einstein_conformal_excision_threshold = app->species[i].vacuum_einstein_conformal_excision_threshold;
-      src_inp.vacuum_einstein_conformal_spacetime_slicing = app->species[i].vacuum_einstein_conformal_spacetime_slicing;
-      src_inp.vacuum_einstein_conformal_spacetime_evolution = app->species[i].vacuum_einstein_conformal_spacetime_evolution;
-    }
+  // The field can also carry volume-based geometrical sources.
+  if (app->field.volume_sources.enabled) {
+    if (app->field.volume_sources.gas_gamma != 0.0 || app->field.volume_sources.U0 != 0.0 ||
+      app->field.volume_sources.R0 != 0.0)
+      src_inp.volume_sources = app->field.volume_sources;
+    src_inp.volume_sources.enabled = true;
   }
 
   // Explicit (special-)relativistic multi-fluid + Maxwell coupling on modular
@@ -216,20 +149,22 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
 
-  // The closure/Braginskii solvers read an EM array unconditionally; when
-  // the app has no field, hand them a zero-field scratch array instead of
-  // the (nonexistent) field state. Allocated only in that configuration --
-  // a plain fluid-only run allocates nothing here.
+  // Several source paths (closures, Braginskii, volume sources, implicit
+  // friction) read the EM/external-EM/applied-current arrays
+  // unconditionally; when the app has no field, hand them zero scratch
+  // arrays instead of the (nonexistent) field state. Allocated only when
+  // the coupling exists without a field -- a source-free fluid run builds
+  // no coupling and allocates nothing.
   src->nofield_em = NULL;
+  src->nofield_ext_em = NULL;
+  src->nofield_app_current = NULL;
   if (!app->has_field) {
-    bool needs_em_scratch = app->has_braginskii;
-    for (int i = 0; i < app->num_species; i++)
-      if (app->species[i].has_grad_closure || app->species[i].has_nn_closure)
-        needs_em_scratch = true;
-    if (needs_em_scratch) {
-      src->nofield_em = mkarr(false, 8, app->local_ext.volume);
-      gkyl_array_clear(src->nofield_em, 0.0);
-    }
+    src->nofield_em = mkarr(false, 8, app->local_ext.volume);
+    gkyl_array_clear(src->nofield_em, 0.0);
+    src->nofield_ext_em = mkarr(false, 6, app->local_ext.volume);
+    gkyl_array_clear(src->nofield_ext_em, 0.0);
+    src->nofield_app_current = mkarr(false, 3, app->local_ext.volume);
+    gkyl_array_clear(src->nofield_app_current, 0.0);
   }
 
   // Spacetime coupling for modular GR fluids. Only constructed when at
@@ -423,9 +358,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   // NULL field array; the closure/Braginskii solvers do not, so they get
   // the zero-field scratch array when the app has no field.
   struct gkyl_array *em_state =
-    app->has_field ? app->field.f[sidx[nstrang]] : NULL;
-  const struct gkyl_array *em_closures =
     app->has_field ? app->field.f[sidx[nstrang]] : src->nofield_em;
+  const struct gkyl_array *em_closures = em_state;
+  const struct gkyl_array *ext_em =
+    app->has_field ? app->field.ext_em : src->nofield_ext_em;
+  const struct gkyl_array *app_current =
+    app->has_field ? app->field.app_current : src->nofield_app_current;
 
   double dt_suggested = DBL_MAX;
   struct gkyl_ten_moment_grad_closure_status stat;
@@ -536,7 +474,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const,
-      em_state, app->field.app_current, app->field.ext_em,
+      em_state, app_current, ext_em,
       nT_sources);
   }
 
@@ -577,6 +515,10 @@ moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_c
   gkyl_moment_em_coupling_release(src->slvr);
   if (src->nofield_em)
     gkyl_array_release(src->nofield_em);
+  if (src->nofield_ext_em)
+    gkyl_array_release(src->nofield_ext_em);
+  if (src->nofield_app_current)
+    gkyl_array_release(src->nofield_app_current);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_release(src->pr_rhs[i]);
     gkyl_array_release(src->non_ideal_cflrate[i]);

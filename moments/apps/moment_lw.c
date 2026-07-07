@@ -4873,66 +4873,66 @@ moment_species_lw_new(lua_State *L)
   }
   mom_species.nT_source_set_only_once = glua_tbl_get_bool(L, "nTSourceSetOnlyOnce", false);
 
-  mom_species.has_reactivity = glua_tbl_get_bool(L, "hasReactivity", false);
-  if (mom_species.has_reactivity) {
-    mom_species.reactivity_gas_gamma = glua_tbl_get_number(L, "reactivityGasGamma", 1.4);
-    mom_species.reactivity_specific_heat_capacity = glua_tbl_get_number(L, "reactivitySpecificHeatCapacity", 2.5);
-    mom_species.reactivity_energy_of_formation = glua_tbl_get_number(L, "reactivityEnergyOfFormation", 1.0);
-    mom_species.reactivity_ignition_temperature = glua_tbl_get_number(L, "reactivityIgnitionTemperature", 0.25);
-    mom_species.reactivity_reaction_rate = glua_tbl_get_number(L, "reactivityReactionRate", 250.0);
+  mom_species.reactivity.enabled = glua_tbl_get_bool(L, "hasReactivity", false);
+  if (mom_species.reactivity.enabled) {
+    mom_species.reactivity.gas_gamma = glua_tbl_get_number(L, "reactivityGasGamma", 1.4);
+    mom_species.reactivity.specific_heat_capacity = glua_tbl_get_number(L, "reactivitySpecificHeatCapacity", 2.5);
+    mom_species.reactivity.energy_of_formation = glua_tbl_get_number(L, "reactivityEnergyOfFormation", 1.0);
+    mom_species.reactivity.ignition_temperature = glua_tbl_get_number(L, "reactivityIgnitionTemperature", 0.25);
+    mom_species.reactivity.reaction_rate = glua_tbl_get_number(L, "reactivityReactionRate", 250.0);
   }
 
-  mom_species.has_volume_sources = glua_tbl_get_bool(L, "hasVolumeSources", false);
-  if (mom_species.has_volume_sources) {
-    mom_species.volume_gas_gamma = glua_tbl_get_number(L, "volumeGasGamma", 5.0 / 3.0);
-    mom_species.volume_U0 = glua_tbl_get_number(L, "volumeU0", 1.0);
-    mom_species.volume_R0 = glua_tbl_get_number(L, "volumeR0", 1.0);
+  mom_species.volume_sources.enabled = glua_tbl_get_bool(L, "hasVolumeSources", false);
+  if (mom_species.volume_sources.enabled) {
+    mom_species.volume_sources.gas_gamma = glua_tbl_get_number(L, "volumeGasGamma", 5.0 / 3.0);
+    mom_species.volume_sources.U0 = glua_tbl_get_number(L, "volumeU0", 1.0);
+    mom_species.volume_sources.R0 = glua_tbl_get_number(L, "volumeR0", 1.0);
   }
 
-  mom_species.has_einstein_medium = glua_tbl_get_bool(L, "hasEinsteinMedium", false);
-  if (mom_species.has_einstein_medium) {
-    mom_species.medium_gas_gamma = glua_tbl_get_number(L, "mediumGasGamma", 4.0 / 3.0);
-    mom_species.medium_kappa = glua_tbl_get_number(L, "mediumKappa", 8.0 * M_PI);
+  mom_species.einstein_medium.enabled = glua_tbl_get_bool(L, "hasEinsteinMedium", false);
+  if (mom_species.einstein_medium.enabled) {
+    mom_species.einstein_medium.gas_gamma = glua_tbl_get_number(L, "mediumGasGamma", 4.0 / 3.0);
+    mom_species.einstein_medium.kappa = glua_tbl_get_number(L, "mediumKappa", 8.0 * M_PI);
   }
 
-  mom_species.has_vacuum_einstein = glua_tbl_get_bool(L, "hasVacuumEinstein", false);
-  if (mom_species.has_vacuum_einstein) {
-    mom_species.vacuum_einstein_excision_threshold = glua_tbl_get_number(L, "vacuumEinsteinExcisionThreshold", 0.3);
-    mom_species.vacuum_einstein_spacetime_slicing = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeSlicing", GKYL_GEODESIC_SLICING);
-    mom_species.vacuum_einstein_spacetime_evolution = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeEvolution", GKYL_EINSTEIN_EVOLUTION);
+  mom_species.vacuum_einstein.enabled = glua_tbl_get_bool(L, "hasVacuumEinstein", false);
+  if (mom_species.vacuum_einstein.enabled) {
+    mom_species.vacuum_einstein.excision_threshold = glua_tbl_get_number(L, "vacuumEinsteinExcisionThreshold", 0.3);
+    mom_species.vacuum_einstein.slicing = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeSlicing", GKYL_GEODESIC_SLICING);
+    mom_species.vacuum_einstein.evolution = glua_tbl_get_integer(L, "vacuumEinsteinSpacetimeEvolution", GKYL_EINSTEIN_EVOLUTION);
   }
 
-  mom_species.has_vacuum_einstein_conformal = glua_tbl_get_bool(L, "hasVacuumEinsteinConformal", false);
-  if (mom_species.has_vacuum_einstein_conformal) {
-    mom_species.vacuum_einstein_conformal_excision_threshold = glua_tbl_get_number(L, "vacuumEinsteinConformalExcisionThreshold", 0.3);
-    mom_species.vacuum_einstein_conformal_spacetime_slicing = glua_tbl_get_integer(L, "vacuumEinsteinConformalSpacetimeSlicing", GKYL_GEODESIC_SLICING);
-    mom_species.vacuum_einstein_conformal_spacetime_evolution = glua_tbl_get_integer(L, "vacuumEinsteinConformalSpacetimeEvolution", GKYL_EINSTEIN_EVOLUTION);
+  mom_species.vacuum_einstein_conformal.enabled = glua_tbl_get_bool(L, "hasVacuumEinsteinConformal", false);
+  if (mom_species.vacuum_einstein_conformal.enabled) {
+    mom_species.vacuum_einstein_conformal.excision_threshold = glua_tbl_get_number(L, "vacuumEinsteinConformalExcisionThreshold", 0.3);
+    mom_species.vacuum_einstein_conformal.slicing = glua_tbl_get_integer(L, "vacuumEinsteinConformalSpacetimeSlicing", GKYL_GEODESIC_SLICING);
+    mom_species.vacuum_einstein_conformal.evolution = glua_tbl_get_integer(L, "vacuumEinsteinConformalSpacetimeEvolution", GKYL_EINSTEIN_EVOLUTION);
   }
 
-  mom_species.has_gr_ultra_rel = glua_tbl_get_bool(L, "hasGRUltraRel", false);
-  if (mom_species.has_gr_ultra_rel) {
-    mom_species.gr_ultra_rel_gas_gamma = glua_tbl_get_number(L, "GRUltraRelGasGamma", 5.0 / 3.0);
+  mom_species.gr_ultra_rel.enabled = glua_tbl_get_bool(L, "hasGRUltraRel", false);
+  if (mom_species.gr_ultra_rel.enabled) {
+    mom_species.gr_ultra_rel.gas_gamma = glua_tbl_get_number(L, "GRUltraRelGasGamma", 5.0 / 3.0);
   }
 
-  mom_species.has_gr_euler = glua_tbl_get_bool(L, "hasGREuler", false);
-  if (mom_species.has_gr_euler) {
-    mom_species.gr_euler_gas_gamma = glua_tbl_get_number(L, "GREulerGasGamma", 5.0 / 3.0);
+  mom_species.gr_euler.enabled = glua_tbl_get_bool(L, "hasGREuler", false);
+  if (mom_species.gr_euler.enabled) {
+    mom_species.gr_euler.gas_gamma = glua_tbl_get_number(L, "GREulerGasGamma", 5.0 / 3.0);
   }
 
-  mom_species.has_gr_twofluid = glua_tbl_get_bool(L, "hasGRTwoFluid", false);
-  if (mom_species.has_gr_twofluid) {
-    mom_species.gr_twofluid_mass_elc = glua_tbl_get_number(L, "GRTwoFluidMassElc", 1.0 / 1836.2);
-    mom_species.gr_twofluid_mass_ion = glua_tbl_get_number(L, "GRTwoFluidMassIon", 1.0);
-    mom_species.gr_twofluid_charge_elc = glua_tbl_get_number(L, "GRTwoFluidChargeElc", -1.0);
-    mom_species.gr_twofluid_charge_ion = glua_tbl_get_number(L, "GRTwoFluidChargeIon", 1.0);
-    mom_species.gr_twofluid_gas_gamma_elc = glua_tbl_get_number(L, "GRTwoFluidGasGammaElc", 5.0 / 3.0);
-    mom_species.gr_twofluid_gas_gamma_ion = glua_tbl_get_number(L, "GRTwoFluidGasGammaIon", 5.0 / 3.0);
-    mom_species.gr_twofluid_e_fact = glua_tbl_get_number(L, "GRTwoFluidEFact", 0.0);
+  mom_species.gr_twofluid.enabled = glua_tbl_get_bool(L, "hasGRTwoFluid", false);
+  if (mom_species.gr_twofluid.enabled) {
+    mom_species.gr_twofluid.mass_elc = glua_tbl_get_number(L, "GRTwoFluidMassElc", 1.0 / 1836.2);
+    mom_species.gr_twofluid.mass_ion = glua_tbl_get_number(L, "GRTwoFluidMassIon", 1.0);
+    mom_species.gr_twofluid.charge_elc = glua_tbl_get_number(L, "GRTwoFluidChargeElc", -1.0);
+    mom_species.gr_twofluid.charge_ion = glua_tbl_get_number(L, "GRTwoFluidChargeIon", 1.0);
+    mom_species.gr_twofluid.gas_gamma_elc = glua_tbl_get_number(L, "GRTwoFluidGasGammaElc", 5.0 / 3.0);
+    mom_species.gr_twofluid.gas_gamma_ion = glua_tbl_get_number(L, "GRTwoFluidGasGammaIon", 5.0 / 3.0);
+    mom_species.gr_twofluid.e_fact = glua_tbl_get_number(L, "GRTwoFluidEFact", 0.0);
   }
 
-  mom_species.has_gr_mhd = glua_tbl_get_bool(L, "hasGRMHD", false);
-  if (mom_species.has_gr_mhd) {
-    mom_species.gr_mhd_gas_gamma = glua_tbl_get_number(L, "GRMHDGasGamma", 5.0 / 3.0);
+  mom_species.gr_mhd.enabled = glua_tbl_get_bool(L, "hasGRMHD", false);
+  if (mom_species.gr_mhd.enabled) {
+    mom_species.gr_mhd.gas_gamma = glua_tbl_get_number(L, "GRMHDGasGamma", 5.0 / 3.0);
   }
   
   mom_species.type_brag = glua_tbl_get_integer(L, "braginskiiType", 0);

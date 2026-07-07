@@ -40,55 +40,19 @@ struct moment_species {
   int poly_order; // Polynomial order of learned DG coefficients.
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
-  bool has_friction; // Run with frictional sources.
-  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
-  double friction_Z; // Ionization number for frictional sources.
-  double friction_T_elc; // Electron temperature for frictional sources.
-  double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
-
-  bool has_volume_sources; // Run with volume-based geometrical sources.
-  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
-  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
-  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
-
-  bool has_reactivity; // Run with reactive sources.
-  double reactivity_gas_gamma; // Adiabatic index for reactive sources.
-  double reactivity_specific_heat_capacity; // Specific heat capacity for reactive sources.
-  double reactivity_energy_of_formation; // Energy of formation for reactive sources.
-  double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
-  double reactivity_reaction_rate; // Reaction rate for reactive sources.
-
-  bool has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
-  double medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
-  double medium_kappa; // Stress-energy prefactor for coupled fluid-Einstein sources in plane-symmetric spacetimes.
-
-  bool has_gr_ultra_rel; // Run with general relativistic source terms (Euler equations, ultra-relativistic equation of state).
-  double gr_ultra_rel_gas_gamma; // Adiabatic index for general relativistic Euler equations (ultra-relativistic equation of state).
-
-  bool has_gr_euler; // Run with general relativistic source terms (Euler equations, ideal gas equation of state).
-  double gr_euler_gas_gamma; // Adiabatic index for general relativistic Euler equations (ideal gas equation of state).
-
-  bool has_gr_twofluid; // Run with general relativistic two-fluid source terms.
-  double gr_twofluid_mass_elc; // Electron mass for general relativistic two-fluid equations.
-  double gr_twofluid_mass_ion; // Ion mass for general relativistic two-fluid equations.
-  double gr_twofluid_charge_elc; // Electron charge for general relativistic two-fluid equations.
-  double gr_twofluid_charge_ion; // Ion charge for general relativistic two-fluid equations.
-  double gr_twofluid_gas_gamma_elc; // Adiabatic index for electrons in general relativistic two-fluid equations.
-  double gr_twofluid_gas_gamma_ion; // Adiabatic index for ions in general relativistic two-fluid equations.
-  double gr_twofluid_e_fact; // Electric field divergence error propagation speed for general relativistic two-fluid equations.
-
-  bool has_vacuum_einstein; // Run with vacuum Einstein sources using the Bona-Masso formalism.
-  double vacuum_einstein_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the Bona-Masso formalism.
-  enum gkyl_spacetime_slicing vacuum_einstein_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the Bona-Masso formalism.
-  enum gkyl_spacetime_evolution vacuum_einstein_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the Bona-Masso formalism.
-
-  bool has_vacuum_einstein_conformal; // Run with vacuum Einstein sources using the conformal Bona-Masso formalism.
-  double vacuum_einstein_conformal_excision_threshold; // Excision threshold (lapse) for vacuum Einstein equations using the conformal Bona-Masso formalism.
-  enum gkyl_spacetime_slicing vacuum_einstein_conformal_spacetime_slicing; // Spacetime slicing condition for vacuum Einstein equations using the conformal Bona-Masso formalism.
-  enum gkyl_spacetime_evolution vacuum_einstein_conformal_spacetime_evolution; // Spacetime evolution system for vacuum Einstein equations using the conformal Bona-Masso formalism.
-
-  bool has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
-  double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+  // Source-family parameter bundles, copied verbatim from the input (see
+  // gkyl_moment_em_coupling.h); moment_coupling_init merges them into the
+  // source-solver input.
+  struct gkyl_moment_friction friction; // Frictional sources.
+  struct gkyl_moment_volume_sources volume_sources; // Volume-based geometrical sources.
+  struct gkyl_moment_reactivity reactivity; // Reactive sources.
+  struct gkyl_moment_einstein_medium einstein_medium; // Coupled fluid-Einstein sources (plane-symmetric spacetimes).
+  struct gkyl_moment_gr_sources gr_ultra_rel; // GR Euler sources, ultra-relativistic equation of state.
+  struct gkyl_moment_gr_sources gr_euler; // GR Euler sources, ideal gas equation of state.
+  struct gkyl_moment_gr_twofluid gr_twofluid; // GR two-fluid sources.
+  struct gkyl_moment_vacuum_einstein vacuum_einstein; // Vacuum Einstein sources, Bona-Masso formalism.
+  struct gkyl_moment_vacuum_einstein vacuum_einstein_conformal; // Vacuum Einstein sources, conformal Bona-Masso formalism.
+  struct gkyl_moment_gr_sources gr_mhd; // GR MHD sources.
 
   void *ctx; // context for initial condition init function
   // pointer to initialization function

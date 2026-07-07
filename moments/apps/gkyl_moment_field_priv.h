@@ -47,10 +47,8 @@ struct moment_field {
   struct gkyl_array *app_current1; // additional array for applied currents (for use_explicit_em_coupling stages)
   struct gkyl_array *app_current2; // additional array for applied currents (for use_explicit_em_coupling stages)
 
-  bool has_volume_sources; // Run with volume-based geometrical sources.
-  double volume_gas_gamma; // Adiabatic index for volume-based geometrical sources.
-  double volume_U0; // Initial comoving plasma velocity for volume-based geometrical sources.
-  double volume_R0; // Initial radial distance from expansion/contraction center for volume-based geometrical sources.
+  // Volume-based geometrical sources (see gkyl_moment_em_coupling.h).
+  struct gkyl_moment_volume_sources volume_sources;
 
   struct gkyl_array *bc_buffer; // buffer for periodic BCs
 

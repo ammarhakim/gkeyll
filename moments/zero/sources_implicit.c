@@ -1154,9 +1154,9 @@ void implicit_frictional_source_update(
     double *f_elc = fluid_s[0];
     double *f_ion = fluid_s[1];
 
-    double Z = mom_em->friction_Z;
-    double T_elc = mom_em->friction_T_elc;
-    double Lambda_ee = mom_em->friction_Lambda_ee;
+    double Z = mom_em->friction.Z;
+    double T_elc = mom_em->friction.T_elc;
+    double Lambda_ee = mom_em->friction.Lambda_ee;
 
     double f_elc_stage1[5], f_elc_new[5];
     double f_ion_stage1[5], f_ion_new[5];
@@ -1339,43 +1339,43 @@ void implicit_source_coupling_update(
   if (mom_em->has_nT_sources) {
     explicit_nT_source_update(mom_em, dt, fluid_s, nT_sources_s);
   }
-  if (mom_em->has_frictional_sources) {
-    if (mom_em->use_explicit_friction) {
+  if (mom_em->friction.enabled) {
+    if (mom_em->friction.use_explicit) {
       explicit_frictional_source_update(mom_em, t_curr, dt, fluid_s);
     } else {
       implicit_frictional_source_update(mom_em, t_curr, dt, fluid_s,
                                         app_accel_s, em, app_current, ext_em);
     }
   }
-  if (mom_em->has_volume_sources) {
+  if (mom_em->volume_sources.enabled) {
     explicit_volume_source_update(mom_em, t_curr, dt, fluid_s, em, ext_em);
   }
-  if (mom_em->has_reactive_sources) {
+  if (mom_em->reactivity.enabled) {
     explicit_reactive_source_update(mom_em, t_curr, dt, fluid_s);
   }
-  if (mom_em->has_einstein_medium_sources) {
+  if (mom_em->einstein_medium.enabled) {
     explicit_medium_source_update(mom_em, t_curr, dt, fluid_s);
   }
-  if (mom_em->has_gr_ultra_rel_sources) {
+  if (mom_em->gr_ultra_rel.enabled) {
     explicit_gr_ultra_rel_source_update(mom_em, t_curr, dt, fluid_s);
   }
-  if (mom_em->has_gr_euler_sources) {
+  if (mom_em->gr_euler.enabled) {
     explicit_gr_euler_source_update(mom_em, t_curr, dt, fluid_s);
   }
-  if (mom_em->has_gr_twofluid_sources) {
+  if (mom_em->gr_twofluid.enabled) {
     // Subcycling capabilities: ratio set to 1 by default.
     for (int i = 0; i < 1; i++) {
       explicit_gr_twofluid_source_update(mom_em, t_curr, 1.0 * dt, fluid_s);
     }
   }
-  if (mom_em->has_vacuum_einstein_sources) {
+  if (mom_em->vacuum_einstein.enabled) {
     explicit_vacuum_einstein_source_update(mom_em, t_curr, dt, fluid_s);
   }
-  if (mom_em->has_vacuum_einstein_conformal_sources) {
+  if (mom_em->vacuum_einstein_conformal.enabled) {
     explicit_vacuum_einstein_conformal_source_update(mom_em, t_curr, dt,
                                                      fluid_s);
   }
-  if (mom_em->has_gr_mhd_sources) {
+  if (mom_em->gr_mhd.enabled) {
     explicit_gr_mhd_source_update(mom_em, t_curr, dt, fluid_s);
   }
 }

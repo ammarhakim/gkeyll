@@ -103,9 +103,9 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling* mom_em, double 
     double *f_elc = fluid_s[0];
     double *f_ion = fluid_s[1];
 
-    double Z = mom_em->friction_Z;
-    double T_elc = mom_em->friction_T_elc;
-    double Lambda_ee = mom_em->friction_Lambda_ee;
+    double Z = mom_em->friction.Z;
+    double T_elc = mom_em->friction.T_elc;
+    double Lambda_ee = mom_em->friction.Lambda_ee;
 
     int elc_num_equations = 0;
     int ion_num_equations = 0;
@@ -260,9 +260,9 @@ explicit_volume_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
 {
   int nfluids = mom_em->nfluids;
 
-  double gas_gamma = mom_em->volume_gas_gamma;
-  double U0 = mom_em->volume_U0;
-  double R0 = mom_em->volume_R0;
+  double gas_gamma = mom_em->volume_sources.gas_gamma;
+  double U0 = mom_em->volume_sources.U0;
+  double R0 = mom_em->volume_sources.R0;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -364,11 +364,11 @@ explicit_reactive_source_update(const gkyl_moment_em_coupling* mom_em, double t_
 {
   int nfluids = mom_em->nfluids;
 
-  double gas_gamma = mom_em->reactivity_gas_gamma;
-  double specific_heat_capacity = mom_em->reactivity_specific_heat_capacity;
-  double energy_of_formation = mom_em->reactivity_energy_of_formation;
-  double ignition_temperature = mom_em->reactivity_ignition_temperature;
-  double reaction_rate = mom_em->reactivity_reaction_rate;
+  double gas_gamma = mom_em->reactivity.gas_gamma;
+  double specific_heat_capacity = mom_em->reactivity.specific_heat_capacity;
+  double energy_of_formation = mom_em->reactivity.energy_of_formation;
+  double ignition_temperature = mom_em->reactivity.ignition_temperature;
+  double reaction_rate = mom_em->reactivity.reaction_rate;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -460,8 +460,8 @@ explicit_medium_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
 {
   int nfluids = mom_em->nfluids;
 
-  double gas_gamma = mom_em->medium_gas_gamma;
-  double kappa = mom_em->medium_kappa;
+  double gas_gamma = mom_em->einstein_medium.gas_gamma;
+  double kappa = mom_em->einstein_medium.kappa;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -736,7 +736,7 @@ explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling* mom_em, doubl
 {
   int nfluids = mom_em->nfluids;
 
-  double gas_gamma = mom_em->gr_ultra_rel_gas_gamma;
+  double gas_gamma = mom_em->gr_ultra_rel.gas_gamma;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -993,7 +993,7 @@ explicit_gr_euler_source_update(const gkyl_moment_em_coupling* mom_em, double t_
 {
   int nfluids = mom_em->nfluids;
 
-  double gas_gamma = mom_em->gr_euler_gas_gamma;
+  double gas_gamma = mom_em->gr_euler.gas_gamma;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -1869,13 +1869,13 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling* mom_em, double
 {
   int nfluids = mom_em->nfluids;
 
-  double mass_elc = mom_em->gr_twofluid_mass_elc;
-  double mass_ion = mom_em->gr_twofluid_mass_ion;
-  double charge_elc = mom_em->gr_twofluid_charge_elc;
-  double charge_ion = mom_em->gr_twofluid_charge_ion;
-  double gas_gamma_elc = mom_em->gr_twofluid_gas_gamma_elc;
-  double gas_gamma_ion = mom_em->gr_twofluid_gas_gamma_ion;
-  double e_fact = mom_em->gr_twofluid_e_fact;
+  double mass_elc = mom_em->gr_twofluid.mass_elc;
+  double mass_ion = mom_em->gr_twofluid.mass_ion;
+  double charge_elc = mom_em->gr_twofluid.charge_elc;
+  double charge_ion = mom_em->gr_twofluid.charge_ion;
+  double gas_gamma_elc = mom_em->gr_twofluid.gas_gamma_elc;
+  double gas_gamma_ion = mom_em->gr_twofluid.gas_gamma_ion;
+  double e_fact = mom_em->gr_twofluid.e_fact;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -2348,9 +2348,9 @@ explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling* mom_em, do
 {
   int nfluids = mom_em->nfluids;
 
-  double excision_threshold = mom_em->vacuum_einstein_excision_threshold;
-  enum gkyl_spacetime_slicing spacetime_slicing = mom_em->vacuum_einstein_spacetime_slicing;
-  enum gkyl_spacetime_evolution spacetime_evolution = mom_em->vacuum_einstein_spacetime_evolution;
+  double excision_threshold = mom_em->vacuum_einstein.excision_threshold;
+  enum gkyl_spacetime_slicing spacetime_slicing = mom_em->vacuum_einstein.slicing;
+  enum gkyl_spacetime_evolution spacetime_evolution = mom_em->vacuum_einstein.evolution;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -2896,9 +2896,9 @@ explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling* 
 {
   int nfluids = mom_em->nfluids;
 
-  double excision_threshold = mom_em->vacuum_einstein_conformal_excision_threshold;
-  enum gkyl_spacetime_slicing spacetime_slicing = mom_em->vacuum_einstein_conformal_spacetime_slicing;
-  enum gkyl_spacetime_evolution spacetime_evolution = mom_em->vacuum_einstein_conformal_spacetime_evolution;
+  double excision_threshold = mom_em->vacuum_einstein_conformal.excision_threshold;
+  enum gkyl_spacetime_slicing spacetime_slicing = mom_em->vacuum_einstein_conformal.slicing;
+  enum gkyl_spacetime_evolution spacetime_evolution = mom_em->vacuum_einstein_conformal.evolution;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
@@ -3237,7 +3237,7 @@ explicit_gr_mhd_source_update(const gkyl_moment_em_coupling* mom_em, double t_cu
 {
   int nfluids = mom_em->nfluids;
 
-  double gas_gamma = mom_em->gr_mhd_gas_gamma;
+  double gas_gamma = mom_em->gr_mhd.gas_gamma;
 
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];

@@ -233,7 +233,7 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   // We also check if there are sources in EM-only simulations, such as volume expansion or applied current
   // simulations. 
   app->update_sources = false;
-  if (app->field.has_volume_sources || app->field.has_app_current) {
+  if (app->field.volume_sources.enabled || app->field.has_app_current) {
     app->update_sources = true;
   }
   for (int s=0; s<app->num_species; ++s) {
