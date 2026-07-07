@@ -39,6 +39,8 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
   int max_iter = corr_inp.max_iter > 0 ? vms->info.correct.max_iter : 100;
   double iter_eps = corr_inp.iter_eps > 0 ? vms->info.correct.iter_eps  : 1e-12;
   bool use_last_converged = corr_inp.use_last_converged;
+  bool use_picard = corr_inp.use_picard;
+  int anderson_depth = corr_inp.anderson_depth;
   
   if (lte->correct_all_moms) {
     struct gkyl_vlasov_lte_correct_inp inp_corr = {
@@ -66,6 +68,8 @@ vm_species_lte_init(struct gkyl_vlasov_app *app, struct vm_species *vms, struct 
       .max_iter = max_iter,
       .eps = iter_eps,
       .use_last_converged = use_last_converged, 
+      .use_picard = use_picard,
+      .anderson_depth = anderson_depth,
     };
     lte->n_iter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );

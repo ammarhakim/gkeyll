@@ -177,6 +177,8 @@ gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
   int max_iter = corr_inp.max_iter > 0 ? corr_inp.max_iter : 50;
   double iter_eps = corr_inp.iter_eps > 0 ? corr_inp.iter_eps  : 1e-10;
   bool use_last_converged = corr_inp.use_last_converged;
+  bool use_picard = corr_inp.use_picard;
+  int anderson_depth = corr_inp.anderson_depth;
   
   if (lte->correct_all_moms) {
     struct gkyl_vlasov_lte_correct_inp inp_corr = {
@@ -199,6 +201,8 @@ gk_neut_species_lte_kinetic_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       .use_extended_hamil_def = false,
       .eps = iter_eps,
       .use_last_converged = use_last_converged, 
+      .use_picard = use_picard,
+      .anderson_depth = anderson_depth,
     };
     lte->n_iter = 0;
     lte->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );

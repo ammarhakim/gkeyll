@@ -30,6 +30,8 @@ struct gkyl_vlasov_lte_correct_inp {
   const struct gkyl_array *h_ij_inv; // (Can-pb quantitiy) inverse metric tensor (contravariant components) 
   const struct gkyl_array *det_h; // (Can-pb quantitiy) determinant of the metric tensor 
   enum gkyl_quad_type quad_type; // type of quadrature to use: defaults to Gaussian
+  bool use_picard; // Use unaccelerated Picard iteration instead of Anderson acceleration? Default false.
+  int anderson_depth; // Anderson acceleration depth; default is 3 and maximum is 6
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge. 
   bool use_extended_hamil_def; // bool to determine if we are using the extended canonical-pb hamiltonian

@@ -83,6 +83,8 @@ struct gkyl_gyrokinetic_projection {
       double iter_eps; // Error tolerance for moment fixes (density is always exact).
       int max_iter; // Maximum number of iteration.
       bool use_last_converged; // Use last iteration value regardless of convergence?
+      bool use_picard; // Use unaccelerated Picard iteration instead of Anderson acceleration? Default false.
+      int anderson_depth; // Anderson acceleration depth; default is 3 and maximum is 6
     };
   };
 };
@@ -343,6 +345,8 @@ struct gkyl_gyrokinetic_correct_inp {
   int max_iter; // maximum number of iteration
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge.   
+  bool use_picard; // Use unaccelerated Picard iteration instead of Anderson acceleration? Default false.
+  int anderson_depth; // Anderson acceleration depth; default is 3 and maximum is 6
 };
 
 enum gkyl_gyrokinetic_positivity_type {

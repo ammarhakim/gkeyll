@@ -132,6 +132,12 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
     if (inp.correct_all_moms) {
       proj->correct_all_moms = true;
 
+      int max_iter = inp.max_iter > 0 ? inp.max_iter : 100;
+      double iter_eps = inp.iter_eps > 0 ? inp.iter_eps  : 1e-12;
+      bool use_last_converged = inp.use_last_converged;
+      bool use_picard = inp.use_picard;
+      int anderson_depth = inp.anderson_depth;
+
       struct gkyl_vlasov_lte_correct_inp inp_corr = {
         .phase_grid = &s->grid,
         .conf_basis = &app->basis,
@@ -148,8 +154,11 @@ gk_neut_species_projection_kinetic_init(struct gkyl_gyrokinetic_app *app, struct
         .vel_map = s->vlasov_vel_map,
         .use_extended_hamil_def = false,
         .use_gpu = app->use_gpu,
-        .max_iter = 100,
-        .eps = 1e-12,
+        .max_iter = max_iter,
+        .eps = iter_eps,
+        .use_last_converged = use_last_converged,
+        .use_picard = use_picard,
+        .anderson_depth = anderson_depth,
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
     }

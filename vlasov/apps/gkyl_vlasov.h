@@ -39,6 +39,8 @@ struct gkyl_vlasov_projection {
       double iter_eps; // error tolerance for moment fixes (density is always exact)
       int max_iter; // maximum number of iteration
       bool use_last_converged; // use last iteration value regardless of convergence?
+      bool use_picard; // Use unaccelerated Picard iteration instead of Anderson acceleration? Default false.
+      int anderson_depth; // Anderson acceleration depth; default is 3 and maximum is 6
     };
   };
 };
@@ -143,6 +145,8 @@ struct gkyl_vlasov_correct_inp {
   int max_iter; // Maximum number of iteration
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
                            // *even if* the scheme fails to converge. 
+  bool use_picard; // Use unaccelerated Picard iteration instead of Anderson acceleration? Default false.
+  int anderson_depth; // Anderson acceleration depth; default is 3 and maximum is 6
   bool output_f_lte; // Boolean for writing out f_lte (used for calculating transport coeff.).
 };
 

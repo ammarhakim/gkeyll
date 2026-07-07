@@ -110,6 +110,8 @@ struct correct_all_moms_inp {
   double iter_eps; // error tolerance for moment fixes (density is always exact)
   int max_iter; // maximum number of iterations
   bool use_last_converged; // use last iteration value regardless of convergence?
+  bool use_picard; // Use unaccelerated Picard iteration instead of Anderson acceleration? Default false.
+  int anderson_depth; // Anderson acceleration depth; default is 3 and maximum is 6
 };
 
 // data for moments

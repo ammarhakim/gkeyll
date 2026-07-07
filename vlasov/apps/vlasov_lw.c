@@ -452,6 +452,8 @@ struct vlasov_species_lw {
   double iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact).
   int max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections.
   bool use_last_converged[GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
+  bool use_picard[GKYL_MAX_PROJ]; // Use Picard iteration in projections instead of Anderson acceleration?
+  int anderson_depth[GKYL_MAX_PROJ]; // Anderson acceleration depth for projections.
   
   enum gkyl_collision_id collision_id; // Collision type.
   double nu_frac; // Rescales collision frequencies (default = 1).
@@ -474,6 +476,8 @@ struct vlasov_species_lw {
   double lte_iter_eps; // Error tolerance for moment fixes in collisions (density is always exact).
   int lte_max_iter; // Maximum number of iterations for moment fixes in collisions.
   bool lte_use_last_converged; // Use last iteration value in collisions regardless of convergence?
+  bool lte_use_picard; // Use Picard iteration in collisions instead of Anderson acceleration?
+  int lte_anderson_depth; // Anderson acceleration depth for collisions.
   bool output_f_lte; // Should f_lte be written out (for calculating transport coefficients)?
 
   bool fixed_temp_relax; // Are BGK collisions relaxing to a fixed input temperature?  
@@ -503,6 +507,8 @@ struct vlasov_species_lw {
   double source_iter_eps[GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact) in source.
   int source_max_iter[GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
   bool source_use_last_converged[GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
+  bool source_use_picard[GKYL_MAX_PROJ]; // Use Picard iteration in source projections instead of Anderson acceleration?
+  int source_anderson_depth[GKYL_MAX_PROJ]; // Anderson acceleration depth for source projections.
 
   int num_cross_source; // Number of species that we are sourcing with.
   char source_with[GKYL_MAX_SPECIES][128]; // Names of species that we are using for cross sources.
@@ -717,6 +723,8 @@ vlasov_species_lw_new(lua_State *L)
   double iter_eps[GKYL_MAX_PROJ];
   int max_iter[GKYL_MAX_PROJ];
   bool use_last_converged[GKYL_MAX_PROJ];
+  bool use_picard[GKYL_MAX_PROJ];
+  int anderson_depth[GKYL_MAX_PROJ];
 
   int num_init = glua_tbl_get_integer(L, "numInit", 0);
 
@@ -757,6 +765,8 @@ vlasov_species_lw_new(lua_State *L)
         iter_eps[i] = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
         max_iter[i] = glua_tbl_get_integer(L, "maxIterations", 100);
         use_last_converged[i] = glua_tbl_get_bool(L, "useLastConverged", true);
+        use_picard[i] = glua_tbl_get_bool(L, "usePicard", false);
+        anderson_depth[i] = glua_tbl_get_integer(L, "andersonDepth", 0);
 
         lua_pop(L, 1);
       }
@@ -767,12 +777,16 @@ vlasov_species_lw_new(lua_State *L)
   double lte_iter_eps = pow(10.0, -12.0);
   int lte_max_iter = 100;
   bool lte_use_last_converged = true;
+  bool lte_use_picard = false;
+  int lte_anderson_depth = 0;
   bool output_f_lte = false;  
   with_lua_tbl_tbl(L, "correct") {
     lte_correct_all_moms = glua_tbl_get_bool(L, "correctAllMoments", true);
     lte_iter_eps = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
     lte_max_iter = glua_tbl_get_integer(L, "maxIterations", 100);
     lte_use_last_converged = glua_tbl_get_bool(L, "useLastConverged", true);
+    lte_use_picard = glua_tbl_get_bool(L, "usePicard", false);
+    lte_anderson_depth = glua_tbl_get_integer(L, "andersonDepth", 0);
     output_f_lte = glua_tbl_get_bool(L, "outputfLTE", false);  
   }
 
@@ -873,6 +887,8 @@ vlasov_species_lw_new(lua_State *L)
   double source_iter_eps[GKYL_MAX_PROJ];
   int source_max_iter[GKYL_MAX_PROJ];
   bool source_use_last_converged[GKYL_MAX_PROJ];
+  bool source_use_picard[GKYL_MAX_PROJ];
+  int source_anderson_depth[GKYL_MAX_PROJ];
 
   with_lua_tbl_tbl(L, "source") {
     source_id = glua_tbl_get_integer(L, "sourceID", 0);
@@ -953,6 +969,8 @@ vlasov_species_lw_new(lua_State *L)
           source_iter_eps[i] = glua_tbl_get_number(L, "iterationEpsilon", pow(10.0, -12.0));
           source_max_iter[i] = glua_tbl_get_integer(L, "maxIterations", 100);
           source_use_last_converged[i] = glua_tbl_get_bool(L, "useLastConverged", true);
+          source_use_picard[i] = glua_tbl_get_bool(L, "usePicard", false);
+          source_anderson_depth[i] = glua_tbl_get_integer(L, "andersonDepth", 0);
 
           lua_pop(L, 1);
         }
@@ -1108,6 +1126,8 @@ vlasov_species_lw_new(lua_State *L)
     vms_lw->iter_eps[i] = iter_eps[i];
     vms_lw->max_iter[i] = max_iter[i];
     vms_lw->use_last_converged[i] = use_last_converged[i];
+    vms_lw->use_picard[i] = use_picard[i];
+    vms_lw->anderson_depth[i] = anderson_depth[i];
   }
 
   vms_lw->source_id = source_id;
@@ -1163,6 +1183,13 @@ vlasov_species_lw_new(lua_State *L)
       .nret = 1,
       .L = L,
     };
+
+    vms_lw->source_correct_all_moms[i] = source_correct_all_moms[i];
+    vms_lw->source_iter_eps[i] = source_iter_eps[i];
+    vms_lw->source_max_iter[i] = source_max_iter[i];
+    vms_lw->source_use_last_converged[i] = source_use_last_converged[i];
+    vms_lw->source_use_picard[i] = source_use_picard[i];
+    vms_lw->source_anderson_depth[i] = source_anderson_depth[i];
   }
 
   vms_lw->collision_id = collision_id;
@@ -1200,6 +1227,8 @@ vlasov_species_lw_new(lua_State *L)
   vms_lw->lte_iter_eps = lte_iter_eps;
   vms_lw->lte_max_iter = lte_max_iter;
   vms_lw->lte_use_last_converged = lte_use_last_converged;
+  vms_lw->lte_use_picard = lte_use_picard;
+  vms_lw->lte_anderson_depth = lte_anderson_depth;
   vms_lw->output_f_lte = output_f_lte;
 
   vms_lw->radiation_id = radiation_id; 
@@ -1726,6 +1755,8 @@ struct vlasov_app_lw {
   double iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact).
   int max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections.
   bool use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projections regardless of convergence?
+  bool use_picard[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use Picard iteration in projections instead of Anderson acceleration?
+  int anderson_depth[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Anderson acceleration depth for projections.
 
   enum gkyl_collision_id collision_id[GKYL_MAX_SPECIES]; // Collision type.
   double nu_frac[GKYL_MAX_SPECIES]; // Rescales collision frequencies (default = 1).
@@ -1748,6 +1779,8 @@ struct vlasov_app_lw {
   double lte_iter_eps[GKYL_MAX_SPECIES]; // Error tolerance for moment fixes in collision (density is always exact).
   int lte_max_iter[GKYL_MAX_SPECIES]; // Maximum number of iterations for moment fixes in collisions.
   bool lte_use_last_converged[GKYL_MAX_SPECIES]; // Use last iteration value in collisions regardless of convergence?
+  bool lte_use_picard[GKYL_MAX_SPECIES]; // Use Picard iteration in collisions instead of Anderson acceleration?
+  int lte_anderson_depth[GKYL_MAX_SPECIES]; // Anderson acceleration depth for collisions.
   bool output_f_lte[GKYL_MAX_SPECIES]; // Should f_lte be written out (for calculating transport coefficients)?
 
   enum gkyl_source_id source_id[GKYL_MAX_SPECIES]; // Source type.
@@ -1785,6 +1818,8 @@ struct vlasov_app_lw {
   double source_iter_eps[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Error tolerance for moment fixes in projections (density is always exact) in source.
   int source_max_iter[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Maximum number of iterations for moment fixes in projections in source.
   bool source_use_last_converged[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use last iteration value in projection regardless of convergence in source?
+  bool source_use_picard[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Use Picard iteration in source projections instead of Anderson acceleration?
+  int source_anderson_depth[GKYL_MAX_SPECIES][GKYL_MAX_PROJ]; // Anderson acceleration depth for source projections.
 
   enum gkyl_vlasov_radiation_id radiation_id[GKYL_MAX_SPECIES]; // Radiation type.
   double t_cool[GKYL_MAX_SPECIES]; // Cooling time in radiation operator rad_force ~ -1/t_cool*drag.
@@ -2304,6 +2339,8 @@ vm_app_new(lua_State *L)
       app_lw->iter_eps[s][i] = species[s]->iter_eps[i];
       app_lw->max_iter[s][i] = species[s]->max_iter[i];
       app_lw->use_last_converged[s][i] = species[s]->use_last_converged[i];
+      app_lw->use_picard[s][i] = species[s]->use_picard[i];
+      app_lw->anderson_depth[s][i] = species[s]->anderson_depth[i];
     }
 
     vm.species[s].num_init = app_lw->num_init[s];
@@ -2334,6 +2371,8 @@ vm_app_new(lua_State *L)
       vm.species[s].projection[i].iter_eps = app_lw->iter_eps[s][i];
       vm.species[s].projection[i].max_iter = app_lw->max_iter[s][i];
       vm.species[s].projection[i].use_last_converged = app_lw->use_last_converged[s][i];
+      vm.species[s].projection[i].use_picard = app_lw->use_picard[s][i];
+      vm.species[s].projection[i].anderson_depth = app_lw->anderson_depth[s][i];
     }
 
     app_lw->collision_id[s] = species[s]->collision_id;
@@ -2385,12 +2424,16 @@ vm_app_new(lua_State *L)
     app_lw->lte_iter_eps[s] = species[s]->lte_iter_eps;
     app_lw->lte_max_iter[s] = species[s]->lte_max_iter;
     app_lw->lte_use_last_converged[s] = species[s]->lte_use_last_converged;
+    app_lw->lte_use_picard[s] = species[s]->lte_use_picard;
+    app_lw->lte_anderson_depth[s] = species[s]->lte_anderson_depth;
     app_lw->output_f_lte[s] = species[s]->output_f_lte;  
 
     vm.species[s].correct.correct_all_moms = app_lw->lte_correct_all_moms[s];
     vm.species[s].correct.iter_eps = app_lw->lte_iter_eps[s];
     vm.species[s].correct.max_iter = app_lw->lte_max_iter[s];
     vm.species[s].correct.use_last_converged = app_lw->lte_use_last_converged[s];
+    vm.species[s].correct.use_picard = app_lw->lte_use_picard[s];
+    vm.species[s].correct.anderson_depth = app_lw->lte_anderson_depth[s];
     vm.species[s].correct.output_f_lte = app_lw->output_f_lte[s];
 
     app_lw->source_id[s] = species[s]->source_id;
@@ -2431,6 +2474,8 @@ vm_app_new(lua_State *L)
       app_lw->source_iter_eps[s][i] = species[s]->source_iter_eps[i];
       app_lw->source_max_iter[s][i] = species[s]->source_max_iter[i];
       app_lw->source_use_last_converged[s][i] = species[s]->source_use_last_converged[i];
+      app_lw->source_use_picard[s][i] = species[s]->source_use_picard[i];
+      app_lw->source_anderson_depth[s][i] = species[s]->source_anderson_depth[i];
     }
 
     vm.species[s].source.source_id = app_lw->source_id[s];
@@ -2479,6 +2524,8 @@ vm_app_new(lua_State *L)
       vm.species[s].source.projection[i].iter_eps = app_lw->source_iter_eps[s][i];
       vm.species[s].source.projection[i].max_iter = app_lw->source_max_iter[s][i];
       vm.species[s].source.projection[i].use_last_converged = app_lw->source_use_last_converged[s][i];
+      vm.species[s].source.projection[i].use_picard = app_lw->source_use_picard[s][i];
+      vm.species[s].source.projection[i].anderson_depth = app_lw->source_anderson_depth[s][i];
     }
 
     app_lw->radiation_id[s] = species[s]->radiation_id;

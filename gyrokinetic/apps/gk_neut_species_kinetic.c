@@ -832,9 +832,16 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   int max_iter = s->info.correct.max_iter > 0 ? s->info.correct.max_iter : 50;
   double iter_eps = s->info.correct.iter_eps > 0 ? s->info.correct.iter_eps  : 1e-10;
   bool use_last_converged = s->info.correct.use_last_converged;
-  struct correct_all_moms_inp corr_inp = { .correct_all_moms = correct_all_moms, 
-    .max_iter = max_iter, .iter_eps = iter_eps, 
-    .use_last_converged = use_last_converged };
+  bool use_picard = s->info.correct.use_picard;
+  int anderson_depth = s->info.correct.anderson_depth;
+  struct correct_all_moms_inp corr_inp = {
+    .correct_all_moms = correct_all_moms,
+    .max_iter = max_iter,
+    .iter_eps = iter_eps,
+    .use_last_converged = use_last_converged,
+    .use_picard = use_picard,
+    .anderson_depth = anderson_depth,
+  };
   gk_neut_species_lte_init(app, s, &s->lte, corr_inp);
 
   // Initialize elastic collisions.

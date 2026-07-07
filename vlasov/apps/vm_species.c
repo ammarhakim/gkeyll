@@ -1318,6 +1318,8 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     .max_iter = vms->info.correct.max_iter > 0 ? vms->info.correct.max_iter : 50, 
     .iter_eps = vms->info.correct.iter_eps > 0 ? vms->info.correct.iter_eps : 1e-10, 
     .use_last_converged = vms->info.correct.use_last_converged, 
+    .use_picard = vms->info.correct.use_picard,
+    .anderson_depth = vms->info.correct.anderson_depth,
   };
   vm_species_lte_init(app, vms, &vms->lte, corr_inp);
 

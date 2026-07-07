@@ -71,6 +71,8 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *vms,
       int max_iter = inp.max_iter > 0 ? inp.max_iter : 100;
       double iter_eps = inp.iter_eps > 0 ? inp.iter_eps  : 1e-12;
       bool use_last_converged = inp.use_last_converged; 
+      bool use_picard = inp.use_picard;
+      int anderson_depth = inp.anderson_depth;
 
       struct gkyl_vlasov_lte_correct_inp inp_corr = {
         .phase_grid = &vms->grid,
@@ -98,6 +100,8 @@ vm_species_projection_init(struct gkyl_vlasov_app *app, struct vm_species *vms,
         .max_iter = max_iter,
         .eps = iter_eps,
         .use_last_converged = use_last_converged, 
+        .use_picard = use_picard,
+        .anderson_depth = anderson_depth,
       };
       proj->corr_lte = gkyl_vlasov_lte_correct_inew( &inp_corr );
     }
