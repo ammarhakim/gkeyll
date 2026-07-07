@@ -81,7 +81,7 @@ static void
 vmbgk_alpha_E_normNu(gkyl_vlasov_app *app, const struct vm_species *s,
   struct vm_bgk_collisions *bgk, int coll_idx)
 {
-  gkyl_dg_mul_op_range(app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
   gkyl_array_scale_range(bgk->alpha_E, bgk->alpha_E_fac[coll_idx], &app->local);
 }
 
