@@ -619,7 +619,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
     // Accumulate resistive layer to EM fields if present. 
     if (app->field->has_sigma && field->field_id != GKYL_FIELD_GR_D_B) {
       for (int i = 0; i < 6; ++i) {
-        gkyl_dg_mul_op_range(app->basis, i, field->sigmaEM, 0,
+        gkyl_dg_mul_op_range(&app->basis, i, field->sigmaEM, 0,
           app->field->sigma, i, em, &app->local);
       }
       gkyl_array_accumulate_range(rhs, -1.0, field->sigmaEM, &app->local); 
@@ -788,7 +788,7 @@ vm_field_calc_energy(gkyl_vlasov_app *app, double tm, const struct vm_field *fie
   struct timespec wst = gkyl_wall_clock();  
 
   for (int i=0; i<6; ++i) {
-    gkyl_dg_calc_l2_range(app->basis, i, field->em_energy, i, field->em, app->local);
+    gkyl_dg_calc_l2_range(&app->basis, i, field->em_energy, i, field->em, app->local);
   }
   gkyl_array_scale_range(field->em_energy, app->grid.cellVolume, &app->local);
   

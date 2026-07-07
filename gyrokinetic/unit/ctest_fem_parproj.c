@@ -1273,7 +1273,7 @@ test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool u
   // Smooth rho_dg and integrate phi_dg*rho_fem.
   gkyl_fem_parproj_set_rhs(parproj, rho_dg, rho_dg);
   gkyl_fem_parproj_solve(parproj, rho_fem);
-  gkyl_dg_mul_op(basis, 0, prod, 0, phi_dg, 0, rho_fem);
+  gkyl_dg_mul_op(&basis, 0, prod, 0, phi_dg, 0, rho_fem);
   double *int_prodA = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
   gkyl_array_integrate_advance(arr_int_op, prod, 1.0, 0, &localRange, 0, int_prodA);
   double int_prodA_ho[1];
@@ -1285,7 +1285,7 @@ test_2x_selfadjoint(int poly_order, enum gkyl_fem_parproj_bc_type bctype, bool u
   // Smooth phi_dg and integrate phi_fem*rho_dg.
   gkyl_fem_parproj_set_rhs(parproj, phi_dg, phi_dg);
   gkyl_fem_parproj_solve(parproj, phi_fem);
-  gkyl_dg_mul_op(basis, 0, prod, 0, phi_fem, 0, rho_dg);
+  gkyl_dg_mul_op(&basis, 0, prod, 0, phi_fem, 0, rho_dg);
   double *int_prodB = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
   gkyl_array_integrate_advance(arr_int_op, prod, 1.0, 0, &localRange, 0, int_prodB);
   double int_prodB_ho[1];

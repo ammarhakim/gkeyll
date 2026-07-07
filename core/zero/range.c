@@ -5,6 +5,7 @@
 
 #include <gkyl_range.h>
 #include <gkyl_util.h>
+#include <gkyl_alloc.h>
 
 // flags and corresponding bit-masks
 enum range_flags { R_IS_SUB_RANGE };
@@ -102,6 +103,14 @@ gkyl_range_init(struct gkyl_range *rng, int ndim,
   // for CUDA ops
   rng->nthreads = GKYL_DEFAULT_NUM_THREADS;
   rng->nblocks = rng->volume/rng->nthreads + 1;
+}
+
+struct gkyl_range*
+gkyl_range_new(int ndim, const int *lower, const int *upper)
+{
+  struct gkyl_range* out = gkyl_calloc(1, sizeof(*out));
+  gkyl_range_init(out, ndim, lower, upper);
+  return out;
 }
 
 void
@@ -648,4 +657,36 @@ gkyl_range_compare(const struct gkyl_range* r1, const struct gkyl_range* r2)
       return false;    
   }
   return true;
+}
+
+int
+gkyl_range_get_ndim(const struct gkyl_range* range)
+{
+  return range->ndim;
+}
+
+void
+gkyl_range_get_lower(const struct gkyl_range* range, int *lower)
+{
+  for (int d=0; d<range->ndim; d++)
+    lower[d] = range->lower[d];
+}
+
+void
+gkyl_range_get_upper(const struct gkyl_range* range, int *upper)
+{
+  for (int d=0; d<range->ndim; d++)
+    upper[d] = range->upper[d];
+}
+
+long
+gkyl_range_get_volume(const struct gkyl_range* range)
+{
+  return range->volume;
+}
+
+void
+gkyl_range_release(struct gkyl_range* range)
+{
+  gkyl_free(range);
 }

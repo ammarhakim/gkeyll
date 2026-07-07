@@ -169,7 +169,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
     // We store the output in the common V_drift array since we return the spatial
     // component of the bulk four-velocity in the LTE moms array in relativity. 
     for (int d = 0; d < vdim; ++d) {
-      gkyl_dg_div_op_range(lte_moms->mem, lte_moms->conf_basis, 
+      gkyl_dg_div_op_range(lte_moms->mem, &lte_moms->conf_basis, 
         d, lte_moms->V_drift,
         d, lte_moms->M1i, 0, moms_out, conf_local);
     }
@@ -195,7 +195,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
     // Isolate drift velocity by dividing M1i by M0
     // (For Canonical-pb only: This actually computes Jv*nv/(Jv*n) eliminating Jn)
     for (int d = 0; d < vdim; ++d) {
-      gkyl_dg_div_op_range(lte_moms->mem, lte_moms->conf_basis, 
+      gkyl_dg_div_op_range(lte_moms->mem, &lte_moms->conf_basis, 
         d, lte_moms->V_drift,
         d, lte_moms->M1i, 0, lte_moms->M0, conf_local);
     }
@@ -220,7 +220,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
       // Subtract off the effective potential in place
       //d*P*Jv = (d*P*Jv + 2(Jv*n*V)) - 2(Jv*n*V)
       if (lte_moms->use_extended_hamil_def) {
-        gkyl_dg_mul_op_range(lte_moms->conf_basis, 0, lte_moms->M0_V, 0, lte_moms->M0, 0, lte_moms->effective_potential, conf_local);
+        gkyl_dg_mul_op_range(&lte_moms->conf_basis, 0, lte_moms->M0_V, 0, lte_moms->M0, 0, lte_moms->effective_potential, conf_local);
         gkyl_array_accumulate_range(lte_moms->pressure, -2.0, lte_moms->M0_V, conf_local);
       }
 
@@ -238,7 +238,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
       gkyl_mom_calc_advance(lte_moms->Pcalc, phase_local, conf_local, fin, lte_moms->pressure);
       // Subtract off V_drift dot M1i from total M2
       gkyl_array_clear(lte_moms->V_drift_dot_M1i, 0.0);
-      gkyl_dg_dot_product_op_range(lte_moms->conf_basis, 
+      gkyl_dg_dot_product_op_range(&lte_moms->conf_basis, 
         lte_moms->V_drift_dot_M1i, lte_moms->V_drift, lte_moms->M1i, conf_local); 
       gkyl_array_accumulate_range(lte_moms->pressure, -0.5, 
         lte_moms->V_drift_dot_M1i, conf_local); 
@@ -248,7 +248,7 @@ gkyl_vlasov_lte_moments_advance(struct gkyl_vlasov_lte_moments *lte_moms,
     gkyl_array_set_range(moms_out, 1.0, lte_moms->M0, conf_local);
   }
   // ( T/m = P/(mn) ) 
-  gkyl_dg_div_op_range(lte_moms->mem, lte_moms->conf_basis, 
+  gkyl_dg_div_op_range(lte_moms->mem, &lte_moms->conf_basis, 
     0, lte_moms->temperature,
     0, lte_moms->pressure, 0, moms_out, conf_local);
 
