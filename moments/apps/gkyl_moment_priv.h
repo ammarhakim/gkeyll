@@ -206,12 +206,10 @@ void gkyl_moment_app_nghost(gkyl_moment_app *app, int nghost[3]);
 
 /** Top-level app API */
 
-// Take a single time-step using a single-step time-stepper
+// Take a single Strang-split time step. Every scheme mix goes through this
+// stepper: each component's update_func advances it by the full dt with its
+// own scheme.
 struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app,
-  double dt0);
-
-// Take a single time-step using a SSP-RK3 stepper
-struct gkyl_update_status moment_update_ssp_rk3(gkyl_moment_app *app,
   double dt0);
 
 /**

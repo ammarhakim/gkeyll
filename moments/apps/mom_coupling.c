@@ -354,11 +354,12 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
   const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
 
-  // Field state for this Strang half-step. The EM-coupling solvers guard a
-  // NULL field array; the closure/Braginskii solvers do not, so they get
-  // the zero-field scratch array when the app has no field.
-  struct gkyl_array *em_state =
-    app->has_field ? app->field.f[sidx[nstrang]] : src->nofield_em;
+  // Field state for this Strang half-step, through the field's stepper
+  // protocol (the accessor hides the per-scheme state layout; it returns
+  // NULL without a field, where the zero scratch arrays stand in because
+  // several source paths read these arrays unconditionally).
+  struct gkyl_array *em_state = app->has_field
+    ? moment_field_stage_state(&app->field, nstrang) : src->nofield_em;
   const struct gkyl_array *em_closures = em_state;
   const struct gkyl_array *ext_em =
     app->has_field ? app->field.ext_em : src->nofield_ext_em;
@@ -369,7 +370,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   struct gkyl_ten_moment_grad_closure_status stat;
 
   for (int i=0; i<app->num_species; ++i) {
-    fluids[i] = app->species[i].f[sidx[nstrang]];
+    fluids[i] = moment_species_stage_state(&app->species[i], nstrang);
 
     if (app->species[i].app_accel_evolve) {
       gkyl_fv_proj_advance(app->species[i].app_accel_proj, tcurr, &app->local, app->species[i].app_accel);
@@ -381,7 +382,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
       stat = gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
         &src->non_ideal_local, &app->local,
-        app->species[i].f[sidx[nstrang]], em_closures,
+        fluids[i], em_closures,
         src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]);
 
       if (!stat.success)
@@ -396,7 +397,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
       // Non-ideal variables are defined on an extended range with one additional "cell" in each direction.
       // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
-      gkyl_ten_moment_nn_closure_advance(src->nn_closure_slvr[i], &src->non_ideal_local, &app->local, app->species[i].f[sidx[nstrang]],
+      gkyl_ten_moment_nn_closure_advance(src->nn_closure_slvr[i], &src->non_ideal_local, &app->local, fluids[i],
         em_closures, src->non_ideal_vars[i], src->pr_rhs[i]);
     }
   }
@@ -447,7 +448,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
     // the backup copy on redo.
     struct gkyl_moment_em_coupling_status gr_em_status =
       gkyl_moment_em_coupling_gr_em_explicit_advance(src->slvr, tcurr, dt, &app->local,
-        fluids, app->field.f[sidx[nstrang]], app->field.ext_em);
+        fluids, em_state, app->field.ext_em);
 
     // Reduce locally computed CFL estimate from explicit sources across ranks. 
     double gr_red_local[2]  = { gr_em_status.success ? 1.0 : 0.0, gr_em_status.dt_suggested };
@@ -467,7 +468,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   else if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const,
-      app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
+      em_state, app->field.app_current, app->field.app_current1,
       app->field.app_current2, app->field.ext_em,
       nT_sources, app->field.app_current_proj,nstrang);
   }

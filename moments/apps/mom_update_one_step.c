@@ -1,7 +1,11 @@
 #include <gkyl_moment_priv.h>
 
-// internal function that takes a single time-step using a single-step
-// Strang-split scheme
+// The app's single time stepper: one Strang-split step. Each component's
+// update_func advances it by the full dt with its own scheme (the wave-prop
+// one-step update, or a complete SSP-RK3 step for MP/KEP components), and
+// all state-array access goes through the components' stepper protocol
+// (backup/stage-state/commit/restore), so components with different
+// schemes -- and different state layouts -- coexist in one step.
 struct gkyl_update_status
 moment_update_one_step(gkyl_moment_app* app, double dt0)
 {
@@ -29,13 +33,12 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
       case PRE_UPDATE:
         state = FIRST_COUPLING_UPDATE; // next state
 
-        // Copy old solution in case we need to redo this step. Each
-        // component's copy dispatches through its method set (a no-op for
-        // an absent field/spacetime).
+        // Back up the pre-step state in case we need to redo this step
+        // (no-ops for an absent field/spacetime).
         for (int i=0; i<ns; ++i)
-          moment_species_copy(&app->species[i], app->species[i].fdup, app->species[i].f[0]);
-        moment_field_copy(&app->field, app->field.fdup, app->field.f[0]);
-        moment_spacetime_copy(&app->spacetime, app->spacetime.fdup, app->spacetime.f[0]);
+          moment_species_step_backup(&app->species[i]);
+        moment_field_step_backup(&app->field);
+        moment_spacetime_step_backup(&app->spacetime);
 
         break;
 
@@ -150,17 +153,17 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
       case POST_UPDATE:
         state = UPDATE_DONE;
 
-        // copy solution in prep for next time-step
+        // commit solution in prep for next time-step
         for (int i=0; i<ns; ++i) {
-          // check for nans before copying
-          if (check_for_nans(app->species[i].f[ndim], app->local))
+          // check for nans before committing
+          if (check_for_nans(moment_species_stage_state(&app->species[i], 1), app->local))
             have_nans_occured = true;
-          else // only copy in case no nans, so old solution can be written out
-            moment_species_copy(&app->species[i], app->species[i].f[0], app->species[i].f[ndim]);
+          else // only commit in case no nans, so old solution can be written out
+            moment_species_step_commit(&app->species[i]);
         }
 
-        moment_field_copy(&app->field, app->field.f[0], app->field.f[ndim]);
-        moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.f[ndim]);
+        moment_field_step_commit(&app->field);
+        moment_spacetime_step_commit(&app->spacetime);
 
         break;
 
@@ -169,9 +172,9 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
 
         // restore solution and retake step
         for (int i=0; i<ns; ++i)
-          moment_species_copy(&app->species[i], app->species[i].f[0], app->species[i].fdup);
-        moment_field_copy(&app->field, app->field.f[0], app->field.fdup);
-        moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.fdup);
+          moment_species_step_restore(&app->species[i]);
+        moment_field_step_restore(&app->field);
+        moment_spacetime_step_restore(&app->spacetime);
 
         break;
 

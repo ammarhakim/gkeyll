@@ -1302,7 +1302,10 @@ void implicit_source_coupling_update(
   for (int i = 0; i < nfluids; i++) {
     double *f = fluid_s[i];
 
-    if (mom_em->param[i].type == GKYL_EQN_EULER) {
+    // The relativistic nonlinear solve evolves the energy (tau) directly, so
+    // the kinetic-energy-based reconstruction below only applies to the
+    // non-relativistic linear solve, which updates momentum but not energy.
+    if (mom_em->param[i].type == GKYL_EQN_EULER && !mom_em->use_rel) {
       double rho = f[0];
       double mom_x = f[1], mom_y = f[2], mom_z = f[3];
       double energy = f[4];

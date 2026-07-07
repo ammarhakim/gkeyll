@@ -77,13 +77,18 @@ struct moment_species {
   int num_equations;            // number of equations in species
   struct gkyl_wv_eqn *equation; // equation object
 
-  enum gkyl_moment_scheme scheme_type; // scheme to update equations
+  enum gkyl_moment_scheme scheme_type; // scheme to update equations (resolved per species)
+  double cfl; // CFL number for this species' scheme
+
+  // Backup of the pre-step state, for the stepper's redo protocol (all
+  // schemes).
+  struct gkyl_array *fdup;
 
   // solvers and data to update fluid equations
   union {
     struct {
-      gkyl_wave_prop *slvr[3];        // wave-prop solver in each direction
-      struct gkyl_array *fdup, *f[4]; // arrays for updates
+      gkyl_wave_prop *slvr[3]; // wave-prop solver in each direction
+      struct gkyl_array *f[4]; // arrays for updates
     };
     struct {
       union {
@@ -111,8 +116,11 @@ struct moment_species {
   // property, so species updated by different schemes can coexist.
   double (*max_dt_func)(const gkyl_moment_app *app,
     const struct moment_species *sp);
+  // Advance this species by a FULL time step dt: the one-step Lax-Wendroff
+  // (wave-propagation) sweep, or a complete SSP-RK3 step built on rhs_func
+  // (MP/KEP). Both run inside the same Strang-split stepper.
   struct gkyl_update_status (*update_func)(gkyl_moment_app *app,
-    struct moment_species *sp, double tcurr, double dt); // wave-prop sweep
+    struct moment_species *sp, double tcurr, double dt);
   double (*rhs_func)(gkyl_moment_app *app, struct moment_species *sp,
     const struct gkyl_array *fin, struct gkyl_array *rhs); // MP/KEP RHS
   // Hook applied after each directional sweep (e.g. the excision scrub for
@@ -121,14 +129,22 @@ struct moment_species {
     struct gkyl_array *f);
   void (*copy_func)(const struct moment_species *sp,
     struct gkyl_array *dst, const struct gkyl_array *src);
+  // Stepper protocol, hiding each scheme's state-array layout from the
+  // stepper and the source coupling: expose the state array for a Strang
+  // stage (0: pre-hyperbolic, 1: post-hyperbolic) and commit the completed
+  // step. (The pre-step backup/restore for the redo protocol work through
+  // fcurr and copy_func, so they are plain functions, not slots.)
+  struct gkyl_array* (*stage_state_func)(const struct moment_species *sp,
+    int nstrang);
+  void (*step_commit_func)(const struct moment_species *sp);
   void (*apply_ic_func)(gkyl_moment_app *app, struct moment_species *sp,
     double t0);
   void (*write_func)(const gkyl_moment_app *app, const struct moment_species *sp,
     double tm, int frame);
-  void (*calc_integ_mom_func)(gkyl_moment_app *app, struct moment_species *sp,
+  void (*calc_integrated_mom_func)(gkyl_moment_app *app, struct moment_species *sp,
     double tm);
-  void (*write_integ_mom_func)(gkyl_moment_app *app, struct moment_species *sp);
-  struct gkyl_app_restart_status (*from_file_func)(gkyl_moment_app *app,
+  void (*write_integrated_mom_func)(gkyl_moment_app *app, struct moment_species *sp);
+  struct gkyl_app_restart_status (*read_func)(gkyl_moment_app *app,
     struct moment_species *sp, const char *fname);
   void (*release_func)(const struct moment_species *sp);
 };
@@ -208,6 +224,17 @@ void moment_species_copy(const struct moment_species *sp,
   struct gkyl_array *dst, const struct gkyl_array *src);
 
 /**
+ * Stepper protocol: back up / restore the pre-step state for the redo
+ * protocol, get the state array for a Strang stage (0: pre-hyperbolic, 1:
+ * post-hyperbolic), and commit the completed step into the solution.
+ */
+void moment_species_step_backup(const struct moment_species *sp);
+void moment_species_step_restore(const struct moment_species *sp);
+struct gkyl_array* moment_species_stage_state(const struct moment_species *sp,
+  int nstrang);
+void moment_species_step_commit(const struct moment_species *sp);
+
+/**
  * Project the species initial conditions (state and applied acceleration)
  * and apply BCs.
  *
@@ -238,7 +265,7 @@ void moment_species_write(const gkyl_moment_app *app,
  * @param sp Species object.
  * @param tm Time at which the diagnostic is computed.
  */
-void moment_species_calc_integ_mom(gkyl_moment_app *app,
+void moment_species_calc_integrated_mom(gkyl_moment_app *app,
   struct moment_species *sp, double tm);
 
 /**
@@ -247,7 +274,7 @@ void moment_species_calc_integ_mom(gkyl_moment_app *app,
  * @param app Moment app object.
  * @param sp Species object.
  */
-void moment_species_write_integ_mom(gkyl_moment_app *app,
+void moment_species_write_integrated_mom(gkyl_moment_app *app,
   struct moment_species *sp);
 
 /**
