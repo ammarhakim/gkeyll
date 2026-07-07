@@ -46,9 +46,9 @@ gkyl_gk_collisionless_passive_flux_new(const struct gkyl_rect_grid *phase_grid,
 
   // Select kernels for each conf-space direction.
   for (int d = 0; d < cdim; d++) {
-    up->flux_surf[d] = choose_gk_collisionless_passive_flux_surf_conf_kern(d, cdim, vdim, poly_order);
-    up->flux_surf_edge_lo[d] = choose_gk_collisionless_passive_flux_edge_lo_surf_conf_kern(d, cdim, vdim, poly_order);
-    up->flux_surf_edge_up[d] = choose_gk_collisionless_passive_flux_edge_up_surf_conf_kern(d, cdim, vdim, poly_order);
+    up->flux_surf[d]         = choose_gk_collisionless_passive_flux_surf_conf_kern(d, cdim, vdim, poly_order);
+    up->flux_surf_edge_lo[d] = choose_gk_collisionless_passive_flux_edge_lo_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[d]);
+    up->flux_surf_edge_up[d] = choose_gk_collisionless_passive_flux_edge_up_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
   }
 
   up->flags = 0;

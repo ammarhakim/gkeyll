@@ -697,8 +697,9 @@ ts_subcellint_sNi_sNii(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
     ts_nod2mod_proj_1d(up, eta_lims[0], &eta_lims_ctx, xi_b, etalo_xi);
     ts_nod2mod_proj_1d(up, eta_lims[1], &eta_lims_ctx, xi_b, etaup_xi);
 
-    up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
-      up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
+    if (fabs(xi_b[1] - xi_b[0]) > tol_xi)
+      up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
+        up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
 
     // 2) Add the contribution of the right portion.
     xi_b[0] = ts_p2l(inter_pts[0].value, xc_do[up->shear_dir_in_ts_grid], up->ts_grid.dx[up->shear_dir_in_ts_grid]);
@@ -728,8 +729,9 @@ ts_subcellint_sNi_sNii(struct gkyl_bc_twistshift *up, struct ts_val_found *inter
     ts_nod2mod_proj_1d(up, eta_lims[0], &eta_lims_ctx, xi_b, etalo_xi);
     ts_nod2mod_proj_1d(up, eta_lims[1], &eta_lims_ctx, xi_b, etaup_xi);
 
-    up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
-      up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
+    if (fabs(xi_b[1] - xi_b[0]) > tol_xi)
+      up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
+        up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
 
     // 2) Add the contribution of the right portion.
     xi_b[0] = ts_p2l(inter_pts[3].value, xc_do[up->shear_dir_in_ts_grid], up->ts_grid.dx[up->shear_dir_in_ts_grid]);
@@ -931,8 +933,9 @@ ts_subcellint_sv_svi(struct gkyl_bc_twistshift *up, struct ts_val_found *inter_p
     ts_nod2mod_proj_1d(up, eta_lims[0], &eta_lims_ctx, xi_b, etalo_xi);
     ts_nod2mod_proj_1d(up, eta_lims[1], &eta_lims_ctx, xi_b, etaup_xi);
 
-    up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
-      up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
+    if (fabs(xi_b[1] - xi_b[0]) > tol_xi)
+      up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
+        up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
 
     // 2) Add the contribution of the right portion.
     xi_b[0] = ts_p2l(inter_pts[0].value, xc_do[up->shear_dir_in_ts_grid], up->ts_grid.dx[up->shear_dir_in_ts_grid]);
@@ -962,8 +965,9 @@ ts_subcellint_sv_svi(struct gkyl_bc_twistshift *up, struct ts_val_found *inter_p
     ts_nod2mod_proj_1d(up, eta_lims[0], &eta_lims_ctx, xi_b, etalo_xi);
     ts_nod2mod_proj_1d(up, eta_lims[1], &eta_lims_ctx, xi_b, etaup_xi);
 
-    up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
-      up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
+    if (fabs(xi_b[1] - xi_b[0]) > tol_xi)
+      up->kernels->ylimdg(1.0, xi_b[0], xi_b[1], etalo_xi, etaup_xi,
+        up->ts_grid.dx[up->shift_dir_in_ts_grid], xs_off, shift_c, mat_do);
 
     // 2) Add the contribution of the right portion.
     xi_b[0] = ts_p2l(inter_pts[3].value, xc_do[up->shear_dir_in_ts_grid], up->ts_grid.dx[up->shear_dir_in_ts_grid]);

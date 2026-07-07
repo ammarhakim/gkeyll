@@ -83,8 +83,8 @@ create_ctx(void)
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
 
-  double t_end = 4.; // Final simulation time.
-  int num_frames = 100; // Number of output frames.
+  double t_end = 1.; // Final simulation time.
+  int num_frames = 1; // Number of output frames.
   double write_phase_freq = 1.0; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -194,7 +194,7 @@ void bc_shift_func_lo(double t, const double *xc, double* GKYL_RESTRICT fout, vo
 
   struct gk_app_ctx *app = ctx;
 
-  fout[0] = x-0.5;
+  fout[0] = -(x-0.5);
 }
 
 void bc_shift_func_up(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
