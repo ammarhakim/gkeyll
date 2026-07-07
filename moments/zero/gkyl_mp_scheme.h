@@ -85,3 +85,14 @@ double gkyl_mp_scheme_max_dt(const gkyl_mp_scheme *mp, const struct gkyl_range *
  * @param mp Updater to delete.
  */
 void gkyl_mp_scheme_release(gkyl_mp_scheme* mp);
+
+/**
+ * SPD test for a 3x3 spatial metric, on the symmetrized metric. 
+ */
+bool gkyl_mp_scheme_gr_metric_is_spd(const double g[9]);
+
+/**
+ * SPD face-metric limiter: symmetrize g_face and, if not SPD, blend toward the symmetrized SPD cell anchor
+ * g_cell so g_face becomes symmetric + SPD (no-op if g_face is already SPD).
+ */
+void gkyl_mp_scheme_gr_spd_face_limiter(double g_face[9], const double g_cell[9]);

@@ -26,6 +26,10 @@ struct wv_gr_euler {
   const struct gkyl_tov *tov_eq; // NULL -> plain GR Euler, no WB. Used as a presence flag only.
 
   bool disable_well_balanced; // tov_eq set but WB subtraction switched off everywhere (collapse stage).
+
+  // Optional hybrid (polytropic + thermal) EOS for core collapse. Default off => single gamma-law.
+  bool eos_hybrid;
+  double eos_gamma1, eos_gamma2, eos_gamma_th, eos_rho_nuc, eos_K1;
 };
 
 /**
@@ -54,6 +58,12 @@ gkyl_gr_euler_equilibrium(const struct gkyl_wv_eqn *eqn, const double q[76], dou
 */
 bool
 gkyl_gr_euler_wb_disabled(const struct gkyl_wv_eqn *eqn);
+
+/**
+* Specific enthalpy h = 1 + eps + p/rho from (rho, p), EOS-consistent (hybrid or gamma-law). Reduces to the gamma-law enthalpy when the hybrid EOS is off.
+*/
+double
+gkyl_gr_euler_specific_enthalpy(double gas_gamma, double rho, double p);
 
 /**
 * Compute primitive variables given the conserved variables.

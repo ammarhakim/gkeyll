@@ -3,8 +3,37 @@
 #include <gkyl_util.h>
 #include <gkyl_wv_gr_euler.h>
 #include <gkyl_wv_gr_euler_priv.h>
+#include <gkyl_mp_scheme.h>
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
+
+void
+test_gr_euler_spd_limiter() // Regression tests for the SPD face-metric limiter (hyperbolicity guard)
+{
+  // Three cases to catch:
+  // (a) A NON-SPD reconstructed face (asymmetric + a negative eigenvalue) is repaired to symmetric + SPD, blending toward an SPD cell anchor.
+  double g_cell[9] = { 1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0 }; // identity: SPD
+  double g_face[9] = { -0.5, 0.3, 0.0,  0.1, 1.0, 0.0,  0.0, 0.0, 1.0 }; // g00<0 and asymmetric => not SPD
+  TEST_CHECK(!gkyl_mp_scheme_gr_metric_is_spd(g_face));
+  gkyl_mp_scheme_gr_spd_face_limiter(g_face, g_cell);
+  TEST_CHECK(gkyl_mp_scheme_gr_metric_is_spd(g_face)); // now SPD
+  TEST_CHECK(fabs(g_face[1] - g_face[3]) < 1.0e-14); // and symmetric
+  TEST_CHECK(fabs(g_face[2] - g_face[6]) < 1.0e-14);
+  TEST_CHECK(fabs(g_face[5] - g_face[7]) < 1.0e-14);
+
+  // (b) An already-SPD (symmetric) face is unchanged (the limiter is a no-op => linearity-preserving)
+  double h_cell[9] = { 1.0, 0.0, 0.0,  0.0, 1.0, 0.0,  0.0, 0.0, 1.0 };
+  double h_face[9] = { 1.4, 0.2, 0.1,  0.2, 1.3, 0.05, 0.1, 0.05, 1.2 }; // symmetric, SPD
+  double h_orig[9];
+  for (int m = 0; m < 9; m++) h_orig[m] = h_face[m];
+  TEST_CHECK(gkyl_mp_scheme_gr_metric_is_spd(h_face));
+  gkyl_mp_scheme_gr_spd_face_limiter(h_face, h_cell);
+  for (int m = 0; m < 9; m++) TEST_CHECK(h_face[m] == h_orig[m]); // bit-identical
+
+  // (c) A slightly-asymmetric but SPD-in-its-symmetric-part metric is classified SPD (the test symmetrizes), so the guard does not false-trigger on numerical asymmetry.
+  double a[9] = { 1.0, 1e-8, 0.0,  -1e-8, 1.0, 0.0,  0.0, 0.0, 1.0 };
+  TEST_CHECK(gkyl_mp_scheme_gr_metric_is_spd(a));
+}
 
 void
 test_gr_euler_basic_minkowski()
@@ -770,7 +799,7 @@ test_gr_euler_waves_minkowski()
       qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
       qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * v_r;
       qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * w_r;
-      qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r * (rho_r * W_r));
+      qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r - (rho_r * W_r));
 
       qr[5] = lapse_r;
       qr[6] = shift_r[0]; qr[7] = shift_r[1]; qr[8] = shift_r[2];
@@ -1034,7 +1063,7 @@ test_gr_euler_waves_schwarzschild()
         qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
         qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * v_r;
         qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * w_r;
-        qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r * (rho_r * W_r));
+        qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r - (rho_r * W_r));
 
         qr[5] = lapse_r;
         qr[6] = shift_r[0]; qr[7] = shift_r[1]; qr[8] = shift_r[2];
@@ -1299,7 +1328,7 @@ test_gr_euler_waves_kerr()
         qr[1] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * u_r;
         qr[2] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * v_r;
         qr[3] = sqrt(spatial_det_r) * rho_r * h_r * (W_r * W_r) * w_r;
-        qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r * (rho_r * W_r));
+        qr[4] = sqrt(spatial_det_r) * ((rho_r * h_r * (W_r * W_r)) - p_r - (rho_r * W_r));
 
         qr[5] = lapse_r;
         qr[6] = shift_r[0]; qr[7] = shift_r[1]; qr[8] = shift_r[2];
@@ -1434,5 +1463,6 @@ TEST_LIST = {
   { "gr_euler_waves_minkowski", test_gr_euler_waves_minkowski },
   { "gr_euler_waves_schwarzschild", test_gr_euler_waves_schwarzschild },
   { "gr_euler_waves_kerr", test_gr_euler_waves_kerr },
+  { "gr_euler_spd_limiter", test_gr_euler_spd_limiter },
   { NULL, NULL },
 };

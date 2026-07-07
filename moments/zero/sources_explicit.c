@@ -4,6 +4,7 @@
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
+#include <gkyl_wv_gr_euler_priv.h>
 
 void
 explicit_nT_source_update_euler(const double mass, const double dt, double* fluid_old, double* fluid_new, const double* nT_sources)
@@ -837,58 +838,21 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
   }
 
   if (!in_excision_region) {
-    double D = fluid_old[0] / sqrt(spatial_det);
-    double momx = fluid_old[1] / sqrt(spatial_det);
-    double momy = fluid_old[2] / sqrt(spatial_det);
-    double momz = fluid_old[3] / sqrt(spatial_det);
-    double Etot = fluid_old[4] / sqrt(spatial_det);
+    double prim[71] = { 0.0 };
+    gkyl_gr_euler_prim_vars(gas_gamma, fluid_old, prim);
+    double rho = prim[0];
+    double vx = prim[1], vy = prim[2], vz = prim[3];
+    double p = prim[4];
 
-    double C = D / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    if (((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)) < pow(10.0, -8.0)) {
-      C = D / sqrt(pow(10.0, -8.0));
-      C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
-    }
+    double vel[3] = { vx, vy, vz };
+    double v_sq = 0.0;
+    for (int i = 0; i < 3; i++)
+      for (int j = 0; j < 3; j++)
+        v_sq += spatial_metric[i][j] * vel[i] * vel[j];
+    double W = 1.0 / sqrt(1.0 - v_sq);
+    if (v_sq > 1.0 - pow(10.0, -8.0)) W = 1.0 / sqrt(pow(10.0, -8.0));
 
-    double alpha0 = -1.0 / (gas_gamma * gas_gamma);
-    double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
-    double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0 * C0) - 1.0) + 1.0 - (C * C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
-    double alpha4 = (C0 * C0) - 1.0;
-    double eta = 2.0 * C *((gas_gamma - 1.0) / gas_gamma);
-
-    double guess = 1.0;
-    int iter = 0;
-
-    while (iter < 100) {
-      double poly = (alpha4 * (guess * guess * guess) * (guess - eta)) + (alpha2 * (guess * guess)) + (alpha1 * guess) + alpha0;
-      double poly_der = alpha1 + (2.0 * alpha2 * guess) + (4.0 * alpha4 * (guess * guess * guess)) - (3.0 * eta * alpha4 * (guess * guess));
-
-      double guess_new = guess - (poly / poly_der);
-
-      if (fabs(guess - guess_new) < pow(10.0, -8.0)) {
-        iter = 100;
-      }
-      else {
-        iter += 1;
-        guess = guess_new;
-      }
-    }
-
-    double W = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) * ((1.0 - (C * guess)) / ((C0 * C0) * (guess * guess))))));
-    double h = 1.0 / (C * guess);
-
-    double rho = D / W;
-    double vx = momx / (rho * h * (W * W));
-    double vy = momy / (rho * h * (W * W));
-    double vz = momz / (rho * h * (W * W));
-    double p = (rho * h * (W * W)) - D - Etot;
-
-    if (rho < pow(10.0, -8.0)) {
-      rho = pow(10.0, -8.0);
-    }
-    if (p < pow(10.0, -8.0)) {
-      p = pow(10.0, -8.0);
-    }
+    double h = gkyl_gr_euler_specific_enthalpy(gas_gamma, rho, p);
 
     double spacetime_vel[4];
     spacetime_vel[0] = W / lapse;

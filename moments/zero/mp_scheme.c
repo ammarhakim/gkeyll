@@ -171,14 +171,94 @@ gr_euler_smallest_pos_root(double A, double B, double Cz)
   return 2.0;
 }
 
+// Momentum inner product gamma_ij u^i v^j with the spatial metric (contravariant momentum density) => the physically correct |S|^2 = spatial_metric_ij S^i S^j
 static inline double
-gr_euler_pcp_theta(const double qe[5], const double w[5])
+gr_euler_mom_dot(const double spatial_metric[9], const double u[3], const double vv[3])
+{
+  double s = 0.0;
+  for (int i = 0; i < 3; i++)
+    for (int j = 0; j < 3; j++)
+      s += spatial_metric[(3 * i) + j] * u[i] * vv[j];
+  return s;
+}
+
+// SPD test for a 3x3 spatial metric (row-major slots 9..17) via leading principal minors with a
+// scale-relative floor (minors scale as scale^k). Assumes spatial_metric symmetric (caller symmetrizes first).
+static inline bool
+gr_euler_metric_is_spd(const double spatial_metric[9])
+{
+  double scale = fmax(fmax(fabs(spatial_metric[0]), fabs(spatial_metric[4])), fmax(fabs(spatial_metric[8]), 1.0e-300));
+  double eps = 1.0e-12;
+  // Test on the symmetrized metric (Sylvester's criterion needs symmetry); callers may pass a metric with small numerical asymmetry (e.g. the cell-average anchor).
+  double spatial_metric00 = spatial_metric[0], spatial_metric11 = spatial_metric[4], spatial_metric22 = spatial_metric[8];
+  double spatial_metric01 = 0.5 * (spatial_metric[1] + spatial_metric[3]), spatial_metric02 = 0.5 * (spatial_metric[2] + spatial_metric[6]), spatial_metric12 = 0.5 * (spatial_metric[5] + spatial_metric[7]);
+  double m1 = spatial_metric00;
+  double m2 = (spatial_metric00 * spatial_metric11) - (spatial_metric01 * spatial_metric01);
+  double m3 = (spatial_metric00 * ((spatial_metric11 * spatial_metric22) - (spatial_metric12 * spatial_metric12))) - (spatial_metric01 * ((spatial_metric01 * spatial_metric22) - (spatial_metric12 * spatial_metric02))) +
+    (spatial_metric02 * ((spatial_metric01 * spatial_metric12) - (spatial_metric11 * spatial_metric02)));
+  return (m1 > eps * scale) && (m2 > eps * scale * scale) && (m3 > eps * scale * scale * scale);
+}
+
+// SPD face-metric limiter (metric analog of the fluid PCP): symmetrize the reconstructed face metric
+// spatial_metric_face and, if it is not SPD, blend it toward the SPD cell-average anchor spatial_metric_cell (the SPD cone is convex,
+// so a largest theta in [0,1] keeps spatial_metric(theta)=spatial_metric_cell+theta(spatial_metric_face-spatial_metric_cell) SPD; bisection finds it). 
+// No-op when spatial_metric_face is already SPD => linearity-preserving (exact when the unlimited linear metric is SPD).
+// Conservation-safe: the metric slots are zero-flux for the fluid and both states feed one shared face flux.
+// If the cell anchor is also not SPD the face limiter cannot repair it locally - but that case is caught
+// upstream by the cell-average SPD hyperbolicity guard in mom_update_mixed.c (which rejects the step and
+// retries with a smaller dt before the fluid reconstruction ever runs), so it is not normally reached here;
+// this branch just leaves the face symmetrized as a safe fallback.
+static inline void
+gr_euler_spd_face_limiter(double spatial_metric_face[9], const double spatial_metric_cell[9])
+{
+  double s;
+  s = 0.5 * (spatial_metric_face[1] + spatial_metric_face[3]); spatial_metric_face[1] = s; spatial_metric_face[3] = s; // symmetrize (0,1)/(1,0)
+  s = 0.5 * (spatial_metric_face[2] + spatial_metric_face[6]); spatial_metric_face[2] = s; spatial_metric_face[6] = s; // (0,2)/(2,0)
+  s = 0.5 * (spatial_metric_face[5] + spatial_metric_face[7]); spatial_metric_face[5] = s; spatial_metric_face[7] = s; // (1,2)/(2,1)
+  if (gr_euler_metric_is_spd(spatial_metric_face)) return;  // already SPD: no-op (linearity-preserving)
+
+  // Use a symmetrized cell anchor gc for the SPD test, the bisection, and the final blend -- so fallback
+  // limiting toward the anchor never reintroduces cell-metric asymmetry into the face state.
+  double gc[9];
+  for (int m = 0; m < 9; m++) gc[m] = spatial_metric_cell[m];
+  gc[1] = gc[3] = 0.5 * (spatial_metric_cell[1] + spatial_metric_cell[3]);
+  gc[2] = gc[6] = 0.5 * (spatial_metric_cell[2] + spatial_metric_cell[6]);
+  gc[5] = gc[7] = 0.5 * (spatial_metric_cell[5] + spatial_metric_cell[7]);
+  if (!gr_euler_metric_is_spd(gc)) return; // anchor not SPD: caught upstream by the cell-average guard
+
+  double lo = 0.0, hi = 1.0;
+  for (int it = 0; it < 50; it++) {
+    double mid = 0.5 * (lo + hi);
+    double gm[9];
+    for (int m = 0; m < 9; m++) gm[m] = gc[m] + (mid * (spatial_metric_face[m] - gc[m]));
+    if (gr_euler_metric_is_spd(gm)) lo = mid; else hi = mid;
+  }
+  double th = (1.0 - 1.0e-12) * lo;
+  for (int m = 0; m < 9; m++) spatial_metric_face[m] = gc[m] + (th * (spatial_metric_face[m] - gc[m]));
+}
+
+bool
+gkyl_mp_scheme_gr_metric_is_spd(const double spatial_metric[9])
+{
+  return gr_euler_metric_is_spd(spatial_metric);
+}
+
+void
+gkyl_mp_scheme_gr_spd_face_limiter(double spatial_metric_face[9], const double spatial_metric_cell[9])
+{
+  gr_euler_spd_face_limiter(spatial_metric_face, spatial_metric_cell);
+}
+
+static inline double
+gr_euler_pcp_theta(const double qe[5], const double w[5], const double spatial_metric[9])
 {
   const double frac = 1.0e-4; // keep the face D and cone at >= frac of the equilibrium's own margin.
 
   double a = qe[0] + qe[4];                                       // E_eq = D_eq + tau_eq
   double b = w[0] + w[4];                                         // dE
-  double Seq2 = (qe[1] * qe[1]) + (qe[2] * qe[2]) + (qe[3] * qe[3]);
+  double qeS[3] = { qe[1], qe[2], qe[3] };
+  double wS[3]  = { w[1], w[2], w[3] };
+  double Seq2 = gr_euler_mom_dot(spatial_metric, qeS, qeS);
   double C = (a * a) - Seq2;                                      // g(0) = equilibrium cone (> 0)
   double Dmin = frac * qe[0];
   double gmin = frac * C;
@@ -186,7 +266,8 @@ gr_euler_pcp_theta(const double qe[5], const double w[5])
   // Unlimited (theta = 1) face state.
   double D1 = qe[0] + w[0];
   double E1 = a + b;
-  double S1sq = ((qe[1] + w[1]) * (qe[1] + w[1])) + ((qe[2] + w[2]) * (qe[2] + w[2])) + ((qe[3] + w[3]) * (qe[3] + w[3]));
+  double s1[3] = { qe[1] + w[1], qe[2] + w[2], qe[3] + w[3] };
+  double S1sq = gr_euler_mom_dot(spatial_metric, s1, s1);
   double g1 = (E1 * E1) - S1sq;
   if (D1 >= Dmin && g1 >= gmin) {
     return 1.0; // already admissible with margin: no limiting.
@@ -202,12 +283,12 @@ gr_euler_pcp_theta(const double qe[5], const double w[5])
 
   // g(theta) = A theta^2 + B theta + C >= gmin. value at theta=0 is C >= gmin (since gmin = frac*C).
   if (theta > 0.0) {
+    double sth[3] = { qe[1] + theta * w[1], qe[2] + theta * w[2], qe[3] + theta * w[3] };
     double Eth = a + theta * b;
-    double Sth2 = ((qe[1] + theta * w[1]) * (qe[1] + theta * w[1])) + ((qe[2] + theta * w[2]) * (qe[2] + theta * w[2]))
-      + ((qe[3] + theta * w[3]) * (qe[3] + theta * w[3]));
+    double Sth2 = gr_euler_mom_dot(spatial_metric, sth, sth);
     if ((Eth * Eth) - Sth2 < gmin) {
-      double A = (b * b) - ((w[1] * w[1]) + (w[2] * w[2]) + (w[3] * w[3]));
-      double B = 2.0 * ((a * b) - ((qe[1] * w[1]) + (qe[2] * w[2]) + (qe[3] * w[3])));
+      double A = (b * b) - gr_euler_mom_dot(spatial_metric, wS, wS);
+      double B = 2.0 * ((a * b) - gr_euler_mom_dot(spatial_metric, qeS, wS));
       double thg = gr_euler_smallest_pos_root(A, B, C - gmin);
       if (thg < theta) theta = thg;
     }
@@ -216,6 +297,27 @@ gr_euler_pcp_theta(const double qe[5], const double w[5])
   if (theta < 0.0) theta = 0.0;
   if (theta > 1.0) theta = 1.0;
   return theta;
+}
+
+// PCP anchor: the theta-sweep limits toward the cell average qa, but admissibility is measured with the
+// reconstructed face metric spatial_metric, so the anchor itself must be admissible under it (cone
+// C = E0^2 - |S0|^2 > 0) - otherwise the theta=0 endpoint is already invalid and the PCP proof fails.
+// Build a safe anchor q0 that preserves D0 and E0=D0+tau0 and reduces only the momentum by lambda so
+// E0^2 - gamma_ij S0^i S0^j >= cone_floor > 0. No-op where the anchor is already admissible (smooth regions).
+// Conservation-safe: only the states fed to the single shared face flux change.
+static inline void
+gr_euler_pcp_safe_anchor(const double qa[5], const double spatial_metric[9], double q0[5])
+{
+  for (int m = 0; m < 5; m++) q0[m] = qa[m];
+  double E0 = q0[0] + q0[4];
+  if (E0 <= 0.0) return; // degenerate energy: nothing to preserve (excised/vacuum handled elsewhere)
+  double S0[3] = { q0[1], q0[2], q0[3] };
+  double S02 = gr_euler_mom_dot(spatial_metric, S0, S0);
+  double cone_floor = 1.0e-12 * (E0 * E0); // tiny positive cone margin (relative, scale-free)
+  if (S02 > (E0 * E0) - cone_floor) {
+    double lam = sqrt(((E0 * E0) - cone_floor) / S02);
+    if (lam < 1.0) { q0[1] *= lam; q0[2] *= lam; q0[3] *= lam; } // reduce momentum only; D0, E0 preserved
+  }
 }
 
 static inline double
@@ -419,6 +521,10 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
       // disabled (collapse stage), q_eq = 0 -> plain reconstruction of q. The PCP admissibility limiter
       // is applied afer either path (independent of the WB), so it also protects the no-WB collapse.
       else if (mp->equation->type == GKYL_EQN_GR_EULER && meqn == 76) {
+        // WB on (wb=true): subtract the frozen equilibrium q_eq per stencil cell and reconstruct the smooth
+        // deviation w=q-q_eq, then add back the single-valued edge equilibrium qe (which telescopes =>
+        // conservative). WB off (collapse stage): q_eq=0 => plain reconstruction of q. Reference slots (>=71)
+        // are carried through (they are frozen and produce no flux).
         bool wb = !gkyl_gr_euler_wb_disabled(mp->equation);
         const double *qa[6] = { qavg[I3M], qavg[I2M], qavg[IM], qavg[IP], qavg[I2P], qavg[I3P] };
         double weq[6][meqn], qeq[6][meqn];
@@ -426,10 +532,10 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
           if (wb) {
             double qeqk[71];
             gkyl_gr_euler_equilibrium(mp->equation, qa[k], qeqk);
-            for (int m = 0; m < meqn; ++m) qeq[k][m] = (m < 71) ? qeqk[m] : qa[k][m]; // reference slots carry through
+            for (int m = 0; m < meqn; ++m) qeq[k][m] = (m < 71) ? qeqk[m] : qa[k][m];
           }
           else {
-            for (int m = 0; m < meqn; ++m) qeq[k][m] = 0.0; // no WB: reconstruct q directly (plain)
+            for (int m = 0; m < meqn; ++m) qeq[k][m] = (m < 71) ? 0.0 : qa[k][m];
           }
           for (int m = 0; m < meqn; ++m) weq[k][m] = qa[k][m] - qeq[k][m];
         }
@@ -448,16 +554,27 @@ gkyl_mp_scheme_advance(gkyl_mp_scheme *mp,
           qr_r[m] = qe + wr[m];
         }
 
+        // SPD face-metric limiter (metric analog of the fluid PCP), applied BEFORE the fluid PCP/C2P so
+        // they see a valid SPD face metric. No-op where the reconstructed metric is already SPD (smooth
+        // regions => bit-identical, linearity-preserving); only repairs a non-SPD reconstructed face metric
+        // by blending toward the SPD cell-average anchor. Metric slots are zero-flux for the fluid.
+        gr_euler_spd_face_limiter(&qr_l[9], &qa[2][9]); // left face state, anchor = IM cell average
+        gr_euler_spd_face_limiter(&qr_r[9], &qa[3][9]); // right face state, anchor = IP cell average
+
         // PCP (Wu-Tang) admissibility limiter: scale each reconstructed face toward its own (admissible) cell average so the face states stay in {D>0, (D+tau)^2-|S|^2>0}, making the updates
         // admissibility-preserving (Wu & Tang 2015/2017). Applied whether or not the WB is active. At a static equilibrium the deviation ~0 so theta=1 => WB reconstruction untouched.
         static int pcp_on = -1;
         if (pcp_on < 0) pcp_on = (getenv("GKYL_PCP") != NULL) ? 1 : 0;
         if (pcp_on) {
+          // Anchor at a face-metric-admissible state (safe anchor) so the theta=0 endpoint is valid (strict PCP).
+          double q0l[5], q0r[5];
+          gr_euler_pcp_safe_anchor(qa[2], &qr_l[9], q0l); // qa[2] = qavg[IM]
+          gr_euler_pcp_safe_anchor(qa[3], &qr_r[9], q0r); // qa[3] = qavg[IP]
           double devl[5], devr[5];
-          for (int m = 0; m < 5; ++m) { devl[m] = qr_l[m] - qa[2][m]; devr[m] = qr_r[m] - qa[3][m]; }
-          double thl = gr_euler_pcp_theta(qa[2], devl); // qa[2] = qavg[IM], left cell average
-          double thr = gr_euler_pcp_theta(qa[3], devr); // qa[3] = qavg[IP], right cell average
-          for (int m = 0; m < 5; ++m) { qr_l[m] = qa[2][m] + (thl * devl[m]); qr_r[m] = qa[3][m] + (thr * devr[m]); }
+          for (int m = 0; m < 5; ++m) { devl[m] = qr_l[m] - q0l[m]; devr[m] = qr_r[m] - q0r[m]; }
+          double thl = gr_euler_pcp_theta(q0l, devl, &qr_l[9]);
+          double thr = gr_euler_pcp_theta(q0r, devr, &qr_r[9]);
+          for (int m = 0; m < 5; ++m) { qr_l[m] = q0l[m] + (thl * devl[m]); qr_r[m] = q0r[m] + (thr * devr[m]); }
         }
       }
       else {

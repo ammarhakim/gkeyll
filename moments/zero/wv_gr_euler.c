@@ -12,7 +12,95 @@
 static double gr_euler_rho_floor = 1.0e-8;;
 static double gr_euler_p_floor = 1.0e-8;;
 
-// Building the static-TOV equilibrium conserved state q_eq at the same point/metric as q, for the optional well-balancing. 
+// Optional hybrid (polytropic + thermal) EOS parameters (Janka-Zwerger / Ott-Dimmelmeier). Default off => the single
+// gamma-law path is used and is bit-identical. K2, eps_off are derived for continuity at rho_nuc.
+static bool gr_euler_eos_hybrid = false;
+static double gr_euler_hyb_g1 = 1.3, gr_euler_hyb_g2 = 2.5, gr_euler_hyb_gth = 1.5;
+static double gr_euler_hyb_rho_nuc = 1.0, gr_euler_hyb_K1 = 1.0;
+static double gr_euler_hyb_K2 = 1.0, gr_euler_hyb_eps_off = 0.0; // derived in inew
+
+// Cold (polytropic) pressure, density-based piecewise: subnuclear gamma1 / supranuclear gamma2 stiffening.
+static inline double
+gr_euler_hyb_p_cold(double rho)
+{
+  if (rho < gr_euler_hyb_rho_nuc) return gr_euler_hyb_K1 * pow(rho, gr_euler_hyb_g1);
+  return gr_euler_hyb_K2 * pow(rho, gr_euler_hyb_g2);
+}
+
+// Cold specific internal energy (continuous at rho_nuc via eps_off).
+static inline double
+gr_euler_hyb_eps_cold(double rho)
+{
+  if (rho < gr_euler_hyb_rho_nuc)
+    return gr_euler_hyb_K1 * pow(rho, gr_euler_hyb_g1 - 1.0) / (gr_euler_hyb_g1 - 1.0);
+  return gr_euler_hyb_K2 * pow(rho, gr_euler_hyb_g2 - 1.0) / (gr_euler_hyb_g2 - 1.0) + gr_euler_hyb_eps_off;
+}
+
+// Total hybrid pressure from (rho, eps): cold + thermal (shock-heating), eps_th = eps - eps_cold >= 0.
+static inline double
+gr_euler_hyb_pressure(double rho, double eps)
+{
+  double eps_th = eps - gr_euler_hyb_eps_cold(rho);
+  if (eps_th < 0.0) eps_th = 0.0;
+  return gr_euler_hyb_p_cold(rho) + (gr_euler_hyb_gth - 1.0) * rho * eps_th;
+}
+
+// Specific enthalpy h = 1 + eps + p/rho from (rho, p): recover eps_th = (p - p_cold)/((gth-1) rho).
+static inline double
+gr_euler_hyb_enthalpy(double rho, double p)
+{
+  double eps_th = (p - gr_euler_hyb_p_cold(rho)) / ((gr_euler_hyb_gth - 1.0) * rho);
+  if (eps_th < 0.0) eps_th = 0.0;
+  return 1.0 + gr_euler_hyb_eps_cold(rho) + eps_th + (p / rho);
+}
+
+// Relativistic sound speed squared c_s^2 = (dp/drho|eps + (p/rho^2) dp/deps|rho) / h from (rho, p).
+static inline double
+gr_euler_hyb_cs2(double rho, double p)
+{
+  double pc = gr_euler_hyb_p_cold(rho);
+  double gi;
+  if (rho < gr_euler_hyb_rho_nuc) {
+    gi = gr_euler_hyb_g1;
+  }
+  else {
+    gi = gr_euler_hyb_g2;
+  }
+  double eps_th = (p - pc) / ((gr_euler_hyb_gth - 1.0) * rho);
+  if (eps_th < 0.0) eps_th = 0.0;
+  double h = gr_euler_hyb_enthalpy(rho, p);
+  // dp/drho|eps = gi*pc/rho + (gth-1)*eps_th - (gth-1)*pc/rho ; dp/deps|rho = (gth-1)*rho
+  double chi = (gi * pc / rho) + (gr_euler_hyb_gth - 1.0) * eps_th - (gr_euler_hyb_gth - 1.0) * (pc / rho);
+  double cs2 = (chi + (gr_euler_hyb_gth - 1.0) * (p / rho)) / h;
+  if (cs2 < 0.0) cs2 = 0.0;
+  if (cs2 > 1.0) cs2 = 1.0;
+  return cs2;
+}
+
+// C2P residual for the hybrid EOS: given conserved (D, S2=|S|^2, T=tau+D) and a pressure guess p, recover rho, W, h, eps and return P_hybrid(rho,eps) - p. Standard Font 1D pressure recovery. vsq<1 is guaranteed for p > sqrt(S2)-T
+static inline double
+gr_euler_hyb_c2p_residual(double D, double S2, double T, double p, double *rho_out, double *W_out)
+{
+  double vsq = S2 / ((T + p) * (T + p));
+  if (vsq > 1.0 - 1.0e-12) vsq = 1.0 - 1.0e-12;
+  double W = 1.0 / sqrt(1.0 - vsq);
+  double rho = D / W;
+  double h = (T + p) / (D * W);
+  double eps = h - 1.0 - (p / rho);
+  if (rho_out) *rho_out = rho;
+  if (W_out) *W_out = W;
+  return gr_euler_hyb_pressure(rho, eps) - p;
+}
+
+// Specific enthalpy h = 1 + eps + p/rho from (rho, p), EOS-consistent (hybrid or gamma-law).
+double
+gkyl_gr_euler_specific_enthalpy(double gas_gamma, double rho, double p)
+{
+  if (gr_euler_eos_hybrid) return gr_euler_hyb_enthalpy(rho, p);
+  return 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+}
+
+// Building the static-TOV equilibrium conserved state q_eq at the same point/metric as q, for the optional well-balancing.
 // The frozen t=0 equilibrium is carried in the spare slots: D_eq (71), Etot_eq (72), and the momentum S_eq (73-75, which is nonzero in Kerr-Schild where v=beta/alpha). q_eq[5..70] = the live metric (copied from q), so the equilibrium tracks the current geometry.
 static void
 gr_euler_tov_equilibrium(const struct wv_gr_euler *gr_euler, const double q[76], double q_eq[71])
@@ -85,7 +173,13 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
       W = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
-    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    double h;
+    if (gr_euler_eos_hybrid) {
+      h = gr_euler_hyb_enthalpy(rho, p);
+    }
+    else {
+      h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    }
 
     flux[0] = (lapse * sqrt(spatial_det)) * (rho * W * (vx - (shift_x / lapse)));
     flux[1] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vx * (vx - (shift_x / lapse))) + p);
@@ -141,9 +235,9 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
   spatial_metric_der[1][1][0] = q[52]; spatial_metric_der[1][1][1] = q[53]; spatial_metric_der[1][1][2] = q[54];
   spatial_metric_der[1][2][0] = q[55]; spatial_metric_der[1][2][1] = q[56]; spatial_metric_der[1][2][2] = q[57];
 
-  spatial_metric_der[0][0][0] = q[58]; spatial_metric_der[0][0][1] = q[59]; spatial_metric_der[0][0][2] = q[60];
-  spatial_metric_der[0][1][0] = q[61]; spatial_metric_der[0][1][1] = q[62]; spatial_metric_der[0][1][2] = q[63];
-  spatial_metric_der[0][2][0] = q[64]; spatial_metric_der[0][2][1] = q[65]; spatial_metric_der[0][2][2] = q[66];
+  spatial_metric_der[2][0][0] = q[58]; spatial_metric_der[2][0][1] = q[59]; spatial_metric_der[2][0][2] = q[60];
+  spatial_metric_der[2][1][0] = q[61]; spatial_metric_der[2][1][1] = q[62]; spatial_metric_der[2][1][2] = q[63];
+  spatial_metric_der[2][2][0] = q[64]; spatial_metric_der[2][2][1] = q[65]; spatial_metric_der[2][2][2] = q[66];
 
   double evol_param = q[67];
   double x = q[68];
@@ -166,9 +260,58 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
     double momz = q[3] / sqrt(spatial_det);
     double Etot = q[4] / sqrt(spatial_det);
 
-    double C = D / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
-    if (((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)) < pow(10.0, -8.0)) {
+    // Correcting for the frame-invariant, physically correct norm (the old Euclidean sum was only right for a flat metric). At v=0 (areal static) S^i=0 so
+    // this is identical to before; it matters where v!=0 (Kerr-Schild)
+    double mom_vec[3] = { momx, momy, momz };
+    double S2 = 0.0;
+    for (int si = 0; si < 3; si++)
+      for (int sj = 0; sj < 3; sj++)
+        S2 += spatial_metric[si][sj] * mom_vec[si] * mom_vec[sj];
+
+    // HYBRID EOS branch: iterative (bisection) pressure recovery, since the piecewise cold + thermal EOS
+    // has no closed-form C2P. f(p) = P_hybrid(rho(p),eps(p)) - p is bracketed in [p_lo, p_hi] and bisected.
+    if (gr_euler_eos_hybrid) {
+      double T = Etot + D; // = rho h W^2 - p
+      // Lower bracket: p must keep vsq = S2/(T+p)^2 < 1, i.e. p > sqrt(S2) - T. Also >= p_floor.
+      double p_lo = fmax(gr_euler_p_floor, sqrt(S2) - T + 1.0e-12);
+      double rho_r, W_r;
+      double f_lo = gr_euler_hyb_c2p_residual(D, S2, T, p_lo, &rho_r, &W_r);
+      // Grow an upper bracket until the residual changes sign (f decreases in p).
+      double p_hi = fmax(p_lo * 2.0, p_lo + 1.0e-6);
+      double f_hi = gr_euler_hyb_c2p_residual(D, S2, T, p_hi, &rho_r, &W_r);
+      int grow = 0;
+      while (f_lo * f_hi > 0.0 && grow < 200) {
+        p_hi *= 2.0;
+        f_hi = gr_euler_hyb_c2p_residual(D, S2, T, p_hi, &rho_r, &W_r);
+        grow++;
+      }
+      double p = p_lo;
+      if (f_lo * f_hi <= 0.0) {
+        for (int it = 0; it < 100; it++) {
+          double p_mid = 0.5 * (p_lo + p_hi);
+          double f_mid = gr_euler_hyb_c2p_residual(D, S2, T, p_mid, &rho_r, &W_r);
+          if (f_lo * f_mid <= 0.0) { p_hi = p_mid; }
+          else { p_lo = p_mid; f_lo = f_mid; }
+          p = p_mid;
+          if ((p_hi - p_lo) < 1.0e-12 * fmax(1.0, p_mid)) break;
+        }
+      }
+      double vsq = S2 / ((T + p) * (T + p));
+      if (vsq > 1.0 - 1.0e-12) vsq = 1.0 - 1.0e-12;
+      double W = 1.0 / sqrt(1.0 - vsq);
+      double h = (T + p) / (D * W);
+
+      v[0] = D / W;
+      v[1] = momx / (v[0] * h * (W * W));
+      v[2] = momy / (v[0] * h * (W * W));
+      v[3] = momz / (v[0] * h * (W * W));
+      v[4] = p;
+      goto hybrid_recovered; // skip the gamma-law quartic; land at the shared floor/atmosphere handling
+    }
+
+    double C = D / sqrt(((Etot + D) * (Etot + D)) - S2);
+    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - S2);
+    if (((Etot + D) * (Etot + D)) - S2 < pow(10.0, -8.0)) {
       C = D / sqrt(pow(10.0, -8.0));
       C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
     }
@@ -200,11 +343,13 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
     double W = 0.5 * C0 * guess * (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) * ((1.0 - (C * guess)) / ((C0 * C0) * (guess * guess))))));
     double h = 1.0 / (C * guess);
 
-    v[0] = D / W; 
+    v[0] = D / W;
     v[1] = momx / (v[0] * h * (W * W));
     v[2] = momy / (v[0] * h * (W * W));
     v[3] = momz / (v[0] * h * (W * W));
     v[4] = (v[0] * h * (W * W)) - D - Etot;
+
+    hybrid_recovered: ; // hybrid EOS branch jumps here with v[0-4] already set
 
     // Conservative atmosphere reset (read-only on q => conservation-safe; the flux the cell reports changes but
     // the update still telescopes). GKYL_ATM_RESET=1: if the recovered primitive state is below the floor
@@ -386,7 +531,13 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[71], double 
       W = 1.0 / sqrt(pow(10.0, -8.0));
     }
 
-    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    double h;
+    if (gr_euler_eos_hybrid) {
+      h = gr_euler_hyb_enthalpy(rho, p);
+    }
+    else {
+      h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    }
 
     double spacetime_vel[4];
     spacetime_vel[0] = W / lapse;
@@ -457,9 +608,15 @@ gkyl_gr_euler_max_abs_speed(double gas_gamma, const double q[71])
 
   gkyl_gr_euler_inv_spatial_metric(q, &inv_spatial_metric);
 
-  double num = (gas_gamma * p) / rho;
-  double den = 1.0 + ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
-  double c_s = sqrt(num / den);
+  double c_s;
+  if (gr_euler_eos_hybrid) {
+    c_s = sqrt(gr_euler_hyb_cs2(rho, p));
+  }
+  else {
+    double num = (gas_gamma * p) / rho;
+    double den = 1.0 + ((p / rho) * (gas_gamma) / (gas_gamma - 1.0));
+    c_s = sqrt(num / den);
+  }
 
   bool in_excision_region = false;
   if (v[27] < pow(10.0, -8.0)) {
@@ -1134,7 +1291,7 @@ wave_lax(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     in_excision_region_r = true;
   }
 
-  // Optional static-TOV well-balancing: feed the wave construction the equilibrium deviation dq = (qr-ql) - deq and df = (fr-fl) - dfeq, where (deq, dfeq) are the frozen TOV equilibrium jumps in the conserved variables and their fluxes. 
+  // Optional static-TOV well-balancing: feed the wave construction the equilibrium deviation dq = (qr-ql) - deq and df = (fr-fl) - dfeq, where (deq, dfeq) are the frozen TOV equilibrium jumps in the conserved variables and their fluxes.
   // amdq + apdq stays (fr-fl) - dfeq, so mass/energy (dfeq = 0 at v = 0) remain strictly conserved and the momentum keeps its (gravity-sourced) balance; a static star produces ~0 net flux.
   double deq[71] = { 0.0 }, dfeq[71] = { 0.0 };
   if (gr_euler->tov_eq && !gr_euler->disable_well_balanced && !in_excision_region_l && !in_excision_region_r) {
@@ -1430,7 +1587,7 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
         }
       }
       else {
-        if (fabs(spatial_metric_l[i][j]) > pow(10.0, -8.0)) {
+        if (fabs(spatial_metric_r[i][j]) > pow(10.0, -8.0)) {
           curved_spacetime_r = true;
         }
       }
@@ -1441,13 +1598,15 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     curved_spacetime_r = true;
   }
 
-  double num_l = (gas_gamma * p_l) / rho_l;
-  double den_l = 1.0 + ((p_l / rho_l) * (gas_gamma) / (gas_gamma - 1.0));
-  double c_sl = sqrt(num_l / den_l);
-
-  double num_r = (gas_gamma * p_r) / rho_r;
-  double den_r = 1.0 + ((p_r / rho_r) * (gas_gamma) / (gas_gamma - 1.0));
-  double c_sr = sqrt(num_r / den_r);
+  double c_sl, c_sr;
+  if (gr_euler_eos_hybrid) {
+    c_sl = sqrt(gr_euler_hyb_cs2(rho_l, p_l));
+    c_sr = sqrt(gr_euler_hyb_cs2(rho_r, p_r));
+  }
+  else {
+    c_sl = sqrt(((gas_gamma * p_l) / rho_l) / (1.0 + ((p_l / rho_l) * (gas_gamma) / (gas_gamma - 1.0))));
+    c_sr = sqrt(((gas_gamma * p_r) / rho_r) / (1.0 + ((p_r / rho_r) * (gas_gamma) / (gas_gamma - 1.0))));
+  }
 
   double vx_avg = 0.5 * (vx_l + vx_r);
   double cs_avg = 0.5 * (c_sl + c_sr);
@@ -1515,11 +1674,12 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
     for (int i = 0; i < 3; i++) {
       material_eigs_r[i] = (lapse_r * vel_r[i]) - shift_r[i];
 
-      fast_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) +
-        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
-      
-      slow_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sl * c_sl)))) * ((vel_r[i] * (1.0 - (c_sl * c_sl))) -
-        (c_sl * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sl * c_sl))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sl * c_sl)))))) - shift_r[i];
+      // (bugfix, finding 3) right acoustic eigenvalues must use the RIGHT sound speed c_sr, not c_sl.
+      fast_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sr * c_sr)))) * ((vel_r[i] * (1.0 - (c_sr * c_sr))) +
+        (c_sr * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sr * c_sr))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)))))) - shift_r[i];
+
+      slow_acoustic_eigs_r[i] = (lapse_r / (1.0 - (v_sq_r * (c_sr * c_sr)))) * ((vel_r[i] * (1.0 - (c_sr * c_sr))) -
+        (c_sr * sqrt((1.0 - v_sq_r) * (inv_spatial_metric_r[i][i] * (1.0 - (v_sq_r * (c_sr * c_sr))) - (vel_r[i] * vel_r[i]) * (1.0 - (c_sr * c_sr)))))) - shift_r[i];
     }
 
     double max_eig_r = 0.0;
@@ -1535,6 +1695,11 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
       }
     }
 
+    // Warning for later: these HLL signal speeds are NOT a correct bound on the characteristic cone. max_eig_{l,r} are already coordinate eigenvalues (lapse*v - shift +/- acoustic),
+    // but they are then averaged and pushed through the relativistic velocity-addition formula a second time - double-counting the boost. The correct HLL bounds are the endpoint extrema of the coordinate
+    // eigenvalues: sl = min(lambda^-_L, lambda^-_R), sr = max(lambda^+_L, lambda^+_R). 
+    // The GR-Euler driver uses the LAX solver, so this path is unused for the TOV/collapse work;
+    // HLL (and the flat branch below, which uses averaged states rather than endpoint min/max) must be reworked and validated before use with the curved 76-var system.
     double max_eig_avg = 0.5 * (max_eig_l + max_eig_r);
     
     sl = (vx_avg - max_eig_avg) / (1.0 - (vx_avg * max_eig_avg));
@@ -1718,7 +1883,14 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
     return true; // excised cell: not an evolved fluid cell, nothing to check
   }
   double DE = q[0] + q[4]; // sqrt(gamma) (D + tau)
-  double S2 = (q[1] * q[1]) + (q[2] * q[2]) + (q[3] * q[3]);
+  double spatial_metric[3][3];
+  spatial_metric[0][0] = q[9];  spatial_metric[0][1] = q[10]; spatial_metric[0][2] = q[11];
+  spatial_metric[1][0] = q[12]; spatial_metric[1][1] = q[13]; spatial_metric[1][2] = q[14];
+  spatial_metric[2][0] = q[15]; spatial_metric[2][1] = q[16]; spatial_metric[2][2] = q[17];
+  double S2 = 0.0;
+  for (int si = 0; si < 3; si++)
+    for (int sj = 0; sj < 3; sj++)
+      S2 += spatial_metric[si][sj] * q[1 + si] * q[1 + sj];
   if (q[0] <= 0.0) {
     return false; // D <= 0
   }
@@ -1791,9 +1963,9 @@ gr_euler_raw_source(double gas_gamma, const double* qin, double* sout)
   spatial_metric_der[1][1][0] = v[52]; spatial_metric_der[1][1][1] = v[53]; spatial_metric_der[1][1][2] = v[54];
   spatial_metric_der[1][2][0] = v[55]; spatial_metric_der[1][2][1] = v[56]; spatial_metric_der[1][2][2] = v[57];
 
-  spatial_metric_der[0][0][0] = v[58]; spatial_metric_der[0][0][1] = v[59]; spatial_metric_der[0][0][2] = v[60];
-  spatial_metric_der[0][1][0] = v[61]; spatial_metric_der[0][1][1] = v[62]; spatial_metric_der[0][1][2] = v[63];
-  spatial_metric_der[0][2][0] = v[64]; spatial_metric_der[0][2][1] = v[65]; spatial_metric_der[0][2][2] = v[66];
+  spatial_metric_der[2][0][0] = v[58]; spatial_metric_der[2][0][1] = v[59]; spatial_metric_der[2][0][2] = v[60];
+  spatial_metric_der[2][1][0] = v[61]; spatial_metric_der[2][1][1] = v[62]; spatial_metric_der[2][1][2] = v[63];
+  spatial_metric_der[2][2][0] = v[64]; spatial_metric_der[2][2][1] = v[65]; spatial_metric_der[2][2][2] = v[66];
 
   double **stress_energy = gkyl_malloc(sizeof(double*[4]));
   for (int i = 0; i < 4; i++) {
@@ -1826,7 +1998,13 @@ gr_euler_raw_source(double gas_gamma, const double* qin, double* sout)
       W = 1.0 / sqrt(1.0 - pow(10.0, -8.0));
     }
 
-    double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    double h;
+    if (gr_euler_eos_hybrid) {
+      h = gr_euler_hyb_enthalpy(rho, p);
+    }
+    else {
+      h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
+    }
     
     double mom[3];
     mom[0] = (rho * h) * (W * W) * vx;
@@ -1883,7 +2061,7 @@ gr_euler_source(const struct gkyl_wv_eqn* eqn, const double* qin, double* sout)
 
   gr_euler_raw_source(gr_euler->gas_gamma, qin, sout);
 
-  // Optional static-TOV well-balancing: subtract the equilibrium geometric source sigma_eq = source(q_eq), so a static star leaves the (gravity-sourced) momentum unmoved. 
+  // Optional static-TOV well-balancing: subtract the equilibrium geometric source sigma_eq = source(q_eq), so a static star leaves the (gravity-sourced) momentum unmoved.
   // Only the fluid components (1..4) are touched; mass (0) and the metric (5..70) carry no source.
   if (gr_euler->tov_eq && !gr_euler->disable_well_balanced) {
     double q_eq[71];
@@ -1946,6 +2124,26 @@ gkyl_wv_gr_euler_inew(const struct gkyl_wv_gr_euler_inp* inp)
   gr_euler->tov_eq = inp->tov_eq; // Optional static-TOV well-balancing (NULL -> inactive) (the equilibrium comes from the discrete slots, so no EOS constants needed)
 
   gr_euler->disable_well_balanced = inp->disable_well_balanced;
+
+  gr_euler->eos_hybrid = inp->eos_hybrid;
+  gr_euler->eos_gamma1 = inp->eos_gamma1;
+  gr_euler->eos_gamma2 = inp->eos_gamma2;
+  gr_euler->eos_gamma_th = inp->eos_gamma_th;
+  gr_euler->eos_rho_nuc = inp->eos_rho_nuc;
+  gr_euler->eos_K1 = inp->eos_K1;
+
+  if (inp->eos_hybrid) {
+    gr_euler_eos_hybrid = true;
+    gr_euler_hyb_g1 = inp->eos_gamma1;
+    gr_euler_hyb_g2 = inp->eos_gamma2;
+    gr_euler_hyb_gth = inp->eos_gamma_th;
+    gr_euler_hyb_rho_nuc = inp->eos_rho_nuc;
+    gr_euler_hyb_K1 = inp->eos_K1;
+    gr_euler_hyb_K2 = gr_euler_hyb_K1 * pow(gr_euler_hyb_rho_nuc, gr_euler_hyb_g1 - gr_euler_hyb_g2);
+    gr_euler_hyb_eps_off = ((gr_euler_hyb_g2 - gr_euler_hyb_g1) /
+      ((gr_euler_hyb_g1 - 1.0) * (gr_euler_hyb_g2 - 1.0))) * gr_euler_hyb_K1 *
+      pow(gr_euler_hyb_rho_nuc, gr_euler_hyb_g1 - 1.0);
+  }
 
   if (inp->rho_atm > 0.0) gr_euler_rho_floor = inp->rho_atm;
   if (inp->p_atm > 0.0) gr_euler_p_floor = inp->p_atm;

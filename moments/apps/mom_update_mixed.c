@@ -110,6 +110,63 @@ mixed_sync_metric(gkyl_moment_app *app, int fluid_idx, int einstein_idx)
   }
 }
 
+// Hyperbolicity guard: are all non-excised cell-average spacetime metrics valid inputs for the fluid solve?
+// A cell is invalid if its spatial metric (slots 0-8) is (a) grossly asymmetric (numerical drift is fine - the SPD test below uses the symmetrized metric, but a large antisymmetric part signals breakdown); 
+// (b) not SPD (positive leading principal minors of the symmetrized metric, scale-relative floors); 
+// or, for the conformal system, (c) has a non-positive BSSN conformal factor chi (slot 64). 
+static bool
+mixed_spacetime_metric_valid(gkyl_moment_app *app, const struct moment_species *esp)
+{
+  bool is_conformal = esp->has_vacuum_einstein_conformal;
+  double excision_threshold;
+  if (is_conformal) {
+    excision_threshold = esp->vacuum_einstein_conformal_excision_threshold;
+  }
+  else {
+    excision_threshold = esp->vacuum_einstein_excision_threshold;
+  }
+
+  const struct gkyl_array *ef = esp->fcurr;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  int local_bad = 0;
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
+    const double *e = gkyl_array_cfetch(ef, loc);
+    if (e[9] < excision_threshold) {
+      continue; // excised cell: handled by excision, not the SPD guard
+    }
+    double scale = fmax(fmax(fabs(e[0]), fabs(e[4])), fmax(fabs(e[8]), 1.0e-300));
+    // (a) reject only gross asymmetry
+    double asym = fmax(fmax(fabs(e[1] - e[3]), fabs(e[2] - e[6])), fabs(e[5] - e[7]));
+    if (asym > 1.0e-2 * scale) {
+      local_bad = 1;
+      break;
+    }
+    // (b) SPD via leading principal minors (Sylvester) on the symmetrized metric (Sylvester needs symmetry), scale-relative floors (minors scale as scale^k)
+    double g00 = e[0], g11 = e[4], g22 = e[8];
+    double g01 = 0.5 * (e[1] + e[3]), g02 = 0.5 * (e[2] + e[6]), g12 = 0.5 * (e[5] + e[7]);
+    double ep = 1.0e-12;
+    double m1 = g00;
+    double m2 = (g00 * g11) - (g01 * g01);
+    double m3 = (g00 * ((g11 * g22) - (g12 * g12))) - (g01 * ((g01 * g22) - (g12 * g02))) +
+      (g02 * ((g01 * g12) - (g11 * g02)));
+    if (!(m1 > ep * scale && m2 > ep * scale * scale && m3 > ep * scale * scale * scale)) {
+      local_bad = 1;
+      break;
+    }
+    // (c) conformal: the BSSN conformal factor chi must be positive
+    if (is_conformal && !(e[64] > 0.0)) {
+      local_bad = 1;
+      break;
+    }
+  }
+
+  int global_bad = local_bad;
+  gkyl_comm_allreduce(app->comm, GKYL_INT, GKYL_MAX, 1, &local_bad, &global_bad);
+  return (global_bad == 0);
+}
+
 // Take a single mixed-scheme time-step.
 struct gkyl_update_status
 moment_update_mixed(gkyl_moment_app *app, double dt0)
@@ -164,6 +221,14 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
     spacetime_source_half_step(app, esp, esp->f[0], fluid_f, gas_gamma, tcurr, 0.5 * dt);
     moment_species_apply_bc(app, tcurr, esp, esp->f[0]);
 
+    // Hyperbolicity guard before the transport solve (so a non-SPD pre-source metric didn't enter wave_prop)
+    if (!mixed_spacetime_metric_valid(app, esp)) {
+      st.success = false;
+      st.dt_actual = 0.0; // rejected step: do not advance app->tcurr (moment.c adds dt_actual unconditionally)
+      st.dt_suggested = 0.5 * dt;
+      return st;
+    }
+
     // 3b. Transport: f[0] -> f[ndim] (pure wave_prop, no sources inside).
     struct gkyl_update_status ts = moment_species_update(app, esp, tcurr, dt);
     if (!ts.success) {
@@ -177,6 +242,14 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
     // 3c. Post-transport half source on f[0]; reapply BC so ghosts are valid for the next step's sync.
     spacetime_source_half_step(app, esp, esp->f[0], fluid_f, gas_gamma, tcurr + dt, 0.5 * dt);
     moment_species_apply_bc(app, tcurr + dt, esp, esp->f[0]);
+
+    // 3d. Hyperbolicity guard after the full spacetime step
+    if (!mixed_spacetime_metric_valid(app, esp)) {
+      st.success = false;
+      st.dt_actual = 0.0;
+      st.dt_suggested = 0.5 * dt;
+      return st;
+    }
   }
 
   st.dt_actual = dt;
