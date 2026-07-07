@@ -30,7 +30,7 @@ gk_neut_species_projection_kinetic_calc(gkyl_gyrokinetic_app *app, struct gk_neu
     gkyl_array_copy(proj->prim_moms, proj->prim_moms_host);
 
     // Multiply density by the conf-space jacobian.
-    gkyl_dg_mul_op_range(app->basis, 0, proj->prim_moms, 
+    gkyl_dg_mul_op_range(&app->basis, 0, proj->prim_moms, 
       0, app->gk_geom->geo_int.jacobgeo, 0, proj->prim_moms, &app->local);
 
     // Project the Maxwellian distribution function.
@@ -182,16 +182,16 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
     // f[2] = f[0]*udrift[1]
     // f[3] = f[0]*udrift[2]
     for (int d=0; d<3; d++) {
-      gkyl_dg_mul_op_range(app->basis, d+1, s->f_host, 0, s->f_host, d, proj->udrift, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, d+1, s->f_host, 0, s->f_host, d, proj->udrift, &app->local);
     }
 
     // f[4] = 0.5*rho*u^2 + p/(gas_gamma-1)
     //      = 0.5*(rho*ux^2+rho*uy^2+rho*uz^2) + dens*temp/(gas_gamma-1)
     //      = 0.5*(f[1].udrift[0]+f[2].udrift[1]+f[3].udrift[2]) + dens*temp/(gas_gamma-1)
-    gkyl_dg_mul_op_range(app->basis, 0, proj->vtsq, 0, proj->dens, 0, proj->vtsq, &app->local);
+    gkyl_dg_mul_op_range(&app->basis, 0, proj->vtsq, 0, proj->dens, 0, proj->vtsq, &app->local);
     gkyl_array_set_offset_range(s->f_host, 1.0/(s->info.gas_gamma-1.0), proj->vtsq, 4*app->basis.num_basis, &app->local);
     for (int d=0; d<3; d++) {
-      gkyl_dg_mul_op_range(app->basis, 0, proj->dens, d+1, s->f_host, d, proj->udrift, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, 0, proj->dens, d+1, s->f_host, d, proj->udrift, &app->local);
       gkyl_array_accumulate_offset_range(s->f_host, 0.5, proj->dens, 4*app->basis.num_basis, &app->local);
     }
 
@@ -200,7 +200,7 @@ gk_neut_species_projection_fluid_calc(gkyl_gyrokinetic_app *app, struct gk_neut_
 
     // Multiply moments by the conf-space Jacobian.
     for (int d=0; d<s->num_moments; d++) {
-      gkyl_dg_mul_op_range(app->basis, d, f, 0, app->gk_geom->geo_int.jacobgeo, d, f, &app->local);
+      gkyl_dg_mul_op_range(&app->basis, d, f, 0, app->gk_geom->geo_int.jacobgeo, d, f, &app->local);
     }
 
   }

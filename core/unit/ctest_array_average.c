@@ -32,7 +32,7 @@ double solution_array_integrate(struct gkyl_rect_grid grid, struct gkyl_basis ba
   double *avgf_ref = use_gpu? gkyl_cu_malloc(sizeof(double)) : gkyl_malloc(sizeof(double));
 
   if(win)
-    gkyl_dg_mul_op_range(basis, 0, fin, 0, win, 0, fin, &local_ext);
+    gkyl_dg_mul_op_range(&basis, 0, fin, 0, win, 0, fin, &local_ext);
 
   struct gkyl_array_integrate* arr_integ = gkyl_array_integrate_new(&grid, &basis, 1, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
 
@@ -485,7 +485,7 @@ void test_2x_avgx_avgy(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_x);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(basis_y, 0, fy_c, 0, fy_c, 0, wy_c, &local_y); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
+  gkyl_dg_mul_op_range(&basis_y, 0, fy_c, 0, fy_c, 0, wy_c, &local_y); // fy_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // average over y now
   int avg_dim_y[] = {1,0,0};
@@ -649,7 +649,7 @@ void test_2x_avgy_avgx(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_x);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx
+  gkyl_dg_mul_op_range(&basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fx_c is DG coeff of int[w(x,y) f(x,y)]dx
 
   // create and run the array average updater to integrate on y
   int avg_dim_x[] = {1,0,0};
@@ -836,7 +836,7 @@ void test_3x_avgx_avgyz(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_xyz_to_yz);
 
   // we now remove manually the denominator
-  gkyl_dg_mul_op_range(basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
+  gkyl_dg_mul_op_range(&basis_yz, 0, fyz_c, 0, fyz_c, 0, wyz_c, &local_yz); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on y and z (first second dim)
   int avg_dim_yz[] = {1,1,0};
@@ -1001,7 +1001,7 @@ void test_3x_avgyz_avgx(int poly_order, bool use_gpu)
   gkyl_array_average_release(int_xyz_to_x);
 
   // remove manually the denominator
-  gkyl_dg_mul_op_range(basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
+  gkyl_dg_mul_op_range(&basis_x, 0, fx_c, 0, fx_c, 0, wx_c, &local_x); // fy_c is DG coeff of int[w(x,y) f(x,y)]dy
 
   // create and run the array average updater to average on x
   int avg_dim_x[] = {1,0,0};
