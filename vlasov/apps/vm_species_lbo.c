@@ -27,9 +27,9 @@ vmlbo_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *species,
 
   // Multiply M0, M1, M2 moments and boundary corrections by self nu.
   for (int d=0; d<app->vdim+2; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->self_nu);
+    gkyl_dg_mul_op(&app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->self_nu);
   for (int d=0; d<app->vdim+1; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->self_nu);
+    gkyl_dg_mul_op(&app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->self_nu);
 
   // Construct primitive moments.
   gkyl_prim_lbo_calc_advance(lbo->coll_pcalc, &app->local, 
@@ -37,8 +37,8 @@ vmlbo_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *species,
 
   // Scale upar and vtSq by self nu.
   for (int d=0; d<app->vdim+1; d++)
-    gkyl_dg_mul_op(app->basis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
-
+    gkyl_dg_mul_op(&app->basis, d, lbo->nu_prim_moms, d, lbo->prim_moms, 0, lbo->self_nu);
+  
   app->stat.species_coll_mom_tm += gkyl_time_diff_now_sec(wst);    
 }
 
@@ -93,7 +93,7 @@ static void
 vmlbo_alpha_E_normNu(gkyl_vlasov_app *app, const struct vm_species *s,
   struct vm_lbo_collisions *lbo, int coll_idx)
 {
-  gkyl_dg_mul_op_range(app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, lbo->alpha_E, 0, lbo->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
   gkyl_array_scale_range(lbo->alpha_E, lbo->alpha_E_fac[coll_idx], &app->local);
 }
 
@@ -121,9 +121,9 @@ vmlbo_cross_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *vms,
 
     // Multiply moments and boundary corrections by cross nu.
     for (int d=0; d<app->vdim+2; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(&app->basis, d, lbo->nu_moms, d, lbo->moms.marr, 0, lbo->cross_nu[i]);
     for (int d=0; d<app->vdim+1; d++)
-      gkyl_dg_mul_op(app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(&app->basis, d, lbo->nu_boundary_corrections, d, lbo->boundary_corrections, 0, lbo->cross_nu[i]);
 
     // Compute cross primitive moments.
     // Recycle the boundary_corrections array because we don't need those anymore.
@@ -135,7 +135,7 @@ vmlbo_cross_moms_enabled(gkyl_vlasov_app *app, const struct vm_species *vms,
 
     // Scale u_{sr} and vtSq_{sr} by nu_{sr}.
     for (int d=0; d<app->vdim+1; d++)
-      gkyl_dg_mul_op(app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
+      gkyl_dg_mul_op(&app->basis, d, cross_prim_moms, d, cross_prim_moms, 0, lbo->cross_nu[i]);
 
     gkyl_array_accumulate(lbo->nu_prim_moms, 1.0, cross_prim_moms);
 
