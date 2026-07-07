@@ -138,8 +138,6 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
       .use_gpu = app->use_gpu,
     };
     cls->calc_lorentz = gkyl_dg_gr_maxwell_lorentz_conf_inew(&inp_lorentz);
-  }
-  if (cls->has_gr_em_triad_coupling) {
     struct gkyl_dg_gr_maxwell_current_deposition_inp inp_current_dep = {
       .conf_basis = &app->basis,
       .vdim = vdim,
@@ -309,8 +307,6 @@ vm_species_collisionless_release(const struct gkyl_vlasov_app *app,
   gkyl_array_release(cls->qmem); 
   if (cls->has_gr_em_triad_coupling) {
     gkyl_dg_gr_maxwell_lorentz_conf_release(cls->calc_lorentz);
-  }
-  if (cls->has_gr_em_triad_coupling) {
     gkyl_dg_gr_maxwell_current_deposition_release(cls->calc_current_dep);
   }
   gkyl_array_release(cls->pot_tot); 
