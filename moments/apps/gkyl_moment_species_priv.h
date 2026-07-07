@@ -121,6 +121,15 @@ struct moment_species {
     struct gkyl_array *f);
   void (*copy_func)(const struct moment_species *sp,
     struct gkyl_array *dst, const struct gkyl_array *src);
+  void (*apply_ic_func)(gkyl_moment_app *app, struct moment_species *sp,
+    double t0);
+  void (*write_func)(const gkyl_moment_app *app, const struct moment_species *sp,
+    double tm, int frame);
+  void (*calc_integ_mom_func)(gkyl_moment_app *app, struct moment_species *sp,
+    double tm);
+  void (*write_integ_mom_func)(gkyl_moment_app *app, struct moment_species *sp);
+  struct gkyl_app_restart_status (*from_file_func)(gkyl_moment_app *app,
+    struct moment_species *sp, const char *fname);
   void (*release_func)(const struct moment_species *sp);
 };
 
@@ -197,6 +206,61 @@ double moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
  */
 void moment_species_copy(const struct moment_species *sp,
   struct gkyl_array *dst, const struct gkyl_array *src);
+
+/**
+ * Project the species initial conditions (state and applied acceleration)
+ * and apply BCs.
+ *
+ * @param app Moment app object.
+ * @param sp Species object.
+ * @param t0 Time for use in ICs.
+ */
+void moment_species_apply_ic(gkyl_moment_app *app, struct moment_species *sp,
+  double t0);
+
+/**
+ * Write the species state (and attendant per-scheme/per-option arrays: KEP
+ * shock detector, applied acceleration) for this frame.
+ *
+ * @param app Moment app object.
+ * @param sp Species object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ */
+void moment_species_write(const gkyl_moment_app *app,
+  const struct moment_species *sp, double tm, int frame);
+
+/**
+ * Compute the integrated diagnostic moments (equation->num_diag values) and
+ * append them to the species dynvector.
+ *
+ * @param app Moment app object.
+ * @param sp Species object.
+ * @param tm Time at which the diagnostic is computed.
+ */
+void moment_species_calc_integ_mom(gkyl_moment_app *app,
+  struct moment_species *sp, double tm);
+
+/**
+ * Write out (and clear) the accumulated integrated-moments dynvector.
+ *
+ * @param app Moment app object.
+ * @param sp Species object.
+ */
+void moment_species_write_integ_mom(gkyl_moment_app *app,
+  struct moment_species *sp);
+
+/**
+ * Read the species state from the named file for a restart, apply BCs, and
+ * recompute the applied acceleration at the restart time.
+ *
+ * @param app Moment app object.
+ * @param sp Species object.
+ * @param fname File to read.
+ * @return Restart status (IO status plus the file's frame number and time).
+ */
+struct gkyl_app_restart_status moment_species_from_file(gkyl_moment_app *app,
+  struct moment_species *sp, const char *fname);
 
 /**
  * Release resources allocated by the species.

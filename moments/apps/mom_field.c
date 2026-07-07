@@ -45,6 +45,19 @@ static void field_apply_bc_solvers(gkyl_moment_app *app, double tcurr,
 static void field_copy_arrays(const struct moment_field *fld,
   struct gkyl_array *dst, const struct gkyl_array *src);
 
+// ICs, IO, energy diagnostics, and restart (one real variant each; the
+// no-field set below no-ops them).
+static void field_apply_ic_proj(gkyl_moment_app *app, struct moment_field *fld,
+  double t0);
+static void field_write_frames(const gkyl_moment_app *app,
+  const struct moment_field *fld, double tm, int frame);
+static void field_calc_energy_quant(gkyl_moment_app *app,
+  struct moment_field *fld, double tm);
+static void field_write_energy_dynvec(gkyl_moment_app *app,
+  struct moment_field *fld);
+static struct gkyl_app_restart_status field_from_file_read(gkyl_moment_app *app,
+  struct moment_field *fld, const char *fname);
+
 // No-field set: every method is a no-op; max_dt/update/rhs impose no
 // constraint.
 static double field_max_dt_none(const gkyl_moment_app *app,
@@ -57,6 +70,16 @@ static void field_apply_bc_none(gkyl_moment_app *app, double tcurr,
   const struct moment_field *field, struct gkyl_array *f);
 static void field_copy_none(const struct moment_field *fld,
   struct gkyl_array *dst, const struct gkyl_array *src);
+static void field_apply_ic_none(gkyl_moment_app *app, struct moment_field *fld,
+  double t0);
+static void field_write_none(const gkyl_moment_app *app,
+  const struct moment_field *fld, double tm, int frame);
+static void field_calc_energy_none(gkyl_moment_app *app,
+  struct moment_field *fld, double tm);
+static void field_write_energy_none(gkyl_moment_app *app,
+  struct moment_field *fld);
+static struct gkyl_app_restart_status field_from_file_none(gkyl_moment_app *app,
+  struct moment_field *fld, const char *fname);
 static void field_release_none(const struct moment_field *fld);
 
 // Initialize the no-field object: zero the struct (so the coupling reads
@@ -75,6 +98,11 @@ field_init_none(const struct gkyl_moment *mom, struct gkyl_moment_app *app,
   fld->rhs_func = field_rhs_none;
   fld->apply_bc_func = field_apply_bc_none;
   fld->copy_func = field_copy_none;
+  fld->apply_ic_func = field_apply_ic_none;
+  fld->write_func = field_write_none;
+  fld->calc_energy_func = field_calc_energy_none;
+  fld->write_energy_func = field_write_energy_none;
+  fld->from_file_func = field_from_file_none;
   fld->release_func = field_release_none;
 }
 
@@ -358,6 +386,11 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
   // downstream calls through these pointers.
   fld->apply_bc_func = field_apply_bc_solvers;
   fld->copy_func = field_copy_arrays;
+  fld->apply_ic_func = field_apply_ic_proj;
+  fld->write_func = field_write_frames;
+  fld->calc_energy_func = field_calc_energy_quant;
+  fld->write_energy_func = field_write_energy_dynvec;
+  fld->from_file_func = field_from_file_read;
   if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
     fld->max_dt_func = field_max_dt_wave_prop;
     fld->update_func = fld->is_static ? field_update_static : field_update_wave_prop;
@@ -589,6 +622,185 @@ moment_field_copy(const struct moment_field *fld,
   struct gkyl_array *dst, const struct gkyl_array *src)
 {
   fld->copy_func(fld, dst, src);
+}
+
+// ---- initial conditions --------------------------------------------------------
+
+static void
+field_apply_ic_none(gkyl_moment_app *app, struct moment_field *fld, double t0) { }
+
+static void
+field_apply_ic_proj(gkyl_moment_app *app, struct moment_field *fld, double t0)
+{
+  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
+  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, 8, fld->init, fld->ctx);
+
+  gkyl_fv_proj_advance(proj, t0, &app->local, fld->fcurr);
+  gkyl_fv_proj_release(proj);
+
+  if (fld->has_ext_em) {
+    gkyl_fv_proj_advance(fld->ext_em_proj, t0, &app->local, fld->ext_em);
+  }
+  if (fld->has_app_current) {
+    gkyl_fv_proj_advance(fld->app_current_proj, t0, &app->local, fld->app_current);
+  }
+
+  moment_field_apply_bc(app, t0, fld, fld->fcurr);
+}
+
+void
+moment_field_apply_ic(gkyl_moment_app *app, struct moment_field *fld, double t0)
+{
+  fld->apply_ic_func(app, fld, t0);
+}
+
+// ---- write (frame IO) ------------------------------------------------------------
+
+static void
+field_write_none(const gkyl_moment_app *app, const struct moment_field *fld,
+  double tm, int frame) { }
+
+static void
+field_write_frames(const gkyl_moment_app *app, const struct moment_field *fld,
+  double tm, int frame)
+{
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
+      .frame = frame,
+      .stime = tm
+    }
+  );
+
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, fld->fcurr, fileNm.str);
+  cstr_drop(&fileNm);
+
+  // write external EM field if it is present
+  if (fld->ext_em_proj) {
+    if (fld->ext_em_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em", frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, fld->ext_em, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
+  // write applied current if it is present
+  if (fld->app_current_proj) {
+    if (fld->app_current_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "app_current", frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, fld->app_current, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
+  moment_array_meta_release(mt);
+}
+
+void
+moment_field_write(const gkyl_moment_app *app, const struct moment_field *fld,
+  double tm, int frame)
+{
+  fld->write_func(app, fld, tm, frame);
+}
+
+// ---- energy diagnostics ------------------------------------------------------------
+
+static void
+field_calc_energy_none(gkyl_moment_app *app, struct moment_field *fld, double tm) { }
+
+static void
+field_calc_energy_quant(gkyl_moment_app *app, struct moment_field *fld, double tm)
+{
+  double energy[6] = { 0.0 };
+  calc_integ_quant(fld->maxwell, app->grid.cellVolume, fld->fcurr, app->geom,
+    app->local, energy);
+
+  double energy_global[6] = { 0.0 };
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 6, energy, energy_global);
+
+  gkyl_dynvec_append(fld->integ_energy, tm, energy_global);
+}
+
+static void
+field_write_energy_none(gkyl_moment_app *app, struct moment_field *fld) { }
+
+static void
+field_write_energy_dynvec(gkyl_moment_app *app, struct moment_field *fld)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0) {
+    // write out field energy
+    cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
+
+    if (fld->is_first_energy_write_call) {
+      // write to a new file (this ensure previous output is removed)
+      gkyl_dynvec_write(fld->integ_energy, fileNm.str);
+      fld->is_first_energy_write_call = false;
+    }
+    else {
+      // append to existing file
+      gkyl_dynvec_awrite(fld->integ_energy, fileNm.str);
+    }
+    cstr_drop(&fileNm);
+  }
+  gkyl_dynvec_clear(fld->integ_energy);
+}
+
+void
+moment_field_calc_energy(gkyl_moment_app *app, struct moment_field *fld, double tm)
+{
+  fld->calc_energy_func(app, fld, tm);
+}
+
+void
+moment_field_write_energy(gkyl_moment_app *app, struct moment_field *fld)
+{
+  fld->write_energy_func(app, fld);
+}
+
+// ---- restart read ------------------------------------------------------------------
+
+static struct gkyl_app_restart_status
+field_from_file_none(gkyl_moment_app *app, struct moment_field *fld, const char *fname)
+{
+  return (struct gkyl_app_restart_status) {
+    .io_status = GKYL_ARRAY_RIO_SUCCESS,
+    .frame = 0,
+    .stime = 0.0
+  };
+}
+
+static struct gkyl_app_restart_status
+field_from_file_read(gkyl_moment_app *app, struct moment_field *fld, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = moment_app_header_from_file(app, fname);
+
+  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, fld->fcurr, fname);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      moment_field_apply_bc(app, rstat.stime, fld, fld->fcurr);
+    }
+  }
+
+  // Compute external EM field and applied current if present
+  // Computation necessary in case external EM field or applied current
+  // are time-independent and not computed in the time-stepping loop
+  // since they are not read-in as part of restarts.
+  if (fld->has_ext_em) {
+    gkyl_fv_proj_advance(fld->ext_em_proj, rstat.stime, &app->local, fld->ext_em);
+  }
+  if (fld->has_app_current) {
+    gkyl_fv_proj_advance(fld->app_current_proj, rstat.stime, &app->local, fld->app_current);
+  }
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+moment_field_from_file(gkyl_moment_app *app, struct moment_field *fld, const char *fname)
+{
+  return fld->from_file_func(app, fld, fname);
 }
 
 // ---- release --------------------------------------------------------------------

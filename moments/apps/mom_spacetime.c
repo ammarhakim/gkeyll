@@ -32,10 +32,29 @@ static void spacetime_calc_products_dynamic(gkyl_moment_app *app,
 static void spacetime_apply_bc_dynamic(gkyl_moment_app *app, double tcurr,
   const struct moment_spacetime *sp, struct gkyl_array *f);
 
+// ICs, IO, and restart. Only the dynamic backend carries an evolving
+// Einstein state to project/write/read; the static backend's IC work is the
+// initial products fill, and its write/restart are no-ops (the analytic
+// background is reconstructed from its callbacks).
+static void spacetime_apply_ic_static(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double t0);
+static void spacetime_apply_ic_dynamic(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double t0);
+static void spacetime_write_state(const gkyl_moment_app *app,
+  const struct moment_spacetime *sp, double tm, int frame);
+static struct gkyl_app_restart_status spacetime_from_frame_read(
+  gkyl_moment_app *app, struct moment_spacetime *sp, int frame);
+
 // No-spacetime set: every method is a no-op; nothing is allocated, so an app
 // without a spacetime pays nothing.
 static void spacetime_calc_products_none(gkyl_moment_app *app,
   struct moment_spacetime *sp, double tcurr);
+static void spacetime_apply_ic_none(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double t0);
+static void spacetime_write_none(const gkyl_moment_app *app,
+  const struct moment_spacetime *sp, double tm, int frame);
+static struct gkyl_app_restart_status spacetime_from_frame_none(
+  gkyl_moment_app *app, struct moment_spacetime *sp, int frame);
 static void spacetime_release_none(const struct moment_spacetime *sp);
 
 // Per-backend init/release: each installs its own function set (incl. release)
@@ -66,6 +85,9 @@ spacetime_init_none(const struct gkyl_moment *mom, struct gkyl_moment_app *app,
   sp->copy_func          = spacetime_copy_static;     // no-op
   sp->calc_products_func = spacetime_calc_products_none;
   sp->apply_bc_func      = spacetime_apply_bc_none;
+  sp->apply_ic_func      = spacetime_apply_ic_none;
+  sp->write_func         = spacetime_write_none;
+  sp->from_frame_func    = spacetime_from_frame_none;
   sp->release_func       = spacetime_release_none;
 }
 
@@ -151,6 +173,9 @@ spacetime_init_static(const struct gkyl_moment *mom,
   sp->copy_func          = spacetime_copy_static;
   sp->calc_products_func = spacetime_calc_products_static;
   sp->apply_bc_func      = spacetime_apply_bc_none;
+  sp->apply_ic_func      = spacetime_apply_ic_static;
+  sp->write_func         = spacetime_write_none;
+  sp->from_frame_func    = spacetime_from_frame_none;
   sp->release_func       = spacetime_release_static;
 }
 
@@ -170,6 +195,9 @@ spacetime_init_dynamic(const struct gkyl_moment *mom,
   sp->copy_func          = spacetime_copy_dynamic;
   sp->calc_products_func = spacetime_calc_products_dynamic;
   sp->apply_bc_func      = spacetime_apply_bc_dynamic;
+  sp->apply_ic_func      = spacetime_apply_ic_dynamic;
+  sp->write_func         = spacetime_write_state;
+  sp->from_frame_func    = spacetime_from_frame_read;
   sp->release_func       = spacetime_release_dynamic;
 
   // BC handles are created only for non-periodic directions below; zero them
@@ -547,6 +575,126 @@ moment_spacetime_calc_products(gkyl_moment_app *app, struct moment_spacetime *sp
   double tcurr)
 {
   sp->calc_products_func(app, sp, tcurr);
+}
+
+// ---- initial conditions ------------------------------------------------------
+
+static void
+spacetime_apply_ic_none(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double t0) { }
+
+// Static-analytic backend: no evolving state to project; the IC work is
+// filling the derived spacetime quantities (products + tetrad cache) the
+// fluid solver consumes.
+static void
+spacetime_apply_ic_static(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double t0)
+{
+  moment_spacetime_calc_products(app, sp, t0);
+}
+
+// Dynamic backend: project the user-supplied IC into the Einstein state
+// array (analogous to the field IC projection), apply BCs, then fill the
+// derived spacetime quantities. The products are also refreshed inside
+// moment_spacetime_update each step.
+static void
+spacetime_apply_ic_dynamic(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double t0)
+{
+  if (sp->init) {
+    int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
+    int ncomp = sp->einstein_eqn->num_equations;
+    gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, ncomp,
+      sp->init, sp->ctx);
+    gkyl_fv_proj_advance(proj, t0, &app->local, sp->fcurr);
+    gkyl_fv_proj_release(proj);
+    moment_spacetime_apply_bc(app, t0, sp, sp->fcurr);
+  }
+
+  moment_spacetime_calc_products(app, sp, t0);
+}
+
+void
+moment_spacetime_apply_ic(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double t0)
+{
+  sp->apply_ic_func(app, sp, t0);
+}
+
+// ---- write (frame IO) ----------------------------------------------------------
+
+static void
+spacetime_write_none(const gkyl_moment_app *app, const struct moment_spacetime *sp,
+  double tm, int frame) { }
+
+static void
+spacetime_write_state(const gkyl_moment_app *app, const struct moment_spacetime *sp,
+  double tm, int frame)
+{
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
+      .frame = frame,
+      .stime = tm
+    }
+  );
+
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "spacetime", frame);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, sp->fcurr, fileNm.str);
+  cstr_drop(&fileNm);
+
+  moment_array_meta_release(mt);
+}
+
+void
+moment_spacetime_write(const gkyl_moment_app *app, const struct moment_spacetime *sp,
+  double tm, int frame)
+{
+  sp->write_func(app, sp, tm, frame);
+}
+
+// ---- restart read ----------------------------------------------------------------
+
+// No evolving Einstein state to read back. For the static-analytic backend
+// the products are filled at construction and by apply_ic; the analytic
+// background needs nothing from the restart files.
+static struct gkyl_app_restart_status
+spacetime_from_frame_none(gkyl_moment_app *app, struct moment_spacetime *sp,
+  int frame)
+{
+  return (struct gkyl_app_restart_status) {
+    .io_status = GKYL_ARRAY_RIO_SUCCESS,
+    .frame = 0,
+    .stime = 0.0
+  };
+}
+
+// Dynamic backend: read the Einstein state written by spacetime_write_state,
+// apply BCs, and rebuild the derived geometry (products + tetrad cache) at
+// the restart time so the first fluid step reads a consistent spacetime.
+static struct gkyl_app_restart_status
+spacetime_from_frame_read(gkyl_moment_app *app, struct moment_spacetime *sp,
+  int frame)
+{
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "spacetime", frame);
+  struct gkyl_app_restart_status rstat = moment_app_header_from_file(app, fileNm.str);
+
+  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, sp->fcurr, fileNm.str);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      moment_spacetime_apply_bc(app, rstat.stime, sp, sp->fcurr);
+      moment_spacetime_calc_products(app, sp, rstat.stime);
+    }
+  }
+  cstr_drop(&fileNm);
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+moment_spacetime_from_frame(gkyl_moment_app *app, struct moment_spacetime *sp,
+  int frame)
+{
+  return sp->from_frame_func(app, sp, frame);
 }
 
 // ---- release ---------------------------------------------------------------

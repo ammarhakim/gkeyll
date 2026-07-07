@@ -162,6 +162,18 @@ bc_skip(const struct gkyl_wv_eqn* eqn, double t, int nc, const double *skin,
 {
 }
 
+/**
+ * Read the grid/array header of a restart file and validate it against the
+ * app's grid. Shared by the per-component restart readers.
+ *
+ * @param app App object.
+ * @param fname File to read the header from.
+ * @return Restart status: IO status plus the frame number and simulation
+ *   time from the file's embedded metadata.
+ */
+struct gkyl_app_restart_status moment_app_header_from_file(gkyl_moment_app *app,
+  const char *fname);
+
 // Compute integrated quantities specified by i_func
 void calc_integ_quant(const struct gkyl_wv_eqn *eqn, double vol,
   const struct gkyl_array *q,

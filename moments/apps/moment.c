@@ -310,50 +310,15 @@ gkyl_moment_app_apply_ic(gkyl_moment_app* app, double t0)
 void
 gkyl_moment_app_apply_ic_field(gkyl_moment_app* app, double t0)
 {
-  if (app->has_field != 1) return;
-  
   app->tcurr = t0;
-  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
-  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, 8, app->field.init, app->field.ctx);
-  
-  gkyl_fv_proj_advance(proj, t0, &app->local, app->field.fcurr);
-  gkyl_fv_proj_release(proj);
-
-  if (app->field.has_ext_em) {
-    gkyl_fv_proj_advance(app->field.ext_em_proj, t0, &app->local, app->field.ext_em);
-  }
-  if (app->field.has_app_current) {
-    gkyl_fv_proj_advance(app->field.app_current_proj, t0, &app->local, app->field.app_current);
-  }
-
-  moment_field_apply_bc(app, t0, &app->field, app->field.fcurr);
+  moment_field_apply_ic(app, &app->field, t0);
 }
 
 void
 gkyl_moment_app_apply_ic_spacetime(gkyl_moment_app* app, double t0)
 {
-  if (!app->has_spacetime) return;
-
   app->tcurr = t0;
-
-  // For the dynamic Bona-Masso backend, project the user-supplied IC into
-  // the Einstein state array (analogous to gkyl_moment_app_apply_ic_field).
-  if (app->spacetime.has_einstein_eqn && app->spacetime.init) {
-    int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
-    int ncomp = app->spacetime.einstein_eqn->num_equations;
-    gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, ncomp,
-      app->spacetime.init, app->spacetime.ctx);
-    gkyl_fv_proj_advance(proj, t0, &app->local, app->spacetime.fcurr);
-    gkyl_fv_proj_release(proj);
-    moment_spacetime_apply_bc(app, t0, &app->spacetime, app->spacetime.fcurr);
-  }
-
-  // Fill the derived spacetime quantities (cell-center products over the
-  // interior + ghost cells, plus the per-interface tetrad cache) that the fluid
-  // wave step consumes via the equation auxfields. For the static-analytic
-  // backend this is the only time it runs; the dynamic backend refreshes inside
-  // moment_spacetime_update each step.
-  moment_spacetime_calc_products(app, &app->spacetime, t0);
+  moment_spacetime_apply_ic(app, &app->spacetime, t0);
 }
 
 void
@@ -362,18 +327,7 @@ gkyl_moment_app_apply_ic_species(gkyl_moment_app* app, int sidx, double t0)
   assert(sidx < app->num_species);
 
   app->tcurr = t0;
-  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;  
-  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, app->species[sidx].num_equations,
-    app->species[sidx].init, app->species[sidx].ctx);
-  
-  gkyl_fv_proj_advance(proj, t0, &app->local, app->species[sidx].fcurr);
-  gkyl_fv_proj_release(proj);
-
-  if (app->species[sidx].has_app_accel) {
-    gkyl_fv_proj_advance(app->species[sidx].app_accel_proj, t0, &app->local, app->species[sidx].app_accel);
-  }
-
-  moment_species_apply_bc(app, t0, &app->species[sidx], app->species[sidx].fcurr);
+  moment_species_apply_ic(app, &app->species[sidx], t0);
 }
 
 void
@@ -388,136 +342,32 @@ gkyl_moment_app_write(const gkyl_moment_app* app, double tm, int frame)
 void
 gkyl_moment_app_write_spacetime(const gkyl_moment_app* app, double tm, int frame)
 {
-  // Only the dynamic Bona-Masso backend carries an evolving Einstein state to
-  // write; the static-analytic background is reconstructed from its callbacks.
-  if (!app->has_spacetime || !app->spacetime.has_einstein_eqn) return;
-
-  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
-      .frame = frame,
-      .stime = tm
-    }
-  );
-
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "spacetime", frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->spacetime.fcurr, fileNm.str);
-  cstr_drop(&fileNm);
-
-  moment_array_meta_release(mt);
+  moment_spacetime_write(app, &app->spacetime, tm, frame);
 }
 
 void
 gkyl_moment_app_write_field(const gkyl_moment_app* app, double tm, int frame)
 {
-  if (app->has_field != 1) return;
-
-  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
-      .frame = frame,
-      .stime= tm
-    }
-  );
-
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.fcurr, fileNm.str);
-  cstr_drop(&fileNm);
-
-  // write external EM field if it is present
-  if (app->field.ext_em_proj) {
-    if (app->field.ext_em_evolve || frame == 0) {
-      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "ext_em", frame);
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.ext_em, fileNm.str);
-      cstr_drop(&fileNm);
-    }
-  }
-
-  // write applied currents if it is present
-  if (app->field.app_current_proj) {
-    if (app->field.app_current_evolve || frame == 0) {
-      cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "app_current", frame);
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->field.app_current, fileNm.str);
-      cstr_drop(&fileNm);
-    }
-  }
-
-  moment_array_meta_release(mt);
+  moment_field_write(app, &app->field, tm, frame);
 }
 
 void
 gkyl_moment_app_write_field_energy(gkyl_moment_app *app)
 {
-  if (app->has_field) {
-    int rank;
-    gkyl_comm_get_rank(app->comm, &rank);
-    if (rank == 0) {
-      // write out field energy
-      cstr fileNm = cstr_from_fmt("%s-field-energy.gkyl", app->name);
-      
-      if (app->field.is_first_energy_write_call) {
-        // write to a new file (this ensure previous output is removed)
-        gkyl_dynvec_write(app->field.integ_energy, fileNm.str);
-        app->field.is_first_energy_write_call = false;
-      }
-      else {
-        // append to existing file
-        gkyl_dynvec_awrite(app->field.integ_energy, fileNm.str);
-      }
-      cstr_drop(&fileNm);
-    }
-    gkyl_dynvec_clear(app->field.integ_energy);
-  }
+  moment_field_write_energy(app, &app->field);
 }
 
 void
 gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 {
-  for (int i=0; i<app->num_species; ++i) {
-    int rank;
-    gkyl_comm_get_rank(app->comm, &rank);
-    if (rank == 0) {
-      // write out diagnostic moments
-      cstr fileNm = cstr_from_fmt("%s-%s-%s.gkyl", app->name, app->species[i].name,
-        "imom");
-      
-      if (app->species[i].is_first_q_write_call) {
-        gkyl_dynvec_write(app->species[i].integ_q, fileNm.str);
-        app->species[i].is_first_q_write_call = false;
-      }
-      else {
-        gkyl_dynvec_awrite(app->species[i].integ_q, fileNm.str);
-      }
-      cstr_drop(&fileNm);
-    }
-    gkyl_dynvec_clear(app->species[i].integ_q);
-  }
+  for (int i=0; i<app->num_species; ++i)
+    moment_species_write_integ_mom(app, &app->species[i]);
 }
 
 void
 gkyl_moment_app_write_species(const gkyl_moment_app* app, int sidx, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
-      .frame = frame,
-      .stime = tm
-    }
-  );
-  
-  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species[sidx].name, frame);
-  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].fcurr, fileNm.str);
-  cstr_drop(&fileNm);
-
-  if (app->scheme_type == GKYL_MOMENT_KEP) {
-    cstr fileNm = cstr_from_fmt("%s-%s-alpha_%d.gkyl", app->name, app->species[sidx].name, frame);
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].alpha, fileNm.str);
-    cstr_drop(&fileNm);
-  }
-
-  if (app->species[sidx].has_app_accel) {
-    if (app->species[sidx].app_accel_evolve || frame == 0) {
-      cstr fileNm = cstr_from_fmt("%s-%s-app_accel_%d.gkyl", app->name, app->species[sidx].name, frame);
-      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, app->species[sidx].app_accel, fileNm.str);
-      cstr_drop(&fileNm);      
-    }
-  }
-
-  moment_array_meta_release(mt);
+  moment_species_write(app, &app->species[sidx], tm, frame);
 }
 
 struct gkyl_update_status
@@ -560,29 +410,14 @@ gkyl_moment_app_get_field_energy(gkyl_moment_app *app, double *vals)
 void
 gkyl_moment_app_calc_field_energy(gkyl_moment_app* app, double tm)
 {
-  if (app->has_field) {
-    double energy[6] = { 0.0 };
-    gkyl_moment_app_get_field_energy(app, energy);
-    gkyl_dynvec_append(app->field.integ_energy, tm, energy);
-
-  }
+  moment_field_calc_energy(app, &app->field, tm);
 }
 
 void
 gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
 {
-  for (int sidx=0; sidx<app->num_species; ++sidx) {
-
-    int num_diag = app->species[sidx].equation->num_diag;
-    double q_integ[num_diag];
-
-    calc_integ_quant(app->species[sidx].equation, app->grid.cellVolume, app->species[sidx].fcurr, app->geom,
-      app->local, q_integ);
-
-    double q_integ_global[num_diag];
-    gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
-    gkyl_dynvec_append(app->species[sidx].integ_q, tm, q_integ_global);
-  }
+  for (int sidx=0; sidx<app->num_species; ++sidx)
+    moment_species_calc_integ_mom(app, &app->species[sidx], tm);
 }
 
 void
@@ -804,97 +639,17 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   cstr_drop(&fileNm);
 }
 
-static struct gkyl_app_restart_status
-header_from_file(gkyl_moment_app *app, const char *fname)
-{
-  struct gkyl_app_restart_status rstat = { .io_status = 0 };
-  
-  FILE *fp = 0;
-  with_file(fp, fname, "r") {
-    struct gkyl_rect_grid grid;
-    struct gkyl_array_header_info hdr;
-    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
-
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      if (!gkyl_rect_grid_cmp(&app->grid, &grid))
-        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
-      if (hdr.etype != GKYL_DOUBLE)
-        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
-    }
-
-    struct moment_output_meta meta =
-      moment_meta_from_mpack( &(struct gkyl_msgpack_data) {
-          .meta = hdr.meta,
-          .meta_sz = hdr.meta_size
-        }
-      );
-
-    rstat.frame = meta.frame;
-    rstat.stime = meta.stime;
-
-    gkyl_grid_sub_array_header_release(&hdr);
-  }
-  
-  return rstat;
-}
-
 struct gkyl_app_restart_status
 gkyl_moment_app_from_file_field(gkyl_moment_app *app, const char *fname)
 {
-  if (app->has_field != 1)
-    return (struct gkyl_app_restart_status) {
-      .io_status = GKYL_ARRAY_RIO_SUCCESS,
-      .frame = 0,
-      .stime = 0.0
-    };
-
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
-
-  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-    rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->field.fcurr, fname);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      moment_field_apply_bc(app, rstat.stime, &app->field, app->field.fcurr);
-    }
-  }
-
-  // Compute external EM field and applied current if present
-  // Computation necessary in case external EM field or applied current
-  // are time-independent and not computed in the time-stepping loop
-  // since they are not read-in as part of restarts. 
-  if (app->field.has_ext_em) {
-    gkyl_fv_proj_advance(app->field.ext_em_proj, rstat.stime, &app->local, app->field.ext_em);
-  }
-  if (app->field.has_app_current) {
-    gkyl_fv_proj_advance(app->field.app_current_proj, rstat.stime, &app->local, app->field.app_current);
-  }  
-
-  return rstat;
+  return moment_field_from_file(app, &app->field, fname);
 }
 
-struct gkyl_app_restart_status 
+struct gkyl_app_restart_status
 gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
   const char *fname)
 {
-  struct gkyl_app_restart_status rstat = header_from_file(app, fname);
-  
-  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-    rstat.io_status =
-      gkyl_comm_array_read(app->comm, &app->grid, &app->local, app->species[sidx].fcurr, fname);
-    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
-      moment_species_apply_bc(app, rstat.stime, &app->species[sidx], app->species[sidx].fcurr);
-    }
-  }
-
-  // Compute applied acceleration if present.
-  // Computation necessary in case applied acceleration
-  // is time-independent and not computed in the time-stepping loop
-  // since it is not read-in as part of restarts. 
-  if (app->species[sidx].has_app_accel) {
-    gkyl_fv_proj_advance(app->species[sidx].app_accel_proj, rstat.stime, &app->local, app->species[sidx].app_accel);
-  }  
-
-  return rstat;
+  return moment_species_from_file(app, &app->species[sidx], fname);
 }
 
 struct gkyl_app_restart_status
@@ -925,6 +680,15 @@ gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame)
   struct gkyl_app_restart_status rstat;
 
   rstat = gkyl_moment_app_from_frame_field(app, frame);
+
+  // Restore the spacetime before the species so the fluid step reads the
+  // restarted geometry (a no-op for a static or absent spacetime; the
+  // dynamic backend also rebuilds the derived products/tetrad cache). Only
+  // an actual read (dynamic backend) contributes to the returned status.
+  struct gkyl_app_restart_status st_rstat =
+    moment_spacetime_from_frame(app, &app->spacetime, frame);
+  if (app->spacetime.has_einstein_eqn)
+    rstat = st_rstat;
 
   for (int i = 0; i < app->num_species; i++) {
     rstat = gkyl_moment_app_from_frame_species(app, i, frame);

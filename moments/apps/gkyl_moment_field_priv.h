@@ -91,6 +91,15 @@ struct moment_field {
     const struct moment_field *field, struct gkyl_array *f);
   void (*copy_func)(const struct moment_field *fld,
     struct gkyl_array *dst, const struct gkyl_array *src);
+  void (*apply_ic_func)(gkyl_moment_app *app, struct moment_field *fld,
+    double t0);
+  void (*write_func)(const gkyl_moment_app *app, const struct moment_field *fld,
+    double tm, int frame);
+  void (*calc_energy_func)(gkyl_moment_app *app, struct moment_field *fld,
+    double tm);
+  void (*write_energy_func)(gkyl_moment_app *app, struct moment_field *fld);
+  struct gkyl_app_restart_status (*from_file_func)(gkyl_moment_app *app,
+    struct moment_field *fld, const char *fname);
   void (*release_func)(const struct moment_field *fld);
 };
 
@@ -165,6 +174,62 @@ double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
  */
 void moment_field_copy(const struct moment_field *fld,
   struct gkyl_array *dst, const struct gkyl_array *src);
+
+/**
+ * Project the field initial conditions (EM state, external EM field,
+ * applied current) and apply BCs. No-op when there is no field.
+ *
+ * @param app Moment app object.
+ * @param fld Field object.
+ * @param t0 Time for use in ICs.
+ */
+void moment_field_apply_ic(gkyl_moment_app *app, struct moment_field *fld,
+  double t0);
+
+/**
+ * Write the EM state (and external EM field / applied current, when present)
+ * for this frame. No-op when there is no field.
+ *
+ * @param app Moment app object.
+ * @param fld Field object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ */
+void moment_field_write(const gkyl_moment_app *app, const struct moment_field *fld,
+  double tm, int frame);
+
+/**
+ * Compute the integrated field-energy diagnostic and append it to the
+ * energy dynvector. No-op when there is no field.
+ *
+ * @param app Moment app object.
+ * @param fld Field object.
+ * @param tm Time at which the diagnostic is computed.
+ */
+void moment_field_calc_energy(gkyl_moment_app *app, struct moment_field *fld,
+  double tm);
+
+/**
+ * Write out (and clear) the accumulated field-energy dynvector. No-op when
+ * there is no field.
+ *
+ * @param app Moment app object.
+ * @param fld Field object.
+ */
+void moment_field_write_energy(gkyl_moment_app *app, struct moment_field *fld);
+
+/**
+ * Read the field state from the named file for a restart, apply BCs, and
+ * recompute the external EM field / applied current at the restart time.
+ * Returns success without reading when there is no field.
+ *
+ * @param app Moment app object.
+ * @param fld Field object.
+ * @param fname File to read.
+ * @return Restart status (IO status plus the file's frame number and time).
+ */
+struct gkyl_app_restart_status moment_field_from_file(gkyl_moment_app *app,
+  struct moment_field *fld, const char *fname);
 
 /**
  * Release resources allocated by the field.

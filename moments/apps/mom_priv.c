@@ -1,4 +1,43 @@
+#include <gkyl_array_rio_priv.h>
 #include <gkyl_moment_priv.h>
+
+// Read the grid/array header of a restart file and validate it against the
+// app's grid; the returned status carries the frame number and simulation
+// time from the file's embedded metadata. Shared by the per-component
+// from_file/from_frame restart readers.
+struct gkyl_app_restart_status
+moment_app_header_from_file(gkyl_moment_app *app, const char *fname)
+{
+  struct gkyl_app_restart_status rstat = { .io_status = 0 };
+
+  FILE *fp = 0;
+  with_file(fp, fname, "r") {
+    struct gkyl_rect_grid grid;
+    struct gkyl_array_header_info hdr;
+    rstat.io_status = gkyl_grid_sub_array_header_read_fp(&grid, &hdr, fp);
+
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      if (!gkyl_rect_grid_cmp(&app->grid, &grid))
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+      if (hdr.etype != GKYL_DOUBLE)
+        rstat.io_status = GKYL_ARRAY_RIO_DATA_MISMATCH;
+    }
+
+    struct moment_output_meta meta =
+      moment_meta_from_mpack( &(struct gkyl_msgpack_data) {
+          .meta = hdr.meta,
+          .meta_sz = hdr.meta_size
+        }
+      );
+
+    rstat.frame = meta.frame;
+    rstat.stime = meta.stime;
+
+    gkyl_grid_sub_array_header_release(&hdr);
+  }
+
+  return rstat;
+}
 
 // Compute the nc intergated values over the update_rgn, storing the
 // result in the integ_q

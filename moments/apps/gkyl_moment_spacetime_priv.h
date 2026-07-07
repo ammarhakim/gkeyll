@@ -87,6 +87,12 @@ struct moment_spacetime {
     struct moment_spacetime *sp, double tcurr);
   void (*apply_bc_func)(gkyl_moment_app *app, double tcurr,
     const struct moment_spacetime *sp, struct gkyl_array *f);
+  void (*apply_ic_func)(gkyl_moment_app *app, struct moment_spacetime *sp,
+    double t0);
+  void (*write_func)(const gkyl_moment_app *app,
+    const struct moment_spacetime *sp, double tm, int frame);
+  struct gkyl_app_restart_status (*from_frame_func)(gkyl_moment_app *app,
+    struct moment_spacetime *sp, int frame);
   void (*release_func)(const struct moment_spacetime *sp);
 };
 
@@ -178,6 +184,44 @@ void moment_spacetime_calc_products(gkyl_moment_app *app,
  */
 void moment_spacetime_create_tetrad_cache(gkyl_moment_app *app,
   struct moment_spacetime *sp, double tcurr);
+
+/**
+ * Apply the spacetime initial conditions: fill the derived spacetime
+ * quantities (products + tetrad cache), and for the dynamic backend first
+ * project the user-supplied Einstein-state IC and apply BCs. No-op when
+ * there is no spacetime.
+ *
+ * @param app Moment app object.
+ * @param sp Spacetime object.
+ * @param t0 Time for use in ICs.
+ */
+void moment_spacetime_apply_ic(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double t0);
+
+/**
+ * Write the evolving Einstein state for this frame (dynamic backend only;
+ * the static-analytic background is reconstructed from its callbacks).
+ *
+ * @param app Moment app object.
+ * @param sp Spacetime object.
+ * @param tm Time-stamp.
+ * @param frame Frame number.
+ */
+void moment_spacetime_write(const gkyl_moment_app *app,
+  const struct moment_spacetime *sp, double tm, int frame);
+
+/**
+ * Read the Einstein state for the given restart frame (dynamic backend),
+ * apply BCs, and rebuild the derived geometry at the restart time. Returns
+ * success without reading for the static/no-spacetime cases.
+ *
+ * @param app Moment app object.
+ * @param sp Spacetime object.
+ * @param frame Frame number.
+ * @return Restart status (IO status plus the file's frame number and time).
+ */
+struct gkyl_app_restart_status moment_spacetime_from_frame(gkyl_moment_app *app,
+  struct moment_spacetime *sp, int frame);
 
 /**
  * Release resources allocated by the spacetime object.

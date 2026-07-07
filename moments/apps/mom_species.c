@@ -59,6 +59,19 @@ static void species_post_update_scrub_excised(gkyl_moment_app *app,
 static void species_copy_arrays(const struct moment_species *sp,
   struct gkyl_array *dst, const struct gkyl_array *src);
 
+// ICs, IO, integrated diagnostics, and restart (one variant each for now;
+// wired through the vtable so species types can override them later).
+static void species_apply_ic_proj(gkyl_moment_app *app,
+  struct moment_species *sp, double t0);
+static void species_write_frames(const gkyl_moment_app *app,
+  const struct moment_species *sp, double tm, int frame);
+static void species_calc_integ_mom_quant(gkyl_moment_app *app,
+  struct moment_species *sp, double tm);
+static void species_write_integ_mom_dynvec(gkyl_moment_app *app,
+  struct moment_species *sp);
+static struct gkyl_app_restart_status species_from_file_read(gkyl_moment_app *app,
+  struct moment_species *sp, const char *fname);
+
 // initialize species
 void
 moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_species *mom_sp,
@@ -392,6 +405,11 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   // property here (currently inherited from the app input), so species
   // updated by different schemes can coexist.
   sp->copy_func = species_copy_arrays;
+  sp->apply_ic_func = species_apply_ic_proj;
+  sp->write_func = species_write_frames;
+  sp->calc_integ_mom_func = species_calc_integ_mom_quant;
+  sp->write_integ_mom_func = species_write_integ_mom_dynvec;
+  sp->from_file_func = species_from_file_read;
   switch (sp->scheme_type) {
     case GKYL_MOMENT_WAVE_PROP:
       sp->max_dt_func = species_max_dt_wave_prop;
@@ -671,6 +689,156 @@ moment_species_copy(const struct moment_species *sp,
   struct gkyl_array *dst, const struct gkyl_array *src)
 {
   sp->copy_func(sp, dst, src);
+}
+
+// ---- initial conditions --------------------------------------------------------
+
+static void
+species_apply_ic_proj(gkyl_moment_app *app, struct moment_species *sp, double t0)
+{
+  int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
+  gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, sp->num_equations,
+    sp->init, sp->ctx);
+
+  gkyl_fv_proj_advance(proj, t0, &app->local, sp->fcurr);
+  gkyl_fv_proj_release(proj);
+
+  if (sp->has_app_accel) {
+    gkyl_fv_proj_advance(sp->app_accel_proj, t0, &app->local, sp->app_accel);
+  }
+
+  moment_species_apply_bc(app, t0, sp, sp->fcurr);
+}
+
+void
+moment_species_apply_ic(gkyl_moment_app *app, struct moment_species *sp, double t0)
+{
+  sp->apply_ic_func(app, sp, t0);
+}
+
+// ---- write (frame IO) ------------------------------------------------------------
+
+static void
+species_write_frames(const gkyl_moment_app *app, const struct moment_species *sp,
+  double tm, int frame)
+{
+  struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
+      .frame = frame,
+      .stime = tm
+    }
+  );
+
+  cstr fileNm = cstr_from_fmt("%s-%s_%d.gkyl", app->name, sp->name, frame);
+  gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, sp->fcurr, fileNm.str);
+  cstr_drop(&fileNm);
+
+  if (sp->scheme_type == GKYL_MOMENT_KEP) {
+    cstr fileNm = cstr_from_fmt("%s-%s-alpha_%d.gkyl", app->name, sp->name, frame);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, sp->alpha, fileNm.str);
+    cstr_drop(&fileNm);
+  }
+
+  if (sp->has_app_accel) {
+    if (sp->app_accel_evolve || frame == 0) {
+      cstr fileNm = cstr_from_fmt("%s-%s-app_accel_%d.gkyl", app->name, sp->name, frame);
+      gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, sp->app_accel, fileNm.str);
+      cstr_drop(&fileNm);
+    }
+  }
+
+  moment_array_meta_release(mt);
+}
+
+void
+moment_species_write(const gkyl_moment_app *app, const struct moment_species *sp,
+  double tm, int frame)
+{
+  sp->write_func(app, sp, tm, frame);
+}
+
+// ---- integrated diagnostics ------------------------------------------------------
+
+static void
+species_calc_integ_mom_quant(gkyl_moment_app *app, struct moment_species *sp,
+  double tm)
+{
+  int num_diag = sp->equation->num_diag;
+  double q_integ[num_diag];
+
+  calc_integ_quant(sp->equation, app->grid.cellVolume, sp->fcurr, app->geom,
+    app->local, q_integ);
+
+  double q_integ_global[num_diag];
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_diag, q_integ, q_integ_global);
+  gkyl_dynvec_append(sp->integ_q, tm, q_integ_global);
+}
+
+static void
+species_write_integ_mom_dynvec(gkyl_moment_app *app, struct moment_species *sp)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0) {
+    // write out diagnostic moments
+    cstr fileNm = cstr_from_fmt("%s-%s-%s.gkyl", app->name, sp->name, "imom");
+
+    if (sp->is_first_q_write_call) {
+      gkyl_dynvec_write(sp->integ_q, fileNm.str);
+      sp->is_first_q_write_call = false;
+    }
+    else {
+      gkyl_dynvec_awrite(sp->integ_q, fileNm.str);
+    }
+    cstr_drop(&fileNm);
+  }
+  gkyl_dynvec_clear(sp->integ_q);
+}
+
+void
+moment_species_calc_integ_mom(gkyl_moment_app *app, struct moment_species *sp,
+  double tm)
+{
+  sp->calc_integ_mom_func(app, sp, tm);
+}
+
+void
+moment_species_write_integ_mom(gkyl_moment_app *app, struct moment_species *sp)
+{
+  sp->write_integ_mom_func(app, sp);
+}
+
+// ---- restart read ------------------------------------------------------------------
+
+static struct gkyl_app_restart_status
+species_from_file_read(gkyl_moment_app *app, struct moment_species *sp,
+  const char *fname)
+{
+  struct gkyl_app_restart_status rstat = moment_app_header_from_file(app, fname);
+
+  if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+    rstat.io_status =
+      gkyl_comm_array_read(app->comm, &app->grid, &app->local, sp->fcurr, fname);
+    if (GKYL_ARRAY_RIO_SUCCESS == rstat.io_status) {
+      moment_species_apply_bc(app, rstat.stime, sp, sp->fcurr);
+    }
+  }
+
+  // Compute applied acceleration if present.
+  // Computation necessary in case applied acceleration
+  // is time-independent and not computed in the time-stepping loop
+  // since it is not read-in as part of restarts.
+  if (sp->has_app_accel) {
+    gkyl_fv_proj_advance(sp->app_accel_proj, rstat.stime, &app->local, sp->app_accel);
+  }
+
+  return rstat;
+}
+
+struct gkyl_app_restart_status
+moment_species_from_file(gkyl_moment_app *app, struct moment_species *sp,
+  const char *fname)
+{
+  return sp->from_file_func(app, sp, fname);
 }
 
 // ---- release -----------------------------------------------------------------
