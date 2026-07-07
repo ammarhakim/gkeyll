@@ -18,6 +18,8 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
+#include <gkyl_math.h>
+#include <gkyl_const.h>
 
 // Meta-data for IO
 struct test_bc_twistshift_output_meta {
@@ -2098,6 +2100,356 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
 
 }
 
+// CBC geometry (see rt_gk_cbc_passive_3x2v_p1.c)
+
+static double
+interp_1x_lut_cbc(double x, double *lut_grid, double *lut_val, int N)
+{
+  double x_min = lut_grid[0];
+  double x_max = lut_grid[N-1];
+  if (x <= x_min) return lut_val[0];
+  if (x >= x_max) return lut_val[N-1];
+  double dx = (x_max - x_min)/(N-1);
+  int idx = (int)((x - x_min)/dx);
+  if (idx < 0) idx = 0;
+  if (idx >= N-1) idx = N-2;
+  return lut_val[idx] + (lut_val[idx+1] - lut_val[idx])*(x - lut_grid[idx])/(lut_grid[idx+1] - lut_grid[idx]);
+}
+
+struct gk_cbc_app_ctx {
+  double a_shift, Z_axis, R_axis, R0, a_mid, r0, B0, kappa, delta, q0, Cy, qaxis, qlcfs;
+  double Lx, Ly, Lz;
+  double x_min, y_min, z_min, x_max, y_max, z_max;
+  int psi_lut_size;
+  double *r_lut;
+  double *dPsidr_int_lut;
+};
+
+struct integrand_cbc_ctx {
+  struct gk_cbc_app_ctx *app_ctx;
+  double r;
+  double theta;
+};
+
+static double r_x_cbc(double x, double r0) { return x + r0; }
+
+static double qprofile_cbc(double r, double a_mid, double qaxis, double qlcfs)
+{
+  return 1.0 + 2.78*pow(r/a_mid, 2.8);
+}
+
+static double R_rtheta_cbc(double r, double theta, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  return app->R_axis - app->a_shift*r*r/(2.*app->R_axis)
+    + r*cos(theta + asin(app->delta)*sin(theta));
+}
+
+static double dRdr_cbc(double r, double theta, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  return -app->a_shift*r/app->R_axis + cos(theta + asin(app->delta)*sin(theta));
+}
+
+static double dRdtheta_cbc(double r, double theta, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  return -r*sin(theta + asin(app->delta)*sin(theta))*(1. + asin(app->delta)*cos(theta));
+}
+
+static double dZdr_cbc(double r, double theta, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  return app->kappa*sin(theta);
+}
+
+static double dZdtheta_cbc(double r, double theta, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  return app->kappa*r*cos(theta);
+}
+
+static double Jr_cbc(double r, double theta, void *ctx)
+{
+  return R_rtheta_cbc(r, theta, ctx)
+    *(dRdr_cbc(r, theta, ctx)*dZdtheta_cbc(r, theta, ctx)
+      - dRdtheta_cbc(r, theta, ctx)*dZdr_cbc(r, theta, ctx));
+}
+
+static double Bphi_cbc(double R, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  return app->B0*app->R0/R;
+}
+
+static double integrand_JoRsq_cbc(double t, void *int_ctx)
+{
+  struct integrand_cbc_ctx *inctx = int_ctx;
+  return Jr_cbc(inctx->r, t, inctx->app_ctx)
+    / pow(R_rtheta_cbc(inctx->r, t, inctx->app_ctx), 2);
+}
+
+static double intdPsidr_cbc(double r, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  struct integrand_cbc_ctx tmp_ctx = {.app_ctx = app, .r = r};
+  struct gkyl_qr_res integral = gkyl_dbl_exp(integrand_JoRsq_cbc, &tmp_ctx, 0., 2.*M_PI, 7, 1e-10);
+  return integral.res;
+}
+
+static double dPsidr_cbc(double r, double theta, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  double integral_val = interp_1x_lut_cbc(r, app->r_lut, app->dPsidr_int_lut, app->psi_lut_size);
+  double R = R_rtheta_cbc(r, theta, ctx);
+  double Bt = Bphi_cbc(R, ctx);
+  return (R*Bt/(2.*M_PI*qprofile_cbc(r, app->a_mid, app->qaxis, app->qlcfs)))*integral_val;
+}
+
+static double compute_alpha_integral_cbc(double r, double twrap, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  struct integrand_cbc_ctx tmp_ctx = {.app_ctx = app, .r = r};
+  struct gkyl_qr_res integral;
+  if (twrap == 0.0) return 0.0;
+  if (0. < twrap) {
+    integral = gkyl_dbl_exp(integrand_JoRsq_cbc, &tmp_ctx, 0., twrap, 7, 1e-10);
+    return integral.res;
+  } else {
+    integral = gkyl_dbl_exp(integrand_JoRsq_cbc, &tmp_ctx, twrap, 0., 7, 1e-10);
+    return -integral.res;
+  }
+}
+
+static double alpha_cbc(double r, double theta, double phi, void *ctx)
+{
+  double twrap = theta;
+  while (twrap < -M_PI) twrap += 2.*M_PI;
+  while (twrap >  M_PI) twrap -= 2.*M_PI;
+  double integral_val = compute_alpha_integral_cbc(r, twrap, ctx);
+  double R  = R_rtheta_cbc(r, theta, ctx);
+  double Bt = Bphi_cbc(R, ctx);
+  return phi - R*Bt*integral_val/dPsidr_cbc(r, theta, ctx);
+}
+
+void bc_shift_func_lo_cbc(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  double r = r_x_cbc(xc[0], app->r0);
+  fout[0] = app->Cy*(alpha_cbc(r, app->z_min, 0.0, ctx) - alpha_cbc(r, app->z_max, 0.0, ctx));
+}
+
+void bc_shift_func_up_cbc(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  double r = r_x_cbc(xc[0], app->r0);
+  fout[0] = -app->Cy*(alpha_cbc(r, app->z_min, 0.0, ctx) - alpha_cbc(r, app->z_max, 0.0, ctx));
+}
+
+void init_donor_3x_cbc(double t, const double *xn, double* GKYL_RESTRICT fout, void *ctx)
+{
+  struct gk_cbc_app_ctx *app = ctx;
+  double x = xn[0], y = xn[1], z = xn[2];
+  double sigx = app->Lx/7.0, sigy = app->Ly/7.0, sigz = app->Lz/10.0;
+  fout[0] = exp(-x*x/(2.*sigx*sigx) - y*y/(2.*sigy*sigy) - z*z/(2.*sigz*sigz));
+}
+
+void
+test_bc_twistshift_3x_cbc_wcells(const int *cells, enum gkyl_edge_loc edge,
+  bool use_gpu, bool write_f)
+{
+  int bc_dir = 2;
+  int poly_order = 1;
+
+  // Physical parameters matching rt_gk_cbc_passive_3x2v_p1.c create_ctx().
+  double eV  = GKYL_ELEMENTARY_CHARGE;
+  double mp  = GKYL_PROTON_MASS;
+  double qi  = eV;
+  double mi  = mp; // AMU = 1 (hydrogen)
+  double Te0 = 2000.*eV;
+
+  double R_axis = 1.6714;
+  double B_axis = 1.54;
+  double a_mid  = 0.604;
+  double R0     = R_axis + 0.5*a_mid;
+  double r0     = 0.5*a_mid;
+  double B0     = B_axis*(R_axis/R0);
+  double qaxis  = 1.2;
+  double qlcfs  = 2.0;
+
+  double c_s      = sqrt(Te0/mi);
+  double omega_ci = fabs(qi*B0/mi);
+  double rho_s    = c_s/omega_ci;
+  double q0       = qprofile_cbc(r0, a_mid, qaxis, qlcfs);
+  double Cy       = r0/q0;
+
+  double Lx = 150.*rho_s;
+  double Ly = 150.*rho_s;
+  Ly = 2.*M_PI*Cy/round(2.*M_PI*Cy/Ly); // adjust to integer toroidal mode number
+  double Lz = 2.*M_PI - 1e-10;
+
+  // Use a fixed LUT size sufficient for accurate geometry evaluation.
+  int psi_lut_size = 200;
+
+  struct gk_cbc_app_ctx app_ctx = {
+    .a_shift = 0.0, .Z_axis = 0.0,
+    .R_axis  = R_axis, .R0 = R0, .a_mid = a_mid, .r0 = r0,
+    .B0      = B0, .kappa = 1.0, .delta = 0.0,
+    .q0 = q0, .Cy = Cy, .qaxis = qaxis, .qlcfs = qlcfs,
+    .Lx = Lx, .Ly = Ly, .Lz = Lz,
+    .x_min = -Lx/2., .x_max = Lx/2.,
+    .y_min = -Ly/2., .y_max = Ly/2.,
+    .z_min = -Lz/2., .z_max = Lz/2.,
+    .psi_lut_size = psi_lut_size,
+  };
+
+  // Populate lookup tables (avoids redundant integration in geometry evaluations).
+  app_ctx.r_lut        = gkyl_malloc(psi_lut_size*sizeof(double));
+  app_ctx.dPsidr_int_lut = gkyl_malloc(psi_lut_size*sizeof(double));
+  double r_lut_min = 0.0, r_lut_max = 2.0*a_mid;
+  for (int i=0; i<psi_lut_size; i++)
+    app_ctx.r_lut[i] = i*(r_lut_max - r_lut_min)/(psi_lut_size - 1);
+  for (int i=0; i<psi_lut_size; i++)
+    app_ctx.dPsidr_int_lut[i] = intdPsidr_cbc(app_ctx.r_lut[i], &app_ctx);
+
+  const double lower[] = {app_ctx.x_min, app_ctx.y_min, app_ctx.z_min};
+  const double upper[] = {app_ctx.x_max, app_ctx.y_max, app_ctx.z_max};
+  int ndim = 3, cdim = 3, vdim = 0;
+
+  double lower_conf[cdim], upper_conf[cdim];
+  int cells_conf[cdim];
+  for (int d=0; d<cdim; d++) {
+    lower_conf[d] = lower[d];
+    upper_conf[d] = upper[d];
+    cells_conf[d] = cells[d];
+  }
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid grid_conf;
+  gkyl_rect_grid_init(&grid_conf, cdim, lower_conf, upper_conf, cells_conf);
+
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  struct gkyl_basis basis_conf;
+  gkyl_cart_modal_serendip(&basis_conf, cdim, poly_order);
+
+  int ghost_conf[cdim];
+  for (int d=0; d<cdim; d++) ghost_conf[d] = 1;
+  struct gkyl_range local_conf, local_ext_conf;
+  gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_ext_conf, &local_conf);
+
+  int ghost[ndim];
+  for (int d=0; d<cdim; d++) ghost[d] = ghost_conf[d];
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct skin_ghost_ranges skin_ghost;
+  skin_ghost_ranges_init(&skin_ghost, &local_ext, ghost);
+
+  struct gkyl_range skin_rng, ghost_rng;
+  if (edge == GKYL_LOWER_EDGE) {
+    skin_rng  = skin_ghost.upper_skin[bc_dir];
+    ghost_rng = skin_ghost.lower_ghost[bc_dir];
+  } else {
+    skin_rng  = skin_ghost.lower_skin[bc_dir];
+    ghost_rng = skin_ghost.upper_ghost[bc_dir];
+  }
+
+  struct gkyl_array *distf    = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *distf_ho = use_gpu?
+    mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(distf);
+
+  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_inew(
+    &(struct gkyl_proj_on_basis_inp){
+      .grid = &grid, .basis = &basis,
+      .num_ret_vals = 1,
+      .eval = init_donor_3x_cbc,
+      .ctx  = &app_ctx,
+    }
+  );
+  gkyl_proj_on_basis_advance(projDistf, 0.0, &local, distf_ho);
+  gkyl_array_copy(distf, distf_ho);
+
+  struct gkyl_msgpack_data *mt = test_bc_twistshift_array_meta_new(
+    (struct test_bc_twistshift_output_meta){
+      .poly_order = poly_order, .basis_type = basis.id
+    }
+  );
+  if (write_f)
+    gkyl_grid_sub_array_write(&grid, &local, mt, distf_ho,
+      "ctest_bc_twistshift_3x_cbc_do.gkyl");
+
+  // Range extended only in bc_dir.
+  struct gkyl_range update_rng;
+  int lower_bcdir_ext[ndim], upper_bcdir_ext[ndim];
+  for (int d=0; d<ndim; d++) {
+    lower_bcdir_ext[d] = local.lower[d];
+    upper_bcdir_ext[d] = local.upper[d];
+  }
+  lower_bcdir_ext[bc_dir] = local.lower[bc_dir] - ghost[bc_dir];
+  upper_bcdir_ext[bc_dir] = local.upper[bc_dir] + ghost[bc_dir];
+  gkyl_sub_range_init(&update_rng, &local_ext, lower_bcdir_ext, upper_bcdir_ext);
+
+  // Choose shift function based on edge.
+  struct gkyl_bc_twistshift_inp tsinp = {
+    .bc_dir   = bc_dir,
+    .shift_dir = 1,
+    .shear_dir = 0,
+    .edge      = edge,
+    .cdim      = cdim,
+    .bcdir_ext_update_r = update_rng,
+    .num_ghost = ghost,
+    .basis     = basis,
+    .grid      = grid,
+    .shift_func = (edge == GKYL_LOWER_EDGE) ? bc_shift_func_lo_cbc : bc_shift_func_up_cbc,
+    .shift_func_ctx = &app_ctx,
+    .use_gpu   = use_gpu,
+  };
+
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+
+  struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
+  apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
+
+  gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_array_copy(distf_ho, distf);
+
+  if (write_f) {
+    double lower_ext[ndim], upper_ext[ndim];
+    int cells_ext[ndim];
+    for (int d=0; d<ndim; d++) {
+      double dx = (upper[d] - lower[d])/cells[d];
+      lower_ext[d] = lower[d] - dx*ghost[d];
+      upper_ext[d] = upper[d] + dx*ghost[d];
+      cells_ext[d] = cells[d] + 2*ghost[d];
+    }
+    struct gkyl_rect_grid grid_ext;
+    gkyl_rect_grid_init(&grid_ext, ndim, lower_ext, upper_ext, cells_ext);
+    gkyl_grid_sub_array_write(&grid_ext, &local_ext, mt, distf_ho,
+      "ctest_bc_twistshift_3x_cbc_tar.gkyl");
+  }
+
+  gkyl_free(app_ctx.r_lut);
+  gkyl_free(app_ctx.dPsidr_int_lut);
+
+  gkyl_array_release(buff_per);
+  test_bc_twistshift_array_meta_release(mt);
+  gkyl_bc_twistshift_release(tsup);
+  gkyl_proj_on_basis_release(projDistf);
+  gkyl_array_release(distf_ho);
+  gkyl_array_release(distf);
+}
+
+void
+test_bc_twistshift_3x_cbc(bool use_gpu)
+{
+  const int cells0[] = {16, 16, 4};
+
+  test_bc_twistshift_3x_cbc_wcells(cells0, GKYL_LOWER_EDGE, use_gpu, true);
+  test_bc_twistshift_3x_cbc_wcells(cells0, GKYL_UPPER_EDGE, use_gpu, false);
+}
+
 void
 test_bc_twistshift_3x_fig6(bool use_gpu)
 {
@@ -2202,6 +2554,7 @@ test_bc_twistshift_3x2v_fig11(bool use_gpu)
 void test_bc_twistshift_3x_fig6_ho(){ test_bc_twistshift_3x_fig6(false); }
 void test_bc_twistshift_3x_fig11_ho(){ test_bc_twistshift_3x_fig11(false); }
 void test_bc_twistshift_3x_fig14_ho(){ test_bc_twistshift_3x_fig14(false); }
+void test_bc_twistshift_3x_cbc_ho(){ test_bc_twistshift_3x_cbc(false); }
 
 void test_bc_twistshift_3x2v_fig6_ho(){ test_bc_twistshift_3x2v_fig6(false); }
 void test_bc_twistshift_3x2v_fig11_ho(){ test_bc_twistshift_3x2v_fig11(false); }
@@ -2219,6 +2572,7 @@ TEST_LIST = {
   { "test_bc_twistshift_3x_fig6_ho", test_bc_twistshift_3x_fig6_ho },
   { "test_bc_twistshift_3x_fig11_ho", test_bc_twistshift_3x_fig11_ho },
   { "test_bc_twistshift_3x_fig14_ho", test_bc_twistshift_3x_fig14_ho },
+  { "test_bc_twistshift_3x_cbc_ho", test_bc_twistshift_3x_cbc_ho },
   { "test_bc_twistshift_3x2v_fig6_ho", test_bc_twistshift_3x2v_fig6_ho },
   { "test_bc_twistshift_3x2v_fig11_ho", test_bc_twistshift_3x2v_fig11_ho },
 #ifdef GKYL_HAVE_CUDA
