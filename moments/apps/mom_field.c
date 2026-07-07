@@ -1,10 +1,93 @@
 #include <gkyl_moment_priv.h>
+#include <gkyl_wv_embed_geo.h>
+#include <gkyl_wv_maxwell.h>
+
+// ---- Scheme/behavior variants (installed by moment_field_init) ------------
+// All scheme/static/presence dispatch is wired once, at init: the
+// moment_field_* wrappers call through the fld->*_func pointers and never
+// branch on scheme_type / is_static / field presence themselves. When no
+// field is configured (mom_fld->init == 0), the no-op "none" set is
+// installed and NOTHING is allocated: a fluid-only run pays no Maxwell
+// state, solvers, or equation object.
+
+// Wave-propagation scheme (stepped by the one-step Strang stepper).
+static double field_max_dt_wave_prop(const gkyl_moment_app *app,
+  const struct moment_field *fld);
+static struct gkyl_update_status field_update_wave_prop(gkyl_moment_app *app,
+  const struct moment_field *fld, double tcurr, double dt);
+static void field_release_wave_prop(const struct moment_field *fld);
+
+// MP scheme (RHS-based; also used for KEP runs -- there is no KEP Maxwell
+// solver).
+static double field_max_dt_mp(const gkyl_moment_app *app,
+  const struct moment_field *fld);
+static double field_rhs_mp(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+static void field_release_mp(const struct moment_field *fld);
+
+// Static field: pass the state through the stepper's staging arrays
+// unchanged / zero RHS (the sources still read the field; only its
+// evolution is frozen).
+static struct gkyl_update_status field_update_static(gkyl_moment_app *app,
+  const struct moment_field *fld, double tcurr, double dt);
+static double field_rhs_static(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+// Guards for operations a scheme does not support.
+static struct gkyl_update_status field_update_unavail(gkyl_moment_app *app,
+  const struct moment_field *fld, double tcurr, double dt);
+static double field_rhs_unavail(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+// BCs and stepper state copy.
+static void field_apply_bc_solvers(gkyl_moment_app *app, double tcurr,
+  const struct moment_field *field, struct gkyl_array *f);
+static void field_copy_arrays(const struct moment_field *fld,
+  struct gkyl_array *dst, const struct gkyl_array *src);
+
+// No-field set: every method is a no-op; max_dt/update/rhs impose no
+// constraint.
+static double field_max_dt_none(const gkyl_moment_app *app,
+  const struct moment_field *fld);
+static struct gkyl_update_status field_update_none(gkyl_moment_app *app,
+  const struct moment_field *fld, double tcurr, double dt);
+static double field_rhs_none(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+static void field_apply_bc_none(gkyl_moment_app *app, double tcurr,
+  const struct moment_field *field, struct gkyl_array *f);
+static void field_copy_none(const struct moment_field *fld,
+  struct gkyl_array *dst, const struct gkyl_array *src);
+static void field_release_none(const struct moment_field *fld);
+
+// Initialize the no-field object: zero the struct (so the coupling reads
+// benign epsilon0/mu0/flags), install the no-op method set, allocate
+// nothing.
+static void
+field_init_none(const struct gkyl_moment *mom, struct gkyl_moment_app *app,
+  struct moment_field *fld)
+{
+  *fld = (struct moment_field) {
+    .ndim = mom->ndim,
+  };
+
+  fld->max_dt_func = field_max_dt_none;
+  fld->update_func = field_update_none;
+  fld->rhs_func = field_rhs_none;
+  fld->apply_bc_func = field_apply_bc_none;
+  fld->copy_func = field_copy_none;
+  fld->release_func = field_release_none;
+}
 
 // initialize field
 void
 moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field *mom_fld,
   struct gkyl_moment_app *app, struct moment_field *fld)
 {
+  if (!mom_fld->init) {
+    field_init_none(mom, app, fld);
+    return;
+  }
+
   fld->ndim = mom->ndim;
   double epsilon0 = fld->epsilon0 = mom_fld->epsilon0;
   double mu0 = fld->mu0 = mom_fld->mu0;
@@ -148,6 +231,7 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
           fld->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, maxwell, app->geom, dir, GKYL_LOWER_EDGE, nghost,
             bc_lower_func, mom_fld->ctx);
+          break;
 
         case GKYL_FIELD_COPY:
         case GKYL_FIELD_WEDGE:
@@ -271,11 +355,34 @@ moment_field_init(const struct gkyl_moment *mom, const struct gkyl_moment_field 
 
   fld->integ_energy = gkyl_dynvec_new(GKYL_DOUBLE, 6);
   fld->is_first_energy_write_call = true;
+
+  // ---- Method wiring -------------------------------------------------------
+  // The single place scheme/static dispatch is decided; everything
+  // downstream calls through these pointers.
+  fld->apply_bc_func = field_apply_bc_solvers;
+  fld->copy_func = field_copy_arrays;
+  if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    fld->max_dt_func = field_max_dt_wave_prop;
+    fld->update_func = fld->is_static ? field_update_static : field_update_wave_prop;
+    fld->rhs_func = field_rhs_unavail;
+    fld->release_func = field_release_wave_prop;
+  }
+  else { // MP and KEP runs both use the MP Maxwell solver
+    fld->max_dt_func = field_max_dt_mp;
+    fld->update_func = field_update_unavail;
+    fld->rhs_func = fld->is_static ? field_rhs_static : field_rhs_mp;
+    fld->release_func = field_release_mp;
+  }
 }
 
-// apply BCs to EM field
-void
-moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
+// ---- apply_bc ----------------------------------------------------------------
+
+static void
+field_apply_bc_none(gkyl_moment_app *app, double tcurr,
+  const struct moment_field *field, struct gkyl_array *f) { }
+
+static void
+field_apply_bc_solvers(gkyl_moment_app *app, double tcurr,
   const struct moment_field *field, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -305,45 +412,73 @@ moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext, num_periodic_dir,
     app->periodic_dirs, f);
 
-  app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);  
+  app->stat.field_bc_tm += gkyl_time_diff_now_sec(wst);
+}
+
+// apply BCs to EM field
+void
+moment_field_apply_bc(gkyl_moment_app *app, double tcurr,
+  const struct moment_field *field, struct gkyl_array *f)
+{
+  field->apply_bc_func(app, tcurr, field, f);
+}
+
+// ---- max_dt ------------------------------------------------------------------
+
+static double
+field_max_dt_none(const gkyl_moment_app *app, const struct moment_field *fld)
+{
+  return DBL_MAX; // no field, no constraint
+}
+
+static double
+field_max_dt_wave_prop(const gkyl_moment_app *app, const struct moment_field *fld)
+{
+  double max_dt = DBL_MAX;
+  for (int d=0; d<app->ndim; ++d)
+    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
+  return max_dt;
+}
+
+static double
+field_max_dt_mp(const gkyl_moment_app *app, const struct moment_field *fld)
+{
+  return gkyl_mp_scheme_max_dt(fld->mp_slvr, &app->local, fld->f0);
 }
 
 double
 moment_field_max_dt(const gkyl_moment_app *app, const struct moment_field *fld)
 {
-  double max_dt = DBL_MAX;
-  if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {  
-    for (int d=0; d<app->ndim; ++d)
-      max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(fld->slvr[d], &app->local, fld->f[0]));
-  }
-  else if (fld->scheme_type == GKYL_MOMENT_MP || fld->scheme_type == GKYL_MOMENT_KEP) {
-    max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(fld->mp_slvr, &app->local, fld->f0));
-  }
-  return max_dt;
+  return fld->max_dt_func(app, fld);
 }
 
-// update solution: initial solution is in fld->f[0] and updated
-// solution in fld->f[ndim]
-struct gkyl_update_status
-moment_field_update(gkyl_moment_app *app,
-  const struct moment_field *fld, double tcurr, double dt)
+// ---- update (wave-prop path: input in fld->f[0], output in fld->f[ndim]) ------
+
+static struct gkyl_update_status
+field_update_none(gkyl_moment_app *app, const struct moment_field *fld,
+  double tcurr, double dt)
+{
+  return (struct gkyl_update_status) { .success = true, .dt_suggested = DBL_MAX };
+}
+
+static struct gkyl_update_status
+field_update_wave_prop(gkyl_moment_app *app, const struct moment_field *fld,
+  double tcurr, double dt)
 {
   int ndim = fld->ndim;
   struct gkyl_wave_prop_status stat = { true, DBL_MAX };
 
-  if (!fld->is_static) {
-    for (int d=0; d<ndim; ++d) {
-      // update solution
-      stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->embed_mask, fld->f[d], fld->f[d+1]);
+  for (int d=0; d<ndim; ++d) {
+    // update solution
+    stat = gkyl_wave_prop_advance(fld->slvr[d], tcurr, dt, &app->local, fld->embed_mask, fld->f[d], fld->f[d+1]);
 
-      if (!stat.success)
-        return (struct gkyl_update_status) {
-          .success = false,
-          .dt_suggested = stat.dt_suggested
-        };
-      // apply BC
-      moment_field_apply_bc(app, tcurr, fld, fld->f[d+1]);
-    }
+    if (!stat.success)
+      return (struct gkyl_update_status) {
+        .success = false,
+        .dt_suggested = stat.dt_suggested
+      };
+    // apply BC
+    moment_field_apply_bc(app, tcurr, fld, fld->f[d+1]);
   }
 
   return (struct gkyl_update_status) {
@@ -352,13 +487,52 @@ moment_field_update(gkyl_moment_app *app,
   };
 }
 
-// Compute RHS of EM equations
-double
-moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
+// Static field: pass the state through the stepper's staging arrays
+// unchanged. The pass-through matters: the second Strang source step reads
+// f[ndim] and the stepper commits f[0] = f[ndim], so skipping it entirely
+// (the old behavior) hands zeroed staging arrays to the sources and then
+// commits them, silently erasing a static field after the first step.
+static struct gkyl_update_status
+field_update_static(gkyl_moment_app *app, const struct moment_field *fld,
+  double tcurr, double dt)
+{
+  for (int d=0; d<fld->ndim; ++d)
+    gkyl_array_copy(fld->f[d+1], fld->f[d]);
+  return (struct gkyl_update_status) { .success = true, .dt_suggested = DBL_MAX };
+}
+
+static struct gkyl_update_status
+field_update_unavail(gkyl_moment_app *app, const struct moment_field *fld,
+  double tcurr, double dt)
+{
+  assert(false); // MP/KEP fields are stepped through rhs_func, not update_func
+  return (struct gkyl_update_status) { .success = false, .dt_suggested = 0.0 };
+}
+
+// update solution: initial solution is in fld->f[0] and updated
+// solution in fld->f[ndim]
+struct gkyl_update_status
+moment_field_update(gkyl_moment_app *app,
+  const struct moment_field *fld, double tcurr, double dt)
+{
+  return fld->update_func(app, fld, tcurr, dt);
+}
+
+// ---- rhs (MP path) -------------------------------------------------------------
+
+static double
+field_rhs_none(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  return DBL_MAX;
+}
+
+static double
+field_rhs_mp(gkyl_moment_app *app, struct moment_field *fld,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec tm = gkyl_wall_clock();
-  
+
   gkyl_array_clear(fld->cflrate, 0.0);
   gkyl_array_clear(rhs, 0.0);
 
@@ -370,43 +544,78 @@ moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
   gkyl_array_reduce_range(omegaCfl, fld->cflrate, GKYL_MAX, &(app->local));
 
   app->stat.field_rhs_tm += gkyl_time_diff_now_sec(tm);
-  
+
   return app->cfl/omegaCfl[0];
 }
 
-// free field
+// Static field: zero RHS (forward Euler then gives emout = emin), no CFL
+// constraint of its own.
+static double
+field_rhs_static(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  gkyl_array_clear(rhs, 0.0);
+  return DBL_MAX;
+}
+
+static double
+field_rhs_unavail(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  assert(false); // wave-prop fields are stepped through update_func, not rhs_func
+  return DBL_MAX;
+}
+
+// Compute RHS of EM equations
+double
+moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  return fld->rhs_func(app, fld, fin, rhs);
+}
+
+// ---- copy (time-stepper backup/commit/restore) ---------------------------------
+
+static void
+field_copy_none(const struct moment_field *fld,
+  struct gkyl_array *dst, const struct gkyl_array *src) { }
+
+static void
+field_copy_arrays(const struct moment_field *fld,
+  struct gkyl_array *dst, const struct gkyl_array *src)
+{
+  gkyl_array_copy(dst, src);
+}
+
 void
-moment_field_release(const struct moment_field *fld)
+moment_field_copy(const struct moment_field *fld,
+  struct gkyl_array *dst, const struct gkyl_array *src)
+{
+  fld->copy_func(fld, dst, src);
+}
+
+// ---- release --------------------------------------------------------------------
+
+static void
+field_release_none(const struct moment_field *fld) { }
+
+// Release the members common to the wave-prop and MP variants.
+static void
+field_release_common(const struct moment_field *fld)
 {
   gkyl_wv_eqn_release(fld->maxwell);
-  
+
   for (int d=0; d<fld->ndim; ++d) {
     if (fld->lower_bc[d])
       gkyl_wv_apply_bc_release(fld->lower_bc[d]);
-    if (fld->upper_bc[d])    
+    if (fld->upper_bc[d])
       gkyl_wv_apply_bc_release(fld->upper_bc[d]);
-  }
-
-  if (fld->scheme_type == GKYL_MOMENT_WAVE_PROP) {
-    for (int d=0; d<fld->ndim; ++d)
-      gkyl_wave_prop_release(fld->slvr[d]);
-    
-    gkyl_array_release(fld->fdup);
-    for (int d=0; d<fld->ndim+1; ++d)
-      gkyl_array_release(fld->f[d]);
-  }
-  else if (fld->scheme_type == GKYL_MOMENT_MP || fld->scheme_type == GKYL_MOMENT_KEP) {
-    gkyl_mp_scheme_release(fld->mp_slvr);
-    gkyl_array_release(fld->f0);
-    gkyl_array_release(fld->f1);
-    gkyl_array_release(fld->fnew);
-    gkyl_array_release(fld->cflrate);
   }
 
   gkyl_array_release(fld->ext_em);
   if (fld->has_ext_em) {
     gkyl_fv_proj_release(fld->ext_em_proj);
-  }  
+  }
 
   gkyl_array_release(fld->app_current);
   if(fld->use_explicit_em_coupling) {
@@ -421,5 +630,37 @@ moment_field_release(const struct moment_field *fld)
 
   gkyl_dynvec_release(fld->integ_energy);
   gkyl_array_release(fld->bc_buffer);
+}
+
+static void
+field_release_wave_prop(const struct moment_field *fld)
+{
+  field_release_common(fld);
+
+  for (int d=0; d<fld->ndim; ++d)
+    gkyl_wave_prop_release(fld->slvr[d]);
+
+  gkyl_array_release(fld->fdup);
+  for (int d=0; d<fld->ndim+1; ++d)
+    gkyl_array_release(fld->f[d]);
+}
+
+static void
+field_release_mp(const struct moment_field *fld)
+{
+  field_release_common(fld);
+
+  gkyl_mp_scheme_release(fld->mp_slvr);
+  gkyl_array_release(fld->f0);
+  gkyl_array_release(fld->f1);
+  gkyl_array_release(fld->fnew);
+  gkyl_array_release(fld->cflrate);
+}
+
+// free field
+void
+moment_field_release(const struct moment_field *fld)
+{
+  fld->release_func(fld);
 }
 

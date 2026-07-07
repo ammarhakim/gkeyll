@@ -28,6 +28,7 @@
 #include <gkyl_wv_gr_ultra_rel_euler.h>
 #include <gkyl_wv_gr_ultra_rel_euler_tetrad.h>
 #include <gkyl_wv_gr_euler.h>
+#include <gkyl_wv_gr_euler_tetrad.h>
 #include <gkyl_wv_gr_medium.h>
 #include <gkyl_wv_vacuum_einstein.h>
 #include <gkyl_wv_vacuum_einstein_conformal.h>

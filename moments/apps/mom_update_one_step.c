@@ -29,13 +29,13 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
       case PRE_UPDATE:
         state = FIRST_COUPLING_UPDATE; // next state
 
-        // copy old solution in case we need to redo this step
+        // Copy old solution in case we need to redo this step. Each
+        // component's copy dispatches through its method set (a no-op for
+        // an absent field/spacetime).
         for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].fdup, app->species[i].f[0]);
-        if (app->has_field)
-          gkyl_array_copy(app->field.fdup, app->field.f[0]);
-        if (app->has_spacetime)
-          moment_spacetime_copy(&app->spacetime, app->spacetime.fdup, app->spacetime.f[0]);
+          moment_species_copy(&app->species[i], app->species[i].fdup, app->species[i].f[0]);
+        moment_field_copy(&app->field, app->field.fdup, app->field.f[0]);
+        moment_spacetime_copy(&app->spacetime, app->spacetime.fdup, app->spacetime.f[0]);
 
         break;
 
@@ -63,44 +63,45 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
 
         break;
 
-      case FIELD_UPDATE:
+      case FIELD_UPDATE: {
         state = SPACETIME_UPDATE; // next state
 
-        if (app->has_field) {
-          struct timespec fl_tm = gkyl_wall_clock();
-          struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
-          if (!s.success) {
-            app->stat.nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
-          app->stat.field_tm += gkyl_time_diff_now_sec(fl_tm);
+        // Dispatch: wave-prop sweep for a dynamic field, state pass-through
+        // for a static field, no-op when there is no field.
+        struct timespec fl_tm = gkyl_wall_clock();
+        struct gkyl_update_status s = moment_field_update(app, &app->field, tcurr, dt);
+        if (!s.success) {
+          app->stat.nfail += 1;
+          dt = s.dt_suggested;
+          state = UPDATE_REDO;
+          break;
         }
 
-        break;
+        dt_suggested = fmin(dt_suggested, s.dt_suggested);
+        app->stat.field_tm += gkyl_time_diff_now_sec(fl_tm);
 
-      case SPACETIME_UPDATE:
+        break;
+      }
+
+      case SPACETIME_UPDATE: {
         state = SPECIES_UPDATE; // next state
 
-        // Dispatch: a no-op for a static background; for the dynamic backend
-        // this advances the Einstein state and refreshes the derived geometry
-        // (products + tetrad cache) the upcoming species step consumes.
-        if (app->has_spacetime) {
-          struct gkyl_update_status s =
-            moment_spacetime_update(app, &app->spacetime, tcurr, dt);
-          if (!s.success) {
-            app->stat.nfail += 1;
-            dt = s.dt_suggested;
-            state = UPDATE_REDO;
-            break;
-          }
-          dt_suggested = fmin(dt_suggested, s.dt_suggested);
+        // Dispatch: a no-op for a static or absent background; for the
+        // dynamic backend this advances the Einstein state and refreshes the
+        // derived geometry (products + tetrad cache) the upcoming species
+        // step consumes.
+        struct gkyl_update_status s =
+          moment_spacetime_update(app, &app->spacetime, tcurr, dt);
+        if (!s.success) {
+          app->stat.nfail += 1;
+          dt = s.dt_suggested;
+          state = UPDATE_REDO;
+          break;
         }
+        dt_suggested = fmin(dt_suggested, s.dt_suggested);
 
         break;
+      }
 
       case SPECIES_UPDATE:
         state = SECOND_COUPLING_UPDATE; // next state
@@ -155,13 +156,11 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
           if (check_for_nans(app->species[i].f[ndim], app->local))
             have_nans_occured = true;
           else // only copy in case no nans, so old solution can be written out
-            gkyl_array_copy(app->species[i].f[0], app->species[i].f[ndim]);
+            moment_species_copy(&app->species[i], app->species[i].f[0], app->species[i].f[ndim]);
         }
 
-        if (app->has_field)
-          gkyl_array_copy(app->field.f[0], app->field.f[ndim]);
-        if (app->has_spacetime)
-          moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.f[ndim]);
+        moment_field_copy(&app->field, app->field.f[0], app->field.f[ndim]);
+        moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.f[ndim]);
 
         break;
 
@@ -170,11 +169,9 @@ moment_update_one_step(gkyl_moment_app* app, double dt0)
 
         // restore solution and retake step
         for (int i=0; i<ns; ++i)
-          gkyl_array_copy(app->species[i].f[0], app->species[i].fdup);
-        if (app->has_field)
-          gkyl_array_copy(app->field.f[0], app->field.fdup);
-        if (app->has_spacetime)
-          moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.fdup);
+          moment_species_copy(&app->species[i], app->species[i].f[0], app->species[i].fdup);
+        moment_field_copy(&app->field, app->field.f[0], app->field.fdup);
+        moment_spacetime_copy(&app->spacetime, app->spacetime.f[0], app->spacetime.fdup);
 
         break;
 

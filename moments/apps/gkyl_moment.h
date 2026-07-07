@@ -149,7 +149,7 @@ struct gkyl_moment_field {
 //   analytic_spacetime: static background where the spacetime callbacks
 //     (lapse, shift, gij, K, derivatives, ...) supply the spacetime at
 //     each cell. is_static must be true in this case.
-//   einstein_eqn: dynamic Bona-Masso evolver (Phase B). Carries an init
+//   einstein_eqn: dynamic Bona-Masso evolver. Carries an init
 //     function (returns 64 or 77 evolved Einstein-state components) and
 //     supports a hyperbolic update through moment_spacetime_update.
 struct gkyl_moment_spacetime {
@@ -173,8 +173,8 @@ struct gkyl_moment_spacetime {
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
   wv_bc_func_t bcx_func[2], bcy_func[2], bcz_func[2];
 
-  // Gauge controls for the static-analytic case (mirrors the same fields
-  // on packed wv_gr_euler).
+  // Gauge controls for the static-analytic case (same controls as the
+  // self-contained wv_gr_euler equation).
   enum gkyl_spacetime_gauge spacetime_gauge;
   int reinit_freq;
 };
@@ -220,7 +220,7 @@ struct gkyl_moment {
   int num_species; // number of species
   struct gkyl_moment_species species[GKYL_MAX_SPECIES]; // species objects
   struct gkyl_moment_field field; // field object
-  struct gkyl_moment_spacetime spacetime; // spacetime object (for GR mod fluids)
+  struct gkyl_moment_spacetime spacetime; // spacetime object (for modular GR fluids)
 
   bool has_collision; // has collisions
   // scaling factors for collision frequencies so that nu_sr=nu_base_sr/rho_s
@@ -534,8 +534,8 @@ struct gkyl_array* gkyl_moment_app_get_write_array_field(const gkyl_moment_app* 
 struct gkyl_moment_stat gkyl_moment_app_stat(gkyl_moment_app *app);
 
 /**
- * Print accumulated GR Euler tetrad-mod recovery + repair status for
- * every GR Euler tetrad-mod species. Reports per-species, per-callsite
+ * Print accumulated GR Euler tetrad recovery + repair status for
+ * every modular GR Euler tetrad species. Reports per-species, per-callsite
  * (wave-prop vs source) iteration counts, dispatch path counters, floor
  * statistics, and cascade-repair fix totals.
  *

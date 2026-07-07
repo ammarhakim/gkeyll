@@ -1,7 +1,9 @@
 #include <gkyl_array_rio_priv.h>
+#include <gkyl_fv_proj.h>
 #include <gkyl_moment_priv.h>
 #include <gkyl_null_comm.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_gr_euler_tetrad.h>
 
 #include <mpack.h>
 
@@ -171,21 +173,19 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   for (int i=0; i<mom->num_skip_dirs; ++i)
     app->is_dir_skipped[mom->skip_dirs[i]] = 1;
 
-  app->has_field = 0;
-  // Are we running with a field?
-  if (mom->field.init) {
-    app->has_field = 1;
-  }
-  // Initialize a (potentially null) field object for safety.
+  // Are we running with a field? The field object is always initialized:
+  // when no field is configured it gets the no-op method set and no
+  // storage, so field calls dispatch safely and a fluid-only run pays no
+  // Maxwell state.
+  app->has_field = mom->field.init ? 1 : 0;
   moment_field_init(mom, &mom->field, app, &app->field);
 
-  // Are we running with a spacetime component? Exactly one of the two
-  // backends must be set in the input struct. Skip otherwise.
-  app->has_spacetime = 0;
-  if (mom->spacetime.analytic_spacetime != NULL || mom->spacetime.einstein_eqn != NULL) {
-    app->has_spacetime = 1;
-    moment_spacetime_init(mom, &mom->spacetime, app, &app->spacetime);
-  }
+  // Are we running with a spacetime component? The spacetime object is
+  // likewise always initialized: with no backend configured it gets the
+  // no-op method set and no storage.
+  app->has_spacetime =
+    (mom->spacetime.analytic_spacetime != NULL || mom->spacetime.einstein_eqn != NULL) ? 1 : 0;
+  moment_spacetime_init(mom, &mom->spacetime, app, &app->spacetime);
 
   // Are we running with Braginskii transport?
   app->has_braginskii = mom->has_braginskii;
@@ -199,21 +199,22 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     moment_species_init(mom, &mom->species[i], app, &app->species[i]);
   }
 
-  // Wire mod species to the shared spacetime-products array, and inform
-  // them of the app's configuration range. The conf_range must be
-  // local_ext (with ghosts), not local, because wave_prop reads into
-  // ghost cells at boundary interfaces and the prods array is sized to
-  // the same extended range. Both pointers are stable for the app
-  // lifetime, so these setters only need to fire once.
+  // Cross-object wiring for modular GR species, done here at construction
+  // so every object holds the pointers it needs before the first step. The
+  // conf_range must be local_ext (with ghosts), not local, because
+  // wave_prop reads into ghost cells at boundary interfaces and the prods
+  // array is sized to the same extended range. The products array is
+  // filled now (so restart paths that never project ICs still read a valid
+  // spacetime) and the per-interface tetrad cache is built from it;
+  // moment_coupling_init below hands both to the tetrad equation objects
+  // through their auxfields.
   if (app->has_spacetime) {
     for (int i = 0; i < ns; i++) {
-      enum gkyl_eqn_type t = app->species[i].eqn_type;
-      if (t == GKYL_EQN_GR_EULER_TETRAD) {
+      if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD)
         gkyl_gr_euler_tetrad_set_conf_range(app->species[i].equation, &app->local_ext);
-        gkyl_gr_euler_tetrad_set_auxfields(app->species[i].equation,
-          (struct gkyl_wv_gr_euler_tetrad_auxfields){ .prods = app->spacetime.prods });
-      }
     }
+    moment_spacetime_calc_products(app, &app->spacetime, 0.0);
+    moment_spacetime_create_tetrad_cache(app, &app->spacetime, 0.0);
   }
 
   // specify collision parameters in the exposed app
@@ -283,11 +284,9 @@ gkyl_moment_app_max_dt(gkyl_moment_app* app)
   for (int i=0;  i<app->num_species; ++i)
     max_dt = fmin(max_dt, moment_species_max_dt(app, &app->species[i]));
 
-  if (app->has_field)
-    max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
-
-  if (app->has_spacetime)
-    max_dt = fmin(max_dt, moment_spacetime_max_dt(app, &app->spacetime));
+  // Absent field/spacetime dispatch to no-op methods returning DBL_MAX.
+  max_dt = fmin(max_dt, moment_field_max_dt(app, &app->field));
+  max_dt = fmin(max_dt, moment_spacetime_max_dt(app, &app->spacetime));
 
   double max_dt_global;
   gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &max_dt, &max_dt_global);
@@ -1178,9 +1177,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
   gkyl_free(app->species);
 
   moment_field_release(&app->field);
-
-  if (app->has_spacetime)
-    moment_spacetime_release(&app->spacetime);
+  moment_spacetime_release(&app->spacetime);
 
   if (app->update_mhd_source)
     mhd_src_release(&app->mhd_source);

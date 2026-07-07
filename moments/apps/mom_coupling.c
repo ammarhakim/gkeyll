@@ -1,4 +1,7 @@
 #include <gkyl_moment_priv.h>
+#include <gkyl_wv_euler.h>
+#include <gkyl_wv_gr_euler_tetrad.h>
+#include <gkyl_wv_iso_euler.h>
 
 // initialize source solver: this should be called after all species
 // and fields are initialized
@@ -213,8 +216,24 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   // create updater to solve for sources
   src->slvr = gkyl_moment_em_coupling_new(src_inp);
 
+  // The closure/Braginskii solvers read an EM array unconditionally; when
+  // the app has no field, hand them a zero-field scratch array instead of
+  // the (nonexistent) field state. Allocated only in that configuration --
+  // a plain fluid-only run allocates nothing here.
+  src->nofield_em = NULL;
+  if (!app->has_field) {
+    bool needs_em_scratch = app->has_braginskii;
+    for (int i = 0; i < app->num_species; i++)
+      if (app->species[i].has_grad_closure || app->species[i].has_nn_closure)
+        needs_em_scratch = true;
+    if (needs_em_scratch) {
+      src->nofield_em = mkarr(false, 8, app->local_ext.volume);
+      gkyl_array_clear(src->nofield_em, 0.0);
+    }
+  }
+
   // Spacetime coupling for modular GR fluids. Only constructed when at
-  // least one species is a GR-mod variant; otherwise spacetime_slvr stays
+  // least one species is a modular GR variant; otherwise spacetime_slvr stays
   // NULL and the spacetime path costs nothing.
   src->spacetime_slvr = NULL;
   for (int i = 0; i < GKYL_MAX_SPECIES; i++) {
@@ -250,7 +269,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       for (int i = 0; i < app->num_species; i++) {
         enum gkyl_eqn_type t = app->species[i].eqn_type;
         if (t == GKYL_EQN_GR_EULER_TETRAD) {
-          // Tetrad mod: full EOS bundle (IDEAL or APPROXIMATE_SYNGE)
+          // Modular GR tetrad species: full EOS bundle (IDEAL or
+          // APPROXIMATE_SYNGE)
           // lives on the equation object — read it back so the
           // source-step uses the same closure the wave-step does.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
@@ -259,8 +279,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
           };
           st_inp.eqn[i] = app->species[i].equation;
         } else {
-          // Non-mod species: leave the entry in a benign-default state; the
-          // coupling's advance loop skips non-mod types.
+          // Non-modular species: leave the entry in a benign-default state;
+          // the coupling's advance loop skips non-modular types.
           st_inp.fluid_param[i] = (struct gkyl_moment_spacetime_coupling_data) {
             .type = t,
             .eos = gkyl_gr_euler_eos_ideal(0.0),
@@ -270,7 +290,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       }
       src->spacetime_slvr = gkyl_moment_spacetime_coupling_new(st_inp);
 
-      // Allocate per-species GR Euler tetrad-mod instrumentation buckets:
+      // Allocate per-species GR Euler tetrad instrumentation buckets:
       // one wave-prop side prim+repair status and one source side prim+
       // repair status. Attach wave-prop + source-repair pointers to the
       // equation's auxfields so the equation's wave-prop hooks and
@@ -295,9 +315,14 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
         memset(src->gr_euler_repair_status_source[i], 0,
           sizeof(struct gkyl_gr_euler_repair_status));
 
+        // The single wiring point for the tetrad equation's cross-object
+        // pointers: the products array and tetrad cache (both created by
+        // gkyl_moment_app_new before this runs) plus the instrumentation
+        // buckets above.
         gkyl_gr_euler_tetrad_set_auxfields(app->species[i].equation,
           (struct gkyl_wv_gr_euler_tetrad_auxfields){
             .prods                   = app->spacetime.prods,
+            .wave_spacetime          = app->spacetime.wave_spacetime,
             .prim_status_wave_prop   = src->gr_euler_prim_status_wave_prop[i],
             .repair_status_wave_prop = src->gr_euler_repair_status_wave_prop[i],
             .prim_status_source      = src->gr_euler_prim_status_source[i],
@@ -394,6 +419,14 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   const struct gkyl_array *pr_rhs_const[GKYL_MAX_SPECIES];
   const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES];
 
+  // Field state for this Strang half-step. The EM-coupling solvers guard a
+  // NULL field array; the closure/Braginskii solvers do not, so they get
+  // the zero-field scratch array when the app has no field.
+  struct gkyl_array *em_state =
+    app->has_field ? app->field.f[sidx[nstrang]] : NULL;
+  const struct gkyl_array *em_closures =
+    app->has_field ? app->field.f[sidx[nstrang]] : src->nofield_em;
+
   double dt_suggested = DBL_MAX;
   struct gkyl_ten_moment_grad_closure_status stat;
 
@@ -410,7 +443,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
       stat = gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i],
         &src->non_ideal_local, &app->local,
-        app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
+        app->species[i].f[sidx[nstrang]], em_closures,
         src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]);
 
       if (!stat.success)
@@ -426,14 +459,14 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       // Non-ideal variables are defined on an extended range with one additional "cell" in each direction.
       // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
       gkyl_ten_moment_nn_closure_advance(src->nn_closure_slvr[i], &src->non_ideal_local, &app->local, app->species[i].f[sidx[nstrang]],
-        app->field.f[sidx[nstrang]], src->non_ideal_vars[i], src->pr_rhs[i]);
+        em_closures, src->non_ideal_vars[i], src->pr_rhs[i]);
     }
   }
 
   if (app->has_braginskii) {
     gkyl_moment_braginskii_advance(src->brag_slvr,
       src->non_ideal_local, app->local,
-      fluids, app->field.f[sidx[nstrang]],
+      fluids, em_closures,
       src->non_ideal_cflrate, src->non_ideal_vars, src->pr_rhs);
   }
 
@@ -503,7 +536,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local,
       fluids, app_accels, pr_rhs_const,
-      app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em,
+      em_state, app->field.app_current, app->field.ext_em,
       nT_sources);
   }
 
@@ -518,10 +551,11 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
       tcurr, dt, &app->local, fluids, app->spacetime.f[sidx[nstrang]]);
     // The source just modified the interior of the Einstein state; refresh its
     // ghost cells so the subsequent hyperbolic update (and the next Strang
-    // half-step) read consistent boundary data. Production drives the Einstein
-    // state as a species and gets this from the per-species apply_bc below; the
-    // pure-spacetime path has no species, so we apply the spacetime BC here.
-    // No-op for the static/analytic backend (no Einstein state to evolve).
+    // half-step) read consistent boundary data. When the Einstein state is
+    // evolved as a species (self-contained formulation) the per-species
+    // apply_bc below covers this; the spacetime object has no species entry,
+    // so apply its BC here. No-op for the static-analytic backend (no
+    // Einstein state to evolve).
     moment_spacetime_apply_bc(app, tcurr, &app->spacetime,
       app->spacetime.f[sidx[nstrang]]);
   }
@@ -529,9 +563,7 @@ moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
   for (int i=0; i<app->num_species; ++i) {
     moment_species_apply_bc(app, tcurr, &app->species[i], fluids[i]);
   }
-  if (app->has_field) {
-    moment_field_apply_bc(app, tcurr, &app->field, app->field.f[sidx[nstrang]]);
-  }
+  moment_field_apply_bc(app, tcurr, &app->field, em_state); // no-op without a field
   return (struct gkyl_update_status) {
     .success = true,
     .dt_suggested = dt_suggested
@@ -543,6 +575,8 @@ void
 moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src)
 {
   gkyl_moment_em_coupling_release(src->slvr);
+  if (src->nofield_em)
+    gkyl_array_release(src->nofield_em);
   for (int i=0; i<app->num_species; ++i) {
     gkyl_array_release(src->pr_rhs[i]);
     gkyl_array_release(src->non_ideal_cflrate[i]);

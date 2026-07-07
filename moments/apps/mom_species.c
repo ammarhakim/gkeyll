@@ -1,6 +1,63 @@
 #include <gkyl_moment_priv.h>
 #include <gkyl_util.h>
+#include <gkyl_wv_embed_geo.h>
 #include <gkyl_wv_euler.h>
+#include <gkyl_wv_mhd.h>
+#include <gkyl_wv_ten_moment.h>
+
+// ---- Scheme/behavior variants (installed by moment_species_init) ----------
+// All scheme and species-type dispatch is wired once, at init: the
+// moment_species_* wrappers at the bottom of this file (and the time
+// steppers) call through the sp->*_func pointers and never branch on
+// scheme_type / is_static / eqn_type themselves.
+
+// Wave-propagation scheme (dimensionally-split second-order FV; stepped by
+// the one-step Strang stepper through update_func).
+static double species_max_dt_wave_prop(const gkyl_moment_app *app,
+  const struct moment_species *sp);
+static struct gkyl_update_status species_update_wave_prop(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt);
+static void species_release_wave_prop(const struct moment_species *sp);
+
+// MP and KEP schemes (RHS-based; stepped by the SSP-RK3 stepper through
+// rhs_func).
+static double species_max_dt_mp(const gkyl_moment_app *app,
+  const struct moment_species *sp);
+static double species_max_dt_kep(const gkyl_moment_app *app,
+  const struct moment_species *sp);
+static double species_rhs_mp(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+static double species_rhs_kep(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+static void species_release_mp(const struct moment_species *sp);
+static void species_release_kep(const struct moment_species *sp);
+
+// Static species: the hyperbolic update passes the state through unchanged
+// and imposes no CFL constraint of its own (sources, if any, still apply in
+// the operator-split source step).
+static struct gkyl_update_status species_update_static(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt);
+static double species_rhs_static(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+// Guards for operations a scheme does not support: wave-prop species are
+// never stepped through rhs_func, MP/KEP species never through update_func.
+static struct gkyl_update_status species_update_unavail(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt);
+static double species_rhs_unavail(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+// Post-update hook, applied after each directional sweep. Composed from
+// (species type x spacetime presence): the excision scrub for modular GR
+// tetrad species under a spacetime, a no-op otherwise.
+static void species_post_update_none(gkyl_moment_app *app,
+  struct moment_species *sp, struct gkyl_array *f);
+static void species_post_update_scrub_excised(gkyl_moment_app *app,
+  struct moment_species *sp, struct gkyl_array *f);
+
+// Stepper state copy (backup/commit/restore).
+static void species_copy_arrays(const struct moment_species *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src);
 
 // initialize species
 void
@@ -29,8 +86,9 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   // Modular GR equation types always require source integration through the
   // spacetime-coupling object — turn sources on regardless of the rest of
   // the species configuration. Note: tetrad species deliberately do NOT set
-  // the legacy `has_gr_euler` flag, so the EM-coupling object's GR-source
-  // path naturally skips them; the spacetime-coupling object owns them.
+  // has_gr_euler (the self-contained GR-Euler source flag), so the
+  // EM-coupling object's GR-source path skips them; the spacetime-coupling
+  // object owns them.
   if (sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
     sp->update_sources = true;
   }
@@ -407,8 +465,42 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, 6); // KE and PE are stored independently
   else
     sp->integ_q = gkyl_dynvec_new(GKYL_DOUBLE, meqn);
-  
+
   sp->is_first_q_write_call = true;
+
+  // ---- Method wiring -------------------------------------------------------
+  // The single place scheme/static/type dispatch is decided; everything
+  // downstream calls through these pointers. The scheme is a per-species
+  // property here (currently inherited from the app input), so species
+  // updated by different schemes can coexist.
+  sp->copy_func = species_copy_arrays;
+  switch (sp->scheme_type) {
+    case GKYL_MOMENT_WAVE_PROP:
+      sp->max_dt_func = species_max_dt_wave_prop;
+      sp->update_func = sp->is_static ? species_update_static : species_update_wave_prop;
+      sp->rhs_func = species_rhs_unavail;
+      sp->release_func = species_release_wave_prop;
+      break;
+    case GKYL_MOMENT_MP:
+      sp->max_dt_func = species_max_dt_mp;
+      sp->update_func = species_update_unavail;
+      sp->rhs_func = sp->is_static ? species_rhs_static : species_rhs_mp;
+      sp->release_func = species_release_mp;
+      break;
+    case GKYL_MOMENT_KEP:
+      sp->max_dt_func = species_max_dt_kep;
+      sp->update_func = species_update_unavail;
+      sp->rhs_func = sp->is_static ? species_rhs_static : species_rhs_kep;
+      sp->release_func = species_release_kep;
+      break;
+  }
+  // Post-update hook: modular GR tetrad species under a spacetime must scrub
+  // hydro in excised cells after each sweep; everything else is a no-op. The
+  // spacetime is initialized before the species, so its presence is known.
+  sp->post_update_func =
+    (sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD && app->has_spacetime)
+    ? species_post_update_scrub_excised
+    : species_post_update_none;
 }
 
 // apply BCs to species
@@ -446,43 +538,46 @@ moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   app->stat.species_bc_tm += gkyl_time_diff_now_sec(wst);
 }
 
+// ---- max_dt ----------------------------------------------------------------
+
+static double
+species_max_dt_wave_prop(const gkyl_moment_app *app, const struct moment_species *sp)
+{
+  double max_dt = DBL_MAX;
+  for (int d=0; d<app->ndim; ++d)
+    max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
+  return max_dt;
+}
+
+static double
+species_max_dt_mp(const gkyl_moment_app *app, const struct moment_species *sp)
+{
+  return gkyl_mp_scheme_max_dt(sp->mp_slvr, &app->local, sp->f0);
+}
+
+static double
+species_max_dt_kep(const gkyl_moment_app *app, const struct moment_species *sp)
+{
+  return gkyl_kep_scheme_max_dt(sp->kep_slvr, &app->local, sp->f0);
+}
+
 // maximum stable time-step
 double
 moment_species_max_dt(const gkyl_moment_app *app, const struct moment_species *sp)
 {
-  double max_dt = DBL_MAX;
-  if (sp->scheme_type == GKYL_MOMENT_WAVE_PROP) {
-    for (int d=0; d<app->ndim; ++d)
-      max_dt = fmin(max_dt, gkyl_wave_prop_max_dt(sp->slvr[d], &app->local, sp->f[0]));
-  }
-  else if (sp->scheme_type == GKYL_MOMENT_MP) {
-    max_dt = fmin(max_dt, gkyl_mp_scheme_max_dt(sp->mp_slvr, &app->local, sp->f0));
-  }
-  else if (sp->scheme_type == GKYL_MOMENT_KEP) {
-    max_dt = fmin(max_dt, gkyl_kep_scheme_max_dt(sp->kep_slvr, &app->local, sp->f0));
-  }  
-  return max_dt;
+  return sp->max_dt_func(app, sp);
 }
 
-// update solution: initial solution is in sp->f[0] and updated
-// solution in sp->f[ndim]
-struct gkyl_update_status
-moment_species_update(gkyl_moment_app *app,
+// ---- update (wave-prop path: input in sp->f[0], output in sp->f[ndim]) ------
+
+static struct gkyl_update_status
+species_update_wave_prop(gkyl_moment_app *app,
   struct moment_species *sp, double tcurr, double dt)
 {
   int ndim = sp->ndim;
   double dt_suggested = DBL_MAX;
   double max_speed = 0.0;
   struct gkyl_wave_prop_status stat;
-
-  // Scrub hydro to zero inside the excision region for mod GR species. This
-  // mirrors packed gr_euler_impose_gauge which actively zeroes q[0..66] in
-  // excised cells (level_set.c:389-394). Without this scrub mod cells that
-  // are inside the excision region but whose IC projection averaged in
-  // non-zero hydro from the adjacent non-excised quadrature points would
-  // retain that small but non-zero hydro forever, drifting from packed.
-  bool scrub_excised = sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD
-                       && app->has_spacetime;
 
   for (int d=0; d<ndim; ++d) {
     stat = gkyl_wave_prop_advance(sp->slvr[d], tcurr, dt, &app->local, sp->embed_mask, sp->f[d], sp->f[d+1]);
@@ -499,18 +594,7 @@ moment_species_update(gkyl_moment_app *app,
     dt_suggested = fmin(dt_suggested, stat.dt_suggested);
     moment_species_apply_bc(app, tcurr, sp, sp->f[d+1]);
 
-    if (scrub_excised) {
-      struct gkyl_range_iter iter;
-      gkyl_range_iter_init(&iter, &app->local);
-      while (gkyl_range_iter_next(&iter)) {
-        long cidx = gkyl_range_idx(&app->local, iter.idx);
-        const double *prods_row = gkyl_array_cfetch(app->spacetime.prods, cidx);
-        if (prods_row[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
-          double *q = gkyl_array_fetch(sp->f[d+1], cidx);
-          for (int k = 0; k < sp->num_equations; k++) q[k] = 0.0;
-        }
-      }
-    }
+    sp->post_update_func(app, sp, sp->f[d+1]);
   }
 
   for (int d=0; d<ndim; ++d) {
@@ -530,30 +614,182 @@ moment_species_update(gkyl_moment_app *app,
   };
 }
 
+// Static species: pass the state through the stepper's staging arrays
+// unchanged (the second Strang source step reads f[ndim] and the stepper
+// commits f[0] = f[ndim]).
+static struct gkyl_update_status
+species_update_static(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt)
+{
+  for (int d=0; d<sp->ndim; ++d)
+    gkyl_array_copy(sp->f[d+1], sp->f[d]);
+  return (struct gkyl_update_status) { .success = true, .dt_suggested = DBL_MAX };
+}
+
+static struct gkyl_update_status
+species_update_unavail(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt)
+{
+  assert(false); // MP/KEP species are stepped through rhs_func, not update_func
+  return (struct gkyl_update_status) { .success = false, .dt_suggested = 0.0 };
+}
+
+// update solution: initial solution is in sp->f[0] and updated
+// solution in sp->f[ndim]
+struct gkyl_update_status
+moment_species_update(gkyl_moment_app *app,
+  struct moment_species *sp, double tcurr, double dt)
+{
+  return sp->update_func(app, sp, tcurr, dt);
+}
+
+// ---- post-update hook --------------------------------------------------------
+
+static void
+species_post_update_none(gkyl_moment_app *app, struct moment_species *sp,
+  struct gkyl_array *f) { }
+
+// Scrub hydro to zero inside the excision region for modular GR species.
+// The self-contained formulation does the same in gr_euler_impose_gauge,
+// which zeroes the state in excised cells each step. Without this scrub,
+// excised cells whose IC projection averaged in non-zero hydro from
+// adjacent non-excised quadrature points would retain that hydro forever.
+static void
+species_post_update_scrub_excised(gkyl_moment_app *app, struct moment_species *sp,
+  struct gkyl_array *f)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long cidx = gkyl_range_idx(&app->local, iter.idx);
+    const double *prods_row = gkyl_array_cfetch(app->spacetime.prods, cidx);
+    if (prods_row[GKYL_GR_SP_EXCISION] < pow(10.0, -8.0)) {
+      double *q = gkyl_array_fetch(f, cidx);
+      for (int k = 0; k < sp->num_equations; k++) q[k] = 0.0;
+    }
+  }
+}
+
+// ---- rhs (MP/KEP path) -------------------------------------------------------
+
+static double
+species_rhs_mp(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec tm = gkyl_wall_clock();
+
+  gkyl_array_clear(sp->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  gkyl_mp_scheme_advance(sp->mp_slvr, &app->local, fin,
+    app->ql, app->qr, app->amdq, app->apdq,
+    sp->cflrate, sp->embed_mask, rhs);
+
+  double omegaCfl[1];
+  gkyl_array_reduce_range(omegaCfl, sp->cflrate, GKYL_MAX, &(app->local));
+
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
+
+  return app->cfl/omegaCfl[0];
+}
+
+static double
+species_rhs_kep(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  struct timespec tm = gkyl_wall_clock();
+
+  gkyl_array_clear(sp->cflrate, 0.0);
+  gkyl_array_clear(rhs, 0.0);
+
+  gkyl_kep_scheme_advance(sp->kep_slvr, &app->local, fin, sp->alpha,
+    sp->cflrate, rhs);
+
+  double omegaCfl[1];
+  gkyl_array_reduce_range(omegaCfl, sp->cflrate, GKYL_MAX, &(app->local));
+
+  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
+
+  return app->cfl/omegaCfl[0];
+}
+
+// Static species: zero RHS (forward Euler then gives fout = fin), no CFL
+// constraint of its own.
+static double
+species_rhs_static(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  gkyl_array_clear(rhs, 0.0);
+  return DBL_MAX;
+}
+
+static double
+species_rhs_unavail(gkyl_moment_app *app, struct moment_species *sp,
+  const struct gkyl_array *fin, struct gkyl_array *rhs)
+{
+  assert(false); // wave-prop species are stepped through update_func, not rhs_func
+  return DBL_MAX;
+}
+
 // Compute RHS of moment equations
 double
 moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
-  struct timespec tm = gkyl_wall_clock();
-  
-  gkyl_array_clear(species->cflrate, 0.0);
-  gkyl_array_clear(rhs, 0.0);
+  return species->rhs_func(app, species, fin, rhs);
+}
 
-  if (app->scheme_type == GKYL_MOMENT_MP)
-    gkyl_mp_scheme_advance(species->mp_slvr, &app->local, fin,
-      app->ql, app->qr, app->amdq, app->apdq,
-      species->cflrate, species->embed_mask, rhs);
-  else
-    gkyl_kep_scheme_advance(species->kep_slvr, &app->local, fin, species->alpha,
-      species->cflrate, rhs);
+// ---- copy (time-stepper backup/commit/restore) -------------------------------
 
-  double omegaCfl[1];
-  gkyl_array_reduce_range(omegaCfl, species->cflrate, GKYL_MAX, &(app->local));
+static void
+species_copy_arrays(const struct moment_species *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src)
+{
+  gkyl_array_copy(dst, src);
+}
 
-  app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
-  
-  return app->cfl/omegaCfl[0];
+void
+moment_species_copy(const struct moment_species *sp,
+  struct gkyl_array *dst, const struct gkyl_array *src)
+{
+  sp->copy_func(sp, dst, src);
+}
+
+// ---- release -----------------------------------------------------------------
+
+// Release the state/solver memory specific to each scheme; the shared
+// members are released by moment_species_release below.
+static void
+species_release_wave_prop(const struct moment_species *sp)
+{
+  for (int d=0; d<sp->ndim; ++d)
+    gkyl_wave_prop_release(sp->slvr[d]);
+
+  gkyl_array_release(sp->fdup);
+  for (int d=0; d<sp->ndim+1; ++d)
+    gkyl_array_release(sp->f[d]);
+}
+
+static void
+species_release_mp(const struct moment_species *sp)
+{
+  gkyl_mp_scheme_release(sp->mp_slvr);
+  gkyl_array_release(sp->f0);
+  gkyl_array_release(sp->f1);
+  gkyl_array_release(sp->fnew);
+  gkyl_array_release(sp->cflrate);
+  gkyl_array_release(sp->alpha);
+}
+
+static void
+species_release_kep(const struct moment_species *sp)
+{
+  gkyl_kep_scheme_release(sp->kep_slvr);
+  gkyl_array_release(sp->f0);
+  gkyl_array_release(sp->f1);
+  gkyl_array_release(sp->fnew);
+  gkyl_array_release(sp->cflrate);
+  gkyl_array_release(sp->alpha);
 }
 
 // free species
@@ -561,35 +797,15 @@ void
 moment_species_release(const struct moment_species *sp)
 {
   gkyl_wv_eqn_release(sp->equation);
-  
+
   for (int d=0; d<sp->ndim; ++d) {
     if (sp->lower_bc[d])
       gkyl_wv_apply_bc_release(sp->lower_bc[d]);
-    if (sp->upper_bc[d])    
+    if (sp->upper_bc[d])
       gkyl_wv_apply_bc_release(sp->upper_bc[d]);
   }
 
-  if (sp->scheme_type == GKYL_MOMENT_WAVE_PROP) {
-    for (int d=0; d<sp->ndim; ++d)
-      gkyl_wave_prop_release(sp->slvr[d]);
-    
-    gkyl_array_release(sp->fdup);
-    for (int d=0; d<sp->ndim+1; ++d)
-      gkyl_array_release(sp->f[d]);
-  }
-  else if (sp->scheme_type == GKYL_MOMENT_MP || sp->scheme_type == GKYL_MOMENT_KEP) {
-
-    if (sp->scheme_type == GKYL_MOMENT_MP)
-      gkyl_mp_scheme_release(sp->mp_slvr);
-    else
-      gkyl_kep_scheme_release(sp->kep_slvr);
-    
-    gkyl_array_release(sp->f0);
-    gkyl_array_release(sp->f1);
-    gkyl_array_release(sp->fnew);
-    gkyl_array_release(sp->cflrate);
-    gkyl_array_release(sp->alpha);
-  }
+  sp->release_func(sp);
 
   gkyl_array_release(sp->app_accel);
   if (sp->has_app_accel) {

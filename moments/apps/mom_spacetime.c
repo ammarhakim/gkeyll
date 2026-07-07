@@ -1,9 +1,12 @@
 #include <gkyl_moment_priv.h>
+#include <gkyl_wv_embed_geo.h>
 
 // ---- Backend behavior variants (installed by moment_spacetime_init) ----
-// Two sets of {update, max_dt, copy, calc_products}: a no-op/analytic set and a
-// dynamic-Einstein set. moment_spacetime_init picks one; the public functions
-// at the bottom just dispatch through the stored pointers.
+// Three sets of {update, max_dt, copy, calc_products, apply_bc}: a no-op set
+// for apps with no spacetime at all (nothing allocated), a no-op/analytic
+// set for a static background, and a dynamic-Einstein set.
+// moment_spacetime_init picks one; the public functions at the bottom just
+// dispatch through the stored pointers.
 
 // Analytic (static) backend.
 static struct gkyl_update_status spacetime_update_static(gkyl_moment_app *app,
@@ -14,6 +17,8 @@ static void spacetime_copy_static(const struct moment_spacetime *sp,
   struct gkyl_array *dst, const struct gkyl_array *src);
 static void spacetime_calc_products_static(gkyl_moment_app *app,
   struct moment_spacetime *sp, double tcurr);
+static void spacetime_apply_bc_none(gkyl_moment_app *app, double tcurr,
+  const struct moment_spacetime *sp, struct gkyl_array *f);
 
 // Dynamic Einstein backend.
 static struct gkyl_update_status spacetime_update_dynamic(gkyl_moment_app *app,
@@ -24,6 +29,14 @@ static void spacetime_copy_dynamic(const struct moment_spacetime *sp,
   struct gkyl_array *dst, const struct gkyl_array *src);
 static void spacetime_calc_products_dynamic(gkyl_moment_app *app,
   struct moment_spacetime *sp, double tcurr);
+static void spacetime_apply_bc_dynamic(gkyl_moment_app *app, double tcurr,
+  const struct moment_spacetime *sp, struct gkyl_array *f);
+
+// No-spacetime set: every method is a no-op; nothing is allocated, so an app
+// without a spacetime pays nothing.
+static void spacetime_calc_products_none(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double tcurr);
+static void spacetime_release_none(const struct moment_spacetime *sp);
 
 // Per-backend init/release: each installs its own function set (incl. release)
 // and allocates/frees only the memory that backend uses, so neither the
@@ -37,18 +50,42 @@ static void spacetime_init_dynamic(const struct gkyl_moment *mom,
 static void spacetime_release_static(const struct moment_spacetime *sp);
 static void spacetime_release_dynamic(const struct moment_spacetime *sp);
 
+// Initialize the no-spacetime object: zero the struct, install the no-op
+// method set, allocate nothing (not even the products array).
+static void
+spacetime_init_none(const struct gkyl_moment *mom, struct gkyl_moment_app *app,
+  struct moment_spacetime *sp)
+{
+  *sp = (struct moment_spacetime) {
+    .ndim = mom->ndim,
+    .is_static = true,
+  };
+
+  sp->update_func        = spacetime_update_static;   // no-op
+  sp->max_dt_func        = spacetime_max_dt_static;   // DBL_MAX
+  sp->copy_func          = spacetime_copy_static;     // no-op
+  sp->calc_products_func = spacetime_calc_products_none;
+  sp->apply_bc_func      = spacetime_apply_bc_none;
+  sp->release_func       = spacetime_release_none;
+}
+
 // Initialize the spacetime component. Mirrors moment_field_init's shape but
-// for the GR-mod background. Allocates the shared spacetime-products array
-// (consumed by the modular GR fluid equation objects via auxfields). For
-// the dynamic Bona-Masso backend (einstein_eqn != NULL), also allocates the
-// Einstein-state arrays, wave-prop solvers, and BC handles — Phase A only
-// exercises the static-analytic path, but the dynamic plumbing is wired in
-// the same place so the Phase B transition is a local change.
+// for the GR background. Allocates the shared spacetime-products array
+// (consumed by the modular GR fluid equation objects via auxfields), then
+// dispatches to the backend initializer: static-analytic, or dynamic
+// Bona-Masso (einstein_eqn != NULL), which also allocates the Einstein-state
+// arrays, wave-prop solvers, and BC handles.
 void
 moment_spacetime_init(const struct gkyl_moment *mom,
   const struct gkyl_moment_spacetime *mom_st,
   struct gkyl_moment_app *app, struct moment_spacetime *sp)
 {
+  // No spacetime configured: install the no-op set and allocate nothing.
+  if (mom_st->analytic_spacetime == NULL && mom_st->einstein_eqn == NULL) {
+    spacetime_init_none(mom, app, sp);
+    return;
+  }
+
   sp->ndim             = mom->ndim;
   sp->is_static        = mom_st->is_static;
   sp->has_tetrad       = mom_st->has_tetrad;
@@ -84,19 +121,16 @@ moment_spacetime_init(const struct gkyl_moment *mom,
     spacetime_init_static(mom, mom_st, app, sp);
 }
 
-// Static-analytic backend: acquire the analytic-spacetime reference (see the
-// GC-UAF note below), leave the Einstein-state plumbing NULL, install the
-// no-op/analytic method set.
+// Static-analytic backend: acquire the analytic-spacetime reference, leave
+// the Einstein-state plumbing NULL, install the no-op/analytic method set.
 static void
 spacetime_init_static(const struct gkyl_moment *mom,
   const struct gkyl_moment_spacetime *mom_st, struct gkyl_moment_app *app,
   struct moment_spacetime *sp)
 {
-  // Acquire our own reference on the backend object. The Lua wrapper that
-  // created it (or a C driver) holds the only other reference; without this
-  // acquire the object can be garbage-collected/released out from under the
-  // app while it is still in use (a use-after-free that surfaces once enough
-  // other allocations — e.g. a Maxwell field — trigger a GC sweep mid-init).
+  // Acquire our own reference on the backend object: the creating wrapper
+  // (Lua or a C driver) holds the only other reference and may release it
+  // (or have it garbage-collected) while the app is still using the object.
   sp->analytic_spacetime = gkyl_gr_spacetime_acquire(mom_st->analytic_spacetime);
   sp->einstein_eqn = 0;
 
@@ -116,6 +150,7 @@ spacetime_init_static(const struct gkyl_moment *mom,
   sp->max_dt_func        = spacetime_max_dt_static;
   sp->copy_func          = spacetime_copy_static;
   sp->calc_products_func = spacetime_calc_products_static;
+  sp->apply_bc_func      = spacetime_apply_bc_none;
   sp->release_func       = spacetime_release_static;
 }
 
@@ -134,6 +169,7 @@ spacetime_init_dynamic(const struct gkyl_moment *mom,
   sp->max_dt_func        = spacetime_max_dt_dynamic;
   sp->copy_func          = spacetime_copy_dynamic;
   sp->calc_products_func = spacetime_calc_products_dynamic;
+  sp->apply_bc_func      = spacetime_apply_bc_dynamic;
   sp->release_func       = spacetime_release_dynamic;
 
   // BC handles are created only for non-periodic directions below; zero them
@@ -156,9 +192,8 @@ spacetime_init_dynamic(const struct gkyl_moment *mom,
         .update_dirs = { d },
         // Mirror mom_species: test each updated cell's admissibility via the
         // equation's check_inv_func and fall back to low-order flux where the
-        // high-order update would leave the invariant domain. This is the
-        // stability fallback the species driver relies on; without it the
-        // stiff conformal Gowdy collapse diverges where production stays alive.
+        // high-order update would leave the invariant domain. Without this
+        // fallback, stiff collapses (e.g. conformal Gowdy) diverge.
         .check_inv_domain = true,
         .force_low_order_flux = mom_st->force_low_order_flux,
         .cfl  = app->cfl,
@@ -246,14 +281,17 @@ spacetime_init_dynamic(const struct gkyl_moment *mom,
   sp->bc_buffer = mkarr(false, ncomp, buff_sz);
 }
 
-// Apply BCs to the Einstein state array. No-op in the static-analytic case
-// (there is no Einstein state to evolve).
-void
-moment_spacetime_apply_bc(gkyl_moment_app *app, double tcurr,
+// ---- apply_bc ----------------------------------------------------------------
+
+// No Einstein state to evolve (static-analytic backend or no spacetime).
+static void
+spacetime_apply_bc_none(gkyl_moment_app *app, double tcurr,
+  const struct moment_spacetime *sp, struct gkyl_array *f) { }
+
+static void
+spacetime_apply_bc_dynamic(gkyl_moment_app *app, double tcurr,
   const struct moment_spacetime *sp, struct gkyl_array *f)
 {
-  if (!sp->has_einstein_eqn) return;
-
   int num_periodic_dir = app->num_periodic_dir;
   int ndim = app->ndim;
   int is_non_periodic[3] = { 1, 1, 1 };
@@ -275,6 +313,13 @@ moment_spacetime_apply_bc(gkyl_moment_app *app, double tcurr,
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, app->periodic_dirs, f);
+}
+
+void
+moment_spacetime_apply_bc(gkyl_moment_app *app, double tcurr,
+  const struct moment_spacetime *sp, struct gkyl_array *f)
+{
+  sp->apply_bc_func(app, tcurr, sp, f);
 }
 
 // ---- max_dt ----------------------------------------------------------------
@@ -404,9 +449,10 @@ spacetime_fill_products_analytic(gkyl_moment_app *app, struct moment_spacetime *
 
 // Post-process filled products (shared by both backends): mirror-copy skin →
 // ghost on each non-periodic boundary so the ghost spacetime equals the
-// interior spacetime (matching packed's BC semantic), sync periodic directions,
-// then build (lazily, attaching to each tetrad species) or refresh the
-// per-interface tetrad cache.
+// interior spacetime (matching the BC semantics of the self-contained
+// wv_gr_euler formulation), sync periodic directions, then refresh the
+// per-interface tetrad cache (created once at app construction by
+// moment_spacetime_create_tetrad_cache).
 static void
 spacetime_finish_products(gkyl_moment_app *app, struct moment_spacetime *sp,
   double tcurr)
@@ -446,26 +492,38 @@ spacetime_finish_products(gkyl_moment_app *app, struct moment_spacetime *sp,
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
     num_periodic_dir, app->periodic_dirs, sp->prods);
 
-  bool need_wave_spacetime = false;
+  if (sp->wave_spacetime)
+    gkyl_wave_spacetime_refresh(sp->wave_spacetime, &app->grid, app->geom,
+      sp->analytic_spacetime, sp->prods, tcurr);
+}
+
+// Create the per-interface tetrad cache if any species consumes it. Called
+// once from gkyl_moment_app_new, after the products array has been filled
+// for the first time (the cache is built from it). The tetrad equation
+// objects receive the cache pointer through moment_coupling_init's auxfield
+// wiring -- all cross-object pointers are handed out at construction --
+// and calc_products refreshes the cache contents whenever the products
+// change.
+void
+moment_spacetime_create_tetrad_cache(gkyl_moment_app *app,
+  struct moment_spacetime *sp, double tcurr)
+{
+  if (sp->wave_spacetime) return;
+
+  bool needed = false;
   for (int i = 0; i < app->num_species; i++)
     if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD) {
-      need_wave_spacetime = true; break;
+      needed = true; break;
     }
-  if (need_wave_spacetime) {
-    if (sp->wave_spacetime == NULL) {
-      sp->wave_spacetime = gkyl_wave_spacetime_new(&app->grid, &app->local_ext,
-        app->geom, sp->analytic_spacetime, sp->prods, tcurr, /*use_gpu=*/false);
-      for (int i = 0; i < app->num_species; i++)
-        if (app->species[i].eqn_type == GKYL_EQN_GR_EULER_TETRAD)
-          gkyl_gr_euler_tetrad_set_wave_spacetime(app->species[i].equation,
-            sp->wave_spacetime);
-    }
-    else {
-      gkyl_wave_spacetime_refresh(sp->wave_spacetime, &app->grid, app->geom,
-        sp->analytic_spacetime, sp->prods, tcurr);
-    }
-  }
+  if (!needed) return;
+
+  sp->wave_spacetime = gkyl_wave_spacetime_new(&app->grid, &app->local_ext,
+    app->geom, sp->analytic_spacetime, sp->prods, tcurr, /*use_gpu=*/false);
 }
+
+static void
+spacetime_calc_products_none(gkyl_moment_app *app, struct moment_spacetime *sp,
+  double tcurr) { }
 
 static void
 spacetime_calc_products_static(gkyl_moment_app *app, struct moment_spacetime *sp,
@@ -479,8 +537,8 @@ static void
 spacetime_calc_products_dynamic(gkyl_moment_app *app, struct moment_spacetime *sp,
   double tcurr)
 {
-  // TODO(§6): derive the products from the evolved Einstein state (sp->fcurr).
-  // The post-processing (BC mirror + tetrad cache) is already shared below.
+  // TODO: derive the products from the evolved Einstein state (sp->fcurr);
+  // for now only the shared post-processing (BC mirror + tetrad cache) runs.
   spacetime_finish_products(app, sp, tcurr);
 }
 
@@ -492,6 +550,10 @@ moment_spacetime_calc_products(gkyl_moment_app *app, struct moment_spacetime *sp
 }
 
 // ---- release ---------------------------------------------------------------
+
+// No-spacetime set: nothing was allocated.
+static void
+spacetime_release_none(const struct moment_spacetime *sp) { }
 
 // Static backend: release the acquired analytic-spacetime reference.
 static void
