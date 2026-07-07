@@ -91,7 +91,7 @@ struct moment_spacetime {
     double t0);
   void (*write_func)(const gkyl_moment_app *app,
     const struct moment_spacetime *sp, double tm, int frame);
-  struct gkyl_app_restart_status (*from_frame_func)(gkyl_moment_app *app,
+  struct gkyl_app_restart_status (*read_func)(gkyl_moment_app *app,
     struct moment_spacetime *sp, int frame);
   void (*release_func)(const struct moment_spacetime *sp);
 };
@@ -162,6 +162,14 @@ void moment_spacetime_copy(const struct moment_spacetime *sp,
   struct gkyl_array *dst, const struct gkyl_array *src);
 
 /**
+ * Stepper protocol: back up / restore the pre-step Einstein state and
+ * commit the completed step (no-ops for a static or absent spacetime).
+ */
+void moment_spacetime_step_backup(const struct moment_spacetime *sp);
+void moment_spacetime_step_restore(const struct moment_spacetime *sp);
+void moment_spacetime_step_commit(const struct moment_spacetime *sp);
+
+/**
  * Recompute the derived spacetime quantities the fluid solver consumes
  * (cell-center products + interface tetrad cache) from the current state.
  *
@@ -220,7 +228,7 @@ void moment_spacetime_write(const gkyl_moment_app *app,
  * @param frame Frame number.
  * @return Restart status (IO status plus the file's frame number and time).
  */
-struct gkyl_app_restart_status moment_spacetime_from_frame(gkyl_moment_app *app,
+struct gkyl_app_restart_status moment_spacetime_read_from_frame(gkyl_moment_app *app,
   struct moment_spacetime *sp, int frame);
 
 /**

@@ -57,10 +57,16 @@ struct moment_field {
   // scheme to update equations solvers and data to update fluid
   // equations
   enum gkyl_moment_scheme scheme_type;
+  double cfl; // CFL number for this field's scheme
+
+  // Backup of the pre-step state, for the stepper's redo protocol (all
+  // schemes).
+  struct gkyl_array *fdup;
+
   union {
     struct {
       gkyl_wave_prop *slvr[3]; // wave-prop solver in each direction
-      struct gkyl_array *fdup, *f[4]; // arrays for updates
+      struct gkyl_array *f[4]; // arrays for updates
     };
     struct {
       gkyl_mp_scheme *mp_slvr; // monotonicity-preserving scheme
@@ -83,14 +89,20 @@ struct moment_field {
   // branch on scheme or field presence. The no-field wiring is all no-ops.
   double (*max_dt_func)(const gkyl_moment_app *app,
     const struct moment_field *fld);
+  // Advance the field by a FULL time step dt: the one-step wave-prop sweep,
+  // or a complete SSP-RK3 step built on rhs_func (MP).
   struct gkyl_update_status (*update_func)(gkyl_moment_app *app,
-    const struct moment_field *fld, double tcurr, double dt); // wave-prop sweep
+    const struct moment_field *fld, double tcurr, double dt);
   double (*rhs_func)(gkyl_moment_app *app, struct moment_field *fld,
     const struct gkyl_array *fin, struct gkyl_array *rhs); // MP RHS
   void (*apply_bc_func)(gkyl_moment_app *app, double tcurr,
     const struct moment_field *field, struct gkyl_array *f);
   void (*copy_func)(const struct moment_field *fld,
     struct gkyl_array *dst, const struct gkyl_array *src);
+  // Stepper protocol (see the species header for semantics).
+  struct gkyl_array* (*stage_state_func)(const struct moment_field *fld,
+    int nstrang);
+  void (*step_commit_func)(const struct moment_field *fld);
   void (*apply_ic_func)(gkyl_moment_app *app, struct moment_field *fld,
     double t0);
   void (*write_func)(const gkyl_moment_app *app, const struct moment_field *fld,
@@ -98,7 +110,7 @@ struct moment_field {
   void (*calc_energy_func)(gkyl_moment_app *app, struct moment_field *fld,
     double tm);
   void (*write_energy_func)(gkyl_moment_app *app, struct moment_field *fld);
-  struct gkyl_app_restart_status (*from_file_func)(gkyl_moment_app *app,
+  struct gkyl_app_restart_status (*read_func)(gkyl_moment_app *app,
     struct moment_field *fld, const char *fname);
   void (*release_func)(const struct moment_field *fld);
 };
@@ -174,6 +186,17 @@ double moment_field_rhs(gkyl_moment_app *app, struct moment_field *fld,
  */
 void moment_field_copy(const struct moment_field *fld,
   struct gkyl_array *dst, const struct gkyl_array *src);
+
+/**
+ * Stepper protocol: back up / restore the pre-step state, get the state
+ * array for a Strang stage (0: pre-hyperbolic, 1: post-hyperbolic), and
+ * commit the completed step. All no-ops (NULL stage state) without a field.
+ */
+void moment_field_step_backup(const struct moment_field *fld);
+void moment_field_step_restore(const struct moment_field *fld);
+struct gkyl_array* moment_field_stage_state(const struct moment_field *fld,
+  int nstrang);
+void moment_field_step_commit(const struct moment_field *fld);
 
 /**
  * Project the field initial conditions (EM state, external EM field,

@@ -15,6 +15,18 @@
 #include <stdio.h>
 #include <time.h>
 
+// Choices of schemes to use in the fluid solver. The scheme is a
+// per-component property: the app-level scheme_type sets the default, and
+// each species may override it. GKYL_MOMENT_DEFAULT resolves to the
+// app-level scheme for a species, and to wave-propagation at the app level,
+// so a zero-initialized input keeps the historical behavior.
+enum gkyl_moment_scheme {
+  GKYL_MOMENT_DEFAULT = 0, // inherit: app scheme (species) / wave-prop (app)
+  GKYL_MOMENT_WAVE_PROP, // 2nd-order FV wave-propagation (one-step Lax-Wendroff)
+  GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme (SSP-RK3)
+  GKYL_MOMENT_KEP // Kinetic-energy preserving scheme (SSP-RK3)
+};
+
 // Parameters for moment species
 struct gkyl_moment_species {
   char name[128]; // species name
@@ -25,6 +37,12 @@ struct gkyl_moment_species {
   struct gkyl_wv_eqn *equation; // equation object
   enum gkyl_wave_limiter limiter; // limiter to use
   enum gkyl_wave_split_type split_type; // edge splitting to use
+
+  // Scheme used to update this species; GKYL_MOMENT_DEFAULT inherits the
+  // app-level scheme_type. Species updated by different schemes coexist in
+  // the same Strang-split step: a wave-prop species takes its one-step
+  // update, an MP/KEP species takes a full SSP-RK3 step over the same dt.
+  enum gkyl_moment_scheme scheme_type;
 
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
@@ -141,13 +159,6 @@ struct gkyl_moment_spacetime {
   // self-contained wv_gr_euler equation).
   enum gkyl_spacetime_gauge spacetime_gauge;
   int reinit_freq;
-};
-
-// Choices of schemes to use in the fluid solver
-enum gkyl_moment_scheme {
-  GKYL_MOMENT_WAVE_PROP = 0, // default, 2nd-order FV
-  GKYL_MOMENT_MP, // monotonicity-preserving Suresh-Huynh scheme
-  GKYL_MOMENT_KEP // Kinetic-energy preserving scheme
 };
 
 // Top-level app parameters

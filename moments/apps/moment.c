@@ -78,20 +78,32 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
   strcpy(app->name, mom->name);
   app->tcurr = 0.0; // reset on init
 
-  app->scheme_type = mom->scheme_type;
-  
+  // Resolve the app-level default scheme (GKYL_MOMENT_DEFAULT means the
+  // wave-propagation scheme at the app level). Each species resolves its
+  // own scheme against this default in moment_species_init.
+  app->scheme_type = mom->scheme_type == GKYL_MOMENT_DEFAULT
+    ? GKYL_MOMENT_WAVE_PROP : mom->scheme_type;
+
   app->mp_recon = mom->mp_recon;
   app->use_hybrid_flux_kep = mom->use_hybrid_flux_kep;
-  
-  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP)
-    app->update_func = moment_update_one_step;
-  else if (app->scheme_type == GKYL_MOMENT_MP) 
-    app->update_func = moment_update_ssp_rk3;
-  else if (app->scheme_type == GKYL_MOMENT_KEP)
-    app->update_func = moment_update_ssp_rk3;
+
+  // One time stepper for every scheme mix: the Strang-split single step.
+  // Each component's update_func takes its own full dt step inside it (the
+  // wave-prop one-step update, or a complete SSP-RK3 step for MP/KEP).
+  app->update_func = moment_update_one_step;
+
+  // Does any component use an RHS-based (MP/KEP) scheme? They need 3 ghost
+  // cells (vs 2 for wave-prop) and the shared reconstruction work arrays.
+  bool any_mp_kep = app->scheme_type != GKYL_MOMENT_WAVE_PROP;
+  for (int i=0; i<mom->num_species; ++i) {
+    enum gkyl_moment_scheme st = mom->species[i].scheme_type == GKYL_MOMENT_DEFAULT
+      ? app->scheme_type : mom->species[i].scheme_type;
+    if (st != GKYL_MOMENT_WAVE_PROP)
+      any_mp_kep = true;
+  }
 
   int ghost[3] = { 2, 2, 2 }; // 2 ghost-cells for wave
-  if (mom->scheme_type != GKYL_MOMENT_WAVE_PROP)
+  if (any_mp_kep)
     for (int d=0; d<3; ++d) ghost[d] = 3; // 3 for MP scheme and KEP
 
   for (int d=0; d<3; ++d) app->nghost[d] = ghost[d];
@@ -256,8 +268,8 @@ gkyl_moment_app_new(struct gkyl_moment *mom)
     mhd_src_init(app, &mom->species[0], &app->mhd_source);
   }
 
-  // allocate work array for use in MP scheme
-  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
+  // allocate work arrays shared by the MP/KEP RHS computations
+  if (any_mp_kep) {
     int max_eqn = 0;
     for (int i=0; i<ns; ++i)
       max_eqn = int_max(max_eqn, app->species[i].num_equations);
@@ -361,7 +373,7 @@ void
 gkyl_moment_app_write_integrated_mom(gkyl_moment_app *app)
 {
   for (int i=0; i<app->num_species; ++i)
-    moment_species_write_integ_mom(app, &app->species[i]);
+    moment_species_write_integrated_mom(app, &app->species[i]);
 }
 
 void
@@ -417,7 +429,7 @@ void
 gkyl_moment_app_calc_integrated_mom(gkyl_moment_app *app, double tm)
 {
   for (int sidx=0; sidx<app->num_species; ++sidx)
-    moment_species_calc_integ_mom(app, &app->species[sidx], tm);
+    moment_species_calc_integrated_mom(app, &app->species[sidx], tm);
 }
 
 void
@@ -578,13 +590,12 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   gkyl_moment_app_cout(app, fp, " nfail : %ld,\n", stat.nfail);
   gkyl_moment_app_cout(app, fp, " total_tm : %lg,\n", stat.total_tm);
 
-  if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
-    gkyl_moment_app_cout(app, fp, " species_tm : %lg,\n", stat.species_tm);
-    gkyl_moment_app_cout(app, fp, " field_tm : %lg,\n", stat.field_tm);
-    gkyl_moment_app_cout(app, fp, " sources_tm : %lg\n", stat.sources_tm);
-  }
-  else if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
-    
+  gkyl_moment_app_cout(app, fp, " species_tm : %lg,\n", stat.species_tm);
+  gkyl_moment_app_cout(app, fp, " field_tm : %lg,\n", stat.field_tm);
+  gkyl_moment_app_cout(app, fp, " sources_tm : %lg\n", stat.sources_tm);
+
+  if (app->ql) { // stats for the RHS-based (MP/KEP) schemes
+
     gkyl_moment_app_cout(app, fp, " nfeuler : %ld,\n", stat.nfeuler);
     gkyl_moment_app_cout(app, fp, " nstage_2_fail : %ld,\n", stat.nstage_2_fail);
     gkyl_moment_app_cout(app, fp, " nstage_3_fail : %ld,\n", stat.nstage_3_fail);
@@ -611,7 +622,7 @@ gkyl_moment_app_stat_write(const gkyl_moment_app* app)
   for (int i = 0; i < app->num_species; ++i) {
     long tot_bad_cells = 0L;
     
-    if (app->scheme_type == GKYL_MOMENT_WAVE_PROP) {
+    if (app->species[i].scheme_type == GKYL_MOMENT_WAVE_PROP) {
       for (int d = 0; d < app->ndim; ++d) {
         struct gkyl_wave_prop_stats wvs_local = gkyl_wave_prop_stats(app->species[i].slvr[d]);
         struct gkyl_wave_prop_stats wvs = {};
@@ -686,7 +697,7 @@ gkyl_moment_app_read_from_frame(gkyl_moment_app *app, int frame)
   // dynamic backend also rebuilds the derived products/tetrad cache). Only
   // an actual read (dynamic backend) contributes to the returned status.
   struct gkyl_app_restart_status st_rstat =
-    moment_spacetime_from_frame(app, &app->spacetime, frame);
+    moment_spacetime_read_from_frame(app, &app->spacetime, frame);
   if (app->spacetime.has_einstein_eqn)
     rstat = st_rstat;
 
@@ -948,7 +959,7 @@ gkyl_moment_app_release(gkyl_moment_app* app)
 
   gkyl_wave_geom_release(app->geom);
 
-  if (app->scheme_type == GKYL_MOMENT_MP || app->scheme_type == GKYL_MOMENT_KEP) {
+  if (app->ql) { // allocated when any component uses an MP/KEP scheme
     gkyl_array_release(app->ql);
     gkyl_array_release(app->qr);
     gkyl_array_release(app->amdq);

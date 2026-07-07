@@ -40,36 +40,45 @@ static struct gkyl_update_status species_update_static(gkyl_moment_app *app,
 static double species_rhs_static(gkyl_moment_app *app, struct moment_species *sp,
   const struct gkyl_array *fin, struct gkyl_array *rhs);
 
-// Guards for operations a scheme does not support: wave-prop species are
-// never stepped through rhs_func, MP/KEP species never through update_func.
-static struct gkyl_update_status species_update_unavail(gkyl_moment_app *app,
+// MP/KEP full-step update: a complete SSP-RK3 step built on rhs_func, run
+// inside the same Strang-split stepper as the wave-prop one-step update.
+static struct gkyl_update_status species_update_ssp_rk3(gkyl_moment_app *app,
   struct moment_species *sp, double tcurr, double dt);
-static double species_rhs_unavail(gkyl_moment_app *app, struct moment_species *sp,
-  const struct gkyl_array *fin, struct gkyl_array *rhs);
+
+// Stepper protocol: Strang stage-state accessor and end-of-step commit, per
+// state-array layout. Wave-prop steps f[0] -> f[ndim] and commits at the
+// end of the Strang step; the RK schemes and static species hold the
+// current solution in fcurr throughout (commit is a no-op). The pre-step
+// backup/restore for the redo protocol works through fcurr and needs no
+// per-scheme variants.
+static struct gkyl_array* species_stage_state_wave_prop(const struct moment_species *sp, int nstrang);
+static void species_step_commit_wave_prop(const struct moment_species *sp);
+static struct gkyl_array* species_stage_state_curr(const struct moment_species *sp, int nstrang);
+static void species_step_commit_curr(const struct moment_species *sp);
 
 // Post-update hook, applied after each directional sweep. Composed from
 // (species type x spacetime presence): the excision scrub for modular GR
 // tetrad species under a spacetime, a no-op otherwise.
-static void species_post_update_none(gkyl_moment_app *app,
+static void species_no_post_update(gkyl_moment_app *app,
   struct moment_species *sp, struct gkyl_array *f);
 static void species_post_update_scrub_excised(gkyl_moment_app *app,
   struct moment_species *sp, struct gkyl_array *f);
 
 // Stepper state copy (backup/commit/restore).
-static void species_copy_arrays(const struct moment_species *sp,
+static void species_copy(const struct moment_species *sp,
   struct gkyl_array *dst, const struct gkyl_array *src);
 
 // ICs, IO, integrated diagnostics, and restart (one variant each for now;
 // wired through the vtable so species types can override them later).
-static void species_apply_ic_proj(gkyl_moment_app *app,
+static void species_apply_ic(gkyl_moment_app *app,
   struct moment_species *sp, double t0);
-static void species_write_frames(const gkyl_moment_app *app,
+static void species_write(const gkyl_moment_app *app,
   const struct moment_species *sp, double tm, int frame);
-static void species_calc_integ_mom_quant(gkyl_moment_app *app,
+static void species_calc_integrated_mom(gkyl_moment_app *app,
   struct moment_species *sp, double tm);
-static void species_write_integ_mom_dynvec(gkyl_moment_app *app,
+static void species_write_integrated_mom(gkyl_moment_app *app,
   struct moment_species *sp);
-static struct gkyl_app_restart_status species_from_file_read(gkyl_moment_app *app,
+static struct gkyl_app_restart_status species_from_file(gkyl_moment_app *app,
   struct moment_species *sp, const char *fname);
 
 // initialize species
@@ -143,7 +152,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
     sp->update_sources = true;
   }
 
-  sp->scheme_type = mom->scheme_type;
+  // Resolve this species' scheme: the input may override the app-level
+  // default (GKYL_MOMENT_DEFAULT inherits it). The CFL number is a property
+  // of the scheme, so it is per-species too.
+  sp->scheme_type = mom_sp->scheme_type == GKYL_MOMENT_DEFAULT
+    ? app->scheme_type : mom_sp->scheme_type;
+  double cfl_frac = mom->cfl_frac == 0 ? 0.95 : mom->cfl_frac;
+  sp->cfl = (sp->scheme_type == GKYL_MOMENT_MP ? 0.4 : 1.0) * cfl_frac;
 
   // choose default limiter
   enum gkyl_wave_limiter limiter =
@@ -166,7 +181,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .force_low_order_flux = mom_sp->force_low_order_flux,
           .check_inv_domain = true,
           .update_dirs = { d },
-          .cfl = app->cfl,
+          .cfl = sp->cfl,
           .geom = app->geom,
           .comm = app->comm
         }
@@ -198,7 +213,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .skip_mp_limiter = mom->skip_mp_limiter,
           .num_up_dirs = num_up_dirs,
           .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
-          .cfl = app->cfl,
+          .cfl = sp->cfl,
           .geom = app->geom,
         }
       );
@@ -210,12 +225,13 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           .use_hybrid_flux = app->use_hybrid_flux_kep,
           .num_up_dirs = num_up_dirs,
           .update_dirs = { update_dirs[0], update_dirs[1], update_dirs[2] } ,
-          .cfl = app->cfl,
+          .cfl = sp->cfl,
           .geom = app->geom,
         }
       );
     
     // allocate arrays
+    sp->fdup = mkarr(false, meqn, app->local_ext.volume);
     sp->f0 = mkarr(false, meqn, app->local_ext.volume);
     sp->f1 = mkarr(false, meqn, app->local_ext.volume);
     sp->fnew = mkarr(false, meqn, app->local_ext.volume);
@@ -404,31 +420,49 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   // downstream calls through these pointers. The scheme is a per-species
   // property here (currently inherited from the app input), so species
   // updated by different schemes can coexist.
-  sp->copy_func = species_copy_arrays;
-  sp->apply_ic_func = species_apply_ic_proj;
-  sp->write_func = species_write_frames;
-  sp->calc_integ_mom_func = species_calc_integ_mom_quant;
-  sp->write_integ_mom_func = species_write_integ_mom_dynvec;
-  sp->from_file_func = species_from_file_read;
+  sp->copy_func = species_copy;
+  sp->apply_ic_func = species_apply_ic;
+  sp->write_func = species_write;
+  sp->calc_integrated_mom_func = species_calc_integrated_mom;
+  sp->write_integrated_mom_func = species_write_integrated_mom;
+  sp->read_func = species_from_file;
   switch (sp->scheme_type) {
     case GKYL_MOMENT_WAVE_PROP:
       sp->max_dt_func = species_max_dt_wave_prop;
-      sp->update_func = sp->is_static ? species_update_static : species_update_wave_prop;
-      sp->rhs_func = species_rhs_unavail;
+      sp->update_func = species_update_wave_prop;
+      sp->rhs_func = NULL; // the wave-prop full step does not decompose into an RHS
+      sp->stage_state_func = species_stage_state_wave_prop;
+      sp->step_commit_func = species_step_commit_wave_prop;
       sp->release_func = species_release_wave_prop;
       break;
     case GKYL_MOMENT_MP:
       sp->max_dt_func = species_max_dt_mp;
-      sp->update_func = species_update_unavail;
-      sp->rhs_func = sp->is_static ? species_rhs_static : species_rhs_mp;
+      sp->update_func = species_update_ssp_rk3;
+      sp->rhs_func = species_rhs_mp;
+      sp->stage_state_func = species_stage_state_curr;
+      sp->step_commit_func = species_step_commit_curr;
       sp->release_func = species_release_mp;
       break;
     case GKYL_MOMENT_KEP:
       sp->max_dt_func = species_max_dt_kep;
-      sp->update_func = species_update_unavail;
-      sp->rhs_func = sp->is_static ? species_rhs_static : species_rhs_kep;
+      sp->update_func = species_update_ssp_rk3;
+      sp->rhs_func = species_rhs_kep;
+      sp->stage_state_func = species_stage_state_curr;
+      sp->step_commit_func = species_step_commit_curr;
       sp->release_func = species_release_kep;
       break;
+    default:
+      assert(false); // species scheme must resolve to a concrete scheme
+      break;
+  }
+  // A static species freezes its hyperbolic update, whatever the scheme:
+  // the solution stays in fcurr (so the stage states and commit are the
+  // in-place set) and the RHS is zero for the RK stages.
+  if (sp->is_static) {
+    sp->update_func = species_update_static;
+    sp->rhs_func = species_rhs_static;
+    sp->stage_state_func = species_stage_state_curr;
+    sp->step_commit_func = species_step_commit_curr;
   }
   // Post-update hook: modular GR tetrad species under a spacetime must scrub
   // hydro in excised cells after each sweep; everything else is a no-op. The
@@ -436,7 +470,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->post_update_func =
     (sp->eqn_type == GKYL_EQN_GR_EULER_TETRAD && app->has_spacetime)
     ? species_post_update_scrub_excised
-    : species_post_update_none;
+    : species_no_post_update;
 }
 
 // apply BCs to species
@@ -550,25 +584,82 @@ species_update_wave_prop(gkyl_moment_app *app,
   };
 }
 
-// Static species: pass the state through the stepper's staging arrays
-// unchanged (the second Strang source step reads f[ndim] and the stepper
-// commits f[0] = f[ndim]).
+// Static species: nothing to evolve. The solution stays in fcurr (the
+// in-place stage-state/commit set), so no state needs to pass through the
+// staging arrays.
 static struct gkyl_update_status
 species_update_static(gkyl_moment_app *app,
   struct moment_species *sp, double tcurr, double dt)
 {
-  for (int d=0; d<sp->ndim; ++d)
-    gkyl_array_copy(sp->f[d+1], sp->f[d]);
   return (struct gkyl_update_status) { .success = true, .dt_suggested = DBL_MAX };
 }
 
-static struct gkyl_update_status
-species_update_unavail(gkyl_moment_app *app,
-  struct moment_species *sp, double tcurr, double dt)
+// One forward-Euler stage of the SSP-RK3 update: rhs into fout, then
+// fout = fin + dt*rhs, then BCs. Returns the stage's stable dt (with the
+// same 1%-overrun tolerance the historical joint stepper applied); the
+// caller fails the step if it is below the requested dt.
+static double
+species_rk3_stage(gkyl_moment_app *app, struct moment_species *sp,
+  double tcurr, double dt, const struct gkyl_array *fin, struct gkyl_array *fout)
 {
-  assert(false); // MP/KEP species are stepped through rhs_func, not update_func
-  return (struct gkyl_update_status) { .success = false, .dt_suggested = 0.0 };
+  app->stat.nfeuler += 1;
+
+  double dtmin = sp->rhs_func(app, sp, fin, fout);
+  double dt_rel_diff = (dt-dtmin)/dt;
+  if (dt_rel_diff > 0 && dt_rel_diff < 0.01)
+    dtmin = dt; // avoid retaking steps on very small dt differences
+
+  if (dtmin < dt)
+    return dtmin;
+
+  gkyl_array_accumulate_range(gkyl_array_scale_range(fout, dt, &(app->local)),
+    1.0, fin, &(app->local));
+  moment_species_apply_bc(app, tcurr, sp, fout);
+
+  return dtmin;
 }
+
+// A full SSP-RK3 step for this species, built on rhs_func. f0 holds the
+// pre-step state and is only overwritten by the final commit, so a stage
+// whose stable dt is below the requested dt simply reports failure and the
+// stepper's redo protocol retakes the whole Strang step at the suggested dt
+// (the historical joint stepper instead restarted its stages internally --
+// same trajectory, different bookkeeping).
+static struct gkyl_update_status
+species_update_ssp_rk3(gkyl_moment_app *app, struct moment_species *sp,
+  double tcurr, double dt)
+{
+  // Stage 1: f1 = f0 + dt*L(f0).
+  double dt1 = species_rk3_stage(app, sp, tcurr, dt, sp->f0, sp->f1);
+  if (dt1 < dt)
+    return (struct gkyl_update_status) { .success = false, .dt_suggested = dt1 };
+
+  // Stage 2: fnew = f1 + dt*L(f1); f1 = 3/4 f0 + 1/4 fnew.
+  double dt2 = species_rk3_stage(app, sp, tcurr+dt, dt, sp->f1, sp->fnew);
+  if (dt2 < dt) {
+    double dt_rel_diff = (dt-dt2)/dt2;
+    app->stat.stage_2_dt_diff[0] = fmin(app->stat.stage_2_dt_diff[0], dt_rel_diff);
+    app->stat.stage_2_dt_diff[1] = fmax(app->stat.stage_2_dt_diff[1], dt_rel_diff);
+    app->stat.nstage_2_fail += 1;
+    return (struct gkyl_update_status) { .success = false, .dt_suggested = dt2 };
+  }
+  array_combine(sp->f1, 3.0/4.0, sp->f0, 1.0/4.0, sp->fnew, &app->local_ext);
+
+  // Stage 3: fnew = f1 + dt*L(f1); f1 = 1/3 f0 + 2/3 fnew; commit f0 = f1.
+  double dt3 = species_rk3_stage(app, sp, tcurr+dt/2, dt, sp->f1, sp->fnew);
+  if (dt3 < dt) {
+    double dt_rel_diff = (dt-dt3)/dt3;
+    app->stat.stage_3_dt_diff[0] = fmin(app->stat.stage_3_dt_diff[0], dt_rel_diff);
+    app->stat.stage_3_dt_diff[1] = fmax(app->stat.stage_3_dt_diff[1], dt_rel_diff);
+    app->stat.nstage_3_fail += 1;
+    return (struct gkyl_update_status) { .success = false, .dt_suggested = dt3 };
+  }
+  array_combine(sp->f1, 1.0/3.0, sp->f0, 2.0/3.0, sp->fnew, &app->local_ext);
+  gkyl_array_copy_range(sp->f0, sp->f1, &app->local_ext);
+
+  return (struct gkyl_update_status) { .success = true, .dt_suggested = dt3 };
+}
+
 
 // update solution: initial solution is in sp->f[0] and updated
 // solution in sp->f[ndim]
@@ -582,7 +673,7 @@ moment_species_update(gkyl_moment_app *app,
 // ---- post-update hook --------------------------------------------------------
 
 static void
-species_post_update_none(gkyl_moment_app *app, struct moment_species *sp,
+species_no_post_update(gkyl_moment_app *app, struct moment_species *sp,
   struct gkyl_array *f) { }
 
 // Scrub hydro to zero inside the excision region for modular GR species.
@@ -626,7 +717,7 @@ species_rhs_mp(gkyl_moment_app *app, struct moment_species *sp,
 
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
 
-  return app->cfl/omegaCfl[0];
+  return sp->cfl/omegaCfl[0];
 }
 
 static double
@@ -646,7 +737,7 @@ species_rhs_kep(gkyl_moment_app *app, struct moment_species *sp,
 
   app->stat.species_rhs_tm += gkyl_time_diff_now_sec(tm);
 
-  return app->cfl/omegaCfl[0];
+  return sp->cfl/omegaCfl[0];
 }
 
 // Static species: zero RHS (forward Euler then gives fout = fin), no CFL
@@ -659,13 +750,6 @@ species_rhs_static(gkyl_moment_app *app, struct moment_species *sp,
   return DBL_MAX;
 }
 
-static double
-species_rhs_unavail(gkyl_moment_app *app, struct moment_species *sp,
-  const struct gkyl_array *fin, struct gkyl_array *rhs)
-{
-  assert(false); // wave-prop species are stepped through update_func, not rhs_func
-  return DBL_MAX;
-}
 
 // Compute RHS of moment equations
 double
@@ -678,7 +762,7 @@ moment_species_rhs(gkyl_moment_app *app, struct moment_species *species,
 // ---- copy (time-stepper backup/commit/restore) -------------------------------
 
 static void
-species_copy_arrays(const struct moment_species *sp,
+species_copy(const struct moment_species *sp,
   struct gkyl_array *dst, const struct gkyl_array *src)
 {
   gkyl_array_copy(dst, src);
@@ -691,10 +775,66 @@ moment_species_copy(const struct moment_species *sp,
   sp->copy_func(sp, dst, src);
 }
 
+// ---- stepper protocol (backup/restore/stage-state/commit) ---------------------
+// Hides each scheme's state-array layout from the stepper and the source
+// coupling. The pre-step backup/restore work through fcurr (the current
+// solution, whatever the scheme), so they need no per-scheme variants; the
+// stage-state accessor and the commit do.
+
+void
+moment_species_step_backup(const struct moment_species *sp)
+{
+  sp->copy_func(sp, sp->fdup, sp->fcurr);
+}
+
+void
+moment_species_step_restore(const struct moment_species *sp)
+{
+  sp->copy_func(sp, sp->fcurr, sp->fdup);
+}
+
+static struct gkyl_array*
+species_stage_state_wave_prop(const struct moment_species *sp, int nstrang)
+{
+  return nstrang == 0 ? sp->f[0] : sp->f[sp->ndim];
+}
+
+static void
+species_step_commit_wave_prop(const struct moment_species *sp)
+{
+  sp->copy_func(sp, sp->f[0], sp->f[sp->ndim]);
+}
+
+// In-place set (RK schemes and static species): the current solution lives
+// in fcurr through the whole step, so both stage states are fcurr and there
+// is nothing to commit (the SSP-RK3 update commits into fcurr itself).
+static struct gkyl_array*
+species_stage_state_curr(const struct moment_species *sp, int nstrang)
+{
+  return sp->fcurr;
+}
+
+static void
+species_step_commit_curr(const struct moment_species *sp)
+{
+}
+
+struct gkyl_array*
+moment_species_stage_state(const struct moment_species *sp, int nstrang)
+{
+  return sp->stage_state_func(sp, nstrang);
+}
+
+void
+moment_species_step_commit(const struct moment_species *sp)
+{
+  sp->step_commit_func(sp);
+}
+
 // ---- initial conditions --------------------------------------------------------
 
 static void
-species_apply_ic_proj(gkyl_moment_app *app, struct moment_species *sp, double t0)
+species_apply_ic(gkyl_moment_app *app, struct moment_species *sp, double t0)
 {
   int num_quad = app->scheme_type == GKYL_MOMENT_MP ? 4 : 2;
   gkyl_fv_proj *proj = gkyl_fv_proj_new(&app->grid, num_quad, sp->num_equations,
@@ -719,7 +859,7 @@ moment_species_apply_ic(gkyl_moment_app *app, struct moment_species *sp, double 
 // ---- write (frame IO) ------------------------------------------------------------
 
 static void
-species_write_frames(const gkyl_moment_app *app, const struct moment_species *sp,
+species_write(const gkyl_moment_app *app, const struct moment_species *sp,
   double tm, int frame)
 {
   struct gkyl_msgpack_data *mt = moment_array_meta_new( (struct moment_output_meta) {
@@ -759,7 +899,7 @@ moment_species_write(const gkyl_moment_app *app, const struct moment_species *sp
 // ---- integrated diagnostics ------------------------------------------------------
 
 static void
-species_calc_integ_mom_quant(gkyl_moment_app *app, struct moment_species *sp,
+species_calc_integrated_mom(gkyl_moment_app *app, struct moment_species *sp,
   double tm)
 {
   int num_diag = sp->equation->num_diag;
@@ -774,7 +914,7 @@ species_calc_integ_mom_quant(gkyl_moment_app *app, struct moment_species *sp,
 }
 
 static void
-species_write_integ_mom_dynvec(gkyl_moment_app *app, struct moment_species *sp)
+species_write_integrated_mom(gkyl_moment_app *app, struct moment_species *sp)
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -795,22 +935,22 @@ species_write_integ_mom_dynvec(gkyl_moment_app *app, struct moment_species *sp)
 }
 
 void
-moment_species_calc_integ_mom(gkyl_moment_app *app, struct moment_species *sp,
+moment_species_calc_integrated_mom(gkyl_moment_app *app, struct moment_species *sp,
   double tm)
 {
-  sp->calc_integ_mom_func(app, sp, tm);
+  sp->calc_integrated_mom_func(app, sp, tm);
 }
 
 void
-moment_species_write_integ_mom(gkyl_moment_app *app, struct moment_species *sp)
+moment_species_write_integrated_mom(gkyl_moment_app *app, struct moment_species *sp)
 {
-  sp->write_integ_mom_func(app, sp);
+  sp->write_integrated_mom_func(app, sp);
 }
 
 // ---- restart read ------------------------------------------------------------------
 
 static struct gkyl_app_restart_status
-species_from_file_read(gkyl_moment_app *app, struct moment_species *sp,
+species_from_file(gkyl_moment_app *app, struct moment_species *sp,
   const char *fname)
 {
   struct gkyl_app_restart_status rstat = moment_app_header_from_file(app, fname);
@@ -838,7 +978,7 @@ struct gkyl_app_restart_status
 moment_species_from_file(gkyl_moment_app *app, struct moment_species *sp,
   const char *fname)
 {
-  return sp->from_file_func(app, sp, fname);
+  return sp->read_func(app, sp, fname);
 }
 
 // ---- release -----------------------------------------------------------------
@@ -860,6 +1000,7 @@ static void
 species_release_mp(const struct moment_species *sp)
 {
   gkyl_mp_scheme_release(sp->mp_slvr);
+  gkyl_array_release(sp->fdup);
   gkyl_array_release(sp->f0);
   gkyl_array_release(sp->f1);
   gkyl_array_release(sp->fnew);
@@ -871,6 +1012,7 @@ static void
 species_release_kep(const struct moment_species *sp)
 {
   gkyl_kep_scheme_release(sp->kep_slvr);
+  gkyl_array_release(sp->fdup);
   gkyl_array_release(sp->f0);
   gkyl_array_release(sp->f1);
   gkyl_array_release(sp->fnew);
