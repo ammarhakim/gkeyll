@@ -46,6 +46,16 @@ gkyl_dg_updater_gyrokinetic_passive_new(const struct gkyl_rect_grid *grid,
   void *aux_inp, bool use_gpu);
 
 /**
+ * Acquire passive gyrokinetic equation object.
+ *
+ * @param up Passyive gyrokinetic updater object.
+ * 
+ * @return Passive gyrokinetic equation object.
+ */
+struct gkyl_dg_eqn* 
+gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokinetic_passive* up);
+
+/**
  * Compute the RHS DG update.
  *
  * @param up Passive gyrokinetic updater object.
