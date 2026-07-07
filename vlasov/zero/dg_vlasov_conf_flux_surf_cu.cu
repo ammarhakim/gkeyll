@@ -15,101 +15,169 @@ extern "C" {
 
 #include <cassert>
 
+static void
+gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gkyl_range range, int ncomp)
+{
+  // Create a 2D thread grid so we launch ncomp*range.volume number of threads
+  // so we can parallelize over components too
+  dimBlock->y = ncomp; // ncomp *must* be less than 256
+  dimGrid->y = 1;
+  dimBlock->x = GKYL_DEFAULT_NUM_THREADS/ncomp;
+  dimGrid->x = gkyl_int_div_up(range.volume, dimBlock->x);
+}
+
 __global__ void
-gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_range phase_range_ext, 
-  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
+gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_surf *up,
+  struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_range phase_range_ext,
+  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
+  // Per-node |alpha| values for the block, reduced to alpha_max per (cell, dir)
+  // by the threadIdx.y == 0 thread of each cell.
+  __shared__ double alpha_smem[GKYL_DEFAULT_NUM_THREADS];
+
   int pdim = up->pdim;
   int cdim = up->cdim;
-  int vdim = pdim - cdim;
-  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM]; 
+
+  // 2D thread grid: linc2 indexes the surface node (i_node: transverse
+  // configuration-space nodes, m_node: velocity-space nodes, matching the CPU
+  // dispatch's i-major/m-minor node order); threads in x index the phase-space
+  // cell. blockDim.y == num_nodes_conf*num_nodes_vel by construction.
+  int num_nodes_vel = up->num_nodes_vel;
+  int num_nodes = up->num_nodes_conf*num_nodes_vel;
+  int linc2 = threadIdx.y;
+  int i_node = linc2 / num_nodes_vel;
+  int m_node = linc2 % num_nodes_vel;
+
+  // No grid-stride loop: the launch covers phase_range.volume exactly so the
+  // __syncthreads() barriers below are reached uniformly by every thread in
+  // the block (threads past the end of the range only skip the guarded work).
+  unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
+  bool valid = linc1 < phase_range.volume;
+
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM];
   int idx_hamil[GKYL_MAX_DIM];
-  for (unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
-      linc1 < phase_range.volume;
-      linc1 += gridDim.x*blockDim.x)
-  {
+  double xcC[GKYL_MAX_DIM];
+  const double *poisson_tensor_conf_d = 0, *hamil_d = 0, *f_c = 0;
+  double *cflrate_d = 0, *flux = 0;
+  if (valid) {
     // inverse index from linc1 to idx
     // must use gkyl_sub_range_inv_idx so that linc1=0 maps to idx={1,1,...}
     // since update_range is a subrange
-    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);  
+    gkyl_sub_range_inv_idx(&phase_range, linc1, idx);
     long cidx = gkyl_range_idx(&conf_range, idx);
     long pidx = gkyl_range_idx(&phase_range, idx);
 
-    for (int i=0; i<vdim; ++i) {
-      idx_vel[i] = idx[cdim+i];
-    } 
-    long vidx = gkyl_range_idx(&up->vel_range, idx_vel); 
-
     for (int i=0; i<up->hamil_dim; ++i) {
       idx_hamil[i] = idx[up->hamil_offset+i];
-    } 
-    long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil); 
+    }
+    long hidx = gkyl_range_idx(&up->hamil_range, idx_hamil);
 
-    // Grab the cell center location for NC bracket calculation 
-    double xcC[GKYL_MAX_DIM], xcR[GKYL_MAX_DIM];
+    // Grab the cell center location for NC bracket calculation
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xcC);
 
-    const double *f_c = (const double*) gkyl_array_cfetch(fin, pidx); 
-    double *cflrate_d = (double*) gkyl_array_fetch(cflrate, pidx);
-    const double *poisson_tensor_conf_d = (const double*) gkyl_array_cfetch(poisson_tensor_conf, cidx);
-    const double *hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
-    double *flux = (double*) gkyl_array_fetch(conf_flux_surf, pidx); 
-    
-    // Each cell owns *lower* fluxes in each configuration-space direction. 
-    // So we need the distribution function in our current cell, and the cell
-    // one index lower in each direction. If we are at the lower configuration-space
-    // edge, we call ghost cells
-    for (int dir = 0; dir<cdim; ++dir) {
+    f_c = (const double*) gkyl_array_cfetch(fin, pidx);
+    cflrate_d = (double*) gkyl_array_fetch(cflrate, pidx);
+    poisson_tensor_conf_d = (const double*) gkyl_array_cfetch(poisson_tensor_conf, cidx);
+    hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
+    flux = (double*) gkyl_array_fetch(conf_flux_surf, pidx);
+  }
 
-      // Create an index for the left cell (which may be a ghost cell)
+  // Each cell owns *lower* fluxes in each configuration-space direction.
+  // So we need the distribution function in our current cell, and the cell
+  // one index lower in each direction. If we are at the lower configuration-space
+  // edge, we call ghost cells
+  for (int dir = 0; dir<cdim; ++dir) {
+    // Lower face owned by this cell (the left neighbor may be a ghost cell).
+    // hamil_pt_edge = -1: evaluate the Hamiltonian/PT on this cell's lower face.
+    const double *f_l = 0;
+    double node_alpha = 0.0;
+    if (valid) {
       gkyl_copy_int_arr(pdim, idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
-      long pidx_l = gkyl_range_idx(&phase_range, idx_l); 
-      const double* f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);
+      long pidx_l = gkyl_range_idx(&phase_range, idx_l);
+      f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);
+      double alpha = up->hamil_alpha_quad[dir](i_node, m_node, -1, xcC, up->phase_grid.dx,
+        poisson_tensor_conf_d, hamil_d);
+      node_alpha = up->lax_flux_nodal[dir](i_node, m_node, alpha, f_l, f_c, flux);
+    }
+    alpha_smem[threadIdx.x + blockDim.x*threadIdx.y] = node_alpha;
+    __syncthreads();
 
-      // Which face to evalute the hamiltonian / pt on
-      int hamil_pt_edge = -1;
-
-      cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, 
-        hamil_pt_edge, poisson_tensor_conf_d, hamil_d, f_l, f_c, flux);    
-
-      // If at the right boundary compute flux owned by the point in the ghost cell
-      if (idx[dir] == phase_range.upper[dir]) {
-        
-        // Index the right cell (ghost cell)
-        gkyl_copy_int_arr(pdim, idx, idx_r);
-        idx_r[dir] = idx_r[dir]+1;
-        long pidx_r = gkyl_range_idx(&phase_range_ext, idx_r); 
-        
-        const double *f_r = (const double*) gkyl_array_cfetch(fin, pidx_r);
-        double *flux_r = (double*) gkyl_array_fetch(conf_flux_surf, pidx_r); 
-        double *cflrate_d_r = (double*) gkyl_array_fetch(cflrate, pidx_r);
-
-        /* As a concequence of not having ghost cells for PT/Hamil, they are shifted here
-          and evaluated in the kernels at the upper boundary +1. This is allowed by continuity of hamil/pt */
-        hamil_pt_edge = 1;
-
-        gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
-        cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
-          poisson_tensor_conf_d, hamil_d, f_c, f_r, flux_r); 
+    if (valid && threadIdx.y == 0) {
+      // Reduce alpha_max in the CPU dispatch's node order so the fmax chain,
+      // and hence the CFL estimate, matches the CPU loop exactly.
+      double alpha_max = 0.0;
+      for (int n=0; n<num_nodes; ++n) {
+        alpha_max = fmax(alpha_max, alpha_smem[threadIdx.x + blockDim.x*n]);
       }
-    }    
+      double cfl = up->lax_cfl[dir](up->phase_grid.dx, alpha_max);
+      // Always compute the flux, but if we are below threshold, ignore the stable time step estimate.
+      if (fabs(f_l[0]) < up->skip_cell_thresh &&
+          fabs(f_c[0]) < up->skip_cell_thresh) {
+        cfl = 0.0;
+      }
+      cflrate_d[0] += cfl;
+    }
+    // alpha_smem is reused by the boundary pass and the next direction.
+    __syncthreads();
+
+    // If at the right boundary compute flux owned by the point in the ghost cell
+    bool at_upper = valid && (idx[dir] == phase_range.upper[dir]);
+    const double *f_r = 0;
+    double *flux_r = 0, *cflrate_d_r = 0;
+    node_alpha = 0.0;
+    if (at_upper) {
+      // Index the right cell (ghost cell)
+      gkyl_copy_int_arr(pdim, idx, idx_r);
+      idx_r[dir] = idx_r[dir]+1;
+      long pidx_r = gkyl_range_idx(&phase_range_ext, idx_r);
+
+      f_r = (const double*) gkyl_array_cfetch(fin, pidx_r);
+      flux_r = (double*) gkyl_array_fetch(conf_flux_surf, pidx_r);
+      cflrate_d_r = (double*) gkyl_array_fetch(cflrate, pidx_r);
+
+      /* As a concequence of not having ghost cells for PT/Hamil, they are shifted here
+        and evaluated in the kernels at the upper boundary +1. This is allowed by continuity of hamil/pt */
+      double xcR[GKYL_MAX_DIM];
+      gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
+      double alpha = up->hamil_alpha_quad[dir](i_node, m_node, 1, xcR, up->phase_grid.dx,
+        poisson_tensor_conf_d, hamil_d);
+      node_alpha = up->lax_flux_nodal[dir](i_node, m_node, alpha, f_c, f_r, flux_r);
+    }
+    alpha_smem[threadIdx.x + blockDim.x*threadIdx.y] = node_alpha;
+    __syncthreads();
+
+    if (at_upper && threadIdx.y == 0) {
+      double alpha_max = 0.0;
+      for (int n=0; n<num_nodes; ++n) {
+        alpha_max = fmax(alpha_max, alpha_smem[threadIdx.x + blockDim.x*n]);
+      }
+      double cfl = up->lax_cfl[dir](up->phase_grid.dx, alpha_max);
+      if (fabs(f_c[0]) < up->skip_cell_thresh &&
+          fabs(f_r[0]) < up->skip_cell_thresh) {
+        cfl = 0.0;
+      }
+      cflrate_d_r[0] += cfl;
+    }
+    __syncthreads();
   }
 }
 
-void 
-gkyl_dg_vlasov_conf_flux_surf_advance_cu(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext, 
-  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil, 
+void
+gkyl_dg_vlasov_conf_flux_surf_advance_cu(struct gkyl_dg_vlasov_conf_flux_surf *up,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, const struct gkyl_range *phase_range_ext,
+  const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
-  int nblocks = phase_range->nblocks;
-  int nthreads = phase_range->nthreads;
-  gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
+  // 2D thread grid: parallelize over surface nodes as well as phase-space cells.
+  int num_nodes = up->num_nodes_conf*up->num_nodes_vel;
+  assert(num_nodes <= GKYL_DEFAULT_NUM_THREADS);
+  dim3 dimGrid, dimBlock;
+  gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, num_nodes);
+  gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev,
     *conf_range, *phase_range, *phase_range_ext, poisson_tensor_conf->on_dev,
-    hamil->on_dev, fin->on_dev, cflrate->on_dev, conf_flux_surf->on_dev);  
+    hamil->on_dev, fin->on_dev, cflrate->on_dev, conf_flux_surf->on_dev);
 }
 
 // CUDA kernel to set device pointers to canonical pb vars kernel functions
@@ -259,8 +327,18 @@ gkyl_dg_vlasov_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_conf_flux_
     up->hamil_dim = pdim; 
     up->hamil_offset = 0; 
   }
-  up->vel_range = *inp->vel_range; 
-  
+  up->vel_range = *inp->vel_range;
+
+  // Host mirror of the surface node counts set on the device struct by
+  // set_cu_dev_ptrs; the advance wrapper needs them to size the 2D
+  // (cells x nodes) kernel launch.
+  int nq = poly_order + 1;
+  if ((poly_order > 1) && !inp->use_lo) nq = poly_order + 2;
+  up->num_nodes_conf = 1;
+  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq;
+  up->num_nodes_vel = 1;
+  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq;
+
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 

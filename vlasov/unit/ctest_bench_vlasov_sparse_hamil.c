@@ -13,6 +13,10 @@
 //     (nc volume, incl. the precomputed-alpha combos, + flux-consumer surf).
 // Each case cross-checks that sparse and dense agree to machine precision.
 //
+// On CUDA builds each case also runs the conf-flux/vel-flux assemblies on the
+// GPU (node-parallel 2D cell x node thread grid), checks the device results
+// match the CPU loops, and reports GPU vs CPU per-call timings.
+//
 // Iterations: set BENCH_NREP (default 8, CI-friendly). Timings are per-call.
 
 #include <acutest.h>
@@ -54,6 +58,16 @@ max_abs_diff(const struct gkyl_array *a, const struct gkyl_array *b)
     double d = fabs(ad[i] - bd[i]);
     if (d > m) m = d;
   }
+  return m;
+}
+
+static double
+max_abs(const struct gkyl_array *a)
+{
+  const double *ad = a->data;
+  double m = 0.0;
+  for (size_t i = 0; i < a->size * a->ncomp; ++i)
+    if (fabs(ad[i]) > m) m = fabs(ad[i]);
   return m;
 }
 
@@ -315,6 +329,248 @@ bench_case(enum gkyl_model_id model_id, int cdim, int vdim, int poly_order,
       d_rhs, d_cflux, d_flux, d_mom);
   else
     printf("  max |sparse - dense|: rhs %.2e, vel_flux %.2e, moments %.2e\n", d_rhs, d_flux, d_mom);
+
+#ifdef GKYL_HAVE_CUDA
+  // ---- GPU arm: run the node-parallel GPU flux assemblies (2D cell x node
+  // thread grid) on the same inputs, check they reproduce the CPU per-cell
+  // loops, and time GPU vs CPU head-to-head. ----
+  struct gkyl_vlasov_velocity_map *vel_map_cu = gkyl_vlasov_velocity_map_new(&velGrid,
+    &velRange, &velBasis, inp_vmap, true);
+  struct gkyl_vlasov_position_map *pos_map_cu = gkyl_vlasov_position_map_new(&confGrid,
+    &confRange, &confRange_ext, &confBasis, inp_pmap, true);
+
+  struct gkyl_array *fin_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
+  struct gkyl_array *f_no_J_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
+  struct gkyl_array *cflrate_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, phaseRange_ext.volume);
+  struct gkyl_array *qmem_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 8*confBasis.num_basis, confRange_ext.volume);
+  struct gkyl_array *hamil_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, velBasis.num_basis, velRange.volume);
+  struct gkyl_array *poisson_tensor_conf_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    confBasis.num_basis*num_pt_indices[vdim-1], confRange_ext.volume);
+  struct gkyl_array *pot_tot_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, confBasis.num_basis*4, confRange_ext.volume);
+  struct gkyl_array *rad_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim*velBasis.num_basis, velRange.volume);
+  gkyl_array_copy(fin_cu, fin);
+  gkyl_array_copy(f_no_J_cu, f_no_J);
+  gkyl_array_copy(qmem_cu, qmem);
+  gkyl_array_copy(hamil_cu, hamil);
+  gkyl_array_copy(poisson_tensor_conf_cu, poisson_tensor_conf);
+  gkyl_array_copy(pot_tot_cu, pot_tot);
+  gkyl_array_copy(rad_cu, rad);
+
+  // Host staging for device->host comparisons, plus a clean-cflrate CPU
+  // reference pass (the CPU timing loop above leaves hyper_dg contributions
+  // in cflrate).
+  struct gkyl_array *vel_flux_ho = gkyl_array_new(GKYL_DOUBLE, vdim*num_surf_vel_nodes, phaseRange_ext.volume);
+  struct gkyl_array *conf_flux_ho = is_triad ?
+    gkyl_array_new(GKYL_DOUBLE, cdim*num_surf_conf_nodes, phaseRange_ext.volume) : 0;
+  struct gkyl_array *cflrate_ho = gkyl_array_new(GKYL_DOUBLE, 1, phaseRange_ext.volume);
+  struct gkyl_array *cflrate_ref = gkyl_array_new(GKYL_DOUBLE, 1, phaseRange_ext.volume);
+
+  struct gkyl_array *rhs_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
+
+  struct gkyl_array *vel_flux_surf_cu[2], *conf_flux_surf_cu[2], *rhs_cu[2];
+  struct gkyl_dg_vlasov_conf_flux_surf *calc_conf_flux_cu[2] = { 0 };
+  struct gkyl_dg_vlasov_vel_flux_surf *calc_vel_flux_cu[2];
+  struct gkyl_dg_eqn *eqn_cu[2];
+  gkyl_hyper_dg *slvr_cu[2];
+  double t_cflux_gpu[2] = { 0.0, 0.0 }, t_flux_gpu[2] = { 0.0, 0.0 }, t_hyper_gpu[2] = { 0.0, 0.0 };
+  double d_gpu_vflux[2], d_gpu_cflux[2] = { 0.0, 0.0 }, d_gpu_cfl[2], d_gpu_rhs[2];
+
+  for (int fl = 0; fl < 2; ++fl) {
+    vel_flux_surf_cu[fl] = gkyl_array_cu_dev_new(GKYL_DOUBLE, vdim*num_surf_vel_nodes, phaseRange_ext.volume);
+    conf_flux_surf_cu[fl] = is_triad ?
+      gkyl_array_cu_dev_new(GKYL_DOUBLE, cdim*num_surf_conf_nodes, phaseRange_ext.volume) : 0;
+
+    if (is_triad) {
+      struct gkyl_dg_vlasov_conf_flux_surf_inp inp_conf_flux = {
+        .phase_grid = &phaseGrid,
+        .conf_basis = &confBasis,
+        .phase_basis = &basis,
+        .vel_range = &velRange,
+        .hamil_range = &velRange,
+        .skip_cell_thresh = 0.0,
+        .model_id = model_id,
+        .hamil_id = flavors[fl],
+        .use_lo = false,
+        .use_gpu = true,
+      };
+      calc_conf_flux_cu[fl] = gkyl_dg_vlasov_conf_flux_surf_inew(&inp_conf_flux);
+    }
+
+    struct gkyl_dg_vlasov_vel_flux_surf_inp inp_vel_flux = {
+      .phase_grid = &phaseGrid,
+      .conf_basis = &confBasis,
+      .phase_basis = &basis,
+      .vel_map = vel_map_cu,
+      .pos_map = pos_map_cu,
+      .hamil_range = &velRange,
+      .skip_cell_thresh = 0.0,
+      .model_id = model_id,
+      .hamil_id = flavors[fl],
+      .has_E = !is_triad,
+      .has_phi = false,
+      .has_B = !is_triad && vdim > 1,
+      .has_rad = false,
+      .use_lo = false,
+      .use_gpu = true,
+    };
+    calc_vel_flux_cu[fl] = gkyl_dg_vlasov_vel_flux_surf_inew(&inp_vel_flux);
+
+    rhs_cu[fl] = gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, phaseRange_ext.volume);
+    struct gkyl_dg_vlasov_inp inp_eqn_cu = {
+      .conf_basis = &confBasis,
+      .phase_basis = &basis,
+      .conf_range = &confRange,
+      .hamil_range = &velRange,
+      .phase_range = &phaseRange,
+      .vel_map = vel_map_cu,
+      .pos_map = pos_map_cu,
+      .skip_cell_thresh = 0.0,
+      .model_id = model_id,
+      .hamil_id = flavors[fl],
+      .has_E = !is_triad,
+      .has_phi = false,
+      .has_B = !is_triad && vdim > 1,
+      .has_rad = false,
+      .poisson_tensor_conf = poisson_tensor_conf_cu,
+      .hamil = hamil_cu,
+      .qmem = qmem_cu,
+      .pot_tot = pot_tot_cu,
+      .conf_flux_surf = conf_flux_surf_cu[fl],
+      .vel_flux_surf = vel_flux_surf_cu[fl],
+      .f_no_J = f_no_J_cu,
+      .rad = rad_cu,
+      .use_lo = false,
+      .use_gpu = true,
+    };
+    eqn_cu[fl] = gkyl_dg_vlasov_inew(&inp_eqn_cu);
+    slvr_cu[fl] = gkyl_hyper_dg_new(&phaseGrid, &basis, eqn_cu[fl], pdim, up_dirs, zero_flux_flags, 1, true);
+
+    // Correctness: one clean pass on device and host; the GPU node-parallel
+    // loops must reproduce the CPU per-cell loops (flux arrays and the
+    // shared-memory alpha_max/CFL reduction).
+    gkyl_array_clear(cflrate_cu, 0.0);
+    gkyl_array_clear(vel_flux_surf_cu[fl], 0.0);
+    if (is_triad) {
+      gkyl_array_clear(conf_flux_surf_cu[fl], 0.0);
+      gkyl_dg_vlasov_conf_flux_surf_advance(calc_conf_flux_cu[fl], &confRange, &phaseRange, &phaseRange_ext,
+        poisson_tensor_conf_cu, hamil_cu, fin_cu, cflrate_cu, conf_flux_surf_cu[fl]);
+    }
+    gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux_cu[fl], &confRange, &phaseRange,
+      poisson_tensor_conf_cu, hamil_cu, qmem_cu, pot_tot_cu, rad_cu, f_no_J_cu, cflrate_cu, vel_flux_surf_cu[fl]);
+
+    gkyl_array_clear(cflrate_ref, 0.0);
+    if (is_triad)
+      gkyl_dg_vlasov_conf_flux_surf_advance(up[fl].calc_conf_flux, &confRange, &phaseRange, &phaseRange_ext,
+        poisson_tensor_conf, hamil, fin, cflrate_ref, conf_flux_surf[fl]);
+    gkyl_dg_vlasov_vel_flux_surf_advance(up[fl].calc_vel_flux, &confRange, &phaseRange,
+      poisson_tensor_conf, hamil, qmem, pot_tot, rad, f_no_J, cflrate_ref, vel_flux_surf[fl]);
+
+    gkyl_array_copy(vel_flux_ho, vel_flux_surf_cu[fl]);
+    gkyl_array_copy(cflrate_ho, cflrate_cu);
+    d_gpu_vflux[fl] = max_abs_diff(vel_flux_ho, vel_flux_surf[fl]);
+    d_gpu_cfl[fl] = max_abs_diff(cflrate_ho, cflrate_ref);
+    if (is_triad) {
+      gkyl_array_copy(conf_flux_ho, conf_flux_surf_cu[fl]);
+      d_gpu_cflux[fl] = max_abs_diff(conf_flux_ho, conf_flux_surf[fl]);
+    }
+
+    // hyper_dg on device, consuming the GPU-computed fluxes; the CPU rhs[fl]
+    // holds the matching CPU hyper_dg output from the last timed rep.
+    gkyl_array_clear(rhs_cu[fl], 0.0);
+    gkyl_array_clear(cflrate_cu, 0.0);
+    gkyl_hyper_dg_advance(slvr_cu[fl], &phaseRange, fin_cu, cflrate_cu, rhs_cu[fl]);
+    gkyl_array_copy(rhs_ho, rhs_cu[fl]);
+    d_gpu_rhs[fl] = max_abs_diff(rhs_ho, rhs[fl]);
+
+    double gpu_tol = 1e-12;
+    TEST_CHECK(d_gpu_vflux[fl] <= gpu_tol * fmax(max_abs(vel_flux_surf[fl]), 1.0));
+    TEST_MSG("%s GPU vs CPU vel_flux max diff %e", fl ? "sparse" : "dense", d_gpu_vflux[fl]);
+    TEST_CHECK(d_gpu_cfl[fl] <= gpu_tol * fmax(max_abs(cflrate_ref), 1.0));
+    TEST_MSG("%s GPU vs CPU cflrate max diff %e", fl ? "sparse" : "dense", d_gpu_cfl[fl]);
+    if (is_triad) {
+      TEST_CHECK(d_gpu_cflux[fl] <= gpu_tol * fmax(max_abs(conf_flux_surf[fl]), 1.0));
+      TEST_MSG("%s GPU vs CPU conf_flux max diff %e", fl ? "sparse" : "dense", d_gpu_cflux[fl]);
+    }
+    TEST_CHECK(d_gpu_rhs[fl] <= gpu_tol * fmax(max_abs(rhs[fl]), 1.0));
+    TEST_MSG("%s GPU vs CPU hyper_dg rhs max diff %e", fl ? "sparse" : "dense", d_gpu_rhs[fl]);
+  }
+
+  // Interleaved A/B timing on device, mirroring the CPU loop above.
+  // gkyl_wall_clock() synchronizes the device before reading the clock.
+  for (int n = 0; n < nrep; ++n) {
+    for (int fl = 0; fl < 2; ++fl) {
+      if (is_triad) {
+        tm = gkyl_wall_clock();
+        gkyl_dg_vlasov_conf_flux_surf_advance(calc_conf_flux_cu[fl], &confRange, &phaseRange, &phaseRange_ext,
+          poisson_tensor_conf_cu, hamil_cu, fin_cu, cflrate_cu, conf_flux_surf_cu[fl]);
+        t_cflux_gpu[fl] += gkyl_time_diff_now_sec(tm);
+      }
+      tm = gkyl_wall_clock();
+      gkyl_dg_vlasov_vel_flux_surf_advance(calc_vel_flux_cu[fl], &confRange, &phaseRange,
+        poisson_tensor_conf_cu, hamil_cu, qmem_cu, pot_tot_cu, rad_cu, f_no_J_cu, cflrate_cu, vel_flux_surf_cu[fl]);
+      t_flux_gpu[fl] += gkyl_time_diff_now_sec(tm);
+
+      gkyl_array_clear(rhs_cu[fl], 0.0);
+      gkyl_array_clear(cflrate_cu, 0.0);
+      tm = gkyl_wall_clock();
+      gkyl_hyper_dg_advance(slvr_cu[fl], &phaseRange, fin_cu, cflrate_cu, rhs_cu[fl]);
+      t_hyper_gpu[fl] += gkyl_time_diff_now_sec(tm);
+    }
+  }
+  for (int fl = 0; fl < 2; ++fl) {
+    t_cflux_gpu[fl] /= nrep; t_flux_gpu[fl] /= nrep; t_hyper_gpu[fl] /= nrep;
+  }
+
+  printf("  GPU vs CPU (per-call):\n");
+  printf("  %-14s %-7s %10s %10s %9s\n", "updater", "flavor", "cpu ms", "gpu ms", "speedup");
+  for (int fl = 0; fl < 2; ++fl) {
+    if (is_triad)
+      printf("  %-14s %-7s %10.3f %10.3f %8.2fx\n", "conf_flux_surf", fl ? "sparse" : "dense",
+        1e3*t_cflux[fl], 1e3*t_cflux_gpu[fl], t_cflux[fl]/t_cflux_gpu[fl]);
+    printf("  %-14s %-7s %10.3f %10.3f %8.2fx\n", "vel_flux_surf", fl ? "sparse" : "dense",
+      1e3*t_flux[fl], 1e3*t_flux_gpu[fl], t_flux[fl]/t_flux_gpu[fl]);
+    printf("  %-14s %-7s %10.3f %10.3f %8.2fx\n", "hyper_dg", fl ? "sparse" : "dense",
+      1e3*t_hyper[fl], 1e3*t_hyper_gpu[fl], t_hyper[fl]/t_hyper_gpu[fl]);
+    // Per-cell aggregate: every cell runs its conf-flux (triads), vel-flux,
+    // and hyper_dg update each step, so the summed time is the per-step cost.
+    double cpu_tot = (is_triad ? t_cflux[fl] : 0.0) + t_flux[fl] + t_hyper[fl];
+    double gpu_tot = (is_triad ? t_cflux_gpu[fl] : 0.0) + t_flux_gpu[fl] + t_hyper_gpu[fl];
+    printf("  %-14s %-7s %10.3f %10.3f %8.2fx\n", "overall", fl ? "sparse" : "dense",
+      1e3*cpu_tot, 1e3*gpu_tot, cpu_tot/gpu_tot);
+  }
+  if (is_triad)
+    printf("  max |gpu - cpu|: conf_flux %.2e/%.2e, vel_flux %.2e/%.2e, cflrate %.2e/%.2e, rhs %.2e/%.2e (dense/sparse)\n",
+      d_gpu_cflux[0], d_gpu_cflux[1], d_gpu_vflux[0], d_gpu_vflux[1], d_gpu_cfl[0], d_gpu_cfl[1],
+      d_gpu_rhs[0], d_gpu_rhs[1]);
+  else
+    printf("  max |gpu - cpu|: vel_flux %.2e/%.2e, cflrate %.2e/%.2e, rhs %.2e/%.2e (dense/sparse)\n",
+      d_gpu_vflux[0], d_gpu_vflux[1], d_gpu_cfl[0], d_gpu_cfl[1], d_gpu_rhs[0], d_gpu_rhs[1]);
+
+  for (int fl = 0; fl < 2; ++fl) {
+    if (calc_conf_flux_cu[fl]) gkyl_dg_vlasov_conf_flux_surf_release(calc_conf_flux_cu[fl]);
+    gkyl_dg_vlasov_vel_flux_surf_release(calc_vel_flux_cu[fl]);
+    gkyl_hyper_dg_release(slvr_cu[fl]);
+    gkyl_dg_eqn_release(eqn_cu[fl]);
+    gkyl_array_release(rhs_cu[fl]);
+    gkyl_array_release(vel_flux_surf_cu[fl]);
+    if (conf_flux_surf_cu[fl]) gkyl_array_release(conf_flux_surf_cu[fl]);
+  }
+  gkyl_array_release(rhs_ho);
+  gkyl_array_release(vel_flux_ho);
+  if (conf_flux_ho) gkyl_array_release(conf_flux_ho);
+  gkyl_array_release(cflrate_ho);
+  gkyl_array_release(cflrate_ref);
+  gkyl_array_release(fin_cu);
+  gkyl_array_release(f_no_J_cu);
+  gkyl_array_release(cflrate_cu);
+  gkyl_array_release(qmem_cu);
+  gkyl_array_release(hamil_cu);
+  gkyl_array_release(poisson_tensor_conf_cu);
+  gkyl_array_release(pot_tot_cu);
+  gkyl_array_release(rad_cu);
+  gkyl_vlasov_velocity_map_release(vel_map_cu);
+  gkyl_vlasov_position_map_release(pos_map_cu);
+#endif
 
   for (int fl = 0; fl < 2; ++fl) {
     if (up[fl].calc_conf_flux) gkyl_dg_vlasov_conf_flux_surf_release(up[fl].calc_conf_flux);

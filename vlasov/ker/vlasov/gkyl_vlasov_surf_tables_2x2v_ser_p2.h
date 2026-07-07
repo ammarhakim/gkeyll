@@ -2,8 +2,9 @@
 // Generated nodal surface-evaluation tables (see surf-eval-tables.mac). 
 // Header-static so both host and device instantiations of GKYL_CU_DH 
 // kernels can read them; unused arrays are elided per TU. 
+#include <gkyl_util.h> 
 #include <gkyl_vlasov_surf_meta.h> 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_conf_ev[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_conf_ev[72] = { 
   0.5, 
   -0.6708203932499369, 
   -0.6708203932499369, 
@@ -77,7 +78,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_conf_ev[72] = {
   0.5999999999999999, 
   0.5999999999999994, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_conf_dx0[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_conf_dx0[72] = { 
   0.0, 
   0.8660254037844386, 
   0.0, 
@@ -151,7 +152,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_conf_dx0[72] = {
   3.4856850115866753, 
   0.7745966692414833, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_conf_dx1[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_conf_dx1[72] = { 
   0.0, 
   0.0, 
   0.8660254037844386, 
@@ -225,7 +226,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_conf_dx1[72] = {
   0.7745966692414833, 
   3.4856850115866753, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_ev_v0[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_ev_v0[24] = { 
   0.5, 
   -0.8660254037844386, 
   -0.6708203932499369, 
@@ -251,12 +252,12 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_ev_v0[24] = {
   1.5, 
   -0.7745966692414833, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_nodes_v0[3] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_nodes_v0[3] = { 
   -0.7745966692414833, 
   0.0, 
   0.7745966692414833, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_dv1_v0[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_dv1_v0[24] = { 
   0.0, 
   0.0, 
   0.8660254037844386, 
@@ -282,7 +283,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_dv1_v0[24] = {
   1.9364916731037085, 
   -4.499999999999999, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_ev_v1[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_ev_v1[24] = { 
   0.5, 
   -0.6708203932499369, 
   -0.8660254037844386, 
@@ -308,12 +309,12 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_ev_v1[24] = {
   -0.7745966692414833, 
   1.5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_nodes_v1[3] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_nodes_v1[3] = { 
   -0.7745966692414833, 
   0.0, 
   0.7745966692414833, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_dv0_v1[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_dv0_v1[24] = { 
   0.0, 
   0.8660254037844386, 
   0.0, 
@@ -339,14 +340,14 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_dv0_v1[24] = {
   -4.499999999999999, 
   1.9364916731037085, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_vel_sparse_idx[5] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_vel_sparse_idx[5] = { 
   0, 
   1, 
   2, 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Cm[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Cm[72] = { 
   1.0, 
   -1.9364916731037085, 
   -1.9364916731037085, 
@@ -420,7 +421,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Cm[72] = {
   -2.9792179586210903, 
   -2.979217958621089, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmD[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmD[72] = { 
   0.0, 
   2.5, 
   0.0, 
@@ -494,7 +495,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmD[72] = {
   -17.307692307692307, 
   -3.8461538461538463, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmDx0[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmDx0[72] = { 
   0.0, 
   2.5, 
   0.0, 
@@ -568,7 +569,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmDx0[72] = {
   -17.307692307692307, 
   -3.8461538461538463, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmDx1[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmDx1[72] = { 
   0.0, 
   0.0, 
   2.5, 
@@ -642,7 +643,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_CmDx1[72] = {
   -3.8461538461538463, 
   -17.307692307692307, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_V[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_V[24] = { 
   1.0, 
   2.5, 
   -1.9364916731037085, 
@@ -668,7 +669,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_V[24] = {
   -7.448044896552726, 
   -3.8461538461538463, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -718,7 +719,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_coefl[48] = {
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_coefr[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -768,7 +769,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_coefr[48] = {
   -0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_cmap[48] = { 
   0, 
   1, 
   2, 
@@ -818,7 +819,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_cmap[48] = {
   3, 
   3, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vlmap[48] = { 
   0, 
   0, 
   0, 
@@ -868,7 +869,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vlmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrmap[48] = { 
   0, 
   0, 
   0, 
@@ -918,7 +919,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Vd0[18] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Vd0[18] = { 
   0.0, 
   2.5, 
   -4.841229182759272, 
@@ -938,7 +939,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Vd0[18] = {
   -22.344134689658176, 
   -3.8461538461538463, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -988,7 +989,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vld0map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -1038,7 +1039,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrd0map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -1088,7 +1089,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefl0[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -1138,7 +1139,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefr0[48] = 
   0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Vd1[18] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Vd1[18] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -1158,7 +1159,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_Vd1[18] = {
   -9.615384615384615, 
   -22.344134689658176, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -1208,7 +1209,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vld1map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -1258,7 +1259,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v0_vrd1map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -1308,7 +1309,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefl1[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -1358,8 +1359,8 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v0_dcoefr1[48] = 
   -0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_v0_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 9, .ni = 3, .ns = 5, .fhat_off = 0 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Cm[72] = { 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_v0_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 9, .ni = 3, .ns = 5, .fhat_off = 0 }; 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Cm[72] = { 
   1.0, 
   -1.9364916731037085, 
   -1.9364916731037085, 
@@ -1433,7 +1434,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Cm[72] = {
   -2.9792179586210903, 
   -2.979217958621089, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmD[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmD[72] = { 
   0.0, 
   0.0, 
   2.5, 
@@ -1507,7 +1508,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmD[72] = {
   -3.8461538461538463, 
   -17.307692307692307, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmDx0[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmDx0[72] = { 
   0.0, 
   2.5, 
   0.0, 
@@ -1581,7 +1582,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmDx0[72] = {
   -17.307692307692307, 
   -3.8461538461538463, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmDx1[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmDx1[72] = { 
   0.0, 
   0.0, 
   2.5, 
@@ -1655,7 +1656,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_CmDx1[72] = {
   -3.8461538461538463, 
   -17.307692307692307, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_V[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_V[24] = { 
   1.0, 
   -1.9364916731037085, 
   2.5, 
@@ -1681,7 +1682,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_V[24] = {
   -3.8461538461538463, 
   -7.448044896552726, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -1731,7 +1732,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_coefl[48] = {
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_coefr[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -1781,7 +1782,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_coefr[48] = {
   0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_cmap[48] = { 
   0, 
   1, 
   2, 
@@ -1831,7 +1832,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_cmap[48] = {
   3, 
   3, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vlmap[48] = { 
   0, 
   0, 
   0, 
@@ -1881,7 +1882,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vlmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrmap[48] = { 
   0, 
   0, 
   0, 
@@ -1931,7 +1932,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Vd0[18] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Vd0[18] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -1951,7 +1952,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Vd0[18] = {
   -22.344134689658176, 
   -9.615384615384615, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -2001,7 +2002,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vld0map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -2051,7 +2052,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrd0map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -2101,7 +2102,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefl0[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -2151,7 +2152,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefr0[48] = 
   0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Vd1[18] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Vd1[18] = { 
   0.0, 
   2.5, 
   -4.841229182759272, 
@@ -2171,7 +2172,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_Vd1[18] = {
   -3.8461538461538463, 
   -22.344134689658176, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -2221,7 +2222,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vld1map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -2271,7 +2272,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_v1_vrd1map[48] = {
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -2321,7 +2322,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefl1[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -2371,8 +2372,8 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_v1_dcoefr1[48] = 
   -0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_v1_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 9, .ni = 3, .ns = 5, .fhat_off = 27 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_vol_dv0[72] = { 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_v1_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 9, .ni = 3, .ns = 5, .fhat_off = 27 }; 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_vol_dv0[72] = { 
   0.0, 
   0.8660254037844386, 
   0.0, 
@@ -2446,7 +2447,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_vol_dv0[72] = {
   3.4856850115866753, 
   0.7745966692414833, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_vel_vol_dv1[72] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_vol_dv1[72] = { 
   0.0, 
   0.0, 
   0.8660254037844386, 
@@ -2520,7 +2521,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_vel_vol_dv1[72] = {
   0.7745966692414833, 
   3.4856850115866753, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x0_ev_l[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x0_ev_l[24] = { 
   0.5, 
   0.8660254037844386, 
   -0.6708203932499369, 
@@ -2546,7 +2547,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x0_ev_l[24]
   1.5, 
   0.7745966692414833, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x0_ev_r[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x0_ev_r[24] = { 
   0.5, 
   -0.8660254037844386, 
   -0.6708203932499369, 
@@ -2572,7 +2573,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x0_ev_r[24]
   1.5, 
   -0.7745966692414833, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Cm[9] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Cm[9] = { 
   1.0, 
   -1.9364916731037085, 
   -1.5384615384615385, 
@@ -2583,7 +2584,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Cm[9] = {
   1.9364916731037085, 
   -1.5384615384615385, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_V[180] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_V[180] = { 
   1.0, 
   2.5, 
   -1.9364916731037085, 
@@ -2765,7 +2766,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_V[180] = {
   -7.448044896552726, 
   -7.448044896552721, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -2815,7 +2816,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_coefl[48] = {
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_coefr[48] = { 
   0.25, 
   -0.17320508075688773, 
   0.17320508075688773, 
@@ -2865,7 +2866,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_coefr[48] = {
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_cmap[48] = { 
   0, 
   0, 
   1, 
@@ -2915,7 +2916,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_cmap[48] = {
   1, 
   1, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vlmap[48] = { 
   0, 
   1, 
   0, 
@@ -2965,7 +2966,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vlmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrmap[48] = { 
   0, 
   1, 
   0, 
@@ -3015,7 +3016,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Vd0[117] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Vd0[117] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -3134,7 +3135,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Vd0[117] = {
   -43.26923076923077, 
   -9.615384615384615, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -3184,7 +3185,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vld0map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -3234,7 +3235,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrd0map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -3284,7 +3285,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefl0[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -3334,7 +3335,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefr0[48] = 
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Vd1[117] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Vd1[117] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -3453,7 +3454,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_Vd1[117] = {
   -9.615384615384615, 
   -43.26923076923077, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -3503,7 +3504,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vld1map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -3553,7 +3554,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x0_vrd1map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -3603,7 +3604,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefl1[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -3653,8 +3654,8 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x0_dcoefr1[48] = 
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_x0_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 3, .ni = 9, .ns = 5, .fhat_off = 0 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x1_ev_l[24] = { 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_x0_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 3, .ni = 9, .ns = 5, .fhat_off = 0 }; 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x1_ev_l[24] = { 
   0.5, 
   -0.6708203932499369, 
   0.8660254037844386, 
@@ -3680,7 +3681,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x1_ev_l[24]
   0.7745966692414833, 
   1.5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x1_ev_r[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x1_ev_r[24] = { 
   0.5, 
   -0.6708203932499369, 
   -0.8660254037844386, 
@@ -3706,7 +3707,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_confsurf_x1_ev_r[24]
   -0.7745966692414833, 
   1.5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Cm[9] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Cm[9] = { 
   1.0, 
   -1.9364916731037085, 
   -1.5384615384615385, 
@@ -3717,7 +3718,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Cm[9] = {
   1.9364916731037085, 
   -1.5384615384615385, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_V[180] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_V[180] = { 
   1.0, 
   2.5, 
   -1.9364916731037085, 
@@ -3899,7 +3900,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_V[180] = {
   -7.448044896552726, 
   -7.448044896552721, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -3949,7 +3950,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_coefl[48] = {
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_coefr[48] = { 
   0.25, 
   0.17320508075688773, 
   -0.17320508075688773, 
@@ -3999,7 +4000,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_coefr[48] = {
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_cmap[48] = { 
   0, 
   1, 
   0, 
@@ -4049,7 +4050,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_cmap[48] = {
   1, 
   1, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vlmap[48] = { 
   0, 
   0, 
   1, 
@@ -4099,7 +4100,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vlmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrmap[48] = { 
   0, 
   0, 
   1, 
@@ -4149,7 +4150,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Vd0[117] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Vd0[117] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -4268,7 +4269,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Vd0[117] = {
   -43.26923076923077, 
   -9.615384615384615, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -4318,7 +4319,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vld0map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -4368,7 +4369,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrd0map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -4418,7 +4419,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefl0[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -4468,7 +4469,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefr0[48] = 
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Vd1[117] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Vd1[117] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -4587,7 +4588,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_Vd1[117] = {
   -9.615384615384615, 
   -43.26923076923077, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -4637,7 +4638,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vld1map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -4687,7 +4688,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ph_x1_vrd1map[48] = {
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -4737,7 +4738,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefl1[48] = 
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -4787,8 +4788,8 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ph_x1_dcoefr1[48] = 
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_x1_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 3, .ni = 9, .ns = 5, .fhat_off = 27 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_ev[128] = { 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ph_x1_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 3, .ni = 9, .ns = 5, .fhat_off = 27 }; 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_ev[128] = { 
   0.5, 
   -0.7457659219616816, 
   -0.7457659219616816, 
@@ -4918,7 +4919,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_ev[128] = {
   1.02111731798518, 
   1.02111731798518, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_dx0[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_dx0[128] = { 
   0.0, 
   0.8660254037844386, 
   0.0, 
@@ -5048,7 +5049,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_dx0[128] = {
   4.308049588470176, 
   1.1857789576832338, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_dx1[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_dx1[128] = { 
   0.0, 
   0.0, 
   0.8660254037844386, 
@@ -5178,7 +5179,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_conf_dx1[128] = {
   1.1857789576832338, 
   4.308049588470176, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_ev_v0[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_ev_v0[32] = { 
   0.5, 
   -0.8660254037844386, 
   -0.7457659219616816, 
@@ -5212,13 +5213,13 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_ev_v0[32] = {
   1.6675832968091233, 
   -1.1857789576832338, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_nodes_v0[4] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_nodes_v0[4] = { 
   -0.8611363115940526, 
   -0.33998104358485626, 
   0.33998104358485626, 
   0.8611363115940526, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_dv1_v0[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_dv1_v0[32] = { 
   0.0, 
   0.0, 
   0.8660254037844386, 
@@ -5252,7 +5253,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_dv1_v0[32] = 
   1.9364916731037085, 
   -5.002749890427371, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_ev_v1[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_ev_v1[32] = { 
   0.5, 
   -0.7457659219616816, 
   -0.8660254037844386, 
@@ -5286,13 +5287,13 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_ev_v1[32] = {
   -1.1857789576832338, 
   1.6675832968091233, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_nodes_v1[4] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_nodes_v1[4] = { 
   -0.8611363115940526, 
   -0.33998104358485626, 
   0.33998104358485626, 
   0.8611363115940526, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_dv0_v1[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_dv0_v1[32] = { 
   0.0, 
   0.8660254037844386, 
   0.0, 
@@ -5326,14 +5327,14 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_dv0_v1[32] = 
   -5.002749890427371, 
   1.9364916731037085, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_vel_sparse_idx[5] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_vel_sparse_idx[5] = { 
   0, 
   1, 
   2, 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Cm[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Cm[128] = { 
   1.0, 
   -2.1528407789851314, 
   -2.1528407789851314, 
@@ -5463,7 +5464,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Cm[128] = {
   -5.070218419334084, 
   -5.0702184193340845, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmD[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmD[128] = { 
   0.0, 
   2.5, 
   0.0, 
@@ -5593,7 +5594,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmD[128] = 
   -21.391031167667574, 
   -5.887823276141479, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmDx0[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmDx0[128] = { 
   0.0, 
   2.5, 
   0.0, 
@@ -5723,7 +5724,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmDx0[128] 
   -21.391031167667574, 
   -5.887823276141479, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmDx1[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmDx1[128] = { 
   0.0, 
   0.0, 
   2.5, 
@@ -5853,7 +5854,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_CmDx1[128] 
   -5.887823276141479, 
   -21.391031167667574, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_V[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_V[32] = { 
   1.0, 
   2.5, 
   -2.1528407789851314, 
@@ -5887,7 +5888,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_V[32] = {
   -8.280156842250506, 
   -5.887823276141479, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -5937,7 +5938,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_coefl[48] =
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_coefr[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -5987,7 +5988,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_coefr[48] =
   -0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_cmap[48] = { 
   0, 
   1, 
   2, 
@@ -6037,7 +6038,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_cmap[48] = {
   3, 
   3, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vlmap[48] = { 
   0, 
   0, 
   0, 
@@ -6087,7 +6088,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vlmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrmap[48] = { 
   0, 
   0, 
   0, 
@@ -6137,7 +6138,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Vd0[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Vd0[24] = { 
   0.0, 
   2.5, 
   -5.382101947462829, 
@@ -6163,7 +6164,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Vd0[24] = {
   -24.840470526751517, 
   -5.887823276141479, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -6213,7 +6214,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vld0map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -6263,7 +6264,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrd0map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -6313,7 +6314,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefl0[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -6363,7 +6364,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefr0[48]
   0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Vd1[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Vd1[24] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -6389,7 +6390,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_Vd1[24] = {
   -9.615384615384615, 
   -24.840470526751517, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -6439,7 +6440,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vld1map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -6489,7 +6490,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v0_vrd1map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -6539,7 +6540,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefl1[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -6589,8 +6590,8 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v0_dcoefr1[48]
   -0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_v0_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 16, .ni = 4, .ns = 5, .fhat_off = 0 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Cm[128] = { 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_v0_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 16, .ni = 4, .ns = 5, .fhat_off = 0 }; 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Cm[128] = { 
   1.0, 
   -2.1528407789851314, 
   -2.1528407789851314, 
@@ -6720,7 +6721,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Cm[128] = {
   -5.070218419334084, 
   -5.0702184193340845, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmD[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmD[128] = { 
   0.0, 
   0.0, 
   2.5, 
@@ -6850,7 +6851,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmD[128] = 
   -5.887823276141479, 
   -21.391031167667574, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmDx0[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmDx0[128] = { 
   0.0, 
   2.5, 
   0.0, 
@@ -6980,7 +6981,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmDx0[128] 
   -21.391031167667574, 
   -5.887823276141479, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmDx1[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmDx1[128] = { 
   0.0, 
   0.0, 
   2.5, 
@@ -7110,7 +7111,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_CmDx1[128] 
   -5.887823276141479, 
   -21.391031167667574, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_V[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_V[32] = { 
   1.0, 
   -2.1528407789851314, 
   2.5, 
@@ -7144,7 +7145,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_V[32] = {
   -5.887823276141479, 
   -8.280156842250506, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -7194,7 +7195,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_coefl[48] =
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_coefr[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -7244,7 +7245,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_coefr[48] =
   0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_cmap[48] = { 
   0, 
   1, 
   2, 
@@ -7294,7 +7295,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_cmap[48] = {
   3, 
   3, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vlmap[48] = { 
   0, 
   0, 
   0, 
@@ -7344,7 +7345,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vlmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrmap[48] = { 
   0, 
   0, 
   0, 
@@ -7394,7 +7395,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrmap[48] = {
   6, 
   7, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Vd0[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Vd0[24] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -7420,7 +7421,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Vd0[24] = {
   -24.840470526751517, 
   -9.615384615384615, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -7470,7 +7471,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vld0map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -7520,7 +7521,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrd0map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -7570,7 +7571,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefl0[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -7620,7 +7621,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefr0[48]
   0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Vd1[24] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Vd1[24] = { 
   0.0, 
   2.5, 
   -5.382101947462829, 
@@ -7646,7 +7647,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_Vd1[24] = {
   -5.887823276141479, 
   -24.840470526751517, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -7696,7 +7697,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vld1map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -7746,7 +7747,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_v1_vrd1map[48] = 
   4, 
   5, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -7796,7 +7797,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefl1[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -7846,8 +7847,8 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_v1_dcoefr1[48]
   -0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_v1_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 16, .ni = 4, .ns = 5, .fhat_off = 64 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_vol_dv0[128] = { 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_v1_meta = { .nb = 48, .na = 8, .nmv = 8, .no = 16, .ni = 4, .ns = 5, .fhat_off = 64 }; 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_vol_dv0[128] = { 
   0.0, 
   0.8660254037844386, 
   0.0, 
@@ -7977,7 +7978,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_vol_dv0[128] 
   4.308049588470176, 
   1.1857789576832338, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_vol_dv1[128] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_vol_dv1[128] = { 
   0.0, 
   0.0, 
   0.8660254037844386, 
@@ -8107,7 +8108,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_vel_vol_dv1[128] 
   1.1857789576832338, 
   4.308049588470176, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x0_ev_l[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x0_ev_l[32] = { 
   0.5, 
   0.8660254037844386, 
   -0.7457659219616816, 
@@ -8141,7 +8142,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x0_ev_l[
   1.6675832968091233, 
   1.1857789576832338, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x0_ev_r[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x0_ev_r[32] = { 
   0.5, 
   -0.8660254037844386, 
   -0.7457659219616816, 
@@ -8175,7 +8176,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x0_ev_r[
   1.6675832968091233, 
   -1.1857789576832338, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Cm[12] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Cm[12] = { 
   1.0, 
   -2.1528407789851314, 
   -2.355129310456592, 
@@ -8189,7 +8190,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Cm[12] = {
   2.1528407789851314, 
   -2.355129310456592, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_V[320] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_V[320] = { 
   1.0, 
   2.5, 
   -2.1528407789851314, 
@@ -8511,7 +8512,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_V[320] = {
   -12.67554604833521, 
   -12.67554604833521, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -8561,7 +8562,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_coefl[48] =
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_coefr[48] = { 
   0.25, 
   -0.17320508075688773, 
   0.17320508075688773, 
@@ -8611,7 +8612,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_coefr[48] =
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_cmap[48] = { 
   0, 
   0, 
   1, 
@@ -8661,7 +8662,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_cmap[48] = {
   1, 
   1, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vlmap[48] = { 
   0, 
   1, 
   0, 
@@ -8711,7 +8712,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vlmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrmap[48] = { 
   0, 
   1, 
   0, 
@@ -8761,7 +8762,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Vd0[208] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Vd0[208] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -8971,7 +8972,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Vd0[208] = 
   -53.47757791916894, 
   -14.719558190353698, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -9021,7 +9022,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vld0map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -9071,7 +9072,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrd0map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -9121,7 +9122,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefl0[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -9171,7 +9172,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefr0[48]
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Vd1[208] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Vd1[208] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -9381,7 +9382,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_Vd1[208] = 
   -14.719558190353698, 
   -53.47757791916894, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -9431,7 +9432,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vld1map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -9481,7 +9482,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x0_vrd1map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -9531,7 +9532,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefl1[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -9581,8 +9582,8 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x0_dcoefr1[48]
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_x0_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 4, .ni = 16, .ns = 5, .fhat_off = 0 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x1_ev_l[32] = { 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_x0_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 4, .ni = 16, .ns = 5, .fhat_off = 0 }; 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x1_ev_l[32] = { 
   0.5, 
   -0.7457659219616816, 
   0.8660254037844386, 
@@ -9616,7 +9617,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x1_ev_l[
   1.1857789576832338, 
   1.6675832968091233, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x1_ev_r[32] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x1_ev_r[32] = { 
   0.5, 
   -0.7457659219616816, 
   -0.8660254037844386, 
@@ -9650,7 +9651,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_confsurf_x1_ev_r[
   -1.1857789576832338, 
   1.6675832968091233, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Cm[12] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Cm[12] = { 
   1.0, 
   -2.1528407789851314, 
   -2.355129310456592, 
@@ -9664,7 +9665,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Cm[12] = {
   2.1528407789851314, 
   -2.355129310456592, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_V[320] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_V[320] = { 
   1.0, 
   2.5, 
   -2.1528407789851314, 
@@ -9986,7 +9987,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_V[320] = {
   -12.67554604833521, 
   -12.67554604833521, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_coefl[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_coefl[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -10036,7 +10037,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_coefl[48] =
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_coefr[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_coefr[48] = { 
   0.25, 
   0.17320508075688773, 
   -0.17320508075688773, 
@@ -10086,7 +10087,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_coefr[48] =
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_cmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_cmap[48] = { 
   0, 
   1, 
   0, 
@@ -10136,7 +10137,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_cmap[48] = {
   1, 
   1, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vlmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vlmap[48] = { 
   0, 
   0, 
   1, 
@@ -10186,7 +10187,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vlmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrmap[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrmap[48] = { 
   0, 
   0, 
   1, 
@@ -10236,7 +10237,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrmap[48] = {
   18, 
   19, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Vd0[208] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Vd0[208] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -10446,7 +10447,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Vd0[208] = 
   -53.47757791916894, 
   -14.719558190353698, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vld0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vld0map[48] = { 
   0, 
   0, 
   0, 
@@ -10496,7 +10497,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vld0map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrd0map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrd0map[48] = { 
   0, 
   0, 
   0, 
@@ -10546,7 +10547,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrd0map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefl0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefl0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -10596,7 +10597,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefl0[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefr0[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefr0[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -10646,7 +10647,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefr0[48]
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Vd1[208] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Vd1[208] = { 
   0.0, 
   2.5, 
   6.25, 
@@ -10856,7 +10857,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_Vd1[208] = 
   -14.719558190353698, 
   -53.47757791916894, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vld1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vld1map[48] = { 
   0, 
   0, 
   0, 
@@ -10906,7 +10907,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vld1map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrd1map[48] = { 
+GKYL_CU_D __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrd1map[48] = { 
   0, 
   0, 
   0, 
@@ -10956,7 +10957,7 @@ __attribute__((unused)) static const int vst_2x2v_ser_p2_ho_ph_x1_vrd1map[48] = 
   11, 
   12, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefl1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefl1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -11006,7 +11007,7 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefl1[48]
   -0.048334832160668556, 
   -0.048334832160668556, 
 }; 
-__attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefr1[48] = { 
+GKYL_CU_D __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefr1[48] = { 
   0.25, 
   0.17320508075688773, 
   0.17320508075688773, 
@@ -11056,4 +11057,4 @@ __attribute__((unused)) static const double vst_2x2v_ser_p2_ho_ph_x1_dcoefr1[48]
   0.048334832160668556, 
   0.048334832160668556, 
 }; 
-__attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_x1_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 4, .ni = 16, .ns = 5, .fhat_off = 64 }; 
+GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_surf_meta vst_2x2v_ser_p2_ho_ph_x1_meta = { .nb = 48, .na = 3, .nmv = 20, .no = 4, .ni = 16, .ns = 5, .fhat_off = 64 }; 

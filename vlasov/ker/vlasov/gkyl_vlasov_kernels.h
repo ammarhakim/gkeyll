@@ -1,7 +1,11 @@
-#pragma once 
-#include <math.h> 
-#include <gkyl_util.h> 
-EXTERN_C_BEG 
+#pragma once
+#include <math.h>
+#include <gkyl_util.h>
+// Declares the per-node surface kernels with C linkage so their definitions
+// in the kernel .c files (compiled as C++ under nvcc) match the unmangled
+// references from the dispatch code.
+#include <gkyl_vlasov_surf_node_kernels.h>
+EXTERN_C_BEG
 
 GKYL_CU_DH void vlasov_divide_Jv_1x1v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x1v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
