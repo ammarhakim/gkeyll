@@ -10,9 +10,9 @@
 // returns out
 static inline void S(struct gkyl_mat *Q, const gkyl_moment_em_coupling *mom_em,
                      double *fluid_s[GKYL_MAX_SPECIES], double *em, int Q_len, struct gkyl_mat *out) {
-  double Ex = em[0];
-  double Ey = em[1];
-  double Ez = em[2];
+  double Ex = gkyl_mat_get(Q, Q_len - 3, 0);
+  double Ey = gkyl_mat_get(Q, Q_len - 2, 0);
+  double Ez = gkyl_mat_get(Q, Q_len - 1, 0);
   double Bx = em[3];
   double By = em[4];
   double Bz = em[5];
@@ -49,8 +49,8 @@ static inline void S(struct gkyl_mat *Q, const gkyl_moment_em_coupling *mom_em,
     double uy = w * vy;
     double uz = w * vz;
     
-    double omega_ps_sq = (q_s * D) / (mass_s);
-    double Omega_cs = (q_s * rho / mass_s );
+    double omega_ps_sq = (q_s * rho) / (h * mass_s);
+    double Omega_cs = (q_s * rho) / (h * w * mass_s);
 
     gkyl_mat_set(out, s_i, 0,
                  omega_ps_sq * (Ex) + Omega_cs * ((uy * Bz) - (uz * By)));
@@ -510,9 +510,9 @@ void implicit_em_non_linear_source_update(
       gkyl_mat_inc(dFdP, s_i + 3, s_i + 1, -(dt / 2) * (q * rho * Ey));
       gkyl_mat_inc(dFdP, s_i + 3, s_i + 2, -(dt / 2) * (q * rho * Ez));
 
-      gkyl_mat_inc(dFdP, s_i, jac_size - 3,     -(dt / 2) * (q * w * rho / m));
-      gkyl_mat_inc(dFdP, s_i + 1, jac_size - 2, -(dt / 2) * (q * w * rho / m));
-      gkyl_mat_inc(dFdP, s_i + 2, jac_size - 1, -(dt / 2) * (q * w * rho / m));
+      gkyl_mat_inc(dFdP, s_i, jac_size - 3,     -(dt / 2) * (q * D / m));
+      gkyl_mat_inc(dFdP, s_i + 1, jac_size - 2, -(dt / 2) * (q * D / m));
+      gkyl_mat_inc(dFdP, s_i + 2, jac_size - 1, -(dt / 2) * (q * D / m));
       gkyl_mat_inc(dFdP, s_i + 3, jac_size - 3, -(dt / 2) * (q * rho * ux));
       gkyl_mat_inc(dFdP, s_i + 3, jac_size - 2, -(dt / 2) * (q * rho * uy));
       gkyl_mat_inc(dFdP, s_i + 3, jac_size - 1, -(dt / 2) * (q * rho * uz));
@@ -522,22 +522,22 @@ void implicit_em_non_linear_source_update(
       gkyl_mat_inc(dFdP, jac_size - 1, s_i + 2,   -(dt / 2) * (-q * rho));
 
       // Adding dQdP
-      gkyl_mat_inc(dFdP, s_i, s_i,         (w * h * rho) + (h * rho * ux * ux / w));
+      gkyl_mat_inc(dFdP, s_i, s_i,         (D * h) + (h * rho * ux * ux / w));
       gkyl_mat_inc(dFdP, s_i, s_i + 1,     rho * h * ux * uy / w);
       gkyl_mat_inc(dFdP, s_i, s_i + 2,     rho * h * ux * uz / w);
-      gkyl_mat_inc(dFdP, s_i, s_i + 3,     w * rho * ux * dhdp);
+      gkyl_mat_inc(dFdP, s_i, s_i + 3,     D * ux * dhdp);
       gkyl_mat_inc(dFdP, s_i + 1, s_i,     rho * h * ux * uy / w);
-      gkyl_mat_inc(dFdP, s_i + 1, s_i + 1, (w * h * rho) + (rho * h * uy * uy / w));
+      gkyl_mat_inc(dFdP, s_i + 1, s_i + 1, (D * h) + (rho * h * uy * uy / w));
       gkyl_mat_inc(dFdP, s_i + 1, s_i + 2, rho * h * uy * uz / w);
-      gkyl_mat_inc(dFdP, s_i + 1, s_i + 3, w * rho * uy * dhdp);
+      gkyl_mat_inc(dFdP, s_i + 1, s_i + 3, D * uy * dhdp);
       gkyl_mat_inc(dFdP, s_i + 2, s_i,     h * rho * ux * uz / w);
       gkyl_mat_inc(dFdP, s_i + 2, s_i + 1, rho * h * uz * uy / w);
-      gkyl_mat_inc(dFdP, s_i + 2, s_i + 2, (w * h * rho) + (rho * h * uz * uz / w));
-      gkyl_mat_inc(dFdP, s_i + 2, s_i + 3, w * rho * uz * dhdp);
+      gkyl_mat_inc(dFdP, s_i + 2, s_i + 2, (D * h) + (rho * h * uz * uz / w));
+      gkyl_mat_inc(dFdP, s_i + 2, s_i + 3, D * uz * dhdp);
       gkyl_mat_inc(dFdP, s_i + 3, s_i,     (2 * ux * h * rho) - (ux * rho / w));
       gkyl_mat_inc(dFdP, s_i + 3, s_i + 1, (2 * uy * h * rho) - (uy * rho / w));
       gkyl_mat_inc(dFdP, s_i + 3, s_i + 2, (2 * uz * h * rho) - (uz * rho / w));
-      gkyl_mat_inc(dFdP, s_i + 3, s_i + 3, (w * w * rho * dhdp) - 1.0);
+      gkyl_mat_inc(dFdP, s_i + 3, s_i + 3, (w * D * dhdp) - 1.0);
     }
 
     gkyl_mat_inc(dFdP, jac_size - 3, jac_size - 3, mom_em->epsilon0);
@@ -566,6 +566,8 @@ void implicit_em_non_linear_source_update(
     printf("|delta| = %g\n", delta_norm);
   // } while(count--);
   } while (delta_norm > tol);
+  
+  get_consv(P_buff, fluid_s, mom_em, Q_bar_guess);
 
   // Q_{i+1} = 2 \Qbar - Q_init
   Q_bar_guess = gkyl_mat_scale(Q_bar_guess, 2.0);
