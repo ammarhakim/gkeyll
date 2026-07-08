@@ -19,6 +19,8 @@ struct gkyl_dg_vlasov_vel_flux_surf_inp {
   const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. Required: provides the
                                                   // velocity-space Jacobian at surface quadrature points and
                                                   // the velocity-space range used to index it.
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object. Required: provides the
+                                                  // (per-conf-cell constant) Jacobian for the -grad(phi) force.
   double skip_cell_thresh; // Phase-space density threshold for skipping cells in the Vlasov equation; by default no cells are skipped.
   enum gkyl_model_id model_id; // enum to determine what type of Vlasov model (e.g., non-relativistic vs. relativistic). 
   bool has_E; // bool to determine whether we have electric fields (used for external forces too).

@@ -252,6 +252,11 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
     // guaranteed by acquiring the vel_map object on the host side below.
     vlasov->jacob_vel = inp->vel_map->jacob_vel->on_dev;
   }
+  // Position map is required; unpack the raw device Jacobian pointer (lifetime
+  // guaranteed by acquiring the pos_map object on the host side below).
+  assert(inp->pos_map);
+  vlasov->pos_map = 0; // Host pointer set after the device memcpy below.
+  vlasov->jacob_pos = inp->pos_map->jacob_pos->on_dev;
   struct gkyl_array *poisson_tensor_conf_ho = gkyl_array_acquire(inp->poisson_tensor_conf);
   struct gkyl_array *hamil_ho = gkyl_array_acquire(inp->hamil); 
   struct gkyl_array *qmem_ho = gkyl_array_acquire(inp->qmem); 
@@ -295,6 +300,8 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   // Host-side equation object should store host pointers.
   vlasov->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
   vlasov->jacob_vel = vlasov->use_vmap ? inp->vel_map->jacob_vel : 0;
+  vlasov->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  vlasov->jacob_pos = inp->pos_map->jacob_pos;
   vlasov->poisson_tensor_conf = poisson_tensor_conf_ho;
   vlasov->hamil = hamil_ho; 
   vlasov->qmem = qmem_ho; 

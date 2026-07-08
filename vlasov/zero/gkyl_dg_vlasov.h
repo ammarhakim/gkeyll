@@ -7,6 +7,7 @@
 #include <gkyl_dg_eqn.h>
 #include <gkyl_range.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 
 // Input packaged as a struct
 struct gkyl_dg_vlasov_inp {
@@ -24,6 +25,9 @@ struct gkyl_dg_vlasov_inp {
   const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object. Required: it also provides
                                                   // the velocity-space range used to index per-velocity-cell
                                                   // quantities (Jacobian, radiation drag).
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object. Required: provides the
+                                                  // (per-conf-cell constant) position-map Jacobian used to
+                                                  // transform the streaming term to mapped coordinates.
   const struct gkyl_array *poisson_tensor_conf; // Configuration space poisson tensor used for nc poisson brackets.
   const struct gkyl_array *hamil; // Hamiltonian utilized to compute advection in configuration and velocity space. 
   const struct gkyl_array *qmem; // q/m*(E,B) electromagnetic fields (including external electromagnetic fields and forces).

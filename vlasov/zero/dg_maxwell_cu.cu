@@ -131,6 +131,14 @@ gkyl_dg_maxwell_cu_dev_inew(const struct gkyl_dg_maxwell_inp *inp)
     maxwell->det_h = det_h->on_dev;
   }
 
+  // Configuration-space range + position-map Jacobian (device array) for the
+  // mapped curl kernels. NULL jacob_pos => identity; note the host static
+  // identity fallback in the kernel wrappers is not device-accessible, so a
+  // GPU caller without a position map (e.g. pkpm) would need a device identity
+  // array (deferred).
+  if (inp->crange) maxwell->crange = *inp->crange;
+  maxwell->jacob_pos = inp->jacob_pos ? inp->jacob_pos->on_dev : 0;
+
   // copy the host struct to device struct
   struct dg_maxwell *maxwell_cu = (struct dg_maxwell*) gkyl_cu_malloc(sizeof(struct dg_maxwell));
   gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct dg_maxwell), GKYL_CU_MEMCPY_H2D);

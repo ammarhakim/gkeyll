@@ -24,6 +24,17 @@
 #include <gkyl_vlasov.h>
 
 struct vm_geom; // geometry data, defined in gkyl_vlasov_priv.h, owned by the app.
+struct gkyl_vlasov_position_map; // configuration-space position map, defined in zero/, owned by the app.
+
+// Coordinate-map context for projecting external fields/potentials on a
+// non-uniform configuration mesh: the projection's computational quadrature
+// coordinates are mapped to physical ones via the position map before the
+// user-supplied function is evaluated. Identity map -> identity c2p (transparent
+// for uniform grids). Lives in the field struct so it outlives the projection
+// objects that capture a pointer to it.
+struct vm_field_proj_c2p_ctx {
+  const struct gkyl_vlasov_position_map *pos_map; // configuration-space position map.
+};
 
 // field data
 struct vm_field {
@@ -121,6 +132,8 @@ struct vm_field {
 
   struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
   bool use_lax; // Boolean for determining if we are using lax fluxes for dg-gr-maxwell
+  bool weight_by_pos_jacob; // True for the standard E_B Maxwell field on a non-identity position map:
+                            // em stores J*E, J*B; em_no_J holds the physical E, B for force/I/O.
   struct gkyl_array *em_no_J; // arrays for storing em field without Jc
   struct gkyl_array *em_no_J_host; // host copy of primitive GR fields for I/O
   int num_surf_conf_nodes; // number of surface nodes at configuration-space surfaces
@@ -144,6 +157,7 @@ struct vm_field {
   struct gkyl_array *ext_pot; // external potentials
   struct gkyl_array *ext_pot_host; // host copy for use in IO and projecting
   gkyl_eval_on_nodes *ext_pot_proj; // projector for external potentials
+  struct vm_field_proj_c2p_ctx ext_c2p_ctx; // comp->phys map for external-field projection on mapped grids
 
   gkyl_dynvec integ_energy; // integrated energy components
   bool is_first_energy_write_call; // flag for energy dynvec written first time
