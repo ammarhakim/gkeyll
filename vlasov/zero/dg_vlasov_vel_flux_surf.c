@@ -129,14 +129,14 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
 
         if (inp->has_B) {
           if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
-            up->B_alpha_quad[0] = ser_B_hamil_gen_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[1] = ser_B_hamil_gen_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[2] = ser_B_hamil_gen_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[0] = ser_B_hamil_phase_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[1] = ser_B_hamil_phase_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[2] = ser_B_hamil_phase_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
           }
           else {
-            up->B_alpha_quad[0] = ser_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[1] = ser_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[2] = ser_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[0] = ser_B_hamil_vel_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[1] = ser_B_hamil_vel_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[2] = ser_B_hamil_vel_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
           }
         }
 
@@ -161,14 +161,14 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
 
         if (inp->has_B) {
           if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
-            up->B_alpha_quad[0] = ser_B_ho_hamil_gen_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[1] = ser_B_ho_hamil_gen_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[2] = ser_B_ho_hamil_gen_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[0] = ser_B_ho_hamil_phase_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[1] = ser_B_ho_hamil_phase_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[2] = ser_B_ho_hamil_phase_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
           }
           else {
-            up->B_alpha_quad[0] = ser_B_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[1] = ser_B_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-            up->B_alpha_quad[2] = ser_B_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[0] = ser_B_ho_hamil_vel_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[1] = ser_B_ho_hamil_vel_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[2] = ser_B_ho_hamil_vel_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
           }
         }
 
@@ -207,14 +207,14 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
 
       if (inp->has_B) {
         if (inp->model_id == GKYL_MODEL_TRIAD_GR) {
-          up->B_alpha_quad[0] = tensor_B_hamil_gen_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[1] = tensor_B_hamil_gen_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[2] = tensor_B_hamil_gen_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[0] = tensor_B_hamil_phase_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = tensor_B_hamil_phase_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = tensor_B_hamil_phase_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
         else {
-          up->B_alpha_quad[0] = tensor_B_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[1] = tensor_B_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-          up->B_alpha_quad[2] = tensor_B_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[0] = tensor_B_hamil_vel_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = tensor_B_hamil_vel_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = tensor_B_hamil_vel_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
       }
 

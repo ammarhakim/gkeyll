@@ -390,11 +390,11 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_Bx_hamil_gen_vol_kernels[] = {
   // 1x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
   { NULL, no_B_vol, no_B_vol, NULL }, // 1
-  { NULL, vlasov_Bx_hamil_gen_vol_1x3v_ser_p1, vlasov_Bx_hamil_gen_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_Bx_hamil_phase_vol_1x3v_ser_p1, vlasov_Bx_hamil_phase_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_Bx_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_Bx_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -450,11 +450,11 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_gen_vol_kernels[] = {
   // 1x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
   { NULL, no_B_vol, no_B_vol, NULL }, // 1
-  { NULL, vlasov_By_hamil_gen_vol_1x3v_ser_p1, vlasov_By_hamil_gen_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_By_hamil_phase_vol_1x3v_ser_p1, vlasov_By_hamil_phase_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_By_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_By_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
@@ -509,12 +509,12 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_gen_vol_kernels[] = {
   // 1x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
-  { NULL, vlasov_Bz_hamil_gen_vol_1x2v_ser_p1, vlasov_Bz_hamil_gen_vol_1x2v_ser_p2, NULL }, // 1
-  { NULL, vlasov_Bz_hamil_gen_vol_1x3v_ser_p1, vlasov_Bz_hamil_gen_vol_1x3v_ser_p2, NULL }, // 2
+  { NULL, vlasov_Bz_hamil_phase_vol_1x2v_ser_p1, vlasov_Bz_hamil_phase_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_Bz_hamil_phase_vol_1x3v_ser_p1, vlasov_Bz_hamil_phase_vol_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
-  { NULL, vlasov_Bz_hamil_gen_vol_2x2v_ser_p1, vlasov_Bz_hamil_gen_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_Bz_hamil_gen_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, vlasov_Bz_hamil_phase_vol_2x2v_ser_p1, vlasov_Bz_hamil_phase_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_Bz_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
