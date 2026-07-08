@@ -72,7 +72,12 @@ gk_neut_species_scaling_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_
   struct gk_species *gks_ion = &app->species[sca->ion_idx];
   struct gkyl_array **bflux_ion = bflux[sca->ion_idx];
 
-  if (sca->react_vol_integ > 0.0) {
+  double tcurr = app->tcurr;
+  int update_idx = tcurr/sca->period;
+
+  if ((sca->update_counter < update_idx) && (sca->react_vol_integ > 0.0)) {
+    sca->update_counter += 1;
+
     gkyl_array_clear(sca->dndt_react, 0.0);
 
     double bflux_intm0_local_ho = 0.0;
@@ -157,6 +162,8 @@ gk_neut_species_scaling_init(struct gkyl_gyrokinetic_app *app, struct gk_neut_sp
 
   sca->type = 0;
   sca->num_boundaries = 0;
+  sca->update_counter = -1;
+  sca->period = sca_inp->period;
   sca->cross_moms_func_neut = gk_neut_species_scaling_cross_moms_disabled;
   sca->rhs_func_neut = gk_neut_species_scaling_rhs_disabled;
   sca->apply_func_neut = gk_neut_species_scaling_apply_disabled;

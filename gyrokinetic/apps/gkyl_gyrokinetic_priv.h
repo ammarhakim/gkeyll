@@ -660,6 +660,8 @@ struct gk_react {
 struct gk_scaling {
   bool write_diagnostics; // Whether to write diagnostics.
   enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
+  long update_counter; // Update counter.
+  double period; // Update period.
 
   union {
     struct {

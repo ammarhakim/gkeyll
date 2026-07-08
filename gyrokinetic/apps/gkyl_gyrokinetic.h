@@ -313,6 +313,8 @@ enum gkyl_gk_species_scaling_type {
 struct gkyl_gyrokinetic_scaling_inp {
   enum gkyl_gk_species_scaling_type type; // Type of scaling operation.
 
+  double period; // Scaling period; i.e. scales every 'period' time units.
+
   // Info for GKYL_GK_SPECIES_SCALING_RECYCLING_IZ_BALANCE.
   int num_boundaries; // Number of boundaries.
   int boundaries_dir[GKYL_MAX_CDIM*2]; // Direction of boundaries.
