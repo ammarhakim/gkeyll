@@ -267,7 +267,7 @@ gkyl_fem_poisson_perp_new(const struct gkyl_range *solve_range, const struct gky
           }
         }
 
-        bool pick_lower = true; // If at a cell boundary, pick the cell lower than the biased line.
+        bool pick_lower[3] = {true, true, true}; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
         gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){-1,-1,-1}, line_idx);
 
