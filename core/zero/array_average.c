@@ -6,15 +6,15 @@
 
 #include <assert.h>
 
-struct gkyl_array_average* gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis basis, 
-  const struct gkyl_basis basis_avg, const struct gkyl_range *local, const struct gkyl_range *local_avg, 
+struct gkyl_array_average* gkyl_array_average_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+  const struct gkyl_basis *basis_avg, const struct gkyl_range *local, const struct gkyl_range *local_avg,
   const struct gkyl_range *local_avg_ext, const struct gkyl_array *weight, const int *avg_dim, bool use_gpu)
 {
   return gkyl_array_average_inew(
     &(struct gkyl_array_average_inp) {
       .grid = grid,
-      .basis = basis,
-      .basis_avg = basis_avg,
+      .basis = *basis,
+      .basis_avg = *basis_avg,
       .local = local,
       .local_avg = local_avg,
       .local_avg_ext = local_avg_ext,
