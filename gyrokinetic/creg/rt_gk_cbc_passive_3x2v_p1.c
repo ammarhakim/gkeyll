@@ -9,16 +9,6 @@
 #include <gkyl_fem_poisson_bctype.h>
 #include <gkyl_gyrokinetic.h>
 #include <gkyl_gyrokinetic_run.h>
-#include <gkyl_null_comm.h>
-
-#ifdef GKYL_HAVE_MPI
-#include <mpi.h>
-#include <gkyl_mpi_comm.h>
-#ifdef GKYL_HAVE_NCCL
-#include <gkyl_nccl_comm.h>
-#endif
-#endif
-
 #include <gkyl_math.h>
 #include <rt_arg_parse.h>
 
@@ -394,18 +384,19 @@ struct gk_app_ctx create_ctx(void)
   double Cy = r0/q0; // Cylindrical coordinate shift for field-alignment.
 
   // Configuration domain parameters 
-  double Lx        = 150*rho_s;   // Domain size along x.
-  double x_min     = -Lx/2;
-  double x_max     = Lx/2;
-  double Ly        = 150*rho_s;   // Domain size along y.
-  double y_min     = -Ly/2;
-  double y_max     = Ly/2;
-  double Lz        = 2.*M_PI-1e-10;       // Domain size along magnetic field.
-  double z_min     = -Lz/2.;
-  double z_max     =  Lz/2.;
+  double Lx = 150*rho_s;   // Domain size along x.
+  double Ly = 150*rho_s;   // Domain size along y.
+  double Lz = 2.*M_PI-1e-10;       // Domain size along magnetic field.
   // Adjust the domain size along y to have integer toroidal mode number.
   // We need: 2*pi*Cy/Ly = integer.
   Ly = 2.*M_PI*Cy/round(2.*M_PI*Cy/Ly);
+
+  double x_min = -Lx/2;
+  double x_max =  Lx/2;
+  double y_min = -Ly/2;
+  double y_max =  Ly/2;
+  double z_min = -Lz/2;
+  double z_max =  Lz/2;
 
   double ux = 0.0, uy = 0.0, uz = Lz; // Passive advection velocity.
  
@@ -433,8 +424,8 @@ struct gk_app_ctx create_ctx(void)
   double vpar_max_elc = 4.*vte;
   double mu_max_elc = 7*Te0/B0;
 
-  double t_end = 1.0;
-  int num_frames = 1;
+  double t_end = 4.0;
+  int num_frames = 40;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-3; // Minimum allowable fraction of initial time-step.
