@@ -562,6 +562,10 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
   // the velocity-space Jacobian at specific quadrature points. 
   gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
     &vms->local, vms->f, vms->f_no_J);
+  // Also divide out the (per-conf-cell constant) configuration-space Jacobian so
+  // the written distribution is the physical f (J_x*J_v*f -> f).
+  gkyl_vlasov_position_map_divide_jacobpos(vms->pos_map, &vms->basis,
+    &vms->local, vms->f_no_J, vms->f_no_J);
 
   // If we are on device, copy the distribution function without the velocity-space
   // Jacobian to the host, otherwise just write out the f_no_J array.
@@ -654,6 +658,8 @@ vm_species_write_cell_avg_enabled(gkyl_vlasov_app* app, struct vm_species *vms, 
   // the velocity-space Jacobian at specific quadrature points. 
   gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
     &vms->local, vms->f, vms->f_no_J);
+  gkyl_vlasov_position_map_divide_jacobpos(vms->pos_map, &vms->basis,
+    &vms->local, vms->f_no_J, vms->f_no_J);
 
   // Copy the cell average into a temporary array and re-scale
   gkyl_array_set_offset(vms->cflrate, 1.0/pow(2.0, (app->cdim+app->vdim)/2.0), vms->f_no_J, 0); 
@@ -697,6 +703,8 @@ vm_species_write_lte_enabled(gkyl_vlasov_app* app, struct vm_species *vms, doubl
   // the velocity-space Jacobian at specific quadrature points. 
   gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
     &vms->local, vms->lte.f_lte, vms->f_no_J);
+  gkyl_vlasov_position_map_divide_jacobpos(vms->pos_map, &vms->basis,
+    &vms->local, vms->f_no_J, vms->f_no_J);
 
   // If we are on device, copy the LTE distribution function without the velocity-space
   // Jacobian to the host, otherwise just write out the f_no_J array. 
@@ -740,6 +748,21 @@ vm_species_write_mom_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, doubl
     struct timespec wst = gkyl_wall_clock();
     if (app->use_gpu) {
       gkyl_array_copy(vms->moms[m].marr_host, vms->moms[m].marr);
+    }
+
+    // Moments of the stored J_x J_v f carry the configuration-space Jacobian J
+    // (it factors out of the velocity integral). Divide it out so the written
+    // moment field is physical. The map is C^0 linear, so this is an exact
+    // per-cell scalar division. For the LTE moment diagnostic (n, V_drift, T/m)
+    // only the density n (the first num_basis coefficients) carries J; V_drift
+    // and T/m are velocity ratios in which J cancels, so they are left alone.
+    // Pure moments (M0, M1i, M2, ...) carry J in every component. (Identity
+    // map: skip, leaving output unchanged.)
+    if (!vms->pos_map->is_identity) {
+      int num_coeff_divide = vms->moms[m].is_vlasov_lte_moms ?
+        app->basis.num_basis : vms->moms[m].marr_host->ncomp;
+      gkyl_vlasov_position_map_divide_jacobpos_conf(vms->pos_map, &app->local,
+        num_coeff_divide, vms->moms[m].marr_host, vms->moms[m].marr_host);
     }
 
     const char *fmt = "%s-%s_%s_%d.gkyl";
@@ -836,9 +859,14 @@ vm_species_calc_L2_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double 
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // L^2 energy with nonuniform velocity-space meshes is Jf*f
+  // L^2 energy with nonuniform meshes is (J_x J_v f)*f. Dividing both the
+  // velocity- and configuration-space Jacobians out of one factor leaves the
+  // physical f; multiplied by the stored J_x J_v f this gives the Jacobian-
+  // weighted f^2 integrated over the computational grid.
   gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
     &vms->local, vms->f, vms->f_no_J);
+  gkyl_vlasov_position_map_divide_jacobpos(vms->pos_map, &vms->basis,
+    &vms->local, vms->f_no_J, vms->f_no_J);
   gkyl_dg_calc_prod_op_range(vms->basis, 0, vms->L2_f, 0, vms->f_no_J, 0, vms->f, vms->local);
   gkyl_array_scale_range(vms->L2_f, vms->grid.cellVolume, &vms->local); 
   
@@ -1258,6 +1286,11 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   vms->vel_map = gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel,
     &vms->basis_vel, inp_vmap, app->use_gpu);
 
+  // Configuration-space mapping object. Created once on the app and shared by
+  // all species (configuration space is common to every species); acquire a
+  // reference here.
+  vms->pos_map = gkyl_vlasov_position_map_acquire(app->pos_map);
+
   // Allocate array for dividing out velocity-space Jacobian. 
   // If the mesh is uniform, we simply copy the distribution function at that RK stage
   // into this array for use in the velocity-space surface flux computation and 
@@ -1490,6 +1523,7 @@ vm_species_release(const gkyl_vlasov_app* app, const struct vm_species *vms)
   gkyl_array_release(vms->f_no_J); 
 
   gkyl_vlasov_velocity_map_release(vms->vel_map);
+  gkyl_vlasov_position_map_release(vms->pos_map);
 
   // Release arrays for different types of Vlasov equations.
   if (vms->model_id  == GKYL_MODEL_DEFAULT || vms->model_id  == GKYL_MODEL_SR 

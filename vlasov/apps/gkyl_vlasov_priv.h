@@ -83,6 +83,7 @@
 #include <gkyl_vlasov_lte_proj_on_basis.h>
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_vlasov_velocity_map.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_wave_geom.h>
 #include <gkyl_wv_eqn.h>
 #include <gkyl_wv_maxwell.h>
@@ -142,9 +143,19 @@ struct vm_species_moment {
 // forward declare species struct
 struct vm_species;
 
+// Context for the computational->physical coordinate transform (c2p) used when
+// projecting on non-uniform meshes: configuration coords are mapped by the
+// position map, velocity coords (for phase-space projections) by the velocity map.
+struct vm_proj_c2p_ctx {
+  int cdim; // number of configuration-space dimensions
+  const struct gkyl_vlasov_position_map *pos_map; // configuration-space map
+  const struct gkyl_vlasov_velocity_map *vel_map; // velocity-space map
+};
+
 struct vm_proj {
   enum gkyl_projection_id proj_id; // type of projection
   enum gkyl_model_id model_id;
+  struct vm_proj_c2p_ctx c2p_ctx; // coordinate-map context for projections (captured by proj_on_basis)
   // organization of the different projection objects and the required data and solvers
   union {
     // function projection
@@ -209,6 +220,7 @@ struct vm_collisionless {
 
   double qbym; // Charge (q) divided by mass (m).
   struct gkyl_array *qmem; // array for q/m*(E,B)
+  struct gkyl_array *em_no_J; // physical E,B (stored field J*E,J*B divided by the conf Jacobian) for the Lorentz force on a mapped grid
   struct gkyl_array *pot_tot; // array for total potentials (q/m*phi + m*phi_g, q/m*A)
   bool has_E; // Do we have electric fields? 
   bool has_phi; // Do we have scalar potentials (electrostatic/gravitational)?
@@ -504,8 +516,9 @@ struct vm_species {
   enum gkyl_triad_preset_geom_type triad_preset_geom_type; // geom type for preset geometries for triads
 
   struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (owns all velocity map arrays).
+  struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (acquired reference to the app's pos_map).
 
-  struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian. 
+  struct gkyl_array *f_no_J; // Distribution function without velocity-space Jacobian.
                              // When using uniform velocity-space mesh, just stores the distribution function at that RK stage. 
 
   // Organization of the different equation objects and the required data.
@@ -790,6 +803,8 @@ struct gkyl_vlasov_app {
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
 
   struct gkyl_wave_geom *geom; // geometry needed for species and field solvers (*only* p=1 right now JJ: 11/24/23)
+
+  struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (owns all position map arrays); shared by all species.
 
   bool has_field; // has field
   struct vm_field *field; // pointer to field object (its dispatch methods are

@@ -52,6 +52,13 @@ gkyl_dg_maxwell_inew(const struct gkyl_dg_maxwell_inp *inp)
   int cdim = inp->cbasis->ndim;
   int poly_order = inp->cbasis->poly_order;
 
+  // Configuration-space range + position-map Jacobian for the curl kernels. The
+  // Jacobian (borrowed) is the per-conf-cell J of the C^0 linear position map;
+  // NULL => identity (uniform grid), and the kernels use a static identity
+  // block so they stay bit-identical to the uniform case.
+  if (inp->crange) maxwell->crange = *inp->crange;
+  maxwell->jacob_pos = inp->jacob_pos;
+
   // For configuration fluxes in dg gr maxwell
   maxwell->use_conf_flux_surf = false;
   if (inp->field_id == GKYL_FIELD_GR_D_B){

@@ -267,6 +267,9 @@ vm_species_source_write(gkyl_vlasov_app* app,
   // the velocity-space Jacobian at specific quadrature points. 
   gkyl_vlasov_velocity_map_divide_jacobvel(vms->vel_map, &app->basis, &vms->basis,
     &vms->local, src->source, vms->f_no_J);
+  // Also divide out the configuration-space Jacobian for physical output.
+  gkyl_vlasov_position_map_divide_jacobpos(vms->pos_map, &vms->basis,
+    &vms->local, vms->f_no_J, vms->f_no_J);
 
   // If we are on device, copy the source distribution function without the velocity-space
   // Jacobian to the host, otherwise just write out the f_no_J array. 

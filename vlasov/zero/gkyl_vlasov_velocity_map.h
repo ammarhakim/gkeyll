@@ -127,6 +127,21 @@ void gkyl_vlasov_velocity_map_release(const struct gkyl_vlasov_velocity_map *vvm
 bool gkyl_vlasov_velocity_map_is_cu_dev(const struct gkyl_vlasov_velocity_map *vvm);
 
 /**
+ * Evaluate the (DG) computational-to-physical velocity map at a computational
+ * velocity coordinate. Used as the velocity part of the c2p coordinate
+ * transform when projecting phase-space initial conditions, so the projection
+ * samples the user function at the same physical velocities the solver kernels
+ * assume (the stored map is the cubic/linear approximation the operators use,
+ * not the exact analytic eval_vmap). Host-side only.
+ *
+ * @param vvm Velocity map object.
+ * @param vc Computational velocity coordinate (vdim components).
+ * @param vp On output, the physical velocity coordinate (vdim components).
+ */
+void gkyl_vlasov_velocity_map_eval_c2p(const struct gkyl_vlasov_velocity_map *vvm,
+  const double *vc, double *vp);
+
+/**
  * Write the velocity map to %s-%s_vmap.gkyl and, if write_cell_avg, its cell
  * average to %s-%s_vmap_avg.gkyl, on rank 0 of comm. The map is static in
  * time so this is intended to be called once (e.g. at frame 0); it is always

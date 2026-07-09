@@ -1680,6 +1680,9 @@ struct vlasov_app_lw {
   bool has_mapc2p_vel_func[GKYL_MAX_SPECIES][GKYL_MAX_CDIM]; // Is there a velocity-map?
   struct lua_func_ctx mapc2p_vel_func_ctx[GKYL_MAX_SPECIES][GKYL_MAX_CDIM]; // Lua registry reference to velocity-space mapping.
 
+  bool has_mapc2p_pos_func[GKYL_MAX_CDIM]; // Is there a (per-direction) configuration-space mapping?
+  struct lua_func_ctx mapc2p_pos_func_ctx[GKYL_MAX_CDIM]; // Lua registry reference to configuration-space mapping.
+
   bool has_cov_tangent_basis_func[GKYL_MAX_SPECIES]; // Is there a covariant tangent basis function?
   struct lua_func_ctx cov_tangent_basis_func_ctx[GKYL_MAX_SPECIES]; // Lua registry reference to covariant tangent basis function.
 
@@ -2154,6 +2157,32 @@ vm_app_new(lua_State *L)
   with_lua_tbl_tbl(L, "upper") {
     for (int d = 0; d < cdim; d++) {
       vm.upper[d] = glua_tbl_iget_number(L, d + 1, 0);
+    }
+  }
+
+  // Per-direction non-uniform configuration-space mapping. Each entry of the
+  // mapc2pPos table is a per-direction table with a "pmap" function mapping the
+  // (scalar) computational coordinate to the physical coordinate in that
+  // direction. Directions without an entry use the identity map.
+  for (int d = 0; d < cdim; d++) {
+    app_lw->has_mapc2p_pos_func[d] = false;
+  }
+  with_lua_tbl_tbl(L, "mapc2pPos") {
+    for (int d = 0; d < cdim; d++) {
+      if (glua_tbl_iget_tbl(L, d + 1)) {
+        if (glua_tbl_get_func(L, "pmap")) {
+          app_lw->has_mapc2p_pos_func[d] = true;
+          app_lw->mapc2p_pos_func_ctx[d] = (struct lua_func_ctx) {
+            .func_ref = luaL_ref(L, LUA_REGISTRYINDEX),
+            .ndim = 1, // per-direction map: one (scalar) computational coordinate
+            .nret = 1,
+            .L = L,
+          };
+          vm.mapc2p_pos[d].mapc2p_pos_func = gkyl_lw_eval_cb;
+          vm.mapc2p_pos[d].mapc2p_pos_ctx = &app_lw->mapc2p_pos_func_ctx[d];
+        }
+      }
+      lua_pop(L, 1);
     }
   }
 

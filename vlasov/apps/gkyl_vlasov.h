@@ -148,10 +148,18 @@ struct gkyl_vlasov_correct_inp {
 
 struct vlasov_mapc2p_vel {
   void *mapc2p_vel_ctx; // context for mapc2p function for velocity space
-  // pointer to mapc2p function for velocity space: 
-  // xc are the computational space coordinates and on output 
+  // pointer to mapc2p function for velocity space:
+  // xc are the computational space coordinates and on output
   // xp are the corresponding physical space coordinates.
   void (*mapc2p_vel_func)(double t, const double *xc, double *xp, void *ctx);
+};
+
+struct vlasov_mapc2p_pos {
+  void *mapc2p_pos_ctx; // context for mapc2p function for configuration space
+  // pointer to (per-direction) mapc2p function for configuration space:
+  // xc is the computational space coordinate and on output xp is the
+  // corresponding physical space coordinate. NULL => identity map.
+  void (*mapc2p_pos_func)(double t, const double *xc, double *xp, void *ctx);
 };
 
 // Parameters for Vlasov geometry.
@@ -365,6 +373,12 @@ struct gkyl_vm {
   // coordinates and on output xp are the corresponding physical space
   // coordinates.
   void (*mapc2p)(double t, const double *xc, double *xp, void *ctx);
+
+  // Per-direction non-uniform configuration-space mapping (C^0 piecewise
+  // linear). Each direction with a NULL func is the identity map. This is a
+  // diagonal coordinate stretch and is independent of the general curvilinear
+  // mapc2p above (which feeds the wave_geom object).
+  struct vlasov_mapc2p_pos mapc2p_pos[GKYL_MAX_CDIM];
 
   double cfl_frac; // CFL fraction to use (default 1.0)
 
