@@ -369,6 +369,8 @@ gk_geometry_mapc2p_init(struct gkyl_gk_geometry_inp *geometry_inp)
   up->geqdsk_sign_convention = 0;
   up->half_domain = 0;
 
+  up->non_axisymmetric = geometry_inp->non_axisymmetric;
+
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;

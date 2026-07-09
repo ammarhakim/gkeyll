@@ -229,4 +229,10 @@ GKYL_CU_DH double dg_gyrokinetic_boundary_surfvpar_3x2v_ser_p1(const double *w, 
               const int edge, double* GKYL_RESTRICT out); 
 
 
+GKYL_CU_DH double dg_gyrokinetic_gen_geo_vol_3x2v_ser_p1(const double *w, const double *dxv,
+          const double *vmap, const double *vmapSq, const double q_, const double m_,
+          const double *bmag, const double *phi,
+          const double *dualcurlbhatoverB, const double *rtg33inv, const double* bioverJB,
+          const double *fin, double* GKYL_RESTRICT out); 
+
 EXTERN_C_END

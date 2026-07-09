@@ -44,15 +44,22 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
 
   if (type == GKYL_GK_COLLISIONLESS_ES) {
+    bool gen_geo = gk_geom->non_axisymmetric;
     for (int d=0; d<cdim; ++d) {
       // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-      up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[d]);
-      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      up->flux_surf[d] = gen_geo?
+        choose_gk_collisionless_flux_gen_geo_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB) :
+        choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+      up->flux_surf_edge_lo[d] = gen_geo?
+        choose_gk_collisionless_flux_gen_geo_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[d]) :
+        choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[d]);
+      up->flux_surf_edge_up[d] = gen_geo?
+        choose_gk_collisionless_flux_gen_geo_edge_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM+d]) :
+        choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
     }
-    up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = gen_geo?
+      choose_gk_collisionless_flux_gen_geo_surf_vpar_kern(cdim, vdim, poly_order) :
+      choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
   else if (type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
     for (int d=0; d<cdim; ++d) {

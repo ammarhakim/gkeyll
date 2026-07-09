@@ -331,6 +331,7 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     .comm = app->comm,
     .has_LCFS = gk->geometry.has_LCFS,
     .x_LCFS = gk->geometry.x_LCFS,
+    .non_axisymmetric = gk->geometry.non_axisymmetric,
     .parallel_lower_bc_shift_func = gk->geometry.parallel_lower_bc_shift_func,
     .parallel_upper_bc_shift_func = gk->geometry.parallel_upper_bc_shift_func,
     .parallel_lower_bc_shift_ctx  = gk->geometry.parallel_lower_bc_shift_ctx ,

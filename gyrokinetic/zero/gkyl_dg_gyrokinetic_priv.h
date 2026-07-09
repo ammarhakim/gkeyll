@@ -236,6 +236,47 @@ static const gkyl_dg_gyrokinetic_vol_kern_list ser_no_by_vol_kernels[] = {
 };
 
 //
+// Serendipity volume kernels, general (non-axisymmetric) geometry.
+//
+GKYL_CU_DH
+static double
+kernel_dg_gyrokinetic_gen_geo_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
+  const int* idx, const double* qIn, double* GKYL_RESTRICT qRhsOut)
+{
+  struct dg_gyrokinetic *gyrokinetic = container_of(eqn, struct dg_gyrokinetic, eqn);
+
+  int vel_idx[2];
+  for (int d=gyrokinetic->cdim; d<gyrokinetic->pdim; d++) vel_idx[d-gyrokinetic->cdim] = idx[d];
+
+  long cidx = gkyl_range_idx(&gyrokinetic->conf_range, idx);
+  long vidx = gkyl_range_idx(&gyrokinetic->vel_map->local_vel, vel_idx);
+  long pidx = gkyl_range_idx(&gyrokinetic->phase_range, idx);
+  return dg_gyrokinetic_gen_geo_vol_3x2v_ser_p1(xc, dx,
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap, vidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->vel_map->vmap_sq, vidx),
+    gyrokinetic->charge, gyrokinetic->mass,
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_corn.bmag, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->auxfields.phi, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.dualcurlbhatoverB, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.rtg33inv, cidx),
+    (const double*) gkyl_array_cfetch(gyrokinetic->gk_geom->geo_int.bioverJB, cidx),
+    qIn, qRhsOut);
+}
+
+// Volume kernel list, general geometry. Only 3x2v differs from the
+// axisymmetric list; lower dimensions fall back to the standard kernels.
+GKYL_CU_D
+static const gkyl_dg_gyrokinetic_vol_kern_list ser_gen_geo_vol_kernels[] = {
+  // 1x kernels
+  { NULL, kernel_dg_gyrokinetic_vol_1x1v_ser_p1, NULL }, // 0
+  { NULL, kernel_dg_gyrokinetic_vol_1x2v_ser_p1, NULL }, // 1
+  // 2x kernels
+  { NULL, kernel_dg_gyrokinetic_vol_2x2v_ser_p1, NULL }, // 2
+  // 3x kernels
+  { NULL, kernel_dg_gyrokinetic_gen_geo_vol_3x2v_ser_p1, NULL }, // 3
+};
+
+//
 // Serendipity surface kernels general geometry
 //
 // Surface kernel list: x-direction

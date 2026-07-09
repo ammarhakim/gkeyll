@@ -198,21 +198,28 @@ void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up,
 
 // CUDA kernel to set device pointers to gyrokinetic vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void 
-gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up, 
+__global__ static void
+gk_collisionless_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_flux *up,
   int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type type,
-  const enum gkyl_gyrokinetic_bc_type *bctype_conf)
+  const enum gkyl_gyrokinetic_bc_type *bctype_conf, bool non_axisymmetric)
 {
   if (type == GKYL_GK_COLLISIONLESS_ES) {
+    bool gen_geo = non_axisymmetric;
     for (int d=0; d<cdim; ++d) {
       // BC option in ->flux_surf kernel doesn't matter as long as it's not SKIP.
-      up->flux_surf[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
-      up->flux_surf_edge_lo[d] = choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[d]);
-      up->flux_surf_edge_up[d] = choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim,
-        poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
+      up->flux_surf[d] = gen_geo?
+        choose_gk_collisionless_flux_gen_geo_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB) :
+        choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, GKYL_BC_GK_SPECIES_ABSORB);
+      up->flux_surf_edge_lo[d] = gen_geo?
+        choose_gk_collisionless_flux_gen_geo_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[d]) :
+        choose_gk_collisionless_flux_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[d]);
+      up->flux_surf_edge_up[d] = gen_geo?
+        choose_gk_collisionless_flux_gen_geo_edge_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM+d]) :
+        choose_gk_collisionless_flux_edge_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
     }
-    up->flux_surfvpar[0] = choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
+    up->flux_surfvpar[0] = gen_geo?
+      choose_gk_collisionless_flux_gen_geo_surf_vpar_kern(cdim, vdim, poly_order) :
+      choose_gk_collisionless_flux_surf_vpar_kern(cdim, vdim, poly_order);
   }
   else if (type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
     for (int d=0; d<cdim; ++d) {
@@ -270,7 +277,8 @@ gkyl_gk_collisionless_flux_cu_dev_new(const struct gkyl_rect_grid *phase_grid,
   struct gkyl_gk_collisionless_flux *up_cu = (struct gkyl_gk_collisionless_flux*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_gk_collisionless_flux), GKYL_CU_MEMCPY_H2D);
 
-  gk_collisionless_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, type, bctype_conf_dev);
+  gk_collisionless_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, type, bctype_conf_dev,
+    gk_geom->non_axisymmetric);
 
   gkyl_cu_free(bctype_conf_dev);
 

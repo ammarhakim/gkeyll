@@ -240,6 +240,8 @@ struct gkyl_gyrokinetic_geometry {
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x coordinate of the LCFS.
 
+  bool non_axisymmetric; // Whether the geometry non-axisymmetric.
+
   // Twist-shift functions for the tokamak core.
   void (*parallel_lower_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);
   void (*parallel_upper_bc_shift_func)(double t, const double *xn, double *fout, void *ctx);

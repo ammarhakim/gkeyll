@@ -72,7 +72,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
   gyrokinetic->eqn.boundary_diag_term = boundary_diag;
 
-  const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
+  const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels, *vol_gen_geo_kernels;
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels; 
   const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels; 
@@ -95,6 +95,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
       vol_no_by_kernels = ser_no_by_vol_kernels;
+      vol_gen_geo_kernels = ser_gen_geo_vol_kernels;
       break;
 
     default:
@@ -103,7 +104,10 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   }
 
   if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
-    gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
+    if (gk_geom->non_axisymmetric)
+      gyrokinetic->eqn.vol_term = CK(vol_gen_geo_kernels,cdim,vdim,poly_order);
+    else
+      gyrokinetic->eqn.vol_term = CK(vol_kernels,cdim,vdim,poly_order);
   }
   else if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
     gyrokinetic->eqn.vol_term = CK(vol_no_by_kernels,cdim,vdim,poly_order);

@@ -36,6 +36,8 @@ gkyl_gk_geometry_new(struct gk_geometry* geo_host, struct gkyl_gk_geometry_inp *
   up->grid = geometry_inp->grid;
   gk_geometry_set_nodal_ranges(up) ;
 
+  up->non_axisymmetric = geometry_inp->non_axisymmetric;
+
   up->has_LCFS = geometry_inp->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geometry_inp->x_LCFS;
@@ -455,6 +457,7 @@ gkyl_gk_geometry_deflate(const struct gk_geometry* up_3d, struct gkyl_gk_geometr
   up->local = geometry_inp->local;
   up->local_ext = geometry_inp->local_ext;
   up->grid = geometry_inp->grid;
+  up->non_axisymmetric = up_3d->non_axisymmetric;
   gk_geometry_set_nodal_ranges(up) ;
   if (up->grid.ndim > 1) {
     gkyl_cart_modal_serendip(&up->surf_basis, up->grid.ndim-1, up->basis.poly_order);

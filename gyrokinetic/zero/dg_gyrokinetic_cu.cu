@@ -36,29 +36,30 @@ gkyl_gyrokinetic_set_auxfields_cu(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_
 
 // CUDA kernel to set device pointers to range object and gyrokinetic kernel function
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void 
+__global__ static void
 dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_basis_type b_type,
-  int cv_index, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type collless_type)
+  int cv_index, int cdim, int vdim, int poly_order, enum gkyl_gk_collisionless_type collless_type,
+  bool non_axisymmetric)
 {
-  gyrokinetic->auxfields.flux_surf = 0; 
-  gyrokinetic->auxfields.phi = 0; 
-  gyrokinetic->auxfields.apar = 0; 
-  gyrokinetic->auxfields.apardot= 0; 
+  gyrokinetic->auxfields.flux_surf = 0;
+  gyrokinetic->auxfields.phi = 0;
+  gyrokinetic->auxfields.apar = 0;
+  gyrokinetic->auxfields.apardot= 0;
 
   gyrokinetic->eqn.surf_term = surf;
   gyrokinetic->eqn.boundary_surf_term = boundary_surf;
   gyrokinetic->eqn.boundary_diag_term = boundary_diag;
 
-  const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels;
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels; 
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels; 
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels; 
-  const gkyl_dg_gyrokinetic_surf_kern_list *surf_vpar_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_y_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_z_kernels; 
-  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels; 
-  
+  const gkyl_dg_gyrokinetic_vol_kern_list *vol_kernels, *vol_no_by_kernels, *vol_gen_geo_kernels;
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_x_kernels;
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_y_kernels;
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_z_kernels;
+  const gkyl_dg_gyrokinetic_surf_kern_list *surf_vpar_kernels;
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_x_kernels;
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_y_kernels;
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_z_kernels;
+  const gkyl_dg_gyrokinetic_boundary_surf_kern_list *boundary_surf_vpar_kernels;
+
   switch (b_type) {
     case GKYL_BASIS_MODAL_SERENDIPITY:
       vol_kernels = ser_vol_kernels;
@@ -72,16 +73,20 @@ dg_gyrokinetic_set_cu_dev_ptrs(struct dg_gyrokinetic *gyrokinetic, enum gkyl_bas
       boundary_surf_vpar_kernels = ser_boundary_surf_vpar_kernels;
 
       vol_no_by_kernels = ser_no_by_vol_kernels;
-      
+      vol_gen_geo_kernels = ser_gen_geo_vol_kernels;
+
       break;
 
     default:
       assert(false);
-      break;    
-  }  
+      break;
+  }
 
   if (collless_type == GKYL_GK_COLLISIONLESS_ES) {
-    gyrokinetic->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
+    if (non_axisymmetric)
+      gyrokinetic->eqn.vol_term = vol_gen_geo_kernels[cv_index].kernels[poly_order];
+    else
+      gyrokinetic->eqn.vol_term = vol_kernels[cv_index].kernels[poly_order];
   }
   else if (collless_type == GKYL_GK_COLLISIONLESS_ES_NO_BY) {
     gyrokinetic->eqn.vol_term = vol_no_by_kernels[cv_index].kernels[poly_order];
@@ -141,7 +146,7 @@ gkyl_dg_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gky
   gkyl_cu_memcpy(gyrokinetic_cu, gyrokinetic, sizeof(struct dg_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
   dg_gyrokinetic_set_cu_dev_ptrs<<<1,1>>>(gyrokinetic_cu, cbasis->b_type, cv_index[cdim].vdim[vdim],
-    cdim, vdim, poly_order, collless_type);
+    cdim, vdim, poly_order, collless_type, gk_geom->non_axisymmetric);
 
   // set parent on_dev pointer
   gyrokinetic->eqn.on_dev = &gyrokinetic_cu->eqn;

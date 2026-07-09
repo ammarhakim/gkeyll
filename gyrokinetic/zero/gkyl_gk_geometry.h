@@ -178,6 +178,8 @@ struct gk_geometry {
 
   int half_domain; // For double null geometry. 0 for full domain 1 for lower half domain.
 
+  bool non_axisymmetric; // Whether the geometry is non-axisymmetric.
+
   bool has_LCFS; // Whether the geometry has an LCFS.
   double x_LCFS; // For mapc2p IWL geometry, the user has to provide the
                  // location of the LCFS. For numerical IWL, it may be stored
@@ -241,6 +243,8 @@ struct gkyl_gk_geometry_inp {
 
   bool has_LCFS; // Whether the geometry has a last closed flux surface (LCFS).
   double x_LCFS; // x location of the LCFS.
+
+  bool non_axisymmetric; // Whether the geometry is non-axisymmetric.
 
   // 3D grid ranges and basis.
   struct gkyl_rect_grid geo_grid;

@@ -449,6 +449,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   }
   up->geqdsk_sign_convention = geo_host->geqdsk_sign_convention;
   up->half_domain = geo_host->half_domain;
+  up->non_axisymmetric = geo_host->non_axisymmetric;
   up->has_LCFS = geo_host->has_LCFS;
   if (up->has_LCFS) {
     up->x_LCFS = geo_host->x_LCFS;
