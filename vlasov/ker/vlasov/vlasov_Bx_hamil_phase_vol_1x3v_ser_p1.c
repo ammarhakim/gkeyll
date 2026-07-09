@@ -3,8 +3,8 @@ GKYL_CU_DH void vlasov_Bx_hamil_phase_vol_1x3v_ser_p1(const double *w, const dou
   const double *jacob_vel, const double *hamil,
   const double *qmem, const double *f, double* GKYL_RESTRICT out) 
 { 
-  double dv11 = 2.0/dxv[2];
-  double dv12 = 2.0/dxv[3];
+  double dv11 = 2.0/dxv[2]; 
+  double dv12 = 2.0/dxv[3]; 
   const double *Bx = &qmem[6]; 
   out[3] += dv11*dv12*Bx[0]*(0.5303300858899105*f[11]*hamil[15]+0.5303300858899105*f[7]*hamil[14]+0.5303300858899105*f[6]*hamil[13]+0.5303300858899105*f[5]*hamil[12]+0.5303300858899105*f[3]*hamil[10]+0.5303300858899105*f[2]*hamil[9]+0.5303300858899105*f[1]*hamil[8]+0.5303300858899105*f[0]*hamil[4]);
   out[3] += dv11*dv12*Bx[1]*(0.5303300858899105*f[7]*hamil[15]+0.5303300858899105*f[11]*hamil[14]+0.5303300858899105*f[3]*hamil[13]+0.5303300858899105*f[2]*hamil[12]+0.5303300858899105*f[6]*hamil[10]+0.5303300858899105*f[5]*hamil[9]+0.5303300858899105*f[0]*hamil[8]+0.5303300858899105*f[1]*hamil[4]);
