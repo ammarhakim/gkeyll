@@ -82,6 +82,7 @@ static const array_integrate_epsgradperpsq_kern_list gkyl_array_integrate_epsgra
 
 // Metric-weighted FULL-gradient squared (all conf directions). Used by the
 // Vlasov position map for the electrostatic field energy.
+GKYL_CU_D
 static const array_integrate_epsgradsq_kern_list gkyl_array_integrate_epsgradsq_ker_list[] = {
   {gkyl_array_integrate_op_eps_grad_sq_1x_ser_p1, gkyl_array_integrate_op_eps_grad_sq_1x_ser_p2},
   {gkyl_array_integrate_op_eps_grad_sq_2x_ser_p1, gkyl_array_integrate_op_eps_grad_sq_2x_ser_p2},
