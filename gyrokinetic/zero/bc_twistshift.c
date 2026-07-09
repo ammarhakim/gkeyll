@@ -1423,6 +1423,22 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
     for (int i=0; i<iter.idx[0]-up->shear_r.lower[0]; i++)
       linidx_mats_do += up->num_do[i];
 
+    // Check that the shift variation within this x-cell < Ly.
+    // The algorithm assumes at most one x-intersection per (y-boundary, y-boundary) pair,
+    // which breaks when |S(x_up) - S(x_lo)| >= Ly.
+    double x_lo = cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)];
+    double x_up = cellb_tar[cellb_up(up->shear_dir_in_ts_grid)];
+    double Ly = shift_dir_lims[1] - shift_dir_lims[0];
+    double S_lo, S_up;
+    up->shift_func(0.0, (double[]){x_lo}, &S_lo, up->shift_func_ctx);
+    up->shift_func(0.0, (double[]){x_up}, &S_up, up->shift_func_ctx);
+    if (fabs(S_up - S_lo) >= Ly) {
+      fprintf(stderr, "bc_twistshift: shift variation |S(x_up)-S(x_lo)| = %g across a single x-cell"
+        " exceeds Ly = %g (cell ix=%d). Increase Nx, reduce the shear, or increase Ly.\n",
+        fabs(S_up - S_lo), Ly, iter.idx[0]);
+      assert(false);
+    }
+
     for (int iC=0; iC<up->num_do[iter.idx[0]-up->shear_r.lower[0]]; iC++){
       int idx_do[2]; // Target index.
       idx_do[up->shift_dir_in_ts_grid] = shift_dir_idx_do_ptr[iC];
