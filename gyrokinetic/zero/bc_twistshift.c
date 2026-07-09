@@ -327,6 +327,7 @@ ts_find_donors(struct gkyl_bc_twistshift *up)
     }
 
     up->num_do[shear_idx[0]-up->shear_r.lower[0]] = num_do_curr;
+
   }
 
   // Copy the donor list to the persistent object and release the buffer.
@@ -436,18 +437,17 @@ ts_donor_target_offset(struct gkyl_bc_twistshift *up, const double *xc_do, const
 
 struct gkyl_qr_res
 ts_find_intersect(struct gkyl_bc_twistshift *up, double shiftCoordTar, double shiftCoordDo,
-  const double *shearDirBounds, const double *shiftDirLimits)
+  const double *shearDirBounds, const double *shiftDirLimits, int nP_primary)
 {
   // Given a y-coordinate of the target cell (yTar), and a y-coordinate
-  // of the donor cell (yDo), find the x-coordinate of the point where
-  // the yTar-yShift(x) and y=yDo lines intersect.
-  //  yTar:    target cell y coordinate.
-  //  yDo:     donor cell y coordinate.
-  //  xBounds: search in the interval [xBounds[1],xBounds[2]].
-  //  yLims:   lower and upper limits of the grid.
-  // If y-yShift-yDo=0 has no roots, it is possible that y-yShift intersects a periodic
-  // copy of this domain. Check for such cases by looking for the roots of
-  // yTar-yShift-(yDo-N*Ly)=0 where Ly is the length of the domain along y and N is an integer.
+  // of the donor cell (yDo), find the x-coordinate where yTar-yShift(x)=yDo
+  // for the periodic copy identified by nP_primary, i.e. the root of
+  // yTar - yShift(x) - (yDo - nP_primary*Ly) = 0 in [shearDirBounds[0], shearDirBounds[1]].
+  // Returns status=1 (not found) if no root exists for that specific nP_primary.
+  //
+  // nP_primary must be the same for all 4 inter_pts of a donor-target pair: all four
+  // intersection conditions describe corners of a single physical overlap diamond and
+  // therefore belong to the same periodic copy of the domain.
   double tol = 1.e-13;
   int max_iter = 100;
 
@@ -457,52 +457,11 @@ ts_find_intersect(struct gkyl_bc_twistshift *up, double shiftCoordTar, double sh
     .shiftCoordTar = shiftCoordTar,
     .shiftCoordDo = shiftCoordDo,
     .shiftDirL = shiftDirL,
-    .periodicCopyIdx = 0,
+    .periodicCopyIdx = nP_primary,
     .shift_func = up->shift_func,
     .shift_func_ctx = up->shift_func_ctx,
   };
-  struct gkyl_qr_res rootfind_res = ts_root_find(ts_shifted_coord_loss_func, &func_ctx,
-    shearDirBounds, max_iter, tol);
-
-  if (rootfind_res.status == 1) {
-    // Maybe yTar-ySh intersects y=yDo in a periodic copy of the domain. Find roots of
-    // yTar-ySh-(yDo-nP*Ly)=0 where Ly is the y-length of the domain and nP is an integer.
-
-    // Evaluate yTar-ySh at some points in [xBounds.lo,xBounds.up] and obtain potential nP's.
-    int num_steps = 10;
-    double step_sz = (shearDirBounds[1]-shearDirBounds[0])/num_steps;
-    int nP[num_steps+1], num_unique_nP = 0;
-    for (int sI=0; sI<num_steps+1; sI++) {
-      double xp = shearDirBounds[0] + sI*step_sz;
-      double xp_shift;
-      up->shift_func(0.0, (double[]){xp}, &xp_shift, up->shift_func_ctx);
-
-      double ex_shift = xp_shift<0.? ((shiftCoordTar-xp_shift)-shiftDirLimits[0])/shiftDirL
-                                   : (shiftDirLimits[1]-(shiftCoordTar-xp_shift))/shiftDirL;
-      double nP_new = ts_sign(xp_shift)*floor(fabs(ex_shift));
-      // If we haven't accounted for this nP, add it to our list.
-      bool nP_not_found = true;
-      for (int n=0; n<num_unique_nP; n++) {
-        if (nP[n] == nP_new) {
-          nP_not_found = false;
-          break;
-        }
-      }
-      if (nP_not_found) {
-        nP[num_unique_nP] = nP_new;
-        num_unique_nP++;
-      }
-    }
-
-    for (int n=0; n<num_unique_nP; n++) {
-      func_ctx.periodicCopyIdx = nP[n];
-      rootfind_res = ts_root_find(ts_shifted_coord_loss_func, &func_ctx,
-        shearDirBounds, max_iter, tol);
-      if (rootfind_res.status == 0) break;
-    }
-  }
-
-  return rootfind_res;
+  return ts_root_find(ts_shifted_coord_loss_func, &func_ctx, shearDirBounds, max_iter, tol);
 }
 
 struct ts_val_found {
@@ -1429,9 +1388,11 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
     double x_lo = cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)];
     double x_up = cellb_tar[cellb_up(up->shear_dir_in_ts_grid)];
     double Ly = shift_dir_lims[1] - shift_dir_lims[0];
-    double S_lo, S_up;
+    double S_lo, S_up, S_c;
     up->shift_func(0.0, (double[]){x_lo}, &S_lo, up->shift_func_ctx);
     up->shift_func(0.0, (double[]){x_up}, &S_up, up->shift_func_ctx);
+    up->shift_func(0.0, (double[]){xc_tar[up->shear_dir_in_ts_grid]}, &S_c, up->shift_func_ctx);
+
     if (fabs(S_up - S_lo) >= Ly) {
       fprintf(stderr, "bc_twistshift: shift variation |S(x_up)-S(x_lo)| = %g across a single x-cell"
         " exceeds Ly = %g (cell ix=%d). Increase Nx, reduce the shear, or increase Ly.\n",
@@ -1452,6 +1413,11 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
       // Get the matrix we are presently assigning.
       struct gkyl_mat mat_do = gkyl_nmat_get(matsdo, linidx_mats_do+iC);
 
+      // Periodic copy in which to find the target for this donor-target pair: the integer nP such that
+      // S_c \approx y_tar_c - y_do_c + nP*Ly. All 4 inter_pts must use this same nP so that only
+      // roots from the physical intersection are accepted (not roots from other periodic copies).
+      int nP_primary = (int)round((S_c - (xc_tar[up->shift_dir_in_ts_grid] - xc_do[up->shift_dir_in_ts_grid])) / Ly);
+
       // Find the points where y_{j_tar-/+1/2}-yShift intersect the y=y_{j_do-/+1/2} lines.
       // Also record the number and indices of points found/not found.
       struct ts_val_found inter_pts[4] = {};
@@ -1463,7 +1429,7 @@ ts_calc_mats(struct gkyl_bc_twistshift *up)
           double shift_dir_coord_do = cellb_do[2*up->shift_dir_in_ts_grid+j];
           struct gkyl_qr_res inter_res = ts_find_intersect(up, shift_dir_coord_tar, shift_dir_coord_do,
             (double[]) {cellb_tar[cellb_lo(up->shear_dir_in_ts_grid)],cellb_tar[cellb_up(up->shear_dir_in_ts_grid)]},
-            shift_dir_lims);
+            shift_dir_lims, nP_primary);
           int ip_linc = i*2+j;
           inter_pts[ip_linc].status = inter_res.status == 0;
           if (inter_res.status == 0) {

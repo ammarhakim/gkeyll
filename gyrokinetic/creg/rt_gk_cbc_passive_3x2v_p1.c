@@ -420,7 +420,7 @@ struct gk_app_ctx create_ctx(void)
   double inv_asp_ratio = a_mid/R0;
 
   // Grid parameters
-  int Nx = 16;
+  int Nx = 32;
   int Ny = 16;
   int Nz = 16;
   int Nvpar = 2;
@@ -433,7 +433,7 @@ struct gk_app_ctx create_ctx(void)
   double vpar_max_elc = 4.*vte;
   double mu_max_elc = 7*Te0/B0;
 
-  double t_end = 1.00;
+  double t_end = 1.0;
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
