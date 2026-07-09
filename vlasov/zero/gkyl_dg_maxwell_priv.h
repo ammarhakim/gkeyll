@@ -32,6 +32,7 @@ typedef struct { maxwell_surf_from_flux_t kernels[4]; } gkyl_dg_maxwell_surf_fro
 // present (uniform grid): the curl kernels read jacob_pos[(poly_order+1)*dir],
 // which is 1 for the identity map, so this leaves them bit-identical to the
 // uniform-grid kernels. Sized for up to cdim=3, poly_order=3.
+GKYL_CU_DH
 static const double maxwell_jacob_pos_iden[12] = {
   1.0,1.0,1.0,1.0, 1.0,1.0,1.0,1.0, 1.0,1.0,1.0,1.0
 };
