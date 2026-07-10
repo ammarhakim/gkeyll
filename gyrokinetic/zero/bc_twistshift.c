@@ -222,7 +222,8 @@ ts_check_shifted_test_point(struct gkyl_bc_twistshift *up, const double *test_pt
     false) }; // Shifted test point.
   int shift_dir_idx_test_pt[1];
 //  gkyl_rect_grid_coord_idx(&up->shift_grid, shifted_test_pt, shift_dir_idx_test_pt); 
-  gkyl_rect_grid_find_cell(&up->shift_grid, shifted_test_pt, pick_lower, (int[]) {-1}, shift_dir_idx_test_pt);
+  bool pick_lower_arr[] = {pick_lower};
+  gkyl_rect_grid_find_cell(&up->shift_grid, shifted_test_pt, pick_lower_arr, (int[]) {-1}, shift_dir_idx_test_pt);
 
   // Get the linear index to the list of donors for this target.
   long linidx = ts_shift_dir_idx_do_linidx(up->num_do,

@@ -79,7 +79,7 @@ void gk_geometry_mapc2p_advance(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_nodal_ops_release(n2m);
 
   // Need 1/B for LBO collisions, computed weakly.
-  gkyl_dg_inv_op_range(up->basis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local); 
+  gkyl_dg_inv_op_range(&up->basis, 0, up->geo_corn.bmag_inv, 0, up->geo_corn.bmag, &up->local);
 
 }
 
