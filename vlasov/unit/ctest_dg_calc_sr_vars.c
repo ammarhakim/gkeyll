@@ -264,11 +264,11 @@ test_sr_vars(int vdim, int poly_order, bool use_tensor, bool use_nonuniform, boo
   for (int d=0; d<vdim; ++d)
     #ifdef GKYL_HAVE_CUDA
     if (use_gpu)
-      gkyl_dg_div_op_range_cu(div_mem, cbasis, d, u_i, d, M1i, 0, n_rest, &conf_local);
+      gkyl_dg_div_op_range_cu(div_mem, &cbasis, d, u_i, d, M1i, 0, n_rest, &conf_local);
     else
-      gkyl_dg_div_op_range(div_mem, cbasis, d, u_i, d, M1i, 0, n_rest, &conf_local);
+      gkyl_dg_div_op_range(div_mem, &cbasis, d, u_i, d, M1i, 0, n_rest, &conf_local);
 #else
-    gkyl_dg_div_op_range(div_mem, cbasis, d, u_i, d, M1i, 0, n_rest, &conf_local);
+    gkyl_dg_div_op_range(div_mem, &cbasis, d, u_i, d, M1i, 0, n_rest, &conf_local);
 #endif
 
   // (c) GammaV algebra: u_i_sq is the weak square of u_i and
