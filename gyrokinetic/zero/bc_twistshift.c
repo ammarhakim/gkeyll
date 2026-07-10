@@ -1704,7 +1704,7 @@ gkyl_bc_twistshift_choose_kernels(struct gkyl_basis basis, int cdim, int shift_p
 }
 
 struct gkyl_bc_twistshift*
-gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
+gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
 {
 
   // Allocate space for new updater.
@@ -1896,6 +1896,31 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
     gkyl_range_shorten_from_below(&up->ghost_r, &up->local_bcdir_ext_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
 
   return up;
+}
+
+struct gkyl_bc_twistshift*
+gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, struct gkyl_range bcdir_ext_update_r, const int *num_ghost,
+  struct gkyl_basis basis, struct gkyl_rect_grid grid, evalf_t shift_func, void *shift_func_ctx,
+  struct gkyl_array *shift_dg, int shift_poly_order, bool use_gpu)
+{
+  struct gkyl_bc_twistshift_inp inp = {
+    .bc_dir              = bc_dir            ,
+    .shift_dir           = shift_dir         ,
+    .shear_dir           = shear_dir         ,
+    .edge                = edge              ,
+    .cdim                = cdim              ,
+    .bcdir_ext_update_r  = bcdir_ext_update_r,
+    .num_ghost           = num_ghost         ,
+    .basis               = basis             ,
+    .grid                = grid              ,
+    .shift_func          = shift_func        ,
+    .shift_func_ctx      = shift_func_ctx    ,
+    .shift_dg            = shift_dg          ,
+    .use_gpu             = use_gpu           ,
+    .shift_poly_order    = shift_poly_order  ,
+  };
+  return gkyl_bc_twistshift_inew(&inp);
 }
 
 void

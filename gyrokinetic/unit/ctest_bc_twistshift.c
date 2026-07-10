@@ -337,7 +337,7 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -394,7 +394,7 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_copy_range_to_range(distf, distf, &skin_rng, &ghost_rng);
   tsinp.shift_func = shift1m_fig6;
 //  tsinp.shift_func = shiftm_fig9;
-  struct gkyl_bc_twistshift *tsup_m = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup_m = gkyl_bc_twistshift_inew(&tsinp);
   gkyl_bc_twistshift_advance(tsup_m, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
@@ -594,7 +594,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -735,7 +735,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_copy_range_to_range(distf, distf, &skin_rng, &ghost_rng);
   tsinp.shift_func = shift1m_fig6;
 //  tsinp.shift_func = shiftm_fig9;
-  struct gkyl_bc_twistshift *tsup_m = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup_m = gkyl_bc_twistshift_inew(&tsinp);
   gkyl_bc_twistshift_advance(tsup_m, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
@@ -1004,7 +1004,7 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -1371,7 +1371,7 @@ test_bc_twistshift_3x_fig14_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -1821,7 +1821,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -2408,7 +2408,7 @@ test_bc_twistshift_3x_cbc_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu   = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_inew(&tsinp);
 
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
@@ -3801,10 +3801,11 @@ void test_bc_twistshift_3x2v_fig11_ho(){ test_bc_twistshift_3x2v_fig11(false); }
 #ifdef GKYL_HAVE_CUDA
 void test_bc_twistshift_3x_fig6_dev(){ test_bc_twistshift_3x_fig6(true); }
 void test_bc_twistshift_3x_fig11_dev(){ test_bc_twistshift_3x_fig11(true); }
+void test_bc_twistshift_3x_fig14_dev(){ test_bc_twistshift_3x_fig14(true); }
+void test_bc_twistshift_3x_cbc_dev(){ test_bc_twistshift_3x_cbc(true); }
 
 void test_bc_twistshift_3x2v_fig6_dev(){ test_bc_twistshift_3x2v_fig6(true); }
 void test_bc_twistshift_3x2v_fig11_dev(){ test_bc_twistshift_3x2v_fig11(true); }
-void test_bc_twistshift_3x_fig14_dev(){ test_bc_twistshift_3x_fig14(true); }
 #endif
 
 TEST_LIST = {
@@ -3818,6 +3819,7 @@ TEST_LIST = {
   { "test_bc_twistshift_3x_fig6_dev", test_bc_twistshift_3x_fig6_dev },
   { "test_bc_twistshift_3x_fig11_dev", test_bc_twistshift_3x_fig11_dev },
   { "test_bc_twistshift_3x_fig14_dev", test_bc_twistshift_3x_fig14_dev },
+  { "test_bc_twistshift_3x_cbc_dev", test_bc_twistshift_3x_cbc_dev },
   { "test_bc_twistshift_3x2v_fig6_dev", test_bc_twistshift_3x2v_fig6_dev },
   { "test_bc_twistshift_3x2v_fig11_dev", test_bc_twistshift_3x2v_fig11_dev },
 #endif
