@@ -1258,7 +1258,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
       .shift_func_ctx = eI == 0? app->gk_geom->parallel_lower_bc_shift_ctx : app->gk_geom->parallel_upper_bc_shift_ctx,
       .use_gpu = app->use_gpu,
     };
-    struct gkyl_bc_twistshift *bc_ts_op = gkyl_bc_twistshift_new(&ts_inp);
+    struct gkyl_bc_twistshift *bc_ts_op = gkyl_bc_twistshift_inew(&ts_inp);
 
     struct gkyl_array *delta_ts_x = eI == 0? app->delta_ts_x_lo : app->delta_ts_x_up;
     delta_ts_x = gkyl_bc_twistshift_get_shift_objects(bc_ts_op,
