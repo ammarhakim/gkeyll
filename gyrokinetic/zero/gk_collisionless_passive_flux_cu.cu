@@ -129,12 +129,12 @@ gkyl_gk_collisionless_passive_flux_surf_cu(gkyl_gk_collisionless_passive_flux *u
 // Doing function-pointer work here avoids troublesome cudaMemcpyFromSymbol.
 __global__ static void
 gk_collisionless_passive_flux_set_cu_dev_ptrs(struct gkyl_gk_collisionless_passive_flux *up,
-  int cdim, int vdim, int poly_order)
+  int cdim, int vdim, int poly_order, const enum gkyl_gyrokinetic_bc_type *bctype_conf)
 {
   for (int d = 0; d < cdim; d++) {
     up->flux_surf[d]         = choose_gk_collisionless_passive_flux_surf_conf_kern(d, cdim, vdim, poly_order);
-    up->flux_surf_edge_lo[d] = choose_gk_collisionless_passive_flux_edge_lo_surf_conf_kern(d, cdim, vdim, poly_order);
-    up->flux_surf_edge_up[d] = choose_gk_collisionless_passive_flux_edge_up_surf_conf_kern(d, cdim, vdim, poly_order);
+    up->flux_surf_edge_lo[d] = choose_gk_collisionless_passive_flux_edge_lo_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[d]);
+    up->flux_surf_edge_up[d] = choose_gk_collisionless_passive_flux_edge_up_surf_conf_kern(d, cdim, vdim, poly_order, bctype_conf[GKYL_MAX_CDIM+d]);
   }
 }
 
@@ -178,12 +178,18 @@ gkyl_gk_collisionless_passive_flux_cu_dev_new(const struct gkyl_rect_grid *phase
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);
 
+  // Temporarily copy array of BCs to device for kernel selection.
+  enum gkyl_gyrokinetic_bc_type *bctype_conf_dev = (enum gkyl_gyrokinetic_bc_type *) gkyl_cu_malloc(2*GKYL_MAX_CDIM*sizeof(enum gkyl_gyrokinetic_bc_type));
+  gkyl_cu_memcpy(bctype_conf_dev, bctype_conf, 2*GKYL_MAX_CDIM*sizeof(enum gkyl_gyrokinetic_bc_type), GKYL_CU_MEMCPY_H2D);
+
   // Copy host struct to device and select kernels.
   struct gkyl_gk_collisionless_passive_flux *up_cu =
     (struct gkyl_gk_collisionless_passive_flux*) gkyl_cu_malloc(sizeof(*up_cu));
   gkyl_cu_memcpy(up_cu, up, sizeof(*up), GKYL_CU_MEMCPY_H2D);
 
-  gk_collisionless_passive_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order);
+  gk_collisionless_passive_flux_set_cu_dev_ptrs<<<1,1>>>(up_cu, cdim, vdim, poly_order, bctype_conf_dev);
+
+  gkyl_cu_free(bctype_conf_dev);
 
   up->on_dev = up_cu;
 
