@@ -1250,10 +1250,10 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
       .shear_dir = 0, // shift varies with x.
       .edge = eI == 0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = app->global_par_ext,
+      .bcdir_ext_update_r = &app->global_par_ext,
       .num_ghost = ghost, // one ghost per config direction
-      .basis = app->basis,
-      .grid = app->grid,
+      .basis = &app->basis,
+      .grid = &app->grid,
       .shift_func = eI == 0? app->gk_geom->parallel_lower_bc_shift_func : app->gk_geom->parallel_upper_bc_shift_func,
       .shift_func_ctx = eI == 0? app->gk_geom->parallel_lower_bc_shift_ctx : app->gk_geom->parallel_upper_bc_shift_ctx,
       .use_gpu = app->use_gpu,

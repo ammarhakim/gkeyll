@@ -886,10 +886,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_LOWER_EDGE,
         .cdim = cdim,
-        .bcdir_ext_update_r = gks->local_par_ext,
+        .bcdir_ext_update_r = &gks->local_par_ext,
         .num_ghost = ghost,
-        .basis = gks->basis,
-        .grid = gks->grid,
+        .basis = &gks->basis,
+        .grid = &gks->grid,
         .use_gpu = app->use_gpu,
       };
       if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -946,10 +946,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_UPPER_EDGE,
         .cdim = cdim,
-        .bcdir_ext_update_r = gks->local_par_ext,
+        .bcdir_ext_update_r = &gks->local_par_ext,
         .num_ghost = ghost,
-        .basis = gks->basis,
-        .grid = gks->grid,
+        .basis = &gks->basis,
+        .grid = &gks->grid,
         .use_gpu = app->use_gpu,
       };
       if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -999,10 +999,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = cdim,
-      .bcdir_ext_update_r = gks->local_par_ext_core,
+      .bcdir_ext_update_r = &gks->local_par_ext_core,
       .num_ghost = ghost,
-      .basis = gks->basis,
-      .grid = gks->grid,
+      .basis = &gks->basis,
+      .grid = &gks->grid,
       .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -1019,10 +1019,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_UPPER_EDGE,
       .cdim = cdim,
-      .bcdir_ext_update_r = gks->local_par_ext_core,
+      .bcdir_ext_update_r = &gks->local_par_ext_core,
       .num_ghost = ghost,
-      .basis = gks->basis,
-      .grid = gks->grid,
+      .basis = &gks->basis,
+      .grid = &gks->grid,
       .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
