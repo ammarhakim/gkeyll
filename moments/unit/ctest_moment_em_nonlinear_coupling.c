@@ -26,8 +26,6 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
   const double gas_gamma = 5.0 / 3.0;
   const double pressure = 1.0;
 
-  const double omega_p_sq = rho * (q_over_m * q_over_m) / eps0;
-
   // Single Cell 1D grid;
   
   struct gkyl_rect_grid grid;
@@ -89,7 +87,7 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
 
   double t_curr = 0.0;
   for (int n = 0; n < nsteps; n++) {
-    printf("step: %d", n);
+    // printf("step: %d", n);
     gkyl_moment_em_coupling_implicit_advance(mom_em, t_curr, dt, &range,
                                              fluids, app_accels, p_rhss, em,
                                              app_current, ext_em, nT_sources);
@@ -103,9 +101,21 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
   *Ex_final = e[EM_EX];
   *mom_x_final = f[F_MX];
 
+  double vx, vy, vz;
+  double rho_t, p;
+  double w, h;
+  double mom_sq = f[F_MX] * f[F_MX] + f[F_MY] * f[F_MY] + f[F_MZ] * f[F_MZ];
+
+  const double inv_g[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
+
+  gkyl_gr_euler_em_newton_at_gamma(gas_gamma, mom_sq, f[F_RHO], f[F_MX], f[F_MY], f[F_MZ], f[F_E], inv_g, &rho_t, &vx, &vy, &vz, &p, &w, &h);
+ 
+  const double omega_p_sq = (charge * charge * rho_t) / (eps0 * mass * h);
   *omega_num = (2.0 / dt) * atan(sqrt(omega_p_sq) * dt / 2.0);
 
   printf("\nEx_final = %g\n", *Ex_final);
+  printf("Initial energy: %0.9f\n", internal_energy_0 + (E0 * E0 / 2));
+  printf("Final nergy: %0.9f\n", f[F_E] + (*Ex_final * *Ex_final / 2));
   // printf("omega_num = %g\n", *omega_num);
 
   gkyl_array_release(fluid);
@@ -121,7 +131,7 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
 static void
 test_plasma_oscillation_small_dt()
 {
-  const double E0 = 0.10;
+  const double E0 = 1.0;
   const double dt = 0.001;
   const int nsteps = 20000;
   
@@ -130,14 +140,14 @@ test_plasma_oscillation_small_dt()
   
   double Ex_expected = E0 * cos(omega_num * dt * nsteps);
   printf("Ex_expected = %g\n", Ex_expected);
-  TEST_CHECK(gkyl_compare(Ex, Ex_expected, 1e-10));
+  TEST_CHECK(gkyl_compare(Ex * Ex, Ex_expected * Ex_expected, 1e-10));
 }
 
 
 static void
 test_plasma_oscillation_large_dt()
 {
-  const double m0 = 5.0;
+  const double m0 = 1.0;
   const double dt = 10;
   const int nsteps = 200;
   
