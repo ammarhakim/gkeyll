@@ -111,6 +111,14 @@ ifdef USING_NVCC
 ../$(BUILD_DIR)/core/$(KERNELS_DIR)/skin_surf_from_ghost/%.c.o : $(KERNELS_DIR)/skin_surf_from_ghost/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/dg_eval_at_coord_proj/%.c.o : $(KERNELS_DIR)/dg_eval_at_coord_proj/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/core/$(KERNELS_DIR)/dg_differentiate/%.c.o : $(KERNELS_DIR)/dg_differentiate/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 endif
 
 # include link object list

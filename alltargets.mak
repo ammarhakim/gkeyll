@@ -2,9 +2,9 @@
 # Generated automatically! Do not edit
 
 .PHONY:
-all: core core-unit core-regression ## Build only specified Apps (core)
+all: pkpm pkpm-unit pkpm-regression ## Build only specified Apps (pkpm)
 
 .PHONY: install
-install: core-install ## Install gkeyll executable
+install: pkpm-install ## Install gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll install
 
