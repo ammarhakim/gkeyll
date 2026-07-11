@@ -20,7 +20,7 @@ __global__ void
 gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   const struct gkyl_range conf_range, const struct gkyl_range conf_range_ext, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
-  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *det_h, 
+  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *h_ij_inv, const struct gkyl_surf_and_vol_node_arrays *det_h, 
   const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, 
   struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
@@ -57,22 +57,26 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_co
       const double *lapse_d = 0;
       const double *shift_d = 0;
       const double *h_ij_d = 0;
+      const double *h_ij_inv_d = 0;
       const double *det_h_d = 0;
 
       if (dir == 0) {
         lapse_d = (const double*) gkyl_array_cfetch(lapse->nodal_arr_surf_x, cidx);
         shift_d = (const double*) gkyl_array_cfetch(shift->nodal_arr_surf_x, cidx);
         h_ij_d = (const double*) gkyl_array_cfetch(h_ij->nodal_arr_surf_x, cidx);
+        h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv->nodal_arr_surf_x, cidx);
         det_h_d = (const double*) gkyl_array_cfetch(det_h->nodal_arr_surf_x, cidx);
       } else if (dir == 1) {
         lapse_d = (const double*) gkyl_array_cfetch(lapse->nodal_arr_surf_y, cidx);
         shift_d = (const double*) gkyl_array_cfetch(shift->nodal_arr_surf_y, cidx);
         h_ij_d = (const double*) gkyl_array_cfetch(h_ij->nodal_arr_surf_y, cidx);
+        h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv->nodal_arr_surf_y, cidx);
         det_h_d = (const double*) gkyl_array_cfetch(det_h->nodal_arr_surf_y, cidx);
       } else {
         lapse_d = (const double*) gkyl_array_cfetch(lapse->nodal_arr_surf_z, cidx);
         shift_d = (const double*) gkyl_array_cfetch(shift->nodal_arr_surf_z, cidx);
         h_ij_d = (const double*) gkyl_array_cfetch(h_ij->nodal_arr_surf_z, cidx);
+        h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv->nodal_arr_surf_z, cidx);
         det_h_d = (const double*) gkyl_array_cfetch(det_h->nodal_arr_surf_z, cidx);
       }
 
@@ -93,7 +97,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_co
       }
 
       cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->conf_grid.dx, theta_pole,
-        lapse_d, shift_d, h_ij_d, det_h_d, field_con_l, field_con_c,
+        lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_l, field_con_c,
          field_no_J_con_l, field_no_J_con_c, flux);     
 
       // If at the right boundary compute flux owned by the point in the ghost cell
@@ -114,16 +118,19 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_co
           lapse_d = (const double*) gkyl_array_cfetch(lapse->nodal_arr_surf_x, cidx_r);
           shift_d = (const double*) gkyl_array_cfetch(shift->nodal_arr_surf_x, cidx_r);
           h_ij_d = (const double*) gkyl_array_cfetch(h_ij->nodal_arr_surf_x, cidx_r);
+          h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv->nodal_arr_surf_x, cidx_r);
           det_h_d = (const double*) gkyl_array_cfetch(det_h->nodal_arr_surf_x, cidx_r);
         } else if (dir == 1) {
           lapse_d = (const double*) gkyl_array_cfetch(lapse->nodal_arr_surf_y, cidx_r);
           shift_d = (const double*) gkyl_array_cfetch(shift->nodal_arr_surf_y, cidx_r);
           h_ij_d = (const double*) gkyl_array_cfetch(h_ij->nodal_arr_surf_y, cidx_r);
+          h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv->nodal_arr_surf_y, cidx_r);
           det_h_d = (const double*) gkyl_array_cfetch(det_h->nodal_arr_surf_y, cidx_r);
         } else {
           lapse_d = (const double*) gkyl_array_cfetch(lapse->nodal_arr_surf_z, cidx_r);
           shift_d = (const double*) gkyl_array_cfetch(shift->nodal_arr_surf_z, cidx_r);
           h_ij_d = (const double*) gkyl_array_cfetch(h_ij->nodal_arr_surf_z, cidx_r);
+          h_ij_inv_d = (const double*) gkyl_array_cfetch(h_ij_inv->nodal_arr_surf_z, cidx_r);
           det_h_d = (const double*) gkyl_array_cfetch(det_h->nodal_arr_surf_z, cidx_r);
         }
 
@@ -134,7 +141,7 @@ gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_gr_maxwell_co
 
         gkyl_rect_grid_cell_center(&up->conf_grid, idx_r, xcR);
         cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->conf_grid.dx, theta_pole,
-        lapse_d, shift_d, h_ij_d, det_h_d, field_con_c, field_con_r,
+        lapse_d, shift_d, h_ij_d, h_ij_inv_d, det_h_d, field_con_c, field_con_r,
         field_no_J_con_c, field_no_J_con_r, flux_r);
       }
     }
@@ -145,14 +152,14 @@ void
 gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu(struct gkyl_dg_gr_maxwell_conf_flux_surf *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext, 
   const struct gkyl_surf_and_vol_node_arrays *lapse, const struct gkyl_surf_and_vol_node_arrays *shift, 
-  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *det_h, 
+  const struct gkyl_surf_and_vol_node_arrays *h_ij, const struct gkyl_surf_and_vol_node_arrays *h_ij_inv, const struct gkyl_surf_and_vol_node_arrays *det_h, 
   const struct gkyl_array *field_con, const struct gkyl_array *field_no_J_con, 
   struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
   gkyl_dg_gr_maxwell_conf_flux_surf_advance_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, 
-    *conf_range, *conf_range_ext, lapse->on_dev, shift->on_dev, h_ij->on_dev, det_h->on_dev, 
+    *conf_range, *conf_range_ext, lapse->on_dev, shift->on_dev, h_ij->on_dev, h_ij_inv->on_dev, det_h->on_dev, 
     field_con->on_dev, field_no_J_con->on_dev, cflrate->on_dev, conf_flux_surf->on_dev);  
 }
 
@@ -171,11 +178,6 @@ gkyl_dg_gr_maxwell_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_gr_maxwell_conf
       up->lax_flux[1] = ser_lax_flux_y_kernels[cdim-1].kernels[poly_order];
       up->lax_flux[2] = ser_lax_flux_z_kernels[cdim-1].kernels[poly_order];
 
-      // Kernels to compute the Roe fluxes.
-      up->roe_flux[0] = ser_roe_flux_x_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[1] = ser_roe_flux_y_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[2] = ser_roe_flux_z_kernels[cdim-1].kernels[poly_order];
-
       // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
       up->dg_gr_maxwell_alpha_quad[0] = ser_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
       up->dg_gr_maxwell_alpha_quad[1] = ser_dg_gr_maxwell_alpha_quad_y_kernels[cdim-1].kernels[poly_order];
@@ -188,11 +190,6 @@ gkyl_dg_gr_maxwell_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_gr_maxwell_conf
       up->lax_flux[0] = ten_lax_flux_x_kernels[cdim-1].kernels[poly_order];
       up->lax_flux[1] = ten_lax_flux_y_kernels[cdim-1].kernels[poly_order];
       up->lax_flux[2] = ten_lax_flux_z_kernels[cdim-1].kernels[poly_order];
-
-      // Kernels to compute the Roe fluxes.
-      up->roe_flux[0] = ten_roe_flux_x_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[1] = ten_roe_flux_y_kernels[cdim-1].kernels[poly_order];
-      up->roe_flux[2] = ten_roe_flux_z_kernels[cdim-1].kernels[poly_order];
 
       // Kernels to compute the maximum of the eigenvalues and isolate the fluxes E^i, H^i. 
       up->dg_gr_maxwell_alpha_quad[0] = ten_dg_gr_maxwell_alpha_quad_x_kernels[cdim-1].kernels[poly_order];
@@ -220,8 +217,11 @@ gkyl_dg_gr_maxwell_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_gr_maxwell_co
 
   up->conf_grid = *inp->conf_grid;
   up->cdim = cdim;
+  up->gr_maxwell_data.chi = inp->chi;
+  up->gr_maxwell_data.gamma = inp->gamma;
+  up->gr_maxwell_data.K_phi = 0.0;
+  up->gr_maxwell_data.K_psi = 0.0;
   up->use_gpu = true;
-  up->use_lax = inp->use_lax;
 
   // Set the theta direction pole bc flags
   for (int i=0; i<cdim; ++i) {

@@ -1245,125 +1245,254 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vz_kernels[] = 
 
 // alpha_v evaluated at quadrature points for the magnetic field Lorentz force (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vx_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_hamil_vel_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
-  { NULL, B_alpha_quad_vx_1x2v_ser_p1, B_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
-  { NULL, B_alpha_quad_vx_1x3v_ser_p1, B_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  { NULL, B_hamil_vel_alpha_quad_vx_1x2v_ser_p1, B_hamil_vel_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_vel_alpha_quad_vx_1x3v_ser_p1, B_hamil_vel_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
-  { NULL, B_alpha_quad_vx_2x2v_ser_p1, B_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, B_alpha_quad_vx_2x3v_ser_p1, B_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
+  { NULL, B_hamil_vel_alpha_quad_vx_2x2v_ser_p1, B_hamil_vel_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_vel_alpha_quad_vx_2x3v_ser_p1, B_hamil_vel_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, B_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, B_hamil_vel_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vy_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_hamil_vel_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, B_alpha_quad_vy_1x2v_ser_p1, B_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
-  { NULL, B_alpha_quad_vy_1x3v_ser_p1, B_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  { NULL, B_hamil_vel_alpha_quad_vy_1x2v_ser_p1, B_hamil_vel_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_vel_alpha_quad_vy_1x3v_ser_p1, B_hamil_vel_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, B_alpha_quad_vy_2x2v_ser_p1, B_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, B_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, B_hamil_vel_alpha_quad_vy_2x2v_ser_p1, B_hamil_vel_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_vel_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, B_hamil_vel_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_alpha_quad_vz_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_hamil_vel_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, B_alpha_quad_vz_1x3v_ser_p1, B_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  { NULL, B_hamil_vel_alpha_quad_vz_1x3v_ser_p1, B_hamil_vel_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_alpha_quad_vz_2x3v_ser_p1, B_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
+  { NULL, B_hamil_vel_alpha_quad_vz_2x3v_ser_p1, B_hamil_vel_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
-  { NULL, B_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, B_hamil_vel_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for the magnetic field Lorentz force (Serendipity basis). 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vx_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_ho_hamil_vel_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
-  { NULL, B_alpha_quad_vx_1x2v_ser_p1, B_ho_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
-  { NULL, B_alpha_quad_vx_1x3v_ser_p1, B_ho_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  { NULL, B_hamil_vel_alpha_quad_vx_1x2v_ser_p1, B_ho_hamil_vel_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_vel_alpha_quad_vx_1x3v_ser_p1, B_ho_hamil_vel_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
-  { NULL, B_alpha_quad_vx_2x2v_ser_p1, B_ho_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
-  { NULL, B_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, B_hamil_vel_alpha_quad_vx_2x2v_ser_p1, B_ho_hamil_vel_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_vel_alpha_quad_vx_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, B_hamil_vel_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vy_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_ho_hamil_vel_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, B_alpha_quad_vy_1x2v_ser_p1, B_ho_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
-  { NULL, B_alpha_quad_vy_1x3v_ser_p1, B_ho_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  { NULL, B_hamil_vel_alpha_quad_vy_1x2v_ser_p1, B_ho_hamil_vel_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_vel_alpha_quad_vy_1x3v_ser_p1, B_ho_hamil_vel_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, B_alpha_quad_vy_2x2v_ser_p1, B_ho_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
-  { NULL, B_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, B_hamil_vel_alpha_quad_vy_2x2v_ser_p1, B_ho_hamil_vel_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_vel_alpha_quad_vy_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, B_hamil_vel_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list ser_B_ho_alpha_quad_vz_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list ser_B_ho_hamil_vel_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, B_alpha_quad_vz_1x3v_ser_p1, B_ho_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  { NULL, B_hamil_vel_alpha_quad_vz_1x3v_ser_p1, B_ho_hamil_vel_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
-  { NULL, B_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
+  { NULL, B_hamil_vel_alpha_quad_vz_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, B_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, B_hamil_vel_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// alpha_v evaluated at quadrature points for the magnetic field Lorentz force with a general Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_hamil_phase_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vx_1x2v_ser_p1, B_hamil_phase_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vx_1x3v_ser_p1, B_hamil_phase_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vx_2x2v_ser_p1, B_hamil_phase_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_phase_alpha_quad_vx_2x3v_ser_p1, B_hamil_phase_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_hamil_phase_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_hamil_phase_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vy_1x2v_ser_p1, B_hamil_phase_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vy_1x3v_ser_p1, B_hamil_phase_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vy_2x2v_ser_p1, B_hamil_phase_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_phase_alpha_quad_vy_2x3v_ser_p1, B_hamil_phase_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_hamil_phase_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_hamil_phase_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vz_1x3v_ser_p1, B_hamil_phase_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, B_hamil_phase_alpha_quad_vz_2x3v_ser_p1, B_hamil_phase_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_hamil_phase_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// alpha_v evaluated at quadrature points for the magnetic field Lorentz force with a general Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_ho_hamil_phase_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vx_1x2v_ser_p1, B_ho_hamil_phase_alpha_quad_vx_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vx_1x3v_ser_p1, B_ho_hamil_phase_alpha_quad_vx_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vx_2x2v_ser_p1, B_ho_hamil_phase_alpha_quad_vx_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_phase_alpha_quad_vx_2x3v_ser_p1, B_ho_hamil_phase_alpha_quad_vx_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_hamil_phase_alpha_quad_vx_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_ho_hamil_phase_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vy_1x2v_ser_p1, B_ho_hamil_phase_alpha_quad_vy_1x2v_ser_p2, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vy_1x3v_ser_p1, B_ho_hamil_phase_alpha_quad_vy_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vy_2x2v_ser_p1, B_ho_hamil_phase_alpha_quad_vy_2x2v_ser_p2, NULL }, // 4
+  { NULL, B_hamil_phase_alpha_quad_vy_2x3v_ser_p1, B_ho_hamil_phase_alpha_quad_vy_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_hamil_phase_alpha_quad_vy_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list ser_B_ho_hamil_phase_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vz_1x3v_ser_p1, B_ho_hamil_phase_alpha_quad_vz_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, B_hamil_phase_alpha_quad_vz_2x3v_ser_p1, B_ho_hamil_phase_alpha_quad_vz_2x3v_ser_p2, NULL }, // 5
+  // 3x kernels
+  { NULL, B_hamil_phase_alpha_quad_vz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
 // alpha_v evaluated at quadrature points for the magnetic field Lorentz force (Tensor basis). 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vx_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_alpha_quad_vx_kernels[] = {
   // 1x kernels
   { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 0
-  { NULL, NULL, B_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, B_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, B_hamil_vel_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, B_hamil_vel_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 3
-  { NULL, NULL, B_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, B_hamil_vel_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vy_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, B_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, B_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, B_hamil_vel_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, NULL, B_hamil_vel_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, B_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, B_hamil_vel_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
 };
 
 GKYL_CU_D
-static const gkyl_B_alpha_quad_kern_list tensor_B_alpha_quad_vz_kernels[] = {
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, B_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  { NULL, NULL, B_hamil_vel_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// alpha_v evaluated at quadrature points for the magnetic field Lorentz force with a general Hamiltonian (Tensor basis). 
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4

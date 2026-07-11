@@ -13,6 +13,7 @@
 #include <gkyl_bc_basic.h>
 #include <gkyl_dg_calc_em_vars.h>
 #include <gkyl_dg_gr_maxwell_conf_flux_surf.h>
+#include <gkyl_dg_gr_maxwell_geom_source.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_eqn_type.h>
 #include <gkyl_eval_on_nodes.h>
@@ -101,6 +102,10 @@ struct vm_field {
       struct gkyl_array *ghost_current; // Array for storying global average of current density
       double *red_ghost_current; // memory for use in GPU reduction of average of current density
 
+      bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?
+      struct gkyl_array *geom_source; // Geometric source contribution to field RHS.
+      struct gkyl_dg_gr_maxwell_geom_source *calc_geom_source; // Updater for geometric source contribution.
+
       // boundary conditions on lower/upper edges in each direction
       enum gkyl_field_bc_type lower_bc[3], upper_bc[3];
       // Pointers to updaters that apply BC.
@@ -131,7 +136,6 @@ struct vm_field {
   };
 
   struct vm_geom *geom; // Geometry data for GR-DG-Maxwell (owned by app as app->vm_geom)
-  bool use_lax; // Boolean for determining if we are using lax fluxes for dg-gr-maxwell
   bool weight_by_pos_jacob; // True for the standard E_B Maxwell field on a non-identity position map:
                             // em stores J*E, J*B; em_no_J holds the physical E, B for force/I/O.
   struct gkyl_array *em_no_J; // arrays for storing em field without Jc
@@ -266,6 +270,17 @@ void vm_field_calc_ext_pot(gkyl_vlasov_app *app, struct vm_field *field, double 
  */
 void vm_field_accumulate_current(gkyl_vlasov_app *app,
   const struct gkyl_array *fin[], const struct gkyl_array *fluidin[], struct gkyl_array *emout);
+
+/**
+ * Accumulate geometric source terms onto RHS from field equations.
+ *
+ * @param app Vlasov app object
+ * @param emin Input field at the start of the step
+ * @param vm_geom Geometry data
+ * @param emout On output, the RHS from the field solver *with* geometric sources
+ */
+void vm_field_accumulate_geom_sources(gkyl_vlasov_app *app,
+  const struct gkyl_array *emin, const struct vm_geom *vm_geom, struct gkyl_array *emout);
 
 /**
  * Limit slopes of solution of EM variables

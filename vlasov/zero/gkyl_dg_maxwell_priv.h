@@ -19,8 +19,8 @@ typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq, const double *w, c
 typedef double (*maxwell_surf_from_flux_t)(const double *w, const double *dx,
   const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out);
 
-typedef void (*maxwell_gr_maxwell_vol_t)(const double *w, const double *dx, const double *lapse_nodal, const double *shift_nodal,
-  const double *h_ij_nodal, const double *det_h_nodal, const double *fields_no_J, double* GKYL_RESTRICT out);
+typedef void (*maxwell_gr_maxwell_vol_t)(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dx, const double *lapse_nodal, const double *shift_nodal,
+  const double *h_ij_nodal, const double *h_ij_inv_nodal, const double *det_h_nodal, const double *fields_no_J, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct { vol_termf_t kernels[4]; } gkyl_dg_maxwell_vol_kern_list;
@@ -32,6 +32,7 @@ typedef struct { maxwell_surf_from_flux_t kernels[4]; } gkyl_dg_maxwell_surf_fro
 // present (uniform grid): the curl kernels read jacob_pos[(poly_order+1)*dir],
 // which is 1 for the identity map, so this leaves them bit-identical to the
 // uniform-grid kernels. Sized for up to cdim=3, poly_order=3.
+GKYL_CU_DH
 static const double maxwell_jacob_pos_iden[12] = {
   1.0,1.0,1.0,1.0, 1.0,1.0,1.0,1.0, 1.0,1.0,1.0,1.0
 };
@@ -39,6 +40,7 @@ static const double maxwell_jacob_pos_iden[12] = {
 struct dg_maxwell {
   struct gkyl_dg_eqn eqn; // Base object
   gkyl_maxwell_inp maxwell_data; // Parameters needed by kernels
+  gkyl_dg_gr_maxwell_inp gr_maxwell_data; // Parameters needed by GR-Maxwell kernels
   struct gkyl_range crange; // Configuration-space range for use in indexing conf_flux/jacob_pos
   const struct gkyl_array *jacob_pos; // Configuration-space position-map Jacobian (borrowed); NULL => identity.
 
@@ -51,6 +53,7 @@ struct dg_maxwell {
   const struct gkyl_surf_and_vol_node_arrays *lapse; // nodal expansion of lapse
   const struct gkyl_surf_and_vol_node_arrays *shift; // nodal expansion of shift
   const struct gkyl_surf_and_vol_node_arrays *h_ij; // nodal expansion of spatial metric
+  const struct gkyl_surf_and_vol_node_arrays *h_ij_inv; // nodal expansion of inverse spatial metric
   const struct gkyl_surf_and_vol_node_arrays *det_h; // nodal expansion of spatial metric determinant
 };
 
@@ -350,10 +353,11 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
     const double* lapse = (const double*) gkyl_array_cfetch(maxwell->lapse->nodal_arr_vol, cidx);
     const double* shift = (const double*) gkyl_array_cfetch(maxwell->shift->nodal_arr_vol, cidx);
     const double* h_ij = (const double*) gkyl_array_cfetch(maxwell->h_ij->nodal_arr_vol, cidx);
+    const double* h_ij_inv = (const double*) gkyl_array_cfetch(maxwell->h_ij_inv->nodal_arr_vol, cidx);
     const double* det_h = (const double*) gkyl_array_cfetch(maxwell->det_h->nodal_arr_vol, cidx);
 
     // For GR Maxwell the volume term does not contribute to CFL, only the conf-flux.
-    maxwell->vol(xc, dx, lapse, shift, h_ij, det_h, qIn, qRhsOut);
+    maxwell->vol(&maxwell->gr_maxwell_data, xc, dx, lapse, shift, h_ij, h_ij_inv, det_h, qIn, qRhsOut);
 
     return 0.0;
   }

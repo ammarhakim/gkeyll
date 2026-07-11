@@ -393,6 +393,36 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_vel_vol_kernels[] = 
   { NULL, NULL, NULL, NULL }, // 6
 };
 
+// Magnetic field in x-direction Lorentz force volume kernels with general Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list ser_Bx_hamil_gen_vol_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
+  { NULL, no_B_vol, no_B_vol, NULL }, // 1
+  { NULL, vlasov_Bx_hamil_phase_vol_1x3v_ser_p1, vlasov_Bx_hamil_phase_vol_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
+  { NULL, no_B_vol, no_B_vol, NULL }, // 4
+  { NULL, vlasov_Bx_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Magnetic field in x-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_gen_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
 // Magnetic field in y-direction Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_vel_vol_kernels[] = {
@@ -423,6 +453,36 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_vel_vol_kernels[] = 
   { NULL, NULL, NULL, NULL }, // 6
 };
 
+// Magnetic field in y-direction Lorentz force volume kernels with general Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_gen_vol_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
+  { NULL, no_B_vol, no_B_vol, NULL }, // 1
+  { NULL, vlasov_By_hamil_phase_vol_1x3v_ser_p1, vlasov_By_hamil_phase_vol_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
+  { NULL, no_B_vol, no_B_vol, NULL }, // 4
+  { NULL, vlasov_By_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Magnetic field in y-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_gen_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
 // Magnetic field in z-direction Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_vel_vol_kernels[] = {
@@ -448,6 +508,36 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_vel_vol_kernels[] = 
   // 2x kernels
   { NULL, NULL, no_B_vol, no_B_vol }, // 3
   { NULL, NULL, vlasov_Bz_hamil_vel_vol_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Magnetic field in z-direction Lorentz force volume kernels with general Hamiltonian (Serendipity basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_gen_vol_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_vol, no_B_vol, no_B_vol }, // 0
+  { NULL, vlasov_Bz_hamil_phase_vol_1x2v_ser_p1, vlasov_Bz_hamil_phase_vol_1x2v_ser_p2, NULL }, // 1
+  { NULL, vlasov_Bz_hamil_phase_vol_1x3v_ser_p1, vlasov_Bz_hamil_phase_vol_1x3v_ser_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
+  { NULL, vlasov_Bz_hamil_phase_vol_2x2v_ser_p1, vlasov_Bz_hamil_phase_vol_2x2v_ser_p2, NULL }, // 4
+  { NULL, vlasov_Bz_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// Magnetic field in z-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis). 
+GKYL_CU_D
+static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_gen_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6

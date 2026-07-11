@@ -115,6 +115,18 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
    
       }
       if (has_E) vlasov->E_vol = ser_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (has_B) {
+        if (model_id == GKYL_MODEL_TRIAD_GR) {
+          vlasov->Bx_vol = ser_Bx_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = ser_By_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = ser_Bz_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          vlasov->Bx_vol = ser_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = ser_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = ser_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+      }
       if (has_phi) vlasov->phi_vol = ser_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       if (use_lo) {
@@ -162,6 +174,18 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         assert(false);            
       }
       if (has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
+      if (has_B) {
+        if (model_id == GKYL_MODEL_TRIAD_GR) {
+          vlasov->Bx_vol = tensor_Bx_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = tensor_By_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = tensor_Bz_hamil_gen_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          vlasov->Bx_vol = tensor_Bx_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->By_vol = tensor_By_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+          vlasov->Bz_vol = tensor_Bz_hamil_vel_vol_kernels[kernel_index].kernels[poly_order];
+        }
+      }
       if (has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
       accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;

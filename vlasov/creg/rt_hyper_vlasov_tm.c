@@ -265,6 +265,7 @@ main(int argc, char **argv)
     .conf_basis = &confBasis,
     .phase_basis = &basis,
     .vel_map = vel_map,
+    .pos_map = pos_map,
     .hamil_range = &velRange,
     .skip_cell_thresh = 0.0, 
     .model_id = model_id,
