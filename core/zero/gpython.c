@@ -1,19 +1,21 @@
-/* pg0.c — implementation of the postgkyl support API (gkyl_pg0.h).
+/* gpython.c — implementation of the postgkyl support API (gkyl_gpython.h).
  *
  * Compiled into libg0core.so alongside the code it wraps, so the shim and
  * the library can never drift apart. Every struct field access, signature,
  * and by-value convention below is checked by the C compiler against the
  * headers in this tree: a core API change that affects the shim fails this
  * build, here at the producer, instead of corrupting postgkyl's data at
- * runtime. Consumers see only gkyl_pg0.h (opaque handles + scalars).
+ * runtime. Consumers see only gkyl_gpython.h (opaque handles + scalars).
  */
-#include <gkyl_pg0.h>
+#include <gkyl_gpython.h>
 
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include <gkyl_array.h>
+#include <gkyl_array_average.h>
+#include <gkyl_array_dg_reduce.h>
 #include <gkyl_array_integrate.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
@@ -21,6 +23,7 @@
 #include <gkyl_array_rio_format_desc.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dynvec.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -31,7 +34,7 @@ _Static_assert(PG0_MAX_DIM == GKYL_MAX_DIM,
 int
 pg0_api_version(void)
 {
-  return PG0_API_VERSION;
+  return GPYTHON_API_VERSION;
 }
 
 /* The handles are the gkyl objects themselves; the opaque pg0 types exist
@@ -172,6 +175,21 @@ pg0_basis_new(const char *type, int ndim, int poly_order)
   return (pg0_basis *)b;
 }
 
+pg0_basis *
+pg0_basis_new_hybrid(const char *type, int cdim, int vdim)
+{
+  struct gkyl_basis *b = malloc(sizeof(struct gkyl_basis));
+  if (strcmp(type, "hybrid") == 0)
+    gkyl_cart_modal_hybrid(b, cdim, vdim);
+  else if (strcmp(type, "gkhybrid") == 0)
+    gkyl_cart_modal_gkhybrid(b, cdim, vdim);
+  else {
+    free(b);
+    return NULL;
+  }
+  return (pg0_basis *)b;
+}
+
 void
 pg0_basis_release(pg0_basis *b)
 {
@@ -282,6 +300,36 @@ pg0_dg_inv(const pg0_basis *b, pg0_array *out, const pg0_array *a1)
   return 0;
 }
 
+/* conf*phase: single-field only, so shapes are just num_basis equality plus
+ * the range volumes built from the caller's cell counts matching the
+ * arrays' sizes exactly (mirrors pg0_array_integrate's range convention:
+ * 1-indexed, lower=1, upper=cells). */
+int
+pg0_dg_mul_conf_phase(const pg0_basis *cbasis, const pg0_basis *pbasis,
+    pg0_array *pout, const pg0_array *cop, const pg0_array *pop,
+    const int *conf_cells, const int *phase_cells)
+{
+  int cdim = CBAS(cbasis)->ndim, pdim = CBAS(pbasis)->ndim;
+  size_t cnb = (size_t)CBAS(cbasis)->num_basis, pnb = (size_t)CBAS(pbasis)->num_basis;
+  if (cnb >= pnb || CARR(cop)->ncomp != cnb || CARR(pop)->ncomp != pnb ||
+      CARR(pout)->ncomp != pnb || CARR(pout)->size != CARR(pop)->size)
+    return 1;
+
+  int ones[GKYL_MAX_DIM];
+  for (int d = 0; d < pdim; ++d) ones[d] = 1;
+
+  struct gkyl_range crange, prange;
+  gkyl_range_init(&crange, cdim, ones, conf_cells);
+  gkyl_range_init(&prange, pdim, ones, phase_cells);
+  if ((size_t)crange.volume != CARR(cop)->size ||
+      (size_t)prange.volume != CARR(pop)->size)
+    return 1;
+
+  gkyl_dg_mul_conf_phase_op_range(CBAS(cbasis), CBAS(pbasis), ARR(pout),
+      CARR(cop), CARR(pop), &crange, &prange);
+  return 0;
+}
+
 /* ---- linear coefficient ops / reductions -------------------------------- */
 void
 pg0_array_set(pg0_array *out, double c, const pg0_array *a)
@@ -314,6 +362,18 @@ pg0_array_reduce(double *out, const pg0_array *a, int op)
   gkyl_array_reduce(out, CARR(a), ops[op]);
 }
 
+int
+pg0_array_dg_reduce(double *out, const pg0_basis *b, const pg0_array *a,
+    int comp, int op)
+{
+  size_t nb = (size_t)CBAS(b)->num_basis;
+  if (comp < 0 || CARR(a)->ncomp < (size_t)(comp + 1) * nb)
+    return 1;
+  static const enum gkyl_array_op ops[] = { GKYL_MIN, GKYL_MAX, GKYL_SUM };
+  gkyl_array_dg_reducec(out, CARR(a), comp, ops[op], CBAS(b));
+  return 0;
+}
+
 /* ---- integration --------------------------------------------------------- */
 int
 pg0_array_integrate(int ndim, const double *lower, const double *upper,
@@ -342,4 +402,129 @@ pg0_array_integrate(int ndim, const double *lower, const double *upper,
   gkyl_array_integrate_advance(up, CARR(a), factor, NULL, &range, NULL, out);
   gkyl_array_integrate_release(up);
   return 0;
+}
+
+/* ---- averaging ------------------------------------------------------------
+ * Single-field only (like pg0_dg_mul_conf_phase): `a`/`weight`/`out` must
+ * each carry exactly one basis's worth of coefficients per cell -- the
+ * kernel gkyl_array_average_choose_kernel dispatches has no field-index
+ * parameter at all, so a multi-field caller must loop, one field at a time,
+ * in Python (dg/modal.py). */
+int
+pg0_array_average(int ndim, const double *lower, const double *upper,
+    const int *cells, const pg0_basis *b, const pg0_basis *b_avg,
+    int ndim_avg, const int *cells_avg, const int *avg_dim,
+    const pg0_array *weight, const pg0_array *a, pg0_array *out)
+{
+  size_t nb = (size_t)CBAS(b)->num_basis, nb_avg = (size_t)CBAS(b_avg)->num_basis;
+  if (CARR(a)->ncomp != nb || CARR(out)->ncomp != nb_avg ||
+      (weight && (CARR(weight)->ncomp != nb || CARR(weight)->size != CARR(a)->size)))
+    return 1;
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int ones[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; ++d)
+    ones[d] = 1;
+  struct gkyl_range range;
+  gkyl_range_init(&range, ndim, ones, cells);
+  if ((size_t)range.volume != CARR(a)->size)
+    return 1;
+
+  int ones_avg[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim_avg; ++d)
+    ones_avg[d] = 1;
+  struct gkyl_range range_avg;
+  gkyl_range_init(&range_avg, ndim_avg, ones_avg, cells_avg);
+  if ((size_t)range_avg.volume != CARR(out)->size)
+    return 1;
+
+  /* range_avg doubles as local_avg_ext (mirrors pg0_dg_mul_conf_phase's
+   * range convention: 1-indexed, lower=1, upper=cells -- there is no ghost
+   * layer anywhere in the gpython boundary, so the "extended" reduced range
+   * gkyl_array_average_new only reads to size the integrated weight is
+   * identical to the reduced range itself). */
+  struct gkyl_array_average_inp inp = {
+    .grid = &grid,
+    .basis = *CBAS(b),
+    .basis_avg = *CBAS(b_avg),
+    .local = &range,
+    .local_avg = &range_avg,
+    .local_avg_ext = &range_avg,
+    .weight = weight ? CARR(weight) : NULL,
+    .avg_dim = avg_dim,
+    .use_gpu = false,
+  };
+  struct gkyl_array_average *up = gkyl_array_average_new(&inp);
+  gkyl_array_average_advance(up, CARR(a), ARR(out));
+  gkyl_array_average_release(up);
+  return 0;
+}
+
+/* ---- writing -------------------------------------------------------------- */
+int
+pg0_write_field(const char *fname, int ndim, const double *lower,
+    const double *upper, const int *cells, const char *meta, size_t meta_sz,
+    const pg0_array *a)
+{
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int ones[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; ++d)
+    ones[d] = 1;
+  struct gkyl_range range;
+  gkyl_range_init(&range, ndim, ones, cells);
+  if ((size_t)range.volume != CARR(a)->size)
+    return -1; /* sentinel: never a valid gkyl_array_rio_status value */
+
+  struct gkyl_msgpack_data md = { .meta_sz = meta_sz, .meta = (char *)meta };
+  return (int)gkyl_grid_sub_array_write(&grid, &range, meta_sz ? &md : NULL,
+      CARR(a), fname);
+}
+
+/* ---- dynvector (time-series) I/O ------------------------------------------
+ * The dynvec object itself never crosses gkyl_gpython.h: it is created, filled,
+ * and released entirely inside this function, and its contents move to the
+ * caller only as pg0_arrays (already opaque, already RAII'd). */
+int
+pg0_dynvec_read(const char *fname, size_t *ncomp, pg0_array **tm,
+    pg0_array **data)
+{
+  struct gkyl_dynvec_etype_ncomp info = gkyl_dynvec_read_ncomp(fname);
+  if (info.ncomp == 0)
+    return 1; /* missing file or empty/unrecognized header */
+  if (info.type != GKYL_DOUBLE)
+    return 2; /* postgkyl only ever writes/reads double dynvectors */
+
+  gkyl_dynvec vec = gkyl_dynvec_new(GKYL_DOUBLE, info.ncomp);
+  bool ok = gkyl_dynvec_read(vec, fname);
+  if (!ok) {
+    gkyl_dynvec_release(vec);
+    return 3;
+  }
+
+  size_t n = gkyl_dynvec_size(vec);
+  struct gkyl_array *tm_arr = gkyl_array_new(GKYL_DOUBLE, 1, n);
+  struct gkyl_array *data_arr = gkyl_array_new(GKYL_DOUBLE, info.ncomp, n);
+  gkyl_dynvec_to_array(vec, tm_arr, data_arr);
+  gkyl_dynvec_release(vec);
+
+  *ncomp = info.ncomp;
+  *tm = (pg0_array *)tm_arr;
+  *data = (pg0_array *)data_arr;
+  return 0;
+}
+
+int
+pg0_dynvec_write(const char *fname, size_t ncomp, size_t n, const double *tm,
+    const double *data)
+{
+  gkyl_dynvec vec = gkyl_dynvec_new(GKYL_DOUBLE, ncomp);
+  for (size_t i = 0; i < n; ++i)
+    gkyl_dynvec_append(vec, tm[i], data + i * ncomp);
+  int status = gkyl_dynvec_write(vec, fname);
+  gkyl_dynvec_release(vec);
+  return status;
 }
