@@ -24,8 +24,11 @@ extern "C" {
  * v2: added pg0_array_dg_reduce, pg0_write_field, pg0_dynvec_{read,write}.
  * v3: added pg0_basis_new_hybrid (hybrid/gkhybrid bases).
  * v4: added pg0_dg_mul_conf_phase (conf-space x phase-space weak product).
- * v5: added pg0_array_average (weighted/plain average over a dim subset). */
-#define GPYTHON_API_VERSION 5
+ * v5: added pg0_array_average (weighted/plain average over a dim subset).
+ * v6: added pg0_dg_differentiate (local DG derivative) and
+ *     pg0_eval_at_coord_proj (evaluate at coords + project onto a
+ *     lower-dimensional target basis). */
+#define GPYTHON_API_VERSION 6
 int pg0_api_version(void);
 
 /* Enough for GKYL_MAX_DIM; fixed here so callers can size buffers without
@@ -106,6 +109,23 @@ int pg0_dg_mul_conf_phase(const pg0_basis *cbasis, const pg0_basis *pbasis,
     pg0_array *pout, const pg0_array *cop, const pg0_array *pop,
     const int *conf_cells, const int *phase_cells);
 
+/* Local DG derivative (gkyl_dg_differentiate_op_local): differentiates the
+ * DG expansion independently in every cell (no inter-cell stencil), field
+ * by field -- serendipity/tensor only (a Gkeyll limit; hybrid/gkhybrid have
+ * no differentiate kernels and hit an unconditional `assert(false)` in the
+ * underlying dispatch, so this must never be called with those bases).
+ * `dir` is 0-based, `diff_order` is 1 or 2. `out`/`in` must each carry
+ * ncomp == nfields * num_basis coefficients (the same field-count
+ * convention as pg0_dg_mul); `dx` is the cell length in `dir`. Returns 0 on
+ * success, nonzero on a field-count/shape mismatch or an out-of-range
+ * `dir`/`diff_order` -- the caller (postgkyl's dg/modal.py) is responsible
+ * for staying within Gkeyll's compiled kernel-table bounds (ndim/poly_order
+ * per basis_type), which this function does NOT check: an out-of-table
+ * combination is a process abort in the kernel dispatch, not a clean
+ * failure.                                                                 */
+int pg0_dg_differentiate(const pg0_basis *b, int dir, int diff_order,
+    double dx, pg0_array *out, const pg0_array *in);
+
 /* ---- linear coefficient ops / reductions ------------------------------- */
 void pg0_array_set(pg0_array *out, double c, const pg0_array *a);
 void pg0_array_accumulate(pg0_array *out, double c, const pg0_array *a);
@@ -150,6 +170,46 @@ int pg0_array_average(int ndim, const double *lower, const double *upper,
     const int *cells, const pg0_basis *b, const pg0_basis *b_avg,
     int ndim_avg, const int *cells_avg, const int *avg_dim,
     const pg0_array *weight, const pg0_array *a, pg0_array *out);
+
+/* ---- evaluate-and-project (gkyl_dg_eval_at_coord_proj) --------------------
+ * Evaluate a donor DG field at physical coordinates `eval_coords` in the
+ * `num_eval` directions `eval_dirs` (0-based, distinct, < ndim), and project
+ * the result onto the lower-dimensional target basis Gkeyll picks for that
+ * elimination -- e.g. a 3-D field evaluated at one z1 coordinate becomes a
+ * 2-D field over the surviving (z0, z2) directions. Allocates and returns
+ * the target array (ncomp = nfields * num_basis_tar, nfields = a.ncomp /
+ * donor num_basis, same field-count convention as pg0_dg_mul); NULL on a
+ * shape mismatch or invalid eval_dirs.
+ *
+ * `cdim_do` is the donor's configuration-space dimension count (equal to
+ * `ndim` for pure serendipity/tensor fields; less than `ndim` for a
+ * gkhybrid phase-space field, where it marks the conf/velocity split --
+ * see gkeyll's own gkyl_cart_modal_gkhybrid convention). `ndim_tar`/
+ * `cells_tar` describe the target's rectangular index range with the same
+ * convention pg0_array_average's ndim_avg/cells_avg use: the surviving
+ * donor dims' cell counts in donor order, or ndim_tar=1/cells_tar={1} when
+ * every donor direction is evaluated away (Gkeyll always keeps at least one
+ * target dimension; there is no true 0-dim basis).
+ *
+ * The target basis can differ in TYPE from the donor (e.g. eliminating a
+ * gkhybrid velocity direction can yield a plain serendipity target), so its
+ * metadata is queried from the updater only after construction and reported
+ * via the out-params:
+ *   *out_btype      -- gkyl_basis_type ordinal (gkyl_basis.h); translate to
+ *                       the pgkyl string vocabulary in Python
+ *   *out_poly_order, *out_cdim, *out_vdim -- target basis parameters
+ *     (out_vdim = target ndim - out_cdim)
+ *
+ * Guarded to Gkeyll's compiled kernel-table coverage the same way
+ * pg0_dg_differentiate is: an out-of-table (basis_type, ndim, poly_order,
+ * eval_dirs) combination is a process abort in the kernel dispatch, not a
+ * clean failure, so the caller (postgkyl's dg/modal.py) must stay within
+ * the documented coverage before calling this function.                   */
+pg0_array *pg0_eval_at_coord_proj(const pg0_basis *b, int cdim_do, int ndim,
+    const double *lower, const double *upper, const int *cells,
+    int num_eval, const int *eval_dirs, const double *eval_coords,
+    int ndim_tar, const int *cells_tar, const pg0_array *in,
+    int *out_btype, int *out_poly_order, int *out_cdim, int *out_vdim);
 
 /* ---- writing (gkyl_array_rio) --------------------------------------------
  * Mirrors pg0_read_field: writes the FULL array over a uniform grid built

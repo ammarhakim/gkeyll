@@ -23,6 +23,8 @@
 #include <gkyl_array_rio_format_desc.h>
 #include <gkyl_basis.h>
 #include <gkyl_dg_bin_ops.h>
+#include <gkyl_dg_differentiate.h>
+#include <gkyl_dg_eval_at_coord_proj.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
@@ -270,7 +272,7 @@ pg0_dg_mul(const pg0_basis *b, pg0_array *out, const pg0_array *a1,
   if (nf < 0 || !weak_shapes_ok(out, a1, a2))
     return 1;
   for (int f = 0; f < nf; ++f)
-    gkyl_dg_mul_op(*CBAS(b), f, ARR(out), f, CARR(a1), f, CARR(a2));
+    gkyl_dg_mul_op(CBAS(b), f, ARR(out), f, CARR(a1), f, CARR(a2));
   return 0;
 }
 
@@ -284,7 +286,7 @@ pg0_dg_div(const pg0_basis *b, pg0_array *out, const pg0_array *a1,
   gkyl_dg_bin_op_mem *mem =
       gkyl_dg_bin_op_mem_new(CARR(a1)->size, CBAS(b)->num_basis);
   for (int f = 0; f < nf; ++f)
-    gkyl_dg_div_op(mem, *CBAS(b), f, ARR(out), f, CARR(a1), f, CARR(a2));
+    gkyl_dg_div_op(mem, CBAS(b), f, ARR(out), f, CARR(a1), f, CARR(a2));
   gkyl_dg_bin_op_mem_release(mem);
   return 0;
 }
@@ -296,7 +298,7 @@ pg0_dg_inv(const pg0_basis *b, pg0_array *out, const pg0_array *a1)
   if (nf < 0 || !weak_shapes_ok(out, a1, NULL))
     return 1;
   for (int f = 0; f < nf; ++f)
-    gkyl_dg_inv_op(*CBAS(b), f, ARR(out), f, CARR(a1));
+    gkyl_dg_inv_op(CBAS(b), f, ARR(out), f, CARR(a1));
   return 0;
 }
 
@@ -327,6 +329,25 @@ pg0_dg_mul_conf_phase(const pg0_basis *cbasis, const pg0_basis *pbasis,
 
   gkyl_dg_mul_conf_phase_op_range(CBAS(cbasis), CBAS(pbasis), ARR(pout),
       CARR(cop), CARR(pop), &crange, &prange);
+  return 0;
+}
+
+/* Local DG derivative: like pg0_dg_mul, the per-field loop lives here since
+ * gkyl_dg_differentiate_op_local's c_oop/c_iop are field indices, not a
+ * whole-array operation. */
+int
+pg0_dg_differentiate(const pg0_basis *b, int dir, int diff_order, double dx,
+    pg0_array *out, const pg0_array *in)
+{
+  int nf = nfields_of(b, in);
+  if (nf < 0 || !weak_shapes_ok(out, in, NULL))
+    return 1;
+  int ndim = CBAS(b)->ndim;
+  if (dir < 0 || dir >= ndim || diff_order < 1 || diff_order > 2)
+    return 1;
+  for (int f = 0; f < nf; ++f)
+    gkyl_dg_differentiate_op_local(CBAS(b), dir, diff_order, dx, f, ARR(out),
+        f, CARR(in));
   return 0;
 }
 
@@ -445,21 +466,72 @@ pg0_array_average(int ndim, const double *lower, const double *upper,
    * layer anywhere in the gpython boundary, so the "extended" reduced range
    * gkyl_array_average_new only reads to size the integrated weight is
    * identical to the reduced range itself). */
-  struct gkyl_array_average_inp inp = {
-    .grid = &grid,
-    .basis = *CBAS(b),
-    .basis_avg = *CBAS(b_avg),
-    .local = &range,
-    .local_avg = &range_avg,
-    .local_avg_ext = &range_avg,
-    .weight = weight ? CARR(weight) : NULL,
-    .avg_dim = avg_dim,
-    .use_gpu = false,
-  };
-  struct gkyl_array_average *up = gkyl_array_average_new(&inp);
+  struct gkyl_array_average *up = gkyl_array_average_new(&grid, CBAS(b),
+      CBAS(b_avg), &range, &range_avg, &range_avg,
+      weight ? CARR(weight) : NULL, avg_dim, false);
   gkyl_array_average_advance(up, CARR(a), ARR(out));
   gkyl_array_average_release(up);
   return 0;
+}
+
+/* ---- evaluate-and-project ------------------------------------------------- */
+pg0_array *
+pg0_eval_at_coord_proj(const pg0_basis *b, int cdim_do, int ndim,
+    const double *lower, const double *upper, const int *cells,
+    int num_eval, const int *eval_dirs, const double *eval_coords,
+    int ndim_tar, const int *cells_tar, const pg0_array *in,
+    int *out_btype, int *out_poly_order, int *out_cdim, int *out_vdim)
+{
+  int nf = nfields_of(b, in);
+  if (nf < 0 || num_eval < 1 || num_eval > ndim)
+    return NULL;
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+
+  int ones[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; ++d)
+    ones[d] = 1;
+  struct gkyl_range rng_do;
+  gkyl_range_init(&rng_do, ndim, ones, cells);
+  if ((size_t)rng_do.volume != CARR(in)->size)
+    return NULL;
+
+  int ones_tar[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim_tar; ++d)
+    ones_tar[d] = 1;
+  struct gkyl_range rng_tar;
+  gkyl_range_init(&rng_tar, ndim_tar, ones_tar, cells_tar);
+
+  struct gkyl_dg_eval_at_coord_proj *up =
+      gkyl_dg_eval_at_coord_proj_new(cdim_do, CBAS(b), num_eval, eval_dirs,
+          false);
+
+  enum gkyl_basis_type btype_tar;
+  int cdim_tar, ndim_tar_full, poly_order_tar, num_basis_tar;
+  gkyl_dg_eval_at_coord_proj_target_basis(up, &cdim_tar, &ndim_tar_full,
+      &btype_tar, &poly_order_tar, &num_basis_tar);
+
+  struct gkyl_array *out = gkyl_array_new(GKYL_DOUBLE,
+      (size_t)nf * (size_t)num_basis_tar, (size_t)rng_tar.volume);
+
+  bool pick_lower[GKYL_MAX_DIM];
+  int known_index[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; ++d)
+    known_index[d] = -1;
+  for (int i = 0; i < num_eval; ++i)
+    pick_lower[i] = false;
+
+  gkyl_dg_eval_at_coord_proj_advance(up, eval_coords, &grid, pick_lower,
+      known_index, &rng_do, &rng_tar, CARR(in), out);
+  gkyl_dg_eval_at_coord_proj_release(up);
+
+  *out_btype = (int)btype_tar;
+  *out_poly_order = poly_order_tar;
+  *out_cdim = cdim_tar;
+  *out_vdim = ndim_tar_full - cdim_tar;
+
+  return (pg0_array *)out;
 }
 
 /* ---- writing -------------------------------------------------------------- */
