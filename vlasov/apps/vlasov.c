@@ -1174,9 +1174,7 @@ gkyl_vlasov_app_release(gkyl_vlasov_app* app)
     gkyl_free(app->species);
   if (app->num_fluid_species > 0)
     gkyl_free(app->fluid_species);
-  if (app->has_field) {
-    vlasov_field_release(app);
-  }
+  vlasov_field_release(app);
   if (app->has_fluid_em_coupling)
     vm_fluid_em_coupling_release(app, app->fl_em);
 

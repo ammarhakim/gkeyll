@@ -84,7 +84,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // Acquire the geometry object (only used for GR)
-  f->use_lax = false;
   // Standard E_B Maxwell on a non-identity position map evolves the J-weighted
   // fields J*E, J*B (so the mapped curl kernels and the J-weighted current are
   // consistent) and keeps the physical E, B in em_no_J for the Lorentz force and
@@ -97,7 +96,6 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->em_no_J = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
     f->em_no_J_host = app->use_gpu ? mkarr(false, f->em_no_J->ncomp, f->em_no_J->size)
                                    : gkyl_array_acquire(f->em_no_J);
-    f->use_lax = f->info.use_lax;
   }
   else if ( f->weight_by_pos_jacob ) {
     f->em_no_J = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
@@ -196,8 +194,16 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
   }
 
   // equation object
-  double c = 1/sqrt(f->info.epsilon0*f->info.mu0);
+  double c = 1.0;
+  if (f->field_id == GKYL_FIELD_GR_D_B) {
+    // Check that the speed of light is in natural units for GR.
+    assert(fabs(f->info.epsilon0*f->info.mu0 - 1.0) < 1e-12);
+  }
+  else {
+    c = 1/sqrt(f->info.epsilon0*f->info.mu0);
+  }
   double ef = f->info.elcErrorSpeedFactor, mf = f->info.mgnErrorSpeedFactor;
+  double K_phi = f->info.K_phi, K_psi = f->info.K_psi;
 
   struct gkyl_dg_eqn *eqn;
 
@@ -215,7 +221,8 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
       .field_id = f->field_id,
       .theta_pole_lo = app->vm_geom->theta_pole_lo,
       .theta_pole_up = app->vm_geom->theta_pole_up,
-      .use_lax = f->info.use_lax,
+      .chi = ef,
+      .gamma = mf,
       .use_gpu = app->use_gpu,
     }; 
     f->calc_conf_flux = gkyl_dg_gr_maxwell_conf_flux_surf_inew(&inp_conf_flux); 
@@ -230,6 +237,7 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     .lapse = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->lapse : 0,
     .shift = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->shift : 0,
     .h_ij = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij : 0,
+    .h_ij_inv = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->h_ij_inv : 0,
     .det_h = (f->field_id == GKYL_FIELD_GR_D_B ) ? app->vm_geom->det_h : 0,
     .lightSpeed = c,
     .field_id = f->field_id,
@@ -291,7 +299,30 @@ vm_field_new(struct gkyl_vm *vm, struct gkyl_vlasov_app *app)
     f->ghost_current = mkarr(app->use_gpu, 1, app->local_ext.volume);
     if (app->use_gpu) {
       f->red_ghost_current = gkyl_cu_malloc(sizeof(double[1]));
-    } 
+    }
+  }
+
+  f->use_geom_sources = false;
+  f->geom_source = 0;
+  f->calc_geom_source = 0;
+
+  // Geometric sources are only active for GR_D_B fields. For that model,
+  // use the input flag, which defaults to true in Lua.
+  bool use_geom_sources = f->field_id == GKYL_FIELD_GR_D_B && f->info.use_geom_sources;
+  if (use_geom_sources) {
+    f->use_geom_sources = true; 
+    f->geom_source = mkarr(app->use_gpu, 8*app->basis.num_basis, app->local_ext.volume);
+    struct gkyl_dg_gr_maxwell_geom_source_inp inp_geom_source = {
+      .conf_basis = &app->basis,
+      .conf_grid = &app->grid,
+      .field_id = f->field_id,
+      .chi = ef,
+      .gamma = mf,
+      .K_phi = K_phi,
+      .K_psi = K_psi,
+      .use_gpu = app->use_gpu,
+    };
+    f->calc_geom_source = gkyl_dg_gr_maxwell_geom_source_inew(&inp_geom_source);
   }
 
   // allocate buffer for applying BCs 
@@ -474,7 +505,18 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     double qbyeps = s->info.charge/app->field->info.epsilon0; 
 
     vm_species_moment_calc(&s->m1i, s->local, app->local, fin[i]);
-    gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
+
+    // GR specific current deposition
+    if (s->collisionless.has_gr_em_triad_coupling) {
+      vm_species_moment_calc(&s->m0, s->local, app->local, fin[i]);
+      // The GR kernel forms q/eps0*(rho*beta - alpha*e^i_a*Jhat^a).
+      gkyl_dg_gr_maxwell_current_deposition_advance(s->collisionless.calc_current_dep,
+        &app->local, qbyeps, app->field->geom->lapse, app->field->geom->shift,
+        app->field->geom->vierb_con, s->m0.marr, s->m1i.marr, emout);
+    }
+    else {
+      gkyl_array_accumulate_range(emout, -qbyeps, s->m1i.marr, &app->local);
+    }
 
     if (app->field->use_ghost_current) {
       double avals_ghost_current[1], avals_ghost_current_global[1]; 
@@ -503,6 +545,21 @@ vm_field_accumulate_current(gkyl_vlasov_app *app,
     gkyl_array_accumulate_range(emout, -1.0/app->field->info.epsilon0, app->field->app_current, &app->local);
   }
 }
+
+void 
+vm_field_accumulate_geom_sources(gkyl_vlasov_app *app, 
+  const struct gkyl_array *emin, const struct vm_geom *vm_geom, struct gkyl_array *emout)
+{
+  // Accumulate the geometric source terms onto the fields .
+  // Accumulate *only* if there is geometry sources to accumulate.
+  if (app->field->use_geom_sources) {
+    gkyl_array_clear(app->field->geom_source, 0.0);
+    gkyl_dg_gr_maxwell_geom_source_advance(app->field->calc_geom_source, &app->local,
+      vm_geom->geom_factor_con, emin, app->field->geom_source);
+    gkyl_array_accumulate_range(emout, 1.0, app->field->geom_source, &app->local);
+  }
+}
+
 
 void
 vm_field_limiter(gkyl_vlasov_app *app, struct vm_field *field, struct gkyl_array *em)
@@ -561,6 +618,11 @@ vm_field_complete_update(gkyl_vlasov_app *app, double dt, const struct gkyl_arra
     app->stat.current_tm += gkyl_time_diff_now_sec(wst);
   }
 
+  // Accumulate geometric source terms onto the field RHS.
+  if (app->field->use_geom_sources) {
+    vm_field_accumulate_geom_sources(app, emin, app->vm_geom, emout);
+  }
+
   // complete update of field (even when field is static, it is
   // safest to do this accumulate as it ensure emout = emin)
   gkyl_array_accumulate(gkyl_array_scale(emout, dt), 1.0, emin);
@@ -590,7 +652,7 @@ vm_field_rhs(gkyl_vlasov_app *app, struct vm_field *field,
 
     // Compute the surface expansion of the phase space flux in configuration space. 
     gkyl_dg_gr_maxwell_conf_flux_surf_advance(field->calc_conf_flux, &app->local, &app->local_ext, 
-      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->det_h, em,
+      field->geom->lapse, field->geom->shift, field->geom->h_ij, field->geom->h_ij_inv, field->geom->det_h, em,
       field->em_no_J, field->cflrate, field->conf_flux_surf);
   }
 
@@ -864,6 +926,10 @@ vm_field_release(const gkyl_vlasov_app* app, struct vm_field *f)
     gkyl_array_release(f->em_no_J_host);
     gkyl_dg_gr_maxwell_conf_flux_surf_release(f->calc_conf_flux);
     gkyl_array_release(f->conf_flux_surf);
+    if (f->use_geom_sources) {
+      gkyl_dg_gr_maxwell_geom_source_release(f->calc_geom_source);
+      gkyl_array_release(f->geom_source);
+    }
   }
   gkyl_array_release(f->em_host);
   gkyl_array_release(f->em_dup);

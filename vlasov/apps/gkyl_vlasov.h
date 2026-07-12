@@ -280,6 +280,7 @@ struct gkyl_vlasov_field {
   double mu0; // Permeability of free space.
   // Correction speeds as a fraction of the speed of light for div(E)/div(B) errors. 
   double elcErrorSpeedFactor, mgnErrorSpeedFactor;
+  double K_phi, K_psi; // Geometric source coefficients for electric/magnetic cleaning fields.
 
   void *ctx; // Context for initial condition init function for Vlasov-Maxwell.
   // Pointer to initialization function for Vlasov-Maxwell fields. 
@@ -289,6 +290,7 @@ struct gkyl_vlasov_field {
   bool limit_em; // Optional input parameter for applying limiters to EM fields.
 
   bool use_ghost_current; // Are we using ghost currents to correct dE/dt = -J in 1x?
+  bool use_geom_sources; // Are we using geometric sources to correct dE/dt = -J in 1x?
   
   // Vlasov-Maxwell boundary conditions.
   enum gkyl_field_bc_type bcx[2], bcy[2], bcz[2];
@@ -314,8 +316,7 @@ struct gkyl_vlasov_field {
   // Pointer to function defining external potentials (phi,A).
   void (*external_potentials)(double t, const double *xn, double *ext_pot, void *ctx);
   bool external_potentials_evolve; // Set to true if external potentials are time dependent.
-
-  bool use_lax; // Boolean for using lax fluxes in dg-gr-maxwell.
+  
 };
 
 // Parameter for Vlasov fluid species
