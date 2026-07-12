@@ -77,7 +77,10 @@ gkyl_vlasov_triad_geom_from_basis(const struct gkyl_rect_grid *cgrid, const stru
 
       log_to_comp(cgrid->ndim, gkyl_array_cfetch(nodes, i),
         cgrid->dx, xc, xmu);
-      c2p_identity(xmu, xmu, cgrid->ndim);
+      // Sample the geometry at physical coordinates on non-uniform conf meshes
+      // (NULL c2p => identity, i.e. a uniform mesh).
+      if (inp_triad_geom.c2p_func)
+        inp_triad_geom.c2p_func(xmu, xmu, inp_triad_geom.c2p_func_ctx);
 
       // Evaluate the functions for basis and their gradients at a nodal point xmu
       inp_triad_geom.eval_cov_tangent_basis(0.0, xmu, gkyl_array_fetch(cov_tangent_basis_at_nodes, i), inp_triad_geom.eval_cov_tangent_basis_ctx);
@@ -184,7 +187,10 @@ gkyl_vlasov_triad_geom_from_vierbein(const struct gkyl_rect_grid *cgrid, const s
 
       log_to_comp(cgrid->ndim, gkyl_array_cfetch(nodes, i),
         cgrid->dx, xc, xmu);
-      c2p_identity(xmu, xmu, cgrid->ndim);
+      // Sample the geometry at physical coordinates on non-uniform conf meshes
+      // (NULL c2p => identity, i.e. a uniform mesh).
+      if (inp_triad_geom.c2p_func)
+        inp_triad_geom.c2p_func(xmu, xmu, inp_triad_geom.c2p_func_ctx);
 
       // Evaluate the functions for basis and their gradients at a nodal point xmu
       inp_triad_geom.eval_vierbein(0.0, xmu, gkyl_array_fetch(vierbein_at_nodes, i), inp_triad_geom.eval_vierbein_ctx);

@@ -26,6 +26,10 @@ enum gkyl_triad_preset_geom_type {
   GKYL_TRIAD_CART_GR_KERR_SCHILD_3V,
 };
 
+// Function transforming a set of cdim computational coordinates to physical
+// ones (e.g. the position map on non-uniform conf meshes). NULL => identity.
+typedef void (*vlasov_triad_geom_c2p_t)(const double *xcomp, double *xphys, void *ctx);
+
 struct gkyl_vlasov_triad_geom_inp {
   evalf_t eval_cov_tangent_basis; // The covariant tangent basis to be evaluated within each configuration space cell.
   evalf_t eval_triad_basis; // The triad basis to be evaluated within each configuration space cell.
@@ -42,6 +46,10 @@ struct gkyl_vlasov_triad_geom_inp {
   bool use_preset_geom; // bool for determining if we have specified a preset geometry.
   bool use_vierbein; // bool for determining which geometry convention we are constructing PT from
   enum gkyl_triad_preset_geom_type triad_preset_geom_type;  // geom type for preset geometries for triads
+
+  vlasov_triad_geom_c2p_t c2p_func; // comp->phys conf-coordinate map for sampling the
+                                    // geometry on non-uniform meshes. NULL => identity.
+  void *c2p_func_ctx; // Context for c2p_func.
 };
 
 /**

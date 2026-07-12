@@ -278,6 +278,15 @@ gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *vpm,
   // 1D p=3 modal basis evaluates each direction's expansion (linear here: only
   // the first two modes are nonzero). Mirrors gkyl_velocity_map_eval_c2p.
   int cdim = vpm->grid_pos.ndim;
+
+  // Identity map: computational coordinates ARE physical coordinates. Return
+  // them exactly (bitwise) instead of reconstructing x through the DG
+  // expansion, so uniform grids are truly unaffected by the map machinery.
+  if (vpm->is_identity) {
+    for (int d=0; d<cdim; ++d) xp[d] = xc[d];
+    return;
+  }
+
   struct gkyl_basis b1;
   gkyl_cart_modal_tensor(&b1, 1, 3);
 

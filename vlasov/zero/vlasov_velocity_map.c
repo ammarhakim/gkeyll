@@ -376,6 +376,15 @@ gkyl_vlasov_velocity_map_eval_c2p(const struct gkyl_vlasov_velocity_map *vvm,
   // map is stored per direction in the 4-slot (cubic) layout, so a 1D p=3 modal
   // basis evaluates each direction's expansion.
   int vdim = vvm->grid_vel.ndim;
+
+  // Identity map: computational coordinates ARE physical coordinates. Return
+  // them exactly (bitwise) instead of reconstructing v through the DG
+  // expansion, so uniform grids are truly unaffected by the map machinery.
+  if (vvm->is_identity) {
+    for (int d=0; d<vdim; ++d) vp[d] = vc[d];
+    return;
+  }
+
   struct gkyl_basis b1;
   gkyl_cart_modal_tensor(&b1, 1, 3);
 
