@@ -473,22 +473,22 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
   }
 
   // Metadata for grid quantities (including metadata optional from user).
-  struct gkyl_msgpack_map_elem io_meta_grid[] = {
+  struct gkyl_msgpack_map_elem io_meta_dg[] = {
     { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
     { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
     { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
     { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id }
   };
-  const struct gkyl_msgpack_map_elem *io_meta_grid_union[] = {app->io_meta_basic, io_meta_grid};
-  int io_meta_grid_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_grid)/sizeof(io_meta_grid[0])};
-  app->io_meta_grid = gkyl_msgpack_map_elem_union(sizeof(io_meta_grid_union)/sizeof(io_meta_grid_union[0]),
-    io_meta_grid_union_len, io_meta_grid_union, &app->io_meta_grid_len);
+  const struct gkyl_msgpack_map_elem *io_meta_dg_union[] = {app->io_meta_basic, io_meta_dg};
+  int io_meta_dg_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_dg)/sizeof(io_meta_dg[0])};
+  app->io_meta_dg = gkyl_msgpack_map_elem_union(sizeof(io_meta_dg_union)/sizeof(io_meta_dg_union[0]),
+    io_meta_dg_union_len, io_meta_dg_union, &app->io_meta_dg_len);
 
   // Allocate 1/(J.B) using weak mul/div.
   struct gkyl_array *tmp = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
   app->jacobtot_inv_weak = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-  gkyl_dg_mul_op_range(app->basis, 0, tmp, 0, app->gk_geom->geo_int.bmag, 0, app->gk_geom->geo_int.jacobgeo, &app->local); 
-  gkyl_dg_inv_op_range(app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
+  gkyl_dg_mul_op_range(&app->basis, 0, tmp, 0, app->gk_geom->geo_int.bmag, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
+  gkyl_dg_inv_op_range(&app->basis, 0, app->jacobtot_inv_weak, 0, tmp, &app->local); 
   gkyl_array_release(tmp);
 
   // Create a global and local ranges, extended in the BC dir.
@@ -726,7 +726,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
   if (!(app->field->gkfield_id == GKYL_GK_FIELD_BOLTZMANN || app->field->gkfield_id == GKYL_GK_FIELD_ADIABATIC)) {
     // Compute parfac = (cmag/(jacobgeo*B^_\parallel))*kpar_max.
     struct gkyl_array *parfac = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, parfac, 0, app->gk_geom->geo_int.cmag, 0, app->gk_geom->geo_int.jacobtot_inv, &app->local); 
+    gkyl_dg_mul_op_range(&app->basis, 0, parfac, 0, app->gk_geom->geo_int.cmag, 0, app->gk_geom->geo_int.jacobtot_inv, &app->local); 
     double kpar_max = M_PI*(app->poly_order+1)/app->grid.dx[app->cdim-1];
     gkyl_array_scale_range(parfac, kpar_max, &app->local);
 
@@ -747,7 +747,7 @@ gkyl_gyrokinetic_app_omegaH_init(gkyl_gyrokinetic_app *app)
 
     // Compute max(parfac*perpfac_inv) (using cell centers).
     struct gkyl_array *omegaH_gf_grid = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
-    gkyl_dg_mul_op_range(app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
+    gkyl_dg_mul_op_range(&app->basis, 0, omegaH_gf_grid, 0, parfac, 0, perpfac_inv, &app->local); 
     double *omegaH_gf_red;
     if (app->use_gpu)
       omegaH_gf_red = gkyl_cu_malloc(app->basis.num_basis*sizeof(double));
@@ -1193,8 +1193,8 @@ gyrokinetic_app_geometry_copy_and_write(gkyl_gyrokinetic_app* app, struct gkyl_a
   struct gkyl_msgpack_map_elem desc_elem[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char*)description }
   };
-  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_elem};
+  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_elem};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host, fileNm);
@@ -1219,8 +1219,8 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
   struct gkyl_msgpack_map_elem desc_elem[] = {
     { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char*)description }
   };
-  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_elem};
+  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_elem};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, arr_host_doubled, fileNm);
@@ -1534,8 +1534,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     struct gkyl_msgpack_map_elem desc_nodes[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Physical coordinates of grid corner nodes." }
     };
-    int io_meta_nodes_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta_nodes[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nodes};
+    int io_meta_nodes_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta_nodes[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nodes};
     struct gkyl_msgpack_data *mt_nodes = gkyl_msgpack_create_union(sizeof(io_meta_nodes_len)/sizeof(int), io_meta_nodes_len, io_meta_nodes);
 
     gkyl_grid_sub_array_write(&ngrid, &nrange, mt_nodes, mc2p_nodal, fileNm);
@@ -1569,8 +1569,8 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
     struct gkyl_msgpack_map_elem desc_nodesint[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Physical coordinates of grid interior nodes." }
     };
-    int io_meta_nodesint_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta_nodesint[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc_nodesint};
+    int io_meta_nodesint_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta_nodesint[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_nodesint};
     struct gkyl_msgpack_data *mt_nodesint = gkyl_msgpack_create_union(sizeof(io_meta_nodesint_len)/sizeof(int), io_meta_nodesint_len, io_meta_nodesint);
 
     gkyl_grid_sub_array_write(&ngrid_quad, &nrange_int_global, mt_nodesint, mc2pint_nodal, fileNm);
@@ -1616,13 +1616,13 @@ gkyl_gyrokinetic_app_write_field(gkyl_gyrokinetic_app* app, double tm, int frame
     }
 
     // Package metadata.
-    gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-    gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
+    gkyl_msgpack_map_elem_set_double(app->io_meta_dg_len, app->io_meta_dg, "time", tm);
+    gkyl_msgpack_map_elem_set_uint(app->io_meta_dg_len, app->io_meta_dg, "frame", frame);
     struct gkyl_msgpack_map_elem io_meta_phi[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Electrostatic potential." }
     };
-    int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, io_meta_phi};
+    int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, io_meta_phi};
     struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-field_%d.gkyl";
@@ -3601,7 +3601,7 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
 
 
   gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
-  gkyl_msgpack_map_elem_release(app->io_meta_grid_len, app->io_meta_grid);
+  gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);
 
   gkyl_free(app);
 }
