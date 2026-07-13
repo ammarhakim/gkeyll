@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-GKYL_CU_DH void vlasov_hamil_vel_dense_vol_1x3v_ser_p2(const double *w, const double *dxv,
+GKYL_CU_DH void vlasov_hamil_vel_dense_vol_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap,
   const double *jacob_pos, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil,
   const double *f, double* GKYL_RESTRICT out) 
 { 

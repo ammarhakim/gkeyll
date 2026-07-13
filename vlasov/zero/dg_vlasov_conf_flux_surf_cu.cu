@@ -29,6 +29,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 __global__ void
 gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_surf *up,
   struct gkyl_range conf_range, struct gkyl_range phase_range, struct gkyl_range phase_range_ext,
+  const struct gkyl_array *vmap, const struct gkyl_array *jacob_pos, const struct gkyl_array *jacob_vel_surf,
   const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *conf_flux_surf)
 {
@@ -55,10 +56,11 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
   unsigned long linc1 = threadIdx.x + blockIdx.x*blockDim.x;
   bool valid = linc1 < phase_range.volume;
 
-  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM];
+  int idx[GKYL_MAX_DIM], idx_l[GKYL_MAX_DIM], idx_r[GKYL_MAX_DIM], idx_vel[GKYL_MAX_DIM];
   int idx_hamil[GKYL_MAX_DIM];
   double xcC[GKYL_MAX_DIM];
   const double *poisson_tensor_conf_d = 0, *hamil_d = 0, *f_c = 0;
+  const double *vmap_d = 0, *jacob_vel_surf_d = 0, *jacob_pos_c = 0;
   double *cflrate_d = 0, *flux = 0;
   if (valid) {
     // inverse index from linc1 to idx
@@ -81,6 +83,13 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
     poisson_tensor_conf_d = (const double*) gkyl_array_cfetch(poisson_tensor_conf, cidx);
     hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
     flux = (double*) gkyl_array_fetch(conf_flux_surf, pidx);
+    for (int i=0; i<pdim-cdim; ++i) {
+      idx_vel[i] = idx[cdim+i];
+    }
+    long vidx = gkyl_range_idx(&up->vel_range, idx_vel);
+    vmap_d = (const double*) gkyl_array_cfetch(vmap, vidx);
+    jacob_vel_surf_d = (const double*) gkyl_array_cfetch(jacob_vel_surf, vidx);
+    jacob_pos_c = (const double*) gkyl_array_cfetch(jacob_pos, cidx);
   }
 
   // Each cell owns *lower* fluxes in each configuration-space direction.
@@ -92,14 +101,17 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
     // hamil_pt_edge = -1: evaluate the Hamiltonian/PT on this cell's lower face.
     const double *f_l = 0;
     double node_alpha = 0.0;
+    const double *jacob_pos_l = 0;
     if (valid) {
       gkyl_copy_int_arr(pdim, idx, idx_l);
       idx_l[dir] = idx_l[dir]-1;
       long pidx_l = gkyl_range_idx(&phase_range, idx_l);
       f_l = (const double*) gkyl_array_cfetch(fin, pidx_l);
+      long cidx_l = gkyl_range_idx(&conf_range, idx_l);
+      jacob_pos_l = (const double*) gkyl_array_cfetch(jacob_pos, cidx_l);
       double alpha = up->hamil_alpha_quad[dir](i_node, m_node, -1, xcC, up->phase_grid.dx,
-        poisson_tensor_conf_d, hamil_d);
-      node_alpha = up->lax_flux_nodal[dir](i_node, m_node, alpha, f_l, f_c, flux);
+        vmap_d, jacob_pos_c, jacob_vel_surf_d, poisson_tensor_conf_d, hamil_d);
+      node_alpha = up->lax_flux_nodal[dir](i_node, m_node, jacob_pos_l, jacob_pos_c, alpha, f_l, f_c, flux);
     }
     alpha_smem[threadIdx.x + blockDim.x*threadIdx.y] = node_alpha;
     __syncthreads();
@@ -111,7 +123,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
       for (int n=0; n<num_nodes; ++n) {
         alpha_max = fmax(alpha_max, alpha_smem[threadIdx.x + blockDim.x*n]);
       }
-      double cfl = up->lax_cfl[dir](up->phase_grid.dx, alpha_max);
+      double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_pos_c, alpha_max);
       // Always compute the flux, but if we are below threshold, ignore the stable time step estimate.
       if (fabs(f_l[0]) < up->skip_cell_thresh &&
           fabs(f_c[0]) < up->skip_cell_thresh) {
@@ -126,6 +138,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
     bool at_upper = valid && (idx[dir] == phase_range.upper[dir]);
     const double *f_r = 0;
     double *flux_r = 0, *cflrate_d_r = 0;
+    const double *jacob_pos_r = 0;
     node_alpha = 0.0;
     if (at_upper) {
       // Index the right cell (ghost cell)
@@ -141,9 +154,13 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
         and evaluated in the kernels at the upper boundary +1. This is allowed by continuity of hamil/pt */
       double xcR[GKYL_MAX_DIM];
       gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
+      // Ghost-owned flux: the current cell is the l side, the ghost the c side
+      // (ghost jacob_pos = skin value by the extended-range convention).
+      long cidx_r = gkyl_range_idx(&conf_range, idx_r);
+      jacob_pos_r = (const double*) gkyl_array_cfetch(jacob_pos, cidx_r);
       double alpha = up->hamil_alpha_quad[dir](i_node, m_node, 1, xcR, up->phase_grid.dx,
-        poisson_tensor_conf_d, hamil_d);
-      node_alpha = up->lax_flux_nodal[dir](i_node, m_node, alpha, f_c, f_r, flux_r);
+        vmap_d, jacob_pos_r, jacob_vel_surf_d, poisson_tensor_conf_d, hamil_d);
+      node_alpha = up->lax_flux_nodal[dir](i_node, m_node, jacob_pos_c, jacob_pos_r, alpha, f_c, f_r, flux_r);
     }
     alpha_smem[threadIdx.x + blockDim.x*threadIdx.y] = node_alpha;
     __syncthreads();
@@ -153,7 +170,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
       for (int n=0; n<num_nodes; ++n) {
         alpha_max = fmax(alpha_max, alpha_smem[threadIdx.x + blockDim.x*n]);
       }
-      double cfl = up->lax_cfl[dir](up->phase_grid.dx, alpha_max);
+      double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_pos_r, alpha_max);
       if (fabs(f_c[0]) < up->skip_cell_thresh &&
           fabs(f_r[0]) < up->skip_cell_thresh) {
         cfl = 0.0;
@@ -176,7 +193,9 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu(struct gkyl_dg_vlasov_conf_flux_surf *u
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, num_nodes);
   gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev,
-    *conf_range, *phase_range, *phase_range_ext, poisson_tensor_conf->on_dev,
+    *conf_range, *phase_range, *phase_range_ext,
+    up->vmap->on_dev, up->jacob_pos->on_dev, up->jacob_vel_surf->on_dev,
+    poisson_tensor_conf->on_dev,
     hamil->on_dev, fin->on_dev, cflrate->on_dev, conf_flux_surf->on_dev);
 }
 
@@ -328,6 +347,15 @@ gkyl_dg_vlasov_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_conf_flux_
     up->hamil_offset = 0; 
   }
   up->vel_range = *inp->vel_range;
+  // Mesh maps: acquired for lifetime safety; raw device pointers unpacked at
+  // launch time from the host-side borrowed array objects.
+  assert(inp->vel_map);
+  up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+  up->vmap = inp->vel_map->vmap;
+  up->jacob_vel_surf = inp->vel_map->jacob_vel_surf;
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos;
 
   // Host mirror of the surface node counts set on the device struct by
   // set_cu_dev_ptrs; the advance wrapper needs them to size the 2D

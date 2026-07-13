@@ -52,8 +52,9 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
   assert(inp->vel_map);
   up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
   up->vel_range = inp->vel_map->local_vel;
-  // Borrowed pointer; kept alive by the acquired vel_map.
+  // Borrowed pointers; kept alive by the acquired vel_map.
   up->jacob_vel_surf = inp->vel_map->jacob_vel_surf;
+  up->vmap = inp->vel_map->vmap;
   // Position map: provides the (per-conf-cell constant) Jacobian used to
   // transform the -grad(phi) force to the mapped grid. Borrowed pointer.
   assert(inp->pos_map);
@@ -481,6 +482,7 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
         }
         long vidx_l = gkyl_range_idx(&up->vel_range, idx_vel_l);
         cflrate_d[0] += up->vel_flux_surf(up, dir, xcC, up->phase_grid.dx,
+          gkyl_array_cfetch(up->vmap, vidx),
           up->jacob_pos ? gkyl_array_cfetch(up->jacob_pos, cidx) : 0,
           gkyl_array_cfetch(jacob_vel_surf, vidx_l),
           gkyl_array_cfetch(jacob_vel_surf, vidx), poisson_tensor_conf_d,

@@ -203,6 +203,8 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
       .conf_basis = &app->basis,
       .phase_basis = &vms->basis,
       .vel_range = &vms->local_vel,
+      .vel_map = vms->vel_map,
+      .pos_map = vms->pos_map,
       .hamil_range = &vms->hamil_range,
       .skip_cell_thresh = vms->info.skip_cell_thresh > 0.0 ? vms->info.skip_cell_thresh : 0.0, 
       .model_id = vms->model_id,

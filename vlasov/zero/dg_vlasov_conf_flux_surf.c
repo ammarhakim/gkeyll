@@ -50,7 +50,15 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
   else {
     assert(false); // Should not be here for other models
   }
-  up->vel_range = *inp->vel_range; 
+  up->vel_range = *inp->vel_range;
+  // Mesh maps: acquired for lifetime safety; kernel arrays borrowed.
+  assert(inp->vel_map);
+  up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
+  up->vmap = inp->vel_map->vmap;
+  up->jacob_vel_surf = inp->vel_map->jacob_vel_surf;
+  assert(inp->pos_map);
+  up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
+  up->jacob_pos = inp->pos_map->jacob_pos; 
   // Sparse (separable) vs. dense velocity-space Hamiltonian kernel selection.
   bool hamil_sparse = (inp->hamil_id == GKYL_HAMIL_VEL_SPARSE);
 
@@ -244,6 +252,9 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
     double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
     const double *hamil_d = gkyl_array_cfetch(hamil, hidx); 
     const double *poisson_tensor_conf_d = gkyl_array_cfetch(poisson_tensor_conf, cidx); 
+    const double *vmap_d = gkyl_array_cfetch(up->vmap, vidx);
+    const double *jacob_vel_surf_d = gkyl_array_cfetch(up->jacob_vel_surf, vidx);
+    const double *jacob_pos_c = gkyl_array_cfetch(up->jacob_pos, cidx);
     double *flux = gkyl_array_fetch(conf_flux_surf, pidx); 
 
     // Each cell owns *lower* fluxes in each configuration-space direction. 
@@ -257,11 +268,18 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
       idx_l[dir] = idx_l[dir]-1;
       long pidx_l = gkyl_range_idx(phase_range, idx_l); 
       const double *f_l = gkyl_array_cfetch(fin, pidx_l);
+      // Position-map Jacobian of the lower neighbor in this (configuration)
+      // direction: the interface-jumping cell constant used to un-weight the
+      // l-side stored f (jacob_pos lives on the extended conf range, so ghost
+      // indices resolve through the same indexer).
+      long cidx_l = gkyl_range_idx(conf_range, idx_l);
+      const double *jacob_pos_l = gkyl_array_cfetch(up->jacob_pos, cidx_l);
 
       // Which face to evalute the hamiltonian / pt on
       int hamil_pt_edge = -1;
 
       cflrate_d[0] += up->conf_flux_surf(up, dir, xcC, up->phase_grid.dx, hamil_pt_edge,
+        vmap_d, jacob_pos_l, jacob_pos_c, jacob_vel_surf_d,
         poisson_tensor_conf_d, hamil_d, f_l, f_c, flux);     
 
       // If at the right boundary compute flux owned by the point in the ghost cell
@@ -281,7 +299,13 @@ void gkyl_dg_vlasov_conf_flux_surf_advance(struct gkyl_dg_vlasov_conf_flux_surf 
         hamil_pt_edge = 1;
 
         gkyl_rect_grid_cell_center(&up->phase_grid, idx_r, xcR);
+        // Ghost-cell flux: the current cell is the l side, the ghost the c
+        // side (ghost jacob_pos = skin value by the ghost-copies-skin
+        // convention of the extended-range map arrays).
+        long cidx_r = gkyl_range_idx(conf_range, idx_r);
+        const double *jacob_pos_r = gkyl_array_cfetch(up->jacob_pos, cidx_r);
         cflrate_d_r[0] += up->conf_flux_surf(up, dir, xcR, up->phase_grid.dx, hamil_pt_edge,
+          vmap_d, jacob_pos_c, jacob_pos_r, jacob_vel_surf_d,
           poisson_tensor_conf_d, hamil_d, f_c, f_r, flux_r); 
       }
     }
@@ -292,6 +316,8 @@ void
 gkyl_dg_vlasov_conf_flux_surf_release(struct gkyl_dg_vlasov_conf_flux_surf* up)
 {
   // Release memory associated with this updater.
+  gkyl_vlasov_velocity_map_release(up->vel_map);
+  gkyl_vlasov_position_map_release(up->pos_map);
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
     gkyl_cu_free(up->on_dev);

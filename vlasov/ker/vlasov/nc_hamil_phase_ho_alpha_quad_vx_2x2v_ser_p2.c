@@ -1,6 +1,7 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_vlasov_surf_tables_2x2v_ser_p2.h> 
 GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2_node(int i, int j, const double *w, const double *dxv,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil) 
 { 
   double G[8]; 
@@ -15,6 +16,8 @@ GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2_node(int i, int j,
   for (int a = 0; a < 8; ++a) dH_dv1 += vst_2x2v_ser_p2_ho_ph_v0_Cm[i*8 + a]*Gd1[a]; 
   const double dx10 = 2.0/dxv[0]; 
   const double dx11 = 2.0/dxv[1]; 
+  const double jacob_cx_inv = 1.0/jacob_pos[0]; 
+  const double jacob_cy_inv = 1.0/jacob_pos[3]; 
   const double *poisson_tensor_conf_x0 = &poisson_tensor_conf[0]; 
   const double *poisson_tensor_conf_x2 = &poisson_tensor_conf[16]; 
   double px0_q = 0.0; 
@@ -27,13 +30,12 @@ GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2_node(int i, int j,
   for (int a = 0; a < 8; ++a) dH_dx0 += vst_2x2v_ser_p2_ho_ph_v0_CmDx0[i*8 + a]*G[a]; 
   double dH_dx1 = 0.0; 
   for (int a = 0; a < 8; ++a) dH_dx1 += vst_2x2v_ser_p2_ho_ph_v0_CmDx1[i*8 + a]*G[a]; 
-  const double wx1 = w[2]; 
-  const double wx2 = w[3]; 
-  const double dv0 = dxv[2]; 
-  const double dv1 = dxv[3]; 
+  const double *vmap_v0 = &vmap[0]; 
+  const double *vmap_v1 = &vmap[4]; 
   const double dv11 = 2.0/dxv[3]; 
-  const double vt1 = wx1 - 0.5*dv0; 
-  const double vt2 = wx2 + 0.5*dv1*vst_2x2v_ser_p2_ho_vel_nodes_v0[j*1 + 0]; 
+  const double jacob_vy_inv = 1.0/jacob_vel_surf[4]; 
+  const double vt1 = 0.7071067811865475*vmap_v0[0] - 1.224744871391589*vmap_v0[1]; 
+  const double vt2 = 0.7071067811865475*vmap_v1[0] + 1.224744871391589*vmap_v1[1]*vst_2x2v_ser_p2_ho_vel_nodes_v0[j*1 + 0]; 
   const double *poisson_tensor_conf_0 = &poisson_tensor_conf[32]; 
   const double *poisson_tensor_conf_1 = &poisson_tensor_conf[40]; 
   double p0_q = 0.0; 
@@ -43,13 +45,14 @@ GKYL_CU_DH double nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2_node(int i, int j,
     p1_q += vst_2x2v_ser_p2_ho_conf_ev[i*8 + a]*poisson_tensor_conf_1[a]; 
   } 
   const double om12 = vt1*p0_q + vt2*p1_q; 
-  return -(px0_q*dH_dx0*dx10 + px1_q*dH_dx1*dx11) + om12*dH_dv1*dv11; 
+  return -(px0_q*dH_dx0*dx10*jacob_cx_inv + px1_q*dH_dx1*dx11*jacob_cy_inv) + om12*dH_dv1*dv11*jacob_vy_inv; 
 } 
 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *poisson_tensor_conf,
+GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap,
+  const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
   const double *hamil, double* GKYL_RESTRICT alpha_quad) 
 { 
   for (int i = 0; i < 16; ++i) { 
-    for (int j = 0; j < 4; ++j) alpha_quad[i*4 + j] += nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2_node(i, j, w, dxv, poisson_tensor_conf, hamil); 
+    for (int j = 0; j < 4; ++j) alpha_quad[i*4 + j] += nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2_node(i, j, w, dxv, vmap, jacob_pos, jacob_vel_surf, poisson_tensor_conf, hamil); 
   } 
 } 

@@ -13,25 +13,29 @@
 #include <assert.h> 
 
 typedef double (*hamil_alpha_quad_conf_t)(int i, int m, int hamil_pt_edge, const double *w, const double *dxv, 
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil); 
 
-typedef double (*lax_flux_nodal_t)(int i, int j, double alpha,
-  const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf); 
+typedef double (*lax_flux_nodal_t)(int i, int j, const double *jacob_pos_l, const double *jacob_pos_c,
+  double alpha, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf); 
 
-typedef double (*lax_cfl_t)(const double *dxv, double alpha_max); 
+typedef double (*lax_cfl_t)(const double *dxv, const double *jacob_pos_c, double alpha_max); 
 
 
 // Whole-surface (array-ABI) kernel types: the original wrappers with
 // hard-coded loop bounds INSIDE the kernel body, composed by the CPU
 // dispatch (the per-node types above are the GPU 2D-launcher decomposition).
 typedef void (*hamil_alpha_quad_conf_arr_t)(const double *w, const double *dxv, const int hamil_pt_edge,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad);
 
-typedef double (*lax_flux_arr_t)(const double *dxv, const double *jacob_vel_surf,
+typedef double (*lax_flux_arr_t)(const double *dxv, const double *jacob_pos_l, const double *jacob_pos_c,
   const double *alpha_quad, const double *f_l, const double *f_r, double* GKYL_RESTRICT Fhat_nodal);
 
 typedef double (*conf_flux_surf_t)(struct gkyl_dg_vlasov_conf_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const int hamil_pt_edge,
+  const double *vmap, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_vel_surf,
+  const double *poisson_tensor_conf,
   const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf); 
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
@@ -60,6 +64,11 @@ struct gkyl_dg_vlasov_conf_flux_surf {
   int hamil_offset; // Offset for indexing Hamiltonian from phase-space index. 
   struct gkyl_range hamil_range; // Range for indexing Hamiltonian (either Velocity-space range or full phase-space range).
   struct gkyl_range vel_range; // Velocity-space range for use in Velocity-space Jacobian. 
+  const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired host-side for lifetime safety).
+  const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (acquired host-side for lifetime safety).
+  const struct gkyl_array *vmap; // Velocity map (4-slot cubic rep per direction; borrowed from vel_map).
+  const struct gkyl_array *jacob_vel_surf; // Velocity-space Jacobian at surface quadrature points (borrowed from vel_map).
+  const struct gkyl_array *jacob_pos; // Configuration-space (position-map) Jacobian, per-conf-cell constant (borrowed from pos_map; defined on the extended conf range).
   hamil_alpha_quad_conf_t hamil_alpha_quad[3]; // Hamiltonian contribution to alpha_c at quadrature points. 
   lax_flux_nodal_t lax_flux_nodal[3]; // Convert nodal Lax-Friedrichs flux to modal surface expansion. 
   lax_cfl_t lax_cfl[3]; // CFL finalizer for the node-loop's alpha_max reduction. 
@@ -78,6 +87,7 @@ struct gkyl_dg_vlasov_conf_flux_surf {
 GKYL_CU_DH
 static double 
 no_hamil_alpha_quad(int i, int m, int hamil_pt_edge, const double *w, const double *dxv,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil)
 {
   return 0.0;
@@ -85,6 +95,7 @@ no_hamil_alpha_quad(int i, int m, int hamil_pt_edge, const double *w, const doub
 GKYL_CU_DH
 static void 
 no_hamil_alpha_quad_arr(const double *w, const double *dxv, const int hamil_pt_edge,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad)
 {
 }
@@ -96,17 +107,19 @@ no_hamil_alpha_quad_arr(const double *w, const double *dxv, const int hamil_pt_e
 GKYL_CU_DH
 static double
 conf_flux_surf_nodes(struct gkyl_dg_vlasov_conf_flux_surf *up,
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const int hamil_pt_edge,
+  const double *vmap, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_vel_surf,
+  const double *poisson_tensor_conf,
   const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
 {
   double alpha_max = 0.0;
   for (int i = 0; i < up->num_nodes_conf; ++i) {
     for (int m = 0; m < up->num_nodes_vel; ++m) {
-      double alpha = up->hamil_alpha_quad[dir](i, m, hamil_pt_edge, w, dxv, poisson_tensor_conf, hamil);
-      alpha_max = fmax(alpha_max, up->lax_flux_nodal[dir](i, m, alpha, f_l, f_c, conf_flux_surf));
+      double alpha = up->hamil_alpha_quad[dir](i, m, hamil_pt_edge, w, dxv, vmap, jacob_pos_c, jacob_vel_surf, poisson_tensor_conf, hamil);
+      alpha_max = fmax(alpha_max, up->lax_flux_nodal[dir](i, m, jacob_pos_l, jacob_pos_c, alpha, f_l, f_c, conf_flux_surf));
     }
   }
-  double cflrate = up->lax_cfl[dir](dxv, alpha_max);
+  double cflrate = up->lax_cfl[dir](dxv, jacob_pos_c, alpha_max);
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
   if (fabs(f_l[0]) < up->skip_cell_thresh && 
@@ -124,14 +137,16 @@ conf_flux_surf_nodes(struct gkyl_dg_vlasov_conf_flux_surf *up,
 GKYL_CU_DH
 static double
 conf_flux_surf_arrays(struct gkyl_dg_vlasov_conf_flux_surf *up,
-  int dir, const double *w, const double *dxv, const int hamil_pt_edge, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const int hamil_pt_edge,
+  const double *vmap, const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_vel_surf,
+  const double *poisson_tensor_conf,
   const double *hamil, const double *f_l, const double *f_c, double* GKYL_RESTRICT conf_flux_surf)
 {
   double alpha_quad[256];
   const int nn = up->num_nodes_conf*up->num_nodes_vel;
   for (int n = 0; n < nn; ++n) alpha_quad[n] = 0.0;
-  up->hamil_alpha_quad_arr[dir](w, dxv, hamil_pt_edge, poisson_tensor_conf, hamil, alpha_quad);
-  double cflrate = up->lax_flux_arr[dir](dxv, NULL, alpha_quad, f_l, f_c, conf_flux_surf);
+  up->hamil_alpha_quad_arr[dir](w, dxv, hamil_pt_edge, vmap, jacob_pos_c, jacob_vel_surf, poisson_tensor_conf, hamil, alpha_quad);
+  double cflrate = up->lax_flux_arr[dir](dxv, jacob_pos_l, jacob_pos_c, alpha_quad, f_l, f_c, conf_flux_surf);
 
   // Always compute the flux, but if we are below threshold, ignore the stable time step estimate. 
   if (fabs(f_l[0]) < up->skip_cell_thresh && 

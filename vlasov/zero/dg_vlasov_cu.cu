@@ -336,10 +336,12 @@ gkyl_dg_vlasov_cu_dev_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->vel_range = inp->vel_map->local_vel;
   vlasov->use_vmap = inp->vel_map->is_mapped;
   vlasov->jacob_vel = 0;
+  vlasov->vmap = 0;
   if (vlasov->use_vmap) {
-    // Unpack the raw device pointer for use inside kernels; lifetime is
+    // Unpack the raw device pointers for use inside kernels; lifetime is
     // guaranteed by acquiring the vel_map object on the host side below.
     vlasov->jacob_vel = inp->vel_map->jacob_vel->on_dev;
+    vlasov->vmap = inp->vel_map->vmap->on_dev;
   }
   // Position map is required; unpack the raw device Jacobian pointer (lifetime
   // guaranteed by acquiring the pos_map object on the host side below).

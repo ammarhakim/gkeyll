@@ -12,7 +12,7 @@
 #include <gkyl_util.h>
 
 // Types for various kernels
-typedef void (*hamil_vol_t)(const double *w, const double *dxv,
+typedef void (*hamil_vol_t)(const double *w, const double *dxv, const double *vmap,
   const double *jacob_pos, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out);
 
 typedef void (*E_vol_t)(const double *w, const double *dxv, 
@@ -89,6 +89,7 @@ struct dg_vlasov {
   struct gkyl_range phase_range; // Range for indexing velocity-space flux.
   const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired host-side for lifetime safety; 0 if not given).
   const struct gkyl_array *jacob_vel; // Velocity-space Jacobian (borrowed from vel_map; device pointer on GPUs).
+  const struct gkyl_array *vmap; // Velocity map (4-slot cubic rep per direction; borrowed from vel_map; device pointer on GPUs).
   const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (acquired host-side for lifetime safety; 0 if not given).
   const struct gkyl_array *jacob_pos; // Configuration-space (position-map) Jacobian, per-conf-cell constant (borrowed from pos_map; device pointer on GPUs; defined on the extended conf range).
   const struct gkyl_array *poisson_tensor_conf; // Hamiltonian utilized to compute advection in configuration and velocity space.
@@ -186,6 +187,7 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
   long pidx = gkyl_range_idx(&vlasov->phase_range, idx);
 
   vlasov->hamil_vol(xc, dx,
+    vlasov->vmap ? (const double*) gkyl_array_cfetch(vlasov->vmap, vidx) : 0,
     vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
@@ -478,9 +480,9 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_Bx_hamil_phase_vol_kernels[] = {
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_Bx_hamil_phase_vol_2x3v_ser_p1, vlasov_Bx_hamil_phase_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_Bx_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_Bx_hamil_phase_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Magnetic field in x-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis). 
@@ -568,9 +570,9 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_By_hamil_phase_vol_kernels[] = {
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
-  { NULL, vlasov_By_hamil_phase_vol_2x3v_ser_p1, vlasov_By_hamil_phase_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_By_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_By_hamil_phase_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Magnetic field in y-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis). 
@@ -658,9 +660,9 @@ static const gkyl_dg_vlasov_B_vol_kern_list ser_Bz_hamil_phase_vol_kernels[] = {
   // 2x kernels
   { NULL, no_B_vol, no_B_vol, no_B_vol }, // 3
   { NULL, vlasov_Bz_hamil_phase_vol_2x2v_ser_p1, vlasov_Bz_hamil_phase_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_Bz_hamil_phase_vol_2x3v_ser_p1, vlasov_Bz_hamil_phase_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_Bz_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, vlasov_Bz_hamil_phase_vol_3x3v_ser_p1, NULL, NULL }, // 6
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 // Magnetic field in z-direction Lorentz force volume kernels with general Hamiltonian (Tensor basis). 

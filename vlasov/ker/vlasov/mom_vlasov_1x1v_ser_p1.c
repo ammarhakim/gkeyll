@@ -88,8 +88,10 @@ GKYL_CU_DH void mom_vlasov_hamil_phase_M1i_1x1v_ser_p1(const double *w, const do
 { 
   double volFact = dxv[1]/2; 
   double dv10 = 2.0/dxv[1]; 
-  out[0] += (1.224744871391589*f[1]*hamil[3]+1.224744871391589*f[0]*hamil[2])*dv10*volFact; 
-  out[1] += (1.224744871391589*f[0]*hamil[3]+1.224744871391589*f[1]*hamil[2])*dv10*volFact; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
+  out[0] += (1.224744871391589*f[1]*hamil[3]+1.224744871391589*f[0]*hamil[2])*dv10*jacob_vx_inv*volFact; 
+  out[1] += (1.224744871391589*f[0]*hamil[3]+1.224744871391589*f[1]*hamil[2])*dv10*jacob_vx_inv*volFact; 
 } 
 GKYL_CU_DH void mom_vlasov_hamil_phase_M2_1x1v_ser_p1(const double *w, const double *dxv, const int *idx, 
     const double *hamil, const double *f, double* GKYL_RESTRICT out) 
@@ -103,10 +105,12 @@ GKYL_CU_DH void mom_vlasov_hamil_phase_five_moments_1x1v_ser_p1(const double *w,
 { 
   double volFact = dxv[1]/2; 
   double dv10 = 2.0/dxv[1]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
   out[0] += 1.4142135623730951*f[0]*volFact; 
   out[1] += 1.4142135623730951*f[1]*volFact; 
-  out[2] += (1.224744871391589*f[1]*hamil[3]+1.224744871391589*f[0]*hamil[2])*dv10*volFact; 
-  out[3] += (1.224744871391589*f[0]*hamil[3]+1.224744871391589*f[1]*hamil[2])*dv10*volFact; 
+  out[2] += (1.224744871391589*f[1]*hamil[3]+1.224744871391589*f[0]*hamil[2])*dv10*jacob_vx_inv*volFact; 
+  out[3] += (1.224744871391589*f[0]*hamil[3]+1.224744871391589*f[1]*hamil[2])*dv10*jacob_vx_inv*volFact; 
   out[4] += (0.7071067811865475*f[3]*hamil[3]+0.7071067811865475*f[2]*hamil[2]+0.7071067811865475*f[1]*hamil[1]+0.7071067811865475*f[0]*hamil[0])*volFact; 
   out[5] += (0.7071067811865475*f[2]*hamil[3]+0.7071067811865475*hamil[2]*f[3]+0.7071067811865475*f[0]*hamil[1]+0.7071067811865475*hamil[0]*f[1])*volFact; 
 } 
@@ -115,7 +119,9 @@ GKYL_CU_DH void mom_vlasov_hamil_phase_int_five_moments_1x1v_ser_p1(const double
 { 
   double volFact = dxv[0]*dxv[1]*0.25; 
   double dv10 = 2.0/dxv[1]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  const double jacob_vx_inv = 1.0/jacob_vx[0]; 
   out[0] += 2.0*f[0]*volFact; 
-  out[1] += (1.7320508075688772*f[1]*hamil[3]+1.7320508075688772*f[0]*hamil[2])*dv10*volFact; 
+  out[1] += (1.7320508075688772*f[1]*hamil[3]+1.7320508075688772*f[0]*hamil[2])*dv10*jacob_vx_inv*volFact; 
   out[2] += (f[3]*hamil[3]+f[2]*hamil[2]+f[1]*hamil[1]+f[0]*hamil[0])*volFact; 
 } 

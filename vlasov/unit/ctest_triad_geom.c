@@ -146,7 +146,7 @@ test_triad_1x1v_flat_conf(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors = { 0 };
   inp_basis_vectors.use_vierbein = false;
   inp_basis_vectors.use_preset_geom = false;
   inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_1v; 
@@ -267,7 +267,7 @@ test_triad_1x2v_flat_conf(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors = { 0 };
   inp_basis_vectors.use_vierbein = false;
   inp_basis_vectors.use_preset_geom = false;
   inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_flat_2v; 
@@ -423,7 +423,7 @@ test_triad_1x2v_annulus_conf(int poly_order)
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
   // Construct the input map
-  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors;
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors = { 0 };
   inp_basis_vectors.use_vierbein = false;
   inp_basis_vectors.use_preset_geom = false;
   inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis_annulus_2v; 

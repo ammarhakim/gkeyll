@@ -85,9 +85,11 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->vel_range = inp->vel_map->local_vel;
   vlasov->use_vmap = inp->vel_map->is_mapped;
   vlasov->jacob_vel = 0;
+  vlasov->vmap = 0;
   if (vlasov->use_vmap) {
-    // Borrowed pointer; kept alive by the acquired vel_map.
+    // Borrowed pointers; kept alive by the acquired vel_map.
     vlasov->jacob_vel = inp->vel_map->jacob_vel;
+    vlasov->vmap = inp->vel_map->vmap;
   }
   // The position map is required: it provides the (per-conf-cell constant)
   // configuration-space Jacobian used to transform the streaming term.

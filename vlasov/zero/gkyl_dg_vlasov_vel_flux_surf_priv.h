@@ -15,6 +15,7 @@
 #include <assert.h>
 
 typedef double (*hamil_alpha_quad_t)(int i, int j, const double *w, const double *dxv,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil); 
 
 typedef double (*E_alpha_quad_t)(int i, int j, const double *dxv, const double *qmem);  
@@ -39,6 +40,7 @@ typedef double (*lax_cfl_t)(const double *dxv,
 // these so the compiler can inline, unroll, and hoist loop-invariant work;
 // the per-node types above are the GPU 2D-launcher decomposition.
 typedef void (*hamil_alpha_quad_arr_t)(const double *w, const double *dxv,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad);
 
 typedef void (*E_alpha_quad_arr_t)(const double *dxv, const double *qmem, double* GKYL_RESTRICT alpha_quad);
@@ -55,7 +57,7 @@ typedef double (*lax_flux_arr_t)(const double *dxv, const double *jacob_vel_l, c
   const double *alpha_quad, const double *f_l, const double *f_r, double* GKYL_RESTRICT Fhat_nodal);
 
 typedef double (*vel_flux_surf_t)(struct gkyl_dg_vlasov_vel_flux_surf *up, 
-  int dir, const double *w, const double *dxv, const double *jacob_pos, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *phi_tot, const double *rad, 
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf); 
 
@@ -100,6 +102,7 @@ struct gkyl_dg_vlasov_vel_flux_surf {
   struct gkyl_range vel_range; // Velocity-space range for use in velocity-space Jacobian.
   const struct gkyl_vlasov_velocity_map *vel_map; // Velocity-space mapping object (acquired host-side for lifetime safety).
   const struct gkyl_array *jacob_vel_surf; // Velocity-space Jacobian at surface quadrature points (borrowed from vel_map; host pointer).
+  const struct gkyl_array *vmap; // Velocity map (4-slot cubic rep per direction; borrowed from vel_map).
   const struct gkyl_vlasov_position_map *pos_map; // Configuration-space mapping object (acquired host-side for lifetime safety).
   const struct gkyl_array *jacob_pos; // Configuration-space (position-map) Jacobian (borrowed from pos_map; per-conf-cell constant).
   hamil_alpha_quad_t hamil_alpha_quad[3]; // Hamiltonian contribution to alpha_v at quadrature points.
@@ -129,6 +132,7 @@ struct gkyl_dg_vlasov_vel_flux_surf {
 GKYL_CU_DH
 static double 
 no_hamil_alpha_quad(int i, int j, const double *w, const double *dxv,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil)
 {
   return 0.0;
@@ -162,6 +166,7 @@ no_rad_alpha_quad(int i, int j, const double *dxv, const double *rad)
 GKYL_CU_DH
 static void 
 no_hamil_alpha_quad_arr(const double *w, const double *dxv,
+  const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
   const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad)
 {
 }
@@ -204,14 +209,14 @@ no_vel_flux_surf_edge(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double
 vel_flux_surf_nodes(struct gkyl_dg_vlasov_vel_flux_surf *up,
-  int dir, const double *w, const double *dxv, const double *jacob_pos, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad,
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
   double alpha_max = 0.0;
   for (int i = 0; i < up->num_nodes_conf; ++i) {
     for (int j = 0; j < up->num_nodes_vel; ++j) {
-      double alpha = up->hamil_alpha_quad[dir](i, j, w, dxv, poisson_tensor_conf, hamil)
+      double alpha = up->hamil_alpha_quad[dir](i, j, w, dxv, vmap, jacob_pos, jacob_vel, poisson_tensor_conf, hamil)
         + up->E_alpha_quad[dir](i, j, dxv, qmem)
         + up->phi_alpha_quad[dir](i, j, dxv, jacob_pos, pot_tot)
         + up->B_alpha_quad[dir](i, j, dxv, jacob_vel, hamil, qmem)
@@ -237,14 +242,14 @@ vel_flux_surf_nodes(struct gkyl_dg_vlasov_vel_flux_surf *up,
 GKYL_CU_DH
 static double
 vel_flux_surf_arrays(struct gkyl_dg_vlasov_vel_flux_surf *up,
-  int dir, const double *w, const double *dxv, const double *jacob_pos, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
+  int dir, const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_l, const double *jacob_vel, const double *poisson_tensor_conf,
   const double *hamil, const double *qmem, const double *pot_tot, const double *rad,
   const double *f_l, const double *f_c, double* GKYL_RESTRICT vel_flux_surf)
 {
   double alpha_quad[256];
   const int nn = up->num_nodes_conf*up->num_nodes_vel;
   for (int n = 0; n < nn; ++n) alpha_quad[n] = 0.0;
-  up->hamil_alpha_quad_arr[dir](w, dxv, poisson_tensor_conf, hamil, alpha_quad);
+  up->hamil_alpha_quad_arr[dir](w, dxv, vmap, jacob_pos, jacob_vel, poisson_tensor_conf, hamil, alpha_quad);
   up->E_alpha_quad_arr[dir](dxv, qmem, alpha_quad);
   up->phi_alpha_quad_arr[dir](dxv, jacob_pos, pot_tot, alpha_quad);
   up->B_alpha_quad_arr[dir](dxv, jacob_vel, hamil, qmem, alpha_quad);

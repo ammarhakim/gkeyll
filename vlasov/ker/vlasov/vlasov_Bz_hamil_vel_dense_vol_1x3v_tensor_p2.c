@@ -1,6 +1,7 @@
 #include <gkyl_vlasov_kernels.h> 
 GKYL_CU_DH void vlasov_Bz_hamil_vel_dense_vol_1x3v_tensor_p2(const double *w, const double *dxv, 
-  const double *jacob_vel, const double *hamil, const double *qmem, const double *f, double* GKYL_RESTRICT out) 
+  const double *jacob_vel, const double *hamil,
+  const double *qmem, const double *f, double* GKYL_RESTRICT out) 
 { 
   double f_Jvi[81] = {0.0}; 
   double dv10 = 2.0/dxv[1]; 

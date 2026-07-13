@@ -29,7 +29,7 @@ gkyl_parallelize_components_kernel_launch_dims(dim3* dimGrid, dim3* dimBlock, gk
 __global__ void
 gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_surf *up,
   struct gkyl_range conf_range, struct gkyl_range phase_range,
-  const struct gkyl_array *jacob_pos, const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
+  const struct gkyl_array *vmap, const struct gkyl_array *jacob_pos, const struct gkyl_array *jacob_vel_surf, const struct gkyl_array *poisson_tensor_conf, const struct gkyl_array *hamil,
   const struct gkyl_array *qmem, const struct gkyl_array *pot_tot, const struct gkyl_array *rad,
   const struct gkyl_array *fin, struct gkyl_array *cflrate, struct gkyl_array *vel_flux_surf)
 {
@@ -61,7 +61,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
   double xcC[GKYL_MAX_DIM];
   long vidx = 0;
   const double *poisson_tensor_conf_d = 0, *hamil_d = 0, *qmem_d = 0, *pot_tot_d = 0, *rad_d = 0;
-  const double *jacob_pos_d = 0, *f_c = 0;
+  const double *jacob_pos_d = 0, *vmap_d = 0, *f_c = 0;
   double *cflrate_d = 0, *flux = 0;
   if (valid) {
     // inverse index from linc1 to idx
@@ -90,6 +90,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
     pot_tot_d = (const double*) gkyl_array_cfetch(pot_tot, cidx);
     rad_d = (const double*) gkyl_array_cfetch(rad, vidx);
     jacob_pos_d = jacob_pos ? (const double*) gkyl_array_cfetch(jacob_pos, cidx) : 0;
+    vmap_d = (const double*) gkyl_array_cfetch(vmap, vidx);
     f_c = (const double*) gkyl_array_cfetch(fin, pidx);
     cflrate_d = (double*) gkyl_array_fetch(cflrate, pidx);
     flux = (double*) gkyl_array_fetch(vel_flux_surf, pidx);
@@ -123,7 +124,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
       // Compose the force producers into a register alpha at this thread's
       // surface node and apply the per-node Lax flux (disjoint nodal writes),
       // keeping |alpha| for the CFL reduction below.
-      double alpha = up->hamil_alpha_quad[dir](i_node, j_node, xcC, up->phase_grid.dx, poisson_tensor_conf_d, hamil_d)
+      double alpha = up->hamil_alpha_quad[dir](i_node, j_node, xcC, up->phase_grid.dx, vmap_d, jacob_pos_d, jacob_vel_d, poisson_tensor_conf_d, hamil_d)
         + up->E_alpha_quad[dir](i_node, j_node, up->phase_grid.dx, qmem_d)
         + up->phi_alpha_quad[dir](i_node, j_node, up->phase_grid.dx, jacob_pos_d, pot_tot_d)
         + up->B_alpha_quad[dir](i_node, j_node, up->phase_grid.dx, jacob_vel_d, hamil_d, qmem_d)
@@ -173,7 +174,7 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu(struct gkyl_dg_vlasov_vel_flux_surf *up,
   dim3 dimGrid, dimBlock;
   gkyl_parallelize_components_kernel_launch_dims(&dimGrid, &dimBlock, *phase_range, num_nodes);
   gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel<<<dimGrid, dimBlock>>>(up->on_dev,
-    *conf_range, *phase_range, up->jacob_pos->on_dev, up->jacob_vel_surf->on_dev, poisson_tensor_conf->on_dev,
+    *conf_range, *phase_range, up->vmap->on_dev, up->jacob_pos->on_dev, up->jacob_vel_surf->on_dev, poisson_tensor_conf->on_dev,
     hamil->on_dev, qmem->on_dev, pot_tot->on_dev, rad->on_dev, fin->on_dev, cflrate->on_dev, vel_flux_surf->on_dev);
 }
 

@@ -19,17 +19,17 @@ GKYL_CU_DH void vlasov_Bx_hamil_vel_sparse_vol_1x3v_ser_p1(const double *w, cons
   out[8] += dv11*dv12*-(0.75*f[0]*jacob_vx[0]*Bx[1]*hamil[2]);
   out[9] += dv11*dv12*-(0.75*jacob_vx[0]*Bx[1]*hamil[2]*f[5]);
   out[9] += dv11*dv12*-(0.75*Bx[0]*jacob_vx[0]*f[2]*hamil[2]);
-  out[10] += dv11*dv12*Bx[1]*(0.75*jacob_vx[0]*hamil[3]*f[8]-0.75*jacob_vx[0]*hamil[2]*f[6]);
-  out[10] += dv11*dv12*Bx[0]*(0.75*jacob_vx[0]*hamil[3]*f[4]-0.75*jacob_vx[0]*hamil[2]*f[3]);
+  out[10] += dv11*dv12*jacob_vx[0]*Bx[1]*(0.75*hamil[3]*f[8]-0.75*hamil[2]*f[6]);
+  out[10] += dv11*dv12*Bx[0]*jacob_vx[0]*(0.75*hamil[3]*f[4]-0.75*hamil[2]*f[3]);
   out[11] += dv11*dv12*0.75*Bx[0]*jacob_vx[0]*hamil[3]*f[5];
   out[11] += dv11*dv12*0.75*jacob_vx[0]*Bx[1]*f[2]*hamil[3];
   out[12] += dv11*dv12*-(0.75*Bx[0]*jacob_vx[0]*hamil[2]*f[5]);
   out[12] += dv11*dv12*-(0.75*jacob_vx[0]*Bx[1]*f[2]*hamil[2]);
-  out[13] += dv11*dv12*Bx[0]*(0.75*jacob_vx[0]*hamil[3]*f[8]-0.75*jacob_vx[0]*hamil[2]*f[6]);
-  out[13] += dv11*dv12*Bx[1]*(0.75*jacob_vx[0]*hamil[3]*f[4]-0.75*jacob_vx[0]*hamil[2]*f[3]);
-  out[14] += dv11*dv12*Bx[1]*(0.75*jacob_vx[0]*hamil[3]*f[12]-0.75*jacob_vx[0]*hamil[2]*f[11]);
-  out[14] += dv11*dv12*Bx[0]*(0.75*jacob_vx[0]*hamil[3]*f[9]-0.75*jacob_vx[0]*hamil[2]*f[7]);
-  out[15] += dv11*dv12*Bx[0]*(0.75*jacob_vx[0]*hamil[3]*f[12]-0.75*jacob_vx[0]*hamil[2]*f[11]);
-  out[15] += dv11*dv12*Bx[1]*(0.75*jacob_vx[0]*hamil[3]*f[9]-0.75*jacob_vx[0]*hamil[2]*f[7]);
+  out[13] += dv11*dv12*Bx[0]*jacob_vx[0]*(0.75*hamil[3]*f[8]-0.75*hamil[2]*f[6]);
+  out[13] += dv11*dv12*jacob_vx[0]*Bx[1]*(0.75*hamil[3]*f[4]-0.75*hamil[2]*f[3]);
+  out[14] += dv11*dv12*jacob_vx[0]*Bx[1]*(0.75*hamil[3]*f[12]-0.75*hamil[2]*f[11]);
+  out[14] += dv11*dv12*Bx[0]*jacob_vx[0]*(0.75*hamil[3]*f[9]-0.75*hamil[2]*f[7]);
+  out[15] += dv11*dv12*Bx[0]*jacob_vx[0]*(0.75*hamil[3]*f[12]-0.75*hamil[2]*f[11]);
+  out[15] += dv11*dv12*jacob_vx[0]*Bx[1]*(0.75*hamil[3]*f[9]-0.75*hamil[2]*f[7]);
 
 } 
