@@ -295,7 +295,7 @@ run_iter_count_case(enum gkyl_model_id model_id, int cdim, int vdim, int poly_or
   bool fluctuate)
 {
   const int ndim = cdim+vdim;
-  const int max_iter = 200;
+  const int max_iter = 400;
   const double eps = 1.0e-12;
   const double vmax = model_id == GKYL_MODEL_SR ? 10.0 : 6.0;
 
@@ -526,7 +526,7 @@ run_iter_count_case(enum gkyl_model_id model_id, int cdim, int vdim, int poly_or
 static void
 test_lte_correct_iteration_counts(void)
 {
-  printf("\nLTE correction iteration counts (eps=1e-12, max_iter=200)\n");
+  printf("\nLTE correction iteration counts (eps=1e-12, max_iter=400)\n");
   printf("%-8s %-10s %5s %2s %7s %7s %10s %10s %10s %10s %7s %7s %11s %11s\n",
     "case", "model", "dims", "p", "Pit", "Ait", "Ptime(s)", "Atime(s)",
     "Pms/it", "Ams/it", "Pstat", "Astat", "Perr0", "Aerr0");
@@ -540,7 +540,7 @@ test_lte_correct_iteration_counts(void)
 static void
 test_lte_correct_fluctuating_iteration_counts(void)
 {
-  printf("\nLTE correction fluctuating moment cases (Maxwellian, eps=1e-12, max_iter=200)\n");
+  printf("\nLTE correction fluctuating moment cases (eps=1e-12, max_iter=400)\n");
   printf("%-8s %-10s %5s %2s %7s %7s %10s %10s %10s %10s %7s %7s %11s %11s\n",
     "case", "model", "dims", "p", "Pit", "Ait", "Ptime(s)", "Atime(s)",
     "Pms/it", "Ams/it", "Pstat", "Astat", "Perr0", "Aerr0");
@@ -548,6 +548,10 @@ test_lte_correct_fluctuating_iteration_counts(void)
   for (int poly_order=1; poly_order<=2; ++poly_order) {
     run_iter_count_case(GKYL_MODEL_DEFAULT, 1, 1, poly_order, true);
     run_iter_count_case(GKYL_MODEL_DEFAULT, 2, 2, poly_order, true);
+    run_iter_count_case(GKYL_MODEL_DEFAULT, 1, 3, poly_order, true);
+    run_iter_count_case(GKYL_MODEL_SR, 1, 1, poly_order, true);
+    run_iter_count_case(GKYL_MODEL_SR, 2, 2, poly_order, true);
+    run_iter_count_case(GKYL_MODEL_SR, 1, 3, poly_order, true);
   }
 }
 
