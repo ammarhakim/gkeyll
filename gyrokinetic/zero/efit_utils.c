@@ -142,8 +142,9 @@ find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
   const double eps_ref = 1e-10;
 
   double point[2] = {Rtar, Ztar};
+  bool pick_lower[2] = {true, true};
   int base_idx[2] = {0, 0};
-  gkyl_rect_grid_find_cell(&up->rzgrid, point, true, (int[2]) {-1, -1}, base_idx);
+  gkyl_rect_grid_find_cell(&up->rzgrid, point, pick_lower, (int[2]) {-1, -1}, base_idx);
 
   bool found = false;
   double best_m = DBL_MAX;
@@ -206,6 +207,13 @@ int
 find_xpts(gkyl_efit* up, int num_cubic_xpts, const double *Rxpt_cubic,
   const double *Zxpt_cubic, double *Rxpt, double *Zxpt)
 {
+  up->xpt_diag_quadratic_found = false;
+  up->xpt_diag_fallback_to_cubic = false;
+  up->xpt_diag_quad_R = 0.0;
+  up->xpt_diag_quad_Z = 0.0;
+  up->xpt_diag_quad_psi = DBL_MAX;
+  up->xpt_diag_quad_dist_cell = DBL_MAX;
+
   bool have_cubic = num_cubic_xpts > 0;
   double Rtarget_top = 0.0, Ztarget_top = 0.0;
   double Rtarget_bot = 0.0, Ztarget_bot = 0.0;
@@ -314,13 +322,29 @@ find_xpts(gkyl_efit* up, int num_cubic_xpts, const double *Rxpt_cubic,
 
         double absZ = fabs(Zsel);
         if (have_cubic) {
+          up->xpt_diag_quadratic_found = true;
+          up->xpt_diag_quad_R = Rsel;
+          up->xpt_diag_quad_Z = Zsel;
+          up->xpt_diag_quad_psi = psisel;
+          up->xpt_diag_quad_dist_cell = sqrt(
+            efit_sq((Rsel - Rtarget_top)/up->rzgrid.dx[0]) +
+            efit_sq((absZ - Ztarget_top)/up->rzgrid.dx[1]));
+
           double tol2 = efit_sq(0.25*up->rzgrid.dx[0]) + efit_sq(0.25*up->rzgrid.dx[1]);
           double d2 = efit_dist2(Rsel, absZ, Rtarget_top, Ztarget_top);
           if (d2 > tol2) {
             Rsel = Rtarget_top;
             absZ = Ztarget_top;
             psisel = up->psisep_cubic;
+            up->xpt_diag_fallback_to_cubic = true;
           }
+        }
+        else {
+          up->xpt_diag_quadratic_found = true;
+          up->xpt_diag_quad_R = Rsel;
+          up->xpt_diag_quad_Z = Zsel;
+          up->xpt_diag_quad_psi = psisel;
+          up->xpt_diag_quad_dist_cell = -1.0;
         }
 
         num_xpts = 2;
@@ -333,13 +357,29 @@ find_xpts(gkyl_efit* up, int num_cubic_xpts, const double *Rxpt_cubic,
     }
     else {
       if (have_cubic) {
+        up->xpt_diag_quadratic_found = true;
+        up->xpt_diag_quad_R = Rbest;
+        up->xpt_diag_quad_Z = Zbest;
+        up->xpt_diag_quad_psi = psibest;
+        up->xpt_diag_quad_dist_cell = sqrt(
+          efit_sq((Rbest - Rtarget_top)/up->rzgrid.dx[0]) +
+          efit_sq((Zbest - Ztarget_top)/up->rzgrid.dx[1]));
+
         double tol2 = efit_sq(0.25*up->rzgrid.dx[0]) + efit_sq(0.25*up->rzgrid.dx[1]);
         double d2 = efit_dist2(Rbest, Zbest, Rtarget_top, Ztarget_top);
         if (d2 > tol2) {
           Rbest = Rtarget_top;
           Zbest = Ztarget_top;
           psibest = up->psisep_cubic;
+          up->xpt_diag_fallback_to_cubic = true;
         }
+      }
+      else {
+        up->xpt_diag_quadratic_found = true;
+        up->xpt_diag_quad_R = Rbest;
+        up->xpt_diag_quad_Z = Zbest;
+        up->xpt_diag_quad_psi = psibest;
+        up->xpt_diag_quad_dist_cell = -1.0;
       }
 
       num_xpts = 1;
