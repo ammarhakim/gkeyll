@@ -15,6 +15,64 @@
 #include <gkyl_nodal_ops.h>
 #include <assert.h>
 #include <ctype.h>
+#include <float.h>
+
+static double
+efit_xpt_value(const double *arr, int n, int idx)
+{
+  return idx < n ? arr[idx] : DBL_MAX;
+}
+
+static void
+write_xpt_diag_once(const struct gkyl_efit *up)
+{
+  static char last_filepath[1024] = { 0 };
+  if (strncmp(last_filepath, up->filepath, sizeof(last_filepath)) == 0)
+    return;
+
+  strncpy(last_filepath, up->filepath, sizeof(last_filepath)-1);
+  last_filepath[sizeof(last_filepath)-1] = '\0';
+
+  double cubic_R0 = efit_xpt_value(up->Rxpt_cubic, up->num_xpts_cubic, 0);
+  double cubic_Z0 = efit_xpt_value(up->Zxpt_cubic, up->num_xpts_cubic, 0);
+  double cubic_R1 = efit_xpt_value(up->Rxpt_cubic, up->num_xpts_cubic, 1);
+  double cubic_Z1 = efit_xpt_value(up->Zxpt_cubic, up->num_xpts_cubic, 1);
+  double quad_R0 = efit_xpt_value(up->Rxpt, up->num_xpts, 0);
+  double quad_Z0 = efit_xpt_value(up->Zxpt, up->num_xpts, 0);
+  double quad_R1 = efit_xpt_value(up->Rxpt, up->num_xpts, 1);
+  double quad_Z1 = efit_xpt_value(up->Zxpt, up->num_xpts, 1);
+
+  fprintf(stderr,
+    "XPT_DIAG name=%s filepath=%s reflect=%d cubic_n=%d cubic_psisep=%.16e "
+    "cubic0=(%.16e,%.16e) cubic1=(%.16e,%.16e) quad_n=%d quad_psisep=%.16e "
+    "quad0=(%.16e,%.16e) quad1=(%.16e,%.16e) raw_quad_found=%d "
+    "raw_quad=(%.16e,%.16e) raw_quad_psi=%.16e raw_quad_dist_cell=%.16e "
+    "fallback_to_cubic=%d\n",
+    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic,
+    cubic_R0, cubic_Z0, cubic_R1, cubic_Z1, up->num_xpts, up->psisep,
+    quad_R0, quad_Z0, quad_R1, quad_Z1, up->xpt_diag_quadratic_found,
+    up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
+    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic);
+
+  const char *csv_path = getenv("GKYL_EFIT_XPT_DIAG_CSV");
+  if (!csv_path || !csv_path[0])
+    return;
+
+  FILE *csv = fopen(csv_path, "a");
+  if (!csv) {
+    fprintf(stderr, "XPT_DIAG failed_to_open_csv=%s\n", csv_path);
+    return;
+  }
+
+  fprintf(csv,
+    "%s,%s,%d,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%.16e,%.16e,%.16e,%.16e,%d\n",
+    up->name, up->filepath, up->reflect, up->num_xpts_cubic, up->psisep_cubic,
+    cubic_R0, cubic_Z0, cubic_R1, cubic_Z1, up->num_xpts, up->psisep,
+    quad_R0, quad_Z0, quad_R1, quad_Z1, up->xpt_diag_quadratic_found,
+    up->xpt_diag_quad_R, up->xpt_diag_quad_Z, up->xpt_diag_quad_psi,
+    up->xpt_diag_quad_dist_cell, up->xpt_diag_fallback_to_cubic);
+  fclose(csv);
+}
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
 {
@@ -398,7 +456,18 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
     //  printf("Rxpt[%d] = %1.16f, Zxpt[%d] = %1.16f | psisep = %1.16f\n", i, up->Rxpt[i], i, up->Zxpt[i], up->psisep);
   }
 
+  write_xpt_diag_once(up);
+
   return up;
+}
+
+void
+gkyl_efit_get_psi_bounds(const gkyl_efit *up, double *simag, double *psisep)
+{
+  if (simag)
+    *simag = up->simag;
+  if (psisep)
+    *psisep = up->psisep;
 }
 
 void gkyl_efit_release(gkyl_efit* up){

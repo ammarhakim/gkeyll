@@ -59,6 +59,13 @@ struct gkyl_efit{
   double *Rxpt_cubic; // R coordinates of X points of cubic rep
   double *Zxpt_cubic; // Z coordinates of X-points of cubic rep
 
+  bool xpt_diag_quadratic_found;
+  bool xpt_diag_fallback_to_cubic;
+  double xpt_diag_quad_R;
+  double xpt_diag_quad_Z;
+  double xpt_diag_quad_psi;
+  double xpt_diag_quad_dist_cell;
+
   bool reflect;
   bool use_gpu;
 };
@@ -77,5 +84,13 @@ struct gkyl_efit{
 
 gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp);
 
+/**
+ * Fetch magnetic-axis and separatrix psi from an EFIT object.
+ *
+ * @param up EFIT object
+ * @param simag On output, magnetic-axis psi
+ * @param psisep On output, separatrix psi for the DG representation
+ */
+void gkyl_efit_get_psi_bounds(const gkyl_efit *up, double *simag, double *psisep);
 
 void gkyl_efit_release(gkyl_efit* up);
