@@ -455,6 +455,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   up->vel_range = inp->vel_map->local_vel;
   up->vel_map = 0;
   up->jacob_vel_surf = 0;
+  up->vmap = 0;
   up->pos_map = 0;
   up->jacob_pos = 0;
 
@@ -484,6 +485,7 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
   // Host-side updater stores the acquired map and host array pointers.
   up->vel_map = gkyl_vlasov_velocity_map_acquire(inp->vel_map);
   up->jacob_vel_surf = inp->vel_map->jacob_vel_surf;
+  up->vmap = inp->vel_map->vmap;
   up->pos_map = gkyl_vlasov_position_map_acquire(inp->pos_map);
   up->jacob_pos = inp->pos_map->jacob_pos;
 
