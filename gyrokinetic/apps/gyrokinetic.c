@@ -1228,6 +1228,34 @@ gyrokinetic_app_geometry_copy_and_write_surf(gkyl_gyrokinetic_app* app, struct g
 }
 
 static void
+gyrokinetic_app_geometry_write_surf_nodal(gkyl_gyrokinetic_app* app, struct gkyl_array *arr,
+  char *varNm, int dir, const char *description)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank != 0)
+    return;
+
+  struct gkyl_rect_grid ngrid_surf;
+  gkyl_gk_geometry_init_nodal_grid(&ngrid_surf, &app->grid, &app->gk_geom->nrange_surf[dir]);
+
+  const char *fmt = "%s-geo_surf%d_%s.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, dir, varNm);
+  char fileNm[sz+1];
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, dir, varNm);
+
+  struct gkyl_msgpack_map_elem desc_elem[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = (char*)description }
+  };
+  int io_meta_len[] = {app->io_meta_dg_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, app->gk_geom->io_meta_basic, desc_elem};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+  gkyl_grid_sub_array_write(&ngrid_surf, &app->gk_geom->nrange_surf[dir], mt, arr, fileNm);
+  gkyl_msgpack_data_release(mt);
+}
+
+static void
 gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 {
   // Write the discretized shift (for TS BCs) to file for mapc2p geo.
@@ -1482,6 +1510,16 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   for (int dir = 0; dir<app->cdim; dir++ ) {
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobgeo    , arr_surf_ho1, arr_surf_ho2 , "jacobgeo", dir,
       "Conf-space Jacobian.");
+    gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].g_ij_nodal, "g_ij_nodal", dir,
+      "Covariant metric tensor at surface quadrature nodes.");
+    gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].lenr_nodal, "lenr_nodal", dir,
+      "Length ratios for coordinate surface integrals at surface quadrature nodes.");
+    gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].cmag_nodal, "cmag_nodal", dir,
+      "Ratio of (Clebsch) magnetic field to the volume element at surface quadrature nodes.");
+    gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].jacobtot_inv_nodal, "jacobtot_inv_nodal", dir,
+      "Reciprocal of conf-space Jacobian times magnetic field at surface quadrature nodes.");
+    gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].B3_nodal, "B3_nodal", dir,
+      "Contravariant z component of the magnetic field at surface quadrature nodes.");
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobtot_inv, arr_surf_ho1, arr_surf_ho2 , "jacobtot_inv", dir,
       "Reciprocal of conf-space Jacobian.");
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].b_i         , arr_surf_ho3, arr_surf_ho6 , "b_i", dir,
