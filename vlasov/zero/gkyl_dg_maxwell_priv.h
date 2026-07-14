@@ -19,7 +19,7 @@ typedef double (*maxwell_surf_t)(const gkyl_maxwell_inp *meq, const double *w, c
 typedef double (*maxwell_surf_from_flux_t)(const double *w, const double *dx,
   const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out);
 
-typedef void (*maxwell_gr_maxwell_vol_t)(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dx, const double *lapse_nodal, const double *shift_nodal,
+typedef void (*maxwell_gr_maxwell_vol_t)(const gkyl_dg_gr_maxwell_inp *meq, const double *w, const double *dx, const double *jacob_pos, const double *lapse_nodal, const double *shift_nodal,
   const double *h_ij_nodal, const double *h_ij_inv_nodal, const double *det_h_nodal, const double *fields_no_J, double* GKYL_RESTRICT out);
 
 // for use in kernel tables
@@ -347,9 +347,10 @@ vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double*  dx,
     const double* h_ij = (const double*) gkyl_array_cfetch(maxwell->h_ij->nodal_arr_vol, cidx);
     const double* h_ij_inv = (const double*) gkyl_array_cfetch(maxwell->h_ij_inv->nodal_arr_vol, cidx);
     const double* det_h = (const double*) gkyl_array_cfetch(maxwell->det_h->nodal_arr_vol, cidx);
+    const double* jacob_pos_d = (const double*) gkyl_array_cfetch(maxwell->jacob_pos, cidx);
 
     // For GR Maxwell the volume term does not contribute to CFL, only the conf-flux.
-    maxwell->vol(&maxwell->gr_maxwell_data, xc, dx, lapse, shift, h_ij, h_ij_inv, det_h, qIn, qRhsOut);
+    maxwell->vol(&maxwell->gr_maxwell_data, xc, dx, jacob_pos_d, lapse, shift, h_ij, h_ij_inv, det_h, qIn, qRhsOut);
 
     return 0.0;
   }

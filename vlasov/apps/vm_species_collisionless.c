@@ -140,6 +140,7 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
 
   if (cls->has_gr_em_triad_coupling) {
     struct gkyl_dg_gr_maxwell_lorentz_conf_inp inp_lorentz = {
+      .pos_map = vms->pos_map,
       .conf_grid = &app->grid,
       .conf_basis = &app->basis,
       .vdim = app->vdim,

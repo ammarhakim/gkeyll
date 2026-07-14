@@ -12,6 +12,7 @@
 #include <gkyl_util.h>
 
 typedef void (*dg_gr_maxwell_lorentz_conf_t)(const gkyl_dg_gr_maxwell_inp *meq, const double *dx,
+  const double *jacob_pos,
   const double *lapse_nodal, const double *shift_nodal, const double *h_ij_nodal,
   const double *h_ij_inv_nodal, const double *J_c, const double *fields,
   const double *vierb_cov_nodal, const double *vierb_con_nodal,
@@ -35,6 +36,8 @@ struct gkyl_dg_gr_maxwell_lorentz_conf {
   int vdim; // Velocity-space dimensions.
   int num_basis; // Number of configuration-space basis functions.
   double qbym; // Charge over mass.
+  const struct gkyl_vlasov_position_map *pos_map; // acquired; jacob_pos borrowed
+  const struct gkyl_array *jacob_pos;
   dg_gr_maxwell_lorentz_conf_t lorentz_conf; // Kernel computing local Lorentz-force fields.
 
   uint32_t flags;
