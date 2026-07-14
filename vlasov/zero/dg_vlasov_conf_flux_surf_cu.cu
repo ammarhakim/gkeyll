@@ -123,7 +123,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
       for (int n=0; n<num_nodes; ++n) {
         alpha_max = fmax(alpha_max, alpha_smem[threadIdx.x + blockDim.x*n]);
       }
-      double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_pos_c, alpha_max);
+      double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_pos_l, jacob_pos_c, alpha_max);
       // Always compute the flux, but if we are below threshold, ignore the stable time step estimate.
       if (fabs(f_l[0]) < up->skip_cell_thresh &&
           fabs(f_c[0]) < up->skip_cell_thresh) {
@@ -170,7 +170,7 @@ gkyl_dg_vlasov_conf_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_conf_flux_
       for (int n=0; n<num_nodes; ++n) {
         alpha_max = fmax(alpha_max, alpha_smem[threadIdx.x + blockDim.x*n]);
       }
-      double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_pos_r, alpha_max);
+      double cfl = up->lax_cfl[dir](up->phase_grid.dx, jacob_pos_c, jacob_pos_r, alpha_max);
       if (fabs(f_c[0]) < up->skip_cell_thresh &&
           fabs(f_r[0]) < up->skip_cell_thresh) {
         cfl = 0.0;
