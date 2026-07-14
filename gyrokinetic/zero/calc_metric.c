@@ -5,6 +5,8 @@
 #include <gkyl_range.h>
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
+#include <float.h>
+#include <stdlib.h>
 
 gkyl_calc_metric*
 gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
@@ -194,6 +196,177 @@ check_axisymmetric(struct gkyl_array* arr, struct gkyl_range *range, bool exit_a
       }
     }
   }
+}
+
+static int metric_diag_block_id = -1;
+
+struct metric_diag_stats {
+  long nodes;
+  long bad_jacobgeo;
+  long bad_bmag;
+  long bad_gdiag;
+  double min_jacobgeo, max_jacobgeo, min_abs_jacobgeo;
+  double min_bmag, max_bmag;
+  double min_g11, min_g22, min_g33;
+  double max_g11, max_g22, max_g33;
+  int min_abs_jacobgeo_idx[3];
+  int max_g11_idx[3];
+  int max_g22_idx[3];
+  int max_g33_idx[3];
+};
+
+static void
+metric_diag_stats_init(struct metric_diag_stats *s)
+{
+  s->nodes = 0;
+  s->bad_jacobgeo = 0;
+  s->bad_bmag = 0;
+  s->bad_gdiag = 0;
+  s->min_jacobgeo = DBL_MAX;
+  s->max_jacobgeo = -DBL_MAX;
+  s->min_abs_jacobgeo = DBL_MAX;
+  s->min_bmag = DBL_MAX;
+  s->max_bmag = -DBL_MAX;
+  s->min_g11 = DBL_MAX;
+  s->min_g22 = DBL_MAX;
+  s->min_g33 = DBL_MAX;
+  s->max_g11 = -DBL_MAX;
+  s->max_g22 = -DBL_MAX;
+  s->max_g33 = -DBL_MAX;
+  for (int d=0; d<3; ++d) {
+    s->min_abs_jacobgeo_idx[d] = 0;
+    s->max_g11_idx[d] = 0;
+    s->max_g22_idx[d] = 0;
+    s->max_g33_idx[d] = 0;
+  }
+}
+
+static void
+metric_diag_update_minmax(double v, double *minv, double *maxv)
+{
+  if (v < *minv) *minv = v;
+  if (v > *maxv) *maxv = v;
+}
+
+static void
+metric_diag_scan(struct metric_diag_stats *s, const struct gkyl_range *range,
+  const struct gkyl_array *jacobgeo, const struct gkyl_array *bmag,
+  const struct gkyl_array *g_ij)
+{
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(range, iter.idx);
+    const double *j_n = gkyl_array_cfetch(jacobgeo, linidx);
+    const double *b_n = gkyl_array_cfetch(bmag, linidx);
+    const double *g_n = gkyl_array_cfetch(g_ij, linidx);
+
+    s->nodes++;
+    if (!isfinite(j_n[0]) || j_n[0] <= 0.0)
+      s->bad_jacobgeo++;
+    else {
+      metric_diag_update_minmax(j_n[0], &s->min_jacobgeo, &s->max_jacobgeo);
+      double abs_j = fabs(j_n[0]);
+      if (abs_j < s->min_abs_jacobgeo) {
+        s->min_abs_jacobgeo = abs_j;
+        for (int d=0; d<3; ++d)
+          s->min_abs_jacobgeo_idx[d] = iter.idx[d];
+      }
+    }
+
+    if (!isfinite(b_n[0]) || b_n[0] <= 0.0)
+      s->bad_bmag++;
+    else
+      metric_diag_update_minmax(b_n[0], &s->min_bmag, &s->max_bmag);
+
+    if (!isfinite(g_n[0]) || !isfinite(g_n[3]) || !isfinite(g_n[5]) ||
+        g_n[0] <= 0.0 || g_n[3] <= 0.0 || g_n[5] <= 0.0) {
+      s->bad_gdiag++;
+    }
+    else {
+      metric_diag_update_minmax(g_n[0], &s->min_g11, &s->max_g11);
+      metric_diag_update_minmax(g_n[3], &s->min_g22, &s->max_g22);
+      metric_diag_update_minmax(g_n[5], &s->min_g33, &s->max_g33);
+      if (g_n[0] >= s->max_g11) {
+        for (int d=0; d<3; ++d)
+          s->max_g11_idx[d] = iter.idx[d];
+      }
+      if (g_n[3] >= s->max_g22) {
+        for (int d=0; d<3; ++d)
+          s->max_g22_idx[d] = iter.idx[d];
+      }
+      if (g_n[5] >= s->max_g33) {
+        for (int d=0; d<3; ++d)
+          s->max_g33_idx[d] = iter.idx[d];
+      }
+    }
+  }
+}
+
+static void
+metric_diag_write(const char *location, int dir, const struct metric_diag_stats *s)
+{
+  const char *csv_path = getenv("GKYL_METRIC_DIAG_CSV");
+  if (!csv_path || !csv_path[0])
+    return;
+  const char *case_name = getenv("GKYL_METRIC_DIAG_CASE");
+  if (!case_name || !case_name[0])
+    case_name = "unknown";
+
+  fprintf(stderr,
+    "METRIC_DIAG case=%s block=%d location=%s dir=%d nodes=%ld bad_jacobgeo=%ld "
+    "bad_bmag=%ld bad_gdiag=%ld min_jacobgeo=%.16e max_jacobgeo=%.16e "
+    "min_abs_jacobgeo=%.16e min_abs_jacobgeo_idx=(%d,%d,%d) "
+    "min_bmag=%.16e max_bmag=%.16e min_g11=%.16e min_g22=%.16e min_g33=%.16e "
+    "max_g11=%.16e max_g11_idx=(%d,%d,%d) max_g22=%.16e max_g22_idx=(%d,%d,%d) "
+    "max_g33=%.16e max_g33_idx=(%d,%d,%d)\n",
+    case_name, metric_diag_block_id, location, dir, s->nodes, s->bad_jacobgeo, s->bad_bmag,
+    s->bad_gdiag, s->min_jacobgeo, s->max_jacobgeo, s->min_abs_jacobgeo,
+    s->min_abs_jacobgeo_idx[0], s->min_abs_jacobgeo_idx[1], s->min_abs_jacobgeo_idx[2],
+    s->min_bmag, s->max_bmag, s->min_g11, s->min_g22, s->min_g33,
+    s->max_g11, s->max_g11_idx[0], s->max_g11_idx[1], s->max_g11_idx[2],
+    s->max_g22, s->max_g22_idx[0], s->max_g22_idx[1], s->max_g22_idx[2],
+    s->max_g33, s->max_g33_idx[0], s->max_g33_idx[1], s->max_g33_idx[2]);
+
+  FILE *csv = fopen(csv_path, "a");
+  if (!csv) {
+    fprintf(stderr, "METRIC_DIAG failed_to_open_csv=%s\n", csv_path);
+    return;
+  }
+
+  fprintf(csv,
+    "%s,%d,%s,%d,%ld,%ld,%ld,%ld,%.16e,%.16e,%.16e,%d,%d,%d,%.16e,%.16e,%.16e,%.16e,%.16e,%.16e,%d,%d,%d,%.16e,%d,%d,%d,%.16e,%d,%d,%d\n",
+    case_name, metric_diag_block_id, location, dir, s->nodes, s->bad_jacobgeo,
+    s->bad_bmag, s->bad_gdiag, s->min_jacobgeo, s->max_jacobgeo,
+    s->min_abs_jacobgeo, s->min_abs_jacobgeo_idx[0], s->min_abs_jacobgeo_idx[1],
+    s->min_abs_jacobgeo_idx[2], s->min_bmag, s->max_bmag, s->min_g11,
+    s->min_g22, s->min_g33, s->max_g11, s->max_g11_idx[0], s->max_g11_idx[1],
+    s->max_g11_idx[2], s->max_g22, s->max_g22_idx[0], s->max_g22_idx[1],
+    s->max_g22_idx[2], s->max_g33, s->max_g33_idx[0], s->max_g33_idx[1],
+    s->max_g33_idx[2]);
+  fclose(csv);
+}
+
+static void
+metric_diag_write_interior(const struct gk_geometry *gk_geom)
+{
+  metric_diag_block_id++;
+  struct metric_diag_stats s;
+  metric_diag_stats_init(&s);
+  metric_diag_scan(&s, &gk_geom->nrange_int, gk_geom->geo_int.jacobgeo_nodal,
+    gk_geom->geo_int.bmag_nodal, gk_geom->geo_int.g_ij_nodal);
+  metric_diag_write("interior", -1, &s);
+}
+
+static void
+metric_diag_write_surface(int dir, const struct gk_geometry *gk_geom)
+{
+  struct metric_diag_stats s;
+  metric_diag_stats_init(&s);
+  metric_diag_scan(&s, &gk_geom->nrange_surf[dir],
+    gk_geom->geo_surf[dir].jacobgeo_nodal, gk_geom->geo_surf[dir].bmag_nodal,
+    gk_geom->geo_surf[dir].g_ij_nodal);
+  metric_diag_write("surface", dir, &s);
 }
 
 void gkyl_calc_metric_advance_rz( gkyl_calc_metric *up, struct gkyl_range *nrange,
@@ -568,6 +741,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
+  metric_diag_write_interior(gk_geom);
 }
 
 void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct gk_geometry *gk_geom)
@@ -731,6 +905,7 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
       }
     }
   }
+  metric_diag_write_surface(dir, gk_geom);
 }
 
 
