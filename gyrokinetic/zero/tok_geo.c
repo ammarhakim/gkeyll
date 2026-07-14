@@ -14,7 +14,86 @@
 #include <gkyl_dg_bin_ops.h>
 
 #include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+static bool
+tok_geo_trace_enabled(void)
+{
+  const char *trace = getenv("GKYL_TOK_GEO_TRACE");
+  return trace && trace[0] != '\0' && trace[0] != '0';
+}
+
+static bool
+tok_geo_trace_block_selected(void)
+{
+  const char *filter = getenv("GKYL_TOK_GEO_TRACE_BLOCK_FILTER");
+  const char *block = getenv("GKYL_TOK_GEO_TRACE_BLOCK");
+  return !(filter && filter[0] != '\0') || (block && strcmp(filter, block) == 0);
+}
+
+static int
+tok_geo_trace_int_env(const char *name, int fallback)
+{
+  const char *val = getenv(name);
+  return val && val[0] != '\0' ? atoi(val) : fallback;
+}
+
+static double
+tok_geo_trace_double_env(const char *name, double fallback)
+{
+  const char *val = getenv(name);
+  return val && val[0] != '\0' ? atof(val) : fallback;
+}
+
+static void
+tok_geo_trace_surface(FILE *fp, const char *stage, int block, int ftype,
+  int dir, int ip, int it, int ia, int ip_delta, double psi, double alpha,
+  double theta, double arcL, double zmin, double zmax, double rclose,
+  double ridders_min, double ridders_max, double res, int nevals, double elapsed)
+{
+  fprintf(fp, "%s,%d,%d,%d,%d,%d,%d,%d,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%d,%.17e\n",
+    stage, block, ftype, dir, ip, it, ia, ip_delta, psi, alpha, theta, arcL,
+    zmin, zmax, rclose, ridders_min, ridders_max, res, nevals, elapsed);
+}
+
+static void
+tok_geo_trace_surface_row(const char *stage, int ftype, int dir, int ip,
+  int it, int ia, int ip_delta, double psi, double alpha, double theta,
+  double arcL, double zmin, double zmax, double rclose, double ridders_min,
+  double ridders_max, double res, int nevals, double elapsed)
+{
+  if (!tok_geo_trace_enabled() || !tok_geo_trace_block_selected())
+    return;
+
+  const char *block_env = getenv("GKYL_TOK_GEO_TRACE_BLOCK");
+  int block = block_env ? atoi(block_env) : -1;
+  const char *fname = getenv("GKYL_TOK_GEO_TRACE_FILE");
+
+  if (fname && fname[0] != '\0') {
+    static bool wrote_header = false;
+    FILE *fp = fopen(fname, "a");
+    if (fp) {
+      if (!wrote_header) {
+        fprintf(fp, "stage,block,ftype,dir,ip,it,ia,ip_delta,psi,alpha,theta,arcL,zmin,zmax,rclose,ridders_min,ridders_max,res,nevals,elapsed_sec\n");
+        wrote_header = true;
+      }
+      tok_geo_trace_surface(fp, stage, block, ftype, dir, ip, it, ia, ip_delta,
+        psi, alpha, theta, arcL, zmin, zmax, rclose, ridders_min, ridders_max,
+        res, nevals, elapsed);
+      fclose(fp);
+    }
+  }
+
+  if (tok_geo_trace_int_env("GKYL_TOK_GEO_TRACE_STDERR", 1)) {
+    tok_geo_trace_surface(stderr, stage, block, ftype, dir, ip, it, ia, ip_delta,
+      psi, alpha, theta, arcL, zmin, zmax, rclose, ridders_min, ridders_max,
+      res, nevals, elapsed);
+    fflush(stderr);
+  }
+}
 
 double
 tok_plate_psi_func(double s, void *ctx){
@@ -1025,11 +1104,32 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
 
           tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 
+          bool trace_this_block = tok_geo_trace_enabled() && tok_geo_trace_block_selected();
+          if (trace_this_block && tok_geo_trace_int_env("GKYL_TOK_GEO_TRACE_BEFORE", 1))
+            tok_geo_trace_surface_row("before_ridders", inp->ftype, -1, ip,
+              it, ia, ip_delta, psi_curr, alpha_curr, theta_curr, arcL_curr,
+              arc_ctx.zmin, arc_ctx.zmax, rclose, ridders_min, ridders_max,
+              0.0, -1, 0.0);
+
+          clock_t trace_t0 = trace_this_block ? clock() : 0;
           struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
             arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
             geo->root_param.max_iter, 1e-10);
+          double trace_elapsed = trace_this_block ?
+            ((double) (clock() - trace_t0))/CLOCKS_PER_SEC : 0.0;
           double z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+
+          if (trace_this_block) {
+            int neval_threshold = tok_geo_trace_int_env("GKYL_TOK_GEO_TRACE_NEVAL_THRESHOLD", 25);
+            double time_threshold = tok_geo_trace_double_env("GKYL_TOK_GEO_TRACE_TIME_THRESHOLD", 0.01);
+            if (res.nevals >= neval_threshold || trace_elapsed >= time_threshold ||
+              tok_geo_trace_int_env("GKYL_TOK_GEO_TRACE_ALL_AFTER", 0))
+              tok_geo_trace_surface_row("after_ridders", inp->ftype, -1, ip,
+                it, ia, ip_delta, psi_curr, alpha_curr, theta_curr, arcL_curr,
+                arc_ctx.zmin, arc_ctx.zmax, rclose, ridders_min, ridders_max,
+                z_curr, res.nevals, trace_elapsed);
+          }
 
           double R[4] = { 0 }, dRdZ[4] = { 0 };
           double dR[4] = { 0 }, dZ[4] = { 0 };
@@ -1289,11 +1389,32 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
 
           tok_set_ridders(inp, &arc_ctx, psi_curr, arcL_curr, &rclose, &ridders_min, &ridders_max);
 
+          bool trace_this_block = tok_geo_trace_enabled() && tok_geo_trace_block_selected();
+          if (trace_this_block && tok_geo_trace_int_env("GKYL_TOK_GEO_TRACE_BEFORE", 1))
+            tok_geo_trace_surface_row("before_ridders", inp->ftype, dir, ip,
+              it, ia, ip_delta, psi_curr, alpha_curr, theta_curr, arcL_curr,
+              arc_ctx.zmin, arc_ctx.zmax, rclose, ridders_min, ridders_max,
+              0.0, -1, 0.0);
+
+          clock_t trace_t0 = trace_this_block ? clock() : 0;
           struct gkyl_qr_res res = gkyl_ridders(arc_length_func, &arc_ctx,
             arc_ctx.zmin, arc_ctx.zmax, ridders_min, ridders_max,
             geo->root_param.max_iter, 1e-10);
+          double trace_elapsed = trace_this_block ?
+            ((double) (clock() - trace_t0))/CLOCKS_PER_SEC : 0.0;
           double z_curr = res.res;
           ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
+
+          if (trace_this_block) {
+            int neval_threshold = tok_geo_trace_int_env("GKYL_TOK_GEO_TRACE_NEVAL_THRESHOLD", 25);
+            double time_threshold = tok_geo_trace_double_env("GKYL_TOK_GEO_TRACE_TIME_THRESHOLD", 0.01);
+            if (res.nevals >= neval_threshold || trace_elapsed >= time_threshold ||
+              tok_geo_trace_int_env("GKYL_TOK_GEO_TRACE_ALL_AFTER", 0))
+              tok_geo_trace_surface_row("after_ridders", inp->ftype, dir, ip,
+                it, ia, ip_delta, psi_curr, alpha_curr, theta_curr, arcL_curr,
+                arc_ctx.zmin, arc_ctx.zmax, rclose, ridders_min, ridders_max,
+                z_curr, res.nevals, trace_elapsed);
+          }
 
           // Ensure that node at the lower Xpt (lower end of right core/upper end of left core) is at the same location
           if (psi_curr != geo->psisep) {
