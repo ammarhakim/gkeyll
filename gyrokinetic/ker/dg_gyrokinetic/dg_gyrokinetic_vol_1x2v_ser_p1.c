@@ -1,6 +1,6 @@
 #include <gkyl_dg_gyrokinetic_kernels.h> 
 GKYL_CU_DH double dg_gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *vmapSq,
-    const double q_, const double m_, const double *bmag, const double *phi,
+    const double q_, const double m_, const double *bmag, const double *yfield,
     const double *dualcurlbhatoverB, const double *rtg33inv, const double *bioverJB,
     const double *fin, double* GKYL_RESTRICT out) 
 { 
@@ -10,7 +10,7 @@ GKYL_CU_DH double dg_gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *
   // vmapSq: velocity space mapping squared.
   // q_,m_: species charge and mass.
   // bmag: magnetic field amplitude.
-  // phi: electrostatic potential .
+  // yfield: Yushmanov field (gradient of Yushmanov potential).
   // fin: Distribution function.
   // out: output increment.
 
@@ -30,11 +30,8 @@ GKYL_CU_DH double dg_gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *
   const double *dualcurlbhatoverB_z = &dualcurlbhatoverB[4]; 
 
   double hamil[12] = {0.}; 
-  hamil[0] = 2.0*phi[0]*q_+vmapSq[0]*m_+1.4142135623730951*bmag[0]*vmap[2]; 
-  hamil[1] = 2.0*phi[1]*q_+1.4142135623730951*bmag[1]*vmap[2]; 
+  hamil[0] = vmapSq[0]*m_; 
   hamil[2] = vmapSq[1]*m_; 
-  hamil[3] = 1.4142135623730951*bmag[0]*vmap[3]; 
-  hamil[5] = 1.4142135623730951*bmag[1]*vmap[3]; 
   hamil[8] = vmapSq[2]*m_; 
 
   double vmap2 = vmap[1]*vmap[1]; 
@@ -60,24 +57,28 @@ GKYL_CU_DH double dg_gyrokinetic_vol_1x2v_ser_p1(const double *w, const double *
   out[11] += (0.39123039821797573*alphax[9]+0.6123724356957944*alphax[1])*fin[11]+0.39123039821797573*alphax[8]*fin[10]+0.6123724356957944*(alphax[0]*fin[10]+fin[5]*alphax[9]+fin[3]*alphax[8])+0.5477225575051661*(alphax[4]*fin[7]+alphax[2]*fin[6]); 
 
   double alphavpar[12] = {0.}; 
-  alphavpar[0] = -((0.5*dualcurlbhatoverB_z[0]*hamil[1]*hamil[2]*rdx2)/(m_*q_*vmap2))-(1.0*rtg33inv[0]*hamil[1]*vmap[1]*rdx2)/(m_*vmap2); 
-  alphavpar[1] = -((0.5*dualcurlbhatoverB_z[1]*hamil[1]*hamil[2]*rdx2)/(m_*q_*vmap2))-(1.0*hamil[1]*rtg33inv[1]*vmap[1]*rdx2)/(m_*vmap2); 
-  alphavpar[2] = -((1.118033988749895*dualcurlbhatoverB_z[0]*hamil[1]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
-  alphavpar[3] = -((0.5*dualcurlbhatoverB_z[0]*hamil[2]*hamil[5]*rdx2)/(m_*q_*vmap2))-(1.0*rtg33inv[0]*vmap[1]*hamil[5]*rdx2)/(m_*vmap2); 
-  alphavpar[4] = -((1.118033988749895*dualcurlbhatoverB_z[1]*hamil[1]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
-  alphavpar[5] = -((0.5*dualcurlbhatoverB_z[1]*hamil[2]*hamil[5]*rdx2)/(m_*q_*vmap2))-(1.0*rtg33inv[1]*vmap[1]*hamil[5]*rdx2)/(m_*vmap2); 
-  alphavpar[6] = -((1.118033988749895*dualcurlbhatoverB_z[0]*hamil[5]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
-  alphavpar[7] = -((1.118033988749895*dualcurlbhatoverB_z[1]*hamil[5]*hamil[8]*rdx2)/(m_*q_*vmap2)); 
+  alphavpar[0] = (-((0.6454972243679029*dualcurlbhatoverB_z[1]*yfield[5]*hamil[8])/vmap2)-(0.6454972243679029*dualcurlbhatoverB_z[0]*yfield[3]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*hamil[2]*yfield[2])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*yfield[1]*hamil[2])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[1]*yfield[2])/vmap2)-(0.5773502691896258*rtg33inv[0]*yfield[1])/vmap2))/m_; 
+  alphavpar[1] = (-((0.6454972243679029*dualcurlbhatoverB_z[0]*yfield[5]*hamil[8])/vmap2)-(0.6454972243679029*dualcurlbhatoverB_z[1]*yfield[3]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[2])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*yfield[1]*hamil[2])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[0]*yfield[2])/vmap2)-(0.5773502691896258*rtg33inv[1]*yfield[1])/vmap2))/m_; 
+  alphavpar[2] = (-((0.5773502691896257*dualcurlbhatoverB_z[1]*hamil[8]*yfield[10])/vmap2)-(0.5773502691896258*dualcurlbhatoverB_z[0]*hamil[8]*yfield[9])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[1]*yfield[2]*hamil[8])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[0]*yfield[1]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*hamil[2]*yfield[5])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[3])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[1]*yfield[5])/vmap2)-(0.5773502691896258*rtg33inv[0]*yfield[3])/vmap2))/m_; 
+  alphavpar[3] = (-((0.6454972243679029*dualcurlbhatoverB_z[1]*hamil[8]*yfield[8])/vmap2)-(0.6454972243679029*dualcurlbhatoverB_z[0]*yfield[7]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*hamil[2]*yfield[6])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[4])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[1]*yfield[6])/vmap2)-(0.5773502691896258*rtg33inv[0]*yfield[4])/vmap2))/m_; 
+  alphavpar[4] = (-((0.5773502691896257*dualcurlbhatoverB_z[0]*hamil[8]*yfield[10])/vmap2)-(0.5773502691896258*dualcurlbhatoverB_z[1]*hamil[8]*yfield[9])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[0]*yfield[2]*hamil[8])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[1]*yfield[1]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[5])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*hamil[2]*yfield[3])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[0]*yfield[5])/vmap2)-(0.5773502691896258*rtg33inv[1]*yfield[3])/vmap2))/m_; 
+  alphavpar[5] = (-((0.6454972243679029*dualcurlbhatoverB_z[0]*hamil[8]*yfield[8])/vmap2)-(0.6454972243679029*dualcurlbhatoverB_z[1]*yfield[7]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[6])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*hamil[2]*yfield[4])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[0]*yfield[6])/vmap2)-(0.5773502691896258*rtg33inv[1]*yfield[4])/vmap2))/m_; 
+  alphavpar[6] = (-((0.5773502691896258*dualcurlbhatoverB_z[1]*hamil[8]*yfield[12])/vmap2)-(0.5773502691896257*dualcurlbhatoverB_z[0]*hamil[8]*yfield[11])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*hamil[2]*yfield[8])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[1]*yfield[6]*hamil[8])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[0]*yfield[4]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[7])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[1]*yfield[8])/vmap2)-(0.5773502691896258*rtg33inv[0]*yfield[7])/vmap2))/m_; 
+  alphavpar[7] = (-((0.5773502691896258*dualcurlbhatoverB_z[0]*hamil[8]*yfield[12])/vmap2)-(0.5773502691896257*dualcurlbhatoverB_z[1]*hamil[8]*yfield[11])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[8])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[0]*yfield[6]*hamil[8])/vmap2-(0.6454972243679029*dualcurlbhatoverB_z[1]*yfield[4]*hamil[8])/vmap2-(0.2886751345948129*dualcurlbhatoverB_z[1]*hamil[2]*yfield[7])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[0]*yfield[8])/vmap2)-(0.5773502691896258*rtg33inv[1]*yfield[7])/vmap2))/m_; 
+  alphavpar[8] = (-((0.28867513459481287*dualcurlbhatoverB_z[1]*hamil[2]*yfield[10])/vmap2)-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[9])/vmap2-(0.5773502691896258*dualcurlbhatoverB_z[1]*yfield[5]*hamil[8])/vmap2-(0.5773502691896258*dualcurlbhatoverB_z[0]*yfield[3]*hamil[8])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896257*rtg33inv[1]*yfield[10])/vmap2)-(0.5773502691896258*rtg33inv[0]*yfield[9])/vmap2))/m_; 
+  alphavpar[9] = (-((0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[10])/vmap2)-(0.28867513459481287*dualcurlbhatoverB_z[1]*hamil[2]*yfield[9])/vmap2-(0.5773502691896257*dualcurlbhatoverB_z[0]*yfield[5]*hamil[8])/vmap2-(0.5773502691896257*dualcurlbhatoverB_z[1]*yfield[3]*hamil[8])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[0]*yfield[10])/vmap2)-(0.5773502691896257*rtg33inv[1]*yfield[9])/vmap2))/m_; 
+  alphavpar[10] = (-((0.28867513459481287*dualcurlbhatoverB_z[1]*hamil[2]*yfield[12])/vmap2)-(0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[11])/vmap2-(0.5773502691896257*dualcurlbhatoverB_z[1]*hamil[8]*yfield[8])/vmap2-(0.5773502691896257*dualcurlbhatoverB_z[0]*yfield[7]*hamil[8])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896257*rtg33inv[1]*yfield[12])/vmap2)-(0.5773502691896258*rtg33inv[0]*yfield[11])/vmap2))/m_; 
+  alphavpar[11] = (-((0.2886751345948129*dualcurlbhatoverB_z[0]*hamil[2]*yfield[12])/vmap2)-(0.28867513459481287*dualcurlbhatoverB_z[1]*hamil[2]*yfield[11])/vmap2-(0.5773502691896258*dualcurlbhatoverB_z[0]*hamil[8]*yfield[8])/vmap2-(0.5773502691896258*dualcurlbhatoverB_z[1]*yfield[7]*hamil[8])/vmap2)/(m_*q_)+(vmap[1]*(-((0.5773502691896258*rtg33inv[0]*yfield[12])/vmap2)-(0.5773502691896257*rtg33inv[1]*yfield[11])/vmap2))/m_; 
 
 
-  out[2] += 0.6123724356957944*(alphavpar[7]*fin[7]+alphavpar[6]*fin[6]+alphavpar[5]*fin[5]+alphavpar[4]*fin[4]+alphavpar[3]*fin[3]+alphavpar[2]*fin[2]+alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 
-  out[4] += 0.6123724356957944*(alphavpar[6]*fin[7]+fin[6]*alphavpar[7]+alphavpar[3]*fin[5]+fin[3]*alphavpar[5]+alphavpar[2]*fin[4]+fin[2]*alphavpar[4]+alphavpar[0]*fin[1]+fin[0]*alphavpar[1]); 
-  out[6] += 0.6123724356957944*(alphavpar[4]*fin[7]+fin[4]*alphavpar[7]+alphavpar[2]*fin[6]+fin[2]*alphavpar[6]+alphavpar[1]*fin[5]+fin[1]*alphavpar[5]+alphavpar[0]*fin[3]+fin[0]*alphavpar[3]); 
-  out[7] += 0.6123724356957944*(alphavpar[2]*fin[7]+fin[2]*alphavpar[7]+alphavpar[4]*fin[6]+fin[4]*alphavpar[6]+alphavpar[0]*fin[5]+fin[0]*alphavpar[5]+alphavpar[1]*fin[3]+fin[1]*alphavpar[3]); 
-  out[8] += 1.224744871391589*(alphavpar[7]*fin[11]+alphavpar[6]*fin[10]+alphavpar[4]*fin[9]+alphavpar[2]*fin[8])+1.369306393762915*(alphavpar[5]*fin[7]+fin[5]*alphavpar[7]+alphavpar[3]*fin[6]+fin[3]*alphavpar[6]+alphavpar[1]*fin[4]+fin[1]*alphavpar[4]+alphavpar[0]*fin[2]+fin[0]*alphavpar[2]); 
-  out[9] += 1.224744871391589*(alphavpar[6]*fin[11]+alphavpar[7]*fin[10]+alphavpar[2]*fin[9]+alphavpar[4]*fin[8])+1.369306393762915*(alphavpar[3]*fin[7]+fin[3]*alphavpar[7]+alphavpar[5]*fin[6]+fin[5]*alphavpar[6]+alphavpar[0]*fin[4]+fin[0]*alphavpar[4]+alphavpar[1]*fin[2]+fin[1]*alphavpar[2]); 
-  out[10] += 1.224744871391589*(alphavpar[4]*fin[11]+alphavpar[2]*fin[10]+alphavpar[7]*fin[9]+alphavpar[6]*fin[8])+1.369306393762915*(alphavpar[1]*fin[7]+fin[1]*alphavpar[7]+alphavpar[0]*fin[6]+fin[0]*alphavpar[6]+alphavpar[4]*fin[5]+fin[4]*alphavpar[5]+alphavpar[2]*fin[3]+fin[2]*alphavpar[3]); 
-  out[11] += 1.224744871391589*(alphavpar[2]*fin[11]+alphavpar[4]*fin[10]+alphavpar[6]*fin[9]+alphavpar[7]*fin[8])+1.369306393762915*(alphavpar[0]*fin[7]+fin[0]*alphavpar[7]+alphavpar[1]*fin[6]+fin[1]*alphavpar[6]+alphavpar[2]*fin[5]+fin[2]*alphavpar[5]+alphavpar[3]*fin[4]+fin[3]*alphavpar[4]); 
+  out[2] += 0.6123724356957944*(alphavpar[11]*fin[11]+alphavpar[10]*fin[10]+alphavpar[9]*fin[9]+alphavpar[8]*fin[8]+alphavpar[7]*fin[7]+alphavpar[6]*fin[6]+alphavpar[5]*fin[5]+alphavpar[4]*fin[4]+alphavpar[3]*fin[3]+alphavpar[2]*fin[2]+alphavpar[1]*fin[1]+alphavpar[0]*fin[0]); 
+  out[4] += 0.6123724356957944*(alphavpar[10]*fin[11]+fin[10]*alphavpar[11]+alphavpar[8]*fin[9]+fin[8]*alphavpar[9]+alphavpar[6]*fin[7]+fin[6]*alphavpar[7]+alphavpar[3]*fin[5]+fin[3]*alphavpar[5]+alphavpar[2]*fin[4]+fin[2]*alphavpar[4]+alphavpar[0]*fin[1]+fin[0]*alphavpar[1]); 
+  out[6] += 0.6123724356957944*(alphavpar[9]*fin[11]+fin[9]*alphavpar[11]+alphavpar[8]*fin[10]+fin[8]*alphavpar[10]+alphavpar[4]*fin[7]+fin[4]*alphavpar[7]+alphavpar[2]*fin[6]+fin[2]*alphavpar[6]+alphavpar[1]*fin[5]+fin[1]*alphavpar[5]+alphavpar[0]*fin[3]+fin[0]*alphavpar[3]); 
+  out[7] += 0.6123724356957944*(alphavpar[8]*fin[11]+fin[8]*alphavpar[11]+alphavpar[9]*fin[10]+fin[9]*alphavpar[10]+alphavpar[2]*fin[7]+fin[2]*alphavpar[7]+alphavpar[4]*fin[6]+fin[4]*alphavpar[6]+alphavpar[0]*fin[5]+fin[0]*alphavpar[5]+alphavpar[1]*fin[3]+fin[1]*alphavpar[3]); 
+  out[8] += 1.224744871391589*(alphavpar[7]*fin[11]+fin[7]*alphavpar[11]+alphavpar[6]*fin[10]+fin[6]*alphavpar[10]+alphavpar[4]*fin[9]+fin[4]*alphavpar[9]+alphavpar[2]*fin[8]+fin[2]*alphavpar[8])+1.369306393762915*(alphavpar[5]*fin[7]+fin[5]*alphavpar[7]+alphavpar[3]*fin[6]+fin[3]*alphavpar[6]+alphavpar[1]*fin[4]+fin[1]*alphavpar[4]+alphavpar[0]*fin[2]+fin[0]*alphavpar[2]); 
+  out[9] += 1.224744871391589*(alphavpar[6]*fin[11]+fin[6]*alphavpar[11]+alphavpar[7]*fin[10]+fin[7]*alphavpar[10]+alphavpar[2]*fin[9]+fin[2]*alphavpar[9]+alphavpar[4]*fin[8]+fin[4]*alphavpar[8])+1.369306393762915*(alphavpar[3]*fin[7]+fin[3]*alphavpar[7]+alphavpar[5]*fin[6]+fin[5]*alphavpar[6]+alphavpar[0]*fin[4]+fin[0]*alphavpar[4]+alphavpar[1]*fin[2]+fin[1]*alphavpar[2]); 
+  out[10] += 1.224744871391589*(alphavpar[4]*fin[11]+fin[4]*alphavpar[11]+alphavpar[2]*fin[10]+fin[2]*alphavpar[10]+alphavpar[7]*fin[9]+fin[7]*alphavpar[9]+alphavpar[6]*fin[8]+fin[6]*alphavpar[8])+1.369306393762915*(alphavpar[1]*fin[7]+fin[1]*alphavpar[7]+alphavpar[0]*fin[6]+fin[0]*alphavpar[6]+alphavpar[4]*fin[5]+fin[4]*alphavpar[5]+alphavpar[2]*fin[3]+fin[2]*alphavpar[3]); 
+  out[11] += 1.224744871391589*(alphavpar[2]*fin[11]+fin[2]*alphavpar[11]+alphavpar[4]*fin[10]+fin[4]*alphavpar[10]+alphavpar[6]*fin[9]+fin[6]*alphavpar[9]+alphavpar[7]*fin[8]+fin[7]*alphavpar[8])+1.369306393762915*(alphavpar[0]*fin[7]+fin[0]*alphavpar[7]+alphavpar[1]*fin[6]+fin[1]*alphavpar[6]+alphavpar[2]*fin[5]+fin[2]*alphavpar[5]+alphavpar[3]*fin[4]+fin[3]*alphavpar[4]); 
 
   return 0.; 
 } 

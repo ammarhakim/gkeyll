@@ -15,6 +15,7 @@ struct gkyl_dg_gyrokinetic_auxfields {
   const struct gkyl_array *phi; // Pointer to electrostatic potential.
   const struct gkyl_array *apar; // Pointer to A_\parallel.
   const struct gkyl_array *apardot; // Pointer to d(A_parallel)/dt.
+  const struct gkyl_array *yfield; // Gradient of Yushmanov potential.
 };
 
 /**

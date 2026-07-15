@@ -54,13 +54,14 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
  * @param phase_ext_range Extended Phase space range (so we obtain alpha_surf at all the needed surfaces).
  * @param phi Electrostatic potential.
  * @param fin Distribution function.
+ * @param yfield Gradient of Yushmanov potential.
  * @param flux_surf Output surface expansion in a cell on the *lower* edge in each direction.
  * @param clfrate Output CFL rate.
  */
 void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate);
+  const struct gkyl_array *fin, struct gkyl_array *yfield, struct gkyl_array* flux_surf, struct gkyl_array *cflrate);
 
 /**
  * Delete pointer to updater to compute gyrokinetic variables.

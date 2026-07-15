@@ -282,6 +282,7 @@ struct gk_collisionless {
   union {
     // Charged (gyrokinetic) species ............................................ //
     struct {
+      struct gkyl_array *yfield; // Gradient of Yushmanov potential.
       struct gkyl_array *flux_surf; // Array for surface phase space flux
       struct gkyl_array *flux_surf_ho; // Host array for surface phase space flux
       struct gkyl_array *apar; // A_parallel.

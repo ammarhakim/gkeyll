@@ -76,7 +76,7 @@ gkyl_gk_collisionless_flux_new(const struct gkyl_rect_grid *phase_grid,
 void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up, 
   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
   const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range, const struct gkyl_array *phi, 
-  const struct gkyl_array *fin, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
+  const struct gkyl_array *fin, struct gkyl_array *yfield, struct gkyl_array* flux_surf, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(flux_surf)) {
@@ -97,6 +97,8 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
   extend_lo[cdim] = -1;
   gkyl_range_extend(&vpar_range, phase_range, extend_lo, extend_up);
 
+  gkyl_array_clear(yfield, 0.0);
+
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, phase_range);
   while (gkyl_range_iter_next(&iter)) {
@@ -111,7 +113,6 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
-    const double *phi_d = gkyl_array_cfetch(phi, loc_conf);
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
 
@@ -126,20 +127,26 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
       const double *fL = gkyl_array_cfetch(fin, locL);
       const double *fR = gkyl_array_cfetch(fin, loc_phase);
 
+      double *yfieldL = gkyl_array_fetch(yfield, locL);
+      double *yfieldR = gkyl_array_fetch(yfield, loc_phase);
+
       const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx);
       const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx);
 
       const double *jacgeo_rat_surfL_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobgeo_ratio, loc_confL);
       const double *jacgeo_rat_surfR_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobgeo_ratio, loc_conf);
 
+      const double *phiL_d = gkyl_array_cfetch(phi, loc_confL);
+      const double *phiR_d = gkyl_array_cfetch(phi, loc_conf);
+
       if (idx[dir] == phase_range->lower[dir]) {
         // Lower domain/block boundary.
         cflrate_d[0] += up->flux_surf_edge_lo[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
       } else {
         // Interior, lower cell surface.
         cflrate_d[0] += up->flux_surf[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, fL, fR, yfieldL, yfieldR, flux_surf_d);
       }
 
       // Upper domain/block boundary.
@@ -155,18 +162,26 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
         long loc_phase_ext = gkyl_range_idx(phase_ext_range, idx_edge);
 
         double *cflrate_ext_d = gkyl_array_fetch(cflrate, loc_phase_ext);
+
         const double *fL = gkyl_array_cfetch(fin, loc_phase);
         const double *fR = gkyl_array_cfetch(fin, loc_phase_ext);
+
+        double *yfieldL = gkyl_array_fetch(yfield, loc_phase);
+        double *yfieldR = gkyl_array_fetch(yfield, loc_phase_ext);
+
         const struct gkyl_dg_surf_geom *dgs = gkyl_dg_geom_get_surf(up->dg_geom, dir, idx_edge);
         const struct gkyl_gk_dg_surf_geom *gkdgs = gkyl_gk_dg_geom_get_surf(up->gk_dg_geom, dir, idx_edge);
 
         const double *jacgeo_rat_surfL_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobgeo_ratio, loc_conf);
         const double *jacgeo_rat_surfR_d = gkyl_array_cfetch(up->gk_geom->geo_surf[dir].jacobgeo_ratio, loc_conf_ext);
 
+        const double *phiL_d = gkyl_array_cfetch(phi, loc_conf);
+        const double *phiR_d = gkyl_array_cfetch(phi, loc_conf_ext);
+
         double* flux_surf_ext_d = gkyl_array_fetch(flux_surf, loc_phase_ext);
 
         cflrate_ext_d[0] += up->flux_surf_edge_up[dir](xc, up->phase_grid.dx, vmap_d, vmapSq_d, up->charge, up->mass,
-          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phi_d, fL, fR, flux_surf_ext_d);
+          dgs, gkdgs, bmag_d, jacgeo_rat_surfL_d, jacgeo_rat_surfR_d, phiL_d, phiR_d, yfieldL, yfieldR, fL, fR, flux_surf_ext_d);
       }  
     }
   }
@@ -184,9 +199,9 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     gkyl_rect_grid_cell_center(&up->phase_grid, idx, xc);
 
     const double *bmag_d = gkyl_array_cfetch(up->gk_geom->geo_corn.bmag, loc_conf);
-    const double *phi_d = gkyl_array_cfetch(phi, loc_conf);
     const double *vmap_d = gkyl_array_cfetch(up->vel_map->vmap, loc_vel);
     const double *vmapSq_d = gkyl_array_cfetch(up->vel_map->vmap_sq, loc_vel);
+    const double *yfield_d = gkyl_array_fetch(yfield, loc_phase);
 
     double *flux_surf_d = gkyl_array_fetch(flux_surf, loc_phase);
     double *cflrate_d = gkyl_array_fetch(cflrate, loc_phase);
@@ -207,7 +222,7 @@ void gkyl_gk_collisionless_flux_surf(struct gkyl_gk_collisionless_flux *up,
     const struct gkyl_dg_vol_geom *dgv = gkyl_dg_geom_get_vol(up->dg_geom, idx);
     const struct gkyl_gk_dg_vol_geom *gkdgv = gkyl_gk_dg_geom_get_vol(up->gk_dg_geom, idx);
     cflrate_d[0] += up->flux_surfvpar[0](xc, up->phase_grid.dx, vpL, vpR, vmap_d, vmapSq_d, up->charge, up->mass,
-      dgv, gkdgv, bmag_d, phi_d,  fL, fR, flux_surf_d);
+      dgv, gkdgv, bmag_d, yfield_d, fL, fR, flux_surf_d);
   }
 }
 

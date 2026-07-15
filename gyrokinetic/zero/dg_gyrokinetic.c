@@ -42,6 +42,7 @@ gkyl_gyrokinetic_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_gyr
   gyrokinetic->auxfields.phi = auxin.phi;
   gyrokinetic->auxfields.apar = auxin.apar;
   gyrokinetic->auxfields.apardot = auxin.apardot;
+  gyrokinetic->auxfields.yfield = auxin.yfield;
 }
 
 struct gkyl_dg_eqn*
@@ -136,6 +137,7 @@ gkyl_dg_gyrokinetic_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
   gyrokinetic->auxfields.phi = 0;
   gyrokinetic->auxfields.apar = 0;
   gyrokinetic->auxfields.apardot = 0;
+  gyrokinetic->auxfields.yfield = 0;
 
   gyrokinetic->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(gyrokinetic->eqn.flags);

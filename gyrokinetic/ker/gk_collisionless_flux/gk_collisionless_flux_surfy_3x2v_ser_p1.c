@@ -2,9 +2,10 @@
 GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
     const double *w, const double *dxv,
     const double *vmap, const double *vmapSq, const double q_, const double m_,
-    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, 
-    const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phi,
-    const double *JfL, const double *JfR, double* GKYL_RESTRICT flux_surf) 
+    const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, const double *bmag,
+    const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phiL, const double *phiR,
+    const double *JfL, const double *JfR, double* GKYL_RESTRICT yfieldL, double* GKYL_RESTRICT yfieldR,
+    double* GKYL_RESTRICT flux_surf) 
 { 
   // w[NDIM]: cell-center.
   // dxv[NDIM]: cell length.
@@ -16,9 +17,12 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   // bmag: bmag represented on the surface.
   // jacobgeo_rat_surfL: Ratio of surface conf-space Jacobians in left cell.
   // jacobgeo_rat_surfR: Ratio of surface conf-space Jacobians in right cell.
-  // phi: electrostatic potential.
+  // phiL: electrostatic potential in left cell.
+  // phiR: electrostatic potential in right cell.
   // JfL: distribution times total jacobian in left cell.
   // JfR: distribution times total jacobian in right cell.
+  // yfieldL: Yushmanov field (gradient of Yushmanov potential) in left cell.
+  // yfieldR: Yushmanov field (gradient of Yushmanov potential) in right cell.
   // flux_surf: output surface phase space flux in each direction (cdim + 1 components).
   //            Note: Each cell owns their *lower* edge surface evaluation.
 
@@ -28,17 +32,27 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   double rdvpar2 = 2.0/dxv[3];
 
   double hamil[48] = {0.}; 
-  hamil[0] = -(2.4494897427831783*phi[2]*q_)+1.4142135623730951*(phi[0]*q_+vmapSq[0]*m_)+bmag[0]*vmap[2]; 
-  hamil[1] = (1.4142135623730951*phi[1]-2.4494897427831783*phi[4])*q_+bmag[1]*vmap[2]; 
-  hamil[2] = (1.4142135623730951*phi[3]-2.4494897427831783*phi[6])*q_+vmap[2]*bmag[3]; 
+  hamil[0] = -(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*(phiR[0]*q_+vmapSq[0]*m_)+bmag[0]*vmap[2]; 
+  hamil[1] = (1.4142135623730951*phiR[1]-2.4494897427831783*phiR[4])*q_+bmag[1]*vmap[2]; 
+  hamil[2] = (1.4142135623730951*phiR[3]-2.4494897427831783*phiR[6])*q_+vmap[2]*bmag[3]; 
   hamil[3] = 1.4142135623730951*vmapSq[1]*m_; 
   hamil[4] = bmag[0]*vmap[3]; 
-  hamil[5] = (1.4142135623730951*phi[5]-2.4494897427831783*phi[7])*q_+vmap[2]*bmag[5]; 
+  hamil[5] = (1.4142135623730951*phiR[5]-2.4494897427831783*phiR[7])*q_+vmap[2]*bmag[5]; 
   hamil[8] = bmag[1]*vmap[3]; 
   hamil[9] = bmag[3]*vmap[3]; 
   hamil[12] = vmap[3]*bmag[5]; 
   hamil[16] = 1.4142135623730951*vmapSq[2]*m_; 
 
+  double *ypotderL = &yfieldL[48]; 
+  double *ypotderR = &yfieldR[48]; 
+  ypotderR[2] += -(3.4641016151377544*phiR[0]*q_*rdy2)-2.4494897427831783*bmag[0]*vmap[2]*rdy2; 
+  ypotderR[6] += -(3.4641016151377544*phiR[1]*q_*rdy2)-2.4494897427831783*bmag[1]*vmap[2]*rdy2; 
+  ypotderR[8] += -(3.4641016151377544*phiR[3]*q_*rdy2)-2.4494897427831783*vmap[2]*bmag[3]*rdy2; 
+  ypotderR[13] += -(2.4494897427831783*bmag[0]*vmap[3]*rdy2); 
+  ypotderR[16] += -(3.4641016151377544*phiR[5]*q_*rdy2)-2.4494897427831783*vmap[2]*bmag[5]*rdy2; 
+  ypotderR[20] += -(2.4494897427831783*bmag[1]*vmap[3]*rdy2); 
+  ypotderR[22] += -(2.4494897427831783*bmag[3]*vmap[3]*rdy2); 
+  ypotderR[27] += -(2.4494897427831783*vmap[3]*bmag[5]*rdy2); 
   double *flux_surf_nodal = &flux_surf[24]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
@@ -52,6 +66,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   double JfR_quad = 0.0; 
   double Jfavg_quad = 0.0; 
   double Jfjump_quad = 0.0; 
+  double ypotL_quad = 0.0; 
+  double ypotR_quad = 0.0; 
+  double ypot_der_avg_quad = 0.0; 
+  double ypot_der_jump_quad = 0.0; 
+  double ypot_der_surf_n[24] = {0.0}; 
   double mvpar_quad[3] = {0.0}; 
   mvpar_quad[0] = (0.8164965809277261*(0.4330127018922193*hamil[3]-1.2990381056766578*hamil[16]))/vmap[1]; 
   mvpar_quad[1] = (0.3535533905932738*hamil[3])/vmap[1]; 
@@ -79,6 +98,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[0] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[0] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -88,6 +112,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[1] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[1] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -97,6 +126,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[2] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[2] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[0]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -106,6 +140,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[3] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[3] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -115,6 +154,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[4] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[4] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -124,6 +168,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[5] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[5] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   bmag_quad = gkdgs[1].bmag; 
   Jc_quad = gkdgs[1].Jc; 
@@ -143,6 +192,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[6] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[6] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -152,6 +206,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[7] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[7] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -161,6 +220,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[8] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[8] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[0]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -170,6 +234,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[9] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[9] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -179,6 +248,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[10] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[10] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[9]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -188,6 +262,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[11] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])-0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])-0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[11] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   bmag_quad = gkdgs[2].bmag; 
   Jc_quad = gkdgs[2].Jc; 
@@ -207,6 +286,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[12] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[12] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -216,6 +300,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[13] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[13] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]-0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -225,6 +314,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[14] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[14] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[0]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -234,6 +328,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[15] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[15] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -243,6 +342,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[16] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[16] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])+0.4330127018922193*hamil[8]-0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -252,6 +356,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[17] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = -(0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5]))-0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = -(0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5]))-0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[17] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   bmag_quad = gkdgs[3].bmag; 
   Jc_quad = gkdgs[3].Jc; 
@@ -271,6 +380,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[18] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[18] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -280,6 +394,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[19] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[19] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((-(0.4330127018922193*hamil[12])-0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -289,6 +408,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[20] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])-0.25*vmap[3]*bmag[5]-0.25*bmag[3]*vmap[3]-0.25*bmag[1]*vmap[3]-0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[20] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[0]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -298,6 +422,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[21] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[21] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[1]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -307,6 +436,11 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[22] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[22] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvparsq_quad[2]*normcurlbhat_quad/(bmag_quad*q_) + 1/(q_*bmag_quad*area_elem_quad) * (bhat_quad[2]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[8]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[1])*rdx2) - bhat_quad[0]*((0.4330127018922193*hamil[12]+0.4330127018922193*hamil[9]+0.4330127018922193*hamil[5]+0.4330127018922193*hamil[2])*rdz2)))*area_elem_quad/Jc_quad; 
 
@@ -316,6 +450,28 @@ GKYL_CU_DH double gk_collisionless_flux_surfy_3x2v_ser_p1(
   Jfavg_quad = (JfL_quad + JfR_quad)/2.0; 
   Jfjump_quad = (JfR_quad - JfL_quad)/2.0; 
   flux_surf_nodal[23] = alpha_quad*Jfavg_quad - fabs(alpha_quad)*Jfjump_quad; 
+  ypotL_quad = 0.25*(2.4494897427831783*phiL[7]*q_+1.4142135623730951*phiL[5]*q_+vmap[2]*bmag[5])+0.25*(2.4494897427831783*phiL[6]*q_+1.4142135623730951*phiL[3]*q_+vmap[2]*bmag[3])+0.25*(2.4494897427831783*phiL[4]*q_+1.4142135623730951*phiL[1]*q_+bmag[1]*vmap[2])+0.25*(2.4494897427831783*phiL[2]*q_+1.4142135623730951*phiL[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypotR_quad = 0.25*(-(2.4494897427831783*phiR[7]*q_)+1.4142135623730951*phiR[5]*q_+vmap[2]*bmag[5])+0.25*(-(2.4494897427831783*phiR[6]*q_)+1.4142135623730951*phiR[3]*q_+vmap[2]*bmag[3])+0.25*(-(2.4494897427831783*phiR[4]*q_)+1.4142135623730951*phiR[1]*q_+bmag[1]*vmap[2])+0.25*(-(2.4494897427831783*phiR[2]*q_)+1.4142135623730951*phiR[0]*q_+bmag[0]*vmap[2])+0.25*vmap[3]*bmag[5]+0.25*bmag[3]*vmap[3]+0.25*bmag[1]*vmap[3]+0.25*bmag[0]*vmap[3]; 
+  ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
+  ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
+  ypot_der_surf_n[23] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
+
+  ypotderL[2] += -(3.4641016151377544*phiR[0]*q_*rdy2)-2.4494897427831783*bmag[0]*vmap[2]*rdy2; 
+  ypotderL[6] += -(3.4641016151377544*phiR[1]*q_*rdy2)-2.4494897427831783*bmag[1]*vmap[2]*rdy2; 
+  ypotderL[8] += -(3.4641016151377544*phiR[3]*q_*rdy2)-2.4494897427831783*vmap[2]*bmag[3]*rdy2; 
+  ypotderL[13] += -(2.4494897427831783*bmag[0]*vmap[3]*rdy2); 
+  ypotderL[16] += -(3.4641016151377544*phiR[5]*q_*rdy2)-2.4494897427831783*vmap[2]*bmag[5]*rdy2; 
+  ypotderL[20] += -(2.4494897427831783*bmag[1]*vmap[3]*rdy2); 
+  ypotderL[22] += -(2.4494897427831783*bmag[3]*vmap[3]*rdy2); 
+  ypotderL[27] += -(2.4494897427831783*vmap[3]*bmag[5]*rdy2); 
+  ypotderR[2] += -(3.4641016151377544*phiR[0]*q_*rdy2)-2.4494897427831783*bmag[0]*vmap[2]*rdy2; 
+  ypotderR[6] += -(3.4641016151377544*phiR[1]*q_*rdy2)-2.4494897427831783*bmag[1]*vmap[2]*rdy2; 
+  ypotderR[8] += -(3.4641016151377544*phiR[3]*q_*rdy2)-2.4494897427831783*vmap[2]*bmag[3]*rdy2; 
+  ypotderR[13] += -(2.4494897427831783*bmag[0]*vmap[3]*rdy2); 
+  ypotderR[16] += -(3.4641016151377544*phiR[5]*q_*rdy2)-2.4494897427831783*vmap[2]*bmag[5]*rdy2; 
+  ypotderR[20] += -(2.4494897427831783*bmag[1]*vmap[3]*rdy2); 
+  ypotderR[22] += -(2.4494897427831783*bmag[3]*vmap[3]*rdy2); 
+  ypotderR[27] += -(2.4494897427831783*vmap[3]*bmag[5]*rdy2); 
 
 
   return cfl*1.5*rdy2; 
