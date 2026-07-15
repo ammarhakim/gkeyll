@@ -1640,6 +1640,8 @@ gkyl_wv_vacuum_einstein_inew(const struct gkyl_wv_vacuum_einstein_inp* inp)
   vacuum_einstein->eqn.cons_to_diag = vacuum_einstein_cons_to_diag;
 
   vacuum_einstein->eqn.source_func = vacuum_einstein_source;
+  
+  vacuum_einstein->eqn.embed_geo = NULL;
 
   vacuum_einstein->eqn.flags = 0;
   GKYL_CLEAR_CU_ALLOC(vacuum_einstein->eqn.flags);

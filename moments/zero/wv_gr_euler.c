@@ -368,12 +368,16 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
       }
     }
     else {
-      if (v[0] < gr_euler_rho_floor) {
+      // NaN-safe floor
+      if (!(v[0] > gr_euler_rho_floor)) {
         v[0] = gr_euler_rho_floor;
       }
-      if (v[4] < gr_euler_p_floor) {
+      if (!(v[4] > gr_euler_p_floor)) {
         v[4] = gr_euler_p_floor;
       }
+      if (!isfinite(v[1])) { v[1] = 0.0; }
+      if (!isfinite(v[2])) { v[2] = 0.0; }
+      if (!isfinite(v[3])) { v[3] = 0.0; }
     }
 
     v[5] = lapse;
@@ -551,12 +555,12 @@ gkyl_gr_euler_stress_energy_tensor(double gas_gamma, const double q[71], double 
     double inv_spacetime_metric[4][4];
     inv_spacetime_metric[0][0] = - (1.0 / (lapse * lapse));
     for (int i = 0; i < 3; i++) {
-      inv_spacetime_metric[0][i] = (1.0 / (lapse * lapse)) * shift[i];
-      inv_spacetime_metric[i][0] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[0][i + 1] = (1.0 / (lapse * lapse)) * shift[i];
+      inv_spacetime_metric[i + 1][0] = (1.0 / (lapse * lapse)) * shift[i];
     }
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        inv_spacetime_metric[i][j] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
+        inv_spacetime_metric[i + 1][j + 1] = inv_spatial_metric[i][j] - ((1.0 / (lapse * lapse)) * shift[i] * shift[j]);
       }
     }
 
@@ -1917,6 +1921,7 @@ gr_euler_cons_to_diag(const struct gkyl_wv_eqn* eqn, const double* qin, double* 
   }
 }
 
+// DEAD CODE for all problems (function below)
 // Raw geometric/gravitational source (no well-balancing); factored so it can also be evaluated at the frozen TOV equilibrium state for the WB subtraction below.
 static inline void
 gr_euler_raw_source(double gas_gamma, const double* qin, double* sout)

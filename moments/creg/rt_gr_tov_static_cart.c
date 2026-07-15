@@ -216,8 +216,11 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   fout[68] = x; fout[69] = y; fout[70] = 0.0;
 
   // Frozen discrete well-balancing reference (num_equations = 73): store the t=0 conserved fluid in slots 71,72. 
-  fout[71] = rho_rel; // = fout[0]
-  fout[72] = Etot;    // = fout[4]
+  fout[71] = rho_rel; // D_eq   = fout[0]
+  fout[72] = Etot;    // Etot_eq = fout[4]
+  fout[73] = 0.0;     // S_eq^x (static star: zero momentum equilibrium)
+  fout[74] = 0.0;     // S_eq^y
+  fout[75] = 0.0;     // S_eq^z
 
   // Perturbation away from the equilibrium: small x-momentum kick in the stellar interior. 
   // The slots [71],[72] above keep the unperturbed equilibrium, so w = q - q_eq = (0, dS, 0, 0, 0) is a genuine deviation the WB must evolve (not absorb). Pulsation should stay bounded.
@@ -261,6 +264,101 @@ calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
+  }
+}
+
+// [DIAG] Per-step static TOV tracker. This mirrors the collapse diagnostic but reads the fixed
+// metric from the GR-Euler state itself, since this driver has only the fluid species.
+static double diag_SumD0 = -1.0;
+static void
+diag_track(gkyl_moment_app *app, struct gr_tov_cart_ctx *ctx, double t_curr)
+{
+  const struct gkyl_array *fluid = gkyl_moment_app_get_write_array_species(app, 0);
+
+  double SumD_local = 0.0;
+  double Dmax_local = 0.0, r_Dmax_local = 0.0;
+  double Dc_local = 0.0, lapse_c_local = 0.0, r_c_local = 1.0e300;
+  double core_mom_local = 0.0, surf_mom_local = 0.0;
+  double glob_mom_local = 0.0, r_glob_mom_local = 0.0;
+  double lapse_min_local = 1.0e300, lapse_max_local = -1.0e300;
+  int n_bad_local = 0;
+
+  double R_core = 0.5 * ctx->R_star;
+  double R_star = ctx->R_star;
+  double surf_lo = R_star - 0.15 * R_star, surf_hi = R_star + 0.15 * R_star;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&app->local, iter.idx);
+    const double *fl = gkyl_array_cfetch(fluid, loc);
+
+    double xc[3];
+    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xc);
+    double r = sqrt(xc[0] * xc[0] + xc[1] * xc[1]);
+
+    double D = fl[0];
+    double lapse = fl[5];
+    double mom = sqrt(fl[1] * fl[1] + fl[2] * fl[2] + fl[3] * fl[3]);
+
+    if (!isfinite(D) || !isfinite(lapse) || !isfinite(mom)) n_bad_local += 1;
+
+    SumD_local += D;
+    if (D > Dmax_local) { Dmax_local = D; r_Dmax_local = r; }
+
+    if (r < r_c_local) { r_c_local = r; Dc_local = D; lapse_c_local = lapse; }
+
+    if (r < R_core && mom > core_mom_local) core_mom_local = mom;
+    if (r > surf_lo && r < surf_hi && mom > surf_mom_local) surf_mom_local = mom;
+    if (mom > glob_mom_local) { glob_mom_local = mom; r_glob_mom_local = r; }
+
+    if (r < 1.5 * R_star) {
+      if (lapse < lapse_min_local) lapse_min_local = lapse;
+      if (lapse > lapse_max_local) lapse_max_local = lapse;
+    }
+  }
+
+  SumD_local *= app->grid.cellVolume;
+
+  double SumD = 0.0;
+  double Dmax = 0.0, core_mom = 0.0, surf_mom = 0.0, glob_mom = 0.0;
+  double lapse_min = 0.0, lapse_max = 0.0, r_c = 0.0;
+  int n_bad = 0;
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &SumD_local, &SumD);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Dmax_local, &Dmax);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &core_mom_local, &core_mom);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &surf_mom_local, &surf_mom);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &glob_mom_local, &glob_mom);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &lapse_min_local, &lapse_min);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &lapse_max_local, &lapse_max);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_c_local, &r_c);
+  gkyl_comm_allreduce(app->comm, GKYL_INT, GKYL_SUM, 1, &n_bad_local, &n_bad);
+
+  double r_Dmax_candidate = 1.0e300;
+  if (Dmax_local == Dmax) r_Dmax_candidate = r_Dmax_local;
+  double r_glob_mom_candidate = 1.0e300;
+  if (glob_mom_local == glob_mom) r_glob_mom_candidate = r_glob_mom_local;
+  double Dc_candidate = 0.0, lapse_c_candidate = 0.0;
+  if (r_c_local == r_c) {
+    Dc_candidate = Dc_local;
+    lapse_c_candidate = lapse_c_local;
+  }
+
+  double r_Dmax = 0.0, r_glob_mom = 0.0, Dc = 0.0, lapse_c = 0.0;
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_Dmax_candidate, &r_Dmax);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_glob_mom_candidate, &r_glob_mom);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Dc_candidate, &Dc);
+  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &lapse_c_candidate, &lapse_c);
+
+  if (diag_SumD0 < 0.0) diag_SumD0 = SumD;
+  double dSumD = SumD - diag_SumD0;
+
+  int rank = 0;
+  gkyl_comm_get_rank(app->comm, &rank);
+  if (rank == 0) {
+    printf("[DIAG] t=%.4f  Dc=%.6e lapse_c=%.6e  Dmax=%.6e @r=%.3f  core|mom|=%.3e surf|mom|=%.3e glob|mom|=%.3e @r=%.2f  lapse[%.4f,%.4f]  SumD=%.8e dSumD=%.3e bad=%d\n",
+      t_curr, Dc, lapse_c, Dmax, r_Dmax, core_mom, surf_mom, glob_mom, r_glob_mom, lapse_min, lapse_max, SumD, dSumD, n_bad);
+    fflush(stdout);
   }
 }
 
@@ -366,6 +464,7 @@ main(int argc, char **argv)
 
   struct gkyl_tm_trigger io_trig = { .dt = t_end / ctx.num_frames, .tcurr = t_curr, .curr = frame_curr };
   write_data(&io_trig, app, t_curr, false);
+  diag_track(app, &ctx, t_curr);
 
   double dt = fmin(t_end - t_curr, gkyl_moment_app_max_dt(app));
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -386,6 +485,7 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, t_curr, false);
+    diag_track(app, &ctx, t_curr);
 
     if (dt_init < 0.0) dt_init = status.dt_actual;
     else if (status.dt_actual < dt_failure_tol * dt_init) {

@@ -14,7 +14,12 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="'${BUILD_DATE}'" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+# -fno-finite-math-only: keep -ffast-math's speed (FMA, reciprocals, reassociation) but DO honor
+# NaN/Inf, so isfinite/comparison guards in the GR solvers are not deleted by the optimizer. ~3%
+# penalty. Matches upstream commit c57b6bc (A. Hakim's GR-Euler cleanup): plain -ffast-math silently
+# masks NaN on some compilers (clang/Mac) and fails on others (Intel/Stellar); honoring NaN makes the
+# behavior correct and portable, and lets us actually SEE (and fix) the near-vacuum / spacetime issues.
+CFLAGS ?= -O3 -g -ffast-math -fno-finite-math-only -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="'${BUILD_DATE}'" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
 
