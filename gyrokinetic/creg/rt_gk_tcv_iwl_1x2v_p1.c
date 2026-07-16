@@ -517,8 +517,10 @@ main(int argc, char **argv)
     },
 
     .bcs = {
-      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH },
+      { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+        .use_sheath_surrogate = true, .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann" },
+      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH,
+        .use_sheath_surrogate = true, .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann" },
     },
 
     .num_diag_moments = 9,
@@ -668,6 +670,7 @@ main(int argc, char **argv)
     .print_verbosity = {
       .enabled = true,
       .frequency = 0.01,
+      .disable_timings = true,
     }
   };
 

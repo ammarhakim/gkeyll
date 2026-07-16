@@ -224,7 +224,7 @@ create_ctx(void)
 
   // Source parameters.
   double P_SOL = 8.1e5; // Power injected in the SOL [W].
-  double sourceFloor = 1e15; // [1/m^3], small but non-zero to avoid numerical issues with very low densities.
+  double sourceFloor = 1e-10; // [1/m^3], small but non-zero to avoid numerical issues with very low densities.
 
   // Collisions;
   double nuFrac = 0.1;
@@ -238,17 +238,14 @@ create_ctx(void)
   // Box size.
   double Lz = Lt; // [m]
 
-  // Adaptive source parameters.
-  // - Injects a fixed power P_SOL (energy not adapted).
-  // - Adapts the particle injection to compensate the losses through the sheath.
   int num_sources = 1;
-  bool adapt_energy_srcCORE = false;
-  bool adapt_particle_srcCORE = true;
-  double energy_srcCORE = P_SOL; // What the source must inject in energy [W].
-  double particle_srcCORE = 0.0; // What the source must inject in particle [1/s].
-  double center_srcCORE[1] = {0.0}; // Source centered at z=0.
-  double sigma_srcCORE[1] = {Lz/16}; // Source width along z.
-  double floor_srcCORE = 1e-10;
+  // Fixed source:
+  // - Injects energy only in the core region (0.25MW per species).
+  // - The particles injection is only the one that are lost through the inner radial boundary.
+  double energy_src = P_SOL; // What the source must inject in energy [W]
+  double particle_src = Ti0/P_SOL;// What the source must inject in particle [1/s]
+  double center_src[2] = {0.0}; // This is the position of the ion source,
+  double sigma_src[2] = {Lz/6}; //  the electron source will be at +Lz/2.
 
   double x = Rc;
   double z_min = -Lz/2;
@@ -299,13 +296,13 @@ create_ctx(void)
     .sourceFloor = sourceFloor,
 
     .num_sources = num_sources,
-    .adapt_energy_srcCORE = adapt_energy_srcCORE,
-    .adapt_particle_srcCORE = adapt_particle_srcCORE,
-    .center_srcCORE = {center_srcCORE[0]},
-    .sigma_srcCORE = {sigma_srcCORE[0]},
-    .energy_srcCORE = energy_srcCORE,
-    .particle_srcCORE = particle_srcCORE,
-    .floor_srcCORE = floor_srcCORE,
+    .adapt_energy_srcCORE = false,
+    .adapt_particle_srcCORE = false,
+    .center_srcCORE = {center_src[0]},
+    .sigma_srcCORE = {sigma_src[0]},
+    .energy_srcCORE = energy_src,
+    .particle_srcCORE = particle_src,
+    .floor_srcCORE = 1e-10,
   
     .Nz = Nz,
     .Nvpar = Nvpar,
