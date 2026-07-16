@@ -38,7 +38,6 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1(
 
   double *ypotderL = &yfieldL[0]; 
   double *ypotderR = &yfieldR[0]; 
-  ypotderL[1] += -(2.4494897427831783*phiL[0]*q_*rdx2); 
   double *flux_surf_nodal = &flux_surf[0]; 
   double cfl = 0.0; 
   double bmag_quad = 0.0; 
@@ -88,7 +87,7 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1(
   ypotR_quad = 0.7071067811865475*(phiR[0]-1.7320508075688772*phiR[1])*q_; 
   ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
   ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
-  ypot_der_surf_n[0] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
+  ypot_der_surf_n[0] = ypot_der_avg_quad + gsign(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvpar_quad[1]*B3_quad/(m_*bmag_quad))*area_elem_quad/Jc_quad; 
 
@@ -102,7 +101,7 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1(
   ypotR_quad = 0.7071067811865475*(phiR[0]-1.7320508075688772*phiR[1])*q_; 
   ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
   ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
-  ypot_der_surf_n[1] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
+  ypot_der_surf_n[1] = ypot_der_avg_quad + gsign(alpha_quad)*ypot_der_jump_quad; 
 
   alpha_quad = (mvpar_quad[2]*B3_quad/(m_*bmag_quad))*area_elem_quad/Jc_quad; 
 
@@ -116,10 +115,20 @@ GKYL_CU_DH double gk_collisionless_flux_multib_boundary_edge_surfx_1x1v_ser_p1(
   ypotR_quad = 0.7071067811865475*(phiR[0]-1.7320508075688772*phiR[1])*q_; 
   ypot_der_avg_quad = (ypotL_quad + ypotR_quad)/2.0; 
   ypot_der_jump_quad = (ypotR_quad - ypotL_quad)/2.0; 
-  ypot_der_surf_n[2] = ypot_der_avg_quad + fabs(alpha_quad)*ypot_der_jump_quad; 
+  ypot_der_surf_n[2] = ypot_der_avg_quad + gsign(alpha_quad)*ypot_der_jump_quad; 
 
-  ypotderL[1] += -(2.4494897427831783*phiL[0]*q_*rdx2); 
-  ypotderR[1] += -(2.4494897427831783*phiL[0]*q_*rdx2); 
+  ypotderL[0] += 0.2777777777777778*ypot_der_surf_n[2]*rdx2+0.4444444444444444*ypot_der_surf_n[1]*rdx2+0.2777777777777778*ypot_der_surf_n[0]*rdx2; 
+  ypotderL[1] += 0.48112522432468824*ypot_der_surf_n[2]*rdx2+0.7698003589195012*ypot_der_surf_n[1]*rdx2+0.48112522432468824*ypot_der_surf_n[0]*rdx2; 
+  ypotderL[2] += 0.37267799624996495*ypot_der_surf_n[2]*rdx2-0.37267799624996495*ypot_der_surf_n[0]*rdx2; 
+  ypotderL[3] += 0.6454972243679029*ypot_der_surf_n[2]*rdx2-0.6454972243679029*ypot_der_surf_n[0]*rdx2; 
+  ypotderL[4] += 0.24845199749997662*ypot_der_surf_n[2]*rdx2-0.49690399499995325*ypot_der_surf_n[1]*rdx2+0.24845199749997662*ypot_der_surf_n[0]*rdx2; 
+  ypotderL[5] += 0.4303314829119352*ypot_der_surf_n[2]*rdx2-0.8606629658238704*ypot_der_surf_n[1]*rdx2+0.4303314829119352*ypot_der_surf_n[0]*rdx2; 
+  ypotderR[0] += -(0.2777777777777778*ypot_der_surf_n[2]*rdx2)-0.4444444444444444*ypot_der_surf_n[1]*rdx2-0.2777777777777778*ypot_der_surf_n[0]*rdx2; 
+  ypotderR[1] += 0.48112522432468824*ypot_der_surf_n[2]*rdx2+0.7698003589195012*ypot_der_surf_n[1]*rdx2+0.48112522432468824*ypot_der_surf_n[0]*rdx2; 
+  ypotderR[2] += 0.37267799624996495*ypot_der_surf_n[0]*rdx2-0.37267799624996495*ypot_der_surf_n[2]*rdx2; 
+  ypotderR[3] += 0.6454972243679029*ypot_der_surf_n[2]*rdx2-0.6454972243679029*ypot_der_surf_n[0]*rdx2; 
+  ypotderR[4] += -(0.24845199749997662*ypot_der_surf_n[2]*rdx2)+0.49690399499995325*ypot_der_surf_n[1]*rdx2-0.24845199749997662*ypot_der_surf_n[0]*rdx2; 
+  ypotderR[5] += 0.4303314829119352*ypot_der_surf_n[2]*rdx2-0.8606629658238704*ypot_der_surf_n[1]*rdx2+0.4303314829119352*ypot_der_surf_n[0]*rdx2; 
 
 
   return cfl*1.5*rdx2; 

@@ -5,6 +5,9 @@
 #include <gkyl_dg_geom.h>
 #include <gkyl_gk_dg_geom.h>
 
+#define gsign(x) (((x) > 0) - ((x) < 0))
+
+
 EXTERN_C_BEG
 
 GKYL_CU_DH double gk_collisionless_flux_surfx_1x1v_ser_p1(
