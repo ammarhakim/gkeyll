@@ -16,7 +16,11 @@ static void
 gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Solve the Poisson equation in 1x with the parallel FEM projection.
-  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
+//  gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
+  // divide rho_c by epsilon
+  gkyl_dg_div_op_range(app->species[0].m0.mem_geo, &app->basis, 0, field->phi_smooth, 0, field->rho_c, 0,
+                       field->epsilon, &app->local);
+
   // Apply periodic BCs to phi.
   int num_periodic_dir = app->num_periodic_dir, cdim = app->cdim;
   gkyl_comm_array_per_sync(app->comm, &app->local, &app->local_ext,
