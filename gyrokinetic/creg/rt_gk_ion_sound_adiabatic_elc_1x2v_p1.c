@@ -253,6 +253,7 @@ main(int argc, char **argv)
       .self_nu_ctx = &ctx,
     },
     
+    .write_omega_cfl = true,
     .num_diag_moments = 5,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP },
   };
