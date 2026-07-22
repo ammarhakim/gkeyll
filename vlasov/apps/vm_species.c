@@ -321,10 +321,42 @@ vm_species_apply_ic_dynamic(gkyl_vlasov_app *app, struct vm_species *vms, double
   // copy contents of initial conditions into buffer if specific BCs require them
   // *only works in x dimension for now*
   if (vms->lower_bc[0].type == GKYL_SPECIES_FIXED_FUNC) {
-    gkyl_bc_basic_buffer_fixed_func(vms->bc_lo[0], vms->bc_buffer_lo_fixed, vms->f);
+    // if a profile is supplied, use it
+    if (vms->lower_bc[0].aux_profile) {
+      gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&vms->bflux.boundary_grid[0], &app->basis,
+        app->poly_order + 1, 1, vms->lower_bc[0].aux_profile, vms->lower_bc[0].aux_ctx);
+      if (app->use_gpu) {
+        gkyl_proj_on_basis_advance(proj, 0.0, &vms->bflux.flux_r[0],
+          vms->bc_buffer_lo_fixed_host);
+        gkyl_array_copy(vms->bc_buffer_lo_fixed, vms->bc_buffer_lo_fixed_host);
+      } else {
+        gkyl_proj_on_basis_advance(proj, 0.0, &vms->bflux.flux_r[0],
+          vms->bc_buffer_lo_fixed);
+      }
+      gkyl_proj_on_basis_release(proj);
+    } else {
+      // else just copy the skin cell
+      gkyl_bc_basic_buffer_fixed_func(vms->bc_lo[0], vms->bc_buffer_lo_fixed, vms->f);
+    }
   }
   if (vms->upper_bc[0].type == GKYL_SPECIES_FIXED_FUNC) {
-    gkyl_bc_basic_buffer_fixed_func(vms->bc_up[0], vms->bc_buffer_up_fixed, vms->f);  
+    // if a profile is supplied, use it
+    if (vms->upper_bc[0].aux_profile) {
+      gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&vms->bflux.boundary_grid[1], &app->basis,
+        app->poly_order + 1, 1, vms->upper_bc[0].aux_profile, vms->upper_bc[0].aux_ctx);
+      if (app->use_gpu) {
+        gkyl_proj_on_basis_advance(proj, 0.0, &vms->bflux.flux_r[1],
+          vms->bc_buffer_up_fixed_host);
+        gkyl_array_copy(vms->bc_buffer_up_fixed, vms->bc_buffer_up_fixed_host);
+      } else {
+        gkyl_proj_on_basis_advance(proj, 0.0, &vms->bflux.flux_r[1],
+          vms->bc_buffer_up_fixed);
+      }
+      gkyl_proj_on_basis_release(proj);
+    } else {
+      // else just copy the skin cell
+      gkyl_bc_basic_buffer_fixed_func(vms->bc_up[0], vms->bc_buffer_up_fixed, vms->f);  
+    }
   }
 }
 
@@ -938,6 +970,8 @@ vm_species_release_dynamic(const gkyl_vlasov_app* app, const struct vm_species *
   gkyl_array_release(vms->bc_buffer);
   gkyl_array_release(vms->bc_buffer_lo_fixed);
   gkyl_array_release(vms->bc_buffer_up_fixed);
+  gkyl_array_release(vms->bc_buffer_lo_fixed_host);
+  gkyl_array_release(vms->bc_buffer_up_fixed_host);
 
   vm_species_moment_release(app, &vms->integ_moms); 
 
@@ -1039,6 +1073,8 @@ vm_species_new_dynamic(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
   // Buffers for fixed function BCs on distribution function.
   vms->bc_buffer_lo_fixed = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
   vms->bc_buffer_up_fixed = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
+  vms->bc_buffer_lo_fixed_host = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
+  vms->bc_buffer_up_fixed_host = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
 
   for (int d=0; d<cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
@@ -1055,8 +1091,10 @@ vm_species_new_dynamic(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
         bctype = GKYL_BC_ABSORB;
       else if (vms->lower_bc[d].type == GKYL_SPECIES_REFLECT)
         bctype = GKYL_BC_DISTF_REFLECT;
-      else if (vms->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
+      else if (vms->lower_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+        vms->calc_bflux = true;
         bctype = GKYL_BC_FIXED_FUNC;
+      }
 
       vms->bc_lo[d] = gkyl_bc_basic_new(d, GKYL_LOWER_EDGE, bctype, vms->basis_on_dev,
         &vms->lower_skin[d], &vms->lower_ghost[d], vms->f->ncomp, cdim, app->use_gpu);
@@ -1075,8 +1113,10 @@ vm_species_new_dynamic(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
         bctype = GKYL_BC_ABSORB;
       else if (vms->upper_bc[d].type == GKYL_SPECIES_REFLECT)
         bctype = GKYL_BC_DISTF_REFLECT;
-      else if (vms->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC)
+      else if (vms->upper_bc[d].type == GKYL_SPECIES_FIXED_FUNC) {
+        vms->calc_bflux = true;
         bctype = GKYL_BC_FIXED_FUNC;
+      }
 
       vms->bc_up[d] = gkyl_bc_basic_new(d, GKYL_UPPER_EDGE, bctype, vms->basis_on_dev,
         &vms->upper_skin[d], &vms->upper_ghost[d], vms->f->ncomp, cdim, app->use_gpu);

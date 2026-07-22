@@ -505,7 +505,8 @@ struct vm_species {
   struct gkyl_array *f, *f1, *fnew; // arrays for updates
   struct gkyl_array *cflrate; // CFL rate in each cell
   struct gkyl_array *bc_buffer; // buffer for BCs (used by bc_basic)
-  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs 
+  struct gkyl_array *bc_buffer_lo_fixed, *bc_buffer_up_fixed; // fixed buffers for time independent BCs
+  struct gkyl_array *bc_buffer_lo_fixed_host, *bc_buffer_up_fixed_host; // fixed buffers for time independent BCs 
 
   struct gkyl_array *f_host; // Host-side distribution function for I/O on GPUs.
   struct gkyl_array *cflrate_host; // Host-side cflrate for I/O on GPUs.
