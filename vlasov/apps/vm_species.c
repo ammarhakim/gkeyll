@@ -1073,8 +1073,10 @@ vm_species_new_dynamic(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, 
   // Buffers for fixed function BCs on distribution function.
   vms->bc_buffer_lo_fixed = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
   vms->bc_buffer_up_fixed = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
-  vms->bc_buffer_lo_fixed_host = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
-  vms->bc_buffer_up_fixed_host = mkarr(app->use_gpu, vms->basis.num_basis, buff_sz);
+  vms->bc_buffer_lo_fixed_host = app->use_gpu ? mkarr(false, vms->basis.num_basis,
+    buff_sz) : gkyl_array_acquire(vms->bc_buffer_lo_fixed);
+  vms->bc_buffer_up_fixed_host = app->use_gpu ? mkarr(false, vms->basis.num_basis,
+    buff_sz) : gkyl_array_acquire(vms->bc_buffer_up_fixed);
 
   for (int d=0; d<cdim; ++d) {
     // Lower BC updater. Copy BCs by default.
