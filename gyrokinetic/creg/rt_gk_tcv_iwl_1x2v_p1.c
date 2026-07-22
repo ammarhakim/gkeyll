@@ -31,11 +31,11 @@ struct gk_app_ctx {
   double x;
   double Lz;
   double z_min, z_max;
-  int num_cell_z, num_cell_vpar, num_cell_mu;
+  int Nz, Nvpar, Nmu;
   int cells[GKYL_MAX_DIM], poly_order;
   double vpar_max_elc, mu_max_elc, vpar_max_ion, mu_max_ion;
   // Simulation control parameters
-  double final_time, write_phase_freq;
+  double t_end, write_phase_freq;
   int num_frames, int_diag_calc_num, num_failures_max;
   double dt_failure_tol;
 };
@@ -358,16 +358,16 @@ struct gk_app_ctx create_ctx(void)
   double floor_src = 1e-10;
 
   // Grid parameters
-  int num_cell_z = 16;
-  int num_cell_vpar = 8;
-  int num_cell_mu = 8;
+  int Nz = 16;
+  int Nvpar = 8;
+  int Nmu = 8;
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5.*vte;
   double mu_max_elc = me*pow(4*vte,2)/(2*B0);
   double vpar_max_ion = 5.*vti;
   double mu_max_ion = mi*pow(4*vti,2)/(2*B0);
-  double final_time = 1.e-6; // Should take 8 time steps
+  double t_end = 1.e-6; // Should take 8 time steps
   int num_frames = 1;
   double write_phase_freq = 1.0;
   int int_diag_calc_num = num_frames*100;
@@ -402,15 +402,15 @@ struct gk_app_ctx create_ctx(void)
     .energy_src = energy_src, .particle_src = particle_src,
     .floor_src = floor_src,
 
-    .num_cell_z = num_cell_z,
-    .num_cell_vpar = num_cell_vpar,
-    .num_cell_mu = num_cell_mu,
-    .cells = {num_cell_z, num_cell_vpar, num_cell_mu},
+    .Nz = Nz,
+    .Nvpar = Nvpar,
+    .Nmu = Nmu,
+    .cells = {Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc, .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion, .mu_max_ion = mu_max_ion,
     .write_phase_freq = write_phase_freq,
-    .final_time = final_time, .num_frames = num_frames,
+    .t_end = t_end, .num_frames = num_frames,
     .int_diag_calc_num = int_diag_calc_num,
     .dt_failure_tol = dt_failure_tol,
     .num_failures_max = num_failures_max,
@@ -657,7 +657,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {
-      .t_end = ctx.final_time,
+      .t_end = ctx.t_end,
       .num_frames = ctx.num_frames,
       .write_phase_freq = ctx.write_phase_freq,
       .int_diag_calc_num = ctx.int_diag_calc_num,
