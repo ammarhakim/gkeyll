@@ -306,6 +306,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           break;
 
         case GKYL_SPECIES_SKIP:
+        case GKYL_SPECIES_RADIAL_FALLOFF:
           sp->lower_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_LOWER_EDGE, nghost,
             bc_skip, 0);
@@ -344,6 +345,7 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
           break;
 
         case GKYL_SPECIES_SKIP:
+        case GKYL_SPECIES_RADIAL_FALLOFF:
           sp->upper_bc[dir] = gkyl_wv_apply_bc_new(
             &app->grid, mom_sp->equation, app->geom, dir, GKYL_UPPER_EDGE, nghost,
             bc_skip, 0);
@@ -410,6 +412,90 @@ moment_species_init(const struct gkyl_moment *mom, const struct gkyl_moment_spec
   sp->is_first_q_write_call = true;
 }
 
+static double
+flat_vacuum_einstein_state(enum gkyl_eqn_type type, int c)
+{
+  double val = 0.0;
+  if (c == 0 || c == 4 || c == 8 || c == 9) {
+    val = 1.0;
+  }
+  else if (type == GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL && c == 64) {
+    val = 1.0;
+  }
+
+  return val;
+}
+
+
+
+static double
+radial_falloff_ghost(double qinf, double skin, double rs, double rg)
+{
+  double radial_fac = 1.0;
+  if (rg > 1.0e-14) {
+    radial_fac = rs / rg;
+  }
+
+  return qinf + radial_fac * (skin - qinf);
+}
+
+static void
+moment_species_apply_radial_falloff_bc(gkyl_moment_app *app,
+  const struct moment_species *sp, int dir, enum gkyl_edge_loc edge,
+  struct gkyl_array *f)
+{
+  if (sp->equation->type != GKYL_EQN_VACUUM_EINSTEIN &&
+      sp->equation->type != GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL) {
+    return;
+  }
+
+  const struct gkyl_range *ghost_rng = 0;
+  if (edge == GKYL_LOWER_EDGE) {
+    ghost_rng = &app->skin_ghost.lower_ghost[dir];
+  }
+  else {
+    ghost_rng = &app->skin_ghost.upper_ghost[dir];
+  }
+
+  int edge_idx = app->local.lower[dir];
+  int fact = -1;
+  if (edge == GKYL_UPPER_EDGE) {
+    edge_idx = app->local.upper[dir];
+    fact = 1;
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, ghost_rng);
+  while (gkyl_range_iter_next(&iter)) {
+    int sidx[GKYL_MAX_DIM];
+    for (int d = 0; d < app->ndim; d++) {
+      sidx[d] = iter.idx[d];
+    }
+    sidx[dir] = 2 * edge_idx - iter.idx[dir] + fact;
+
+    double xg[3] = { 0.0, 0.0, 0.0 };
+    double xs[3] = { 0.0, 0.0, 0.0 };
+    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xg);
+    gkyl_rect_grid_cell_center(&app->grid, sidx, xs);
+
+    double rg = 0.0, rs = 0.0;
+    for (int d = 0; d < app->ndim; d++) {
+      rg += xg[d] * xg[d];
+      rs += xs[d] * xs[d];
+    }
+    rg = sqrt(rg);
+    rs = sqrt(rs);
+
+    const double *skin = gkyl_array_cfetch(f, gkyl_range_idx(&app->local_ext, sidx));
+    double *ghost = gkyl_array_fetch(f, gkyl_range_idx(&app->local_ext, iter.idx));
+    for (int c = 0; c < sp->equation->num_equations; c++) {
+      double qinf = flat_vacuum_einstein_state(sp->equation->type, c);
+      ghost[c] = radial_falloff_ghost(qinf, skin[c], rs, rg);
+
+    }
+  }
+}
+
 // apply BCs to species
 void
 moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
@@ -425,10 +511,18 @@ moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
       // handle non-wedge BCs
-      if (sp->lower_bct[d] != GKYL_SPECIES_WEDGE)
+      if (sp->lower_bct[d] == GKYL_SPECIES_RADIAL_FALLOFF) {
+        moment_species_apply_radial_falloff_bc(app, sp, d, GKYL_LOWER_EDGE, f);
+      }
+      else if (sp->lower_bct[d] != GKYL_SPECIES_WEDGE) {
         gkyl_wv_apply_bc_advance(sp->lower_bc[d], tcurr, &app->local, f);
-      if (sp->upper_bct[d] != GKYL_SPECIES_WEDGE)
+      }
+      if (sp->upper_bct[d] == GKYL_SPECIES_RADIAL_FALLOFF) {
+        moment_species_apply_radial_falloff_bc(app, sp, d, GKYL_UPPER_EDGE, f);
+      }
+      else if (sp->upper_bct[d] != GKYL_SPECIES_WEDGE) {
         gkyl_wv_apply_bc_advance(sp->upper_bc[d], tcurr, &app->local, f);
+      }
 
       // wedge BCs for upper/lower must be handled in one shot
       if (sp->lower_bct[d] == GKYL_SPECIES_WEDGE)

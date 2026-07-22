@@ -64,14 +64,14 @@ tov_spatial_metric_tensor(const struct gkyl_gr_spacetime* spacetime, const doubl
     }
   }
   else {
-    // Areal (static) gauge: gamma_ij = delta_ij + (A - 1) n_i n_j (diagonal-only)
+    // Areal (static) gauge: gamma_ij = delta_ij + (A - 1) n_i n_j.
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         if (i == j) {
           (*spatial_metric_tensor)[i][j] = 1.0 + ((A - 1.0) * n[i] * n[j]);
         }
         else {
-          (*spatial_metric_tensor)[i][j] = 0.0;
+          (*spatial_metric_tensor)[i][j] = (A - 1.0) * n[i] * n[j];
         }
       }
     }

@@ -51,6 +51,7 @@ enum gkyl_species_bc_type {
   GKYL_SPECIES_EMISSION, // Emission spectrum BCs
   GKYL_SPECIES_ZERO_FLUX, // Zero flux BCs; must be applied on both lower and upper BC
   GKYL_SPECIES_RECYCLE, // Recycling BCs
+  GKYL_SPECIES_RADIAL_FALLOFF, // Algebraic 1/r radial-falloff extrapolation of the ghost cells toward an asymptotic state, from the spherical outgoing-wave ansatz f = f0 + u(r - v t)/r: q_ghost - q_inf = (r_skin / r_ghost) (q_skin - q_inf). (Einstein Toolkit NewRad thorn eq 1; Alcubierre et al. gr-qc/0206072)
 };
 
 // Boundary conditions on fields

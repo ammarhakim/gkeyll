@@ -290,7 +290,7 @@ diag_track(gkyl_moment_app *app, struct gr_tov_cart_ctx *ctx, double t_curr)
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app->local);
   while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&app->local, iter.idx);
+    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
     const double *fl = gkyl_array_cfetch(fluid, loc);
 
     double xc[3];
