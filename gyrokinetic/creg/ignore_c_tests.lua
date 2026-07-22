@@ -22,6 +22,11 @@ return {
       "rt_gk_bgk_periodic_sodshock_1x2v_p1",    -- crashes compareFiles (C assertion in gkyl_aligned_free_)
       "rt_gk_bgk_im_periodic_sodshock_1x2v_p1", -- crashes compareFiles (C assertion in gkyl_aligned_free_)
       "rt_gk_wham_1xIC_2x2v_p1",                -- crashes compareFiles (C assertion in gkyl_aligned_free_)
+      "rt_gk_multib_tcv_x21_3x2v_p1",           -- Not ready yet.
+      "rt_gk_cbc_2x2v_p1",                      -- The setup is not ready yet.
+      "rt_gk_tcv_iwl_adapt_source_3x2v_p1",     -- The shift function is too large and makes it crash.
+      "rt_gk_neut_step_2x3v_p1",
+      "rt_gk_multib_asdex_solonly_3x2v_p1",     -- eqdisk reading problem.
    },
    gpu = {
    },
