@@ -356,7 +356,7 @@ gk_species_write_vcutsq(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, mpe_vcutsq};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
-  const char *fmt = "%s-%s_bcvcutsq_%s%s_%d.gkyl";
+  const char *fmt = "%s-%s_bc_%s%s_vcutsq_%d.gkyl";
   int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, dir_str, edge_str, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
   snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, dir_str, edge_str, frame);
