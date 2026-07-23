@@ -219,8 +219,7 @@ struct gkyl_gyrokinetic_bc {
   struct gkyl_gyrokinetic_emission_inp emission; 
   bool write_diagnostics; // Whether to output diagnostics.
   int bidx; // Block index (for multiblock solver).
-  bool use_sheath_surrogate; // Whether to use surrogate sheath BC to determine vcut (only used if type is SHEATH).
-  const char *surrogate_model_path; // Path to the .kann surrogate model file.
+  char aux_str[128];  // Auxiliary string (e.g. path to surrogate model for sheath BCs).
 };
 
 struct gkyl_gyrokinetic_geometry {

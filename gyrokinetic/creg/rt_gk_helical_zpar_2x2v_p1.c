@@ -461,12 +461,10 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING,
-        .use_sheath_surrogate = true,
-        .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING,
-        .use_sheath_surrogate = true,
-        .surrogate_model_path = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
     },
 
     .anomalous_diffusion = {
@@ -548,10 +546,10 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING,
-        .use_sheath_surrogate = false },
-      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING,
-        .use_sheath_surrogate = false },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann", },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann", },
     },
     
     .anomalous_diffusion = {

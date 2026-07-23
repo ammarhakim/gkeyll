@@ -116,6 +116,7 @@ struct gkyl_bc_sheath_gyrokinetic_kernels {
 struct gkyl_bc_sheath_gyrokinetic {
   int dir; // Direction perpendicular to the sheath boundary.
   int cdim; // Conf-space dimensionality.
+  enum gkyl_gyrokinetic_bc_type type; // Type of gyrokinetic BC.
   enum gkyl_edge_loc edge; // Lower or upper boundary.
   const struct gkyl_basis *basis; // Phase-space basis.
   bool use_gpu; // Whether to run on GPU.

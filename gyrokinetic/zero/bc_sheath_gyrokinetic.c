@@ -5,6 +5,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_array_rio.h>
 #include <assert.h>
+#include <gkyl_gk_bc_type.h>
 
 static struct gkyl_array*
 mkarr(bool on_gpu, long nc, long size)
@@ -19,14 +20,14 @@ mkarr(bool on_gpu, long nc, long size)
 
 static void
 bc_sheath_gyrokinetic_diag_init(struct gkyl_bc_sheath_gyrokinetic *up,
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_range *phase_global)
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_range *phase_local)
 {
   // Decomposition is only along the parallel direction, so the (perpendicular
   // conf-space + mu) vcutsq array is owned entirely by the single rank abutting
   // this edge's boundary. That rank (non-empty skin range) writes it out
   // serially; all others do nothing.
   up->vcutsq_write = up->skin_r->volume > 0;
-  if (!phase_grid || !phase_global || !up->vcutsq_write)
+  if (!phase_grid || !phase_local || !up->vcutsq_write)
     return;
 
   int cdim = up->cdim;
@@ -46,8 +47,8 @@ bc_sheath_gyrokinetic_diag_init(struct gkyl_bc_sheath_gyrokinetic *up,
   int c = 0;
   for (int d=0; d<cdim-1; d++) { // perpendicular conf-space directions.
     int idx_lo = up->vcutsq_local.lower[c], idx_up = up->vcutsq_local.upper[c];
-    vc_lo[c] = phase_grid->lower[d] + (idx_lo - phase_global->lower[d])*phase_grid->dx[d];
-    vc_up[c] = phase_grid->lower[d] + (idx_up - phase_global->lower[d] + 1)*phase_grid->dx[d];
+    vc_lo[c] = phase_grid->lower[d] + (idx_lo - phase_local->lower[d])*phase_grid->dx[d];
+    vc_up[c] = phase_grid->lower[d] + (idx_up - phase_local->lower[d] + 1)*phase_grid->dx[d];
     vc_cells[c] = idx_up - idx_lo + 1;
     c++;
   }
@@ -187,8 +188,8 @@ void bc_gksheath_update_vcutsq_const(const struct gkyl_bc_sheath_gyrokinetic *up
 struct gkyl_bc_sheath_gyrokinetic*
 gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis *basis,
   const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_velocity_map *vel_map,
-  int cdim, double q2Dm, bool use_surrogate, const char *surrogate_model_path,
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_range *phase_global, bool use_gpu)
+  int cdim, double q2Dm, enum gkyl_gyrokinetic_bc_type type, const char *surrogate_model_path,
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_range *phase_local, unsigned int poly_order, bool use_gpu)
 {
 
   // Allocate space for new updater.
@@ -197,7 +198,6 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->dir = dir;
   up->cdim = cdim;
   up->edge = edge;
-  up->use_surrogate = use_surrogate;
   up->use_gpu = use_gpu;
   up->q2Dm = q2Dm;
   up->basis = basis;
@@ -205,6 +205,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->ghost_r = ghost_r;
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
   int vdim = skin_r->ndim - cdim;
+  up->type = type;
   up->update_vcutsq = bc_gksheath_update_vcutsq_const;
   up->vcutsq_dim = cdim-1 + vdim-1;
 
@@ -214,17 +215,6 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   up->vcutsq_write = false;
   up->vcutsq_ho = NULL;
 
-  // Get polynomial order
-  int poly_order;
-  if (use_gpu) {
-    struct gkyl_basis *basis_ho;
-    basis_ho = gkyl_malloc(sizeof(struct gkyl_basis));
-    gkyl_cu_memcpy(basis_ho, basis, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_D2H);
-    poly_order = basis_ho->poly_order;
-    gkyl_free(basis_ho);
-  } else {
-    poly_order = basis->poly_order;
-  }
   gkyl_cart_modal_serendip(&up->vcutsq_basis, up->vcutsq_dim, poly_order);
 
   int lower[up->vcutsq_dim], upper[up->vcutsq_dim];
@@ -244,7 +234,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   gkyl_range_init(&up->perp_local, up->cdim-1, perp_lower, perp_upper);
   up->vcutsq = mkarr(use_gpu, up->vcutsq_basis.num_basis, up->vcutsq_local.volume);
   
-  if (use_surrogate) {
+  if (type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
     assert(vdim > 1);
     assert(q2Dm == -2*GKYL_ELEMENTARY_CHARGE/GKYL_ELECTRON_MASS); // The surrogate is only valid for electrons.
     // Assert existence of surrogate model path.
@@ -277,7 +267,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   if (use_gpu) {
     up->kernels_cu = gkyl_cu_malloc(sizeof(struct gkyl_bc_sheath_gyrokinetic_kernels));
     gkyl_bc_gksheath_choose_reflectedf_kernel_cu(basis, edge, up->kernels_cu);
-    if (use_surrogate) {
+    if (type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
       gkyl_bc_gksheath_choose_surrogate_kernels_cu(basis, edge, up->kernels_cu);
     } else {
       gkyl_bc_gksheath_choose_const_kernels_cu(basis, edge, up->kernels_cu);
@@ -285,7 +275,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
   } else {
     up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
     assert(up->kernels->reflectedf);
-    if (use_surrogate) {
+    if (type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
       bc_gksheath_choose_vcutsq_surr_kernels(basis, edge, up->kernels);
     } else {
       bc_gksheath_choose_vcutsq_const_kernels(basis, edge, up->kernels);
@@ -295,7 +285,7 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 #else
   up->kernels->reflectedf = bc_gksheath_choose_reflectedf_kernel(basis, edge);
   assert(up->kernels->reflectedf);
-  if (use_surrogate) {
+  if (type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
     bc_gksheath_choose_vcutsq_surr_kernels(basis, edge, up->kernels);
   } else {
     bc_gksheath_choose_vcutsq_const_kernels(basis, edge, up->kernels);
@@ -304,16 +294,22 @@ gkyl_bc_sheath_gyrokinetic_new(int dir, enum gkyl_edge_loc edge, const struct gk
 #endif
 
   // Set up diagnostic output of the sheath velocity cutoff (vcutsq).
-  bc_sheath_gyrokinetic_diag_init(up, phase_grid, phase_global);
+  bc_sheath_gyrokinetic_diag_init(up, phase_grid, phase_local);
 
   return up;
 }
 
 /* Modeled after gkyl_array_flip_copy_to_buffer_fn */
 void
-gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, 
+gkyl_bc_sheath_gyrokinetic_advance(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
+  const struct gkyl_array *phi_wall, const struct gkyl_array *density, const struct gkyl_array *temperature,
+  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle,
   struct gkyl_array *distf, const struct gkyl_range *conf_r)
 {
+
+  // Update the sheath velocity cutoff.
+  up->update_vcutsq(up, phi, phi_wall, density, temperature, bmag, bimpact_angle, conf_r);
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_bc_sheath_gyrokinetic_advance_cu(up, distf, conf_r);
@@ -388,13 +384,6 @@ gkyl_bc_sheath_gyrokinetic_write_vcutsq(struct gkyl_bc_sheath_gyrokinetic *up,
   // Serial write: this rank owns the entire (perp conf-space + mu) array.
   gkyl_grid_sub_array_write(&up->vcutsq_grid, &up->vcutsq_diag_range, meta,
     up->vcutsq_ho, fname);
-}
-
-void gkyl_bc_sheath_gyrokinetic_update_vcutsq(const struct gkyl_bc_sheath_gyrokinetic *up, const struct gkyl_array *phi, 
-  const struct gkyl_array *phi_wall, const struct gkyl_array *dens, const struct gkyl_array *temp,
-  const struct gkyl_array *bmag, const struct gkyl_array *bimpact_angle, const struct gkyl_range *conf_r)
-{
-  return up->update_vcutsq(up, phi, phi_wall, dens, temp, bmag, bimpact_angle, conf_r);
 }
 
 void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
