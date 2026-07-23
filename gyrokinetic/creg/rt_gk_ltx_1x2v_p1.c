@@ -313,7 +313,7 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = R_rtheta(r, z, ctx);
   double Z   = kappa*r*sin(z);
-  double phi = q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = q0/r0*y + alpha(r, z, 0, ctx);
   // Map to Cartesian (X, Y, Z) coordinates.
   double X = R*cos(phi);
   double Y = R*sin(phi);
@@ -323,11 +323,12 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 
 void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *ctx)
 {
+  double x = xc[0], y = xc[1], z = xc[2];
+
   struct gk_app_ctx *app = ctx;
   double r0 = app->r0;
   double q0 = app->q0;
 
-  double x = 0., y = 0., z = xc[2];
   double r = x+r0;
   double Bt = Bphi(R_rtheta(r,z,ctx),ctx);
   double Bp = dPsidr(r,z,ctx)/R_rtheta(r,z,ctx)*gradr(r,z,ctx);
@@ -337,13 +338,13 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
   double den = sqrt(pow(drdtheta,2) + pow(dzdtheta,2));
   double B_r = Bp*drdtheta/den;
   double B_z = Bp*dzdtheta/den;
-  double phi = -q0/r0*y - alpha(r, z, 0, ctx);
+  double phi = q0/r0*y + alpha(r, z, 0, ctx);
   double R   = R_rtheta(r, z, ctx);
 
   // xc are computational coords. 
   // Set Cartesian components of magnetic field.
-  fout[0] = B_r * cos(phi) - Bt * sin(phi);
-  fout[1] = B_r * sin(phi) + Bt * cos(phi);
+  fout[0] = B_r * cos(phi) + Bt * sin(phi);
+  fout[1] = B_r * sin(phi) - Bt * cos(phi);
   fout[2] = B_z;
 }
 
