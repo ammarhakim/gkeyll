@@ -338,7 +338,7 @@ gk_species_copy_range_static(struct gkyl_array *out,
 // Write out the sheath BC velocity cutoff (vcutsq) at one boundary.
 static void
 gk_species_write_vcutsq(gkyl_gyrokinetic_app* app, struct gk_species *gks,
-  struct gkyl_bc_sheath_gyrokinetic *bc_sheath, const char *edge_str, double tm, int frame)
+  struct gkyl_bc_sheath_gyrokinetic *bc_sheath, const char *dir_str, const char *edge_str, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
 
@@ -356,10 +356,10 @@ gk_species_write_vcutsq(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_dg, mpe_vcutsq};
   struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
-  const char *fmt = "%s-%s_vcutsq_%s_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, edge_str, frame);
+  const char *fmt = "%s-%s_bcvcutsq_%s%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, dir_str, edge_str, frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, edge_str, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, dir_str, edge_str, frame);
 
   gkyl_bc_sheath_gyrokinetic_write_vcutsq(bc_sheath, mt, fileNm);
 
@@ -404,9 +404,9 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   // Write out the sheath BC velocity cutoff (vcutsq).
   int par_dir = app->cdim-1; // Sheath BC acts in the parallel direction.
   if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE || gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)
-    gk_species_write_vcutsq(app, gks, gks->bc_sheath_lo, "lower", tm, frame);
+    gk_species_write_vcutsq(app, gks, gks->bc_sheath_lo,"z","lower", tm, frame);
   if (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE || gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)
-    gk_species_write_vcutsq(app, gks, gks->bc_sheath_up, "upper", tm, frame);
+    gk_species_write_vcutsq(app, gks, gks->bc_sheath_up, "z", "upper", tm, frame);
 }
 
 static void
