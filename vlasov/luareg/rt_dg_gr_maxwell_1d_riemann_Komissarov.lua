@@ -1,17 +1,19 @@
 local Vlasov = G0.Vlasov
 -- Rectangular Riemann discontinuity test for GR Maxwell's equations. Tests flat space limit in 
 -- Rectangular coordinate with M = 0, a = 0.
--- See: https://ammar-hakim.org/sj/je/je6/je6-maxwell-solvers.html#problem-3-1d-riemann-problem
+-- See: C3.2 From: S. S. (2004). Electrodynamics of black hole magnetospheres. Monthly Notices of the Royal Astronomical Society, 350(1), 407-426.
+-- Panel A.
+
 
 -- Simulation parameters.
-Nx = 100 -- Cell count (x-direction).
-Lx = 1.0 -- Domain size (x-direction).
+Nx = 200 -- Cell count (x-direction).
+Lx = 1.5 -- Domain size (x-direction).
 poly_order = 2 -- Polynomial order.
 basis_type = "serendipity" -- Basis function set.
 time_stepper = "rk3" -- Time integrator.
-cfl_frac = 0.1 -- CFL coefficient.
+cfl_frac = 1.0 -- CFL coefficient.
 
-t_end = 0.25 -- Final simulation time.
+t_end = 1.0 -- Final simulation time.
 num_frames = 1 -- Number of output frames.
 field_energy_calcs = GKYL_MAX_INT -- Number of times to calculate field energy.
 integrated_mom_calcs = GKYL_MAX_INT -- Number of times to calculate integrated moments.
@@ -19,10 +21,11 @@ integrated_L2_f_calcs = GKYL_MAX_INT -- Number of times to calculate L2 norm of 
 dt_failure_tol = 1.0e-4 -- Minimum allowable fraction of initial time-step.
 num_failures_max = 20 -- Maximum allowable number of consecutive small time-steps.
 
-midplane = 0.5 -- Midplane inital discontinuity in moments
+midplane = 0.0 -- Midplane inital discontinuity in moments
 
 massBH = 0.0 -- Mass of the black hole
 spinBH = 0.0 -- Spin parameter, a = J/M, of the black hole ( Kerr-Schild, coordinates , |a| <= M).
+B0 = 0.5
 
 vlasovApp = Vlasov.App.new {
 
@@ -46,7 +49,7 @@ vlasovApp = Vlasov.App.new {
   integratedMomentCalcs = integrated_mom_calcs,
   dtFailureTol = dt_failure_tol,
   numFailuresMax = num_failures_max,
-  lower = { 0.0 },
+  lower = { -Lx },
   upper = { Lx },
   cells = { Nx },
   cflFrac = cfl_frac,
@@ -90,17 +93,17 @@ vlasovApp = Vlasov.App.new {
 
       if x < midplane then
         Dx = 0.0
-        Dy = 1.0
+        Dy = 0.0
         Dz = 0.0
         Bx = 1.0
-        By = -0.75
+        By = B0
         Bz = 0.0
       else
         Dx = 0.0
-        Dy = -1.0
+        Dy = 0.0
         Dz = 0.0
         Bx = 1.0
-        By = 0.75
+        By = -B0
         Bz = 0.0
       end
 
