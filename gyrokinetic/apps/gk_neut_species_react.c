@@ -23,7 +23,7 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
         gks_elc->local, app->local, fin[react->elc_idx[i]]);
 
       // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -40,7 +40,7 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
       gkyl_array_set_range(react->Jm0_elc[i], 1.0, gks_elc->lte.moms.marr, &app->local);
 
       // divide out the Jacobian from the electron density for computing reaction rates
-      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, app->basis, 
+      gkyl_dg_div_op_range(gks_elc->lte.moms.mem_geo, &app->basis, 
         0, gks_elc->lte.moms.marr, 0, gks_elc->lte.moms.marr, 0, 
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
@@ -49,8 +49,8 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
         gks_ion->local, app->local, fin[react->ion_idx[i]]);
 
       // divide out the Jacobian from the ion density for use in Maxwellian projection
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
-        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis,
+        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0,
         app->gk_geom->geo_int.jacobgeo, &app->local);
 
       // Construct ion vector velocity upar b_i
@@ -73,8 +73,8 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
         gks_ion->local, app->local, fin[react->ion_idx[i]]);
 
       // divide out the Jacobian from the ion density
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, app->basis, 
-        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0, 
+      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis,
+        0, gks_ion->lte.moms.marr, 0, gks_ion->lte.moms.marr, 0,
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       // Construct ion vector velocity upar b_i
@@ -96,8 +96,8 @@ gkns_react_cross_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_neut_sp
       gkyl_array_set_range(react->Jm0_partner[i], 1.0, gkns_partner->lte.moms.marr, &app->local);
 
       // Divide out the Jacobian from the partner density.
-      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, app->basis, 
-        0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0, 
+      gkyl_dg_div_op_range(gkns_partner->lte.moms.mem_geo, &app->basis,
+        0, gkns_partner->lte.moms.marr, 0, gkns_partner->lte.moms.marr, 0,
         app->gk_geom->geo_int.jacobgeo, &app->local); 
 
       // prim_vars_neut_gk is returned to prim_vars[i] here.
@@ -202,9 +202,9 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns
   struct timespec wtm = gkyl_wall_clock();
 
   // Package metadata.
-  gkyl_msgpack_map_elem_set_double(app->io_meta_grid_len, app->io_meta_grid, "time", tm);
-  gkyl_msgpack_map_elem_set_uint(app->io_meta_grid_len, app->io_meta_grid, "frame", frame);
-  int io_meta_len[] = {app->io_meta_grid_len, app->gk_geom->io_meta_basic_len, 1};
+  gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len, gkns->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len, gkns->io_meta_conf, "frame", frame);
+  int io_meta_len[] = {gkns->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
   struct gkyl_msgpack_data *mt;
 
   if (app->use_gpu)
@@ -221,7 +221,7 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns
     struct gkyl_msgpack_map_elem desc[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Ionization reaction rate." }
     };
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc};
     mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
   
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
@@ -238,7 +238,7 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns
     struct gkyl_msgpack_map_elem desc[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Recombination reaction rate." }
     };
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc};
     mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
   
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
@@ -255,7 +255,7 @@ gkns_react_write_enabled(gkyl_gyrokinetic_app* app, struct gk_neut_species *gkns
     struct gkyl_msgpack_map_elem desc[] = {
       { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Charge exchange reaction rate." }
     };
-    const struct gkyl_msgpack_map_elem* io_meta[] = {app->io_meta_grid, app->gk_geom->io_meta_basic, desc};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {gkns->io_meta_conf, app->gk_geom->io_meta_basic, desc};
     mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
   
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, 
