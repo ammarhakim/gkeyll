@@ -401,7 +401,7 @@ void gkyl_bc_sheath_gyrokinetic_release(struct gkyl_bc_sheath_gyrokinetic *up)
   if (up->vcutsq_diag_on && up->vcutsq_ho)
     gkyl_array_release(up->vcutsq_ho);
 
-  if (up->use_surrogate) {
+  if (up->type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
     gkyl_kann_net_release(up->kann_net);
     gkyl_kn_vec_release(up->kann_inp);
     gkyl_kn_vec_release(up->kann_out);

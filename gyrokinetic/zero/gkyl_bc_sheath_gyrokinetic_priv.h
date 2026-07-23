@@ -121,7 +121,6 @@ struct gkyl_bc_sheath_gyrokinetic {
   const struct gkyl_basis *basis; // Phase-space basis.
   bool use_gpu; // Whether to run on GPU.
   double q2Dm; // charge-to-mass ratio times 2.
-  bool use_surrogate; // Whether to use surrogate sheath BC to determine vcut.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels;  // reflectedf kernel.
   struct gkyl_bc_sheath_gyrokinetic_kernels *kernels_cu;  // device copy.
   const struct gkyl_range *skin_r, *ghost_r; // Skin and ghost ranges.
