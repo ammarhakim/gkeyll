@@ -1130,7 +1130,7 @@ struct gk_species {
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms);
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt);
-  void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  void (*bc_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     struct gkyl_array *f);
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
   void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
@@ -3250,7 +3250,7 @@ void gk_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_species *gk
  * @param species Pointer to species.
  * @param f Field to apply BCs.
  */
-void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
+void gk_species_apply_bc(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f);
 
 /**
  * Fill stat object in app with collision timers.

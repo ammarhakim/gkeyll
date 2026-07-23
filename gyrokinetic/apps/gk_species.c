@@ -198,7 +198,7 @@ gk_species_rhs_implicit_static(gkyl_gyrokinetic_app *app, struct gk_species *spe
 }
 
 static void
-gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -216,10 +216,11 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
           gk_species_moment_calc(&species->sheath_moms, species->local, app->local, f);
+          gk_species_moment_diag_jacobgeo_div(app, &species->sheath_moms, species->sheath_moms.marr, species->sheath_moms.marr);
           gkyl_array_set_offset_range(species->dens_sheath, 1.0, species->sheath_moms.marr, 0, &app->local);
           gkyl_array_set_offset_range(species->temp_sheath, species->info.mass, species->sheath_moms.marr, 2*app->basis.num_basis, &app->local);
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath, 
+          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth,
+            app->field->phi_wall_lo, species->dens_sheath, species->temp_sheath,
             app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[d].bimpactangle, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
@@ -246,10 +247,11 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
           break;
         case GKYL_BC_GK_SPECIES_SHEATH_SURROGATE:
           gk_species_moment_calc(&species->sheath_moms, species->local, app->local, f);
+          gk_species_moment_diag_jacobgeo_div(app, &species->sheath_moms, species->sheath_moms.marr, species->sheath_moms.marr);
           gkyl_array_set_offset_range(species->dens_sheath, 1.0, species->sheath_moms.marr, 0, &app->local);
           gkyl_array_set_offset_range(species->temp_sheath, species->info.mass, species->sheath_moms.marr, 2*app->basis.num_basis, &app->local);
-          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall_up, species->dens_sheath, species->temp_sheath, 
+          gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth,
+            app->field->phi_wall_up, species->dens_sheath, species->temp_sheath,
             app->gk_geom->geo_int.bmag, app->gk_geom->geo_surf[d].bimpactangle, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
@@ -283,7 +285,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 }
 
 static void
-gk_species_apply_bc_static(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc_static(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f)
 {
   // do nothing
 }
@@ -401,9 +403,9 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
 
   // Write out the sheath BC velocity cutoff (vcutsq).
   int par_dir = app->cdim-1; // Sheath BC acts in the parallel direction.
-  if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)
+  if (gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE || gks->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)
     gk_species_write_vcutsq(app, gks, gks->bc_sheath_lo, "lower", tm, frame);
-  if (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)
+  if (gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE || gks->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING)
     gk_species_write_vcutsq(app, gks, gks->bc_sheath_up, "upper", tm, frame);
 }
 
@@ -943,7 +945,8 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
 
   for (int d=0; d<cdim; ++d) {
     // Lower BC.
-    if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
+    if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING ||
+        gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
       struct gkyl_range *sol_skin = gk_app_inp->geometry.has_LCFS? &gks->local_lower_skin_par_sol : &gks->local_lower_skin[d];
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_lower_ghost_par_sol : &gks->local_lower_ghost[d];
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev,
@@ -1005,7 +1008,8 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
     }
 
     // Upper BC.
-    if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING) {
+    if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING ||
+        gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH_SURROGATE) {
       struct gkyl_range *sol_skin = gk_app_inp->geometry.has_LCFS? &gks->local_upper_skin_par_sol : &gks->local_upper_skin[d];
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_upper_ghost_par_sol : &gks->local_upper_ghost[d];
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev,
@@ -2020,7 +2024,7 @@ gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
 }
 
 void
-gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc(gkyl_gyrokinetic_app *app, struct gk_species *species, struct gkyl_array *f)
 {
   species->bc_func(app, species, f);
 }
