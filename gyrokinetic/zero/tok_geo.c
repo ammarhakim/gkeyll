@@ -237,6 +237,87 @@ arc_length_func(double Z, void *ctx)
   return ival;
 }
 
+struct sep_segment_ctx {
+  const struct gkyl_tok_geo *geo;
+  double psi, zlo, target, rclose;
+  double *memo;
+};
+
+static double
+sep_segment_func(double Z, void *ctx)
+{
+  struct sep_segment_ctx *sctx = ctx;
+  return integrate_psi_contour_memo(sctx->geo, sctx->psi,
+    sctx->zlo, Z, sctx->rclose, true, false, sctx->memo)-sctx->target;
+}
+
+static bool
+tok_half_domain_sep_z(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, int it, const struct gkyl_range *nrange,
+  double *z)
+{
+  const int th_idx = 2;
+  if (!inp->half_domain || arc_ctx->psi != arc_ctx->geo->psisep)
+    return false;
+
+  double zx = arc_ctx->geo->use_cubics
+    ? arc_ctx->geo->efit->Zxpt_cubic[0] : arc_ctx->geo->efit->Zxpt[0];
+  double za = arc_ctx->geo->zmaxis, z0 = 0.0, z1 = 0.0, rclose = 0.0;
+  double *memo = 0;
+  switch (inp->ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_CORE_R:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
+      z0 = zx; z1 = za; rclose = inp->rright;
+      memo = inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R
+        ? arc_ctx->arc_memo_right : arc_ctx->arc_memo;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
+      z0 = za; z1 = zx; rclose = inp->rleft;
+      memo = inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L
+        ? arc_ctx->arc_memo_left : arc_ctx->arc_memo;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+      z0 = arc_ctx->zmin_right; z1 = zx; rclose = inp->rright;
+      memo = arc_ctx->arc_memo_right;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
+      z0 = arc_ctx->zmin; z1 = zx; rclose = inp->rright;
+      memo = arc_ctx->arc_memo;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+      z0 = zx; z1 = arc_ctx->zmin_left; rclose = inp->rleft;
+      memo = arc_ctx->arc_memo_left;
+      break;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+      z0 = zx; z1 = arc_ctx->zmin; rclose = inp->rleft;
+      memo = arc_ctx->arc_memo;
+      break;
+    default:
+      return false;
+  }
+
+  double frac = (it-nrange->lower[th_idx])
+    /(double) (nrange->upper[th_idx]-nrange->lower[th_idx]);
+  if (frac <= 0.0) { *z = z0; return true; }
+  if (frac >= 1.0) { *z = z1; return true; }
+
+  double zlo = fmin(z0, z1), zhi = fmax(z0, z1);
+  double total = integrate_psi_contour_memo(arc_ctx->geo, arc_ctx->psi,
+    zlo, zhi, rclose, true, false, memo);
+  struct sep_segment_ctx sctx = {
+    .geo = arc_ctx->geo, .psi = arc_ctx->psi, .zlo = zlo,
+    .target = (z1 >= z0 ? frac : 1.0-frac)*total,
+    .rclose = rclose, .memo = memo,
+  };
+  struct gkyl_qr_res res = gkyl_ridders(sep_segment_func, &sctx,
+    zlo, zhi, -sctx.target, total-sctx.target,
+    arc_ctx->geo->root_param.max_iter, 1e-10);
+  *z = res.res;
+  ((struct gkyl_tok_geo *)arc_ctx->geo)->stat.nroot_cont_calls += res.nevals;
+  return true;
+}
+
 // Function to calculate phi given alpha
 double
 phi_func(double alpha_curr, double Z, void *ctx)
@@ -873,9 +954,12 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           }
         }
 
+        tok_half_domain_sep_z(inp, &arc_ctx, it, nrange, &z_curr);
+
         bool at_core_anchor = false;
         // Join the two core blocks on the straight, flux-aligned ray that
-        // connects the lower X-point to the innermost core surface.
+        // connects the lower X-point to the nearest point on the innermost
+        // core surface.
         if (psi_curr != geo->psisep) {
           if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
             z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;
@@ -1423,9 +1507,12 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
                 z_curr, res.nevals, trace_elapsed);
           }
 
+          tok_half_domain_sep_z(inp, &arc_ctx, it, nrange, &z_curr);
+
           bool at_core_anchor = false;
           // Join the two core blocks on the straight, flux-aligned ray that
-          // connects the lower X-point to the innermost core surface.
+          // connects the lower X-point to the nearest point on the innermost
+          // core surface.
           if (psi_curr != geo->psisep) {
             if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
               z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;

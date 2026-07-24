@@ -158,6 +158,7 @@ struct gkyl_tok_geo_grid_inp {
   bool use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
   bool straight_core_xpt_ray; // Align the CORE_L/CORE_R interface on a straight,
                               // flux-surface-intersecting ray from the lower X-point
+                              // to the nearest point on the innermost core surface
 
   // Parameters for root finder: leave unset to use defaults
   struct {

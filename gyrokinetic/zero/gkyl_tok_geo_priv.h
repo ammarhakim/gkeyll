@@ -20,7 +20,7 @@ struct arc_length_ctx {
   double arcL_tot; // total arc length
   double arcL_start; // For core bloks only. arc length between theta=0 and lower turning point
                      // measured counterclockwise from left side
-  double core_ray_r0, core_ray_z0; // Core-side endpoint of the straight X-point ray.
+  double core_ray_r0, core_ray_z0; // Nearest core-side endpoint of the straight X-point ray.
   double core_anchor_r, core_anchor_z; // Intersection of that ray with the current surface.
   double core_ray_psi0;
   bool core_ray_initialized, core_anchor_valid;

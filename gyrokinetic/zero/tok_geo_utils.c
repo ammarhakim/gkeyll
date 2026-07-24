@@ -36,6 +36,68 @@ tok_eval_psi_rz(const struct gkyl_tok_geo *geo, double R, double Z)
 }
 
 static bool
+tok_nearest_point_on_surface(const struct gkyl_tok_geo *geo, double psi0,
+  double rx, double zx, double *rnear, double *znear)
+{
+  // Search every R(psi,Z) branch in the core-side sector between the lower
+  // X-point and magnetic axis. This runs only once per block, so prefer a
+  // guarded global search over a branch-sensitive local Newton solve.
+  const int nsamp = 2*geo->rzgrid.cells[1]+1;
+  const double zlo = fmin(zx, geo->zmaxis);
+  const double zhi = fmax(zx, geo->zmaxis);
+  double best_d2 = DBL_MAX, best_r = 0.0, best_z = 0.0;
+  int best_i = -1;
+
+  for (int i=0; i<nsamp; ++i) {
+    double z = zlo+(zhi-zlo)*i/(nsamp-1.0);
+    double R[4] = { 0 }, dRdZ[4] = { 0 }, dR[4] = { 0 }, dZ[4] = { 0 };
+    int nr = gkyl_tok_geo_R_psiZ(geo, psi0, z, 4, R, dRdZ, dR, dZ);
+    for (int n=0; n<nr; ++n) {
+      double d2 = SQ(R[n]-rx)+SQ(z-zx);
+      if (d2 < best_d2) {
+        best_d2 = d2; best_r = R[n]; best_z = z; best_i = i;
+      }
+    }
+  }
+  if (best_i < 0)
+    return false;
+
+  // Refine the sampled minimum in Z without differentiating across the
+  // piecewise-DG interpolation cells.
+  double dzs = (zhi-zlo)/(nsamp-1.0);
+  double a = fmax(zlo, best_z-dzs);
+  double b = fmin(zhi, best_z+dzs);
+  const double gr = 0.6180339887498948482;
+  for (int iter=0; iter<64; ++iter) {
+    double ztrial[2] = { b-gr*(b-a), a+gr*(b-a) };
+    double dtrial[2] = { DBL_MAX, DBL_MAX }, rtrial[2] = { best_r, best_r };
+    for (int k=0; k<2; ++k) {
+      double R[4] = { 0 }, dRdZ[4] = { 0 }, dR[4] = { 0 }, dZ[4] = { 0 };
+      int nr = gkyl_tok_geo_R_psiZ(geo, psi0, ztrial[k],
+        4, R, dRdZ, dR, dZ);
+      if (nr > 0) {
+        rtrial[k] = choose_closest(best_r, R, R, nr);
+        dtrial[k] = SQ(rtrial[k]-rx)+SQ(ztrial[k]-zx);
+      }
+    }
+    if (dtrial[0] < best_d2) {
+      best_d2 = dtrial[0]; best_r = rtrial[0]; best_z = ztrial[0];
+    }
+    if (dtrial[1] < best_d2) {
+      best_d2 = dtrial[1]; best_r = rtrial[1]; best_z = ztrial[1];
+    }
+    if (dtrial[0] <= dtrial[1])
+      b = ztrial[1];
+    else
+      a = ztrial[0];
+  }
+
+  *rnear = best_r;
+  *znear = best_z;
+  return isfinite(best_r) && isfinite(best_z);
+}
+
+static bool
 tok_core_ray_anchor(struct arc_length_ctx *arc_ctx, double psi_curr)
 {
   const struct gkyl_tok_geo *geo = arc_ctx->geo;
@@ -44,18 +106,9 @@ tok_core_ray_anchor(struct arc_length_ctx *arc_ctx, double psi_curr)
   double zx = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
 
   if (!arc_ctx->core_ray_initialized) {
-    double z0 = zx, zup = geo->zmaxis;
-    find_lower_turning_point((struct gkyl_tok_geo *) geo,
-      arc_ctx->core_ray_psi0, zup, &z0, 0);
-
-    double R[4] = { 0 }, dRdZ[4] = { 0 }, dR[4] = { 0 }, dZ[4] = { 0 };
-    int nr = gkyl_tok_geo_R_psiZ(geo, arc_ctx->core_ray_psi0, z0,
-      4, R, dRdZ, dR, dZ);
-    if (nr < 1)
+    if (!tok_nearest_point_on_surface(geo, arc_ctx->core_ray_psi0,
+        rx, zx, &arc_ctx->core_ray_r0, &arc_ctx->core_ray_z0))
       return false;
-
-    arc_ctx->core_ray_r0 = choose_closest(rx, R, R, nr);
-    arc_ctx->core_ray_z0 = z0;
     arc_ctx->core_ray_initialized = true;
   }
 
@@ -762,9 +815,6 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double extra_arcL = arcL_extent - arc_ctx->arcL_right;
       arc_ctx->arcL_start = extra_arcL/2.0;
     }
-
-
-
     arc_ctx->right = true;
     arc_ctx->phi_right = 0.0;
     arc_ctx->rclose = arc_ctx->rright;
