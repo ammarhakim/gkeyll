@@ -246,6 +246,11 @@ struct gkyl_gyrokinetic_geometry {
   void *parallel_lower_bc_shift_ctx; // Context for parallel_lower_bc_shift_func.
   void *parallel_upper_bc_shift_ctx; // Context for parallel_upper_bc_shift_func.
 
+  // Twist-shift anti-aliasing filter.
+  int ts_upsample_factor; // Supersampling factor along x and y.
+  int ts_filter_half_width; // Filter stencil half-width in fine cells.
+  double ts_filter_cutoff_wavelength; // Filter cutoff wavelength.
+
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
   struct gkyl_tok_geo_grid_inp tok_grid_info; // Context for tokamak geometry with computational domain info.
   struct gkyl_mirror_geo_grid_inp mirror_grid_info; // Context for mirror geometry with computational domain info.

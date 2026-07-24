@@ -1728,9 +1728,33 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   up->shear_dir = inp->shear_dir;
   up->edge = inp->edge;
   up->basis = inp->basis;
-  up->grid = inp->grid;
   up->use_gpu = inp->use_gpu;
-  up->local_bcdir_ext_r = inp->bcdir_ext_update_r;
+
+  const int ndim = inp->bcdir_ext_update_r.ndim;
+  // Check that it is being used for 3D or 5D.
+  assert(ndim == 3 || ndim == 5);
+
+  // Supersampling setup.
+  up->upsample = inp->filter_half_width > 0 && inp->upsample_factor > 1;
+  if (up->upsample) {
+    int fine_cells[GKYL_MAX_DIM];
+    for (int d=0; d<ndim; d++) fine_cells[d] = inp->grid.cells[d];
+    fine_cells[up->shift_dir] *= inp->upsample_factor;
+    fine_cells[up->shear_dir] *= inp->upsample_factor;
+    gkyl_rect_grid_init(&up->grid, ndim, inp->grid.lower, inp->grid.upper, fine_cells);
+
+    struct gkyl_range fine_ext, fine_local;
+    gkyl_create_grid_ranges(&up->grid, inp->num_ghost, &fine_ext, &fine_local);
+    int flo[GKYL_MAX_DIM], fup[GKYL_MAX_DIM];
+    for (int d=0; d<ndim; d++) { flo[d] = fine_local.lower[d]; fup[d] = fine_local.upper[d]; }
+    flo[up->bc_dir] = fine_ext.lower[up->bc_dir];
+    fup[up->bc_dir] = fine_ext.upper[up->bc_dir];
+    gkyl_sub_range_init(&up->local_bcdir_ext_r, &fine_ext, flo, fup);
+  }
+  else {
+    up->grid = inp->grid;
+    up->local_bcdir_ext_r = inp->bcdir_ext_update_r;
+  }
 
   // Assume the poly order of the DG shift is the same as that of the field,
   // unless requested otherwise.
@@ -1738,19 +1762,14 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   if (inp->shift_poly_order)
     up->shift_poly_order = inp->shift_poly_order;
 
-  const int ndim = inp->bcdir_ext_update_r.ndim;
-  // Check that it is being used for 3D or 5D. Likely only small changes are
-  // needed to make it work in other dimensions.
-  assert(ndim == 3 || ndim == 5); 
-
   double lo1d[1], up1d[1];  int cells1d[1];
 
   // Create 1D grid and range in the direction of the shear.
   gkyl_range_init(&up->shear_r, 1, (int[]) {up->local_bcdir_ext_r.lower[inp->shear_dir]},
                                    (int[]) {up->local_bcdir_ext_r.upper[inp->shear_dir]});
-  lo1d[0] = inp->grid.lower[up->shear_dir];
-  up1d[0] = inp->grid.upper[up->shear_dir];
-  cells1d[0] = inp->grid.cells[up->shear_dir];
+  lo1d[0] = up->grid.lower[up->shear_dir];
+  up1d[0] = up->grid.upper[up->shear_dir];
+  cells1d[0] = up->grid.cells[up->shear_dir];
   gkyl_rect_grid_init(&up->shear_grid, 1, lo1d, up1d, cells1d);
   int idx[] = {up->shear_r.lower[0]};
   long linidx = gkyl_range_idx(&up->shear_r, idx);
@@ -1758,9 +1777,9 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   // Create 1D grid and range in the diretion of the shift.
   gkyl_range_init(&up->shift_r, 1, (int[]) {up->local_bcdir_ext_r.lower[inp->shift_dir]},
                                    (int[]) {up->local_bcdir_ext_r.upper[inp->shift_dir]});
-  lo1d[0] = inp->grid.lower[up->shift_dir];
-  up1d[0] = inp->grid.upper[up->shift_dir];
-  cells1d[0] = inp->grid.cells[up->shift_dir];
+  lo1d[0] = up->grid.lower[up->shift_dir];
+  up1d[0] = up->grid.upper[up->shift_dir];
+  cells1d[0] = up->grid.cells[up->shift_dir];
   gkyl_rect_grid_init(&up->shift_grid, 1, lo1d, up1d, cells1d);
 
   // Create 2D grid (and range) the twist-shift takes place in.
@@ -1779,9 +1798,9 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   }
   gkyl_range_init(&up->ts_r, 2, (int[]) {up->local_bcdir_ext_r.lower[dimlo], up->local_bcdir_ext_r.lower[dimup]},
                                 (int[]) {up->local_bcdir_ext_r.upper[dimlo], up->local_bcdir_ext_r.upper[dimup]});
-  double lo2d[] = {inp->grid.lower[dimlo], inp->grid.lower[dimup]};
-  double up2d[] = {inp->grid.upper[dimlo], inp->grid.upper[dimup]};
-  int cells2d[] = {inp->grid.cells[dimlo], inp->grid.cells[dimup]};
+  double lo2d[] = {up->grid.lower[dimlo], up->grid.lower[dimup]};
+  double up2d[] = {up->grid.upper[dimlo], up->grid.upper[dimup]};
+  int cells2d[] = {up->grid.cells[dimlo], up->grid.cells[dimup]};
   gkyl_rect_grid_init(&up->ts_grid, 2, lo2d, up2d, cells2d);
 
   // Project the shift onto the shift basis.
@@ -1908,20 +1927,50 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   else
     gkyl_range_shorten_from_below(&up->ghost_r, &up->local_bcdir_ext_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
 
+  // Optional low-pass filter along shear_dir to de-alias the shifted field.
+  up->filter = NULL;
+  up->filter_buff = NULL;
+  if (inp->filter_half_width > 0)
+    up->filter = gkyl_dg_lowpass_filter_new(up->shear_dir, inp->filter_half_width,
+      inp->filter_cutoff_wavelength, &up->basis, &up->grid, &up->ghost_r, up->use_gpu);
+
+  // Set up prolongation/coarsening between the coarse and fine grids.
+  up->prolong = NULL;
+  up->coarsen = NULL;
+  up->fine_buff = NULL;
+  up->coarse_buff = NULL;
+  if (up->upsample) {
+    struct gkyl_range coarse_ext, coarse_local, fine_ext, fine_local;
+    gkyl_create_grid_ranges(&inp->grid, inp->num_ghost, &coarse_ext, &coarse_local);
+    gkyl_create_grid_ranges(&up->grid, inp->num_ghost, &fine_ext, &fine_local);
+
+    struct gkyl_range opp_ghost, this_ghost_c, this_ghost_f, opp_skin_c;
+    enum gkyl_edge_loc opp = inp->edge == GKYL_LOWER_EDGE? GKYL_UPPER_EDGE : GKYL_LOWER_EDGE;
+    gkyl_skin_ghost_ranges(&up->coarse_this_skin, &this_ghost_c, inp->bc_dir, inp->edge, &coarse_ext, inp->num_ghost);
+    gkyl_skin_ghost_ranges(&up->fine_this_skin, &this_ghost_f, inp->bc_dir, inp->edge, &fine_ext, inp->num_ghost);
+    gkyl_skin_ghost_ranges(&opp_skin_c, &opp_ghost, inp->bc_dir, opp, &fine_ext, inp->num_ghost);
+    up->coarse_this_ghost = this_ghost_c;
+    up->fine_this_ghost = this_ghost_f;
+    up->fine_opp_skin = opp_skin_c;
+
+    // Interpolate the interior only (periodicity re-derives the fine ghost);
+    // this also avoids refining coarse ghost cells, which dg_interpolate maps
+    // out of bounds for refinement factors > 2.
+    up->prolong = gkyl_dg_interpolate_new(inp->cdim, &up->basis, &inp->grid, &up->grid,
+      &coarse_local, &fine_local, inp->num_ghost, up->use_gpu);
+    up->coarsen = gkyl_dg_interpolate_new(inp->cdim, &up->basis, &up->grid, &inp->grid,
+      &fine_local, &coarse_local, inp->num_ghost, up->use_gpu);
+
+    up->fine_buff = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, fine_ext.volume);
+    up->coarse_buff = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, coarse_ext.volume);
+  }
+
   return up;
 }
 
-void
-gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
+static void
+bc_twistshift_advance_core(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
 {
-
-#ifdef GKYL_HAVE_CUDA
-  if (up->use_gpu) {
-    gkyl_bc_twistshift_advance_cu(up, fdo, ftar);
-    return;
-  }
-#endif
-
   // Assign the distribution matrices.
   // This assumes that fdo->ncomp = fmat->nr.
   // Recall:
@@ -1982,6 +2031,39 @@ gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo
       }
     }
   }
+
+  // Low-pass filter the shifted ghost field.
+  if (up->filter) {
+    if (up->filter_buff == NULL)
+      up->filter_buff = gkyl_array_new(GKYL_DOUBLE, ftar->ncomp, ftar->size);
+    gkyl_array_copy_range(up->filter_buff, ftar, &up->ghost_r);
+    gkyl_dg_lowpass_filter_advance(up->filter, up->filter_buff, ftar);
+  }
+}
+
+void
+gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
+{
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_bc_twistshift_advance_cu(up, fdo, ftar);
+    return;
+  }
+#endif
+
+  if (up->upsample) {
+    // Prolong to the fine grid, apply periodicity, shift+filter, coarsen, and
+    // copy the coarsened skin into ftar's ghost.
+    gkyl_dg_interpolate_advance(up->prolong, fdo, up->fine_buff);
+    gkyl_array_copy_range_to_range(up->fine_buff, up->fine_buff, &up->fine_this_ghost, &up->fine_opp_skin);
+    bc_twistshift_advance_core(up, up->fine_buff, up->fine_buff);
+    gkyl_array_copy_range_to_range(up->fine_buff, up->fine_buff, &up->fine_this_skin, &up->fine_this_ghost);
+    gkyl_dg_interpolate_advance(up->coarsen, up->fine_buff, up->coarse_buff);
+    gkyl_array_copy_range_to_range(ftar, up->coarse_buff, &up->coarse_this_ghost, &up->coarse_this_skin);
+  }
+  else {
+    bc_twistshift_advance_core(up, fdo, ftar);
+  }
 }
 
 struct gkyl_array*
@@ -2018,6 +2100,19 @@ gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
   gkyl_free(up->kernels);
 
   gkyl_array_release(up->shift_dg);
+
+  if (up->filter) {
+    gkyl_dg_lowpass_filter_release(up->filter);
+    if (up->filter_buff)
+      gkyl_array_release(up->filter_buff);
+  }
+
+  if (up->upsample) {
+    gkyl_dg_interpolate_release(up->prolong);
+    gkyl_dg_interpolate_release(up->coarsen);
+    gkyl_array_release(up->fine_buff);
+    gkyl_array_release(up->coarse_buff);
+  }
 
   gkyl_free(up->num_do);
   gkyl_free(up->shift_dir_idx_do);

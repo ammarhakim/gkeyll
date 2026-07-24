@@ -171,6 +171,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
+  app->ts_upsample_factor = gk->geometry.ts_upsample_factor;
+  app->ts_filter_half_width = gk->geometry.ts_filter_half_width;
+  app->ts_filter_cutoff_wavelength = gk->geometry.ts_filter_cutoff_wavelength;
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
 

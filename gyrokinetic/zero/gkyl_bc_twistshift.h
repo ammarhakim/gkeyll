@@ -26,6 +26,9 @@ struct gkyl_bc_twistshift_inp {
   bool use_gpu; // Whether to apply the BC using the GPU.
   // Optional inputs:
   int shift_poly_order; // Basis order for the DG representation of the shift.
+  int filter_half_width; // Filter stencil half-width M in cells.
+  double filter_cutoff_wavelength; // Filter cutoff wavelength.
+  int upsample_factor; // Supersampling factor.
 };
 
 /**

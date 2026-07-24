@@ -4,6 +4,8 @@
 
 #include <gkyl_bc_twistshift.h>
 #include <gkyl_bc_twistshift_gyrokinetic_kernels.h>
+#include <gkyl_dg_lowpass_filter.h>
+#include <gkyl_dg_interpolate.h>
 #include <assert.h>
 #include <gkyl_mat.h>
 #include <gkyl_math.h>
@@ -150,6 +152,18 @@ struct gkyl_bc_twistshift {
   struct gkyl_range permutted_ghost_r; // Ghost range to populate in the target
                                        // field, with some dimensions permutted.
   struct gkyl_range ghost_r; // Ghost range this BC fills.
+
+  struct gkyl_dg_lowpass_filter *filter; // Post-shift filter.
+  struct gkyl_array *filter_buff; // Scratch buffer for the filter.
+
+  bool upsample; // Whether to upsample before the shift.
+  struct gkyl_dg_interpolate *prolong; // Coarse to fine operator.
+  struct gkyl_dg_interpolate *coarsen; // Fine to coarse operator.
+  struct gkyl_array *fine_buff; // Field on the fine grid.
+  struct gkyl_array *coarse_buff; // Field on the coarse grid.
+  struct gkyl_range fine_this_skin, fine_this_ghost; // Fine skin/ghost at this edge.
+  struct gkyl_range fine_opp_skin; // Fine skin at the opposite edge (periodicity donor).
+  struct gkyl_range coarse_this_skin, coarse_this_ghost; // Coarse skin/ghost at this edge.
 };
 
 #ifdef GKYL_HAVE_CUDA

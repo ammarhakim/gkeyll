@@ -53,26 +53,8 @@ static void
 gk_field_apply_ts_bc_interp(gkyl_gyrokinetic_app *app, struct gk_field *gkf,
   struct gkyl_array *fin, struct gkyl_array *fout)
 {
-  // Apply twistshift BC to the quantity `fin`, on a higher resolution grid, and place the output in `fout`
-
-  // Prolong (interpolate up to higher resolution).
-  gkyl_dg_interpolate_advance(gkf->bc_ts_prolong, fin, gkf->bc_ts_buffer_fine);
-
-  // Coppy upper skin to lower ghost and apply TSBC
-  gkyl_array_copy_range_to_range(gkf->bc_ts_buffer_fine, gkf->bc_ts_buffer_fine, 
-    &gkf->bc_ts_global_lower_ghost_par, &gkf->bc_ts_global_upper_skin_par);
-  gkyl_bc_twistshift_advance(gkf->bc_ts_lo, gkf->bc_ts_buffer_fine, gkf->bc_ts_buffer_fine);
-
-  // Copy TS-ed ghost into skin so it gets coarsened.
-  gkyl_array_copy_range_to_range(gkf->bc_ts_buffer_fine, gkf->bc_ts_buffer_fine, 
-    &gkf->bc_ts_global_lower_skin_par, &gkf->bc_ts_global_lower_ghost_par);
-  // Restrict (coarsen to lower resolution).
-  gkyl_dg_interpolate_advance(gkf->bc_ts_coarsen, gkf->bc_ts_buffer_fine, gkf->bc_ts_buffer_coar);
-
-  // Copy skin back into ghost.
-  int par_dir = app->cdim-1; // Parallel direction index.
-  gkyl_array_copy_range_to_range(fout, gkf->bc_ts_buffer_coar, 
-    &app->global_lower_ghost[par_dir], &app->global_lower_skin[par_dir]);
+  // Apply the twist-shift BC in the lower parallel ghost.
+  gkyl_bc_twistshift_advance(gkf->bc_ts_lo, fin, fout);
 }
 
 static void
@@ -278,44 +260,8 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
     gkf->fem_projection_par_rho_func = gk_field_fem_projection_par;
     gkf->fem_projection_par_phi_func = gk_field_fem_projection_par_phi_ts_3x;
 
-    // Initialize an interpolation operator on a higher resolution grid, with
-    // twice as many cells along x and y.
-    int ts_cells[GKYL_MAX_CDIM];
-    for (int d=0; d<app->cdim-1; d++) {
-      ts_cells[d] = 2*app->grid.cells[d];
-    }
-    ts_cells[app->cdim-1] = app->grid.cells[app->cdim-1];
-    gkyl_rect_grid_init(&gkf->bc_ts_grid, app->cdim, app->grid.lower, app->grid.upper, ts_cells);
-
-    int ghost_do[GKYL_MAX_CDIM];
-    for (int d=0; d<app->cdim; d++) ghost_do[d] = 1;
-    gkyl_create_grid_ranges(&gkf->bc_ts_grid, ghost_do, &gkf->bc_ts_global_ext, &gkf->bc_ts_global);
-
-    // Skin and ghost ranges for configuration space fields.
     int num_ghost[] = {1, 1, 1};
     int par_dir = app->cdim-1; // Parallel direction index.
-    gkyl_skin_ghost_ranges(&gkf->bc_ts_global_lower_skin_par, &gkf->bc_ts_global_lower_ghost_par,
-      par_dir, GKYL_LOWER_EDGE, &gkf->bc_ts_global_ext, num_ghost); 
-    gkyl_skin_ghost_ranges(&gkf->bc_ts_global_upper_skin_par, &gkf->bc_ts_global_upper_ghost_par,
-      par_dir, GKYL_UPPER_EDGE, &gkf->bc_ts_global_ext, num_ghost);
-
-    gkf->bc_ts_prolong = gkyl_dg_interpolate_new(app->cdim, &app->basis,
-      &app->grid, &gkf->bc_ts_grid, &app->global_ext, &gkf->bc_ts_global_ext, ghost_do, app->use_gpu);
-    gkf->bc_ts_coarsen = gkyl_dg_interpolate_new(app->cdim, &app->basis,
-      &gkf->bc_ts_grid, &app->grid, &gkf->bc_ts_global_ext, &app->global_ext, ghost_do, app->use_gpu);
-
-    gkf->bc_ts_buffer_fine = mkarr(app->use_gpu, app->basis.num_basis, gkf->bc_ts_global_ext.volume);
-    gkf->bc_ts_buffer_coar = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-
-    // Create a global extended in the BC dir.
-    int lower_bcdir_ext[app->cdim], upper_bcdir_ext[app->cdim];
-    for (int i=0; i<app->cdim; i++) {
-      lower_bcdir_ext[i] = gkf->bc_ts_global.lower[i];
-      upper_bcdir_ext[i] = gkf->bc_ts_global.upper[i];
-    }
-    lower_bcdir_ext[par_dir] = gkf->bc_ts_global_ext.lower[par_dir];
-    upper_bcdir_ext[par_dir] = gkf->bc_ts_global_ext.upper[par_dir];
-    gkyl_sub_range_init(&gkf->bc_ts_global_par_ext, &gkf->bc_ts_global_ext, lower_bcdir_ext, upper_bcdir_ext);
 
     // TS BC updater for lower edge.
     struct gkyl_bc_twistshift_inp T_LU_lo = {
@@ -324,11 +270,14 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = app->cdim,
-      .bcdir_ext_update_r = gkf->bc_ts_global_par_ext,
+      .bcdir_ext_update_r = app->global_par_ext,
       .num_ghost = num_ghost, // one ghost per config direction
       .basis = app->basis,
-      .grid = gkf->bc_ts_grid,
+      .grid = app->grid,
       .use_gpu = app->use_gpu,
+      .upsample_factor = app->ts_upsample_factor,
+      .filter_half_width = app->ts_filter_half_width,
+      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;
@@ -348,8 +297,11 @@ gk_field_2x3x_add_TS_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field 
       .bcdir_ext_update_r = app->global_par_ext,
       .num_ghost = num_ghost, // one ghost per config direction
       .basis = app->basis,
-      .grid = gkf->bc_ts_grid,
+      .grid = app->grid,
       .use_gpu = app->use_gpu,
+      .upsample_factor = app->ts_upsample_factor,
+      .filter_half_width = app->ts_filter_half_width,
+      .filter_cutoff_wavelength = app->ts_filter_cutoff_wavelength,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_UL_up.shift_dg = app->delta_ts_x_up;
@@ -527,8 +479,6 @@ gk_field_fem_release_2x3x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
     gkyl_fem_parproj_release(f->fem_parproj_phi_core);
 
     if (app->cdim == 3) {
-      gkyl_dg_interpolate_release(f->bc_ts_prolong);
-      gkyl_dg_interpolate_release(f->bc_ts_coarsen);
       gkyl_bc_twistshift_release(f->bc_ts_lo);
       gkyl_bc_twistshift_release(f->bc_ts_up);
       gkyl_bc_basic_gyrokinetic_release(f->gfss_bc_op_core_up);
