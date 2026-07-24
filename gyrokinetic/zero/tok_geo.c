@@ -873,23 +873,30 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           }
         }
 
-        // Ensure that node at the lower Xpt (lower end of right core/upper end of left core) is at the same location
+        bool at_core_anchor = false;
+        // Join the two core blocks on the straight, flux-aligned ray that
+        // connects the lower X-point to the innermost core surface.
         if (psi_curr != geo->psisep) {
           if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
-            z_curr = arc_ctx.zmin;
+            z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;
+            at_core_anchor = arc_ctx.core_anchor_valid;
           }
           if (it == nrange->lower[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R && up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) {
-            z_curr = arc_ctx.zmin;
+            z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;
+            at_core_anchor = arc_ctx.core_anchor_valid;
           }
         }
 
         double R[4] = { 0 }, dRdZ[4] = { 0 };
         double dR[4] = { 0 }, dZ[4] = { 0 };
         int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
-        double r_curr = choose_closest(rclose, R, R, nr);
-        double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
-        double dr_curr = choose_closest(rclose, R, dR, nr);
-        double dz_curr = choose_closest(rclose, R, dZ, nr);
+        double root_ref = at_core_anchor ? arc_ctx.core_anchor_r : rclose;
+        double r_curr = choose_closest(root_ref, R, R, nr);
+        double drdz_curr = choose_closest(root_ref, R, dRdZ, nr);
+        double dr_curr = choose_closest(root_ref, R, dR, nr);
+        double dz_curr = choose_closest(root_ref, R, dZ, nr);
+        if (at_core_anchor)
+          r_curr = arc_ctx.core_anchor_r;
 
         if (psi_curr==geo->psisep) {
           if (z_curr == geo->efit->Zxpt[0]) {
@@ -1416,23 +1423,30 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
                 z_curr, res.nevals, trace_elapsed);
           }
 
-          // Ensure that node at the lower Xpt (lower end of right core/upper end of left core) is at the same location
+          bool at_core_anchor = false;
+          // Join the two core blocks on the straight, flux-aligned ray that
+          // connects the lower X-point to the innermost core surface.
           if (psi_curr != geo->psisep) {
             if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
-              z_curr = arc_ctx.zmin;
+              z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;
+              at_core_anchor = arc_ctx.core_anchor_valid;
             }
             if (it == nrange->lower[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R  && up->local.lower[TH_IDX]== up->global.lower[TH_IDX]) {
-              z_curr = arc_ctx.zmin;
+              z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;
+              at_core_anchor = arc_ctx.core_anchor_valid;
             }
           }
 
           double R[4] = { 0 }, dRdZ[4] = { 0 };
           double dR[4] = { 0 }, dZ[4] = { 0 };
           int nr = gkyl_tok_geo_R_psiZ(geo, psi_curr, z_curr, 4, R, dRdZ, dR, dZ);
-          double r_curr = choose_closest(rclose, R, R, nr);
-          double drdz_curr = choose_closest(rclose, R, dRdZ, nr);
-          double dr_curr = choose_closest(rclose, R, dR, nr);
-          double dz_curr = choose_closest(rclose, R, dZ, nr);
+          double root_ref = at_core_anchor ? arc_ctx.core_anchor_r : rclose;
+          double r_curr = choose_closest(root_ref, R, R, nr);
+          double drdz_curr = choose_closest(root_ref, R, dRdZ, nr);
+          double dr_curr = choose_closest(root_ref, R, dR, nr);
+          double dz_curr = choose_closest(root_ref, R, dZ, nr);
+          if (at_core_anchor)
+            r_curr = arc_ctx.core_anchor_r;
 
           if (psi_curr==geo->psisep && ip_delta==0) {
             if (z_curr == geo->efit->Zxpt[0]) {

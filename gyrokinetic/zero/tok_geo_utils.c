@@ -1,7 +1,130 @@
 #include <gkyl_tok_geo_priv.h>
 #include <assert.h>
+#include <float.h>
 
 // Helper functions for finding turning points when necessary
+
+void find_lower_turning_point(struct gkyl_tok_geo *geo, double psi_curr,
+  double zup, double *zmin, double tolerance);
+
+static double
+tok_eval_psi_rz(const struct gkyl_tok_geo *geo, double R, double Z)
+{
+  if (geo->use_cubics) {
+    double xn[2] = { R, Z }, psi;
+    geo->efit->evf->eval_cubic(0.0, xn, &psi, geo->efit->evf->ctx);
+    return psi;
+  }
+
+  int rzidx[2];
+  rzidx[0] = fmin(geo->rzlocal.lower[0]
+      + (int) floor((R-geo->rzgrid.lower[0])/geo->rzgrid.dx[0]),
+    geo->rzlocal.upper[0]);
+  rzidx[1] = fmin(geo->rzlocal.lower[1]
+      + (int) floor((Z-geo->rzgrid.lower[1])/geo->rzgrid.dx[1]),
+    geo->rzlocal.upper[1]);
+  rzidx[0] = fmax(rzidx[0], geo->rzlocal.lower[0]);
+  rzidx[1] = fmax(rzidx[1], geo->rzlocal.lower[1]);
+
+  long loc = gkyl_range_idx(&geo->rzlocal, rzidx);
+  const double *coeffs = gkyl_array_cfetch(geo->psiRZ, loc);
+  double xc[2], xy[2];
+  gkyl_rect_grid_cell_center(&geo->rzgrid, rzidx, xc);
+  xy[0] = (R-xc[0])/(0.5*geo->rzgrid.dx[0]);
+  xy[1] = (Z-xc[1])/(0.5*geo->rzgrid.dx[1]);
+  return geo->rzbasis.eval_expand(xy, coeffs);
+}
+
+static bool
+tok_core_ray_anchor(struct arc_length_ctx *arc_ctx, double psi_curr)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  arc_ctx->core_anchor_valid = false;
+  double rx = geo->use_cubics ? geo->efit->Rxpt_cubic[0] : geo->efit->Rxpt[0];
+  double zx = geo->use_cubics ? geo->efit->Zxpt_cubic[0] : geo->efit->Zxpt[0];
+
+  if (!arc_ctx->core_ray_initialized) {
+    double z0 = zx, zup = geo->zmaxis;
+    find_lower_turning_point((struct gkyl_tok_geo *) geo,
+      arc_ctx->core_ray_psi0, zup, &z0, 0);
+
+    double R[4] = { 0 }, dRdZ[4] = { 0 }, dR[4] = { 0 }, dZ[4] = { 0 };
+    int nr = gkyl_tok_geo_R_psiZ(geo, arc_ctx->core_ray_psi0, z0,
+      4, R, dRdZ, dR, dZ);
+    if (nr < 1)
+      return false;
+
+    arc_ctx->core_ray_r0 = choose_closest(rx, R, R, nr);
+    arc_ctx->core_ray_z0 = z0;
+    arc_ctx->core_ray_initialized = true;
+  }
+
+  double f0 = geo->psisep-psi_curr;
+  double f1 = tok_eval_psi_rz(geo, arc_ctx->core_ray_r0,
+    arc_ctx->core_ray_z0)-psi_curr;
+  double scale = fmax(1.0, fabs(geo->psisep));
+  double tol = 64.0*DBL_EPSILON*scale;
+
+  if (fabs(f0) <= tol) {
+    arc_ctx->core_anchor_r = rx;
+    arc_ctx->core_anchor_z = zx;
+    arc_ctx->core_anchor_valid = true;
+    return true;
+  }
+  if (fabs(f1) <= tol) {
+    arc_ctx->core_anchor_r = arc_ctx->core_ray_r0;
+    arc_ctx->core_anchor_z = arc_ctx->core_ray_z0;
+    arc_ctx->core_anchor_valid = true;
+    return true;
+  }
+  double slo = 0.0, sup = 1.0;
+  if (f0*f1 > 0.0) {
+    // Metric stencils evaluate just inside the innermost requested surface.
+    // Extend the same ray, but never leave the EFIT interpolation domain.
+    double dr = arc_ctx->core_ray_r0-rx;
+    double dz = arc_ctx->core_ray_z0-zx;
+    double smax = DBL_MAX;
+    if (dr > 0.0)
+      smax = fmin(smax, (geo->rzgrid.upper[0]-rx)/dr);
+    else if (dr < 0.0)
+      smax = fmin(smax, (geo->rzgrid.lower[0]-rx)/dr);
+    if (dz > 0.0)
+      smax = fmin(smax, (geo->rzgrid.upper[1]-zx)/dz);
+    else if (dz < 0.0)
+      smax = fmin(smax, (geo->rzgrid.lower[1]-zx)/dz);
+    smax *= 1.0-32.0*DBL_EPSILON;
+
+    while (f0*f1 > 0.0 && sup < smax) {
+      sup = fmin(2.0*sup, smax);
+      double R = rx+sup*dr, Z = zx+sup*dz;
+      f1 = tok_eval_psi_rz(geo, R, Z)-psi_curr;
+    }
+    if (f0*f1 > 0.0)
+      return false;
+  }
+
+  for (int n=0; n<80; ++n) {
+    double smid = 0.5*(slo+sup);
+    double R = rx+smid*(arc_ctx->core_ray_r0-rx);
+    double Z = zx+smid*(arc_ctx->core_ray_z0-zx);
+    double fm = tok_eval_psi_rz(geo, R, Z)-psi_curr;
+    if (fabs(fm) <= tol || sup-slo <= 8.0*DBL_EPSILON) {
+      arc_ctx->core_anchor_r = R;
+      arc_ctx->core_anchor_z = Z;
+      arc_ctx->core_anchor_valid = true;
+      return true;
+    }
+    if (f0*fm <= 0.0) {
+      sup = smid;
+      f1 = fm;
+    }
+    else {
+      slo = smid;
+      f0 = fm;
+    }
+  }
+  return false;
+}
 
 
 // This function will set zmax to be the upper turning point location
@@ -597,6 +720,8 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
   arc_ctx->psi = psi_curr;
 
   if(inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype ==  GKYL_GEOMETRY_TOKAMAK_CORE_L){
+    if (!arc_ctx->core_ray_initialized)
+      arc_ctx->core_ray_psi0 = inp->cgrid.lower[PH_IDX];
     // Immediately set rleft and rright. Will need both
     arc_ctx->rright = inp->rright;
     arc_ctx->rleft = inp->rleft;
@@ -610,6 +735,10 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     arc_ctx->zmin = zxpt_lo; // Initial guess
     double zup = geo->zmaxis;
     find_lower_turning_point(geo, psi_curr, zup, &arc_ctx->zmin, 0);
+    if (inp->straight_core_xpt_ray
+        && (inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R
+          || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L))
+      tok_core_ray_anchor(arc_ctx, psi_curr);
     // Done finding turning points
     arc_ctx->arcL_right = integrate_psi_contour_memo(geo, psi_curr, arc_ctx->zmin, arc_ctx->zmax, arc_ctx->rright,
       true, true, arc_memo_right);

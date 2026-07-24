@@ -20,6 +20,10 @@ struct arc_length_ctx {
   double arcL_tot; // total arc length
   double arcL_start; // For core bloks only. arc length between theta=0 and lower turning point
                      // measured counterclockwise from left side
+  double core_ray_r0, core_ray_z0; // Core-side endpoint of the straight X-point ray.
+  double core_anchor_r, core_anchor_z; // Intersection of that ray with the current surface.
+  double core_ray_psi0;
+  bool core_ray_initialized, core_anchor_valid;
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
   double phi_bot; // For new way of trying to do core
@@ -811,4 +815,3 @@ void tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *
  * Used to set arc_ctx attributes before using ridders to find z
 */
 void tok_set_ridders(struct gkyl_tok_geo_grid_inp* inp, struct arc_length_ctx* arc_ctx, double psi_curr, double arcL_curr, double* rclose, double *ridders_min, double* ridders_max);
-
