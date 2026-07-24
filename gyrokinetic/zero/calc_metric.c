@@ -789,23 +789,49 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
         // Get position map deriv for psi
         double *ddpsi_n = gkyl_array_fetch(gk_geom->geo_surf[dir].ddpsi_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
 
+        double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
+        double R = mc2p_n[R_IDX];
+
+        // At a physical psi boundary, the one-sided finite-difference
+        // stencil can acquire a large, non-smooth component tangent to a
+        // separatrix contour.  Retain that tangential component (it is set
+        // by the theta coordinate), but obtain the normal component from
+        // the independently evaluated EQDSK quantities.  This enforces
+        //
+        //   J |B| / (dPsi/dpsi) = sqrt(g_33)
+        //
+        // without changing the requested psi/rho extent.
+        bool psi_boundary = dir == PSI_IDX &&
+          ((ip == gk_geom->nrange_surf[dir].lower[PSI_IDX] &&
+              up->local.lower[PSI_IDX] == up->global.lower[PSI_IDX]) ||
+           (ip == gk_geom->nrange_surf[dir].upper[PSI_IDX] &&
+              up->local.upper[PSI_IDX] == up->global.upper[PSI_IDX]));
+        if (psi_boundary) {
+          double tangent_sq = dxdz[0][2]*dxdz[0][2] + dxdz[1][2]*dxdz[1][2];
+          double g33_exact = tangent_sq + R*R*ddtheta_n[2]*ddtheta_n[2];
+          double cross_rz = dxdz[0][0]*dxdz[1][2] - dxdz[0][2]*dxdz[1][0];
+          double cross_sign = cross_rz < 0.0 ? -1.0 : 1.0;
+          double cross_exact = cross_sign*fabs(ddpsi_n[0])*sqrt(g33_exact)/(R*bmag_n[0]);
+          double tangent_projection =
+            (dxdz[0][0]*dxdz[0][2] + dxdz[1][0]*dxdz[1][2])/tangent_sq;
+          dxdz[0][0] = tangent_projection*dxdz[0][2] + cross_exact*dxdz[1][2]/tangent_sq;
+          dxdz[1][0] = tangent_projection*dxdz[1][2] - cross_exact*dxdz[0][2]/tangent_sq;
+        }
+
         // dxdz is in cylindrical coords, calculate J as
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double R = mc2p_n[R_IDX];
         double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
         jFld_n[0] = fabs(J);
         double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
-        double *bmag_n = gkyl_array_fetch(gk_geom->geo_surf[dir].bmag_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
-        dphidtheta = sqrt(dphidtheta);
-        // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
-        if (ddtheta_n[2] < 0) {
+        double dphidtheta = psi_boundary ? ddtheta_n[2] :
+          sqrt((jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0]
+            - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R);
+        if (!psi_boundary && ddtheta_n[2] < 0)
           dphidtheta = -dphidtheta;
-        }
 
         double *gFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].g_ij_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         gFld_n[0] = dxdz[0][0]*dxdz[0][0] + R*R*dxdz[2][0]*dxdz[2][0] + dxdz[1][0]*dxdz[1][0]; 
