@@ -13,11 +13,19 @@
 #include <gkyl_tok_geo_priv.h>
 #include <gkyl_dg_bin_ops.h>
 
+#include <float.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+
+static bool
+tok_geo_same_flux(double psi_a, double psi_b)
+{
+  double scale = fmax(1.0, fmax(fabs(psi_a), fabs(psi_b)));
+  return fabs(psi_a-psi_b) <= 64.0*DBL_EPSILON*scale;
+}
 
 static bool
 tok_geo_trace_enabled(void)
@@ -257,7 +265,7 @@ tok_half_domain_sep_z(const struct gkyl_tok_geo_grid_inp *inp,
   double *z)
 {
   const int th_idx = 2;
-  if (!inp->half_domain || arc_ctx->psi != arc_ctx->geo->psisep)
+  if (!inp->half_domain || !tok_geo_same_flux(arc_ctx->psi, arc_ctx->geo->psisep))
     return false;
 
   double zx = arc_ctx->geo->use_cubics
@@ -918,7 +926,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         ((struct gkyl_tok_geo *)geo)->stat.nroot_cont_calls += res.nevals;
 
         if (inp->half_domain) { //Alternative for half domain
-          if (psi_curr == geo->psisep) {
+          if (tok_geo_same_flux(psi_curr, geo->psisep)) {
             if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
               if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
                 z_curr = geo->efit->Zxpt[0];
@@ -934,7 +942,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           }
         }
         else { // For full domain
-          if (psi_curr == geo->psisep) {
+          if (tok_geo_same_flux(psi_curr, geo->psisep)) {
             if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
               if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP)
                 z_curr = geo->efit->Zxpt[1];
@@ -960,7 +968,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         // Join the two core blocks on the straight, flux-aligned ray that
         // connects the lower X-point to the nearest point on the innermost
         // core surface.
-        if (psi_curr != geo->psisep) {
+        if (!tok_geo_same_flux(psi_curr, geo->psisep)) {
           if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
             z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;
             at_core_anchor = arc_ctx.core_anchor_valid;
@@ -982,7 +990,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
         if (at_core_anchor)
           r_curr = arc_ctx.core_anchor_r;
 
-        if (psi_curr==geo->psisep) {
+        if (tok_geo_same_flux(psi_curr, geo->psisep)) {
           if (z_curr == geo->efit->Zxpt[0]) {
             nr = 1;
             r_curr = geo->efit->Rxpt[0];
@@ -1230,7 +1238,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
           double dr_curr = choose_closest(rclose, R, dR, nr);
           double dz_curr = choose_closest(rclose, R, dZ, nr);
 
-          if (psi_curr==geo->psisep && ip_delta==0) {
+          if (tok_geo_same_flux(psi_curr, geo->psisep) && ip_delta==0) {
             if (z_curr == geo->efit->Zxpt[0]) {
               nr = 1;
               r_curr = geo->efit->Rxpt[0];
@@ -1513,7 +1521,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           // Join the two core blocks on the straight, flux-aligned ray that
           // connects the lower X-point to the nearest point on the innermost
           // core surface.
-          if (psi_curr != geo->psisep) {
+          if (!tok_geo_same_flux(psi_curr, geo->psisep)) {
             if (it == nrange->upper[TH_IDX] && inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L && up->local.upper[TH_IDX]== up->global.upper[TH_IDX]) {
               z_curr = arc_ctx.core_anchor_valid ? arc_ctx.core_anchor_z : arc_ctx.zmin;
               at_core_anchor = arc_ctx.core_anchor_valid;
@@ -1535,7 +1543,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
           if (at_core_anchor)
             r_curr = arc_ctx.core_anchor_r;
 
-          if (psi_curr==geo->psisep && ip_delta==0) {
+          if (tok_geo_same_flux(psi_curr, geo->psisep) && ip_delta==0) {
             if (z_curr == geo->efit->Zxpt[0]) {
               nr = 1;
               r_curr = geo->efit->Rxpt[0];
