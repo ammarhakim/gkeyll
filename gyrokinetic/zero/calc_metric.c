@@ -8,6 +8,8 @@
 #include <float.h>
 #include <stdlib.h>
 
+// test commit for slack channel
+
 gkyl_calc_metric*
 gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
   const struct gkyl_range *global, const struct gkyl_range *global_ext,
