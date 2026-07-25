@@ -8,7 +8,7 @@
 #include <float.h>
 #include <stdlib.h>
 
-// test commit for slack channel 2
+// test commit for slack channel 3 (after new clone)
 
 gkyl_calc_metric*
 gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_grid *grid,
