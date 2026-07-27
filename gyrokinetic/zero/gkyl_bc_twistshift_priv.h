@@ -21,7 +21,7 @@ struct gkyl_bc_twistshift {
   
   struct gkyl_dg_lowpass_filter *filter; // Optional post-shift filter along shear_dir.
   int filter_half_width; // Filter stencil half-width M in cells (0 = no filter).
-  int filter_cutoff_wavelength; // Filter cutoff wavelength.
+  double filter_cutoff_wavelength; // Filter cutoff wavelength.
   struct gkyl_range ghost_r; // Ghost plane the twist-shift fills.
   struct gkyl_array *filt_buff; // Buffer for the filter.
   void (*filter_func)(struct gkyl_dg_lowpass_filter *filt_up, struct gkyl_array *GKYL_RESTRICT finout, struct gkyl_array *GKYL_RESTRICT fbuff);
