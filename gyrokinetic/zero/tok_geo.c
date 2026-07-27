@@ -57,6 +57,13 @@ tok_geo_trace_double_env(const char *name, double fallback)
 }
 
 static bool
+tok_ordered_map_diag_enabled(void)
+{
+  const char *diag = getenv("GKYL_TOK_ORDERED_MAP_DIAG");
+  return diag && diag[0] != '\0' && diag[0] != '0';
+}
+
+static bool
 tok_xpt_mapping_requested(const struct gkyl_tok_geo_grid_inp *inp)
 {
   if (inp->straight_xpt_ray)
@@ -522,15 +529,24 @@ tok_nearest_value(double ref, const double *values, int n)
   return values[ibest];
 }
 
+static bool tok_fixed_edge_is_midplane(enum gkyl_tok_geo_type ftype);
+
 static bool
 tok_build_contour_candidate(const struct gkyl_tok_geo *geo, double psi,
   bool param_is_r, double rfixed, double zfixed, double rx, double zx, int n,
-  double *r, double *z, double *score)
+  double *r, double *z, double *score, const char *name,
+  bool cluster_fixed_endpoint)
 {
   r[0] = rfixed; z[0] = zfixed;
   double total = 0.0, max_step = 0.0, final_step = 0.0;
   for (int i=1; i<n-1; ++i) {
-    double f = i/(double) (n-1);
+    double t = i/(double) (n-1);
+    // A midplane endpoint is an R turning point of the contour.  There,
+    // Z-Z_fixed scales as sqrt(|R-R_fixed|), so uniform R sampling creates an
+    // artificially large first physical step.  Quadratic R spacing recovers
+    // approximately uniform arc-length spacing without weakening the checks
+    // that reject a genuine root-branch jump.
+    double f = param_is_r && cluster_fixed_endpoint ? t*t : t;
     if (param_is_r) {
       r[i] = rfixed+f*(rx-rfixed);
       double roots[16] = { 0.0 };
@@ -568,8 +584,14 @@ tok_build_contour_candidate(const struct gkyl_tok_geo *geo, double psi,
   double mean = total/(n-1);
   double cell_diag = hypot(geo->rzgrid.dx[0], geo->rzgrid.dx[1]);
   if (max_step > 2.0*cell_diag || max_step > 16.0*mean ||
-      final_step > 2.0*cell_diag)
+      final_step > 2.0*cell_diag) {
+    if (tok_ordered_map_diag_enabled())
+      fprintf(stderr,
+        "TOK_ORDERED_MAP_DIAG reason=discontinuous_trace trace=%s param=%c n=%d psi=%.17g max_step=%.17g final_step=%.17g mean_step=%.17g cell_diag=%.17g endpoints=(%.17g,%.17g)->(%.17g,%.17g)\n",
+        name, param_is_r ? 'R' : 'Z', n, psi, max_step, final_step, mean,
+        cell_diag, rfixed, zfixed, rx, zx);
     return false;
+  }
   *score = max_step/mean+4.0*final_step/mean;
   return isfinite(*score);
 }
@@ -620,10 +642,10 @@ tok_build_sep_trace(const struct gkyl_tok_geo_grid_inp *inp,
   double score_r = DBL_MAX, score_z = DBL_MAX;
   bool ok_r = tok_build_contour_candidate(arc_ctx->geo,
     arc_ctx->geo->psisep, true, rfixed, zfixed, rx, zx, n,
-    rr, zr, &score_r);
+    rr, zr, &score_r, "separatrix", false);
   bool ok_z = tok_build_contour_candidate(arc_ctx->geo,
     arc_ctx->geo->psisep, false, rfixed, zfixed, rx, zx, n,
-    rz, zz, &score_z);
+    rz, zz, &score_z, "separatrix", false);
   if (!ok_r && !ok_z) {
     fprintf(stderr,
       "TOK_SEP_TRACE both parameterizations failed ftype=%d fixed=(%.17g,%.17g) xpt=(%.17g,%.17g)\n",
@@ -933,11 +955,22 @@ tok_build_far_trace(const struct gkyl_tok_geo_grid_inp *inp,
   double score_r = DBL_MAX, score_z = DBL_MAX;
   bool ok_r = tok_build_contour_candidate(arc_ctx->geo,
     arc_ctx->xpt_ray_psi0, true, rf, zf, arc_ctx->xpt_ray_r0,
-    arc_ctx->xpt_ray_z0, n, rr, zr, &score_r);
+    arc_ctx->xpt_ray_z0, n, rr, zr, &score_r, "far_boundary", false);
   bool ok_z = tok_build_contour_candidate(arc_ctx->geo,
     arc_ctx->xpt_ray_psi0, false, rf, zf, arc_ctx->xpt_ray_r0,
-    arc_ctx->xpt_ray_z0, n, rz, zz, &score_z);
+    arc_ctx->xpt_ray_z0, n, rz, zz, &score_z, "far_boundary", false);
+  // Preserve both original parameterizations whenever either works.  Only a
+  // trace for which both were rejected and whose fixed edge is a known
+  // midplane turning point receives the endpoint-clustered R retry.
+  if (!ok_r && !ok_z && tok_fixed_edge_is_midplane(inp->ftype))
+    ok_r = tok_build_contour_candidate(arc_ctx->geo,
+      arc_ctx->xpt_ray_psi0, true, rf, zf, arc_ctx->xpt_ray_r0,
+      arc_ctx->xpt_ray_z0, n, rr, zr, &score_r, "far_boundary", true);
   if (!ok_r && !ok_z) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP far trace failed ftype=%d psi=%.17g fixed=(%.17g,%.17g) ray=(%.17g,%.17g)\n",
+      inp->ftype, arc_ctx->xpt_ray_psi0, rf, zf, arc_ctx->xpt_ray_r0,
+      arc_ctx->xpt_ray_z0);
     gkyl_free(rr); gkyl_free(zr); gkyl_free(rz); gkyl_free(zz);
     return false;
   }
