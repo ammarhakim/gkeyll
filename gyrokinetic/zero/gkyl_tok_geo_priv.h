@@ -20,10 +20,23 @@ struct arc_length_ctx {
   double arcL_tot; // total arc length
   double arcL_start; // For core bloks only. arc length between theta=0 and lower turning point
                      // measured counterclockwise from left side
-  double core_ray_r0, core_ray_z0; // Nearest core-side endpoint of the straight X-point ray.
-  double core_anchor_r, core_anchor_z; // Intersection of that ray with the current surface.
-  double core_ray_psi0;
-  bool core_ray_initialized, core_anchor_valid;
+  double xpt_ray_r0, xpt_ray_z0; // Far-surface endpoint of the straight X-point ray.
+  double xpt_anchor_r, xpt_anchor_z; // Intersection of that ray with the current surface.
+  double xpt_ray_psi0;
+  bool xpt_ray_initialized, xpt_anchor_valid;
+  bool xpt_ray_branch_valid, xpt_ray_on_right;
+  // Arc-length interval occupied by this block on the current complete contour.
+  // This makes the ray a shared poloidal origin on every radial surface, rather
+  // than overriding only the interface endpoint.
+  double xpt_map_arc_lo, xpt_map_arc_hi;
+  double xpt_map_darc_dtheta;
+  bool xpt_map_valid;
+  // Orientation-adaptive, arc-length-ordered trace of this block's exact
+  // separatrix segment.  The legacy R(Z)-only representation can skip a
+  // segment when the contour turns in Z near an X-point.
+  double *sep_trace_r, *sep_trace_z, *sep_trace_s;
+  int sep_trace_n, sep_trace_capacity;
+  bool sep_trace_initialized, sep_trace_param_is_r;
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
   double phi_bot; // For new way of trying to do core

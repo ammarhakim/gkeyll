@@ -89,6 +89,28 @@ struct gkyl_qr_res
 gkyl_ridders(double (*func)(double,void*), void *ctx,
   double xl, double xr, double fl, double fr, int max_iter, double eps)
 {
+  // An endpoint can itself be the requested root.  Handling that case before
+  // the first Ridders update is essential: with f(xl)==0 the update formula
+  // can otherwise return the opposite end of the interval.
+  if (isfinite(xl) && isfinite(fl) && fl == 0.0)
+    return (struct gkyl_qr_res) {
+      .error = 0.0, .res = xl, .nevals = 0, .status = 0,
+    };
+  if (isfinite(xr) && isfinite(fr) && fr == 0.0)
+    return (struct gkyl_qr_res) {
+      .error = 0.0, .res = xr, .nevals = 0, .status = 0,
+    };
+
+  // The method requires a finite, ordered, sign-changing bracket.  Report an
+  // invalid bracket instead of allowing a negative square-root argument or a
+  // non-finite iterate to propagate into geometry generation.
+  if (!func || !isfinite(xl) || !isfinite(xr) || !isfinite(fl) ||
+      !isfinite(fr) || !(xr > xl) || !(eps > 0.0) || max_iter < 0 ||
+      (fl > 0.0) == (fr > 0.0))
+    return (struct gkyl_qr_res) {
+      .error = DBL_MAX, .res = DBL_MAX, .nevals = 0, .status = 2,
+    };
+
   double x0 = xl, x2 = xr, f0 = fl, f2 = fr;
   double res = DBL_MAX, err = DBL_MAX;
 
@@ -98,9 +120,29 @@ gkyl_ridders(double (*func)(double,void*), void *ctx,
     double f1 = func(x1, ctx); nev += 1;
     double W = f1*f1 - f0*f2;
 
+    if (!isfinite(f1) || !isfinite(W) || !(W > 0.0)) {
+      iterating = 0;
+      break;
+    }
+
     double d = x2-x1;
     double x3 = x1 + dsign(f0)*f1*d/sqrt(W);
+    if (!isfinite(x3) || x3 < x0 || x3 > x2) {
+      iterating = 0;
+      break;
+    }
     double f3 = func(x3, ctx); nev += 1;
+
+    if (!isfinite(f3)) {
+      iterating = 0;
+      break;
+    }
+    if (f3 == 0.0) {
+      res = x3;
+      err = 0.0;
+      iterating = 0;
+      break;
+    }
 
     if (fabs(res-x3) < eps) {
       err = fabs(res-x3);
@@ -130,7 +172,7 @@ gkyl_ridders(double (*func)(double,void*), void *ctx,
     .error = err,
     .res = res,
     .nevals = nev,
-    .status = nitr>max_iter ? 1 : 0,
+    .status = nitr>max_iter ? 1 : (!isfinite(res) || err == DBL_MAX ? 2 : 0),
   };
 }
 

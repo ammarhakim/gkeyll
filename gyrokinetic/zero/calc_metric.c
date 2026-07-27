@@ -6,6 +6,7 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_array_ops_priv.h>
 #include <float.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 // test commit for slack channel 5 (after new clone and commits and pushes included on front end)
@@ -33,6 +34,7 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
 
   up->local = *local;
   up->local_ext = *local_ext;
+  up->rz_expected_jacobian_sign = 0;
 
   return up;
 }
@@ -72,6 +74,54 @@ static inline double
 signed_jacobian_rz(double R, double dRdpsi, double dZdpsi, double dRdtheta, double dZdtheta)
 {
   return R*(dRdpsi*dZdtheta - dRdtheta*dZdpsi);
+}
+
+struct signed_jacobian_guard_state {
+  int expected_sign;
+};
+
+static bool
+signed_jacobian_guard_enabled(void)
+{
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char *value = getenv("GKYL_MAP_JACOBIAN_SIGN_GUARD");
+    enabled = value && value[0] != '\0' && value[0] != '0';
+    if (enabled) {
+      fprintf(stderr, "GKYL_SIGNED_JACOBIAN_GUARD enabled version=1\n");
+      fflush(stderr);
+    }
+  }
+  return enabled != 0;
+}
+
+static void
+signed_jacobian_guard_check(struct signed_jacobian_guard_state *state,
+  double J, bool enforce_sign, const char *location, int dir,
+  const int cidx[3])
+{
+  bool enabled = signed_jacobian_guard_enabled();
+  if (!isfinite(J) || J == 0.0) {
+    if (!enabled)
+      return;
+    fprintf(stderr,
+      "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g reason=%s\n",
+      location, dir, cidx[0], cidx[1], cidx[2], J,
+      isfinite(J) ? "zero" : "nonfinite");
+    abort();
+  }
+  if (!enforce_sign)
+    return;
+  int sign = J < 0.0 ? -1 : 1;
+  if (state->expected_sign == 0)
+    state->expected_sign = sign;
+  else if (enabled && sign != state->expected_sign) {
+    fprintf(stderr,
+      "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g expected_sign=%d reason=sign_reversal\n",
+      location, dir, cidx[0], cidx[1], cidx[2], J,
+      state->expected_sign);
+    abort();
+  }
 }
 
 static inline void cross(const double a[3], const double b[3], double c[3]) {
@@ -388,6 +438,7 @@ void gkyl_calc_metric_advance_rz( gkyl_calc_metric *up, struct gkyl_range *nrang
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
+  struct signed_jacobian_guard_state jac_guard = { 0 };
   for(int ia=nrange->lower[AL_IDX]; ia<=nrange->upper[AL_IDX]; ++ia){
     for (int ip=nrange->lower[PSI_IDX]; ip<=nrange->upper[PSI_IDX]; ++ip) {
       for (int it=nrange->lower[TH_IDX]; it<=nrange->upper[TH_IDX]; ++it) {
@@ -474,9 +525,11 @@ void gkyl_calc_metric_advance_rz( gkyl_calc_metric *up, struct gkyl_range *nrang
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(jFld_nodal, gkyl_range_idx(nrange, cidx));
         double R = mc2p_n[R_IDX];
-        jFld_n[0] = sqrt(R*R*(   dxdz[0][0]*dxdz[0][0]*dxdz[1][2]*dxdz[1][2]
-                              +  dxdz[0][2]*dxdz[0][2]*dxdz[1][0]*dxdz[1][0]
-                              -2*dxdz[0][0]*dxdz[0][2]*dxdz[1][0]*dxdz[1][2] ));
+        double signed_J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0],
+          dxdz[0][2], dxdz[1][2]);
+        signed_jacobian_guard_check(&jac_guard, signed_J, true,
+          "rz", -1, cidx);
+        jFld_n[0] = fabs(signed_J);
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
@@ -582,6 +635,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
+  struct signed_jacobian_guard_state jac_guard = { 0 };
   for(int ia=gk_geom->nrange_int.lower[AL_IDX]; ia<=gk_geom->nrange_int.upper[AL_IDX]; ++ia){
     for (int ip=gk_geom->nrange_int.lower[PSI_IDX]; ip<=gk_geom->nrange_int.upper[PSI_IDX]; ++ip) {
       for (int it=gk_geom->nrange_int.lower[TH_IDX]; it<=gk_geom->nrange_int.upper[TH_IDX]; ++it) {
@@ -616,6 +670,8 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_int.jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double R = mc2p_n[R_IDX];
         double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
+        signed_jacobian_guard_check(&jac_guard, J, true,
+          "interior", -1, cidx);
         jFld_n[0] = fabs(J);
         double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
@@ -743,6 +799,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
+  up->rz_expected_jacobian_sign = jac_guard.expected_sign;
   metric_diag_write_interior(gk_geom);
 }
 
@@ -751,6 +808,9 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
+  struct signed_jacobian_guard_state jac_guard = {
+    .expected_sign = up->rz_expected_jacobian_sign,
+  };
   for(int ia=gk_geom->nrange_surf[dir].lower[AL_IDX]; ia<=gk_geom->nrange_surf[dir].upper[AL_IDX]; ++ia){
     for (int ip=gk_geom->nrange_surf[dir].lower[PSI_IDX]; ip<=gk_geom->nrange_surf[dir].upper[PSI_IDX]; ++ip) {
       for (int it=gk_geom->nrange_surf[dir].lower[TH_IDX]; it<=gk_geom->nrange_surf[dir].upper[TH_IDX]; ++it) {
@@ -812,7 +872,13 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
           double tangent_sq = dxdz[0][2]*dxdz[0][2] + dxdz[1][2]*dxdz[1][2];
           double g33_exact = tangent_sq + R*R*ddtheta_n[2]*ddtheta_n[2];
           double cross_rz = dxdz[0][0]*dxdz[1][2] - dxdz[0][2]*dxdz[1][0];
-          double cross_sign = cross_rz < 0.0 ? -1.0 : 1.0;
+          // Preserve the orientation established by the block's interior
+          // mapping.  The raw one-sided radial stencil supplies only the
+          // tangential projection here; its sign can be noisy at a
+          // separatrix and must not flip surface metrics or normals.
+          double cross_sign = up->rz_expected_jacobian_sign != 0
+            ? up->rz_expected_jacobian_sign
+            : (cross_rz < 0.0 ? -1.0 : 1.0);
           double cross_exact = cross_sign*fabs(ddpsi_n[0])*sqrt(g33_exact)/(R*bmag_n[0]);
           double tangent_projection =
             (dxdz[0][0]*dxdz[0][2] + dxdz[1][0]*dxdz[1][2])/tangent_sq;
@@ -824,6 +890,8 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
         double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
         double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
+        signed_jacobian_guard_check(&jac_guard, J, true,
+          "surface", dir, cidx);
         jFld_n[0] = fabs(J);
         double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 

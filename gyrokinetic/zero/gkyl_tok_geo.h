@@ -156,9 +156,14 @@ struct gkyl_tok_geo_grid_inp {
   bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
   bool use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
+  bool straight_xpt_ray; // Split supported lower-X-point multiblock regions on a
+                         // straight, flux-surface-intersecting ray from the X-point
+                         // to the nearest point on the requested far radial surface.
   bool straight_core_xpt_ray; // Align the CORE_L/CORE_R interface on a straight,
                               // flux-surface-intersecting ray from the lower X-point
-                              // to the nearest point on the innermost core surface
+                              // to the nearest point on the innermost core surface.
+                              // Retained for backward compatibility; straight_xpt_ray
+                              // enables the same construction for every supported region.
 
   // Parameters for root finder: leave unset to use defaults
   struct {
