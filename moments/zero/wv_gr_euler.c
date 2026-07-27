@@ -100,8 +100,32 @@ gkyl_gr_euler_specific_enthalpy(double gas_gamma, double rho, double p)
   return 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
 }
 
+static inline double
+gr_euler_spatial_metric_det(const double spatial_metric[3][3])
+{
+  return (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
+    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
+    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+}
+
+static inline void
+gr_euler_spatial_metric_inv(const double spatial_metric[3][3], double spatial_det, double inv_spatial_metric[3][3])
+{
+  double inv_det = 1.0 / spatial_det;
+
+  inv_spatial_metric[0][0] = ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][1])) * inv_det;
+  inv_spatial_metric[0][1] = ((spatial_metric[0][2] * spatial_metric[2][1]) - (spatial_metric[0][1] * spatial_metric[2][2])) * inv_det;
+  inv_spatial_metric[0][2] = ((spatial_metric[0][1] * spatial_metric[1][2]) - (spatial_metric[0][2] * spatial_metric[1][1])) * inv_det;
+  inv_spatial_metric[1][0] = ((spatial_metric[1][2] * spatial_metric[2][0]) - (spatial_metric[1][0] * spatial_metric[2][2])) * inv_det;
+  inv_spatial_metric[1][1] = ((spatial_metric[0][0] * spatial_metric[2][2]) - (spatial_metric[0][2] * spatial_metric[2][0])) * inv_det;
+  inv_spatial_metric[1][2] = ((spatial_metric[0][2] * spatial_metric[1][0]) - (spatial_metric[0][0] * spatial_metric[1][2])) * inv_det;
+  inv_spatial_metric[2][0] = ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])) * inv_det;
+  inv_spatial_metric[2][1] = ((spatial_metric[0][1] * spatial_metric[2][0]) - (spatial_metric[0][0] * spatial_metric[2][1])) * inv_det;
+  inv_spatial_metric[2][2] = ((spatial_metric[0][0] * spatial_metric[1][1]) - (spatial_metric[0][1] * spatial_metric[1][0])) * inv_det;
+}
+
 // Building the static-TOV equilibrium conserved state q_eq at the same point/metric as q, for the optional well-balancing.
-// The frozen t=0 equilibrium is carried in the spare slots: D_eq (71), Etot_eq (72), and the momentum S_eq (73-75, which is nonzero in Kerr-Schild where v=beta/alpha). q_eq[5..70] = the live metric (copied from q), so the equilibrium tracks the current geometry.
+// The frozen t=0 equilibrium is carried in the spare slots: D_eq (71), Etot_eq (72), and the covariant momentum S_eq,i (73-75, which is nonzero in Kerr-Schild where v=beta/alpha). q_eq[5..70] = the live metric (copied from q), so the equilibrium tracks the current geometry.
 static void
 gr_euler_tov_equilibrium(const struct wv_gr_euler *gr_euler, const double q[76], double q_eq[71])
 {
@@ -109,9 +133,9 @@ gr_euler_tov_equilibrium(const struct wv_gr_euler *gr_euler, const double q[76],
     q_eq[i] = q[i];
   }
   q_eq[0] = q[71]; // D_eq
-  q_eq[1] = q[73]; // S_eq^x
-  q_eq[2] = q[74]; // S_eq^y
-  q_eq[3] = q[75]; // S_eq^z
+  q_eq[1] = q[73]; // S_eq,x
+  q_eq[2] = q[74]; // S_eq,y
+  q_eq[3] = q[75]; // S_eq,z
   q_eq[4] = q[72]; // Etot_eq (slot-[4] Valencia energy E - D)
 }
 
@@ -181,10 +205,17 @@ gkyl_gr_euler_flux(double gas_gamma, const double q[71], double flux[71])
       h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
     }
 
+    double cov_vel[3] = { 0.0 };
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        cov_vel[i] += spatial_metric[i][j] * vel[j];
+      }
+    }
+
     flux[0] = (lapse * sqrt(spatial_det)) * (rho * W * (vx - (shift_x / lapse)));
-    flux[1] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vx * (vx - (shift_x / lapse))) + p);
-    flux[2] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vy * (vx - (shift_x / lapse))));
-    flux[3] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (vz * (vx - (shift_x / lapse))));
+    flux[1] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[0] * (vx - (shift_x / lapse))) + p);
+    flux[2] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[1] * (vx - (shift_x / lapse))));
+    flux[3] = (lapse * sqrt(spatial_det)) * (rho * h * (W * W) * (cov_vel[2] * (vx - (shift_x / lapse))));
     flux[4] = (lapse * sqrt(spatial_det)) * (((rho * h * (W * W)) - p - (rho * W)) * (vx - (shift_x / lapse)) + (p * vx));
 
     for (int i = 5; i < 71; i++) {
@@ -250,23 +281,22 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
   }
 
   if (!in_excision_region) {
-    double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
-      (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
-      (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
+    double spatial_det = gr_euler_spatial_metric_det(spatial_metric);
+    double inv_spatial_metric[3][3];
+    gr_euler_spatial_metric_inv(spatial_metric, spatial_det, inv_spatial_metric);
 
     double D = q[0] / sqrt(spatial_det);
-    double momx = q[1] / sqrt(spatial_det);
-    double momy = q[2] / sqrt(spatial_det);
-    double momz = q[3] / sqrt(spatial_det);
+    double momx = q[1] / sqrt(spatial_det); // S_x
+    double momy = q[2] / sqrt(spatial_det); // S_y
+    double momz = q[3] / sqrt(spatial_det); // S_z
     double Etot = q[4] / sqrt(spatial_det);
 
-    // Correcting for the frame-invariant, physically correct norm (the old Euclidean sum was only right for a flat metric). At v=0 (areal static) S^i=0 so
-    // this is identical to before; it matters where v!=0 (Kerr-Schild)
-    double mom_vec[3] = { momx, momy, momz };
+    // Stored momentum is covariant Valencia S_i. Its physical norm is gamma^{ij} S_i S_j.
+    double mom_cov[3] = { momx, momy, momz };
     double S2 = 0.0;
     for (int si = 0; si < 3; si++)
       for (int sj = 0; sj < 3; sj++)
-        S2 += spatial_metric[si][sj] * mom_vec[si] * mom_vec[sj];
+        S2 += inv_spatial_metric[si][sj] * mom_cov[si] * mom_cov[sj];
 
     // HYBRID EOS branch: iterative (bisection) pressure recovery, since the piecewise cold + thermal EOS
     // has no closed-form C2P. f(p) = P_hybrid(rho(p),eps(p)) - p is bracketed in [p_lo, p_hi] and bisected.
@@ -301,20 +331,46 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
       double W = 1.0 / sqrt(1.0 - vsq);
       double h = (T + p) / (D * W);
 
+      double Q = T + p;
       v[0] = D / W;
-      v[1] = momx / (v[0] * h * (W * W));
-      v[2] = momy / (v[0] * h * (W * W));
-      v[3] = momz / (v[0] * h * (W * W));
+      v[1] = 0.0;
+      v[2] = 0.0;
+      v[3] = 0.0;
+      for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+          v[1 + i] += inv_spatial_metric[i][j] * mom_cov[j] / Q;
+        }
+      }
       v[4] = p;
       goto hybrid_recovered; // skip the gamma-law quartic; land at the shared floor/atmosphere handling
     }
 
-    double C = D / sqrt(((Etot + D) * (Etot + D)) - S2);
-    double C0 = (D + Etot) / sqrt(((Etot + D) * (Etot + D)) - S2);
-    if (((Etot + D) * (Etot + D)) - S2 < pow(10.0, -8.0)) {
-      C = D / sqrt(pow(10.0, -8.0));
-      C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
+    // C2P normalisation. T2 = (Etot + D)^2 - S2 = (rho h W^2)^2 - S2 scales like D^2, so it must be guarded relative to (Etot + D)^2, never against an absolute constant.
+    static int c2p_legacy = -1;
+    if (getenv("GKYL_C2P_LEGACY_GUARD") != NULL) {
+        c2p_legacy = 1;
+      }
+      else {
+        c2p_legacy = 0;
+      }
+
+    double T_tot = Etot + D;
+    double T2 = (T_tot * T_tot) - S2;
+    if (c2p_legacy) {
+      if (T2 < pow(10.0, -8.0)) {
+        T2 = pow(10.0, -8.0);
+      }
     }
+    else {
+      // Relative floor: S2 <= T2 physically (v^2 < 1), so T2 -> 0 only as v -> c.
+      double T2_min = 1.0e-14 * T_tot * T_tot; //a small relative margin so the sqrt stays finite without rescaling the state.
+      if (!(T2 > T2_min)) {
+        T2 = T2_min;
+      }
+    }
+
+    double C = D / sqrt(T2);
+    double C0 = (D + Etot) / sqrt(T2);
 
     double alpha0 = -1.0 / (gas_gamma * gas_gamma);
     double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
@@ -324,7 +380,6 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
 
     double guess = 1.0;
     int iter = 0;
-
     while (iter < 100) {
       double poly = (alpha4 * (guess * guess * guess) * (guess - eta)) + (alpha2 * (guess * guess)) + (alpha1 * guess) + alpha0;
       double poly_der = alpha1 + (2.0 * alpha2 * guess) + (4.0 * alpha4 * (guess * guess * guess)) - (3.0 * eta * alpha4 * (guess * guess));
@@ -344,10 +399,16 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
     double h = 1.0 / (C * guess);
 
     v[0] = D / W;
-    v[1] = momx / (v[0] * h * (W * W));
-    v[2] = momy / (v[0] * h * (W * W));
-    v[3] = momz / (v[0] * h * (W * W));
     v[4] = (v[0] * h * (W * W)) - D - Etot;
+    double Q = Etot + D + v[4];
+    v[1] = 0.0;
+    v[2] = 0.0;
+    v[3] = 0.0;
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        v[1 + i] += inv_spatial_metric[i][j] * mom_cov[j] / Q;
+      }
+    }
 
     hybrid_recovered: ; // hybrid EOS branch jumps here with v[0-4] already set
 
@@ -357,11 +418,24 @@ gkyl_gr_euler_prim_vars(double gas_gamma, const double q[71], double v[71])
     static int atm_reset = -1;
     if (atm_reset < 0) atm_reset = (getenv("GKYL_ATM_RESET") != NULL) ? 1 : 0;
     if (atm_reset) {
+      static double atm_tol = -1.0;
+      if (atm_tol < 0.0) {
+        const char *tol_env = getenv("GKYL_ATM_TOL");
+        if (tol_env) {
+          atm_tol = atof(tol_env);
+        }
+        else {
+          atm_tol = 0.0;
+        }
+      }
+      double rho_trigger = gr_euler_rho_floor * (1.0 + atm_tol);
+      double p_trigger = gr_euler_p_floor * (1.0 + atm_tol);
+
       double vsq_chk = 0.0;
       for (int i = 0; i < 3; i++)
         for (int j = 0; j < 3; j++)
           vsq_chk += spatial_metric[i][j] * v[1 + i] * v[1 + j];
-      if (!(v[0] > gr_euler_rho_floor) || !(v[4] > gr_euler_p_floor) || !(vsq_chk < 1.0) || !isfinite(vsq_chk)) {
+      if (!(v[0] > rho_trigger) || !(v[4] > p_trigger) || !(vsq_chk < 1.0) || !isfinite(vsq_chk)) {
         v[0] = gr_euler_rho_floor;
         v[4] = gr_euler_p_floor;
         v[1] = 0.0; v[2] = 0.0; v[3] = 0.0;
@@ -437,51 +511,12 @@ gkyl_gr_euler_inv_spatial_metric(const double q[71], double ***inv_spatial_metri
   spatial_metric[1][0] = q[12]; spatial_metric[1][1] = q[13]; spatial_metric[1][2] = q[14];
   spatial_metric[2][0] = q[15]; spatial_metric[2][1] = q[16]; spatial_metric[2][2] = q[17];
 
-  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) - (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) - (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) - (spatial_metric[1][1] * spatial_metric[2][0])));
-  
-  double trace = 0.0;
-  for (int i = 0; i < 3; i++) {
-    trace += spatial_metric[i][i];
-  }
-
-  double spatial_metric_sq[3][3];
+  double spatial_det = gr_euler_spatial_metric_det(spatial_metric);
+  double inv_local[3][3];
+  gr_euler_spatial_metric_inv(spatial_metric, spatial_det, inv_local);
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      spatial_metric_sq[i][j] = 0.0;
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      for (int k = 0; k < 3; k++) {
-        spatial_metric_sq[i][j] += spatial_metric[i][k] * spatial_metric[k][j];
-      }
-    }
-  }
-
-  double sq_trace = 0.0;
-  for (int i = 0; i < 3; i++) {
-    sq_trace += spatial_metric_sq[i][i];
-  }
-
-  double euclidean_metric[3][3];
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      if (i == j) {
-        euclidean_metric[i][j] = 1.0;
-      }
-      else {
-        euclidean_metric[i][j] = 0.0;
-      }
-    }
-  }
-
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      (*inv_spatial_metric)[i][j] = (1.0 / spatial_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) - (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      (*inv_spatial_metric)[i][j] = inv_local[i][j];
     }
   }
 }
@@ -1005,7 +1040,7 @@ rot_to_local(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* ta
   qlocal[70] = (qglobal[68] * tau2[0]) + (qglobal[69] * tau2[1]) + (qglobal[70] * tau2[2]);
 
   // Static-TOV well-balancing carries the frozen equilibrium: q[71]=D_eq, q[72]=Etot_eq are scalars
-  // (carried unrotated); q[73..75]=S_eq is the equilibrium momentum vector therefore we need rotation
+  // (carried unrotated); q[73..75]=S_eq,i is the covariant equilibrium momentum vector, therefore we need rotation
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
   if (gr_euler->tov_eq != NULL) {
     qlocal[71] = qglobal[71];
@@ -1260,7 +1295,7 @@ rot_to_global(const struct gkyl_wv_eqn* eqn, const double* tau1, const double* t
   qglobal[69] = (qlocal[68] * norm[1]) + (qlocal[69] * tau1[1]) + (qlocal[70] * tau2[1]);
   qglobal[70] = (qlocal[68] * norm[2]) + (qlocal[69] * tau1[2]) + (qlocal[70] * tau2[2]);
 
-  // Frozen-equilibrium WB slots: q[71]=D_eq, q[72]=Etot_eq are scalars (carried); q[73..75]=S_eq is the equilibrium momentum vector, rotated back like the live momentum
+  // Frozen-equilibrium WB slots: q[71]=D_eq, q[72]=Etot_eq are scalars (carried); q[73..75]=S_eq,i is the covariant equilibrium momentum vector, rotated back like the live momentum
   const struct wv_gr_euler *gr_euler = container_of(eqn, struct wv_gr_euler, eqn);
   if (gr_euler->tov_eq != NULL) {
     qglobal[71] = qlocal[71];
@@ -1882,7 +1917,7 @@ flux_jump(const struct gkyl_wv_eqn* eqn, const double* ql, const double* qr, dou
 static bool
 check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
 {
-  // A valid subluminal fluid state: D > 0 and (D + tau)^2 - |S|^2 > 0 (energy dominates momentum); sqrt(det) > 0 cancels in the sign test, so we can use the densitized slots directly
+  // A valid subluminal fluid state: D > 0 and (D + tau)^2 - gamma^{ij} S_i S_j > 0; sqrt(det) > 0 cancels in the sign test, so we can use the densitized slots directly.
   if (q[27] < pow(10.0, -8.0)) {
     return true; // excised cell: not an evolved fluid cell, nothing to check
   }
@@ -1891,10 +1926,14 @@ check_inv(const struct gkyl_wv_eqn* eqn, const double* q)
   spatial_metric[0][0] = q[9];  spatial_metric[0][1] = q[10]; spatial_metric[0][2] = q[11];
   spatial_metric[1][0] = q[12]; spatial_metric[1][1] = q[13]; spatial_metric[1][2] = q[14];
   spatial_metric[2][0] = q[15]; spatial_metric[2][1] = q[16]; spatial_metric[2][2] = q[17];
+  double spatial_det = gr_euler_spatial_metric_det(spatial_metric);
+  double inv_spatial_metric[3][3];
+  gr_euler_spatial_metric_inv(spatial_metric, spatial_det, inv_spatial_metric);
+
   double S2 = 0.0;
   for (int si = 0; si < 3; si++)
     for (int sj = 0; sj < 3; sj++)
-      S2 += spatial_metric[si][sj] * q[1 + si] * q[1 + sj];
+      S2 += inv_spatial_metric[si][sj] * q[1 + si] * q[1 + sj];
   if (q[0] <= 0.0) {
     return false; // D <= 0
   }
@@ -2011,10 +2050,17 @@ gr_euler_raw_source(double gas_gamma, const double* qin, double* sout)
       h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
     }
     
+    double cov_vel[3] = { 0.0 };
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        cov_vel[i] += spatial_metric[i][j] * vel[j];
+      }
+    }
+
     double mom[3];
-    mom[0] = (rho * h) * (W * W) * vx;
-    mom[1] = (rho * h) * (W * W) * vy;
-    mom[2] = (rho * h) * (W * W) * vz;
+    mom[0] = (rho * h) * (W * W) * cov_vel[0];
+    mom[1] = (rho * h) * (W * W) * cov_vel[1];
+    mom[2] = (rho * h) * (W * W) * cov_vel[2];
 
     // Energy density source.
     sout[4] = 0.0;

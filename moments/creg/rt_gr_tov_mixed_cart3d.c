@@ -231,11 +231,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
   double sqrt_det = sqrt(spatial_det);
+  double cov_vel[3] = { 0.0 };
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      cov_vel[i] += spatial_metric[i][j] * vel[j];
+    }
+  }
 
   double rho_rel = sqrt_det * rho * W;
-  double mom_x = sqrt_det * rho * h * (W * W) * vel[0];
-  double mom_y = sqrt_det * rho * h * (W * W) * vel[1];
-  double mom_z = sqrt_det * rho * h * (W * W) * vel[2];
+  double mom_x = sqrt_det * rho * h * (W * W) * cov_vel[0];
+  double mom_y = sqrt_det * rho * h * (W * W) * cov_vel[1];
+  double mom_z = sqrt_det * rho * h * (W * W) * cov_vel[2];
   double Etot = sqrt_det * ((rho * h * (W * W)) - p - (rho * W));
 
   fout[0] = rho_rel;
@@ -586,622 +592,6 @@ calc_integrated_mom(struct gkyl_tm_trigger* imt, gkyl_moment_app* app, double t_
   }
 }
 
-// [DIAG] Per-step mixed TOV tracker. Fluid quantities come from species 0; lapse comes from
-// the live Einstein species 1, matching the collapse diagnostic.
-static double diag_SumD0 = -1.0;
-static void
-diag_track(gkyl_moment_app *app, struct gr_tov_coupled_ctx *ctx, double t_curr)
-{
-  const struct gkyl_array *fluid = gkyl_moment_app_get_write_array_species(app, 0);
-  const struct gkyl_array *einstein = gkyl_moment_app_get_write_array_species(app, 1);
-
-  double SumD_local = 0.0;
-  double Dmax_local = 0.0, r_Dmax_local = 0.0;
-  double Dc_local = 0.0, lapse_c_local = 0.0, r_c_local = 1.0e300;
-  double core_mom_local = 0.0, surf_mom_local = 0.0;
-  double glob_mom_local = 0.0, r_glob_mom_local = 0.0;
-  double lapse_min_local = 1.0e300, lapse_max_local = -1.0e300;
-  int n_bad_local = 0;
-
-  double R_core = 0.5 * ctx->R_star;
-  double R_star = ctx->R_star;
-  double surf_lo = R_star - 0.15 * R_star, surf_hi = R_star + 0.15 * R_star;
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &app->local);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
-    const double *fl = gkyl_array_cfetch(fluid, loc);
-    const double *es = gkyl_array_cfetch(einstein, loc);
-
-    double xc[3];
-    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xc);
-    double r = sqrt(xc[0] * xc[0] + xc[1] * xc[1] + xc[2] * xc[2]);
-
-    double D = fl[0];
-    double lapse = es[9];
-    double mom = sqrt(fl[1] * fl[1] + fl[2] * fl[2] + fl[3] * fl[3]);
-
-    if (!isfinite(D) || !isfinite(lapse) || !isfinite(mom)) n_bad_local += 1;
-
-    SumD_local += D;
-    if (D > Dmax_local) { Dmax_local = D; r_Dmax_local = r; }
-
-    if (r < r_c_local) { r_c_local = r; Dc_local = D; lapse_c_local = lapse; }
-
-    if (r < R_core && mom > core_mom_local) core_mom_local = mom;
-    if (r > surf_lo && r < surf_hi && mom > surf_mom_local) surf_mom_local = mom;
-    if (mom > glob_mom_local) { glob_mom_local = mom; r_glob_mom_local = r; }
-
-    if (r < 1.5 * R_star) {
-      if (lapse < lapse_min_local) lapse_min_local = lapse;
-      if (lapse > lapse_max_local) lapse_max_local = lapse;
-    }
-  }
-
-  SumD_local *= app->grid.cellVolume;
-
-  double SumD = 0.0;
-  double Dmax = 0.0, core_mom = 0.0, surf_mom = 0.0, glob_mom = 0.0;
-  double lapse_min = 0.0, lapse_max = 0.0, r_c = 0.0;
-  int n_bad = 0;
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &SumD_local, &SumD);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Dmax_local, &Dmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &core_mom_local, &core_mom);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &surf_mom_local, &surf_mom);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &glob_mom_local, &glob_mom);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &lapse_min_local, &lapse_min);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &lapse_max_local, &lapse_max);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_c_local, &r_c);
-  gkyl_comm_allreduce(app->comm, GKYL_INT, GKYL_SUM, 1, &n_bad_local, &n_bad);
-
-  double r_Dmax_candidate = 1.0e300;
-  if (Dmax_local == Dmax) r_Dmax_candidate = r_Dmax_local;
-  double r_glob_mom_candidate = 1.0e300;
-  if (glob_mom_local == glob_mom) r_glob_mom_candidate = r_glob_mom_local;
-  double Dc_candidate = 0.0, lapse_c_candidate = 0.0;
-  if (r_c_local == r_c) {
-    Dc_candidate = Dc_local;
-    lapse_c_candidate = lapse_c_local;
-  }
-
-  double r_Dmax = 0.0, r_glob_mom = 0.0, Dc = 0.0, lapse_c = 0.0;
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_Dmax_candidate, &r_Dmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_glob_mom_candidate, &r_glob_mom);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Dc_candidate, &Dc);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &lapse_c_candidate, &lapse_c);
-
-  if (diag_SumD0 < 0.0) diag_SumD0 = SumD;
-  double dSumD = SumD - diag_SumD0;
-
-  int rank = 0;
-  gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0) {
-    printf("[DIAG] t=%.4f  Dc=%.6e lapse_c=%.6e  Dmax=%.6e @r=%.3f  core|mom|=%.3e surf|mom|=%.3e glob|mom|=%.3e @r=%.2f  lapse[%.4f,%.4f]  SumD=%.8e dSumD=%.3e bad=%d\n",
-      t_curr, Dc, lapse_c, Dmax, r_Dmax, core_mom, surf_mom, glob_mom, r_glob_mom, lapse_min, lapse_max, SumD, dSumD, n_bad);
-    fflush(stdout);
-  }
-}
-
-static double
-diag_sym3_inverse(const double g[3][3], double gi[3][3])
-{
-  double c00 = g[1][1] * g[2][2] - g[1][2] * g[2][1];
-  double c01 = g[1][2] * g[2][0] - g[1][0] * g[2][2];
-  double c02 = g[1][0] * g[2][1] - g[1][1] * g[2][0];
-  double det = g[0][0] * c00 + g[0][1] * c01 + g[0][2] * c02;
-  double idet = 0.0;
-  if (det != 0.0) {
-    idet = 1.0 / det;
-  }
-
-  gi[0][0] = c00 * idet;
-  gi[1][1] = (g[0][0] * g[2][2] - g[0][2] * g[2][0]) * idet;
-  gi[2][2] = (g[0][0] * g[1][1] - g[0][1] * g[1][0]) * idet;
-  gi[0][1] = gi[1][0] = (g[0][2] * g[2][1] - g[0][1] * g[2][2]) * idet;
-  gi[0][2] = gi[2][0] = (g[0][1] * g[1][2] - g[0][2] * g[1][1]) * idet;
-  gi[1][2] = gi[2][1] = (g[0][2] * g[1][0] - g[0][0] * g[1][2]) * idet;
-
-  return det;
-}
-
-// Set once at startup: the monitor reads the PHYSICAL metric in both formulations
-// so the constraint diagnostics are directly comparable. Conformal state stores
-// chi = psi^-2 at slot 64 (d_k chi at 65-67) and tilde(gamma)_ij at 0-8, with
-// gamma_ij = chi^-2 tilde(gamma)_ij; K_ij is already physical at 10-18. The
-// derivative reduction obeys d_k gamma_ij = chi^-2 (2 tilde(D)_kij - 2 (d_k chi/chi)
-// tilde(gamma)_ij), i.e. D_kij = chi^-2 (tilde(D)_kij - (d_k chi/chi) tilde(gamma)_ij).
-// (Matches sync_fluid_metric_from_einstein in mom_update_ssp_rk.c.)
-static bool diag_is_conformal = false;
-
-static void
-diag_read_einstein_state(const double *q, double g[3][3], double gi[3][3],
-  double K[3][3], double D[3][3][3], double A[3], double V[3])
-{
-  double psi4 = 1.0, dchi_over_chi[3] = { 0.0, 0.0, 0.0 };
-  if (diag_is_conformal) {
-    double chi = q[64];
-    if (!(chi > 0.0)) chi = 1.0;
-    double inv_chi = 1.0 / chi;
-    psi4 = inv_chi * inv_chi;
-    for (int k = 0; k < 3; k++) dchi_over_chi[k] = q[65 + k] * inv_chi;
-  }
-
-  double gtil[3][3];
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      gtil[i][j] = q[3 * i + j];
-      g[i][j] = psi4 * gtil[i][j];
-      K[i][j] = q[10 + 3 * i + j];
-    }
-  }
-  diag_sym3_inverse(g, gi);
-
-  for (int k = 0; k < 3; k++) {
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        double Dt = q[19 + 9 * k + 3 * i + j];
-        D[k][i][j] = diag_is_conformal
-          ? psi4 * (Dt - dchi_over_chi[k] * gtil[i][j])
-          : Dt;
-      }
-    }
-    A[k] = q[46 + k];
-    V[k] = q[49 + k]; // Bona-Masso aux; C^V check is only meaningful non-conformally
-  }
-}
-
-static void
-diag_christoffel_from_state(const double *q, double Gamma[3][3][3])
-{
-  double g[3][3], gi[3][3], K[3][3], D[3][3][3], A[3], V[3];
-  diag_read_einstein_state(q, g, gi, K, D, A, V);
-
-  for (int a = 0; a < 3; a++) {
-    for (int b = 0; b < 3; b++) {
-      for (int c = 0; c < 3; c++) {
-        Gamma[a][b][c] = 0.0;
-        for (int m = 0; m < 3; m++) {
-          Gamma[a][b][c] += gi[a][m] * (D[b][m][c] + D[c][m][b] - D[m][b][c]);
-        }
-      }
-    }
-  }
-}
-
-static void
-diag_compute_Q(const double *q, double Q[3][3])
-{
-  double g[3][3], gi[3][3], K[3][3], D[3][3][3], A[3], V[3];
-  diag_read_einstein_state(q, g, gi, K, D, A, V);
-
-  double trK = 0.0;
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      trK += gi[i][j] * K[i][j];
-    }
-  }
-
-  for (int j = 0; j < 3; j++) {
-    for (int i = 0; i < 3; i++) {
-      Q[j][i] = 0.0;
-      for (int a = 0; a < 3; a++) {
-        Q[j][i] += gi[j][a] * K[a][i];
-      }
-      if (j == i) {
-        Q[j][i] -= trK;
-      }
-    }
-  }
-}
-
-static void
-diag_matter_projections(double gas_gamma, const double *qf, const double g[3][3],
-  double *E, double S_cov[3])
-{
-  double prim[71] = { 0.0 };
-  gkyl_gr_euler_prim_vars(gas_gamma, qf, prim);
-  double rho = prim[0];
-  double p = prim[4];
-  double vel[3] = { prim[1], prim[2], prim[3] };
-
-  double v_sq = 0.0;
-  for (int i = 0; i < 3; i++) {
-    for (int j = 0; j < 3; j++) {
-      v_sq += g[i][j] * vel[i] * vel[j];
-    }
-  }
-  if (v_sq > 1.0 - 1.0e-12) {
-    v_sq = 1.0 - 1.0e-12;
-  }
-
-  double W = 1.0 / sqrt(1.0 - v_sq);
-  double h = gkyl_gr_euler_specific_enthalpy(gas_gamma, rho, p);
-  *E = rho * h * W * W - p;
-
-  for (int i = 0; i < 3; i++) {
-    S_cov[i] = 0.0;
-    for (int j = 0; j < 3; j++) {
-      S_cov[i] += g[i][j] * rho * h * W * W * vel[j];
-    }
-  }
-}
-
-// [CONS] ADM + first-order reduction monitor for the mixed 3D TOV run.
-// This is diagnostic-only: it does not feed back into the update. It checks the
-// quantities that would have caught the old Cartesian TOV metric bug immediately:
-// C_kij = D_kij - 1/2 d_k gamma_ij, C_i = A_i - d_i log(alpha), and
-// C^V_i = V_i - (D_is{}^s - D^s{}_si). It also reports ADM Hamiltonian and
-// momentum residuals using the evolved first-order metric derivatives.
-static void
-constraint_monitor(gkyl_moment_app *app, struct gr_tov_coupled_ctx *ctx, double t_curr)
-{
-  static long call_count = 0;
-  int every = 1;
-  const char *every_env = getenv("GKYL_CONSTRAINT_DIAG_EVERY");
-  if (every_env) {
-    every = atoi(every_env);
-    if (every < 1) {
-      every = 1;
-    }
-  }
-  call_count += 1;
-  if ((call_count - 1) % every != 0) {
-    return;
-  }
-
-  const struct gkyl_array *fluid = gkyl_moment_app_get_write_array_species(app, 0);
-  const struct gkyl_array *einstein = gkyl_moment_app_get_write_array_species(app, 1);
-
-  double Hmax_local = 0.0, Mmax_local = 0.0;
-  double Cgmax_local = 0.0, Camax_local = 0.0, Cvmax_local = 0.0;
-  double trKmax_local = 0.0, trKc_local = 0.0, r_c_local = 1.0e300;
-  double r_H_local = 0.0, r_M_local = 0.0;
-  int n_bad_local = 0;
-
-  // Interior / exterior split: the global max|H| is typically dominated by the
-  // star-surface kink and the outer-boundary fill error, hiding whether the CORE
-  // is converging. Report the interior (r <= r_int, default just inside the star
-  // surface; env GKYL_CONSTRAINT_RINT) maxima separately.
-  double r_int = ctx->R_star - 1.0;
-  const char *rint_env = getenv("GKYL_CONSTRAINT_RINT");
-  if (rint_env) r_int = atof(rint_env);
-  double Hint_local = 0.0, Mint_local = 0.0, Cgint_local = 0.0;
-  // L2 (volume-weighted) interior norm of H. A max-norm is a poor convergence
-  // diagnostic (it is grid-alignment sensitive and samples a single cell); the
-  // L2 norm is the standard measure for a self-convergence test.
-  double H2_local = 0.0, vol_local = 0.0;
-  double Hnorm_int_local = 0.0, H2_noctr_local = 0.0, vol_noctr_local = 0.0;
-
-  // [CONS-RAD] Radial profile of the constraint violation. This is the diagnostic that
-  // separates the candidate causes: an ORIGIN/Cartesian-n_i representation problem loads
-  // the innermost shell; a STAR-SURFACE problem loads the shell at R_star (~9.6); a
-  // frozen-WB-vs-evolving-geometry (matter) problem loads the matter interior (E != 0)
-  // and stops at the surface; a genuine formulation/ADM problem is spread everywhere
-  // INCLUDING the vacuum exterior. Also bin the matter density so "where E lives" is
-  // directly comparable to "where H lives".
-  #define NRAD 8
-  double rad_hi[NRAD] = { 2.0, 4.0, 6.0, 8.0, 9.6, 11.0, 14.0, 1.0e30 };
-  double radH2[NRAD] = { 0.0 }, radVol[NRAD] = { 0.0 }, radE[NRAD] = { 0.0 };
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &app->local);
-  while (gkyl_range_iter_next(&iter)) {
-    long loc = gkyl_range_idx(&app->local_ext, iter.idx);
-    const double *q = gkyl_array_cfetch(einstein, loc);
-    const double *qf = gkyl_array_cfetch(fluid, loc);
-
-    double xc[3];
-    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xc);
-    double r = sqrt(xc[0] * xc[0] + xc[1] * xc[1] + xc[2] * xc[2]);
-
-    double g[3][3], gi[3][3], K[3][3], D[3][3][3], A[3], V[3];
-    diag_read_einstein_state(q, g, gi, K, D, A, V);
-
-    bool bad_cell = false;
-    if (!isfinite(q[9])) {
-      bad_cell = true;
-    }
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        if (!isfinite(g[i][j]) || !isfinite(K[i][j])) {
-          bad_cell = true;
-        }
-      }
-    }
-    if (bad_cell) {
-      n_bad_local += 1;
-      continue;
-    }
-
-    double Cg = 0.0, Ca = 0.0;
-    for (int k = 0; k < 3; k++) {
-      int idxp[GKYL_MAX_DIM], idxm[GKYL_MAX_DIM];
-      for (int d = 0; d < 3; d++) {
-        idxp[d] = iter.idx[d];
-        idxm[d] = iter.idx[d];
-      }
-      idxp[k] = iter.idx[k] + 1;
-      idxm[k] = iter.idx[k] - 1;
-      const double *qp = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxp));
-      const double *qm = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxm));
-      double dx = app->grid.dx[k];
-
-      for (int i = 0; i < 3; i++) {
-        for (int j = 0; j < 3; j++) {
-          int gij = 3 * i + j;
-          double half_dg = (qp[gij] - qm[gij]) / (4.0 * dx);
-          double ckij = D[k][i][j] - half_dg;
-          if (fabs(ckij) > Cg) {
-            Cg = fabs(ckij);
-          }
-        }
-      }
-
-      double cp = qp[9], cm = qm[9];
-      if (cp > 0.0 && cm > 0.0) {
-        double dlog_alpha = (log(cp) - log(cm)) / (2.0 * dx);
-        double ci = A[k] - dlog_alpha;
-        if (fabs(ci) > Ca) {
-          Ca = fabs(ci);
-        }
-      }
-      else {
-        n_bad_local += 1;
-      }
-    }
-
-    double D_raised1[3][3][3], D_raised3[3][3][3];
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        for (int k = 0; k < 3; k++) {
-          D_raised1[k][i][j] = 0.0;
-          D_raised3[i][j][k] = 0.0;
-          for (int l = 0; l < 3; l++) {
-            D_raised1[k][i][j] += gi[k][l] * D[l][i][j];
-            D_raised3[i][j][k] += gi[l][k] * D[i][j][l];
-          }
-        }
-      }
-    }
-
-    double Cv = 0.0;
-    for (int i = 0; i < 3; i++) {
-      double aux_i = 0.0;
-      for (int s = 0; s < 3; s++) {
-        aux_i += D_raised3[i][s][s];
-        aux_i -= D_raised1[s][s][i];
-      }
-      double cvi = V[i] - aux_i;
-      if (fabs(cvi) > Cv) {
-        Cv = fabs(cvi);
-      }
-    }
-
-    double Gamma[3][3][3];
-    diag_christoffel_from_state(q, Gamma);
-
-    double Ricci[3][3];
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        Ricci[i][j] = 0.0;
-        for (int k = 0; k < 3; k++) {
-          int idxp[GKYL_MAX_DIM], idxm[GKYL_MAX_DIM];
-          for (int d = 0; d < 3; d++) {
-            idxp[d] = iter.idx[d];
-            idxm[d] = iter.idx[d];
-          }
-          idxp[k] = iter.idx[k] + 1;
-          idxm[k] = iter.idx[k] - 1;
-          const double *qp = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxp));
-          const double *qm = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxm));
-          double Gp[3][3][3], Gm[3][3][3];
-          diag_christoffel_from_state(qp, Gp);
-          diag_christoffel_from_state(qm, Gm);
-          Ricci[i][j] += (Gp[k][i][j] - Gm[k][i][j]) / (2.0 * app->grid.dx[k]);
-        }
-        for (int k = 0; k < 3; k++) {
-          int idxp[GKYL_MAX_DIM], idxm[GKYL_MAX_DIM];
-          for (int d = 0; d < 3; d++) {
-            idxp[d] = iter.idx[d];
-            idxm[d] = iter.idx[d];
-          }
-          idxp[j] = iter.idx[j] + 1;
-          idxm[j] = iter.idx[j] - 1;
-          const double *qp = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxp));
-          const double *qm = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxm));
-          double Gp[3][3][3], Gm[3][3][3];
-          diag_christoffel_from_state(qp, Gp);
-          diag_christoffel_from_state(qm, Gm);
-          Ricci[i][j] -= (Gp[k][i][k] - Gm[k][i][k]) / (2.0 * app->grid.dx[j]);
-        }
-        for (int k = 0; k < 3; k++) {
-          for (int l = 0; l < 3; l++) {
-            Ricci[i][j] += Gamma[k][i][j] * Gamma[l][k][l];
-            Ricci[i][j] -= Gamma[l][i][k] * Gamma[k][j][l];
-          }
-        }
-      }
-    }
-
-    double R = 0.0, trK = 0.0, KijKij = 0.0;
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        R += gi[i][j] * Ricci[i][j];
-        trK += gi[i][j] * K[i][j];
-      }
-    }
-    for (int i = 0; i < 3; i++) {
-      for (int j = 0; j < 3; j++) {
-        double Kup = 0.0;
-        for (int a = 0; a < 3; a++) {
-          for (int b = 0; b < 3; b++) {
-            Kup += gi[i][a] * gi[j][b] * K[a][b];
-          }
-        }
-        KijKij += K[i][j] * Kup;
-      }
-    }
-
-    double E = 0.0, S_cov[3] = { 0.0, 0.0, 0.0 };
-    diag_matter_projections(ctx->gas_gamma, qf, g, &E, S_cov);
-    double H = R + trK * trK - KijKij - 16.0 * M_PI * E;
-    // Normalized Hamiltonian: |H| divided by the sum of the magnitudes of its
-    // own terms. This says whether H is a genuine O(1) imbalance or a small
-    // relative residual (the standard "is the constraint violation actually big"
-    // measure). And an interior L2 that EXCLUDES the innermost shell (r < 1.5 dx)
-    // to separate a real distributed violation from a single center-cell FD spike.
-    double Hscale = fabs(R) + trK*trK + KijKij + 16.0*M_PI*fabs(E) + 1.0e-30;
-    double Hnorm = fabs(H)/Hscale;
-    double dxmin = app->grid.dx[0];
-
-    { // radial binning (see NRAD comment above)
-      double cellvol = app->grid.dx[0]*app->grid.dx[1]*app->grid.dx[2];
-      for (int b = 0; b < NRAD; ++b) {
-        if (r <= rad_hi[b]) {
-          radH2[b] += H*H*cellvol;
-          radVol[b] += cellvol;
-          radE[b] += fabs(E)*cellvol;
-          break;
-        }
-      }
-    }
-
-    if (r <= r_int) {
-      if (Hnorm > Hnorm_int_local) Hnorm_int_local = Hnorm;
-      if (r > 1.5*dxmin) {
-        double cellvol = app->grid.dx[0]*app->grid.dx[1]*app->grid.dx[2];
-        H2_noctr_local += H*H*cellvol;
-        vol_noctr_local += cellvol;
-      }
-    }
-
-    double Mmax_cell = 0.0;
-    for (int i = 0; i < 3; i++) {
-      double divQ = 0.0;
-      for (int j = 0; j < 3; j++) {
-        int idxp[GKYL_MAX_DIM], idxm[GKYL_MAX_DIM];
-        for (int d = 0; d < 3; d++) {
-          idxp[d] = iter.idx[d];
-          idxm[d] = iter.idx[d];
-        }
-        idxp[j] = iter.idx[j] + 1;
-        idxm[j] = iter.idx[j] - 1;
-        const double *qp = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxp));
-        const double *qm = gkyl_array_cfetch(einstein, gkyl_range_idx(&app->local_ext, idxm));
-        double Qp[3][3], Qm[3][3];
-        diag_compute_Q(qp, Qp);
-        diag_compute_Q(qm, Qm);
-        divQ += (Qp[j][i] - Qm[j][i]) / (2.0 * app->grid.dx[j]);
-      }
-
-      double Q[3][3];
-      diag_compute_Q(q, Q);
-      for (int j = 0; j < 3; j++) {
-        for (int l = 0; l < 3; l++) {
-          divQ += Gamma[j][j][l] * Q[l][i];
-          divQ -= Gamma[l][j][i] * Q[j][l];
-        }
-      }
-
-      double Mi = divQ - 8.0 * M_PI * S_cov[i];
-      if (fabs(Mi) > Mmax_cell) {
-        Mmax_cell = fabs(Mi);
-      }
-    }
-
-    if (fabs(H) > Hmax_local) {
-      Hmax_local = fabs(H);
-      r_H_local = r;
-    }
-    if (Mmax_cell > Mmax_local) {
-      Mmax_local = Mmax_cell;
-      r_M_local = r;
-    }
-    if (r <= r_int) {
-      if (fabs(H) > Hint_local) Hint_local = fabs(H);
-      if (Mmax_cell > Mint_local) Mint_local = Mmax_cell;
-      if (Cg > Cgint_local) Cgint_local = Cg;
-      double cellvol = app->grid.dx[0]*app->grid.dx[1]*app->grid.dx[2];
-      H2_local += H*H*cellvol;
-      vol_local += cellvol;
-    }
-    if (Cg > Cgmax_local) Cgmax_local = Cg;
-    if (Ca > Camax_local) Camax_local = Ca;
-    if (Cv > Cvmax_local) Cvmax_local = Cv;
-    if (fabs(trK) > fabs(trKmax_local)) trKmax_local = trK;
-    if (r < r_c_local) {
-      r_c_local = r;
-      trKc_local = trK;
-    }
-
-    if (!isfinite(H) || !isfinite(Mmax_cell) || !isfinite(Cg) || !isfinite(Ca) || !isfinite(Cv)) {
-      n_bad_local += 1;
-    }
-  }
-
-  double Hmax = 0.0, Mmax = 0.0, Cgmax = 0.0, Camax = 0.0, Cvmax = 0.0, abs_trKmax = 0.0, r_c = 0.0;
-  int n_bad = 0;
-  double abs_trKmax_local = fabs(trKmax_local);
-  double Hint = 0.0, Mint = 0.0, Cgint = 0.0, H2sum = 0.0, volsum = 0.0;
-  double Hnorm_int = 0.0, H2noctr = 0.0, volnoctr = 0.0;
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Hnorm_int_local, &Hnorm_int);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &H2_noctr_local, &H2noctr);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &vol_noctr_local, &volnoctr);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &H2_local, &H2sum);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &vol_local, &volsum);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Hint_local, &Hint);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Mint_local, &Mint);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Cgint_local, &Cgint);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Hmax_local, &Hmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Mmax_local, &Mmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Cgmax_local, &Cgmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Camax_local, &Camax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &Cvmax_local, &Cvmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &abs_trKmax_local, &abs_trKmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_c_local, &r_c);
-  gkyl_comm_allreduce(app->comm, GKYL_INT, GKYL_SUM, 1, &n_bad_local, &n_bad);
-
-  double r_H_candidate = 1.0e300;
-  if (Hmax_local == Hmax) r_H_candidate = r_H_local;
-  double r_M_candidate = 1.0e300;
-  if (Mmax_local == Mmax) r_M_candidate = r_M_local;
-  double trKmax_candidate = -1.0e300;
-  if (fabs(trKmax_local) == abs_trKmax) trKmax_candidate = trKmax_local;
-  double trKc_candidate = -1.0e300;
-  if (r_c_local == r_c) trKc_candidate = trKc_local;
-
-  double r_H = 0.0, r_M = 0.0, trKmax = 0.0, trKc = 0.0;
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_H_candidate, &r_H);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &r_M_candidate, &r_M);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &trKmax_candidate, &trKmax);
-  gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_MAX, 1, &trKc_candidate, &trKc);
-
-  int rank = 0;
-  gkyl_comm_get_rank(app->comm, &rank);
-  if (rank == 0) {
-    printf("[CONS] t=%.4f  max|H|=%.6e @r=%.3f  max|M|=%.6e @r=%.3f  max|Cgamma|=%.6e max|CA|=%.6e max|CV|=%.6e  trK_c=%.6e max|trK|=%.6e  bad=%d\n",
-      t_curr, Hmax, r_H, Mmax, r_M, Cgmax, Camax, Cvmax, trKc, trKmax, n_bad);
-    double H_l2 = (volsum > 0.0) ? sqrt(H2sum/volsum) : 0.0;
-    double H_l2_noctr = (volnoctr > 0.0) ? sqrt(H2noctr/volnoctr) : 0.0;
-    printf("[CONS-INT] t=%.4f  r<=%.1f: max|H|=%.6e L2|H|=%.6e L2|H|(no-ctr)=%.6e maxHnorm=%.4f max|M|=%.6e max|Cgamma|=%.6e\n",
-      t_curr, r_int, Hint, H_l2, H_l2_noctr, Hnorm_int, Mint, Cgint);
-    printf("[CONS-RAD] t=%.4f  L2|H| per shell:", t_curr);
-    double rlo = 0.0;
-    for (int b = 0; b < NRAD; ++b) {
-      double hb = (radVol[b] > 0.0) ? sqrt(radH2[b]/radVol[b]) : 0.0;
-      double eb = (radVol[b] > 0.0) ? radE[b]/radVol[b] : 0.0;
-      double rhi = (rad_hi[b] > 1.0e29) ? 99.0 : rad_hi[b];
-      printf("  [%.0f-%.0f]=%.3e(E=%.1e)", rlo, rhi, hb, eb);
-      rlo = rhi;
-    }
-    printf("\n");
-    fflush(stdout);
-  }
-}
-
-
-
 
 int
 main(int argc, char **argv)
@@ -1264,14 +654,36 @@ main(int argc, char **argv)
   printf("Spacetime limiter: %d (1=none,2=minmod,5=MC)\n", (int) st_limiter);
 
   bool use_conformal = (getenv("GKYL_USE_CONFORMAL") != NULL);
-  diag_is_conformal = use_conformal;
-  printf("Formulation: %s\n", use_conformal ? "CONFORMAL (77)" : "NON-CONFORMAL (64)");
 
-  struct gkyl_wv_eqn *vacuum_einstein = use_conformal
-    ? gkyl_wv_vacuum_einstein_conformal_new(ctx.excision_threshold,
-        ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu)
-    : gkyl_wv_vacuum_einstein_new(ctx.excision_threshold,
-        ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
+  if (use_conformal) {
+    printf("Formulation: CONFORMAL (77)\n");
+  }
+  else {
+    printf("Formulation: NON-CONFORMAL (64)\n");
+  }
+
+  struct gkyl_wv_eqn *vacuum_einstein;
+  if (use_conformal) {
+    vacuum_einstein = gkyl_wv_vacuum_einstein_conformal_new(ctx.excision_threshold,
+      ctx.spacetime_slicing, ctx.spacetime_evolution, app_args.use_gpu);
+  }
+  else {
+    enum gkyl_wv_vacuum_einstein_rp rp_type = WV_VACUUM_EINSTEIN_RP_HLL;
+    const char *rp_env = getenv("GKYL_VE_RP");
+    if (rp_env && strcmp(rp_env, "lax") == 0) {
+      rp_type = WV_VACUUM_EINSTEIN_RP_LAX;
+    }
+    printf("Spacetime Riemann solver: %s\n", (rp_type == WV_VACUUM_EINSTEIN_RP_LAX) ? "LAX" : "HLL");
+
+    vacuum_einstein = gkyl_wv_vacuum_einstein_inew(&(struct gkyl_wv_vacuum_einstein_inp) {
+        .excision_threshold = ctx.excision_threshold,
+        .spacetime_slicing = ctx.spacetime_slicing,
+        .spacetime_evolution = ctx.spacetime_evolution,
+        .rp_type = rp_type,
+        .use_gpu = app_args.use_gpu,
+      }
+    );
+  }
 
   enum gkyl_species_bc_type einstein_bc = GKYL_SPECIES_RADIAL_FALLOFF;
   const char *sommerfeld_env = getenv("GKYL_USE_FALLOFF_BC");
@@ -1285,6 +697,11 @@ main(int argc, char **argv)
     einstein_bc_name = "Copy";
   }
   printf("Einstein BC: %s\n", einstein_bc_name);
+
+  bool force_low_order_spacetime = (getenv("GKYL_ST_FORCE_LOW_ORDER") != NULL);
+  if (force_low_order_spacetime) {
+    printf("Spacetime wave-prop: force low-order flux\n");
+  }
 
   struct gkyl_moment_species fluid = {
     .name = "gr_euler",
@@ -1310,6 +727,7 @@ main(int argc, char **argv)
 
     .scheme_type = GKYL_MOMENT_WAVE_PROP, // spacetime sector: wave-propagation
     .limiter = st_limiter,
+    .force_low_order_flux = force_low_order_spacetime,
 
     .has_vacuum_einstein = !use_conformal,
     .vacuum_einstein_excision_threshold = ctx.excision_threshold,
@@ -1377,8 +795,6 @@ main(int argc, char **argv)
 
   struct gkyl_tm_trigger io_trig = { .dt = t_end / ctx.num_frames, .tcurr = t_curr, .curr = frame_curr };
   write_data(&io_trig, app, t_curr, false);
-  diag_track(app, &ctx, t_curr);
-  constraint_monitor(app, &ctx, t_curr);
 
   double dt = fmin(t_end - t_curr, gkyl_moment_app_max_dt(app));
   double dt_init = -1.0, dt_failure_tol = ctx.dt_failure_tol;
@@ -1399,8 +815,6 @@ main(int argc, char **argv)
     dt = status.dt_suggested;
 
     write_data(&io_trig, app, t_curr, false);
-    diag_track(app, &ctx, t_curr);
-    constraint_monitor(app, &ctx, t_curr);
 
     if (dt_init < 0.0) dt_init = status.dt_actual;
     else if (status.dt_actual < dt_failure_tol * dt_init) {

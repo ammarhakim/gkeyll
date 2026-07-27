@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <math.h>
+#include <stdlib.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -1059,8 +1060,9 @@ wave_hll(const struct gkyl_wv_eqn* eqn, const double* delta, const double* ql, c
   double vx_avg = 0.5 * (vx_l + vx_r);
   double cs_avg = 0.5 * (c_sl + c_sr);
 
-  double sl = (vx_avg - cs_avg) / (1.0 - (vx_avg * cs_avg));
-  double sr = (vx_avg + cs_avg) / (1.0 + (vx_avg * cs_avg));
+  // Characteristic speeds of the Bona-Masso system in x: -beta^x +- alpha*sqrt(f gamma^xx), i.e. the direct sum vx +- cs (with vx = -beta^x). 
+  double sl = vx_avg - cs_avg;
+  double sr = vx_avg + cs_avg;
 
   double fl[64], fr[64];
   gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution, ql, fl);
@@ -1462,9 +1464,10 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
           extrinsic_curvature_source[i][j] -= 2.0 * extrinsic_curvature[i][j] * shift_vect_der[r][r];
         }
 
+        extrinsic_curvature_source[i][j] += lapse * extrinsic_curvature_trace * extrinsic_curvature[i][j];
+
         for (int k = 0; k < 3; k++) {
           extrinsic_curvature_source[i][j] -= 2.0 * lapse * extrinsic_curvature_mixed[i][k] * extrinsic_curvature[k][j];
-          extrinsic_curvature_source[i][j] += lapse * extrinsic_curvature_trace * extrinsic_curvature[i][j];
 
           for (int r = 0; r < 3; r++) {
             extrinsic_curvature_source[i][j] -= lapse * spatial_christoffel[k][r][i] * spatial_christoffel[r][k][j];
@@ -1472,15 +1475,29 @@ vacuum_einstein_source(const struct gkyl_wv_eqn* eqn, const double* qin, double*
             extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[i][k][r] * spatial_metric_der_raised3[r][j][k];
             extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[j][k][r] * spatial_metric_der_raised3[r][i][k];
             extrinsic_curvature_source[i][j] += lapse * spatial_christoffel[k][k][r] * spatial_christoffel[r][i][j];
-
-            extrinsic_curvature_source[i][j] -= lapse * (2.0 * spatial_metric_der_raised3[k][r][k] - lapse_der[r]) * (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
           }
-
-          extrinsic_curvature_source[i][j] += lapse * lapse_der[i] * (aux_vect[j] - (0.5 * spatial_metric_der_raised3[j][k][k]));
-          extrinsic_curvature_source[i][j] += lapse * lapse_der[j] * (aux_vect[i] - (0.5 * spatial_metric_der_raised3[i][k][k]));
 
           extrinsic_curvature_source[i][j] -= lapse * evolution_func * aux_vect_raised[k] * spatial_metric_der[k][i][j];
         }
+
+        for (int r = 0; r < 3; r++) {
+          double spatial_metric_der_trace = 0.0;
+          for (int k = 0; k < 3; k++) {
+            spatial_metric_der_trace += spatial_metric_der_raised3[k][r][k];
+          }
+
+          extrinsic_curvature_source[i][j] -= lapse * (2.0 * spatial_metric_der_trace - lapse_der[r]) *
+            (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
+        }
+
+        double spatial_metric_der_trace_i = 0.0;
+        double spatial_metric_der_trace_j = 0.0;
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_der_trace_i += spatial_metric_der_raised3[i][k][k];
+          spatial_metric_der_trace_j += spatial_metric_der_raised3[j][k][k];
+        }
+        extrinsic_curvature_source[i][j] += lapse * lapse_der[i] * (aux_vect[j] - (0.5 * spatial_metric_der_trace_j));
+        extrinsic_curvature_source[i][j] += lapse * lapse_der[j] * (aux_vect[i] - (0.5 * spatial_metric_der_trace_i));
 
         for (int k = 0; k < 3; k++) {
           for (int r = 0; r < 3; r++) {

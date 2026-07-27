@@ -440,6 +440,56 @@ radial_falloff_ghost(double qinf, double skin, double rs, double rg)
 }
 
 static void
+moment_species_apply_radial_falloff_bc_corner(gkyl_moment_app *app,
+  const struct moment_species *sp, struct gkyl_array *f)
+{
+  if (sp->equation->type != GKYL_EQN_VACUUM_EINSTEIN &&
+      sp->equation->type != GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL) {
+    return;
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    // Is this a physical-boundary ghost? (any component outside the interior range)
+    bool is_ghost = false;
+    int donor[GKYL_MAX_DIM];
+    for (int d = 0; d < app->ndim; d++) {
+      donor[d] = iter.idx[d];
+      if (iter.idx[d] < app->local.lower[d]) {
+        donor[d] = app->local.lower[d];
+        is_ghost = true;
+      }
+      else if (iter.idx[d] > app->local.upper[d]) {
+        donor[d] = app->local.upper[d];
+        is_ghost = true;
+      }
+    }
+    if (!is_ghost) {
+      continue;
+    }
+
+    double xg[3] = { 0.0, 0.0, 0.0 }, xd[3] = { 0.0, 0.0, 0.0 };
+    gkyl_rect_grid_cell_center(&app->grid, iter.idx, xg);
+    gkyl_rect_grid_cell_center(&app->grid, donor, xd);
+    double rg = 0.0, rd = 0.0;
+    for (int d = 0; d < app->ndim; d++) {
+      rg += xg[d] * xg[d];
+      rd += xd[d] * xd[d];
+    }
+    rg = sqrt(rg);
+    rd = sqrt(rd);
+
+    const double *donor_q = gkyl_array_cfetch(f, gkyl_range_idx(&app->local_ext, donor));
+    double *ghost = gkyl_array_fetch(f, gkyl_range_idx(&app->local_ext, iter.idx));
+    for (int c = 0; c < sp->equation->num_equations; c++) {
+      double qinf = flat_vacuum_einstein_state(sp->equation->type, c);
+      ghost[c] = radial_falloff_ghost(qinf, donor_q[c], rd, rg);
+    }
+  }
+}
+
+static void
 moment_species_apply_radial_falloff_bc(gkyl_moment_app *app,
   const struct moment_species *sp, int dir, enum gkyl_edge_loc edge,
   struct gkyl_array *f)
@@ -508,17 +558,26 @@ moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
   for (int d=0; d<num_periodic_dir; ++d)
     is_non_periodic[app->periodic_dirs[d]] = 0;
 
+  int comm_sz = 1;
+  gkyl_comm_get_size(app->comm, &comm_sz);
+  bool use_corner_falloff = (comm_sz == 1)
+    && (sp->equation->type == GKYL_EQN_VACUUM_EINSTEIN || sp->equation->type == GKYL_EQN_VACUUM_EINSTEIN_CONFORMAL);
+
   for (int d=0; d<ndim; ++d)
     if (is_non_periodic[d]) {
       // handle non-wedge BCs
       if (sp->lower_bct[d] == GKYL_SPECIES_RADIAL_FALLOFF) {
-        moment_species_apply_radial_falloff_bc(app, sp, d, GKYL_LOWER_EDGE, f);
+        if (!use_corner_falloff) {
+          moment_species_apply_radial_falloff_bc(app, sp, d, GKYL_LOWER_EDGE, f);
+        }
       }
       else if (sp->lower_bct[d] != GKYL_SPECIES_WEDGE) {
         gkyl_wv_apply_bc_advance(sp->lower_bc[d], tcurr, &app->local, f);
       }
       if (sp->upper_bct[d] == GKYL_SPECIES_RADIAL_FALLOFF) {
-        moment_species_apply_radial_falloff_bc(app, sp, d, GKYL_UPPER_EDGE, f);
+        if (!use_corner_falloff) {
+          moment_species_apply_radial_falloff_bc(app, sp, d, GKYL_UPPER_EDGE, f);
+        }
       }
       else if (sp->upper_bct[d] != GKYL_SPECIES_WEDGE) {
         gkyl_wv_apply_bc_advance(sp->upper_bc[d], tcurr, &app->local, f);
@@ -529,6 +588,10 @@ moment_species_apply_bc(gkyl_moment_app *app, double tcurr,
         moment_apply_wedge_bc(app, tcurr, &app->local,
           sp->bc_buffer, d, sp->lower_bc[d], sp->upper_bc[d], f);
     }
+
+  if (use_corner_falloff) {
+    moment_species_apply_radial_falloff_bc_corner(app, sp, f);
+  }
 
   // sync interior ghost cells
   gkyl_comm_array_sync(app->comm, &app->local, &app->local_ext, f);
@@ -707,9 +770,9 @@ add_einstein_matter_source(const double *qe, const double *qf, double gas_gamma,
     }
   }
 
-  // dV_k/dt += +8*pi*alpha*T^0_k (momentum-density source for the Bona-Masso auxiliary vector)
+  // dV_k/dt += +8*pi*alpha^2*T^0_k (momentum-density source for the Bona-Masso auxiliary vector).
   for (int k = 0; k < 3; k++) {
-    rhs[49 + k] += 8.0 * M_PI * lapse * T_0k[k];
+    rhs[49 + k] += 8.0 * M_PI * (lapse * lapse) * T_0k[k];
   }
 
   for (int a = 0; a < 4; a++) {

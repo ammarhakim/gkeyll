@@ -171,14 +171,29 @@ gr_euler_smallest_pos_root(double A, double B, double Cz)
   return 2.0;
 }
 
-// Momentum inner product gamma_ij u^i v^j with the spatial metric (contravariant momentum density) => the physically correct |S|^2 = spatial_metric_ij S^i S^j
+// Momentum inner product gamma^{ij} u_i v_j for the covariant Valencia momentum density S_i.
 static inline double
 gr_euler_mom_dot(const double spatial_metric[9], const double u[3], const double vv[3])
 {
+  double det = (spatial_metric[0] * ((spatial_metric[4] * spatial_metric[8]) - (spatial_metric[5] * spatial_metric[7]))) -
+    (spatial_metric[1] * ((spatial_metric[3] * spatial_metric[8]) - (spatial_metric[5] * spatial_metric[6]))) +
+    (spatial_metric[2] * ((spatial_metric[3] * spatial_metric[7]) - (spatial_metric[4] * spatial_metric[6])));
+  double inv_det = 1.0 / det;
+  double inv_spatial_metric[9];
+  inv_spatial_metric[0] = ((spatial_metric[4] * spatial_metric[8]) - (spatial_metric[5] * spatial_metric[7])) * inv_det;
+  inv_spatial_metric[1] = ((spatial_metric[2] * spatial_metric[7]) - (spatial_metric[1] * spatial_metric[8])) * inv_det;
+  inv_spatial_metric[2] = ((spatial_metric[1] * spatial_metric[5]) - (spatial_metric[2] * spatial_metric[4])) * inv_det;
+  inv_spatial_metric[3] = ((spatial_metric[5] * spatial_metric[6]) - (spatial_metric[3] * spatial_metric[8])) * inv_det;
+  inv_spatial_metric[4] = ((spatial_metric[0] * spatial_metric[8]) - (spatial_metric[2] * spatial_metric[6])) * inv_det;
+  inv_spatial_metric[5] = ((spatial_metric[2] * spatial_metric[3]) - (spatial_metric[0] * spatial_metric[5])) * inv_det;
+  inv_spatial_metric[6] = ((spatial_metric[3] * spatial_metric[7]) - (spatial_metric[4] * spatial_metric[6])) * inv_det;
+  inv_spatial_metric[7] = ((spatial_metric[1] * spatial_metric[6]) - (spatial_metric[0] * spatial_metric[7])) * inv_det;
+  inv_spatial_metric[8] = ((spatial_metric[0] * spatial_metric[4]) - (spatial_metric[1] * spatial_metric[3])) * inv_det;
+
   double s = 0.0;
   for (int i = 0; i < 3; i++)
     for (int j = 0; j < 3; j++)
-      s += spatial_metric[(3 * i) + j] * u[i] * vv[j];
+      s += inv_spatial_metric[(3 * i) + j] * u[i] * vv[j];
   return s;
 }
 
@@ -301,9 +316,9 @@ gr_euler_pcp_theta(const double qe[5], const double w[5], const double spatial_m
 
 // PCP anchor: the theta-sweep limits toward the cell average qa, but admissibility is measured with the
 // reconstructed face metric spatial_metric, so the anchor itself must be admissible under it (cone
-// C = E0^2 - |S0|^2 > 0) - otherwise the theta=0 endpoint is already invalid and the PCP proof fails.
+// C = E0^2 - gamma^{ij} S_i S_j > 0) - otherwise the theta=0 endpoint is already invalid and the PCP proof fails.
 // Build a safe anchor q0 that preserves D0 and E0=D0+tau0 and reduces only the momentum by lambda so
-// E0^2 - gamma_ij S0^i S0^j >= cone_floor > 0. No-op where the anchor is already admissible (smooth regions).
+// E0^2 - gamma^{ij} S0_i S0_j >= cone_floor > 0. No-op where the anchor is already admissible (smooth regions).
 // Conservation-safe: only the states fed to the single shared face flux change.
 static inline void
 gr_euler_pcp_safe_anchor(const double qa[5], const double spatial_metric[9], double q0[5])

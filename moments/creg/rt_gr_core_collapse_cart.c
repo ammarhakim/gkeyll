@@ -311,11 +311,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double h = 1.0 + ((p / rho) * (gamma_h / (gamma_h - 1.0)));
   double sqrt_det = sqrt(spatial_det);
+  double cov_vel[3] = { 0.0 };
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      cov_vel[i] += spatial_metric[i][j] * vel[j];
+    }
+  }
 
   double rho_rel = sqrt_det * rho * W;
-  double mom_x = sqrt_det * rho * h * (W * W) * vel[0];
-  double mom_y = sqrt_det * rho * h * (W * W) * vel[1];
-  double mom_z = sqrt_det * rho * h * (W * W) * vel[2];
+  double mom_x = sqrt_det * rho * h * (W * W) * cov_vel[0];
+  double mom_y = sqrt_det * rho * h * (W * W) * cov_vel[1];
+  double mom_z = sqrt_det * rho * h * (W * W) * cov_vel[2];
   double Etot = sqrt_det * ((rho * h * (W * W)) - p - (rho * W));
 
   fout[0] = rho_rel;

@@ -170,11 +170,17 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
 
   double h = 1.0 + ((p / rho) * (gas_gamma / (gas_gamma - 1.0)));
   double sqrt_det = sqrt(spatial_det);
+  double cov_vel[3] = { 0.0 };
+  for (int i = 0; i < 3; i++) {
+    for (int j = 0; j < 3; j++) {
+      cov_vel[i] += spatial_metric[i][j] * vel[j];
+    }
+  }
 
   double rho_rel = sqrt_det * rho * W;
-  double mom_x = sqrt_det * rho * h * (W * W) * vel[0];
-  double mom_y = sqrt_det * rho * h * (W * W) * vel[1];
-  double mom_z = sqrt_det * rho * h * (W * W) * vel[2];
+  double mom_x = sqrt_det * rho * h * (W * W) * cov_vel[0];
+  double mom_y = sqrt_det * rho * h * (W * W) * cov_vel[1];
+  double mom_z = sqrt_det * rho * h * (W * W) * cov_vel[2];
   double Etot = sqrt_det * ((rho * h * (W * W)) - p - (rho * W));
 
   fout[0] = rho_rel;
@@ -218,9 +224,9 @@ evalGREulerInit(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT 
   // Frozen discrete well-balancing reference (num_equations = 73): store the t=0 conserved fluid in slots 71,72. 
   fout[71] = rho_rel; // D_eq   = fout[0]
   fout[72] = Etot;    // Etot_eq = fout[4]
-  fout[73] = 0.0;     // S_eq^x (static star: zero momentum equilibrium)
-  fout[74] = 0.0;     // S_eq^y
-  fout[75] = 0.0;     // S_eq^z
+  fout[73] = 0.0;     // S_eq,x (static star: zero momentum equilibrium)
+  fout[74] = 0.0;     // S_eq,y
+  fout[75] = 0.0;     // S_eq,z
 
   // Perturbation away from the equilibrium: small x-momentum kick in the stellar interior. 
   // The slots [71],[72] above keep the unperturbed equilibrium, so w = q - q_eq = (0, dS, 0, 0, 0) is a genuine deviation the WB must evolve (not absorb). Pulsation should stay bounded.

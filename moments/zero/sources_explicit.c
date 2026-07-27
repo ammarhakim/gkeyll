@@ -1,3 +1,5 @@
+#include <stdlib.h>
+
 #include <gkyl_alloc.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_fv_proj.h>
@@ -5,6 +7,7 @@
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 #include <gkyl_wv_gr_euler_priv.h>
+#include <gkyl_wv_vacuum_einstein_priv.h>
 
 void
 explicit_nT_source_update_euler(const double mass, const double dt, double* fluid_old, double* fluid_new, const double* nT_sources)
@@ -905,10 +908,17 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling* mom_em, con
     spatial_metric_der[2][1][0] = fluid_old[61]; spatial_metric_der[2][1][1] = fluid_old[62]; spatial_metric_der[2][1][2] = fluid_old[63];
     spatial_metric_der[2][2][0] = fluid_old[64]; spatial_metric_der[2][2][1] = fluid_old[65]; spatial_metric_der[2][2][2] = fluid_old[66];
 
+    double cov_vel[3] = { 0.0 };
+    for (int i = 0; i < 3; i++) {
+      for (int j = 0; j < 3; j++) {
+        cov_vel[i] += spatial_metric[i][j] * vel[j];
+      }
+    }
+
     double mom[3];
-    mom[0] = (rho * h) * (W * W) * vx;
-    mom[1] = (rho * h) * (W * W) * vy;
-    mom[2] = (rho * h) * (W * W) * vz;
+    mom[0] = (rho * h) * (W * W) * cov_vel[0];
+    mom[1] = (rho * h) * (W * W) * cov_vel[1];
+    mom[2] = (rho * h) * (W * W) * cov_vel[2];
 
     for (int i = 0; i < 71; i++) {
       fluid_new[i] = fluid_old[i];
@@ -2197,9 +2207,10 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_
           extrinsic_curvature_source[i][j] -= 2.0 * extrinsic_curvature[i][j] * shift_vect_der[r][r];
         }
 
+        extrinsic_curvature_source[i][j] += lapse * extrinsic_curvature_trace * extrinsic_curvature[i][j];
+
         for (int k = 0; k < 3; k++) {
           extrinsic_curvature_source[i][j] -= 2.0 * lapse * extrinsic_curvature_mixed[i][k] * extrinsic_curvature[k][j];
-          extrinsic_curvature_source[i][j] += lapse * extrinsic_curvature_trace * extrinsic_curvature[i][j];
 
           for (int r = 0; r < 3; r++) {
             extrinsic_curvature_source[i][j] -= lapse * spatial_christoffel[k][r][i] * spatial_christoffel[r][k][j];
@@ -2207,15 +2218,29 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling* mom_
             extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[i][k][r] * spatial_metric_der_raised3[r][j][k];
             extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[j][k][r] * spatial_metric_der_raised3[r][i][k];
             extrinsic_curvature_source[i][j] += lapse * spatial_christoffel[k][k][r] * spatial_christoffel[r][i][j];
-
-            extrinsic_curvature_source[i][j] -= lapse * (2.0 * spatial_metric_der_raised3[k][r][k] - lapse_der[r]) * (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
           }
-
-          extrinsic_curvature_source[i][j] += lapse * lapse_der[i] * (aux_vect[j] - (0.5 * spatial_metric_der_raised3[j][k][k]));
-          extrinsic_curvature_source[i][j] += lapse * lapse_der[j] * (aux_vect[i] - (0.5 * spatial_metric_der_raised3[i][k][k]));
 
           extrinsic_curvature_source[i][j] -= lapse * evolution_func * aux_vect_raised[k] * spatial_metric_der[k][i][j];
         }
+
+        for (int r = 0; r < 3; r++) {
+          double spatial_metric_der_trace = 0.0;
+          for (int k = 0; k < 3; k++) {
+            spatial_metric_der_trace += spatial_metric_der_raised3[k][r][k];
+          }
+
+          extrinsic_curvature_source[i][j] -= lapse * (2.0 * spatial_metric_der_trace - lapse_der[r]) *
+            (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
+        }
+
+        double spatial_metric_der_trace_i = 0.0;
+        double spatial_metric_der_trace_j = 0.0;
+        for (int k = 0; k < 3; k++) {
+          spatial_metric_der_trace_i += spatial_metric_der_raised3[i][k][k];
+          spatial_metric_der_trace_j += spatial_metric_der_raised3[j][k][k];
+        }
+        extrinsic_curvature_source[i][j] += lapse * lapse_der[i] * (aux_vect[j] - (0.5 * spatial_metric_der_trace_j));
+        extrinsic_curvature_source[i][j] += lapse * lapse_der[j] * (aux_vect[i] - (0.5 * spatial_metric_der_trace_i));
 
         for (int k = 0; k < 3; k++) {
           for (int r = 0; r < 3; r++) {
@@ -2709,10 +2734,11 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
           conformal_extrinsic_curvature_source[i][j] -= 2.0 * conformal_extrinsic_curvature[i][j] * conformal_shift_vect_der[r][r];
         }
 
+        conformal_extrinsic_curvature_source[i][j] += (conformal_lapse * conformal_extrinsic_curvature_trace * conformal_extrinsic_curvature[i][j]) /
+          (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+
         for (int k = 0; k < 3; k++) {
           conformal_extrinsic_curvature_source[i][j] -= (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][k] * conformal_extrinsic_curvature[k][j]) /
-            (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
-          conformal_extrinsic_curvature_source[i][j] += (conformal_lapse * conformal_extrinsic_curvature_trace * conformal_extrinsic_curvature[i][j]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
           for (int r = 0; r < 3; r++) {
@@ -2721,16 +2747,32 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
             conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse * conformal_spatial_metric_der_raised3[i][k][r] * conformal_spatial_metric_der_raised3[r][j][k];
             conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse * conformal_spatial_metric_der_raised3[j][k][r] * conformal_spatial_metric_der_raised3[r][i][k];
             conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_spatial_christoffel[k][k][r] * conformal_spatial_christoffel[r][i][j];
-
-            conformal_extrinsic_curvature_source[i][j] -= conformal_lapse * (2.0 * conformal_spatial_metric_der_raised3[k][r][k] - conformal_lapse_der[r]) *
-              (conformal_spatial_metric_der_raised3[i][j][r] + conformal_spatial_metric_der_raised3[j][i][r]);
           }
-
-          conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[i] * (conformal_aux_vect[j] - (0.5 * conformal_spatial_metric_der_raised3[j][k][k]));
-          conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[j] * (conformal_aux_vect[i] - (0.5 * conformal_spatial_metric_der_raised3[i][k][k]));
 
           conformal_extrinsic_curvature_source[i][j] -= conformal_lapse * evolution_func * conformal_aux_vect_raised[k] * conformal_spatial_metric_der[k][i][j];
         }
+
+        for (int r = 0; r < 3; r++) {
+          double conformal_spatial_metric_der_trace = 0.0;
+          for (int k = 0; k < 3; k++) {
+            conformal_spatial_metric_der_trace += conformal_spatial_metric_der_raised3[k][r][k];
+          }
+
+          conformal_extrinsic_curvature_source[i][j] -= conformal_lapse *
+            (2.0 * conformal_spatial_metric_der_trace - conformal_lapse_der[r]) *
+            (conformal_spatial_metric_der_raised3[i][j][r] + conformal_spatial_metric_der_raised3[j][i][r]);
+        }
+
+        double conformal_spatial_metric_der_trace_i = 0.0;
+        double conformal_spatial_metric_der_trace_j = 0.0;
+        for (int k = 0; k < 3; k++) {
+          conformal_spatial_metric_der_trace_i += conformal_spatial_metric_der_raised3[i][k][k];
+          conformal_spatial_metric_der_trace_j += conformal_spatial_metric_der_raised3[j][k][k];
+        }
+        conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[i] *
+          (conformal_aux_vect[j] - (0.5 * conformal_spatial_metric_der_trace_j));
+        conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[j] *
+          (conformal_aux_vect[i] - (0.5 * conformal_spatial_metric_der_trace_i));
 
         for (int k = 0; k < 3; k++) {
           for (int r = 0; r < 3; r++) {

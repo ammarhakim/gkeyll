@@ -30,8 +30,11 @@ check_for_nans(const struct gkyl_array *q, struct gkyl_range update_rng)
   gkyl_range_iter_init(&iter, &update_rng);
   while (gkyl_range_iter_next(&iter)) {
     const double *qcell = gkyl_array_cfetch(q, gkyl_range_idx(&update_rng, iter.idx));
-    for (int i=0; i<q->ncomp; ++i)
-      if (isnan(qcell[i])) return true;
+    for (int i=0; i<q->ncomp; ++i) {
+      if (isnan(qcell[i])) {
+        return true;
+      }
+    }
   }
   return false;
 }

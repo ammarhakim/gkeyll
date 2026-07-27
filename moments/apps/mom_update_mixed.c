@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <math.h>
 
 #include <gkyl_moment_priv.h>
 #include <gkyl_sources_explicit_priv.h>
@@ -28,8 +29,14 @@ spacetime_source_euler_stage(bool is_conformal, double excision_threshold,
 
   // Fluid -> spacetime matter source (only in live cells): out += h * M(in, fluid), M touching K_ij and V_k only
   if (qfluid && out[9] >= excision_threshold) {
+    double qfluid_stage[71];
+    for (int m = 0; m < 71; m++) {
+      qfluid_stage[m] = qfluid[m];
+    }
+    sync_fluid_metric_from_einstein(in, qfluid_stage, excision_threshold, is_conformal);
+
     double mrhs[77] = { 0.0 };
-    add_einstein_matter_source(in, qfluid, gas_gamma, excision_threshold, is_conformal, mrhs);
+    add_einstein_matter_source(in, qfluid_stage, gas_gamma, excision_threshold, is_conformal, mrhs);
     for (int m = 0; m < meqn; ++m) {
       out[m] += h * mrhs[m];
     }
@@ -167,6 +174,151 @@ mixed_spacetime_metric_valid(gkyl_moment_app *app, const struct moment_species *
   return (global_bad == 0);
 }
 
+// Flat (Minkowski) asymptotic value of vacuum-Einstein component c: gamma_ij = delta_ij, alpha = 1,
+// all else 0. This is f_0 in the NewRad radiative BC (the value the field approaches at infinity).
+static double
+newrad_flat_state(int c)
+{
+  if (c == 0 || c == 4 || c == 8) {
+    return 1.0; // gamma_xx, gamma_yy, gamma_zz
+  }
+  if (c == 9) {
+    return 1.0; // lapse
+  }
+  return 0.0;
+}
+
+// NweRad Asymptotic characteristic speed of vacuum-Einstein component c, for the radiative BC (Alcubierre gr-qc/0206072)
+static double
+newrad_speed(int c, double alpha, enum gkyl_spacetime_slicing slicing)
+{
+  bool gauge = (c == 9 || c == 46 || c == 47 || c == 48);
+  if (!gauge) {
+    return 1.0;
+  }
+  double f = 1.0;
+  if (slicing == GKYL_1PLUSLOG_SLICING) {
+    f = (alpha > 1.0e-12) ? 2.0 / alpha : 2.0;
+  }
+  // harmonic and geodesic: f = 1.
+  return sqrt(f);
+}
+
+// 2nd-order radial derivative (x^i/r) d_i f_c at grid index `idx`
+static double
+newrad_radial_deriv(const struct gkyl_array *arr, const struct gkyl_range *local,
+  const struct gkyl_range *local_ext, const struct gkyl_rect_grid *grid,
+  const int *idx, const double *xc, double r, int c, int ndim)
+{
+  double dr = 0.0;
+  for (int d = 0; d < ndim; d++) {
+    int ip[GKYL_MAX_DIM], im[GKYL_MAX_DIM], ipp[GKYL_MAX_DIM], imm[GKYL_MAX_DIM];
+    for (int e = 0; e < ndim; e++) {
+      ip[e] = im[e] = ipp[e] = imm[e] = idx[e];
+    }
+    ip[d] = idx[d] + 1; im[d] = idx[d] - 1;
+    ipp[d] = idx[d] + 2; imm[d] = idx[d] - 2;
+    double f0 = ((const double *) gkyl_array_cfetch(arr, gkyl_range_idx(local_ext, idx)))[c];
+    double di;
+    if (idx[d] == local->upper[d]) {
+      // inward = -d, 2nd-order backward
+      double fm1 = ((const double *) gkyl_array_cfetch(arr, gkyl_range_idx(local_ext, im)))[c];
+      double fm2 = ((const double *) gkyl_array_cfetch(arr, gkyl_range_idx(local_ext, imm)))[c];
+      di = (3.0 * f0 - 4.0 * fm1 + fm2) / (2.0 * grid->dx[d]);
+    }
+    else if (idx[d] == local->lower[d]) {
+      // inward = +d, 2nd-order forward
+      double fp1 = ((const double *) gkyl_array_cfetch(arr, gkyl_range_idx(local_ext, ip)))[c];
+      double fp2 = ((const double *) gkyl_array_cfetch(arr, gkyl_range_idx(local_ext, ipp)))[c];
+      di = (-3.0 * f0 + 4.0 * fp1 - fp2) / (2.0 * grid->dx[d]);
+    }
+    else {
+      double fp1 = ((const double *) gkyl_array_cfetch(arr, gkyl_range_idx(local_ext, ip)))[c];
+      double fm1 = ((const double *) gkyl_array_cfetch(arr, gkyl_range_idx(local_ext, im)))[c];
+      di = (fp1 - fm1) / (2.0 * grid->dx[d]);
+    }
+    dr += (xc[d] / r) * di;
+  }
+  return dr;
+}
+
+// NewRad Radiative (Sommerfeld) outer boundary condition, Alcubierre et al. gr-qc/0206072 Eqs. (108)-(113) / ETK NewRad.
+// Ansatz f = f_0 + u(r - v t)/r + h(t)/r^n gives the differential BC d_t f = -v (x^i/r) d_i f - v (f - f_0)/r + h'(t)/r^n .
+static void
+apply_newrad_bc(gkyl_moment_app *app, struct moment_species *esp,
+  const struct gkyl_array *fold, double dt)
+{
+  int meqn = esp->num_equations;
+  enum gkyl_spacetime_slicing slicing = esp->vacuum_einstein_spacetime_slicing;
+  double nexp = 3.0;
+  const char *n_env = getenv("GKYL_NEWRAD_N");
+  if (n_env) {
+    nexp = atof(n_env);
+  }
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &app->local);
+  while (gkyl_range_iter_next(&iter)) {
+    bool on_boundary = false;
+    for (int d = 0; d < app->ndim; d++) {
+      if (iter.idx[d] == app->local.lower[d] || iter.idx[d] == app->local.upper[d]) {
+        on_boundary = true;
+      }
+    }
+    if (!on_boundary) {
+      continue;
+    }
+
+    double x0[3] = { 0.0, 0.0, 0.0 };
+    gkyl_rect_grid_cell_center(&app->grid, iter.idx, x0);
+    double r0 = sqrt(x0[0]*x0[0] + x0[1]*x0[1] + x0[2]*x0[2]);
+    if (r0 < 1.0e-12) {
+      continue;
+    }
+
+    // p1: one cell inward along every boundary direction (diagonal for edge/corner) -- always interior.
+    int p1[GKYL_MAX_DIM];
+    for (int d = 0; d < app->ndim; d++) {
+      p1[d] = iter.idx[d];
+      if (iter.idx[d] == app->local.upper[d]) {
+        p1[d] = iter.idx[d] - 1;
+      }
+      else if (iter.idx[d] == app->local.lower[d]) {
+        p1[d] = iter.idx[d] + 1;
+      }
+    }
+    double x1[3] = { 0.0, 0.0, 0.0 };
+    gkyl_rect_grid_cell_center(&app->grid, p1, x1);
+    double r1 = sqrt(x1[0]*x1[0] + x1[1]*x1[1] + x1[2]*x1[2]);
+
+    long loc0 = gkyl_range_idx(&app->local_ext, iter.idx);
+    long loc1 = gkyl_range_idx(&app->local_ext, p1);
+    const double *f0_old = gkyl_array_cfetch(fold, loc0);
+    const double *f1_old = gkyl_array_cfetch(fold, loc1);
+    const double *f1_new = gkyl_array_cfetch(esp->f[0], loc1);
+    double alpha0 = f0_old[9];
+    double *out = gkyl_array_fetch(esp->f[0], loc0);
+
+    for (int c = 0; c < meqn; c++) {
+      double finf = newrad_flat_state(c);
+      double v = newrad_speed(c, alpha0, slicing);
+
+      // Solve h'(t) from the measured interior rate at p1 (Alcubierre Eq. 112/113).
+      double hprime = 0.0;
+      if (r1 > 1.0e-12 && dt > 0.0) {
+        double dt_f1 = (f1_new[c] - f1_old[c]) / dt;
+        double drf1 = newrad_radial_deriv(fold, &app->local, &app->local_ext, &app->grid, p1, x1, r1, c, app->ndim);
+        double resid1 = dt_f1 + v * drf1 + v * (f1_old[c] - finf) / r1;
+        hprime = pow(r1, nexp) * resid1;
+      }
+
+      double drf0 = newrad_radial_deriv(fold, &app->local, &app->local_ext, &app->grid, iter.idx, x0, r0, c, app->ndim);
+      double rhs = -v * drf0 - v * (f0_old[c] - finf) / r0 + hprime / pow(r0, nexp);
+      out[c] = f0_old[c] + dt * rhs;
+    }
+  }
+}
+
 // Take a single mixed-scheme time-step.
 struct gkyl_update_status
 moment_update_mixed(gkyl_moment_app *app, double dt0)
@@ -188,8 +340,10 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
   bool coupled = (fluid_idx >= 0 && einstein_idx >= 0);
 
   // Cap dt by the spacetime (wave_prop) stable step up front
-  double st_max_dt = (einstein_idx >= 0)
-    ? moment_species_max_dt(app, &app->species[einstein_idx]) : DBL_MAX;
+  double st_max_dt = DBL_MAX;
+  if (einstein_idx >= 0) {
+    st_max_dt = moment_species_max_dt(app, &app->species[einstein_idx]);
+  }
   double dt_use = fmin(dt0, st_max_dt);
 
   // 1.  Sync the live spacetime metric into the fluid state
@@ -198,8 +352,19 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
   }
 
   // 2. Advance the fluid (MP SSP-RK3)
+  // GKYL_FREEZE_FLUID=1 holds the fluid at its initial state and evolves ONLY the spacetime.
+  static int freeze_fluid = -1;
+  if (freeze_fluid < 0) {
+    if (getenv("GKYL_FREEZE_FLUID")) {
+      freeze_fluid = 1;
+    }
+    else {
+      freeze_fluid = 0;
+    }
+  }
+
   double dt = dt_use;
-  if (fluid_idx >= 0) {
+  if (fluid_idx >= 0 && !freeze_fluid) {
     struct gkyl_update_status fluid_st = moment_update_ssp_rk3(app, dt_use);
     if (!fluid_st.success) {
       return fluid_st;
@@ -217,12 +382,36 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
     const struct gkyl_array *fluid_f = coupled ? app->species[fluid_idx].fcurr : NULL;
     double gas_gamma = coupled ? app->species[fluid_idx].gr_euler_gas_gamma : 0.0;
 
+    // NewRad Snapshot the start-of-step spacetime state (f[0] here is fcurr, ghosts valid from the previous step's apply_bc) so the radiative BC can forward-Euler the boundary layer over the
+    // whole step, replacing the hyperbolic result there after 3c.
+    // SINGLE-BLOCK ONLY: it clamps to app->local, so it is disabled under domain decomposition (comm size > 1), where per-rank boundaries are not the physical boundary.
+    static int newrad_on = -1;
+    if (newrad_on < 0) {
+      int comm_sz = 1;
+      gkyl_comm_get_size(app->comm, &comm_sz);
+      if (getenv("GKYL_NO_NEWRAD") != NULL || comm_sz > 1) {
+        newrad_on = 0;
+      }
+      else {
+        newrad_on = 1;
+      }
+    }
+    bool use_newrad = newrad_on && !esp->has_vacuum_einstein_conformal;
+    struct gkyl_array *newrad_fold = 0;
+    if (use_newrad) {
+      newrad_fold = gkyl_array_new(GKYL_DOUBLE, esp->num_equations, app->local_ext.volume);
+      gkyl_array_copy_range(newrad_fold, esp->f[0], &app->local_ext);
+    }
+
     // 3a. Pre-transport half source on f[0] (= fcurr); refresh ghosts for the transport reconstruction.
     spacetime_source_half_step(app, esp, esp->f[0], fluid_f, gas_gamma, tcurr, 0.5 * dt);
     moment_species_apply_bc(app, tcurr, esp, esp->f[0]);
 
     // Hyperbolicity guard before the transport solve (so a non-SPD pre-source metric didn't enter wave_prop)
     if (!mixed_spacetime_metric_valid(app, esp)) {
+      if (newrad_fold) {
+        gkyl_array_release(newrad_fold);
+      }
       st.success = false;
       st.dt_actual = 0.0; // rejected step: do not advance app->tcurr (moment.c adds dt_actual unconditionally)
       st.dt_suggested = 0.5 * dt;
@@ -232,6 +421,9 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
     // 3b. Transport: f[0] -> f[ndim] (pure wave_prop, no sources inside).
     struct gkyl_update_status ts = moment_species_update(app, esp, tcurr, dt);
     if (!ts.success) {
+      if (newrad_fold) {
+        gkyl_array_release(newrad_fold);
+      }
       return ts;
     }
     st.dt_suggested = fmin(st.dt_suggested, ts.dt_suggested);
@@ -243,6 +435,14 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
     spacetime_source_half_step(app, esp, esp->f[0], fluid_f, gas_gamma, tcurr + dt, 0.5 * dt);
     moment_species_apply_bc(app, tcurr + dt, esp, esp->f[0]);
 
+    // NewRad Radiative BC: overwrite the outermost interior layer with the outgoing-wave forward-Euler update from the start-of-step snapshot, then refresh ghosts. Replaces the hyperbolic result there.
+    if (use_newrad) {
+      apply_newrad_bc(app, esp, newrad_fold, dt);
+      moment_species_apply_bc(app, tcurr + dt, esp, esp->f[0]);
+      gkyl_array_release(newrad_fold);
+      newrad_fold = 0;
+    }
+
     // 3d. Hyperbolicity guard after the full spacetime step
     if (!mixed_spacetime_metric_valid(app, esp)) {
       st.success = false;
@@ -250,6 +450,9 @@ moment_update_mixed(gkyl_moment_app *app, double dt0)
       st.dt_suggested = 0.5 * dt;
       return st;
     }
+  }
+  if (coupled) {
+    mixed_sync_metric(app, fluid_idx, einstein_idx);
   }
 
   st.dt_actual = dt;
