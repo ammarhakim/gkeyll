@@ -1,3 +1,4 @@
+#include <limits.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,6 +26,41 @@ struct message_trigs {
   struct timespec tm_loop_start; // Wall clock time at start of timing window.
   double t_loop_start; // Simulation time at start of timing window.
 };
+
+// True only when an explicitly limited run has completed its last requested
+// successful update. INT_MAX is the command-line default for an unlimited run.
+static bool
+reached_requested_step_limit(long step, int num_steps)
+{
+  return num_steps < INT_MAX && step == num_steps;
+}
+
+// Return the first time on a trigger's global time grid strictly after t_curr.
+// Restart frames can be written between nominal trigger times, so their frame
+// number cannot in general be used to reconstruct the next trigger time.
+static double
+next_trigger_time(double t_curr, double dt)
+{
+  double t_next = (floor(t_curr/dt)+1.0)*dt;
+  return t_next > t_curr ? t_next : t_next+dt;
+}
+
+// A force-written frame can precede its nominal trigger time. Decouple the
+// next unused frame number from the time triggers after loading a restart:
+// preserve all existing frames, and resume each global output cadence at its
+// first trigger strictly after the actual restart time.
+static void
+reset_restart_output_triggers(bool is_restart, int frame_curr, double t_curr,
+  struct gkyl_tm_trigger *trig_write_conf, struct gkyl_tm_trigger *trig_write_phase)
+{
+  if (!is_restart)
+    return;
+
+  trig_write_conf->curr = frame_curr+1;
+  trig_write_conf->tcurr = next_trigger_time(t_curr, trig_write_conf->dt);
+  trig_write_phase->curr = frame_curr+1;
+  trig_write_phase->tcurr = next_trigger_time(t_curr, trig_write_phase->dt);
+}
 
 //
 // ............. Single block simulations ............... //
@@ -180,12 +216,11 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     gkyl_gyrokinetic_app_apply_ic(app, t_curr);
   }
 
-  // Create triggers for IO. On restart, resume each frame writer on its nominal
-  // grid (tcurr = frame_curr*dt_conf) rather than offset by the restart stime,
-  // which would drift the cadence and drop the final frame. The restart frame
-  // holds the distribution function, so it is written by BOTH the conf and the
-  // phase trigger -- i.e. frame_curr*(t_end/num_frames) lands on both grids -- so
-  // the same nominal time works for trig_write_conf and trig_write_phase.
+  // Create triggers for IO. The frame-based restart values allow an ordinary
+  // on-cadence restart frame to be rewritten below. After that initial write,
+  // reset_restart_output_triggers decouples the next frame number from the
+  // configuration and phase trigger times, which also supports force-written
+  // off-cadence restart frames.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf =
     { .dt = t_end/num_frames, .tcurr = frame_curr * (t_end/num_frames), .curr = frame_curr };
@@ -197,6 +232,8 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, time_stepping.is_restart, false, -1.0);
   write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, time_stepping.is_restart, false);
+  reset_restart_output_triggers(time_stepping.is_restart, frame_curr, t_curr,
+    &trig_write_conf, &trig_write_phase);
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_app_cout(app, stdout, "Initialization completed in %g sec\n\n", gkyl_time_diff_now_sec(tm_init));
@@ -251,8 +288,15 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
     write_message_post_update(app, step, t_curr, status.dt_actual, &m_trig);
 
-    calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, false, t_curr > t_end, status.dt_actual);
-    write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, false, t_curr > t_end);
+    // A run stopped by an explicit step budget may be well short of the next
+    // time-based output trigger. Force its final post-update state to the next
+    // frame so a one-step run contains IC frame 0 and evolved frame 1.
+    bool force_final_output = t_curr > t_end ||
+      reached_requested_step_limit(step, time_stepping.num_steps);
+    calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, false,
+      force_final_output, status.dt_actual);
+    write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, false,
+      force_final_output);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -266,8 +310,10 @@ gyrokinetic_run_singleb_simulation(struct gkyl_gyrokinetic_run_inp* inp)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, false, true, status.dt_actual);
-        write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, false, true);
+        if (!force_final_output) {
+          calc_integrated_diagnostics_singleb(&trig_calc_intdiag, app, t_curr, false, true, status.dt_actual);
+          write_data_singleb(&trig_write_conf, &trig_write_phase, app, t_curr, false, true);
+        }
         break;
       }
     }
@@ -455,12 +501,11 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
     gkyl_gyrokinetic_multib_app_apply_ic(app, t_curr);
   }
 
-  // Create triggers for IO. On restart, resume each frame writer on its nominal
-  // grid (tcurr = frame_curr*dt_conf) rather than offset by the restart stime,
-  // which would drift the cadence and drop the final frame. The restart frame
-  // holds the distribution function, so it is written by BOTH the conf and the
-  // phase trigger -- i.e. frame_curr*(t_end/num_frames) lands on both grids -- so
-  // the same nominal time works for trig_write_conf and trig_write_phase.
+  // Create triggers for IO. The frame-based restart values allow an ordinary
+  // on-cadence restart frame to be rewritten below. After that initial write,
+  // reset_restart_output_triggers decouples the next frame number from the
+  // configuration and phase trigger times, which also supports force-written
+  // off-cadence restart frames.
   int num_frames = time_stepping.num_frames, num_int_diag_calc = time_stepping.int_diag_calc_num;
   struct gkyl_tm_trigger trig_write_conf =
     { .dt = t_end/num_frames, .tcurr = frame_curr * (t_end/num_frames), .curr = frame_curr };
@@ -472,6 +517,8 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
   // Write out ICs (if restart, it overwrites the restart frame).
   calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, time_stepping.is_restart, false, -1.0);
   write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, time_stepping.is_restart, false);
+  reset_restart_output_triggers(time_stepping.is_restart, frame_curr, t_curr,
+    &trig_write_conf, &trig_write_phase);
 
   if (verbose.enabled) {
     gkyl_gyrokinetic_multib_app_cout(app, stdout, "Initialization completed in %g sec\n\n",
@@ -526,8 +573,15 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
 
     write_message_post_update(app, step, t_curr, status.dt_actual, &m_trig);
 
-    calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, false, t_curr > t_end, status.dt_actual);
-    write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, false, t_curr > t_end);
+    // A run stopped by an explicit step budget may be well short of the next
+    // time-based output trigger. Force its final post-update state to the next
+    // frame so a one-step run contains IC frame 0 and evolved frame 1.
+    bool force_final_output = t_curr > t_end ||
+      reached_requested_step_limit(step, time_stepping.num_steps);
+    calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, false,
+      force_final_output, status.dt_actual);
+    write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, false,
+      force_final_output);
 
     if (dt_init < 0.0) {
       dt_init = status.dt_actual;
@@ -541,8 +595,10 @@ gyrokinetic_run_multib_simulation(struct gkyl_gyrokinetic_run_inp* inp)
       if (num_failures >= num_failures_max) {
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
         gkyl_gyrokinetic_multib_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
-        calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, false, true, status.dt_actual);
-        write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, false, true);
+        if (!force_final_output) {
+          calc_integrated_diagnostics_multib(&trig_calc_intdiag, app, t_curr, false, true, status.dt_actual);
+          write_data_multib(&trig_write_conf, &trig_write_phase, app, t_curr, false, true);
+        }
         break;
       }
     }
