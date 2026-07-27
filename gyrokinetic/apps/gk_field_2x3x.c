@@ -50,14 +50,6 @@ gk_field_fem_projection_par_phi_ts_2x(gkyl_gyrokinetic_app *app, struct gk_field
 }
 
 static void
-gk_field_apply_ts_bc_interp(gkyl_gyrokinetic_app *app, struct gk_field *gkf,
-  struct gkyl_array *fin, struct gkyl_array *fout)
-{
-  // Apply the twist-shift BC in the lower parallel ghost.
-  gkyl_bc_twistshift_advance(gkf->bc_ts_lo, fin, fout);
-}
-
-static void
 gk_field_fem_projection_par_phi_ts_3x(gkyl_gyrokinetic_app *app, struct gk_field *field,
   struct gkyl_array *arr_dg, struct gkyl_array *arr_fem)
 {
@@ -69,11 +61,7 @@ gk_field_fem_projection_par_phi_ts_3x(gkyl_gyrokinetic_app *app, struct gk_field
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
   // Apply TS BC in the lower parallel boundary.
-  gk_field_apply_ts_bc_interp(app, field, field->rho_c_global_dg, field->rho_c_global_dg);
-//  int par_dir = app->cdim-1; // Parallel direction index.
-//  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
-//    &app->global_lower_ghost[par_dir], &app->global_upper_skin[par_dir]);
-//  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
+  gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
   // Fill upper parallel boundary ghost with skin boundary value.
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
 
@@ -136,10 +124,7 @@ gk_field_fem_projection_par_phi_iwl_3x(gkyl_gyrokinetic_app *app, struct gk_fiel
   // Gather the DG array into a global (in z) array.
   gkyl_comm_array_allgather(app->comm, &app->local, &app->global, arr_dg, field->rho_c_global_dg);
 
-  // Apply TS BC in the core lower parallel boundary, and
-  // fill core upper parallel boundary ghost with skin boundary value.
-  gkyl_array_copy_range_to_range(field->rho_c_global_dg, field->rho_c_global_dg,
-    &app->global_lower_ghost_par_core, &app->global_upper_skin_par_core);
+  // Apply TS BC in the core lower parallel boundary.
   gkyl_bc_twistshift_advance(field->bc_ts_lo, field->rho_c_global_dg, field->rho_c_global_dg);
   gkyl_bc_basic_gyrokinetic_advance(field->gfss_bc_op_core_up, field->bc_buffer, field->rho_c_global_dg);
 
@@ -378,6 +363,8 @@ gk_field_2x3x_add_IWL_updaters(struct gkyl_gyrokinetic_app *app, struct gk_field
       .basis = app->basis,
       .grid = app->grid,
       .use_gpu = app->use_gpu,
+      .periodic_in_r = &app->global_lower_ghost_par_core,
+      .periodic_out_r = &app->global_upper_skin_par_core
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
       T_LU_lo.shift_dg = app->delta_ts_x_lo;

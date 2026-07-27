@@ -12,7 +12,7 @@
 #include <gkyl_proj_on_basis.h>
 #include <mpack.h>
 #include <gkyl_array_rio.h>
-#include <gkyl_bc_twistshift.h>
+#include <gkyl_twistshift_dg.h>
 #include <gkyl_velocity_map.h>
 #include <gkyl_position_map.h>
 #include <gkyl_gk_geometry.h>
@@ -318,7 +318,7 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_sub_range_init(&update_rng, &local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
   // Create the twist-shift updater and shift the donor field.
-  struct gkyl_bc_twistshift_inp tsinp = {
+  struct gkyl_twistshift_dg_inp tsinp = {
     .bc_dir = bc_dir,
     .shift_dir = 1, // y shift.
     .shear_dir = 0, // shift varies with x.
@@ -334,13 +334,13 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
 
-  gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_twistshift_dg_advance(tsup, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
   // Write out the target in the extended range.
@@ -391,8 +391,8 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_copy_range_to_range(distf, distf, &skin_rng, &ghost_rng);
   tsinp.shift_func = shift1m_fig6;
 //  tsinp.shift_func = shiftm_fig9;
-  struct gkyl_bc_twistshift *tsup_m = gkyl_bc_twistshift_new(&tsinp);
-  gkyl_bc_twistshift_advance(tsup_m, distf, distf);
+  struct gkyl_twistshift_dg *tsup_m = gkyl_twistshift_dg_new(&tsinp);
+  gkyl_twistshift_dg_advance(tsup_m, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
   if (write_f) {
@@ -439,8 +439,8 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_array_release(buff_per);
   test_bc_twistshift_array_meta_release(mt);
-  gkyl_bc_twistshift_release(tsup);
-  gkyl_bc_twistshift_release(tsup_m);
+  gkyl_twistshift_dg_release(tsup);
+  gkyl_twistshift_dg_release(tsup_m);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
@@ -575,7 +575,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_sub_range_init(&update_rng, &local_ext, lower_bcdir_ext, upper_bcdir_ext);
 
   // Create the twist-shift updater and shift the donor field.
-  struct gkyl_bc_twistshift_inp tsinp = {
+  struct gkyl_twistshift_dg_inp tsinp = {
     .bc_dir = bc_dir,
     .shift_dir = 1, // y shift.
     .shear_dir = 0, // shift varies with x.
@@ -591,13 +591,13 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
 
-  gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_twistshift_dg_advance(tsup, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
   // Write out the target in the extended range.
@@ -732,8 +732,8 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_copy_range_to_range(distf, distf, &skin_rng, &ghost_rng);
   tsinp.shift_func = shift1m_fig6;
 //  tsinp.shift_func = shiftm_fig9;
-  struct gkyl_bc_twistshift *tsup_m = gkyl_bc_twistshift_new(&tsinp);
-  gkyl_bc_twistshift_advance(tsup_m, distf, distf);
+  struct gkyl_twistshift_dg *tsup_m = gkyl_twistshift_dg_new(&tsinp);
+  gkyl_twistshift_dg_advance(tsup_m, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
   if (write_f) {
@@ -811,8 +811,8 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(buff_per);
   test_bc_twistshift_array_meta_release(mt);
-  gkyl_bc_twistshift_release(tsup);
-  gkyl_bc_twistshift_release(tsup_m);
+  gkyl_twistshift_dg_release(tsup);
+  gkyl_twistshift_dg_release(tsup_m);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
@@ -986,7 +986,7 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   }
 
   // Create the twist-shift updater and shift the donor field.
-  struct gkyl_bc_twistshift_inp tsinp = {
+  struct gkyl_twistshift_dg_inp tsinp = {
     .bc_dir = bc_dir,
     .shift_dir = 1, // y shift.
     .shear_dir = 0, // shift varies with x.
@@ -1001,13 +1001,13 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
 
-  gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_twistshift_dg_advance(tsup, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
   // Write out the target in the extended range.
@@ -1174,7 +1174,7 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
 
   gkyl_array_release(buff_per);
   test_bc_twistshift_array_meta_release(mt);
-  gkyl_bc_twistshift_release(tsup);
+  gkyl_twistshift_dg_release(tsup);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
@@ -1320,7 +1320,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   }
 
   // Create the twist-shift updater and shift the donor field.
-  struct gkyl_bc_twistshift_inp tsinp = {
+  struct gkyl_twistshift_dg_inp tsinp = {
     .bc_dir = bc_dir,
     .shift_dir = 1, // y shift.
     .shear_dir = 0, // shift varies with x.
@@ -1335,13 +1335,13 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_bc_twistshift *tsup = gkyl_bc_twistshift_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
 
-  gkyl_bc_twistshift_advance(tsup, distf, distf);
+  gkyl_twistshift_dg_advance(tsup, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
   // Write out the target in the extended range.
@@ -1607,7 +1607,7 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_velocity_map_release(gvm);
   gkyl_array_release(buff_per);
   test_bc_twistshift_array_meta_release(mt);
-  gkyl_bc_twistshift_release(tsup);
+  gkyl_twistshift_dg_release(tsup);
   gkyl_proj_on_basis_release(projDistf);
   gkyl_array_release(distf_ho);
   gkyl_array_release(distf);
