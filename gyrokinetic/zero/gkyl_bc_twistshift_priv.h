@@ -15,9 +15,6 @@ struct gkyl_bc_twistshift {
   bool use_gpu; // Whether to apply the BC on the GPU.
 
   struct gkyl_twistshift_dg *ts; // Pure twist-shift updater.
-  int bc_dir; // Direction along which we treat the BC.
-  struct gkyl_range *periodic_out_r; // Range of the periodic donor (output) field.
-  struct gkyl_range *periodic_in_r; // Range of the periodic donor (input) field.
   
   struct gkyl_dg_lowpass_filter *filter; // Optional post-shift filter along shear_dir.
   int filter_half_width; // Filter stencil half-width M in cells (0 = no filter).

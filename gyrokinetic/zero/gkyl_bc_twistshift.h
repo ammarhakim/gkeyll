@@ -12,8 +12,6 @@ typedef struct gkyl_bc_twistshift gkyl_bc_twistshift;
 
 struct gkyl_bc_twistshift_inp {
   int bc_dir; // Direction in which to apply this BC.
-  struct gkyl_range *periodic_out_r; // Range of the periodic donor (output) field.
-  struct gkyl_range *periodic_in_r; // Range of the periodic donor (input) field.
   int shift_dir; // Direction of the shift.
   int shear_dir; // Direction in which the shift varies (shear).
   enum gkyl_edge_loc edge; // Edge to apply this BC at (lower/upper).
@@ -49,7 +47,7 @@ struct gkyl_bc_twistshift_inp {
 struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp);
 
 /**
- * Apply the twist-shift periodic BC. Can be used in-place.
+ * Apply the twist-shift periodic BC. Expect periodicity to be applied beforehand.
  *
  * @param up Twist-shift BC updater object.
  * @param fdo Donor field.

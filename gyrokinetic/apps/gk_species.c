@@ -197,14 +197,6 @@ gk_species_rhs_implicit_static(gkyl_gyrokinetic_app *app, struct gk_species *spe
 }
 
 static void
-gk_species_apply_ts_bc_interp(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  enum gkyl_edge_loc edge, struct gkyl_array *fin, struct gkyl_array *fout)
-{
-  // Apply the twist-shift BC at the given edge.
-  gkyl_bc_twistshift_advance(edge == GKYL_LOWER_EDGE? gks->bc_ts_lo : gks->bc_ts_up, fin, fout);
-}
-
-static void
 gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
@@ -222,8 +214,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
             app->field->phi_wall_lo, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-//          gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
-          gk_species_apply_ts_bc_interp(app, species, GKYL_LOWER_EDGE, f, f);
+          gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
           break;
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
@@ -245,8 +236,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
             app->field->phi_wall_up, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-//          gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
-          gk_species_apply_ts_bc_interp(app, species, GKYL_UPPER_EDGE, f, f);
+          gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
           break;
         case GKYL_BC_GK_SPECIES_COPY:
         case GKYL_BC_GK_SPECIES_REFLECT:
