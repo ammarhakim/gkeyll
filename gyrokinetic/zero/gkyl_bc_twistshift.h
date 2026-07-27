@@ -16,10 +16,10 @@ struct gkyl_bc_twistshift_inp {
   int shear_dir; // Direction in which the shift varies (shear).
   enum gkyl_edge_loc edge; // Edge to apply this BC at (lower/upper).
   int cdim; // Configuration space dimensions.
-  struct gkyl_range bcdir_ext_update_r; // Local range where to apply BC, extended in bc_dir.
+  const struct gkyl_range *bcdir_ext_update_r; // Local range where to apply BC, extended in bc_dir.
   const int *num_ghost; // Number of ghost cells in each direction.
-  struct gkyl_basis basis; // Basis of the field shifted.
-  struct gkyl_rect_grid grid; // Grid the field shifted is defined on.
+  const struct gkyl_basis *basis; // Basis of the field shifted.
+  const struct gkyl_rect_grid *grid; // Grid the field shifted is defined on.
   evalf_t shift_func; // Function defining the shift.
   void *shift_func_ctx; // Context for shift_func.
   struct gkyl_array *shift_dg; // Discretized shift.
@@ -44,10 +44,37 @@ struct gkyl_bc_twistshift_inp {
  * @param inp bc_twistshift_inp struct containing the inputs to the updater.
  * @return New updater pointer.
  */
-struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp);
+struct gkyl_bc_twistshift* gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp);
 
 /**
- * Apply the twist-shift periodic BC. Expect periodicity to be applied beforehand.
+ * Create a new updater to apply twist-shift BCs, passing each argument separately.
+ * This is a convenience wrapper around gkyl_bc_twistshift_inew with the optional
+ * anti-aliasing (filter/upsampling) disabled.
+ *
+ * @param bc_dir Direction in which to apply this BC.
+ * @param shift_dir Direction of the shift.
+ * @param shear_dir Direction in which the shift varies (shear).
+ * @param edge Edge of to apply this BC at (lower/upper).
+ * @param cdim Configuration space dimensions.
+ * @param bcdir_ext_update_r Local range where to apply BC, extended in bc_dir.
+ * @param num_ghost Number of ghost cells in each direction.
+ * @param basis Basis of the field shifted.
+ * @param grid Grid the field shifted is defined on.
+ * @param shift_func Function defining the shift.
+ * @param shift_func_ctx Context for shift_func.
+ * @param shift_dg Discretized shift.
+ * @param shift_poly_order Basis order for the DG representation of the shift (optional).
+ * @param use_gpu Whether to apply the BC using the GPU.
+ * @return New updater pointer.
+ */
+struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
+  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
+  struct gkyl_array *shift_dg, int shift_poly_order, bool use_gpu);
+
+/**
+ * Apply the twist-shift periodic BC. Expects periodicity along bc_dir to have
+ * been applied to the donor field beforehand. Can be used in-place.
  *
  * @param up Twist-shift BC updater object.
  * @param fdo Donor field.

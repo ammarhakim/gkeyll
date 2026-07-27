@@ -899,10 +899,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_LOWER_EDGE,
         .cdim = cdim,
-        .bcdir_ext_update_r = gks->bc_ts_local_par_ext,
+        .bcdir_ext_update_r = &gks->bc_ts_local_par_ext,
         .num_ghost = num_ghost,
-        .basis = gks->basis,
-        .grid = gks->grid,
+        .basis = &gks->basis,
+        .grid = &gks->grid,
         .use_gpu = app->use_gpu,
         .upsample_factor = app->ts_upsample_factor,
         .filter_half_width = app->ts_filter_half_width,
@@ -915,7 +915,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         tsinp.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
       }
 
-      gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp);
+      gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp);
       
     }
     else if ( (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
@@ -962,10 +962,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         .shear_dir = 0, // shift varies with x.
         .edge = GKYL_UPPER_EDGE,
         .cdim = cdim,
-        .bcdir_ext_update_r = gks->bc_ts_local_par_ext,
+        .bcdir_ext_update_r = &gks->bc_ts_local_par_ext,
         .num_ghost = num_ghost,
-        .basis = gks->basis,
-        .grid = gks->grid,
+        .basis = &gks->basis,
+        .grid = &gks->grid,
         .use_gpu = app->use_gpu,
         .upsample_factor = app->ts_upsample_factor,
         .filter_half_width = app->ts_filter_half_width,
@@ -978,7 +978,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
         tsinp.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
       }
 
-      gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp);
+      gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp);
     }
     else if ( (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_COPY) ||
               (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_ABSORB) ||
@@ -1018,10 +1018,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_LOWER_EDGE,
       .cdim = cdim,
-      .bcdir_ext_update_r = gks->local_par_ext_core,
+      .bcdir_ext_update_r = &gks->local_par_ext_core,
       .num_ghost = num_ghost,
-      .basis = gks->basis,
-      .grid = gks->grid,
+      .basis = &gks->basis,
+      .grid = &gks->grid,
       .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -1030,7 +1030,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       tsinp_lo.shift_func     = app->gk_geom->parallel_lower_bc_shift_func;
       tsinp_lo.shift_func_ctx = app->gk_geom->parallel_lower_bc_shift_ctx;
     }
-    gks->bc_ts_lo = gkyl_bc_twistshift_new(&tsinp_lo);
+    gks->bc_ts_lo = gkyl_bc_twistshift_inew(&tsinp_lo);
     
     struct gkyl_bc_twistshift_inp tsinp_up = {
       .bc_dir = par_dir,
@@ -1038,10 +1038,10 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       .shear_dir = 0, // shift varies with x.
       .edge = GKYL_UPPER_EDGE,
       .cdim = cdim,
-      .bcdir_ext_update_r = gks->local_par_ext_core,
+      .bcdir_ext_update_r = &gks->local_par_ext_core,
       .num_ghost = num_ghost,
-      .basis = gks->basis,
-      .grid = gks->grid,
+      .basis = &gks->basis,
+      .grid = &gks->grid,
       .use_gpu = app->use_gpu,
     };
     if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK)
@@ -1050,7 +1050,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       tsinp_up.shift_func     = app->gk_geom->parallel_upper_bc_shift_func;
       tsinp_up.shift_func_ctx = app->gk_geom->parallel_upper_bc_shift_ctx;
     }
-    gks->bc_ts_up = gkyl_bc_twistshift_new(&tsinp_up);
+    gks->bc_ts_up = gkyl_bc_twistshift_inew(&tsinp_up);
   }
 
   // Set function pointers.

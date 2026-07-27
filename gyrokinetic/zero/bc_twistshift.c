@@ -50,7 +50,7 @@ bc_twistshift_coarsen_disabled(struct gkyl_dg_interpolate *coarsen,
 }
 
 struct gkyl_bc_twistshift*
-gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
+gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
 {
   struct gkyl_bc_twistshift *up = gkyl_malloc(sizeof(*up));
 
@@ -66,25 +66,25 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   }
 
   // Grid and update range for the twist-shift.
-  const int ndim = inp->bcdir_ext_update_r.ndim;
+  const int ndim = inp->bcdir_ext_update_r->ndim;
   int fine_cells[GKYL_MAX_DIM];
-  for (int d=0; d<ndim; d++) fine_cells[d] = inp->grid.cells[d];
+  for (int d=0; d<ndim; d++) fine_cells[d] = inp->grid->cells[d];
   fine_cells[inp->shear_dir] *= up->upsample_factor;
-  gkyl_rect_grid_init(&up->ts_grid, ndim, inp->grid.lower, inp->grid.upper, fine_cells);
+  gkyl_rect_grid_init(&up->ts_grid, ndim, inp->grid->lower, inp->grid->upper, fine_cells);
 
   struct gkyl_range fine_ext, fine_local;
   gkyl_create_grid_ranges(&up->ts_grid, inp->num_ghost, &fine_ext, &fine_local);
   int flo[GKYL_MAX_DIM], fup[GKYL_MAX_DIM];
-  for (int d=0; d<ndim; d++) 
-  { 
-    flo[d] = fine_local.lower[d]; 
-    fup[d] = fine_local.upper[d]; 
+  for (int d=0; d<ndim; d++)
+  {
+    flo[d] = fine_local.lower[d];
+    fup[d] = fine_local.upper[d];
   }
   flo[inp->bc_dir] = fine_ext.lower[inp->bc_dir];
   fup[inp->bc_dir] = fine_ext.upper[inp->bc_dir];
   gkyl_sub_range_init(&up->ts_update_r, &fine_ext, flo, fup);
 
-  up->ffine = gkyl_array_new(GKYL_DOUBLE, inp->basis.num_basis, fine_ext.volume);
+  up->ffine = gkyl_array_new(GKYL_DOUBLE, inp->basis->num_basis, fine_ext.volume);
 
   // The pure twist-shift updater.
   struct gkyl_twistshift_dg_inp tsinp = {
@@ -95,7 +95,7 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
     .cdim = inp->cdim,
     .bcdir_ext_update_r = up->ts_update_r,
     .num_ghost = inp->num_ghost,
-    .basis = inp->basis,
+    .basis = *inp->basis,
     .grid = up->ts_grid,
     .shift_func = inp->shift_func,
     .shift_func_ctx = inp->shift_func_ctx,
@@ -120,19 +120,19 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   up->refine_func = bc_twistshift_refine_disabled;
   up->coarsen_func = bc_twistshift_coarsen_disabled;
   if (up->filter_half_width > 0) {
-    up->filt_buff = gkyl_array_new(GKYL_DOUBLE, inp->basis.num_basis, up->ffine->size);
+    up->filt_buff = gkyl_array_new(GKYL_DOUBLE, inp->basis->num_basis, up->ffine->size);
     up->filter = gkyl_dg_lowpass_filter_new(inp->shear_dir, up->filter_half_width,
-      up->filter_cutoff_wavelength, &inp->basis, &up->ts_grid, &up->ghost_r, inp->use_gpu);
+      up->filter_cutoff_wavelength, inp->basis, &up->ts_grid, &up->ghost_r, inp->use_gpu);
       up->filter_func = bc_twistshift_filter_enabled;
     // Optional refine/coarsen interpolators along shear_dir.
     if (up->upsample_factor > 1) {
       if (inp->edge == GKYL_LOWER_EDGE)
-        gkyl_range_shorten_from_above(&up->coarse_ghost_r, &inp->bcdir_ext_update_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
+        gkyl_range_shorten_from_above(&up->coarse_ghost_r, inp->bcdir_ext_update_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
       else
-        gkyl_range_shorten_from_below(&up->coarse_ghost_r, &inp->bcdir_ext_update_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
-      up->refine = gkyl_dg_interpolate_new(inp->cdim, &inp->basis, &inp->grid, &up->ts_grid,
+        gkyl_range_shorten_from_below(&up->coarse_ghost_r, inp->bcdir_ext_update_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
+      up->refine = gkyl_dg_interpolate_new(inp->cdim, inp->basis, inp->grid, &up->ts_grid,
         &up->coarse_ghost_r, &up->ghost_r, inp->num_ghost, inp->use_gpu);
-      up->coarsen = gkyl_dg_interpolate_new(inp->cdim, &inp->basis, &up->ts_grid, &inp->grid,
+      up->coarsen = gkyl_dg_interpolate_new(inp->cdim, inp->basis, &up->ts_grid, inp->grid,
         &up->ghost_r, &up->coarse_ghost_r, inp->num_ghost, inp->use_gpu);
       up->refine_func = bc_twistshift_refine_enabled;
       up->coarsen_func = bc_twistshift_coarsen_enabled;
@@ -140,6 +140,36 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
   }
 
   return up;
+}
+
+struct gkyl_bc_twistshift*
+gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
+  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
+  struct gkyl_array *shift_dg, int shift_poly_order, bool use_gpu)
+{
+  // Convenience wrapper around gkyl_bc_twistshift_inew, with the optional
+  // anti-aliasing (filter/upsampling) disabled.
+  struct gkyl_bc_twistshift_inp inp = {
+    .bc_dir = bc_dir,
+    .shift_dir = shift_dir,
+    .shear_dir = shear_dir,
+    .edge = edge,
+    .cdim = cdim,
+    .bcdir_ext_update_r = bcdir_ext_update_r,
+    .num_ghost = num_ghost,
+    .basis = basis,
+    .grid = grid,
+    .shift_func = shift_func,
+    .shift_func_ctx = shift_func_ctx,
+    .shift_dg = shift_dg,
+    .shift_poly_order = shift_poly_order,
+    .use_gpu = use_gpu,
+    .filter_half_width = 0,
+    .filter_cutoff_wavelength = 0.0,
+    .upsample_factor = 1,
+  };
+  return gkyl_bc_twistshift_inew(&inp);
 }
 
 void
