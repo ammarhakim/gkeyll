@@ -37,6 +37,21 @@ struct arc_length_ctx {
   double *sep_trace_r, *sep_trace_z, *sep_trace_s;
   int sep_trace_n, sep_trace_capacity;
   bool sep_trace_initialized, sep_trace_param_is_r;
+  // Ordered trace of the opposite (far) radial boundary and a monotone
+  // correspondence v=g(u) from the separatrix trace to that boundary.
+  // Intermediate flux surfaces are obtained by intersecting the resulting
+  // non-crossing radial chords with psi=constant.  This prevents independently
+  // normalized contour arc lengths from folding the first radial cell.
+  double *far_trace_r, *far_trace_z, *far_trace_s, *trace_corr_v;
+  int far_trace_n, trace_corr_n;
+  bool far_trace_initialized, far_trace_param_is_r;
+  bool ordered_boundaries_initialized;
+  // A modest per-psi trace supplies an ordered tangent and the cumulative
+  // toroidal field-line integral on exactly the same R-Z path.
+  double *map_trace_r, *map_trace_z, *map_trace_s, *map_trace_phi;
+  int map_trace_n;
+  double map_trace_psi;
+  bool map_trace_initialized;
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
   double phi_bot; // For new way of trying to do core
@@ -411,7 +426,7 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   gkyl_range_iter_init(&riter, &rangeR);
   
   // loop over all R cells to find psi crossing
-  while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
+  while (gkyl_range_iter_next(&riter) && sidx<nmaxroots) {
     long loc = gkyl_range_idx(&rangeR, riter.idx);
     const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
 
@@ -422,7 +437,7 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
     struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
     
     if (sol.nsol > 0)
-      for (int s=0; s<sol.nsol; ++s) {
+      for (int s=0; s<sol.nsol && sidx<nmaxroots; ++s) {
         if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
           R[sidx] = sol.R[s];
           dRdZ[sidx] = sol.dRdZ[s];
@@ -436,7 +451,7 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   // Try again if we didn't find any
   if (sidx==0 && geo->inexact_roots) {
     gkyl_range_iter_init(&riter, &rangeR);
-    while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
+    while (gkyl_range_iter_next(&riter) && sidx<nmaxroots) {
       long loc = gkyl_range_idx(&rangeR, riter.idx);
       const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
 
@@ -447,7 +462,7 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
       struct RdRdZ_sol sol = calc_RdR_p2_tensor_with_tolerance(psih, psi, Z, xc, dx);
       
       if (sol.nsol > 0)
-        for (int s=0; s<sol.nsol; ++s) {
+        for (int s=0; s<sol.nsol && sidx<nmaxroots; ++s) {
           if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
             R[sidx] = sol.R[s];
             dRdZ[sidx] = sol.dRdZ[s];
@@ -483,7 +498,7 @@ R_psiZ_cubic(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots
   gkyl_range_iter_init(&riter, &rangeR);
 
   // loop over all R cells to find psi crossing
-  while (gkyl_range_iter_next(&riter) && sidx<=nmaxroots) {
+  while (gkyl_range_iter_next(&riter) && sidx<nmaxroots) {
     long loc = gkyl_range_idx(&rangeR, riter.idx);
     const double *psih = gkyl_array_cfetch(geo->psiRZ_cubic, loc);
 
@@ -494,8 +509,9 @@ R_psiZ_cubic(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots
     struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
     
     if (sol.nsol > 0)
-      for (int s=0; s<sol.nsol; ++s) {
+      for (int s=0; s<sol.nsol && sidx<nmaxroots; ++s) {
         if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
+          R[sidx] = sol.R[s];
           dRdZ[sidx] = sol.dRdZ[s];
           dR[sidx] = sol.dR[s];
           dZ[sidx] = sol.dZ[s];
@@ -817,6 +833,12 @@ double tok_plate_psi_func(double s, void *ctx);
  * Used to set zmin and zmax and attributes of arc_ctx before looping over arc length
 */
 void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr, double alpha_curr, double* arc_memo, double* arc_memo_left, double* arc_memo_right);
+
+/* Initialize only the state needed by the ordered X-point mapping.  Unlike
+ * tok_find_endpoints, this does not integrate and invert the legacy
+ * independently normalized contour-arclength map. */
+void tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double psi_curr);
 
 /*
  * Used to set theta extents when using a global normalization factor

@@ -37,6 +37,61 @@ tok_eval_psi_rz(const struct gkyl_tok_geo *geo, double R, double Z)
   return geo->rzbasis.eval_expand(xy, coeffs);
 }
 
+// Find the unique intersection of psi=psi0 with a shaped plate.  The search
+// uses only the fixed target surface, so the cached X-point ray is identical
+// in corner, interior, and surface geometry passes.
+static bool
+tok_plate_intersection(const struct gkyl_tok_geo *geo, plate_func plate,
+  double psi0, double *rplate, double *zplate)
+{
+  if (!plate)
+    return false;
+  const int nsamp = 512;
+  const double flux_tol = 1e-10*fmax(1.0, fabs(psi0));
+  int nroot = 0;
+  double last_root = -DBL_MAX, root_s = 0.0;
+  double rz0[2], rz1[2];
+  plate(0.0, rz0);
+  double f0 = tok_eval_psi_rz(geo, rz0[0], rz0[1])-psi0;
+  if (isfinite(f0) && fabs(f0) <= flux_tol) {
+    root_s = 0.0; last_root = 0.0; nroot = 1;
+  }
+  for (int i=1; i<=nsamp; ++i) {
+    double s1 = i/(double) nsamp;
+    plate(s1, rz1);
+    double f1 = tok_eval_psi_rz(geo, rz1[0], rz1[1])-psi0;
+    bool endpoint = isfinite(f1) && fabs(f1) <= flux_tol;
+    bool bracket = isfinite(f0) && isfinite(f1) && f0*f1 < 0.0;
+    if (endpoint || bracket) {
+      double sr = s1;
+      if (!endpoint) {
+        double lo = (i-1)/(double) nsamp, hi = s1, flo = f0;
+        for (int k=0; k<64; ++k) {
+          double mid = 0.5*(lo+hi), rzm[2];
+          plate(mid, rzm);
+          double fm = tok_eval_psi_rz(geo, rzm[0], rzm[1])-psi0;
+          if (!isfinite(fm))
+            return false;
+          if (flo*fm <= 0.0)
+            hi = mid;
+          else { lo = mid; flo = fm; }
+        }
+        sr = 0.5*(lo+hi);
+      }
+      if (fabs(sr-last_root) > 2e-10) {
+        root_s = sr; last_root = sr; ++nroot;
+      }
+    }
+    rz0[0] = rz1[0]; rz0[1] = rz1[1]; f0 = f1;
+  }
+  if (nroot != 1)
+    return false;
+  double rz[2];
+  plate(root_s, rz);
+  *rplate = rz[0]; *zplate = rz[1];
+  return isfinite(*rplate) && isfinite(*zplate);
+}
+
 enum tok_xpt_sector {
   TOK_XPT_CORE,
   TOK_XPT_PF,
@@ -136,6 +191,18 @@ tok_nearest_point_on_surface(const struct gkyl_tok_geo_grid_inp *inp,
     zlo = fmax(geo->rzgrid.lower[1],
       fmin(inp->zmin_left, inp->zmin_right));
     zhi = zx;
+  }
+  else if (sector == TOK_XPT_SOL_OUT || sector == TOK_XPT_SOL_IN) {
+    // A lower-SOL half surface runs from its physical divertor plate to the
+    // magnetic-axis midplane.  The nearest point to the X point is allowed to
+    // lie below the X point; restricting this search to X->midplane selected a
+    // visibly non-nearest ray in shot 203730.
+    double rplate = 0.0, zplate = 0.0;
+    if (!tok_plate_intersection(geo, geo->plate_func_lower, psi0,
+        &rplate, &zplate))
+      return false;
+    zlo = fmin(zplate, geo->zmaxis);
+    zhi = fmax(zplate, geo->zmaxis);
   }
   else {
     zlo = fmin(zx, geo->zmaxis);
@@ -586,6 +653,25 @@ tok_configure_xpt_map(const struct gkyl_tok_geo_grid_inp *inp,
     }
   }
   tok_xpt_map_interval(inp, arc_ctx, lo, hi);
+}
+
+void
+tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double psi_curr)
+{
+  arc_ctx->psi = psi_curr;
+  arc_ctx->xpt_map_valid = false;
+  arc_ctx->xpt_anchor_valid = false;
+  // Preserve the old coordinate algebra in callers while the ordered map
+  // consumes theta directly; no physical contour length is needed here.
+  arc_ctx->arcL_tot = 2.0*M_PI;
+  if (!tok_xpt_ray_enabled(inp) ||
+      !tok_xpt_ray_anchor(inp, arc_ctx, psi_curr)) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP failed to initialize ray ftype=%d psi=%.17g target_psi=%.17g\n",
+      inp->ftype, psi_curr, arc_ctx->xpt_ray_psi0);
+    abort();
+  }
 }
 
 
@@ -1467,6 +1553,12 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     double R_lcfs[4], dRdZ_lcfs[4];
     double dR_lcfs[4], dZ_lcfs[4];
     int nr_lcfs = gkyl_tok_geo_R_psiZ(geo, geo->efit->sibry, geo->efit->zmaxis, 4, R_lcfs, dRdZ_lcfs, dR_lcfs, dZ_lcfs);
+    if (nr_lcfs <= 0) {
+      fprintf(stderr,
+        "TOK_GEOMETRY IWL failed to find LCFS root at psi=%.17g Z=%.17g\n",
+        geo->efit->sibry, geo->efit->zmaxis);
+      abort();
+    }
     double r_lcfs = nr_lcfs == 1 ? R_lcfs[0] : choose_closest(arc_ctx->rleft, R_lcfs, R_lcfs, nr_lcfs);
     double rz_lcfs[2];
 
