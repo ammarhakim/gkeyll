@@ -26,11 +26,7 @@ struct gkyl_bc_twistshift_inp {
   bool use_gpu; // Whether to apply the BC using the GPU.
   // Optional inputs:
   int shift_poly_order; // Basis order for the DG representation of the shift.
-  // Optional anti-aliasing: a low-pass filter along shear_dir (enabled when
-  // filter_half_width > 0), applied on a grid supersampled by upsample_factor
-  // along shear_dir (used only when the filter is on). Both act on the shifted
-  // ghost plane only.
-  int filter_half_width; // Filter stencil half-width M in cells (0 = no filter).
+  int filter_half_width; // Filter stencil half-width M in fine cells (0 = no filter).
   double filter_cutoff_wavelength; // Filter cutoff wavelength (physical units).
   int upsample_factor; // Supersampling factor along shear_dir (0/1 = none).
 };
@@ -45,32 +41,6 @@ struct gkyl_bc_twistshift_inp {
  * @return New updater pointer.
  */
 struct gkyl_bc_twistshift* gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp);
-
-/**
- * Create a new updater to apply twist-shift BCs, passing each argument separately.
- * This is a convenience wrapper around gkyl_bc_twistshift_inew with the optional
- * anti-aliasing (filter/upsampling) disabled.
- *
- * @param bc_dir Direction in which to apply this BC.
- * @param shift_dir Direction of the shift.
- * @param shear_dir Direction in which the shift varies (shear).
- * @param edge Edge of to apply this BC at (lower/upper).
- * @param cdim Configuration space dimensions.
- * @param bcdir_ext_update_r Local range where to apply BC, extended in bc_dir.
- * @param num_ghost Number of ghost cells in each direction.
- * @param basis Basis of the field shifted.
- * @param grid Grid the field shifted is defined on.
- * @param shift_func Function defining the shift.
- * @param shift_func_ctx Context for shift_func.
- * @param shift_dg Discretized shift.
- * @param shift_poly_order Basis order for the DG representation of the shift (optional).
- * @param use_gpu Whether to apply the BC using the GPU.
- * @return New updater pointer.
- */
-struct gkyl_bc_twistshift* gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
-  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
-  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
-  struct gkyl_array *shift_dg, int shift_poly_order, bool use_gpu);
 
 /**
  * Apply the twist-shift periodic BC. Expects periodicity along bc_dir to have

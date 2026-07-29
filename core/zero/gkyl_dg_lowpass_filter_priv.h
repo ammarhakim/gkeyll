@@ -19,6 +19,17 @@ struct gkyl_dg_lowpass_filter {
   double *weights; // 2M+1 filter weights, normalized to sum to 1.
 };
 
+static inline int
+dg_lpf_mirror_idx(int idx, int lo, int up)
+{
+  // Reflect an out-of-range index back in about the outer cell faces.
+  while (idx < lo || idx > up) {
+    if (idx < lo) idx = 2*lo - 1 - idx;
+    if (idx > up) idx = 2*up + 1 - idx;
+  }
+  return idx;
+}
+
 static void
 dg_lpf_calc_weights(int half_width, double fc, double *weights)
 {

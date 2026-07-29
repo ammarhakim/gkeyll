@@ -1780,6 +1780,9 @@ gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
     gkyl_eval_on_nodes_release(evup);
   }
   else {
+    // The shift must be discretized on the shear cells this updater indexes.
+    assert(inp->shift_dg->size == up->shear_r.volume);
+    assert(inp->shift_dg->ncomp == up->shift_b.num_basis);
     up->shift_dg = gkyl_array_acquire(inp->shift_dg);
   }
 

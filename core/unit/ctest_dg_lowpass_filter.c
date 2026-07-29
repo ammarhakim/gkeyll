@@ -62,6 +62,12 @@ void eval_gauss_1x(double t, const double *xn, double *fout, void *ctx)
   fout[0] = exp(-pow((xn[0]-0.5)/0.04, 2));
 }
 
+void eval_gauss_edge_1x(double t, const double *xn, double *fout, void *ctx)
+{
+  // Peaks at the lower boundary, so the stencil there is heavily reflected.
+  fout[0] = exp(-pow(xn[0]/0.04, 2));
+}
+
 void eval_mode_3x(double t, const double *xn, double *fout, void *ctx)
 {
   // Separable function: an x-Nyquist mode (for a 32 cell grid on [0,1])
@@ -96,7 +102,7 @@ test_1x(void)
   struct gkyl_array *fout = mkarr(basis.num_basis, local_ext.volume);
 
   // a) A constant field is preserved exactly everywhere, including at
-  // the boundaries where the stencil is truncated and renormalized.
+  // the boundaries where the stencil is reflected.
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_const_1x, NULL);
   gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
@@ -188,10 +194,7 @@ test_1x(void)
 static void
 test_1x_conservation(void)
 {
-  // The total integral is conserved where full stencils apply (the
-  // kernel weights sum to 1). Renormalized (truncated) stencils alter
-  // column sums up to 2M cells from the boundary, so use a field with
-  // negligible amplitude in that band.
+  // The total integral is conserved everywhere: the kernel weights sum to 1 (reflected stencil at the boundaries).
   int poly_order = 1;
   int cells[] = {64};
   double lower[] = {0.0}, upper[] = {1.0};
@@ -205,31 +208,39 @@ test_1x_conservation(void)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
-  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, 8,
-    grid.dx[0]/0.3, &basis, &grid, &local, false);
-
   struct gkyl_array *fin = mkarr(basis.num_basis, local_ext.volume);
   struct gkyl_array *fout = mkarr(basis.num_basis, local_ext.volume);
 
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, eval_gauss_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
-  gkyl_proj_on_basis_release(proj);
+  // A ramp peaks at one boundary, a boundary-hugging gaussian at the other.
+  evalf_t evals[] = {eval_linear_1x, eval_gauss_edge_1x, eval_gauss_1x};
+  int half_widths[] = {8, 8, 80}; // The last stencil is wider than the grid.
 
-  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+  for (int q=0; q<3; q++) {
+    struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, half_widths[q],
+      grid.dx[0]/0.3, &basis, &grid, &local, false);
 
-  double tot_in = 0.0, tot_out = 0.0;
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local);
-  while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(&local, iter.idx);
-    tot_in += ((const double *) gkyl_array_cfetch(fin, linidx))[0];
-    tot_out += ((const double *) gkyl_array_cfetch(fout, linidx))[0];
+    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
+      poly_order+1, 1, evals[q], NULL);
+    gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+    gkyl_proj_on_basis_release(proj);
+
+    gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+
+    double tot_in = 0.0, tot_out = 0.0;
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &local);
+    while (gkyl_range_iter_next(&iter)) {
+      long linidx = gkyl_range_idx(&local, iter.idx);
+      tot_in += ((const double *) gkyl_array_cfetch(fin, linidx))[0];
+      tot_out += ((const double *) gkyl_array_cfetch(fout, linidx))[0];
+    }
+    TEST_CHECK( fabs(tot_out-tot_in) < 1e-12*fabs(tot_in) );
+    TEST_MSG("case %d (M=%d): total in %.13e | out %.13e | rel change %.3e",
+      q, half_widths[q], tot_in, tot_out, fabs(tot_out-tot_in)/fabs(tot_in));
+
+    gkyl_dg_lowpass_filter_release(lpf);
   }
-  TEST_CHECK( gkyl_compare(tot_in, tot_out, 1e-12) );
-  TEST_MSG("total in: %.13e | total out: %.13e", tot_in, tot_out);
 
-  gkyl_dg_lowpass_filter_release(lpf);
   gkyl_array_release(fin);
   gkyl_array_release(fout);
 }
