@@ -100,11 +100,14 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
   up->refine_func = bc_twistshift_refine_disabled;
   up->coarsen_func = bc_twistshift_coarsen_disabled;
 
-  // A half-width of 1 is the identity kernel.
-  assert(up->filter_half_width != 1);
+  // The half-width counts cells of the original grid.
+  up->half_width_fine = up->filter_half_width * up->upsample_factor;
+
+  // A stencil one fine cell wide is the identity kernel.
+  assert(up->half_width_fine != 1);
   // Supersampling is only useful if there is filtering.
   if (up->upsample_factor > 1)
-    assert(up->filter_half_width > 1 && up->filter_cutoff_wavelength > 0.0);
+    assert(up->filter_half_width > 0 && up->filter_cutoff_wavelength > 0.0);
 
   if (up->filter_half_width == 0) {
     // Plain twist-shift.
@@ -167,7 +170,7 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
     gkyl_range_shorten_from_below(&up->ghost_r, &up->ts_update_r, inp->bc_dir,
       inp->num_ghost[inp->bc_dir]);
 
-  up->filter = gkyl_dg_lowpass_filter_new(inp->shear_dir, up->filter_half_width,
+  up->filter = gkyl_dg_lowpass_filter_new(inp->shear_dir, up->half_width_fine,
     up->filter_cutoff_wavelength, inp->basis, &up->ts_grid, &up->ghost_r, inp->use_gpu);
 
   if (up->upsample_factor > 1) {

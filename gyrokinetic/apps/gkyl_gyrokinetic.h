@@ -252,7 +252,7 @@ struct gkyl_gyrokinetic_geometry {
 
   // Twist-shift anti-aliasing filter.
   int ts_upsample_factor; // Supersampling factor along the shear direction.
-  int ts_filter_half_width; // Filter stencil half-width in fine cells (0 = off, must be > 1).
+  int ts_filter_half_width; // Filter stencil half-width in cells of the simulation grid (0 = off).
   double ts_filter_cutoff_wavelength; // Filter cutoff wavelength (use 2*dx to cut at the coarse Nyquist).
 
   struct gkyl_efit_inp efit_info; // Context with RZ data such as efit file for a tokamak or mirror.
