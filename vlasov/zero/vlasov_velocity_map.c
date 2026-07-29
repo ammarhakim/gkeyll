@@ -300,6 +300,9 @@ gkyl_vlasov_velocity_map_new(const struct gkyl_rect_grid *vgrid, const struct gk
   struct gkyl_basis vmap_pgkyl_basis, jacob_vel_basis;
   gkyl_cart_modal_serendip(&vmap_pgkyl_basis, vdim, 3);
   gkyl_cart_modal_tensor(&jacob_vel_basis, vdim, poly_order);
+  // Keep the I/O basis so the write can label the file with the basis the data
+  // is actually stored in (the species' velocity basis does not describe these arrays).
+  vvm->basis_pgkyl = vmap_pgkyl_basis;
   // velocity-space Jacobian at Gaussian quadrature points for projecting distribution functions
   // and dividing out velocity-space Jacobian nodally.
   vvm->jacob_vel_gauss = mkarr(use_gpu, jacob_vel_basis.num_basis, vrange->volume);
@@ -403,30 +406,51 @@ gkyl_vlasov_velocity_map_eval_c2p(const struct gkyl_vlasov_velocity_map *vvm,
 
 void
 gkyl_vlasov_velocity_map_write(const struct gkyl_vlasov_velocity_map *vvm,
-  struct gkyl_comm *comm, struct gkyl_msgpack_data *mt,
-  const char *app_name, const char *species_name, bool write_cell_avg)
+  struct gkyl_comm *comm, const char *app_name, const char *species_name)
 {
   int rank;
   gkyl_comm_get_rank(comm, &rank);
-  if (rank == 0) {
-    const char *fmt_vmap = "%s-%s_vmap.gkyl";
-    int sz_vmap = gkyl_calc_strlen(fmt_vmap, app_name, species_name);
-    char fileNm_vmap[sz_vmap+1]; // ensures no buffer overflow
-    snprintf(fileNm_vmap, sizeof fileNm_vmap, fmt_vmap, app_name, species_name);
+  if (rank != 0)
+    return;
 
-    gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
-      mt, vvm->vmap_pgkyl_host, fileNm_vmap);
-
-    if (write_cell_avg) {
-      const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
-      int sz_vmap_avg = gkyl_calc_strlen(fmt_vmap_avg, app_name, species_name);
-      char fileNm_vmap_avg[sz_vmap_avg+1]; // ensures no buffer overflow
-      snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app_name, species_name);
-
-      gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
-        mt, vvm->vmap_avg_pgkyl_host, fileNm_vmap_avg);
+  // The map is static and written once, so both files carry frame-0 metadata.
+  struct gkyl_msgpack_data *mt_vmap = gkyl_msgpack_create(4,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+      { .key = "frame", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = vvm->basis_pgkyl.poly_order },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = vvm->basis_pgkyl.id }
     }
-  }
+  );
+
+  const char *fmt_vmap = "%s-%s_vmap.gkyl";
+  int sz_vmap = gkyl_calc_strlen(fmt_vmap, app_name, species_name);
+  char fileNm_vmap[sz_vmap+1]; // ensures no buffer overflow
+  snprintf(fileNm_vmap, sizeof fileNm_vmap, fmt_vmap, app_name, species_name);
+
+  gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
+    mt_vmap, vvm->vmap_pgkyl_host, fileNm_vmap);
+  gkyl_msgpack_data_release(mt_vmap);
+
+  // The cell-average file holds one value per cell per direction: p=0 data,
+  // regardless of the map's I/O basis order.
+  struct gkyl_msgpack_data *mt_vmap_avg = gkyl_msgpack_create(4,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+      { .key = "frame", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = vvm->basis_pgkyl.id }
+    }
+  );
+
+  const char *fmt_vmap_avg = "%s-%s_vmap_avg.gkyl";
+  int sz_vmap_avg = gkyl_calc_strlen(fmt_vmap_avg, app_name, species_name);
+  char fileNm_vmap_avg[sz_vmap_avg+1]; // ensures no buffer overflow
+  snprintf(fileNm_vmap_avg, sizeof fileNm_vmap_avg, fmt_vmap_avg, app_name, species_name);
+
+  gkyl_grid_sub_array_write(&vvm->grid_vel, &vvm->local_vel,
+    mt_vmap_avg, vvm->vmap_avg_pgkyl_host, fileNm_vmap_avg);
+  gkyl_msgpack_data_release(mt_vmap_avg);
 }
 
 void

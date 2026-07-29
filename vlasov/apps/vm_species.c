@@ -579,21 +579,6 @@ vm_species_write_dynamic(gkyl_vlasov_app* app, struct vm_species *vms, double tm
     
   vlasov_array_meta_release(mt);  
 
-  // The velocity map is static in time, so write it (uniform grids included)
-  // only with the first frame.
-  if (frame == 0) {
-    struct gkyl_msgpack_data *mt_vel = vlasov_array_meta_new( (struct vlasov_output_meta) {
-        .frame = frame,
-        .stime = tm,
-        .poly_order = app->poly_order,
-        .basis_type = vms->basis_vel.id
-      }
-    );
-    gkyl_vlasov_velocity_map_write(vms->vel_map, vms->comm, mt_vel,
-      app->name, vms->info.name, vms->write_cell_avg);
-    vlasov_array_meta_release(mt_vel);
-  }
-
   app->stat.species_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
 }
@@ -1285,6 +1270,12 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
   }
   vms->vel_map = gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel,
     &vms->basis_vel, inp_vmap, app->use_gpu);
+
+  // The velocity map is static in time, so write it (uniform grids included)
+  // only with the first frame. Both the p=3 map and its p=0 cell average are
+  // written, with metadata built from the map's I/O basis.
+  gkyl_vlasov_velocity_map_write(vms->vel_map, vms->comm,
+    app->name, vms->info.name);
 
   // Configuration-space mapping object. Created once on the app and shared by
   // all species (configuration space is common to every species); acquire a

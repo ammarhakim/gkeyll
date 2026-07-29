@@ -8,9 +8,8 @@
 #include <gkyl_ref_count.h>
 #include <gkyl_util.h>
 
-// Forward declarations to avoid pulling in comm/IO headers.
+// Forward declaration to avoid pulling in comm/IO headers.
 struct gkyl_comm;
-struct gkyl_msgpack_data;
 
 struct gkyl_vlasov_position_map_inp {
   evalf_t eval_pmap; // Position mapping in this configuration-space dimension. NULL => identity.
@@ -52,6 +51,7 @@ struct gkyl_vlasov_position_map {
   struct gkyl_range local_pos; // Interior configuration-space range (I/O sub-range; conf indexing of the local phase range).
   struct gkyl_range local_ext_pos; // Extended configuration-space range the arrays are actually defined on (includes ghost cells).
   struct gkyl_basis basis_pos; // Configuration-space basis (b_type and poly_order drive consumers).
+  struct gkyl_basis basis_pgkyl; // Basis of the I/O representation pmap_pgkyl_host (p=3 serendipity); used to build the write metadata.
   bool is_identity; // True if no user mapping was given in any direction.
 
   // Solver arrays; device-resident when created with use_gpu=true.
@@ -137,21 +137,22 @@ void gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *v
   const double *xc, double *xp);
 
 /**
- * Write the position map to %s-%s_pmap.gkyl and, if write_cell_avg, its cell
- * average to %s-%s_pmap_avg.gkyl, on rank 0 of comm. The map is static in time
- * so this is intended to be called once (e.g. at frame 0); it is always
- * written, uniform (identity) grids included.
+ * Write the position map to %s-%s_pmap.gkyl and its cell average to
+ * %s-%s_pmap_avg.gkyl, on rank 0 of comm. The map is static in time so this is
+ * intended to be called once (e.g. at frame 0); it is always written, uniform
+ * (identity) grids included, and both files are always written so cell-average
+ * post-processing has a matching map. The metadata is constructed internally
+ * from the stored I/O basis — the files hold the p=3 serendipity pgkyl
+ * representation (p=0 for the cell average), not the app's conf basis, so
+ * caller-supplied app metadata would mislabel the data.
  *
  * @param vpm Position map object.
  * @param comm Communicator the app belongs to.
- * @param mt Msgpack metadata to attach to the files. Can be NULL.
  * @param app_name Name of the app.
  * @param name Name component used in the file name (e.g. "position-map").
- * @param write_cell_avg Whether to also write the cell-averaged map.
  */
 void gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
-  struct gkyl_comm *comm, struct gkyl_msgpack_data *mt,
-  const char *app_name, const char *name, bool write_cell_avg);
+  struct gkyl_comm *comm, const char *app_name, const char *name);
 
 /**
  * Divide out the configuration-space Jacobian from Jf to obtain f. The conf
