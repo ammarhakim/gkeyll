@@ -403,7 +403,22 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-check: core-check moments-check vlasov-check gyrokinetic-check pkpm-check ## Run all unit tests
+check: unit
+	@export GKYL_TEST_LOG=$$(mktemp); : > "$$GKYL_TEST_LOG"; \
+	for app in core moments vlasov gyrokinetic pkpm; do \
+	  $(MAKE) -C $$app -f Makefile-$$app check; \
+	done; \
+	npass=$$(grep -c '^PASS ' "$$GKYL_TEST_LOG"); \
+	nfail=$$(grep -c '^FAIL ' "$$GKYL_TEST_LOG"); \
+	ntot=$$((npass+nfail)); \
+	echo "==================== gkeyll unit test summary ===================="; \
+	echo "Total: $$ntot   Passed: $$npass   Failed: $$nfail"; \
+	if [ $$nfail -gt 0 ]; then \
+	  echo "Failed tests:"; \
+	  grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; \
+	  rm -f "$$GKYL_TEST_LOG"; \
+	  exit 1; \
+	fi
 
 # From: https://www.client9.com/self-documenting-makefiles/
 .PHONY: help
