@@ -108,7 +108,10 @@ endif
 
 .PHONY: check valcheck
 # Run all unit tests
-check: unit ## Build (if needed) and run all unit tests
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests without (re)building them
+unit-run: ## Run unit tests without (re)building them
 	@cd ..; app=pkpm; own_log=0; \
 	if [ -z "$$GKYL_TEST_LOG" ]; then GKYL_TEST_LOG=$$(mktemp); own_log=1; fi; \
 	npass=0; nfail=0; \

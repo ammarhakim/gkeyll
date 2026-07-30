@@ -282,8 +282,11 @@ core-install: ## Install core infrastructure code
 core-clean: ## Clean core infrastructure code
 	cd core && $(MAKE) -f Makefile-core clean
 
-core-check: core ## Run unit tests in core
+core-check: core ## (Re)build and run unit tests in core
 	cd core && $(MAKE) -f Makefile-core check
+
+core-unit-run: ## Run core unit tests
+	cd core && $(MAKE) -f Makefile-core unit-run
 
 core-valcheck: core ## Run valgrind on unit tests in core
 	cd core && $(MAKE) -f Makefile-core valcheck
@@ -308,8 +311,11 @@ moments-install: core-install ## Install moments infrastructure code
 moments-clean: ## Clean moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments clean
 
-moments-check: moments ## Run unit tests in moments
+moments-check: moments ## (Re)build and run unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments check
+
+moments-unit-run: ## Run moments unit tests
+	cd moments && $(MAKE) -f Makefile-moments unit-run
 
 moments-valcheck: moments ## Run valgrind on unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments valcheck
@@ -331,8 +337,11 @@ vlasov-install: moments-install ## Install Vlasov infrastructure code
 vlasov-clean: ## Clean Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov clean
 
-vlasov-check: vlasov ## Run unit tests in Vlasov
+vlasov-check: vlasov ## (Re)build and run unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov check
+
+vlasov-unit-run: ## Run Vlasov unit tests
+	cd vlasov && $(MAKE) -f Makefile-vlasov unit-run
 
 vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck
@@ -344,6 +353,8 @@ gyrokinetic: vlasov  ## Build Gyrokinetic infrastructure code
 gyrokinetic-unit: gyrokinetic vlasov-unit ## Build Gyrokinetic unit tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit
 
+gyrokinetic-unit: gyrokinetic-unit-compile gyrokinetic-unit-run ## Build and run Gyrokinetic unit tests
+
 gyrokinetic-regression: gyrokinetic vlasov-regression ## Build Gyrokinetic regression tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic regression
 
@@ -354,8 +365,11 @@ gyrokinetic-install: vlasov-install ## Install Gyrokinetic infrastructure code
 gyrokinetic-clean: ## Clean Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic clean
 
-gyrokinetic-check: gyrokinetic ## Run unit tests in Gyrokinetics
+gyrokinetic-check: gyrokinetic ## (Re)build and run unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic check
+
+gyrokinetic-unit-run: ## Run Gyrokinetic unit tests
+	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit-run
 
 gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic valcheck
@@ -377,8 +391,11 @@ pkpm-install: gyrokinetic-install ## Install PKPM infrastructure code
 pkpm-clean: ## Clean PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm clean
 
-pkpm-check: pkpm ## Run unit tests in PKPM
+pkpm-check: pkpm ## (Re)build and run unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm check
+
+pkpm-unit-run: ## Run PKPM unit tests
+	cd pkpm && $(MAKE) -f Makefile-pkpm unit-run
 
 pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
@@ -392,7 +409,7 @@ gkeyll-install: ${BUILD_APP}-install gkeyll ## Install Gkeyll executable
 
 ## Targets to build things all parts of the code
 
-# build all unit tests 
+# build all unit tests
 unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
 
 # build all regression tests 
@@ -403,10 +420,13 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-check: unit
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests
+unit-run: ## Run all unit tests without (re)building them
 	@export GKYL_TEST_LOG=$$(mktemp); : > "$$GKYL_TEST_LOG"; \
 	for app in core moments vlasov gyrokinetic pkpm; do \
-	  $(MAKE) -C $$app -f Makefile-$$app check; \
+	  $(MAKE) -C $$app -f Makefile-$$app unit-run; \
 	done; \
 	npass=$$(grep -c '^PASS ' "$$GKYL_TEST_LOG"); \
 	nfail=$$(grep -c '^FAIL ' "$$GKYL_TEST_LOG"); \
