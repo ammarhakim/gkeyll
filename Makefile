@@ -353,8 +353,6 @@ gyrokinetic: vlasov  ## Build Gyrokinetic infrastructure code
 gyrokinetic-unit: gyrokinetic vlasov-unit ## Build Gyrokinetic unit tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit
 
-gyrokinetic-unit: gyrokinetic-unit-compile gyrokinetic-unit-run ## Build and run Gyrokinetic unit tests
-
 gyrokinetic-regression: gyrokinetic vlasov-regression ## Build Gyrokinetic regression tests
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic regression
 
