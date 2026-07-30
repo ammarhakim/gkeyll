@@ -30,61 +30,61 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-_Static_assert(PG0_MAX_DIM == GKYL_MAX_DIM,
-    "PG0_MAX_DIM out of sync with GKYL_MAX_DIM");
+_Static_assert(gpython_MAX_DIM == GKYL_MAX_DIM,
+    "gpython_MAX_DIM out of sync with GKYL_MAX_DIM");
 
 int
-pg0_api_version(void)
+gpython_api_version(void)
 {
   return GPYTHON_API_VERSION;
 }
 
-/* The handles are the gkyl objects themselves; the opaque pg0 types exist
- * so that no gkyl type is ever named in pg0.h. */
+/* The handles are the gkyl objects themselves; the opaque gpython types exist
+ * so that no gkyl type is ever named in gpython.h. */
 #define ARR(a) ((struct gkyl_array *)(a))
 #define CARR(a) ((const struct gkyl_array *)(a))
 #define BAS(b) ((struct gkyl_basis *)(b))
 #define CBAS(b) ((const struct gkyl_basis *)(b))
 
 /* ---- arrays ------------------------------------------------------------ */
-pg0_array *
-pg0_array_new(size_t ncomp, size_t size)
+gpython_array *
+gpython_array_new(size_t ncomp, size_t size)
 {
-  return (pg0_array *)gkyl_array_new(GKYL_DOUBLE, ncomp, size);
+  return (gpython_array *)gkyl_array_new(GKYL_DOUBLE, ncomp, size);
 }
 
-pg0_array *
-pg0_array_from_buff(size_t ncomp, size_t size, double *data)
+gpython_array *
+gpython_array_from_buff(size_t ncomp, size_t size, double *data)
 {
-  return (pg0_array *)gkyl_array_new_from_buff(GKYL_DOUBLE, ncomp, size, data);
+  return (gpython_array *)gkyl_array_new_from_buff(GKYL_DOUBLE, ncomp, size, data);
 }
 
-pg0_array *
-pg0_array_clone(const pg0_array *a)
+gpython_array *
+gpython_array_clone(const gpython_array *a)
 {
-  return (pg0_array *)gkyl_array_clone(CARR(a));
+  return (gpython_array *)gkyl_array_clone(CARR(a));
 }
 
 void
-pg0_array_release(pg0_array *a)
+gpython_array_release(gpython_array *a)
 {
   gkyl_array_release(CARR(a));
 }
 
 size_t
-pg0_array_ncomp(const pg0_array *a)
+gpython_array_ncomp(const gpython_array *a)
 {
   return CARR(a)->ncomp;
 }
 
 size_t
-pg0_array_size(const pg0_array *a)
+gpython_array_size(const gpython_array *a)
 {
   return CARR(a)->size;
 }
 
 double *
-pg0_array_data(pg0_array *a)
+gpython_array_data(gpython_array *a)
 {
   return (double *)ARR(a)->data;
 }
@@ -103,13 +103,13 @@ grid_out(const struct gkyl_rect_grid *grid, int *ndim, double *lower,
 }
 
 int
-pg0_file_type(const char *fname)
+gpython_file_type(const char *fname)
 {
   return gkyl_get_gkyl_file_type(fname);
 }
 
 int
-pg0_read_header(const char *fname, int *ndim, double *lower, double *upper,
+gpython_read_header(const char *fname, int *ndim, double *lower, double *upper,
     int *cells, int *file_type, size_t *esznc, size_t *tot_cells, char **meta,
     size_t *meta_sz)
 {
@@ -135,13 +135,13 @@ pg0_read_header(const char *fname, int *ndim, double *lower, double *upper,
 }
 
 void
-pg0_meta_release(char *meta)
+gpython_meta_release(char *meta)
 {
   free(meta);
 }
 
-pg0_array *
-pg0_read_field(const char *fname, int *ndim, double *lower, double *upper,
+gpython_array *
+gpython_read_field(const char *fname, int *ndim, double *lower, double *upper,
     int *cells)
 {
   struct gkyl_rect_grid grid;
@@ -149,11 +149,11 @@ pg0_read_field(const char *fname, int *ndim, double *lower, double *upper,
   if (!arr)
     return NULL;
   grid_out(&grid, ndim, lower, upper, cells);
-  return (pg0_array *)arr;
+  return (gpython_array *)arr;
 }
 
 const char *
-pg0_status_msg(int status)
+gpython_status_msg(int status)
 {
   return gkyl_array_rio_status_msg((enum gkyl_array_rio_status)status);
 }
@@ -162,8 +162,8 @@ pg0_status_msg(int status)
  * The heap-allocated struct gkyl_basis is plain data filled by the in-place
  * initializers; the function pointers it carries are dispatched HERE, in
  * compiled code, never from the interpreter. */
-pg0_basis *
-pg0_basis_new(const char *type, int ndim, int poly_order)
+gpython_basis *
+gpython_basis_new(const char *type, int ndim, int poly_order)
 {
   struct gkyl_basis *b = malloc(sizeof(struct gkyl_basis));
   if (strcmp(type, "serendipity") == 0)
@@ -174,11 +174,11 @@ pg0_basis_new(const char *type, int ndim, int poly_order)
     free(b);
     return NULL;
   }
-  return (pg0_basis *)b;
+  return (gpython_basis *)b;
 }
 
-pg0_basis *
-pg0_basis_new_hybrid(const char *type, int cdim, int vdim)
+gpython_basis *
+gpython_basis_new_hybrid(const char *type, int cdim, int vdim)
 {
   struct gkyl_basis *b = malloc(sizeof(struct gkyl_basis));
   if (strcmp(type, "hybrid") == 0)
@@ -189,53 +189,53 @@ pg0_basis_new_hybrid(const char *type, int cdim, int vdim)
     free(b);
     return NULL;
   }
-  return (pg0_basis *)b;
+  return (gpython_basis *)b;
 }
 
 void
-pg0_basis_release(pg0_basis *b)
+gpython_basis_release(gpython_basis *b)
 {
   free(b);
 }
 
 int
-pg0_basis_ndim(const pg0_basis *b)
+gpython_basis_ndim(const gpython_basis *b)
 {
   return (int)CBAS(b)->ndim;
 }
 
 int
-pg0_basis_poly_order(const pg0_basis *b)
+gpython_basis_poly_order(const gpython_basis *b)
 {
   return (int)CBAS(b)->poly_order;
 }
 
 int
-pg0_basis_num_basis(const pg0_basis *b)
+gpython_basis_num_basis(const gpython_basis *b)
 {
   return (int)CBAS(b)->num_basis;
 }
 
 const char *
-pg0_basis_id(const pg0_basis *b)
+gpython_basis_id(const gpython_basis *b)
 {
   return CBAS(b)->id;
 }
 
 void
-pg0_basis_eval(const pg0_basis *b, const double *z, double *bvals)
+gpython_basis_eval(const gpython_basis *b, const double *z, double *bvals)
 {
   CBAS(b)->eval(z, bvals);
 }
 
 void
-pg0_basis_node_list(const pg0_basis *b, double *coords)
+gpython_basis_node_list(const gpython_basis *b, double *coords)
 {
   CBAS(b)->node_list(coords);
 }
 
 void
-pg0_basis_nodal_to_modal(const pg0_basis *b, const double *fnodal,
+gpython_basis_nodal_to_modal(const gpython_basis *b, const double *fnodal,
     double *fmodal)
 {
   CBAS(b)->nodal_to_modal(fnodal, fmodal);
@@ -247,7 +247,7 @@ pg0_basis_nodal_to_modal(const pg0_basis *b, const double *fnodal,
  * passed BY VALUE, exactly as the header declares — the compiler, not a
  * hand-written mirror, guarantees the ABI. */
 static int
-nfields_of(const pg0_basis *b, const pg0_array *a)
+nfields_of(const gpython_basis *b, const gpython_array *a)
 {
   size_t nb = (size_t)CBAS(b)->num_basis;
   if (CARR(a)->ncomp % nb != 0)
@@ -256,7 +256,7 @@ nfields_of(const pg0_basis *b, const pg0_array *a)
 }
 
 static int
-weak_shapes_ok(const pg0_array *out, const pg0_array *a1, const pg0_array *a2)
+weak_shapes_ok(const gpython_array *out, const gpython_array *a1, const gpython_array *a2)
 {
   return CARR(out)->ncomp == CARR(a1)->ncomp &&
          CARR(out)->size == CARR(a1)->size &&
@@ -265,8 +265,8 @@ weak_shapes_ok(const pg0_array *out, const pg0_array *a1, const pg0_array *a2)
 }
 
 int
-pg0_dg_mul(const pg0_basis *b, pg0_array *out, const pg0_array *a1,
-    const pg0_array *a2)
+gpython_dg_mul(const gpython_basis *b, gpython_array *out, const gpython_array *a1,
+    const gpython_array *a2)
 {
   int nf = nfields_of(b, a1);
   if (nf < 0 || !weak_shapes_ok(out, a1, a2))
@@ -277,8 +277,8 @@ pg0_dg_mul(const pg0_basis *b, pg0_array *out, const pg0_array *a1,
 }
 
 int
-pg0_dg_div(const pg0_basis *b, pg0_array *out, const pg0_array *a1,
-    const pg0_array *a2)
+gpython_dg_div(const gpython_basis *b, gpython_array *out, const gpython_array *a1,
+    const gpython_array *a2)
 {
   int nf = nfields_of(b, a1);
   if (nf < 0 || !weak_shapes_ok(out, a1, a2))
@@ -292,7 +292,7 @@ pg0_dg_div(const pg0_basis *b, pg0_array *out, const pg0_array *a1,
 }
 
 int
-pg0_dg_inv(const pg0_basis *b, pg0_array *out, const pg0_array *a1)
+gpython_dg_inv(const gpython_basis *b, gpython_array *out, const gpython_array *a1)
 {
   int nf = nfields_of(b, a1);
   if (nf < 0 || !weak_shapes_ok(out, a1, NULL))
@@ -304,11 +304,11 @@ pg0_dg_inv(const pg0_basis *b, pg0_array *out, const pg0_array *a1)
 
 /* conf*phase: single-field only, so shapes are just num_basis equality plus
  * the range volumes built from the caller's cell counts matching the
- * arrays' sizes exactly (mirrors pg0_array_integrate's range convention:
+ * arrays' sizes exactly (mirrors gpython_array_integrate's range convention:
  * 1-indexed, lower=1, upper=cells). */
 int
-pg0_dg_mul_conf_phase(const pg0_basis *cbasis, const pg0_basis *pbasis,
-    pg0_array *pout, const pg0_array *cop, const pg0_array *pop,
+gpython_dg_mul_conf_phase(const gpython_basis *cbasis, const gpython_basis *pbasis,
+    gpython_array *pout, const gpython_array *cop, const gpython_array *pop,
     const int *conf_cells, const int *phase_cells)
 {
   int cdim = CBAS(cbasis)->ndim, pdim = CBAS(pbasis)->ndim;
@@ -332,12 +332,12 @@ pg0_dg_mul_conf_phase(const pg0_basis *cbasis, const pg0_basis *pbasis,
   return 0;
 }
 
-/* Local DG derivative: like pg0_dg_mul, the per-field loop lives here since
+/* Local DG derivative: like gpython_dg_mul, the per-field loop lives here since
  * gkyl_dg_differentiate_op_local's c_oop/c_iop are field indices, not a
  * whole-array operation. */
 int
-pg0_dg_differentiate(const pg0_basis *b, int dir, int diff_order, double dx,
-    pg0_array *out, const pg0_array *in)
+gpython_dg_differentiate(const gpython_basis *b, int dir, int diff_order, double dx,
+    gpython_array *out, const gpython_array *in)
 {
   int nf = nfields_of(b, in);
   if (nf < 0 || !weak_shapes_ok(out, in, NULL))
@@ -353,38 +353,38 @@ pg0_dg_differentiate(const pg0_basis *b, int dir, int diff_order, double dx,
 
 /* ---- linear coefficient ops / reductions -------------------------------- */
 void
-pg0_array_set(pg0_array *out, double c, const pg0_array *a)
+gpython_array_set(gpython_array *out, double c, const gpython_array *a)
 {
   gkyl_array_set(ARR(out), c, CARR(a));
 }
 
 void
-pg0_array_accumulate(pg0_array *out, double c, const pg0_array *a)
+gpython_array_accumulate(gpython_array *out, double c, const gpython_array *a)
 {
   gkyl_array_accumulate(ARR(out), c, CARR(a));
 }
 
 void
-pg0_array_scale(pg0_array *a, double c)
+gpython_array_scale(gpython_array *a, double c)
 {
   gkyl_array_scale(ARR(a), c);
 }
 
 void
-pg0_array_shiftc(pg0_array *a, double val, unsigned comp)
+gpython_array_shiftc(gpython_array *a, double val, unsigned comp)
 {
   gkyl_array_shiftc(ARR(a), val, comp);
 }
 
 void
-pg0_array_reduce(double *out, const pg0_array *a, int op)
+gpython_array_reduce(double *out, const gpython_array *a, int op)
 {
   static const enum gkyl_array_op ops[] = { GKYL_MIN, GKYL_MAX, GKYL_SUM };
   gkyl_array_reduce(out, CARR(a), ops[op]);
 }
 
 int
-pg0_array_dg_reduce(double *out, const pg0_basis *b, const pg0_array *a,
+gpython_array_dg_reduce(double *out, const gpython_basis *b, const gpython_array *a,
     int comp, int op)
 {
   size_t nb = (size_t)CBAS(b)->num_basis;
@@ -397,9 +397,9 @@ pg0_array_dg_reduce(double *out, const pg0_basis *b, const pg0_array *a,
 
 /* ---- integration --------------------------------------------------------- */
 int
-pg0_array_integrate(int ndim, const double *lower, const double *upper,
-    const int *cells, const pg0_basis *b, int nfields, int op, double factor,
-    const pg0_array *a, double *out)
+gpython_array_integrate(int ndim, const double *lower, const double *upper,
+    const int *cells, const gpython_basis *b, int nfields, int op, double factor,
+    const gpython_array *a, double *out)
 {
   static const enum gkyl_array_integrate_op ops[] = {
     GKYL_ARRAY_INTEGRATE_OP_NONE,
@@ -426,16 +426,16 @@ pg0_array_integrate(int ndim, const double *lower, const double *upper,
 }
 
 /* ---- averaging ------------------------------------------------------------
- * Single-field only (like pg0_dg_mul_conf_phase): `a`/`weight`/`out` must
+ * Single-field only (like gpython_dg_mul_conf_phase): `a`/`weight`/`out` must
  * each carry exactly one basis's worth of coefficients per cell -- the
  * kernel gkyl_array_average_choose_kernel dispatches has no field-index
  * parameter at all, so a multi-field caller must loop, one field at a time,
  * in Python (dg/modal.py). */
 int
-pg0_array_average(int ndim, const double *lower, const double *upper,
-    const int *cells, const pg0_basis *b, const pg0_basis *b_avg,
+gpython_array_average(int ndim, const double *lower, const double *upper,
+    const int *cells, const gpython_basis *b, const gpython_basis *b_avg,
     int ndim_avg, const int *cells_avg, const int *avg_dim,
-    const pg0_array *weight, const pg0_array *a, pg0_array *out)
+    const gpython_array *weight, const gpython_array *a, gpython_array *out)
 {
   size_t nb = (size_t)CBAS(b)->num_basis, nb_avg = (size_t)CBAS(b_avg)->num_basis;
   if (CARR(a)->ncomp != nb || CARR(out)->ncomp != nb_avg ||
@@ -461,7 +461,7 @@ pg0_array_average(int ndim, const double *lower, const double *upper,
   if ((size_t)range_avg.volume != CARR(out)->size)
     return 1;
 
-  /* range_avg doubles as local_avg_ext (mirrors pg0_dg_mul_conf_phase's
+  /* range_avg doubles as local_avg_ext (mirrors gpython_dg_mul_conf_phase's
    * range convention: 1-indexed, lower=1, upper=cells -- there is no ghost
    * layer anywhere in the gpython boundary, so the "extended" reduced range
    * gkyl_array_average_new only reads to size the integrated weight is
@@ -475,11 +475,11 @@ pg0_array_average(int ndim, const double *lower, const double *upper,
 }
 
 /* ---- evaluate-and-project ------------------------------------------------- */
-pg0_array *
-pg0_eval_at_coord_proj(const pg0_basis *b, int cdim_do, int ndim,
+gpython_array *
+gpython_eval_at_coord_proj(const gpython_basis *b, int cdim_do, int ndim,
     const double *lower, const double *upper, const int *cells,
     int num_eval, const int *eval_dirs, const double *eval_coords,
-    int ndim_tar, const int *cells_tar, const pg0_array *in,
+    int ndim_tar, const int *cells_tar, const gpython_array *in,
     int *out_btype, int *out_poly_order, int *out_cdim, int *out_vdim)
 {
   int nf = nfields_of(b, in);
@@ -531,14 +531,14 @@ pg0_eval_at_coord_proj(const pg0_basis *b, int cdim_do, int ndim,
   *out_cdim = cdim_tar;
   *out_vdim = ndim_tar_full - cdim_tar;
 
-  return (pg0_array *)out;
+  return (gpython_array *)out;
 }
 
 /* ---- writing -------------------------------------------------------------- */
 int
-pg0_write_field(const char *fname, int ndim, const double *lower,
+gpython_write_field(const char *fname, int ndim, const double *lower,
     const double *upper, const int *cells, const char *meta, size_t meta_sz,
-    const pg0_array *a)
+    const gpython_array *a)
 {
   struct gkyl_rect_grid grid;
   gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
@@ -559,10 +559,10 @@ pg0_write_field(const char *fname, int ndim, const double *lower,
 /* ---- dynvector (time-series) I/O ------------------------------------------
  * The dynvec object itself never crosses gkyl_gpython.h: it is created, filled,
  * and released entirely inside this function, and its contents move to the
- * caller only as pg0_arrays (already opaque, already RAII'd). */
+ * caller only as gpython_arrays (already opaque, already RAII'd). */
 int
-pg0_dynvec_read(const char *fname, size_t *ncomp, pg0_array **tm,
-    pg0_array **data)
+gpython_dynvec_read(const char *fname, size_t *ncomp, gpython_array **tm,
+    gpython_array **data)
 {
   struct gkyl_dynvec_etype_ncomp info = gkyl_dynvec_read_ncomp(fname);
   if (info.ncomp == 0)
@@ -584,13 +584,13 @@ pg0_dynvec_read(const char *fname, size_t *ncomp, pg0_array **tm,
   gkyl_dynvec_release(vec);
 
   *ncomp = info.ncomp;
-  *tm = (pg0_array *)tm_arr;
-  *data = (pg0_array *)data_arr;
+  *tm = (gpython_array *)tm_arr;
+  *data = (gpython_array *)data_arr;
   return 0;
 }
 
 int
-pg0_dynvec_write(const char *fname, size_t ncomp, size_t n, const double *tm,
+gpython_dynvec_write(const char *fname, size_t ncomp, size_t n, const double *tm,
     const double *data)
 {
   gkyl_dynvec vec = gkyl_dynvec_new(GKYL_DOUBLE, ncomp);
