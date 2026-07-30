@@ -17,16 +17,20 @@ struct gkyl_dg_lowpass_filter {
   struct gkyl_rect_grid grid; // Grid the field is defined on.
   struct gkyl_range range; // Range to filter in.
   double *weights; // 2M+1 filter weights, normalized to sum to 1.
+  double *sign_mirror; // Per-coefficient sign for a mirrored donor.
+  double *sign_plain; // All ones, for a donor that was not mirrored.
 };
 
 static inline int
-dg_lpf_mirror_idx(int idx, int lo, int up)
+dg_lpf_mirror_idx(int idx, int lo, int up, bool *mirrored)
 {
   // Reflect an out-of-range index back in about the outer cell faces.
+  int num_reflections = 0;
   while (idx < lo || idx > up) {
-    if (idx < lo) idx = 2*lo - 1 - idx;
-    if (idx > up) idx = 2*up + 1 - idx;
+    if (idx < lo) { idx = 2*lo - 1 - idx; num_reflections++; }
+    if (idx > up) { idx = 2*up + 1 - idx; num_reflections++; }
   }
+  *mirrored = num_reflections % 2 == 1;
   return idx;
 }
 

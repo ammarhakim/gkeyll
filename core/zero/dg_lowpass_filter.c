@@ -31,6 +31,12 @@ gkyl_dg_lowpass_filter_new(int dir, int half_width, double cutoff_wavelength,
   up->weights = gkyl_malloc((2*half_width+1)*sizeof(double));
   dg_lpf_calc_weights(half_width, fc, up->weights);
 
+  // Sign each coefficient picks up when its donor cell is reached by mirroring.
+  up->sign_plain = gkyl_malloc(up->num_basis*sizeof(double));
+  up->sign_mirror = gkyl_malloc(up->num_basis*sizeof(double));
+  for (int c=0; c<up->num_basis; c++) up->sign_plain[c] = 1.0;
+  basis->flip_odd_sign(dir, up->sign_plain, up->sign_mirror);
+
   return up;
 }
 
@@ -63,15 +69,19 @@ gkyl_dg_lowpass_filter_advance(gkyl_dg_lowpass_filter *up,
 
     // Loop over the donor cells contributing to this target cell.
     for (int k=-M; k<M+1; k++) {
+      bool mirrored;
       idx_do[dir] = dg_lpf_mirror_idx(iter.idx[dir]+k, up->range.lower[dir],
-        up->range.upper[dir]);
+        up->range.upper[dir], &mirrored);
 
       long linidx_do = gkyl_range_idx(&up->range, idx_do);
       const double *fdo_c = gkyl_array_cfetch(fdo, linidx_do);
 
+      // Handle reflection.
+      const double *sgn = mirrored? up->sign_mirror : up->sign_plain;
+
       double w = up->weights[k+M];
       for (int c=0; c<num_basis; c++)
-        ftar_c[c] += w*fdo_c[c];
+        ftar_c[c] += w*sgn[c]*fdo_c[c];
     }
   }
 }
@@ -81,5 +91,7 @@ gkyl_dg_lowpass_filter_release(gkyl_dg_lowpass_filter *up)
 {
   // Release memory associated with this updater.
   gkyl_free(up->weights);
+  gkyl_free(up->sign_plain);
+  gkyl_free(up->sign_mirror);
   gkyl_free(up);
 }

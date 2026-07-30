@@ -301,7 +301,59 @@ test_3x(void)
   gkyl_array_release(fout);
 }
 
+static void
+test_1x_reflection(void)
+{
+  // Verify that the reflexion at the boundary is done correctly.
+  int poly_order = 1;
+  int cells[] = {64};
+  double lower[] = {0.0}, upper[] = {1.0};
+  int nghost[] = {1};
+  int M = 8;
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, poly_order);
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
+    grid.dx[0]/0.25, &basis, &grid, &local, false);
+
+  struct gkyl_array *fin = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *fout = mkarr(basis.num_basis, local_ext.volume);
+
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, eval_linear_1x, NULL);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+  gkyl_proj_on_basis_release(proj);
+
+  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+
+  // Basis evaluated at the two cell edges, to take the jump across a face.
+  double b_lo[8], b_up[8];
+  basis.eval((double[]) {-1.0}, b_lo);
+  basis.eval((double[]) { 1.0}, b_up);
+
+  for (int i=local.lower[0]; i<local.upper[0]; i++) {
+    const double *left = gkyl_array_cfetch(fout, gkyl_range_idx(&local, (int[]) {i}));
+    const double *right = gkyl_array_cfetch(fout, gkyl_range_idx(&local, (int[]) {i+1}));
+    double jump = 0.0;
+    for (int c=0; c<basis.num_basis; c++)
+      jump += right[c]*b_lo[c] - left[c]*b_up[c];
+    TEST_CHECK( fabs(jump) < 1.0e-12 );
+    TEST_MSG("interface %d: filtering a ramp opened a jump of %.3e", i, jump);
+  }
+
+  gkyl_dg_lowpass_filter_release(lpf);
+  gkyl_array_release(fin);
+  gkyl_array_release(fout);
+}
+
 TEST_LIST = {
+  { "test_1x_reflection", test_1x_reflection },
   { "test_1x", test_1x },
   { "test_1x_conservation", test_1x_conservation },
   { "test_3x", test_3x },
