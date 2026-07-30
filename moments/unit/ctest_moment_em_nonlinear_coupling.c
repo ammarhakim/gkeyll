@@ -87,7 +87,7 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
 
   double t_curr = 0.0;
   for (int n = 0; n < nsteps; n++) {
-    printf("step: %d\n", n);
+    // printf("step: %d\n", n);
     gkyl_moment_em_coupling_implicit_advance(mom_em, t_curr, dt, &range,
                                              fluids, app_accels, p_rhss, em,
                                              app_current, ext_em, nT_sources);
@@ -131,7 +131,7 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
 static void
 test_plasma_oscillation_small_dt()
 {
-  const double E0 = 1.0;
+  const double E0 = 4.1;
   const double dt = 0.001;
   const int nsteps = 10000;
   
