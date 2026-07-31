@@ -407,19 +407,19 @@ ts_donor_target_offset(struct gkyl_twistshift_dg *up, const double *xc_do, const
   // y-offset between the donor and the target cell (yDo-yTar), in the direction of the shift.
   //   xc_do:  cell center coordinates of donor cell.
   //   xc_tar: cell center coordinates of target cell.
-  int shear_dir = up->shear_dir_in_ts_grid;
   int shift_dir = up->shift_dir_in_ts_grid;
   double x_eval = xc_do[up->shear_dir];
   double shift;
   up->shift_func(0.0, (double[]){x_eval}, &shift, up->shift_func_ctx);
 
-  int shift_sign = ts_sign(shift);
   double shift_dir_L = up->ts_grid.upper[up->shift_dir] - up->ts_grid.lower[up->shift_dir];
-                             
+
   // The idea here is that we keep shifting the donor cell center until it is in a
   // periodic copy of our domain which overlaps with the shifted target cell center.
   double xs_shifted_do = xc_do[shift_dir];
   double xs_shifted_tar = xc_tar[shift_dir] - shift;
+  // Step toward the target.
+  int shift_sign = xs_shifted_tar < xs_shifted_do? 1 : -1;
   bool keep_shifting = true;
   while (keep_shifting) {
     double xs_shifted_dolo = xs_shifted_do - shift_dir_L/2.0;
