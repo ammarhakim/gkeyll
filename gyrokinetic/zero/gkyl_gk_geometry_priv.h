@@ -77,6 +77,7 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry* gk_geom, int dir)
   gk_geom->geo_surf[dir].curlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].normcurlbhat_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].jacobgeo_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
+  gk_geom->geo_surf[dir].jacobgeo_signed_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].b_i_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].b_i_nodal_fd = gkyl_array_new(GKYL_DOUBLE, 3*num_fd_nodes, gk_geom->nrange_surf[dir].volume);
   gk_geom->geo_surf[dir].cmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
@@ -121,6 +122,7 @@ gk_geometry_surf_release_nodal(struct gk_geometry* gk_geom, int dir)
   gkyl_array_release(gk_geom->geo_surf[dir].ddtheta_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].ddpsi_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].jacobgeo_nodal);
+  gkyl_array_release(gk_geom->geo_surf[dir].jacobgeo_signed_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal);
   gkyl_array_release(gk_geom->geo_surf[dir].b_i_nodal_fd);
   gkyl_array_release(gk_geom->geo_surf[dir].cmag_nodal);

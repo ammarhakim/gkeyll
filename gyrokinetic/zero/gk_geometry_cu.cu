@@ -116,7 +116,7 @@ gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   struct gkyl_array *mc2p_nodal_fd, struct gkyl_array *mc2p_nodal, struct gkyl_array *bmag_nodal,
   struct gkyl_array *curlbhat_nodal, struct gkyl_array *normcurlbhat_nodal, struct gkyl_array *ddtheta_nodal,
   struct gkyl_array *ddpsi_nodal,
-  struct gkyl_array *jacobgeo_nodal, struct gkyl_array *b_i_nodal, struct gkyl_array *b_i_nodal_fd,
+  struct gkyl_array *jacobgeo_nodal, struct gkyl_array *jacobgeo_signed_nodal, struct gkyl_array *b_i_nodal, struct gkyl_array *b_i_nodal_fd,
   struct gkyl_array *cmag_nodal, struct gkyl_array *jacobtot_inv_nodal, struct gkyl_array *g_ij_nodal,
   struct gkyl_array *dxdz_nodal, struct gkyl_array *dzdx_nodal, struct gkyl_array *normals_nodal,
   struct gkyl_array *dualmag_nodal, struct gkyl_array *bcart_nodal, struct gkyl_array *B3_nodal,
@@ -145,6 +145,7 @@ gk_geometry_set_surf_cu_kernel(struct gk_geometry *gk_geom, int dir,
   gk_geom->geo_surf[dir].ddtheta_nodal = ddtheta_nodal;
   gk_geom->geo_surf[dir].ddpsi_nodal = ddpsi_nodal;
   gk_geom->geo_surf[dir].jacobgeo_nodal = jacobgeo_nodal;
+  gk_geom->geo_surf[dir].jacobgeo_signed_nodal = jacobgeo_signed_nodal;
   gk_geom->geo_surf[dir].b_i_nodal = b_i_nodal;
   gk_geom->geo_surf[dir].b_i_nodal_fd = b_i_nodal_fd;
   gk_geom->geo_surf[dir].cmag_nodal = cmag_nodal;
@@ -204,7 +205,7 @@ gkyl_geometry_set_surf_cu(struct gk_geometry *gk_geom, struct gk_geom_surf *geo_
     geo_surf->normcurlbhat->on_dev, geo_surf->normals->on_dev, geo_surf->lenr->on_dev, geo_surf->bimpactangle->on_dev, geo_surf->deltats->on_dev,
     geo_surf->mc2p_nodal_fd->on_dev, geo_surf->mc2p_nodal->on_dev, geo_surf->bmag_nodal->on_dev,
     geo_surf->curlbhat_nodal->on_dev, geo_surf->normcurlbhat_nodal->on_dev, geo_surf->ddtheta_nodal->on_dev, geo_surf->ddpsi_nodal->on_dev,
-    geo_surf->jacobgeo_nodal->on_dev, geo_surf->b_i_nodal->on_dev, geo_surf->b_i_nodal_fd->on_dev,
+    geo_surf->jacobgeo_nodal->on_dev, geo_surf->jacobgeo_signed_nodal->on_dev, geo_surf->b_i_nodal->on_dev, geo_surf->b_i_nodal_fd->on_dev,
     geo_surf->cmag_nodal->on_dev, geo_surf->jacobtot_inv_nodal->on_dev, geo_surf->g_ij_nodal->on_dev,
     geo_surf->dxdz_nodal->on_dev, geo_surf->dzdx_nodal->on_dev, geo_surf->normals_nodal->on_dev,
     geo_surf->dualmag_nodal->on_dev, geo_surf->bcart_nodal->on_dev, geo_surf->B3_nodal->on_dev,
@@ -395,6 +396,12 @@ gk_geometry_surf_cu_dev_alloc(struct gk_geom_surf up_surf_host)
     up_surf_host.ddpsi_nodal->ncomp, up_surf_host.ddpsi_nodal->size);
   up_surf_dev->jacobgeo_nodal = gkyl_array_cu_dev_new(up_surf_host.jacobgeo_nodal->type,
     up_surf_host.jacobgeo_nodal->ncomp, up_surf_host.jacobgeo_nodal->size);
+  up_surf_dev->jacobgeo_signed_nodal =
+    gkyl_array_cu_dev_new(
+      up_surf_host.jacobgeo_signed_nodal->type,
+      up_surf_host.jacobgeo_signed_nodal->ncomp,
+      up_surf_host.jacobgeo_signed_nodal->size
+    );
   up_surf_dev->b_i_nodal = gkyl_array_cu_dev_new(up_surf_host.b_i_nodal->type,
     up_surf_host.b_i_nodal->ncomp, up_surf_host.b_i_nodal->size);
   up_surf_dev->b_i_nodal_fd = gkyl_array_cu_dev_new(up_surf_host.b_i_nodal_fd->type,
@@ -532,7 +539,11 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
   gkyl_array_copy(geo_int_dev->ddpsi_nodal, geo_host->geo_int.ddpsi_nodal); 
   gkyl_array_copy(geo_int_dev->curlbhat_nodal, geo_host->geo_int.curlbhat_nodal); 
   gkyl_array_copy(geo_int_dev->dualcurlbhat_nodal, geo_host->geo_int.dualcurlbhat_nodal); 
-  gkyl_array_copy(geo_int_dev->jacobgeo_nodal, geo_host->geo_int.jacobgeo_nodal); 
+  gkyl_array_copy(geo_int_dev->jacobgeo_nodal, geo_host->geo_int.jacobgeo_nodal);
+  gkyl_array_copy(
+    geo_surf_dev[dir]->jacobgeo_signed_nodal,
+    geo_host->geo_surf[dir].jacobgeo_signed_nodal
+  ); 
   gkyl_array_copy(geo_int_dev->g_ij_nodal, geo_host->geo_int.g_ij_nodal); 
   gkyl_array_copy(geo_int_dev->g_ij_neut_nodal, geo_host->geo_int.g_ij_neut_nodal); 
   gkyl_array_copy(geo_int_dev->dxdz_nodal, geo_host->geo_int.dxdz_nodal); 
@@ -693,6 +704,7 @@ gkyl_gk_geometry_cu_dev_new(struct gk_geometry* geo_host, struct gkyl_gk_geometr
     up->geo_surf[dir].ddtheta_nodal = geo_surf_dev[dir]->ddtheta_nodal;
     up->geo_surf[dir].ddpsi_nodal = geo_surf_dev[dir]->ddpsi_nodal;
     up->geo_surf[dir].jacobgeo_nodal = geo_surf_dev[dir]->jacobgeo_nodal;
+    up->geo_surf[dir].jacobgeo_signed_nodal = geo_surf_dev[dir]->jacobgeo_signed_nodal;
     up->geo_surf[dir].b_i_nodal = geo_surf_dev[dir]->b_i_nodal;
     up->geo_surf[dir].b_i_nodal_fd = geo_surf_dev[dir]->b_i_nodal_fd;
     up->geo_surf[dir].cmag_nodal = geo_surf_dev[dir]->cmag_nodal;

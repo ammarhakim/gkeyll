@@ -888,10 +888,33 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
 
         // dxdz is in cylindrical coords, calculate J as
         // J = R(dR/dpsi*dZ/dtheta - dR/dtheta*dZ/dpsi)
-        double *jFld_n= gkyl_array_fetch(gk_geom->geo_surf[dir].jacobgeo_nodal, gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx));
-        double J = signed_jacobian_rz(R, dxdz[0][0], dxdz[1][0], dxdz[0][2], dxdz[1][2]);
-        signed_jacobian_guard_check(&jac_guard, J, true,
-          "surface", dir, cidx);
+        long surf_idx =
+          gkyl_range_idx(&gk_geom->nrange_surf[dir], cidx);
+
+        double *jFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].jacobgeo_nodal,
+          surf_idx
+        );
+
+        double *jSignedFld_n = gkyl_array_fetch(
+          gk_geom->geo_surf[dir].jacobgeo_signed_nodal,
+          surf_idx
+        );
+
+        double J = signed_jacobian_rz(
+          R,
+          dxdz[0][0], dxdz[1][0],
+          dxdz[0][2], dxdz[1][2]
+        );
+
+        signed_jacobian_guard_check(
+          &jac_guard, J, true, "surface", dir, cidx
+        );
+
+        // Diagnostic orientation-preserving value.
+        jSignedFld_n[0] = J;
+
+        // Existing positive physical volume factor.
         jFld_n[0] = fabs(J);
         double alpha_sign = J < 0.0 ? -1.0 : 1.0;
 
