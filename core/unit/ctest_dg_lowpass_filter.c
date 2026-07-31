@@ -16,9 +16,10 @@
 #include <math.h>
 
 static struct gkyl_array*
-mkarr(long nc, long size)
+mkarr(bool on_gpu, long nc, long size)
 {
-  struct gkyl_array* a = gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array* a = on_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                                : gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
@@ -78,7 +79,7 @@ void eval_mode_3x(double t, const double *xn, double *fout, void *ctx)
 }
 
 static void
-test_1x(void)
+test_1x(bool use_gpu)
 {
   int poly_order = 1;
   int cells[] = {32};
@@ -96,51 +97,57 @@ test_1x(void)
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
-    grid.dx[0]/fc, &basis, &grid, &local, false);
+    grid.dx[0]/fc, &basis, &grid, &local, use_gpu);
 
-  struct gkyl_array *fin = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
+  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
 
   // a) A constant field is preserved exactly everywhere, including at
   // the boundaries where the stencil is reflected.
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_const_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
   gkyl_proj_on_basis_release(proj);
+  gkyl_array_copy(fin, fin_ho);
 
   gkyl_array_clear(fout, 7.0);
   gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+  gkyl_array_copy(fout_ho, fout);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
     long linidx = gkyl_range_idx(&local, iter.idx);
-    const double *in_c = gkyl_array_cfetch(fin, linidx);
-    const double *out_c = gkyl_array_cfetch(fout, linidx);
+    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
+    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
     for (int c=0; c<basis.num_basis; c++)
       TEST_CHECK( gkyl_compare(in_c[c], out_c[c], 1e-12) );
   }
   // Ghost cells of fout are untouched.
   int idx_ghost[] = {local.lower[0]-1};
-  const double *out_g = gkyl_array_cfetch(fout, gkyl_range_idx(&local_ext, idx_ghost));
+  const double *out_g = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local_ext, idx_ghost));
   for (int c=0; c<basis.num_basis; c++)
     TEST_CHECK( out_g[c] == 7.0 );
 
   // b) A linear field is preserved in the interior (where the symmetric
   // kernel's first moment vanishes).
   proj = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, eval_linear_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
   gkyl_proj_on_basis_release(proj);
+  gkyl_array_copy(fin, fin_ho);
 
   gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+  gkyl_array_copy(fout_ho, fout);
 
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
     if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
       continue;
     long linidx = gkyl_range_idx(&local, iter.idx);
-    const double *in_c = gkyl_array_cfetch(fin, linidx);
-    const double *out_c = gkyl_array_cfetch(fout, linidx);
+    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
+    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
     for (int c=0; c<basis.num_basis; c++)
       TEST_CHECK( gkyl_compare(in_c[c], out_c[c], 1e-12) );
   }
@@ -153,10 +160,12 @@ test_1x(void)
   for (int im=0; im<3; im++) {
     struct mode_ctx mctx = { .mode_num = mode_nums[im] };
     proj = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, eval_mode_1x, &mctx);
-    gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+    gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
     gkyl_proj_on_basis_release(proj);
+    gkyl_array_copy(fin, fin_ho);
 
     gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+    gkyl_array_copy(fout_ho, fout);
 
     double freq = mctx.mode_num/cells[0]; // Cycles/cell.
     double gain = filter_gain(M, fc, freq);
@@ -166,8 +175,8 @@ test_1x(void)
       if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
         continue;
       long linidx = gkyl_range_idx(&local, iter.idx);
-      const double *in_c = gkyl_array_cfetch(fin, linidx);
-      const double *out_c = gkyl_array_cfetch(fout, linidx);
+      const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
+      const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
       for (int c=0; c<basis.num_basis; c++)
         TEST_CHECK( fabs(out_c[c] - gain*in_c[c]) < 1e-12 );
     }
@@ -179,7 +188,7 @@ test_1x(void)
       while (gkyl_range_iter_next(&iter)) {
         if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
           continue;
-        const double *out_c = gkyl_array_cfetch(fout, gkyl_range_idx(&local, iter.idx));
+        const double *out_c = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local, iter.idx));
         for (int c=0; c<basis.num_basis; c++)
           TEST_CHECK( fabs(out_c[c]) < 1e-3 );
       }
@@ -189,10 +198,12 @@ test_1x(void)
   gkyl_dg_lowpass_filter_release(lpf);
   gkyl_array_release(fin);
   gkyl_array_release(fout);
+  gkyl_array_release(fin_ho);
+  gkyl_array_release(fout_ho);
 }
 
 static void
-test_1x_conservation(void)
+test_1x_conservation(bool use_gpu)
 {
   // The total integral is conserved everywhere: the kernel weights sum to 1 (reflected stencil at the boundaries).
   int poly_order = 1;
@@ -208,8 +219,10 @@ test_1x_conservation(void)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
-  struct gkyl_array *fin = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
+  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
 
   // A ramp peaks at one boundary, a boundary-hugging gaussian at the other.
   evalf_t evals[] = {eval_linear_1x, eval_gauss_edge_1x, eval_gauss_1x};
@@ -217,22 +230,24 @@ test_1x_conservation(void)
 
   for (int q=0; q<3; q++) {
     struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, half_widths[q],
-      grid.dx[0]/0.3, &basis, &grid, &local, false);
+      grid.dx[0]/0.3, &basis, &grid, &local, use_gpu);
 
     gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
       poly_order+1, 1, evals[q], NULL);
-    gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+    gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
     gkyl_proj_on_basis_release(proj);
+    gkyl_array_copy(fin, fin_ho);
 
     gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+    gkyl_array_copy(fout_ho, fout);
 
     double tot_in = 0.0, tot_out = 0.0;
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &local);
     while (gkyl_range_iter_next(&iter)) {
       long linidx = gkyl_range_idx(&local, iter.idx);
-      tot_in += ((const double *) gkyl_array_cfetch(fin, linidx))[0];
-      tot_out += ((const double *) gkyl_array_cfetch(fout, linidx))[0];
+      tot_in += ((const double *) gkyl_array_cfetch(fin_ho, linidx))[0];
+      tot_out += ((const double *) gkyl_array_cfetch(fout_ho, linidx))[0];
     }
     TEST_CHECK( fabs(tot_out-tot_in) < 1e-12*fabs(tot_in) );
     TEST_MSG("case %d (M=%d): total in %.13e | out %.13e | rel change %.3e",
@@ -243,10 +258,12 @@ test_1x_conservation(void)
 
   gkyl_array_release(fin);
   gkyl_array_release(fout);
+  gkyl_array_release(fin_ho);
+  gkyl_array_release(fout_ho);
 }
 
 static void
-test_3x(void)
+test_3x(bool use_gpu)
 {
   // Filter along x of a 3D field. For a separable field g(x)*h(y,z) the
   // p=1 tensor coefficients factor too, so filtering in x scales the
@@ -268,18 +285,22 @@ test_3x(void)
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
-    grid.dx[0]/fc, &basis, &grid, &local, false);
+    grid.dx[0]/fc, &basis, &grid, &local, use_gpu);
 
-  struct gkyl_array *fin = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
+  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
 
   struct mode_ctx mctx = { .mode_num = 16.0 }; // x-Nyquist mode for 32 cells.
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_mode_3x, &mctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
   gkyl_proj_on_basis_release(proj);
+  gkyl_array_copy(fin, fin_ho);
 
   gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+  gkyl_array_copy(fout_ho, fout);
 
   double freq = mctx.mode_num/cells[0]; // Cycles/cell.
   double gain = filter_gain(M, fc, freq);
@@ -290,8 +311,8 @@ test_3x(void)
     if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
       continue;
     long linidx = gkyl_range_idx(&local, iter.idx);
-    const double *in_c = gkyl_array_cfetch(fin, linidx);
-    const double *out_c = gkyl_array_cfetch(fout, linidx);
+    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
+    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
     for (int c=0; c<basis.num_basis; c++)
       TEST_CHECK( fabs(out_c[c] - gain*in_c[c]) < 1e-12 );
   }
@@ -299,10 +320,12 @@ test_3x(void)
   gkyl_dg_lowpass_filter_release(lpf);
   gkyl_array_release(fin);
   gkyl_array_release(fout);
+  gkyl_array_release(fin_ho);
+  gkyl_array_release(fout_ho);
 }
 
 static void
-test_1x_reflection(void)
+test_1x_reflection(bool use_gpu)
 {
   // Verify that the reflexion at the boundary is done correctly.
   int poly_order = 1;
@@ -320,17 +343,21 @@ test_1x_reflection(void)
   gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
 
   struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
-    grid.dx[0]/0.25, &basis, &grid, &local, false);
+    grid.dx[0]/0.25, &basis, &grid, &local, use_gpu);
 
-  struct gkyl_array *fin = mkarr(basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
+  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
 
   gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
     poly_order+1, 1, eval_linear_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
   gkyl_proj_on_basis_release(proj);
+  gkyl_array_copy(fin, fin_ho);
 
   gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+  gkyl_array_copy(fout_ho, fout);
 
   // Basis evaluated at the two cell edges, to take the jump across a face.
   double b_lo[8], b_up[8];
@@ -338,8 +365,8 @@ test_1x_reflection(void)
   basis.eval((double[]) { 1.0}, b_up);
 
   for (int i=local.lower[0]; i<local.upper[0]; i++) {
-    const double *left = gkyl_array_cfetch(fout, gkyl_range_idx(&local, (int[]) {i}));
-    const double *right = gkyl_array_cfetch(fout, gkyl_range_idx(&local, (int[]) {i+1}));
+    const double *left = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local, (int[]) {i}));
+    const double *right = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local, (int[]) {i+1}));
     double jump = 0.0;
     for (int c=0; c<basis.num_basis; c++)
       jump += right[c]*b_lo[c] - left[c]*b_up[c];
@@ -350,12 +377,32 @@ test_1x_reflection(void)
   gkyl_dg_lowpass_filter_release(lpf);
   gkyl_array_release(fin);
   gkyl_array_release(fout);
+  gkyl_array_release(fin_ho);
+  gkyl_array_release(fout_ho);
 }
 
+void test_1x_reflection_ho() { test_1x_reflection(false); }
+void test_1x_ho() { test_1x(false); }
+void test_1x_conservation_ho() { test_1x_conservation(false); }
+void test_3x_ho() { test_3x(false); }
+
+#ifdef GKYL_HAVE_CUDA
+void test_1x_reflection_cu() { test_1x_reflection(true); }
+void test_1x_cu() { test_1x(true); }
+void test_1x_conservation_cu() { test_1x_conservation(true); }
+void test_3x_cu() { test_3x(true); }
+#endif
+
 TEST_LIST = {
-  { "test_1x_reflection", test_1x_reflection },
-  { "test_1x", test_1x },
-  { "test_1x_conservation", test_1x_conservation },
-  { "test_3x", test_3x },
+  { "test_1x_reflection", test_1x_reflection_ho },
+  { "test_1x", test_1x_ho },
+  { "test_1x_conservation", test_1x_conservation_ho },
+  { "test_3x", test_3x_ho },
+#ifdef GKYL_HAVE_CUDA
+  { "test_1x_reflection_cu", test_1x_reflection_cu },
+  { "test_1x_cu", test_1x_cu },
+  { "test_1x_conservation_cu", test_1x_conservation_cu },
+  { "test_3x_cu", test_3x_cu },
+#endif
   { NULL, NULL },
 };

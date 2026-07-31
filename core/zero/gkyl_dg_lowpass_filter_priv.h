@@ -19,8 +19,18 @@ struct gkyl_dg_lowpass_filter {
   double *weights; // 2M+1 filter weights, normalized to sum to 1.
   double *sign_mirror; // Per-coefficient sign for a mirrored donor.
   double *sign_plain; // All ones, for a donor that was not mirrored.
+  double *weights_cu; // Device copy of weights.
+  double *sign_mirror_cu; // Device copy of sign_mirror.
+  double *sign_plain_cu; // Device copy of sign_plain.
 };
 
+#ifdef GKYL_HAVE_CUDA
+// Declaration of cuda device function.
+void gkyl_dg_lowpass_filter_advance_cu(gkyl_dg_lowpass_filter *up,
+  struct gkyl_array *GKYL_RESTRICT fdo, struct gkyl_array *GKYL_RESTRICT ftar);
+#endif
+
+GKYL_CU_DH
 static inline int
 dg_lpf_mirror_idx(int idx, int lo, int up, bool *mirrored)
 {

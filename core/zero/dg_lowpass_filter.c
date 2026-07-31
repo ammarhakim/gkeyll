@@ -11,7 +11,6 @@ gkyl_dg_lowpass_filter_new(int dir, int half_width, double cutoff_wavelength,
   struct gkyl_dg_lowpass_filter *up = gkyl_malloc(sizeof(*up));
 
   up->use_gpu = use_gpu;
-  assert(!up->use_gpu); // GPU implementation pending.
   up->ndim = basis->ndim;
   up->dir = dir;
   up->half_width = half_width;
@@ -37,6 +36,18 @@ gkyl_dg_lowpass_filter_new(int dir, int half_width, double cutoff_wavelength,
   for (int c=0; c<up->num_basis; c++) up->sign_plain[c] = 1.0;
   basis->flip_odd_sign(dir, up->sign_plain, up->sign_mirror);
 
+  up->weights_cu = up->sign_plain_cu = up->sign_mirror_cu = NULL;
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    up->weights_cu = gkyl_cu_malloc((2*half_width+1)*sizeof(double));
+    up->sign_plain_cu = gkyl_cu_malloc(up->num_basis*sizeof(double));
+    up->sign_mirror_cu = gkyl_cu_malloc(up->num_basis*sizeof(double));
+    gkyl_cu_memcpy(up->weights_cu, up->weights, (2*half_width+1)*sizeof(double), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(up->sign_plain_cu, up->sign_plain, up->num_basis*sizeof(double), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(up->sign_mirror_cu, up->sign_mirror, up->num_basis*sizeof(double), GKYL_CU_MEMCPY_H2D);
+  }
+#endif
+
   return up;
 }
 
@@ -48,6 +59,13 @@ gkyl_dg_lowpass_filter_advance(gkyl_dg_lowpass_filter *up,
   assert(fdo->ncomp == ftar->ncomp);
   assert(fdo->size == ftar->size);
   assert(fdo->ncomp == up->num_basis);
+
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_dg_lowpass_filter_advance_cu(up, fdo, ftar);
+    return;
+  }
+#endif
 
   int dir = up->dir;
   int M = up->half_width;
@@ -93,5 +111,12 @@ gkyl_dg_lowpass_filter_release(gkyl_dg_lowpass_filter *up)
   gkyl_free(up->weights);
   gkyl_free(up->sign_plain);
   gkyl_free(up->sign_mirror);
+#ifdef GKYL_HAVE_CUDA
+  if (up->use_gpu) {
+    gkyl_cu_free(up->weights_cu);
+    gkyl_cu_free(up->sign_plain_cu);
+    gkyl_cu_free(up->sign_mirror_cu);
+  }
+#endif
   gkyl_free(up);
 }
