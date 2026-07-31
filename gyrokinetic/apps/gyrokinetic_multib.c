@@ -1631,6 +1631,8 @@ static const struct gkyl_array*
 gyrokinetic_multib_surf_quantity(const struct gk_geom_surf *geo_surf, const char *name)
 {
   if (strcmp(name, "jacobgeo") == 0) return geo_surf->jacobgeo;
+  if (strcmp(name, "jacobgeo_signed") == 0)
+    return geo_surf->jacobgeo_signed;
   if (strcmp(name, "bmag") == 0) return geo_surf->bmag;
   if (strcmp(name, "jacobtot_inv") == 0) return geo_surf->jacobtot_inv;
   if (strcmp(name, "B3") == 0) return geo_surf->B3;
@@ -1672,7 +1674,7 @@ gyrokinetic_multib_app_write_interface_partner_diag(gkyl_gyrokinetic_multib_app 
   fprintf(fp, "app,rank,block,dir,edge,partner_block,partner_dir,partner_edge,quantity,num_cells,num_coeff,local_min,local_max,local_mean,partner_min,partner_max,partner_mean,diff_min,diff_max,diff_l1,diff_l2,diff_maxabs,rel_l1,rel_l2\n");
 
   int cdim = gkyl_gk_block_geom_ndim(app->gk_block_geom);
-  const char *quantities[] = { "jacobgeo", "bmag", "jacobtot_inv", "B3", "cmag", "lenr" };
+  const char *quantities[] = { "jacobgeo", "jacobgeo_signed", "bmag", "jacobtot_inv", "B3", "cmag", "lenr" };
 
   for (int d=0; d<cdim; ++d) {
     for (int q=0; q<sizeof(quantities)/sizeof(quantities[0]); ++q) {
