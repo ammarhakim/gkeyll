@@ -1,79 +1,33 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_1x3v_ser_p1.h> 
+GKYL_CU_DH void vlasov_surfvz_1x3v_ser_p1_mode(int k, double dv12,
+  const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
+{ 
+  const int a = vst_1x3v_ser_p1_prj_v2_kamap[k]; 
+  const int b = vst_1x3v_ser_p1_prj_v2_kbmap[k]; 
+  double g_l = 0.0; 
+  double g_r = 0.0; 
+  for (int i = 0; i < 2; ++i) { 
+    double t_l = 0.0; 
+    double t_r = 0.0; 
+    for (int j = 0; j < 4; ++j) { 
+      t_l += vst_1x3v_ser_p1_prj_v2_Vw[j*4 + b]*Fhat_l_nodal[16 + i*4 + j]; 
+      t_r += vst_1x3v_ser_p1_prj_v2_Vw[j*4 + b]*Fhat_r_nodal[16 + i*4 + j]; 
+    } 
+    g_l += vst_1x3v_ser_p1_prj_v2_Cw[i*2 + a]*t_l; 
+    g_r += vst_1x3v_ser_p1_prj_v2_Cw[i*2 + a]*t_r; 
+  } 
+  for (int q = vst_1x3v_ser_p1_prj_v2_out_off[k]; q < vst_1x3v_ser_p1_prj_v2_out_off[k+1]; ++q) { 
+    out[vst_1x3v_ser_p1_prj_v2_out_mode[q]] += dv12*(vst_1x3v_ser_p1_prj_v2_out_cl[q]*g_l + vst_1x3v_ser_p1_prj_v2_out_cr[q]*g_r); 
+  } 
+} 
+
 GKYL_CU_DH double vlasov_surfvz_1x3v_ser_p1(const double *w, const double *dxv,
   const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
 { 
   double dv12 = 2.0/dxv[3]; 
-
-  const double *Fhat_l_nodal_c = &Fhat_l_nodal[16]; 
-  const double *Fhat_r_nodal_c = &Fhat_r_nodal[16]; 
-  double G1[8] = {0.0}; 
-  double Ghat[8] = {0.0}; 
-  G1[0] = 0.5*Fhat_l_nodal_c[3]+0.5*Fhat_l_nodal_c[2]+0.5*Fhat_l_nodal_c[1]+0.5*Fhat_l_nodal_c[0]; 
-  G1[1] = 0.5*Fhat_l_nodal_c[3]+0.5*Fhat_l_nodal_c[2]-0.5*Fhat_l_nodal_c[1]-0.5*Fhat_l_nodal_c[0]; 
-  G1[2] = 0.5*Fhat_l_nodal_c[3]-0.5*Fhat_l_nodal_c[2]+0.5*Fhat_l_nodal_c[1]-0.5*Fhat_l_nodal_c[0]; 
-  G1[3] = 0.5*Fhat_l_nodal_c[3]-0.5*Fhat_l_nodal_c[2]-0.5*Fhat_l_nodal_c[1]+0.5*Fhat_l_nodal_c[0]; 
-  G1[4] = 0.5*Fhat_l_nodal_c[7]+0.5*Fhat_l_nodal_c[6]+0.5*Fhat_l_nodal_c[5]+0.5*Fhat_l_nodal_c[4]; 
-  G1[5] = 0.5*Fhat_l_nodal_c[7]+0.5*Fhat_l_nodal_c[6]-0.5*Fhat_l_nodal_c[5]-0.5*Fhat_l_nodal_c[4]; 
-  G1[6] = 0.5*Fhat_l_nodal_c[7]-0.5*Fhat_l_nodal_c[6]+0.5*Fhat_l_nodal_c[5]-0.5*Fhat_l_nodal_c[4]; 
-  G1[7] = 0.5*Fhat_l_nodal_c[7]-0.5*Fhat_l_nodal_c[6]-0.5*Fhat_l_nodal_c[5]+0.5*Fhat_l_nodal_c[4]; 
-  Ghat[0] = 0.7071067811865475*G1[4]+0.7071067811865475*G1[0]; 
-  Ghat[1] = 0.7071067811865475*G1[4]-0.7071067811865475*G1[0]; 
-  Ghat[2] = 0.7071067811865475*G1[5]+0.7071067811865475*G1[1]; 
-  Ghat[3] = 0.7071067811865475*G1[6]+0.7071067811865475*G1[2]; 
-  Ghat[4] = 0.7071067811865475*G1[5]-0.7071067811865475*G1[1]; 
-  Ghat[5] = 0.7071067811865475*G1[6]-0.7071067811865475*G1[2]; 
-  Ghat[6] = 0.7071067811865475*G1[7]+0.7071067811865475*G1[3]; 
-  Ghat[7] = 0.7071067811865475*G1[7]-0.7071067811865475*G1[3]; 
-  out[0] += 0.7071067811865475*Ghat[0]*dv12; 
-  out[1] += 0.7071067811865475*Ghat[1]*dv12; 
-  out[2] += 0.7071067811865475*Ghat[2]*dv12; 
-  out[3] += 0.7071067811865475*Ghat[3]*dv12; 
-  out[4] += -(1.224744871391589*Ghat[0]*dv12); 
-  out[5] += 0.7071067811865475*Ghat[4]*dv12; 
-  out[6] += 0.7071067811865475*Ghat[5]*dv12; 
-  out[7] += 0.7071067811865475*Ghat[6]*dv12; 
-  out[8] += -(1.224744871391589*Ghat[1]*dv12); 
-  out[9] += -(1.224744871391589*Ghat[2]*dv12); 
-  out[10] += -(1.224744871391589*Ghat[3]*dv12); 
-  out[11] += 0.7071067811865475*Ghat[7]*dv12; 
-  out[12] += -(1.224744871391589*Ghat[4]*dv12); 
-  out[13] += -(1.224744871391589*Ghat[5]*dv12); 
-  out[14] += -(1.224744871391589*Ghat[6]*dv12); 
-  out[15] += -(1.224744871391589*Ghat[7]*dv12); 
-
-  G1[0] = 0.5*Fhat_r_nodal_c[3]+0.5*Fhat_r_nodal_c[2]+0.5*Fhat_r_nodal_c[1]+0.5*Fhat_r_nodal_c[0]; 
-  G1[1] = 0.5*Fhat_r_nodal_c[3]+0.5*Fhat_r_nodal_c[2]-0.5*Fhat_r_nodal_c[1]-0.5*Fhat_r_nodal_c[0]; 
-  G1[2] = 0.5*Fhat_r_nodal_c[3]-0.5*Fhat_r_nodal_c[2]+0.5*Fhat_r_nodal_c[1]-0.5*Fhat_r_nodal_c[0]; 
-  G1[3] = 0.5*Fhat_r_nodal_c[3]-0.5*Fhat_r_nodal_c[2]-0.5*Fhat_r_nodal_c[1]+0.5*Fhat_r_nodal_c[0]; 
-  G1[4] = 0.5*Fhat_r_nodal_c[7]+0.5*Fhat_r_nodal_c[6]+0.5*Fhat_r_nodal_c[5]+0.5*Fhat_r_nodal_c[4]; 
-  G1[5] = 0.5*Fhat_r_nodal_c[7]+0.5*Fhat_r_nodal_c[6]-0.5*Fhat_r_nodal_c[5]-0.5*Fhat_r_nodal_c[4]; 
-  G1[6] = 0.5*Fhat_r_nodal_c[7]-0.5*Fhat_r_nodal_c[6]+0.5*Fhat_r_nodal_c[5]-0.5*Fhat_r_nodal_c[4]; 
-  G1[7] = 0.5*Fhat_r_nodal_c[7]-0.5*Fhat_r_nodal_c[6]-0.5*Fhat_r_nodal_c[5]+0.5*Fhat_r_nodal_c[4]; 
-  Ghat[0] = 0.7071067811865475*G1[4]+0.7071067811865475*G1[0]; 
-  Ghat[1] = 0.7071067811865475*G1[4]-0.7071067811865475*G1[0]; 
-  Ghat[2] = 0.7071067811865475*G1[5]+0.7071067811865475*G1[1]; 
-  Ghat[3] = 0.7071067811865475*G1[6]+0.7071067811865475*G1[2]; 
-  Ghat[4] = 0.7071067811865475*G1[5]-0.7071067811865475*G1[1]; 
-  Ghat[5] = 0.7071067811865475*G1[6]-0.7071067811865475*G1[2]; 
-  Ghat[6] = 0.7071067811865475*G1[7]+0.7071067811865475*G1[3]; 
-  Ghat[7] = 0.7071067811865475*G1[7]-0.7071067811865475*G1[3]; 
-  out[0] += -(0.7071067811865475*Ghat[0]*dv12); 
-  out[1] += -(0.7071067811865475*Ghat[1]*dv12); 
-  out[2] += -(0.7071067811865475*Ghat[2]*dv12); 
-  out[3] += -(0.7071067811865475*Ghat[3]*dv12); 
-  out[4] += -(1.224744871391589*Ghat[0]*dv12); 
-  out[5] += -(0.7071067811865475*Ghat[4]*dv12); 
-  out[6] += -(0.7071067811865475*Ghat[5]*dv12); 
-  out[7] += -(0.7071067811865475*Ghat[6]*dv12); 
-  out[8] += -(1.224744871391589*Ghat[1]*dv12); 
-  out[9] += -(1.224744871391589*Ghat[2]*dv12); 
-  out[10] += -(1.224744871391589*Ghat[3]*dv12); 
-  out[11] += -(0.7071067811865475*Ghat[7]*dv12); 
-  out[12] += -(1.224744871391589*Ghat[4]*dv12); 
-  out[13] += -(1.224744871391589*Ghat[5]*dv12); 
-  out[14] += -(1.224744871391589*Ghat[6]*dv12); 
-  out[15] += -(1.224744871391589*Ghat[7]*dv12); 
-
+  for (int k = 0; k < 8; ++k) { 
+    vlasov_surfvz_1x3v_ser_p1_mode(k, dv12, Fhat_l_nodal, Fhat_r_nodal, out); 
+  } 
   return 0.0;
-
 } 

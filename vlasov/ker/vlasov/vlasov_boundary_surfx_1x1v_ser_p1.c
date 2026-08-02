@@ -1,31 +1,35 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_1x1v_ser_p1.h> 
+GKYL_CU_DH void vlasov_boundary_surfx_1x1v_ser_p1_mode(int k, int edge, double dx10,
+  const double *flux, double* GKYL_RESTRICT out) 
+{ 
+  const int a = vst_1x1v_ser_p1_prj_x0_kamap[k]; 
+  const int b = vst_1x1v_ser_p1_prj_x0_kbmap[k]; 
+  double g = 0.0; 
+  for (int i = 0; i < 1; ++i) { 
+    double t = 0.0; 
+    for (int j = 0; j < 2; ++j) { 
+      t += vst_1x1v_ser_p1_prj_x0_Vw[j*2 + b]*flux[0 + i*2 + j]; 
+    } 
+    g += vst_1x1v_ser_p1_prj_x0_Cw[i*1 + a]*t; 
+  } 
+  if (edge == -1) { 
+    for (int q = vst_1x1v_ser_p1_prj_x0_out_off[k]; q < vst_1x1v_ser_p1_prj_x0_out_off[k+1]; ++q) { 
+      out[vst_1x1v_ser_p1_prj_x0_out_mode[q]] += dx10*vst_1x1v_ser_p1_prj_x0_out_cr[q]*g; 
+    } 
+  } else { 
+    for (int q = vst_1x1v_ser_p1_prj_x0_out_off[k]; q < vst_1x1v_ser_p1_prj_x0_out_off[k+1]; ++q) { 
+      out[vst_1x1v_ser_p1_prj_x0_out_mode[q]] += dx10*vst_1x1v_ser_p1_prj_x0_out_cl[q]*g; 
+    } 
+  } 
+} 
+
 GKYL_CU_DH double vlasov_boundary_surfx_1x1v_ser_p1(const double *w, const double *dxv,
   const int edge, const double *flux, double* GKYL_RESTRICT out) 
 { 
   double dx10 = 2.0/dxv[0]; 
-
-  const double *Fhat_nodal = &flux[0]; 
-  double G1[2] = {0.0}; 
-  double Ghat[2] = {0.0}; 
-  G1[0] = 0.7071067811865475*Fhat_nodal[1]+0.7071067811865475*Fhat_nodal[0]; 
-  G1[1] = 0.7071067811865475*Fhat_nodal[1]-0.7071067811865475*Fhat_nodal[0]; 
-  Ghat[0] = G1[0]; 
-  Ghat[1] = G1[1]; 
-  if (edge == -1) { 
-
-  out[0] += -(0.7071067811865475*Ghat[0]*dx10); 
-  out[1] += -(1.224744871391589*Ghat[0]*dx10); 
-  out[2] += -(0.7071067811865475*Ghat[1]*dx10); 
-  out[3] += -(1.224744871391589*Ghat[1]*dx10); 
-
-  } else { 
-
-  out[0] += 0.7071067811865475*Ghat[0]*dx10; 
-  out[1] += -(1.224744871391589*Ghat[0]*dx10); 
-  out[2] += 0.7071067811865475*Ghat[1]*dx10; 
-  out[3] += -(1.224744871391589*Ghat[1]*dx10); 
-
+  for (int k = 0; k < 2; ++k) { 
+    vlasov_boundary_surfx_1x1v_ser_p1_mode(k, edge, dx10, flux, out); 
   } 
   return 0.0;
-
 } 

@@ -1,67 +1,35 @@
 #include <gkyl_vlasov_kernels.h> 
+#include <gkyl_vlasov_surf_tables_2x2v_ser_p1.h> 
+GKYL_CU_DH void vlasov_boundary_surfvy_2x2v_ser_p1_mode(int k, int edge, double dv11,
+  const double *flux, double* GKYL_RESTRICT out) 
+{ 
+  const int a = vst_2x2v_ser_p1_prj_v1_kamap[k]; 
+  const int b = vst_2x2v_ser_p1_prj_v1_kbmap[k]; 
+  double g = 0.0; 
+  for (int i = 0; i < 4; ++i) { 
+    double t = 0.0; 
+    for (int j = 0; j < 2; ++j) { 
+      t += vst_2x2v_ser_p1_prj_v1_Vw[j*2 + b]*flux[8 + i*2 + j]; 
+    } 
+    g += vst_2x2v_ser_p1_prj_v1_Cw[i*4 + a]*t; 
+  } 
+  if (edge == -1) { 
+    for (int q = vst_2x2v_ser_p1_prj_v1_out_off[k]; q < vst_2x2v_ser_p1_prj_v1_out_off[k+1]; ++q) { 
+      out[vst_2x2v_ser_p1_prj_v1_out_mode[q]] += dv11*vst_2x2v_ser_p1_prj_v1_out_cr[q]*g; 
+    } 
+  } else { 
+    for (int q = vst_2x2v_ser_p1_prj_v1_out_off[k]; q < vst_2x2v_ser_p1_prj_v1_out_off[k+1]; ++q) { 
+      out[vst_2x2v_ser_p1_prj_v1_out_mode[q]] += dv11*vst_2x2v_ser_p1_prj_v1_out_cl[q]*g; 
+    } 
+  } 
+} 
+
 GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_ser_p1(const double *w, const double *dxv,
   const int edge, const double *flux, double* GKYL_RESTRICT out) 
 { 
   double dv11 = 2.0/dxv[3]; 
-
-  const double *Fhat_nodal = &flux[8]; 
-  double G1[8] = {0.0}; 
-  double Ghat[8] = {0.0}; 
-  G1[0] = 0.7071067811865475*Fhat_nodal[1]+0.7071067811865475*Fhat_nodal[0]; 
-  G1[1] = 0.7071067811865475*Fhat_nodal[1]-0.7071067811865475*Fhat_nodal[0]; 
-  G1[2] = 0.7071067811865475*Fhat_nodal[3]+0.7071067811865475*Fhat_nodal[2]; 
-  G1[3] = 0.7071067811865475*Fhat_nodal[3]-0.7071067811865475*Fhat_nodal[2]; 
-  G1[4] = 0.7071067811865475*Fhat_nodal[5]+0.7071067811865475*Fhat_nodal[4]; 
-  G1[5] = 0.7071067811865475*Fhat_nodal[5]-0.7071067811865475*Fhat_nodal[4]; 
-  G1[6] = 0.7071067811865475*Fhat_nodal[7]+0.7071067811865475*Fhat_nodal[6]; 
-  G1[7] = 0.7071067811865475*Fhat_nodal[7]-0.7071067811865475*Fhat_nodal[6]; 
-  Ghat[0] = 0.5*G1[6]+0.5*G1[4]+0.5*G1[2]+0.5*G1[0]; 
-  Ghat[1] = 0.5*G1[6]+0.5*G1[4]-0.5*G1[2]-0.5*G1[0]; 
-  Ghat[2] = 0.5*G1[6]-0.5*G1[4]+0.5*G1[2]-0.5*G1[0]; 
-  Ghat[3] = 0.5*G1[7]+0.5*G1[5]+0.5*G1[3]+0.5*G1[1]; 
-  Ghat[4] = 0.5*G1[6]-0.5*G1[4]-0.5*G1[2]+0.5*G1[0]; 
-  Ghat[5] = 0.5*G1[7]+0.5*G1[5]-0.5*G1[3]-0.5*G1[1]; 
-  Ghat[6] = 0.5*G1[7]-0.5*G1[5]+0.5*G1[3]-0.5*G1[1]; 
-  Ghat[7] = 0.5*G1[7]-0.5*G1[5]-0.5*G1[3]+0.5*G1[1]; 
-  if (edge == -1) { 
-
-  out[0] += -(0.7071067811865475*Ghat[0]*dv11); 
-  out[1] += -(0.7071067811865475*Ghat[1]*dv11); 
-  out[2] += -(0.7071067811865475*Ghat[2]*dv11); 
-  out[3] += -(0.7071067811865475*Ghat[3]*dv11); 
-  out[4] += -(1.224744871391589*Ghat[0]*dv11); 
-  out[5] += -(0.7071067811865475*Ghat[4]*dv11); 
-  out[6] += -(0.7071067811865475*Ghat[5]*dv11); 
-  out[7] += -(0.7071067811865475*Ghat[6]*dv11); 
-  out[8] += -(1.224744871391589*Ghat[1]*dv11); 
-  out[9] += -(1.224744871391589*Ghat[2]*dv11); 
-  out[10] += -(1.224744871391589*Ghat[3]*dv11); 
-  out[11] += -(0.7071067811865475*Ghat[7]*dv11); 
-  out[12] += -(1.224744871391589*Ghat[4]*dv11); 
-  out[13] += -(1.224744871391589*Ghat[5]*dv11); 
-  out[14] += -(1.224744871391589*Ghat[6]*dv11); 
-  out[15] += -(1.224744871391589*Ghat[7]*dv11); 
-
-  } else { 
-
-  out[0] += 0.7071067811865475*Ghat[0]*dv11; 
-  out[1] += 0.7071067811865475*Ghat[1]*dv11; 
-  out[2] += 0.7071067811865475*Ghat[2]*dv11; 
-  out[3] += 0.7071067811865475*Ghat[3]*dv11; 
-  out[4] += -(1.224744871391589*Ghat[0]*dv11); 
-  out[5] += 0.7071067811865475*Ghat[4]*dv11; 
-  out[6] += 0.7071067811865475*Ghat[5]*dv11; 
-  out[7] += 0.7071067811865475*Ghat[6]*dv11; 
-  out[8] += -(1.224744871391589*Ghat[1]*dv11); 
-  out[9] += -(1.224744871391589*Ghat[2]*dv11); 
-  out[10] += -(1.224744871391589*Ghat[3]*dv11); 
-  out[11] += 0.7071067811865475*Ghat[7]*dv11; 
-  out[12] += -(1.224744871391589*Ghat[4]*dv11); 
-  out[13] += -(1.224744871391589*Ghat[5]*dv11); 
-  out[14] += -(1.224744871391589*Ghat[6]*dv11); 
-  out[15] += -(1.224744871391589*Ghat[7]*dv11); 
-
+  for (int k = 0; k < 8; ++k) { 
+    vlasov_boundary_surfvy_2x2v_ser_p1_mode(k, edge, dv11, flux, out); 
   } 
   return 0.0;
-
 } 
