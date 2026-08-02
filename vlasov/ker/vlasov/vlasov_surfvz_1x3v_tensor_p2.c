@@ -1,8 +1,30 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_vlasov_surf_tables_1x3v_tensor_p2.h> 
-GKYL_CU_DH void vlasov_surfvz_1x3v_tensor_p2_mode(int k, double dv12,
+GKYL_CU_DH void vlasov_surfvz_1x3v_tensor_p2_mode(int m, double dv12,
   const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
 { 
+  const int a = vst_1x3v_tensor_p2_prj_v2_pm_a[m]; 
+  const int b = vst_1x3v_tensor_p2_prj_v2_pm_b[m]; 
+  double g_l = 0.0; 
+  double g_r = 0.0; 
+  for (int i = 0; i < 4; ++i) { 
+    double t_l = 0.0; 
+    double t_r = 0.0; 
+    for (int j = 0; j < 16; ++j) { 
+      t_l += vst_1x3v_tensor_p2_prj_v2_Vw[j*9 + b]*Fhat_l_nodal[128 + i*16 + j]; 
+      t_r += vst_1x3v_tensor_p2_prj_v2_Vw[j*9 + b]*Fhat_r_nodal[128 + i*16 + j]; 
+    } 
+    g_l += vst_1x3v_tensor_p2_prj_v2_Cw[i*3 + a]*t_l; 
+    g_r += vst_1x3v_tensor_p2_prj_v2_Cw[i*3 + a]*t_r; 
+  } 
+  out[m] += dv12*(vst_1x3v_tensor_p2_prj_v2_pm_cl[m]*g_l + vst_1x3v_tensor_p2_prj_v2_pm_cr[m]*g_r); 
+} 
+
+GKYL_CU_DH double vlasov_surfvz_1x3v_tensor_p2(const double *w, const double *dxv,
+  const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
+{ 
+  double dv12 = 2.0/dxv[3]; 
+  for (int k = 0; k < 27; ++k) { 
   const int a = vst_1x3v_tensor_p2_prj_v2_kamap[k]; 
   const int b = vst_1x3v_tensor_p2_prj_v2_kbmap[k]; 
   double g_l = 0.0; 
@@ -20,14 +42,6 @@ GKYL_CU_DH void vlasov_surfvz_1x3v_tensor_p2_mode(int k, double dv12,
   for (int q = vst_1x3v_tensor_p2_prj_v2_out_off[k]; q < vst_1x3v_tensor_p2_prj_v2_out_off[k+1]; ++q) { 
     out[vst_1x3v_tensor_p2_prj_v2_out_mode[q]] += dv12*(vst_1x3v_tensor_p2_prj_v2_out_cl[q]*g_l + vst_1x3v_tensor_p2_prj_v2_out_cr[q]*g_r); 
   } 
-} 
-
-GKYL_CU_DH double vlasov_surfvz_1x3v_tensor_p2(const double *w, const double *dxv,
-  const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
-{ 
-  double dv12 = 2.0/dxv[3]; 
-  for (int k = 0; k < 27; ++k) { 
-    vlasov_surfvz_1x3v_tensor_p2_mode(k, dv12, Fhat_l_nodal, Fhat_r_nodal, out); 
   } 
   return 0.0;
 } 

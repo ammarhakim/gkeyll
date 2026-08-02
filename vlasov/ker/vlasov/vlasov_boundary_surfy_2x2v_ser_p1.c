@@ -1,8 +1,30 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_vlasov_surf_tables_2x2v_ser_p1.h> 
-GKYL_CU_DH void vlasov_boundary_surfy_2x2v_ser_p1_mode(int k, int edge, double dx11,
+GKYL_CU_DH void vlasov_boundary_surfy_2x2v_ser_p1_mode(int m, int edge, double dx11,
   const double *flux, double* GKYL_RESTRICT out) 
 { 
+  const int a = vst_2x2v_ser_p1_prj_x1_pm_a[m]; 
+  const int b = vst_2x2v_ser_p1_prj_x1_pm_b[m]; 
+  double g = 0.0; 
+  for (int i = 0; i < 2; ++i) { 
+    double t = 0.0; 
+    for (int j = 0; j < 4; ++j) { 
+      t += vst_2x2v_ser_p1_prj_x1_Vw[j*4 + b]*flux[8 + i*4 + j]; 
+    } 
+    g += vst_2x2v_ser_p1_prj_x1_Cw[i*2 + a]*t; 
+  } 
+  if (edge == -1) { 
+    out[m] += dx11*vst_2x2v_ser_p1_prj_x1_pm_cr[m]*g; 
+  } else { 
+    out[m] += dx11*vst_2x2v_ser_p1_prj_x1_pm_cl[m]*g; 
+  } 
+} 
+
+GKYL_CU_DH double vlasov_boundary_surfy_2x2v_ser_p1(const double *w, const double *dxv,
+  const int edge, const double *flux, double* GKYL_RESTRICT out) 
+{ 
+  double dx11 = 2.0/dxv[1]; 
+  for (int k = 0; k < 8; ++k) { 
   const int a = vst_2x2v_ser_p1_prj_x1_kamap[k]; 
   const int b = vst_2x2v_ser_p1_prj_x1_kbmap[k]; 
   double g = 0.0; 
@@ -22,14 +44,6 @@ GKYL_CU_DH void vlasov_boundary_surfy_2x2v_ser_p1_mode(int k, int edge, double d
       out[vst_2x2v_ser_p1_prj_x1_out_mode[q]] += dx11*vst_2x2v_ser_p1_prj_x1_out_cl[q]*g; 
     } 
   } 
-} 
-
-GKYL_CU_DH double vlasov_boundary_surfy_2x2v_ser_p1(const double *w, const double *dxv,
-  const int edge, const double *flux, double* GKYL_RESTRICT out) 
-{ 
-  double dx11 = 2.0/dxv[1]; 
-  for (int k = 0; k < 8; ++k) { 
-    vlasov_boundary_surfy_2x2v_ser_p1_mode(k, edge, dx11, flux, out); 
   } 
   return 0.0;
 } 

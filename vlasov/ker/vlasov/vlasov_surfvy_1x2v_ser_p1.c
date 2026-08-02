@@ -1,8 +1,30 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_vlasov_surf_tables_1x2v_ser_p1.h> 
-GKYL_CU_DH void vlasov_surfvy_1x2v_ser_p1_mode(int k, double dv11,
+GKYL_CU_DH void vlasov_surfvy_1x2v_ser_p1_mode(int m, double dv11,
   const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
 { 
+  const int a = vst_1x2v_ser_p1_prj_v1_pm_a[m]; 
+  const int b = vst_1x2v_ser_p1_prj_v1_pm_b[m]; 
+  double g_l = 0.0; 
+  double g_r = 0.0; 
+  for (int i = 0; i < 2; ++i) { 
+    double t_l = 0.0; 
+    double t_r = 0.0; 
+    for (int j = 0; j < 2; ++j) { 
+      t_l += vst_1x2v_ser_p1_prj_v1_Vw[j*2 + b]*Fhat_l_nodal[4 + i*2 + j]; 
+      t_r += vst_1x2v_ser_p1_prj_v1_Vw[j*2 + b]*Fhat_r_nodal[4 + i*2 + j]; 
+    } 
+    g_l += vst_1x2v_ser_p1_prj_v1_Cw[i*2 + a]*t_l; 
+    g_r += vst_1x2v_ser_p1_prj_v1_Cw[i*2 + a]*t_r; 
+  } 
+  out[m] += dv11*(vst_1x2v_ser_p1_prj_v1_pm_cl[m]*g_l + vst_1x2v_ser_p1_prj_v1_pm_cr[m]*g_r); 
+} 
+
+GKYL_CU_DH double vlasov_surfvy_1x2v_ser_p1(const double *w, const double *dxv,
+  const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
+{ 
+  double dv11 = 2.0/dxv[2]; 
+  for (int k = 0; k < 4; ++k) { 
   const int a = vst_1x2v_ser_p1_prj_v1_kamap[k]; 
   const int b = vst_1x2v_ser_p1_prj_v1_kbmap[k]; 
   double g_l = 0.0; 
@@ -20,14 +42,6 @@ GKYL_CU_DH void vlasov_surfvy_1x2v_ser_p1_mode(int k, double dv11,
   for (int q = vst_1x2v_ser_p1_prj_v1_out_off[k]; q < vst_1x2v_ser_p1_prj_v1_out_off[k+1]; ++q) { 
     out[vst_1x2v_ser_p1_prj_v1_out_mode[q]] += dv11*(vst_1x2v_ser_p1_prj_v1_out_cl[q]*g_l + vst_1x2v_ser_p1_prj_v1_out_cr[q]*g_r); 
   } 
-} 
-
-GKYL_CU_DH double vlasov_surfvy_1x2v_ser_p1(const double *w, const double *dxv,
-  const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
-{ 
-  double dv11 = 2.0/dxv[2]; 
-  for (int k = 0; k < 4; ++k) { 
-    vlasov_surfvy_1x2v_ser_p1_mode(k, dv11, Fhat_l_nodal, Fhat_r_nodal, out); 
   } 
   return 0.0;
 } 

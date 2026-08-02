@@ -230,6 +230,46 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_prj_v0_out
   0.2906888370749726, 
   0.503487835006964, 
 }; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_prj_v0_pm_a[8] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  0, 
+  2, 
+  1, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_prj_v0_pm_b[8] = { 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_prj_v0_pm_cl[8] = { 
+  0.5, 
+  0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  -0.2906888370749726, 
+  1.118033988749895, 
+  0.503487835006964, 
+  0.7745966692414833, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_prj_v0_pm_cr[8] = { 
+  -0.5, 
+  -0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  0.2906888370749726, 
+  -1.118033988749895, 
+  0.503487835006964, 
+  -0.7745966692414833, 
+}; 
 GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_1x1v_ser_p2_prj_v0_meta = { .nk = 3, .np = 8, .na = 3, .nmv = 1, .no = 3, .ni = 1, .fhat_off = 0 }; 
 GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_vel_vol_dv0[9] = { 
   0.0, 
@@ -450,6 +490,46 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_prj_x0_out
   -0.6, 
   -0.7745966692414833, 
   0.2906888370749726, 
+  0.503487835006964, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_prj_x0_pm_a[8] = { 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_prj_x0_pm_b[8] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_prj_x0_pm_cl[8] = { 
+  0.5, 
+  -0.8660254037844386, 
+  0.34641016151377546, 
+  -0.6, 
+  1.118033988749895, 
+  -0.2906888370749726, 
+  0.7745966692414833, 
+  0.503487835006964, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_prj_x0_pm_cr[8] = { 
+  -0.5, 
+  -0.8660254037844386, 
+  -0.34641016151377546, 
+  -0.6, 
+  -1.118033988749895, 
+  0.2906888370749726, 
+  -0.7745966692414833, 
   0.503487835006964, 
 }; 
 GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_1x1v_ser_p2_prj_x0_meta = { .nk = 3, .np = 8, .na = 1, .nmv = 3, .no = 1, .ni = 3, .fhat_off = 0 }; 
@@ -697,6 +777,46 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_ho_prj_v0_
   0.2906888370749726, 
   0.503487835006964, 
 }; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_ho_prj_v0_pm_a[8] = { 
+  0, 
+  1, 
+  0, 
+  1, 
+  2, 
+  0, 
+  2, 
+  1, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_ho_prj_v0_pm_b[8] = { 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_ho_prj_v0_pm_cl[8] = { 
+  0.5, 
+  0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  -0.2906888370749726, 
+  1.118033988749895, 
+  0.503487835006964, 
+  0.7745966692414833, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_ho_prj_v0_pm_cr[8] = { 
+  -0.5, 
+  -0.34641016151377546, 
+  -0.8660254037844386, 
+  -0.6, 
+  0.2906888370749726, 
+  -1.118033988749895, 
+  0.503487835006964, 
+  -0.7745966692414833, 
+}; 
 GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_1x1v_ser_p2_ho_prj_v0_meta = { .nk = 3, .np = 8, .na = 3, .nmv = 1, .no = 4, .ni = 1, .fhat_off = 0 }; 
 GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_ho_vel_vol_dv0[12] = { 
   0.0, 
@@ -937,6 +1057,46 @@ GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_ho_prj_x0_
   -0.6, 
   -0.7745966692414833, 
   0.2906888370749726, 
+  0.503487835006964, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_ho_prj_x0_pm_a[8] = { 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+  0, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const int vst_1x1v_ser_p2_ho_prj_x0_pm_b[8] = { 
+  0, 
+  0, 
+  1, 
+  1, 
+  0, 
+  2, 
+  1, 
+  2, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_ho_prj_x0_pm_cl[8] = { 
+  0.5, 
+  -0.8660254037844386, 
+  0.34641016151377546, 
+  -0.6, 
+  1.118033988749895, 
+  -0.2906888370749726, 
+  0.7745966692414833, 
+  0.503487835006964, 
+}; 
+GKYL_CU_D __attribute__((unused)) static const double vst_1x1v_ser_p2_ho_prj_x0_pm_cr[8] = { 
+  -0.5, 
+  -0.8660254037844386, 
+  -0.34641016151377546, 
+  -0.6, 
+  -1.118033988749895, 
+  0.2906888370749726, 
+  -0.7745966692414833, 
   0.503487835006964, 
 }; 
 GKYL_CU_D __attribute__((unused)) static const struct gkyl_vlasov_prj_meta vst_1x1v_ser_p2_ho_prj_x0_meta = { .nk = 3, .np = 8, .na = 1, .nmv = 3, .no = 1, .ni = 4, .fhat_off = 0 }; 

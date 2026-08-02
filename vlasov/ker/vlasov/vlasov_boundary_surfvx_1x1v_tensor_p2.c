@@ -1,8 +1,30 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_vlasov_surf_tables_1x1v_tensor_p2.h> 
-GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2_mode(int k, int edge, double dv10,
+GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2_mode(int m, int edge, double dv10,
   const double *flux, double* GKYL_RESTRICT out) 
 { 
+  const int a = vst_1x1v_tensor_p2_prj_v0_pm_a[m]; 
+  const int b = vst_1x1v_tensor_p2_prj_v0_pm_b[m]; 
+  double g = 0.0; 
+  for (int i = 0; i < 4; ++i) { 
+    double t = 0.0; 
+    for (int j = 0; j < 1; ++j) { 
+      t += vst_1x1v_tensor_p2_prj_v0_Vw[j*1 + b]*flux[0 + i*1 + j]; 
+    } 
+    g += vst_1x1v_tensor_p2_prj_v0_Cw[i*3 + a]*t; 
+  } 
+  if (edge == -1) { 
+    out[m] += dv10*vst_1x1v_tensor_p2_prj_v0_pm_cr[m]*g; 
+  } else { 
+    out[m] += dv10*vst_1x1v_tensor_p2_prj_v0_pm_cl[m]*g; 
+  } 
+} 
+
+GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const double *dxv,
+  const int edge, const double *flux, double* GKYL_RESTRICT out) 
+{ 
+  double dv10 = 2.0/dxv[1]; 
+  for (int k = 0; k < 3; ++k) { 
   const int a = vst_1x1v_tensor_p2_prj_v0_kamap[k]; 
   const int b = vst_1x1v_tensor_p2_prj_v0_kbmap[k]; 
   double g = 0.0; 
@@ -22,14 +44,6 @@ GKYL_CU_DH void vlasov_boundary_surfvx_1x1v_tensor_p2_mode(int k, int edge, doub
       out[vst_1x1v_tensor_p2_prj_v0_out_mode[q]] += dv10*vst_1x1v_tensor_p2_prj_v0_out_cl[q]*g; 
     } 
   } 
-} 
-
-GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const double *dxv,
-  const int edge, const double *flux, double* GKYL_RESTRICT out) 
-{ 
-  double dv10 = 2.0/dxv[1]; 
-  for (int k = 0; k < 3; ++k) { 
-    vlasov_boundary_surfvx_1x1v_tensor_p2_mode(k, edge, dv10, flux, out); 
   } 
   return 0.0;
 } 
