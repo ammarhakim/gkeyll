@@ -316,11 +316,6 @@ void
 gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
   struct gkyl_comm *comm, const char *app_name, const char *name)
 {
-  int rank;
-  gkyl_comm_get_rank(comm, &rank);
-  if (rank != 0)
-    return;
-
   // The map is static and written once, so both files carry frame-0 metadata.
   struct gkyl_msgpack_data *mt_pmap = gkyl_msgpack_create(4,
     (struct gkyl_msgpack_map_elem []) {
@@ -336,7 +331,7 @@ gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
   char fileNm_pmap[sz_pmap+1]; // ensures no buffer overflow
   snprintf(fileNm_pmap, sizeof fileNm_pmap, fmt_pmap, app_name, name);
 
-  gkyl_grid_sub_array_write(&vpm->grid_pos, &vpm->local_pos,
+  gkyl_comm_array_write(comm, &vpm->grid_pos, &vpm->local_pos,
     mt_pmap, vpm->pmap_pgkyl_host, fileNm_pmap);
   gkyl_msgpack_data_release(mt_pmap);
 
@@ -356,8 +351,8 @@ gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
   char fileNm_pmap_avg[sz_pmap_avg+1]; // ensures no buffer overflow
   snprintf(fileNm_pmap_avg, sizeof fileNm_pmap_avg, fmt_pmap_avg, app_name, name);
 
-  gkyl_grid_sub_array_write(&vpm->grid_pos, &vpm->local_pos,
-    mt_pmap_avg, vpm->pmap_avg_pgkyl_host, fileNm_pmap_avg);
+  gkyl_comm_array_write(comm, &vpm->grid_pos, &vpm->local_pos,
+    mt_pmap, vpm->pmap_avg_pgkyl_host, fileNm_pmap_avg);
   gkyl_msgpack_data_release(mt_pmap_avg);
 }
 

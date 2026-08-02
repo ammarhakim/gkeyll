@@ -410,6 +410,8 @@ gkyl_vlasov_velocity_map_write(const struct gkyl_vlasov_velocity_map *vvm,
 {
   int rank;
   gkyl_comm_get_rank(comm, &rank);
+  // Since velocity space has no decomposition currently, make sure to only
+  // have rank 0 write out the velocity map. 
   if (rank != 0)
     return;
 
