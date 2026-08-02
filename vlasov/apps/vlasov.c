@@ -248,9 +248,10 @@ gkyl_vlasov_app_new(struct gkyl_vm *vm)
   }
 
   // The position map is static in time; write it once here (uniform/identity
-  // grids included), mirroring the mapc2p write above.
-  gkyl_vlasov_position_map_write(app->pos_map, app->comm, 0, app->name,
-    "position-map", false);
+  // grids included), mirroring the mapc2p write above. Both the p=3 map and its
+  // p=0 cell average are written, with metadata built from the map's I/O basis.
+  gkyl_vlasov_position_map_write(app->pos_map, app->comm, app->name,
+    "position-map");
 
   // allocate space to store vlasov-maxwell geometry objects
   app->vm_geom = gkyl_malloc(sizeof(struct vm_geom));

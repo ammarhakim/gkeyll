@@ -208,6 +208,9 @@ gkyl_vlasov_position_map_new(const struct gkyl_rect_grid *cgrid, const struct gk
   struct gkyl_basis pmap_pgkyl_basis, jacob_pos_basis;
   gkyl_cart_modal_serendip(&pmap_pgkyl_basis, cdim, 3);
   gkyl_cart_modal_tensor(&jacob_pos_basis, cdim, poly_order);
+  // Keep the I/O basis so the write can label the file with the basis the data
+  // is actually stored in (the app's conf basis does not describe these arrays).
+  vpm->basis_pgkyl = pmap_pgkyl_basis;
   // total conf-space Jacobian at Gaussian quadrature points (constant per cell), used to divide
   // out the conf-space Jacobian from the distribution.
   vpm->jacob_pos_gauss = mkarr(use_gpu, jacob_pos_basis.num_basis, crange_ext->volume);
@@ -320,30 +323,46 @@ gkyl_vlasov_position_map_eval_mc2p(const struct gkyl_vlasov_position_map *vpm,
 
 void
 gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
-  struct gkyl_comm *comm, struct gkyl_msgpack_data *mt,
-  const char *app_name, const char *name, bool write_cell_avg)
+  struct gkyl_comm *comm, const char *app_name, const char *name)
 {
-  int rank;
-  gkyl_comm_get_rank(comm, &rank);
-  if (rank == 0) {
-    const char *fmt_pmap = "%s-%s_pmap.gkyl";
-    int sz_pmap = gkyl_calc_strlen(fmt_pmap, app_name, name);
-    char fileNm_pmap[sz_pmap+1]; // ensures no buffer overflow
-    snprintf(fileNm_pmap, sizeof fileNm_pmap, fmt_pmap, app_name, name);
-
-    gkyl_grid_sub_array_write(&vpm->grid_pos, &vpm->local_pos,
-      mt, vpm->pmap_pgkyl_host, fileNm_pmap);
-
-    if (write_cell_avg) {
-      const char *fmt_pmap_avg = "%s-%s_pmap_avg.gkyl";
-      int sz_pmap_avg = gkyl_calc_strlen(fmt_pmap_avg, app_name, name);
-      char fileNm_pmap_avg[sz_pmap_avg+1]; // ensures no buffer overflow
-      snprintf(fileNm_pmap_avg, sizeof fileNm_pmap_avg, fmt_pmap_avg, app_name, name);
-
-      gkyl_grid_sub_array_write(&vpm->grid_pos, &vpm->local_pos,
-        mt, vpm->pmap_avg_pgkyl_host, fileNm_pmap_avg);
+  // The map is static and written once, so both files carry frame-0 metadata.
+  struct gkyl_msgpack_data *mt_pmap = gkyl_msgpack_create(4,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+      { .key = "frame", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = vpm->basis_pgkyl.poly_order },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = vpm->basis_pgkyl.id }
     }
-  }
+  );
+
+  const char *fmt_pmap = "%s-%s_pmap.gkyl";
+  int sz_pmap = gkyl_calc_strlen(fmt_pmap, app_name, name);
+  char fileNm_pmap[sz_pmap+1]; // ensures no buffer overflow
+  snprintf(fileNm_pmap, sizeof fileNm_pmap, fmt_pmap, app_name, name);
+
+  gkyl_comm_array_write(comm, &vpm->grid_pos, &vpm->local_pos,
+    mt_pmap, vpm->pmap_pgkyl_host, fileNm_pmap);
+  gkyl_msgpack_data_release(mt_pmap);
+
+  // The cell-average file holds one value per cell per direction: p=0 data,
+  // regardless of the map's I/O basis order.
+  struct gkyl_msgpack_data *mt_pmap_avg = gkyl_msgpack_create(4,
+    (struct gkyl_msgpack_map_elem []) {
+      { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+      { .key = "frame", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 0 },
+      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = vpm->basis_pgkyl.id }
+    }
+  );
+
+  const char *fmt_pmap_avg = "%s-%s_pmap_avg.gkyl";
+  int sz_pmap_avg = gkyl_calc_strlen(fmt_pmap_avg, app_name, name);
+  char fileNm_pmap_avg[sz_pmap_avg+1]; // ensures no buffer overflow
+  snprintf(fileNm_pmap_avg, sizeof fileNm_pmap_avg, fmt_pmap_avg, app_name, name);
+
+  gkyl_comm_array_write(comm, &vpm->grid_pos, &vpm->local_pos,
+    mt_pmap, vpm->pmap_avg_pgkyl_host, fileNm_pmap_avg);
+  gkyl_msgpack_data_release(mt_pmap_avg);
 }
 
 void
