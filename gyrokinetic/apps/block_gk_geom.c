@@ -74,6 +74,18 @@ gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, int bid
   }
 }
 
+void
+gkyl_gk_block_geom_apply_xpt_seam_selection(struct gkyl_gk_block_geom *bgeom,
+  int bidx, double coefficient, double bound)
+{
+  struct gkyl_gk_block_geom_info *bgi = &bgeom->blocks[bidx];
+  struct gkyl_tok_geo_grid_inp *inp = &bgi->geometry.tok_grid_info;
+  inp->relaxed_xpt_seam = true;
+  inp->relaxed_xpt_seam_sweep = true;
+  inp->relaxed_xpt_seam_delta_s_coeff = coefficient;
+  inp->relaxed_xpt_seam_delta_s_bound = bound;
+}
+
 const struct gkyl_gk_block_geom_info*
 gkyl_gk_block_geom_get_block(const struct gkyl_gk_block_geom *bgeom, int bidx)
 {

@@ -3545,12 +3545,173 @@ xpt_optimizer_write_pair_not_evaluated(FILE *fp, const char *app_name,
     bgi0, bgi1, &placeholder, "not_evaluated", false, 0.0);
 }
 
-// Commit 5: this diagnostic optimizer evaluates a deterministic, bounded
-// set of delta-s candidates per X-point seam pair and records the result
-// (including every rejected candidate and reason) to a CSV.  It never
-// applies a candidate to production geometry -- mbapp->singleb_apps are
-// left untouched here.  Applying a selected coefficient with a guarded
-// fallback is Commit 6.
+// Minimum relative reduction in the primary mismatch objective (against the
+// zero-coefficient baseline) required before a recommended coefficient is
+// actually applied to production geometry. Below this, a displacement is
+// reported as diagnostic-only and the straight map is kept: a small or
+// possibly noise-level "improvement" is not worth deviating from the
+// well-understood straight-ray construction.
+static const double XPT_APPLY_MIN_RELATIVE_IMPROVEMENT = 0.05;
+
+enum xpt_apply_status {
+  XPT_APPLY_NOT_USEFUL = 0,
+  XPT_APPLY_NO_VALID_CANDIDATE,
+  XPT_APPLY_APPLIED,
+  XPT_APPLY_REVALIDATION_FAILED,
+};
+
+static const char*
+xpt_apply_status_name(enum xpt_apply_status status)
+{
+  switch (status) {
+    case XPT_APPLY_NOT_USEFUL: return "not_useful";
+    case XPT_APPLY_NO_VALID_CANDIDATE: return "no_valid_candidate";
+    case XPT_APPLY_APPLIED: return "applied";
+    case XPT_APPLY_REVALIDATION_FAILED: return "revalidation_failed";
+  }
+  return "unknown";
+}
+
+// Rebuild write-enabled, production geometry for both (locally-owned) blocks
+// in `pair` at `coefficient`, re-running the same hard guards used during
+// the search on this fresh construction -- this is the last gate before
+// touching mbapp->singleb_apps, so a trial that merely looked good during
+// the (no-write) search is not trusted blindly. On success, releases the
+// previous (straight) singleb_apps for this pair's local blocks and installs
+// the new ones; every other block is untouched. On failure, releases the
+// newly-built candidates and leaves mbapp->singleb_apps exactly as it was:
+// the guarded fallback to the straight map is simply "do nothing".
+static enum xpt_apply_status
+xpt_optimizer_apply_selection(const struct gkyl_gyrokinetic_multib *mbinp,
+  gkyl_gyrokinetic_multib_app *app, const struct xpt_optimizer_pair *pair,
+  double coefficient)
+{
+  struct gkyl_gyrokinetic_app **candidate_apps =
+    gkyl_malloc(sizeof(*candidate_apps)*app->num_local_blocks);
+  bool *owned = gkyl_calloc(app->num_local_blocks, sizeof(bool));
+  struct gkyl_tok_geo_xpt_seam_trial_status status[2] = {
+    xpt_optimizer_trial_status_init(), xpt_optimizer_trial_status_init(),
+  };
+  int64_t local_mapping_failed = 0, local_fixed_failed = 0;
+  int64_t local_ordering_failed = 0, local_jacobian_failed = 0;
+  double local_max_displacement = 0.0;
+
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    int bid = app->local_blocks[b];
+    int pair_side = bid == pair->bid[0] ? 0 : bid == pair->bid[1] ? 1 : -1;
+    if (pair_side < 0)
+      continue;
+    const struct gkyl_gk_block_geom_info *base_bgi =
+      gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
+    struct gkyl_gk_block_geom_info production_bgi = *base_bgi;
+    struct gkyl_tok_geo_grid_inp *production_inp =
+      &production_bgi.geometry.tok_grid_info;
+    production_inp->relaxed_xpt_seam = true;
+    production_inp->relaxed_xpt_seam_sweep = true;
+    production_inp->relaxed_xpt_seam_delta_s_coeff = coefficient;
+    production_inp->relaxed_xpt_seam_delta_s_bound = pair->bound;
+    production_inp->relaxed_xpt_seam_optimize = false;
+    production_inp->relaxed_xpt_seam_optimizer_trial = true;
+    production_inp->relaxed_xpt_seam_trial_status = &status[pair_side];
+    candidate_apps[b] = singleb_app_new_geom_from_block(mbinp, bid, app,
+      &production_bgi, true);
+    owned[b] = true;
+
+    bool status_valid = xpt_optimizer_status_valid(&status[pair_side]);
+    local_mapping_failed = local_mapping_failed || !status_valid;
+    local_max_displacement = fmax(local_max_displacement,
+      status[pair_side].max_realized_displacement);
+
+    struct xpt_optimizer_local_guard guard = xpt_optimizer_check_local_block(
+      app->singleb_apps[b], candidate_apps[b], pair->edge[pair_side],
+      coefficient);
+    local_fixed_failed = local_fixed_failed || !guard.fixed_interfaces_valid;
+    local_ordering_failed = local_ordering_failed ||
+      !guard.radial_ordering_valid;
+    local_jacobian_failed = local_jacobian_failed || !guard.jacobian_valid ||
+      (status_valid &&
+        status[pair_side].jacobian_sign != guard.baseline_jacobian_sign);
+  }
+
+  int64_t local_flags[4] = {
+    local_mapping_failed, local_fixed_failed, local_ordering_failed,
+    local_jacobian_failed,
+  };
+  int64_t global_flags[4] = { 0 };
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, 4, local_flags,
+    global_flags);
+  double max_realized_displacement = 0.0;
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1,
+    &local_max_displacement, &max_realized_displacement);
+  double displacement_tolerance = 64.0*DBL_EPSILON*fmax(1.0, pair->bound);
+  bool bound_violated =
+    max_realized_displacement > pair->bound+displacement_tolerance;
+  bool success = !global_flags[0] && !global_flags[1] && !global_flags[2] &&
+    !global_flags[3] && !bound_violated;
+
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    if (!owned[b])
+      continue;
+    if (success) {
+      gkyl_gyrokinetic_app_release_geom(app->singleb_apps[b]);
+      app->singleb_apps[b] = candidate_apps[b];
+    }
+    else
+      gkyl_gyrokinetic_app_release_geom(candidate_apps[b]);
+  }
+  gkyl_free(owned);
+  gkyl_free(candidate_apps);
+
+  if (success) {
+    // gk_block_geom is replicated identically on every rank (it is queried
+    // for any block ID regardless of locality elsewhere in this file), so
+    // every rank -- not just the ones owning bid[0]/bid[1] -- must record
+    // the selection to keep that replica consistent; otherwise diagnostics
+    // and any future reconstruction of these blocks would keep reporting
+    // the pre-selection zero coefficient even though the live geometry has
+    // actually been displaced.
+    gkyl_gk_block_geom_apply_xpt_seam_selection(app->gk_block_geom,
+      pair->bid[0], coefficient, pair->bound);
+    gkyl_gk_block_geom_apply_xpt_seam_selection(app->gk_block_geom,
+      pair->bid[1], coefficient, pair->bound);
+  }
+  return success ? XPT_APPLY_APPLIED : XPT_APPLY_REVALIDATION_FAILED;
+}
+
+static void
+xpt_optimizer_write_applied_header(FILE *fp)
+{
+  fprintf(fp, "app,pair_index,bid0,bid1,edge0,edge1,bound,"
+    "useful_threshold,zero_objective,recommended_coefficient,"
+    "recommended_objective,relative_improvement,useful,applied,"
+    "apply_status\n");
+}
+
+static void
+xpt_optimizer_write_applied_row(FILE *fp, const char *app_name,
+  int pair_index, const struct xpt_optimizer_pair *pair,
+  double zero_objective, double coefficient, double objective,
+  double relative_improvement, bool useful, bool applied,
+  enum xpt_apply_status status)
+{
+  fprintf(fp, "%s,%d,%d,%d,%d,%d,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%d,%d,%s\n",
+    app_name, pair_index, pair->bid[0], pair->bid[1], pair->edge[0],
+    pair->edge[1], pair->bound, XPT_APPLY_MIN_RELATIVE_IMPROVEMENT,
+    zero_objective, coefficient, objective, relative_improvement, useful,
+    applied, xpt_apply_status_name(status));
+}
+
+// Evaluates a deterministic, bounded set of delta-s candidates per X-point
+// seam pair and records the result (including every rejected candidate and
+// reason) to a CSV.  A recommendation that clears
+// XPT_APPLY_MIN_RELATIVE_IMPROVEMENT is then re-validated against a fresh,
+// write-enabled production build and, only if that also passes every hard
+// guard, swapped into mbapp->singleb_apps for that pair's blocks; otherwise
+// (not useful, no valid candidate, or the production re-validation itself
+// fails) the straight map already in mbapp->singleb_apps is left completely
+// untouched -- the guarded fallback requires no explicit action.  The
+// coefficient is always identical on both blocks sharing a seam, since a
+// single search produces one coefficient per pair.
 static void
 gyrokinetic_multib_optimize_xpt_seams(
   const struct gkyl_gyrokinetic_multib *mbinp,
@@ -3621,6 +3782,20 @@ gyrokinetic_multib_optimize_xpt_seams(
   if (fp)
     xpt_optimizer_write_header(fp);
 
+  cstr applied_file_name = rank == 0
+    ? cstr_from_fmt("%s-xpt_seam_applied_diagnostics.csv", mbapp->name)
+    : cstr_from_fmt("%s-xpt_seam_applied_diagnostics_rank%d.csv",
+        mbapp->name, rank);
+  FILE *applied_fp = rank == 0 ? fopen(applied_file_name.str, "w") : NULL;
+  if (rank == 0 && !applied_fp) {
+    int saved_errno = errno;
+    fprintf(stderr, "Unable to open X-point seam applied diagnostic "
+      "'%s': %s\n", applied_file_name.str, strerror(saved_errno));
+  }
+  cstr_drop(&applied_file_name);
+  if (applied_fp)
+    xpt_optimizer_write_applied_header(applied_fp);
+
   for (int p=0; p<num_pairs; ++p) {
     const struct xpt_optimizer_pair *pair = &pairs[p];
     const struct gkyl_gk_block_geom_info *bgi0 =
@@ -3646,23 +3821,59 @@ gyrokinetic_multib_optimize_xpt_seams(
           c == search.zero_index, search.zero_objective);
       }
 
-    if (rank == 0 && search.recommended_index >= 0) {
-      const struct xpt_optimizer_candidate *best =
-        &search.candidates[search.recommended_index];
-      double reduction = search.zero_objective > 0.0
-        ? 100.0*(search.zero_objective-best->objective)/search.zero_objective
+    bool has_recommendation = search.recommended_index >= 0;
+    const struct xpt_optimizer_candidate *best = has_recommendation
+      ? &search.candidates[search.recommended_index] : 0;
+    double relative_improvement =
+      has_recommendation && search.zero_objective > 0.0
+        ? (search.zero_objective-best->objective)/search.zero_objective
         : 0.0;
-      fprintf(stdout, "X-point seam optimizer: pair (block %d edge %d)-"
-        "(block %d edge %d) recommends delta_s = %.6e m (objective "
-        "%.6e -> %.6e, %.2f%% reduction). Diagnostic only; not applied.\n",
-        pair->bid[0], pair->edge[0], pair->bid[1], pair->edge[1],
-        best->coefficient, search.zero_objective, best->objective,
-        reduction);
+    bool useful = has_recommendation &&
+      relative_improvement >= XPT_APPLY_MIN_RELATIVE_IMPROVEMENT;
+
+    enum xpt_apply_status apply_status;
+    bool applied = false;
+    if (!has_recommendation)
+      apply_status = XPT_APPLY_NO_VALID_CANDIDATE;
+    else if (!useful)
+      apply_status = XPT_APPLY_NOT_USEFUL;
+    else {
+      apply_status = xpt_optimizer_apply_selection(mbinp, mbapp, pair,
+        best->coefficient);
+      applied = apply_status == XPT_APPLY_APPLIED;
+    }
+
+    if (applied_fp)
+      xpt_optimizer_write_applied_row(applied_fp, mbapp->name, p, pair,
+        search.zero_objective, has_recommendation ? best->coefficient : 0.0,
+        has_recommendation ? best->objective : search.zero_objective,
+        relative_improvement, useful, applied, apply_status);
+
+    if (rank == 0) {
+      if (applied)
+        fprintf(stdout, "X-point seam optimizer: pair (block %d edge %d)-"
+          "(block %d edge %d) APPLIED delta_s = %.6e m to production "
+          "geometry (objective %.6e -> %.6e, %.2f%% reduction).\n",
+          pair->bid[0], pair->edge[0], pair->bid[1], pair->edge[1],
+          best->coefficient, search.zero_objective, best->objective,
+          100.0*relative_improvement);
+      else if (has_recommendation)
+        fprintf(stdout, "X-point seam optimizer: pair (block %d edge %d)-"
+          "(block %d edge %d) found delta_s = %.6e m (objective %.6e -> "
+          "%.6e, %.2f%% reduction) but %s; keeping the straight map.\n",
+          pair->bid[0], pair->edge[0], pair->bid[1], pair->edge[1],
+          best->coefficient, search.zero_objective, best->objective,
+          100.0*relative_improvement,
+          apply_status == XPT_APPLY_NOT_USEFUL
+            ? "this did not clear the usefulness threshold"
+            : "the production re-validation failed");
     }
   }
 
   if (fp)
     fclose(fp);
+  if (applied_fp)
+    fclose(applied_fp);
   for (int b=0; b<mbapp->num_local_blocks; ++b)
     if (efit[b])
       gkyl_efit_release(efit[b]);

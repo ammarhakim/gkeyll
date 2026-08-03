@@ -88,6 +88,22 @@ gkyl_gk_block_geom_reset_block_extents(struct gkyl_gk_block_geom *bgeom, int bid
   double *lower, double *upper);
 
 /**
+ * Record a selected, guard-checked X-point seam delta-s coefficient for a
+ * tokamak block in place, so later queries of this block's geometry info
+ * (diagnostics, restart/checkpoint reconstruction) see the coefficient
+ * actually in use rather than the pre-selection default. Does not itself
+ * rebuild any geometry; the caller is responsible for that.
+ *
+ * @param bgeom Geometry object
+ * @param bidx Block index (must be a GKYL_GEOMETRY_TOKAMAK block)
+ * @param coefficient Selected relaxed_xpt_seam_delta_s_coeff [m]
+ * @param bound Hard displacement bound [m]
+ */
+void
+gkyl_gk_block_geom_apply_xpt_seam_selection(struct gkyl_gk_block_geom *bgeom,
+  int bidx, double coefficient, double bound);
+
+/**
  * Get geometry and connectivity information about a block.
  *
  * @param bgeom Geometry object

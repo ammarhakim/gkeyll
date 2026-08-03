@@ -195,8 +195,15 @@ struct gkyl_tok_geo_grid_inp {
   bool relaxed_xpt_seam; // Route supported half-domain X-point seams through
                          // the delta-s parameterization. The initial mode
                          // enforces delta_s=0 and is exactly the straight ray.
-  bool relaxed_xpt_seam_sweep; // Diagnostic-only nonzero delta-s candidate.
-                               // This does not change the production default.
+  bool relaxed_xpt_seam_sweep; // Master enable for a nonzero delta-s: with
+                               // this false, relaxed_xpt_seam_delta_s_coeff
+                               // is ignored and the seam stays exactly the
+                               // straight ray regardless of its value. Used
+                               // both for diagnostic-only sweeps/trials and,
+                               // once a coefficient has been selected and
+                               // guard-checked, for the applied production
+                               // choice -- it does not by itself imply
+                               // either.
   double relaxed_xpt_seam_delta_s_coeff; // Peak B1 coefficient [m].
   double relaxed_xpt_seam_delta_s_bound; // Hard displacement bound [m].
   bool relaxed_xpt_seam_optimize; // Run the diagnostic bounded optimizer.
