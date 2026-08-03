@@ -64,6 +64,49 @@ tok_ordered_map_diag_enabled(void)
 }
 
 static bool
+tok_xpt_seam_optimizer_trial(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  return inp->relaxed_xpt_seam_optimizer_trial &&
+    inp->relaxed_xpt_seam_trial_status;
+}
+
+static void
+tok_xpt_seam_trial_reject(const struct gkyl_tok_geo_grid_inp *inp,
+  enum gkyl_tok_geo_xpt_seam_trial_failure reason)
+{
+  if (!tok_xpt_seam_optimizer_trial(inp))
+    return;
+  struct gkyl_tok_geo_xpt_seam_trial_status *status =
+    inp->relaxed_xpt_seam_trial_status;
+  if (status->first_failure_reason == GKYL_XPT_SEAM_TRIAL_OK)
+    status->first_failure_reason = reason;
+  switch (reason) {
+    case GKYL_XPT_SEAM_TRIAL_CONTOUR:
+      status->contour_valid = false;
+      break;
+    case GKYL_XPT_SEAM_TRIAL_BRANCH:
+      status->branch_valid = false;
+      break;
+    case GKYL_XPT_SEAM_TRIAL_TRACE_ORDERING:
+      status->trace_ordering_valid = false;
+      break;
+    case GKYL_XPT_SEAM_TRIAL_NONFINITE_MAP:
+      status->finite_map_valid = false;
+      break;
+    case GKYL_XPT_SEAM_TRIAL_CELL_JACOBIAN:
+      status->cell_jacobian_valid = false;
+      break;
+    case GKYL_XPT_SEAM_TRIAL_METRIC_JACOBIAN:
+      status->jacobian_valid = false;
+      break;
+    case GKYL_XPT_SEAM_TRIAL_INVALID_PARAMETER:
+    case GKYL_XPT_SEAM_TRIAL_REMOTE_FAILURE:
+    case GKYL_XPT_SEAM_TRIAL_OK:
+      break;
+  }
+}
+
+static bool
 tok_xpt_mapping_requested(const struct gkyl_tok_geo_grid_inp *inp)
 {
   if (inp->straight_xpt_ray)
@@ -79,15 +122,28 @@ tok_init_xpt_ray_target(const struct gkyl_tok_geo_grid_inp *inp,
 {
   if (!tok_xpt_mapping_requested(inp))
     return;
-  bool inner_radial_boundary =
-    inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
-    inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L ||
-    inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R ||
-    inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L;
-  double psi_comp = inner_radial_boundary
-    ? inp->cgrid.lower[0] : inp->cgrid.upper[0];
-  position_map->maps[0](0.0, &psi_comp, &arc_ctx->xpt_ray_psi0,
+  // Flux can increase or decrease radially, and existing inputs use both
+  // [separatrix, far] and [far, separatrix] logical orderings.  Select the
+  // physical radial boundary furthest from the separatrix instead of
+  // inferring it from ftype or array order.
+  double psi_comp_lo = inp->cgrid.lower[0];
+  double psi_comp_hi = inp->cgrid.upper[0];
+  double psi_lo = 0.0, psi_hi = 0.0;
+  position_map->maps[0](0.0, &psi_comp_lo, &psi_lo,
     position_map->ctxs[0]);
+  position_map->maps[0](0.0, &psi_comp_hi, &psi_hi,
+    position_map->ctxs[0]);
+  double dlo = fabs(psi_lo-arc_ctx->geo->psisep);
+  double dhi = fabs(psi_hi-arc_ctx->geo->psisep);
+  double scale = fmax(1.0, fmax(fabs(psi_lo), fabs(psi_hi)));
+  if (!isfinite(psi_lo) || !isfinite(psi_hi) ||
+      fabs(dlo-dhi) <= 64.0*DBL_EPSILON*scale) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP cannot identify far radial boundary ftype=%d psi_bounds=(%.17g,%.17g) psi_sep=%.17g\n",
+      inp->ftype, psi_lo, psi_hi, arc_ctx->geo->psisep);
+    abort();
+  }
+  arc_ctx->xpt_ray_psi0 = dlo > dhi ? psi_lo : psi_hi;
 }
 
 static double
@@ -805,31 +861,10 @@ tok_fixed_edge_uses_lower_plate(enum gkyl_tok_geo_type ftype)
     ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO;
 }
 
-// Locate the physical (plate or midplane) end of a block at a specified psi.
-// Plate intersections are scanned before refinement so an exact endpoint is
-// returned directly and an ambiguous multi-intersection plate is rejected.
 static bool
-tok_fixed_edge_point(const struct gkyl_tok_geo_grid_inp *inp,
-  const struct gkyl_tok_geo *geo, double psi, double *r, double *z)
+tok_plate_flux_intersection(const struct gkyl_tok_geo *geo,
+  plate_func plate, double psi, int ftype, double *r, double *z)
 {
-  if (tok_fixed_edge_is_midplane(inp->ftype)) {
-    double R[16] = { 0.0 }, dRdZ[16] = { 0.0 };
-    double dR[16] = { 0.0 }, dZ[16] = { 0.0 };
-    *z = geo->zmaxis;
-    int nr = gkyl_tok_geo_R_psiZ(geo, psi, *z, 8, R, dRdZ, dR, dZ);
-    if (nr <= 0)
-      return false;
-    bool outboard = inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
-      inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID;
-    *r = tok_nearest_value(outboard ? inp->rright : inp->rleft, R, nr);
-    return isfinite(*r);
-  }
-
-  plate_func plate = 0;
-  if (tok_fixed_edge_uses_lower_plate(inp->ftype))
-    plate = geo->plate_func_lower;
-  else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L)
-    plate = geo->plate_func_upper;
   if (!plate)
     return false;
 
@@ -879,13 +914,886 @@ tok_fixed_edge_point(const struct gkyl_tok_geo_grid_inp *inp,
   if (nroots != 1) {
     fprintf(stderr,
       "TOK_ORDERED_MAP plate root count=%d ftype=%d psi=%.17g\n",
-      nroots, inp->ftype, psi);
+      nroots, ftype, psi);
     return false;
   }
   *r = roots_r[0]; *z = roots_z[0];
   double residual = tok_eval_psi_rz_local(geo, *r, *z)-psi;
   return isfinite(*r) && isfinite(*z) && isfinite(residual) &&
     fabs(residual) <= 1e-9*fmax(1.0, fabs(psi));
+}
+
+// Locate the physical (plate or midplane) end of a block at a specified psi.
+// Plate intersections are scanned before refinement so an exact endpoint is
+// returned directly and an ambiguous multi-intersection plate is rejected.
+static bool
+tok_fixed_edge_point(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, double *r, double *z)
+{
+  if (tok_fixed_edge_is_midplane(inp->ftype)) {
+    double R[16] = { 0.0 }, dRdZ[16] = { 0.0 };
+    double dR[16] = { 0.0 }, dZ[16] = { 0.0 };
+    *z = geo->zmaxis;
+    int nr = gkyl_tok_geo_R_psiZ(geo, psi, *z, 8, R, dRdZ, dR, dZ);
+    if (nr <= 0)
+      return false;
+    bool outboard = inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R ||
+      inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID;
+    *r = tok_nearest_value(outboard ? inp->rright : inp->rleft, R, nr);
+    return isfinite(*r);
+  }
+
+  plate_func plate = 0;
+  if (tok_fixed_edge_uses_lower_plate(inp->ftype))
+    plate = geo->plate_func_lower;
+  else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L)
+    plate = geo->plate_func_upper;
+  return tok_plate_flux_intersection(geo, plate, psi, inp->ftype, r, z);
+}
+
+enum tok_ext_endpoint_kind {
+  TOK_EXT_XPT_RAY,
+  TOK_EXT_PLATE,
+};
+
+enum tok_ext_xpoint {
+  TOK_EXT_LOWER_XPT,
+  TOK_EXT_UPPER_XPT,
+};
+
+enum tok_ext_sector {
+  TOK_EXT_CORE,
+  TOK_EXT_PF,
+  TOK_EXT_SOL_OUT,
+  TOK_EXT_SOL_IN,
+};
+
+enum tok_ext_plate_slot {
+  TOK_EXT_PLATE_LOWER,
+  TOK_EXT_PLATE_UPPER,
+};
+
+enum tok_ext_fixed_z_slot {
+  TOK_EXT_ZMIN,
+  TOK_EXT_ZMAX,
+  TOK_EXT_ZMIN_LEFT,
+  TOK_EXT_ZMIN_RIGHT,
+  TOK_EXT_ZMAX_LEFT,
+  TOK_EXT_ZMAX_RIGHT,
+};
+
+enum tok_ext_route {
+  TOK_EXT_ROUTE_GENERIC,
+  TOK_EXT_ROUTE_OUTBOARD,
+  TOK_EXT_ROUTE_INBOARD,
+  TOK_EXT_ROUTE_VIA_UPPER,
+  TOK_EXT_ROUTE_CLOSED_CORE,
+};
+
+enum tok_ext_phi_reference {
+  TOK_EXT_PHI_LOWER,
+  TOK_EXT_PHI_UPPER,
+  TOK_EXT_PHI_OUTBOARD_MIDPLANE,
+  TOK_EXT_PHI_INBOARD_MIDPLANE,
+};
+
+struct tok_ext_endpoint {
+  enum tok_ext_endpoint_kind kind;
+  enum tok_ext_xpoint xpoint;
+  enum tok_ext_sector sector;
+  enum tok_ext_plate_slot plate_slot;
+  enum tok_ext_fixed_z_slot fixed_z_slot;
+};
+
+struct tok_ext_topology {
+  struct tok_ext_endpoint lower, upper;
+  enum tok_ext_route route;
+  enum tok_ext_phi_reference phi_reference;
+  bool closed;
+};
+
+static struct tok_ext_endpoint
+tok_ext_xray(enum tok_ext_xpoint xpoint, enum tok_ext_sector sector)
+{
+  return (struct tok_ext_endpoint) {
+    .kind = TOK_EXT_XPT_RAY, .xpoint = xpoint, .sector = sector,
+  };
+}
+
+static struct tok_ext_endpoint
+tok_ext_plate(enum tok_ext_plate_slot plate_slot,
+  enum tok_ext_fixed_z_slot fixed_z_slot)
+{
+  return (struct tok_ext_endpoint) {
+    .kind = TOK_EXT_PLATE, .plate_slot = plate_slot,
+    .fixed_z_slot = fixed_z_slot,
+  };
+}
+
+// Logical theta-lower -> theta-upper topology for the native full-domain
+// double-null and lower-single-null multiblock types.  The existing
+// half-domain implementation remains on its original, bitwise-compatible
+// path and does not use this table.
+static bool
+tok_ext_topology_from_ftype(enum gkyl_tok_geo_type ftype,
+  struct tok_ext_topology *top)
+{
+  *top = (struct tok_ext_topology) { };
+  switch (ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+      top->lower = tok_ext_plate(TOK_EXT_PLATE_LOWER,
+        TOK_EXT_ZMIN_RIGHT);
+      top->upper = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_PF);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_LOWER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+      top->lower = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_PF);
+      top->upper = tok_ext_plate(TOK_EXT_PLATE_UPPER,
+        TOK_EXT_ZMIN_LEFT);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_UPPER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
+      top->lower = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_PF);
+      top->upper = tok_ext_plate(TOK_EXT_PLATE_UPPER,
+        TOK_EXT_ZMAX_RIGHT);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_UPPER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_L:
+      top->lower = tok_ext_plate(TOK_EXT_PLATE_LOWER,
+        TOK_EXT_ZMAX_LEFT);
+      top->upper = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_PF);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_LOWER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
+      top->lower = tok_ext_plate(TOK_EXT_PLATE_LOWER, TOK_EXT_ZMIN);
+      top->upper = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_OUT);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_LOWER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
+      top->lower = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_OUT);
+      top->upper = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_SOL_OUT);
+      top->route = TOK_EXT_ROUTE_OUTBOARD;
+      top->phi_reference = TOK_EXT_PHI_OUTBOARD_MIDPLANE;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
+      top->lower = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_SOL_OUT);
+      top->upper = tok_ext_plate(TOK_EXT_PLATE_UPPER, TOK_EXT_ZMAX);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_UPPER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
+      top->lower = tok_ext_plate(TOK_EXT_PLATE_UPPER, TOK_EXT_ZMAX);
+      top->upper = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_SOL_IN);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_LOWER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
+      top->lower = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_SOL_IN);
+      top->upper = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_IN);
+      top->route = TOK_EXT_ROUTE_INBOARD;
+      top->phi_reference = TOK_EXT_PHI_INBOARD_MIDPLANE;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+      top->lower = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_IN);
+      top->upper = tok_ext_plate(TOK_EXT_PLATE_LOWER, TOK_EXT_ZMIN);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_UPPER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_CORE_R:
+      top->lower = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_CORE);
+      top->upper = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_CORE);
+      top->route = TOK_EXT_ROUTE_OUTBOARD;
+      top->phi_reference = TOK_EXT_PHI_OUTBOARD_MIDPLANE;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
+      top->lower = tok_ext_xray(TOK_EXT_UPPER_XPT, TOK_EXT_CORE);
+      top->upper = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_CORE);
+      top->route = TOK_EXT_ROUTE_INBOARD;
+      top->phi_reference = TOK_EXT_PHI_INBOARD_MIDPLANE;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
+      top->lower = tok_ext_plate(TOK_EXT_PLATE_LOWER,
+        TOK_EXT_ZMIN_RIGHT);
+      top->upper = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_OUT);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_LOWER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID:
+      top->lower = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_OUT);
+      top->upper = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_IN);
+      top->route = TOK_EXT_ROUTE_VIA_UPPER;
+      top->phi_reference = TOK_EXT_PHI_OUTBOARD_MIDPLANE;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
+      top->lower = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_SOL_IN);
+      top->upper = tok_ext_plate(TOK_EXT_PLATE_UPPER,
+        TOK_EXT_ZMIN_LEFT);
+      top->route = TOK_EXT_ROUTE_GENERIC;
+      top->phi_reference = TOK_EXT_PHI_UPPER;
+      return true;
+    case GKYL_GEOMETRY_TOKAMAK_CORE:
+      top->lower = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_CORE);
+      top->upper = tok_ext_xray(TOK_EXT_LOWER_XPT, TOK_EXT_CORE);
+      top->route = TOK_EXT_ROUTE_CLOSED_CORE;
+      top->phi_reference = TOK_EXT_PHI_OUTBOARD_MIDPLANE;
+      top->closed = true;
+      return true;
+    default:
+      return false;
+  }
+}
+
+static bool
+tok_ext_xpoint_rz(const struct gkyl_tok_geo *geo,
+  enum tok_ext_xpoint which, double *r, double *z)
+{
+  int nx = geo->use_cubics
+    ? geo->efit->num_xpts_cubic : geo->efit->num_xpts;
+  const double *rx = geo->use_cubics
+    ? geo->efit->Rxpt_cubic : geo->efit->Rxpt;
+  const double *zx = geo->use_cubics
+    ? geo->efit->Zxpt_cubic : geo->efit->Zxpt;
+  if (nx < 1 || (which == TOK_EXT_UPPER_XPT && nx < 2))
+    return false;
+  if (nx == 1) {
+    *r = rx[0]; *z = zx[0];
+    return isfinite(*r) && isfinite(*z);
+  }
+  int ilo = zx[0] <= zx[1] ? 0 : 1;
+  int iup = ilo == 0 ? 1 : 0;
+  int idx = which == TOK_EXT_LOWER_XPT ? ilo : iup;
+  *r = rx[idx]; *z = zx[idx];
+  return isfinite(*r) && isfinite(*z);
+}
+
+static bool
+tok_ext_nearest_root_at_z(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, enum tok_ext_sector sector, double psi,
+  double z, double rx, double zx, double *rbest, double *d2best)
+{
+  double R[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+  double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+  int nr = gkyl_tok_geo_R_psiZ(geo, psi, z, 8, R, dRdZ, dR, dZ);
+  if (nr <= 0)
+    return false;
+
+  int first = 0, last = nr;
+  if (sector == TOK_EXT_SOL_OUT || sector == TOK_EXT_SOL_IN) {
+    double ref = sector == TOK_EXT_SOL_OUT ? inp->rright : inp->rleft;
+    int selected = 0;
+    for (int i=1; i<nr; ++i)
+      if (fabs(R[i]-ref) < fabs(R[selected]-ref))
+        selected = i;
+    first = selected; last = selected+1;
+  }
+
+  bool found = false;
+  *d2best = DBL_MAX;
+  for (int i=first; i<last; ++i) {
+    double d2 = SQ(R[i]-rx)+SQ(z-zx);
+    if (d2 < *d2best) {
+      *d2best = d2; *rbest = R[i]; found = true;
+    }
+  }
+  return found;
+}
+
+static bool
+tok_ext_nearest_ray_target(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, const struct tok_ext_endpoint *endpoint,
+  double psi, double *rnear, double *znear)
+{
+  double rx = 0.0, zx = 0.0;
+  if (!tok_ext_xpoint_rz(geo, endpoint->xpoint, &rx, &zx))
+    return false;
+  double zlo = geo->rzgrid.lower[1], zhi = geo->rzgrid.upper[1];
+  int nx = geo->use_cubics
+    ? geo->efit->num_xpts_cubic : geo->efit->num_xpts;
+  // A one-X-point SOL has two cuts at the same saddle.  Its unconstrained
+  // nearest points can move behind a shaped divertor plate as psi changes,
+  // collapsing a leg.  Anchor the two far-surface rays at the outboard and
+  // inboard magnetic-midplane roots instead; these cuts preserve the full-SOL
+  // topology and are shared exactly by the adjacent blocks.
+  if (nx == 1 && (endpoint->sector == TOK_EXT_SOL_OUT ||
+      endpoint->sector == TOK_EXT_SOL_IN)) {
+    double R[16] = { 0.0 }, dRdZ[16] = { 0.0 };
+    double dR[16] = { 0.0 }, dZ[16] = { 0.0 };
+    *znear = geo->zmaxis;
+    int nr = gkyl_tok_geo_R_psiZ(geo, psi, *znear, 16,
+      R, dRdZ, dR, dZ);
+    if (nr <= 0)
+      return false;
+    bool outboard = endpoint->sector == TOK_EXT_SOL_OUT;
+    *rnear = tok_nearest_value(outboard ? inp->rright : inp->rleft, R, nr);
+    double residual = tok_eval_psi_rz_local(geo, *rnear, *znear)-psi;
+    return isfinite(*rnear) && isfinite(*znear) && isfinite(residual) &&
+      fabs(residual) <= 1e-9*fmax(1.0, fabs(psi));
+  }
+  if (endpoint->sector == TOK_EXT_CORE) {
+    zlo = fmin(zx, geo->zmaxis); zhi = fmax(zx, geo->zmaxis);
+  }
+  else if (endpoint->sector == TOK_EXT_PF) {
+    if (endpoint->xpoint == TOK_EXT_LOWER_XPT) {
+      zlo = geo->rzgrid.lower[1]; zhi = zx;
+    }
+    else {
+      zlo = zx; zhi = geo->rzgrid.upper[1];
+    }
+  }
+  else if (endpoint->xpoint == TOK_EXT_LOWER_XPT) {
+    zlo = geo->rzgrid.lower[1]; zhi = geo->zmaxis;
+  }
+  else {
+    zlo = geo->zmaxis; zhi = geo->rzgrid.upper[1];
+  }
+
+  if (!(zhi > zlo))
+    return false;
+
+  int nsamp = 4*geo->rzgrid.cells[1]+1;
+  double best_d2 = DBL_MAX, best_r = 0.0, best_z = 0.0;
+  int best_i = -1;
+  for (int i=0; i<nsamp; ++i) {
+    double z = zlo+(zhi-zlo)*i/(nsamp-1.0), r = 0.0, d2 = 0.0;
+    if (tok_ext_nearest_root_at_z(inp, geo, endpoint->sector, psi,
+        z, rx, zx, &r, &d2) && d2 < best_d2) {
+      best_d2 = d2; best_r = r; best_z = z; best_i = i;
+    }
+  }
+  if (best_i < 0)
+    return false;
+
+  double dz = (zhi-zlo)/(nsamp-1.0);
+  double a = fmax(zlo, best_z-dz), b = fmin(zhi, best_z+dz);
+  const double gr = 0.6180339887498948482;
+  for (int iter=0; iter<64; ++iter) {
+    double ztrial[2] = { b-gr*(b-a), a+gr*(b-a) };
+    double dtrial[2] = { DBL_MAX, DBL_MAX };
+    double rtrial[2] = { best_r, best_r };
+    for (int k=0; k<2; ++k)
+      tok_ext_nearest_root_at_z(inp, geo, endpoint->sector, psi,
+        ztrial[k], rx, zx, &rtrial[k], &dtrial[k]);
+    if (dtrial[0] < best_d2) {
+      best_d2 = dtrial[0]; best_r = rtrial[0]; best_z = ztrial[0];
+    }
+    if (dtrial[1] < best_d2) {
+      best_d2 = dtrial[1]; best_r = rtrial[1]; best_z = ztrial[1];
+    }
+    if (dtrial[0] <= dtrial[1]) b = ztrial[1];
+    else a = ztrial[0];
+  }
+  *rnear = best_r; *znear = best_z;
+  double residual = tok_eval_psi_rz_local(geo, best_r, best_z)-psi;
+  return isfinite(best_r) && isfinite(best_z) && isfinite(residual) &&
+    fabs(residual) <= 1e-9*fmax(1.0, fabs(psi));
+}
+
+// Intersect the current surface with the fixed line from the selected X point
+// to its topology-safe target on the far radial surface.  Counting crossings
+// before bisection prevents a locally reversed DG flux representation from
+// silently selecting a different branch of the ray.
+static bool
+tok_ext_fixed_ray_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct arc_length_ctx *arc_ctx,
+  const struct tok_ext_endpoint *endpoint, double psi,
+  double *r, double *z)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  double rx = 0.0, zx = 0.0, rf = 0.0, zf = 0.0;
+  if (!tok_ext_xpoint_rz(geo, endpoint->xpoint, &rx, &zx) ||
+      !tok_ext_nearest_ray_target(inp, geo, endpoint,
+        arc_ctx->xpt_ray_psi0, &rf, &zf))
+    return false;
+
+  double scale = fmax(1.0, fmax(fabs(psi), fabs(geo->psisep)));
+  if (tok_geo_same_flux(psi, geo->psisep)) {
+    *r = rx; *z = zx;
+    return true;
+  }
+  if (tok_geo_same_flux(psi, arc_ctx->xpt_ray_psi0)) {
+    *r = rf; *z = zf;
+    return true;
+  }
+  double delta = arc_ctx->xpt_ray_psi0-geo->psisep;
+  if (!isfinite(delta) || fabs(delta) <= 256.0*DBL_EPSILON*scale)
+    return false;
+  double qtarget = (psi-geo->psisep)/delta;
+  if (qtarget <= 0.0 || qtarget >= 1.0)
+    return false;
+
+  const int nsamp = 512;
+  const double crossing_tol = 1e-13*fmax(1.0, fabs(qtarget));
+  double qprev = (tok_eval_psi_rz_local(geo, rx, zx)-geo->psisep)/delta;
+  double sprev = 0.0, slo = -1.0, shi = -1.0;
+  int upward = 0, downward = 0;
+  for (int i=1; i<=nsamp; ++i) {
+    double s = i/(double) nsamp;
+    double rs = rx+s*(rf-rx), zs = zx+s*(zf-zx);
+    double q = (tok_eval_psi_rz_local(geo, rs, zs)-geo->psisep)/delta;
+    if (!isfinite(q))
+      return false;
+    bool crosses_up = qprev < qtarget-crossing_tol &&
+      q >= qtarget-crossing_tol;
+    bool crosses_down = qprev > qtarget+crossing_tol &&
+      q <= qtarget+crossing_tol;
+    if (crosses_up) {
+      ++upward;
+      if (slo < 0.0) { slo = sprev; shi = s; }
+    }
+    if (crosses_down)
+      ++downward;
+    qprev = q; sprev = s;
+  }
+  if (upward != 1 || downward != 0 || slo < 0.0) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP nonunique fixed-ray intersection ftype=%d sector=%d xpoint=%d psi=%.17g target=%.17g upward=%d downward=%d\n",
+      inp->ftype, endpoint->sector, endpoint->xpoint, psi, qtarget,
+      upward, downward);
+    return false;
+  }
+
+  double flo = (tok_eval_psi_rz_local(geo,
+    rx+slo*(rf-rx), zx+slo*(zf-zx))-geo->psisep)/delta-qtarget;
+  for (int k=0; k<70; ++k) {
+    double smid = 0.5*(slo+shi);
+    double fm = (tok_eval_psi_rz_local(geo,
+      rx+smid*(rf-rx), zx+smid*(zf-zx))-geo->psisep)/delta-qtarget;
+    if (!isfinite(fm))
+      return false;
+    if (flo*fm <= 0.0)
+      shi = smid;
+    else { slo = smid; flo = fm; }
+  }
+  double s = 0.5*(slo+shi);
+  *r = rx+s*(rf-rx); *z = zx+s*(zf-zx);
+  double residual = tok_eval_psi_rz_local(geo, *r, *z)-psi;
+  return isfinite(*r) && isfinite(*z) && isfinite(residual) &&
+    fabs(residual) <= 1e-9*scale;
+}
+
+static double
+tok_ext_fixed_z(const struct gkyl_tok_geo_grid_inp *inp,
+  enum tok_ext_fixed_z_slot slot)
+{
+  switch (slot) {
+    case TOK_EXT_ZMIN: return inp->zmin;
+    case TOK_EXT_ZMAX: return inp->zmax;
+    case TOK_EXT_ZMIN_LEFT: return inp->zmin_left;
+    case TOK_EXT_ZMIN_RIGHT: return inp->zmin_right;
+    case TOK_EXT_ZMAX_LEFT: return inp->zmax_left;
+    case TOK_EXT_ZMAX_RIGHT: return inp->zmax_right;
+  }
+  return 0.0;
+}
+
+static bool
+tok_ext_endpoint_point(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct arc_length_ctx *arc_ctx,
+  const struct tok_ext_endpoint *endpoint,
+  double psi, bool separatrix, double *r, double *z)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  if (endpoint->kind == TOK_EXT_XPT_RAY) {
+    if (separatrix) {
+      return tok_ext_xpoint_rz(geo, endpoint->xpoint, r, z);
+    }
+    return tok_ext_fixed_ray_endpoint(inp, arc_ctx, endpoint, psi, r, z);
+  }
+  plate_func plate = endpoint->plate_slot == TOK_EXT_PLATE_LOWER
+    ? geo->plate_func_lower : geo->plate_func_upper;
+  if (geo->plate_spec && plate)
+    return tok_plate_flux_intersection(geo, plate, psi, inp->ftype, r, z);
+
+  *z = tok_ext_fixed_z(inp, endpoint->fixed_z_slot);
+  double R[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+  double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+  int nr = gkyl_tok_geo_R_psiZ(geo, psi, *z, 8,
+    R, dRdZ, dR, dZ);
+  if (nr <= 0)
+    return false;
+  bool outboard = endpoint->fixed_z_slot == TOK_EXT_ZMIN_RIGHT ||
+    endpoint->fixed_z_slot == TOK_EXT_ZMAX_RIGHT;
+  if (endpoint->fixed_z_slot == TOK_EXT_ZMIN ||
+      endpoint->fixed_z_slot == TOK_EXT_ZMAX)
+    outboard = inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO ||
+      inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP;
+  *r = tok_nearest_value(outboard ? inp->rright : inp->rleft, R, nr);
+  return isfinite(*r);
+}
+
+static bool
+tok_ext_finalize_trace(const struct gkyl_tok_geo *geo, double psi,
+  int ftype, int n, double *r, double *z, double *s)
+{
+  if (n < 2)
+    return false;
+  s[0] = 0.0;
+  double max_step = 0.0, total = 0.0;
+  for (int i=0; i<n; ++i) {
+    double residual = tok_eval_psi_rz_local(geo, r[i], z[i])-psi;
+    if (!isfinite(r[i]) || !isfinite(z[i]) || !isfinite(residual) ||
+        fabs(residual) > 2e-9*fmax(1.0, fabs(psi))) {
+      fprintf(stderr,
+        "TOK_EXT_TRACE invalid point ftype=%d i=%d psi=%.17g R=%.17g Z=%.17g residual=%.17g\n",
+        ftype, i, psi, r[i], z[i], residual);
+      return false;
+    }
+    if (i > 0) {
+      double ds = hypot(r[i]-r[i-1], z[i]-z[i-1]);
+      if (!(ds > 0.0) || !isfinite(ds))
+        return false;
+      total += ds; max_step = fmax(max_step, ds); s[i] = total;
+    }
+  }
+  double mean = total/(n-1);
+  double cell_diag = hypot(geo->rzgrid.dx[0], geo->rzgrid.dx[1]);
+  if (!(total > 0.0) || max_step > 4.0*cell_diag ||
+      max_step > 32.0*mean) {
+    fprintf(stderr,
+      "TOK_EXT_TRACE discontinuity ftype=%d psi=%.17g n=%d max_step=%.17g mean_step=%.17g cell_diag=%.17g\n",
+      ftype, psi, n, max_step, mean, cell_diag);
+    return false;
+  }
+  return true;
+}
+
+static bool
+tok_ext_build_open_trace(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, int n,
+  double r0, double z0, double r1, double z1,
+  double *r, double *z, double *s, bool *param_is_r)
+{
+  double *cr = gkyl_malloc(sizeof(double[4*n]));
+  double *cz = gkyl_malloc(sizeof(double[4*n]));
+  double score[4] = { DBL_MAX, DBL_MAX, DBL_MAX, DBL_MAX };
+  bool ok[4] = { false, false, false, false };
+  ok[0] = tok_build_contour_candidate(geo, psi, true,
+    r0, z0, r1, z1, n, cr, cz, &score[0], "extended", false);
+  ok[1] = tok_build_contour_candidate(geo, psi, false,
+    r0, z0, r1, z1, n, cr+n, cz+n, &score[1], "extended", false);
+  ok[2] = tok_build_contour_candidate(geo, psi, true,
+    r1, z1, r0, z0, n, cr+2*n, cz+2*n, &score[2],
+    "extended_reverse", false);
+  ok[3] = tok_build_contour_candidate(geo, psi, false,
+    r1, z1, r0, z0, n, cr+3*n, cz+3*n, &score[3],
+    "extended_reverse", false);
+  int best = -1;
+  for (int k=0; k<4; ++k)
+    if (ok[k] && (best < 0 || score[k] < score[best]))
+      best = k;
+  if (best < 0) {
+    gkyl_free(cr); gkyl_free(cz);
+    return false;
+  }
+  bool reverse = best >= 2;
+  int off = best*n;
+  for (int i=0; i<n; ++i) {
+    int src = reverse ? n-1-i : i;
+    r[i] = cr[off+src]; z[i] = cz[off+src];
+  }
+  *param_is_r = best == 0 || best == 2;
+  gkyl_free(cr); gkyl_free(cz);
+  return tok_ext_finalize_trace(geo, psi, inp->ftype, n, r, z, s);
+}
+
+static bool
+tok_ext_z_branch_points(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, int n,
+  double r0, double z0, double r1, double z1, bool outboard,
+  double *r, double *z)
+{
+  if (n < 2 || fabs(z1-z0) <= 64.0*DBL_EPSILON*
+      fmax(1.0, fmax(fabs(z0), fabs(z1))))
+    return false;
+  r[0] = r0; z[0] = z0;
+  double ref = outboard ? inp->rright : inp->rleft;
+  for (int i=1; i<n-1; ++i) {
+    double f = i/(double) (n-1);
+    z[i] = z0+f*(z1-z0);
+    double R[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+    double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+    int nr = gkyl_tok_geo_R_psiZ(geo, psi, z[i], 8,
+      R, dRdZ, dR, dZ);
+    if (nr <= 0)
+      return false;
+    r[i] = tok_nearest_value(ref, R, nr);
+  }
+  r[n-1] = r1; z[n-1] = z1;
+  return true;
+}
+
+static bool
+tok_ext_build_z_branch_trace(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, int n,
+  double r0, double z0, double r1, double z1, bool outboard,
+  double *r, double *z, double *s, bool *param_is_r)
+{
+  if (!tok_ext_z_branch_points(inp, geo, psi, n,
+      r0, z0, r1, z1, outboard, r, z))
+    return false;
+  *param_is_r = false;
+  return tok_ext_finalize_trace(geo, psi, inp->ftype, n, r, z, s);
+}
+
+static bool
+tok_ext_turning_point(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, bool upper,
+  double *rturn, double *zturn)
+{
+  double za = geo->zmaxis;
+  double zb = upper ? geo->rzgrid.upper[1] : geo->rzgrid.lower[1];
+  double zvalid = za, zinvalid = zb;
+  bool found_valid = false, found_invalid = false;
+  const int nsamp = 1024;
+  for (int i=0; i<=nsamp; ++i) {
+    double f = i/(double) nsamp;
+    double z = za+f*(zb-za);
+    double R[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+    double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+    int nr = gkyl_tok_geo_R_psiZ(geo, psi, z, 8,
+      R, dRdZ, dR, dZ);
+    if (nr > 0) {
+      zvalid = z; found_valid = true;
+    }
+    else if (found_valid) {
+      zinvalid = z; found_invalid = true; break;
+    }
+  }
+  if (!found_valid)
+    return false;
+  if (found_invalid) {
+    double zv = zvalid, zi = zinvalid;
+    for (int k=0; k<70; ++k) {
+      double zm = 0.5*(zv+zi);
+      double R[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+      double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+      int nr = gkyl_tok_geo_R_psiZ(geo, psi, zm, 8,
+        R, dRdZ, dR, dZ);
+      if (nr > 0) zv = zm; else zi = zm;
+    }
+    zvalid = zv;
+  }
+  double R[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+  double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+  int nr = gkyl_tok_geo_R_psiZ(geo, psi, zvalid, 8,
+    R, dRdZ, dR, dZ);
+  if (nr <= 0)
+    return false;
+  *zturn = zvalid;
+  *rturn = tok_nearest_value(0.5*(inp->rleft+inp->rright), R, nr);
+  return isfinite(*rturn) && isfinite(*zturn);
+}
+
+static bool
+tok_ext_sample_closed_base(const struct gkyl_tok_geo *geo, double psi,
+  const double *br, const double *bz, const double *bs, int nb,
+  double target, double *r, double *z);
+
+static bool
+tok_ext_build_via_upper_trace(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, int n,
+  double r0, double z0, double r1, double z1,
+  double *r, double *z, double *s, bool *param_is_r)
+{
+  double rt = 0.0, zt = 0.0;
+  if (!tok_ext_turning_point(inp, geo, psi, true, &rt, &zt))
+    return false;
+  // Build both monotone-Z branches at the same high resolution used by the
+  // closed-core route, then resample the joined path by normalized arc
+  // length.  At the single-null separatrix this is exactly the same contour
+  // construction used on the neighboring full-core block, so their entire
+  // shared radial edge (not only its X-point endpoints) is conforming.
+  int nside = n, nb = 2*nside-1;
+  double *br = gkyl_malloc(sizeof(double[nb]));
+  double *bz = gkyl_malloc(sizeof(double[nb]));
+  double *bs = gkyl_malloc(sizeof(double[nb]));
+  bool ok = tok_ext_z_branch_points(inp, geo, psi, nside,
+      r0, z0, rt, zt, true, br, bz) &&
+    tok_ext_z_branch_points(inp, geo, psi, nside,
+      rt, zt, r1, z1, false, br+nside-1, bz+nside-1);
+  if (ok) {
+    bs[0] = 0.0;
+    for (int i=1; i<nb; ++i)
+      bs[i] = bs[i-1]+hypot(br[i]-br[i-1], bz[i]-bz[i-1]);
+    double total = bs[nb-1];
+    ok = isfinite(total) && total > 0.0;
+    if (ok) {
+      r[0] = r0; z[0] = z0;
+      for (int i=1; i<n-1 && ok; ++i)
+        ok = tok_ext_sample_closed_base(geo, psi, br, bz, bs, nb,
+          total*i/(double) (n-1), &r[i], &z[i]);
+      r[n-1] = r1; z[n-1] = z1;
+    }
+  }
+  gkyl_free(br); gkyl_free(bz); gkyl_free(bs);
+  if (!ok)
+    return false;
+  *param_is_r = false;
+  return tok_ext_finalize_trace(geo, psi, inp->ftype, n, r, z, s);
+}
+
+static bool
+tok_ext_sample_closed_base(const struct gkyl_tok_geo *geo, double psi,
+  const double *br, const double *bz, const double *bs, int nb,
+  double target, double *r, double *z)
+{
+  double total = bs[nb-1];
+  while (target < 0.0) target += total;
+  while (target >= total) target -= total;
+  int lo = 0, hi = nb-1;
+  while (hi-lo > 1) {
+    int mid = (lo+hi)/2;
+    if (bs[mid] <= target) lo = mid; else hi = mid;
+  }
+  double ds = bs[hi]-bs[lo];
+  double w = ds > 0.0 ? (target-bs[lo])/ds : 0.0;
+  double rlin = br[lo]+w*(br[hi]-br[lo]);
+  double zlin = bz[lo]+w*(bz[hi]-bz[lo]);
+  double R[16] = { 0.0 }, dRdZ[16] = { 0.0 };
+  double dR[16] = { 0.0 }, dZ[16] = { 0.0 };
+  int nr = gkyl_tok_geo_R_psiZ(geo, psi, zlin, 16,
+    R, dRdZ, dR, dZ);
+  if (nr <= 0)
+    return false;
+  *r = tok_nearest_value(rlin, R, nr); *z = zlin;
+  return true;
+}
+
+static bool
+tok_ext_build_closed_core_trace(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct gkyl_tok_geo *geo, double psi, bool separatrix, int n,
+  double rseam, double zseam, double *r, double *z, double *s,
+  bool *param_is_r)
+{
+  double rlo = 0.0, zlo = 0.0, rup = 0.0, zup = 0.0;
+  if (separatrix) {
+    rlo = rseam; zlo = zseam;
+  }
+  else if (!tok_ext_turning_point(inp, geo, psi, false, &rlo, &zlo))
+    return false;
+  if (!tok_ext_turning_point(inp, geo, psi, true, &rup, &zup))
+    return false;
+
+  int nside = n;
+  int nb = 2*nside-1;
+  double *br = gkyl_malloc(sizeof(double[nb]));
+  double *bz = gkyl_malloc(sizeof(double[nb]));
+  double *bs = gkyl_malloc(sizeof(double[nb]));
+  bool ok = tok_ext_z_branch_points(inp, geo, psi, nside,
+    rlo, zlo, rup, zup, true, br, bz) &&
+    tok_ext_z_branch_points(inp, geo, psi, nside,
+      rup, zup, rlo, zlo, false, br+nside-1, bz+nside-1);
+  if (!ok) {
+    gkyl_free(br); gkyl_free(bz); gkyl_free(bs);
+    return false;
+  }
+  bs[0] = 0.0;
+  for (int i=1; i<nb; ++i)
+    bs[i] = bs[i-1]+hypot(br[i]-br[i-1], bz[i]-bz[i-1]);
+  double total = bs[nb-1];
+  if (!(total > 0.0)) {
+    gkyl_free(br); gkyl_free(bz); gkyl_free(bs);
+    return false;
+  }
+
+  double best_d2 = DBL_MAX, seam_s = 0.0;
+  for (int i=0; i<nb-1; ++i) {
+    double dr = br[i+1]-br[i], dz = bz[i+1]-bz[i];
+    double den = dr*dr+dz*dz;
+    double t = den > 0.0
+      ? ((rseam-br[i])*dr+(zseam-bz[i])*dz)/den : 0.0;
+    t = fmin(1.0, fmax(0.0, t));
+    double rp = br[i]+t*dr, zp = bz[i]+t*dz;
+    double d2 = SQ(rseam-rp)+SQ(zseam-zp);
+    if (d2 < best_d2) {
+      best_d2 = d2;
+      seam_s = bs[i]+t*(bs[i+1]-bs[i]);
+    }
+  }
+  double cell_diag = hypot(geo->rzgrid.dx[0], geo->rzgrid.dx[1]);
+  if (sqrt(best_d2) > 2.0*cell_diag) {
+    fprintf(stderr,
+      "TOK_EXT_TRACE core seam is not on contour ftype=%d psi=%.17g distance=%.17g\n",
+      inp->ftype, psi, sqrt(best_d2));
+    gkyl_free(br); gkyl_free(bz); gkyl_free(bs);
+    return false;
+  }
+
+  r[0] = rseam; z[0] = zseam;
+  for (int i=1; i<n-1; ++i) {
+    double target = seam_s+total*i/(double) (n-1);
+    if (!tok_ext_sample_closed_base(geo, psi, br, bz, bs, nb,
+        target, &r[i], &z[i])) {
+      gkyl_free(br); gkyl_free(bz); gkyl_free(bs);
+      return false;
+    }
+  }
+  r[n-1] = rseam; z[n-1] = zseam;
+  gkyl_free(br); gkyl_free(bz); gkyl_free(bs);
+  *param_is_r = false;
+  return tok_ext_finalize_trace(geo, psi, inp->ftype, n, r, z, s);
+}
+
+static bool
+tok_ext_build_domain_trace(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double psi, bool separatrix,
+  double *r, double *z, double *s, int *nout, bool *param_is_r,
+  bool *closed)
+{
+  struct tok_ext_topology top;
+  if (!tok_ext_topology_from_ftype(inp->ftype, &top)) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP straight_xpt_ray is unsupported for full-domain ftype=%d\n",
+      inp->ftype);
+    return false;
+  }
+  double r0 = 0.0, z0 = 0.0, r1 = 0.0, z1 = 0.0;
+  if (!tok_ext_endpoint_point(inp, arc_ctx, &top.lower,
+      psi, separatrix, &r0, &z0) ||
+      !tok_ext_endpoint_point(inp, arc_ctx, &top.upper,
+        psi, separatrix, &r1, &z1)) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP failed boundary endpoint ftype=%d psi=%.17g separatrix=%d\n",
+      inp->ftype, psi, separatrix);
+    return false;
+  }
+  int n = GKYL_MIN2(257, arc_ctx->sep_trace_capacity);
+  bool ok = false;
+  switch (top.route) {
+    case TOK_EXT_ROUTE_GENERIC:
+      ok = tok_ext_build_open_trace(inp, arc_ctx->geo, psi, n,
+        r0, z0, r1, z1, r, z, s, param_is_r);
+      break;
+    case TOK_EXT_ROUTE_OUTBOARD:
+      ok = tok_ext_build_z_branch_trace(inp, arc_ctx->geo, psi, n,
+        r0, z0, r1, z1, true, r, z, s, param_is_r);
+      break;
+    case TOK_EXT_ROUTE_INBOARD:
+      ok = tok_ext_build_z_branch_trace(inp, arc_ctx->geo, psi, n,
+        r0, z0, r1, z1, false, r, z, s, param_is_r);
+      break;
+    case TOK_EXT_ROUTE_VIA_UPPER:
+      ok = tok_ext_build_via_upper_trace(inp, arc_ctx->geo, psi, n,
+        r0, z0, r1, z1, r, z, s, param_is_r);
+      break;
+    case TOK_EXT_ROUTE_CLOSED_CORE:
+      ok = tok_ext_build_closed_core_trace(inp, arc_ctx->geo, psi,
+        separatrix, n, r0, z0, r, z, s, param_is_r);
+      break;
+  }
+  if (!ok) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP failed extended trace ftype=%d route=%d psi=%.17g separatrix=%d endpoints=(%.17g,%.17g)->(%.17g,%.17g)\n",
+      inp->ftype, top.route, psi, separatrix, r0, z0, r1, z1);
+    return false;
+  }
+  *nout = n; *closed = top.closed;
+  return true;
 }
 
 static bool
@@ -1000,19 +1908,75 @@ static bool
 tok_build_trace_correspondence(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx)
 {
+  const bool extended = inp->straight_xpt_ray && !inp->half_domain;
   if (arc_ctx->ordered_boundaries_initialized)
     return true;
-  if (!arc_ctx->sep_trace_initialized) {
-    double rf = 0.0, zf = 0.0;
-    if (!tok_fixed_edge_point(inp, arc_ctx->geo, arc_ctx->geo->psisep,
-        &rf, &zf))
+  bool closed = false;
+  if (extended) {
+    bool sep_closed = false, far_closed = false;
+    if (!arc_ctx->sep_trace_initialized) {
+      if (!tok_ext_build_domain_trace(inp, arc_ctx, arc_ctx->geo->psisep,
+          true, arc_ctx->sep_trace_r, arc_ctx->sep_trace_z,
+          arc_ctx->sep_trace_s, &arc_ctx->sep_trace_n,
+          &arc_ctx->sep_trace_param_is_r, &sep_closed))
+        return false;
+      arc_ctx->sep_trace_initialized = true;
+    }
+    else {
+      struct tok_ext_topology top;
+      if (!tok_ext_topology_from_ftype(inp->ftype, &top))
+        return false;
+      sep_closed = top.closed;
+    }
+    if (!arc_ctx->far_trace_initialized) {
+      if (!tok_ext_build_domain_trace(inp, arc_ctx,
+          arc_ctx->xpt_ray_psi0, false, arc_ctx->far_trace_r,
+          arc_ctx->far_trace_z, arc_ctx->far_trace_s,
+          &arc_ctx->far_trace_n, &arc_ctx->far_trace_param_is_r,
+          &far_closed))
+        return false;
+      arc_ctx->far_trace_initialized = true;
+    }
+    else {
+      struct tok_ext_topology top;
+      if (!tok_ext_topology_from_ftype(inp->ftype, &top))
+        return false;
+      far_closed = top.closed;
+    }
+    if (sep_closed != far_closed)
       return false;
-    tok_build_sep_trace(inp, arc_ctx, zf, rf);
+    closed = sep_closed;
   }
-  if (!tok_build_far_trace(inp, arc_ctx))
-    return false;
+  else {
+    if (!arc_ctx->sep_trace_initialized) {
+      double rf = 0.0, zf = 0.0;
+      if (!tok_fixed_edge_point(inp, arc_ctx->geo, arc_ctx->geo->psisep,
+          &rf, &zf))
+        return false;
+      tok_build_sep_trace(inp, arc_ctx, zf, rf);
+    }
+    if (!tok_build_far_trace(inp, arc_ctx))
+      return false;
+  }
 
   int n = GKYL_MIN2(arc_ctx->sep_trace_n, arc_ctx->far_trace_n);
+  if (n < 2)
+    return false;
+  // The extended full-domain traces already share topology-matched endpoints
+  // and direction.  Equal normalized contour length therefore supplies a
+  // one-to-one coordinate on every radial surface.  In particular, it avoids
+  // radial folds caused when nearest-point projection jumps between the two
+  // nearby legs of a single-null contour.  A closed core also needs this
+  // identity map because its duplicated seam makes nearest projection
+  // ambiguous.  Keep the original projection/PAVA correspondence unchanged
+  // for the established half-domain path.
+  if (extended || closed) {
+    for (int i=0; i<n; ++i)
+      arc_ctx->trace_corr_v[i] = i/(double) (n-1);
+    arc_ctx->trace_corr_n = n;
+    arc_ctx->ordered_boundaries_initialized = true;
+    return true;
+  }
   arc_ctx->trace_corr_v[0] = 0.0;
   for (int i=1; i<n-1; ++i) {
     double u = i/(double) (n-1), rs = 0.0, zs = 0.0;
@@ -1278,8 +2242,9 @@ tok_project_xpt_seam_candidate(const struct gkyl_tok_geo *geo, double psi,
 
 static bool
 tok_displace_xpt_seam_on_flux(const struct gkyl_tok_geo *geo, double psi,
-  double delta_s, double *r, double *z)
+  double delta_s, double *r, double *z, double *realized_out)
 {
+  *realized_out = 0.0;
   if (delta_s == 0.0)
     return true;
   const struct gkyl_rect_grid *grid = geo->use_cubics
@@ -1292,7 +2257,20 @@ tok_displace_xpt_seam_on_flux(const struct gkyl_tok_geo *geo, double psi,
     return false;
   int nstep = GKYL_MAX2(16, (int) required_steps);
   double rstart = *r, zstart = *z;
-  double relative_arc_error = DBL_MAX, realized = 0.0;
+  double arc_length_error = DBL_MAX, realized = 0.0;
+  // Combined absolute+relative acceptance. Near the B1(q) taper's
+  // endpoints the requested per-node delta_s shrinks toward zero, so a
+  // purely relative criterion against fabs(delta_s) is unreachable no
+  // matter how many times nstep is doubled; the absolute floor keeps that
+  // from being amplified into spurious rejections. Measured empirically:
+  // even at the nstep cap (4096) the achievable absolute arc-length error
+  // plateaus around 1e-8 m regardless of delta_s magnitude (set by the
+  // underlying per-step Newton projection's own precision, not by
+  // discretization), so 1e-10 is unreachable in both framings -- 1e-7
+  // comfortably covers the observed error with margin while still being
+  // far tighter than anything physically meaningful at this length scale.
+  const double arc_length_rel_tol = 1e-7;
+  const double arc_length_abs_tol = 1e-7;
   for (;;) {
     *r = rstart; *z = zstart;
     double step = delta_s/nstep;
@@ -1337,16 +2315,19 @@ tok_displace_xpt_seam_on_flux(const struct gkyl_tok_geo *geo, double psi,
       realized += hypot(rnext-*r, znext-*z);
       *r = rnext; *z = znext;
     }
-    relative_arc_error = fabs(realized-fabs(delta_s))
-      /fmax(fabs(delta_s), 1e-14);
-    if (isfinite(relative_arc_error) && relative_arc_error <= 5e-3)
+    double absolute_error = fabs(realized-fabs(delta_s));
+    double error_tolerance = fmax(arc_length_rel_tol*fabs(delta_s),
+      arc_length_abs_tol);
+    arc_length_error = absolute_error;
+    if (isfinite(absolute_error) && absolute_error <= error_tolerance) {
+      *realized_out = realized;
       return true;
+    }
     if (tok_ordered_map_diag_enabled())
       fprintf(stderr,
-        "TOK_XPT_SEAM_DIAG reason=arc_length_refine psi=%.17g requested=%.17g realized=%.17g signed_relative_error=%.17g nstep=%d step_size=%.17g\n",
-        psi, delta_s, realized,
-        (realized-fabs(delta_s))/fmax(fabs(delta_s), 1e-14), nstep,
-        fabs(step));
+        "TOK_XPT_SEAM_DIAG reason=arc_length_refine psi=%.17g requested=%.17g realized=%.17g signed_absolute_error=%.17g error_tolerance=%.17g nstep=%d step_size=%.17g\n",
+        psi, delta_s, realized, realized-fabs(delta_s), error_tolerance,
+        nstep, fabs(step));
     if (nstep > 4096/2)
       break;
     nstep *= 2;
@@ -1354,8 +2335,8 @@ tok_displace_xpt_seam_on_flux(const struct gkyl_tok_geo *geo, double psi,
   *r = rstart; *z = zstart;
   if (tok_ordered_map_diag_enabled())
     fprintf(stderr,
-      "TOK_XPT_SEAM_DIAG reason=arc_length_not_converged psi=%.17g requested=%.17g realized=%.17g relative_error=%.17g nstep=%d\n",
-      psi, delta_s, realized, relative_arc_error, nstep);
+      "TOK_XPT_SEAM_DIAG reason=arc_length_not_converged psi=%.17g requested=%.17g realized=%.17g absolute_error=%.17g nstep=%d\n",
+      psi, delta_s, realized, arc_length_error, nstep);
   return false;
 }
 
@@ -1418,6 +2399,11 @@ tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
       inp->ftype, psi, q, inp->relaxed_xpt_seam_delta_s_coeff,
       inp->relaxed_xpt_seam_delta_s_bound,
       inp->relaxed_xpt_seam_sweep ? "reject_candidate" : "retain_straight");
+    if (tok_xpt_seam_optimizer_trial(inp)) {
+      tok_xpt_seam_trial_reject(inp,
+        GKYL_XPT_SEAM_TRIAL_INVALID_PARAMETER);
+      return true;
+    }
     return !inp->relaxed_xpt_seam_sweep;
   }
 
@@ -1449,12 +2435,45 @@ tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
   if (point_delta_s == 0.0)
     return true;
   double candidate_r = *r, candidate_z = *z;
+  double realized = 0.0;
   if (!tok_displace_xpt_seam_on_flux(arc_ctx->geo, psi, point_delta_s,
-      &candidate_r, &candidate_z)) {
+      &candidate_r, &candidate_z, &realized)) {
     fprintf(stderr,
       "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g u=%.17g delta_s=%.17g point_delta_s=%.17g reason=contour_tracking_failed action=reject_candidate fallback=none\n",
       inp->ftype, psi, q, u, delta_s, point_delta_s);
+    if (tok_xpt_seam_optimizer_trial(inp)) {
+      tok_xpt_seam_trial_reject(inp, GKYL_XPT_SEAM_TRIAL_CONTOUR);
+      return true;
+    }
     return false;
+  }
+  if (tok_xpt_seam_optimizer_trial(inp)) {
+    struct gkyl_tok_geo_xpt_seam_trial_status *status =
+      inp->relaxed_xpt_seam_trial_status;
+    status->max_realized_displacement = fmax(
+      status->max_realized_displacement, realized);
+    double bound_tolerance = 64.0*DBL_EPSILON*fmax(1.0,
+      inp->relaxed_xpt_seam_delta_s_bound);
+    if (realized > inp->relaxed_xpt_seam_delta_s_bound+bound_tolerance) {
+      tok_xpt_seam_trial_reject(inp, GKYL_XPT_SEAM_TRIAL_CONTOUR);
+      return true;
+    }
+  }
+  if (tok_xpt_seam_endpoint(inp->ftype, u) &&
+      arc_ctx->xpt_ray_branch_valid) {
+    bool resolved = false, on_right = false;
+    if (!tok_xpt_classify_branch_at_point(inp, arc_ctx, candidate_r,
+        candidate_z, psi, &resolved, &on_right) || !resolved ||
+        on_right != arc_ctx->xpt_ray_on_right) {
+      if (tok_xpt_seam_optimizer_trial(inp)) {
+        tok_xpt_seam_trial_reject(inp, GKYL_XPT_SEAM_TRIAL_BRANCH);
+        return true;
+      }
+      fprintf(stderr,
+        "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g delta_s=%.17g reason=branch_identity_changed action=reject_candidate fallback=none\n",
+        inp->ftype, psi, q, delta_s);
+      return false;
+    }
   }
   *r = candidate_r; *z = candidate_z;
   if (tok_ordered_map_diag_enabled() &&
@@ -1483,6 +2502,109 @@ tok_fpol_at_psi(const struct gkyl_tok_geo *geo, double psi)
 }
 
 static bool
+tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx)
+{
+  struct tok_ext_topology top;
+  if (!tok_ext_topology_from_ftype(inp->ftype, &top) ||
+      arc_ctx->map_trace_n < 2)
+    return false;
+  if (top.phi_reference == TOK_EXT_PHI_LOWER) {
+    arc_ctx->map_trace_phi_ref = arc_ctx->map_trace_phi[0];
+    return true;
+  }
+  if (top.phi_reference == TOK_EXT_PHI_UPPER) {
+    arc_ctx->map_trace_phi_ref =
+      arc_ctx->map_trace_phi[arc_ctx->map_trace_n-1];
+    return true;
+  }
+
+  double R[16] = { 0.0 }, dRdZ[16] = { 0.0 };
+  double dR[16] = { 0.0 }, dZ[16] = { 0.0 };
+  int nr = gkyl_tok_geo_R_psiZ(arc_ctx->geo, arc_ctx->psi,
+    arc_ctx->geo->zmaxis, 16, R, dRdZ, dR, dZ);
+  if (nr <= 0)
+    return false;
+  bool outboard = top.phi_reference == TOK_EXT_PHI_OUTBOARD_MIDPLANE;
+  double target_r = tok_nearest_value(outboard ? inp->rright : inp->rleft,
+    R, nr);
+  double target_z = arc_ctx->geo->zmaxis;
+  double best_d2 = DBL_MAX, best_phi = 0.0, max_step = 0.0;
+  for (int i=0; i<arc_ctx->map_trace_n-1; ++i) {
+    double r0 = arc_ctx->map_trace_r[i];
+    double z0 = arc_ctx->map_trace_z[i];
+    double dr = arc_ctx->map_trace_r[i+1]-r0;
+    double dz = arc_ctx->map_trace_z[i+1]-z0;
+    double den = dr*dr+dz*dz;
+    if (!(den > 0.0))
+      continue;
+    max_step = fmax(max_step, sqrt(den));
+    double w = ((target_r-r0)*dr+(target_z-z0)*dz)/den;
+    w = fmin(1.0, fmax(0.0, w));
+    double rp = r0+w*dr, zp = z0+w*dz;
+    double d2 = SQ(target_r-rp)+SQ(target_z-zp);
+    if (d2 < best_d2) {
+      best_d2 = d2;
+      best_phi = arc_ctx->map_trace_phi[i]
+        +w*(arc_ctx->map_trace_phi[i+1]-arc_ctx->map_trace_phi[i]);
+    }
+  }
+  if (!isfinite(best_phi) || !isfinite(best_d2) || !(max_step > 0.0) ||
+      sqrt(best_d2) > 2.0*max_step) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP failed phi reference ftype=%d psi=%.17g side=%s distance=%.17g max_step=%.17g\n",
+      inp->ftype, arc_ctx->psi, outboard ? "outboard" : "inboard",
+      sqrt(best_d2), max_step);
+    return false;
+  }
+  arc_ctx->map_trace_phi_ref = best_phi;
+  return true;
+}
+
+// Sample a trace whose array index, rather than physical arc length, is
+// uniform in the logical block coordinate.  Project the local interpolation
+// back to psi=constant using whichever physical coordinate varies most on the
+// segment; this remains well conditioned at R and Z turning points.
+static bool
+tok_logical_trace_sample(const struct gkyl_tok_geo *geo, double psi,
+  const double *tr, const double *tz, int n, double u,
+  double *r, double *z)
+{
+  if (n < 2)
+    return false;
+  const double endpoint_tol = 256.0*DBL_EPSILON;
+  if (u <= endpoint_tol) { *r = tr[0]; *z = tz[0]; return true; }
+  if (u >= 1.0-endpoint_tol) {
+    *r = tr[n-1]; *z = tz[n-1]; return true;
+  }
+  double x = u*(n-1);
+  int i = GKYL_MIN2(n-2, GKYL_MAX2(0, (int) floor(x)));
+  double w = x-i;
+  double rlin = tr[i]+w*(tr[i+1]-tr[i]);
+  double zlin = tz[i]+w*(tz[i+1]-tz[i]);
+  double dr = tr[i+1]-tr[i], dz = tz[i+1]-tz[i];
+  if (fabs(dr) >= fabs(dz)) {
+    double roots[32] = { 0.0 };
+    int nr = tok_geo_Z_psiR(geo, psi, rlin, 32, roots);
+    if (nr <= 0)
+      return false;
+    *r = rlin; *z = tok_nearest_value(zlin, roots, nr);
+  }
+  else {
+    double roots[16] = { 0.0 }, dRdZ[16] = { 0.0 };
+    double dR[16] = { 0.0 }, dZ[16] = { 0.0 };
+    int nr = gkyl_tok_geo_R_psiZ(geo, psi, zlin, 16,
+      roots, dRdZ, dR, dZ);
+    if (nr <= 0)
+      return false;
+    *r = tok_nearest_value(rlin, roots, nr); *z = zlin;
+  }
+  double residual = tok_eval_psi_rz_local(geo, *r, *z)-psi;
+  return isfinite(*r) && isfinite(*z) && isfinite(residual) &&
+    fabs(residual) <= 1e-9*fmax(1.0, fabs(psi));
+}
+
+static bool
 tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx)
 {
@@ -1494,34 +2616,104 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
     return false;
   int n = GKYL_MIN2(arc_ctx->sep_trace_capacity,
     GKYL_MAX2(49, 4*inp->cgrid.cells[2]+1));
+  const bool extended = inp->straight_xpt_ray && !inp->half_domain;
+  double *raw_r = 0, *raw_z = 0, *raw_s = 0;
+  int raw_n = 0;
+  bool raw_param_is_r = false, raw_closed = false;
+  double radial_fraction = 0.0;
+  if (extended) {
+    int raw_capacity = arc_ctx->sep_trace_capacity;
+    raw_r = gkyl_malloc(sizeof(double[raw_capacity]));
+    raw_z = gkyl_malloc(sizeof(double[raw_capacity]));
+    raw_s = gkyl_malloc(sizeof(double[raw_capacity]));
+    bool at_sep = tok_geo_same_flux(psi, arc_ctx->geo->psisep);
+    if (!tok_ext_build_domain_trace(inp, arc_ctx, psi, at_sep,
+        raw_r, raw_z, raw_s, &raw_n, &raw_param_is_r, &raw_closed)) {
+      gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+      return false;
+    }
+    struct tok_ext_topology top;
+    if (!tok_ext_topology_from_ftype(inp->ftype, &top) ||
+        raw_closed != top.closed) {
+      gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+      return false;
+    }
+    double span = arc_ctx->xpt_ray_psi0-arc_ctx->geo->psisep;
+    if (!isfinite(span) || fabs(span) <= 256.0*DBL_EPSILON*
+        fmax(1.0, fabs(arc_ctx->geo->psisep))) {
+      gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+      return false;
+    }
+    radial_fraction = (psi-arc_ctx->geo->psisep)/span;
+    if (radial_fraction < -1e-8 || radial_fraction > 1.0+1e-8) {
+      gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+      return false;
+    }
+    radial_fraction = fmin(1.0, fmax(0.0, radial_fraction));
+  }
   double fpol = tok_fpol_at_psi(arc_ctx->geo, psi);
   arc_ctx->map_trace_s[0] = 0.0;
   arc_ctx->map_trace_phi[0] = 0.0;
   for (int i=0; i<n; ++i) {
     double u = i/(double) (n-1);
-    if (!tok_parameterized_xpt_seam_point(inp, arc_ctx, psi, u,
-        &arc_ctx->map_trace_r[i], &arc_ctx->map_trace_z[i]))
+    bool point_ok = false;
+    if (extended) {
+      double v = tok_trace_correspondence(arc_ctx, u);
+      double w = (1.0-radial_fraction)*u+radial_fraction*v;
+      point_ok = tok_trace_sample(arc_ctx->geo, psi,
+        raw_r, raw_z, raw_s, raw_n, raw_param_is_r, w,
+        &arc_ctx->map_trace_r[i], &arc_ctx->map_trace_z[i]);
+    }
+    else {
+      point_ok = tok_parameterized_xpt_seam_point(inp, arc_ctx, psi, u,
+        &arc_ctx->map_trace_r[i], &arc_ctx->map_trace_z[i]);
+    }
+    if (!point_ok) {
+      if (extended) {
+        gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+      }
       return false;
+    }
     if (i > 0) {
       double ds = hypot(arc_ctx->map_trace_r[i]-arc_ctx->map_trace_r[i-1],
         arc_ctx->map_trace_z[i]-arc_ctx->map_trace_z[i-1]);
-      if (!(ds > 0.0) || !isfinite(ds)) return false;
+      if (!(ds > 0.0) || !isfinite(ds)) {
+        if (extended) {
+          gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+        }
+        return false;
+      }
       arc_ctx->map_trace_s[i] = arc_ctx->map_trace_s[i-1]+ds;
       double rm = 0.5*(arc_ctx->map_trace_r[i]
         +arc_ctx->map_trace_r[i-1]);
       double zm = 0.5*(arc_ctx->map_trace_z[i]
         +arc_ctx->map_trace_z[i-1]);
       double gr = 0.0, gz = 0.0;
-      if (!tok_eval_psi_grad_rz_local(arc_ctx->geo, rm, zm, &gr, &gz))
+      if (!tok_eval_psi_grad_rz_local(arc_ctx->geo, rm, zm, &gr, &gz)) {
+        if (extended) {
+          gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+        }
         return false;
+      }
       double grad = hypot(gr, gz);
-      if (!(grad > 1e-14) || !(rm > 0.0)) return false;
+      if (!(grad > 1e-14) || !(rm > 0.0)) {
+        if (extended) {
+          gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+        }
+        return false;
+      }
       arc_ctx->map_trace_phi[i] = arc_ctx->map_trace_phi[i-1]
         +fpol*ds/(rm*grad);
     }
   }
+  if (extended) {
+    gkyl_free(raw_r); gkyl_free(raw_z); gkyl_free(raw_s);
+  }
   arc_ctx->map_trace_n = n;
   arc_ctx->map_trace_psi = psi;
+  if (inp->straight_xpt_ray && !inp->half_domain &&
+      !tok_ext_set_phi_reference(inp, arc_ctx))
+    return false;
   arc_ctx->map_trace_initialized = true;
   return true;
 }
@@ -1533,11 +2725,31 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
 {
   if (!tok_xpt_mapping_requested(inp))
     return false;
-  if (!tok_build_current_ordered_trace(inp, arc_ctx)) {
-    fprintf(stderr,
-      "TOK_ORDERED_MAP initialization failed ftype=%d psi=%.17g\n",
-      inp->ftype, arc_ctx->psi);
-    abort();
+  const struct gkyl_tok_geo_grid_inp *effective_inp = inp;
+  struct gkyl_tok_geo_grid_inp straight_inp;
+  if (!tok_build_current_ordered_trace(effective_inp, arc_ctx)) {
+    if (tok_xpt_seam_optimizer_trial(inp)) {
+      tok_xpt_seam_trial_reject(inp, GKYL_XPT_SEAM_TRIAL_TRACE_ORDERING);
+      straight_inp = *inp;
+      straight_inp.relaxed_xpt_seam_delta_s_coeff = 0.0;
+      straight_inp.relaxed_xpt_seam_sweep = false;
+      straight_inp.relaxed_xpt_seam_optimizer_trial = false;
+      straight_inp.relaxed_xpt_seam_trial_status = 0;
+      arc_ctx->map_trace_initialized = false;
+      if (!tok_build_current_ordered_trace(&straight_inp, arc_ctx)) {
+        fprintf(stderr,
+          "TOK_ORDERED_MAP straight trial fallback failed ftype=%d psi=%.17g\n",
+          inp->ftype, arc_ctx->psi);
+        abort();
+      }
+      effective_inp = &straight_inp;
+    }
+    else {
+      fprintf(stderr,
+        "TOK_ORDERED_MAP initialization failed ftype=%d psi=%.17g\n",
+        inp->ftype, arc_ctx->psi);
+      abort();
+    }
   }
   double dtheta = inp->cgrid.upper[2]-inp->cgrid.lower[2];
   double u = (theta-inp->cgrid.lower[2])/dtheta;
@@ -1545,7 +2757,14 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
   if (u <= 256.0*DBL_EPSILON) u = 0.0;
   else if (u >= 1.0-256.0*DBL_EPSILON) u = 1.0;
   else u = fmin(1.0, fmax(0.0, u));
-  if (!tok_parameterized_xpt_seam_point(inp, arc_ctx, arc_ctx->psi, u,
+  if (effective_inp->straight_xpt_ray && !effective_inp->half_domain) {
+    if (!tok_logical_trace_sample(arc_ctx->geo, arc_ctx->psi,
+        arc_ctx->map_trace_r, arc_ctx->map_trace_z,
+        arc_ctx->map_trace_n, u, &out->r, &out->z))
+      return false;
+  }
+  else if (!tok_parameterized_xpt_seam_point(effective_inp, arc_ctx,
+      arc_ctx->psi, u,
       &out->r, &out->z))
     return false;
   double x = u*(arc_ctx->map_trace_n-1);
@@ -1559,6 +2778,13 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
       &gr, &gz))
     return false;
   double tr = dr, tz = dz, grad = hypot(gr, gz);
+  if (tok_ordered_map_diag_enabled() &&
+      inp->straight_xpt_ray && !inp->half_domain && u == 0.0) {
+    fprintf(stderr,
+      "TOK_ORDERED_MAP_DIAG endpoint_tangent ftype=%d psi=%.17g R=%.17g Z=%.17g dRdu=%.17g dZdu=%.17g gradR=%.17g gradZ=%.17g canonical_dot=%.17g\n",
+      inp->ftype, arc_ctx->psi, out->r, out->z, dr/du, dz/du,
+      gr, gz, (-gz)*dr+gr*dz);
+  }
   if (grad > 1e-14) {
     tr = -gz/grad; tz = gr/grad;
     if (tr*dr+tz*dz < 0.0) { tr = -tr; tz = -tz; }
@@ -1573,8 +2799,10 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
   double w = x-i;
   double path_phi = arc_ctx->map_trace_phi[i]
     +w*(arc_ctx->map_trace_phi[i+1]-arc_ctx->map_trace_phi[i]);
-  double ref_phi = tok_sep_fixed_edge_is_first(inp->ftype) ? 0.0
-    : arc_ctx->map_trace_phi[arc_ctx->map_trace_n-1];
+  double ref_phi = effective_inp->straight_xpt_ray && !effective_inp->half_domain
+    ? arc_ctx->map_trace_phi_ref
+    : (tok_sep_fixed_edge_is_first(effective_inp->ftype) ? 0.0
+      : arc_ctx->map_trace_phi[arc_ctx->map_trace_n-1]);
   out->phi = alpha+path_phi-ref_phi;
   out->dphi_dtheta = (arc_ctx->map_trace_phi[i+1]
     -arc_ctx->map_trace_phi[i])/du/dtheta;
@@ -2491,22 +3719,36 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
         // also set phi_right and arcL_right
         // For a single null case:
         // also set zmin_left and zmin_right 
-        if (tok_xpt_mapping_requested(inp))
+        double qprofile = 0.0;
+        if (tok_xpt_mapping_requested(inp)) {
+          if (!inp->half_domain) {
+            // The ordered map changes only the coordinate construction.  Use
+            // the established contour setup, with the feature flags disabled
+            // on a local copy, to preserve the pre-feature q profile exactly.
+            struct gkyl_tok_geo_grid_inp legacy_inp = *inp;
+            struct arc_length_ctx qctx = arc_ctx;
+            legacy_inp.straight_xpt_ray = false;
+            legacy_inp.straight_core_xpt_ray = false;
+            tok_find_endpoints(&legacy_inp, geo, &qctx, &pctx,
+              psi_curr, alpha_curr, arc_memo, arc_memo_left,
+              arc_memo_right);
+            qprofile = qprofile_func(&qctx);
+          }
           tok_prepare_ordered_map(inp, &arc_ctx, psi_curr);
-        else
+        }
+        else {
           tok_find_endpoints(inp, geo, &arc_ctx, &pctx, psi_curr, alpha_curr,
             arc_memo, arc_memo_left, arc_memo_right);
+          qprofile = qprofile_func(&arc_ctx);
+        }
 
         // Calculate the q profile
         // qhat = - F(psi) * s(psi) / (R * grad(psi))
         // q = integral_0^2pi qhat dtheta
         //   = F(psi)*s(psi) * integral 1/(R*grad(psi)) dl
         //   = 1/s(psi) * integral (dphidtheta) ; dphidtheta = F(psi)/(R*grad(psi))
-        // The half-domain block types handled by the ordered map have always
-        // returned zero from qprofile_func; avoid invoking its legacy contour
-        // integration path.  Full-domain geometries retain the original path.
-        double qprofile = tok_xpt_mapping_requested(inp)
-          ? 0.0 : qprofile_func(&arc_ctx);
+        // The legacy half-domain block types return zero from qprofile_func;
+        // the full-domain branch above evaluates the unchanged legacy path.
 
         darcL = arc_ctx.arcL_tot/(up->basis.poly_order*inp->cgrid.cells[TH_IDX])
           * (inp->cgrid.upper[TH_IDX] - inp->cgrid.lower[TH_IDX])/2/M_PI;

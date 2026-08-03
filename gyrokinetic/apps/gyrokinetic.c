@@ -157,8 +157,8 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array
   gkyl_array_copy(app->delta_ts_x_up, delta_ts_x_dev);
 }
 
-gkyl_gyrokinetic_app*
-gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
+static gkyl_gyrokinetic_app*
+gyrokinetic_app_new_geom_impl(struct gkyl_gk *gk, bool write_geometry)
 {
   disable_denorm_float();
 
@@ -676,10 +676,22 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
     }
   }
 
-  // Write geometric quantities to file.
-  gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
+  if (write_geometry)
+    gkyl_gyrokinetic_app_write_geometry(app, &geometry_inp);
 
   return app;
+}
+
+gkyl_gyrokinetic_app*
+gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
+{
+  return gyrokinetic_app_new_geom_impl(gk, true);
+}
+
+gkyl_gyrokinetic_app*
+gkyl_gyrokinetic_app_new_geom_no_write(struct gkyl_gk *gk)
+{
+  return gyrokinetic_app_new_geom_impl(gk, false);
 }
 
 static void
@@ -3579,7 +3591,21 @@ gkyl_gyrokinetic_app_cout(const gkyl_gyrokinetic_app* app, FILE *fp, const char 
 void
 gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app)
 {
+  bool has_delta_ts_x = app->cdim == 3 &&
+    (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+      (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P &&
+        app->gk_geom->parallel_lower_bc_shift_func &&
+        app->gk_geom->parallel_upper_bc_shift_func));
+
+  gkyl_array_release(app->jacobtot_inv_weak);
+  if (has_delta_ts_x) {
+    gkyl_array_release(app->delta_ts_x_lo);
+    gkyl_array_release(app->delta_ts_x_up);
+  }
+
   gkyl_gk_geometry_release(app->gk_geom);
+  gkyl_dg_geom_release(app->dg_geom);
+  gkyl_gk_dg_geom_release(app->gk_dg_geom);
   gkyl_position_map_release(app->position_map);
   for (int dir=0; dir<app->cdim; ++dir) {
     gkyl_rect_decomp_release(app->decomp_plane[dir]);
@@ -3591,6 +3617,11 @@ gkyl_gyrokinetic_app_release_geom(gkyl_gyrokinetic_app* app)
   if (app->use_gpu) {
     gkyl_cu_free(app->basis_on_dev);
   }
+
+  gkyl_msgpack_map_elem_release(app->io_meta_basic_len, app->io_meta_basic);
+  gkyl_msgpack_map_elem_release(app->io_meta_dg_len, app->io_meta_dg);
+
+  gkyl_free(app);
 }
 
 void

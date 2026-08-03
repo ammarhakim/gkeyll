@@ -53,8 +53,8 @@ enum gkyl_tok_geo_type {
   GKYL_GEOMETRY_TOKAMAK_PF_LO_R, // Right half of Private flux region at bottom (outboard lower plate to lower xpt)
 
   // Core Block types that can be used with SN or DN configurations in multi-block simulations 
-  GKYL_GEOMETRY_TOKAMAK_CORE_L, // Left half of core (lower to upper xpt)
-  GKYL_GEOMETRY_TOKAMAK_CORE_R, // Right half of core (upper to lower xpt)
+  GKYL_GEOMETRY_TOKAMAK_CORE_L, // Left half of core (upper to lower xpt)
+  GKYL_GEOMETRY_TOKAMAK_CORE_R, // Right half of core (lower to upper xpt)
 
   GKYL_GEOMETRY_TOKAMAK_IWL, // Inner Wall Limited
 };  
@@ -128,6 +128,33 @@ struct gkyl_tok_geo {
 
 // Inputs to create a new GK geometry creation object
 
+enum gkyl_tok_geo_xpt_seam_trial_failure {
+  GKYL_XPT_SEAM_TRIAL_OK = 0,
+  GKYL_XPT_SEAM_TRIAL_INVALID_PARAMETER,
+  GKYL_XPT_SEAM_TRIAL_CONTOUR,
+  GKYL_XPT_SEAM_TRIAL_BRANCH,
+  GKYL_XPT_SEAM_TRIAL_TRACE_ORDERING,
+  GKYL_XPT_SEAM_TRIAL_NONFINITE_MAP,
+  GKYL_XPT_SEAM_TRIAL_CELL_JACOBIAN,
+  GKYL_XPT_SEAM_TRIAL_METRIC_JACOBIAN,
+  GKYL_XPT_SEAM_TRIAL_REMOTE_FAILURE,
+};
+
+// Status shared by one diagnostic optimizer trial and the mapping/metric
+// builders. Applications should leave the corresponding trial pointer unset.
+struct gkyl_tok_geo_xpt_seam_trial_status {
+  bool contour_valid;
+  bool branch_valid;
+  bool trace_ordering_valid;
+  bool finite_map_valid;
+  bool cell_jacobian_valid;
+  bool jacobian_valid;
+  int jacobian_sign;
+  int first_failure_reason;
+  double max_realized_displacement;
+  double min_cell_jacobian_margin;
+};
+
 
 // Inputs to create geometry for a specific computational grid
 struct gkyl_tok_geo_grid_inp {
@@ -156,9 +183,10 @@ struct gkyl_tok_geo_grid_inp {
   bool inexact_roots; // If true we will allow approximate roots when no root is found
   bool use_cubics; // If true will use the cubic rep of psi rather than the quadratic representation
   bool use_hyperbolic_numbers; // If true will use the hyperbolic numbers to do cubic root finding (much faster)
-  bool straight_xpt_ray; // Split supported lower-X-point multiblock regions on a
-                         // straight, flux-surface-intersecting ray from the X-point
-                         // to the nearest point on the requested far radial surface.
+  bool straight_xpt_ray; // Align supported half-domain, full-domain double-null,
+                         // and lower-single-null block interfaces on straight,
+                         // flux-surface-intersecting rays from their X points to
+                         // the requested far radial surface.
   bool straight_core_xpt_ray; // Align the CORE_L/CORE_R interface on a straight,
                               // flux-surface-intersecting ray from the lower X-point
                               // to the nearest point on the innermost core surface.
@@ -171,6 +199,10 @@ struct gkyl_tok_geo_grid_inp {
                                // This does not change the production default.
   double relaxed_xpt_seam_delta_s_coeff; // Peak B1 coefficient [m].
   double relaxed_xpt_seam_delta_s_bound; // Hard displacement bound [m].
+  bool relaxed_xpt_seam_optimize; // Run the diagnostic bounded optimizer.
+  bool relaxed_xpt_seam_optimizer_trial; // Internal trial marker.
+  struct gkyl_tok_geo_xpt_seam_trial_status
+    *relaxed_xpt_seam_trial_status; // Internal trial status; otherwise NULL.
 
   // Parameters for root finder: leave unset to use defaults
   struct {

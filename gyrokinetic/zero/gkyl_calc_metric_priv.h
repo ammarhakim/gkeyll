@@ -21,4 +21,6 @@ struct gkyl_calc_metric {
   // Orientation learned from the block's interior R-Z mapping and reused on
   // physical radial surfaces, where a one-sided stencil is less reliable.
   int rz_expected_jacobian_sign;
+  bool rz_jacobian_valid;
+  bool rz_jacobian_guard_nonfatal;
 };

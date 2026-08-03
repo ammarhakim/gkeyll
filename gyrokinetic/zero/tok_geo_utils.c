@@ -254,7 +254,7 @@ tok_nearest_point_on_surface(const struct gkyl_tok_geo_grid_inp *inp,
   return isfinite(best_r) && isfinite(best_z);
 }
 
-static bool
+bool
 tok_xpt_classify_branch_at_point(const struct gkyl_tok_geo_grid_inp *inp,
   const struct arc_length_ctx *arc_ctx, double Rpoint, double Zpoint,
   double psi, bool *resolved, bool *on_right)
@@ -665,6 +665,12 @@ tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
   // Preserve the old coordinate algebra in callers while the ordered map
   // consumes theta directly; no physical contour length is needed here.
   arc_ctx->arcL_tot = 2.0*M_PI;
+  // Full-domain single- and double-null blocks use topology-aware boundary
+  // traces built lazily in tok_geo.c.  They can have two distinct X-point
+  // rays (or a closed core seam), so the scalar lower-X-point anchor used by
+  // the original half-domain path is intentionally bypassed here.
+  if (inp->straight_xpt_ray && !inp->half_domain)
+    return;
   if (!tok_xpt_ray_enabled(inp) ||
       !tok_xpt_ray_anchor(inp, arc_ctx, psi_curr)) {
     fprintf(stderr,
@@ -1112,10 +1118,14 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
     }
     else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID) {
       *theta_lo = -M_PI+del + arcL_lo/arcL_tot*2.0*M_PI;
-      *theta_up = M_PI+del - arcL_up/arcL_tot*2.0*M_PI;
+      double theta_pi = inp->straight_xpt_ray && !inp->half_domain
+        ? M_PI-del : M_PI+del;
+      *theta_up = theta_pi - arcL_up/arcL_tot*2.0*M_PI;
     }
     else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP) {
-      *theta_lo = M_PI+del - arcL_up/arcL_tot*2.0*M_PI;
+      double theta_pi = inp->straight_xpt_ray && !inp->half_domain
+        ? M_PI-del : M_PI+del;
+      *theta_lo = theta_pi - arcL_up/arcL_tot*2.0*M_PI;
       *theta_up = M_PI-del;
     }
   }

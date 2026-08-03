@@ -35,8 +35,29 @@ gkyl_calc_metric_new(const struct gkyl_basis *cbasis, const struct gkyl_rect_gri
   up->local = *local;
   up->local_ext = *local_ext;
   up->rz_expected_jacobian_sign = 0;
+  up->rz_jacobian_valid = true;
+  up->rz_jacobian_guard_nonfatal = false;
 
   return up;
+}
+
+void
+gkyl_calc_metric_set_signed_jacobian_guard_nonfatal(gkyl_calc_metric *up,
+  bool nonfatal)
+{
+  up->rz_jacobian_guard_nonfatal = nonfatal;
+}
+
+bool
+gkyl_calc_metric_signed_jacobian_valid(const gkyl_calc_metric *up)
+{
+  return up->rz_jacobian_valid;
+}
+
+int
+gkyl_calc_metric_signed_jacobian_sign(const gkyl_calc_metric *up)
+{
+  return up->rz_expected_jacobian_sign;
 }
 
 static inline double calc_metric(double dxdz[3][3], int i, int j) 
@@ -78,6 +99,8 @@ signed_jacobian_rz(double R, double dRdpsi, double dZdpsi, double dRdtheta, doub
 
 struct signed_jacobian_guard_state {
   int expected_sign;
+  bool valid;
+  bool nonfatal;
 };
 
 static bool
@@ -102,7 +125,8 @@ signed_jacobian_guard_check(struct signed_jacobian_guard_state *state,
 {
   bool enabled = signed_jacobian_guard_enabled();
   if (!isfinite(J) || J == 0.0) {
-    if (!enabled)
+    state->valid = false;
+    if (!enabled || state->nonfatal)
       return;
     fprintf(stderr,
       "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g reason=%s\n",
@@ -115,7 +139,10 @@ signed_jacobian_guard_check(struct signed_jacobian_guard_state *state,
   int sign = J < 0.0 ? -1 : 1;
   if (state->expected_sign == 0)
     state->expected_sign = sign;
-  else if (enabled && sign != state->expected_sign) {
+  else if (sign != state->expected_sign) {
+    state->valid = false;
+    if (!enabled || state->nonfatal)
+      return;
     fprintf(stderr,
       "GKYL_SIGNED_JACOBIAN_GUARD failure version=1 location=%s dir=%d index=%d,%d,%d J=%.17g expected_sign=%d reason=sign_reversal\n",
       location, dir, cidx[0], cidx[1], cidx[2], J,
@@ -635,7 +662,10 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   enum { PSI_IDX, AL_IDX, TH_IDX }; // arrangement of computational coordinates
   enum { R_IDX, Z_IDX, PHI_IDX }; // arrangement of cartesian coordinates
   int cidx[3];
-  struct signed_jacobian_guard_state jac_guard = { 0 };
+  struct signed_jacobian_guard_state jac_guard = {
+    .valid = true,
+    .nonfatal = up->rz_jacobian_guard_nonfatal,
+  };
   for(int ia=gk_geom->nrange_int.lower[AL_IDX]; ia<=gk_geom->nrange_int.upper[AL_IDX]; ++ia){
     for (int ip=gk_geom->nrange_int.lower[PSI_IDX]; ip<=gk_geom->nrange_int.upper[PSI_IDX]; ++ip) {
       for (int it=gk_geom->nrange_int.lower[TH_IDX]; it<=gk_geom->nrange_int.upper[TH_IDX]; ++it) {
@@ -800,6 +830,7 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
   up->rz_expected_jacobian_sign = jac_guard.expected_sign;
+  up->rz_jacobian_valid = jac_guard.valid;
   metric_diag_write_interior(gk_geom);
 }
 
@@ -810,6 +841,8 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
   int cidx[3];
   struct signed_jacobian_guard_state jac_guard = {
     .expected_sign = up->rz_expected_jacobian_sign,
+    .valid = true,
+    .nonfatal = up->rz_jacobian_guard_nonfatal,
   };
   for(int ia=gk_geom->nrange_surf[dir].lower[AL_IDX]; ia<=gk_geom->nrange_surf[dir].upper[AL_IDX]; ++ia){
     for (int ip=gk_geom->nrange_surf[dir].lower[PSI_IDX]; ip<=gk_geom->nrange_surf[dir].upper[PSI_IDX]; ++ip) {
@@ -1024,6 +1057,7 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
       }
     }
   }
+  up->rz_jacobian_valid = up->rz_jacobian_valid && jac_guard.valid;
   metric_diag_write_surface(dir, gk_geom);
 }
 

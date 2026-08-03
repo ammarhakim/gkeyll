@@ -50,7 +50,7 @@ struct arc_length_ctx {
   // toroidal field-line integral on exactly the same R-Z path.
   double *map_trace_r, *map_trace_z, *map_trace_s, *map_trace_phi;
   int map_trace_n;
-  double map_trace_psi;
+  double map_trace_psi, map_trace_phi_ref;
   bool map_trace_initialized;
   double phi_right; // this is for when we need to switch sides
   double phi_left; // this is for when we need to switch sides
@@ -839,6 +839,11 @@ void tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *
  * independently normalized contour-arclength map. */
 void tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double psi_curr);
+
+bool tok_xpt_classify_branch_at_point(
+  const struct gkyl_tok_geo_grid_inp *inp,
+  const struct arc_length_ctx *arc_ctx, double Rpoint, double Zpoint,
+  double psi, bool *resolved, bool *on_right);
 
 /*
  * Used to set theta extents when using a global normalization factor

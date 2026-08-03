@@ -13,6 +13,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+static void gyrokinetic_multib_optimize_xpt_seams(
+  const struct gkyl_gyrokinetic_multib *mbinp,
+  struct gkyl_gyrokinetic_multib_app *mbapp);
+
 // Compute total number of ranges specified by cuts.
 static inline int
 calc_cuts(int ndim, const int *cuts)
@@ -52,11 +56,13 @@ calc_tot_and_max_cuts(const struct gkyl_gk_block_geom *gk_block_geom, int tot_ma
 
 // Construct single-block App geometry for given block ID.
 static struct gkyl_gyrokinetic_app *
-singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
-  const struct gkyl_gyrokinetic_multib_app *mbapp)
+singleb_app_new_geom_from_block(const struct gkyl_gyrokinetic_multib *mbinp,
+  int bid, const struct gkyl_gyrokinetic_multib_app *mbapp,
+  const struct gkyl_gk_block_geom_info *bgi, bool write_geometry)
 {
   const char *tok_geo_trace = getenv("GKYL_TOK_GEO_TRACE");
-  bool trace_tok_geo = tok_geo_trace && tok_geo_trace[0] != '\0' && tok_geo_trace[0] != '0';
+  bool trace_tok_geo = write_geometry && tok_geo_trace &&
+    tok_geo_trace[0] != '\0' && tok_geo_trace[0] != '0';
   if (trace_tok_geo) {
     char block_id[32];
     snprintf(block_id, sizeof block_id, "%d", bid);
@@ -68,9 +74,6 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   // For kinetic simulations, block dimension defined configuration-space dimensionality.
   int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
   int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
-
-  const struct gkyl_gk_block_geom_info *bgi =
-    gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
 
   // Construct top-level single-block input on the heap; this struct is large
   // enough to overflow the default stack in geometry-only multiblock tests.
@@ -124,13 +127,24 @@ singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   app_inp->metadata.num_attributes = mbapp->io_meta_basic_len;
   app_inp->metadata.attributes = mbapp->io_meta_basic;
 
-  struct gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new_geom(app_inp);
+  struct gkyl_gyrokinetic_app *app = write_geometry
+    ? gkyl_gyrokinetic_app_new_geom(app_inp)
+    : gkyl_gyrokinetic_app_new_geom_no_write(app_inp);
   gkyl_free(app_inp);
   if (trace_tok_geo) {
     fprintf(stderr, "GKYL_TOK_GEO_TRACE block_done bid=%d\n", bid);
     fflush(stderr);
   }
   return app;
+}
+
+static struct gkyl_gyrokinetic_app *
+singleb_app_new_geom(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
+  const struct gkyl_gyrokinetic_multib_app *mbapp)
+{
+  const struct gkyl_gk_block_geom_info *bgi =
+    gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
+  return singleb_app_new_geom_from_block(mbinp, bid, mbapp, bgi, true);
 }
 
 // Construct single-block App solver for given block ID.
@@ -583,6 +597,8 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     gkyl_multib_comm_conn_sort(mbcc_s);
   }
 
+  gyrokinetic_multib_optimize_xpt_seams(mbinp, mbapp);
+
   // Sync the conf-space volume Jacobian needed for syncing quantities that include a
   // jacobgeo factor in them.
   struct gkyl_array *jacs_vol[mbapp->num_local_blocks];
@@ -834,6 +850,8 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
     gkyl_multib_comm_conn_sort(mbcc_r);
     gkyl_multib_comm_conn_sort(mbcc_s);
   }
+
+  gyrokinetic_multib_optimize_xpt_seams(mbinp, mbapp);
 
   // Sync the conf-space volume Jacobian needed for syncing quantities that include a
   // jacobgeo factor in them.
@@ -1935,6 +1953,121 @@ pointwise_interface_is_owner(int bid, int dir, int edge, int partner_bid,
   return edge < partner_edge;
 }
 
+struct pointwise_xpt_mismatch {
+  bool local_valid, partner_valid;
+  bool local_abs_signed_consistent, partner_abs_signed_consistent;
+  bool objective_sample_valid, geometry_constraints_valid;
+  double position, position_scale;
+  double local_flux_residual, partner_flux_residual;
+  double requested_flux_mismatch;
+  double local_signed_j, local_abs_j, partner_signed_j, partner_abs_j;
+  double epsi_rz, epsi_phi_raw;
+  double etheta_direction, etheta_magnitude, etheta_phi_raw;
+  double jacobian_magnitude;
+};
+
+static struct pointwise_xpt_mismatch
+pointwise_measure_xpt_mismatch(const double *local, const double *partner)
+{
+  struct pointwise_xpt_mismatch mismatch = { 0 };
+  mismatch.local_valid = local[POINTWISE_VALID] == 1.0;
+  mismatch.partner_valid = partner[POINTWISE_VALID] == 1.0;
+  if (!mismatch.local_valid || !mismatch.partner_valid)
+    return mismatch;
+
+  double dr = local[POINTWISE_R]-partner[POINTWISE_R];
+  double dz = local[POINTWISE_Z]-partner[POINTWISE_Z];
+  mismatch.position = hypot(dr, dz);
+  mismatch.position_scale = fmax(1.0,
+    fmax(hypot(local[POINTWISE_R], local[POINTWISE_Z]),
+      hypot(partner[POINTWISE_R], partner[POINTWISE_Z])));
+  mismatch.local_flux_residual = local[POINTWISE_PSI_RESIDUAL];
+  mismatch.partner_flux_residual = partner[POINTWISE_PSI_RESIDUAL];
+  mismatch.requested_flux_mismatch = fabs(local[POINTWISE_PSI_REQUESTED]
+    -partner[POINTWISE_PSI_REQUESTED]);
+
+  mismatch.local_signed_j = local[POINTWISE_JACOBIAN_SIGNED];
+  mismatch.local_abs_j = local[POINTWISE_JACOBIAN_ABS];
+  mismatch.partner_signed_j = partner[POINTWISE_JACOBIAN_SIGNED];
+  mismatch.partner_abs_j = partner[POINTWISE_JACOBIAN_ABS];
+  mismatch.local_abs_signed_consistent = mismatch.local_abs_j > 0.0 &&
+    mismatch.local_signed_j != 0.0 &&
+    fabs(mismatch.local_abs_j-fabs(mismatch.local_signed_j))
+      <= 1e-12*fmax(1.0, mismatch.local_abs_j);
+  mismatch.partner_abs_signed_consistent = mismatch.partner_abs_j > 0.0 &&
+    mismatch.partner_signed_j != 0.0 &&
+    fabs(mismatch.partner_abs_j-fabs(mismatch.partner_signed_j))
+      <= 1e-12*fmax(1.0, mismatch.partner_abs_j);
+
+  double local_epsi = hypot(local[POINTWISE_EPSI_R],
+    local[POINTWISE_EPSI_Z]);
+  double partner_epsi = hypot(partner[POINTWISE_EPSI_R],
+    partner[POINTWISE_EPSI_Z]);
+  double epsi_scale = hypot(local_epsi, partner_epsi)/sqrt(2.0);
+  double local_etheta = hypot(local[POINTWISE_ETHETA_R],
+    local[POINTWISE_ETHETA_Z]);
+  double partner_etheta = hypot(partner[POINTWISE_ETHETA_R],
+    partner[POINTWISE_ETHETA_Z]);
+  double etheta_scale = hypot(local_etheta, partner_etheta)/sqrt(2.0);
+  mismatch.objective_sample_valid =
+    isfinite(epsi_scale) && epsi_scale > 0.0 &&
+    isfinite(etheta_scale) && etheta_scale > 0.0 &&
+    isfinite(local_etheta) && local_etheta > 0.0 &&
+    isfinite(partner_etheta) && partner_etheta > 0.0 &&
+    isfinite(mismatch.local_abs_j) && mismatch.local_abs_j > 0.0 &&
+    isfinite(mismatch.partner_abs_j) && mismatch.partner_abs_j > 0.0;
+  if (mismatch.objective_sample_valid) {
+    double depsi_r = local[POINTWISE_EPSI_R]
+      -partner[POINTWISE_EPSI_R];
+    double depsi_z = local[POINTWISE_EPSI_Z]
+      -partner[POINTWISE_EPSI_Z];
+    double depsi_phi = local[POINTWISE_EPSI_PHI]
+      -partner[POINTWISE_EPSI_PHI];
+    double depsi_r_normalized = depsi_r/epsi_scale;
+    double depsi_z_normalized = depsi_z/epsi_scale;
+    double depsi_phi_normalized = depsi_phi/epsi_scale;
+    mismatch.epsi_rz = depsi_r_normalized*depsi_r_normalized
+      +depsi_z_normalized*depsi_z_normalized;
+    mismatch.epsi_phi_raw = depsi_phi_normalized*depsi_phi_normalized;
+
+    double cos_angle =
+      (local[POINTWISE_ETHETA_R]/local_etheta)
+        *(partner[POINTWISE_ETHETA_R]/partner_etheta)
+      +(local[POINTWISE_ETHETA_Z]/local_etheta)
+        *(partner[POINTWISE_ETHETA_Z]/partner_etheta);
+    cos_angle = fmax(-1.0, fmin(1.0, cos_angle));
+    mismatch.etheta_direction = 2.0*(1.0-cos_angle);
+    double log_etheta_ratio = log(local_etheta)-log(partner_etheta);
+    mismatch.etheta_magnitude = log_etheta_ratio*log_etheta_ratio;
+    double detheta_phi = local[POINTWISE_ETHETA_PHI]
+      -partner[POINTWISE_ETHETA_PHI];
+    double detheta_phi_normalized = detheta_phi/etheta_scale;
+    mismatch.etheta_phi_raw =
+      detheta_phi_normalized*detheta_phi_normalized;
+    double log_j_ratio = log(mismatch.local_abs_j)
+      -log(mismatch.partner_abs_j);
+    mismatch.jacobian_magnitude = log_j_ratio*log_j_ratio;
+    mismatch.objective_sample_valid = isfinite(mismatch.epsi_rz) &&
+      isfinite(mismatch.epsi_phi_raw) &&
+      isfinite(mismatch.etheta_direction) &&
+      isfinite(mismatch.etheta_magnitude) &&
+      isfinite(mismatch.etheta_phi_raw) &&
+      isfinite(mismatch.jacobian_magnitude);
+  }
+
+  double flux_scale = fmax(1.0,
+    fmax(fabs(local[POINTWISE_PSI_REQUESTED]),
+      fabs(partner[POINTWISE_PSI_REQUESTED])));
+  mismatch.geometry_constraints_valid =
+    mismatch.position <= 1e-10*mismatch.position_scale &&
+    fabs(mismatch.local_flux_residual) <= 1e-10*flux_scale &&
+    fabs(mismatch.partner_flux_residual) <= 1e-10*flux_scale &&
+    mismatch.requested_flux_mismatch <= 1e-12*flux_scale &&
+    mismatch.local_abs_signed_consistent &&
+    mismatch.partner_abs_signed_consistent;
+  return mismatch;
+}
+
 static void
 pointwise_write_xpt_objective_header(FILE *fp)
 {
@@ -1992,109 +2125,16 @@ pointwise_write_xpt_objective_node(FILE *fp, const char *app_name,
   const char *requested_mode = requested_nonzero
     ? "requested_candidate" : "requested_zero";
 
-  bool local_valid = local[POINTWISE_VALID] == 1.0;
-  bool partner_valid = partner[POINTWISE_VALID] == 1.0;
-  double position = 0.0, position_scale = 0.0;
-  double local_flux_residual = 0.0, partner_flux_residual = 0.0;
-  double requested_flux_mismatch = 0.0;
-  double local_signed_j = 0.0, local_abs_j = 0.0;
-  double partner_signed_j = 0.0, partner_abs_j = 0.0;
-  bool local_abs_signed_consistent = false;
-  bool partner_abs_signed_consistent = false;
-  double epsi_rz = 0.0, epsi_phi_raw = 0.0;
-  double etheta_direction = 0.0, etheta_magnitude = 0.0;
-  double etheta_phi_raw = 0.0, jacobian_magnitude = 0.0;
-  bool objective_sample_valid = false;
-  bool pointwise_constraints_valid = false;
-
-  if (local_valid && partner_valid) {
-    double dr = local[POINTWISE_R]-partner[POINTWISE_R];
-    double dz = local[POINTWISE_Z]-partner[POINTWISE_Z];
-    position = hypot(dr, dz);
-    position_scale = fmax(1.0,
-      fmax(hypot(local[POINTWISE_R], local[POINTWISE_Z]),
-        hypot(partner[POINTWISE_R], partner[POINTWISE_Z])));
-    local_flux_residual = local[POINTWISE_PSI_RESIDUAL];
-    partner_flux_residual = partner[POINTWISE_PSI_RESIDUAL];
-    requested_flux_mismatch = fabs(local[POINTWISE_PSI_REQUESTED]
-      -partner[POINTWISE_PSI_REQUESTED]);
-
-    local_signed_j = local[POINTWISE_JACOBIAN_SIGNED];
-    local_abs_j = local[POINTWISE_JACOBIAN_ABS];
-    partner_signed_j = partner[POINTWISE_JACOBIAN_SIGNED];
-    partner_abs_j = partner[POINTWISE_JACOBIAN_ABS];
-    local_abs_signed_consistent = local_abs_j > 0.0 &&
-      local_signed_j != 0.0 &&
-      fabs(local_abs_j-fabs(local_signed_j))
-        <= 1e-12*fmax(1.0, local_abs_j);
-    partner_abs_signed_consistent = partner_abs_j > 0.0 &&
-      partner_signed_j != 0.0 &&
-      fabs(partner_abs_j-fabs(partner_signed_j))
-        <= 1e-12*fmax(1.0, partner_abs_j);
-
-    double local_epsi = hypot(local[POINTWISE_EPSI_R],
-      local[POINTWISE_EPSI_Z]);
-    double partner_epsi = hypot(partner[POINTWISE_EPSI_R],
-      partner[POINTWISE_EPSI_Z]);
-    double epsi_scale = hypot(local_epsi, partner_epsi)/sqrt(2.0);
-    double local_etheta = hypot(local[POINTWISE_ETHETA_R],
-      local[POINTWISE_ETHETA_Z]);
-    double partner_etheta = hypot(partner[POINTWISE_ETHETA_R],
-      partner[POINTWISE_ETHETA_Z]);
-    double etheta_scale = hypot(local_etheta, partner_etheta)/sqrt(2.0);
-    objective_sample_valid = isfinite(epsi_scale) && epsi_scale > 0.0 &&
-      isfinite(etheta_scale) && etheta_scale > 0.0 &&
-      isfinite(local_etheta) && local_etheta > 0.0 &&
-      isfinite(partner_etheta) && partner_etheta > 0.0 &&
-      isfinite(local_abs_j) && local_abs_j > 0.0 &&
-      isfinite(partner_abs_j) && partner_abs_j > 0.0;
-    if (objective_sample_valid) {
-      double depsi_r = local[POINTWISE_EPSI_R]
-        -partner[POINTWISE_EPSI_R];
-      double depsi_z = local[POINTWISE_EPSI_Z]
-        -partner[POINTWISE_EPSI_Z];
-      double depsi_phi = local[POINTWISE_EPSI_PHI]
-        -partner[POINTWISE_EPSI_PHI];
-      double depsi_r_normalized = depsi_r/epsi_scale;
-      double depsi_z_normalized = depsi_z/epsi_scale;
-      double depsi_phi_normalized = depsi_phi/epsi_scale;
-      epsi_rz = depsi_r_normalized*depsi_r_normalized
-        +depsi_z_normalized*depsi_z_normalized;
-      epsi_phi_raw = depsi_phi_normalized*depsi_phi_normalized;
-
-      double cos_angle =
-        (local[POINTWISE_ETHETA_R]/local_etheta)
-          *(partner[POINTWISE_ETHETA_R]/partner_etheta)
-        +(local[POINTWISE_ETHETA_Z]/local_etheta)
-          *(partner[POINTWISE_ETHETA_Z]/partner_etheta);
-      cos_angle = fmax(-1.0, fmin(1.0, cos_angle));
-      // This is exactly the squared distance between unit R-Z directions.
-      etheta_direction = 2.0*(1.0-cos_angle);
-      double log_etheta_ratio = log(local_etheta)-log(partner_etheta);
-      etheta_magnitude = log_etheta_ratio*log_etheta_ratio;
-      double detheta_phi = local[POINTWISE_ETHETA_PHI]
-        -partner[POINTWISE_ETHETA_PHI];
-      double detheta_phi_normalized = detheta_phi/etheta_scale;
-      etheta_phi_raw = detheta_phi_normalized*detheta_phi_normalized;
-      double log_j_ratio = log(local_abs_j)-log(partner_abs_j);
-      jacobian_magnitude = log_j_ratio*log_j_ratio;
-      objective_sample_valid = isfinite(epsi_rz) &&
-        isfinite(epsi_phi_raw) && isfinite(etheta_direction) &&
-        isfinite(etheta_magnitude) && isfinite(etheta_phi_raw) &&
-        isfinite(jacobian_magnitude);
-    }
-
-    double flux_scale = fmax(1.0,
-      fmax(fabs(local[POINTWISE_PSI_REQUESTED]),
-        fabs(partner[POINTWISE_PSI_REQUESTED])));
-    pointwise_constraints_valid = topology_pair_valid &&
-      transfer_status == 0 && can_canonicalize && parameter_valid &&
-      position <= 1e-10*position_scale &&
-      fabs(local_flux_residual) <= 1e-10*flux_scale &&
-      fabs(partner_flux_residual) <= 1e-10*flux_scale &&
-      requested_flux_mismatch <= 1e-12*flux_scale &&
-      local_abs_signed_consistent && partner_abs_signed_consistent;
-  }
+  // Reuse the same per-node mismatch helper the diagnostic optimizer uses
+  // (pointwise_measure_xpt_mismatch), so this CSV and the optimizer's
+  // in-memory objective cannot silently drift apart.
+  struct pointwise_xpt_mismatch mismatch =
+    pointwise_measure_xpt_mismatch(local, partner);
+  bool local_valid = mismatch.local_valid;
+  bool partner_valid = mismatch.partner_valid;
+  bool pointwise_constraints_valid = topology_pair_valid &&
+    transfer_status == 0 && can_canonicalize && parameter_valid &&
+    mismatch.geometry_constraints_valid;
 
   double sample_weight = interface_node_count > 0
     ? 1.0/interface_node_count : 0.0;
@@ -2117,14 +2157,17 @@ pointwise_write_xpt_objective_node(FILE *fp, const char *app_name,
     partner_inp->relaxed_xpt_seam_delta_s_bound, topology_pair_valid,
     transfer_status == 0, can_canonicalize, parameter_valid);
   fprintf(fp, ",%d,%d,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%d,%d",
-    local_valid, partner_valid, position, position_scale,
-    local_flux_residual, partner_flux_residual, requested_flux_mismatch,
-    local_signed_j, local_abs_j, partner_signed_j, partner_abs_j,
-    local_abs_signed_consistent, partner_abs_signed_consistent);
+    local_valid, partner_valid, mismatch.position, mismatch.position_scale,
+    mismatch.local_flux_residual, mismatch.partner_flux_residual,
+    mismatch.requested_flux_mismatch, mismatch.local_signed_j,
+    mismatch.local_abs_j, mismatch.partner_signed_j, mismatch.partner_abs_j,
+    mismatch.local_abs_signed_consistent,
+    mismatch.partner_abs_signed_consistent);
   fprintf(fp, ",%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%d,%d,not_recorded,not_recorded,not_recorded,not_recorded\n",
-    epsi_rz, epsi_phi_raw, etheta_direction, etheta_magnitude,
-    etheta_phi_raw, jacobian_magnitude, smoothness_dq, smoothness_d2q,
-    objective_sample_valid, pointwise_constraints_valid);
+    mismatch.epsi_rz, mismatch.epsi_phi_raw, mismatch.etheta_direction,
+    mismatch.etheta_magnitude, mismatch.etheta_phi_raw,
+    mismatch.jacobian_magnitude, smoothness_dq, smoothness_d2q,
+    mismatch.objective_sample_valid, pointwise_constraints_valid);
 }
 
 
@@ -2466,6 +2509,1163 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
   if (objective_fp)
     fclose(objective_fp);
   fclose(fp);
+}
+
+enum xpt_optimizer_reject_reason {
+  XPT_OPT_ACCEPTED = 0,
+  XPT_OPT_UNSUPPORTED_CONFIGURATION,
+  XPT_OPT_INVALID_TOPOLOGY,
+  XPT_OPT_INVALID_PARAMETERS,
+  XPT_OPT_TRIAL_MAPPING_FAILED,
+  XPT_OPT_FIXED_INTERFACE_CHANGED,
+  XPT_OPT_RADIAL_ORDERING_FAILED,
+  XPT_OPT_JACOBIAN_GUARD_FAILED,
+  XPT_OPT_TRANSFER_FAILED,
+  XPT_OPT_INCOMPLETE_INTERFACE,
+  XPT_OPT_POINTWISE_CONSTRAINT_FAILED,
+  XPT_OPT_OBJECTIVE_INVALID,
+};
+
+static const char*
+xpt_optimizer_reject_name(enum xpt_optimizer_reject_reason reason)
+{
+  switch (reason) {
+    case XPT_OPT_ACCEPTED: return "accepted";
+    case XPT_OPT_UNSUPPORTED_CONFIGURATION:
+      return "unsupported_configuration";
+    case XPT_OPT_INVALID_TOPOLOGY: return "invalid_topology";
+    case XPT_OPT_INVALID_PARAMETERS: return "invalid_parameters";
+    case XPT_OPT_TRIAL_MAPPING_FAILED: return "trial_mapping_failed";
+    case XPT_OPT_FIXED_INTERFACE_CHANGED:
+      return "fixed_interface_changed";
+    case XPT_OPT_RADIAL_ORDERING_FAILED:
+      return "radial_ordering_failed";
+    case XPT_OPT_JACOBIAN_GUARD_FAILED:
+      return "jacobian_guard_failed";
+    case XPT_OPT_TRANSFER_FAILED: return "transfer_failed";
+    case XPT_OPT_INCOMPLETE_INTERFACE: return "incomplete_interface";
+    case XPT_OPT_POINTWISE_CONSTRAINT_FAILED:
+      return "pointwise_constraint_failed";
+    case XPT_OPT_OBJECTIVE_INVALID: return "objective_invalid";
+  }
+  return "unknown";
+}
+
+struct xpt_optimizer_pair {
+  int bid[2], edge[2];
+  enum gkyl_oriented_edge connection;
+  double bound;
+  bool valid;
+  enum xpt_optimizer_reject_reason reject_reason;
+};
+
+struct xpt_optimizer_candidate {
+  int candidate_index, refinement_round;
+  double coefficient, bound;
+  bool valid, selected, at_bound;
+  enum xpt_optimizer_reject_reason reject_reason;
+  int trial_failure_reason;
+  long sample_count, expected_sample_count;
+  bool zero_map_equivalent, fixed_interfaces_valid;
+  bool radial_ordering_valid, jacobian_valid;
+  bool pointwise_constraints_valid;
+  double max_realized_displacement, min_cell_jacobian_margin;
+  double min_jacobian_ratio, max_jacobian_ratio;
+  double max_fixed_position_difference, max_anchor_position_difference;
+  double epsi_rz, etheta_direction;
+  double etheta_log_magnitude, jacobian_log_magnitude;
+  double objective;
+};
+
+enum { XPT_OPTIMIZER_MAX_PAIRS = 64 };
+
+// Verify that the partner's own connection record points back to (bid,
+// dir=1, edge) with the same orientation.  gkyl_gk_block_geom_check_consistency
+// checks this redundant data for the whole mesh, but is never called
+// automatically during app construction, so the X-point seam optimizer
+// checks the one interface it is about to use directly.
+static bool
+xpt_optimizer_reciprocal_topology(const struct gkyl_gyrokinetic_multib_app *app,
+  int bid, int edge, int partner_bid, int partner_dir,
+  enum gkyl_oriented_edge partner_oriented_edge)
+{
+  int partner_edge = oriented_edge_index(partner_oriented_edge);
+  if (partner_dir != 1 || partner_edge < 0)
+    return false;
+  const struct gkyl_target_edge *back =
+    &app->block_topo->conn[partner_bid].connections[1][partner_edge];
+  return back->bid == bid && back->dir == 1 &&
+    oriented_edge_index(back->edge) == edge &&
+    orientation_sign(back->edge) == orientation_sign(partner_oriented_edge);
+}
+
+// Build and fully validate the seam pair owned by (bid, edge): every static
+// topology/parameter requirement in the mission spec is checked here, with
+// pair.reject_reason recording the first failure so it can still be
+// reported even when the pair is not eligible for search.  Uses only
+// globally replicated block-geometry/topology data (never app->local_blocks
+// or any per-rank state), so every rank calls this with the same (bid,
+// edge) sequence and reaches the identical conclusion.
+static struct xpt_optimizer_pair
+xpt_optimizer_make_pair(const struct gkyl_gyrokinetic_multib_app *app,
+  int bid, int edge)
+{
+  struct xpt_optimizer_pair pair = {
+    .bid = { bid, -1 }, .edge = { edge, -1 }, .connection = GKYL_PHYSICAL,
+    .bound = 0.0, .valid = false,
+    .reject_reason = XPT_OPT_INVALID_TOPOLOGY,
+  };
+  const struct gkyl_gk_block_geom_info *bgi =
+    gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
+  const struct gkyl_target_edge *target =
+    &app->block_topo->conn[bid].connections[1][edge];
+  if (target->edge == GKYL_PHYSICAL)
+    return pair;
+
+  int partner_bid = target->bid, partner_dir = target->dir;
+  int partner_edge = oriented_edge_index(target->edge);
+  int orient_sign = orientation_sign(target->edge);
+  int num_blocks = gkyl_gk_block_geom_num_blocks(app->gk_block_geom);
+  if (partner_bid < 0 || partner_bid >= num_blocks || partner_edge < 0 ||
+      orient_sign == 0)
+    return pair;
+
+  bool same_direction = partner_dir == 1;
+  bool complementary_edge = partner_edge == 1-edge;
+  bool reciprocal = xpt_optimizer_reciprocal_topology(app, bid, edge,
+    partner_bid, partner_dir, target->edge);
+  if (!same_direction || !complementary_edge || !reciprocal)
+    return pair;
+
+  pair.bid[1] = partner_bid;
+  pair.edge[1] = partner_edge;
+  pair.connection = target->edge;
+
+  const struct gkyl_gk_block_geom_info *partner_bgi =
+    gkyl_gk_block_geom_get_block(app->gk_block_geom, partner_bid);
+  if (pointwise_xpt_seam_edge(bgi) != edge ||
+      pointwise_xpt_seam_edge(partner_bgi) != partner_edge)
+    return pair;
+  if (!pointwise_xpt_ftype_pair(bgi->geometry.tok_grid_info.ftype,
+      partner_bgi->geometry.tok_grid_info.ftype))
+    return pair;
+
+  int cdim = gkyl_gk_block_geom_ndim(app->gk_block_geom);
+  bool conforming = true;
+  for (int td=0; td<cdim; ++td) {
+    if (td == 1)
+      continue;
+    conforming = conforming && bgi->cells[td] == partner_bgi->cells[td];
+  }
+  // Negative orientation reverses the radial index of the partner cell
+  // in-place (see xpt_optimizer_measure_pair); that reversed cell is only
+  // guaranteed to be locally addressable when neither block is radially
+  // decomposed across ranks, so require cuts[0]==1 on both sides rather
+  // than attempt cross-rank addressing here.
+  bool supported_decomp = bgi->cuts[0] == 1 && partner_bgi->cuts[0] == 1;
+  if (cdim != 2 || !conforming || !supported_decomp) {
+    pair.reject_reason = XPT_OPT_UNSUPPORTED_CONFIGURATION;
+    return pair;
+  }
+
+  const struct gkyl_tok_geo_grid_inp *local_inp = &bgi->geometry.tok_grid_info;
+  const struct gkyl_tok_geo_grid_inp *partner_inp =
+    &partner_bgi->geometry.tok_grid_info;
+  bool both_request_optimize = local_inp->relaxed_xpt_seam_optimize &&
+    partner_inp->relaxed_xpt_seam_optimize;
+  bool both_present = local_inp->half_domain && partner_inp->half_domain &&
+    local_inp->straight_xpt_ray && partner_inp->straight_xpt_ray &&
+    local_inp->relaxed_xpt_seam && partner_inp->relaxed_xpt_seam;
+  if (!both_request_optimize || !both_present) {
+    pair.reject_reason = XPT_OPT_UNSUPPORTED_CONFIGURATION;
+    return pair;
+  }
+
+  double bound_scale = fmax(1.0,
+    fmax(fabs(local_inp->relaxed_xpt_seam_delta_s_bound),
+      fabs(partner_inp->relaxed_xpt_seam_delta_s_bound)));
+  bool bound_matches =
+    isfinite(local_inp->relaxed_xpt_seam_delta_s_bound) &&
+    isfinite(partner_inp->relaxed_xpt_seam_delta_s_bound) &&
+    local_inp->relaxed_xpt_seam_delta_s_bound > 0.0 &&
+    fabs(local_inp->relaxed_xpt_seam_delta_s_bound
+      -partner_inp->relaxed_xpt_seam_delta_s_bound)
+      <= 64.0*DBL_EPSILON*bound_scale;
+  bool baseline_zero =
+    local_inp->relaxed_xpt_seam_delta_s_coeff == 0.0 &&
+    partner_inp->relaxed_xpt_seam_delta_s_coeff == 0.0 &&
+    !local_inp->relaxed_xpt_seam_sweep && !partner_inp->relaxed_xpt_seam_sweep;
+  if (!bound_matches || !baseline_zero) {
+    pair.reject_reason = XPT_OPT_INVALID_PARAMETERS;
+    return pair;
+  }
+
+  pair.bound = local_inp->relaxed_xpt_seam_delta_s_bound;
+  pair.valid = true;
+  pair.reject_reason = XPT_OPT_ACCEPTED;
+  return pair;
+}
+
+// Discover every X-point seam pair in the (globally replicated) block
+// topology, in ascending (bid, edge) order.  Every rank calls this with the
+// same gk_block_geom/block_topo regardless of its own local block
+// assignment, so every rank produces the identical ordered pair list --
+// required because candidate evaluation below is a collective operation
+// over app->comm.
+static int
+xpt_optimizer_discover_pairs(const struct gkyl_gyrokinetic_multib_app *app,
+  struct xpt_optimizer_pair pairs[XPT_OPTIMIZER_MAX_PAIRS])
+{
+  int num_blocks = gkyl_gk_block_geom_num_blocks(app->gk_block_geom);
+  int num_pairs = 0;
+  bool claimed[num_blocks];
+  for (int b=0; b<num_blocks; ++b)
+    claimed[b] = false;
+
+  for (int bid=0; bid<num_blocks; ++bid) {
+    const struct gkyl_gk_block_geom_info *bgi =
+      gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
+    int seam_edge = pointwise_xpt_seam_edge(bgi);
+    if (seam_edge < 0)
+      continue;
+    const struct gkyl_target_edge *target =
+      &app->block_topo->conn[bid].connections[1][seam_edge];
+    if (target->edge == GKYL_PHYSICAL)
+      continue;
+    int partner_edge = oriented_edge_index(target->edge);
+    if (!pointwise_interface_is_owner(bid, 1, seam_edge, target->bid,
+        target->dir, partner_edge))
+      continue;
+    if (num_pairs >= XPT_OPTIMIZER_MAX_PAIRS) {
+      fprintf(stderr, "X-point seam optimizer: too many candidate pairs "
+        "(max %d); skipping remainder\n", XPT_OPTIMIZER_MAX_PAIRS);
+      break;
+    }
+
+    struct xpt_optimizer_pair pair =
+      xpt_optimizer_make_pair(app, bid, seam_edge);
+    // One optimizer pair per block: a block already claimed by an earlier
+    // pair (should not happen given a consistent topology, but checked
+    // defensively) makes this pair invalid rather than silently reused.
+    bool already_claimed = claimed[bid] ||
+      (pair.bid[1] >= 0 && claimed[pair.bid[1]]);
+    if (already_claimed) {
+      pair.valid = false;
+      pair.reject_reason = XPT_OPT_INVALID_TOPOLOGY;
+    }
+    else {
+      claimed[bid] = true;
+      if (pair.bid[1] >= 0)
+        claimed[pair.bid[1]] = true;
+    }
+    pairs[num_pairs++] = pair;
+  }
+  return num_pairs;
+}
+
+static struct gkyl_tok_geo_xpt_seam_trial_status
+xpt_optimizer_trial_status_init(void)
+{
+  return (struct gkyl_tok_geo_xpt_seam_trial_status) {
+    .contour_valid = true,
+    .branch_valid = true,
+    .trace_ordering_valid = true,
+    .finite_map_valid = true,
+    .cell_jacobian_valid = true,
+    .jacobian_valid = true,
+    .jacobian_sign = 0,
+    .first_failure_reason = GKYL_XPT_SEAM_TRIAL_OK,
+    .max_realized_displacement = 0.0,
+    .min_cell_jacobian_margin = DBL_MAX,
+  };
+}
+
+static int
+xpt_optimizer_local_block_index(const gkyl_gyrokinetic_multib_app *app,
+  int bid)
+{
+  for (int b=0; b<app->num_local_blocks; ++b)
+    if (app->local_blocks[b] == bid)
+      return b;
+  return -1;
+}
+
+static bool
+xpt_optimizer_array_equal(const struct gkyl_array *left,
+  const struct gkyl_array *right)
+{
+  if (left->size != right->size || left->ncomp != right->ncomp)
+    return false;
+  for (long i=0; i<left->size; ++i) {
+    const double *lv = gkyl_array_cfetch(left, i);
+    const double *rv = gkyl_array_cfetch(right, i);
+    if (memcmp(lv, rv, left->ncomp*sizeof(double)) != 0)
+      return false;
+  }
+  return true;
+}
+
+static bool
+xpt_optimizer_same_position(const double *baseline, const double *trial,
+  double *max_difference)
+{
+  double difference = hypot(trial[0]-baseline[0], trial[1]-baseline[1]);
+  double scale = fmax(1.0,
+    fmax(hypot(baseline[0], baseline[1]), hypot(trial[0], trial[1])));
+  *max_difference = fmax(*max_difference, difference);
+  return isfinite(difference) && difference <= 64.0*DBL_EPSILON*scale;
+}
+
+static bool
+xpt_optimizer_array_finite(const struct gkyl_array *array)
+{
+  for (long i=0; i<array->size; ++i) {
+    const double *values = gkyl_array_cfetch(array, i);
+    for (int c=0; c<array->ncomp; ++c)
+      if (!jacobgeo_ratio_diag_coeff_is_set(values[c]))
+        return false;
+  }
+  return true;
+}
+
+// Reject a candidate whose Jacobian magnitude drifts by more than this
+// factor, at any single node, relative to the corresponding baseline node.
+// This is a pointwise ratio, not a comparison of global minima: a small
+// bound displacement should only ever perturb the local Jacobian modestly,
+// so a factor of 10 in either direction is already generous headroom while
+// still catching an incipient local fold long before jacobian_valid would
+// otherwise be tripped by a sign change or nonfinite value.
+static const double XPT_OPTIMIZER_MIN_JACOBIAN_RATIO = 0.1;
+static const double XPT_OPTIMIZER_MAX_JACOBIAN_RATIO = 10.0;
+
+struct xpt_optimizer_local_guard {
+  bool zero_map_equivalent;
+  bool fixed_interfaces_valid;
+  bool radial_ordering_valid;
+  bool jacobian_valid;
+  int baseline_jacobian_sign, trial_jacobian_sign;
+  double baseline_min_jacobian, trial_min_jacobian;
+  double min_jacobian_ratio, max_jacobian_ratio;
+  double max_fixed_position_difference;
+  double max_anchor_position_difference;
+};
+
+static double
+xpt_optimizer_eval_corner_component(const struct gkyl_gyrokinetic_app *app,
+  const int *cell_idx, const double *eta, int component)
+{
+  long loc = gkyl_range_idx(&app->local_ext, cell_idx);
+  const double *coeff = gkyl_array_cfetch(app->gk_geom->geo_corn.mc2p, loc);
+  return app->basis.eval_expand(eta,
+    &coeff[component*app->basis.num_basis]);
+}
+
+static struct xpt_optimizer_local_guard
+xpt_optimizer_check_local_block(
+  const struct gkyl_gyrokinetic_app *baseline,
+  const struct gkyl_gyrokinetic_app *trial, int seam_edge,
+  double coefficient)
+{
+  struct xpt_optimizer_local_guard guard = {
+    .zero_map_equivalent = true,
+    .fixed_interfaces_valid = true,
+    .radial_ordering_valid = true,
+    .jacobian_valid = true,
+    .baseline_min_jacobian = DBL_MAX,
+    .trial_min_jacobian = DBL_MAX,
+    .min_jacobian_ratio = DBL_MAX,
+    .max_jacobian_ratio = 0.0,
+  };
+  if (coefficient == 0.0) {
+    guard.zero_map_equivalent =
+      xpt_optimizer_array_equal(baseline->gk_geom->geo_corn.mc2p,
+        trial->gk_geom->geo_corn.mc2p) &&
+      xpt_optimizer_array_equal(baseline->gk_geom->geo_int.mc2p,
+        trial->gk_geom->geo_int.mc2p);
+    for (int d=0; d<baseline->cdim; ++d)
+      guard.zero_map_equivalent = guard.zero_map_equivalent &&
+        xpt_optimizer_array_equal(
+          baseline->gk_geom->geo_surf[d].mc2p_nodal_fd,
+          trial->gk_geom->geo_surf[d].mc2p_nodal_fd);
+  }
+
+  // Every radial face and the theta edge opposite the X-point seam are
+  // fixed.  Compare central physical R-Z positions at all their surface
+  // quadrature nodes.
+  for (int d=0; d<baseline->cdim; ++d) {
+    const struct gkyl_range *range = &baseline->gk_geom->nrange_surf[d];
+    for (int edge=0; edge<2; ++edge) {
+      if (d == 1 && edge == seam_edge)
+        continue;
+      int edge_idx = edge == 0 ? range->lower[d] : range->upper[d];
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, range);
+      while (gkyl_range_iter_next(&iter)) {
+        if (iter.idx[d] != edge_idx)
+          continue;
+        long loc = gkyl_range_idx(range, iter.idx);
+        const double *base_position = gkyl_array_cfetch(
+          baseline->gk_geom->geo_surf[d].mc2p_nodal_fd, loc);
+        const double *trial_position = gkyl_array_cfetch(
+          trial->gk_geom->geo_surf[d].mc2p_nodal_fd, loc);
+        guard.fixed_interfaces_valid = guard.fixed_interfaces_valid &&
+          xpt_optimizer_same_position(base_position, trial_position,
+            &guard.max_fixed_position_difference);
+      }
+    }
+  }
+
+  // The two radial endpoints of the seam are cell vertices, not surface
+  // quadrature nodes.  Evaluate the p1 corner expansion there explicitly.
+  struct gkyl_range_iter cell_iter;
+  gkyl_range_iter_init(&cell_iter, &baseline->local);
+  while (gkyl_range_iter_next(&cell_iter)) {
+    bool on_theta_cell = seam_edge == 0
+      ? cell_iter.idx[1] == baseline->global.lower[1]
+      : cell_iter.idx[1] == baseline->global.upper[1];
+    if (!on_theta_cell)
+      continue;
+    for (int radial_edge=0; radial_edge<2; ++radial_edge) {
+      bool on_radial_cell = radial_edge == 0
+        ? cell_iter.idx[0] == baseline->global.lower[0]
+        : cell_iter.idx[0] == baseline->global.upper[0];
+      if (!on_radial_cell)
+        continue;
+      double eta[2] = {
+        radial_edge == 0 ? -1.0 : 1.0,
+        seam_edge == 0 ? -1.0 : 1.0,
+      };
+      double base_position[2], trial_position[2];
+      for (int c=0; c<2; ++c) {
+        base_position[c] = xpt_optimizer_eval_corner_component(baseline,
+          cell_iter.idx, eta, c);
+        trial_position[c] = xpt_optimizer_eval_corner_component(trial,
+          cell_iter.idx, eta, c);
+      }
+      guard.fixed_interfaces_valid = guard.fixed_interfaces_valid &&
+        xpt_optimizer_same_position(base_position, trial_position,
+          &guard.max_anchor_position_difference);
+    }
+  }
+
+  // Strict radial progress on the seam, measured against the established
+  // straight-map direction at every adjacent p1 surface node.
+  const struct gkyl_range *seam_range =
+    &baseline->gk_geom->nrange_surf[1];
+  int theta_idx = seam_edge == 0
+    ? seam_range->lower[1] : seam_range->upper[1];
+  for (int ip=seam_range->lower[0]; ip<seam_range->upper[0]; ++ip) {
+    int idx0[2] = { ip, theta_idx }, idx1[2] = { ip+1, theta_idx };
+    const double *b0 = gkyl_array_cfetch(
+      baseline->gk_geom->geo_surf[1].mc2p_nodal_fd,
+      gkyl_range_idx(seam_range, idx0));
+    const double *b1 = gkyl_array_cfetch(
+      baseline->gk_geom->geo_surf[1].mc2p_nodal_fd,
+      gkyl_range_idx(seam_range, idx1));
+    const double *t0 = gkyl_array_cfetch(
+      trial->gk_geom->geo_surf[1].mc2p_nodal_fd,
+      gkyl_range_idx(seam_range, idx0));
+    const double *t1 = gkyl_array_cfetch(
+      trial->gk_geom->geo_surf[1].mc2p_nodal_fd,
+      gkyl_range_idx(seam_range, idx1));
+    double bdr = b1[0]-b0[0], bdz = b1[1]-b0[1];
+    double tdr = t1[0]-t0[0], tdz = t1[1]-t0[1];
+    double base_distance = hypot(bdr, bdz);
+    double trial_distance = hypot(tdr, tdz);
+    double dot = bdr*tdr+bdz*tdz;
+    double position_scale = fmax(1.0,
+      fmax(hypot(t0[0], t0[1]), hypot(t1[0], t1[1])));
+    bool ordered = isfinite(base_distance) && isfinite(trial_distance) &&
+      trial_distance > 256.0*DBL_EPSILON*position_scale &&
+      dot > 256.0*DBL_EPSILON*base_distance*trial_distance;
+    guard.radial_ordering_valid = guard.radial_ordering_valid && ordered;
+  }
+
+  // Compare every node against its own baseline counterpart (a pointwise
+  // ratio), rather than comparing the global minima of the two maps: a
+  // single node collapsing locally would not necessarily move the global
+  // minimum, especially when the baseline map already has small Jacobian
+  // elsewhere (e.g. near a compressed far surface).
+  const struct gkyl_array *base_j =
+    baseline->gk_geom->geo_int.jacobgeo_nodal;
+  const struct gkyl_array *trial_j = trial->gk_geom->geo_int.jacobgeo_nodal;
+  if (base_j->size != trial_j->size)
+    guard.jacobian_valid = false;
+  else {
+    for (long i=0; i<base_j->size; ++i) {
+      const double *base_values = gkyl_array_cfetch(base_j, i);
+      const double *trial_values = gkyl_array_cfetch(trial_j, i);
+      double bj = base_values[0];
+      double tj = trial_values[0];
+      bool node_valid = isfinite(bj) && bj > 0.0 && isfinite(tj) && tj > 0.0;
+      guard.jacobian_valid = guard.jacobian_valid && node_valid;
+      guard.baseline_min_jacobian =
+        fmin(guard.baseline_min_jacobian, bj);
+      guard.trial_min_jacobian = fmin(guard.trial_min_jacobian, tj);
+      if (node_valid) {
+        double ratio = tj/bj;
+        guard.min_jacobian_ratio = fmin(guard.min_jacobian_ratio, ratio);
+        guard.max_jacobian_ratio = fmax(guard.max_jacobian_ratio, ratio);
+      }
+    }
+  }
+  for (int d=0; d<baseline->cdim; ++d) {
+    const struct gkyl_array *base_signed =
+      baseline->gk_geom->geo_surf[d].jacobgeo_signed_nodal;
+    const struct gkyl_array *trial_signed =
+      trial->gk_geom->geo_surf[d].jacobgeo_signed_nodal;
+    if (base_signed->size != trial_signed->size) {
+      guard.jacobian_valid = false;
+      continue;
+    }
+    for (long i=0; i<base_signed->size; ++i) {
+      const double *base_values = gkyl_array_cfetch(base_signed, i);
+      const double *trial_values = gkyl_array_cfetch(trial_signed, i);
+      double bj = base_values[0];
+      double tj = trial_values[0];
+      int bsign = bj < 0.0 ? -1 : 1;
+      int tsign = tj < 0.0 ? -1 : 1;
+      if (guard.baseline_jacobian_sign == 0)
+        guard.baseline_jacobian_sign = bsign;
+      if (guard.trial_jacobian_sign == 0)
+        guard.trial_jacobian_sign = tsign;
+      bool node_valid =
+        isfinite(bj) && bj != 0.0 && isfinite(tj) && tj != 0.0 &&
+        bsign == guard.baseline_jacobian_sign &&
+        tsign == guard.trial_jacobian_sign;
+      guard.jacobian_valid = guard.jacobian_valid && node_valid;
+      guard.baseline_min_jacobian =
+        fmin(guard.baseline_min_jacobian, fabs(bj));
+      guard.trial_min_jacobian =
+        fmin(guard.trial_min_jacobian, fabs(tj));
+      if (node_valid) {
+        // Same-signed ratio: fabs(J_trial)/fabs(J_baseline) at this node.
+        double ratio = tj/bj;
+        guard.min_jacobian_ratio = fmin(guard.min_jacobian_ratio, ratio);
+        guard.max_jacobian_ratio = fmax(guard.max_jacobian_ratio, ratio);
+      }
+    }
+    guard.jacobian_valid = guard.jacobian_valid &&
+      xpt_optimizer_array_finite(
+        trial->gk_geom->geo_surf[d].dxdz_nodal);
+  }
+  guard.jacobian_valid = guard.jacobian_valid &&
+    guard.baseline_jacobian_sign != 0 &&
+    guard.trial_jacobian_sign == guard.baseline_jacobian_sign &&
+    isfinite(guard.min_jacobian_ratio) && isfinite(guard.max_jacobian_ratio) &&
+    guard.min_jacobian_ratio >= XPT_OPTIMIZER_MIN_JACOBIAN_RATIO &&
+    guard.max_jacobian_ratio <= XPT_OPTIMIZER_MAX_JACOBIAN_RATIO &&
+    xpt_optimizer_array_finite(trial->gk_geom->geo_int.dxdz_nodal);
+  return guard;
+}
+
+static void
+xpt_optimizer_measure_pair(gkyl_gyrokinetic_multib_app *app,
+  struct gkyl_gyrokinetic_app **trial_apps,
+  const struct xpt_optimizer_pair *pair, struct gkyl_efit **efit,
+  struct xpt_optimizer_candidate *candidate)
+{
+  enum { NUM_QUAD = 2, NODES_PER_FACE = 2 };
+  int packed_ncomp = 2*NODES_PER_FACE*POINTWISE_NUM_FIELDS;
+  struct gkyl_array *side[app->num_local_blocks];
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    struct gkyl_gyrokinetic_app *sbapp = trial_apps[b];
+    side[b] = mkarr(false, packed_ncomp, sbapp->local_ext.volume);
+    gkyl_array_clear(side[b], 0.0);
+    int bid = app->local_blocks[b];
+    if ((bid != pair->bid[0] && bid != pair->bid[1]) || !efit[b])
+      continue;
+    const struct gkyl_gk_block_geom_info *bgi =
+      gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
+    const struct gk_geom_surf *surf = &sbapp->gk_geom->geo_surf[1];
+    for (int edge=0; edge<2; ++edge) {
+      bool on_block_edge = edge == 0
+        ? sbapp->local.lower[1] == sbapp->global.lower[1]
+        : sbapp->local.upper[1] == sbapp->global.upper[1];
+      if (!on_block_edge)
+        continue;
+      const struct gkyl_range *skin = edge == 0
+        ? &sbapp->local_lower_skin[1] : &sbapp->local_upper_skin[1];
+      struct gkyl_range_iter iter;
+      gkyl_range_iter_init(&iter, skin);
+      while (gkyl_range_iter_next(&iter)) {
+        long cell_loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
+        double *packed = gkyl_array_fetch(side[b], cell_loc);
+        for (int n=0; n<NODES_PER_FACE; ++n) {
+          int surf_idx[2] = {
+            sbapp->gk_geom->nrange_surf[1].lower[0]
+              +(iter.idx[0]-sbapp->local.lower[0])*NUM_QUAD+n,
+            edge == 0 ? sbapp->gk_geom->nrange_surf[1].lower[1]
+              : sbapp->gk_geom->nrange_surf[1].upper[1],
+          };
+          pointwise_fill_geometry_record(sbapp, efit[b],
+            bgi->geometry.tok_grid_info.use_cubics, 1, surf_idx,
+            surf->mc2p_nodal_fd, surf->dxdz_nodal,
+            surf->jacobgeo_signed_nodal, surf->jacobgeo_nodal,
+            &packed[(edge*NODES_PER_FACE+n)*POINTWISE_NUM_FIELDS]);
+        }
+      }
+    }
+  }
+
+  int transfer_status = gkyl_multib_comm_conn_array_transfer(app->comm,
+    app->num_local_blocks, app->local_blocks, app->mbcc_sync_conf->send,
+    app->mbcc_sync_conf->recv, side, side);
+  int64_t transfer_failed_local = transfer_status != 0;
+  int64_t transfer_failed = 0;
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, 1,
+    &transfer_failed_local, &transfer_failed);
+
+  double local_sum[4] = { 0.0 }, global_sum[4] = { 0.0 };
+  int64_t local_count = 0, global_count = 0;
+  int64_t local_invalid = 0, global_invalid = 0;
+  int owner_local = xpt_optimizer_local_block_index(app, pair->bid[0]);
+  if (owner_local >= 0) {
+    struct gkyl_gyrokinetic_app *sbapp = trial_apps[owner_local];
+    int edge = pair->edge[0], partner_edge = pair->edge[1];
+    int orient_sign = orientation_sign(pair->connection);
+    const struct gkyl_range *ghost = edge == 0
+      ? &sbapp->local_lower_ghost[1] : &sbapp->local_upper_ghost[1];
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, ghost);
+    while (gkyl_range_iter_next(&iter)) {
+      int skin_idx[2] = { iter.idx[0], iter.idx[1] };
+      skin_idx[1] += edge == 0 ? 1 : -1;
+      const double *local_packed = gkyl_array_cfetch(side[owner_local],
+        gkyl_range_idx(&sbapp->local_ext, skin_idx));
+      int partner_ghost_idx[2] = { iter.idx[0], iter.idx[1] };
+      if (orient_sign < 0) {
+        int cell_offset = skin_idx[0]-sbapp->global.lower[0];
+        partner_ghost_idx[0] = sbapp->global.upper[0]-cell_offset;
+      }
+      const double *partner_packed = gkyl_array_cfetch(side[owner_local],
+        gkyl_range_idx(&sbapp->local_ext, partner_ghost_idx));
+      for (int n=0; n<NODES_PER_FACE; ++n) {
+        int partner_node = orient_sign < 0 ? NODES_PER_FACE-1-n : n;
+        const double *local_record =
+          &local_packed[(edge*NODES_PER_FACE+n)*POINTWISE_NUM_FIELDS];
+        const double *partner_native =
+          &partner_packed[(partner_edge*NODES_PER_FACE+partner_node)
+            *POINTWISE_NUM_FIELDS];
+        double partner_record[POINTWISE_NUM_FIELDS] = { 0.0 };
+        pointwise_canonicalize_partner_record(1, orient_sign,
+          partner_native, partner_record);
+        struct pointwise_xpt_mismatch mismatch =
+          pointwise_measure_xpt_mismatch(local_record, partner_record);
+        local_count += 1;
+        bool valid = mismatch.objective_sample_valid &&
+          mismatch.geometry_constraints_valid;
+        local_invalid = local_invalid || !valid;
+        if (mismatch.objective_sample_valid) {
+          local_sum[0] += mismatch.epsi_rz;
+          local_sum[1] += mismatch.etheta_direction;
+          local_sum[2] += mismatch.etheta_magnitude;
+          local_sum[3] += mismatch.jacobian_magnitude;
+        }
+      }
+    }
+  }
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 4,
+    local_sum, global_sum);
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_SUM, 1,
+    &local_count, &global_count);
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, 1,
+    &local_invalid, &global_invalid);
+  for (int b=0; b<app->num_local_blocks; ++b)
+    gkyl_array_release(side[b]);
+
+  const struct gkyl_gk_block_geom_info *owner_bgi =
+    gkyl_gk_block_geom_get_block(app->gk_block_geom, pair->bid[0]);
+  candidate->expected_sample_count =
+    2L*owner_bgi->cells[0];
+  candidate->sample_count = global_count;
+  candidate->pointwise_constraints_valid =
+    !transfer_failed && !global_invalid &&
+    global_count == candidate->expected_sample_count;
+  if (global_count > 0) {
+    candidate->epsi_rz = global_sum[0]/global_count;
+    candidate->etheta_direction = global_sum[1]/global_count;
+    candidate->etheta_log_magnitude = global_sum[2]/global_count;
+    candidate->jacobian_log_magnitude = global_sum[3]/global_count;
+    candidate->objective = candidate->epsi_rz
+      +candidate->etheta_direction
+      +0.5*(candidate->etheta_log_magnitude
+        +candidate->jacobian_log_magnitude);
+  }
+  if (transfer_failed)
+    candidate->reject_reason = XPT_OPT_TRANSFER_FAILED;
+  else if (global_count != candidate->expected_sample_count)
+    candidate->reject_reason = XPT_OPT_INCOMPLETE_INTERFACE;
+  else if (global_invalid)
+    candidate->reject_reason = XPT_OPT_POINTWISE_CONSTRAINT_FAILED;
+  else if (!isfinite(candidate->objective))
+    candidate->reject_reason = XPT_OPT_OBJECTIVE_INVALID;
+}
+
+static bool
+xpt_optimizer_status_valid(
+  const struct gkyl_tok_geo_xpt_seam_trial_status *status)
+{
+  return status->first_failure_reason == GKYL_XPT_SEAM_TRIAL_OK &&
+    status->contour_valid && status->branch_valid &&
+    status->trace_ordering_valid && status->finite_map_valid &&
+    status->cell_jacobian_valid && status->jacobian_valid &&
+    status->jacobian_sign != 0 &&
+    isfinite(status->min_cell_jacobian_margin) &&
+    status->min_cell_jacobian_margin > 256.0*DBL_EPSILON &&
+    isfinite(status->max_realized_displacement);
+}
+
+static struct xpt_optimizer_candidate
+xpt_optimizer_evaluate_candidate(
+  const struct gkyl_gyrokinetic_multib *mbinp,
+  gkyl_gyrokinetic_multib_app *app,
+  const struct xpt_optimizer_pair *pair, double coefficient,
+  int candidate_index, int refinement_round, struct gkyl_efit **efit)
+{
+  struct xpt_optimizer_candidate result = {
+    .candidate_index = candidate_index,
+    .refinement_round = refinement_round,
+    .coefficient = coefficient,
+    .bound = pair->bound,
+    .zero_map_equivalent = true,
+    .fixed_interfaces_valid = true,
+    .radial_ordering_valid = true,
+    .jacobian_valid = true,
+    .pointwise_constraints_valid = false,
+    .min_cell_jacobian_margin = DBL_MAX,
+    .min_jacobian_ratio = DBL_MAX,
+    .max_jacobian_ratio = 0.0,
+    .objective = DBL_MAX,
+    .reject_reason = XPT_OPT_ACCEPTED,
+  };
+  result.at_bound = fabs(fabs(coefficient)-pair->bound)
+    <= 64.0*DBL_EPSILON*fmax(1.0, pair->bound);
+  if (!isfinite(coefficient) || fabs(coefficient) > pair->bound
+      +64.0*DBL_EPSILON*fmax(1.0, pair->bound)) {
+    result.reject_reason = XPT_OPT_INVALID_PARAMETERS;
+    return result;
+  }
+
+  struct gkyl_gyrokinetic_app **trial_apps =
+    gkyl_malloc(sizeof(*trial_apps)*app->num_local_blocks);
+  bool *owned = gkyl_calloc(app->num_local_blocks, sizeof(bool));
+  struct gkyl_tok_geo_xpt_seam_trial_status status[2] = {
+    xpt_optimizer_trial_status_init(), xpt_optimizer_trial_status_init(),
+  };
+  int64_t local_mapping_failed = 0, local_zero_failed = 0;
+  int64_t local_fixed_failed = 0, local_ordering_failed = 0;
+  int64_t local_jacobian_failed = 0, local_failure_reason = 0;
+  double local_max_displacement = 0.0;
+  double local_min_margin = DBL_MAX;
+  double local_min_jacobian_ratio = DBL_MAX, local_max_jacobian_ratio = 0.0;
+  double local_max_fixed_position_difference = 0.0;
+  double local_max_anchor_position_difference = 0.0;
+
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    int bid = app->local_blocks[b];
+    int pair_side = bid == pair->bid[0] ? 0 : bid == pair->bid[1] ? 1 : -1;
+    if (pair_side < 0) {
+      trial_apps[b] = app->singleb_apps[b];
+      continue;
+    }
+    const struct gkyl_gk_block_geom_info *base_bgi =
+      gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
+    struct gkyl_gk_block_geom_info trial_bgi = *base_bgi;
+    struct gkyl_tok_geo_grid_inp *trial_inp =
+      &trial_bgi.geometry.tok_grid_info;
+    trial_inp->relaxed_xpt_seam = true;
+    trial_inp->relaxed_xpt_seam_sweep = true;
+    trial_inp->relaxed_xpt_seam_delta_s_coeff = coefficient;
+    trial_inp->relaxed_xpt_seam_delta_s_bound = pair->bound;
+    trial_inp->relaxed_xpt_seam_optimize = false;
+    trial_inp->relaxed_xpt_seam_optimizer_trial = true;
+    trial_inp->relaxed_xpt_seam_trial_status = &status[pair_side];
+    trial_apps[b] = singleb_app_new_geom_from_block(mbinp, bid, app,
+      &trial_bgi, false);
+    owned[b] = true;
+
+    bool status_valid = xpt_optimizer_status_valid(&status[pair_side]);
+    local_mapping_failed = local_mapping_failed || !status_valid;
+    local_failure_reason = GKYL_MAX2(local_failure_reason,
+      status[pair_side].first_failure_reason);
+    local_max_displacement = fmax(local_max_displacement,
+      status[pair_side].max_realized_displacement);
+    local_min_margin = fmin(local_min_margin,
+      status[pair_side].min_cell_jacobian_margin);
+
+    struct xpt_optimizer_local_guard guard =
+      xpt_optimizer_check_local_block(app->singleb_apps[b], trial_apps[b],
+        pair->edge[pair_side], coefficient);
+    local_zero_failed = local_zero_failed || !guard.zero_map_equivalent;
+    local_fixed_failed = local_fixed_failed ||
+      !guard.fixed_interfaces_valid;
+    local_ordering_failed = local_ordering_failed ||
+      !guard.radial_ordering_valid;
+    local_jacobian_failed = local_jacobian_failed ||
+      !guard.jacobian_valid || (status_valid &&
+        status[pair_side].jacobian_sign != guard.baseline_jacobian_sign);
+    local_min_jacobian_ratio =
+      fmin(local_min_jacobian_ratio, guard.min_jacobian_ratio);
+    local_max_jacobian_ratio =
+      fmax(local_max_jacobian_ratio, guard.max_jacobian_ratio);
+    local_max_fixed_position_difference = fmax(
+      local_max_fixed_position_difference, guard.max_fixed_position_difference);
+    local_max_anchor_position_difference = fmax(
+      local_max_anchor_position_difference, guard.max_anchor_position_difference);
+  }
+
+  int64_t local_flags[5] = {
+    local_mapping_failed, local_zero_failed, local_fixed_failed,
+    local_ordering_failed, local_jacobian_failed,
+  };
+  int64_t global_flags[5] = { 0 };
+  int64_t global_failure_reason = 0;
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, 5,
+    local_flags, global_flags);
+  gkyl_comm_allreduce_host(app->comm, GKYL_INT_64, GKYL_MAX, 1,
+    &local_failure_reason, &global_failure_reason);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1,
+    &local_max_displacement, &result.max_realized_displacement);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1,
+    &local_min_margin, &result.min_cell_jacobian_margin);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1,
+    &local_min_jacobian_ratio, &result.min_jacobian_ratio);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1,
+    &local_max_jacobian_ratio, &result.max_jacobian_ratio);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1,
+    &local_max_fixed_position_difference,
+    &result.max_fixed_position_difference);
+  gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MAX, 1,
+    &local_max_anchor_position_difference,
+    &result.max_anchor_position_difference);
+  result.trial_failure_reason = global_failure_reason;
+  result.zero_map_equivalent = !global_flags[1];
+  result.fixed_interfaces_valid = !global_flags[2];
+  result.radial_ordering_valid = !global_flags[3];
+  result.jacobian_valid = !global_flags[4];
+  double displacement_tolerance =
+    64.0*DBL_EPSILON*fmax(1.0, pair->bound);
+  if (result.max_realized_displacement > pair->bound
+      +displacement_tolerance)
+    global_flags[0] = 1;
+
+  if (global_flags[0])
+    result.reject_reason = XPT_OPT_TRIAL_MAPPING_FAILED;
+  else if (global_flags[1] || global_flags[2])
+    result.reject_reason = XPT_OPT_FIXED_INTERFACE_CHANGED;
+  else if (global_flags[3])
+    result.reject_reason = XPT_OPT_RADIAL_ORDERING_FAILED;
+  else if (global_flags[4])
+    result.reject_reason = XPT_OPT_JACOBIAN_GUARD_FAILED;
+  else
+    xpt_optimizer_measure_pair(app, trial_apps, pair, efit, &result);
+
+  result.valid = result.reject_reason == XPT_OPT_ACCEPTED &&
+    result.pointwise_constraints_valid && isfinite(result.objective);
+  for (int b=0; b<app->num_local_blocks; ++b)
+    if (owned[b])
+      gkyl_gyrokinetic_app_release_geom(trial_apps[b]);
+  gkyl_free(owned);
+  gkyl_free(trial_apps);
+  return result;
+}
+
+enum { XPT_OPTIMIZER_MAX_CANDIDATES = 32 };
+
+struct xpt_optimizer_search {
+  int count;
+  struct xpt_optimizer_candidate candidates[XPT_OPTIMIZER_MAX_CANDIDATES];
+  int zero_index;        // index of the coefficient==0 candidate, or -1
+  int best_valid_index;  // argmin objective among valid candidates, or -1
+  int recommended_index; // best_valid_index if it improves on zero, else -1
+  double zero_objective;
+};
+
+static bool
+xpt_optimizer_already_tried(const struct xpt_optimizer_search *search,
+  double coefficient, double bound)
+{
+  double tol = 64.0*DBL_EPSILON*fmax(1.0, bound);
+  for (int i=0; i<search->count; ++i)
+    if (fabs(search->candidates[i].coefficient-coefficient) <= tol)
+      return true;
+  return false;
+}
+
+// Deterministic tie-break for the diagnostic search: strictly smaller
+// objective wins; ties are broken first by smaller |coefficient| (the more
+// conservative displacement), then by numerical coefficient value.
+static bool
+xpt_optimizer_candidate_better(const struct xpt_optimizer_candidate *a,
+  const struct xpt_optimizer_candidate *b)
+{
+  double tol = 1e-12*fmax(1.0, fmax(fabs(a->objective), fabs(b->objective)));
+  if (fabs(a->objective-b->objective) > tol)
+    return a->objective < b->objective;
+  if (fabs(fabs(a->coefficient)-fabs(b->coefficient)) > 64.0*DBL_EPSILON)
+    return fabs(a->coefficient) < fabs(b->coefficient);
+  return a->coefficient < b->coefficient;
+}
+
+static void
+xpt_optimizer_try_candidate(const struct gkyl_gyrokinetic_multib *mbinp,
+  struct gkyl_gyrokinetic_multib_app *app,
+  const struct xpt_optimizer_pair *pair, struct gkyl_efit **efit,
+  double coefficient, int refinement_round,
+  struct xpt_optimizer_search *search)
+{
+  if (search->count >= XPT_OPTIMIZER_MAX_CANDIDATES)
+    return;
+  double clipped = fmax(-pair->bound, fmin(pair->bound, coefficient));
+  if (xpt_optimizer_already_tried(search, clipped, pair->bound))
+    return;
+  int idx = search->count++;
+  search->candidates[idx] = xpt_optimizer_evaluate_candidate(mbinp, app, pair,
+    clipped, idx, refinement_round, efit);
+  if (clipped == 0.0)
+    search->zero_index = idx;
+  if (search->candidates[idx].valid &&
+      (search->best_valid_index < 0 || xpt_optimizer_candidate_better(
+        &search->candidates[idx], &search->candidates[search->best_valid_index])))
+    search->best_valid_index = idx;
+}
+
+// Deterministic bounded search: nine coarse samples spanning the full
+// bound (this always includes the zero baseline and both endpoints),
+// followed by three bounded local-refinement rounds around the best valid
+// coefficient found so far, halving the step each round.  Every candidate
+// is recorded, valid or not.
+static struct xpt_optimizer_search
+xpt_optimizer_run_search(const struct gkyl_gyrokinetic_multib *mbinp,
+  struct gkyl_gyrokinetic_multib_app *app,
+  const struct xpt_optimizer_pair *pair, struct gkyl_efit **efit)
+{
+  struct xpt_optimizer_search search = {
+    .count = 0, .zero_index = -1, .best_valid_index = -1,
+    .recommended_index = -1,
+  };
+
+  for (int k=-4; k<=4; ++k)
+    xpt_optimizer_try_candidate(mbinp, app, pair, efit,
+      k*pair->bound/4.0, 0, &search);
+
+  for (int round=1; round<=3; ++round) {
+    double center = search.best_valid_index >= 0
+      ? search.candidates[search.best_valid_index].coefficient : 0.0;
+    double step = (pair->bound/4.0)/(1 << round);
+    xpt_optimizer_try_candidate(mbinp, app, pair, efit,
+      center-step, round, &search);
+    xpt_optimizer_try_candidate(mbinp, app, pair, efit,
+      center+step, round, &search);
+  }
+
+  if (search.zero_index >= 0) {
+    search.zero_objective = search.candidates[search.zero_index].objective;
+    if (search.best_valid_index >= 0 &&
+        search.best_valid_index != search.zero_index &&
+        search.candidates[search.best_valid_index].objective <
+          search.zero_objective) {
+      search.recommended_index = search.best_valid_index;
+      search.candidates[search.recommended_index].selected = true;
+    }
+  }
+  return search;
+}
+
+static void
+xpt_optimizer_write_header(FILE *fp)
+{
+  fprintf(fp,
+    "app,rank,pair_index,bid0,bid1,edge0,edge1,ftype0,ftype1,orientation,"
+    "pair_valid,pair_reject_reason,bound,"
+    "candidate_index,refinement_round,coefficient,at_bound,"
+    "trial_failure_reason,zero_map_equivalent,fixed_interfaces_valid,"
+    "radial_ordering_valid,jacobian_valid,pointwise_constraints_valid,"
+    "sample_count,expected_sample_count,"
+    "epsi_rz,etheta_direction,etheta_log_magnitude,jacobian_log_magnitude,"
+    "objective,max_realized_displacement,min_cell_jacobian_margin,"
+    "min_jacobian_ratio,max_jacobian_ratio,"
+    "max_fixed_position_difference,max_anchor_position_difference,"
+    "candidate_valid,candidate_reject_reason,is_zero_candidate,selected,"
+    "relative_improvement_vs_zero\n");
+}
+
+static void
+xpt_optimizer_write_candidate_row(FILE *fp, const char *app_name, int rank,
+  int pair_index, const struct xpt_optimizer_pair *pair,
+  const struct gkyl_gk_block_geom_info *bgi0,
+  const struct gkyl_gk_block_geom_info *bgi1,
+  const struct xpt_optimizer_candidate *c, const char *candidate_status,
+  bool is_zero_candidate, double zero_objective)
+{
+  int ftype0 = bgi0->geometry.tok_grid_info.ftype;
+  int ftype1 = bgi1 ? bgi1->geometry.tok_grid_info.ftype : -1;
+  double relative_improvement =
+    isfinite(zero_objective) && zero_objective > 0.0 && isfinite(c->objective)
+      ? (zero_objective-c->objective)/zero_objective : 0.0;
+
+  fprintf(fp,
+    "%s,%d,%d,%d,%d,%d,%d,%d,%d,%s,%d,%s,%.17e,"
+    "%d,%d,%.17e,%d,"
+    "%d,%d,%d,%d,%d,%d,"
+    "%ld,%ld,"
+    "%.17e,%.17e,%.17e,%.17e,"
+    "%.17e,%.17e,%.17e,"
+    "%.17e,%.17e,"
+    "%.17e,%.17e,"
+    "%d,%s,%d,%d,%.17e\n",
+    app_name, rank, pair_index, pair->bid[0], pair->bid[1],
+    pair->edge[0], pair->edge[1], ftype0, ftype1,
+    orientation_name(pair->connection), pair->valid,
+    xpt_optimizer_reject_name(pair->reject_reason), pair->bound,
+    c->candidate_index, c->refinement_round, c->coefficient, c->at_bound,
+    c->trial_failure_reason, c->zero_map_equivalent, c->fixed_interfaces_valid,
+    c->radial_ordering_valid, c->jacobian_valid, c->pointwise_constraints_valid,
+    c->sample_count, c->expected_sample_count,
+    c->epsi_rz, c->etheta_direction, c->etheta_log_magnitude,
+    c->jacobian_log_magnitude,
+    c->objective, c->max_realized_displacement, c->min_cell_jacobian_margin,
+    c->min_jacobian_ratio, c->max_jacobian_ratio,
+    c->max_fixed_position_difference, c->max_anchor_position_difference,
+    c->valid, candidate_status, is_zero_candidate, c->selected,
+    relative_improvement);
+}
+
+static void
+xpt_optimizer_write_pair_not_evaluated(FILE *fp, const char *app_name,
+  int rank, int pair_index, const struct xpt_optimizer_pair *pair,
+  const struct gkyl_gk_block_geom_info *bgi0,
+  const struct gkyl_gk_block_geom_info *bgi1)
+{
+  struct xpt_optimizer_candidate placeholder = {
+    .candidate_index = -1, .refinement_round = -1,
+  };
+  xpt_optimizer_write_candidate_row(fp, app_name, rank, pair_index, pair,
+    bgi0, bgi1, &placeholder, "not_evaluated", false, 0.0);
+}
+
+// Commit 5: this diagnostic optimizer evaluates a deterministic, bounded
+// set of delta-s candidates per X-point seam pair and records the result
+// (including every rejected candidate and reason) to a CSV.  It never
+// applies a candidate to production geometry -- mbapp->singleb_apps are
+// left untouched here.  Applying a selected coefficient with a guarded
+// fallback is Commit 6.
+static void
+gyrokinetic_multib_optimize_xpt_seams(
+  const struct gkyl_gyrokinetic_multib *mbinp,
+  struct gkyl_gyrokinetic_multib_app *mbapp)
+{
+  int rank;
+  gkyl_comm_get_rank(mbapp->comm, &rank);
+  int num_blocks = gkyl_gk_block_geom_num_blocks(mbapp->gk_block_geom);
+  int cdim = gkyl_gk_block_geom_ndim(mbapp->gk_block_geom);
+
+  // Any block that asks for optimization but hits an unsupported build
+  // configuration must fail visibly, never silently.  The host-side array
+  // inspection throughout this optimizer is not GPU safe, and only
+  // cdim=2, poly_order=1 tokamak geometry is supported so far.
+  bool any_requests_optimize = false;
+  for (int bid=0; bid<num_blocks; ++bid) {
+    const struct gkyl_gk_block_geom_info *bgi =
+      gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
+    if (bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
+        bgi->geometry.tok_grid_info.relaxed_xpt_seam_optimize)
+      any_requests_optimize = true;
+  }
+  if (!any_requests_optimize)
+    return;
+  if (mbapp->use_gpu) {
+    fprintf(stderr, "X-point seam optimizer: relaxed_xpt_seam_optimize was "
+      "requested but GPU builds are not yet supported; skipping diagnostic "
+      "optimization entirely.\n");
+    return;
+  }
+  if (cdim != 2 || mbinp->poly_order != 1) {
+    fprintf(stderr, "X-point seam optimizer: relaxed_xpt_seam_optimize was "
+      "requested but only cdim=2, poly_order=1 is supported (got cdim=%d, "
+      "poly_order=%d); skipping diagnostic optimization entirely.\n",
+      cdim, mbinp->poly_order);
+    return;
+  }
+
+  struct xpt_optimizer_pair pairs[XPT_OPTIMIZER_MAX_PAIRS];
+  int num_pairs = xpt_optimizer_discover_pairs(mbapp, pairs);
+  if (num_pairs == 0)
+    return;
+
+  struct gkyl_efit *efit[mbapp->num_local_blocks];
+  for (int b=0; b<mbapp->num_local_blocks; ++b) {
+    int bid = mbapp->local_blocks[b];
+    const struct gkyl_gk_block_geom_info *bgi =
+      gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, bid);
+    efit[b] = 0;
+    if (bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+      struct gkyl_efit_inp efit_inp = bgi->geometry.efit_info;
+      efit_inp.use_gpu = false;
+      efit[b] = gkyl_efit_new(&efit_inp);
+    }
+  }
+
+  cstr file_name = rank == 0
+    ? cstr_from_fmt("%s-xpt_seam_optimizer_diagnostics.csv", mbapp->name)
+    : cstr_from_fmt("%s-xpt_seam_optimizer_diagnostics_rank%d.csv",
+        mbapp->name, rank);
+  FILE *fp = rank == 0 ? fopen(file_name.str, "w") : NULL;
+  if (rank == 0 && !fp) {
+    int saved_errno = errno;
+    fprintf(stderr, "Unable to open X-point seam optimizer diagnostic "
+      "'%s': %s\n", file_name.str, strerror(saved_errno));
+  }
+  cstr_drop(&file_name);
+  if (fp)
+    xpt_optimizer_write_header(fp);
+
+  for (int p=0; p<num_pairs; ++p) {
+    const struct xpt_optimizer_pair *pair = &pairs[p];
+    const struct gkyl_gk_block_geom_info *bgi0 =
+      gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, pair->bid[0]);
+    const struct gkyl_gk_block_geom_info *bgi1 = pair->bid[1] >= 0
+      ? gkyl_gk_block_geom_get_block(mbapp->gk_block_geom, pair->bid[1]) : 0;
+
+    if (!pair->valid) {
+      if (fp)
+        xpt_optimizer_write_pair_not_evaluated(fp, mbapp->name, rank, p,
+          pair, bgi0, bgi1);
+      continue;
+    }
+
+    struct xpt_optimizer_search search =
+      xpt_optimizer_run_search(mbinp, mbapp, pair, efit);
+    if (fp)
+      for (int c=0; c<search.count; ++c) {
+        const char *status = search.candidates[c].valid ? "accepted"
+          : xpt_optimizer_reject_name(search.candidates[c].reject_reason);
+        xpt_optimizer_write_candidate_row(fp, mbapp->name, rank, p, pair,
+          bgi0, bgi1, &search.candidates[c], status,
+          c == search.zero_index, search.zero_objective);
+      }
+
+    if (rank == 0 && search.recommended_index >= 0) {
+      const struct xpt_optimizer_candidate *best =
+        &search.candidates[search.recommended_index];
+      double reduction = search.zero_objective > 0.0
+        ? 100.0*(search.zero_objective-best->objective)/search.zero_objective
+        : 0.0;
+      fprintf(stdout, "X-point seam optimizer: pair (block %d edge %d)-"
+        "(block %d edge %d) recommends delta_s = %.6e m (objective "
+        "%.6e -> %.6e, %.2f%% reduction). Diagnostic only; not applied.\n",
+        pair->bid[0], pair->edge[0], pair->bid[1], pair->edge[1],
+        best->coefficient, search.zero_objective, best->objective,
+        reduction);
+    }
+  }
+
+  if (fp)
+    fclose(fp);
+  for (int b=0; b<mbapp->num_local_blocks; ++b)
+    if (efit[b])
+      gkyl_efit_release(efit[b]);
 }
 
 static const struct gkyl_array*

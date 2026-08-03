@@ -649,6 +649,7 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
+          .straight_xpt_ray = true,
           .rclose = 2.0,
           .rleft = 0.8,
           .rright = 2.5,
