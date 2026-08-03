@@ -27,8 +27,10 @@ extern "C" {
  * v5: added gpython_array_average (weighted/plain average over a dim subset).
  * v6: added gpython_dg_differentiate (local DG derivative) and
  *     gpython_eval_at_coord_proj (evaluate at coords + project onto a
- *     lower-dimensional target basis). */
-#define GPYTHON_API_VERSION 6
+ *     lower-dimensional target basis).
+ * v7: added gpython_powsqrt (pow(sqrt(.), exponent) via
+ *     gkyl_proj_powsqrt_on_basis). */
+#define GPYTHON_API_VERSION 7
 int gpython_api_version(void);
 
 /* Enough for GKYL_MAX_DIM; fixed here so callers can size buffers without
@@ -210,6 +212,25 @@ gpython_array *gpython_eval_at_coord_proj(const gpython_basis *b, int cdim_do, i
     int num_eval, const int *eval_dirs, const double *eval_coords,
     int ndim_tar, const int *cells_tar, const gpython_array *in,
     int *out_btype, int *out_poly_order, int *out_cdim, int *out_vdim);
+
+/* ---- pow(sqrt) projection (gkyl_proj_powsqrt_on_basis) -------------------
+ * Single-field ``out = pow(sqrt(in), exponent)``, i.e. ``in ** (exponent/2)``,
+ * via Gauss-Legendre quadrature: evaluate at each cell's quadrature nodes
+ * (clamping a negative node value to 1e-40, the updater's own convention,
+ * not checked against the DG coefficients) and project back onto the basis.
+ * Unlike every weak (DG) op above, this is NOT a fixed per-(basis_type,
+ * ndim, poly_order) compiled kernel table -- the updater works off `basis`'s
+ * own `eval` callback, so it has no coverage restriction at all. `num_quad`
+ * is the number of quadrature nodes per dimension (Gkeyll's own gyrokinetic
+ * app convention: poly_order + 1). `out`/`in` must each carry exactly one
+ * basis's worth of coefficients (ncomp == b->num_basis) -- the underlying
+ * updater takes no field-index argument, like gpython_dg_mul_conf_phase; a
+ * multi-field caller loops in Python. No physical grid is needed (only cell
+ * indexing), unlike gpython_array_integrate/gpython_array_average, so there
+ * is no lower/upper here. Returns 0 on success, nonzero if the operands
+ * don't match the basis or `cells` does not cover them. */
+int gpython_powsqrt(const gpython_basis *b, int num_quad, double exponent,
+    int ndim, const int *cells, gpython_array *out, const gpython_array *in);
 
 /* ---- writing (gkyl_array_rio) --------------------------------------------
  * Mirrors gpython_read_field: writes the FULL array over a uniform grid built

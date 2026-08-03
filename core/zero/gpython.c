@@ -26,6 +26,7 @@
 #include <gkyl_dg_differentiate.h>
 #include <gkyl_dg_eval_at_coord_proj.h>
 #include <gkyl_dynvec.h>
+#include <gkyl_proj_powsqrt_on_basis.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
@@ -532,6 +533,30 @@ gpython_eval_at_coord_proj(const gpython_basis *b, int cdim_do, int ndim,
   *out_vdim = ndim_tar_full - cdim_tar;
 
   return (gpython_array *)out;
+}
+
+/* ---- pow(sqrt) projection -------------------------------------------------- */
+int
+gpython_powsqrt(const gpython_basis *b, int num_quad, double exponent,
+    int ndim, const int *cells, gpython_array *out, const gpython_array *in)
+{
+  size_t nb = (size_t)CBAS(b)->num_basis;
+  if (CARR(in)->ncomp != nb || CARR(out)->ncomp != nb)
+    return 1;
+
+  int ones[GKYL_MAX_DIM];
+  for (int d = 0; d < ndim; ++d)
+    ones[d] = 1;
+  struct gkyl_range range;
+  gkyl_range_init(&range, ndim, ones, cells);
+  if ((size_t)range.volume != CARR(in)->size || CARR(out)->size != CARR(in)->size)
+    return 1;
+
+  struct gkyl_proj_powsqrt_on_basis *up =
+      gkyl_proj_powsqrt_on_basis_new(CBAS(b), num_quad, false);
+  gkyl_proj_powsqrt_on_basis_advance(up, &range, exponent, CARR(in), ARR(out));
+  gkyl_proj_powsqrt_on_basis_release(up);
+  return 0;
 }
 
 /* ---- writing -------------------------------------------------------------- */
