@@ -673,18 +673,6 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
   if (enable_limits_min_B || enable_limits_max_B)
   {
     // Set a minimum cell size on the edges.
-    // Theta_left/Theta_right are the physical (non-uniform) locations of the
-    // extrema bracketing this dB-accumulation region. theta lives in a
-    // different (uniform) coordinate, and the region's own span in that
-    // coordinate, [theta_bound_lower, theta_bound_upper], is generally NOT
-    // the same width as [Theta_left, Theta_right] -- regions accumulate
-    // equal dB, not equal theta or equal Theta. Anchoring the straight-line
-    // caps directly on raw theta (assuming theta ~= Theta_left/Theta_right)
-    // is only valid right at the region boundary; pivot on theta_bound_lower/
-    // upper instead so the cap is evaluated in the same coordinate as theta
-    // everywhere in the region (this matters most when a caller, e.g. the
-    // Gaussian smoothing quadrature, evaluates theta values whose own region
-    // is much narrower or wider in Theta-space than in theta-space).
     double Theta_left  = interval_lower;
     double Theta_right = interval_upper;
     double dB_this_region = fabs(gpm->constB_ctx->bmag_extrema[region+1] - gpm->constB_ctx->bmag_extrema[region]);
