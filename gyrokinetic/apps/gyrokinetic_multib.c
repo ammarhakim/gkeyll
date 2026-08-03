@@ -1662,6 +1662,22 @@ orientation_name(enum gkyl_oriented_edge edge)
   return "unknown";
 }
 
+static int
+orientation_sign(enum gkyl_oriented_edge edge)
+{
+  switch (edge) {
+  case GKYL_LOWER_POSITIVE:
+  case GKYL_UPPER_POSITIVE:
+    return 1;
+  case GKYL_LOWER_NEGATIVE:
+  case GKYL_UPPER_NEGATIVE:
+    return -1;
+  case GKYL_PHYSICAL:
+    return 0;
+  }
+  return 0;
+}
+
 enum pointwise_geometry_field {
   POINTWISE_VALID,
   POINTWISE_R,
@@ -1680,6 +1696,33 @@ enum pointwise_geometry_field {
   POINTWISE_JACOBIAN_ABS,
   POINTWISE_NUM_FIELDS
 };
+
+// Canonical partner convention for a same-direction 2D connection:
+//
+//   local lower -> partner upper     local upper -> partner lower
+//   positive: (cell,q) -> (cell,q), orientation sign +1
+//   negative: (cell,q) -> (Ncell-1-cell,p-q), orientation sign -1
+//
+// Lower/upper selects the partner face but does not negate the coordinate
+// derivative.  A negative connection reverses the one tangential logical
+// coordinate.  Thus a psi-normal interface reverses partner e_theta, while a
+// theta-normal interface reverses partner e_psi.  In either case the partner
+// signed Jacobian receives the same orientation sign; |J| is unchanged.
+static void
+pointwise_canonicalize_partner_record(int interface_dir, int orient_sign,
+  const double *native, double *canonical)
+{
+  memcpy(canonical, native, sizeof(double[POINTWISE_NUM_FIELDS]));
+  if (orient_sign >= 0)
+    return;
+
+  int first = interface_dir == 0 ? POINTWISE_ETHETA_R : POINTWISE_EPSI_R;
+  int last = interface_dir == 0 ? POINTWISE_ETHETA_Z : POINTWISE_EPSI_Z;
+  for (int f=first; f<=last; ++f)
+    canonical[f] = -canonical[f];
+  canonical[POINTWISE_JACOBIAN_SIGNED] =
+    -canonical[POINTWISE_JACOBIAN_SIGNED];
+}
 
 static int
 pointwise_int_pow(int base, int exponent)
@@ -1817,14 +1860,14 @@ pointwise_fprint_geometry_record(FILE *fp, const double *record)
 static void
 pointwise_write_geometry_header(FILE *fp)
 {
-  fprintf(fp, "app,rank,block,dir,edge,partner_block,partner_dir,partner_edge,orientation,comparison_status,interface_cell,node_ordinal,interface_node_index,cell_idx0,cell_idx1,cell_idx2,surface_idx0,surface_idx1,surface_idx2,quad_idx0,quad_idx1,quad_idx2");
-  const char *prefixes[] = { "local", "partner" };
+  fprintf(fp, "app,rank,block,dir,edge,partner_block,partner_dir,partner_edge,orientation,comparison_status,orientation_transform,interface_cell,node_ordinal,interface_node_index,partner_interface_cell,partner_node_ordinal,partner_interface_node_index,cell_idx0,cell_idx1,cell_idx2,surface_idx0,surface_idx1,surface_idx2,quad_idx0,quad_idx1,quad_idx2");
+  const char *prefixes[] = { "local", "partner_native", "partner" };
   const char *fields[] = {
     "valid", "R", "Z", "phi", "psi_requested", "psi_evaluated", "psi_residual",
     "e_psi_R", "e_psi_phi", "e_psi_Z", "e_theta_R", "e_theta_phi",
     "e_theta_Z", "jacobian_signed", "jacobian_abs"
   };
-  for (int p=0; p<2; ++p)
+  for (int p=0; p<3; ++p)
     for (int f=0; f<POINTWISE_NUM_FIELDS; ++f)
       fprintf(fp, ",%s_%s", prefixes[p], fields[f]);
   fputc('\n', fp);
@@ -1981,9 +2024,47 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
 
         int partner_edge = oriented_edge_index(partner->edge);
         bool same_direction = partner->dir == d;
-        const char *comparison_status = sbapp->basis.poly_order != 1
-          ? "unsupported_poly_order"
-          : (same_direction ? "raw_unoriented" : "unsupported_cross_direction");
+        bool complementary_edge = partner_edge == 1-e;
+        int orient_sign = orientation_sign(partner->edge);
+        const struct gkyl_range *partner_global =
+          &app->decomp[partner->bid]->parent_range;
+        bool conforming = same_direction;
+        bool full_tangential_range = true;
+        long interface_cell_count = 1, interface_node_count = 1;
+        for (int td=0; td<cdim; ++td) {
+          if (td == d)
+            continue;
+          int num_cells = gkyl_range_shape(&sbapp->global, td);
+          conforming = conforming
+            && num_cells == gkyl_range_shape(partner_global, td);
+          full_tangential_range = full_tangential_range
+            && gkyl_range_shape(&sbapp->local, td) == num_cells;
+          interface_cell_count *= num_cells;
+          interface_node_count *= num_cells*(sbapp->basis.poly_order+1);
+        }
+
+        bool can_canonicalize = sbapp->basis.poly_order == 1
+          && same_direction && partner_edge >= 0 && orient_sign != 0
+          && complementary_edge && conforming
+          && (orient_sign > 0 || (cdim == 2 && full_tangential_range));
+        const char *comparison_status = "canonicalized";
+        if (sbapp->basis.poly_order != 1)
+          comparison_status = "unsupported_poly_order";
+        else if (!same_direction)
+          comparison_status = "unsupported_cross_direction";
+        else if (!complementary_edge)
+          comparison_status = "unsupported_noncomplementary_edge";
+        else if (!conforming)
+          comparison_status = "unsupported_nonconforming_interface";
+        else if (orient_sign < 0 && cdim != 2)
+          comparison_status = "unsupported_negative_orientation_3d";
+        else if (orient_sign < 0 && !full_tangential_range)
+          comparison_status = "unsupported_negative_orientation_tangential_decomposition";
+        else if (!can_canonicalize)
+          comparison_status = "unsupported_orientation";
+        const char *orientation_transform = can_canonicalize
+          ? (orient_sign < 0 ? "reverse_tangential_coordinate" : "identity")
+          : "none";
         const struct gkyl_range *ghost_range = e == 0
           ? &sbapp->local_lower_ghost[d] : &sbapp->local_upper_ghost[d];
 
@@ -1994,9 +2075,20 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
           gkyl_copy_int_arr(cdim, iter.idx, skin_idx);
           skin_idx[d] += e == 0 ? 1 : -1;
           long skin_loc = gkyl_range_idx(&sbapp->local_ext, skin_idx);
-          long ghost_loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
           const double *local_packed = gkyl_array_cfetch(side_host[b], skin_loc);
-          const double *partner_packed = gkyl_array_cfetch(side_host[b], ghost_loc);
+
+          int partner_ghost_idx[GKYL_MAX_DIM] = { 0 };
+          gkyl_copy_int_arr(cdim, iter.idx, partner_ghost_idx);
+          if (can_canonicalize && orient_sign < 0) {
+            int tangent_dir = 1-d;
+            int cell_offset = skin_idx[tangent_dir]-sbapp->global.lower[tangent_dir];
+            partner_ghost_idx[tangent_dir] =
+              sbapp->global.upper[tangent_dir]-cell_offset;
+          }
+          long partner_ghost_loc =
+            gkyl_range_idx(&sbapp->local_ext, partner_ghost_idx);
+          const double *partner_packed =
+            gkyl_array_cfetch(side_host[b], partner_ghost_loc);
 
           long interface_cell = 0, cell_stride = 1;
           for (int td=0; td<cdim; ++td) {
@@ -2031,25 +2123,42 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
 
             const double *local_record =
               &local_packed[(e*nodes_per_face+n)*POINTWISE_NUM_FIELDS];
-            double missing_partner[POINTWISE_NUM_FIELDS];
-            for (int f=0; f<POINTWISE_NUM_FIELDS; ++f)
-              missing_partner[f] = 0.0;
-            const double *partner_record = same_direction && partner_edge >= 0
-              ? &partner_packed[(partner_edge*nodes_per_face+n)*POINTWISE_NUM_FIELDS]
+            double missing_partner[POINTWISE_NUM_FIELDS] = { 0.0 };
+            int partner_node_ordinal = -1;
+            long partner_interface_cell = -1, partner_interface_node = -1;
+            if (can_canonicalize) {
+              partner_node_ordinal = orient_sign < 0 ? nodes_per_face-1-n : n;
+              partner_interface_cell = orient_sign < 0
+                ? interface_cell_count-1-interface_cell : interface_cell;
+              partner_interface_node = orient_sign < 0
+                ? interface_node_count-1-interface_node : interface_node;
+            }
+            const double *partner_native = can_canonicalize
+              ? &partner_packed[(partner_edge*nodes_per_face+partner_node_ordinal)
+                  *POINTWISE_NUM_FIELDS]
               : missing_partner;
+            double partner_canonical[POINTWISE_NUM_FIELDS];
+            for (int f=0; f<POINTWISE_NUM_FIELDS; ++f)
+              partner_canonical[f] = 0.0;
+            if (can_canonicalize)
+              pointwise_canonicalize_partner_record(d, orient_sign,
+                partner_native, partner_canonical);
 
-            fprintf(fp, "%s,%d,%d,%d,%s,%d,%d,%s,%s,%s,%ld,%d,%ld,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+            fprintf(fp, "%s,%d,%d,%d,%s,%d,%d,%s,%s,%s,%s,%ld,%d,%ld,%ld,%d,%ld,%d,%d,%d,%d,%d,%d,%d,%d,%d",
               app->name, rank, bid, d, edge_name_from_index(e), partner->bid,
               partner->dir, oriented_edge_name(partner->edge),
               orientation_name(partner->edge), comparison_status,
-              interface_cell, n, interface_node,
+              orientation_transform, interface_cell, n, interface_node,
+              partner_interface_cell, partner_node_ordinal,
+              partner_interface_node,
               cdim > 0 ? skin_idx[0] : -1,
               cdim > 1 ? skin_idx[1] : -1,
               cdim > 2 ? skin_idx[2] : -1,
               surf_idx[0], surf_idx[1], surf_idx[2],
               quad_idx[0], quad_idx[1], quad_idx[2]);
             pointwise_fprint_geometry_record(fp, local_record);
-            pointwise_fprint_geometry_record(fp, partner_record);
+            pointwise_fprint_geometry_record(fp, partner_native);
+            pointwise_fprint_geometry_record(fp, partner_canonical);
             fputc('\n', fp);
           }
         }
