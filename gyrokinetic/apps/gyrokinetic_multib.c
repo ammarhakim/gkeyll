@@ -1873,6 +1873,261 @@ pointwise_write_geometry_header(FILE *fp)
   fputc('\n', fp);
 }
 
+// Return the logical-theta edge occupied by the supported half-domain
+// X-point seam, or -1 when this block is not using the relaxed seam path.
+static int
+pointwise_xpt_seam_edge(const struct gkyl_gk_block_geom_info *bgi)
+{
+  if (bgi->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK)
+    return -1;
+  const struct gkyl_tok_geo_grid_inp *inp = &bgi->geometry.tok_grid_info;
+  if (!inp->half_domain || !inp->straight_xpt_ray ||
+      !inp->relaxed_xpt_seam)
+    return -1;
+
+  switch (inp->ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
+    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
+      return 1;
+    case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+    case GKYL_GEOMETRY_TOKAMAK_CORE_R:
+      return 0;
+    default:
+      return -1;
+  }
+}
+
+static bool
+pointwise_xpt_ftype_pair(enum gkyl_tok_geo_type local,
+  enum gkyl_tok_geo_type partner)
+{
+  return
+    ((local == GKYL_GEOMETRY_TOKAMAK_CORE_L &&
+        partner == GKYL_GEOMETRY_TOKAMAK_CORE_R) ||
+      (local == GKYL_GEOMETRY_TOKAMAK_CORE_R &&
+        partner == GKYL_GEOMETRY_TOKAMAK_CORE_L)) ||
+    ((local == GKYL_GEOMETRY_TOKAMAK_PF_LO_R &&
+        partner == GKYL_GEOMETRY_TOKAMAK_PF_LO_L) ||
+      (local == GKYL_GEOMETRY_TOKAMAK_PF_LO_L &&
+        partner == GKYL_GEOMETRY_TOKAMAK_PF_LO_R)) ||
+    ((local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID) ||
+      (local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO)) ||
+    ((local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO) ||
+      (local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID));
+}
+
+static bool
+pointwise_interface_is_owner(int bid, int dir, int edge, int partner_bid,
+  int partner_dir, int partner_edge)
+{
+  if (bid != partner_bid)
+    return bid < partner_bid;
+  if (dir != partner_dir)
+    return dir < partner_dir;
+  return edge < partner_edge;
+}
+
+static void
+pointwise_write_xpt_objective_header(FILE *fp)
+{
+  fprintf(fp, "app,rank,block,dir,edge,ftype,partner_block,partner_dir,partner_edge,partner_ftype,orientation,comparison_status,interface_node_index,global_interface_node_count,sample_weight,requested_mode,requested_extension,local_relaxed_enabled,partner_relaxed_enabled,local_sweep_enabled,partner_sweep_enabled,local_coefficient_m,partner_coefficient_m,local_bound_m,partner_bound_m,topology_pair_valid,transfer_valid,canonicalization_valid,parameter_valid,local_valid,partner_valid,position_m,position_scale,local_flux_residual,partner_flux_residual,requested_flux_mismatch,local_signed_j,local_abs_j,partner_signed_j,partner_abs_j,local_abs_signed_consistent,partner_abs_signed_consistent,epsi_rz_normalized_sq,epsi_phi_raw_normalized_sq,etheta_direction_normalized_sq,etheta_log_magnitude_sq,etheta_phi_raw_normalized_sq,jacobian_log_magnitude_sq,smoothness_dq_integral_m2,smoothness_d2q_integral_m2,objective_sample_valid,pointwise_constraints_valid,endpoint_constraint_status,branch_constraint_status,radial_ordering_constraint_status,block_jacobian_constraint_status\n");
+}
+
+static void
+pointwise_write_xpt_objective_node(FILE *fp, const char *app_name,
+  int rank, int bid, int edge, int partner_bid, int partner_dir,
+  enum gkyl_oriented_edge partner_oriented_edge,
+  const char *comparison_status, int transfer_status,
+  bool can_canonicalize, long interface_node, long interface_node_count,
+  const struct gkyl_gk_block_geom_info *local_bgi,
+  const struct gkyl_gk_block_geom_info *partner_bgi,
+  const double *local, const double *partner)
+{
+  const struct gkyl_tok_geo_grid_inp *local_inp =
+    &local_bgi->geometry.tok_grid_info;
+  const struct gkyl_tok_geo_grid_inp *partner_inp =
+    &partner_bgi->geometry.tok_grid_info;
+  int partner_edge = oriented_edge_index(partner_oriented_edge);
+  bool topology_pair_valid =
+    local_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
+    partner_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
+    pointwise_xpt_seam_edge(local_bgi) == edge &&
+    pointwise_xpt_seam_edge(partner_bgi) == partner_edge &&
+    partner_dir == 1 &&
+    pointwise_xpt_ftype_pair(local_inp->ftype, partner_inp->ftype);
+
+  double coefficient_scale = fmax(1.0,
+    fmax(fabs(local_inp->relaxed_xpt_seam_delta_s_coeff),
+      fabs(partner_inp->relaxed_xpt_seam_delta_s_coeff)));
+  double bound_scale = fmax(1.0,
+    fmax(fabs(local_inp->relaxed_xpt_seam_delta_s_bound),
+      fabs(partner_inp->relaxed_xpt_seam_delta_s_bound)));
+  bool parameters_match =
+    fabs(local_inp->relaxed_xpt_seam_delta_s_coeff
+      -partner_inp->relaxed_xpt_seam_delta_s_coeff)
+      <= 64.0*DBL_EPSILON*coefficient_scale &&
+    fabs(local_inp->relaxed_xpt_seam_delta_s_bound
+      -partner_inp->relaxed_xpt_seam_delta_s_bound)
+      <= 64.0*DBL_EPSILON*bound_scale &&
+    local_inp->relaxed_xpt_seam == partner_inp->relaxed_xpt_seam &&
+    local_inp->relaxed_xpt_seam_sweep ==
+      partner_inp->relaxed_xpt_seam_sweep;
+  double coefficient = local_inp->relaxed_xpt_seam_delta_s_coeff;
+  double bound = local_inp->relaxed_xpt_seam_delta_s_bound;
+  bool requested_nonzero = coefficient != 0.0;
+  bool parameter_valid = parameters_match && isfinite(coefficient) &&
+    isfinite(bound) && local_inp->relaxed_xpt_seam &&
+    ((!requested_nonzero && bound >= 0.0) ||
+      (bound > 0.0 && fabs(coefficient) <=
+        bound*(1.0+64.0*DBL_EPSILON) &&
+        local_inp->relaxed_xpt_seam_sweep));
+  const char *requested_mode = requested_nonzero
+    ? "requested_candidate" : "requested_zero";
+
+  bool local_valid = local[POINTWISE_VALID] == 1.0;
+  bool partner_valid = partner[POINTWISE_VALID] == 1.0;
+  double position = 0.0, position_scale = 0.0;
+  double local_flux_residual = 0.0, partner_flux_residual = 0.0;
+  double requested_flux_mismatch = 0.0;
+  double local_signed_j = 0.0, local_abs_j = 0.0;
+  double partner_signed_j = 0.0, partner_abs_j = 0.0;
+  bool local_abs_signed_consistent = false;
+  bool partner_abs_signed_consistent = false;
+  double epsi_rz = 0.0, epsi_phi_raw = 0.0;
+  double etheta_direction = 0.0, etheta_magnitude = 0.0;
+  double etheta_phi_raw = 0.0, jacobian_magnitude = 0.0;
+  bool objective_sample_valid = false;
+  bool pointwise_constraints_valid = false;
+
+  if (local_valid && partner_valid) {
+    double dr = local[POINTWISE_R]-partner[POINTWISE_R];
+    double dz = local[POINTWISE_Z]-partner[POINTWISE_Z];
+    position = hypot(dr, dz);
+    position_scale = fmax(1.0,
+      fmax(hypot(local[POINTWISE_R], local[POINTWISE_Z]),
+        hypot(partner[POINTWISE_R], partner[POINTWISE_Z])));
+    local_flux_residual = local[POINTWISE_PSI_RESIDUAL];
+    partner_flux_residual = partner[POINTWISE_PSI_RESIDUAL];
+    requested_flux_mismatch = fabs(local[POINTWISE_PSI_REQUESTED]
+      -partner[POINTWISE_PSI_REQUESTED]);
+
+    local_signed_j = local[POINTWISE_JACOBIAN_SIGNED];
+    local_abs_j = local[POINTWISE_JACOBIAN_ABS];
+    partner_signed_j = partner[POINTWISE_JACOBIAN_SIGNED];
+    partner_abs_j = partner[POINTWISE_JACOBIAN_ABS];
+    local_abs_signed_consistent = local_abs_j > 0.0 &&
+      local_signed_j != 0.0 &&
+      fabs(local_abs_j-fabs(local_signed_j))
+        <= 1e-12*fmax(1.0, local_abs_j);
+    partner_abs_signed_consistent = partner_abs_j > 0.0 &&
+      partner_signed_j != 0.0 &&
+      fabs(partner_abs_j-fabs(partner_signed_j))
+        <= 1e-12*fmax(1.0, partner_abs_j);
+
+    double local_epsi = hypot(local[POINTWISE_EPSI_R],
+      local[POINTWISE_EPSI_Z]);
+    double partner_epsi = hypot(partner[POINTWISE_EPSI_R],
+      partner[POINTWISE_EPSI_Z]);
+    double epsi_scale = hypot(local_epsi, partner_epsi)/sqrt(2.0);
+    double local_etheta = hypot(local[POINTWISE_ETHETA_R],
+      local[POINTWISE_ETHETA_Z]);
+    double partner_etheta = hypot(partner[POINTWISE_ETHETA_R],
+      partner[POINTWISE_ETHETA_Z]);
+    double etheta_scale = hypot(local_etheta, partner_etheta)/sqrt(2.0);
+    objective_sample_valid = isfinite(epsi_scale) && epsi_scale > 0.0 &&
+      isfinite(etheta_scale) && etheta_scale > 0.0 &&
+      isfinite(local_etheta) && local_etheta > 0.0 &&
+      isfinite(partner_etheta) && partner_etheta > 0.0 &&
+      isfinite(local_abs_j) && local_abs_j > 0.0 &&
+      isfinite(partner_abs_j) && partner_abs_j > 0.0;
+    if (objective_sample_valid) {
+      double depsi_r = local[POINTWISE_EPSI_R]
+        -partner[POINTWISE_EPSI_R];
+      double depsi_z = local[POINTWISE_EPSI_Z]
+        -partner[POINTWISE_EPSI_Z];
+      double depsi_phi = local[POINTWISE_EPSI_PHI]
+        -partner[POINTWISE_EPSI_PHI];
+      double depsi_r_normalized = depsi_r/epsi_scale;
+      double depsi_z_normalized = depsi_z/epsi_scale;
+      double depsi_phi_normalized = depsi_phi/epsi_scale;
+      epsi_rz = depsi_r_normalized*depsi_r_normalized
+        +depsi_z_normalized*depsi_z_normalized;
+      epsi_phi_raw = depsi_phi_normalized*depsi_phi_normalized;
+
+      double cos_angle =
+        (local[POINTWISE_ETHETA_R]/local_etheta)
+          *(partner[POINTWISE_ETHETA_R]/partner_etheta)
+        +(local[POINTWISE_ETHETA_Z]/local_etheta)
+          *(partner[POINTWISE_ETHETA_Z]/partner_etheta);
+      cos_angle = fmax(-1.0, fmin(1.0, cos_angle));
+      // This is exactly the squared distance between unit R-Z directions.
+      etheta_direction = 2.0*(1.0-cos_angle);
+      double log_etheta_ratio = log(local_etheta)-log(partner_etheta);
+      etheta_magnitude = log_etheta_ratio*log_etheta_ratio;
+      double detheta_phi = local[POINTWISE_ETHETA_PHI]
+        -partner[POINTWISE_ETHETA_PHI];
+      double detheta_phi_normalized = detheta_phi/etheta_scale;
+      etheta_phi_raw = detheta_phi_normalized*detheta_phi_normalized;
+      double log_j_ratio = log(local_abs_j)-log(partner_abs_j);
+      jacobian_magnitude = log_j_ratio*log_j_ratio;
+      objective_sample_valid = isfinite(epsi_rz) &&
+        isfinite(epsi_phi_raw) && isfinite(etheta_direction) &&
+        isfinite(etheta_magnitude) && isfinite(etheta_phi_raw) &&
+        isfinite(jacobian_magnitude);
+    }
+
+    double flux_scale = fmax(1.0,
+      fmax(fabs(local[POINTWISE_PSI_REQUESTED]),
+        fabs(partner[POINTWISE_PSI_REQUESTED])));
+    pointwise_constraints_valid = topology_pair_valid &&
+      transfer_status == 0 && can_canonicalize && parameter_valid &&
+      position <= 1e-10*position_scale &&
+      fabs(local_flux_residual) <= 1e-10*flux_scale &&
+      fabs(partner_flux_residual) <= 1e-10*flux_scale &&
+      requested_flux_mismatch <= 1e-12*flux_scale &&
+      local_abs_signed_consistent && partner_abs_signed_consistent;
+  }
+
+  double sample_weight = interface_node_count > 0
+    ? 1.0/interface_node_count : 0.0;
+  // B1(q)=4q(1-q): these unweighted analytic integrals are independent of
+  // the displacement bound. The bound is a hard constraint, not a scale.
+  double smoothness_dq = (16.0/3.0)*coefficient*coefficient;
+  double smoothness_d2q = 64.0*coefficient*coefficient;
+
+  fprintf(fp, "%s,%d,%d,1,%s,%d,%d,%d,%s,%d,%s,%s,%ld,%ld,%.17e,%s,requested_fixed_edge_linear_arc_blend",
+    app_name, rank, bid, edge_name_from_index(edge), local_inp->ftype,
+    partner_bid, partner_dir, oriented_edge_name(partner_oriented_edge),
+    partner_inp->ftype, orientation_name(partner_oriented_edge),
+    comparison_status, interface_node, interface_node_count, sample_weight,
+    requested_mode);
+  fprintf(fp, ",%d,%d,%d,%d,%.17e,%.17e,%.17e,%.17e,%d,%d,%d,%d",
+    local_inp->relaxed_xpt_seam,
+    partner_inp->relaxed_xpt_seam, local_inp->relaxed_xpt_seam_sweep,
+    partner_inp->relaxed_xpt_seam_sweep, coefficient,
+    partner_inp->relaxed_xpt_seam_delta_s_coeff, bound,
+    partner_inp->relaxed_xpt_seam_delta_s_bound, topology_pair_valid,
+    transfer_status == 0, can_canonicalize, parameter_valid);
+  fprintf(fp, ",%d,%d,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%d,%d",
+    local_valid, partner_valid, position, position_scale,
+    local_flux_residual, partner_flux_residual, requested_flux_mismatch,
+    local_signed_j, local_abs_j, partner_signed_j, partner_abs_j,
+    local_abs_signed_consistent, partner_abs_signed_consistent);
+  fprintf(fp, ",%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%.17e,%d,%d,not_recorded,not_recorded,not_recorded,not_recorded\n",
+    epsi_rz, epsi_phi_raw, etheta_direction, etheta_magnitude,
+    etheta_phi_raw, jacobian_magnitude, smoothness_dq, smoothness_d2q,
+    objective_sample_valid, pointwise_constraints_valid);
+}
+
+
 static void
 gyrokinetic_multib_app_write_interface_pointwise_diag(
   gkyl_gyrokinetic_multib_app *app)
@@ -1894,9 +2149,25 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
   cstr_drop(&file_name);
   pointwise_write_geometry_header(fp);
 
+  cstr objective_file_name = rank == 0
+    ? cstr_from_fmt("%s-xpt_seam_delta_s_objective.csv", app->name)
+    : cstr_from_fmt("%s-xpt_seam_delta_s_objective_rank%d.csv", app->name, rank);
+  FILE *objective_fp = fopen(objective_file_name.str, "w");
+  if (!objective_fp) {
+    int saved_errno = errno;
+    fprintf(stderr, "Unable to open X-point seam objective diagnostic '%s': %s\n",
+      objective_file_name.str, strerror(saved_errno));
+  }
+  else {
+    pointwise_write_xpt_objective_header(objective_fp);
+  }
+  cstr_drop(&objective_file_name);
+
   int cdim = gkyl_gk_block_geom_ndim(app->gk_block_geom);
   if (cdim < 2 || cdim > 3) {
     fprintf(stderr, "Pointwise interface geometry diagnostic supports cdim=2 or 3; got cdim=%d\n", cdim);
+    if (objective_fp)
+      fclose(objective_fp);
     fclose(fp);
     return;
   }
@@ -2065,6 +2336,17 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
         const char *orientation_transform = can_canonicalize
           ? (orient_sign < 0 ? "reverse_tangential_coordinate" : "identity")
           : "none";
+        const struct gkyl_gk_block_geom_info *local_bgi =
+          gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
+        const struct gkyl_gk_block_geom_info *partner_bgi =
+          gkyl_gk_block_geom_get_block(app->gk_block_geom, partner->bid);
+        int local_seam_edge = pointwise_xpt_seam_edge(local_bgi);
+        int partner_seam_edge = pointwise_xpt_seam_edge(partner_bgi);
+        bool unique_xpt_seam = objective_fp && d == 1 &&
+          cdim == 2 &&
+          (local_seam_edge == e || partner_seam_edge == partner_edge) &&
+          pointwise_interface_is_owner(bid, d, e, partner->bid,
+            partner->dir, partner_edge);
         const struct gkyl_range *ghost_range = e == 0
           ? &sbapp->local_lower_ghost[d] : &sbapp->local_upper_ghost[d];
 
@@ -2143,6 +2425,12 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
             if (can_canonicalize)
               pointwise_canonicalize_partner_record(d, orient_sign,
                 partner_native, partner_canonical);
+            if (unique_xpt_seam)
+              pointwise_write_xpt_objective_node(objective_fp, app->name,
+                rank, bid, e, partner->bid, partner->dir, partner->edge,
+                comparison_status, transfer_status, can_canonicalize,
+                interface_node, interface_node_count, local_bgi,
+                partner_bgi, local_record, partner_canonical);
 
             fprintf(fp, "%s,%d,%d,%d,%s,%d,%d,%s,%s,%s,%s,%ld,%d,%ld,%ld,%d,%ld,%d,%d,%d,%d,%d,%d,%d,%d,%d",
               app->name, rank, bid, d, edge_name_from_index(e), partner->bid,
@@ -2175,6 +2463,8 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
   for (int b=0; b<app->num_local_blocks; ++b)
     if (efit[b])
       gkyl_efit_release(efit[b]);
+  if (objective_fp)
+    fclose(objective_fp);
   fclose(fp);
 }
 

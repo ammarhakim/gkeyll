@@ -1158,49 +1158,6 @@ tok_xpt_seam_endpoint(enum gkyl_tok_geo_type ftype, double u)
     ? u >= 1.0-endpoint_tol : u <= endpoint_tol;
 }
 
-// The straight intersection defines the local contour origin s0.  Commit 3
-// deliberately fixes delta_s to zero; candidate displacements are evaluated
-// diagnostically before any nonzero value is allowed to alter the map.
-static double
-tok_zero_xpt_seam_delta_s(double psi)
-{
-  (void) psi;
-  return 0.0;
-}
-
-static bool
-tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
-  struct arc_length_ctx *arc_ctx, double psi, double u, double *r, double *z)
-{
-  // Retain the validated straight-ray point before considering relaxation.
-  if (!tok_ordered_chord_point(inp, arc_ctx, psi, u, r, z))
-    return false;
-  if (!inp->relaxed_xpt_seam || !inp->half_domain ||
-      !tok_xpt_seam_endpoint(inp->ftype, u))
-    return true;
-
-  // Use signed local contour arc length, with s0=0 at the straight-ray
-  // intersection.  Return before doing coordinate arithmetic so zero mode is
-  // bitwise identical to the existing construction.
-  const double s0 = 0.0;
-  const double delta_s = tok_zero_xpt_seam_delta_s(psi);
-  if (delta_s == 0.0) {
-    if (tok_ordered_map_diag_enabled())
-      fprintf(stderr,
-        "TOK_XPT_SEAM_DIAG mode=zero ftype=%d psi=%.17g s0=%.17g delta_s=%.17g seam_s=%.17g R=%.17g Z=%.17g fallback=straight\n",
-        inp->ftype, psi, s0, delta_s, s0, *r, *z);
-    return true;
-  }
-
-  // A nonzero active value is forbidden until exact flux projection, branch,
-  // ordering, and Jacobian guards are connected.  Keep the straight point as
-  // an explicit fallback rather than returning a partially displaced seam.
-  fprintf(stderr,
-    "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g s0=%.17g delta_s=%.17g reason=nonzero_not_enabled fallback=straight\n",
-    inp->ftype, psi, s0, delta_s);
-  return true;
-}
-
 static bool
 tok_eval_psi_grad_rz_local(const struct gkyl_tok_geo *geo,
   double R, double Z, double *dpsidR, double *dpsidZ)
@@ -1243,6 +1200,269 @@ tok_eval_psi_grad_rz_local(const struct gkyl_tok_geo *geo,
       *2.0/geo->rzgrid.dx[1];
   }
   return isfinite(*dpsidR) && isfinite(*dpsidZ);
+}
+
+// Project a continuation predictor to the exact requested DG/cubic flux
+// surface. Holding the coordinate that changes most along the contour keeps
+// the root solve well conditioned at either an R or Z turning point.
+static bool
+tok_project_xpt_seam_candidate(const struct gkyl_tok_geo *geo, double psi,
+  double rprev, double zprev, double rpred, double zpred,
+  double tangent_r, double tangent_z, double step,
+  double *r, double *z)
+{
+  const struct gkyl_rect_grid *grid = geo->use_cubics
+    ? &geo->rzgrid_cubic : &geo->rzgrid;
+  if (rpred < grid->lower[0] || rpred > grid->upper[0] ||
+      zpred < grid->lower[1] || zpred > grid->upper[1])
+    return false;
+
+  double best_distance = DBL_MAX, second_distance = DBL_MAX;
+  if (fabs(tangent_r) >= fabs(tangent_z)) {
+    double roots[32] = { 0.0 };
+    int nr = tok_geo_Z_psiR(geo, psi, rpred, 32, roots);
+    if (nr <= 0)
+      return false;
+    int best = 0;
+    for (int i=0; i<nr; ++i) {
+      double distance = fabs(roots[i]-zpred);
+      if (distance < best_distance) {
+        second_distance = best_distance;
+        best_distance = distance;
+        best = i;
+      }
+      else if (distance < second_distance)
+        second_distance = distance;
+    }
+    double ambiguity_scale = fmax(grid->dx[1], fabs(step));
+    if (nr > 1 && second_distance-best_distance <=
+        1e-8*fmax(1.0, ambiguity_scale))
+      return false;
+    *r = rpred; *z = roots[best];
+  }
+  else {
+    double roots[32] = { 0.0 }, dRdZ[32] = { 0.0 };
+    double dR[32] = { 0.0 }, dZ[32] = { 0.0 };
+    int nr = gkyl_tok_geo_R_psiZ(geo, psi, zpred, 32,
+      roots, dRdZ, dR, dZ);
+    if (nr <= 0)
+      return false;
+    int best = 0;
+    for (int i=0; i<nr; ++i) {
+      double distance = fabs(roots[i]-rpred);
+      if (distance < best_distance) {
+        second_distance = best_distance;
+        best_distance = distance;
+        best = i;
+      }
+      else if (distance < second_distance)
+        second_distance = distance;
+    }
+    double ambiguity_scale = fmax(grid->dx[0], fabs(step));
+    if (nr > 1 && second_distance-best_distance <=
+        1e-8*fmax(1.0, ambiguity_scale))
+      return false;
+    *r = roots[best]; *z = zpred;
+  }
+
+  double dr = *r-rprev, dz = *z-zprev;
+  double forward = step*(dr*tangent_r+dz*tangent_z);
+  double distance = hypot(dr, dz);
+  double residual = tok_eval_psi_rz_local(geo, *r, *z)-psi;
+  double flux_scale = fmax(1.0, fabs(psi));
+  return isfinite(*r) && isfinite(*z) && isfinite(distance) &&
+    isfinite(residual) && forward > 0.0 &&
+    distance <= 2.5*fabs(step)+1e-12 &&
+    fabs(residual) <= 1e-10*flux_scale;
+}
+
+static bool
+tok_displace_xpt_seam_on_flux(const struct gkyl_tok_geo *geo, double psi,
+  double delta_s, double *r, double *z)
+{
+  if (delta_s == 0.0)
+    return true;
+  const struct gkyl_rect_grid *grid = geo->use_cubics
+    ? &geo->rzgrid_cubic : &geo->rzgrid;
+  double max_step = 0.05*fmin(grid->dx[0], grid->dx[1]);
+  if (!(max_step > 0.0) || !isfinite(max_step))
+    return false;
+  double required_steps = ceil(fabs(delta_s)/max_step);
+  if (!isfinite(required_steps) || required_steps > 4096.0)
+    return false;
+  int nstep = GKYL_MAX2(16, (int) required_steps);
+  double rstart = *r, zstart = *z;
+  double relative_arc_error = DBL_MAX, realized = 0.0;
+  for (;;) {
+    *r = rstart; *z = zstart;
+    double step = delta_s/nstep;
+    realized = 0.0;
+
+    for (int i=0; i<nstep; ++i) {
+      double grad_r = 0.0, grad_z = 0.0;
+      if (!tok_eval_psi_grad_rz_local(geo, *r, *z, &grad_r, &grad_z))
+        return false;
+      double grad = hypot(grad_r, grad_z);
+      if (!(grad > 1e-14))
+        return false;
+      double tangent_r = -grad_z/grad, tangent_z = grad_r/grad;
+
+      double rmid = *r+0.5*step*tangent_r;
+      double zmid = *z+0.5*step*tangent_z;
+      if (!tok_project_xpt_seam_candidate(geo, psi, *r, *z, rmid, zmid,
+          tangent_r, tangent_z, 0.5*step, &rmid, &zmid)) {
+        if (tok_ordered_map_diag_enabled())
+          fprintf(stderr,
+            "TOK_XPT_SEAM_DIAG reason=midpoint_projection_failed psi=%.17g step=%d/%d R=%.17g Z=%.17g delta_s=%.17g\n",
+            psi, i, nstep, *r, *z, delta_s);
+        return false;
+      }
+      if (!tok_eval_psi_grad_rz_local(geo, rmid, zmid, &grad_r, &grad_z))
+        return false;
+      grad = hypot(grad_r, grad_z);
+      if (!(grad > 1e-14))
+        return false;
+      tangent_r = -grad_z/grad; tangent_z = grad_r/grad;
+
+      double rnext = *r+step*tangent_r;
+      double znext = *z+step*tangent_z;
+      if (!tok_project_xpt_seam_candidate(geo, psi, *r, *z, rnext, znext,
+          tangent_r, tangent_z, step, &rnext, &znext)) {
+        if (tok_ordered_map_diag_enabled())
+          fprintf(stderr,
+            "TOK_XPT_SEAM_DIAG reason=full_projection_failed psi=%.17g step=%d/%d R=%.17g Z=%.17g delta_s=%.17g\n",
+            psi, i, nstep, *r, *z, delta_s);
+        return false;
+      }
+      realized += hypot(rnext-*r, znext-*z);
+      *r = rnext; *z = znext;
+    }
+    relative_arc_error = fabs(realized-fabs(delta_s))
+      /fmax(fabs(delta_s), 1e-14);
+    if (isfinite(relative_arc_error) && relative_arc_error <= 5e-3)
+      return true;
+    if (tok_ordered_map_diag_enabled())
+      fprintf(stderr,
+        "TOK_XPT_SEAM_DIAG reason=arc_length_refine psi=%.17g requested=%.17g realized=%.17g signed_relative_error=%.17g nstep=%d step_size=%.17g\n",
+        psi, delta_s, realized,
+        (realized-fabs(delta_s))/fmax(fabs(delta_s), 1e-14), nstep,
+        fabs(step));
+    if (nstep > 4096/2)
+      break;
+    nstep *= 2;
+  }
+  *r = rstart; *z = zstart;
+  if (tok_ordered_map_diag_enabled())
+    fprintf(stderr,
+      "TOK_XPT_SEAM_DIAG reason=arc_length_not_converged psi=%.17g requested=%.17g realized=%.17g relative_error=%.17g nstep=%d\n",
+      psi, delta_s, realized, relative_arc_error, nstep);
+  return false;
+}
+
+// B1(q)=4q(1-q) is smooth, has unit peak, and uses explicit endpoint
+// branches so both physical anchors remain exactly fixed.
+static bool
+tok_xpt_seam_delta_s(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct arc_length_ctx *arc_ctx, double psi, double *q,
+  double *delta_s)
+{
+  double span = arc_ctx->xpt_ray_psi0-arc_ctx->geo->psisep;
+  double scale = fmax(1.0, fmax(fabs(arc_ctx->xpt_ray_psi0),
+    fabs(arc_ctx->geo->psisep)));
+  if (!isfinite(span) || fabs(span) <= 256.0*DBL_EPSILON*scale)
+    return false;
+  if (tok_geo_same_flux(psi, arc_ctx->geo->psisep)) {
+    *q = 0.0; *delta_s = 0.0;
+    return true;
+  }
+  if (tok_geo_same_flux(psi, arc_ctx->xpt_ray_psi0)) {
+    *q = 1.0; *delta_s = 0.0;
+    return true;
+  }
+  *q = (psi-arc_ctx->geo->psisep)/span;
+  if (*q < -1e-8 || *q > 1.0+1e-8)
+    return false;
+  *q = fmin(1.0, fmax(0.0, *q));
+  if (*q == 0.0 || *q == 1.0) {
+    *delta_s = 0.0;
+    return true;
+  }
+  double coefficient = inp->relaxed_xpt_seam_delta_s_coeff;
+  double bound = inp->relaxed_xpt_seam_delta_s_bound;
+  if (coefficient == 0.0) {
+    *delta_s = 0.0;
+    return true;
+  }
+  if (!isfinite(coefficient) || !isfinite(bound) || !(bound > 0.0) ||
+      fabs(coefficient) > bound*(1.0+64.0*DBL_EPSILON))
+    return false;
+  *delta_s = coefficient*4.0*(*q)*(1.0-*q);
+  return isfinite(*delta_s) && fabs(*delta_s) <=
+    bound*(1.0+64.0*DBL_EPSILON);
+}
+
+static bool
+tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double psi, double u, double *r, double *z)
+{
+  // Retain the validated straight-ray point before considering relaxation.
+  if (!tok_ordered_chord_point(inp, arc_ctx, psi, u, r, z))
+    return false;
+  if (!inp->relaxed_xpt_seam || !inp->half_domain)
+    return true;
+
+  double q = 0.0, delta_s = 0.0;
+  if (!tok_xpt_seam_delta_s(inp, arc_ctx, psi, &q, &delta_s)) {
+    fprintf(stderr,
+      "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g coefficient=%.17g bound=%.17g reason=invalid_delta_s action=%s\n",
+      inp->ftype, psi, q, inp->relaxed_xpt_seam_delta_s_coeff,
+      inp->relaxed_xpt_seam_delta_s_bound,
+      inp->relaxed_xpt_seam_sweep ? "reject_candidate" : "retain_straight");
+    return !inp->relaxed_xpt_seam_sweep;
+  }
+
+  // Use signed local contour arc length, with s0=0 at the straight-ray
+  // intersection. Return before doing coordinate arithmetic so zero mode is
+  // bitwise identical to the existing construction.
+  const double s0 = 0.0;
+  if (delta_s == 0.0) {
+    if (tok_ordered_map_diag_enabled() &&
+        tok_xpt_seam_endpoint(inp->ftype, u))
+      fprintf(stderr,
+        "TOK_XPT_SEAM_DIAG mode=zero ftype=%d psi=%.17g q=%.17g s0=%.17g delta_s=%.17g seam_s=%.17g R=%.17g Z=%.17g construction=straight\n",
+        inp->ftype, psi, q, s0, delta_s, s0, *r, *z);
+    return true;
+  }
+
+  if (!inp->relaxed_xpt_seam_sweep || !inp->straight_xpt_ray) {
+    fprintf(stderr,
+      "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g s0=%.17g delta_s=%.17g reason=diagnostic_sweep_not_enabled fallback=straight\n",
+      inp->ftype, psi, q, s0, delta_s);
+    return true;
+  }
+
+  // The only free data are on the seam. A fixed linear arc weight carries
+  // that boundary condition to the unchanged opposite edge, giving a smooth
+  // diagnostic shadow map without introducing interior degrees of freedom.
+  double seam_weight = tok_sep_fixed_edge_is_first(inp->ftype) ? u : 1.0-u;
+  double point_delta_s = seam_weight*delta_s;
+  if (point_delta_s == 0.0)
+    return true;
+  double candidate_r = *r, candidate_z = *z;
+  if (!tok_displace_xpt_seam_on_flux(arc_ctx->geo, psi, point_delta_s,
+      &candidate_r, &candidate_z)) {
+    fprintf(stderr,
+      "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g q=%.17g u=%.17g delta_s=%.17g point_delta_s=%.17g reason=contour_tracking_failed action=reject_candidate fallback=none\n",
+      inp->ftype, psi, q, u, delta_s, point_delta_s);
+    return false;
+  }
+  *r = candidate_r; *z = candidate_z;
+  if (tok_ordered_map_diag_enabled() &&
+      tok_xpt_seam_endpoint(inp->ftype, u))
+    fprintf(stderr,
+      "TOK_XPT_SEAM_DIAG mode=candidate ftype=%d psi=%.17g q=%.17g s0=%.17g delta_s=%.17g seam_s=%.17g R=%.17g Z=%.17g extension=fixed_edge_linear_arc_blend\n",
+      inp->ftype, psi, q, s0, delta_s, s0+delta_s, *r, *z);
+  return true;
 }
 
 static double
