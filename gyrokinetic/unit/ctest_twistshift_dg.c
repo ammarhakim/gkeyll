@@ -21,11 +21,8 @@
 #include <gkyl_math.h>
 #include <gkyl_const.h>
 
-// Compare two DG coefficients with a mixed relative/absolute tolerance. The
-// relative check (gkyl_compare) blows up for coefficients near zero, where
-// last-bit rounding differences across compilers/architectures (e.g. FMA
-// contraction under -ffast-math on arm64 vs x86-64) dominate. Accept the value
-// if either the relative or the absolute difference is within tolerance.
+// Compare two DG coefficients with a mixed relative/absolute tolerance.
+// Needed to pass the CBC 3x test on stellar nvcc installation.
 static bool
 ts_compare_coeff(double ref, double val)
 {
