@@ -1,11 +1,14 @@
 #include <gkyl_gk_block_geom.h>
 #include <gkyl_array_rio_priv.h>
+#include <gkyl_dg_basis_ops.h>
 #include <gkyl_elem_type_priv.h>
+#include <gkyl_efit.h>
 #include <gkyl_gyrokinetic_multib.h>
 #include <gkyl_gyrokinetic_multib_priv.h>
 #include <gkyl_multib_conn.h>
 
 #include <mpack.h>
+#include <errno.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -1627,6 +1630,445 @@ oriented_edge_name(enum gkyl_oriented_edge edge)
   return "unknown";
 }
 
+static int
+oriented_edge_index(enum gkyl_oriented_edge edge)
+{
+  switch (edge) {
+  case GKYL_LOWER_POSITIVE:
+  case GKYL_LOWER_NEGATIVE:
+    return 0;
+  case GKYL_UPPER_POSITIVE:
+  case GKYL_UPPER_NEGATIVE:
+    return 1;
+  case GKYL_PHYSICAL:
+    return -1;
+  }
+  return -1;
+}
+
+static const char*
+orientation_name(enum gkyl_oriented_edge edge)
+{
+  switch (edge) {
+  case GKYL_LOWER_POSITIVE:
+  case GKYL_UPPER_POSITIVE:
+    return "positive";
+  case GKYL_LOWER_NEGATIVE:
+  case GKYL_UPPER_NEGATIVE:
+    return "negative";
+  case GKYL_PHYSICAL:
+    return "physical";
+  }
+  return "unknown";
+}
+
+enum pointwise_geometry_field {
+  POINTWISE_VALID,
+  POINTWISE_R,
+  POINTWISE_Z,
+  POINTWISE_PHI,
+  POINTWISE_PSI_REQUESTED,
+  POINTWISE_PSI_EVALUATED,
+  POINTWISE_PSI_RESIDUAL,
+  POINTWISE_EPSI_R,
+  POINTWISE_EPSI_PHI,
+  POINTWISE_EPSI_Z,
+  POINTWISE_ETHETA_R,
+  POINTWISE_ETHETA_PHI,
+  POINTWISE_ETHETA_Z,
+  POINTWISE_JACOBIAN_SIGNED,
+  POINTWISE_JACOBIAN_ABS,
+  POINTWISE_NUM_FIELDS
+};
+
+static int
+pointwise_int_pow(int base, int exponent)
+{
+  int result = 1;
+  for (int i=0; i<exponent; ++i)
+    result *= base;
+  return result;
+}
+
+static struct gkyl_array*
+pointwise_host_copy(const struct gkyl_array *src)
+{
+  struct gkyl_array *dest = gkyl_array_new(src->type, src->ncomp, src->size);
+  gkyl_array_copy(dest, src);
+  return dest;
+}
+
+// Evaluate the same equilibrium representation selected by tok_geo.c.  In
+// particular, do not use the cubic interpolant when the map was constructed
+// from the quadratic/DG representation.
+static double
+pointwise_eval_psi(const struct gkyl_efit *efit, bool use_cubics,
+  double R, double Z)
+{
+  if (!efit || !jacobgeo_ratio_diag_coeff_is_set(R)
+      || !jacobgeo_ratio_diag_coeff_is_set(Z))
+    return 0.0;
+
+  if (use_cubics) {
+    double xn[2] = { R, Z }, psi = 0.0;
+    efit->evf->eval_cubic(0.0, xn, &psi, efit->evf->ctx);
+    return psi;
+  }
+
+  int idx[2];
+  idx[0] = GKYL_MIN2(efit->rzlocal.upper[0], GKYL_MAX2(efit->rzlocal.lower[0],
+    efit->rzlocal.lower[0]
+      +(int) floor((R-efit->rzgrid.lower[0])/efit->rzgrid.dx[0])));
+  idx[1] = GKYL_MIN2(efit->rzlocal.upper[1], GKYL_MAX2(efit->rzlocal.lower[1],
+    efit->rzlocal.lower[1]
+      +(int) floor((Z-efit->rzgrid.lower[1])/efit->rzgrid.dx[1])));
+  long loc = gkyl_range_idx(&efit->rzlocal, idx);
+  const double *coeffs = gkyl_array_cfetch(efit->psizr, loc);
+  double xc[2], eta[2];
+  gkyl_rect_grid_cell_center(&efit->rzgrid, idx, xc);
+  eta[0] = (R-xc[0])/(0.5*efit->rzgrid.dx[0]);
+  eta[1] = (Z-xc[1])/(0.5*efit->rzgrid.dx[1]);
+  return efit->rzbasis.eval_expand(eta, coeffs);
+}
+
+// Recover the radial logical coordinate used by gkyl_tok_geo_calc_surface.
+// The current surface-node construction is reliable for p1, which is also
+// the polynomial order used by the multiblock X-point cases diagnosed here.
+static double
+pointwise_requested_psi(const struct gkyl_gyrokinetic_app *sbapp,
+  int dir, const int *surf_idx)
+{
+  int poly_order = sbapp->basis.poly_order;
+  if (poly_order != 1)
+    return 0.0;
+
+  double dx = sbapp->grid.dx[0];
+  double logical_lower = sbapp->grid.lower[0]
+    +(sbapp->local.lower[0]-sbapp->global.lower[0])*dx;
+  double logical_psi;
+  if (dir == 0) {
+    int node = surf_idx[0]-sbapp->gk_geom->nrange_surf[dir].lower[0];
+    logical_psi = logical_lower+node*dx;
+  }
+  else {
+    int node = surf_idx[0]-sbapp->gk_geom->nrange_surf[dir].lower[0];
+    int cell = node/2, quad_node = node%2;
+    double eta = quad_node == 0 ? -1.0/sqrt(3.0) : 1.0/sqrt(3.0);
+    logical_psi = logical_lower+(cell+0.5*(1.0+eta))*dx;
+  }
+
+  double requested_psi = 0.0;
+  sbapp->position_map->maps[0](0.0, &logical_psi, &requested_psi,
+    sbapp->position_map->ctxs[0]);
+  return requested_psi;
+}
+
+static void
+pointwise_fill_geometry_record(const struct gkyl_gyrokinetic_app *sbapp,
+  const struct gkyl_efit *efit, bool use_cubics, int dir,
+  const int *surf_idx, const struct gkyl_array *mc2p_nodal_fd,
+  const struct gkyl_array *dxdz_nodal,
+  const struct gkyl_array *jacobgeo_signed_nodal,
+  const struct gkyl_array *jacobgeo_nodal, double *record)
+{
+  long loc = gkyl_range_idx(&sbapp->gk_geom->nrange_surf[dir], surf_idx);
+  const double *position = gkyl_array_cfetch(mc2p_nodal_fd, loc);
+  const double *tangents = gkyl_array_cfetch(dxdz_nodal, loc);
+  const double *jacobian_signed = gkyl_array_cfetch(jacobgeo_signed_nodal, loc);
+  const double *jacobian_abs = gkyl_array_cfetch(jacobgeo_nodal, loc);
+
+  double R = position[0], Z = position[1], phi = position[2];
+  double cos_phi = cos(phi), sin_phi = sin(phi);
+  double requested_psi = pointwise_requested_psi(sbapp, dir, surf_idx);
+  double evaluated_psi = pointwise_eval_psi(efit, use_cubics, R, Z);
+
+  record[POINTWISE_R] = R;
+  record[POINTWISE_Z] = Z;
+  record[POINTWISE_PHI] = phi;
+  record[POINTWISE_PSI_REQUESTED] = requested_psi;
+  record[POINTWISE_PSI_EVALUATED] = evaluated_psi;
+  record[POINTWISE_PSI_RESIDUAL] = evaluated_psi-requested_psi;
+
+  // dxdz_nodal stores Cartesian e_psi in components 0:2 and Cartesian
+  // e_theta in components 6:8.  Rotate those physical vectors to the
+  // cylindrical basis at the stored phi before writing them.
+  record[POINTWISE_EPSI_R] = cos_phi*tangents[0]+sin_phi*tangents[1];
+  record[POINTWISE_EPSI_PHI] = -sin_phi*tangents[0]+cos_phi*tangents[1];
+  record[POINTWISE_EPSI_Z] = tangents[2];
+  record[POINTWISE_ETHETA_R] = cos_phi*tangents[6]+sin_phi*tangents[7];
+  record[POINTWISE_ETHETA_PHI] = -sin_phi*tangents[6]+cos_phi*tangents[7];
+  record[POINTWISE_ETHETA_Z] = tangents[8];
+  record[POINTWISE_JACOBIAN_SIGNED] = jacobian_signed[0];
+  record[POINTWISE_JACOBIAN_ABS] = jacobian_abs[0];
+
+  bool valid = sbapp->basis.poly_order == 1;
+  for (int f=POINTWISE_R; f<POINTWISE_NUM_FIELDS; ++f)
+    valid = valid && jacobgeo_ratio_diag_coeff_is_set(record[f]);
+  record[POINTWISE_VALID] = valid ? 1.0 : 0.0;
+}
+
+static void
+pointwise_fprint_geometry_record(FILE *fp, const double *record)
+{
+  for (int i=0; i<POINTWISE_NUM_FIELDS; ++i)
+    fprintf(fp, ",%.17e", record[i]);
+}
+
+static void
+pointwise_write_geometry_header(FILE *fp)
+{
+  fprintf(fp, "app,rank,block,dir,edge,partner_block,partner_dir,partner_edge,orientation,comparison_status,interface_cell,node_ordinal,interface_node_index,cell_idx0,cell_idx1,cell_idx2,surface_idx0,surface_idx1,surface_idx2,quad_idx0,quad_idx1,quad_idx2");
+  const char *prefixes[] = { "local", "partner" };
+  const char *fields[] = {
+    "valid", "R", "Z", "phi", "psi_requested", "psi_evaluated", "psi_residual",
+    "e_psi_R", "e_psi_phi", "e_psi_Z", "e_theta_R", "e_theta_phi",
+    "e_theta_Z", "jacobian_signed", "jacobian_abs"
+  };
+  for (int p=0; p<2; ++p)
+    for (int f=0; f<POINTWISE_NUM_FIELDS; ++f)
+      fprintf(fp, ",%s_%s", prefixes[p], fields[f]);
+  fputc('\n', fp);
+}
+
+static void
+gyrokinetic_multib_app_write_interface_pointwise_diag(
+  gkyl_gyrokinetic_multib_app *app)
+{
+  int rank;
+  gkyl_comm_get_rank(app->comm, &rank);
+
+  cstr file_name = rank == 0
+    ? cstr_from_fmt("%s-interface_pointwise_geometry_diagnostics.csv", app->name)
+    : cstr_from_fmt("%s-interface_pointwise_geometry_diagnostics_rank%d.csv", app->name, rank);
+  FILE *fp = fopen(file_name.str, "w");
+  if (!fp) {
+    int saved_errno = errno;
+    fprintf(stderr, "Unable to open pointwise interface geometry diagnostic '%s': %s\n",
+      file_name.str, strerror(saved_errno));
+    cstr_drop(&file_name);
+    return;
+  }
+  cstr_drop(&file_name);
+  pointwise_write_geometry_header(fp);
+
+  int cdim = gkyl_gk_block_geom_ndim(app->gk_block_geom);
+  if (cdim < 2 || cdim > 3) {
+    fprintf(stderr, "Pointwise interface geometry diagnostic supports cdim=2 or 3; got cdim=%d\n", cdim);
+    fclose(fp);
+    return;
+  }
+
+  struct gkyl_efit *efit[app->num_local_blocks];
+  struct gkyl_efit_inp efit_inp[app->num_local_blocks];
+  bool use_cubics[app->num_local_blocks];
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    int bid = app->local_blocks[b];
+    const struct gkyl_gk_block_geom_info *bgi =
+      gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
+    efit[b] = 0;
+    use_cubics[b] = false;
+    if (bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK) {
+      efit_inp[b] = bgi->geometry.efit_info;
+      efit_inp[b].use_gpu = false;
+      efit[b] = gkyl_efit_new(&efit_inp[b]);
+      use_cubics[b] = bgi->geometry.tok_grid_info.use_cubics;
+    }
+  }
+
+  for (int d=0; d<cdim; ++d) {
+    int poly_order = app->singleb_apps[0]->basis.poly_order;
+    int num_quad = poly_order+1;
+    int nodes_per_face = pointwise_int_pow(num_quad, cdim-1);
+    int packed_ncomp = 2*nodes_per_face*POINTWISE_NUM_FIELDS;
+    struct gkyl_array *side[app->num_local_blocks];
+    struct gkyl_array *side_host[app->num_local_blocks];
+
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+      side[b] = mkarr(app->use_gpu, packed_ncomp, sbapp->local_ext.volume);
+      side_host[b] = app->use_gpu
+        ? mkarr(false, packed_ncomp, sbapp->local_ext.volume) : side[b];
+      gkyl_array_clear(side_host[b], 0.0);
+
+      if (!efit[b]) {
+        if (app->use_gpu)
+          gkyl_array_copy(side[b], side_host[b]);
+        continue;
+      }
+
+      const struct gk_geom_surf *geo_surf = &sbapp->gk_geom->geo_surf[d];
+      struct gkyl_array *mc2p_nodal_fd = pointwise_host_copy(geo_surf->mc2p_nodal_fd);
+      struct gkyl_array *dxdz_nodal = pointwise_host_copy(geo_surf->dxdz_nodal);
+      struct gkyl_array *jacobgeo_signed_nodal =
+        pointwise_host_copy(geo_surf->jacobgeo_signed_nodal);
+      struct gkyl_array *jacobgeo_nodal = pointwise_host_copy(geo_surf->jacobgeo_nodal);
+
+      for (int e=0; e<2; ++e) {
+        bool on_block_edge = e == 0
+          ? sbapp->local.lower[d] == sbapp->global.lower[d]
+          : sbapp->local.upper[d] == sbapp->global.upper[d];
+        if (!on_block_edge)
+          continue;
+
+        const struct gkyl_range *skin_range = e == 0
+          ? &sbapp->local_lower_skin[d] : &sbapp->local_upper_skin[d];
+        struct gkyl_range_iter iter;
+        gkyl_range_iter_init(&iter, skin_range);
+        while (gkyl_range_iter_next(&iter)) {
+          long cell_loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
+          double *packed = gkyl_array_fetch(side_host[b], cell_loc);
+
+          for (int n=0; n<nodes_per_face; ++n) {
+            int remainder = n;
+            int surf_idx[GKYL_MAX_DIM] = { 0 };
+            for (int td=0; td<cdim; ++td) {
+              if (td == d) {
+                surf_idx[td] = e == 0
+                  ? sbapp->gk_geom->nrange_surf[d].lower[td]
+                  : sbapp->gk_geom->nrange_surf[d].upper[td];
+              }
+              else {
+                int q = remainder%num_quad;
+                remainder /= num_quad;
+                surf_idx[td] = sbapp->gk_geom->nrange_surf[d].lower[td]
+                  +(iter.idx[td]-sbapp->local.lower[td])*num_quad+q;
+              }
+            }
+            pointwise_fill_geometry_record(sbapp, efit[b], use_cubics[b], d,
+              surf_idx, mc2p_nodal_fd, dxdz_nodal,
+              jacobgeo_signed_nodal, jacobgeo_nodal,
+              &packed[(e*nodes_per_face+n)*POINTWISE_NUM_FIELDS]);
+          }
+        }
+      }
+
+      gkyl_array_release(mc2p_nodal_fd);
+      gkyl_array_release(dxdz_nodal);
+      gkyl_array_release(jacobgeo_signed_nodal);
+      gkyl_array_release(jacobgeo_nodal);
+      if (app->use_gpu)
+        gkyl_array_copy(side[b], side_host[b]);
+    }
+
+    int transfer_status = gkyl_multib_comm_conn_array_transfer(app->comm,
+      app->num_local_blocks,
+      app->local_blocks, app->mbcc_sync_conf->send, app->mbcc_sync_conf->recv,
+      side, side);
+    if (transfer_status != 0)
+      fprintf(stderr, "Pointwise interface geometry transfer failed in direction %d with status %d\n",
+        d, transfer_status);
+    if (app->use_gpu)
+      for (int b=0; b<app->num_local_blocks; ++b)
+        gkyl_array_copy(side_host[b], side[b]);
+
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      if (!efit[b])
+        continue;
+
+      struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+      int bid = app->local_blocks[b];
+      for (int e=0; e<2; ++e) {
+        const struct gkyl_target_edge *partner =
+          &app->block_topo->conn[bid].connections[d][e];
+        if (partner->edge == GKYL_PHYSICAL)
+          continue;
+
+        bool on_block_edge = e == 0
+          ? sbapp->local.lower[d] == sbapp->global.lower[d]
+          : sbapp->local.upper[d] == sbapp->global.upper[d];
+        if (!on_block_edge)
+          continue;
+
+        int partner_edge = oriented_edge_index(partner->edge);
+        bool same_direction = partner->dir == d;
+        const char *comparison_status = sbapp->basis.poly_order != 1
+          ? "unsupported_poly_order"
+          : (same_direction ? "raw_unoriented" : "unsupported_cross_direction");
+        const struct gkyl_range *ghost_range = e == 0
+          ? &sbapp->local_lower_ghost[d] : &sbapp->local_upper_ghost[d];
+
+        struct gkyl_range_iter iter;
+        gkyl_range_iter_init(&iter, ghost_range);
+        while (gkyl_range_iter_next(&iter)) {
+          int skin_idx[GKYL_MAX_DIM] = { 0 };
+          gkyl_copy_int_arr(cdim, iter.idx, skin_idx);
+          skin_idx[d] += e == 0 ? 1 : -1;
+          long skin_loc = gkyl_range_idx(&sbapp->local_ext, skin_idx);
+          long ghost_loc = gkyl_range_idx(&sbapp->local_ext, iter.idx);
+          const double *local_packed = gkyl_array_cfetch(side_host[b], skin_loc);
+          const double *partner_packed = gkyl_array_cfetch(side_host[b], ghost_loc);
+
+          long interface_cell = 0, cell_stride = 1;
+          for (int td=0; td<cdim; ++td) {
+            if (td == d)
+              continue;
+            interface_cell += (skin_idx[td]-sbapp->global.lower[td])*cell_stride;
+            cell_stride *= gkyl_range_shape(&sbapp->global, td);
+          }
+
+          for (int n=0; n<nodes_per_face; ++n) {
+            int remainder = n;
+            int surf_idx[GKYL_MAX_DIM] = { -1, -1, -1 };
+            int quad_idx[GKYL_MAX_DIM] = { -1, -1, -1 };
+            long interface_node = 0, node_stride = 1;
+            for (int td=0; td<cdim; ++td) {
+              if (td == d) {
+                surf_idx[td] = e == 0
+                  ? sbapp->gk_geom->nrange_surf[d].lower[td]
+                  : sbapp->gk_geom->nrange_surf[d].upper[td];
+              }
+              else {
+                quad_idx[td] = remainder%num_quad;
+                remainder /= num_quad;
+                surf_idx[td] = sbapp->gk_geom->nrange_surf[d].lower[td]
+                  +(skin_idx[td]-sbapp->local.lower[td])*num_quad+quad_idx[td];
+                long global_node = (skin_idx[td]-sbapp->global.lower[td])*num_quad
+                  +quad_idx[td];
+                interface_node += global_node*node_stride;
+                node_stride *= gkyl_range_shape(&sbapp->global, td)*num_quad;
+              }
+            }
+
+            const double *local_record =
+              &local_packed[(e*nodes_per_face+n)*POINTWISE_NUM_FIELDS];
+            double missing_partner[POINTWISE_NUM_FIELDS];
+            for (int f=0; f<POINTWISE_NUM_FIELDS; ++f)
+              missing_partner[f] = 0.0;
+            const double *partner_record = same_direction && partner_edge >= 0
+              ? &partner_packed[(partner_edge*nodes_per_face+n)*POINTWISE_NUM_FIELDS]
+              : missing_partner;
+
+            fprintf(fp, "%s,%d,%d,%d,%s,%d,%d,%s,%s,%s,%ld,%d,%ld,%d,%d,%d,%d,%d,%d,%d,%d,%d",
+              app->name, rank, bid, d, edge_name_from_index(e), partner->bid,
+              partner->dir, oriented_edge_name(partner->edge),
+              orientation_name(partner->edge), comparison_status,
+              interface_cell, n, interface_node,
+              cdim > 0 ? skin_idx[0] : -1,
+              cdim > 1 ? skin_idx[1] : -1,
+              cdim > 2 ? skin_idx[2] : -1,
+              surf_idx[0], surf_idx[1], surf_idx[2],
+              quad_idx[0], quad_idx[1], quad_idx[2]);
+            pointwise_fprint_geometry_record(fp, local_record);
+            pointwise_fprint_geometry_record(fp, partner_record);
+            fputc('\n', fp);
+          }
+        }
+      }
+    }
+
+    for (int b=0; b<app->num_local_blocks; ++b) {
+      if (app->use_gpu)
+        gkyl_array_release(side_host[b]);
+      gkyl_array_release(side[b]);
+    }
+  }
+
+  for (int b=0; b<app->num_local_blocks; ++b)
+    if (efit[b])
+      gkyl_efit_release(efit[b]);
+  fclose(fp);
+}
+
 static const struct gkyl_array*
 gyrokinetic_multib_surf_quantity(const struct gk_geom_surf *geo_surf, const char *name)
 {
@@ -1784,6 +2226,7 @@ gkyl_gyrokinetic_multib_app_write_geometry(gkyl_gyrokinetic_multib_app *app)
   gyrokinetic_multib_app_write_flux_weight_rescale_diag(app);
   gyrokinetic_multib_app_write_flux_weight_modal_product_diag(app);
   gyrokinetic_multib_app_write_interface_partner_diag(app);
+  gyrokinetic_multib_app_write_interface_pointwise_diag(app);
 }
 
 void
