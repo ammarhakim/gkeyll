@@ -1,25 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_vlasov_surf_tables_2x2v_ser_p1.h> 
-GKYL_CU_DH void vlasov_boundary_surfvy_2x2v_ser_p1_mode(int m, int edge, double dv11,
-  const double *flux, double* GKYL_RESTRICT out) 
-{ 
-  const int a = vst_2x2v_ser_p1_prj_v1_pm_a[m]; 
-  const int b = vst_2x2v_ser_p1_prj_v1_pm_b[m]; 
-  double g = 0.0; 
-  for (int i = 0; i < 4; ++i) { 
-    double t = 0.0; 
-    for (int j = 0; j < 2; ++j) { 
-      t += vst_2x2v_ser_p1_prj_v1_Vw[j*2 + b]*flux[8 + i*2 + j]; 
-    } 
-    g += vst_2x2v_ser_p1_prj_v1_Cw[i*4 + a]*t; 
-  } 
-  if (edge == -1) { 
-    out[m] += dv11*vst_2x2v_ser_p1_prj_v1_pm_cr[m]*g; 
-  } else { 
-    out[m] += dv11*vst_2x2v_ser_p1_prj_v1_pm_cl[m]*g; 
-  } 
-} 
-
 GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_ser_p1(const double *w, const double *dxv,
   const int edge, const double *flux, double* GKYL_RESTRICT out) 
 { 

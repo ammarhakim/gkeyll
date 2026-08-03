@@ -1,25 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
 #include <gkyl_vlasov_surf_tables_2x3v_ser_p2.h> 
-GKYL_CU_DH void vlasov_ho_surfy_2x3v_ser_p2_mode(int m, double dx11,
-  const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
-{ 
-  const int a = vst_2x3v_ser_p2_ho_prj_x1_pm_a[m]; 
-  const int b = vst_2x3v_ser_p2_ho_prj_x1_pm_b[m]; 
-  double g_l = 0.0; 
-  double g_r = 0.0; 
-  for (int i = 0; i < 4; ++i) { 
-    double t_l = 0.0; 
-    double t_r = 0.0; 
-    for (int j = 0; j < 64; ++j) { 
-      t_l += vst_2x3v_ser_p2_ho_prj_x1_Vw[j*20 + b]*Fhat_l_nodal[256 + i*64 + j]; 
-      t_r += vst_2x3v_ser_p2_ho_prj_x1_Vw[j*20 + b]*Fhat_r_nodal[256 + i*64 + j]; 
-    } 
-    g_l += vst_2x3v_ser_p2_ho_prj_x1_Cw[i*3 + a]*t_l; 
-    g_r += vst_2x3v_ser_p2_ho_prj_x1_Cw[i*3 + a]*t_r; 
-  } 
-  out[m] += dx11*(vst_2x3v_ser_p2_ho_prj_x1_pm_cl[m]*g_l + vst_2x3v_ser_p2_ho_prj_x1_pm_cr[m]*g_r); 
-} 
-
 GKYL_CU_DH double vlasov_ho_surfy_2x3v_ser_p2(const double *w, const double *dxv,
   const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
 { 
