@@ -21,6 +21,17 @@
 #include <gkyl_math.h>
 #include <gkyl_const.h>
 
+// Compare two DG coefficients with a mixed relative/absolute tolerance. The
+// relative check (gkyl_compare) blows up for coefficients near zero, where
+// last-bit rounding differences across compilers/architectures (e.g. FMA
+// contraction under -ffast-math on arm64 vs x86-64) dominate. Accept the value
+// if either the relative or the absolute difference is within tolerance.
+static bool
+ts_compare_coeff(double ref, double val)
+{
+  return gkyl_compare(ref, val, 1e-13) || fabs(ref-val) < 1e-14;
+}
+
 // Meta-data for IO
 struct test_bc_twistshift_output_meta {
   int poly_order; // polynomial order
@@ -3651,7 +3662,7 @@ test_bc_twistshift_3x_cbc_wcells(const int *cells, enum gkyl_edge_loc edge,
           double *f_c = gkyl_array_fetch(distf_ho, linidx);
           int refidx = iter.idx[1]-1;
           for (int k=0; k<basis.num_basis; ++k) {
-            TEST_CHECK( gkyl_compare(f0[i*cells[1]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-13) );
+            TEST_CHECK( ts_compare_coeff(f0[i*cells[1]*basis.num_basis+refidx*basis.num_basis+k], f_c[k]) );
           }
         }
       }
@@ -3661,7 +3672,7 @@ test_bc_twistshift_3x_cbc_wcells(const int *cells, enum gkyl_edge_loc edge,
           double *f_c = gkyl_array_fetch(distf_ho, linidx);
           int refidx = iter.idx[0]-1;
           for (int k=0; k<basis.num_basis; ++k) {
-            TEST_CHECK( gkyl_compare(f1[i*cells[0]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-13) );
+            TEST_CHECK( ts_compare_coeff(f1[i*cells[0]*basis.num_basis+refidx*basis.num_basis+k], f_c[k]) );
           }
         }
       }
