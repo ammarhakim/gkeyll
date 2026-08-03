@@ -164,6 +164,9 @@ struct gkyl_tok_geo_grid_inp {
                               // to the nearest point on the innermost core surface.
                               // Retained for backward compatibility; straight_xpt_ray
                               // enables the same construction for every supported region.
+  bool relaxed_xpt_seam; // Route supported half-domain X-point seams through
+                         // the delta-s parameterization. The initial mode
+                         // enforces delta_s=0 and is exactly the straight ray.
 
   // Parameters for root finder: leave unset to use defaults
   struct {

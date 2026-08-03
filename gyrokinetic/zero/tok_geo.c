@@ -1151,6 +1151,57 @@ tok_ordered_chord_point(const struct gkyl_tok_geo_grid_inp *inp,
 }
 
 static bool
+tok_xpt_seam_endpoint(enum gkyl_tok_geo_type ftype, double u)
+{
+  const double endpoint_tol = 256.0*DBL_EPSILON;
+  return tok_sep_fixed_edge_is_first(ftype)
+    ? u >= 1.0-endpoint_tol : u <= endpoint_tol;
+}
+
+// The straight intersection defines the local contour origin s0.  Commit 3
+// deliberately fixes delta_s to zero; candidate displacements are evaluated
+// diagnostically before any nonzero value is allowed to alter the map.
+static double
+tok_zero_xpt_seam_delta_s(double psi)
+{
+  (void) psi;
+  return 0.0;
+}
+
+static bool
+tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double psi, double u, double *r, double *z)
+{
+  // Retain the validated straight-ray point before considering relaxation.
+  if (!tok_ordered_chord_point(inp, arc_ctx, psi, u, r, z))
+    return false;
+  if (!inp->relaxed_xpt_seam || !inp->half_domain ||
+      !tok_xpt_seam_endpoint(inp->ftype, u))
+    return true;
+
+  // Use signed local contour arc length, with s0=0 at the straight-ray
+  // intersection.  Return before doing coordinate arithmetic so zero mode is
+  // bitwise identical to the existing construction.
+  const double s0 = 0.0;
+  const double delta_s = tok_zero_xpt_seam_delta_s(psi);
+  if (delta_s == 0.0) {
+    if (tok_ordered_map_diag_enabled())
+      fprintf(stderr,
+        "TOK_XPT_SEAM_DIAG mode=zero ftype=%d psi=%.17g s0=%.17g delta_s=%.17g seam_s=%.17g R=%.17g Z=%.17g fallback=straight\n",
+        inp->ftype, psi, s0, delta_s, s0, *r, *z);
+    return true;
+  }
+
+  // A nonzero active value is forbidden until exact flux projection, branch,
+  // ordering, and Jacobian guards are connected.  Keep the straight point as
+  // an explicit fallback rather than returning a partially displaced seam.
+  fprintf(stderr,
+    "TOK_XPT_SEAM_DIAG mode=rejected ftype=%d psi=%.17g s0=%.17g delta_s=%.17g reason=nonzero_not_enabled fallback=straight\n",
+    inp->ftype, psi, s0, delta_s);
+  return true;
+}
+
+static bool
 tok_eval_psi_grad_rz_local(const struct gkyl_tok_geo *geo,
   double R, double Z, double *dpsidR, double *dpsidZ)
 {
@@ -1228,7 +1279,7 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
   arc_ctx->map_trace_phi[0] = 0.0;
   for (int i=0; i<n; ++i) {
     double u = i/(double) (n-1);
-    if (!tok_ordered_chord_point(inp, arc_ctx, psi, u,
+    if (!tok_parameterized_xpt_seam_point(inp, arc_ctx, psi, u,
         &arc_ctx->map_trace_r[i], &arc_ctx->map_trace_z[i]))
       return false;
     if (i > 0) {
@@ -1274,7 +1325,7 @@ tok_ordered_map_lookup(const struct gkyl_tok_geo_grid_inp *inp,
   if (u <= 256.0*DBL_EPSILON) u = 0.0;
   else if (u >= 1.0-256.0*DBL_EPSILON) u = 1.0;
   else u = fmin(1.0, fmax(0.0, u));
-  if (!tok_ordered_chord_point(inp, arc_ctx, arc_ctx->psi, u,
+  if (!tok_parameterized_xpt_seam_point(inp, arc_ctx, arc_ctx->psi, u,
       &out->r, &out->z))
     return false;
   double x = u*(arc_ctx->map_trace_n-1);
