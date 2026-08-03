@@ -2661,8 +2661,19 @@ xpt_optimizer_make_pair(const struct gkyl_gyrokinetic_multib_app *app,
   // in-place (see xpt_optimizer_measure_pair); that reversed cell is only
   // guaranteed to be locally addressable when neither block is radially
   // decomposed across ranks, so require cuts[0]==1 on both sides rather
-  // than attempt cross-rank addressing here.
-  bool supported_decomp = bgi->cuts[0] == 1 && partner_bgi->cuts[0] == 1;
+  // than attempt cross-rank addressing here. Theta decomposition
+  // (cuts[1] != 1) is excluded too: xpt_optimizer_measure_pair packs each
+  // rank's own local skin range directly into a full-block-sized side[]
+  // array without an intra-block sync first, so when the seam-adjacent
+  // skin cells and this rank's ghost cells are owned by different ranks
+  // the samples are silently incomplete -- confirmed by a two-rank
+  // regression run with cuts=(1,2), which produced
+  // incomplete_interface/fixed_interface_changed on every candidate
+  // (including the always-should-succeed zero-coefficient one) even though
+  // the same mesh with cuts=(1,1) and blocks split one-per-rank applies
+  // correctly. See "regression coverage" commit for the reproduction.
+  bool supported_decomp = bgi->cuts[0] == 1 && partner_bgi->cuts[0] == 1 &&
+    bgi->cuts[1] == 1 && partner_bgi->cuts[1] == 1;
   if (cdim != 2 || !conforming || !supported_decomp) {
     pair.reject_reason = XPT_OPT_UNSUPPORTED_CONFIGURATION;
     return pair;
