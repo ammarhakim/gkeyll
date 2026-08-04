@@ -7,6 +7,14 @@
 
 #include <assert.h>
 
+// allocate array (filled with zeros)
+static inline struct gkyl_array*
+mkarr(bool use_gpu, long nc, long size)
+{
+  return use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
+                : gkyl_array_new(GKYL_DOUBLE, nc, size);
+}
+
 static void
 bc_twistshift_refine_enabled(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo)
 {
@@ -158,8 +166,8 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
   gkyl_range_init(&up->ts_ext_r, ndim, flo, fup);
   gkyl_sub_range_init(&up->ts_update_r, &up->ts_ext_r, flo, fup);
 
-  up->ffine = gkyl_array_new(GKYL_DOUBLE, inp->basis->num_basis, up->ts_ext_r.volume);
-  up->filt_buff = gkyl_array_new(GKYL_DOUBLE, inp->basis->num_basis, up->ts_ext_r.volume);
+  up->ffine = mkarr(inp->use_gpu, inp->basis->num_basis, up->ts_ext_r.volume);
+  up->filt_buff = mkarr(inp->use_gpu, inp->basis->num_basis, up->ts_ext_r.volume);
 
   // Ghost plane on the supersampled grid.
   if (inp->edge == GKYL_LOWER_EDGE)
