@@ -133,7 +133,6 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
   }
 
   // Upsampling and filtering attributes.
-  assert(!inp->use_gpu);
   const int ndim = inp->bcdir_ext_update_r->ndim;
   // Ghost plane this BC fills, on the field's own grid.
   if (inp->edge == GKYL_LOWER_EDGE)
