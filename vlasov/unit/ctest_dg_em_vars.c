@@ -653,11 +653,11 @@ test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_a
     gkyl_dg_mul_op_range(&basis, 0, int_ExB1, 1, field_cu, 5, field_cu, &local);
     gkyl_dg_mul_op_range(&basis, 0, int_ExB2, 2, field_cu, 4, field_cu, &local);
 
-    gkyl_dg_mul_op_range(&basis, 0, int_ExB1, 2, field_cu, 3, field_cu, &local);
-    gkyl_dg_mul_op_range(&basis, 0, int_ExB2, 0, field_cu, 5, field_cu, &local);
+    gkyl_dg_mul_op_range(&basis, 1, int_ExB1, 2, field_cu, 3, field_cu, &local);
+    gkyl_dg_mul_op_range(&basis, 1, int_ExB2, 0, field_cu, 5, field_cu, &local);
 
-    gkyl_dg_mul_op_range(&basis, 0, int_ExB1, 0, field_cu, 4, field_cu, &local);
-    gkyl_dg_mul_op_range(&basis, 0, int_ExB2, 1, field_cu, 3, field_cu, &local);
+    gkyl_dg_mul_op_range(&basis, 2, int_ExB1, 0, field_cu, 4, field_cu, &local);
+    gkyl_dg_mul_op_range(&basis, 2, int_ExB2, 1, field_cu, 3, field_cu, &local);
 
     gkyl_array_accumulate_range(int_ExB1, -1.0, int_ExB2, &local);
     for (int i=0; i<3; ++i) {
