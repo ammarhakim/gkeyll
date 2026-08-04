@@ -5,6 +5,7 @@
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_sources_explicit_priv.h>
 #include <gkyl_sources_implicit_priv.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -478,7 +479,7 @@ void implicit_em_non_linear_source_update(
 
   // printf("\n");
   while (should_subcycle) {
-    iters = 0;
+    iters = -1;
     gkyl_mat_clear(Q_bar_guess, 0.0); 
     Q_bar_guess = gkyl_mat_accumulate(Q_bar_guess, 1.0, Q_init);
     Q_bar_guess = gkyl_mat_accumulate(Q_bar_guess, dt / 4.0, S_init);
@@ -488,11 +489,9 @@ void implicit_em_non_linear_source_update(
     subcycle_level++;
     if (subcycle_level > 1) {
       dt /= 2;
-      if (dt < 0.001) {
-        break;
-      }
     }
-    for (int cs = 0; cs < subcycle_level && !should_subcycle; cs++) {
+    for (int cs = 0; cs < pow(2.0, subcycle_level) && !should_subcycle; cs++) {
+      iters = -1;
       do {
         if (iters >= max_iters) {
           printf("No Converge: Sub-cycling... Curr dt: %g\n", dt);
@@ -659,9 +658,9 @@ void implicit_em_non_linear_source_update(
       double mom_sq = momx * momx + momy * momy + momz * momz;
 
       double e = ((tau + D) * (tau + D)) - (D * D + mom_sq * mom_sq);
-
+      int nan_sum = isnan(D) + isnan(momx) + isnan(momz) + isnan(momy) + isnan(tau); 
       // printf("e = %g | tau = %g \n", e, tau);
-      if (e <= 0.0 && tau <= 0) {
+      if (e <= 0.0 && tau <= 0 && nan_sum > 0) {
         printf("Non-physical... Subcycling...:\n");
         // printf("e = %g | tau = %g \n", e, tau);
         should_subcycle = true;

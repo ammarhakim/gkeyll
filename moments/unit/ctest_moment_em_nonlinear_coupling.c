@@ -14,7 +14,7 @@ enum {F_RHO, F_MX, F_MY, F_MZ, F_E};
 enum {EM_EX, EM_EY, EM_EZ, EM_BX, EM_BY, EM_BZ};
 
 static void
-run_plasma_oscillation(double dt, int nsteps, double E0, 
+run_plasma_oscillation(double dt, int nsteps, double E0, double B0, double u0,
                        double *Ex_final, double *mom_x_final, 
                        double *omega_num)
 {
@@ -72,11 +72,12 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
 
   double *f0 = gkyl_array_fetch(fluid, cidx);
   f0[F_RHO] = rho;
-  f0[F_MX] = 0.0; f0[F_MY] = 0.0; f0[F_MZ] = 0.0;
+  f0[F_MX] = u0; f0[F_MY] = 0.0; f0[F_MZ] = 0.0;
   f0[F_E] = pressure / (gas_gamma - 1.0);
 
   double *e0 = gkyl_array_fetch(em, cidx);
   e0[EM_EX] = E0;
+  e0[EM_BZ] = B0;
 
   double internal_energy_0 = f0[F_E];
   
@@ -116,7 +117,10 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
   printf("\nEx_final = %g\n", *Ex_final);
   printf("Initial energy: %0.9f\n", internal_energy_0 + (E0 * E0 / 2));
   printf("Final nergy: %0.9f\n", f[F_E] + (*Ex_final * *Ex_final / 2));
-  // printf("omega_num = %g\n", *omega_num);
+  
+
+  printf("Momentum x: %g | y: %g\n", f[F_MX], f[F_MY]);
+  printf("vx: %g | vy: %g\n", vx, vy);
 
   gkyl_array_release(fluid);
   gkyl_array_release(em);
@@ -131,12 +135,12 @@ run_plasma_oscillation(double dt, int nsteps, double E0,
 static void
 test_plasma_oscillation_small_dt()
 {
-  const double E0 = 4.1;
-  const double dt = 0.001;
+  const double E0 = 1.0;
+  const double dt = 0.0001;
   const int nsteps = 10000;
   
   double Ex, mom_x, omega_num;
-  run_plasma_oscillation(dt, nsteps, E0, &Ex, &mom_x, &omega_num);
+  run_plasma_oscillation(dt, nsteps, E0, 0.0, 0.0, &Ex, &mom_x, &omega_num);
   
   double Ex_expected = E0 * cos(omega_num * dt * nsteps);
   printf("Ex_expected = %g\n", Ex_expected);
@@ -147,21 +151,47 @@ test_plasma_oscillation_small_dt()
 static void
 test_plasma_oscillation_large_dt()
 {
-  const double m0 = 1.0;
+  const double E0 = 1.0;
   const double dt = 10;
   const int nsteps = 200;
   
   double Ex, mom_x, omega_num;
-  run_plasma_oscillation(dt, nsteps, m0, &Ex, &mom_x, &omega_num);
+  run_plasma_oscillation(dt, nsteps, E0, 0.0, 0.0, &Ex, &mom_x, &omega_num);
 
   double Ex_expected = 0.0;
-  TEST_CHECK(fabs(Ex) <= m0 + 1e-10);
+  TEST_CHECK(fabs(Ex) <= E0 + 1e-10);
   TEST_MSG("Ex = %g", Ex);
+}
+
+static void
+test_plasma_oscillation_cyclotron()
+{
+  const double E0 = 1.0;
+  const double u_perturb = 0.1;
+  const double B0 = 1.0;
+  const double nsteps = 100000;
+  const double dt = 0.0001;
+
+  double Ex, mom_x, omega_num;
+  run_plasma_oscillation(dt, nsteps, E0, B0, u_perturb, &Ex, &mom_x, &omega_num);
+
+  double omega = -B0;
+  
+  double t = dt * nsteps;
+  double omega_x = (E0 / 2) * (t * cos(t) + sin(t));
+  double vx = omega_x + u_perturb * cos(t);
+
+  double E_truth = E0 * cos(omega * t);
+  printf("E sim: %g | E truth: %g\n", Ex, E_truth);
+  
+
+  printf("vx: %g\n", vx);
 }
 
 
 TEST_LIST = {
   { "plasma_oscillation_small_dt", test_plasma_oscillation_small_dt },
   { "plasma_oscillation_large_dt", test_plasma_oscillation_large_dt },
+  { "plasma_oscillation_cyclotron", test_plasma_oscillation_cyclotron },
   { NULL, NULL },
 };
