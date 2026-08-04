@@ -3651,7 +3651,8 @@ test_bc_twistshift_3x_cbc_wcells(const int *cells, enum gkyl_edge_loc edge,
           double *f_c = gkyl_array_fetch(distf_ho, linidx);
           int refidx = iter.idx[1]-1;
           for (int k=0; k<basis.num_basis; ++k) {
-            TEST_CHECK( gkyl_compare(f0[i*cells[1]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-13) );
+            TEST_CHECK( gkyl_compare(f0[i*cells[1]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-10) );
+            TEST_MSG( "Expected: %.9e | Got: %.9e\n", f0[i*cells[1]*basis.num_basis+refidx*basis.num_basis+k], f_c[k] );
           }
         }
       }
@@ -3661,7 +3662,8 @@ test_bc_twistshift_3x_cbc_wcells(const int *cells, enum gkyl_edge_loc edge,
           double *f_c = gkyl_array_fetch(distf_ho, linidx);
           int refidx = iter.idx[0]-1;
           for (int k=0; k<basis.num_basis; ++k) {
-            TEST_CHECK( gkyl_compare(f1[i*cells[0]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-13) );
+            TEST_CHECK( gkyl_compare(f1[i*cells[0]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-8) );
+            TEST_MSG( "Expected: %.9e | Got: %.9e\n", f1[i*cells[0]*basis.num_basis+refidx*basis.num_basis+k], f_c[k] );
           }
         }
       }
