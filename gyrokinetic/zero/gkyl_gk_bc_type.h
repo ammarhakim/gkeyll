@@ -16,7 +16,6 @@ enum gkyl_gyrokinetic_bc_type {
   GKYL_BC_GK_SPECIES_ZERO_FLUX, // Zero flux.
   GKYL_BC_GK_SPECIES_SHEATH, // Sheath.
   GKYL_BC_GK_SPECIES_RECYCLE, // Recycling.
-  GKYL_BC_GK_SPECIES_IWL, // Inner wall limited.
   GKYL_BC_GK_SPECIES_PERIODIC, // Periodic.
   GKYL_BC_GK_SPECIES_TWISTSHIFT, // Twist-shift.
   GKYL_BC_GK_SPECIES_BOUNDARY_VALUE, // Skin value at the boundary.

@@ -26,10 +26,8 @@ gks_pos_deltaf_moms_calc(gkyl_gyrokinetic_app* app, struct gk_species *gks,
 {
   gk_species_moment_calc(&pos->moms, gks->local, app->local, pos->fbuffer_ptr);
 
-  // Rescale moment by inverse of Jacobian.
-  gkyl_dg_div_op_range(pos->moms.mem_geo, app->basis, 
-    0, pos->moms.marr, 0, pos->moms.marr, 0, 
-    app->gk_geom->geo_int.jacobgeo, &app->local);  
+  // Rescale moment by inverse of Jacobian if needed.
+  gk_species_moment_diag_jacobgeo_div(app, &pos->moms, pos->moms.marr, pos->moms.marr);
 }
 
 static void
@@ -44,13 +42,16 @@ static void
 gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   struct gk_positivity *pos, double tm, int frame)
 {
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+  struct gkyl_msgpack_map_elem desc[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "M0M1M2PARM2PERP moments of the change in the distribution by the positivity shift." }
+  };
+  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   struct timespec wst = gkyl_wall_clock();
   // We placed the change in f in fbuffer_ptr.
@@ -61,10 +62,12 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   if (app->use_gpu)
     gkyl_array_copy(pos->moms.marr_host, pos->moms.marr);
 
-  const char *fmt = "%s-%s_positivity_FourMoments_%d.gkyl";
-  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, frame);
+  const char *fmt = "%s-%s_positivity_%s_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
+    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2PARM2PERP], frame);
   char fileNm[sz+1]; // ensures no buffer overflow
-  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, frame);
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name,
+    gkyl_distribution_moments_strs[GKYL_F_MOMENT_M0M1M2PARM2PERP], frame);
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
@@ -72,7 +75,7 @@ gks_pos_write_diags_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks,
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_diag_io += 1;
   
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
 
   app->stat.n_diag += 1;
 }
@@ -152,9 +155,17 @@ gks_pos_write_integrated_diags_enabled(gkyl_gyrokinetic_app *app,
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (pos->is_first_integ_write_call) {
-      gkyl_dynvec_write(pos->integ_diag, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of change in distribution due to positivity shift." }
+      };
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(pos->integ_diag, fileNm, mt);
       pos->is_first_integ_write_call = false;
       pos->integ_diag_file_exists = true;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(pos->integ_diag, fileNm);

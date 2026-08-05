@@ -302,7 +302,6 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "gr_einstein_plane_shock",
 
     .ndim = 1,
     .lower = { -0.5 * ctx.Lx },
@@ -322,6 +321,8 @@ main(int argc, char **argv)
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // Initial and final simulation times.
@@ -361,7 +362,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 

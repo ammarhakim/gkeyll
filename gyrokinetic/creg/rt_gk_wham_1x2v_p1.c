@@ -465,7 +465,7 @@ create_ctx(void)
   int poly_order = 1;
 
   double t_end = 1e-8;
-  int num_frames = 10;
+  int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
   double dt_failure_tol = 1.0e-4; // Minimum allowable fraction of initial time-step.
@@ -582,6 +582,16 @@ int main(int argc, char **argv)
       .mapping = mapc2p_vel_elc,
       .ctx = &ctx,
     },
+    
+    .time_rate_multiplier = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_THRESHOLD,
+        .f_threshold = 1e-30,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
+    },
 
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
@@ -662,6 +672,16 @@ int main(int argc, char **argv)
       .ctx = &ctx,
     },
 
+    .time_rate_multiplier = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_MASK_F_FRAC_LOCAL,
+        .f_threshold = 1e-4,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
+    },
+
     .projection = {
       .proj_id = GKYL_PROJ_BIMAXWELLIAN,
       .ctx_density = &ctx,
@@ -737,12 +757,11 @@ int main(int argc, char **argv)
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_SQRT_PSI_CART_Z, // coordinate system for psi grid
   };
 
   // GK app
   struct gkyl_gk app_inp = {
-    .name = "gk_wham_1x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
@@ -751,7 +770,7 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_MIRROR,
+      .geometry_id = GKYL_GEOMETRY_MIRROR,
       .world = {ctx.psi_eval, 0.0},
       .mirror_grid_info = grid_inp,
     },
@@ -771,6 +790,8 @@ int main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

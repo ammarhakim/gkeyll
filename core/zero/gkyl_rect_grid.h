@@ -19,7 +19,7 @@ struct gkyl_rect_grid {
 };
 
 /**
- * Create new grid object.
+ * Initialize a grid object.
  *
  * @param grid Grid object to initialize.
  * @param ndim Dimension of grid
@@ -31,18 +31,30 @@ void gkyl_rect_grid_init(struct gkyl_rect_grid *grid, int ndim,
   const double *lower, const double *upper, const int *cells);
 
 /**
+ * Create and initialize a new grid object. Release with gkyl_rect_grid_release.
+ *
+ * @param grid Grid object to initialize.
+ * @param ndim Dimension of grid
+ * @param lower Coordinates of lower-left corner of grid
+ * @param upper Coordinates of upper-right corner of grid
+ * @param cells Number of cells in each direction
+ */
+struct gkyl_rect_grid* gkyl_rect_grid_new(int ndim,
+  const double *lower, const double *upper, const int *cells);
+
+/**
  * Find cell indices of point
  *
  * @param grid Grid object.
  * @param point The point to find the cell indices at.
- * @param pick_lower If point on cell boundary, pick lower cell if true, and upper if false.
+ * @param pick_lower If point is on a cell boundary, pick the lower cell if true (per direction).
  * @param known_index Any known indices of where the point is (<0 if not known).
  * @param cell_index Pointer to cell indices.
- * Asserts: point lies within cell(s) specified by knownIdx (if specified). 
+ * Asserts: point lies within cell(s) specified by knownIdx (if specified).
  */
 GKYL_CU_DH
 void gkyl_rect_grid_find_cell(const struct gkyl_rect_grid *grid, const double *point,
-  bool pick_lower, const int *known_index, int *cell_index);
+  const bool *pick_lower, const int *known_index, int *cell_index);
 
 /**
  * Get cell-center coordinates. Note that idx is a 1-based cell index,
@@ -121,13 +133,14 @@ gkyl_rect_grid_coord_idx(const struct gkyl_rect_grid *grid,
 bool gkyl_rect_grid_cmp(const struct gkyl_rect_grid *grid1, struct gkyl_rect_grid *grid2);
 
 /**
- * Write grid data to file. File must be opened by caller of this
- * function. Data is written in binary format.
+ * Write grid data to given file pointer. If file pointer is not stdout or
+ * stderr, data is written to previously opened file in binary format.
  *
  * @param grid Grid object to write
+ * @param nm Name of grid (for fp=stdout or stderr);
  * @param fp File handle to write to.
  */
-void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp);
+void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, const char *nm, FILE *fp);
 
 /**
  * Read data from file and initialize grid. File must be opened by
@@ -138,3 +151,11 @@ void gkyl_rect_grid_write(const struct gkyl_rect_grid *grid, FILE *fp);
  * @return True if read succeeded, false otherwise
  */
 bool gkyl_rect_grid_read(struct gkyl_rect_grid *grid, FILE *fp);
+
+/**
+ * Release grid object that was created with gkyl_rect_grid_new.
+ *
+ * @param grid Grid object.
+ */
+void gkyl_rect_grid_release(struct gkyl_rect_grid *grid);
+

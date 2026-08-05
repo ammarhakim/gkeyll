@@ -6,6 +6,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_dg_interpolate.h>
 #include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
@@ -84,7 +85,7 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   double lower[] = {0.0}, upper[] = {1.0};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
+  int ndim = sizeof(lower)/sizeof(lower[0]);
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -201,7 +202,7 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   double lower[] = {0.0, -M_PI}, upper[] = {1.0, M_PI};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
+  int ndim = sizeof(lower)/sizeof(lower[0]);
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -335,7 +336,7 @@ static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *con
 void
 test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vx_min = -6.0;
@@ -343,8 +344,8 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double lower[] = {x_min, vx_min}, upper[] = {x_max, vx_max};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -570,7 +571,7 @@ void eval_distf_1x2v_vlasov(double t, const double *xn, double* restrict fout, v
 void
 test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vx_min = -6.0;
@@ -580,8 +581,8 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   double lower[] = {x_min, vx_min, vy_min}, upper[] = {x_max, vx_max, vy_max};
   double mass = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -849,7 +850,7 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
   // Initialize GK geometry.
   int cdim = confBasis.ndim;
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0, 0.0, 0.0},  .mapc2p = mapc2p,  .c2p_ctx = 0,
     .bfield_func = cdim==1? eval_bfield_1x : (cdim==2? eval_bfield_2x : eval_bfield_3x),  .bfield_ctx = bfield_ctx,
     .basis = confBasis,  .grid = confGrid,
@@ -872,6 +873,9 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
     geometry_input.geo_local = confLocal;
     geometry_input.geo_local_ext = confLocal_ext;
   }
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+  geometry_input.position_map = pmap;
+  
   // Deflate geometry.
   struct gk_geometry* gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
   struct gk_geometry *gk_geom = cdim < 3? gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input)
@@ -884,6 +888,7 @@ static struct gk_geometry* init_gk_geo(int poly_order, struct gkyl_rect_grid con
     gk_geom = gkyl_gk_geometry_acquire(gk_geom_dev);
     gkyl_gk_geometry_release(gk_geom_dev);
   }
+  gkyl_position_map_release(pmap);
   return gk_geom;
 }
 
@@ -900,7 +905,7 @@ static void calc_moms_gk(struct gkyl_rect_grid *grid, struct gkyl_basis *confBas
 void
 test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vpar_min = -6.0;
@@ -909,8 +914,8 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.0;
   double charge = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1171,7 +1176,7 @@ void eval_distf_1x2v_gk(double t, const double *xn, double* restrict fout, void 
 void
 test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double x_min = 0.0;
   double x_max = 1.0;
   double vpar_min = -6.0;
@@ -1181,8 +1186,8 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.0;
   double charge = 1.0;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1441,7 +1446,7 @@ void eval_distf_2x2v_gk(double t, const double *xn, double* restrict fout, void 
 void
 test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 2;
+  int cdim = 2;
 //  double x_min = 0.0;
 //  double x_max = 1.0;
 //  double y_min = 0.0;
@@ -1460,8 +1465,8 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.67e-27*3.973;
   double charge = 1.602e-19;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -1720,7 +1725,7 @@ void eval_distf_3x2v_gk(double t, const double *xn, double* restrict fout, void 
 void
 test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
-  const int cdim = 3;
+  int cdim = 3;
 //  double x_min = 0.0;
 //  double x_max = 1.0;
 //  double y_min = 0.0;
@@ -1752,8 +1757,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   double mass = 1.67e-27*3.973;
   double charge = 1.602e-19;
 
-  const int ndim = sizeof(lower)/sizeof(lower[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(lower)/sizeof(lower[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.

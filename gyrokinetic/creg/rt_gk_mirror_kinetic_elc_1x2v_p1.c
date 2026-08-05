@@ -614,7 +614,7 @@ create_ctx(void)
   int Nmu = 48;  // Number of cells in the mu direction 192
   int poly_order = 1;
 
-  double t_end = 4.0e-9;
+  double t_end = 4.0e-8;
   int num_frames = 1;
   double write_phase_freq = 0.2; // Frequency of writing phase-space diagnostics (as a fraction of num_frames).
   int int_diag_calc_num = num_frames*100;
@@ -751,6 +751,17 @@ int main(int argc, char **argv)
       .type = GKYL_GK_COLLISIONLESS_ES,
     },
 
+    .time_rate_multiplier = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+        .time_dilation_scale_const = 0.05,
+      },
+    },
+    .write_omega_cfl = true,
+
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
       .self_nu = evalNuElc,
@@ -809,7 +820,23 @@ int main(int argc, char **argv)
 
     .collisionless = {
       .type = GKYL_GK_COLLISIONLESS_ES,
+    },    
+
+    .time_rate_multiplier = {
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_FIXED_DT_OMEGAH,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+        .time_dilation_scale_const = 0.05,
+      },
+      .multiplier[1] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE,
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
+    .write_omega_cfl = true,
 
     .collisions =  {
       .collision_id = GKYL_LBO_COLLISIONS,
@@ -853,7 +880,6 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = { 
-    .name = "gk_mirror_kinetic_elc_1x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
@@ -862,7 +888,7 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
       .mapc2p = mapc2p, // mapping of computational to physical space
       .c2p_ctx = &ctx,
@@ -885,6 +911,8 @@ int main(int argc, char **argv)
     },
   };
 
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = {

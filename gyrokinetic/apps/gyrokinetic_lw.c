@@ -33,15 +33,16 @@
 static const struct gkyl_str_int_pair parproj_type[] = {
   { "None", GKYL_FEM_PARPROJ_NONE },
   { "Periodic", GKYL_FEM_PARPROJ_PERIODIC },
-  { "Dirichlet", GKYL_FEM_PARPROJ_DIRICHLET },
+  { "DirichletGhost", GKYL_FEM_PARPROJ_DIRICHLET_GHOST },
+  { "DirichletSkin", GKYL_FEM_PARPROJ_DIRICHLET_SKIN },
   { 0, 0 }
 };
 
 // Gyrokinetic geometry type -> enum map.
 static const struct gkyl_str_int_pair geometry_type[] = {
-  { "Tokamak", GKYL_TOKAMAK },
-  { "Mirror", GKYL_MIRROR },
-  { "MapC2P", GKYL_MAPC2P },
+  { "Tokamak", GKYL_GEOMETRY_TOKAMAK },
+  { "Mirror", GKYL_GEOMETRY_MIRROR },
+  { "MapC2P", GKYL_GEOMETRY_MAPC2P },
   { "FromFile", GKYL_GEOMETRY_FROMFILE },
   { 0, 0 }
 };
@@ -70,7 +71,6 @@ static const struct gkyl_str_int_pair gk_field_type[] = {
   { "Electrostatic", GKYL_GK_FIELD_ES },
   { "Boltzmann", GKYL_GK_FIELD_BOLTZMANN },
   { "Adiabatic", GKYL_GK_FIELD_ADIABATIC },
-  { "ElectrostaticIWL", GKYL_GK_FIELD_ES_IWL },
   { "Electromagnetic", GKYL_GK_FIELD_EM },
   { 0, 0 }
 };
@@ -138,7 +138,6 @@ static const struct gkyl_str_int_pair gk_bcs[] = {
   { "speciesZeroFlux", GKYL_BC_GK_SPECIES_ZERO_FLUX }, // Zero flux.
   { "speciesSheath", GKYL_BC_GK_SPECIES_SHEATH }, // Sheath.
   { "speciesRecycle", GKYL_BC_GK_SPECIES_RECYCLE }, // Recycling.
-  { "speciesIWL", GKYL_BC_GK_SPECIES_IWL }, // Inner wall limited.
   { "speciesPeriodic", GKYL_BC_GK_SPECIES_PERIODIC }, // Periodic.
   { "speciesTwistshift", GKYL_BC_GK_SPECIES_TWISTSHIFT }, // Twist-shift.
   // Field BCs.
@@ -2424,7 +2423,7 @@ gk_app_run(lua_State *L)
   int field_energy_calcs = app_lw->field_energy_calcs;
   int integrated_mom_calcs = app_lw->integrated_mom_calcs;
   // Triggers for IO and logging.
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
   struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr };
   struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr };
 

@@ -446,7 +446,15 @@ gk_species_bflux_write_integrated_mom_enabled(gkyl_gyrokinetic_app *app,
         snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, vars[dir], edge[edi], mom_name);
 
         if (bflux->is_first_intmom_write_call[b]) {
-          gkyl_dynvec_write(bflux->intmom[b*num_diag_int_mom+m], fileNm);
+          struct gkyl_msgpack_map_elem io_meta_phi[] = {
+            { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of the boundary flux." }
+          };
+          int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+          const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+          struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  
+          gkyl_dynvec_write_wmeta(bflux->intmom[b*num_diag_int_mom+m], fileNm, mt);
+          gkyl_msgpack_data_release(mt);
         }
         else {
           gkyl_dynvec_awrite(bflux->intmom[b*num_diag_int_mom+m], fileNm);
@@ -483,13 +491,15 @@ gk_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *spec_in,
 {
   const struct gk_species *gks = spec_in;
 
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+  struct gkyl_msgpack_map_elem desc[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Velocity-space moment of the boundary flux." }
+  };
+  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   int rank, comm_size;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -515,11 +525,6 @@ gk_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *spec_in,
         gkyl_array_copy_range_to_range(mom_arr, mom_arr,
           bflux->boundaries_conf_skin[b], bflux->boundaries_conf_ghost[b]);
 
-        // Rescale moment by inverse of Jacobian. 
-        // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
-        // the density (the 0th component).
-        gkyl_dg_div_op_range(bflux->moms_op[mom_idx].mem_geo, app->basis, 
-          0, mom_arr, 0, mom_arr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);  // It fails if one uses the skin range here.
         // Rescale by dx/2 in the direction of the boundary to account for the
         // normalization in the boundary surf kernels.
         gkyl_array_scale_range(mom_arr, 0.5*app->grid.dx[dir], bflux->boundaries_conf_skin[b]);
@@ -564,7 +569,7 @@ gk_species_bflux_write_mom_enabled(gkyl_gyrokinetic_app* app, void *spec_in,
     }
   }
 
-  gk_array_meta_release(mt);  
+  gkyl_msgpack_data_release(mt);  
 }
 
 static void
@@ -654,17 +659,17 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
           bflux->boundaries_dir[num_bound] = d;
           bflux->boundaries_edge[num_bound] = e==0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE;
 
-          bflux->boundaries_conf_skin[num_bound] = e==0? &app->lower_skin[d] : &app->upper_skin[d];
-          bflux->boundaries_conf_ghost[num_bound] = e==0? &app->lower_ghost[d] : &app->upper_ghost[d];
-          bflux->boundaries_phase_skin[num_bound] = e==0? &gk_s->lower_skin[d] : &gk_s->upper_skin[d];
-          bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->lower_ghost[d] : &gk_s->upper_ghost[d];
+          bflux->boundaries_conf_skin[num_bound] = e==0? &app->local_lower_skin[d] : &app->local_upper_skin[d];
+          bflux->boundaries_conf_ghost[num_bound] = e==0? &app->local_lower_ghost[d] : &app->local_upper_ghost[d];
+          bflux->boundaries_phase_skin[num_bound] = e==0? &gk_s->local_lower_skin[d] : &gk_s->local_upper_skin[d];
+          bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->local_lower_ghost[d] : &gk_s->local_upper_ghost[d];
           bflux->boundaries_conf_skin_fullx[num_bound] = bflux->boundaries_conf_skin[num_bound];
-          if (e == 0? gk_s->lower_bc[d].type == GKYL_BC_GK_SPECIES_IWL : gk_s->upper_bc[d].type == GKYL_BC_GK_SPECIES_IWL) {
+          if (d == app->cdim-1 && app->gk_geom->has_LCFS) {
             // Use SOL ranges only for parallel boundary fluxes.
-            bflux->boundaries_conf_skin[num_bound] = e==0? &app->lower_skin_par_sol : &app->upper_skin_par_sol;
-            bflux->boundaries_conf_ghost[num_bound] = e==0? &app->lower_ghost_par_sol : &app->upper_ghost_par_sol;
-            bflux->boundaries_phase_skin[num_bound] = e==0? &gk_s->lower_skin_par_sol : &gk_s->upper_skin_par_sol;
-            bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->lower_ghost_par_sol : &gk_s->upper_ghost_par_sol;
+            bflux->boundaries_conf_skin[num_bound] = e==0? &app->local_lower_skin_par_sol : &app->local_upper_skin_par_sol;
+            bflux->boundaries_conf_ghost[num_bound] = e==0? &app->local_lower_ghost_par_sol : &app->local_upper_ghost_par_sol;
+            bflux->boundaries_phase_skin[num_bound] = e==0? &gk_s->local_lower_skin_par_sol : &gk_s->local_upper_skin_par_sol;
+            bflux->boundaries_phase_ghost[num_bound] = e==0? &gk_s->local_lower_ghost_par_sol : &gk_s->local_upper_ghost_par_sol;
           }
 
           num_bound++;
@@ -693,7 +698,7 @@ gk_species_bflux_init(struct gkyl_gyrokinetic_app *app, void *species,
       int dir = bflux->boundaries_dir[b];
       bflux->flux_slvr[b] = gkyl_boundary_flux_new(dir, bflux->boundaries_edge[b], &gk_s->grid,
         bflux->boundaries_phase_skin[b], bflux->boundaries_phase_ghost[b], bflux->num_eqns,
-        bflux->eqns, gk_s->info.skip_cell_threshold, app->use_gpu);
+        bflux->eqns, app->use_gpu);
     }
 
     // Create a ghost range that the flux lives on, and allocate the array that stores the flux.

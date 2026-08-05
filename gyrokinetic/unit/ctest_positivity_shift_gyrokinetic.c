@@ -9,6 +9,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_geometry_mapc2p.h>
 #include <gkyl_velocity_map.h>
+#include <gkyl_position_map.h>
 #include <gkyl_positivity_shift_gyrokinetic.h>
 #include <gkyl_util.h>
 #include <gkyl_array_rio.h>
@@ -55,6 +56,12 @@ void eval_bfield_1x(double t, const double *xn, double* restrict fout, void *ctx
   fout[2] = B0;
 }
 
+void eval_bmag_1x(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  struct test_ctx *tctx = ctx;
+  fout[0] = tctx->B0;
+}
+
 void eval_distf_1x2v(double t, const double *xn, double* restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
@@ -77,14 +84,14 @@ void eval_distf_1x2v(double t, const double *xn, double* restrict fout, void *ct
 void
 test_1x2v(int poly_order, bool use_gpu)
 {
-  const int cdim = 1;
+  int cdim = 1;
   double vpar_max = 6.0;
   double mu_max = 36.0;
   double lower[] = {0.1, -vpar_max, 0.0}, upper[] = {1.0, vpar_max, mu_max};
   int cells[] = {2, 12, 8};
 
-  const int ndim = sizeof(cells)/sizeof(cells[0]);
-  const int vdim = ndim-cdim;
+  int ndim = sizeof(cells)/sizeof(cells[0]);
+  int vdim = ndim-cdim;
 
   struct test_ctx proj_ctx = {
     .n0 = 1.0, // Density.
@@ -149,7 +156,7 @@ test_1x2v(int poly_order, bool use_gpu)
   if (use_gpu)
     bmag_ho = mkarr(false, bmag->ncomp, bmag->size);
   gkyl_proj_on_basis *proj_bmag = gkyl_proj_on_basis_new(&confGrid, &confBasis,
-    poly_order+1, 1, eval_bfield_1x, &proj_ctx);
+    poly_order+1, 1, eval_bmag_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_bmag, 0.0, &confLocal, bmag_ho);
   gkyl_array_copy(bmag, bmag_ho);
 
@@ -164,14 +171,17 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
   gkyl_array_copy(distf, distf_ho);
 
+  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
+
   // Initialize geometry
   struct gkyl_gk_geometry_inp geometry_input = {
-    .geometry_id = GKYL_MAPC2P,
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.0},  .mapc2p = mapc2p,  .c2p_ctx = 0,
     .bfield_func = eval_bfield_1x,  .bfield_ctx = &proj_ctx,
     .basis = confBasis,  .grid = confGrid,
     .local = confLocal,  .local_ext = confLocal_ext,
     .global = confLocal, .global_ext = confLocal_ext,
+    .position_map = pmap,
   };
   int geo_ghost[3] = {1, 1, 1};
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
@@ -229,6 +239,7 @@ test_1x2v(int poly_order, bool use_gpu)
   deltaf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
   gkyl_array_set(deltaf, -1.0, distf);
 
+
   struct gkyl_positivity_shift_gyrokinetic* pos_shift = gkyl_positivity_shift_gyrokinetic_new(confBasis,
     basis, grid, proj_ctx.mass, gk_geom, gvm, &confLocal_ext, use_gpu);
   gkyl_positivity_shift_gyrokinetic_advance(pos_shift, &confLocal, &local, distf, m0, ps_delta_m0);
@@ -279,6 +290,7 @@ test_1x2v(int poly_order, bool use_gpu)
 
   gkyl_array_release(bmag);
   gkyl_array_release(distf);
+  gkyl_array_release(deltaf);
   gkyl_array_release(intmom_grid);
   gkyl_array_release(ps_intmom_grid);
   gkyl_array_release(ps_delta_m0);
@@ -296,6 +308,7 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_positivity_shift_gyrokinetic_release(pos_shift);
   gkyl_gk_geometry_release(gk_geom);
   gkyl_velocity_map_release(gvm);
+  gkyl_position_map_release(pmap);
 }
 
 void test_1x2v_ho()

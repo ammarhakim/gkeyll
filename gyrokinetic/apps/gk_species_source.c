@@ -11,13 +11,15 @@ void
 gk_species_source_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = gks->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase, "frame", frame);
+  struct gkyl_msgpack_map_elem io_meta_source[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source." }
+  };
+  int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_source};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out the source distribution function
   const char *fmt = "%s-%s_source_%d.gkyl";
@@ -32,7 +34,7 @@ gk_species_source_write_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gk
   gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, gks->src.source_host, fileNm);
   app->stat.n_io += 1;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
 }
 
@@ -54,30 +56,30 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
 {
   struct timespec wst = gkyl_wall_clock();
 
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Update time/frame metadata (shared fields, set once before the loop).
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
 
   for (int m=0; m<gks->src.num_diag_mom; ++m) {
     struct timespec wst = gkyl_wall_clock();
     gk_species_moment_calc(&gks->src.moms[m], gks->local, app->local, gks->src.source);
     app->stat.n_mom += 1;
 
-    // Rescale moment by inverse of Jacobian. 
-    // For Maxwellian and bi-Maxwellian moments, we only need to re-scale
-    // the density (the 0th component).
-    gkyl_dg_div_op_range(gks->src.moms[m].mem_geo, app->basis, 
-      0, gks->src.moms[m].marr, 0, gks->src.moms[m].marr, 0, 
-      app->gk_geom->geo_int.jacobgeo, &app->local);      
+    // Rescale moment by inverse of Jacobian if needed.
+    gk_species_moment_diag_jacobgeo_div(app, &gks->src.moms[m], gks->src.moms[m].marr, gks->src.moms[m].marr);
     app->stat.species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
     struct timespec wtm = gkyl_wall_clock();
     if (app->use_gpu)
       gkyl_array_copy(gks->src.moms[m].marr_host, gks->src.moms[m].marr);
+
+    struct gkyl_msgpack_map_elem io_meta_mom[] = {
+      { .key = "Description", .elem_type = GKYL_MP_STRING,
+        .cval = (char*)gkyl_distribution_moments_descriptions[gks->info.source.diagnostics.diag_moments[m]] }
+    };
+    int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+    const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, io_meta_mom};
+    struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
     const char *fmt = "%s-%s_source_%s_%d.gkyl";
     int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name,
@@ -88,10 +90,10 @@ gk_species_source_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species
 
     gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt,
       gks->src.moms[m].marr_host, fileNm);
+    gkyl_msgpack_data_release(mt);
     app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
     app->stat.n_diag_io += 1;
   }
-  gk_array_meta_release(mt); 
 
   app->stat.n_diag += 1;
 }
@@ -186,8 +188,16 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
     snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "integrated_moms");
 
     if (gks->src.is_first_integ_write_call) {
-      gkyl_dynvec_write(gks->src.integ_diag, fileNm);
+      struct gkyl_msgpack_map_elem io_meta_phi[] = {
+        { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of the source." }
+      };
+      int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+      const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+      struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+      gkyl_dynvec_write_wmeta(gks->src.integ_diag, fileNm, mt);
       gks->src.is_first_integ_write_call = false;
+      gkyl_msgpack_data_release(mt);
     }
     else {
       gkyl_dynvec_awrite(gks->src.integ_diag, fileNm);
@@ -204,9 +214,16 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
       char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "particle");
 
-      if (gks->src.is_first_integ_write_call) {
-        gkyl_dynvec_write(gks->src.part_diag, fileNm);
-        gks->src.is_first_integ_write_call = false;
+      if (gks->src.is_first_integ_write_call_adapt) {
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source particle injection rate." }
+        };
+        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+  
+        gkyl_dynvec_write_wmeta(gks->src.part_diag, fileNm, mt);
+        gkyl_msgpack_data_release(mt);
       }
       else {
         gkyl_dynvec_awrite(gks->src.part_diag, fileNm);
@@ -222,15 +239,23 @@ gk_species_source_write_integrated_mom_enabled(gkyl_gyrokinetic_app* app, struct
       char fileNm[sz+1]; // Ensures no buffer overflow.
       snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, "temperature");
 
-      if (gks->src.is_first_integ_write_call) {
-        gkyl_dynvec_write(gks->src.temp_diag, fileNm);
-        gks->src.is_first_integ_write_call = false;
+      if (gks->src.is_first_integ_write_call_adapt) {
+        struct gkyl_msgpack_map_elem io_meta_phi[] = {
+          { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Source temperature." }
+        };
+        int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
+        const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};
+        struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+        gkyl_dynvec_write_wmeta(gks->src.temp_diag, fileNm, mt);
+        gkyl_msgpack_data_release(mt);
       }
       else {
         gkyl_dynvec_awrite(gks->src.temp_diag, fileNm);
       }
     }
     gkyl_dynvec_clear(gks->src.temp_diag);
+    gks->src.is_first_integ_write_call_adapt = false;
   }
 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
@@ -307,7 +332,6 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
       sum_energy_loss_local += 0.5 * s_adapt->info.mass * integ_m2_local_j; // 1/2 * m * v^2
     }
     // Sum over all MPI processes.
-    double total_particle_loss, total_energy_loss;
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_particle_loss_local, &adapt_src->particle_rate_loss);
     gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_SUM, 1, &sum_energy_loss_local, &adapt_src->energy_rate_loss);
 
@@ -316,11 +340,13 @@ gk_species_source_adapt_enabled(gkyl_gyrokinetic_app *app, struct gk_species *s,
 
     // Particle and energy rate update.
     // balance = user target + loss
+    double density_compensation = adapt_src->adapt_particle_fraction * adapt_src->particle_rate_loss;
     double particle_src_new = adapt_src->adapt_particle? 
-      particle_input + adapt_src->particle_rate_loss : particle_input;
+      particle_input + density_compensation : particle_input;
 
+    double energy_compensation = adapt_src->adapt_energy_fraction * adapt_src->energy_rate_loss;
     double energy_src_new = adapt_src->adapt_energy?
-      energy_input + adapt_src->energy_rate_loss : energy_input;
+      energy_input + energy_compensation : energy_input;
 
     // Avoid negative particle source.
     // This is important to avoid division by zero in the temperature calculation.
@@ -451,6 +477,7 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
         // Allocate dynvecs to store the temperature and particle count diagnostics of the adaptive sources.
         src->temp_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
         src->part_diag = gkyl_dynvec_new(GKYL_DOUBLE, src->num_adapt_sources);
+        src->is_first_integ_write_call_adapt = true;
       }
 
       for (int k = 0; k < src->num_adapt_sources; ++k) {
@@ -461,6 +488,10 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
 
         adapt_src->adapt_particle = s->info.source.adapt[k].adapt_particle;
         adapt_src->adapt_energy = s->info.source.adapt[k].adapt_energy;
+        adapt_src->adapt_particle_fraction = s->info.source.adapt[k].has_adapt_particle_fraction ?
+          s->info.source.adapt[k].adapt_particle_fraction : 1.0; // Default to full adaptation if not specified.
+        adapt_src->adapt_energy_fraction = s->info.source.adapt[k].has_adapt_energy_fraction ?
+          s->info.source.adapt[k].adapt_energy_fraction : 1.0; // Default to full adaptation if not specified.
 
         adapt_src->adapt_species = gk_find_species(app, s->info.source.adapt[k].adapt_to_species);
         assert(adapt_src->adapt_species != NULL); // Make sure the adaptive species is found.
@@ -514,16 +545,19 @@ gk_species_source_init(struct gkyl_gyrokinetic_app *app, struct gk_species *s,
           }
 
           // Default scenario: we set the ranges to the full range of the ghost cells.
-          adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost[dir] : s->upper_ghost[dir];
-          adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost[dir] : app->upper_ghost[dir];
+          adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE? s->local_lower_ghost[dir]
+                                                                        : s->local_upper_ghost[dir];
+          adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE? app->local_lower_ghost[dir]
+                                                                       : app->local_upper_ghost[dir];
           adapt_src->dir[j]  = dir;
           adapt_src->edge[j] = edge;
 
           // Specific scenario if we are in a inner wall limited case. We select only SOL range in parallel direction.
-          if (edge == GKYL_LOWER_EDGE? s->lower_bc[dir].type == GKYL_BC_GK_SPECIES_IWL : s->upper_bc[dir].type == GKYL_BC_GK_SPECIES_IWL) 
-          {
-            adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE ? s->lower_ghost_par_sol : s->upper_ghost_par_sol;
-            adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE ? app->lower_ghost_par_sol : app->upper_ghost_par_sol;
+          if (dir == app->cdim-1 && app->gk_geom->has_LCFS) {
+            adapt_src->boundaries_phase_ghost[j] = edge == GKYL_LOWER_EDGE? s->local_lower_ghost_par_sol
+                                                                          : s->local_upper_ghost_par_sol;
+            adapt_src->boundaries_conf_ghost[j] = edge == GKYL_LOWER_EDGE? app->local_lower_ghost_par_sol
+                                                                         : app->local_upper_ghost_par_sol;
           }
         }
       }

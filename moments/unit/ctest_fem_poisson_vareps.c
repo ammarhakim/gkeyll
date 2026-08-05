@@ -402,7 +402,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
     // DG field and the 1/N to properly compute the volume averaged RHS.
     double mavgfac = -pow(sqrt(2.),dim)/localRange.volume;
     // Subtract the volume averaged sol from the sol.
-    gkyl_dg_calc_average_range(basis, 0, sol_cellavg, 0, phi, localRange);
+    gkyl_dg_calc_average_range(&basis, 0, sol_cellavg, 0, phi, localRange);
     gkyl_array_reduce_range(sol_avg, sol_cellavg, GKYL_SUM, &localRange);
     gkyl_array_shiftc(phi, mavgfac*sol_avg[0], 0);
 
@@ -1517,8 +1517,8 @@ void test_2x_p1_dirichletx_neumanny_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_NEUMANN;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(1, cells, bc_tv, false);
 }
@@ -1531,8 +1531,8 @@ void test_2x_p1_neumannx_dirichletx_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(1, cells, bc_tv, false);
 }
@@ -1593,8 +1593,8 @@ void test_2x_p2_dirichletx_neumanny_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_NEUMANN;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(2, cells, bc_tv, false);
 }
@@ -1607,8 +1607,8 @@ void test_2x_p2_neumannx_dirichletx_dirichlety() {
   bc_tv.lo_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.up_type[1] = GKYL_POISSON_DIRICHLET;
   bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.lo_value[0].v[0] = 0.;
-  bc_tv.up_value[1].v[0] = 0.;
+  bc_tv.up_value[0].v[0] = 0.;
+  bc_tv.lo_value[1].v[0] = 0.;
   bc_tv.up_value[1].v[0] = 0.;
   test_2x(2, cells, bc_tv, false);
 }

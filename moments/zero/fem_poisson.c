@@ -2,19 +2,19 @@
 #include <gkyl_fem_poisson_priv.h>
 #include <gkyl_array_reduce.h>
 
-void
-fem_poisson_bias_src_none(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+static void
+fem_poisson_bias_src_disabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
 }
 
-void
-fem_poisson_bias_src(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
+static void
+fem_poisson_bias_src_enabled(gkyl_fem_poisson* up, struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     assert(gkyl_array_is_cu_dev(rhsin));
 
-    gkyl_fem_poisson_bias_src_cu(up, rhsin);
+    gkyl_fem_poisson_bias_src_enabled_cu(up, rhsin);
     return;
   }
 #endif
@@ -85,7 +85,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->epsilon = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 1) : gkyl_array_new(GKYL_DOUBLE, 1, 1);
     struct gkyl_array *eps_cellavg = up->use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size)
                                                 : gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
-    gkyl_dg_calc_average_range(up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
+    gkyl_dg_calc_average_range(&up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
     if (up->use_gpu) {
       double *eps_avg_cu = gkyl_cu_malloc(sizeof(double));
       gkyl_array_reduce_range(eps_avg_cu, eps_cellavg, GKYL_SUM, up->solve_range);
@@ -98,7 +98,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->epsilon = gkyl_array_new(GKYL_DOUBLE, 1, 1);
     struct gkyl_array *eps_cellavg = gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
 
-    gkyl_dg_calc_average_range(up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
+    gkyl_dg_calc_average_range(&up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
     gkyl_array_reduce_range(eps_avg, eps_cellavg, GKYL_SUM, up->solve_range);
 #endif
     gkyl_array_shiftc(up->epsilon, eps_avg[0]/up->solve_range->volume, 0);
@@ -262,7 +262,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     up->kernels->lhsker[keri](eps_p, kSq_p, up->dx, up->bcvals, up->globalidx, tri[0]);
   }
 
- if (up->num_bias_plane > 0) {
+  if (up->num_bias_plane > 0) {
     // If biased planes are specified, replace the corresponding equation in the
     // linear system so it only has a 1.
     gkyl_range_iter_init(&up->solve_iter, up->solve_range);
@@ -286,10 +286,10 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
       }
     }
 
-    up->bias_plane_src = fem_poisson_bias_src;
+    up->bias_plane_src = fem_poisson_bias_src_enabled;
   }
   else {
-    up->bias_plane_src = fem_poisson_bias_src_none;
+    up->bias_plane_src = fem_poisson_bias_src_disabled;
   }
   
 #ifdef GKYL_HAVE_CUDA
@@ -317,7 +317,7 @@ gkyl_fem_poisson_set_rhs(gkyl_fem_poisson* up, struct gkyl_array *rhsin, const s
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
     gkyl_array_clear(up->rhs_cellavg, 0.0);
-    gkyl_dg_calc_average_range(up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
+    gkyl_dg_calc_average_range(&up->basis, 0, up->rhs_cellavg, 0, rhsin, *up->solve_range);
 #ifdef GKYL_HAVE_CUDA
     if (up->use_gpu) {
       gkyl_array_reduce_range(up->rhs_avg_cu, up->rhs_cellavg, GKYL_SUM, up->solve_range);

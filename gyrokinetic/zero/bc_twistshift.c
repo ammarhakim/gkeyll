@@ -6,6 +6,7 @@
 #include <gkyl_util.h>
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_array_ops.h>
+#include <gkyl_array_rio.h>
 
 // Notes:
 //   a) Hard-coded parameters:
@@ -221,7 +222,8 @@ ts_check_shifted_test_point(struct gkyl_bc_twistshift *up, const double *test_pt
     false) }; // Shifted test point.
   int shift_dir_idx_test_pt[1];
 //  gkyl_rect_grid_coord_idx(&up->shift_grid, shifted_test_pt, shift_dir_idx_test_pt); 
-  gkyl_rect_grid_find_cell(&up->shift_grid, shifted_test_pt, pick_lower, (int[]) {-1}, shift_dir_idx_test_pt);
+  bool pick_lower_arr[] = {pick_lower};
+  gkyl_rect_grid_find_cell(&up->shift_grid, shifted_test_pt, pick_lower_arr, (int[]) {-1}, shift_dir_idx_test_pt);
 
   // Get the linear index to the list of donors for this target.
   long linidx = ts_shift_dir_idx_do_linidx(up->num_do,
@@ -1784,11 +1786,16 @@ gkyl_bc_twistshift_new(const struct gkyl_bc_twistshift_inp *inp)
 
   // Project the shift onto the shift basis.
   gkyl_cart_modal_serendip(&up->shift_b, 1, up->shift_poly_order);
-  up->shift_dg = gkyl_array_new(GKYL_DOUBLE, up->shift_b.num_basis, up->shear_r.volume);
-  gkyl_eval_on_nodes *evup = gkyl_eval_on_nodes_new(&up->shear_grid, &up->shift_b, 1,
-    inp->shift_func, inp->shift_func_ctx);
-  gkyl_eval_on_nodes_advance(evup, 0.0, &up->shear_r, up->shift_dg);
-  gkyl_eval_on_nodes_release(evup);
+  if (inp->shift_func) {
+    up->shift_dg = gkyl_array_new(GKYL_DOUBLE, up->shift_b.num_basis, up->shear_r.volume);
+    gkyl_eval_on_nodes *evup = gkyl_eval_on_nodes_new(&up->shear_grid, &up->shift_b, 1,
+      inp->shift_func, inp->shift_func_ctx);
+    gkyl_eval_on_nodes_advance(evup, 0.0, &up->shear_r, up->shift_dg);
+    gkyl_eval_on_nodes_release(evup);
+  }
+  else {
+    up->shift_dg = gkyl_array_acquire(inp->shift_dg);
+  }
 
   // Function defining the shift (and its context).
   if (shift_func_op == 0) {
@@ -1977,7 +1984,18 @@ gkyl_bc_twistshift_advance(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo
   }
 }
 
-void gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
+struct gkyl_array*
+gkyl_bc_twistshift_get_shift_objects(struct gkyl_bc_twistshift *up, struct gkyl_rect_grid *shear_grid,
+  struct gkyl_range *shear_r, struct gkyl_basis *shift_b)
+{
+  *shear_grid = up->shear_grid;
+  *shear_r    = up->shear_r   ;
+  *shift_b    = up->shift_b   ;
+  return gkyl_array_acquire(up->shift_dg);
+};
+
+void
+gkyl_bc_twistshift_release(struct gkyl_bc_twistshift *up) {
   // Release memory associated with this updater.
   if (!up->use_gpu) {
     gkyl_free(up->num_do_cum);

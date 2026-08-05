@@ -88,13 +88,13 @@ test_1d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_1d, NULL);
   // projection updaters for vector fields.
-  gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_1d, NULL);
-  gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_1d, NULL);
-  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_1d, NULL);
-  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_1d, NULL);
+  struct gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_1d, NULL);
+  struct gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_1d, NULL);
+  struct gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_1d, NULL);
+  struct gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_1d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -197,16 +197,16 @@ test_1d(int poly_order, bool use_gpu)
     mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);
   
     // h = f*g
-    gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
+    gkyl_dg_mul_op(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
     // f_bar = h/g = f
-    gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+    gkyl_dg_div_op(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
     // g_bar = h/f = g
-    gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+    gkyl_dg_div_op(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
     // fvdgv = fv . gv
-    gkyl_dg_dot_product_op(basis, fvdgv1_cu, fv1_cu, gv1_cu);
-    gkyl_dg_dot_product_op(basis, fvdgv2_cu, fv2_cu, gv2_cu);
-    gkyl_dg_dot_product_op(basis, fvdgv3_cu, fv3_cu, gv3_cu);
+    gkyl_dg_dot_product_op(&basis, fvdgv1_cu, fv1_cu, gv1_cu);
+    gkyl_dg_dot_product_op(&basis, fvdgv2_cu, fv2_cu, gv2_cu);
+    gkyl_dg_dot_product_op(&basis, fvdgv3_cu, fv3_cu, gv3_cu);
   
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -220,16 +220,16 @@ test_1d(int poly_order, bool use_gpu)
     mem = gkyl_dg_bin_op_mem_new(f_bar->size, basis.num_basis);
 
     // h = f*g
-    gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+    gkyl_dg_mul_op(&basis, 0, h, 0, distf, 0, distg);
     // f_bar = h/g = f
-    gkyl_dg_div_op(mem, basis, 0, f_bar, 0, h, 0, distg);
+    gkyl_dg_div_op(mem, &basis, 0, f_bar, 0, h, 0, distg);
     // g_bar = h/f = g
-    gkyl_dg_div_op(mem, basis, 0, g_bar, 0, h, 0, distf);
+    gkyl_dg_div_op(mem, &basis, 0, g_bar, 0, h, 0, distf);
 
     // fvdgv = fv . gv
-    gkyl_dg_dot_product_op(basis, fvdgv1, fv1, gv1);
-    gkyl_dg_dot_product_op(basis, fvdgv2, fv2, gv2);
-    gkyl_dg_dot_product_op(basis, fvdgv3, fv3, gv3);
+    gkyl_dg_dot_product_op(&basis, fvdgv1, fv1, gv1);
+    gkyl_dg_dot_product_op(&basis, fvdgv2, fv2, gv2);
+    gkyl_dg_dot_product_op(&basis, fvdgv3, fv3, gv3);
   }
 
   for (size_t i=0; i<arr_range.volume; ++i) {
@@ -261,19 +261,19 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_array_clear(g_bar_cu, 0.0);
     gkyl_array_clear(h_cu, 0.0);
     // h = f*g
-    gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
+    gkyl_dg_mul_op_range(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
     // f_bar = h/g = f
-    gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
     // g_bar = h/f = g
-    gkyl_dg_div_op_range(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv1_cu, 0.0);
     gkyl_array_clear(fvdgv2_cu, 0.0);
     gkyl_array_clear(fvdgv3_cu, 0.0);
-    gkyl_dg_dot_product_op_range(basis, fvdgv1_cu, fv1_cu, gv1_cu, &arr_range);
-    gkyl_dg_dot_product_op_range(basis, fvdgv2_cu, fv2_cu, gv2_cu, &arr_range);
-    gkyl_dg_dot_product_op_range(basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv1_cu, fv1_cu, gv1_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv2_cu, fv2_cu, gv2_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
   
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -286,19 +286,19 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_array_clear(g_bar, 0.0);
     gkyl_array_clear(h, 0.0);
     // h = f*g
-    gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
+    gkyl_dg_mul_op_range(&basis, 0, h, 0, distf, 0, distg, &arr_range);
     // f_bar = h/g = f
-    gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, f_bar, 0, h, 0, distg, &arr_range);
     // g_bar = h/f = g
-    gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, g_bar, 0, h, 0, distf, &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv1, 0.0);
     gkyl_array_clear(fvdgv2, 0.0);
     gkyl_array_clear(fvdgv3, 0.0);
-    gkyl_dg_dot_product_op_range(basis, fvdgv1, fv1, gv1, &arr_range);
-    gkyl_dg_dot_product_op_range(basis, fvdgv2, fv2, gv2, &arr_range);
-    gkyl_dg_dot_product_op_range(basis, fvdgv3, fv3, gv3, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv1, fv1, gv1, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv2, fv2, gv2, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv3, fv3, gv3, &arr_range);
   }
 
   struct gkyl_range_iter iter;
@@ -334,9 +334,9 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_array_clear(mvals_cu, 0.0);
 
     // means are stored in h[0]
-    gkyl_dg_calc_average_range(basis, 0, mvals_cu, 0, distf_cu, arr_range);
+    gkyl_dg_calc_average_range(&basis, 0, mvals_cu, 0, distf_cu, arr_range);
     // L2 are stored in h[1]
-    gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
+    gkyl_dg_calc_l2_range(&basis, 1, mvals_cu, 0, distf_cu, arr_range);
 
     double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
     gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, &arr_range);
@@ -349,9 +349,9 @@ test_1d(int poly_order, bool use_gpu)
     gkyl_array_clear(mvals, 0.0);
 
     // means are stored in h[0]
-    gkyl_dg_calc_average_range(basis, 0, mvals, 0, distf, arr_range);
+    gkyl_dg_calc_average_range(&basis, 0, mvals, 0, distf, arr_range);
     // L2 are stored in h[1]
-    gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
+    gkyl_dg_calc_l2_range(&basis, 1, mvals, 0, distf, arr_range);
 
     gkyl_array_reduce_range(al2, mvals, GKYL_SUM, &arr_range);
     gkyl_array_release(mvals);
@@ -410,7 +410,7 @@ test_inv_1d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Project fields.
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
+  struct gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_1d, NULL);
 
   // Create array range.
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -435,7 +435,7 @@ test_inv_1d(int poly_order, bool use_gpu)
   gkyl_array_copy(ffld, ffld_ho);
 
   // Invert the field and check its results.
-  gkyl_dg_inv_op(basis, 0, ffld_inv, 0, ffld);
+  gkyl_dg_inv_op(&basis, 0, ffld_inv, 0, ffld);
   gkyl_array_copy(ffld_inv_ho, ffld_inv);
 
   for (size_t i=0; i<local.volume; ++i) {
@@ -457,7 +457,7 @@ test_inv_1d(int poly_order, bool use_gpu)
 
   // Test the range method.
   gkyl_array_clear(ffld_inv, 0.0);
-  gkyl_dg_inv_op_range(basis, 0, ffld_inv, 0, ffld, &local);
+  gkyl_dg_inv_op_range(&basis, 0, ffld_inv, 0, ffld, &local);
   gkyl_array_copy(ffld_inv_ho, ffld_inv);
 
   struct gkyl_range_iter iter;
@@ -588,13 +588,13 @@ test_2d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_2d, NULL);
   // projection updaters for vector fields.
-  gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_2d, NULL);
-  gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_2d, NULL);
-  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
-  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
+  struct gkyl_proj_on_basis *projfv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, fv2_2d, NULL);
+  struct gkyl_proj_on_basis *projgv2 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 2, gv2_2d, NULL);
+  struct gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
+  struct gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -634,7 +634,7 @@ test_2d(int poly_order, bool use_gpu)
   // create a conf-space factor
   struct gkyl_array *cfield = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, arr_crange.volume);
   // project conf-space function onto basis.
-  gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d2d, NULL);
+  struct gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d2d, NULL);
   gkyl_proj_on_basis_advance(proj_cfield, 0.0, &arr_crange, cfield);
   struct gkyl_array *cfield_cu;
   if (use_gpu) {
@@ -711,15 +711,15 @@ test_2d(int poly_order, bool use_gpu)
     mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);
 
     // h = f*g
-    gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
+    gkyl_dg_mul_op(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
     // f_bar = h/g = f
-    gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+    gkyl_dg_div_op(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
     // g_bar = h/f = g
-    gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+    gkyl_dg_div_op(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
     // fvdgv = fv . gv
-    gkyl_dg_dot_product_op(basis, fvdgv2_cu, fv2_cu, gv2_cu);
-    gkyl_dg_dot_product_op(basis, fvdgv3_cu, fv3_cu, gv3_cu);
+    gkyl_dg_dot_product_op(&basis, fvdgv2_cu, fv2_cu, gv2_cu);
+    gkyl_dg_dot_product_op(&basis, fvdgv3_cu, fv3_cu, gv3_cu);
   
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -731,15 +731,15 @@ test_2d(int poly_order, bool use_gpu)
     mem = gkyl_dg_bin_op_mem_new(f_bar->size, basis.num_basis);
 
     // h = f*g
-    gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+    gkyl_dg_mul_op(&basis, 0, h, 0, distf, 0, distg);
     // f_bar = h/g = f
-    gkyl_dg_div_op(mem, basis, 0, f_bar, 0, h, 0, distg);
+    gkyl_dg_div_op(mem, &basis, 0, f_bar, 0, h, 0, distg);
     // g_bar = h/f = g
-    gkyl_dg_div_op(mem, basis, 0, g_bar, 0, h, 0, distf);
+    gkyl_dg_div_op(mem, &basis, 0, g_bar, 0, h, 0, distf);
 
     // fvdgv = fv . gv
-    gkyl_dg_dot_product_op(basis, fvdgv2, fv2, gv2);
-    gkyl_dg_dot_product_op(basis, fvdgv3, fv3, gv3);
+    gkyl_dg_dot_product_op(&basis, fvdgv2, fv2, gv2);
+    gkyl_dg_dot_product_op(&basis, fvdgv3, fv3, gv3);
   }
 
   for (size_t i=0; i<arr_range.volume; ++i) {
@@ -768,19 +768,19 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_array_clear(w_bar_cu, 0.0);
     gkyl_array_clear(h_cu, 0.0);
     // h = f*g
-    gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
+    gkyl_dg_mul_op_range(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
     // f_bar = h/g = f
-    gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
     // g_bar = h/f = g
-    gkyl_dg_div_op_range(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv2_cu, 0.0);
     gkyl_array_clear(fvdgv3_cu, 0.0);
-    gkyl_dg_dot_product_op_range(basis, fvdgv2_cu, fv2_cu, gv2_cu, &arr_range);
-    gkyl_dg_dot_product_op_range(basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv2_cu, fv2_cu, gv2_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
   
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -794,19 +794,19 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_array_clear(w_bar, 0.0);
     gkyl_array_clear(h, 0.0);
     // h = f*g
-    gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
+    gkyl_dg_mul_op_range(&basis, 0, h, 0, distf, 0, distg, &arr_range);
     // f_bar = h/g = f
-    gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, f_bar, 0, h, 0, distg, &arr_range);
     // g_bar = h/f = g
-    gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, g_bar, 0, h, 0, distf, &arr_range);
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar, cfield, distf, &arr_crange, &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv2, 0.0);
     gkyl_array_clear(fvdgv3, 0.0);
-    gkyl_dg_dot_product_op_range(basis, fvdgv2, fv2, gv2, &arr_range);
-    gkyl_dg_dot_product_op_range(basis, fvdgv3, fv3, gv3, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv2, fv2, gv2, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv3, fv3, gv3, &arr_range);
   }
 
   struct gkyl_range_iter iter;
@@ -881,9 +881,9 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_array_clear(mvals_cu, 0.0);
 
     // means are stored in h[0]
-    gkyl_dg_calc_average_range(basis, 0, mvals_cu, 0, distf_cu, arr_range);
+    gkyl_dg_calc_average_range(&basis, 0, mvals_cu, 0, distf_cu, arr_range);
     // L2 are stored in h[1]
-    gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
+    gkyl_dg_calc_l2_range(&basis, 1, mvals_cu, 0, distf_cu, arr_range);
 
     double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
     gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, &arr_range);
@@ -896,9 +896,9 @@ test_2d(int poly_order, bool use_gpu)
     gkyl_array_clear(mvals, 0.0);
 
     // means are stored in h[0]
-    gkyl_dg_calc_average_range(basis, 0, mvals, 0, distf, arr_range);
+    gkyl_dg_calc_average_range(&basis, 0, mvals, 0, distf, arr_range);
     // L2 are stored in h[1]
-    gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
+    gkyl_dg_calc_l2_range(&basis, 1, mvals, 0, distf, arr_range);
 
     gkyl_array_reduce_range(al2, mvals, GKYL_SUM, &arr_range);
     gkyl_array_release(mvals);
@@ -957,7 +957,7 @@ test_inv_2d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // Project fields.
-  gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
+  struct gkyl_proj_on_basis *projf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_2d, NULL);
 
   // Create array range.
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -985,7 +985,7 @@ test_inv_2d(int poly_order, bool use_gpu)
   gkyl_array_copy(ffld, ffld_ho);
 
   // Invert the field and check its results.
-  gkyl_dg_inv_op(basis, 0, ffld_inv, 0, ffld);
+  gkyl_dg_inv_op(&basis, 0, ffld_inv, 0, ffld);
   gkyl_array_copy(ffld_inv_ho, ffld_inv);
 
   for (size_t i=0; i<local.volume; ++i) {
@@ -1021,7 +1021,7 @@ test_inv_2d(int poly_order, bool use_gpu)
 
   // Test the range method.
   gkyl_array_clear(ffld_inv, 0.0);
-  gkyl_dg_inv_op_range(basis, 0, ffld_inv, 0, ffld, &local);
+  gkyl_dg_inv_op_range(&basis, 0, ffld_inv, 0, ffld, &local);
   gkyl_array_copy(ffld_inv_ho, ffld_inv);
 
   struct gkyl_range_iter iter;
@@ -1060,7 +1060,7 @@ test_inv_2d(int poly_order, bool use_gpu)
   }
 
   // Check if A.A_inv = 1.
-  gkyl_dg_mul_op_range(basis, 0, iden, 0, ffld, 0, ffld_inv, &local);
+  gkyl_dg_mul_op_range(&basis, 0, iden, 0, ffld, 0, ffld_inv, &local);
   gkyl_array_copy(iden_ho, iden);
   gkyl_range_iter_init(&iter, &local);
   while (gkyl_range_iter_next(&iter)) {
@@ -1168,11 +1168,11 @@ test_3d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_3d, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_3d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_3d, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, g_3d, NULL);
   // projection updaters for vector fields.
-  gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
-  gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
+  struct gkyl_proj_on_basis *projfv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, fv3_2d, NULL);
+  struct gkyl_proj_on_basis *projgv3 = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 3, gv3_2d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1212,7 +1212,7 @@ test_3d(int poly_order, bool use_gpu)
   // create a conf-space factor
   struct gkyl_array *cfield = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, arr_crange.volume);
   // project conf-space function onto basis.
-  gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d3d, NULL);
+  struct gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_1d3d, NULL);
   gkyl_proj_on_basis_advance(proj_cfield, 0.0, &arr_crange, cfield);
   struct gkyl_array *cfield_cu;
   if (use_gpu) {
@@ -1277,14 +1277,14 @@ test_3d(int poly_order, bool use_gpu)
     mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);
 
     // h = f*g
-    gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
+    gkyl_dg_mul_op(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
     // f_bar = h/g = f
-    gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+    gkyl_dg_div_op(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
     // g_bar = h/f = g
-    gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+    gkyl_dg_div_op(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
     // fvdgv = fv . gv
-    gkyl_dg_dot_product_op(basis, fvdgv3_cu, fv3_cu, gv3_cu);
+    gkyl_dg_dot_product_op(&basis, fvdgv3_cu, fv3_cu, gv3_cu);
   
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -1295,14 +1295,14 @@ test_3d(int poly_order, bool use_gpu)
     mem = gkyl_dg_bin_op_mem_new(f_bar->size, basis.num_basis);
 
     // h = f*g
-    gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+    gkyl_dg_mul_op(&basis, 0, h, 0, distf, 0, distg);
     // f_bar = h/g = f
-    gkyl_dg_div_op(mem, basis, 0, f_bar, 0, h, 0, distg);
+    gkyl_dg_div_op(mem, &basis, 0, f_bar, 0, h, 0, distg);
     // g_bar = h/f = g
-    gkyl_dg_div_op(mem, basis, 0, g_bar, 0, h, 0, distf);
+    gkyl_dg_div_op(mem, &basis, 0, g_bar, 0, h, 0, distf);
 
     // fvdgv = fv . gv
-    gkyl_dg_dot_product_op(basis, fvdgv3, fv3, gv3);
+    gkyl_dg_dot_product_op(&basis, fvdgv3, fv3, gv3);
   }
 
   for (size_t i=0; i<arr_range.volume; ++i) {
@@ -1327,17 +1327,17 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_array_clear(w_bar_cu, 0.0);
     gkyl_array_clear(h_cu, 0.0);
     // h = f*g
-    gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
+    gkyl_dg_mul_op_range(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
     // f_bar = h/g = f
-    gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
     // g_bar = h/f = g
-    gkyl_dg_div_op_range(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv3_cu, 0.0);
-    gkyl_dg_dot_product_op_range(basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv3_cu, fv3_cu, gv3_cu, &arr_range);
   
     // copy from device and check if things are ok
     gkyl_array_copy(f_bar, f_bar_cu);
@@ -1350,17 +1350,17 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_array_clear(w_bar, 0.0);
     gkyl_array_clear(h, 0.0);
     // h = f*g
-    gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
+    gkyl_dg_mul_op_range(&basis, 0, h, 0, distf, 0, distg, &arr_range);
     // f_bar = h/g = f
-    gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, f_bar, 0, h, 0, distg, &arr_range);
     // g_bar = h/f = g
-    gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, &arr_range);
+    gkyl_dg_div_op_range(mem, &basis, 0, g_bar, 0, h, 0, distf, &arr_range);
     // w = cfield*f
     gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar, cfield, distf, &arr_crange, &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv3, 0.0);
-    gkyl_dg_dot_product_op_range(basis, fvdgv3, fv3, gv3, &arr_range);
+    gkyl_dg_dot_product_op_range(&basis, fvdgv3, fv3, gv3, &arr_range);
   }
 
   struct gkyl_range_iter iter;
@@ -1459,9 +1459,9 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_array_clear(mvals_cu, 0.0);
 
     // means are stored in h[0]
-    gkyl_dg_calc_average_range(basis, 0, mvals_cu, 0, distf_cu, arr_range);
+    gkyl_dg_calc_average_range(&basis, 0, mvals_cu, 0, distf_cu, arr_range);
     // L2 are stored in h[1]
-    gkyl_dg_calc_l2_range(basis, 1, mvals_cu, 0, distf_cu, arr_range);
+    gkyl_dg_calc_l2_range(&basis, 1, mvals_cu, 0, distf_cu, arr_range);
 
     double* al2_cu = (double*) gkyl_cu_malloc(sizeof(double[2]));
     gkyl_array_reduce_range(al2_cu, mvals_cu, GKYL_SUM, &arr_range);
@@ -1474,9 +1474,9 @@ test_3d(int poly_order, bool use_gpu)
     gkyl_array_clear(mvals, 0.0);
 
     // means are stored in h[0]
-    gkyl_dg_calc_average_range(basis, 0, mvals, 0, distf, arr_range);
+    gkyl_dg_calc_average_range(&basis, 0, mvals, 0, distf, arr_range);
     // L2 are stored in h[1]
-    gkyl_dg_calc_l2_range(basis, 1, mvals, 0, distf, arr_range);
+    gkyl_dg_calc_l2_range(&basis, 1, mvals, 0, distf, arr_range);
 
     gkyl_array_reduce_range(al2, mvals, GKYL_SUM, &arr_range);
     gkyl_array_release(mvals);
@@ -1544,7 +1544,7 @@ test_4d(int poly_order, bool use_gpu)
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_4d, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, f_4d, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1580,7 +1580,7 @@ test_4d(int poly_order, bool use_gpu)
   // create a conf-space factor
   struct gkyl_array *cfield = gkyl_array_new(GKYL_DOUBLE, cbasis.num_basis, arr_crange.volume);
   // project conf-space function onto basis.
-  gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_2d2d, NULL);
+  struct gkyl_proj_on_basis *proj_cfield = gkyl_proj_on_basis_new(&cgrid, &cbasis, poly_order+1, 1, f_2d2d, NULL);
   gkyl_proj_on_basis_advance(proj_cfield, 0.0, &arr_crange, cfield);
   struct gkyl_array *cfield_cu;
   if (use_gpu) {
@@ -1752,8 +1752,8 @@ test_3d_p3()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1781,11 +1781,11 @@ test_3d_p3()
   gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_new(f_bar->size, basis.num_basis);  
 
   // h = f*g
-  gkyl_dg_mul_op(basis, 0, h, 0, distf, 0, distg);
+  gkyl_dg_mul_op(&basis, 0, h, 0, distf, 0, distg);
   // f_bar = h/g = f
-  gkyl_dg_div_op(mem, basis, 0, f_bar, 0, h, 0, distg);
+  gkyl_dg_div_op(mem, &basis, 0, f_bar, 0, h, 0, distg);
   // g_bar = h/f = g
-  gkyl_dg_div_op(mem, basis, 0, g_bar, 0, h, 0, distf);
+  gkyl_dg_div_op(mem, &basis, 0, g_bar, 0, h, 0, distf);
 
   for (size_t i=0; i<arr_range.volume; ++i) {
     const double *f_d = gkyl_array_cfetch(distf, i);
@@ -1803,11 +1803,11 @@ test_3d_p3()
   gkyl_array_clear(f_bar, 0.0);
   gkyl_array_clear(g_bar, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h, 0, distf, 0, distg, &arr_range);
+  gkyl_dg_mul_op_range(&basis, 0, h, 0, distf, 0, distg, &arr_range);
   // f_bar = h/g = f
-  gkyl_dg_div_op_range(mem, basis, 0, f_bar, 0, h, 0, distg, &arr_range);
+  gkyl_dg_div_op_range(mem, &basis, 0, f_bar, 0, h, 0, distg, &arr_range);
   // g_bar = h/f = g
-  gkyl_dg_div_op_range(mem, basis, 0, g_bar, 0, h, 0, distf, &arr_range);
+  gkyl_dg_div_op_range(mem, &basis, 0, g_bar, 0, h, 0, distf, &arr_range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &arr_range);
@@ -1833,6 +1833,129 @@ test_3d_p3()
   gkyl_array_release(h);
   gkyl_dg_bin_op_mem_release(mem);  
 }
+
+// conf-phase accumulate subtraction test: pout = g(x,vx,vy) - f(x)*ones
+// where f(x)=x, g(x,vx,vy)=sin(x)*cos(vx)+vy, ones=1
+// verifies gkyl_dg_mul_conf_phase_op_accumulate_range with a=-1 and pop=constant 1.
+
+void f_sub_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  fout[0] = xn[0]; // f(x) = x
+}
+
+void g_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  double x = xn[0], vx = xn[1], vy = xn[2];
+  fout[0] = sin(x)*cos(vx) + vy; // g(x,vx,vy) = sin(x)*cos(vx) + vy
+}
+
+void ones_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  fout[0] = 1.0;
+}
+
+void h_sol_eval(double t, const double *xn, double* restrict fout, void *ctx) {
+  double x = xn[0], vx = xn[1], vy = xn[2];
+  fout[0] = sin(x)*cos(vx) + vy - x; // h = g - f
+}
+
+void
+test_subspace_accumulate(int poly_order, bool use_gpu)
+{
+  // Main dimension
+  int dim = 3;
+  double lower[] = {0.0, -M_PI/2.0, -M_PI/2.0};
+  double upper[] = {M_PI, M_PI/2.0, M_PI/2.0};
+  int cells[] = {8, 4, 4};
+  // Sub dimension: 1D, x in [0, pi]
+  int subdim = 1;
+  double sublower[] = {0.0}, subupper[] = {M_PI};
+  int ccells[] = {8};
+
+  // grids
+  struct gkyl_rect_grid fullgrid, subgrid;
+  gkyl_rect_grid_init(&fullgrid, dim, lower, upper, cells);
+  gkyl_rect_grid_init(&subgrid, subdim, sublower, subupper, ccells);
+
+  // basis
+  struct gkyl_basis basis, subbasis;
+  gkyl_cart_modal_serendip(&basis, dim, poly_order);
+  gkyl_cart_modal_serendip(&subbasis, subdim, poly_order);
+
+  // ranges (no ghost cells)
+  int nghost[GKYL_MAX_DIM] = { 0 };
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&fullgrid, nghost, &local_ext, &local);
+
+  struct gkyl_range sub_local, sub_local_ext;
+  gkyl_create_grid_ranges(&subgrid, nghost, &sub_local_ext, &sub_local);
+
+  // projection updaters
+  struct gkyl_proj_on_basis *proj_f = gkyl_proj_on_basis_new(&subgrid, &subbasis, poly_order+1, 1, f_sub_eval, NULL);
+  struct gkyl_proj_on_basis *proj_g = gkyl_proj_on_basis_new(&fullgrid, &basis, poly_order+1, 1, g_eval, NULL);
+  struct gkyl_proj_on_basis *proj_ones = gkyl_proj_on_basis_new(&fullgrid, &basis, poly_order+1, 1, ones_eval, NULL);
+  struct gkyl_proj_on_basis *proj_h = gkyl_proj_on_basis_new(&fullgrid, &basis, poly_order+1, 1, h_sol_eval, NULL);
+
+  // allocate arrays
+  struct gkyl_array *f_sub_ho = gkyl_array_new(GKYL_DOUBLE, subbasis.num_basis, sub_local.volume);
+  struct gkyl_array *g_full_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  struct gkyl_array *ones_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  struct gkyl_array *h_sol_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+  struct gkyl_array *pout_ho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local.volume);
+
+  // project onto basis with host arrays
+  gkyl_proj_on_basis_advance(proj_f, 0.0, &sub_local, f_sub_ho);
+  gkyl_proj_on_basis_advance(proj_g, 0.0, &local, g_full_ho);
+  gkyl_proj_on_basis_advance(proj_ones, 0.0, &local, ones_ho);
+  gkyl_proj_on_basis_advance(proj_h, 0.0, &local, h_sol_ho);
+
+  // If GPU is enabled, make device copies of arrays and copy data to device
+  struct gkyl_array *f_sub = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, subbasis.num_basis, sub_local.volume) : gkyl_array_acquire(f_sub_ho);
+  struct gkyl_array *g_full = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(g_full_ho);
+  struct gkyl_array *ones_phase = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(ones_ho);
+  struct gkyl_array *h_expect = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(h_sol_ho);
+  struct gkyl_array *pout = use_gpu ? 
+    gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) : gkyl_array_acquire(pout_ho);
+
+  // copy data to device if using GPU
+  gkyl_array_copy(f_sub, f_sub_ho);
+  gkyl_array_copy(g_full, g_full_ho);
+  gkyl_array_copy(ones_phase, ones_ho);
+
+  // pout = g, then pout += -1 * f_sub * ones_phase  =>  pout = g - f
+  gkyl_array_copy(pout, g_full);
+  gkyl_dg_mul_conf_phase_op_accumulate_range(&subbasis, &basis, pout, -1.0,
+    f_sub, ones_phase, &sub_local, &local);
+
+  // Copy pout back to host if using GPU
+  gkyl_array_copy(pout_ho, pout);
+
+  // check: pout should equal h_expect coefficient-by-coefficient
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local, iter.idx);
+    const double *pout_d = gkyl_array_cfetch(pout_ho,     loc);
+    const double *h_d    = gkyl_array_cfetch(h_sol_ho, loc);
+    for (int k = 0; k < basis.num_basis; ++k)
+      TEST_CHECK( gkyl_compare(h_d[k], pout_d[k], 1e-11) );
+  }
+
+  // cleanup
+  gkyl_proj_on_basis_release(proj_f);
+  gkyl_proj_on_basis_release(proj_g);
+  gkyl_proj_on_basis_release(proj_ones);
+  gkyl_proj_on_basis_release(proj_h);
+  gkyl_array_release(f_sub_ho);
+  gkyl_array_release(g_full_ho);
+  gkyl_array_release(ones_ho);
+  gkyl_array_release(h_sol_ho);
+  gkyl_array_release(pout_ho);
+}
+
+void test_conf_phase_accumulate_subtract_p1() { test_subspace_accumulate(1, false); }
+void test_conf_phase_accumulate_subtract_p2() { test_subspace_accumulate(2, false); }
 
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
@@ -1867,8 +1990,8 @@ test_3d_p3_cu()
   gkyl_cart_modal_serendip(&basis, ndim, poly_order);
 
   // projection updater for dist-function
-  gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
-  gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistf = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, f_3d_p3, NULL);
+  struct gkyl_proj_on_basis *projDistg = gkyl_proj_on_basis_new(&grid, &basis, 5, 1, g_3d_p3, NULL);
 
   // create array range: no ghost-cells in velocity space
   int nghost[GKYL_MAX_DIM] = { 0 };
@@ -1908,11 +2031,11 @@ test_3d_p3_cu()
   gkyl_dg_bin_op_mem *mem = gkyl_dg_bin_op_mem_cu_dev_new(f_bar->size, basis.num_basis);
 
   // h = f*g
-  gkyl_dg_mul_op(basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
+  gkyl_dg_mul_op(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu);
   // f_bar = h/g = f
-  gkyl_dg_div_op(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
+  gkyl_dg_div_op(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu);
   // g_bar = h/f = g
-  gkyl_dg_div_op(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
+  gkyl_dg_div_op(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu);
 
   // copy from device and check if things are ok
   gkyl_array_copy(f_bar, f_bar_cu);
@@ -1933,11 +2056,11 @@ test_3d_p3_cu()
   gkyl_array_clear(f_bar_cu, 0.0);
   gkyl_array_clear(g_bar_cu, 0.0);
   // h = f*g
-  gkyl_dg_mul_op_range(basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
+  gkyl_dg_mul_op_range(&basis, 0, h_cu, 0, distf_cu, 0, distg_cu, &arr_range);
   // f_bar = h/g = f
-  gkyl_dg_div_op_range(mem, basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
+  gkyl_dg_div_op_range(mem, &basis, 0, f_bar_cu, 0, h_cu, 0, distg_cu, &arr_range);
   // g_bar = h/f = g
-  gkyl_dg_div_op_range(mem, basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
+  gkyl_dg_div_op_range(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &arr_range);
@@ -1970,6 +2093,9 @@ test_3d_p3_cu()
   gkyl_dg_bin_op_mem_release(mem);
 }
 
+void test_conf_phase_accumulate_subtract_p1_cu() { test_subspace_accumulate(1, true); }
+void test_conf_phase_accumulate_subtract_p2_cu() { test_subspace_accumulate(2, true); }
+
 #endif
 
 TEST_LIST = {
@@ -1986,6 +2112,8 @@ TEST_LIST = {
   { "test_3d_p3", test_3d_p3 },
   { "test_4d_p1", test_4d_p1 },
   { "test_4d_p2", test_4d_p2 },
+  { "test_conf_phase_accumulate_subtract_p1", test_conf_phase_accumulate_subtract_p1 },
+  { "test_conf_phase_accumulate_subtract_p2", test_conf_phase_accumulate_subtract_p2 },
 #ifdef GKYL_HAVE_CUDA
   { "test_1d_p1_cu", test_1d_p1_cu },
   { "test_inv_1d_p1_cu", test_inv_1d_p1_cu },
@@ -1998,6 +2126,8 @@ TEST_LIST = {
   { "test_3d_p1_cu", test_3d_p1_cu },
   { "test_3d_p2_cu", test_3d_p2_cu },
   { "test_3d_p3_cu", test_3d_p3_cu },
+  { "test_conf_phase_accumulate_subtract_p1_cu", test_conf_phase_accumulate_subtract_p1_cu },
+  { "test_conf_phase_accumulate_subtract_p2_cu", test_conf_phase_accumulate_subtract_p2_cu },
 #endif
   { NULL, NULL },
 };

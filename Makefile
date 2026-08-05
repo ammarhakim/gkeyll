@@ -3,7 +3,8 @@
 # Type "make help" to see help for this Makefile
 
 # determine date of build
-BUILD_DATE := $(shell date)
+BUILD_DATE := $(shell date +"%Y-%m-%d %H:%M:%S %Z")
+BUILD_DATE_STR := "$(BUILD_DATE)"
 GIT_TIP := $(shell git describe --abbrev=12 --always --dirty=+)
 
 # Build directory
@@ -14,22 +15,24 @@ KERNELS_DIR := ker
 
 ARCH_FLAGS ?= -march=native
 CUDA_ARCH ?= 70
-CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="'${BUILD_DATE}'" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+CFLAGS ?= -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 LDFLAGS = 
 PREFIX ?= ${HOME}/gkylsoft
-
-# Default lapack include and libraries: we prefer linking to static library
-LAPACK_INC = $(PREFIX)/OpenBLAS/include
-LAPACK_LIB_DIR = $(PREFIX)/OpenBLAS/lib
-LAPACK_LIB = -lopenblas
 
 FIN_APP_LIB_DIR = -L../${BUILD_DIR}/pkpm
 FIN_APP_LIB = -lg0pkpm
 
-# Include config.mak file (if it exists) to overide defaults above
--include config.mak
-
 HAVE_APP_FLAGS = -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS
+
+# Include config.mak and alltargets.mak files (if they exists) to overide defaults above
+-include config.mak
+-include alltargets.mak
+
+# Default lapack include and libraries: we prefer linking to static library
+LAPACK_INC_DIR ?= $(PREFIX)/OpenBLAS/include/
+LAPACK_LIB_DIR ?= $(PREFIX)/OpenBLAS/lib/
+LAPACK_LIB_NAME ?= openblas
+LAPACK_LIBS ?= -l${LAPACK_LIB_NAME}
 
 ifeq (${BUILD_APP}, moments)
 	HAVE_APP_FLAGS = -DGKYL_HAVE_MOMENTS
@@ -53,22 +56,35 @@ UNAME = $(shell uname)
 # On OSX we should use Accelerate framework
 ifeq ($(UNAME), Darwin)
 	LAPACK_LIB_DIR = .
-	LAPACK_INC = core # dummy
-	LAPACK_LIB = -framework Accelerate
+	LAPACK_INC_DIR = core # dummy
+	LAPACK_LIB_NAME =
+	LAPACK_LIBS = -framework Accelerate
 	CFLAGS += -DGKYL_USING_FRAMEWORK_ACCELERATE
 endif
 
+# Default superlu include and libraries
+SUPERLU_INC_DIR ?= $(PREFIX)/superlu/include/
+ifeq ($(UNAME), Darwin)
+	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib/
+else
+	SUPERLU_LIB_DIR ?= $(PREFIX)/superlu/lib64/
+endif
+SUPERLU_LIB_NAME ?= superlu
+SUPERLU_LIBS ?= -l${SUPERLU_LIB_NAME}
+
 # CUDA flags
 USING_NVCC =
-NVCC_FLAGS = 
+NVCC_FLAGS =
 CUDA_LIBS =
-ifeq ($(CC), nvcc)
+# Default SQL flags (nvcc block below overrides this for GPU builds)
+SQL_CFLAGS ?= -fPIC -Wno-implicit-int-float-conversion
+ifneq (,$(filter $(CC),nvcc nvc))
 	USING_NVCC = yes
-	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE="${BUILD_DATE}" -DGKYL_GIT_CHANGESET="${GIT_TIP}"
+	CFLAGS = -O3 -g --forward-unknown-to-host-compiler --use_fast_math -ffast-math -MMD -MP -fPIC -DGIT_COMMIT_ID=\"$(GIT_TIP)\" -DGKYL_BUILD_DATE=\"$(BUILD_DATE_STR)\" -DGKYL_GIT_CHANGESET=\"$(GIT_TIP)\"
 	NVCC_FLAGS = -x cu -dc -arch=sm_${CUDA_ARCH} -rdc=true --compiler-options="-fPIC" -Xptxas --disable-optimizer-constants
 	LDFLAGS += -arch=sm_${CUDA_ARCH} -rdc=true
-	ifdef CUDAMATH_LIBDIR
-		CUDA_LIBS = -L${CUDAMATH_LIBDIR}
+	ifdef CUDAMATH_LIB_DIR
+		CUDA_LIBS = -L${CUDAMATH_LIB_DIR}
 	else
 		CUDA_LIBS =
 	endif
@@ -163,9 +179,34 @@ endif
 MKDIR_P ?= mkdir -p
 
 # At this point, export all top-level variables to sub-makes and
-# recurse downwards
+# recurse downwards.
+#
+# NOTE: We use explicit 'export' instead of .EXPORT_ALL_VARIABLES: to avoid
+# the "argument list too long" error. With .EXPORT_ALL_VARIABLES:, GNU Make
+# causes sub-makes to also export ALL their variables (including large lists
+# like SRCS, OBJS, DEPS, and MAKEFILE_LIST which can include thousands of
+# .d dependency files) to every shell command they run. This pushes the
+# environment size well over the system's ARG_MAX limit (2MB on Linux),
+# causing execve() to fail with E2BIG even for trivial commands like mkdir.
+# By explicitly exporting only the variables sub-makes actually need, we keep
+# the environment small and avoid this issue.
 
-.EXPORT_ALL_VARIABLES:
+export CC CFLAGS ARCH_FLAGS CUDA_ARCH LDFLAGS BUILD_DIR KERNELS_DIR
+export PREFIX INSTALL_PREFIX PROJ_NAME UNAME
+export USING_NVCC NVCC_FLAGS CUDA_LIBS SQL_CFLAGS CUDAMATH_LIBDIR
+export USING_MPI MPI_INC_DIR MPI_LIB_DIR MPI_LIBS MPI_RPATH
+export USING_NCCL NCCL_INC_DIR NCCL_LIB_DIR NCCL_LIBS
+export USING_CUDSS CUDSS_INC_DIR CUDSS_LIB_DIR CUDSS_LIBS CUDSS_RPATH
+export USING_LUA LUA_INC_DIR LUA_LIB_DIR LUA_LIBS LUA_RPATH
+export LAPACK_INC_DIR LAPACK_LIB_DIR LAPACK_LIBS LAPACK_LIB_NAME
+export SUPERLU_INC_DIR SUPERLU_LIB_DIR SUPERLU_LIBS SUPERLU_LIB_NAME
+export FIN_APP_LIB_DIR FIN_APP_LIB HAVE_APP_FLAGS
+export MKDIR_P GKYL_SHARE_DIR BUILD_APP
+export GKEYLL_SHARE_INSTALL_PREFIX SED_REPS_STR1 SED_REPS_STR2 MAKEFILE_FOR_EXT_C_INP_PHONY
+export CONF_MPI_INC_DIR CONF_MPI_LIB_DIR
+export CONF_NCCL_INC_DIR CONF_NCCL_LIB_DIR
+export CONF_CUDSS_INC_DIR CONF_CUDSS_LIB_DIR
+export CONF_LUA_INC_DIR CONF_LUA_LIB_DIR CONF_LUA_LIB
 
 # Regression tests
 ${BUILD_DIR}/core/creg/%: core/creg/%.c ${BUILD_DIR}/core/libg0core.so
@@ -241,8 +282,11 @@ core-install: ## Install core infrastructure code
 core-clean: ## Clean core infrastructure code
 	cd core && $(MAKE) -f Makefile-core clean
 
-core-check: core ## Run unit tests in core
+core-check: core ## (Re)build and run unit tests in core
 	cd core && $(MAKE) -f Makefile-core check
+
+core-unit-run: ## Run core unit tests
+	cd core && $(MAKE) -f Makefile-core unit-run
 
 core-valcheck: core ## Run valgrind on unit tests in core
 	cd core && $(MAKE) -f Makefile-core valcheck
@@ -267,8 +311,11 @@ moments-install: core-install ## Install moments infrastructure code
 moments-clean: ## Clean moments infrastructure code
 	cd moments && $(MAKE) -f Makefile-moments clean
 
-moments-check: moments ## Run unit tests in moments
+moments-check: moments ## (Re)build and run unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments check
+
+moments-unit-run: ## Run moments unit tests
+	cd moments && $(MAKE) -f Makefile-moments unit-run
 
 moments-valcheck: moments ## Run valgrind on unit tests in moments
 	cd moments && $(MAKE) -f Makefile-moments valcheck
@@ -290,8 +337,11 @@ vlasov-install: moments-install ## Install Vlasov infrastructure code
 vlasov-clean: ## Clean Vlasov infrastructure code
 	cd vlasov && $(MAKE) -f Makefile-vlasov clean
 
-vlasov-check: vlasov ## Run unit tests in Vlasov
+vlasov-check: vlasov ## (Re)build and run unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov check
+
+vlasov-unit-run: ## Run Vlasov unit tests
+	cd vlasov && $(MAKE) -f Makefile-vlasov unit-run
 
 vlasov-valcheck: vlasov ## Run valgrind on unit tests in Vlasov
 	cd vlasov && $(MAKE) -f Makefile-vlasov valcheck
@@ -313,8 +363,11 @@ gyrokinetic-install: vlasov-install ## Install Gyrokinetic infrastructure code
 gyrokinetic-clean: ## Clean Gyrokinetic infrastructure code
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic clean
 
-gyrokinetic-check: gyrokinetic ## Run unit tests in Gyrokinetics
+gyrokinetic-check: gyrokinetic ## (Re)build and run unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic check
+
+gyrokinetic-unit-run: ## Run Gyrokinetic unit tests
+	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic unit-run
 
 gyrokinetic-valcheck: gyrokinetic ## Run valgrind on unit tests in Gyrokinetics
 	cd gyrokinetic && $(MAKE) -f Makefile-gyrokinetic valcheck
@@ -336,22 +389,25 @@ pkpm-install: gyrokinetic-install ## Install PKPM infrastructure code
 pkpm-clean: ## Clean PKPM infrastructure code
 	cd pkpm && $(MAKE) -f Makefile-pkpm clean
 
-pkpm-check: pkpm ## Run unit tests in PKPM
+pkpm-check: pkpm ## (Re)build and run unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm check
+
+pkpm-unit-run: ## Run PKPM unit tests
+	cd pkpm && $(MAKE) -f Makefile-pkpm unit-run
 
 pkpm-valcheck: pkpm ## Run valgrind on unit tests in PKPM
 	cd pkpm && $(MAKE) -f Makefile-pkpm valcheck
 
 ## Top-level Gkeyll target
-gkeyll: pkpm ## Build Gkeyll executable
+gkeyll: ${BUILD_APP} ## Build Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll gkeyll
 
-gkeyll-install: pkpm-install gkeyll ## Install Gkeyll executable
+gkeyll-install: ${BUILD_APP}-install gkeyll ## Install Gkeyll executable
 	cd gkeyll && ${MAKE} -f Makefile-gkeyll install
 
 ## Targets to build things all parts of the code
 
-# build all unit tests 
+# build all unit tests
 unit: pkpm-unit gyrokinetic-unit vlasov-unit moments-unit core-unit ## Build all unit tests
 
 # build all regression tests 
@@ -362,7 +418,25 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-check: core-check moments-check vlasov-check gyrokinetic-check pkpm-check ## Run all unit tests
+check: unit unit-run ## Build (if needed) and run all unit tests
+
+# Run all unit tests
+unit-run: ## Run all unit tests without (re)building them
+	@export GKYL_TEST_LOG=$$(mktemp); : > "$$GKYL_TEST_LOG"; \
+	for app in core moments vlasov gyrokinetic pkpm; do \
+	  $(MAKE) -C $$app -f Makefile-$$app unit-run; \
+	done; \
+	npass=$$(grep -c '^PASS ' "$$GKYL_TEST_LOG"); \
+	nfail=$$(grep -c '^FAIL ' "$$GKYL_TEST_LOG"); \
+	ntot=$$((npass+nfail)); \
+	echo "==================== gkeyll unit test summary ===================="; \
+	echo "Total: $$ntot   Passed: $$npass   Failed: $$nfail"; \
+	if [ $$nfail -gt 0 ]; then \
+	  echo "Failed tests:"; \
+	  grep '^FAIL ' "$$GKYL_TEST_LOG" | sed 's/^FAIL /  /'; \
+	  rm -f "$$GKYL_TEST_LOG"; \
+	  exit 1; \
+	fi
 
 # From: https://www.client9.com/self-documenting-makefiles/
 .PHONY: help

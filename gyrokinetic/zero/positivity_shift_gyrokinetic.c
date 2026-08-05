@@ -6,7 +6,8 @@
 
 struct gkyl_positivity_shift_gyrokinetic*
 gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, double mass, const struct gk_geometry *gk_geom,
+  struct gkyl_rect_grid grid, double mass,
+  const struct gk_geometry *gk_geom,
   const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu)
 {
   // Allocate space for new updater.
@@ -19,6 +20,7 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
   up->grid = grid;
   up->num_cbasis = cbasis.num_basis;
   up->mass = mass;
+
   up->gk_geom = gkyl_gk_geometry_acquire(gk_geom);
   up->vel_map = gkyl_velocity_map_acquire(vel_map);
   up->use_gpu = use_gpu;
@@ -114,14 +116,15 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic* up,
       for (int k=0; k<num_cbasis; k++)
         m0in_c[k] += m0phase_in_c[k];
 
+      // Shift f if needed.
+      bool shifted_node = false;
+
       // Divide by jacobtot and jacobvel so that we are shifting just f.
       up->kernels->conf_phase_mul_op(jacobtot_inv_c, distf_c, distf_c);
       for (int k=0; k<distf->ncomp; k++)
         distf_c[k] /= jacobvel_c[0];
-
-      // Shift f if needed.
-      bool shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
-
+      // Shift f to enforce positivity if needed.
+      shifted_node = up->kernels->shift(up->ffloor[0], distf_c);
       // Multiply by jacobtot and jacobvel to compute M0.
       up->kernels->conf_phase_mul_op(jacobtot_c, distf_c, distf_c);
       for (int k=0; k<distf->ncomp; k++)

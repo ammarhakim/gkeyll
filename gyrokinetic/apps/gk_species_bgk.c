@@ -15,9 +15,9 @@ gkbgk_moms_enabled(gkyl_gyrokinetic_app *app, const struct gk_species *species,
 {
   struct timespec wst = gkyl_wall_clock();
 
-  // Compute Maxwellian moments (J*n, u_par, T/m).
+  // Compute Maxwellian moments (n, u_par, T/m).
   gk_species_moment_calc(&species->lte.moms, species->local, app->local, fin);
-  gkyl_dg_div_op_range(species->lte.moms.mem_geo, app->basis, 0, species->lte.moms.marr,
+  gkyl_dg_div_op_range(species->lte.moms.mem_geo, &app->basis, 0, species->lte.moms.marr,
     0, species->lte.moms.marr, 0, app->gk_geom->geo_int.jacobgeo, &app->local);
   
   // Calculate nu_ss.
@@ -75,7 +75,7 @@ static void
 gkbgk_alpha_E_normNu(gkyl_gyrokinetic_app *app, const struct gk_species *s,
   struct gk_bgk_collisions *bgk, int coll_idx)
 {
-  gkyl_dg_mul_op_range(app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
+  gkyl_dg_mul_op_range(&app->basis, 0, bgk->alpha_E, 0, bgk->cross_nu[coll_idx], 0, s->lte.moms.marr, &app->local);
   gkyl_array_scale_range(bgk->alpha_E, bgk->alpha_E_fac[coll_idx], &app->local);
 }
 
@@ -163,13 +163,15 @@ static void
 gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wtm = gkyl_wall_clock();
-  struct gkyl_msgpack_data *mt = gk_array_meta_new( (struct gyrokinetic_output_meta) {
-      .frame = frame,
-      .stime = tm,
-      .poly_order = app->poly_order,
-      .basis_type = app->basis.id
-    }, GKYL_GK_META_NONE, 0
-  );
+  // Package metadata.
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_conf_len, gks->io_meta_conf, "time", tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_conf_len, gks->io_meta_conf, "frame", frame);
+  struct gkyl_msgpack_map_elem desc[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Sum of collision frequencies." }
+  };
+  int io_meta_len[] = {gks->io_meta_conf_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_conf, app->gk_geom->io_meta_basic, desc};
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
 
   // Write out nu_sum.
   const char *fmt = "%s-%s_bgk_nu_sum_%d.gkyl";
@@ -185,7 +187,7 @@ gkbgk_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
   gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt, gks->bgk.nu_sum_host, fileNm);
   app->stat.n_diag_io += 2;
 
-  gk_array_meta_release(mt); 
+  gkyl_msgpack_data_release(mt); 
   app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wtm);
 }
 
@@ -285,11 +287,15 @@ gk_species_bgk_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks, st
       bgk->moms_func = gkbgk_moms_disabled;
       bgk->rhs_func = gkbgk_rhs_disabled;
       bgk->moms_func_implicit = gkbgk_moms_enabled;
-      bgk->rhs_func_implicit = gkbgk_rhs_enabled;
+      if (!gks->info.collisions.not_in_dfdt) {
+        bgk->rhs_func_implicit = gkbgk_rhs_enabled;
+      }
     }
     else {
       bgk->moms_func = gkbgk_moms_enabled;
-      bgk->rhs_func = gkbgk_rhs_enabled;
+      if (!gks->info.collisions.not_in_dfdt) {
+        bgk->rhs_func = gkbgk_rhs_enabled;
+      }
       bgk->moms_func_implicit = gkbgk_moms_disabled;
       bgk->rhs_func_implicit = gkbgk_rhs_disabled;
     }

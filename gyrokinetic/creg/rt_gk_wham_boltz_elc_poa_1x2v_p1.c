@@ -232,9 +232,9 @@ create_ctx(void)
   // Grid parameters
   double vpar_max_ion = 30 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nz = 288;
+  int Nz = 64;
   int Nvpar = 32; // 96 uniform
-  int Nmu = 32;  // 192 uniform
+  int Nmu = 16;  // 192 uniform
   int poly_order = 1;
 
   // Source parameters
@@ -250,12 +250,12 @@ create_ctx(void)
   double tau_oap = 3.0e-6;
   double tau_fdp = 2.0e-9;
   double tau_fdp_extra = 2.*tau_fdp;
-  int num_cycles = 3; // Number of OAP+FDP cycles to run.
+  int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 5;        // Frames per OAP phase
-  int num_frames_fdp = 5;        // Frames per FDP phase
-  int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
+  int num_frames_oap = 1;        // Frames per OAP phase
+  int num_frames_fdp = 1;        // Frames per FDP phase
+  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
   
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -450,9 +450,12 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
     .scale_factor = pparams->alpha,
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult = {
-    .type = pparams->fdot_mult_type,
-    .cellwise_const = true,
-    .write_diagnostics = true,
+    .num_multipliers = 1,
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    }
   };
   struct gkyl_gyrokinetic_field reset_field = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -582,9 +585,12 @@ int main(int argc, char **argv)
     },
 
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
-      .cellwise_const = true,
-      .write_diagnostics = true,
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
 
     .collisions = {
@@ -652,7 +658,7 @@ int main(int argc, char **argv)
     .zmin = -2.0,  // Z of lower boundary
     .zmax =  2.0,  // Z of upper boundary
     .include_axis = false, // Include R=0 axis in grid
-    .fl_coord = GKYL_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
+    .fl_coord = GKYL_GEOMETRY_MIRROR_GRID_GEN_PSI_CART_Z, // coordinate system for psi grid
   };
 
   struct gkyl_gk app_inp = {  // GK app
@@ -665,7 +671,7 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_MIRROR,
+      .geometry_id = GKYL_GEOMETRY_MIRROR,
       .world = {ctx.psi_eval, 0.0},
       .mirror_grid_info = grid_inp,
     },
@@ -686,6 +692,8 @@ int main(int argc, char **argv)
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Triggers for IO.

@@ -22,7 +22,8 @@
 #endif
 
 #include <rt_arg_parse.h>
-#include <kann.h>
+#include <gkyl_kann_net.h>
+#include <gkyl_knutils.h>
 
 struct burch_ctx
 {
@@ -468,7 +469,7 @@ main(int argc, char **argv)
   int NX = APP_ARGS_CHOOSE(app_args.xcells[0], ctx.Nx);
   int NY = APP_ARGS_CHOOSE(app_args.xcells[1], ctx.Ny);
 
-  kann_t **ann = gkyl_malloc(sizeof(kann_t*) * 2);
+  struct gkyl_kann_net **ann = gkyl_malloc(sizeof(struct gkyl_kann_net*) * 2);
   if (ctx.use_nn_closure) {
     const char *fmt_elc = "%s-%s.dat";
     int sz_elc = gkyl_calc_strlen(fmt_elc, ctx.nn_closure_file, "elc");
@@ -476,7 +477,7 @@ main(int argc, char **argv)
     snprintf(fileNm_elc, sizeof fileNm_elc, fmt_elc, ctx.nn_closure_file, "elc");
     FILE *file_elc = fopen(fileNm_elc, "r");
     if (file_elc != NULL) {
-      ann[0] = kann_load(fileNm_elc);
+      ann[0] = gkyl_kann_net_load(fileNm_elc, app_args.use_gpu);
       fclose(file_elc);
     }
     else {
@@ -491,7 +492,7 @@ main(int argc, char **argv)
     snprintf(fileNm_ion, sizeof fileNm_ion, fmt_ion, ctx.nn_closure_file, "ion");
     FILE *file_ion = fopen(fileNm_ion, "r");
     if (file_ion != NULL) {
-      ann[1] = kann_load(fileNm_ion);
+      ann[1] = gkyl_kann_net_load(fileNm_ion, app_args.use_gpu);
       fclose(file_ion);
     }
     else {
@@ -600,7 +601,6 @@ main(int argc, char **argv)
 
   // Moment app.
   struct gkyl_moment app_inp = {
-    .name = "10m_burch",
 
     .ndim = 2,
     .lower = { 0.0, 0.0 },
@@ -624,6 +624,8 @@ main(int argc, char **argv)
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_moment_app *app = gkyl_moment_app_new(&app_inp);
 
   // Initial and final simulation times.
@@ -663,7 +665,7 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = t_curr, .curr = frame_curr };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -724,7 +726,7 @@ main(int argc, char **argv)
   write_data(&io_trig, app, t_curr, false);
   if (ctx.use_nn_closure) {
     for (int i = 0; i < app_inp.num_species; i++) {
-      kann_delete(ann[i]);
+      gkyl_kann_net_release(ann[i]);
     }
   }
   gkyl_moment_app_stat_write(app);

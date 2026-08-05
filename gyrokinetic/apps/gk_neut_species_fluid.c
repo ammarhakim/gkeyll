@@ -13,8 +13,8 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   // Not ready.
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
 
-  // Compute volume-integrated reactions in rrs.
-  gk_neut_species_recycle_react_scale_rhs(app, species, &species->rrs, fin, rhs);
+  // Compute volume-integrated reactions in sca.
+  gk_neut_species_scaling_rhs(app, species, &species->sca, fin, rhs);
 
   app->stat.n_neut_species_omega_cfl +=1;
   struct timespec tm = gkyl_wall_clock();
@@ -94,6 +94,9 @@ static void
 gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
+  gkyl_msgpack_map_elem_release(ns->io_meta_basic_len, ns->io_meta_basic);
+  gkyl_msgpack_map_elem_release(ns->io_meta_conf_len , ns->io_meta_conf );
+
   gkyl_array_release(ns->f);
   gkyl_array_release(ns->f1);
   gkyl_array_release(ns->fnew);
@@ -121,7 +124,7 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app* app, const struct gk_n
 
   // Free memory for the object that scales the species according to a balance
   // between recycling and reactions.
-  gk_neut_species_recycle_react_scale_release(app, &ns->rrs);
+  gk_neut_species_scaling_release(app, &ns->sca);
 
   ns->release_is_static_func(app, ns);
 }
@@ -226,7 +229,7 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->local = app->local;
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
-  // modify it in GK_IWL BCs without modifying the app's.
+  // add the parallel direction in case TS BCs are needed.
   ns->num_periodic_dir = app->num_periodic_dir;
   for (int d=0; d<ns->num_periodic_dir; ++d)
     ns->periodic_dirs[d] = app->periodic_dirs[d];
@@ -250,6 +253,37 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
       ns->upper_bc[d].type = GKYL_BC_GK_SKIP;
   }
 
+  // Species properties metadata.
+  struct gkyl_msgpack_map_elem io_meta_sprop[] = {
+    { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.mass },
+    { .key = "charge", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "gas_gamma", .elem_type = GKYL_MP_DOUBLE, .dval = ns->info.gas_gamma },
+    { .key = "vdim", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = ns->info.vdim },
+  };
+
+  // Metadata for integrated quantities.
+  const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = {app->io_meta_basic, io_meta_sprop};
+  int io_meta_basic_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0])};
+  ns->io_meta_basic = gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union)/sizeof(io_meta_basic_union[0]),
+    io_meta_basic_union_len, io_meta_basic_union, &ns->io_meta_basic_len);
+
+  // Metadata for conf-space quantities.
+  struct gkyl_msgpack_map_elem io_meta_conf[] = {
+    { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = app->basis.poly_order },
+    { .key = "basis_type", .elem_type = GKYL_MP_STRING, .cval = app->basis.id },
+    { .key = "time", .elem_type = GKYL_MP_DOUBLE, .dval = 0.0 },
+    { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+  };
+  const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = {app->io_meta_basic, io_meta_sprop, io_meta_conf};
+  int io_meta_conf_union_len[] = {app->io_meta_basic_len, sizeof(io_meta_sprop)/sizeof(io_meta_sprop[0]),
+    sizeof(io_meta_conf)/sizeof(io_meta_conf[0])};
+  ns->io_meta_conf = gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union)/sizeof(io_meta_conf_union[0]),
+    io_meta_conf_union_len, io_meta_conf_union, &ns->io_meta_conf_len);
+
+  // Metadata for phase-space quantities.
+  ns->io_meta_phase = ns->io_meta_conf;
+  ns->io_meta_phase_len = ns->io_meta_conf_len;
+
   // Allocate distribution function array for initialization and I/O.
   ns->f = mkarr(app->use_gpu, ns->num_moments*ns->basis.num_basis, ns->local_ext.volume);
   ns->f_host = app->use_gpu? mkarr(false, ns->f->ncomp, ns->f->size)
@@ -261,24 +295,16 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   for (int d=0; d<cdim; ++d)
     ghost[d] = 1;
 
+  // Create skin/ghost ranges.
   for (int dir=0; dir<cdim; ++dir) {
-    // Create local lower skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->lower_skin[dir], &ns->lower_ghost[dir], dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
-    // Create local upper skin and ghost ranges for distribution function
-    gkyl_skin_ghost_ranges(&ns->upper_skin[dir], &ns->upper_ghost[dir], dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-  }
-
-  // Global skin and ghost ranges, only valid (i.e. volume>0) in ranges
-  // abutting boundaries.
-  for (int dir=0; dir<cdim; ++dir) {
+    gkyl_skin_ghost_ranges(&ns->local_lower_skin[dir], &ns->local_lower_ghost[dir],
+      dir, GKYL_LOWER_EDGE, &ns->local_ext, ghost);
+    gkyl_skin_ghost_ranges(&ns->local_upper_skin[dir], &ns->local_upper_ghost[dir],
+      dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
     gkyl_skin_ghost_ranges(&ns->global_lower_skin[dir], &ns->global_lower_ghost[dir],
       dir, GKYL_LOWER_EDGE, &ns->global_ext, ghost); 
-    gkyl_sub_range_intersect(&ns->global_lower_skin[dir], &ns->local_ext, &ns->global_lower_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_lower_ghost[dir], &ns->local_ext, &ns->global_lower_ghost[dir]);
     gkyl_skin_ghost_ranges(&ns->global_upper_skin[dir], &ns->global_upper_ghost[dir],
       dir, GKYL_UPPER_EDGE, &ns->local_ext, ghost);
-    gkyl_sub_range_intersect(&ns->global_upper_skin[dir], &ns->local_ext, &ns->global_upper_skin[dir]);
-    gkyl_sub_range_intersect(&ns->global_upper_ghost[dir], &ns->local_ext, &ns->global_upper_ghost[dir]);
   }
 
   // Initialize projection routine for initial conditions.
@@ -308,8 +334,8 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
 
   // Initialize the object that scales the species according to a balance
   // between recycling and reactions.
-  ns->rrs = (struct gk_recycle_react_scale) { };
-  gk_neut_species_recycle_react_scale_init(app, ns, &ns->rrs);
+  ns->sca = (struct gk_scaling) { };
+  gk_neut_species_scaling_init(app, ns, &ns->sca);
 
   // Initialize BGK collisions with null type (not applicable to fluids).
   ns->bgk = (struct gk_bgk_collisions) { };

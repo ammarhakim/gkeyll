@@ -521,8 +521,8 @@ create_ctx(void)
 //  double mu_max_ion_c = 1.0/pow(mu_lin_fac_inv,(mu_pow-1)/mu_pow);
 
   // Grid DOF:
-  int Nz = 192; // Number of cells in z direction.
-  int Nvpar = 48; // Number of cells in parallel velocity direction.
+  int Nz = 64; // Number of cells in z direction.
+  int Nvpar = 32; // Number of cells in parallel velocity direction.
   int Nmu = 16;  // Number of cells in mu direction.
   int poly_order = 1;
 
@@ -540,15 +540,15 @@ create_ctx(void)
   double alpha_oap = 0.01;
   double alpha_fdp = 1.0;
   // Duration of each phase.
-  double tau_oap = 2400.0e-9;
-  double tau_fdp = 24.0e-9;
+  double tau_oap = 100e-9;
+  double tau_fdp = 1e-9;
   double tau_fdp_extra = 2*tau_fdp;
   int num_cycles = 2; // Number of OAP+FDP cycles to run.
 
   // Frame counts for each phase type (specified independently)
-  int num_frames_oap = 4; // Frames per OAP phase
-  int num_frames_fdp = 4; // Frames per FDP phase
-  int num_frames_fdp_extra = 2*num_frames_fdp;  // Frames for the extra FDP phase
+  int num_frames_oap = 1; // Frames per OAP phase
+  int num_frames_fdp = 1; // Frames per FDP phase
+  int num_frames_fdp_extra = 1;  // Frames for the extra FDP phase
 
   // Whether to evolve the field.
   bool is_static_field_oap = true;
@@ -761,9 +761,12 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
     .scale_factor = pparams->alpha,
   };
   struct gkyl_gyrokinetic_fdot_multiplier fdot_mult_inp = {
-    .type = pparams->fdot_mult_type,
-    .cellwise_const = true,
-    .write_diagnostics = true,
+    .num_multipliers = 1,
+    .multiplier[0] = {
+      .type = pparams->fdot_mult_type,
+      .cellwise_const = true,
+      .write_diagnostics = true,
+    },
   };
   struct gkyl_gyrokinetic_field field_inp = {
     .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
@@ -793,13 +796,13 @@ void run_phase(gkyl_gyrokinetic_app* app, struct gk_mirror_ctx *ctx, double num_
   long step = 1;
   while ((t_curr < t_end) && (step <= num_steps))
   {
-    if (step == 1 || step % 20 == 0)
+    if (step == 1 || step % 1 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, "Taking time-step at t = %g ...", t_curr);
 
     dt = fmin(dt, t_end - t_curr); // Don't step beyond t_end.
     struct gkyl_update_status status = gkyl_gyrokinetic_update(app, dt);
 
-    if (step == 1 || step % 20 == 0)
+    if (step == 1 || step % 1 == 0)
       gkyl_gyrokinetic_app_cout(app, stdout, " dt = %g\n", status.dt_actual);
 
     if (!status.success)
@@ -908,7 +911,7 @@ int main(int argc, char **argv)
       .num_sources = 1,
       .projection[0] = {
         .proj_id = GKYL_PROJ_MAXWELLIAN_PRIM, 
-	.density = eval_density_ion_source,
+        .density = eval_density_ion_source,
         .upar = eval_upar_ion_source,
         .temp = eval_temp_ion_source,
         .ctx_density = &ctx,
@@ -918,9 +921,12 @@ int main(int argc, char **argv)
     },
 
     .time_rate_multiplier = {
-      .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
-      .cellwise_const = true,
-      .write_diagnostics = true,
+      .num_multipliers = 1,
+      .multiplier[0] = {
+        .type = GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE, // So solvers are allocated.
+        .cellwise_const = true,
+        .write_diagnostics = true,
+      },
     },
 
     .positivity = {
@@ -947,7 +953,6 @@ int main(int argc, char **argv)
 
   // GK app
   struct gkyl_gk app_inp = { 
-    .name = "gk_mirror_boltz_elc_poa_1x2v_p1",
     .cdim = ctx.cdim,
     .lower = {ctx.z_min},
     .upper = {ctx.z_max},
@@ -956,7 +961,7 @@ int main(int argc, char **argv)
     .basis_type = app_args.basis_type,
 
     .geometry = {
-      .geometry_id = GKYL_MAPC2P,
+      .geometry_id = GKYL_GEOMETRY_MAPC2P,
       .world = {ctx.psi_eval, 0.0},
       .mapc2p = mapc2p, // Mapping of computational to physical space.
       .c2p_ctx = &ctx,
@@ -980,6 +985,8 @@ int main(int argc, char **argv)
   };
 
   // Create app object.
+  // Set app output name from the executable name (argv[0]).
+  snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   gkyl_gyrokinetic_app *app = gkyl_gyrokinetic_app_new(&app_inp);
 
   // Triggers for IO.
