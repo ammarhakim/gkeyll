@@ -599,6 +599,29 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   gyrokinetic_multib_optimize_xpt_seams(mbinp, mbapp);
 
+  // NOTE on multiblock interface metric continuity: the raw per-block interior
+  // geometry (geo_int.jacobgeo, g_ij, etc.) is never reconciled across a
+  // z-direction block interface -- each block's DG geometry is constructed
+  // independently, and gkyl_multib_comm_conn_array_transfer below only
+  // ghost-copies (gkyl_array_copy_range_to_range in multib_comm_conn_*.c),
+  // never averages or blends. Real, sometimes large (tens of percent)
+  // discontinuities in the raw interior metric at a shared interface are
+  // therefore expected, not a bug -- see
+  // ixf-vs-main-comp/IXF_VS_MAIN_CHANGES.md section 6.2 and
+  // ixf-vs-main-comp/check_interface_continuity.py for quantified bounds
+  // (identical between this branch and main wherever neither side's block
+  // uses straight_xpt_ray, confirming this is pre-existing architecture,
+  // not something this branch introduced or changed).
+  // What IS explicitly reconciled below is the *surface* Jacobian used by
+  // flux-relevant kernels (jacobgeo_ratio: each block's own surface
+  // jacobgeo is ghost-synced, then divided into the local jacobgeo to give
+  // a per-interface correction factor) and the surface arc length
+  // (deltats, for tokamak geometry) -- both predate this branch and are the
+  // actual mechanism protecting evolved-field flux computations from the
+  // raw metric discontinuity above. Their sufficiency (whether the
+  // correction fully compensates for the observed discontinuity
+  // magnitudes) has not been independently verified.
+  //
   // Sync the conf-space volume Jacobian needed for syncing quantities that include a
   // jacobgeo factor in them.
   struct gkyl_array *jacs_vol[mbapp->num_local_blocks];
@@ -853,6 +876,10 @@ and the maximum number of cuts in a block is %d\n\n", tot_max[0], num_ranks, tot
 
   gyrokinetic_multib_optimize_xpt_seams(mbinp, mbapp);
 
+  // See the metric-continuity NOTE in gkyl_gyrokinetic_multib_app_new_geom's
+  // identical sync sequence above (geometry-only path): the raw interior
+  // geometry synced here is ghost-copied, not reconciled, across interfaces.
+  //
   // Sync the conf-space volume Jacobian needed for syncing quantities that include a
   // jacobgeo factor in them.
   struct gkyl_array *jacs_vol[mbapp->num_local_blocks];
