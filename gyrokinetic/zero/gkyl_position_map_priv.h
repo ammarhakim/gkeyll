@@ -11,22 +11,22 @@ struct opt_Theta_ctx {
 };
 
 /**
-  * Function that actually frees memory associated with this
-  * object when the number of references has decreased to zero.
-  *
-  * @param ref Reference counter for this object.
-  */
+ * Function that actually frees memory associated with this
+ * object when the number of references has decreased to zero.
+ *
+ * @param ref Reference counter for this object.
+ */
 static void gkyl_position_map_free(const struct gkyl_ref_count *ref);
 
 // Utility functions for polynomial based B mapping
 
 /**
-  * Calculates the location of the throat of the mirror in the theta direction
-  * and the value of Bmag at that location.
-  *
-  * @param constB_ctx Context for the constant B mapping
-  * @param bmag_ctx Context for the magnetic field calculation
-  */
+ * Calculates the location of the throat of the mirror in the theta direction
+ * and the value of Bmag at that location.
+ *
+ * @param constB_ctx Context for the constant B mapping
+ * @param bmag_ctx Context for the magnetic field calculation
+ */
 static void
 calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx,
   struct gkyl_bmag_ctx *bmag_ctx)
@@ -70,15 +70,15 @@ calculate_mirror_throat_location_polynomial(struct gkyl_position_map_const_B_ctx
 }
 
 /**
-  * Converts our uniform coordinate along field line length to a non-uniform coordinate
-  * according to the polynomial mapping of arbitrary order.
-  * Notation: We switch from theta to z here. Both are the third computational coordinate.
-  *
-  * @param t Time
-  * @param xn Uniform coordinate
-  * @param fout Non-uniform coordinate
-  * @param ctx position_map_constB_ctx context for the constant B mapping
-  */
+ * Converts our uniform coordinate along field line length to a non-uniform coordinate
+ * according to the polynomial mapping of arbitrary order.
+ * Notation: We switch from theta to z here. Both are the third computational coordinate.
+ *
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
 static void
 position_map_constB_z_polynomial(double t, const double *xn, double *fout, void *ctx)
 {
@@ -123,12 +123,12 @@ position_map_constB_z_polynomial(double t, const double *xn, double *fout, void 
 }
 
 /**
-  * Calculates the optimal orders for the polynomail mapping of the B field.
-  * The optimal orders are the orders that minimize the maximum dB/dTheta in that region.
-  *
-  * @param constB_ctx Context for the constant B mapping
-  * @param bmag_ctx Context for the magnetic field calculation
-  */
+ * Calculates the optimal orders for the polynomail mapping of the B field.
+ * The optimal orders are the orders that minimize the maximum dB/dTheta in that region.
+ *
+ * @param constB_ctx Context for the constant B mapping
+ * @param bmag_ctx Context for the magnetic field calculation
+ */
 static void
 calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *constB_ctx,
   struct gkyl_bmag_ctx *bmag_ctx)
@@ -238,12 +238,12 @@ calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *const
 // Utility functions for numeric root finding B mapping
 
 /**
-  * Calculates dB/dTheta numerically at a given xn value. Calculates
-  * the derivative to the left of the point.
-  *
-  * @param theta The theta value to calculate the derivative at
-  * @param ctx The context for the position map
-  */
+ * Calculates dB/dTheta numerically at a given xn value. Calculates
+ * the derivative to the left of the point.
+ *
+ * @param theta The theta value to calculate the derivative at
+ * @param ctx The context for the position map
+ */
 static double
 calc_bmag_global_derivative(double theta, void *ctx)
 {
@@ -266,11 +266,11 @@ calc_bmag_global_derivative(double theta, void *ctx)
 }
 
 /**
-  * Finds the local min and max of the B field along the field line
-  * specified by the input psi and alpha values.
-  *
-  * @param gpm The position map object
-  */
+ * Finds the local min and max of the B field along the field line
+ * specified by the input psi and alpha values.
+ *
+ * @param gpm The position map object
+ */
 static void
 find_B_field_extrema(struct gkyl_position_map *gpm)
 {
@@ -393,11 +393,11 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
 }
 
 /**
-  * Refines the extrema found in the B field along the field line
-  * specified by the input psi and alpha values.
-  *
-  * @param gpm The position map object
-  */
+ * Refines the extrema found in the B field along the field line
+ * specified by the input psi and alpha values.
+ *
+ * @param gpm The position map object
+ */
 static void
 refine_B_field_extrema(struct gkyl_position_map *gpm)
 {
@@ -485,12 +485,12 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
 }
 
 /**
-  * Function used for root finding to determine the optimal theta value
-  * for the numeric constant dB mapping.
-  *
-  * @param theta The theta value to evaluate
-  * @param ctx The context for the root finder. Type opt_Theta_ctx
-  */
+ * Function used for root finding to determine the optimal theta value
+ * for the numeric constant dB mapping.
+ *
+ * @param theta The theta value to evaluate
+ * @param ctx The context for the root finder. Type opt_Theta_ctx
+ */
 static double
 position_map_numeric_optimization_function(double theta, void *ctx)
 {
@@ -516,14 +516,14 @@ position_map_numeric_optimization_function(double theta, void *ctx)
 }
 
 /**
-  * Maps the uniform computational coordinate to a non-uniform coordinate
-  * according to the numeric constant B mapping.
-  *
-  * @param t Time
-  * @param xn Uniform coordinate
-  * @param fout Non-uniform coordinate
-  * @param ctx The context for the position map
-  */
+ * Maps the uniform computational coordinate to a non-uniform coordinate
+ * according to the numeric constant B mapping.
+ *
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx The context for the position map
+ */
 static void
 position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ctx)
 {
@@ -734,14 +734,14 @@ gaussian_norm_wrapper(double z, void *ctx)
 }
 
 /**
-  * Maps the uniform computational coordinate to a non-uniform coordinate
-  * according to the numeric constant B mapping.
-  *
-  * @param t Time
-  * @param xn Uniform coordinate
-  * @param fout Non-uniform coordinate
-  * @param ctx The context for the position map
-  */
+ * Maps the uniform computational coordinate to a non-uniform coordinate
+ * according to the numeric constant B mapping.
+ *
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx The context for the position map
+ */
 static void
 position_map_constB_z_numeric_moving_average(double t, const double *xn, double *fout, void *ctx)
 {
@@ -756,7 +756,7 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
   const double max_width = gpm->constB_ctx->gaussian_max_integration_width;
   const double tmin = gpm->constB_ctx->theta_min;
   const double tmax = gpm->constB_ctx->theta_max;
-  
+
   // Shrink the half-width symmetrically to stay within bounds
   // This ensures the integration window is always centered at theta_c
   double dist_to_min = theta_c - tmin;
@@ -795,14 +795,14 @@ position_map_constB_z_numeric_moving_average(double t, const double *xn, double 
 }
 
 /**
-  * Converts our uniform coordinate along field line length to a non-uniform coordinate
-  * according to a sinusoidal mapping with a specified compression factor at the ends
-  *
-  * @param t Time
-  * @param xn Uniform coordinate
-  * @param fout Non-uniform coordinate
-  * @param ctx position_map_constB_ctx context for the constant B mapping
-  */
+ * Converts our uniform coordinate along field line length to a non-uniform coordinate
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ *
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
 static void
 position_map_xpt_compression(double t, const double *xn, double *fout, void *ctx)
 {
@@ -818,14 +818,14 @@ position_map_xpt_compression(double t, const double *xn, double *fout, void *ctx
 }
 
 /**
-  * Converts our uniform coordinate psi to a non-uniform coordinate
-  * according to a sinusoidal mapping with a specified compression factor at the ends
-  *
-  * @param t Time
-  * @param xn Uniform coordinate
-  * @param fout Non-uniform coordinate
-  * @param ctx position_map_constB_ctx context for the constant B mapping
-  */
+ * Converts our uniform coordinate psi to a non-uniform coordinate
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ *
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
 static void
 position_map_sep_compression(double t, const double *xn, double *fout, void *ctx)
 {
@@ -841,14 +841,14 @@ position_map_sep_compression(double t, const double *xn, double *fout, void *ctx
 }
 
 /**
-  * Evaluates the derivative of the nonuniform coordinate wrt the uniform coordinate
-  * according to a sinusoidal mapping with a specified compression factor at the ends
-  *
-  * @param t Time
-  * @param xn Uniform coordinate
-  * @param fout Non-uniform coordinate
-  * @param ctx position_map_constB_ctx context for the constant B mapping
-  */
+ * Evaluates the derivative of the nonuniform coordinate wrt the uniform coordinate
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ *
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
 static void
 position_map_deriv_xpt_compression(double t, const double *xn, double *fout, void *ctx)
 {
@@ -863,14 +863,14 @@ position_map_deriv_xpt_compression(double t, const double *xn, double *fout, voi
 }
 
 /**
-  * Evaluates the derivative of the nonuniform coordinate wrt the uniform coordinate
-  * according to a sinusoidal mapping with a specified compression factor at the ends
-  *
-  * @param t Time
-  * @param xn Uniform coordinate
-  * @param fout Non-uniform coordinate
-  * @param ctx position_map_constB_ctx context for the constant B mapping
-  */
+ * Evaluates the derivative of the nonuniform coordinate wrt the uniform coordinate
+ * according to a sinusoidal mapping with a specified compression factor at the ends
+ *
+ * @param t Time
+ * @param xn Uniform coordinate
+ * @param fout Non-uniform coordinate
+ * @param ctx position_map_constB_ctx context for the constant B mapping
+ */
 static void
 position_map_deriv_sep_compression(double t, const double *xn, double *fout, void *ctx)
 {
