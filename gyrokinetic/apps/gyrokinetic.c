@@ -3566,11 +3566,11 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_dg_geom_release(app->dg_geom);
   gkyl_gk_dg_geom_release(app->gk_dg_geom);
 
-  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-    if (!gyrokinetic_str_ends_in_bnum(app->name)) { // Check if multiblock.
-      gkyl_array_release(app->delta_ts_x_lo);
-      gkyl_array_release(app->delta_ts_x_up);
-    }
+  if (app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+      (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P && 
+       app->gk_geom->parallel_lower_bc_shift_func && app->gk_geom->parallel_upper_bc_shift_func))) {
+    gkyl_array_release(app->delta_ts_x_lo);
+    gkyl_array_release(app->delta_ts_x_up);
   }
   gk_field_release(app, app->field);
   gk_eirene_release(app, app->eirene);
