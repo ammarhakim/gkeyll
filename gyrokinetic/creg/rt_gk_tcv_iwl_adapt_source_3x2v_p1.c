@@ -443,7 +443,7 @@ struct gk_app_ctx create_ctx(void)
   int Ny = 4; // (16)
   int Nz = 8; // (12)
   int Nvpar = 8; // (12)
-  int Nmu = 8; // (8)
+  int Nmu = 4; // (8)
   int poly_order = 1;
   // Velocity box dimensions
   double vpar_max_elc = 5.*vte;
