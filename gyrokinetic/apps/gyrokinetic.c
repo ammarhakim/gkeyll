@@ -1522,6 +1522,18 @@ gkyl_gyrokinetic_app_write_geometry(gkyl_gyrokinetic_app* app, struct gkyl_gk_ge
   for (int dir = 0; dir<app->cdim; dir++ ) {
     gyrokinetic_app_geometry_copy_and_write_surf(app, app->gk_geom->geo_surf[dir].jacobgeo    , arr_surf_ho1, arr_surf_ho2 , "jacobgeo", dir,
       "Conf-space Jacobian.");
+    // NOTE: geo_surf[dir].mc2p_nodal is NOT populated for tokamak geometry
+    // (see gk_geometry.c's deflate step, ~line 605: "the tokamak mapping
+    // does not populate [mc2p_nodal]"). The tokamak surface position lives
+    // in the base (first 3 of 39) components of mc2p_nodal_fd instead;
+    // the remaining components are per-direction epsilon-shifted
+    // finite-difference stencil points, some of which are the
+    // "unpopulated FD offsets" already flagged as an open risk (see
+    // gkeyll_relaxed_xpt_commit5 memory) -- write the full array (matching
+    // every other _fd consumer in this codebase) but readers should only
+    // use components 0:3.
+    gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].mc2p_nodal_fd, "mc2p_nodal_fd", dir,
+      "Cartesian coordinates at surface quadrature nodes and FD-offset nodes (components 0:3 are the base surface position; the rest are FD stencil offsets, not all populated for every geometry type).");
     gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].g_ij_nodal, "g_ij_nodal", dir,
       "Covariant metric tensor at surface quadrature nodes.");
     gyrokinetic_app_geometry_write_surf_nodal(app, app->gk_geom->geo_surf[dir].lenr_nodal, "lenr_nodal", dir,
