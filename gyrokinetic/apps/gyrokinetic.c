@@ -155,7 +155,6 @@ gyrokinetic_deflate_delta_ts(struct gkyl_gyrokinetic_app* app, struct gkyl_array
   gkyl_translate_dim_release(transd_2d_1d);
   gkyl_array_release(buffer_perp);
   gkyl_array_copy(app->delta_ts_x_up, delta_ts_x_dev);
-  gkyl_array_release(delta_ts_x_dev);
 }
 
 gkyl_gyrokinetic_app*
