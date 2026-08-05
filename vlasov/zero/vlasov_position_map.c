@@ -352,7 +352,7 @@ gkyl_vlasov_position_map_write(const struct gkyl_vlasov_position_map *vpm,
   snprintf(fileNm_pmap_avg, sizeof fileNm_pmap_avg, fmt_pmap_avg, app_name, name);
 
   gkyl_comm_array_write(comm, &vpm->grid_pos, &vpm->local_pos,
-    mt_pmap, vpm->pmap_avg_pgkyl_host, fileNm_pmap_avg);
+    mt_pmap_avg, vpm->pmap_avg_pgkyl_host, fileNm_pmap_avg);
   gkyl_msgpack_data_release(mt_pmap_avg);
 }
 
