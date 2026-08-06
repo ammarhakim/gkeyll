@@ -18,6 +18,10 @@ gkyl_dg_lowpass_filter_new(int dir, int half_width, double cutoff_wavelength,
   up->grid = *grid;
   up->range = *range;
 
+  // Reflect the stencil only at faces that coincide with the domain boundary.
+  up->reflect_lo = range->lower[dir] == 1;
+  up->reflect_up = range->upper[dir] == grid->cells[dir];
+
   // Perform some basic checks:
   assert(grid->ndim == range->ndim);
   assert(0 <= dir && dir < grid->ndim);
@@ -86,10 +90,21 @@ gkyl_dg_lowpass_filter_advance(gkyl_dg_lowpass_filter *up,
       ftar_c[c] = 0.0;
 
     // Loop over the donor cells contributing to this target cell.
+    double wsum = 0.0;
     for (int k=-M; k<M+1; k++) {
-      bool mirrored;
-      idx_do[dir] = dg_lpf_mirror_idx(iter.idx[dir]+k, up->range.lower[dir],
-        up->range.upper[dir], &mirrored);
+      bool mirrored = false;
+      int idx_k = iter.idx[dir]+k;
+      if (idx_k < up->range.lower[dir]) {
+        if (!up->reflect_lo) continue; // Interior edge: drop donor, renormalize.
+        idx_do[dir] = dg_lpf_mirror_idx(idx_k, up->range.lower[dir], up->range.upper[dir], &mirrored);
+      }
+      else if (idx_k > up->range.upper[dir]) {
+        if (!up->reflect_up) continue; // Interior edge: drop donor, renormalize.
+        idx_do[dir] = dg_lpf_mirror_idx(idx_k, up->range.lower[dir], up->range.upper[dir], &mirrored);
+      }
+      else {
+        idx_do[dir] = idx_k;
+      }
 
       long linidx_do = gkyl_range_idx(&up->range, idx_do);
       const double *fdo_c = gkyl_array_cfetch(fdo, linidx_do);
@@ -98,9 +113,14 @@ gkyl_dg_lowpass_filter_advance(gkyl_dg_lowpass_filter *up,
       const double *sgn = mirrored? up->sign_mirror : up->sign_plain;
 
       double w = up->weights[k+M];
+      wsum += w;
       for (int c=0; c<num_basis; c++)
         ftar_c[c] += w*sgn[c]*fdo_c[c];
     }
+
+    // Renormalize.
+    for (int c=0; c<num_basis; c++)
+      ftar_c[c] /= wsum;
   }
 }
 

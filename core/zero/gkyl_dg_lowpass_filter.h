@@ -18,7 +18,7 @@ typedef struct gkyl_dg_lowpass_filter gkyl_dg_lowpass_filter;
  *   cutoff f_c = dx/cutoff_wavelength must satisfy 0 < f_c <= 0.5.
  * @param basis DG basis of the filtered field.
  * @param grid Grid the filtered field is defined on.
- * @param range Range to filter in. The stencil is reflected at its boundaries.
+ * @param range Range to filter in. The stencil is reflected or truncated at the edges.
  * @param use_gpu bool to determine if on GPU.
  * @return New filter updater.
  */

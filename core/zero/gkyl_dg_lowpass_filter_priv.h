@@ -16,6 +16,8 @@ struct gkyl_dg_lowpass_filter {
   int num_basis; // Number of DG coefficients per cell.
   struct gkyl_rect_grid grid; // Grid the field is defined on.
   struct gkyl_range range; // Range to filter in.
+  bool reflect_lo; // Whether to reflect the stencil at the lower edge.
+  bool reflect_up; // Whether to reflect the stencil at the upper edge.
   double *weights; // 2M+1 filter weights, normalized to sum to 1.
   double *sign_mirror; // Per-coefficient sign for a mirrored donor.
   double *sign_plain; // All ones, for a donor that was not mirrored.

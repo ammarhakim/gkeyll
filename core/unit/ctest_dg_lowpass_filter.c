@@ -381,13 +381,76 @@ test_1x_reflection(bool use_gpu)
   gkyl_array_release(fout_ho);
 }
 
+static void
+test_1x_interior(bool use_gpu)
+{
+  // Over a range whose edges are interior (not the domain boundary), the
+  // stencil is truncated and renormalized rather than reflected. Check that a
+  // constant is preserved exactly, i.e. the renormalization keeps the zero mode
+  // even where donors are dropped at the non-physical faces.
+  int poly_order = 1;
+  int cells[] = {64};
+  double lower[] = {0.0}, upper[] = {1.0};
+  int nghost[] = {1};
+  int M = 8;
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
+  struct gkyl_basis basis;
+  gkyl_cart_modal_serendip(&basis, 1, poly_order);
+
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+
+  // Sub-range with both edges interior (away from the domain boundary).
+  struct gkyl_range sub;
+  gkyl_sub_range_init(&sub, &local, (int[]) {17}, (int[]) {48});
+
+  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
+    grid.dx[0]/0.25, &basis, &grid, &sub, use_gpu);
+
+  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
+  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
+  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
+
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
+    poly_order+1, 1, eval_const_1x, NULL);
+  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
+  gkyl_proj_on_basis_release(proj);
+  gkyl_array_copy(fin, fin_ho);
+
+  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
+  gkyl_array_copy(fout_ho, fout);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &sub);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(&sub, iter.idx);
+    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
+    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
+    for (int c=0; c<basis.num_basis; c++) {
+      TEST_CHECK( gkyl_compare(in_c[c], out_c[c], 1e-12) );
+      TEST_MSG("cell %d, coeff %d: in %.13e out %.13e", iter.idx[0], c, in_c[c], out_c[c]);
+    }
+  }
+
+  gkyl_dg_lowpass_filter_release(lpf);
+  gkyl_array_release(fin);
+  gkyl_array_release(fout);
+  gkyl_array_release(fin_ho);
+  gkyl_array_release(fout_ho);
+}
+
 void test_1x_reflection_ho() { test_1x_reflection(false); }
+void test_1x_interior_ho() { test_1x_interior(false); }
 void test_1x_ho() { test_1x(false); }
 void test_1x_conservation_ho() { test_1x_conservation(false); }
 void test_3x_ho() { test_3x(false); }
 
 #ifdef GKYL_HAVE_CUDA
 void test_1x_reflection_cu() { test_1x_reflection(true); }
+void test_1x_interior_cu() { test_1x_interior(true); }
 void test_1x_cu() { test_1x(true); }
 void test_1x_conservation_cu() { test_1x_conservation(true); }
 void test_3x_cu() { test_3x(true); }
@@ -395,11 +458,13 @@ void test_3x_cu() { test_3x(true); }
 
 TEST_LIST = {
   { "test_1x_reflection", test_1x_reflection_ho },
+  { "test_1x_interior", test_1x_interior_ho },
   { "test_1x", test_1x_ho },
   { "test_1x_conservation", test_1x_conservation_ho },
   { "test_3x", test_3x_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_1x_reflection_cu", test_1x_reflection_cu },
+  { "test_1x_interior_cu", test_1x_interior_cu },
   { "test_1x_cu", test_1x_cu },
   { "test_1x_conservation_cu", test_1x_conservation_cu },
   { "test_3x_cu", test_3x_cu },
