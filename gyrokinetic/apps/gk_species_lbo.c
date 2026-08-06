@@ -239,7 +239,7 @@ gklbo_write_mom_enabled(gkyl_gyrokinetic_app* app, struct gk_species *gks, doubl
     } else {
       prim_moms_io = gks->lbo.prim_moms;
     }
-    gkyl_comm_array_write(app->comm, &app->grid, &app->local, desc_nu_prim, prim_moms_io, fileNm_prim);
+    gkyl_comm_array_write(app->comm, &app->grid, &app->local, mt_nu_prim, prim_moms_io, fileNm_prim);
     app->stat.n_diag_io += 1;
     for (int i=0; i<gks->lbo.num_cross_collisions; ++i) {
       const char *other_name = gks->lbo.collide_with[i]->info.name;
