@@ -1796,6 +1796,76 @@ tok_ext_build_domain_trace(const struct gkyl_tok_geo_grid_inp *inp,
   return true;
 }
 
+// Near an X point the true contour can bend sharply within a single
+// bracket, so a straight chord between the bracket's two endpoints can end
+// up roughly equidistant from two of gkyl_tok_geo_R_psiZ's returned roots
+// even though only one is the actual continuation of this trace (confirmed
+// directly: at the exact TCV bracket that produces the radial-line fold,
+// the bracket's own R-extent, 0.0137, is comparable to the full gap between
+// the two roots, 0.0128, while its Z-extent is only 0.0007 -- i.e. the
+// bracket sits almost exactly on a Z turning point, the worst case for a
+// straight-chord reference).  Both bracket endpoints are themselves
+// already-resolved points of this same psi's own raw trace (trustworthy:
+// this trace's own construction was directly checked, in an earlier
+// investigation of this exact bug, and found not to be the source of the
+// ambiguity). Recover a reliable disambiguation reference by walking from
+// whichever endpoint is closer in Z to the target, in enough small
+// sub-steps that root selection stays unambiguous at every one: a small
+// enough step keeps the previous step's R clearly nearer one root than the
+// other, so nearest-value tracks the correct branch by construction rather
+// than by the luck of where the full chord happens to land. This depends
+// only on the current bracket's own two endpoints -- not on any other grid
+// corner, and not on the outer grid resolution -- so it neither chains
+// errors across neighboring points nor introduces any resolution
+// dependence the original per-corner-independent construction did not
+// already have.
+static bool
+tok_trace_walk_root(const struct gkyl_tok_geo *geo, double psi,
+  double z_lo, double r_lo, double z_hi, double r_hi, double z_target,
+  double *r_out)
+{
+  bool from_lo = fabs(z_target-z_lo) <= fabs(z_target-z_hi);
+  double z_anchor = from_lo ? z_lo : z_hi;
+  double r_walk = from_lo ? r_lo : r_hi;
+  const int nsub = 16;
+  for (int k=1; k<=nsub; ++k) {
+    double z_k = z_anchor+(z_target-z_anchor)*k/(double) nsub;
+    double roots_k[16] = { 0.0 }, dRdZ_k[16] = { 0.0 };
+    double dR_k[16] = { 0.0 }, dZ_k[16] = { 0.0 };
+    int nr_k = gkyl_tok_geo_R_psiZ(geo, psi, z_k, 8,
+      roots_k, dRdZ_k, dR_k, dZ_k);
+    if (nr_k <= 0)
+      return false;
+    r_walk = tok_nearest_value(r_walk, roots_k, nr_k);
+  }
+  *r_out = r_walk;
+  return isfinite(r_walk);
+}
+
+// A closed contour generically has two valid R roots at almost every Z
+// within its range (an ordinary "inboard side"/"outboard side" pair) -- so
+// nr>1 alone is the norm, not evidence of trouble, and rlin (the straight
+// chord across the bracket) already reliably favors the correct one in the
+// overwhelming majority of these.  Genuine trouble is specifically when
+// rlin cannot confidently tell the two roots apart -- it sits comparably
+// close to both, the signature found at the one bracket that actually
+// produces the fold (root gap 0.0128, rlin only 0.0034 from the midpoint).
+// Restricting the (more expensive, and elsewhere unnecessary) walk to only
+// this rare case keeps it from re-deciding calls that were already correct.
+static bool
+tok_rlin_ambiguous(double rlin, const double *roots, int nr)
+{
+  if (nr <= 1)
+    return false;
+  double best = DBL_MAX, second = DBL_MAX;
+  for (int k=0; k<nr; ++k) {
+    double d = fabs(roots[k]-rlin);
+    if (d < best) { second = best; best = d; }
+    else if (d < second) second = d;
+  }
+  return second < 2.0*best;
+}
+
 static bool
 tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   const double *tr, const double *tz, const double *ts, int n,
@@ -1824,7 +1894,29 @@ tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
   double w = ds > 0.0 ? (target-ts[lo])/ds : 0.0;
   double rlin = tr[lo]+w*(tr[hi]-tr[lo]);
   double zlin = tz[lo]+w*(tz[hi]-tz[lo]);
+  // A bracket that moves mostly in R (a local Z turning point) makes
+  // "fix Z, solve R" the ill-conditioned direction: gkyl_tok_geo_R_psiZ can
+  // return two roots that are both plausible near the same, imprecisely
+  // pinned zlin.  "Fix R, solve Z" is the well-conditioned direction there
+  // instead, since Z is changing little across the bracket, so rlin is a
+  // reliable value to hold fixed.  tok_logical_trace_sample (the final
+  // per-grid-corner lookup) already makes exactly this choice locally, per
+  // bracket; tok_trace_sample did not, always following the whole trace's
+  // fixed param_is_r instead, which is what let a single bad bracket near
+  // an X point produce a discrete branch flip.  Apply the same local check
+  // here, matching that existing, already-relied-upon pattern, but only
+  // for the closed-core path's own direction (param_is_r false): the
+  // param_is_r true path (used by the different, unrelated Z-branch
+  // routes) is left exactly as before.
+  bool local_prefer_r_fixed = !param_is_r &&
+    fabs(tr[hi]-tr[lo]) >= fabs(tz[hi]-tz[lo]);
   if (param_is_r) {
+    double roots[32] = { 0.0 };
+    int nr = tok_geo_Z_psiR(geo, psi, rlin, 16, roots);
+    if (nr <= 0) return false;
+    *r = rlin; *z = tok_nearest_value(zlin, roots, nr);
+  }
+  else if (local_prefer_r_fixed) {
     double roots[32] = { 0.0 };
     int nr = tok_geo_Z_psiR(geo, psi, rlin, 16, roots);
     if (nr <= 0) return false;
@@ -1836,7 +1928,14 @@ tok_trace_sample(const struct gkyl_tok_geo *geo, double psi,
     int nr = gkyl_tok_geo_R_psiZ(geo, psi, zlin, 8,
       roots, dRdZ, dR, dZ);
     if (nr <= 0) return false;
-    *r = tok_nearest_value(rlin, roots, nr); *z = zlin;
+    double r_choice = tok_nearest_value(rlin, roots, nr);
+    if (tok_rlin_ambiguous(rlin, roots, nr)) {
+      double r_walk = 0.0;
+      if (tok_trace_walk_root(geo, psi, tz[lo], tr[lo], tz[hi], tr[hi],
+          zlin, &r_walk))
+        r_choice = r_walk;
+    }
+    *r = r_choice; *z = zlin;
   }
   double residual = tok_eval_psi_rz_local(geo, *r, *z)-psi;
   return isfinite(*r) && isfinite(*z) && isfinite(residual) &&
@@ -2597,7 +2696,14 @@ tok_logical_trace_sample(const struct gkyl_tok_geo *geo, double psi,
       roots, dRdZ, dR, dZ);
     if (nr <= 0)
       return false;
-    *r = tok_nearest_value(rlin, roots, nr); *z = zlin;
+    double r_choice = tok_nearest_value(rlin, roots, nr);
+    if (tok_rlin_ambiguous(rlin, roots, nr)) {
+      double r_walk = 0.0;
+      if (tok_trace_walk_root(geo, psi, tz[i], tr[i], tz[i+1], tr[i+1],
+          zlin, &r_walk))
+        r_choice = r_walk;
+    }
+    *r = r_choice; *z = zlin;
   }
   double residual = tok_eval_psi_rz_local(geo, *r, *z)-psi;
   return isfinite(*r) && isfinite(*z) && isfinite(residual) &&
