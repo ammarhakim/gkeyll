@@ -895,6 +895,23 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 }
 
 GKYL_CU_DH
+static bool
+fuse_check_inv(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr)
+{
+  const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
+  
+  if (ql[0] < 0.0 || qr[0] < 0.0)
+    return false;
+
+  double pr_l = gkyl_euler_pressure(euler->gas_gamma, ql);
+  double pr_r = gkyl_euler_pressure(euler->gas_gamma, qr);
+  if (pr_l < 0.0 || pr_r < 0.0)
+    return false;
+
+  return true;
+}
+
+GKYL_CU_DH
 static double
 max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
