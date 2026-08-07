@@ -792,7 +792,6 @@ qfluct_hllc_direct(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
 }
 
 GKYL_CU_DH
-=======
 static double 
 fused_rotate_waves_qfluct_hllc_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
   const double* tau1, const double* tau2, const double* norm, double lenr, 

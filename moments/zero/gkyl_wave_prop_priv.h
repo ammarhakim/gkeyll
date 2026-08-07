@@ -122,11 +122,11 @@ calc_jump(int n, const double *ql, const double *qr, double * GKYL_RESTRICT jump
 
 GKYL_CU_DH
 static inline void
-calc_first_order_update(int meqn, double dtdx,
-  double * GKYL_RESTRICT q, const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l, const double *fr, const double *fl)
+calc_first_order_update(int meqn, double dtdx, double * GKYL_RESTRICT q,
+  const double * GKYL_RESTRICT amdq_r, const double * GKYL_RESTRICT apdq_l)
 {
   for (int i=0; i<meqn; ++i)
-    q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i] + fr[i] - fl[i]);
+    q[i] = q[i] - dtdx*(apdq_l[i] + amdq_r[i]);
 }
 
 GKYL_CU_DH
@@ -168,6 +168,16 @@ calc_second_order_qflux(int meqn, double dtdx, double s,
 // this is the sign function for doubles
 GKYL_CU_DH
 static inline int sign_double(double val) { return (0.0 < val) - (val < 0.0); }
+
+GKYL_CU_DH
+static inline void
+calc_second_order_fflux(int meqn, double dtdx, double s,
+  const double *waves, double * GKYL_RESTRICT flux2)
+{
+  double sfact = 0.5*sign_double(s)*(1-fabs(s)*dtdx);
+  for (int i=0; i<meqn; ++i)
+    flux2[i] += sfact*waves[i];
+}
 
 GKYL_CU_DH
 static inline void

@@ -39,6 +39,8 @@ typedef struct gkyl_wave_prop gkyl_wave_prop;
 struct gkyl_wave_prop_inp {
   const struct gkyl_rect_grid *grid; // grid on which to solve equations
   const struct gkyl_wv_eqn *equation; // equation solver
+  const struct gkyl_range *update_range; // range wave_prop will operate on
+  const struct gkyl_range *update_range_ext; // extended range for wave_prop allocations
   enum gkyl_wave_limiter limiter; // limiter to use
   int num_up_dirs; // number of update directions
   int update_dirs[GKYL_MAX_DIM]; // directions to update
