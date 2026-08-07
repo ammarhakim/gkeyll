@@ -12,6 +12,11 @@
 // inversion of phi (A = 1 + b). No time stepping is needed; this test
 // applies ICs, solves the field, and checks amplitudes at frame 0.
 //
+// We sweep kx*rho_i (and thus b)
+// from small to large to check two limits of the Pade chain:
+//   - b -> 0: rho_i -> 0 limit, ratio -> 1 (FLR effects vanish).
+//   - b >> 1: ratio -> 2, the large-argument saturation of the Pade form.
+//
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -43,7 +48,7 @@ struct flr_ctx {
 };
 
 static struct flr_ctx
-create_ctx(void)
+create_ctx(double kx_rho)
 {
   double eV = GKYL_ELEMENTARY_CHARGE;
   double me = GKYL_ELECTRON_MASS, mi = GKYL_PROTON_MASS;
@@ -56,8 +61,6 @@ create_ctx(void)
   double vte = sqrt(Te0/me), vti = sqrt(Ti0/mi);
   double rho_i = sqrt(Ti0*mi)/(qi*B0);
 
-  // One half-wavelength sine mode (vanishing at the x walls) with kx*rho_i = 0.5.
-  double kx_rho = 0.5;
   double kx = kx_rho/rho_i;
   double Lx = M_PI/kx;
   double Lz = 1.0;
@@ -257,16 +260,17 @@ calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range r
   return sqrt(l2red[0]);
 }
 
-int
-main(int argc, char **argv)
+static int
+run_and_check_case(int case_idx, double kx_rho, struct gkyl_app_args *app_args, struct gkyl_comm *comm)
 {
-  struct gkyl_app_args app_args = parse_app_args(argc, argv);
-  struct flr_ctx ctx = create_ctx();
+  struct flr_ctx ctx = create_ctx(kx_rho);
 
-  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
+  char name_off[64], name_on[64];
+  snprintf(name_off, sizeof(name_off), "rt_gk_flr_response_2x2v_p1_case%d_flroff", case_idx);
+  snprintf(name_on, sizeof(name_on), "rt_gk_flr_response_2x2v_p1_case%d_flron", case_idx);
 
-  run_case(&ctx, &app_args, comm, false, "rt_gk_flr_response_2x2v_p1_flroff");
-  run_case(&ctx, &app_args, comm, true, "rt_gk_flr_response_2x2v_p1_flron");
+  run_case(&ctx, app_args, comm, false, name_off);
+  run_case(&ctx, app_args, comm, true, name_on);
 
   // Read back both potentials.
   struct gkyl_rect_grid grid;
@@ -281,8 +285,11 @@ main(int argc, char **argv)
   struct gkyl_array *phi_off = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_array *phi_on = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_rect_grid grid_read;
-  gkyl_grid_sub_array_read(&grid_read, &local, phi_off, "rt_gk_flr_response_2x2v_p1_flroff-field_0.gkyl");
-  gkyl_grid_sub_array_read(&grid_read, &local, phi_on, "rt_gk_flr_response_2x2v_p1_flron-field_0.gkyl");
+  char fname_off[96], fname_on[96];
+  snprintf(fname_off, sizeof(fname_off), "%s-field_0.gkyl", name_off);
+  snprintf(fname_on, sizeof(fname_on), "%s-field_0.gkyl", name_on);
+  gkyl_grid_sub_array_read(&grid_read, &local, phi_off, fname_off);
+  gkyl_grid_sub_array_read(&grid_read, &local, phi_on, fname_on);
 
   // Measured amplitudes and expected factors.
   double l2_off = calc_l2(grid, local, local_ext, basis, phi_off);
@@ -322,6 +329,26 @@ main(int argc, char **argv)
   gkyl_array_release(phi_off);
   gkyl_array_release(phi_on);
   gkyl_array_release(diff);
+
+  return num_fail;
+}
+
+int
+main(int argc, char **argv)
+{
+  struct gkyl_app_args app_args = parse_app_args(argc, argv);
+  struct gkyl_comm *comm = gkyl_gyrokinetic_comms_new(app_args.use_mpi, app_args.use_gpu, stderr);
+
+  // Sweep kx*rho_i from the rho_i->0 limit (ratio -> 1) to the large-b Pade saturation (ratio -> 2).
+  double kx_rho_list[] = { 0.05, 0.1, 0.25, 0.5, 1.0, 2.0, 4.0 };
+  int num_cases = sizeof(kx_rho_list)/sizeof(kx_rho_list[0]);
+
+  int num_fail = 0;
+  for (int i = 0; i < num_cases; i++)
+    num_fail += run_and_check_case(i, kx_rho_list[i], &app_args, comm);
+
+  printf("\n%d/%d cases failed.\n", num_fail, num_cases);
+
   gkyl_gyrokinetic_comms_release(comm);
 
   return num_fail;
