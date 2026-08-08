@@ -3355,10 +3355,10 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
   struct gk_neut_species *gk_ns = &app->neut_species[sidx];
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
+    rstat.io_status = gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_ns->f, gk_ns->f_host);
+
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, gk_ns->lte.f_lte, 0.0);
       // Read volume and time integrated boundary flux diagnostics.
