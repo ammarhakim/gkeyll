@@ -1918,31 +1918,59 @@ pointwise_write_geometry_header(FILE *fp)
   fputc('\n', fp);
 }
 
-// Return the logical-theta edge occupied by the supported half-domain
-// X-point seam, or -1 when this block is not using the relaxed seam path.
-static int
-pointwise_xpt_seam_edge(const struct gkyl_gk_block_geom_info *bgi)
+// Return whether logical-theta edge (0 or 1) of this block is a candidate
+// X-point-adjacent seam under the relaxed-seam workflow. Most ftypes have
+// exactly one such edge (the other is a physical/plate boundary); a few
+// double-null ftypes (CORE_L/CORE_R, the DN SOL "MID" blocks that sit
+// between both X-points) and the self-periodic single-null CORE block are
+// X-point-adjacent at both edges. At most one of a doubly-adjacent block's
+// two candidate edges can actually be claimed by a pair in a given geometry
+// build (xpt_optimizer_discover_pairs claims at most one pair per block);
+// reporting both here and letting ascending (bid, edge) discovery order
+// resolve the conflict is deterministic, not a partial/best-effort guess.
+// No longer requires half_domain: the relaxed_xpt_seam displacement is now
+// wired into both the half-domain and full-domain (extended) construction
+// paths in tok_geo.c, so this recognizes seams under either.
+static bool
+pointwise_xpt_seam_edge_active(const struct gkyl_gk_block_geom_info *bgi,
+  int edge)
 {
   if (bgi->geometry.geometry_id != GKYL_GEOMETRY_TOKAMAK)
-    return -1;
+    return false;
+  if (edge != 0 && edge != 1)
+    return false;
   const struct gkyl_tok_geo_grid_inp *inp = &bgi->geometry.tok_grid_info;
-  if (!inp->half_domain || !inp->straight_xpt_ray ||
-      !inp->relaxed_xpt_seam)
-    return -1;
+  if (!inp->straight_xpt_ray || !inp->relaxed_xpt_seam)
+    return false;
 
   switch (inp->ftype) {
+    // Double-null lower-X-point-adjacent single-seam ftypes.
     case GKYL_GEOMETRY_TOKAMAK_PF_LO_R:
     case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
-    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
-      return 1;
+      return edge == 1;
     case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
-    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
     case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
+      return edge == 0;
+    // Double-null upper-X-point-adjacent single-seam ftypes.
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_R:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP:
+      return edge == 0;
+    case GKYL_GEOMETRY_TOKAMAK_PF_UP_L:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
+      return edge == 1;
+    // Double-null blocks adjacent to both X-points (one edge each).
+    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
     case GKYL_GEOMETRY_TOKAMAK_CORE_R:
-      return 0;
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
+    case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
+      return true;
+    // Self-periodic single-null core: both edges are the same
+    // X-point-adjacent periodic wrap (see tok_relax_xpt_seam_point's
+    // uniform-weight handling of this ftype).
+    case GKYL_GEOMETRY_TOKAMAK_CORE:
+      return true;
     default:
-      return -1;
+      return false;
   }
 }
 
@@ -1955,18 +1983,32 @@ pointwise_xpt_ftype_pair(enum gkyl_tok_geo_type local,
         partner == GKYL_GEOMETRY_TOKAMAK_CORE_R) ||
       (local == GKYL_GEOMETRY_TOKAMAK_CORE_R &&
         partner == GKYL_GEOMETRY_TOKAMAK_CORE_L)) ||
+    (local == GKYL_GEOMETRY_TOKAMAK_CORE &&
+      partner == GKYL_GEOMETRY_TOKAMAK_CORE) ||
     ((local == GKYL_GEOMETRY_TOKAMAK_PF_LO_R &&
         partner == GKYL_GEOMETRY_TOKAMAK_PF_LO_L) ||
       (local == GKYL_GEOMETRY_TOKAMAK_PF_LO_L &&
         partner == GKYL_GEOMETRY_TOKAMAK_PF_LO_R)) ||
+    ((local == GKYL_GEOMETRY_TOKAMAK_PF_UP_R &&
+        partner == GKYL_GEOMETRY_TOKAMAK_PF_UP_L) ||
+      (local == GKYL_GEOMETRY_TOKAMAK_PF_UP_L &&
+        partner == GKYL_GEOMETRY_TOKAMAK_PF_UP_R)) ||
     ((local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO &&
         partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID) ||
       (local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID &&
         partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO)) ||
+    ((local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP) ||
+      (local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID)) ||
     ((local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID &&
         partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO) ||
       (local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO &&
-        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID));
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)) ||
+    ((local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID) ||
+      (local == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID &&
+        partner == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP));
 }
 
 static bool
@@ -2119,8 +2161,8 @@ pointwise_write_xpt_objective_node(FILE *fp, const char *app_name,
   bool topology_pair_valid =
     local_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
     partner_bgi->geometry.geometry_id == GKYL_GEOMETRY_TOKAMAK &&
-    pointwise_xpt_seam_edge(local_bgi) == edge &&
-    pointwise_xpt_seam_edge(partner_bgi) == partner_edge &&
+    pointwise_xpt_seam_edge_active(local_bgi, edge) &&
+    pointwise_xpt_seam_edge_active(partner_bgi, partner_edge) &&
     partner_dir == 1 &&
     pointwise_xpt_ftype_pair(local_inp->ftype, partner_inp->ftype);
 
@@ -2410,11 +2452,10 @@ gyrokinetic_multib_app_write_interface_pointwise_diag(
           gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
         const struct gkyl_gk_block_geom_info *partner_bgi =
           gkyl_gk_block_geom_get_block(app->gk_block_geom, partner->bid);
-        int local_seam_edge = pointwise_xpt_seam_edge(local_bgi);
-        int partner_seam_edge = pointwise_xpt_seam_edge(partner_bgi);
         bool unique_xpt_seam = objective_fp && d == 1 &&
           cdim == 2 &&
-          (local_seam_edge == e || partner_seam_edge == partner_edge) &&
+          (pointwise_xpt_seam_edge_active(local_bgi, e) ||
+            pointwise_xpt_seam_edge_active(partner_bgi, partner_edge)) &&
           pointwise_interface_is_owner(bid, d, e, partner->bid,
             partner->dir, partner_edge);
         const struct gkyl_range *ghost_range = e == 0
@@ -2670,8 +2711,8 @@ xpt_optimizer_make_pair(const struct gkyl_gyrokinetic_multib_app *app,
 
   const struct gkyl_gk_block_geom_info *partner_bgi =
     gkyl_gk_block_geom_get_block(app->gk_block_geom, partner_bid);
-  if (pointwise_xpt_seam_edge(bgi) != edge ||
-      pointwise_xpt_seam_edge(partner_bgi) != partner_edge)
+  if (!pointwise_xpt_seam_edge_active(bgi, edge) ||
+      !pointwise_xpt_seam_edge_active(partner_bgi, partner_edge))
     return pair;
   if (!pointwise_xpt_ftype_pair(bgi->geometry.tok_grid_info.ftype,
       partner_bgi->geometry.tok_grid_info.ftype))
@@ -2711,7 +2752,12 @@ xpt_optimizer_make_pair(const struct gkyl_gyrokinetic_multib_app *app,
     &partner_bgi->geometry.tok_grid_info;
   bool both_request_optimize = local_inp->relaxed_xpt_seam_optimize &&
     partner_inp->relaxed_xpt_seam_optimize;
-  bool both_present = local_inp->half_domain && partner_inp->half_domain &&
+  // half_domain is deliberately not required here: the relaxed_xpt_seam
+  // displacement is wired into both the half-domain and full-domain
+  // (extended) construction paths in tok_geo.c (see
+  // tok_relax_xpt_seam_point), so this workflow now applies regardless of
+  // which domain-splitting mode a block uses.
+  bool both_present =
     local_inp->straight_xpt_ray && partner_inp->straight_xpt_ray &&
     local_inp->relaxed_xpt_seam && partner_inp->relaxed_xpt_seam;
   if (!both_request_optimize || !both_present) {
@@ -2763,40 +2809,48 @@ xpt_optimizer_discover_pairs(const struct gkyl_gyrokinetic_multib_app *app,
   for (int bid=0; bid<num_blocks; ++bid) {
     const struct gkyl_gk_block_geom_info *bgi =
       gkyl_gk_block_geom_get_block(app->gk_block_geom, bid);
-    int seam_edge = pointwise_xpt_seam_edge(bgi);
-    if (seam_edge < 0)
-      continue;
-    const struct gkyl_target_edge *target =
-      &app->block_topo->conn[bid].connections[1][seam_edge];
-    if (target->edge == GKYL_PHYSICAL)
-      continue;
-    int partner_edge = oriented_edge_index(target->edge);
-    if (!pointwise_interface_is_owner(bid, 1, seam_edge, target->bid,
-        target->dir, partner_edge))
-      continue;
-    if (num_pairs >= XPT_OPTIMIZER_MAX_PAIRS) {
-      fprintf(stderr, "X-point seam optimizer: too many candidate pairs "
-        "(max %d); skipping remainder\n", XPT_OPTIMIZER_MAX_PAIRS);
-      break;
-    }
+    // Most ftypes have exactly one active seam edge; a few (CORE_L/CORE_R,
+    // the DN SOL "MID" blocks, and self-periodic CORE) are candidates at
+    // both edges (see pointwise_xpt_seam_edge_active). Try edge 0 then
+    // edge 1: the "claimed" bookkeeping below means at most one actually
+    // becomes a pair, and ascending order makes that outcome deterministic
+    // rather than a race.
+    for (int seam_edge=0; seam_edge<2; ++seam_edge) {
+      if (!pointwise_xpt_seam_edge_active(bgi, seam_edge))
+        continue;
+      const struct gkyl_target_edge *target =
+        &app->block_topo->conn[bid].connections[1][seam_edge];
+      if (target->edge == GKYL_PHYSICAL)
+        continue;
+      int partner_edge = oriented_edge_index(target->edge);
+      if (!pointwise_interface_is_owner(bid, 1, seam_edge, target->bid,
+          target->dir, partner_edge))
+        continue;
+      if (num_pairs >= XPT_OPTIMIZER_MAX_PAIRS) {
+        fprintf(stderr, "X-point seam optimizer: too many candidate pairs "
+          "(max %d); skipping remainder\n", XPT_OPTIMIZER_MAX_PAIRS);
+        break;
+      }
 
-    struct xpt_optimizer_pair pair =
-      xpt_optimizer_make_pair(app, bid, seam_edge);
-    // One optimizer pair per block: a block already claimed by an earlier
-    // pair (should not happen given a consistent topology, but checked
-    // defensively) makes this pair invalid rather than silently reused.
-    bool already_claimed = claimed[bid] ||
-      (pair.bid[1] >= 0 && claimed[pair.bid[1]]);
-    if (already_claimed) {
-      pair.valid = false;
-      pair.reject_reason = XPT_OPT_INVALID_TOPOLOGY;
+      struct xpt_optimizer_pair pair =
+        xpt_optimizer_make_pair(app, bid, seam_edge);
+      // One optimizer pair per block: a block already claimed by an earlier
+      // pair (either a distinct block claimed on a prior iteration, or this
+      // same block's other seam edge claiming it moments ago) makes this
+      // pair invalid rather than silently reused.
+      bool already_claimed = claimed[bid] ||
+        (pair.bid[1] >= 0 && claimed[pair.bid[1]]);
+      if (already_claimed) {
+        pair.valid = false;
+        pair.reject_reason = XPT_OPT_INVALID_TOPOLOGY;
+      }
+      else {
+        claimed[bid] = true;
+        if (pair.bid[1] >= 0)
+          claimed[pair.bid[1]] = true;
+      }
+      pairs[num_pairs++] = pair;
     }
-    else {
-      claimed[bid] = true;
-      if (pair.bid[1] >= 0)
-        claimed[pair.bid[1]] = true;
-    }
-    pairs[num_pairs++] = pair;
   }
   return num_pairs;
 }

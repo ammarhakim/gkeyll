@@ -467,6 +467,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
+          .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rleft = 1.1,
           .rright = 1.7,
           .rmin = 1.1,
@@ -612,6 +616,10 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .efit_info = efit_inp,
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
+          .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rleft = 1.1,
           .rright = 1.7,
           .rmin = 1.1,
@@ -650,6 +658,9 @@ create_asdex_lsn_gk_block_geom(void *ctx)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rclose = 2.0,
           .rleft = 0.8,
           .rright = 2.5,

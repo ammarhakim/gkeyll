@@ -148,6 +148,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_R,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -185,6 +188,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 0.0,        // closest R to inboard SOL
@@ -224,6 +230,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 0.0,        // closest R to inboard SOL
@@ -263,6 +272,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 0.0,        // closest R to inboard SOL
@@ -302,6 +314,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_R,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -339,6 +354,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_UP_L,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -376,6 +394,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rleft = 2.0,
           .rright= rright_out,
           .rmin = 0.0,
@@ -413,6 +434,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rleft = 2.0,
           .rright= rright_out,
           .rmin = 0.0,
@@ -450,6 +474,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rleft = 2.0,
           .rright= rright_out,
           .rmin = 0.0,
@@ -487,6 +514,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_PF_LO_L,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rright = rright_out,
           .rleft = 0.0,
           .rmin = 1.7,
@@ -525,6 +555,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_R,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rclose = 6.2,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 2.0,        // closest R to inboard SOL
@@ -559,6 +592,9 @@ create_gk_block_geom(void)
         .tok_grid_info = (struct gkyl_tok_geo_grid_inp) {
           .ftype = GKYL_GEOMETRY_TOKAMAK_CORE_L,
           .straight_xpt_ray = true,
+          .relaxed_xpt_seam = true,
+          .relaxed_xpt_seam_optimize = true,
+          .relaxed_xpt_seam_delta_s_bound = 0.005,
           .rclose = 0.0,       // Closest R to region of interest
           .rright = rright_out,       // Closest R to outboard SOL
           .rleft = 2.0,        // closest R to inboard SOL

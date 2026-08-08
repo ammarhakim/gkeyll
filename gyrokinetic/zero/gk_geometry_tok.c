@@ -105,8 +105,68 @@ tok_xpt_trial_sync_status(struct gkyl_comm *comm,
   status->max_realized_displacement = global_displacement;
 }
 
+// Sign consistency is checked per representation (corner/interior/surface),
+// never across them: the real, always-used metric pipeline in calc_metric.c
+// (gkyl_calc_metric_advance_rz for corners, _advance_rz_interior, and
+// _advance_rz_surface) each declare and check their own independent
+// signed_jacobian_guard_state and never compare against each other -- a
+// corner-grid bilinear/affine Jacobian and an interior-grid finite-difference
+// Jacobian are different approximations of the same underlying map and are
+// not expected to agree in sign at a highly compressed cell (e.g. next to an
+// X-point-adjacent seam, where GKYL_PMAP_XPT_COMPRESSION makes cells
+// extremely anisotropic and the affine approximation is poor). Confirmed
+// directly against calc_metric.c: gkyl_calc_metric_advance_rz's own signed_J
+// guard (jac_guard local to that function), _advance_rz_interior's (a
+// separate local jac_guard), and _advance_rz_surface's (a third, separate
+// local jac_guard) are three independent instances, never cross-checked.
+// sign_state is therefore caller-owned (a field in *status for interior,
+// which is what later gets compared against the real metric calculation's
+// own interior sign -- see gk_geometry_tok_init -- or a call-local variable
+// for corner/surface, which have no such downstream comparison).
 static bool
 tok_xpt_trial_set_jacobian_sign(
+  struct gkyl_tok_geo_xpt_seam_trial_status *status, int *sign_state,
+  double jacobian, double scale)
+{
+  double relative = fabs(jacobian)/fmax(scale, DBL_MIN);
+  if (!isfinite(jacobian) || !isfinite(relative) ||
+      relative <= 256.0*DBL_EPSILON) {
+    tok_xpt_trial_reject(status, GKYL_XPT_SEAM_TRIAL_CELL_JACOBIAN);
+    return false;
+  }
+  int sign = jacobian < 0.0 ? -1 : 1;
+  if (*sign_state == 0)
+    *sign_state = sign;
+  else if (sign != *sign_state) {
+    tok_xpt_trial_reject(status, GKYL_XPT_SEAM_TRIAL_CELL_JACOBIAN);
+    return false;
+  }
+  status->min_cell_jacobian_margin =
+    fmin(status->min_cell_jacobian_margin, relative);
+  return true;
+}
+
+// Corner_map's bilinear/affine Jacobian (see tok_xpt_trial_preflight_corner_map)
+// is a coarse, 4-Gauss-point approximation with no analog anywhere in the
+// real metric pipeline (calc_metric.c's own corner-grid Jacobian is a
+// finite-difference formula, not this affine reconstruction), so unlike
+// interior/surface it has no real-pipeline sign convention to preserve.
+// Checks only finiteness and non-degenerate magnitude, no sign tracking --
+// see the comment on tok_xpt_trial_set_jacobian_sign for why cross-cell
+// (or, as confirmed here, even cross-reference-corner) sign agreement isn't
+// a real invariant. Root-caused empirically (resolution-convergence check,
+// same method as the "radial-line kink"/Phase 3 investigations referenced
+// in the ixf-vs-main-comp memory): doubling theta resolution on both a
+// genuine two-block pair (STEP's DN_SOL_OUT_LO<->MID) and a self-periodic
+// one (ASDEX's CORE) made the sign disagreement disappear entirely at the
+// exact same physical location, the classic signature of a coarse-mesh
+// approximation artifact (shrinks under refinement) rather than a real
+// fold (which would stay anchored or grow). Confirmed at the finer
+// resolution the optimizer went on to find and apply a genuine 8.97%
+// improvement on the STEP pair that the coarse-resolution false rejection
+// had been hiding entirely.
+static bool
+tok_xpt_trial_check_cell_jacobian_magnitude(
   struct gkyl_tok_geo_xpt_seam_trial_status *status, double jacobian,
   double scale)
 {
@@ -116,21 +176,16 @@ tok_xpt_trial_set_jacobian_sign(
     tok_xpt_trial_reject(status, GKYL_XPT_SEAM_TRIAL_CELL_JACOBIAN);
     return false;
   }
-  int sign = jacobian < 0.0 ? -1 : 1;
-  if (status->jacobian_sign == 0)
-    status->jacobian_sign = sign;
-  else if (sign != status->jacobian_sign) {
-    tok_xpt_trial_reject(status, GKYL_XPT_SEAM_TRIAL_CELL_JACOBIAN);
-    return false;
-  }
   status->min_cell_jacobian_margin =
     fmin(status->min_cell_jacobian_margin, relative);
   return true;
 }
 
 // Check the p1 DG R-Z map before metric construction.  Its four Gauss values
-// determine the bilinear cell map, whose Jacobian is affine; checking all
-// four reference-cell corners therefore detects every internal sign change.
+// determine the bilinear cell map; checking all four reference-cell corners
+// catches a nonfinite or degenerate (near-zero) map before metric
+// construction. Does not require the four corners' Jacobian signs to agree
+// with each other -- see tok_xpt_trial_check_cell_jacobian_magnitude.
 static bool
 tok_xpt_trial_preflight_corner_map(struct gk_geometry *up,
   struct gkyl_tok_geo_xpt_seam_trial_status *status)
@@ -193,7 +248,8 @@ tok_xpt_trial_preflight_corner_map(struct gk_geometry *up,
         double dZ_deta = coeff[1][2]+coeff[1][3]*xi;
         double jacobian = dR_dxi*dZ_deta-dR_deta*dZ_dxi;
         double scale = hypot(dR_dxi, dZ_dxi)*hypot(dR_deta, dZ_deta);
-        if (!tok_xpt_trial_set_jacobian_sign(status, jacobian, scale))
+        if (!tok_xpt_trial_check_cell_jacobian_magnitude(status, jacobian,
+            scale))
           return false;
       }
     }
@@ -234,7 +290,8 @@ tok_xpt_trial_preflight_interior_map(struct gk_geometry *up,
         double jacobian = R*(dR_dpsi*dtheta[1]-dtheta[0]*dZ_dpsi);
         double scale = R*hypot(dR_dpsi, dZ_dpsi)
           *hypot(dtheta[0], dtheta[1]);
-        if (!tok_xpt_trial_set_jacobian_sign(status, jacobian, scale))
+        if (!tok_xpt_trial_set_jacobian_sign(status, &status->jacobian_sign,
+            jacobian, scale))
           return false;
         double radicand = (jacobian*jacobian*bmag[0]*bmag[0]
             /(dpsi[0]*dpsi[0])-dtheta[0]*dtheta[0]
@@ -250,21 +307,27 @@ tok_xpt_trial_preflight_interior_map(struct gk_geometry *up,
   return true;
 }
 
+// sign_state is call-local: the real gkyl_calc_metric_advance_rz_surface is
+// invoked once per dir with its own fresh, local signed_jacobian_guard_state
+// (never shared across dir, let alone with corner/interior), so this checks
+// self-consistency within one surface direction only -- see the comment on
+// tok_xpt_trial_set_jacobian_sign for the corner/interior rationale, which
+// applies identically here.
 static bool
 tok_xpt_trial_check_metric_jacobian(
-  struct gkyl_tok_geo_xpt_seam_trial_status *status, double jacobian,
-  double scale)
+  struct gkyl_tok_geo_xpt_seam_trial_status *status, int *sign_state,
+  double jacobian, double scale)
 {
   double relative = fabs(jacobian)/fmax(scale, DBL_MIN);
   int sign = jacobian < 0.0 ? -1 : 1;
   if (!isfinite(jacobian) || !isfinite(relative) ||
       relative <= 256.0*DBL_EPSILON ||
-      (status->jacobian_sign != 0 && sign != status->jacobian_sign)) {
+      (*sign_state != 0 && sign != *sign_state)) {
     tok_xpt_trial_reject(status, GKYL_XPT_SEAM_TRIAL_METRIC_JACOBIAN);
     return false;
   }
-  if (status->jacobian_sign == 0)
-    status->jacobian_sign = sign;
+  if (*sign_state == 0)
+    *sign_state = sign;
   return true;
 }
 
@@ -277,6 +340,9 @@ tok_xpt_trial_preflight_surface_maps(struct gk_geometry *up,
   int idx[3];
   for (int dir=0; dir<up->grid.ndim; ++dir) {
     const struct gkyl_range *range = &up->nrange_surf[dir];
+    // Fresh per dir: matches gkyl_calc_metric_advance_rz_surface, which is
+    // called once per dir with its own fresh local guard state.
+    int surface_jacobian_sign = 0;
     for (int ia=range->lower[1]; ia<=range->upper[1]; ++ia) {
       for (int ip=range->lower[0]; ip<=range->upper[0]; ++ip) {
         for (int it=range->lower[2]; it<=range->upper[2]; ++it) {
@@ -350,7 +416,8 @@ tok_xpt_trial_preflight_surface_maps(struct gk_geometry *up,
             R*(dR_dpsi*dtheta[1]-dtheta[0]*dZ_dpsi);
           double scale = R*hypot(dR_dpsi, dZ_dpsi)
             *hypot(dtheta[0], dtheta[1]);
-          if (!tok_xpt_trial_check_metric_jacobian(status, jacobian, scale))
+          if (!tok_xpt_trial_check_metric_jacobian(status,
+              &surface_jacobian_sign, jacobian, scale))
             return false;
           if (!psi_boundary) {
             double radicand = (jacobian*jacobian*bmag[0]*bmag[0]

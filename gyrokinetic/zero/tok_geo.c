@@ -2481,14 +2481,21 @@ tok_xpt_seam_delta_s(const struct gkyl_tok_geo_grid_inp *inp,
     bound*(1.0+64.0*DBL_EPSILON);
 }
 
+// Relax an already-validated seam-adjacent point (r,z), computed by
+// whichever base construction was used for this ftype/domain mode (the
+// half-domain chord point or the full-domain/extended ordered-map trace),
+// by the bounded delta-s displacement. Contour-agnostic: the displacement
+// primitive (tok_displace_xpt_seam_on_flux) only walks along the flux
+// contour already passing through the given (r,z), so it composes safely
+// regardless of which point-construction algorithm produced it -- this is
+// what lets the same relaxation be reused for both half_domain=true and
+// half_domain=false (extended) blocks instead of being wired only into the
+// half-domain-only path it originated in.
 static bool
-tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
+tok_relax_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double psi, double u, double *r, double *z)
 {
-  // Retain the validated straight-ray point before considering relaxation.
-  if (!tok_ordered_chord_point(inp, arc_ctx, psi, u, r, z))
-    return false;
-  if (!inp->relaxed_xpt_seam || !inp->half_domain)
+  if (!inp->relaxed_xpt_seam)
     return true;
 
   double q = 0.0, delta_s = 0.0;
@@ -2529,7 +2536,16 @@ tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
   // The only free data are on the seam. A fixed linear arc weight carries
   // that boundary condition to the unchanged opposite edge, giving a smooth
   // diagnostic shadow map without introducing interior degrees of freedom.
-  double seam_weight = tok_sep_fixed_edge_is_first(inp->ftype) ? u : 1.0-u;
+  // A self-periodic single-null CORE block has no such opposite edge -- u=0
+  // and u=1 are the same physical (X-point-adjacent) location, glued
+  // together by the closed trace construction -- so a linear taper would
+  // apply delta_s at one end and not the other, breaking the periodic
+  // identification it is supposed to preserve. Apply it uniformly instead:
+  // every point at this psi gets the same q-dependent radial bump
+  // regardless of u, so u=0 and u=1 (which sample the same underlying raw
+  // trace point) remain identically displaced and the wrap stays exact.
+  double seam_weight = inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE
+    ? 1.0 : tok_sep_fixed_edge_is_first(inp->ftype) ? u : 1.0-u;
   double point_delta_s = seam_weight*delta_s;
   if (point_delta_s == 0.0)
     return true;
@@ -2581,6 +2597,23 @@ tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
       "TOK_XPT_SEAM_DIAG mode=candidate ftype=%d psi=%.17g q=%.17g s0=%.17g delta_s=%.17g seam_s=%.17g R=%.17g Z=%.17g extension=fixed_edge_linear_arc_blend\n",
       inp->ftype, psi, q, s0, delta_s, s0+delta_s, *r, *z);
   return true;
+}
+
+// Half-domain (non-extended) seam point: the validated straight-ray chord
+// point, relaxed by delta-s. Semantically unchanged from the pre-refactor
+// implementation -- previously this function's own body started here, gated
+// by "!inp->half_domain" in addition to "!inp->relaxed_xpt_seam"; since this
+// call site is only ever reached when half_domain=true or straight_xpt_ray
+// is false (see tok_build_current_ordered_trace/tok_ordered_map_lookup),
+// that half_domain check was always true here and is preserved by construction
+// rather than by an explicit condition.
+static bool
+tok_parameterized_xpt_seam_point(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double psi, double u, double *r, double *z)
+{
+  if (!tok_ordered_chord_point(inp, arc_ctx, psi, u, r, z))
+    return false;
+  return tok_relax_xpt_seam_point(inp, arc_ctx, psi, u, r, z);
 }
 
 static double
@@ -2769,6 +2802,13 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
       point_ok = tok_trace_sample(arc_ctx->geo, psi,
         raw_r, raw_z, raw_s, raw_n, raw_param_is_r, w,
         &arc_ctx->map_trace_r[i], &arc_ctx->map_trace_z[i]);
+      // Relaxed delta-s was originally wired only into the half-domain chord
+      // point below. Apply the same bounded relaxation here so full-domain
+      // (production) geometry can use it too; a no-op unless relaxed_xpt_seam
+      // is set (see tok_relax_xpt_seam_point).
+      if (point_ok)
+        point_ok = tok_relax_xpt_seam_point(inp, arc_ctx, psi, u,
+          &arc_ctx->map_trace_r[i], &arc_ctx->map_trace_z[i]);
     }
     else {
       point_ok = tok_parameterized_xpt_seam_point(inp, arc_ctx, psi, u,
