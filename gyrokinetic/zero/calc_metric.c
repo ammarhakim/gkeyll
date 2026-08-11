@@ -709,7 +709,8 @@ gkyl_calc_metric_advance_rz_interior(gkyl_calc_metric *up, struct gk_geometry *g
         // on B: 1 = J*B/sqrt(g_33)
         double *bmag_n = gkyl_array_fetch(gk_geom->geo_int.bmag_nodal, gkyl_range_idx(&gk_geom->nrange_int, cidx));
         double dphidtheta = (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0] - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R;
-        dphidtheta = sqrt(dphidtheta);
+        // Argument is >= 0 analytically; clamp away roundoff so sqrt does not return NaN.
+        dphidtheta = sqrt(fmax(0.0, dphidtheta));
         // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
         if (ddtheta_n[2] < 0) {
           dphidtheta = -dphidtheta;
@@ -953,9 +954,11 @@ void gkyl_calc_metric_advance_rz_surface(gkyl_calc_metric *up, int dir, struct g
 
         // Calculate dphi/dtheta based on the divergence free condition
         // on B: 1 = J*B/sqrt(g_33)
+        // Argument is >= 0 analytically; clamp away roundoff so sqrt does not return NaN.
         double dphidtheta = psi_boundary ? ddtheta_n[2] :
-          sqrt((jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0]
-            - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R);
+          sqrt(fmax(0.0, (jFld_n[0]*jFld_n[0]*bmag_n[0]*bmag_n[0]/ddpsi_n[0]/ddpsi_n[0]
+            - dxdz[0][2]*dxdz[0][2] - dxdz[1][2]*dxdz[1][2])/R/R));
+        // Recover sign from exact dphidtheta = F(psi)/R/\grad(psi).
         if (!psi_boundary && ddtheta_n[2] < 0)
           dphidtheta = -dphidtheta;
 
