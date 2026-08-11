@@ -81,6 +81,20 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->reflect = inp->reflect;
   up->use_gpu = inp->use_gpu;
   up->filepath = inp->filepath;
+
+  // Copy the optional X-point search outline; the caller's arrays need not outlive us.
+  up->xpt_bound_n = 0;
+  up->xpt_bound_R = 0;
+  up->xpt_bound_Z = 0;
+  if (inp->xpt_bound_n > 0 && inp->xpt_bound_R && inp->xpt_bound_Z) {
+    up->xpt_bound_n = inp->xpt_bound_n;
+    up->xpt_bound_R = gkyl_malloc(sizeof(double)*inp->xpt_bound_n);
+    up->xpt_bound_Z = gkyl_malloc(sizeof(double)*inp->xpt_bound_n);
+    for (int i=0; i<inp->xpt_bound_n; ++i) {
+      up->xpt_bound_R[i] = inp->xpt_bound_R[i];
+      up->xpt_bound_Z[i] = inp->xpt_bound_Z[i];
+    }
+  }
   get_stripped_filename(up->filepath, up->name);
 
   gkyl_cart_modal_tensor(&up->rzbasis_cubic, 2, 3);
@@ -449,6 +463,18 @@ gkyl_efit* gkyl_efit_new(const struct gkyl_efit_inp *inp)
   up->num_xpts = find_xpts(up, up->num_xpts_cubic, up->Rxpt_cubic, up->Zxpt_cubic, Rxpt, Zxpt);
   up->Rxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
   up->Zxpt = gkyl_malloc(sizeof(double)*fmax(2, up->num_xpts));
+  // Callers index Rxpt[0]/Zxpt[0] unconditionally.  If no X-point was found (possible
+  // once an X-point search region is supplied), leave NaN rather than whatever the
+  // allocation happened to contain, so the failure surfaces instead of propagating
+  // silently as a garbage position.
+  for (int i = 0; i < (int) fmax(2, up->num_xpts); ++i) {
+    up->Rxpt[i] = NAN;
+    up->Zxpt[i] = NAN;
+  }
+  if (up->num_xpts == 0)
+    fprintf(stderr,
+      "EFIT_XPT no X-point found inside the supplied search region name=%s bound_n=%d cubic_n=%d\n",
+      up->name, up->xpt_bound_n, up->num_xpts_cubic);
   for (int i = 0; i < up->num_xpts; i++) {
     up->Rxpt[i] = Rxpt[i];
     up->Zxpt[i] = Zxpt[i];
@@ -475,6 +501,8 @@ void gkyl_efit_release(gkyl_efit* up){
   gkyl_free(up->Zxpt);
   gkyl_free(up->Rxpt_cubic);
   gkyl_free(up->Zxpt_cubic);
+  gkyl_free(up->xpt_bound_R);
+  gkyl_free(up->xpt_bound_Z);
   gkyl_array_release(up->psizr);
   gkyl_array_release(up->psizr_cubic);
   gkyl_array_release(up->bmagzr);

@@ -24,6 +24,57 @@ efit_clamp(double x, double lo, double hi)
   return x < lo ? lo : (x > hi ? hi : x);
 }
 
+// Is an X-point candidate inside the caller-supplied vessel outline?  Candidates are
+// tested at -|Z| against the lower-half polygon, since a reflected equilibrium yields
+// X-points in +/- pairs.  Always true when no bounds were supplied, so the default
+// behaviour is unchanged.
+static bool
+efit_xpt_in_bounds(const struct gkyl_efit *up, double R, double Z)
+{
+  if (up->xpt_bound_n <= 0 || !up->xpt_bound_R || !up->xpt_bound_Z)
+    return true;
+
+  double z = -fabs(Z);
+  bool inside = false;
+  for (int i = 0, j = up->xpt_bound_n-1; i < up->xpt_bound_n; j = i++) {
+    double Ri = up->xpt_bound_R[i], Zi = up->xpt_bound_Z[i];
+    double Rj = up->xpt_bound_R[j], Zj = up->xpt_bound_Z[j];
+    // Standard crossing-number test: count edges the rightward ray from (R,z) crosses.
+    if ((Zi > z) != (Zj > z)) {
+      double Rcross = Ri + (z-Zi)/(Zj-Zi)*(Rj-Ri);
+      if (R < Rcross)
+        inside = !inside;
+    }
+  }
+  return inside;
+}
+
+// Evaluate psi from the quadratic DG representation at (R,Z).  This mirrors
+// tok_eval_psi_rz()'s use_cubics==false branch exactly -- same cell lookup, same
+// clamping, same logical coordinates -- so a psisep produced here is bit-identical
+// to what the geometry code will later evaluate at the same point.
+static double
+efit_eval_psi_quad(const struct gkyl_efit *up, double R, double Z)
+{
+  int rzidx[2];
+  rzidx[0] = fmin(up->rzlocal.lower[0]
+      + (int) floor((R-up->rzgrid.lower[0])/up->rzgrid.dx[0]),
+    up->rzlocal.upper[0]);
+  rzidx[1] = fmin(up->rzlocal.lower[1]
+      + (int) floor((Z-up->rzgrid.lower[1])/up->rzgrid.dx[1]),
+    up->rzlocal.upper[1]);
+  rzidx[0] = fmax(rzidx[0], up->rzlocal.lower[0]);
+  rzidx[1] = fmax(rzidx[1], up->rzlocal.lower[1]);
+
+  long loc = gkyl_range_idx(&up->rzlocal, rzidx);
+  const double *coeffs = gkyl_array_cfetch(up->psizr, loc);
+  double xc[2], xy[2];
+  gkyl_rect_grid_cell_center(&up->rzgrid, rzidx, xc);
+  xy[0] = (R-xc[0])/(0.5*up->rzgrid.dx[0]);
+  xy[1] = (Z-xc[1])/(0.5*up->rzgrid.dx[1]);
+  return up->rzbasis.eval_expand(xy, coeffs);
+}
+
 static double
 eval_laplacian_expand_2d_tensor_p2(int dir, const double *z, const double *f )
 {
@@ -139,7 +190,14 @@ static bool
 find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
   double *Rout, double *Zout, double *psiout, double *metric_out)
 {
-  const double eps_ref = 1e-10;
+  // A true X-point often sits within rounding of a cell interface, in which case the
+  // piecewise-quadratic patch on *each* side places the critical point just outside
+  // itself (e.g. z=+1.026 from one cell, z=-1.101 from its neighbour).  With a
+  // rejection tolerance of 1e-10 every candidate is thrown away and the caller falls
+  // through to a global scan that picks a spurious saddle several cells away.  Accept
+  // solutions slightly outside the reference cell and let the distance-to-target
+  // metric below choose; the clamp keeps the evaluation point inside the cell.
+  const double eps_ref = 0.25;
 
   double point[2] = {Rtar, Ztar};
   bool pick_lower[2] = {true, true};
@@ -178,10 +236,14 @@ find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
 
       xr = efit_clamp(xr, -1.0, 1.0);
       zr = efit_clamp(zr, -1.0, 1.0);
-      double xrz[2] = {xr, zr};
       double R0 = up->rzgrid.dx[0]*xr/2.0 + xc[0];
       double Z0 = up->rzgrid.dx[1]*zr/2.0 + xc[1];
-      double psi0 = up->rzbasis.eval_expand(xrz, psi);
+      if (!efit_xpt_in_bounds(up, R0, Z0))
+        continue;
+      // Evaluate through the same lookup the geometry uses, so psi(Rxpt,Zxpt)==psisep
+      // holds exactly even when the clamp puts (R0,Z0) on a cell interface and the
+      // floor() lookup resolves to the neighbouring cell.
+      double psi0 = efit_eval_psi_quad(up, R0, Z0);
       double m = efit_dist2(R0, Z0, Rtar, Ztar);
 
       if (m < best_m) {
@@ -262,6 +324,8 @@ find_xpts(gkyl_efit* up, int num_cubic_xpts, const double *Rxpt_cubic,
       gkyl_rect_grid_cell_center(&up->rzgrid, iter.idx, xc);
       double R0 = up->rzgrid.dx[0]*x0/2.0 + xc[0];
       double Z0 = up->rzgrid.dx[1]*y0/2.0 + xc[1];
+      if (!efit_xpt_in_bounds(up, R0, Z0))
+        continue;
 
       double metric = fabs(psi0 - up->sibry);
       if (have_cubic) {
@@ -302,6 +366,30 @@ find_xpts(gkyl_efit* up, int num_cubic_xpts, const double *Rxpt_cubic,
     }
   }
 
+  // The quadratic representation can have no critical point inside the vessel even
+  // when the cubic one does (the two reps resolve a shallow saddle differently).
+  // Rather than report no X-point at all -- which leaves Rxpt/Zxpt unwritten for
+  // callers to read -- fall back to the in-bounds cubic location, taking psi through
+  // the same lookup the geometry uses so psi(Rxpt,Zxpt)==psisep still holds.
+  if (!found_any && have_cubic &&
+      efit_xpt_in_bounds(up, Rtarget_top, Ztarget_top)) {
+    found_any = true;
+    if (up->reflect) {
+      found_top = true;
+      found_bot = false;
+      Rtop = Rtarget_top;
+      Ztop = Ztarget_top;
+      psitop = efit_eval_psi_quad(up, Rtarget_top, -Ztarget_top);
+      metric_top = 0.0;
+    }
+    else {
+      Rbest = Rtarget_top;
+      Zbest = Ztarget_top;
+      psibest = efit_eval_psi_quad(up, Rtarget_top, Ztarget_top);
+      metric_best = 0.0;
+    }
+  }
+
   int num_xpts = 0;
   if (found_any) {
     if (up->reflect) {
@@ -335,7 +423,13 @@ find_xpts(gkyl_efit* up, int num_cubic_xpts, const double *Rxpt_cubic,
           if (d2 > tol2) {
             Rsel = Rtarget_top;
             absZ = Ztarget_top;
-            psisel = up->psisep_cubic;
+            // psisep must be the separatrix flux *of this (quadratic) DG
+            // representation*, so evaluate it at the substituted cubic X-point
+            // rather than copying psisep_cubic.  Copying the cubic value leaves
+            // psi(Rxpt,Zxpt) != psisep by ~1e-5, which is a larger fraction of a
+            // flux-thin block's span than the first radial surface's offset and
+            // makes the X-point ray anchor search start past its own target.
+            psisel = efit_eval_psi_quad(up, Rtarget_top, -Ztarget_top);
             up->xpt_diag_fallback_to_cubic = true;
           }
         }
@@ -370,7 +464,9 @@ find_xpts(gkyl_efit* up, int num_cubic_xpts, const double *Rxpt_cubic,
         if (d2 > tol2) {
           Rbest = Rtarget_top;
           Zbest = Ztarget_top;
-          psibest = up->psisep_cubic;
+          // See the reflect branch above: keep psisep consistent with the
+          // quadratic representation the geometry actually evaluates.
+          psibest = efit_eval_psi_quad(up, Rtarget_top, Ztarget_top);
           up->xpt_diag_fallback_to_cubic = true;
         }
       }
@@ -408,12 +504,16 @@ find_xpts_cubic(gkyl_efit* up, double *Rxpt, double *Zxpt)
       double y0 = xsol[1];
       double psi0 = up->rzbasis_cubic.eval_expand(xsol, psi);
       if (x0 >= -1 && x0 <= 1 && y0 >= -1 && y0 <= 1 && status) {
-        found_xpt = true;
         double xc[2];
         gkyl_rect_grid_cell_center(&up->rzgrid_cubic, iter.idx, xc);
         double R0 = up->rzgrid_cubic.dx[0]*x0/2.0 + xc[0];
         double Z0 = up->rzgrid_cubic.dx[1]*y0/2.0 + xc[1];
+        if (!efit_xpt_in_bounds(up, R0, Z0))
+          continue;
+        // Only count a candidate as found once it is actually selectable, so an
+        // all-rejected sweep cannot report success with unset Rsep/Zsep.
         if (fabs(psi0 - up->sibry) <= fabs(psisep - up->sibry)) {
+          found_xpt = true;
           Rsep = R0;
           Zsep = Z0;
           psisep = psi0;

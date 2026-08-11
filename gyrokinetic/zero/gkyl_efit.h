@@ -16,6 +16,16 @@ struct gkyl_efit_inp {
   int flux_poly_order; // poly order to use for DG rep of F(psi)
   bool reflect; // whether to reflect across R axis to preserve symmetry
   bool use_gpu; // whether to use the GPU
+
+  // Optional lower-half vessel outline (Z <= 0) used to restrict the X-point search.
+  // psi has real saddle points outside the machine (coil-induced); the search picks
+  // the critical point closest in flux to sibry, which without a spatial constraint
+  // can select one of those instead of the plasma X-point.  When xpt_bound_n > 0,
+  // candidates outside this polygon are rejected.  Leave unset (0/NULL) to search
+  // the whole domain, which is the previous behaviour.
+  int xpt_bound_n;             // number of polygon vertices (0 disables the filter)
+  const double *xpt_bound_R;   // vertex R coordinates
+  const double *xpt_bound_Z;   // vertex Z coordinates (all <= 0)
 };
 
 struct gkyl_efit{
@@ -68,6 +78,11 @@ struct gkyl_efit{
 
   bool reflect;
   bool use_gpu;
+
+  // Copy of the optional X-point search bounds (see struct gkyl_efit_inp).
+  int xpt_bound_n;
+  double *xpt_bound_R;
+  double *xpt_bound_Z;
 };
 
 /**
