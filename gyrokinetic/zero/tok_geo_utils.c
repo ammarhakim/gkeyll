@@ -405,6 +405,97 @@ tok_xpt_initialize_branch(const struct gkyl_tok_geo_grid_inp *inp,
   return true;
 }
 
+// Walk a straight ray leaving the X point at a fixed angle and report where it
+// first reaches the far flux surface, together with how far outside the flux
+// band [psisep, psi0] it strayed on the way.  q is the normalized flux
+// coordinate, 0 on the separatrix and 1 on the far surface, so it is sign
+// convention independent: some equilibria have psi increasing outward and
+// others decreasing.
+static bool
+tok_xpt_ray_walk(const struct gkyl_tok_geo *geo, double rx, double zx,
+  double angle, double smax, double psisep, double delta,
+  double *s_cross, double *qmin)
+{
+  const int nsamp = 2048;
+  double ca = cos(angle), sa = sin(angle);
+  double q_prev = 0.0, s_prev = 0.0;
+  *qmin = 0.0; *s_cross = 0.0;
+  for (int i=1; i<=nsamp; ++i) {
+    double s = smax*i/nsamp;
+    double q = (tok_eval_psi_rz(geo, rx+s*ca, zx+s*sa)-psisep)/delta;
+    if (!isfinite(q))
+      return false;
+    *qmin = fmin(*qmin, q);
+    if (q >= 1.0) {
+      // Bisect the bracketing interval for the crossing itself.
+      double lo = s_prev, hi = s;
+      for (int k=0; k<60; ++k) {
+        double mid = 0.5*(lo+hi);
+        double qm = (tok_eval_psi_rz(geo, rx+mid*ca, zx+mid*sa)-psisep)/delta;
+        if (!isfinite(qm))
+          return false;
+        if (qm >= 1.0) hi = mid; else lo = mid;
+      }
+      *s_cross = 0.5*(lo+hi);
+      return *s_cross > 0.0;
+    }
+    q_prev = q; s_prev = s;
+  }
+  (void) q_prev;
+  return false;
+}
+
+// Replace an X-point ray that leaves its own flux band.  The anchor is normally
+// the nearest point on the far surface, which points the ray along the saddle's
+// principal axis -- correct where the SOL channel is straight.  Where the
+// channel bends sharply away from that axis the straight ray crosses a
+// separatrix branch, runs outside the block's own flux region and re-enters,
+// and the seam it defines is no longer a boundary of the block.  Sweep the ray
+// angle and take the nearest anchor whose entire ray stays in the band.
+static bool
+tok_xpt_ray_reanchor_in_band(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, double rx, double zx, double delta,
+  double band_tol)
+{
+  const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  double angle0 = atan2(arc_ctx->xpt_ray_z0-zx, arc_ctx->xpt_ray_r0-rx);
+  double s0 = hypot(arc_ctx->xpt_ray_r0-rx, arc_ctx->xpt_ray_z0-zx);
+  if (!(s0 > 0.0) || !isfinite(angle0))
+    return false;
+  const double sweep = 60.0*M_PI/180.0;
+  const int nangle = 961;
+  // Accept only rays that stay in the band to within DG round-off, not merely
+  // to within the trigger threshold: an anchor taken from the edge of the valid
+  // angular range grazes the separatrix branch and folds the corner cell just
+  // as the original did.  The trigger stays loose so that rays with a harmless
+  // wiggle are left exactly as they are.
+  const double accept_tol = 1.0e-6*fmax(1.0, band_tol/1.0e-3);
+  double best_s = DBL_MAX, best_angle = 0.0, best_qmin = 0.0;
+  for (int i=0; i<nangle; ++i) {
+    double angle = angle0+sweep*(2.0*i/(nangle-1.0)-1.0);
+    double s_cross = 0.0, qmin = 0.0;
+    if (!tok_xpt_ray_walk(geo, rx, zx, angle, 4.0*s0, geo->psisep, delta,
+        &s_cross, &qmin))
+      continue;
+    if (qmin < -accept_tol || s_cross >= best_s)
+      continue;
+    best_s = s_cross; best_angle = angle; best_qmin = qmin;
+  }
+  if (best_s == DBL_MAX)
+    return false;
+  double r_new = rx+best_s*cos(best_angle);
+  double z_new = zx+best_s*sin(best_angle);
+  fprintf(stderr,
+    "TOK_XPT_RAY_DIAG reason=reanchored_in_band ftype=%d old_angle=%.6f "
+    "new_angle=%.6f old_s=%.17g new_s=%.17g new_qmin=%.6e "
+    "old_endpoint=(%.17g,%.17g) new_endpoint=(%.17g,%.17g)\n",
+    inp->ftype, angle0*180.0/M_PI, best_angle*180.0/M_PI, s0, best_s,
+    best_qmin, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0, r_new, z_new);
+  arc_ctx->xpt_ray_r0 = r_new;
+  arc_ctx->xpt_ray_z0 = z_new;
+  return true;
+}
+
 static bool
 tok_xpt_ray_anchor(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx, double psi_curr)
@@ -449,6 +540,7 @@ tok_xpt_ray_anchor(const struct gkyl_tok_geo_grid_inp *inp,
     // monotonicity test therefore rejects otherwise unambiguous rays.  Check
     // finiteness here; uniqueness is tested below for every actual geometry
     // and finite-difference target before an anchor is accepted.
+    double ray_qmin = 0.0;
     for (int i=1; i<=256; ++i) {
       double s = i/256.0;
       double R = rx+s*(arc_ctx->xpt_ray_r0-rx);
@@ -460,7 +552,25 @@ tok_xpt_ray_anchor(const struct gkyl_tok_geo_grid_inp *inp,
           inp->ftype, i, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0);
         return false;
       }
+      ray_qmin = fmin(ray_qmin, q);
     }
+    // A ray that dips out of its own flux band has crossed a separatrix branch
+    // and no longer bounds this block: the seam it defines cuts across the
+    // neighbouring region, and the last interior theta column overtakes it,
+    // folding the corner cells.  Measured over 450 NSTX-U equilibria, the
+    // outboard-SOL blocks that fold are exactly the three with
+    // ray_qmin <= -6.3e-3, while every non-folding one stays above -7.9e-4 --
+    // an order of magnitude of separation either side of this threshold.
+    const char *tol_env = getenv("GKYL_TOK_XPT_RAY_BAND_TOL");
+    const double ray_band_tol =
+      tol_env && tol_env[0] != '\0' ? atof(tol_env) : 3.0e-3;
+    if (ray_qmin < -ray_band_tol &&
+        !tok_xpt_ray_reanchor_in_band(inp, arc_ctx, rx, zx, delta,
+          ray_band_tol))
+      fprintf(stderr,
+        "TOK_XPT_RAY_DIAG reason=no_in_band_reanchor ftype=%d ray_qmin=%.6e "
+        "endpoint=(%.17g,%.17g)\n",
+        inp->ftype, ray_qmin, arc_ctx->xpt_ray_r0, arc_ctx->xpt_ray_z0);
     if (!tok_xpt_initialize_branch(inp, arc_ctx, sector, rx, zx))
       return false;
     arc_ctx->xpt_ray_initialized = true;

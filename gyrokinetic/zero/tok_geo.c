@@ -56,6 +56,20 @@ tok_geo_trace_double_env(const char *name, double fallback)
   return val && val[0] != '\0' ? atof(val) : fallback;
 }
 
+// Lower bound on the slope of the separatrix->far-boundary correspondence, as
+// the weight of an identity map blended into the nearest-point projection.
+// Raising it widens the collapsed seam cells that nearest-point projection
+// produces near an X point -- 0.25 lifts the thinnest cell of the outboard-SOL
+// seam column by an order of magnitude on shots 204965/204995/204997 -- but it
+// perturbs the correspondence on every half-domain block, so the default stays
+// at the validated value and the knob exists to sweep it.
+static double
+tok_trace_corr_identity_fraction(void)
+{
+  double f = tok_geo_trace_double_env("GKYL_TOK_TRACE_CORR_IDENTITY", 0.01);
+  return isfinite(f) && f >= 0.0 && f <= 1.0 ? f : 0.01;
+}
+
 static bool
 tok_ordered_map_diag_enabled(void)
 {
@@ -587,6 +601,60 @@ tok_nearest_value(double ref, const double *values, int n)
 
 static bool tok_fixed_edge_is_midplane(enum gkyl_tok_geo_type ftype);
 
+// Decide whether one trace step joins two points along a resolvable arc of the
+// same contour, or bridges two distinct root branches, by re-parameterizing that
+// single step in the *other* coordinate.  A connected arc resolves into small,
+// uniform sub-steps; a branch jump leaves the sub-trace stranded on the starting
+// branch and shows up as one sub-step carrying almost the whole separation.
+// Returns the sub-arc length in *arc so the caller can report how much contour
+// the parent step skipped.
+static bool
+tok_step_is_connected_arc(const struct gkyl_tok_geo *geo, double psi,
+  bool param_is_r, double r0, double z0, double r1, double z1, double *arc)
+{
+  const int nsub = 32;
+  double rp = r0, zp = z0, total = 0.0, max_sub = 0.0;
+  for (int i=1; i<=nsub; ++i) {
+    double t = i/(double) nsub;
+    double rc, zc;
+    if (i == nsub) { rc = r1; zc = z1; }
+    else if (param_is_r) {
+      // The parent step swept R, so sweep Z across the same interval.
+      zc = z0+t*(z1-z0);
+      double roots[8] = { 0.0 }, dRdZ[8] = { 0.0 };
+      double dR[8] = { 0.0 }, dZ[8] = { 0.0 };
+      int nr = gkyl_tok_geo_R_psiZ(geo, psi, zc, 8, roots, dRdZ, dR, dZ);
+      if (nr == 0)
+        return false;
+      rc = tok_nearest_value(rp, roots, nr);
+    }
+    else {
+      rc = r0+t*(r1-r0);
+      double roots[16] = { 0.0 };
+      int nr = tok_geo_Z_psiR(geo, psi, rc, 16, roots);
+      if (nr == 0)
+        return false;
+      zc = tok_nearest_value(zp, roots, nr);
+    }
+    if (!isfinite(rc) || !isfinite(zc))
+      return false;
+    double residual = tok_eval_psi_rz_local(geo, rc, zc)-psi;
+    if (!isfinite(residual) || fabs(residual) > 1e-9*fmax(1.0, fabs(psi)))
+      return false;
+    double ds = hypot(rc-rp, zc-zp);
+    if (!isfinite(ds))
+      return false;
+    total += ds; max_sub = fmax(max_sub, ds);
+    rp = rc; zp = zc;
+  }
+  *arc = total;
+  // Uniformity of the refinement is the discriminator, not its absolute size: a
+  // resolved arc spreads evenly over the sub-steps, so no sub-step may carry
+  // more than 4x the average.  A branch jump concentrates the whole separation
+  // into one sub-step and cannot meet this however fine the refinement.
+  return isfinite(total) && total > 0.0 && max_sub <= 4.0*total/nsub;
+}
+
 static bool
 tok_build_contour_candidate(const struct gkyl_tok_geo *geo, double psi,
   bool param_is_r, double rfixed, double zfixed, double rx, double zx, int n,
@@ -595,6 +663,7 @@ tok_build_contour_candidate(const struct gkyl_tok_geo *geo, double psi,
 {
   r[0] = rfixed; z[0] = zfixed;
   double total = 0.0, max_step = 0.0, final_step = 0.0;
+  double first_step = 0.0, max_step_after_first = 0.0;
   for (int i=1; i<n-1; ++i) {
     double t = i/(double) (n-1);
     // A midplane endpoint is an R turning point of the contour.  There,
@@ -631,12 +700,16 @@ tok_build_contour_candidate(const struct gkyl_tok_geo *geo, double psi,
     if (!(ds > 0.0) || !isfinite(ds))
       return false;
     total += ds; max_step = fmax(max_step, ds);
+    if (i == 1) first_step = ds;
+    else max_step_after_first = fmax(max_step_after_first, ds);
   }
   r[n-1] = rx; z[n-1] = zx;
   final_step = hypot(rx-r[n-2], zx-z[n-2]);
   if (!(final_step > 0.0) || !isfinite(final_step))
     return false;
   total += final_step; max_step = fmax(max_step, final_step);
+  if (n > 2) max_step_after_first = fmax(max_step_after_first, final_step);
+  else first_step = final_step;
   double mean = total/(n-1);
   double cell_diag = hypot(geo->rzgrid.dx[0], geo->rzgrid.dx[1]);
   // max_step/mean is a *relative* uniformity test standing in for "the trace jumped
@@ -647,8 +720,29 @@ tok_build_contour_candidate(const struct gkyl_tok_geo *geo, double psi,
   // meaningful fraction of a cell, so only let the ratio test fire once the step is
   // also large in absolute terms.  The two absolute tests are unchanged.
   const double ratio_test_floor = 0.5*cell_diag;
+  // The clustered retry treats a midplane fixed edge as an R extremum of the
+  // contour.  That holds unless the equilibrium was reflected about Z=0 while its
+  // magnetic axis sits elsewhere (efit.c forces zmaxis=0): the mirrored pair of
+  // axes then leaves a cusp at the seam, the surface has a local R *minimum*
+  // there, and an R sweep inward skips the small sub-arc bulging outboard of it.
+  // No amount of endpoint clustering shrinks that first step, because the arc it
+  // skips is not parameterizable in R at all.  Rather than loosen the constant,
+  // measure the step: re-parameterize it in Z and see whether it is one connected
+  // arc.  If it is, judge uniformity on the steps that remain.  Only a trace
+  // whose plain R and Z parameterizations were both already rejected is ever
+  // clustered, so this cannot change a trace that is accepted today.
+  double ratio_step = max_step, ratio_mean = mean;
+  double skipped_arc = 0.0;
+  bool first_step_verified = false;
+  if (cluster_fixed_endpoint && n > 2 && first_step >= max_step &&
+      tok_step_is_connected_arc(geo, psi, param_is_r, rfixed, zfixed,
+        r[1], z[1], &skipped_arc)) {
+    ratio_step = max_step_after_first;
+    ratio_mean = (total-first_step)/(n-2);
+    first_step_verified = true;
+  }
   if (max_step > 2.0*cell_diag ||
-      (max_step > 16.0*mean && max_step > ratio_test_floor) ||
+      (ratio_step > 16.0*ratio_mean && ratio_step > ratio_test_floor) ||
       final_step > 2.0*cell_diag) {
     if (tok_ordered_map_diag_enabled()) {
       fprintf(stderr,
@@ -676,6 +770,13 @@ tok_build_contour_candidate(const struct gkyl_tok_geo *geo, double psi,
     }
     return false;
   }
+  if (first_step_verified)
+    fprintf(stderr,
+      "TOK_TRACE_CUSP_STEP trace=%s ftype_param=%c psi=%.17g first_step=%.17g "
+      "sub_arc=%.17g excess=%.17g max_after_first=%.17g mean=%.17g "
+      "fixed=(%.17g,%.17g)\n",
+      name, param_is_r ? 'R' : 'Z', psi, first_step, skipped_arc,
+      skipped_arc-first_step, max_step_after_first, mean, rfixed, zfixed);
   *score = max_step/mean+4.0*final_step/mean;
   return isfinite(*score);
 }
@@ -2284,7 +2385,7 @@ tok_build_trace_correspondence(const struct gkyl_tok_geo_grid_inp *inp,
   // map so g remains well-conditioned and strictly order preserving without
   // discarding the nearest-normal correspondence.  Shot 203730 remains
   // fold-free over a broad range around this conservative one-percent blend.
-  const double identity_fraction = 0.01;
+  const double identity_fraction = tok_trace_corr_identity_fraction();
   for (int i=1; i<n-1; ++i) {
     double u = i/(double) (n-1);
     arc_ctx->trace_corr_v[i] = identity_fraction*u
