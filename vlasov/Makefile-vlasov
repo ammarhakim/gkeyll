@@ -139,6 +139,14 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/mom_vlasov/%.c.o : $(KERNELS_DIR)/mom_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
+../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/flux_vlasov/%.c.o : $(KERNELS_DIR)/flux_vlasov/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/vlasov/$(KERNELS_DIR)/vlasov/%.c.o : $(KERNELS_DIR)/vlasov/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@

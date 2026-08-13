@@ -16,6 +16,7 @@
 #include <gkyl_util.h>
 
 #include <gkyl_vlasov_kernels.h>
+#include <gkyl_flux_vlasov_kernels.h>
 #include <gkyl_nc_hamil_gen_vol_comps_kernels.h>
 
 // allocate array (filled with zeros)

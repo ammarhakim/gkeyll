@@ -1,10 +1,6 @@
 #pragma once
 #include <math.h>
 #include <gkyl_util.h>
-// Declares the per-node surface kernels with C linkage so their definitions
-// in the kernel .c files (compiled as C++ under nvcc) match the unmangled
-// references from the dispatch code.
-#include <gkyl_vlasov_surf_node_kernels.h>
 EXTERN_C_BEG
 
 GKYL_CU_DH void vlasov_divide_Jv_1x1v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -45,38 +41,10 @@ GKYL_CU_DH double vlasov_surfx_1x1v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfx_1x1v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x1v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x1v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x1v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x1v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x1v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x1v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_1x1v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x1v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x1v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x1v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x1v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x1v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x1v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -120,38 +88,6 @@ GKYL_CU_DH double vlasov_ho_surfx_1x1v_ser_p2(const double *w, const double *dxv
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfx_1x1v_ser_p2(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_1x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_1x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vx_1x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_1x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x1v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_1x1v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x1v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_ser_p2(const double *w, const double *dxv,
@@ -160,30 +96,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_1x1v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_1x1v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_1x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x1v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x1v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_1x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_1x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_1x1v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_1x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_1x1v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x1v_ser_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x1v_ser_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -215,30 +127,6 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_1x1v_ser_p3(const double
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_1x1v_ser_p3(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_1x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_1x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_1x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x1v_ser_p3(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_1x1v_ser_p3(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x1v_ser_p3(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_ser_p3(const double *w, const double *dxv,
@@ -247,30 +135,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_1x1v_ser_p3(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_1x1v_ser_p3(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_1x1v_ser_p3(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x1v_ser_p3(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x1v_ser_p3(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_1x1v_ser_p3(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_1x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_1x1v_ser_p3(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_1x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_1x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_1x1v_ser_p3(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x2v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x2v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -326,72 +190,14 @@ GKYL_CU_DH double vlasov_surfx_1x2v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfx_1x2v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x2v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_1x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x2v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x2v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x2v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x2v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x2v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x2v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_1x2v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_1x2v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_1x2v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_1x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_1x2v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_1x2v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_1x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_1x2v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x2v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x2v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -451,48 +257,6 @@ GKYL_CU_DH double vlasov_ho_surfx_1x2v_ser_p2(const double *w, const double *dxv
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfx_1x2v_ser_p2(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_1x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_1x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_ho_alpha_quad_x_1x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_1x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x2v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x2v_ser_p2(const double *w, const double *dxv,
@@ -501,52 +265,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_1x2v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_1x2v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_1x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vx_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_1x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vy_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_1x2v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_1x2v_ser_p2(const double *w, const double *dxv,
@@ -555,34 +273,6 @@ GKYL_CU_DH double vlasov_ho_surfvy_1x2v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvy_1x2v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_1x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_1x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vy_1x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vy_1x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vy_1x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vy_1x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vy_1x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x3v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x3v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -638,99 +328,18 @@ GKYL_CU_DH double vlasov_surfx_1x3v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfx_1x3v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_1x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_1x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_1x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_1x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_1x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_1x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_1x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vz_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vz_1x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvz_1x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvz_1x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vz_1x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vz_1x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vz_1x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vz_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vz_1x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x3v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x3v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -790,48 +399,6 @@ GKYL_CU_DH double vlasov_ho_surfx_1x3v_ser_p2(const double *w, const double *dxv
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfx_1x3v_ser_p2(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_1x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_1x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_ho_alpha_quad_x_1x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_1x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x3v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x3v_ser_p2(const double *w, const double *dxv,
@@ -840,52 +407,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_1x3v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_1x3v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vx_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_1x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vy_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_1x3v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_1x3v_ser_p2(const double *w, const double *dxv,
@@ -894,52 +415,6 @@ GKYL_CU_DH double vlasov_ho_surfvy_1x3v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvy_1x3v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_1x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_1x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vy_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vy_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vy_1x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vy_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vy_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vy_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vy_1x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vz_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vz_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvz_1x3v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvz_1x3v_ser_p2(const double *w, const double *dxv,
@@ -948,34 +423,6 @@ GKYL_CU_DH double vlasov_ho_surfvz_1x3v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvz_1x3v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vz_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vz_1x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vz_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vz_1x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vz_1x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vz_1x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vz_1x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vz_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vz_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vz_1x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vz_1x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x1v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x1v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -1007,49 +454,16 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_2x1v_ser_p1(const double
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_2x1v_ser_p1(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x1v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x1v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x1v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x1v_ser_p1(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfy_2x1v_ser_p1(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x1v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x1v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x1v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x1v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x1v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x1v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_2x1v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x1v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x1v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x1v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x1v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x1v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x1v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x1v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -1081,54 +495,12 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_2x1v_ser_p2(const double
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_2x1v_ser_p2(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x1v_ser_p2(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfy_2x1v_ser_p2(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_y_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_y_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_y_2x1v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x1v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x1v_ser_p2(const double *w, const double *dxv,
@@ -1137,30 +509,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_2x1v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_2x1v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_2x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x1v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x1v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_2x1v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_2x1v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_2x1v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_2x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_2x1v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_2x1v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x1v_ser_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x1v_ser_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -1192,54 +540,12 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_2x1v_ser_p3(const double
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_2x1v_ser_p3(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x1v_ser_p3(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfy_2x1v_ser_p3(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_y_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_y_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_y_2x1v_ser_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x1v_ser_p3(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x1v_ser_p3(const double *w, const double *dxv,
@@ -1248,30 +554,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_2x1v_ser_p3(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_2x1v_ser_p3(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_2x1v_ser_p3(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x1v_ser_p3(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x1v_ser_p3(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_2x1v_ser_p3(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_2x1v_ser_p3(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_2x1v_ser_p3(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_2x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_2x1v_ser_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_2x1v_ser_p3(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x2v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x2v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -1327,18 +609,6 @@ GKYL_CU_DH double vlasov_surfx_2x2v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfx_2x2v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x2v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_2x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x2v_ser_p1(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -1355,72 +625,14 @@ GKYL_CU_DH double vlasov_surfy_2x2v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfy_2x2v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x2v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_y_2x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x2v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x2v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x2v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x2v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x2v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x2v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x2v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_2x2v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_2x2v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_2x2v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_2x2v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_2x2v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_2x2v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_2x2v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x2v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x2v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -1480,30 +692,6 @@ GKYL_CU_DH double vlasov_ho_surfx_2x2v_ser_p2(const double *w, const double *dxv
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfx_2x2v_ser_p2(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_ho_alpha_quad_x_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x2v_ser_p2(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -1524,48 +712,6 @@ GKYL_CU_DH double vlasov_ho_surfy_2x2v_ser_p2(const double *w, const double *dxv
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfy_2x2v_ser_p2(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_y_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_y_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_y_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_ho_alpha_quad_y_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_y_2x2v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x2v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x2v_ser_p2(const double *w, const double *dxv,
@@ -1574,52 +720,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_2x2v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_2x2v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_2x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vx_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_2x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vy_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_2x2v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_ser_p2(const double *w, const double *dxv,
@@ -1628,34 +728,6 @@ GKYL_CU_DH double vlasov_ho_surfvy_2x2v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvy_2x2v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_2x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_2x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vy_2x2v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vy_2x2v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vy_2x2v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vy_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vy_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vy_2x2v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vy_2x2v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x3v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x3v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -1711,18 +783,6 @@ GKYL_CU_DH double vlasov_surfx_2x3v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfx_2x3v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_2x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x3v_ser_p1(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -1739,99 +799,18 @@ GKYL_CU_DH double vlasov_surfy_2x3v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfy_2x3v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_y_2x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_2x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_2x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_2x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_2x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vz_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vz_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvz_2x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvz_2x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vz_2x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vz_2x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vz_2x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vz_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vz_2x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x3v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x3v_ser_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -1891,30 +870,6 @@ GKYL_CU_DH double vlasov_ho_surfx_2x3v_ser_p2(const double *w, const double *dxv
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfx_2x3v_ser_p2(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_x_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_x_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_ho_alpha_quad_x_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_x_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x3v_ser_p2(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -1935,48 +890,6 @@ GKYL_CU_DH double vlasov_ho_surfy_2x3v_ser_p2(const double *w, const double *dxv
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfy_2x3v_ser_p2(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_y_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_y_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_dense_ho_alpha_quad_y_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_ho_alpha_quad_y_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_y_2x3v_ser_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vx_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x3v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x3v_ser_p2(const double *w, const double *dxv,
@@ -1985,52 +898,6 @@ GKYL_CU_DH double vlasov_ho_surfvx_2x3v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvx_2x3v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vx_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vx_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vx_2x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vx_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vx_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vx_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vx_2x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vy_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_2x3v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_2x3v_ser_p2(const double *w, const double *dxv,
@@ -2039,52 +906,6 @@ GKYL_CU_DH double vlasov_ho_surfvy_2x3v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvy_2x3v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_2x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_2x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vy_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vy_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vy_2x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vy_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vy_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vy_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vy_2x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_ho_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_ho_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_ho_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vz_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
-GKYL_CU_DH double ho_lax_flux_nodal_vz_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvz_2x3v_ser_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvz_2x3v_ser_p2(const double *w, const double *dxv,
@@ -2093,34 +914,6 @@ GKYL_CU_DH double vlasov_ho_surfvz_2x3v_ser_p2(const double *w, const double *dx
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_ho_surfvz_2x3v_ser_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vz_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vz_2x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vz_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vz_2x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_ho_alpha_quad_vz_2x3v_ser_p2(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_ho_alpha_quad_vz_2x3v_ser_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_ho_alpha_quad_vz_2x3v_ser_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_dense_alpha_quad_vz_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_phase_alpha_quad_vz_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_ho_hamil_vel_sparse_alpha_quad_vz_2x3v_ser_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_ho_alpha_quad_vz_2x3v_ser_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_3x3v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_3x3v_ser_p1(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2176,18 +969,6 @@ GKYL_CU_DH double vlasov_surfx_3x3v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfx_3x3v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_3x3v_ser_p1(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -2204,18 +985,6 @@ GKYL_CU_DH double vlasov_surfy_3x3v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfy_3x3v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_y_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfz_3x3v_ser_p1(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -2232,99 +1001,18 @@ GKYL_CU_DH double vlasov_surfz_3x3v_ser_p1(const double *w, const double *dxv,
         const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfz_3x3v_ser_p1(const double *w, const double *dxv,
         const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_z_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_z_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_z_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_z_3x3v_ser_p1(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vx_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vx_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vx_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_3x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_3x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vx_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vx_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_3x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_3x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vy_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vy_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vy_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_3x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_3x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vy_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vy_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_3x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_3x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_dense_alpha_quad_vz_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_vel_sparse_alpha_quad_vz_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void nc_hamil_phase_alpha_quad_vz_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf, 
-          const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vz_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvz_3x3v_ser_p1(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvz_3x3v_ser_p1(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void hamil_phase_alpha_quad_vz_3x3v_ser_p1(const double *w, const double *dxv, const double *vmap, const double *jacob_pos, const double *jacob_vel_surf, const double *poisson_tensor_conf,
-        const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void phi_alpha_quad_vz_3x3v_ser_p1(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vz_3x3v_ser_p1(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vz_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vz_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vz_3x3v_ser_p1(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vz_3x3v_ser_p1(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void hamil_default_1v_ser_p1(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv); 
 GKYL_CU_DH void hamil_sr_1v_ser_p1(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv); 
@@ -2396,32 +1084,10 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_1x1v_tensor_p2(const dou
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_1x1v_tensor_p2(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x1v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x1v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x1v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x1v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x1v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x1v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x1v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x1v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x1v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x1v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x1v_tensor_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x1v_tensor_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2451,32 +1117,10 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_1x1v_tensor_p3(const dou
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_1x1v_tensor_p3(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x1v_tensor_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x1v_tensor_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x1v_tensor_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x1v_tensor_p3(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x1v_tensor_p3(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x1v_tensor_p3(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x1v_tensor_p3(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x1v_tensor_p3(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x1v_tensor_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x1v_tensor_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x1v_tensor_p3(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x2v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x2v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2520,56 +1164,14 @@ GKYL_CU_DH double vlasov_hamil_vel_sparse_boundary_surfx_1x2v_tensor_p2(const do
 GKYL_CU_DH double vlasov_hamil_vel_sparse_surfx_1x2v_tensor_p2(const double *w, const double *dxv, 
       const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x2v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_1x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x2v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x2v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x2v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x2v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x2v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x2v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_1x2v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_1x2v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_1x2v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vy_1x2v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_1x2v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_1x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_1x2v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_1x3v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_1x3v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2613,75 +1215,18 @@ GKYL_CU_DH double vlasov_hamil_vel_sparse_boundary_surfx_1x3v_tensor_p2(const do
 GKYL_CU_DH double vlasov_hamil_vel_sparse_surfx_1x3v_tensor_p2(const double *w, const double *dxv, 
       const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_1x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_1x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_1x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_1x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_1x3v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_1x3v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_1x3v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_1x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_1x3v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_1x3v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_1x3v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_1x3v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_1x3v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_1x3v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vz_1x3v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvz_1x3v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvz_1x3v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vz_1x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vz_1x3v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vz_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vz_1x3v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x1v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x1v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2711,47 +1256,16 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_2x1v_tensor_p2(const dou
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_2x1v_tensor_p2(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x1v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x1v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x1v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x1v_tensor_p2(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfy_2x1v_tensor_p2(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x1v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x1v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x1v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x1v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x1v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x1v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x1v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x1v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x1v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x1v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x1v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x1v_tensor_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x1v_tensor_p3(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2781,47 +1295,16 @@ GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfx_2x1v_tensor_p3(const dou
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfx_2x1v_tensor_p3(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x1v_tensor_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x1v_tensor_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x1v_tensor_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x1v_tensor_p3(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_surfy_2x1v_tensor_p3(const double *w, const double *dxv, 
     const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x1v_tensor_p3(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x1v_tensor_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x1v_tensor_p3(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x1v_tensor_p3(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x1v_tensor_p3(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x1v_tensor_p3(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x1v_tensor_p3(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x1v_tensor_p3(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x1v_tensor_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x1v_tensor_p3(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x1v_tensor_p3(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x2v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x2v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2865,18 +1348,6 @@ GKYL_CU_DH double vlasov_hamil_vel_sparse_boundary_surfx_2x2v_tensor_p2(const do
 GKYL_CU_DH double vlasov_hamil_vel_sparse_surfx_2x2v_tensor_p2(const double *w, const double *dxv, 
       const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x2v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_2x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x2v_tensor_p2(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -2889,56 +1360,14 @@ GKYL_CU_DH double vlasov_hamil_vel_sparse_boundary_surfy_2x2v_tensor_p2(const do
 GKYL_CU_DH double vlasov_hamil_vel_sparse_surfy_2x2v_tensor_p2(const double *w, const double *dxv, 
       const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x2v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_y_2x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x2v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x2v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x2v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x2v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x2v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x2v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x2v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_2x2v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_2x2v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_2x2v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vy_2x2v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_2x2v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_2x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_2x2v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void vlasov_divide_Jv_2x3v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
 GKYL_CU_DH void vlasov_rescale_Jv_2x3v_tensor_p2(const double *jacob_vel_gauss, const double *Jf, double* GKYL_RESTRICT f_no_J); 
@@ -2982,18 +1411,6 @@ GKYL_CU_DH double vlasov_hamil_vel_sparse_boundary_surfx_2x3v_tensor_p2(const do
 GKYL_CU_DH double vlasov_hamil_vel_sparse_surfx_2x3v_tensor_p2(const double *w, const double *dxv, 
       const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_x_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_x_2x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_x_2x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_x_2x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
 GKYL_CU_DH double vlasov_hamil_vel_dense_boundary_surfy_2x3v_tensor_p2(const double *w, const double *dxv, 
     const double *jacob_pos_edge, const double *jacob_pos_skin, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
     const int edge, const double *fedge, const double *fskin, double* GKYL_RESTRICT out); 
@@ -3006,75 +1423,18 @@ GKYL_CU_DH double vlasov_hamil_vel_sparse_boundary_surfy_2x3v_tensor_p2(const do
 GKYL_CU_DH double vlasov_hamil_vel_sparse_surfy_2x3v_tensor_p2(const double *w, const double *dxv, 
       const double *jacob_pos_l, const double *jacob_pos_c, const double *jacob_pos_r, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, 
       const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out); 
-GKYL_CU_DH double lax_flux_nodal_y_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos_l, const double *jacob_pos_c, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT conf_flux_surf) ; 
-GKYL_CU_DH void hamil_vel_dense_alpha_quad_y_2x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_vel_sparse_alpha_quad_y_2x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void hamil_phase_alpha_quad_y_2x3v_tensor_p2(const double *w, const double *dxv, const int hamil_pt_edge,
-      const double *vmap, const double *jacob_pos, const double *jacob_vel_surf,
-      const double *poisson_tensor_conf, const double *hamil, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vx_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvx_2x3v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvx_2x3v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vx_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vx_2x3v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vx_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vx_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vx_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vx_2x3v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vy_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvy_2x3v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvy_2x3v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vy_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vy_2x3v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vy_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vy_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vy_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vy_2x3v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH double lax_flux_nodal_vz_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_vel_surf_l, const double *jacob_vel_surf_r, const double *alpha_quad, 
-      const double *f_l, const double *f_r, double* GKYL_RESTRICT vel_flux_surf) ; 
 GKYL_CU_DH double vlasov_surfvz_2x3v_tensor_p2(const double *w, const double *dxv,
       const double *flux_l, const double *flux_r, double* GKYL_RESTRICT out); 
 GKYL_CU_DH double vlasov_boundary_surfvz_2x3v_tensor_p2(const double *w, const double *dxv,
       const int edge, const double *flux, double* GKYL_RESTRICT out); 
-GKYL_CU_DH void phi_alpha_quad_vz_2x3v_tensor_p2(const double *dxv, 
-      const double *jacob_pos, const double *phi, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void E_alpha_quad_vz_2x3v_tensor_p2(const double *dxv, 
-      const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_dense_alpha_quad_vz_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_phase_alpha_quad_vz_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-      const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void B_hamil_vel_sparse_alpha_quad_vz_2x3v_tensor_p2(const double *dxv, const double *jacob_vel,
-        const double *hamil, const double *qmem, double* GKYL_RESTRICT alpha_quad); 
-GKYL_CU_DH void rad_alpha_quad_vz_2x3v_tensor_p2(const double *dxv, 
-      const double *rad, double* GKYL_RESTRICT alpha_quad); 
 
 GKYL_CU_DH void hamil_default_1v_tensor_p2(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv); 
 GKYL_CU_DH void hamil_sr_1v_tensor_p2(const double *w, const double *dxv, const double *vmap, double* GKYL_RESTRICT hamil, double* GKYL_RESTRICT hamil_inv); 

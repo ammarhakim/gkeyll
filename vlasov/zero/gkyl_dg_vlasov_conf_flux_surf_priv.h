@@ -5,7 +5,7 @@
 
 #include <gkyl_array.h>
 #include <gkyl_basis.h>
-#include <gkyl_vlasov_kernels.h>
+#include <gkyl_flux_vlasov_kernels.h>
 #include <gkyl_vlasov_surf_node_kernels.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_grid.h>

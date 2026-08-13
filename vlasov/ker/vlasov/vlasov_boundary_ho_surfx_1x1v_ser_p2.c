@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_vlasov_surf_tables_1x1v_ser_p2.h> 
+#include <gkyl_vlasov_surf_nod2mod_tables_1x1v_ser_p2.h> 
 GKYL_CU_DH double vlasov_boundary_ho_surfx_1x1v_ser_p2(const double *w, const double *dxv,
   const int edge, const double *flux, double* GKYL_RESTRICT out) 
 { 

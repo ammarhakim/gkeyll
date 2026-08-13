@@ -1,5 +1,5 @@
 #include <gkyl_vlasov_kernels.h> 
-#include <gkyl_vlasov_surf_tables_3x3v_ser_p1.h> 
+#include <gkyl_vlasov_surf_nod2mod_tables_3x3v_ser_p1.h> 
 GKYL_CU_DH double vlasov_surfz_3x3v_ser_p1(const double *w, const double *dxv,
   const double *Fhat_l_nodal, const double *Fhat_r_nodal, double* GKYL_RESTRICT out) 
 { 
