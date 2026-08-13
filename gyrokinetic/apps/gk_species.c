@@ -1361,6 +1361,26 @@ gk_species_do_I_recycle_react_scale(struct gkyl_gyrokinetic_app *app, struct gk_
 }
 
 static bool
+gk_species_do_I_supply_fluid_neut_recycling(
+  struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
+{
+  for (int i=0; i<app->num_neut_species; ++i) {
+    const struct gk_neut_species *ns = &app->neut_species[i];
+    if (ns->info.vdim != 0)
+      continue;
+    for (int k=0; k<2*app->cdim; ++k) {
+      const struct gkyl_gyrokinetic_bc *bc = &ns->info.bcs[k];
+      if (bc->type != GKYL_BC_GK_SPECIES_RECYCLE)
+        continue;
+      for (int j=0; j<bc->emission.num_species; ++j)
+        if (0 == strcmp(gks->info.name, bc->emission.in_species[j]))
+          return true;
+    }
+  }
+  return false;
+}
+
+static bool
 gk_species_do_I_adapt_src(struct gkyl_gyrokinetic_app *app, struct gk_species *gks)
 {
   // Check whether one of the species adapts its source depending on
@@ -1757,6 +1777,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   bool adaptive_sources = gk_species_do_I_adapt_src(app, gks);
   // Check if other species use the recycle_react_scale operation.
   bool recycle_react_scale = gk_species_do_I_recycle_react_scale(app, gks);
+  // Check if a fluid-neutral diffusion boundary consumes this ion flux.
+  bool fluid_neut_recycling =
+    gk_species_do_I_supply_fluid_neut_recycling(app, gks);
   // Check if other species have recycling BCs.
   bool recycling_bcs = gk_species_do_I_recycle(app, gks);
   if (gks->info.boundary_flux_diagnostics.num_diag_moments > 0 ||
@@ -1772,14 +1795,16 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     if (recycling_bcs) {
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX;
     }
-    if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
+    if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale
+      || fluid_neut_recycling) {
       // This is within an if-statement instead of an else if because it
       // superseeds (and is a superset) of GK_SPECIES_BFLUX_CALC_FLUX.
       bflux_type = GK_SPECIES_BFLUX_CALC_FLUX_STEP_MOMS;
     }
   }
   int *nmom_extra = &add_bflux_moms_inp.num_diag_moments;
-  if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale) {
+  if (ion_in_boltz_elc_field || adaptive_sources || recycle_react_scale
+    || fluid_neut_recycling) {
     add_bflux_moms_inp.diag_moments[nmom_extra[0]++] = GKYL_F_MOMENT_M0;
   }
   if (adaptive_sources) {

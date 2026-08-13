@@ -42,6 +42,7 @@
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_updater_gk_anomalous_diffusion.h>
+#include <gkyl_dg_updater_conf_diffusion.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
@@ -492,6 +493,9 @@ struct gk_boundary_fluxes {
   struct gkyl_bc_basic_gyrokinetic *gfss_bc_op[2*GKYL_MAX_CDIM]; // Applies BCs to bmag and phi.
   struct gkyl_array *bc_buffer; // Buffer used by gfss_bc_op;
   struct gkyl_array **f, **f1, **fnew; // Boundary flux through each boundary (one for each RK stage).
+  // Moment arrays most recently filled by the RHS. This lets downstream
+  // species consume a boundary flux during the same coupled RHS evaluation.
+  struct gkyl_array **current_moms;
   struct gk_species_moment *moms_op; // Moments calculator.
   // Objects used for calculating diagnostics.
   int *diag_mom_idx; // Index of each diag mom in the array of calc moms.
@@ -1274,6 +1278,24 @@ struct gk_neut_species {
       int num_moments; // Number of fluid moments.
       struct gkyl_array *prim_var; // Primitive variables (udrift, pressure).
       struct gkyl_array *prim_var_host; // prim_var on the host for I/O.
+
+      bool has_diffusion; // Whether fluid diffusion is enabled.
+      bool use_reaction_rate_diffusion; // Whether D is computed from plasma reaction rates.
+      int ionization_react_idx; // Ionization entry supplying electron density and loss rate.
+      int diffusion_cx_react_idx; // CX entry supplying vti^2 and CX reactivity.
+      struct gkyl_array *diffusion_coeff; // DG expansion of the scalar diffusion coefficient.
+      struct gkyl_array *diffusion_tensor; // Full tensor K^{ij}=J D g_neut^{ij}.
+      struct gkyl_array *diffusion_geom_factor; // Temporary scalar product J D.
+      struct gkyl_array *diffusion_density; // Physical density n=(J rho)/J.
+      struct gkyl_array *diffusion_bc_density; // Local recycling boundary density.
+      struct gkyl_array *diffusion_bc_density_tmp; // One impacting-ion contribution.
+      struct gkyl_array *diffusion_moment_ratio; // Conserved moments divided by density.
+      gkyl_dg_bin_op_mem *diffusion_div_mem; // Memory for weak moment/density division.
+      struct gkyl_dg_updater_conf_diffusion *diffusion_slvr; // Conservative DG diffusion updater.
+      int diffusion_recycling_num_species[2]; // Impacting species at lower/upper parallel edges.
+      int diffusion_recycling_ion_idx[2][GKYL_MAX_SPECIES];
+      struct gkyl_array *ionization_rate; // DG ne*<sigma v>_iz frequency.
+      struct gkyl_array *ionization_cflrate; // Cell-average ionization CFL frequency.
     };
   };
 

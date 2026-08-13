@@ -494,6 +494,30 @@ struct gkyl_gyrokinetic_species {
   struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 };
 
+enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type {
+  GKYL_NEUT_FLUID_DIFFUSION_ZERO_FLUX = 0,
+  GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET,
+};
+
+// Parameters for diffusion of a fluid neutral species.
+struct gkyl_gyrokinetic_neut_fluid_diffusion {
+  double D; // Constant diffusion coefficient.
+  // Compute D = vti^2/(ne*<sigma v>_cx) from the IZ electron density and
+  // the CX rate. Requires one GKYL_REACT_IZ and one GKYL_REACT_CX entry.
+  bool use_reaction_rates;
+
+  // Density boundary conditions in the parallel direction (cdim-1). The
+  // default is homogeneous diffusive flux. Dirichlet values are physical
+  // neutral number densities; the fluid mass density imposed on the operator
+  // is mass*n. A GKYL_BC_GK_SPECIES_RECYCLE entry in the neutral bcs array
+  // overrides the corresponding diffusion edge with the local target density
+  // R*Gamma_i/sqrt(T_n/(2*pi*m_n)), using the existing emission inputs.
+  enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type lower_bc_type;
+  enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type upper_bc_type;
+  double lower_bc_density;
+  double upper_bc_density;
+};
+
 // Parameters for neutral species.
 struct gkyl_gyrokinetic_neut_species {
   char name[128]; // Species name.
@@ -539,6 +563,11 @@ struct gkyl_gyrokinetic_neut_species {
   struct gkyl_gyrokinetic_bc bcs[2*GKYL_MAX_CDIM];
 
   double gas_gamma; // Adiabatic index (fluid neutrals).
+
+  // Diffusion of fluid-neutral density. Dependent conserved moments are
+  // rescaled to preserve velocity and specific energy. This input is ignored
+  // for kinetic and static neutral species.
+  struct gkyl_gyrokinetic_neut_fluid_diffusion diffusion;
 
   // Inputs to operation that scales the species every time step.
   struct gkyl_gyrokinetic_scaling_inp scaling;

@@ -120,6 +120,28 @@ gkns_react_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_species *s,
   struct gk_react *react, const struct gkyl_array *fin, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();  
+
+  if (s->is_fluid) {
+    // Fluid neutrals evolve density only. Ionization removes density and all
+    // dependent conserved moments proportionally. CX does not change neutral
+    // density and is used by the diffusion closure.
+    for (int i=0; i<react->num_react; ++i) {
+      if (react->react_id[i] != GKYL_REACT_IZ)
+        continue;
+
+      struct gk_species *gks_elc = &app->species[react->elc_idx[i]];
+      for (int m=0; m<s->num_moments; ++m) {
+        gkyl_dg_mul_op_range(&app->basis, m, react->f_react,
+          0, gks_elc->lte.moms.marr, m, fin, &app->local);
+        gkyl_dg_mul_op_range(&app->basis, m, react->f_react,
+          0, react->coeff_react[i], m, react->f_react, &app->local);
+      }
+      gkyl_array_accumulate_range(rhs, -1.0, react->f_react, &app->local);
+    }
+    app->stat.neut_species_react_tm += gkyl_time_diff_now_sec(wst);
+    return;
+  }
+
   for (int i=0; i<react->num_react; ++i) {
     gkyl_array_clear(react->f_react, 0.0);
     gkyl_array_clear(react->react_lte_moms[i], 0.0);
@@ -327,7 +349,8 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
     // Distribution function which holds update for each reaction
     // form depend on react->type_self, e.g., for recombination and react->type_self == GKYL_SELF_RECVR
     // react->f_react = n_elc*coeff_react*fmax(n_ion, upar_ion b_i, vt_ion^2)
-    react->f_react = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
+    react->f_react = mkarr(app->use_gpu,
+      s->is_fluid ? s->f->ncomp : s->basis.num_basis, s->local_ext.volume);
 
     for (int i=0; i<react->num_react; ++i) {
       react->react_id[i] = react->react_type[i].react_id;
@@ -347,7 +370,9 @@ gk_neut_species_react_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_neu
       }
       else if (gk_find_neut_species(app, react->react_type[i].partner_nm)) {
         react->partner_idx[i] = gk_find_neut_species_idx(app, react->react_type[i].partner_nm);
-        neut_vt_sq_min = gk_neut_species_react_get_vt_sq_min(app, &app->neut_species[react->partner_idx[i]]);
+        struct gk_neut_species *partner = &app->neut_species[react->partner_idx[i]];
+        neut_vt_sq_min = partner->is_fluid ? 0.0
+          : gk_neut_species_react_get_vt_sq_min(app, partner);
       }
 
       react->coeff_react[i] = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);

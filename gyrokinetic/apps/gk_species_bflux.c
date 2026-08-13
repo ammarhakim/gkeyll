@@ -227,6 +227,7 @@ static void
 gk_species_bflux_calc_moms_enabled(gkyl_gyrokinetic_app *app, struct gk_boundary_fluxes *bflux,
   const struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
 {
+  bflux->current_moms = bflux_moms;
   // Compute moments of boundary fluxes.
   struct timespec wst = gkyl_wall_clock();
   for (int b=0; b<bflux->num_boundaries; ++b) {

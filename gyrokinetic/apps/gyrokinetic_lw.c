@@ -955,6 +955,12 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
   
   gk_neut_species.mass = glua_tbl_get_number(L, "mass", 1.0);
   gk_neut_species.is_static = glua_tbl_get_bool(L, "isStatic", false);
+  gk_neut_species.gas_gamma = glua_tbl_get_number(L, "gasGamma", 5.0/3.0);
+
+  with_lua_tbl_tbl(L, "diffusion") {
+    gk_neut_species.diffusion.D = glua_tbl_get_number(L, "diffusionCoefficient", 0.0);
+    gk_neut_species.diffusion.use_reaction_rates = glua_tbl_get_bool(L, "useReactionRates", false);
+  }
 
   with_lua_tbl_tbl(L, "cells") {
     for (int d = 0; d < 3; d++) {

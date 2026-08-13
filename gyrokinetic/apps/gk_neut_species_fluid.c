@@ -1,5 +1,111 @@
 #include <gkyl_gk_neut_species_priv.h>
 
+static void
+gk_neut_species_fluid_diffusion_dirichlet_ghost(
+  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  int dir, enum gkyl_edge_loc edge, double number_density,
+  const struct gkyl_array *number_density_field,
+  struct gkyl_array *density, struct gkyl_array *tensor)
+{
+  // Communication has already populated internal-rank ghosts. Only a rank
+  // owning the physical edge supplies the exterior Dirichlet state.
+  if ((edge == GKYL_LOWER_EDGE
+      && species->local.lower[dir] != species->global.lower[dir])
+    || (edge == GKYL_UPPER_EDGE
+      && species->local.upper[dir] != species->global.upper[dir]))
+    return;
+
+  const struct gkyl_range *ghost = edge == GKYL_LOWER_EDGE
+    ? &species->local_lower_ghost[dir] : &species->local_upper_ghost[dir];
+  const int skin_idx_dir = edge == GKYL_LOWER_EDGE
+    ? species->local.lower[dir] : species->local.upper[dir];
+  const int nb = app->basis.num_basis;
+  const int nK = app->cdim*app->cdim;
+  const double rho_b_modal = pow(sqrt(2.0), app->cdim)
+    *species->info.mass*number_density;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, ghost);
+  while (gkyl_range_iter_next(&iter)) {
+    int skin_idx[GKYL_MAX_CDIM];
+    for (int d=0; d<app->cdim; ++d)
+      skin_idx[d] = iter.idx[d];
+    skin_idx[dir] = skin_idx_dir;
+
+    const double *rho_skin = gkyl_array_cfetch(density,
+      gkyl_range_idx(&species->local_ext, skin_idx));
+    double *rho_ghost = gkyl_array_fetch(density,
+      gkyl_range_idx(&species->local_ext, iter.idx));
+
+    // Mirror the skin polynomial and choose its exterior value so the
+    // arithmetic trace at the physical face is rho_b:
+    //   rho_g = 2 rho_b - R(rho_s).
+    app->basis.flip_odd_sign(dir, rho_skin, rho_ghost);
+    for (int k=0; k<nb; ++k)
+      rho_ghost[k] = -rho_ghost[k];
+    if (number_density_field) {
+      const double *n_b = gkyl_array_cfetch(number_density_field,
+        gkyl_range_idx(&species->local_ext, iter.idx));
+      for (int k=0; k<nb; ++k)
+        rho_ghost[k] += 2.0*species->info.mass*n_b[k];
+    }
+    else {
+      rho_ghost[0] += 2.0*rho_b_modal;
+    }
+
+    const double *K_skin = gkyl_array_cfetch(tensor,
+      gkyl_range_idx(&species->local_ext, skin_idx));
+    double *K_ghost = gkyl_array_fetch(tensor,
+      gkyl_range_idx(&species->local_ext, iter.idx));
+    for (int k=0; k<nK; ++k)
+      app->basis.flip_odd_sign(dir, &K_skin[k*nb], &K_ghost[k*nb]);
+  }
+}
+
+static void
+gk_neut_species_fluid_recycling_density(
+  gkyl_gyrokinetic_app *app, const struct gk_neut_species *species,
+  int dir, enum gkyl_edge_loc edge)
+{
+  const int e = edge == GKYL_LOWER_EDGE ? 0 : 1;
+  const struct gkyl_gyrokinetic_bc *bc = edge == GKYL_LOWER_EDGE
+    ? &species->lower_bc[dir] : &species->upper_bc[dir];
+  const struct gkyl_range *ghost = edge == GKYL_LOWER_EDGE
+    ? &species->local_lower_ghost[dir] : &species->local_upper_ghost[dir];
+  gkyl_array_clear_range(species->diffusion_bc_density, 0.0, ghost);
+
+  // A unit-density isotropic Maxwellian emits the one-sided particle flux
+  // Gamma_M,1=sqrt(T_n/(2*pi*m_n)). Match the kinetic recycling convention:
+  // n_b*Gamma_M,1=R*Gamma_i, locally along the target.
+  const double unit_flux = sqrt(bc->emission.emission_temp
+    /(2.0*M_PI*species->info.mass));
+  for (int i=0; i<species->diffusion_recycling_num_species[e]; ++i) {
+    struct gk_species *ion =
+      &app->species[species->diffusion_recycling_ion_idx[e][i]];
+    assert(ion->bflux.current_moms);
+    gkyl_array_clear_range(species->diffusion_bc_density_tmp, 0.0, ghost);
+    gk_species_bflux_get_flux_mom(&ion->bflux, dir, edge,
+      GKYL_F_MOMENT_M0, ion->bflux.current_moms,
+      species->diffusion_bc_density_tmp, ghost);
+    gkyl_array_accumulate_range(species->diffusion_bc_density,
+      bc->emission.recycling_frac/unit_flux,
+      species->diffusion_bc_density_tmp, ghost);
+  }
+}
+
+static void
+gk_neut_species_fluid_apply_bc_dynamic(gkyl_gyrokinetic_app *app,
+  const struct gk_neut_species *species, struct gkyl_array *f)
+{
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
+    app->num_periodic_dir, app->periodic_dirs, f);
+  gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext, f);
+
+  app->stat.neut_species_bc_tm += gkyl_time_diff_now_sec(wst);
+}
+
 static double
 gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
   const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
@@ -10,8 +116,128 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   
   // Collisionless terms.
   struct timespec wst = gkyl_wall_clock();
-  // Not ready.
+  if (species->has_diffusion) {
+    if (species->use_reaction_rate_diffusion) {
+      struct gk_react *react = &species->react_neut;
+      int iz_idx = species->ionization_react_idx;
+      int cx_idx = species->diffusion_cx_react_idx;
+      struct gk_species *elc = &app->species[react->elc_idx[iz_idx]];
+
+      // denominator = ne*<sigma v>_cx.
+      gkyl_dg_mul_op_range(&app->basis, 0, species->diffusion_moment_ratio,
+        0, elc->lte.moms.marr, 0, react->coeff_react[cx_idx], &species->local);
+
+      // Isotropic scalar DG coefficient: D = vti^2/(ne*<sigma v>_cx).
+      gkyl_dg_div_op_range(species->diffusion_div_mem, &app->basis,
+        0, species->diffusion_coeff, 0, react->vt_sq_ion[cx_idx],
+        0, species->diffusion_moment_ratio, &species->local);
+
+      // The variable-coefficient surface terms read neighboring cells.
+      // Populate coefficient ghosts independently of the state BC update.
+      gkyl_comm_array_per_sync(species->comm, &species->local, &species->local_ext,
+        app->num_periodic_dir, app->periodic_dirs, species->diffusion_coeff);
+      gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext,
+        species->diffusion_coeff);
+    }
+
+    // The evolved density is N=J*rho. Form the physical density rho=N/J and
+    // the mapped tensor K^{ij}=J*D*g_neut^{ij} used by
+    //   d_t N = d_i(K^{ij} d_j rho).
+    // Use weak division by J instead of multiplication by its separately
+    // projected inverse. This preserves a spatially constant physical density
+    // exactly when the stored state is N=J*rho.
+    gkyl_dg_div_op_range(species->diffusion_div_mem, &app->basis,
+      0, species->diffusion_density, 0, fin, 0,
+      app->gk_geom->geo_int.jacobgeo, &species->local);
+    gkyl_dg_mul_op_range(&app->basis, 0, species->diffusion_geom_factor,
+      0, species->diffusion_coeff, 0,
+      app->gk_geom->geo_int.jacobgeo, &species->local);
+
+    const int metric_idx_1x[1][1] = { { 5 } };
+    const int metric_idx_2x[2][2] = { { 0, 2 }, { 2, 5 } };
+    const int metric_idx_3x[3][3] = { { 0, 1, 2 }, { 1, 3, 4 }, { 2, 4, 5 } };
+    for (int i=0; i<app->cdim; ++i) {
+      for (int j=0; j<app->cdim; ++j) {
+        int gij_idx = app->cdim == 1 ? metric_idx_1x[i][j]
+          : app->cdim == 2 ? metric_idx_2x[i][j] : metric_idx_3x[i][j];
+        gkyl_dg_mul_op_range(&app->basis, i*app->cdim+j,
+          species->diffusion_tensor, 0, species->diffusion_geom_factor,
+          gij_idx, app->gk_geom->geo_int.gij_neut, &species->local);
+      }
+    }
+    gkyl_comm_array_per_sync(species->comm, &species->local,
+      &species->local_ext, app->num_periodic_dir, app->periodic_dirs,
+      species->diffusion_density);
+    gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext,
+      species->diffusion_density);
+    gkyl_comm_array_per_sync(species->comm, &species->local,
+      &species->local_ext, app->num_periodic_dir, app->periodic_dirs,
+      species->diffusion_tensor);
+    gkyl_comm_array_sync(species->comm, &species->local, &species->local_ext,
+      species->diffusion_tensor);
+
+    // Fixed-density or locally recycled open-field-line boundaries.
+    const int par_dir = app->cdim-1;
+    if (species->lower_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE) {
+      gk_neut_species_fluid_recycling_density(app, species, par_dir,
+        GKYL_LOWER_EDGE);
+      gk_neut_species_fluid_diffusion_dirichlet_ghost(app, species, par_dir,
+        GKYL_LOWER_EDGE, 0.0, species->diffusion_bc_density,
+        species->diffusion_density, species->diffusion_tensor);
+    }
+    else if (species->info.diffusion.lower_bc_type
+        == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET)
+      gk_neut_species_fluid_diffusion_dirichlet_ghost(app, species, par_dir,
+        GKYL_LOWER_EDGE, species->info.diffusion.lower_bc_density,
+        0,
+        species->diffusion_density, species->diffusion_tensor);
+    if (species->upper_bc[par_dir].type == GKYL_BC_GK_SPECIES_RECYCLE) {
+      gk_neut_species_fluid_recycling_density(app, species, par_dir,
+        GKYL_UPPER_EDGE);
+      gk_neut_species_fluid_diffusion_dirichlet_ghost(app, species, par_dir,
+        GKYL_UPPER_EDGE, 0.0, species->diffusion_bc_density,
+        species->diffusion_density, species->diffusion_tensor);
+    }
+    else if (species->info.diffusion.upper_bc_type
+        == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET)
+      gk_neut_species_fluid_diffusion_dirichlet_ghost(app, species, par_dir,
+        GKYL_UPPER_EDGE, species->info.diffusion.upper_bc_density,
+        0,
+        species->diffusion_density, species->diffusion_tensor);
+
+    gkyl_dg_updater_conf_diffusion_advance(species->diffusion_slvr,
+      &species->local, species->diffusion_density, species->cflrate, rhs);
+
+    // Density is the only independently diffused quantity. Propagate its
+    // change to the dependent conserved moments while holding their specific
+    // values (moment/rho) fixed.
+    for (int m=1; m<species->num_moments; ++m) {
+      gkyl_dg_div_op_range(species->diffusion_div_mem, &app->basis,
+        m, species->diffusion_moment_ratio, m, fin, 0, fin, &species->local);
+      gkyl_dg_mul_op_range(&app->basis, m, rhs,
+        m, species->diffusion_moment_ratio, 0, rhs, &species->local);
+    }
+  }
   app->stat.neut_species_collisionless_tm += gkyl_time_diff_now_sec(wst);
+
+  // Ionization loss and other enabled reactions with charged species.
+  gk_neut_species_react_rhs(app, species, &species->react_neut, fin, rhs);
+
+  // Add the explicit ionization frequency ne*<sigma v>_iz to the CFL rate.
+  if (species->ionization_react_idx >= 0) {
+    struct gk_react *react = &species->react_neut;
+    for (int i=0; i<react->num_react; ++i) {
+      if (react->react_id[i] != GKYL_REACT_IZ)
+        continue;
+      struct gk_species *elc = &app->species[react->elc_idx[i]];
+      gkyl_dg_mul_op_range(&app->basis, 0, species->ionization_rate,
+        0, elc->lte.moms.marr, 0, react->coeff_react[i], &species->local);
+      gkyl_dg_calc_average_range(&app->basis, 0, species->ionization_cflrate,
+        0, species->ionization_rate, species->local);
+      gkyl_array_accumulate_range(species->cflrate, 1.0,
+        species->ionization_cflrate, &species->local);
+    }
+  }
 
   // Compute volume-integrated reactions in sca.
   gk_neut_species_scaling_rhs(app, species, &species->sca, fin, rhs);
@@ -66,6 +292,24 @@ gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const str
 {
   // Release memory allocated for dynamic neutrals.
   gkyl_array_release(ns->cflrate);
+
+  if (ns->has_diffusion) {
+    gkyl_array_release(ns->diffusion_coeff);
+    gkyl_array_release(ns->diffusion_tensor);
+    gkyl_array_release(ns->diffusion_geom_factor);
+    gkyl_array_release(ns->diffusion_density);
+    if (ns->diffusion_bc_density)
+      gkyl_array_release(ns->diffusion_bc_density);
+    if (ns->diffusion_bc_density_tmp)
+      gkyl_array_release(ns->diffusion_bc_density_tmp);
+    gkyl_array_release(ns->diffusion_moment_ratio);
+    gkyl_dg_bin_op_mem_release(ns->diffusion_div_mem);
+    gkyl_dg_updater_conf_diffusion_release(ns->diffusion_slvr);
+  }
+  if (ns->ionization_react_idx >= 0) {
+    gkyl_array_release(ns->ionization_rate);
+    gkyl_array_release(ns->ionization_cflrate);
+  }
   
   if (app->use_gpu) {
     gkyl_cu_free(ns->omega_cfl);
@@ -144,6 +388,117 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
   ns->omega_cfl = app->use_gpu? gkyl_cu_malloc(sizeof(double))
                               : gkyl_malloc(sizeof(double));
 
+  // Initialize diffusion of neutral density (component 0) only. The same
+  // scalar coefficient is used in every configuration-space direction.
+  ns->use_reaction_rate_diffusion = ns->info.diffusion.use_reaction_rates;
+  ns->has_diffusion = ns->info.diffusion.D > 0.0 || ns->use_reaction_rate_diffusion;
+  ns->ionization_react_idx = -1;
+  ns->diffusion_cx_react_idx = -1;
+  ns->diffusion_coeff = 0;
+  ns->diffusion_tensor = 0;
+  ns->diffusion_geom_factor = 0;
+  ns->diffusion_density = 0;
+  ns->diffusion_bc_density = 0;
+  ns->diffusion_bc_density_tmp = 0;
+  ns->diffusion_moment_ratio = 0;
+  ns->diffusion_div_mem = 0;
+  ns->diffusion_slvr = 0;
+  ns->diffusion_recycling_num_species[0] = 0;
+  ns->diffusion_recycling_num_species[1] = 0;
+  ns->ionization_rate = 0;
+  ns->ionization_cflrate = 0;
+
+  for (int i=0; i<ns->info.react_neut.num_react; ++i) {
+    enum gkyl_react_id react_id = ns->info.react_neut.react_type[i].react_id;
+    if (react_id == GKYL_REACT_IZ && ns->ionization_react_idx < 0)
+      ns->ionization_react_idx = i;
+    else if (react_id == GKYL_REACT_CX && ns->diffusion_cx_react_idx < 0)
+      ns->diffusion_cx_react_idx = i;
+  }
+  if (ns->ionization_react_idx >= 0) {
+    ns->ionization_rate = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
+    ns->ionization_cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
+  }
+  if (ns->has_diffusion) {
+    // Configuration-space restriction of the single-integration-by-parts plus
+    // recovery-DG anomalous-diffusion scheme. Generated CPU kernels currently
+    // cover 1x-3x serendipity p1.
+    assert(cdim > 0 && cdim <= 3);
+    assert(app->basis.poly_order == 1);
+    assert(!app->use_gpu);
+
+    ns->diffusion_coeff = mkarr(false, app->basis.num_basis,
+      app->local_ext.volume);
+    ns->diffusion_tensor = mkarr(false,
+      cdim*cdim*app->basis.num_basis, app->local_ext.volume);
+    ns->diffusion_geom_factor = mkarr(false, app->basis.num_basis,
+      app->local_ext.volume);
+    ns->diffusion_density = mkarr(false, app->basis.num_basis,
+      app->local_ext.volume);
+
+    const int par_dir = cdim-1;
+    const bool recycle_lo = ns->lower_bc[par_dir].type
+      == GKYL_BC_GK_SPECIES_RECYCLE;
+    const bool recycle_up = ns->upper_bc[par_dir].type
+      == GKYL_BC_GK_SPECIES_RECYCLE;
+    if (recycle_lo || recycle_up) {
+      ns->diffusion_bc_density = mkarr(false, app->basis.num_basis,
+        app->local_ext.volume);
+      ns->diffusion_bc_density_tmp = mkarr(false, app->basis.num_basis,
+        app->local_ext.volume);
+      gkyl_array_clear(ns->diffusion_bc_density, 0.0);
+      gkyl_array_clear(ns->diffusion_bc_density_tmp, 0.0);
+    }
+    for (int e=0; e<2; ++e) {
+      const struct gkyl_gyrokinetic_bc *bc = e == 0
+        ? &ns->lower_bc[par_dir] : &ns->upper_bc[par_dir];
+      if (bc->type != GKYL_BC_GK_SPECIES_RECYCLE)
+        continue;
+      assert(bc->emission.emission_temp > 0.0);
+      assert(bc->emission.num_species > 0);
+      ns->diffusion_recycling_num_species[e] = bc->emission.num_species;
+      for (int i=0; i<bc->emission.num_species; ++i) {
+        ns->diffusion_recycling_ion_idx[e][i] = gk_find_species_idx(app,
+          bc->emission.in_species[i]);
+        assert(ns->diffusion_recycling_ion_idx[e][i] >= 0);
+      }
+    }
+    gkyl_array_clear(ns->diffusion_coeff, 0.0);
+    gkyl_array_clear(ns->diffusion_tensor, 0.0);
+    gkyl_array_clear(ns->diffusion_geom_factor, 0.0);
+    gkyl_array_clear(ns->diffusion_density, 0.0);
+    if (!ns->use_reaction_rate_diffusion) {
+      // Modal constant coefficient in cdim dimensions.
+      gkyl_array_shiftc(ns->diffusion_coeff,
+        pow(sqrt(2.0),cdim)*ns->info.diffusion.D, 0);
+    }
+
+    if (ns->use_reaction_rate_diffusion) {
+      assert(ns->ionization_react_idx >= 0);
+      assert(ns->diffusion_cx_react_idx >= 0);
+    }
+
+    ns->diffusion_moment_ratio = mkarr(app->use_gpu, ns->f->ncomp, ns->f->size);
+    ns->diffusion_div_mem = app->use_gpu
+      ? gkyl_dg_bin_op_mem_cu_dev_new(app->local.volume, app->basis.num_basis)
+      : gkyl_dg_bin_op_mem_new(app->local.volume, app->basis.num_basis);
+
+    int diffusion_zero_flux_flags[2*GKYL_MAX_CDIM] = { 0 };
+    for (int d=0; d<cdim; ++d)
+      diffusion_zero_flux_flags[d] = diffusion_zero_flux_flags[d+cdim]
+        = ns->bc_is_np[d];
+    if (recycle_lo || ns->info.diffusion.lower_bc_type
+        == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET)
+      diffusion_zero_flux_flags[par_dir] = 0;
+    if (recycle_up || ns->info.diffusion.upper_bc_type
+        == GKYL_NEUT_FLUID_DIFFUSION_DIRICHLET)
+      diffusion_zero_flux_flags[par_dir+cdim] = 0;
+    ns->diffusion_slvr = gkyl_dg_updater_conf_diffusion_new(&app->grid,
+      &app->basis, &app->local_ext, ns->diffusion_tensor,
+      app->gk_geom->geo_int.jacobgeo_inv, diffusion_zero_flux_flags,
+      app->use_gpu);
+  }
+
   // Allocate data for integrated moments.
   gk_neut_species_moment_init(app, ns, &ns->integ_moms, GKYL_F_MOMENT_M0M1M2, true);
 
@@ -162,7 +517,7 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
   // Set function pointers
   ns->rhs_func = gk_neut_species_fluid_rhs_dynamic;
   ns->rhs_implicit_func = gk_neut_species_fluid_rhs_implicit_dynamic;
-  ns->bc_func = gk_neut_species_apply_bc_static; // Not ready.
+  ns->bc_func = gk_neut_species_fluid_apply_bc_dynamic;
   ns->release_func = gk_neut_species_fluid_release;
   ns->release_is_static_func = gk_neut_species_fluid_release_dynamic;
   ns->step_f_func = gk_neut_species_step_f_dynamic;
@@ -348,9 +703,9 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
   ns->positivity = (struct gk_positivity) { };
   gk_neut_species_positivity_init(app, ns, &ns->positivity);
 
-  // Initialize reactions with charged species (NYI for fluids).
+  // Initialize reactions with charged species. Fluid neutrals use the
+  // ionization reaction as a density loss; CX supplies the diffusion rate.
   ns->react_neut = (struct gk_react) { };
-  ns->info.react_neut.num_react = 0;
   gk_neut_species_react_init(app, ns, ns->info.react_neut, &ns->react_neut);
 
   ns->src = (struct gk_source) { };
@@ -361,4 +716,3 @@ gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
     gk_neut_species_fluid_init_static(gk, app, ns);
   }
 }
-

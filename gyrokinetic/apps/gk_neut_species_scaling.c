@@ -39,9 +39,17 @@ gk_neut_species_scaling_rhs_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_sp
 
   struct gk_species *gks_elc = &app->species[sca->elc_idx];
 
-  // Compute (J*n_neut)*n_elc*<sigma v>_iz.
+  // Compute (J*n_neut)*n_elc*<sigma v>_iz. Static fluid neutrals use the
+  // prescribed initial profile. Dynamic fluid neutrals use their present
+  // evolved density so recycling normalization does not erase diffusion.
+  const struct gkyl_array *Jm0 = sca->Jm0_init;
+  if (!s->info.is_static) {
+    gkyl_array_set_offset_range(sca->dndt_react, 1.0/s->info.mass,
+      fin, 0, &app->local);
+    Jm0 = sca->dndt_react;
+  }
   gkyl_dg_mul_op_range(&app->basis, 0, sca->dndt_react,
-    0, sca->Jm0_init, 0, sca->reactivity, &app->local);  
+    0, Jm0, 0, sca->reactivity, &app->local);
   gkyl_dg_mul_op_range(&app->basis, 0, sca->dndt_react,
     0, gks_elc->lte.moms.marr, 0, sca->dndt_react, &app->local);  
 
@@ -97,17 +105,25 @@ gk_neut_species_scaling_apply_enabled(gkyl_gyrokinetic_app *app, struct gk_neut_
 
     double neut_scaling_fac = sca->recycling_coeff * bflux_intm0_global_ho / sca->react_vol_integ;
 
-    // Divide by the present J*rho, and multiply by neut_scaling_fac*mass*Jm0_init.
-    gkyl_array_set_offset_range(sca->dndt_react, 1.0, fin, 0, &app->local);
-    for (int i=0; i<ns->num_moments; ++i)
-      gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis, i, fin,
-        i, fin, 0, sca->dndt_react, &app->local); 
-  
-    for (int i=0; i<ns->num_moments; ++i)
-      gkyl_dg_mul_op_range(&app->basis, i, fin,
-        i, fin, 0, sca->Jm0_init, &app->local);  
-
-    gkyl_array_scale(fin, neut_scaling_fac*ns->info.mass);
+    if (ns->info.is_static) {
+      // Prescribed model: retain its initial density profile while preserving
+      // the present specific moments.
+      gkyl_array_set_offset_range(sca->dndt_react, 1.0, fin, 0, &app->local);
+      for (int i=0; i<ns->num_moments; ++i)
+        gkyl_dg_div_op_range(gks_ion->lte.moms.mem_geo, &app->basis, i, fin,
+          i, fin, 0, sca->dndt_react, &app->local);
+      for (int i=0; i<ns->num_moments; ++i)
+        gkyl_dg_mul_op_range(&app->basis, i, fin,
+          i, fin, 0, sca->Jm0_init, &app->local);
+      gkyl_array_scale(fin, neut_scaling_fac*ns->info.mass);
+    }
+    else {
+      // Dynamic model: normalize the present evolved state uniformly. This
+      // enforces the same global recycling/ionization balance without
+      // replacing the density shape and therefore remains compatible with
+      // diffusion.
+      gkyl_array_scale(fin, neut_scaling_fac);
+    }
   }
 }
 
