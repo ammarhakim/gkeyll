@@ -813,6 +813,14 @@ tok_configure_xpt_map(const struct gkyl_tok_geo_grid_inp *inp,
   arc_ctx->xpt_anchor_valid = false;
   if (!tok_xpt_ray_enabled(inp))
     return;
+  // Blocks on the extended construction get their poloidal origin from the
+  // topology-aware boundary traces built in tok_geo.c, which can carry two
+  // distinct X-point rays or a closed core seam. The scalar lower-X-point
+  // anchor and arc-interval map below are specific to the chord construction,
+  // so they are simply not built for those blocks (matching the early return
+  // in tok_prepare_ordered_map).
+  if (tok_ext_construction(inp))
+    return;
   if (!inp->half_domain) {
     fprintf(stderr,
       "TOK_XPT_RAY ftype=%d currently requires half_domain=true\n", inp->ftype);
@@ -926,7 +934,7 @@ tok_prepare_ordered_map(struct gkyl_tok_geo_grid_inp *inp,
   // traces built lazily in tok_geo.c.  They can have two distinct X-point
   // rays (or a closed core seam), so the scalar lower-X-point anchor used by
   // the original half-domain path is intentionally bypassed here.
-  if (inp->straight_xpt_ray && !inp->half_domain)
+  if (tok_ext_construction(inp))
     return;
   if (!tok_xpt_ray_enabled(inp) ||
       !tok_xpt_ray_anchor(inp, arc_ctx, psi_curr)) {

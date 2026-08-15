@@ -2,6 +2,39 @@
 #include <gkyl_dg_basis_ops.h>
 #include <gkyl_efit.h>
 #include <complex.h>
+#include <stdbool.h>
+#include <stdlib.h>
+
+// Opt-in for routing half-domain blocks through the extended, topology-aware
+// node construction instead of the separatrix-chord one.  Off by default, so
+// the validated half-domain path stays bitwise unchanged; set
+// GKYL_TOK_EXT_HALF_DOMAIN=1 to A/B it over a full scan.
+static inline bool
+tok_ext_half_domain_enabled(void)
+{
+  static int cached = -1;
+  if (cached < 0) {
+    const char *env = getenv("GKYL_TOK_EXT_HALF_DOMAIN");
+    cached = env && env[0] != '\0' && env[0] != '0' ? 1 : 0;
+    // Announce it once per translation unit. A silently-ignored opt-in would
+    // otherwise produce a clean-looking run of the OLD construction under the
+    // new run tag, which is the expensive mistake to make on a 450-shot suite.
+    if (cached == 1)
+      fprintf(stderr, "TOK_EXT_HALF_DOMAIN enabled: half-domain blocks use the "
+        "extended topology-aware construction\n");
+  }
+  return cached == 1;
+}
+
+// True when this block's nodes come from the extended construction: it traces
+// the CURRENT psi contour between topology-matched endpoints and samples it
+// directly, rather than intersecting separatrix-to-far-surface chords.
+static inline bool
+tok_ext_construction(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  return inp->straight_xpt_ray &&
+    (!inp->half_domain || tok_ext_half_domain_enabled());
+}
 
 // Function context to pass to root finder
 struct arc_length_ctx {
@@ -37,6 +70,14 @@ struct arc_length_ctx {
   double *sep_trace_r, *sep_trace_z, *sep_trace_s;
   int sep_trace_n, sep_trace_capacity;
   bool sep_trace_initialized, sep_trace_param_is_r;
+  // Route selection is per block, not per flux surface.  A topology names one
+  // parameterization, but near the X point a contour can turn in Z and defeat
+  // it; the generic route then arbitrates.  If that happens for any surface in
+  // this block, every surface in the block must use the generic route too --
+  // the two routes lay theta nodes down differently, and mixing them across
+  // adjacent psi rows makes consecutive flux surfaces cross.
+  bool ext_force_generic_route;
+  bool ext_last_trace_used_generic;
   // Ordered trace of the opposite (far) radial boundary and a monotone
   // correspondence v=g(u) from the separatrix trace to that boundary.
   // Intermediate flux surfaces are obtained by intersecting the resulting
