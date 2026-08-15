@@ -2951,6 +2951,314 @@ tok_build_far_trace(const struct gkyl_tok_geo_grid_inp *inp,
   return arc_ctx->far_trace_initialized;
 }
 
+// Number of theta samples in a map trace.  The ladder must agree with
+// tok_build_current_ordered_trace exactly, and the allocation sites size the
+// ladder from it, so it lives in one place.
+static int
+tok_ext_map_trace_nodes(const struct gkyl_tok_geo_grid_inp *inp, int capacity)
+{
+  return GKYL_MIN2(capacity, GKYL_MAX2(49, 4*inp->cgrid.cells[2]+1));
+}
+
+// Ladder rungs.  Rungs must be close enough in psi that consecutive contours
+// are near each other -- that is what makes the projection unambiguous -- so
+// resolving at least the block's own radial grid is the natural choice.
+static int
+tok_ext_ladder_rungs(const struct gkyl_tok_geo_grid_inp *inp)
+{
+  int m = (int) tok_geo_trace_double_env("GKYL_TOK_EXT_LADDER_RUNGS", 0.0);
+  if (m <= 0) m = inp->cgrid.cells[0];
+  return GKYL_MIN2(256, GKYL_MAX2(32, m));
+}
+
+// Weight of the identity map blended into each marched rung.  Projection can
+// legitimately pile several nodes onto one place when a contour shortens (the
+// plate strike of 204951 jumps 50 mm, leaving 48.8 mm of arc with nowhere to
+// go), and PAVA then collapses them to equal values.  Blending beta of the
+// uniform map back in guarantees every theta gap is at least beta/(n-1) of
+// uniform, so the row stays strictly ordered and no cell degenerates.
+//
+// Smallest theta gap a marched rung may contain, as a fraction of the uniform
+// gap 1/(n-1).  Projection can legitimately pile several nodes onto one place
+// when a contour shortens (204951's plate strike jumps 50 mm, leaving 48.8 mm
+// of arc with nowhere to go), and PAVA then collapses them to equal values, so
+// some floor is required or a cell degenerates.
+//
+// This replaced a global blend w = beta*u + (1-beta)*w_proj, which enforced the
+// same floor but paid for it everywhere: it pulled the ENTIRE row toward
+// uniform whether or not that row was pinched.  That made beta a genuine
+// trade-off between the block needing the most correspondence and the one
+// wanting the least, measured (by node-file count, not by absence of output):
+//
+//   beta    204951   205004   205079   203963 b1 thinnest-cell ratio
+//   0.10    clean    clean    clean    1.07e-02
+//   0.40    clean    clean    clean    4.39e-02
+//   0.55    clean    FAIL     clean    6.02e-02
+//   0.90    clean    FAIL     FAIL     9.87e-02
+//   none    FAIL     FAIL     clean    1.06e-01
+//
+// 205004 bound the top of that range and 203963's cell quality bound the
+// bottom, with no setting good at both ends.  Applying the floor only where it
+// binds removes the conflict outright, because it caps how extreme a row may
+// get without destroying the SHAPE of the correspondence -- and shape is what
+// ordering depends on.  Measured, same shots, adaptive floor:
+//
+//   min_gap  204102  205004  205079  204951   203963 b1 thinnest-cell ratio
+//   0.40     clean   clean   clean   clean    4.95e-02
+//   0.60     clean   clean   clean   clean    7.07e-02
+//   0.70     clean    -       -       -
+//   0.90     FAIL    clean   clean   clean    9.87e-02  (no ladder: 1.06e-01)
+//   0.98      -      clean    -       -
+//
+// This WIDENS the safe window rather than removing it: the global blend already
+// failed 205004 at 0.55, whereas the floor runs to ~0.8 before 204102's
+// DN_SOL_OUT_MID crosses (ftype=6, the same class as 205004).  204102 binds
+// here, not 205004.  0.6 sits ~25% below that edge and still recovers 67% of
+// the un-laddered cell quality, against 41% for the blend at the same safety.
+// The hard limit remains min_gap -> 1: the floor then claims the whole arc,
+// every gap is forced uniform, and the march carries nothing.
+static double
+tok_ext_ladder_min_gap(void)
+{
+  double f = tok_geo_trace_double_env("GKYL_TOK_EXT_LADDER_MINGAP", 0.6);
+  return isfinite(f) && f > 0.0 && f < 1.0 ? f : 0.6;
+}
+
+static bool
+tok_ext_theta_ladder_enabled(void)
+{
+  const char *e = getenv("GKYL_TOK_EXT_THETA_LADDER");
+  return e && e[0] != '\0' && e[0] != '0';
+}
+
+// Core surfaces are closed flux surfaces cut at a seam: the two ends of the cut
+// lie on top of each other, so a nearest-point projection can hop across the
+// seam onto the far end of the same contour.  That is the ambiguity the
+// `closed` branch below already guards against -- but a half-domain core arc is
+// not flagged closed, so it needs saying explicitly.  Measured: giving CORE_L
+// and CORE_R the ladder puts 21 reversals into CORE_R (min cos -0.985) on a
+// shot whose cores were previously clean.  They keep the two-point blend, which
+// is both validated and correct for them, since their theta boundaries are the
+// X-point rays and vary smoothly with psi.  This also means the npsi=600 core
+// blocks cost nothing.
+static bool
+tok_ext_ladder_applies(enum gkyl_tok_geo_type ftype)
+{
+  switch (ftype) {
+    case GKYL_GEOMETRY_TOKAMAK_CORE:
+    case GKYL_GEOMETRY_TOKAMAK_CORE_L:
+    case GKYL_GEOMETRY_TOKAMAK_CORE_R:
+    case GKYL_GEOMETRY_TOKAMAK_IWL:
+      return false;
+    default:
+      return true;
+  }
+}
+
+// Nearest point on a polyline, searched forward from *j_lo.  u increases
+// monotonically along the ladder row, so its image must too; marching the
+// window forward makes that true by construction and removes the backward jump
+// between the two nearby legs of a single-null contour that a global argmin
+// would allow.  Returns the normalized arc position.
+static double
+tok_ext_project_onto_trace(const double *tr, const double *tz, const double *ts,
+  int n, double rp, double zp, int *j_lo)
+{
+  double best_d2 = DBL_MAX, best_v = 0.0;
+  int best_j = *j_lo;
+  double total = ts[n-1];
+  for (int j=*j_lo; j<n-1; ++j) {
+    double r0 = tr[j], z0 = tz[j];
+    double dr = tr[j+1]-r0, dz = tz[j+1]-z0;
+    double den = dr*dr+dz*dz;
+    double t = den > 0.0 ? ((rp-r0)*dr+(zp-z0)*dz)/den : 0.0;
+    t = fmin(1.0, fmax(0.0, t));
+    double d2 = SQ(rp-(r0+t*dr))+SQ(zp-(z0+t*dz));
+    if (d2 < best_d2) {
+      best_d2 = d2;
+      best_j = j;
+      best_v = total > 0.0 ? (ts[j]+t*(ts[j+1]-ts[j]))/total : 0.0;
+    }
+  }
+  *j_lo = best_j;
+  return fmin(1.0, fmax(0.0, best_v));
+}
+
+// Force a row strictly increasing: isotonic regression on the interior (least
+// squares, rather than greedily flattening after the first reversal), then the
+// identity blend, then re-anchor the two radial-boundary nodes.
+static void
+tok_ext_ladder_condition_row(double *w, int n)
+{
+  double *bmean = gkyl_malloc(sizeof(double[n]));
+  int *bcount = gkyl_malloc(sizeof(int[n]));
+  int nblock = 0;
+  for (int i=1; i<n-1; ++i) {
+    bmean[nblock] = w[i];
+    bcount[nblock] = 1;
+    ++nblock;
+    while (nblock > 1 && bmean[nblock-2] > bmean[nblock-1]) {
+      int c = bcount[nblock-2]+bcount[nblock-1];
+      bmean[nblock-2] = (bcount[nblock-2]*bmean[nblock-2]
+        +bcount[nblock-1]*bmean[nblock-1])/c;
+      bcount[nblock-2] = c;
+      --nblock;
+    }
+  }
+  int out = 1;
+  for (int b=0; b<nblock; ++b)
+    for (int j=0; j<bcount[b]; ++j)
+      w[out++] = bmean[b];
+  gkyl_free(bmean);
+  gkyl_free(bcount);
+  w[0] = 0.0;
+  w[n-1] = 1.0;
+
+  // Adaptive gap floor: the L1-cheapest way to satisfy gap >= g while keeping
+  // the gaps summing to 1.  Raise every deficient gap to g, then take the
+  // deficit back from the gaps that have room, in proportion to their EXCESS
+  // over g -- so a gap already comfortably above the floor is barely touched,
+  // and a row that is nowhere pinched comes through unchanged.  That is the
+  // whole point: the old global blend distorted every row by beta regardless.
+  //
+  // One pass is exact.  Writing nd/nf for the deficient/free counts,
+  //   before: 1 = (nd*g - deficit) + (nf*g + freesum) = (n-1)*g + freesum - deficit
+  //   after:  nd*g + (nf*g + freesum*scale) with scale = (freesum-deficit)/freesum
+  //         = (n-1)*g + freesum - deficit = 1
+  // and every free gap stays >= g because it lands at g + (nonneg)*scale.  The
+  // fallback can only trigger at g*(n-1) >= 1, i.e. min_gap >= 1, which the
+  // accessor excludes.
+  int ngap = n-1;
+  double g = tok_ext_ladder_min_gap()/ngap;
+  double *d = gkyl_malloc(sizeof(double[ngap]));
+  double deficit = 0.0, freesum = 0.0;
+  for (int i=0; i<ngap; ++i) {
+    d[i] = w[i+1]-w[i];
+    if (d[i] < g) deficit += g-d[i]; else freesum += d[i]-g;
+  }
+  if (deficit > 0.0) {
+    if (freesum > deficit) {
+      double scale = (freesum-deficit)/freesum;
+      for (int i=0; i<ngap; ++i)
+        d[i] = d[i] < g ? g : g+(d[i]-g)*scale;
+    }
+    else {
+      for (int i=0; i<ngap; ++i) d[i] = 1.0/ngap;
+    }
+    double acc = 0.0;
+    for (int i=0; i<ngap; ++i) { acc += d[i]; w[i+1] = acc; }
+    w[0] = 0.0;
+    w[n-1] = 1.0;
+  }
+  gkyl_free(d);
+}
+
+// Build the marched ladder.  Failure is not fatal: the caller falls back to the
+// two-point blend, which is what shipped before.
+static bool
+tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx)
+{
+  const int cap = arc_ctx->sep_trace_capacity;
+  const int n = tok_ext_map_trace_nodes(inp, cap);
+  const int m = tok_ext_ladder_rungs(inp);
+  const double psisep = arc_ctx->geo->psisep;
+  const double span = arc_ctx->xpt_ray_psi0-psisep;
+  if (n < 2 || m < 1 || !isfinite(span) || span == 0.0)
+    return false;
+
+  double *scratch = gkyl_malloc(sizeof(double[6*cap]));
+  double *pr = scratch,      *pz = scratch+cap,   *ps = scratch+2*cap;
+  double *cr = scratch+3*cap, *cz = scratch+4*cap, *cs = scratch+5*cap;
+  double *wprev = gkyl_malloc(sizeof(double[n]));
+  double *wcur = gkyl_malloc(sizeof(double[n]));
+
+  int pn = arc_ctx->sep_trace_n;
+  bool pparam = arc_ctx->sep_trace_param_is_r;
+  double ppsi = psisep;
+  for (int i=0; i<pn; ++i) {
+    pr[i] = arc_ctx->sep_trace_r[i];
+    pz[i] = arc_ctx->sep_trace_z[i];
+    ps[i] = arc_ctx->sep_trace_s[i];
+  }
+  for (int i=0; i<n; ++i) {
+    wprev[i] = i/(double) (n-1);
+    arc_ctx->ext_ladder_w[i] = wprev[i];
+  }
+
+  bool ok = true;
+  for (int k=1; k<=m && ok; ++k) {
+    double psi_k = psisep+span*(k/(double) m);
+    int cn = 0;
+    bool cparam = false, cclosed = false;
+    if (!tok_ext_build_domain_trace(inp, arc_ctx, psi_k, false,
+        cr, cz, cs, &cn, &cparam, &cclosed) || cn < 2) {
+      fprintf(stderr,
+        "TOK_EXT_LADDER reason=rung_trace_failed ftype=%d k=%d psi=%.17g\n",
+        inp->ftype, k, psi_k);
+      ok = false;
+      break;
+    }
+    int j_lo = 0;
+    for (int i=0; i<n; ++i) {
+      double rp = 0.0, zp = 0.0;
+      if (!tok_trace_sample(arc_ctx->geo, ppsi, pr, pz, ps, pn, pparam,
+          wprev[i], &rp, &zp)) {
+        fprintf(stderr,
+          "TOK_EXT_LADDER reason=prev_sample_failed ftype=%d k=%d i=%d w=%.17g\n",
+          inp->ftype, k, i, wprev[i]);
+        ok = false;
+        break;
+      }
+      wcur[i] = tok_ext_project_onto_trace(cr, cz, cs, cn, rp, zp, &j_lo);
+    }
+    if (!ok) break;
+    tok_ext_ladder_condition_row(wcur, n);
+    for (int i=1; i<n; ++i)
+      if (!(wcur[i] > wcur[i-1])) {
+        fprintf(stderr,
+          "TOK_EXT_LADDER reason=nonmonotonic ftype=%d k=%d i=%d prev=%.17g curr=%.17g\n",
+          inp->ftype, k, i, wcur[i-1], wcur[i]);
+        ok = false;
+        break;
+      }
+    if (!ok) break;
+    for (int i=0; i<n; ++i)
+      arc_ctx->ext_ladder_w[(size_t) k*n+i] = wcur[i];
+    // This rung becomes the next one's reference.
+    for (int i=0; i<cn; ++i) { pr[i] = cr[i]; pz[i] = cz[i]; ps[i] = cs[i]; }
+    pn = cn; pparam = cparam; ppsi = psi_k;
+    for (int i=0; i<n; ++i) wprev[i] = wcur[i];
+  }
+
+  gkyl_free(scratch);
+  gkyl_free(wprev);
+  gkyl_free(wcur);
+  if (!ok) return false;
+  arc_ctx->ext_ladder_m = m;
+  arc_ctx->ext_ladder_n = n;
+  arc_ctx->ext_ladder_initialized = true;
+  if (tok_ordered_map_diag_enabled())
+    fprintf(stderr, "TOK_EXT_LADDER built ftype=%d rungs=%d nodes=%d min_gap=%.4g\n",
+      inp->ftype, m, n, tok_ext_ladder_min_gap());
+  return true;
+}
+
+// w(u_i, psi) by linear interpolation between the two bracketing rungs.  A
+// convex combination of two increasing rows is increasing, so the interpolated
+// row is ordered for every radial fraction, not only at the rungs.
+static double
+tok_ext_ladder_w(const struct arc_length_ctx *arc_ctx, double rf, int i)
+{
+  int m = arc_ctx->ext_ladder_m, n = arc_ctx->ext_ladder_n;
+  double x = fmin(1.0, fmax(0.0, rf))*m;
+  int k = GKYL_MIN2(m-1, GKYL_MAX2(0, (int) floor(x)));
+  double t = x-k;
+  const double *w0 = arc_ctx->ext_ladder_w+(size_t) k*n;
+  const double *w1 = w0+n;
+  return (1.0-t)*w0[i]+t*w1[i];
+}
+
 static bool
 tok_build_trace_correspondence(const struct gkyl_tok_geo_grid_inp *inp,
   struct arc_length_ctx *arc_ctx)
@@ -3069,10 +3377,29 @@ tok_build_trace_correspondence(const struct gkyl_tok_geo_grid_inp *inp,
   // identity map because its duplicated seam makes nearest projection
   // ambiguous.  Keep the original projection/PAVA correspondence unchanged
   // for the established half-domain path.
+  // A closed core keeps the identity map unconditionally: its duplicated seam
+  // makes nearest projection ambiguous.  An open extended block keeps it only
+  // while the projection correspondence is switched off.
+  const bool ext_open = extended && !closed;
+  const bool ext_ladder = ext_open && tok_ext_theta_ladder_enabled() &&
+    tok_ext_ladder_applies(inp->ftype);
   if (extended || closed) {
     for (int i=0; i<n; ++i)
       arc_ctx->trace_corr_v[i] = i/(double) (n-1);
     arc_ctx->trace_corr_n = n;
+    // Both radial boundary traces exist and the block's route has settled, so
+    // this is the one point where the ladder can be marched without perturbing
+    // route selection.  A failure here is not fatal -- the two-point blend
+    // above remains valid, it just cannot resolve an interior discontinuity.
+    if (ext_ladder && !arc_ctx->ext_ladder_initialized &&
+        !arc_ctx->ext_ladder_failed) {
+      if (!tok_ext_build_theta_ladder(inp, arc_ctx)) {
+        arc_ctx->ext_ladder_failed = true;
+        fprintf(stderr,
+          "TOK_EXT_LADDER reason=build_failed ftype=%d falling back to blend\n",
+          inp->ftype);
+      }
+    }
     arc_ctx->ordered_boundaries_initialized = true;
     return true;
   }
@@ -3845,6 +4172,52 @@ tok_logical_trace_sample(const struct gkyl_tok_geo *geo, double psi,
     *r = pr; *z = pz;
     return true;
   }
+  // Last resort, and the only one that survives a DG cell face.  The quadratic
+  // psi representation is C0: psi is continuous across a face but grad psi is
+  // not, so a Newton projection started on a face -- which is exactly where
+  // 204980's segment sits, straddling Z = -7*dZ = -0.9625 to 13 digits -- has
+  // no well-defined direction to move in and the step above fails.  Bisecting
+  // for a sign change of psi-target along the segment normal never evaluates a
+  // gradient, so the kink cannot defeat it.  Both bracketing trace points are
+  // exact contour points, so a crossing exists within a segment length; bound
+  // the search there to stay on this segment's branch.
+  if (seglen > 0.0) {
+    double nx = -dz/seglen, ny = dr/seglen;
+    const int nstep = 32;
+    double h = seglen/nstep;
+    double f0 = tok_eval_psi_rz_local(geo, rlin, zlin)-psi;
+    if (isfinite(f0)) {
+      double fprev_p = f0, fprev_m = f0;
+      for (int k=1; k<=nstep; ++k) {
+        for (int side=0; side<2; ++side) {
+          double sgn = side == 0 ? 1.0 : -1.0;
+          double t = sgn*k*h;
+          double fk = tok_eval_psi_rz_local(geo,
+            rlin+t*nx, zlin+t*ny)-psi;
+          double fprev = side == 0 ? fprev_p : fprev_m;
+          if (isfinite(fk) && isfinite(fprev) && (fk < 0.0) != (fprev < 0.0)) {
+            double lo = sgn*(k-1)*h, hi = t, flo = fprev;
+            for (int m=0; m<80; ++m) {
+              double mid = 0.5*(lo+hi);
+              double fm = tok_eval_psi_rz_local(geo,
+                rlin+mid*nx, zlin+mid*ny)-psi;
+              if (!isfinite(fm)) break;
+              if ((fm < 0.0) == (flo < 0.0)) { lo = mid; flo = fm; } else hi = mid;
+            }
+            double tb = 0.5*(lo+hi);
+            *r = rlin+tb*nx; *z = zlin+tb*ny;
+            if (tok_ordered_map_diag_enabled())
+              fprintf(stderr,
+                "TOK_LOGSAMP_PERP_BISECT u=%.17g i=%d chord=(%.17g,%.17g) "
+                "out=(%.17g,%.17g) disp=%.17g seglen=%.17g psi=%.17g\n",
+                u, i, rlin, zlin, *r, *z, fabs(tb), seglen, psi);
+            return true;
+          }
+          if (side == 0) fprev_p = fk; else fprev_m = fk;
+        }
+      }
+    }
+  }
   fprintf(stderr,
     "TOK_LOGSAMP reason=no_projection axis_ok=%d u=%.17g i=%d w=%.17g "
     "chord=(%.17g,%.17g) p0=(%.17g,%.17g) p1=(%.17g,%.17g) seglen=%.17g "
@@ -3868,8 +4241,7 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
       inp->ftype, psi);
     return false;
   }
-  int n = GKYL_MIN2(arc_ctx->sep_trace_capacity,
-    GKYL_MAX2(49, 4*inp->cgrid.cells[2]+1));
+  int n = tok_ext_map_trace_nodes(inp, arc_ctx->sep_trace_capacity);
   const bool extended = tok_ext_construction(inp);
   double *raw_r = 0, *raw_z = 0, *raw_s = 0;
   int raw_n = 0;
@@ -3925,8 +4297,14 @@ tok_build_current_ordered_trace(const struct gkyl_tok_geo_grid_inp *inp,
     double u = i/(double) (n-1);
     bool point_ok = false;
     if (extended) {
-      double v = tok_trace_correspondence(arc_ctx, u);
-      double w = (1.0-radial_fraction)*u+radial_fraction*v;
+      double w;
+      if (arc_ctx->ext_ladder_initialized && n == arc_ctx->ext_ladder_n) {
+        w = tok_ext_ladder_w(arc_ctx, radial_fraction, i);
+      }
+      else {
+        double v = tok_trace_correspondence(arc_ctx, u);
+        w = (1.0-radial_fraction)*u+radial_fraction*v;
+      }
       point_ok = tok_trace_sample(arc_ctx->geo, psi,
         raw_r, raw_z, raw_s, raw_n, raw_param_is_r, w,
         &arc_ctx->map_trace_r[i], &arc_ctx->map_trace_z[i]);
@@ -4695,8 +5073,12 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   double *sep_trace_r = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_z = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_s = gkyl_malloc(sizeof(double[sep_trace_capacity]));
+  // The marched theta ladder shares this block so it shares the lifetime of
+  // everything else hanging off arc_ctx; sizing it here keeps the one free().
+  size_t ladder_size = (size_t) (tok_ext_ladder_rungs(inp)+1)
+    *tok_ext_map_trace_nodes(inp, sep_trace_capacity);
   double *ordered_trace_storage =
-    gkyl_malloc(sizeof(double[8*sep_trace_capacity]));
+    gkyl_malloc(sizeof(double)*(8*(size_t) sep_trace_capacity+ladder_size));
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
@@ -4715,6 +5097,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     .map_trace_z = ordered_trace_storage+5*sep_trace_capacity,
     .map_trace_s = ordered_trace_storage+6*sep_trace_capacity,
     .map_trace_phi = ordered_trace_storage+7*sep_trace_capacity,
+    .ext_ladder_w = ordered_trace_storage+8*(size_t) sep_trace_capacity,
     .ftype = inp->ftype,
     .zmaxis = geo->zmaxis
   };
@@ -5141,8 +5524,12 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   double *sep_trace_r = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_z = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_s = gkyl_malloc(sizeof(double[sep_trace_capacity]));
+  // The marched theta ladder shares this block so it shares the lifetime of
+  // everything else hanging off arc_ctx; sizing it here keeps the one free().
+  size_t ladder_size = (size_t) (tok_ext_ladder_rungs(inp)+1)
+    *tok_ext_map_trace_nodes(inp, sep_trace_capacity);
   double *ordered_trace_storage =
-    gkyl_malloc(sizeof(double[8*sep_trace_capacity]));
+    gkyl_malloc(sizeof(double)*(8*(size_t) sep_trace_capacity+ladder_size));
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
@@ -5161,6 +5548,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
     .map_trace_z = ordered_trace_storage+5*sep_trace_capacity,
     .map_trace_s = ordered_trace_storage+6*sep_trace_capacity,
     .map_trace_phi = ordered_trace_storage+7*sep_trace_capacity,
+    .ext_ladder_w = ordered_trace_storage+8*(size_t) sep_trace_capacity,
     .ftype = inp->ftype,
     .zmaxis = geo->zmaxis
   };
@@ -5511,8 +5899,12 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   double *sep_trace_r = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_z = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_s = gkyl_malloc(sizeof(double[sep_trace_capacity]));
+  // The marched theta ladder shares this block so it shares the lifetime of
+  // everything else hanging off arc_ctx; sizing it here keeps the one free().
+  size_t ladder_size = (size_t) (tok_ext_ladder_rungs(inp)+1)
+    *tok_ext_map_trace_nodes(inp, sep_trace_capacity);
   double *ordered_trace_storage =
-    gkyl_malloc(sizeof(double[8*sep_trace_capacity]));
+    gkyl_malloc(sizeof(double)*(8*(size_t) sep_trace_capacity+ladder_size));
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
@@ -5531,6 +5923,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
     .map_trace_z = ordered_trace_storage+5*sep_trace_capacity,
     .map_trace_s = ordered_trace_storage+6*sep_trace_capacity,
     .map_trace_phi = ordered_trace_storage+7*sep_trace_capacity,
+    .ext_ladder_w = ordered_trace_storage+8*(size_t) sep_trace_capacity,
     .ftype = inp->ftype,
     .zmaxis = geo->zmaxis
   };

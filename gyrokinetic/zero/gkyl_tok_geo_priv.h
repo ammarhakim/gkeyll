@@ -87,6 +87,17 @@ struct arc_length_ctx {
   int far_trace_n, trace_corr_n;
   bool far_trace_initialized, far_trace_param_is_r;
   bool ordered_boundaries_initialized;
+  // Marched theta correspondence w(u,psi), tabulated on a psi ladder running
+  // from the separatrix to the far boundary.  trace_corr_v above is a
+  // boundary-to-boundary map, so the two-point blend built from it is smooth in
+  // psi and cannot represent a discontinuity at an INTERIOR surface -- which is
+  // exactly what a plate-root annihilation (204951) or a near-tangent X-point
+  // ray (205004) produces.  Marching rung to rung propagates the poloidal
+  // coordinate through such a surface instead of interpolating across it.
+  // Row k holds ext_ladder_n node positions at radial fraction k/ext_ladder_m.
+  double *ext_ladder_w;
+  int ext_ladder_m, ext_ladder_n;
+  bool ext_ladder_initialized, ext_ladder_failed;
   // A modest per-psi trace supplies an ordered tangent and the cumulative
   // toroidal field-line integral on exactly the same R-Z path.
   double *map_trace_r, *map_trace_z, *map_trace_s, *map_trace_phi;
