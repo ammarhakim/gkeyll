@@ -3024,6 +3024,25 @@ tok_ext_ladder_min_gap(void)
   return isfinite(f) && f > 0.0 && f < 1.0 ? f : 0.6;
 }
 
+// Which radial boundary anchors the march.  The rung the march starts from
+// keeps the identity map, so it imposes its own arc-length parameterization on
+// everything downstream, and the separatrix is the wrong choice for that: it
+// carries the X-point corner, where arc length concentrates hard while the
+// neighbouring surface is still smooth.  The mismatch folds the FIRST radial
+// cell -- 204997 folded exactly one cell, at (i_psi=0, j_theta=10), where the
+// row-0 to row-1 spacing varies 260x across theta, and it was insensitive to
+// min_gap (identical fold at 0.2, 0.4, 0.6) because the floor is not what
+// produces it.  Anchoring at the far boundary, which carries no corner, lets
+// the separatrix inherit a corrected placement instead of dictating a bad one:
+// it fixes 204997 and leaves 204951, 204965, 205004 and 204102 clean.
+// Set GKYL_TOK_EXT_LADDER_FROM_SEP=1 to go back to separatrix-anchored.
+static bool
+tok_ext_ladder_from_far(void)
+{
+  const char *e = getenv("GKYL_TOK_EXT_LADDER_FROM_SEP");
+  return !(e && e[0] != '\0' && e[0] != '0');
+}
+
 static bool
 tok_ext_theta_ladder_enabled(void)
 {
@@ -3173,25 +3192,28 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
   double *wprev = gkyl_malloc(sizeof(double[n]));
   double *wcur = gkyl_malloc(sizeof(double[n]));
 
-  int pn = arc_ctx->sep_trace_n;
-  bool pparam = arc_ctx->sep_trace_param_is_r;
-  double ppsi = psisep;
-  for (int i=0; i<pn; ++i) {
-    pr[i] = arc_ctx->sep_trace_r[i];
-    pz[i] = arc_ctx->sep_trace_z[i];
-    ps[i] = arc_ctx->sep_trace_s[i];
-  }
+  const bool from_far = tok_ext_ladder_from_far();
+  const int k_seed = from_far ? m : 0;
+  int pn = from_far ? arc_ctx->far_trace_n : arc_ctx->sep_trace_n;
+  bool pparam = from_far ? arc_ctx->far_trace_param_is_r
+    : arc_ctx->sep_trace_param_is_r;
+  double ppsi = from_far ? arc_ctx->xpt_ray_psi0 : psisep;
+  const double *sr = from_far ? arc_ctx->far_trace_r : arc_ctx->sep_trace_r;
+  const double *sz = from_far ? arc_ctx->far_trace_z : arc_ctx->sep_trace_z;
+  const double *ss = from_far ? arc_ctx->far_trace_s : arc_ctx->sep_trace_s;
+  for (int i=0; i<pn; ++i) { pr[i] = sr[i]; pz[i] = sz[i]; ps[i] = ss[i]; }
   for (int i=0; i<n; ++i) {
     wprev[i] = i/(double) (n-1);
-    arc_ctx->ext_ladder_w[i] = wprev[i];
+    arc_ctx->ext_ladder_w[(size_t) k_seed*n+i] = wprev[i];
   }
 
   bool ok = true;
-  for (int k=1; k<=m && ok; ++k) {
+  for (int step=1; step<=m && ok; ++step) {
+    int k = from_far ? m-step : step;
     double psi_k = psisep+span*(k/(double) m);
     int cn = 0;
     bool cparam = false, cclosed = false;
-    if (!tok_ext_build_domain_trace(inp, arc_ctx, psi_k, false,
+    if (!tok_ext_build_domain_trace(inp, arc_ctx, psi_k, k == 0,
         cr, cz, cs, &cn, &cparam, &cclosed) || cn < 2) {
       fprintf(stderr,
         "TOK_EXT_LADDER reason=rung_trace_failed ftype=%d k=%d psi=%.17g\n",
