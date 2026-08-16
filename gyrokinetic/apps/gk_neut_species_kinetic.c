@@ -686,7 +686,7 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     gkyl_cart_modal_tensor(&vel_basis, vdim, app->poly_order); // for canonical PB
   struct gkyl_vlasov_velocity_map_inp inp_vvmap[GKYL_MAX_CDIM] = { 0 };
   s->vlasov_vel_map = gkyl_vlasov_velocity_map_new(&s->grid_vel, &s->local_vel,
-    &vel_basis, inp_vvmap, app->use_gpu);
+    &vel_basis, inp_vvmap, false, app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // add the parallel direction in case TS BCs are needed.

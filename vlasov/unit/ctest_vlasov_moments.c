@@ -427,7 +427,7 @@ test_moments(int cdim, int vdim, int poly_order, bool use_tensor,
   if (use_nonuniform)
     for (int d=0; d<vdim; ++d) inp_vmap[d].eval_vmap = eval_quad_vmap;
   struct gkyl_vlasov_velocity_map *vvm = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &vel_local, &vbasis, inp_vmap, use_gpu);
+    &vel_local, &vbasis, inp_vmap, false, use_gpu);
 
   // Hamiltonian (H = v^2/2) on the mapped grid; device-resident when use_gpu
   // (this host/device mismatch was the pre-existing GPU crash in the old test).

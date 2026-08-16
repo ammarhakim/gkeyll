@@ -134,7 +134,7 @@ bench_case(enum gkyl_model_id model_id, int cdim, int vdim, int poly_order,
   struct gkyl_array *gamma_inv = gkyl_array_new(GKYL_DOUBLE, velBasis.num_basis, velRange.volume);
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &velBasis, inp_vmap, false);
+    &velRange, &velBasis, inp_vmap, false, false);
   struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_position_map *pos_map = gkyl_vlasov_position_map_new(&confGrid,
     &confRange, &confRange_ext, &confBasis, inp_pmap, false);
@@ -337,7 +337,7 @@ bench_case(enum gkyl_model_id model_id, int cdim, int vdim, int poly_order,
   // thread grid) on the same inputs, check they reproduce the CPU per-cell
   // loops, and time GPU vs CPU head-to-head. ----
   struct gkyl_vlasov_velocity_map *vel_map_cu = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &velBasis, inp_vmap, true);
+    &velRange, &velBasis, inp_vmap, false, true);
   struct gkyl_vlasov_position_map *pos_map_cu = gkyl_vlasov_position_map_new(&confGrid,
     &confRange, &confRange_ext, &confBasis, inp_pmap, true);
 

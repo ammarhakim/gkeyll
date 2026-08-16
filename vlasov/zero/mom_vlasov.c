@@ -205,17 +205,21 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
     mom_vlasov->momt.num_mom = 2+vdim;
   }
   else if (inp->mom_type == GKYL_F_MOMENT_M0_UPPER) {
-    if (inp->conf_basis->b_type != GKYL_BASIS_MODAL_TENSOR && vdim !=1) {
-      gkyl_exit("mom_vlasov: M0 upper only defined for tensor basis and vdim = 1!");
+    if (vdim != 1) {
+      gkyl_exit("mom_vlasov: M0 upper only defined for vdim = 1!");
     }
-    mom_vlasov->momt.kernel = tensor_m0_upper_kernels[cdim-1].kernels[poly_order];
+    mom_vlasov->momt.kernel = (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) ?
+      tensor_m0_upper_kernels[cdim-1].kernels[poly_order] :
+      ser_m0_upper_kernels[cdim-1].kernels[poly_order];
     mom_vlasov->momt.num_mom = 1;
   }
   else if (inp->mom_type == GKYL_F_MOMENT_M0_LOWER) {
-    if (inp->conf_basis->b_type != GKYL_BASIS_MODAL_TENSOR && vdim !=1) {
-      gkyl_exit("mom_vlasov: M0 lower only defined for tensor basis and vdim = 1!");
+    if (vdim != 1) {
+      gkyl_exit("mom_vlasov: M0 lower only defined for vdim = 1!");
     }
-    mom_vlasov->momt.kernel = tensor_m0_lower_kernels[cdim-1].kernels[poly_order];
+    mom_vlasov->momt.kernel = (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) ?
+      tensor_m0_lower_kernels[cdim-1].kernels[poly_order] :
+      ser_m0_lower_kernels[cdim-1].kernels[poly_order];
     mom_vlasov->momt.num_mom = 1;
   }
   else {

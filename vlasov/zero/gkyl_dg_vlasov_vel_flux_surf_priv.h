@@ -353,12 +353,30 @@ static const gkyl_lax_cfl_kern_list ser_lax_flux_nodal_vz_cfl_kernels[] = {
 GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, lax_flux_nodal_vx_1x1v_tensor_p2_node, lax_flux_nodal_vx_1x1v_tensor_p3_node }, // 0
-  { NULL, NULL, lax_flux_nodal_vx_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vx_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, lax_flux_nodal_vx_1x1v_tensor_p1_node, lax_flux_nodal_vx_1x1v_tensor_p2_node, lax_flux_nodal_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, lax_flux_nodal_vx_1x2v_tensor_p1_node, lax_flux_nodal_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, lax_flux_nodal_vx_1x3v_tensor_p1_node, lax_flux_nodal_vx_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, lax_flux_nodal_vx_2x1v_tensor_p2_node, lax_flux_nodal_vx_2x1v_tensor_p3_node }, // 3
-  { NULL, NULL, lax_flux_nodal_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, lax_flux_nodal_vx_2x1v_tensor_p1_node, lax_flux_nodal_vx_2x1v_tensor_p2_node, lax_flux_nodal_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, lax_flux_nodal_vx_2x2v_tensor_p1_node, lax_flux_nodal_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_vx_kernels[] = {
+  // 1x kernels
+  { NULL, ho_lax_flux_nodal_vx_1x1v_tensor_p1_node, lax_flux_nodal_vx_1x1v_tensor_p2_node, lax_flux_nodal_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, ho_lax_flux_nodal_vx_1x2v_tensor_p1_node, lax_flux_nodal_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vx_1x3v_tensor_p1_node, lax_flux_nodal_vx_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, ho_lax_flux_nodal_vx_2x1v_tensor_p1_node, lax_flux_nodal_vx_2x1v_tensor_p2_node, lax_flux_nodal_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, ho_lax_flux_nodal_vx_2x2v_tensor_p1_node, lax_flux_nodal_vx_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -367,12 +385,30 @@ static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vx_kernels[] = 
 GKYL_CU_D
 static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_vx_cfl_kernels[] = {
   // 1x kernels
-  { NULL, NULL, lax_flux_nodal_vx_1x1v_tensor_p2_cfl, lax_flux_nodal_vx_1x1v_tensor_p3_cfl }, // 0
-  { NULL, NULL, lax_flux_nodal_vx_1x2v_tensor_p2_cfl, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vx_1x3v_tensor_p2_cfl, NULL }, // 2
+  { NULL, lax_flux_nodal_vx_1x1v_tensor_p1_cfl, lax_flux_nodal_vx_1x1v_tensor_p2_cfl, lax_flux_nodal_vx_1x1v_tensor_p3_cfl }, // 0
+  { NULL, lax_flux_nodal_vx_1x2v_tensor_p1_cfl, lax_flux_nodal_vx_1x2v_tensor_p2_cfl, NULL }, // 1
+  { NULL, lax_flux_nodal_vx_1x3v_tensor_p1_cfl, lax_flux_nodal_vx_1x3v_tensor_p2_cfl, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, lax_flux_nodal_vx_2x1v_tensor_p2_cfl, lax_flux_nodal_vx_2x1v_tensor_p3_cfl }, // 3
-  { NULL, NULL, lax_flux_nodal_vx_2x2v_tensor_p2_cfl, NULL }, // 4
+  { NULL, lax_flux_nodal_vx_2x1v_tensor_p1_cfl, lax_flux_nodal_vx_2x1v_tensor_p2_cfl, lax_flux_nodal_vx_2x1v_tensor_p3_cfl }, // 3
+  { NULL, lax_flux_nodal_vx_2x2v_tensor_p1_cfl, lax_flux_nodal_vx_2x2v_tensor_p2_cfl, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_vx_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, ho_lax_flux_nodal_vx_1x1v_tensor_p1_cfl, lax_flux_nodal_vx_1x1v_tensor_p2_cfl, lax_flux_nodal_vx_1x1v_tensor_p3_cfl }, // 0
+  { NULL, ho_lax_flux_nodal_vx_1x2v_tensor_p1_cfl, lax_flux_nodal_vx_1x2v_tensor_p2_cfl, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vx_1x3v_tensor_p1_cfl, lax_flux_nodal_vx_1x3v_tensor_p2_cfl, NULL }, // 2
+  // 2x kernels
+  { NULL, ho_lax_flux_nodal_vx_2x1v_tensor_p1_cfl, lax_flux_nodal_vx_2x1v_tensor_p2_cfl, lax_flux_nodal_vx_2x1v_tensor_p3_cfl }, // 3
+  { NULL, ho_lax_flux_nodal_vx_2x2v_tensor_p1_cfl, lax_flux_nodal_vx_2x2v_tensor_p2_cfl, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -382,11 +418,29 @@ GKYL_CU_D
 static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, lax_flux_nodal_vy_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vy_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, lax_flux_nodal_vy_1x2v_tensor_p1_node, lax_flux_nodal_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, lax_flux_nodal_vy_1x3v_tensor_p1_node, lax_flux_nodal_vy_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, lax_flux_nodal_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, lax_flux_nodal_vy_2x2v_tensor_p1_node, lax_flux_nodal_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, ho_lax_flux_nodal_vy_1x2v_tensor_p1_node, lax_flux_nodal_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vy_1x3v_tensor_p1_node, lax_flux_nodal_vy_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, ho_lax_flux_nodal_vy_2x2v_tensor_p1_node, lax_flux_nodal_vy_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -396,11 +450,29 @@ GKYL_CU_D
 static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_vy_cfl_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, lax_flux_nodal_vy_1x2v_tensor_p2_cfl, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vy_1x3v_tensor_p2_cfl, NULL }, // 2
+  { NULL, lax_flux_nodal_vy_1x2v_tensor_p1_cfl, lax_flux_nodal_vy_1x2v_tensor_p2_cfl, NULL }, // 1
+  { NULL, lax_flux_nodal_vy_1x3v_tensor_p1_cfl, lax_flux_nodal_vy_1x3v_tensor_p2_cfl, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, lax_flux_nodal_vy_2x2v_tensor_p2_cfl, NULL }, // 4
+  { NULL, lax_flux_nodal_vy_2x2v_tensor_p1_cfl, lax_flux_nodal_vy_2x2v_tensor_p2_cfl, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_vy_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, ho_lax_flux_nodal_vy_1x2v_tensor_p1_cfl, lax_flux_nodal_vy_1x2v_tensor_p2_cfl, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vy_1x3v_tensor_p1_cfl, lax_flux_nodal_vy_1x3v_tensor_p2_cfl, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, ho_lax_flux_nodal_vy_2x2v_tensor_p1_cfl, lax_flux_nodal_vy_2x2v_tensor_p2_cfl, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -411,7 +483,25 @@ static const gkyl_lax_flux_nodal_kern_list tensor_lax_flux_nodal_vz_kernels[] = 
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vz_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, lax_flux_nodal_vz_1x3v_tensor_p1_node, lax_flux_nodal_vz_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_flux_nodal_kern_list tensor_ho_lax_flux_nodal_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vz_1x3v_tensor_p1_node, lax_flux_nodal_vz_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -425,7 +515,25 @@ static const gkyl_lax_cfl_kern_list tensor_lax_flux_nodal_vz_cfl_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vz_1x3v_tensor_p2_cfl, NULL }, // 2
+  { NULL, lax_flux_nodal_vz_1x3v_tensor_p1_cfl, lax_flux_nodal_vz_1x3v_tensor_p2_cfl, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_cfl_kern_list tensor_ho_lax_flux_nodal_vz_cfl_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vz_1x3v_tensor_p1_cfl, lax_flux_nodal_vz_1x3v_tensor_p2_cfl, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -958,12 +1066,30 @@ static const gkyl_E_alpha_quad_kern_list ser_E_ho_alpha_quad_vz_kernels[] = {
 GKYL_CU_D
 static const gkyl_E_alpha_quad_kern_list tensor_E_alpha_quad_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, E_alpha_quad_vx_1x1v_tensor_p2_node, E_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
-  { NULL, NULL, E_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, E_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, E_alpha_quad_vx_1x1v_tensor_p1_node, E_alpha_quad_vx_1x1v_tensor_p2_node, E_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, E_alpha_quad_vx_1x2v_tensor_p1_node, E_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, E_alpha_quad_vx_1x3v_tensor_p1_node, E_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, E_alpha_quad_vx_2x1v_tensor_p2_node, E_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
-  { NULL, NULL, E_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, E_alpha_quad_vx_2x1v_tensor_p1_node, E_alpha_quad_vx_2x1v_tensor_p2_node, E_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, E_alpha_quad_vx_2x2v_tensor_p1_node, E_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_E_alpha_quad_kern_list tensor_E_ho_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, E_ho_alpha_quad_vx_1x1v_tensor_p1_node, E_alpha_quad_vx_1x1v_tensor_p2_node, E_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, E_ho_alpha_quad_vx_1x2v_tensor_p1_node, E_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, E_ho_alpha_quad_vx_1x3v_tensor_p1_node, E_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, E_ho_alpha_quad_vx_2x1v_tensor_p1_node, E_alpha_quad_vx_2x1v_tensor_p2_node, E_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, E_ho_alpha_quad_vx_2x2v_tensor_p1_node, E_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -973,11 +1099,29 @@ GKYL_CU_D
 static const gkyl_E_alpha_quad_kern_list tensor_E_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, E_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, E_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, E_alpha_quad_vy_1x2v_tensor_p1_node, E_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, E_alpha_quad_vy_1x3v_tensor_p1_node, E_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, E_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, E_alpha_quad_vy_2x2v_tensor_p1_node, E_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_E_alpha_quad_kern_list tensor_E_ho_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, E_ho_alpha_quad_vy_1x2v_tensor_p1_node, E_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, E_ho_alpha_quad_vy_1x3v_tensor_p1_node, E_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, E_ho_alpha_quad_vy_2x2v_tensor_p1_node, E_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -988,7 +1132,25 @@ static const gkyl_E_alpha_quad_kern_list tensor_E_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, E_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, E_alpha_quad_vz_1x3v_tensor_p1_node, E_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_E_alpha_quad_kern_list tensor_E_ho_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, E_ho_alpha_quad_vz_1x3v_tensor_p1_node, E_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -1087,12 +1249,30 @@ static const gkyl_phi_alpha_quad_kern_list ser_phi_ho_alpha_quad_vz_kernels[] = 
 GKYL_CU_D
 static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, phi_alpha_quad_vx_1x1v_tensor_p2_node, phi_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
-  { NULL, NULL, phi_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, phi_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, phi_alpha_quad_vx_1x1v_tensor_p1_node, phi_alpha_quad_vx_1x1v_tensor_p2_node, phi_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, phi_alpha_quad_vx_1x2v_tensor_p1_node, phi_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, phi_alpha_quad_vx_1x3v_tensor_p1_node, phi_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, phi_alpha_quad_vx_2x1v_tensor_p2_node, phi_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
-  { NULL, NULL, phi_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, phi_alpha_quad_vx_2x1v_tensor_p1_node, phi_alpha_quad_vx_2x1v_tensor_p2_node, phi_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, phi_alpha_quad_vx_2x2v_tensor_p1_node, phi_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_phi_alpha_quad_kern_list tensor_phi_ho_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, phi_ho_alpha_quad_vx_1x1v_tensor_p1_node, phi_alpha_quad_vx_1x1v_tensor_p2_node, phi_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, phi_ho_alpha_quad_vx_1x2v_tensor_p1_node, phi_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, phi_ho_alpha_quad_vx_1x3v_tensor_p1_node, phi_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, phi_ho_alpha_quad_vx_2x1v_tensor_p1_node, phi_alpha_quad_vx_2x1v_tensor_p2_node, phi_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, phi_ho_alpha_quad_vx_2x2v_tensor_p1_node, phi_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1106,7 +1286,25 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vy_kernels[] = 
   { NULL, no_phi_alpha_quad, no_phi_alpha_quad, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, phi_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, phi_alpha_quad_vy_2x2v_tensor_p1_node, phi_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_phi_alpha_quad_kern_list tensor_phi_ho_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, no_phi_alpha_quad, no_phi_alpha_quad, NULL }, // 1
+  { NULL, no_phi_alpha_quad, no_phi_alpha_quad, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, phi_ho_alpha_quad_vy_2x2v_tensor_p1_node, phi_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1114,6 +1312,24 @@ static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vy_kernels[] = 
 
 GKYL_CU_D
 static const gkyl_phi_alpha_quad_kern_list tensor_phi_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_phi_alpha_quad, no_phi_alpha_quad, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, no_phi_alpha_quad, no_phi_alpha_quad, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_phi_alpha_quad_kern_list tensor_phi_ho_alpha_quad_vz_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -1387,12 +1603,30 @@ static const gkyl_B_alpha_quad_kern_list ser_B_ho_hamil_phase_alpha_quad_vz_kern
 GKYL_CU_D
 static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_dense_alpha_quad_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 0
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 3
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1401,12 +1635,30 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_dense_alpha_quad_vx_
 GKYL_CU_D
 static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 0
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, no_B_alpha_quad, no_B_alpha_quad }, // 3
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 0
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, no_B_alpha_quad, no_B_alpha_quad }, // 3
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1416,11 +1668,29 @@ GKYL_CU_D
 static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_dense_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1430,11 +1700,29 @@ GKYL_CU_D
 static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1445,7 +1733,25 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_dense_alpha_quad_vz_
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p1_node, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -1459,7 +1765,25 @@ static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vz
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p1_node, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -1559,12 +1883,30 @@ static const gkyl_rad_alpha_quad_kern_list ser_rad_ho_alpha_quad_vz_kernels[] = 
 GKYL_CU_D
 static const gkyl_rad_alpha_quad_kern_list tensor_rad_alpha_quad_vx_kernels[] = {
   // 1x kernels
-  { NULL, NULL, rad_alpha_quad_vx_1x1v_tensor_p2_node, rad_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
-  { NULL, NULL, rad_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, rad_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, rad_alpha_quad_vx_1x1v_tensor_p1_node, rad_alpha_quad_vx_1x1v_tensor_p2_node, rad_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, rad_alpha_quad_vx_1x2v_tensor_p1_node, rad_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, rad_alpha_quad_vx_1x3v_tensor_p1_node, rad_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, rad_alpha_quad_vx_2x1v_tensor_p2_node, rad_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
-  { NULL, NULL, rad_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, rad_alpha_quad_vx_2x1v_tensor_p1_node, rad_alpha_quad_vx_2x1v_tensor_p2_node, rad_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, rad_alpha_quad_vx_2x2v_tensor_p1_node, rad_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_rad_alpha_quad_kern_list tensor_rad_ho_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, rad_ho_alpha_quad_vx_1x1v_tensor_p1_node, rad_alpha_quad_vx_1x1v_tensor_p2_node, rad_alpha_quad_vx_1x1v_tensor_p3_node }, // 0
+  { NULL, rad_ho_alpha_quad_vx_1x2v_tensor_p1_node, rad_alpha_quad_vx_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, rad_ho_alpha_quad_vx_1x3v_tensor_p1_node, rad_alpha_quad_vx_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, rad_ho_alpha_quad_vx_2x1v_tensor_p1_node, rad_alpha_quad_vx_2x1v_tensor_p2_node, rad_alpha_quad_vx_2x1v_tensor_p3_node }, // 3
+  { NULL, rad_ho_alpha_quad_vx_2x2v_tensor_p1_node, rad_alpha_quad_vx_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1574,11 +1916,29 @@ GKYL_CU_D
 static const gkyl_rad_alpha_quad_kern_list tensor_rad_alpha_quad_vy_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, rad_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
-  { NULL, NULL, rad_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, rad_alpha_quad_vy_1x2v_tensor_p1_node, rad_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, rad_alpha_quad_vy_1x3v_tensor_p1_node, rad_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, rad_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, rad_alpha_quad_vy_2x2v_tensor_p1_node, rad_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_rad_alpha_quad_kern_list tensor_rad_ho_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, rad_ho_alpha_quad_vy_1x2v_tensor_p1_node, rad_alpha_quad_vy_1x2v_tensor_p2_node, NULL }, // 1
+  { NULL, rad_ho_alpha_quad_vy_1x3v_tensor_p1_node, rad_alpha_quad_vy_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, rad_ho_alpha_quad_vy_2x2v_tensor_p1_node, rad_alpha_quad_vy_2x2v_tensor_p2_node, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1589,7 +1949,25 @@ static const gkyl_rad_alpha_quad_kern_list tensor_rad_alpha_quad_vz_kernels[] = 
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, rad_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  { NULL, rad_alpha_quad_vz_1x3v_tensor_p1_node, rad_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_rad_alpha_quad_kern_list tensor_rad_ho_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, rad_ho_alpha_quad_vz_1x3v_tensor_p1_node, rad_alpha_quad_vz_1x3v_tensor_p2_node, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -1646,12 +2024,30 @@ static const gkyl_lax_flux_arr_kern_list ser_lax_flux_nodal_vz_arr_kernels[] = {
 GKYL_CU_D
 static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_vx_arr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, lax_flux_nodal_vx_1x1v_tensor_p2, lax_flux_nodal_vx_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, lax_flux_nodal_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vx_1x1v_tensor_p1, lax_flux_nodal_vx_1x1v_tensor_p2, lax_flux_nodal_vx_1x1v_tensor_p3 }, // 0
+  { NULL, lax_flux_nodal_vx_1x2v_tensor_p1, lax_flux_nodal_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_vx_1x3v_tensor_p1, lax_flux_nodal_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, lax_flux_nodal_vx_2x1v_tensor_p2, lax_flux_nodal_vx_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, lax_flux_nodal_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_vx_2x1v_tensor_p1, lax_flux_nodal_vx_2x1v_tensor_p2, lax_flux_nodal_vx_2x1v_tensor_p3 }, // 3
+  { NULL, lax_flux_nodal_vx_2x2v_tensor_p1, lax_flux_nodal_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, ho_lax_flux_nodal_vx_1x1v_tensor_p1, lax_flux_nodal_vx_1x1v_tensor_p2, lax_flux_nodal_vx_1x1v_tensor_p3 }, // 0
+  { NULL, ho_lax_flux_nodal_vx_1x2v_tensor_p1, lax_flux_nodal_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vx_1x3v_tensor_p1, lax_flux_nodal_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, ho_lax_flux_nodal_vx_2x1v_tensor_p1, lax_flux_nodal_vx_2x1v_tensor_p2, lax_flux_nodal_vx_2x1v_tensor_p3 }, // 3
+  { NULL, ho_lax_flux_nodal_vx_2x2v_tensor_p1, lax_flux_nodal_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1661,11 +2057,29 @@ GKYL_CU_D
 static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_vy_arr_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, lax_flux_nodal_vy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vy_1x2v_tensor_p1, lax_flux_nodal_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, lax_flux_nodal_vy_1x3v_tensor_p1, lax_flux_nodal_vy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, lax_flux_nodal_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, lax_flux_nodal_vy_2x2v_tensor_p1, lax_flux_nodal_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, ho_lax_flux_nodal_vy_1x2v_tensor_p1, lax_flux_nodal_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vy_1x3v_tensor_p1, lax_flux_nodal_vy_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, ho_lax_flux_nodal_vy_2x2v_tensor_p1, lax_flux_nodal_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -1676,7 +2090,25 @@ static const gkyl_lax_flux_arr_kern_list tensor_lax_flux_nodal_vz_arr_kernels[] 
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, lax_flux_nodal_vz_1x3v_tensor_p2, NULL }, // 2
+  { NULL, lax_flux_nodal_vz_1x3v_tensor_p1, lax_flux_nodal_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_lax_flux_arr_kern_list tensor_ho_lax_flux_nodal_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, ho_lax_flux_nodal_vz_1x3v_tensor_p1, lax_flux_nodal_vz_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -2150,12 +2582,30 @@ static const gkyl_E_alpha_quad_arr_kern_list ser_E_ho_alpha_quad_vz_arr_kernels[
 GKYL_CU_D
 static const gkyl_E_alpha_quad_arr_kern_list tensor_E_alpha_quad_vx_arr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, E_alpha_quad_vx_1x1v_tensor_p2, E_alpha_quad_vx_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, E_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, E_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, E_alpha_quad_vx_1x1v_tensor_p1, E_alpha_quad_vx_1x1v_tensor_p2, E_alpha_quad_vx_1x1v_tensor_p3 }, // 0
+  { NULL, E_alpha_quad_vx_1x2v_tensor_p1, E_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, E_alpha_quad_vx_1x3v_tensor_p1, E_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, E_alpha_quad_vx_2x1v_tensor_p2, E_alpha_quad_vx_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, E_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, E_alpha_quad_vx_2x1v_tensor_p1, E_alpha_quad_vx_2x1v_tensor_p2, E_alpha_quad_vx_2x1v_tensor_p3 }, // 3
+  { NULL, E_alpha_quad_vx_2x2v_tensor_p1, E_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_E_alpha_quad_arr_kern_list tensor_E_ho_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, E_ho_alpha_quad_vx_1x1v_tensor_p1, E_alpha_quad_vx_1x1v_tensor_p2, E_alpha_quad_vx_1x1v_tensor_p3 }, // 0
+  { NULL, E_ho_alpha_quad_vx_1x2v_tensor_p1, E_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, E_ho_alpha_quad_vx_1x3v_tensor_p1, E_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, E_ho_alpha_quad_vx_2x1v_tensor_p1, E_alpha_quad_vx_2x1v_tensor_p2, E_alpha_quad_vx_2x1v_tensor_p3 }, // 3
+  { NULL, E_ho_alpha_quad_vx_2x2v_tensor_p1, E_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2165,11 +2615,29 @@ GKYL_CU_D
 static const gkyl_E_alpha_quad_arr_kern_list tensor_E_alpha_quad_vy_arr_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, E_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, E_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, E_alpha_quad_vy_1x2v_tensor_p1, E_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, E_alpha_quad_vy_1x3v_tensor_p1, E_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, E_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, E_alpha_quad_vy_2x2v_tensor_p1, E_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_E_alpha_quad_arr_kern_list tensor_E_ho_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, E_ho_alpha_quad_vy_1x2v_tensor_p1, E_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, E_ho_alpha_quad_vy_1x3v_tensor_p1, E_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, E_ho_alpha_quad_vy_2x2v_tensor_p1, E_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2180,7 +2648,25 @@ static const gkyl_E_alpha_quad_arr_kern_list tensor_E_alpha_quad_vz_arr_kernels[
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, E_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  { NULL, E_alpha_quad_vz_1x3v_tensor_p1, E_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_E_alpha_quad_arr_kern_list tensor_E_ho_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, E_ho_alpha_quad_vz_1x3v_tensor_p1, E_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -2276,12 +2762,30 @@ static const gkyl_phi_alpha_quad_arr_kern_list ser_phi_ho_alpha_quad_vz_arr_kern
 GKYL_CU_D
 static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_alpha_quad_vx_arr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, phi_alpha_quad_vx_1x1v_tensor_p2, phi_alpha_quad_vx_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, phi_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, phi_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, phi_alpha_quad_vx_1x1v_tensor_p1, phi_alpha_quad_vx_1x1v_tensor_p2, phi_alpha_quad_vx_1x1v_tensor_p3 }, // 0
+  { NULL, phi_alpha_quad_vx_1x2v_tensor_p1, phi_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, phi_alpha_quad_vx_1x3v_tensor_p1, phi_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, phi_alpha_quad_vx_2x1v_tensor_p2, phi_alpha_quad_vx_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, phi_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, phi_alpha_quad_vx_2x1v_tensor_p1, phi_alpha_quad_vx_2x1v_tensor_p2, phi_alpha_quad_vx_2x1v_tensor_p3 }, // 3
+  { NULL, phi_alpha_quad_vx_2x2v_tensor_p1, phi_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_ho_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, phi_ho_alpha_quad_vx_1x1v_tensor_p1, phi_alpha_quad_vx_1x1v_tensor_p2, phi_alpha_quad_vx_1x1v_tensor_p3 }, // 0
+  { NULL, phi_ho_alpha_quad_vx_1x2v_tensor_p1, phi_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, phi_ho_alpha_quad_vx_1x3v_tensor_p1, phi_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, phi_ho_alpha_quad_vx_2x1v_tensor_p1, phi_alpha_quad_vx_2x1v_tensor_p2, phi_alpha_quad_vx_2x1v_tensor_p3 }, // 3
+  { NULL, phi_ho_alpha_quad_vx_2x2v_tensor_p1, phi_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2295,7 +2799,25 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_alpha_quad_vy_arr_kern
   { NULL, no_phi_alpha_quad_arr, no_phi_alpha_quad_arr, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, phi_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, phi_alpha_quad_vy_2x2v_tensor_p1, phi_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_ho_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, no_phi_alpha_quad_arr, no_phi_alpha_quad_arr, NULL }, // 1
+  { NULL, no_phi_alpha_quad_arr, no_phi_alpha_quad_arr, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, phi_ho_alpha_quad_vy_2x2v_tensor_p1, phi_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2303,6 +2825,24 @@ static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_alpha_quad_vy_arr_kern
 
 GKYL_CU_D
 static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_phi_alpha_quad_arr, no_phi_alpha_quad_arr, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, no_phi_alpha_quad_arr, no_phi_alpha_quad_arr, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_phi_alpha_quad_arr_kern_list tensor_phi_ho_alpha_quad_vz_arr_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
@@ -2572,12 +3112,30 @@ static const gkyl_B_alpha_quad_arr_kern_list ser_B_ho_hamil_phase_alpha_quad_vz_
 GKYL_CU_D
 static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_dense_alpha_quad_vx_arr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 0
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 0
+  { NULL, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
+  { NULL, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 0
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2586,12 +3144,30 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_dense_alpha_quad
 GKYL_CU_D
 static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vx_arr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 0
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 0
+  { NULL, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
+  { NULL, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 0
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad_arr, no_B_alpha_quad_arr, no_B_alpha_quad_arr }, // 3
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2601,11 +3177,29 @@ GKYL_CU_D
 static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_dense_alpha_quad_vy_arr_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_dense_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2615,11 +3209,29 @@ GKYL_CU_D
 static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_sparse_alpha_quad_vy_arr_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2630,7 +3242,25 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_dense_alpha_quad
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  { NULL, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p1, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_dense_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p1, B_hamil_vel_dense_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -2644,7 +3274,25 @@ static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_vel_sparse_alpha_qua
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  { NULL, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_vel_sparse_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p1, B_hamil_vel_sparse_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -2740,12 +3388,30 @@ static const gkyl_rad_alpha_quad_arr_kern_list ser_rad_ho_alpha_quad_vz_arr_kern
 GKYL_CU_D
 static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_alpha_quad_vx_arr_kernels[] = {
   // 1x kernels
-  { NULL, NULL, rad_alpha_quad_vx_1x1v_tensor_p2, rad_alpha_quad_vx_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, rad_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, rad_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  { NULL, rad_alpha_quad_vx_1x1v_tensor_p1, rad_alpha_quad_vx_1x1v_tensor_p2, rad_alpha_quad_vx_1x1v_tensor_p3 }, // 0
+  { NULL, rad_alpha_quad_vx_1x2v_tensor_p1, rad_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, rad_alpha_quad_vx_1x3v_tensor_p1, rad_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, rad_alpha_quad_vx_2x1v_tensor_p2, rad_alpha_quad_vx_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, rad_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, rad_alpha_quad_vx_2x1v_tensor_p1, rad_alpha_quad_vx_2x1v_tensor_p2, rad_alpha_quad_vx_2x1v_tensor_p3 }, // 3
+  { NULL, rad_alpha_quad_vx_2x2v_tensor_p1, rad_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_ho_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, rad_ho_alpha_quad_vx_1x1v_tensor_p1, rad_alpha_quad_vx_1x1v_tensor_p2, rad_alpha_quad_vx_1x1v_tensor_p3 }, // 0
+  { NULL, rad_ho_alpha_quad_vx_1x2v_tensor_p1, rad_alpha_quad_vx_1x2v_tensor_p2, NULL }, // 1
+  { NULL, rad_ho_alpha_quad_vx_1x3v_tensor_p1, rad_alpha_quad_vx_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, rad_ho_alpha_quad_vx_2x1v_tensor_p1, rad_alpha_quad_vx_2x1v_tensor_p2, rad_alpha_quad_vx_2x1v_tensor_p3 }, // 3
+  { NULL, rad_ho_alpha_quad_vx_2x2v_tensor_p1, rad_alpha_quad_vx_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2755,11 +3421,29 @@ GKYL_CU_D
 static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_alpha_quad_vy_arr_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, rad_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, rad_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, rad_alpha_quad_vy_1x2v_tensor_p1, rad_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, rad_alpha_quad_vy_1x3v_tensor_p1, rad_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, rad_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, rad_alpha_quad_vy_2x2v_tensor_p1, rad_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_ho_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, rad_ho_alpha_quad_vy_1x2v_tensor_p1, rad_alpha_quad_vy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, rad_ho_alpha_quad_vy_1x3v_tensor_p1, rad_alpha_quad_vy_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, rad_ho_alpha_quad_vy_2x2v_tensor_p1, rad_alpha_quad_vy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -2770,7 +3454,25 @@ static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_alpha_quad_vz_arr_kern
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, rad_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  { NULL, rad_alpha_quad_vz_1x3v_tensor_p1, rad_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+// High-order variant: at p=1 (the tensor hybrid, the only tensor basis
+// with distinct lo/ho variants) this holds the ho_ kernels; tensor p>1
+// entries are the single (high-order by design) variant shared with the
+// plain tensor list.
+GKYL_CU_D
+static const gkyl_rad_alpha_quad_arr_kern_list tensor_rad_ho_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, rad_ho_alpha_quad_vz_1x3v_tensor_p1, rad_alpha_quad_vz_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4

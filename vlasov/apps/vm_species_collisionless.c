@@ -186,7 +186,12 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
   }
   cls->num_surf_vel_nodes = pow(app->poly_order+1+highorder, pdim - 1);
   if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-    cls->num_surf_vel_nodes = (int) ( pow(app->poly_order+1+highorder,vdim - 1) + pow(app->poly_order + 1,cdim) );
+    // Tensor p=1 hybrid: a velocity-direction surface has 2 nodes per
+    // configuration direction and 3 (lo) or 4 (ho) nodes per remaining
+    // velocity direction. Must match the vel_flux updater's
+    // num_nodes_conf*num_nodes_vel.
+    int nq_vel = cls->use_lo ? 3 : 4;
+    cls->num_surf_vel_nodes = (int) ( pow(2, cdim) * pow(nq_vel, vdim - 1) );
   }
 
   // Allocate nodal surface expansion of velocity space flux array (conf). 
@@ -195,7 +200,11 @@ vm_species_collisionless_init(struct gkyl_vlasov_app *app, struct vm_species *vm
     // Compute the number of configuration space nodes, with case for hybrid-tensor.
     cls->num_surf_conf_nodes = pow(app->poly_order+1+highorder,pdim - 1);
     if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (app->poly_order == 1)) {
-      cls->num_surf_conf_nodes = (int) ( pow(app->poly_order+1+highorder,vdim) + pow(app->poly_order + 1,cdim- 1) );
+      // Tensor p=1 hybrid: a configuration-direction surface has 2 nodes per
+      // remaining configuration direction and 3 (lo) or 4 (ho) nodes per
+      // velocity direction.
+      int nq_vel = cls->use_lo ? 3 : 4;
+      cls->num_surf_conf_nodes = (int) ( pow(2, cdim - 1) * pow(nq_vel, vdim) );
     }
 
     cls->conf_flux_surf = mkarr(app->use_gpu, cdim*cls->num_surf_conf_nodes, vms->local_ext.volume);

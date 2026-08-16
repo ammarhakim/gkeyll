@@ -142,7 +142,7 @@ test_1x2v(int poly_order, bool use_gpu)
   // Identity velocity map: used to build the Hamiltonian and by the moment/LTE updaters.
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velLocal, &velBasis, inp_vmap, use_gpu);
+    &velLocal, &velBasis, inp_vmap, false, use_gpu);
   gkyl_dg_vlasov_calc_hamil(&velGrid, &velBasis, &velLocal, 
     GKYL_MODEL_DEFAULT, vel_map, hamil, gamma_inv, use_gpu);
 

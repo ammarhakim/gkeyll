@@ -303,92 +303,175 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-      
-      up->lax_flux_nodal[0] = tensor_lax_flux_nodal_vx_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_arr[0] = tensor_lax_flux_nodal_vx_arr_kernels[kernel_index].kernels[poly_order];
+      // Only the tensor p=1 hybrid has distinct lo/ho surface variants; the
+      // plain and ho lists share the (high-order by design) kernels at p>1.
+      if ( inp->use_lo ) {
+        up->lax_flux_nodal[0] = tensor_lax_flux_nodal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[0] = tensor_lax_flux_nodal_vx_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[0] = tensor_lax_flux_nodal_vx_cfl_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal[1] = tensor_lax_flux_nodal_vy_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_arr[1] = tensor_lax_flux_nodal_vy_arr_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_lax_flux_nodal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[1] = tensor_lax_flux_nodal_vy_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[1] = tensor_lax_flux_nodal_vy_cfl_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal[2] = tensor_lax_flux_nodal_vz_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_arr[2] = tensor_lax_flux_nodal_vz_arr_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_lax_flux_nodal_vz_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[2] = tensor_lax_flux_nodal_vz_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[2] = tensor_lax_flux_nodal_vz_cfl_kernels[kernel_index].kernels[poly_order];
+      }
+      else {
+        up->lax_flux_nodal[0] = tensor_ho_lax_flux_nodal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[0] = tensor_ho_lax_flux_nodal_vx_arr_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[0] = tensor_ho_lax_flux_nodal_vx_cfl_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_ho_lax_flux_nodal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[1] = tensor_ho_lax_flux_nodal_vy_arr_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[1] = tensor_ho_lax_flux_nodal_vy_cfl_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_ho_lax_flux_nodal_vz_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_arr[2] = tensor_ho_lax_flux_nodal_vz_arr_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[2] = tensor_ho_lax_flux_nodal_vz_cfl_kernels[kernel_index].kernels[poly_order];
+      }
 
-
-      // Only have Hamiltonian forces in general geometry. 
+      // Only have Hamiltonian forces in general geometry.
       if (inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        gkyl_exit("dg_vlasov_vel_flux_surf: Tensor basis and general Hamiltonian, GKYL_MODEL_CAN_PB or GKYL_MODEL_CANONICAL_PB_GR not yet supported!"); 
+        gkyl_exit("dg_vlasov_vel_flux_surf: Tensor basis and general Hamiltonian, GKYL_MODEL_CAN_PB or GKYL_MODEL_CANONICAL_PB_GR not yet supported!");
       }
 
-      if (inp->has_E) {
-        up->E_alpha_quad[0] = tensor_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad_arr[0] = tensor_E_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[1] = tensor_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad_arr[1] = tensor_E_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[2] = tensor_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad_arr[2] = tensor_E_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
-      }
+      if ( inp->use_lo ) {
+        if (inp->has_E) {
+          up->E_alpha_quad[0] = tensor_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad_arr[0] = tensor_E_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = tensor_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad_arr[1] = tensor_E_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = tensor_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad_arr[2] = tensor_E_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (inp->has_phi) {
-        up->phi_alpha_quad[0] = tensor_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad_arr[0] = tensor_phi_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad_arr[1] = tensor_phi_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad_arr[2] = tensor_phi_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
-      }
+        if (inp->has_phi) {
+          up->phi_alpha_quad[0] = tensor_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad_arr[0] = tensor_phi_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad_arr[1] = tensor_phi_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad_arr[2] = tensor_phi_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (inp->has_B) {
-        // No phase-space Hamiltonian magnetic-force kernels for the tensor
-        // basis; phase runs keep the no-op defaults set above.
-        if (inp->hamil_id != GKYL_HAMIL_PHASE) {
-        up->B_alpha_quad[0] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad_arr[0] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[1] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad_arr[1] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[2] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad_arr[2] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        if (inp->has_B) {
+          // No phase-space Hamiltonian magnetic-force kernels for tensor p>1;
+          // phase runs keep the no-op defaults set above. (The tensor p=1
+          // hybrid does have B_hamil_phase kernels; hook them in with the
+          // phase-Hamiltonian hybrid support.)
+          if (inp->hamil_id != GKYL_HAMIL_PHASE) {
+          up->B_alpha_quad[0] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad_arr[0] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad_arr[1] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad_arr[2] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+          }
+        }
+
+        if (inp->has_rad) {
+          up->rad_alpha_quad[0] = tensor_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad_arr[0] = tensor_rad_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = tensor_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad_arr[1] = tensor_rad_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = tensor_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad_arr[2] = tensor_rad_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else {
+        if (inp->has_E) {
+          up->E_alpha_quad[0] = tensor_E_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad_arr[0] = tensor_E_ho_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = tensor_E_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad_arr[1] = tensor_E_ho_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = tensor_E_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad_arr[2] = tensor_E_ho_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (inp->has_phi) {
+          up->phi_alpha_quad[0] = tensor_phi_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad_arr[0] = tensor_phi_ho_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = tensor_phi_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad_arr[1] = tensor_phi_ho_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = tensor_phi_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad_arr[2] = tensor_phi_ho_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (inp->has_B) {
+          // No phase-space Hamiltonian magnetic-force kernels for tensor p>1;
+          // phase runs keep the no-op defaults set above. (The tensor p=1
+          // hybrid does have B_hamil_phase kernels; hook them in with the
+          // phase-Hamiltonian hybrid support.)
+          if (inp->hamil_id != GKYL_HAMIL_PHASE) {
+          up->B_alpha_quad[0] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad_arr[0] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad_arr[1] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad_arr[2] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+          }
+        }
+
+        if (inp->has_rad) {
+          up->rad_alpha_quad[0] = tensor_rad_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad_arr[0] = tensor_rad_ho_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = tensor_rad_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad_arr[1] = tensor_rad_ho_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = tensor_rad_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad_arr[2] = tensor_rad_ho_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
         }
       }
 
-      if (inp->has_rad) {
-        up->rad_alpha_quad[0] = tensor_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad_arr[0] = tensor_rad_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[1] = tensor_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad_arr[1] = tensor_rad_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[2] = tensor_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad_arr[2] = tensor_rad_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
-      }      
-
-      break;      
+      break;
 
     default:
       assert(false);
       break;    
   } 
-  // Set assembly functions for computing fluxes. 
+  // Set assembly functions for computing fluxes.
   up->vel_flux_surf = vel_flux_surf_arrays;
   // Surface node counts for the per-node dispatch: (p+1) points per direction,
   // p+2 for the higher-order (anti-aliasing) and tensor (cubic-map) kernels.
-  int nq = poly_order + 1;
-  if ((poly_order > 1) && !inp->use_lo) nq = poly_order + 2;
-  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) nq = poly_order + 2;
+  // The tensor p=1 hybrid (p=1 conf x p=2 vel) is anisotropic: 2 nodes per
+  // configuration direction, 3 (lo) or 4 (ho) per velocity direction.
+  int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
+  if ((poly_order > 1) && !inp->use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
+  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
+    if (poly_order == 1) {
+      nq_conf = 2;
+      nq_vel = inp->use_lo ? 3 : 4;
+    }
+    else {
+      nq_conf = poly_order + 2;
+      nq_vel = poly_order + 2;
+    }
+  }
   up->num_nodes_conf = 1;
-  for (int d=0; d<cdim; ++d) up->num_nodes_conf *= nq;
+  for (int d=0; d<cdim; ++d) up->num_nodes_conf *= nq_conf;
   up->num_nodes_vel = 1;
-  for (int d=0; d<vdim-1; ++d) up->num_nodes_vel *= nq;
+  for (int d=0; d<vdim-1; ++d) up->num_nodes_vel *= nq_vel;
   // Currently only support zero-flux boundary, so edge velocity flux an empty function (flux = 0.0). 
   up->vel_flux_surf_edge = no_vel_flux_surf_edge;   
 

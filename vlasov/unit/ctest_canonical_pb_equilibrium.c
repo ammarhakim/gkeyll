@@ -144,7 +144,7 @@ test_2x2v(int poly_order)
   // Identity velocity map, passed to the LTE updaters.
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&vel_grid,
-    &velLocal, &velBasis, inp_vmap, false);
+    &velLocal, &velBasis, inp_vmap, false, false);
 
   int confGhost[] = {1, 1};
   struct gkyl_range confLocal, confLocal_ext; 

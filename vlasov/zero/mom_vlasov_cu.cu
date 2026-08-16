@@ -173,14 +173,18 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       break;
 
     case GKYL_F_MOMENT_M0_UPPER:
-      mom_vlasov->momt.kernel = tensor_m0_upper_kernels[cdim-1].kernels[poly_order];
+      mom_vlasov->momt.kernel = (b_type == GKYL_BASIS_MODAL_TENSOR) ?
+        tensor_m0_upper_kernels[cdim-1].kernels[poly_order] :
+        ser_m0_upper_kernels[cdim-1].kernels[poly_order];
       mom_vlasov->momt.num_mom = 1;
       break;
 
     case GKYL_F_MOMENT_M0_LOWER:
-      mom_vlasov->momt.kernel = tensor_m0_lower_kernels[cdim-1].kernels[poly_order];
+      mom_vlasov->momt.kernel = (b_type == GKYL_BASIS_MODAL_TENSOR) ?
+        tensor_m0_lower_kernels[cdim-1].kernels[poly_order] :
+        ser_m0_lower_kernels[cdim-1].kernels[poly_order];
       mom_vlasov->momt.num_mom = 1;
-      break;   
+      break;
 
     default: // can't happen
       break;

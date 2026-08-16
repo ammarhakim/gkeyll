@@ -236,7 +236,7 @@ main(int argc, char **argv)
   struct gkyl_array *gamma_inv = mkarr1(use_gpu, velBasis.num_basis, velRange.volume);
   struct gkyl_vlasov_velocity_map_inp inp_vmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_velocity_map *vel_map = gkyl_vlasov_velocity_map_new(&velGrid,
-    &velRange, &velBasis, inp_vmap, use_gpu);
+    &velRange, &velBasis, inp_vmap, false, use_gpu);
   struct gkyl_vlasov_position_map_inp inp_pmap[GKYL_MAX_CDIM] = { 0 };
   struct gkyl_vlasov_position_map *pos_map = gkyl_vlasov_position_map_new(&confGrid,
     &confRange, &confRange_ext, &confBasis, inp_pmap, use_gpu);

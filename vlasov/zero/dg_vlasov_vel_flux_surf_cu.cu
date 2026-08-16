@@ -346,54 +346,106 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
       break;
 
     case GKYL_BASIS_MODAL_TENSOR:
-
-      up->lax_flux_nodal[0] = tensor_lax_flux_nodal_vx_kernels[kernel_index].kernels[poly_order];
+      // Only the tensor p=1 hybrid has distinct lo/ho surface variants; the
+      // plain and ho lists share the (high-order by design) kernels at p>1.
+      if ( use_lo ) {
+        up->lax_flux_nodal[0] = tensor_lax_flux_nodal_vx_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[0] = tensor_lax_flux_nodal_vx_cfl_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal[1] = tensor_lax_flux_nodal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_lax_flux_nodal_vy_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[1] = tensor_lax_flux_nodal_vy_cfl_kernels[kernel_index].kernels[poly_order];
-      up->lax_flux_nodal[2] = tensor_lax_flux_nodal_vz_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_lax_flux_nodal_vz_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[2] = tensor_lax_flux_nodal_vz_cfl_kernels[kernel_index].kernels[poly_order];
-      
-      // Only have Hamiltonian forces in general geometry. 
+      }
+      else {
+        up->lax_flux_nodal[0] = tensor_ho_lax_flux_nodal_vx_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[0] = tensor_ho_lax_flux_nodal_vx_cfl_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[1] = tensor_ho_lax_flux_nodal_vy_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[1] = tensor_ho_lax_flux_nodal_vy_cfl_kernels[kernel_index].kernels[poly_order];
+        up->lax_flux_nodal[2] = tensor_ho_lax_flux_nodal_vz_kernels[kernel_index].kernels[poly_order];
+        up->lax_cfl[2] = tensor_ho_lax_flux_nodal_vz_cfl_kernels[kernel_index].kernels[poly_order];
+      }
+
+      // Only have Hamiltonian forces in general geometry.
       if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
         assert(false);
       }
 
-      if (has_E) {
-        up->E_alpha_quad[0] = tensor_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[1] = tensor_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->E_alpha_quad[2] = tensor_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+      if ( use_lo ) {
+        if (has_E) {
+          up->E_alpha_quad[0] = tensor_E_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = tensor_E_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = tensor_E_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (has_phi) {
-        up->phi_alpha_quad[0] = tensor_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }
+        if (has_phi) {
+          up->phi_alpha_quad[0] = tensor_phi_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = tensor_phi_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = tensor_phi_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
 
-      if (has_B) {
-        // No phase-space Hamiltonian magnetic-force kernels for the tensor
-        // basis; phase runs keep the no-op defaults set above.
-        if (hamil_id != GKYL_HAMIL_PHASE) {
-        up->B_alpha_quad[0] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[1] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->B_alpha_quad[2] = hamil_sparse ?
-          tensor_B_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
-          tensor_B_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        if (has_B) {
+          // No phase-space Hamiltonian magnetic-force kernels for tensor p>1;
+          // phase runs keep the no-op defaults set above. (The tensor p=1
+          // hybrid does have B_hamil_phase kernels; hook them in with the
+          // phase-Hamiltonian hybrid support.)
+          if (hamil_id != GKYL_HAMIL_PHASE) {
+          up->B_alpha_quad[0] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = hamil_sparse ?
+            tensor_B_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          }
+        }
+
+        if (has_rad) {
+          up->rad_alpha_quad[0] = tensor_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = tensor_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = tensor_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else {
+        if (has_E) {
+          up->E_alpha_quad[0] = tensor_E_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[1] = tensor_E_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->E_alpha_quad[2] = tensor_E_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (has_phi) {
+          up->phi_alpha_quad[0] = tensor_phi_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[1] = tensor_phi_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->phi_alpha_quad[2] = tensor_phi_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+
+        if (has_B) {
+          // No phase-space Hamiltonian magnetic-force kernels for tensor p>1;
+          // phase runs keep the no-op defaults set above. (The tensor p=1
+          // hybrid does have B_hamil_phase kernels; hook them in with the
+          // phase-Hamiltonian hybrid support.)
+          if (hamil_id != GKYL_HAMIL_PHASE) {
+          up->B_alpha_quad[0] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[1] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->B_alpha_quad[2] = hamil_sparse ?
+            tensor_B_ho_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order] :
+            tensor_B_ho_hamil_vel_dense_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          }
+        }
+
+        if (has_rad) {
+          up->rad_alpha_quad[0] = tensor_rad_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[1] = tensor_rad_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->rad_alpha_quad[2] = tensor_rad_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
         }
       }
 
-      if (has_rad) {
-        up->rad_alpha_quad[0] = tensor_rad_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[1] = tensor_rad_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
-        up->rad_alpha_quad[2] = tensor_rad_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
-      }      
-
-      break;      
+      break;
 
     default:
       assert(false);
@@ -403,13 +455,24 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
   up->vel_flux_surf = vel_flux_surf_nodes;
   // Surface node counts for the per-node dispatch: (p+1) points per direction,
   // p+2 for the higher-order (anti-aliasing) and tensor (cubic-map) kernels.
-  int nq = poly_order + 1;
-  if ((poly_order > 1) && !use_lo) nq = poly_order + 2;
-  if (b_type == GKYL_BASIS_MODAL_TENSOR) nq = poly_order + 2;
+  // The tensor p=1 hybrid (p=1 conf x p=2 vel) is anisotropic: 2 nodes per
+  // configuration direction, 3 (lo) or 4 (ho) per velocity direction.
+  int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
+  if ((poly_order > 1) && !use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
+  if (b_type == GKYL_BASIS_MODAL_TENSOR) {
+    if (poly_order == 1) {
+      nq_conf = 2;
+      nq_vel = use_lo ? 3 : 4;
+    }
+    else {
+      nq_conf = poly_order + 2;
+      nq_vel = poly_order + 2;
+    }
+  }
   up->num_nodes_conf = 1;
-  for (int d=0; d<cdim; ++d) up->num_nodes_conf *= nq;
+  for (int d=0; d<cdim; ++d) up->num_nodes_conf *= nq_conf;
   up->num_nodes_vel = 1;
-  for (int d=0; d<vdim-1; ++d) up->num_nodes_vel *= nq;
+  for (int d=0; d<vdim-1; ++d) up->num_nodes_vel *= nq_vel;
   // Currently only support zero-flux boundary, so edge velocity flux an empty function (flux = 0.0). 
   up->vel_flux_surf_edge = no_vel_flux_surf_edge;   
 }
@@ -461,14 +524,24 @@ gkyl_dg_vlasov_vel_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_vel_flux_su
 
   // Host mirror of the surface node counts set on the device struct by
   // set_cu_dev_ptrs; the advance wrapper needs them to size the 2D
-  // (cells x nodes) kernel launch.
-  int nq = poly_order + 1;
-  if ((poly_order > 1) && !inp->use_lo) nq = poly_order + 2;
-  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) nq = poly_order + 2;
+  // (cells x nodes) kernel launch. Keep in sync with set_cu_dev_ptrs: the
+  // tensor p=1 hybrid is anisotropic (2 conf nodes, 3/4 vel nodes by use_lo).
+  int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
+  if ((poly_order > 1) && !inp->use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
+  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
+    if (poly_order == 1) {
+      nq_conf = 2;
+      nq_vel = inp->use_lo ? 3 : 4;
+    }
+    else {
+      nq_conf = poly_order + 2;
+      nq_vel = poly_order + 2;
+    }
+  }
   up->num_nodes_conf = 1;
-  for (int d=0; d<cdim; ++d) up->num_nodes_conf *= nq;
+  for (int d=0; d<cdim; ++d) up->num_nodes_conf *= nq_conf;
   up->num_nodes_vel = 1;
-  for (int d=0; d<vdim-1; ++d) up->num_nodes_vel *= nq;
+  for (int d=0; d<vdim-1; ++d) up->num_nodes_vel *= nq_vel;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);

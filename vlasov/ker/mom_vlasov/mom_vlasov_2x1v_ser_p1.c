@@ -101,6 +101,72 @@ GKYL_CU_DH void mom_vlasov_hamil_vel_dense_int_five_moments_2x1v_ser_p1(const do
   out[1] += 3.4641016151377544*f[0]*hamil[1]*dv10*jacob_vx_inv*volFact; 
   out[2] += (2.0*hamil[1]*f[3]+2.0*f[0]*hamil[0])*volFact; 
 } 
+GKYL_CU_DH void mom_vlasov_M0_upper_2x1v_ser_p1(const double *w, const double *dxv, const int *idx, 
+    const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  const double volFact = dxv[2]/2; 
+  const double *px = &vmap[0]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  double f_nodes[8] = {0.0};
+  double fquad = 0.0;
+  if ((0.7071067811865475*px[0]-0.7071067811865475*px[1]) > v_thresh) { 
+    fquad = -(0.3535533905932737*f[7])+0.3535533905932737*(f[6]+f[5]+f[4])-0.3535533905932737*(f[3]+f[2]+f[1])+0.3535533905932737*f[0]; 
+    f_nodes[0] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = 0.3535533905932737*f[7]-0.3535533905932737*f[6]+0.3535533905932737*f[5]-0.3535533905932737*(f[4]+f[3])+0.3535533905932737*f[2]-0.3535533905932737*f[1]+0.3535533905932737*f[0]; 
+    f_nodes[2] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = 0.3535533905932737*(f[7]+f[6])-0.3535533905932737*(f[5]+f[4]+f[3]+f[2])+0.3535533905932737*(f[1]+f[0]); 
+    f_nodes[4] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = -(0.3535533905932737*(f[7]+f[6]+f[5]))+0.3535533905932737*f[4]-0.3535533905932737*f[3]+0.3535533905932737*(f[2]+f[1]+f[0]); 
+    f_nodes[6] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+  } 
+  if ((0.7071067811865475*(px[1]+px[0])) > v_thresh) { 
+    fquad = 0.3535533905932737*f[7]-0.3535533905932737*(f[6]+f[5])+0.3535533905932737*(f[4]+f[3])-0.3535533905932737*(f[2]+f[1])+0.3535533905932737*f[0]; 
+    f_nodes[1] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = -(0.3535533905932737*f[7])+0.3535533905932737*f[6]-0.3535533905932737*(f[5]+f[4])+0.3535533905932737*(f[3]+f[2])-0.3535533905932737*f[1]+0.3535533905932737*f[0]; 
+    f_nodes[3] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = -(0.3535533905932737*(f[7]+f[6]))+0.3535533905932737*f[5]-0.3535533905932737*f[4]+0.3535533905932737*f[3]-0.3535533905932737*f[2]+0.3535533905932737*(f[1]+f[0]); 
+    f_nodes[5] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = 0.3535533905932737*(f[7]+f[6]+f[5]+f[4]+f[3]+f[2]+f[1]+f[0]); 
+    f_nodes[7] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+  } 
+  out[0] += (0.5*f_nodes[7]+0.5*f_nodes[6]+0.5*f_nodes[5]+0.5*f_nodes[4]+0.5*f_nodes[3]+0.5*f_nodes[2]+0.5*f_nodes[1]+0.5*f_nodes[0])*volFact; 
+  out[1] += (0.5*f_nodes[7]+0.5*f_nodes[6]+0.5*f_nodes[5]+0.5*f_nodes[4]-0.5*f_nodes[3]-0.5*f_nodes[2]-0.5*f_nodes[1]-0.5*f_nodes[0])*volFact; 
+  out[2] += (0.5*f_nodes[7]+0.5*f_nodes[6]-0.5*f_nodes[5]-0.5*f_nodes[4]+0.5*f_nodes[3]+0.5*f_nodes[2]-0.5*f_nodes[1]-0.5*f_nodes[0])*volFact; 
+  out[3] += (0.5*f_nodes[7]+0.5*f_nodes[6]-0.5*f_nodes[5]-0.5*f_nodes[4]-0.5*f_nodes[3]-0.5*f_nodes[2]+0.5*f_nodes[1]+0.5*f_nodes[0])*volFact; 
+} 
+GKYL_CU_DH void mom_vlasov_M0_lower_2x1v_ser_p1(const double *w, const double *dxv, const int *idx, 
+    const double *vmap, const double *jacob_vel, double v_thresh, double f_thresh, const double *f, double* GKYL_RESTRICT out) 
+{ 
+  const double volFact = dxv[2]/2; 
+  const double *px = &vmap[0]; 
+  const double *jacob_vx = &jacob_vel[0]; 
+  double f_nodes[8] = {0.0};
+  double fquad = 0.0;
+  if ((0.7071067811865475*px[0]-0.7071067811865475*px[1]) < -v_thresh) { 
+    fquad = -(0.3535533905932737*f[7])+0.3535533905932737*(f[6]+f[5]+f[4])-0.3535533905932737*(f[3]+f[2]+f[1])+0.3535533905932737*f[0]; 
+    f_nodes[0] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = 0.3535533905932737*f[7]-0.3535533905932737*f[6]+0.3535533905932737*f[5]-0.3535533905932737*(f[4]+f[3])+0.3535533905932737*f[2]-0.3535533905932737*f[1]+0.3535533905932737*f[0]; 
+    f_nodes[2] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = 0.3535533905932737*(f[7]+f[6])-0.3535533905932737*(f[5]+f[4]+f[3]+f[2])+0.3535533905932737*(f[1]+f[0]); 
+    f_nodes[4] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = -(0.3535533905932737*(f[7]+f[6]+f[5]))+0.3535533905932737*f[4]-0.3535533905932737*f[3]+0.3535533905932737*(f[2]+f[1]+f[0]); 
+    f_nodes[6] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+  } 
+  if ((0.7071067811865475*(px[1]+px[0])) < -v_thresh) { 
+    fquad = 0.3535533905932737*f[7]-0.3535533905932737*(f[6]+f[5])+0.3535533905932737*(f[4]+f[3])-0.3535533905932737*(f[2]+f[1])+0.3535533905932737*f[0]; 
+    f_nodes[1] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = -(0.3535533905932737*f[7])+0.3535533905932737*f[6]-0.3535533905932737*(f[5]+f[4])+0.3535533905932737*(f[3]+f[2])-0.3535533905932737*f[1]+0.3535533905932737*f[0]; 
+    f_nodes[3] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = -(0.3535533905932737*(f[7]+f[6]))+0.3535533905932737*f[5]-0.3535533905932737*f[4]+0.3535533905932737*f[3]-0.3535533905932737*f[2]+0.3535533905932737*(f[1]+f[0]); 
+    f_nodes[5] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+    fquad = 0.3535533905932737*(f[7]+f[6]+f[5]+f[4]+f[3]+f[2]+f[1]+f[0]); 
+    f_nodes[7] = fquad > jacob_vx[0]*f_thresh ? fquad : 0.0; 
+  } 
+  out[0] += (0.5*f_nodes[7]+0.5*f_nodes[6]+0.5*f_nodes[5]+0.5*f_nodes[4]+0.5*f_nodes[3]+0.5*f_nodes[2]+0.5*f_nodes[1]+0.5*f_nodes[0])*volFact; 
+  out[1] += (0.5*f_nodes[7]+0.5*f_nodes[6]+0.5*f_nodes[5]+0.5*f_nodes[4]-0.5*f_nodes[3]-0.5*f_nodes[2]-0.5*f_nodes[1]-0.5*f_nodes[0])*volFact; 
+  out[2] += (0.5*f_nodes[7]+0.5*f_nodes[6]-0.5*f_nodes[5]-0.5*f_nodes[4]+0.5*f_nodes[3]+0.5*f_nodes[2]-0.5*f_nodes[1]-0.5*f_nodes[0])*volFact; 
+  out[3] += (0.5*f_nodes[7]+0.5*f_nodes[6]-0.5*f_nodes[5]-0.5*f_nodes[4]-0.5*f_nodes[3]-0.5*f_nodes[2]+0.5*f_nodes[1]+0.5*f_nodes[0])*volFact; 
+} 
 GKYL_CU_DH void mom_vlasov_hamil_phase_M1i_2x1v_ser_p1(const double *w, const double *dxv, const int *idx, 
     const double *jacob_vel, const double *hamil, const double *f, double* GKYL_RESTRICT out) 
 { 

@@ -351,13 +351,25 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
       }
       if (inp->has_phi) vlasov->phi_vol = tensor_phi_vol_kernels[kernel_index].kernels[poly_order];
 
-      accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
-      accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
-      accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
-      accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
-      accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
-      accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
-      break;      
+      // Only the tensor p=1 hybrid has distinct lo/ho surface variants; the
+      // plain and ho lists share the (high-order by design) kernels at p>1.
+      if ( inp->use_lo ) {
+        accel_surf_vx_kernels = tensor_accel_surf_vx_kernels;
+        accel_surf_vy_kernels = tensor_accel_surf_vy_kernels;
+        accel_surf_vz_kernels = tensor_accel_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = tensor_accel_boundary_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = tensor_accel_boundary_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = tensor_accel_boundary_surf_vz_kernels;
+      }
+      else {
+        accel_surf_vx_kernels = tensor_accel_ho_surf_vx_kernels;
+        accel_surf_vy_kernels = tensor_accel_ho_surf_vy_kernels;
+        accel_surf_vz_kernels = tensor_accel_ho_surf_vz_kernels;
+        accel_boundary_surf_vx_kernels = tensor_accel_boundary_ho_surf_vx_kernels;
+        accel_boundary_surf_vy_kernels = tensor_accel_boundary_ho_surf_vy_kernels;
+        accel_boundary_surf_vz_kernels = tensor_accel_boundary_ho_surf_vz_kernels;
+      }
+      break;
 
     default:
       assert(false);

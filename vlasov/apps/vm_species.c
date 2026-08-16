@@ -1298,13 +1298,31 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
       }
       break;
     case GKYL_BASIS_MODAL_TENSOR:
-      gkyl_cart_modal_tensor(&vms->basis, pdim, app->poly_order); 
-      gkyl_cart_modal_tensor(&vms->basis_surf, pdim-1, app->poly_order); 
-      gkyl_cart_modal_tensor(&vms->basis_vel, vdim, app->poly_order); 
-      if (app->use_gpu) {
-        gkyl_cart_modal_tensor_cu_dev(vms->basis_on_dev, pdim, app->poly_order);
+      if (app->poly_order == 1) {
+        // Tensor p=1 is the tensor hybrid basis: p=1 in configuration space
+        // tensored with p=2 in velocity space (the pure p=1 tensor phase
+        // basis has no kernels). The velocity basis is the p=2 tensor basis,
+        // which also selects the C^1 cubic velocity map and the p=2 velocity
+        // representation of the Hamiltonian. Currently restricted to vdim=1,
+        // where the (Serendipity-flavored) gkyl_cart_modal_hybrid phase
+        // basis spans the same space as the tensor hybrid.
+        assert(vdim == 1);
+        gkyl_cart_modal_hybrid(&vms->basis, cdim, vdim);
+        gkyl_cart_modal_tensor(&vms->basis_surf, pdim-1, app->poly_order);
+        gkyl_cart_modal_tensor(&vms->basis_vel, vdim, 2);
+        if (app->use_gpu) {
+          gkyl_cart_modal_hybrid_cu_dev(vms->basis_on_dev, cdim, vdim);
+        }
       }
-      break;    
+      else {
+        gkyl_cart_modal_tensor(&vms->basis, pdim, app->poly_order);
+        gkyl_cart_modal_tensor(&vms->basis_surf, pdim-1, app->poly_order);
+        gkyl_cart_modal_tensor(&vms->basis_vel, vdim, app->poly_order);
+        if (app->use_gpu) {
+          gkyl_cart_modal_tensor_cu_dev(vms->basis_on_dev, pdim, app->poly_order);
+        }
+      }
+      break;
     default:
       assert(false);
       break;
@@ -1376,7 +1394,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
     }
   }
   vms->vel_map = gkyl_vlasov_velocity_map_new(&vms->grid_vel, &vms->local_vel,
-    &vms->basis_vel, inp_vmap, app->use_gpu);
+    &vms->basis_vel, inp_vmap, vms->info.use_lo, app->use_gpu);
 
   // The velocity map is static in time, so write it (uniform grids included)
   // only with the first frame. Both the p=3 map and its p=0 cell average are
