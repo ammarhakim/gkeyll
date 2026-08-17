@@ -24,6 +24,17 @@ efit_clamp(double x, double lo, double hi)
   return x < lo ? lo : (x > hi ? hi : x);
 }
 
+// Should the X-point search prefer a candidate that is a genuine critical point
+// interior to its own cell over one that had to be clamped onto a cell face?
+// Off by default because psisep and the X-point location are shared by every
+// block type, so moving them shuffles failures across the whole suite.
+static bool
+efit_xpt_prefer_unclamped(void)
+{
+  const char *on = getenv("GKYL_EFIT_XPT_PREFER_UNCLAMPED");
+  return on && on[0] != '\0' && on[0] != '0';
+}
+
 // Is an X-point candidate inside the caller-supplied vessel outline?  Candidates are
 // tested at -|Z| against the lower-half polygon, since a reflected equilibrium yields
 // X-points in +/- pairs.  Always true when no bounds were supplied, so the default
@@ -204,9 +215,15 @@ find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
   int base_idx[2] = {0, 0};
   gkyl_rect_grid_find_cell(&up->rzgrid, point, pick_lower, (int[2]) {-1, -1}, base_idx);
 
+  // Two selections are tracked at once: bd_* is the historical nearest-to-target
+  // rule and bu_* additionally outranks clamped candidates.  Keeping both lets
+  // the routine report every equilibrium where the two disagree -- the blast
+  // radius of the preference -- even on runs that do not enable it.
   bool found = false;
-  double best_m = DBL_MAX;
-  double best_R = 0.0, best_Z = 0.0, best_psi = DBL_MAX;
+  bool bd_clamped = false, bu_clamped = false;
+  double bd_m = DBL_MAX, bu_m = DBL_MAX;
+  double bd_R = 0.0, bd_Z = 0.0, bd_psi = DBL_MAX;
+  double bu_R = 0.0, bu_Z = 0.0, bu_psi = DBL_MAX;
 
   for (int dR = -2; dR <= 2; dR++) {
     for (int dZ = -2; dZ <= 2; dZ++) {
@@ -234,6 +251,16 @@ find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
             zr >= -1.0-eps_ref && zr <= 1.0+eps_ref))
         continue;
 
+      // Whether this candidate had to be pulled onto its cell boundary.  A
+      // clamped candidate is a critical point of no polynomial at all: it is
+      // the point on the face nearest one patch's critical point, and grad psi
+      // there is not small.  Measured on 204502, whose selected X point sits
+      // exactly on Z = -7*dZ = -0.9625 with |grad psi| = 4.4e-3, while a
+      // genuine interior saddle of the neighbouring patch (|grad psi| = 2.6e-5,
+      // Hessian eigenvalues -0.46/+0.18) sits 16.3 mm away at (0.703675,-0.947)
+      // and loses only because it is further from the cubic target.
+      bool clamped = (xr < -1.0 || xr > 1.0 || zr < -1.0 || zr > 1.0);
+
       xr = efit_clamp(xr, -1.0, 1.0);
       zr = efit_clamp(zr, -1.0, 1.0);
       double R0 = up->rzgrid.dx[0]*xr/2.0 + xc[0];
@@ -246,21 +273,37 @@ find_quadratic_xpt_near_target(gkyl_efit *up, double Rtar, double Ztar,
       double psi0 = efit_eval_psi_quad(up, R0, Z0);
       double m = efit_dist2(R0, Z0, Rtar, Ztar);
 
-      if (m < best_m) {
-        best_m = m;
-        best_R = R0;
-        best_Z = Z0;
-        best_psi = psi0;
-        found = true;
+      if (!found || m < bd_m) {
+        bd_m = m; bd_R = R0; bd_Z = Z0; bd_psi = psi0; bd_clamped = clamped;
       }
+      // Rank unclamped candidates ahead of clamped ones, and only fall back to
+      // distance within the same class.  Where the X point genuinely straddles
+      // a cell interface -- the case eps_ref above was widened for -- every
+      // candidate is clamped and this is exactly the old distance rule.
+      if (!found || (clamped != bu_clamped ? !clamped : m < bu_m)) {
+        bu_m = m; bu_R = R0; bu_Z = Z0; bu_psi = psi0; bu_clamped = clamped;
+      }
+      found = true;
     }
   }
 
   if (found) {
-    *Rout = best_R;
-    *Zout = best_Z;
-    *psiout = best_psi;
-    *metric_out = best_m;
+    bool prefer = efit_xpt_prefer_unclamped();
+    if (bd_R != bu_R || bd_Z != bu_Z)
+      fprintf(stderr,
+        "EFIT_XPT_CLAMP_PREF target=(%.17g,%.17g) "
+        "dist_pick=(%.17g,%.17g) dist_clamped=%d dist_psi=%.17g "
+        "unclamped_pick=(%.17g,%.17g) unclamped_psi=%.17g "
+        "separation=%.17g dpsi=%.17g active=%s\n",
+        Rtar, Ztar, bd_R, bd_Z, (int) bd_clamped, bd_psi,
+        bu_R, bu_Z, bu_psi,
+        sqrt(efit_dist2(bd_R, bd_Z, bu_R, bu_Z)), bu_psi - bd_psi,
+        prefer ? "unclamped" : "dist");
+
+    *Rout = prefer ? bu_R : bd_R;
+    *Zout = prefer ? bu_Z : bd_Z;
+    *psiout = prefer ? bu_psi : bd_psi;
+    *metric_out = prefer ? bu_m : bd_m;
   }
   return found;
 }

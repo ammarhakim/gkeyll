@@ -77,6 +77,28 @@ tok_ordered_map_diag_enabled(void)
   return diag && diag[0] != '\0' && diag[0] != '0';
 }
 
+// Restores the hard failure when tok_logical_trace_sample can find no point of
+// the requested level set near a trace segment, for A/B testing the chord
+// fallback that otherwise handles a severed level set.  See the fallback's
+// comment at the end of that routine.
+static bool
+tok_logsamp_chord_fallback_disabled(void)
+{
+  const char *off = getenv("GKYL_TOK_LOGSAMP_NO_CHORD_FALLBACK");
+  return off && off[0] != '\0' && off[0] != '0';
+}
+
+// Anchor the X-point ray at its LAST crossing of the target surface rather than
+// its first.  Both are identical unless the ray crosses more than once, which
+// over the 29-shot regression set happens on only 5 shots and always with the
+// same shape (one closed excursion, then the real surface).
+static bool
+tok_ext_ray_last_crossing(void)
+{
+  const char *on = getenv("GKYL_TOK_EXT_RAY_LAST_CROSSING");
+  return on && on[0] != '\0' && on[0] != '0';
+}
+
 static bool
 tok_xpt_seam_optimizer_trial(const struct gkyl_tok_geo_grid_inp *inp)
 {
@@ -1564,6 +1586,8 @@ tok_ext_fixed_ray_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
   if (qtarget <= 0.0 || qtarget >= 1.0)
     return false;
 
+  const bool use_last = arc_ctx->ext_ray_use_last_crossing ||
+    tok_ext_ray_last_crossing();
   const int nsamp = 512;
   const double crossing_tol = 1e-13*fmax(1.0, fabs(qtarget));
   double qprev = (tok_eval_psi_rz_local(geo, rx, zx)-geo->psisep)/delta;
@@ -1571,6 +1595,13 @@ tok_ext_fixed_ray_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
   int upward = 0, downward = 0;
   // Lowest q seen before the ray first reaches the target surface.
   double qmin_before_first = 0.0;
+  // Crossing census, for telling a spurious level-set island closed off by the
+  // C0 grad-psi ridge on a DG cell face from a genuine fold-back of the ray.
+  const int max_events = 16;
+  double event_s[16];
+  bool event_up[16];
+  int n_events = 0;
+  double qmax = qprev, qend = qprev;
   for (int i=1; i<=nsamp; ++i) {
     double s = i/(double) nsamp;
     double rs = rx+s*(rf-rx), zs = zx+s*(zf-zx);
@@ -1583,13 +1614,37 @@ tok_ext_fixed_ray_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
       q <= qtarget+crossing_tol;
     if (crosses_up) {
       ++upward;
-      if (slo < 0.0) { slo = sprev; shi = s; }
+      // q(0)=0 at the X point and q(1)=1 at the far ray target by construction,
+      // so the last upward crossing is the point beyond which the ray never
+      // re-enters the block.  Taking it is the running-minimum-from-the-right
+      // of q, which is monotone and meets qtarget exactly once, so the anchor
+      // stays continuous in psi even when a spurious level-set island sits
+      // between the X point and the real surface.
+      if (use_last || slo < 0.0) { slo = sprev; shi = s; }
     }
     if (crosses_down)
       ++downward;
+    if ((crosses_up || crosses_down) && n_events < max_events) {
+      event_s[n_events] = 0.5*(sprev+s);
+      event_up[n_events] = crosses_up;
+      ++n_events;
+    }
     if (upward == 0)
       qmin_before_first = fmin(qmin_before_first, q);
+    qmax = fmax(qmax, q);
+    qend = q;
     qprev = q; sprev = s;
+  }
+  if (upward > 1) {
+    fprintf(stderr,
+      "TOK_EXT_RAY_CROSSINGS ftype=%d sector=%d psi=%.17g qtarget=%.17g "
+      "upward=%d downward=%d qmax=%.6e qend=%.6e raylen=%.6e events=",
+      inp->ftype, endpoint->sector, psi, qtarget, upward, downward,
+      qmax, qend, hypot(rf-rx, zf-zx));
+    for (int k=0; k<n_events; ++k)
+      fprintf(stderr, "%s%c:%.6f", k ? "," : "", event_up[k] ? 'u' : 'd',
+        event_s[k]);
+    fprintf(stderr, "\n");
   }
   // A ray that folds back crosses psi=psi_curr more than once.  The crossings
   // are not interchangeable: only the FIRST tends to the X point as
@@ -1601,15 +1656,17 @@ tok_ext_fixed_ray_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
   // point is a saddle, so a sub-millimetre error in its location puts the
   // first samples on the wrong side of psisep by a vanishing amount.
   double band_tol = fmax(crossing_tol, 0.05*fabs(qtarget));
-  bool first_crossing_ok = upward > 1 && slo >= 0.0 &&
-    qmin_before_first >= -band_tol;
+  bool last_crossing_ok = use_last && upward >= 1 && slo >= 0.0;
+  bool first_crossing_ok = !use_last && upward > 1 &&
+    slo >= 0.0 && qmin_before_first >= -band_tol;
   if (first_crossing_ok)
     fprintf(stderr,
       "TOK_EXT_RAY first_crossing_anchor ftype=%d sector=%d psi=%.17g "
       "target=%.17g upward=%d downward=%d qmin_before_first=%.6e\n",
       inp->ftype, endpoint->sector, psi, qtarget, upward, downward,
       qmin_before_first);
-  if (!first_crossing_ok && (upward != 1 || downward != 0 || slo < 0.0)) {
+  if (!first_crossing_ok && !last_crossing_ok &&
+      (upward != 1 || downward != 0 || slo < 0.0)) {
     fprintf(stderr,
       "TOK_ORDERED_MAP nonunique fixed-ray intersection ftype=%d sector=%d xpoint=%d psi=%.17g target=%.17g upward=%d downward=%d qmin_before_first=%.6e band_tol=%.6e\n",
       inp->ftype, endpoint->sector, endpoint->xpoint, psi, qtarget,
@@ -2654,6 +2711,41 @@ tok_ext_build_domain_trace(const struct gkyl_tok_geo_grid_inp *inp,
   }
   arc_ctx->ext_last_trace_used_generic = (route == TOK_EXT_ROUTE_GENERIC);
   if (!ok) {
+    // An X-point ray can meet the target surface more than once, and *which*
+    // crossing is the right anchor is a question about which connected
+    // component of the level set the surface is -- something the ray itself
+    // cannot answer.  The C0 quadratic representation grows a spurious ridge
+    // along a DG cell face (measured on 204995: a vertical cut peaks exactly at
+    // Z = -7*dZ = -0.9625, +7.9e-6 above target, slope flipping sign across the
+    // face), and where that ridge tops the requested level it closes a small
+    // island.  An anchor on such an island is unreachable: 204995's plate end
+    // sits on a 0.971 m open contour while its anchor sits on a 0.071 m closed
+    // one, so every parameterization correctly reports no viable candidate.
+    //
+    // Which crossing is wanted is not decidable from the ray: over the 29-shot
+    // regression set only 5 shots cross more than once, all with the same
+    // one-excursion-then-the-real-surface shape, and their excursion widths
+    // overlap completely -- 204997 needs the FIRST crossing at 10.9-41.9 mm
+    // while 204502 and 204995 need the LAST at 4.8-85.6 mm.  Taking the last
+    // unconditionally fixes those two and breaks 204997.
+    //
+    // So let the trace decide, since a crossing on a disconnected island has no
+    // route to the other endpoint by construction: keep the first-crossing
+    // anchor, and only when it yields a trace no route can build, rebuild the
+    // endpoints at the last crossing and try again.  This runs solely where the
+    // routine already returns false and aborts the block.
+    if (!arc_ctx->ext_ray_use_last_crossing) {
+      arc_ctx->ext_ray_use_last_crossing = true;
+      bool retry_ok = tok_ext_build_domain_trace(inp, arc_ctx, psi, separatrix,
+        r, z, s, nout, param_is_r, closed);
+      arc_ctx->ext_ray_use_last_crossing = false;
+      if (retry_ok) {
+        fprintf(stderr,
+          "TOK_EXT_RAY_RETRY ftype=%d psi=%.17g separatrix=%d "
+          "anchored at last ray crossing\n", inp->ftype, psi, separatrix);
+        return true;
+      }
+    }
     fprintf(stderr,
       "TOK_ORDERED_MAP failed extended trace ftype=%d route=%d psi=%.17g separatrix=%d endpoints=(%.17g,%.17g)->(%.17g,%.17g)\n",
       inp->ftype, top.route, psi, separatrix, r0, z0, r1, z1);
@@ -4238,6 +4330,40 @@ tok_logical_trace_sample(const struct gkyl_tok_geo *geo, double psi,
           if (side == 0) fprev_p = fk; else fprev_m = fk;
         }
       }
+    }
+  }
+  // Fourth resort: the requested level set does not exist anywhere near this
+  // segment, so there is no crossing for any of the three searches above to
+  // find and widening their windows cannot help.  psisep is psi evaluated at
+  // whatever point the X-point finder returned, and when that point is not a
+  // critical point of *this* (quadratic) representation the psi=psisep level
+  // set is severed near the X point rather than crossing itself there.
+  // Measured on 203997, whose quadratic rep has no in-vessel critical point at
+  // all so the cubic location is substituted (|grad psi| there is 5.8e-4, not
+  // ~0): {psi >= psisep} splits into two components separated by a 10.6 mm gap
+  // straddling the R = 0.67875 cell face, where |grad psi| jumps 9x across the
+  // C0 seam.  The trace's last segment spans that gap, so the level set is
+  // absent over its whole length and psi stays below target across +/-20 mm of
+  // normal offset.
+  //
+  // The two bracketing trace points remain the best available representatives
+  // of the contour, so fall back to the linear interpolation between them --
+  // which is exactly what the trace polyline already is between its stations.
+  // This only runs where the routine previously returned false and aborted the
+  // block, so it cannot move a node that any other path could place; and the
+  // projection it replaces is a sub-micron refinement of the chord point
+  // wherever the level set does exist.  The resulting grid is still subject to
+  // the fold and surface-crossing checks, which is what decides whether the
+  // interpolated node is acceptable.
+  if (!tok_logsamp_chord_fallback_disabled()) {
+    double residual = tok_eval_psi_rz_local(geo, rlin, zlin)-psi;
+    if (isfinite(rlin) && isfinite(zlin) && isfinite(residual)) {
+      fprintf(stderr,
+        "TOK_LOGSAMP_CHORD_FALLBACK u=%.17g i=%d chord=(%.17g,%.17g) "
+        "residual=%.17g seglen=%.17g psi=%.17g\n",
+        u, i, rlin, zlin, residual, seglen, psi);
+      *r = rlin; *z = zlin;
+      return true;
     }
   }
   fprintf(stderr,

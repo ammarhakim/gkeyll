@@ -78,6 +78,11 @@ struct arc_length_ctx {
   // adjacent psi rows makes consecutive flux surfaces cross.
   bool ext_force_generic_route;
   bool ext_last_trace_used_generic;
+  // Which crossing of the target surface anchors an X-point-ray endpoint when
+  // the ray crosses more than once.  Set only by tok_ext_build_domain_trace's
+  // retry, after the first-crossing anchor has produced a trace that no route
+  // could build; see the retry's comment for why the ray cannot decide this.
+  bool ext_ray_use_last_crossing;
   // Ordered trace of the opposite (far) radial boundary and a monotone
   // correspondence v=g(u) from the separatrix trace to that boundary.
   // Intermediate flux surfaces are obtained by intersecting the resulting
