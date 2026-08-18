@@ -2428,6 +2428,26 @@ tok_ext_z_branch_points(const struct gkyl_tok_geo_grid_inp *inp,
         continue;
       }
     }
+    // Near an X point the branches crowd together, and the nearest root to
+    // the seed stops being the one this block wants: at the X point itself
+    // continuity has nothing to continue from, and just inside it the wrong
+    // branch can be nearer by a hair.  Detect that ambiguity directly -- two
+    // roots straddling the seed at comparable distance -- and fall back to the
+    // block's own radial reference, which is what named the branch before this
+    // selection became a continuity march.  Confined to the first station, so
+    // the march still rejects the spurious rmin root everywhere after it.
+    if (i == 1 && !seed_at_turning && nr > 1) {
+      double d1 = DBL_MAX, d2 = DBL_MAX, r1v = 0.0, r2v = 0.0;
+      for (int k=0; k<nr; ++k) {
+        double d = fabs(R[k]-r[0]);
+        if (d < d1) { d2 = d1; r2v = r1v; d1 = d; r1v = R[k]; }
+        else if (d < d2) { d2 = d; r2v = R[k]; }
+      }
+      if ((r1v-r[0])*(r2v-r[0]) < 0.0 && d2 < 4.0*d1) {
+        r[i] = tok_nearest_value(outboard ? inp->rright : inp->rleft, R, nr);
+        continue;
+      }
+    }
     r[i] = tok_nearest_value(r[i-1], R, nr);
   }
   r[n-1] = r1; z[n-1] = z1;
