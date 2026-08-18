@@ -2353,7 +2353,7 @@ static bool
 tok_ext_z_branch_points(const struct gkyl_tok_geo_grid_inp *inp,
   const struct gkyl_tok_geo *geo, double psi, int n,
   double r0, double z0, double r1, double z1, bool outboard,
-  double *r, double *z, double *gap_resid)
+  bool seed_at_turning, double *r, double *z, double *gap_resid)
 {
   if (gap_resid) *gap_resid = 0.0;
   if (n < 2 || fabs(z1-z0) <= 64.0*DBL_EPSILON*
@@ -2402,6 +2402,32 @@ tok_ext_z_branch_points(const struct gkyl_tok_geo_grid_inp *inp,
     // consecutive stations at R=0.2501 while the contour was at R=0.356,
     // detouring the trace to the inner wall and back.  Station 0 is an exact
     // endpoint, so continuity has a trustworthy seed.
+    // ...but that seed is only trustworthy when it lies on one side of the
+    // contour.  A closed surface's two branches both start at a Z turning
+    // point, which is the one place the inboard and outboard roots coalesce,
+    // so continuity from it cannot tell the sides apart: both branches follow
+    // the same one, and the joined trace covers half the surface.  Where the
+    // caller knows the seed is such a point, break the tie once at the first
+    // interior station using the side it asked for -- taking the NEAREST root
+    // on that side, so a spurious same-side root further out is still
+    // rejected.  If no root lies on that side the contour leaves the seed in
+    // one direction only, and plain continuity applies.
+    if (seed_at_turning && i == 1) {
+      double best = 0.0;
+      bool found = false;
+      for (int k=0; k<nr; ++k) {
+        if (outboard ? (R[k] < r[0]) : (R[k] > r[0]))
+          continue;
+        if (!found || fabs(R[k]-r[0]) < fabs(best-r[0])) {
+          best = R[k];
+          found = true;
+        }
+      }
+      if (found) {
+        r[i] = best;
+        continue;
+      }
+    }
     r[i] = tok_nearest_value(r[i-1], R, nr);
   }
   r[n-1] = r1; z[n-1] = z1;
@@ -2416,7 +2442,7 @@ tok_ext_build_z_branch_trace(const struct gkyl_tok_geo_grid_inp *inp,
 {
   double gap_resid = 0.0;
   if (!tok_ext_z_branch_points(inp, geo, psi, n,
-      r0, z0, r1, z1, outboard, r, z, &gap_resid))
+      r0, z0, r1, z1, outboard, false, r, z, &gap_resid))
     return false;
   *param_is_r = false;
   return tok_ext_finalize_trace_tol(geo, psi, inp->ftype, n, r, z, s,
@@ -2506,9 +2532,9 @@ tok_ext_build_via_turning_trace(const struct gkyl_tok_geo_grid_inp *inp,
   double *bs = gkyl_malloc(sizeof(double[nb]));
   double gap_a = 0.0, gap_b = 0.0;
   bool ok = tok_ext_z_branch_points(inp, geo, psi, nside,
-      r0, z0, rt, zt, upper, br, bz, &gap_a) &&
+      r0, z0, rt, zt, upper, false, br, bz, &gap_a) &&
     tok_ext_z_branch_points(inp, geo, psi, nside,
-      rt, zt, r1, z1, !upper, br+nside-1, bz+nside-1, &gap_b);
+      rt, zt, r1, z1, !upper, false, br+nside-1, bz+nside-1, &gap_b);
   double gap_resid = fmax(gap_a, gap_b);
   if (ok) {
     bs[0] = 0.0;
@@ -2581,9 +2607,9 @@ tok_ext_build_closed_core_trace(const struct gkyl_tok_geo_grid_inp *inp,
   double *bs = gkyl_malloc(sizeof(double[nb]));
   double gap_a = 0.0, gap_b = 0.0;
   bool ok = tok_ext_z_branch_points(inp, geo, psi, nside,
-    rlo, zlo, rup, zup, true, br, bz, &gap_a) &&
+    rlo, zlo, rup, zup, true, true, br, bz, &gap_a) &&
     tok_ext_z_branch_points(inp, geo, psi, nside,
-      rup, zup, rlo, zlo, false, br+nside-1, bz+nside-1, &gap_b);
+      rup, zup, rlo, zlo, false, true, br+nside-1, bz+nside-1, &gap_b);
   double gap_resid = fmax(gap_a, gap_b);
   if (!ok) {
     gkyl_free(br); gkyl_free(bz); gkyl_free(bs);
