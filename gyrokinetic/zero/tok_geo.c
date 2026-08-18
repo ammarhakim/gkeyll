@@ -5480,7 +5480,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
           if (tok_geo_same_flux(psi_curr, geo->psisep)) {
             if (it == nrange->upper[TH_IDX] && (up->local.upper[TH_IDX]== up->global.upper[TH_IDX])) {
               if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP)
-                z_curr = geo->efit->Zxpt[1];
+                z_curr = (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0]);
               else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_LO|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
                 z_curr = geo->efit->Zxpt[0];
               else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
@@ -5488,7 +5488,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
             }
             if (it == nrange->lower[TH_IDX] && (up->local.lower[TH_IDX]== up->global.lower[TH_IDX])) {
               if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_UP_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_UP|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID)
-                z_curr = geo->efit->Zxpt[1];
+                z_curr = (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0]);
               else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_PF_LO_L || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE_R || inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID|| inp->ftype == GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO)
                 z_curr = geo->efit->Zxpt[0];
               else if (inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP || inp->ftype == GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID || inp->ftype == GKYL_GEOMETRY_TOKAMAK_CORE)
@@ -5534,9 +5534,9 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
             nr = 1;
             r_curr = geo->efit->Rxpt[0];
           }
-          if (z_curr == geo->efit->Zxpt[1]) {
+          if (z_curr == (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0])) {
             nr = 1;
-            r_curr = geo->efit->Rxpt[1];
+            r_curr = (geo->efit->num_xpts > 1 ? geo->efit->Rxpt[1] : geo->efit->Rxpt[0]);
           }
         }
 
@@ -5997,9 +5997,9 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
               nr = 1;
               r_curr = geo->efit->Rxpt[0];
             }
-            if (z_curr == geo->efit->Zxpt[1]) {
+            if (z_curr == (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0])) {
               nr = 1;
-              r_curr = geo->efit->Rxpt[1];
+              r_curr = (geo->efit->num_xpts > 1 ? geo->efit->Rxpt[1] : geo->efit->Rxpt[0]);
             }
           }
 
@@ -6366,9 +6366,9 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
               nr = 1;
               r_curr = geo->efit->Rxpt[0];
             }
-            if (z_curr == geo->efit->Zxpt[1]) {
+            if (z_curr == (geo->efit->num_xpts > 1 ? geo->efit->Zxpt[1] : geo->efit->Zxpt[0])) {
               nr = 1;
-              r_curr = geo->efit->Rxpt[1];
+              r_curr = (geo->efit->num_xpts > 1 ? geo->efit->Rxpt[1] : geo->efit->Rxpt[0]);
             }
           }
 
