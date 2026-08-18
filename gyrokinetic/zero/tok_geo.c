@@ -3052,15 +3052,55 @@ tok_ext_map_trace_nodes(const struct gkyl_tok_geo_grid_inp *inp, int capacity)
   return GKYL_MIN2(capacity, GKYL_MAX2(49, 4*inp->cgrid.cells[2]+1));
 }
 
-// Ladder rungs.  Rungs must be close enough in psi that consecutive contours
-// are near each other -- that is what makes the projection unambiguous -- so
-// resolving at least the block's own radial grid is the natural choice.
+// Rung count the march STARTS from.  Rungs must be close enough in psi that
+// consecutive contours are near each other -- that is what makes the projection
+// unambiguous -- so the block's own radial grid is the natural starting guess.
+// It is only a starting guess: how fine the ladder must actually be is a
+// property of the equilibrium, not of the grid, so the march refines from here
+// until it resolves the correspondence (see tok_ext_build_theta_ladder).
 static int
-tok_ext_ladder_rungs(const struct gkyl_tok_geo_grid_inp *inp)
+tok_ext_ladder_rows(const struct gkyl_tok_geo_grid_inp *inp)
 {
-  int m = (int) tok_geo_trace_double_env("GKYL_TOK_EXT_LADDER_RUNGS", 0.0);
-  if (m <= 0) m = inp->cgrid.cells[0];
-  return GKYL_MIN2(256, GKYL_MAX2(32, m));
+  return GKYL_MAX2(1, inp->cgrid.cells[0]);
+}
+
+// Rungs must be an integer multiple of the block's radial cell count, and this
+// is a correctness requirement rather than a convenience.
+//
+// A node row sits at radial fraction j/rows, and the lookup interpolates the
+// correspondence linearly between the two rungs bracketing (j/rows)*m.  When m
+// is a multiple of rows every row lands exactly ON a rung and is never
+// interpolated.  Otherwise each row picks up an interpolation perturbation set
+// by where it falls inside its rung interval; adjacent rows sitting at
+// different phases within their intervals receive different perturbations, and
+// the rows cross radially.  It is the phase DIFFERENCE between adjacent rows
+// that matters, and holding m to a multiple of rows drives it to zero
+// identically.
+//
+// Note the monotonicity argument made at the lookup covers the other axis only:
+// a convex combination of two increasing rows is increasing, so an interpolated
+// row is monotone in theta.  Nothing in that argument constrains RADIAL
+// ordering between rows.
+static int
+tok_ext_ladder_rungs(const struct gkyl_tok_geo_grid_inp *inp, int k)
+{
+  return GKYL_MAX2(1, k)*tok_ext_ladder_rows(inp);
+}
+
+// Largest theta motion, in units of the map trace's own node spacing, that the
+// ladder may leave between adjacent rungs.
+//
+// w is a normalized arc coordinate and the map trace carries n nodes, so 1/(n-1)
+// is the finest theta feature the table can represent at all.  If a node's w
+// moves further than that from one rung to the next, then interpolating between
+// those rungs places intermediate surfaces to worse than the trace's own
+// resolution, and adjacent node rows can cross.  Expressing the tolerance this
+// way keeps it dimensionless and derived from the grid being built rather than
+// from any equilibrium- or machine-specific flux scale.
+static double
+tok_ext_ladder_tol(int n)
+{
+  return n > 1 ? 1.0/(n-1) : 1.0;
 }
 
 // Weight of the identity map blended into each marched rung.  Projection can
@@ -3264,17 +3304,17 @@ tok_ext_ladder_condition_row(double *w, int n)
   gkyl_free(d);
 }
 
-// Build the marched ladder.  Failure is not fatal: the caller falls back to the
-// two-point blend, which is what shipped before.
+// March the ladder at a given rung count into `table`, and report the largest
+// theta motion between adjacent rungs so the caller can judge whether that
+// count resolved the correspondence.
 static bool
-tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
-  struct arc_length_ctx *arc_ctx)
+tok_ext_march_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx, int m, int n, double *table, double *dmax_out)
 {
   const int cap = arc_ctx->sep_trace_capacity;
-  const int n = tok_ext_map_trace_nodes(inp, cap);
-  const int m = tok_ext_ladder_rungs(inp);
   const double psisep = arc_ctx->geo->psisep;
   const double span = arc_ctx->xpt_ray_psi0-psisep;
+  *dmax_out = HUGE_VAL;
   if (n < 2 || m < 1 || !isfinite(span) || span == 0.0)
     return false;
 
@@ -3296,10 +3336,11 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
   for (int i=0; i<pn; ++i) { pr[i] = sr[i]; pz[i] = sz[i]; ps[i] = ss[i]; }
   for (int i=0; i<n; ++i) {
     wprev[i] = i/(double) (n-1);
-    arc_ctx->ext_ladder_w[(size_t) k_seed*n+i] = wprev[i];
+    table[(size_t) k_seed*n+i] = wprev[i];
   }
 
   bool ok = true;
+  double dmax = 0.0;
   for (int step=1; step<=m && ok; ++step) {
     int k = from_far ? m-step : step;
     double psi_k = psisep+span*(k/(double) m);
@@ -3338,7 +3379,9 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
       }
     if (!ok) break;
     for (int i=0; i<n; ++i)
-      arc_ctx->ext_ladder_w[(size_t) k*n+i] = wcur[i];
+      table[(size_t) k*n+i] = wcur[i];
+    for (int i=0; i<n; ++i)
+      dmax = fmax(dmax, fabs(wcur[i]-wprev[i]));
     // This rung becomes the next one's reference.
     for (int i=0; i<cn; ++i) { pr[i] = cr[i]; pz[i] = cz[i]; ps[i] = cs[i]; }
     pn = cn; pparam = cparam; ppsi = psi_k;
@@ -3349,18 +3392,111 @@ tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
   gkyl_free(wprev);
   gkyl_free(wcur);
   if (!ok) return false;
-  arc_ctx->ext_ladder_m = m;
+  *dmax_out = dmax;
+  return true;
+}
+
+// Build the marched ladder, refining in psi until it actually resolves the
+// correspondence.  Failure is not fatal: the caller falls back to the two-point
+// blend, which is what shipped before.
+//
+// How many rungs a block needs is set by how fast its contours change with psi,
+// which is a property of the equilibrium and not of the grid.  A block whose
+// trace length steps sharply between adjacent surfaces needs several times the
+// rungs its radial cell count alone would give, while most blocks are resolved
+// by that count.  A single fixed count cannot serve both, and any fixed
+// multiple of the grid size is only a new constant for a different equilibrium
+// to defeat.  So march, measure, and refine until the ladder resolves itself,
+// in steps that keep the rungs aligned with the rows.
+//
+// Two things stop the refinement, and neither is a tuned threshold: the
+// tolerance is met, or doubling stops reducing the motion -- which is how a
+// genuine geometric discontinuity announces itself, since no psi resolution can
+// smooth a contour that really does jump.  Refining further would then only
+// cost time, and the min_gap floor already converts such a jump into a stretched
+// row rather than a crossed one.  Rungs are also capped by the trace capacity,
+// beyond which the rungs would be finer than the traces they are built from.
+static bool
+tok_ext_build_theta_ladder(const struct gkyl_tok_geo_grid_inp *inp,
+  struct arc_length_ctx *arc_ctx)
+{
+  const int cap = arc_ctx->sep_trace_capacity;
+  const int n = tok_ext_map_trace_nodes(inp, cap);
+  if (n < 2)
+    return false;
+  const double tol = tok_ext_ladder_tol(n);
+
+  double *table = NULL;
+  int m_done = 0;
+  double dmax_prev = HUGE_VAL;
+  int refinements = 0;
+  // An explicit override pins the count: it exists to A/B a specific ladder
+  // resolution, which refining away from would defeat.
+  const int pinned = (int) tok_geo_trace_double_env("GKYL_TOK_EXT_LADDER_RUNGS", 0.0);
+
+  for (int k = 1; ; ) {
+    const int m = pinned > 0 ? pinned : tok_ext_ladder_rungs(inp, k);
+    if (m > cap)
+      break;
+    double *cand = gkyl_malloc(sizeof(double)*(size_t) (m+1)*n);
+    double dmax = HUGE_VAL;
+    if (!tok_ext_march_theta_ladder(inp, arc_ctx, m, n, cand, &dmax)) {
+      gkyl_free(cand);
+      break;
+    }
+    gkyl_free(table);
+    table = cand;
+    m_done = m;
+    if (pinned > 0 || dmax <= tol)
+      break;
+    // Not resolved -- but if refining did not reduce the motion, the contour
+    // genuinely jumps and no rung spacing will smooth it.
+    if (!(dmax < dmax_prev))
+      break;
+    dmax_prev = dmax;
+    // Adjacent rungs are one rung spacing apart in psi, so to leading order the
+    // motion between them falls off like 1/m, which makes the multiplier that
+    // meets the tolerance predictable from the one just measured.  Each march
+    // costs a full set of contour traces, so jumping straight there is worth
+    // doing -- but only as far as the estimate can be trusted.  Far from that
+    // asymptotic regime the ratio badly overestimates, so take the estimate
+    // when it asks for less than a doubling and fall back to doubling when it
+    // asks for more: the search then converges as fast as doubling in the worst
+    // case, faster when the estimate is good, and can never skip a multiplier
+    // that would have worked.
+    //
+    // Refining is safe here in a way it is not for an unconstrained count:
+    // every candidate keeps the rungs aligned with the rows, so overshooting
+    // costs time and nothing else.
+    double predicted = k*(dmax/tol);
+    int k_next = predicted < (double) (2*k) ? (int) ceil(predicted) : 2*k;
+    k = GKYL_MAX2(k_next, k+1);
+    ++refinements;
+  }
+
+  if (!table)
+    return false;
+  gkyl_free(arc_ctx->ext_ladder_w);
+  arc_ctx->ext_ladder_w = table;
+  arc_ctx->ext_ladder_m = m_done;
   arc_ctx->ext_ladder_n = n;
   arc_ctx->ext_ladder_initialized = true;
   if (tok_ordered_map_diag_enabled())
-    fprintf(stderr, "TOK_EXT_LADDER built ftype=%d rungs=%d nodes=%d min_gap=%.4g\n",
-      inp->ftype, m, n, tok_ext_ladder_min_gap());
+    fprintf(stderr,
+      "TOK_EXT_LADDER built ftype=%d rungs=%d rows=%d k=%d nodes=%d "
+      "min_gap=%.4g refinements=%d tol=%.4g\n",
+      inp->ftype, m_done, tok_ext_ladder_rows(inp),
+      m_done/GKYL_MAX2(1, tok_ext_ladder_rows(inp)), n,
+      tok_ext_ladder_min_gap(), refinements, tol);
   return true;
 }
 
 // w(u_i, psi) by linear interpolation between the two bracketing rungs.  A
 // convex combination of two increasing rows is increasing, so the interpolated
-// row is ordered for every radial fraction, not only at the rungs.
+// row is monotone in THETA for every radial fraction.  That is the only axis
+// that argument covers: it says nothing about RADIAL ordering between adjacent
+// rows, which is why the rung count is held to a multiple of the row count --
+// see tok_ext_ladder_rungs.
 static double
 tok_ext_ladder_w(const struct arc_length_ctx *arc_ctx, double rf, int i)
 {
@@ -5221,12 +5357,11 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   double *sep_trace_r = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_z = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_s = gkyl_malloc(sizeof(double[sep_trace_capacity]));
-  // The marched theta ladder shares this block so it shares the lifetime of
-  // everything else hanging off arc_ctx; sizing it here keeps the one free().
-  size_t ladder_size = (size_t) (tok_ext_ladder_rungs(inp)+1)
-    *tok_ext_map_trace_nodes(inp, sep_trace_capacity);
+  // The marched theta ladder owns its own block: how many rungs it needs is
+  // discovered while marching, not known here, so it cannot be sized with the
+  // rest.  It is freed alongside this one.
   double *ordered_trace_storage =
-    gkyl_malloc(sizeof(double)*(8*(size_t) sep_trace_capacity+ladder_size));
+    gkyl_malloc(sizeof(double)*8*(size_t) sep_trace_capacity);
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
@@ -5245,7 +5380,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
     .map_trace_z = ordered_trace_storage+5*sep_trace_capacity,
     .map_trace_s = ordered_trace_storage+6*sep_trace_capacity,
     .map_trace_phi = ordered_trace_storage+7*sep_trace_capacity,
-    .ext_ladder_w = ordered_trace_storage+8*(size_t) sep_trace_capacity,
+    .ext_ladder_w = NULL,
     .ftype = inp->ftype,
     .zmaxis = geo->zmaxis
   };
@@ -5613,6 +5748,7 @@ void gkyl_tok_geo_calc(struct gk_geometry* up, struct gkyl_range *nrange, struct
   gkyl_free(sep_trace_r);
   gkyl_free(sep_trace_z);
   gkyl_free(sep_trace_s);
+  gkyl_free(arc_ctx.ext_ladder_w);
   gkyl_free(ordered_trace_storage);
 }
 
@@ -5672,12 +5808,11 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   double *sep_trace_r = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_z = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_s = gkyl_malloc(sizeof(double[sep_trace_capacity]));
-  // The marched theta ladder shares this block so it shares the lifetime of
-  // everything else hanging off arc_ctx; sizing it here keeps the one free().
-  size_t ladder_size = (size_t) (tok_ext_ladder_rungs(inp)+1)
-    *tok_ext_map_trace_nodes(inp, sep_trace_capacity);
+  // The marched theta ladder owns its own block: how many rungs it needs is
+  // discovered while marching, not known here, so it cannot be sized with the
+  // rest.  It is freed alongside this one.
   double *ordered_trace_storage =
-    gkyl_malloc(sizeof(double)*(8*(size_t) sep_trace_capacity+ladder_size));
+    gkyl_malloc(sizeof(double)*8*(size_t) sep_trace_capacity);
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
@@ -5696,7 +5831,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
     .map_trace_z = ordered_trace_storage+5*sep_trace_capacity,
     .map_trace_s = ordered_trace_storage+6*sep_trace_capacity,
     .map_trace_phi = ordered_trace_storage+7*sep_trace_capacity,
-    .ext_ladder_w = ordered_trace_storage+8*(size_t) sep_trace_capacity,
+    .ext_ladder_w = NULL,
     .ftype = inp->ftype,
     .zmaxis = geo->zmaxis
   };
@@ -5986,6 +6121,7 @@ void gkyl_tok_geo_calc_interior(struct gk_geometry* up, struct gkyl_range *nrang
   gkyl_free(sep_trace_r);
   gkyl_free(sep_trace_z);
   gkyl_free(sep_trace_s);
+  gkyl_free(arc_ctx.ext_ladder_w);
   gkyl_free(ordered_trace_storage);
 }
 
@@ -6047,12 +6183,11 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   double *sep_trace_r = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_z = gkyl_malloc(sizeof(double[sep_trace_capacity]));
   double *sep_trace_s = gkyl_malloc(sizeof(double[sep_trace_capacity]));
-  // The marched theta ladder shares this block so it shares the lifetime of
-  // everything else hanging off arc_ctx; sizing it here keeps the one free().
-  size_t ladder_size = (size_t) (tok_ext_ladder_rungs(inp)+1)
-    *tok_ext_map_trace_nodes(inp, sep_trace_capacity);
+  // The marched theta ladder owns its own block: how many rungs it needs is
+  // discovered while marching, not known here, so it cannot be sized with the
+  // rest.  It is freed alongside this one.
   double *ordered_trace_storage =
-    gkyl_malloc(sizeof(double)*(8*(size_t) sep_trace_capacity+ladder_size));
+    gkyl_malloc(sizeof(double)*8*(size_t) sep_trace_capacity);
 
   struct arc_length_ctx arc_ctx = {
     .geo = geo,
@@ -6071,7 +6206,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
     .map_trace_z = ordered_trace_storage+5*sep_trace_capacity,
     .map_trace_s = ordered_trace_storage+6*sep_trace_capacity,
     .map_trace_phi = ordered_trace_storage+7*sep_trace_capacity,
-    .ext_ladder_w = ordered_trace_storage+8*(size_t) sep_trace_capacity,
+    .ext_ladder_w = NULL,
     .ftype = inp->ftype,
     .zmaxis = geo->zmaxis
   };
@@ -6355,6 +6490,7 @@ void gkyl_tok_geo_calc_surface(struct gk_geometry* up, int dir, struct gkyl_rang
   gkyl_free(sep_trace_r);
   gkyl_free(sep_trace_z);
   gkyl_free(sep_trace_s);
+  gkyl_free(arc_ctx.ext_ladder_w);
   gkyl_free(ordered_trace_storage);
 }
 
