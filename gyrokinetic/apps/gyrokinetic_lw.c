@@ -960,6 +960,8 @@ gyrokinetic_neutral_species_lw_new(lua_State *L)
   with_lua_tbl_tbl(L, "diffusion") {
     gk_neut_species.diffusion.D = glua_tbl_get_number(L, "diffusionCoefficient", 0.0);
     gk_neut_species.diffusion.use_reaction_rates = glua_tbl_get_bool(L, "useReactionRates", false);
+    gk_neut_species.diffusion.min_collision_frequency =
+      glua_tbl_get_number(L, "minCollisionFrequency", 0.0);
   }
 
   with_lua_tbl_tbl(L, "cells") {

@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -62,6 +63,39 @@ void gkyl_dg_cx_coll(const struct gkyl_dg_cx *up,
     
     double cflr = up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
       maxwellian_moms_ion_d, maxwellian_moms_neut_d, upar_b_i_d, coef_cx_d);
+  }
+}
+
+void gkyl_dg_cx_coll_rate(const struct gkyl_dg_cx *up,
+  struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
+  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx)
+{
+  // The diffusion solver is CPU-only at present. Keep this entry point
+  // explicitly host-only until the configuration-space diffusion GPU path is
+  // implemented.
+  assert(!gkyl_array_is_cu_dev(coef_cx));
+
+  struct gkyl_range_iter conf_iter;
+  gkyl_range_iter_init(&conf_iter, up->conf_rng);
+  while (gkyl_range_iter_next(&conf_iter)) {
+    long linidx = gkyl_range_idx(up->conf_rng, conf_iter.idx);
+
+    const double *moms_ion = gkyl_array_cfetch(maxwellian_moms_ion, linidx);
+    const double *moms_neut = gkyl_array_cfetch(maxwellian_moms_neut, linidx);
+    const double *upar_b_i_d = gkyl_array_cfetch(upar_b_i, linidx);
+    double *coef_cx_d = gkyl_array_fetch(coef_cx, linidx);
+    for (int k=0; k<coef_cx->ncomp; ++k) coef_cx_d[k] = 0.0;
+
+    // Neutral density enters the generated kernels only as a validity guard
+    // and in the returned reaction CFL frequency. Supply a positive dummy
+    // density while preserving all drift and temperature moments.
+    double moms_neut_rate[maxwellian_moms_neut->ncomp];
+    memcpy(moms_neut_rate, moms_neut,
+      maxwellian_moms_neut->ncomp*sizeof(double));
+    moms_neut_rate[0] = 1.0;
+
+    up->react_rate(up->a, up->b, up->vt_sq_ion_min, up->vt_sq_neut_min,
+      moms_ion, moms_neut_rate, upar_b_i_d, coef_cx_d);
   }
 }
 

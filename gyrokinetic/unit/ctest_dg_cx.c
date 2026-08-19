@@ -147,6 +147,29 @@ test_coll_cx_d(bool use_gpu)
     TEST_MSG( "i:%d | Expected: %.9e | Got:%.9e\n", i, p1_vals[i]*check_fac, cv_cx[i]*check_fac );
   }
 
+  if (!use_gpu) {
+    // The reaction path rejects a nonpositive neutral density, whereas the
+    // density-independent closure path must retain the same fitted rate.
+    gkyl_array_scale(n_neut, -1.0);
+    gkyl_array_set_offset(moms_neut, 1.0, n_neut, 0);
+    gkyl_array_clear(coef_cx, 0.0);
+    gkyl_dg_cx_coll(coll_cx_up, moms_ion, moms_neut, u_par_ion, coef_cx, 0);
+    cv_cx = gkyl_array_cfetch(coef_cx,
+      gkyl_range_idx(&confRange, (int[2]) { 1, 1 }));
+    for (int i=0; i<basis.num_basis; ++i)
+      TEST_CHECK(gkyl_compare_double(0.0, cv_cx[i], 1e-14));
+
+    gkyl_dg_cx_coll_rate(coll_cx_up, moms_ion, moms_neut, u_par_ion, coef_cx);
+    cv_cx = gkyl_array_cfetch(coef_cx,
+      gkyl_range_idx(&confRange, (int[2]) { 1, 1 }));
+    for (int i=0; i<basis.num_basis; ++i) {
+      TEST_CHECK(gkyl_compare_double(p1_vals[i]*check_fac,
+        cv_cx[i]*check_fac, 1e-12));
+      TEST_MSG("density-independent i:%d | Expected: %.9e | Got:%.9e\n",
+        i, p1_vals[i]*check_fac, cv_cx[i]*check_fac);
+    }
+  }
+
   gkyl_array_release(n_ion); 
   gkyl_array_release(T_over_m_ion); 
   gkyl_array_release(n_neut); 

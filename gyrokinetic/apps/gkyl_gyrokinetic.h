@@ -505,6 +505,9 @@ struct gkyl_gyrokinetic_neut_fluid_diffusion {
   // Compute D = vti^2/(ne*<sigma v>_cx) from the IZ electron density and
   // the CX rate. Requires one GKYL_REACT_IZ and one GKYL_REACT_CX entry.
   bool use_reaction_rates;
+  // Minimum cell-average ne*<sigma v>_cx used in the diffusion denominator
+  // (units 1/s). A value of zero disables the floor.
+  double min_collision_frequency;
 
   // Density boundary conditions in the parallel direction (cdim-1). The
   // default is homogeneous diffusive flux. Dirichlet values are physical
