@@ -938,13 +938,17 @@ gkyl_gyrokinetic_app_new_solver(struct gkyl_gk *gk, gkyl_gyrokinetic_app *app)
     if (gk->neut_species[i].collisions.is_implicit){
       has_implicit_coll_scheme = true;
     }
+    if (gk->neut_species[i].cells[0] == 0
+        && gk->neut_species[i].diffusion.is_implicit) {
+      has_implicit_coll_scheme = true;
+    }
   }
 
   // Initialize EIRENE.
   app->eirene = gk_eirene_init(app, gk);
 
   // Set the appropriate update function for taking a single time step
-  // If we have implicit BGK collisions for either the gyrokinetic or neutral species, 
+  // If we have implicit BGK collisions or fluid-neutral diffusion,
   // we perform a first-order operator split and treat those terms implicitly.
   // Otherwise, we default to an SSP-RK3 method. 
   if (has_implicit_coll_scheme) {

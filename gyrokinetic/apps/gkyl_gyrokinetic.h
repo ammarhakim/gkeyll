@@ -502,6 +502,15 @@ enum gkyl_gyrokinetic_neut_fluid_diffusion_bc_type {
 // Parameters for diffusion of a fluid neutral species.
 struct gkyl_gyrokinetic_neut_fluid_diffusion {
   double D; // Constant diffusion coefficient.
+  // Write the computed coefficient and the diffusion/ionization CFL rates.
+  bool write_diagnostics;
+  // Advance diffusion with backward Euler in the operator-split implicit
+  // stage. The same DG spatial operator and boundary conditions are used.
+  bool is_implicit;
+  // Relative residual tolerance and iteration limit for the matrix-free
+  // implicit solve. Zero selects defaults of 1e-10 and 200.
+  double implicit_tol;
+  int implicit_max_iter;
   // Compute D = vti^2/(ne*<sigma v>_cx) from the IZ electron density and
   // the CX rate. Requires one GKYL_REACT_IZ and one GKYL_REACT_CX entry.
   bool use_reaction_rates;

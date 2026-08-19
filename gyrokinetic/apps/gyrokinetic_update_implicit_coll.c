@@ -19,8 +19,8 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
   const int neuts = app->num_neut_species;  
   struct gkyl_array *fin_neut[neuts];
   struct gkyl_array *fout_neut[neuts];
-  struct gkyl_array **bflux_in_neut[ns];
-  struct gkyl_array **bflux_out_neut[ns];
+  struct gkyl_array **bflux_in_neut[neuts];
+  struct gkyl_array **bflux_out_neut[neuts];
 
   // Fetch input and output arrays.
   for (int i=0; i<ns; ++i) {
@@ -36,6 +36,16 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app* app, double dt0)
     fout_neut[i] = gkns->f1;
     bflux_in_neut[i] = gkns->bflux.f;
     bflux_out_neut[i] = gkns->bflux.f;
+  }
+
+  // Refresh reaction moments at the post-explicit state. Reaction-rate
+  // diffusion freezes these coefficients during the implicit solve.
+  for (int i=0; i<neuts; ++i) {
+    struct gk_neut_species *gkns = &app->neut_species[i];
+    if (gkns->is_fluid && gkns->implicit_diffusion)
+      gk_neut_species_react_cross_moms(app, gkns, &gkns->react_neut,
+        (const struct gkyl_array **) fin,
+        (const struct gkyl_array **) fin_neut);
   }
 
   // Compute df/dt from implicit terms.

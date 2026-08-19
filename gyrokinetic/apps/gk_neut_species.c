@@ -212,6 +212,70 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
   
   struct timespec wtm = gkyl_wall_clock();
   gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, mt, gkns->f_host, fileNm);
+
+  if (gkns->is_fluid && gkns->has_diffusion
+      && gkns->info.diffusion.write_diagnostics) {
+    gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len,
+      gkns->io_meta_conf, "time", tm);
+    gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len,
+      gkns->io_meta_conf, "frame", frame);
+    struct gkyl_msgpack_map_elem desc_diag[] = {
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT,
+        .uval = app->basis.poly_order },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING,
+        .cval = "serendipity" },
+      { .key = "implicit_iterations", .elem_type = GKYL_MP_UNSIGNED_INT,
+        .uval = gkns->implicit_diffusion
+          ? gkns->diffusion_implicit_last_iter : 0 },
+      { .key = "implicit_relative_residual", .elem_type = GKYL_MP_DOUBLE,
+        .dval = gkns->implicit_diffusion
+          ? gkns->diffusion_implicit_last_residual : 0.0 },
+    };
+    int diag_meta_len[] = { gkns->io_meta_conf_len,
+      sizeof(desc_diag)/sizeof(desc_diag[0]), app->gk_geom->io_meta_basic_len };
+    const struct gkyl_msgpack_map_elem *diag_meta[] = {
+      gkns->io_meta_conf, desc_diag, app->gk_geom->io_meta_basic };
+    struct gkyl_msgpack_data *dmt = gkyl_msgpack_create_union(3,
+      diag_meta_len, diag_meta);
+
+    const char *dfmt = "%s-%s_%s_%d.gkyl";
+    const char *dname = "diffusion_coeff";
+    int dsz = gkyl_calc_strlen(dfmt, app->name, gkns->info.name, dname, frame);
+    char dfile[dsz+1];
+    snprintf(dfile, sizeof dfile, dfmt, app->name, gkns->info.name, dname, frame);
+    gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, dmt,
+      gkns->diffusion_coeff, dfile);
+
+    struct gkyl_msgpack_map_elem desc_cfl[] = {
+      { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
+      { .key = "basis_type", .elem_type = GKYL_MP_STRING,
+        .cval = "serendipity" },
+    };
+    int cfl_meta_len[] = { gkns->io_meta_conf_len,
+      sizeof(desc_cfl)/sizeof(desc_cfl[0]), app->gk_geom->io_meta_basic_len };
+    const struct gkyl_msgpack_map_elem *cfl_meta[] = {
+      gkns->io_meta_conf, desc_cfl, app->gk_geom->io_meta_basic };
+    struct gkyl_msgpack_data *cmt = gkyl_msgpack_create_union(3,
+      cfl_meta_len, cfl_meta);
+
+    dname = "diffusion_cflrate";
+    dsz = gkyl_calc_strlen(dfmt, app->name, gkns->info.name, dname, frame);
+    char dcflfile[dsz+1];
+    snprintf(dcflfile, sizeof dcflfile, dfmt, app->name, gkns->info.name, dname, frame);
+    gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, cmt,
+      gkns->diffusion_cflrate, dcflfile);
+
+    if (gkns->ionization_cflrate) {
+      dname = "ionization_cflrate";
+      dsz = gkyl_calc_strlen(dfmt, app->name, gkns->info.name, dname, frame);
+      char izcflfile[dsz+1];
+      snprintf(izcflfile, sizeof izcflfile, dfmt, app->name, gkns->info.name, dname, frame);
+      gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, cmt,
+        gkns->ionization_cflrate, izcflfile);
+    }
+    gkyl_msgpack_data_release(cmt);
+    gkyl_msgpack_data_release(dmt);
+  }
   app->stat.neut_species_io_tm += gkyl_time_diff_now_sec(wtm);
   app->stat.n_neut_io += 1;
   

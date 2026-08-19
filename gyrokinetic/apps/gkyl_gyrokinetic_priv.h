@@ -1280,6 +1280,7 @@ struct gk_neut_species {
       struct gkyl_array *prim_var_host; // prim_var on the host for I/O.
 
       bool has_diffusion; // Whether fluid diffusion is enabled.
+      bool implicit_diffusion; // Whether diffusion is advanced by backward Euler.
       bool use_reaction_rate_diffusion; // Whether D is computed from plasma reaction rates.
       int ionization_react_idx; // Ionization entry supplying electron density and loss rate.
       int diffusion_cx_react_idx; // CX entry supplying vti^2 and CX reactivity.
@@ -1287,6 +1288,15 @@ struct gk_neut_species {
       struct gkyl_array *diffusion_tensor; // Full tensor K^{ij}=J D g_neut^{ij}.
       struct gkyl_array *diffusion_geom_factor; // Temporary scalar product J D.
       struct gkyl_array *diffusion_density; // Physical density n=(J rho)/J.
+      struct gkyl_array *diffusion_cflrate; // CFL frequency from diffusion alone.
+      // Scalar p1 work arrays for the matrix-free implicit diffusion solve.
+      struct gkyl_array *diffusion_implicit_rhs, *diffusion_implicit_x;
+      struct gkyl_array *diffusion_implicit_r, *diffusion_implicit_rhat;
+      struct gkyl_array *diffusion_implicit_p, *diffusion_implicit_v;
+      struct gkyl_array *diffusion_implicit_s, *diffusion_implicit_t;
+      struct gkyl_array *diffusion_implicit_work;
+      int diffusion_implicit_last_iter;
+      double diffusion_implicit_last_residual;
       struct gkyl_array *diffusion_bc_density; // Local recycling boundary density.
       struct gkyl_array *diffusion_bc_density_tmp; // One impacting-ion contribution.
       struct gkyl_array *diffusion_moment_ratio; // Conserved moments divided by density.
