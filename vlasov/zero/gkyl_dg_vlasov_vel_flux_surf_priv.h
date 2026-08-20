@@ -977,6 +977,177 @@ static const gkyl_hamil_alpha_quad_kern_list ser_nc_hamil_phase_ho_alpha_quad_vz
 };
 
 // alpha_v evaluated at quadrature points for the electric field Lorentz force (Serendipity basis). 
+// Phase-space Hamiltonian velocity-flux producers (Tensor basis): only the
+// p=1 tensor hybrid has a phase-space Hamiltonian representation; plain
+// lists are the lo variant, *_ho_* lists the ho variant.
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_phase_alpha_quad_vx_1x1v_tensor_p1_node, NULL, NULL }, // 0
+  { NULL, hamil_phase_alpha_quad_vx_1x2v_tensor_p1_node, NULL, NULL }, // 1
+  { NULL, hamil_phase_alpha_quad_vx_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, hamil_phase_alpha_quad_vx_2x1v_tensor_p1_node, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, no_hamil_alpha_quad, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_ho_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_phase_ho_alpha_quad_vx_1x1v_tensor_p1_node, NULL, NULL }, // 0
+  { NULL, hamil_phase_ho_alpha_quad_vx_1x2v_tensor_p1_node, NULL, NULL }, // 1
+  { NULL, hamil_phase_ho_alpha_quad_vx_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, hamil_phase_ho_alpha_quad_vx_2x1v_tensor_p1_node, NULL, NULL }, // 3
+  { NULL, hamil_phase_ho_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_ho_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, no_hamil_alpha_quad, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_ho_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_kern_list tensor_hamil_phase_ho_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, NULL, NULL }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vx_1x2v_tensor_p1_node, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vx_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, NULL, NULL }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vy_1x2v_tensor_p1_node, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vy_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_hamil_phase_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vz_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_phase_alpha_quad_vx_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_phase_alpha_quad_vx_1x2v_tensor_p1_node, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_phase_alpha_quad_vx_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_phase_alpha_quad_vx_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_phase_alpha_quad_vy_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_phase_alpha_quad_vy_1x2v_tensor_p1_node, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_phase_alpha_quad_vy_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_phase_alpha_quad_vy_2x2v_tensor_p1_node, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_kern_list tensor_B_ho_hamil_phase_alpha_quad_vz_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_phase_alpha_quad_vz_1x3v_tensor_p1_node, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
 GKYL_CU_D
 static const gkyl_E_alpha_quad_kern_list ser_E_alpha_quad_vx_kernels[] = {
   // 1x kernels
@@ -2157,6 +2328,174 @@ static const gkyl_lax_flux_arr_kern_list ser_ho_lax_flux_nodal_vz_arr_kernels[] 
   { NULL, lax_flux_nodal_vz_2x3v_ser_p1, ho_lax_flux_nodal_vz_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, lax_flux_nodal_vz_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_phase_alpha_quad_vx_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, hamil_phase_alpha_quad_vx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, hamil_phase_alpha_quad_vx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, hamil_phase_alpha_quad_vx_2x1v_tensor_p1, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_ho_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, hamil_phase_ho_alpha_quad_vx_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, hamil_phase_ho_alpha_quad_vx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, hamil_phase_ho_alpha_quad_vx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, hamil_phase_ho_alpha_quad_vx_2x1v_tensor_p1, NULL, NULL }, // 3
+  { NULL, hamil_phase_ho_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_ho_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, hamil_phase_ho_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_hamil_alpha_quad_arr_kern_list tensor_hamil_phase_ho_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, no_hamil_alpha_quad_arr, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_phase_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad_arr, NULL, NULL }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad_arr, NULL, NULL }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_phase_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_hamil_phase_alpha_quad_vy_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vy_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_hamil_phase_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_hamil_phase_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_hamil_phase_alpha_quad_vz_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_phase_alpha_quad_vx_arr_kernels[] = {
+  // 1x kernels
+  { NULL, no_B_alpha_quad_arr, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_phase_alpha_quad_vx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_phase_alpha_quad_vx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, no_B_alpha_quad_arr, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_phase_alpha_quad_vx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_phase_alpha_quad_vy_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, B_ho_hamil_phase_alpha_quad_vy_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_phase_alpha_quad_vy_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, B_ho_hamil_phase_alpha_quad_vy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_B_alpha_quad_arr_kern_list tensor_B_ho_hamil_phase_alpha_quad_vz_arr_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, B_ho_hamil_phase_alpha_quad_vz_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
 };
 
 GKYL_CU_D

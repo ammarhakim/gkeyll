@@ -230,7 +230,29 @@ dg_vlasov_set_cu_dev_ptrs(struct dg_vlasov *vlasov, enum gkyl_basis_type b_type,
         if (has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
       }
       else {
-        assert(false);            
+        // Canonical-PB models: only the p=1 tensor hybrid has a phase-space
+        // Hamiltonian representation; volume keeps the inline phase-Hamiltonian
+        // kernel and streaming goes through the from-flux surface consumers.
+        vlasov->hamil_vol = tensor_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
+
+        if ( use_lo ) {
+          stream_surf_from_flux_x_kernels = tensor_stream_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_surf_z_kernels;
+        }
+        else {
+          stream_surf_from_flux_x_kernels = tensor_stream_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_ho_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_ho_surf_z_kernels;
+        }
       }
       if (has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
       if (has_B) {

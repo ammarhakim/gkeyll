@@ -92,6 +92,11 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
       m2_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m2_kernels : tensor_hamil_vel_dense_m2_kernels;
       m3i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m3i_kernels : tensor_hamil_vel_dense_m3i_kernels;
       five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_five_moments_kernels : tensor_hamil_vel_dense_five_moments_kernels;
+      // Phase-space Hamiltonian moments: only the p=1 tensor hybrid has a
+      // phase-space Hamiltonian representation.
+      m1i_hamil_phase_kernels = tensor_hamil_phase_m1i_kernels;
+      m2_hamil_phase_kernels = tensor_hamil_phase_m2_kernels;
+      five_moments_hamil_phase_kernels = tensor_hamil_phase_five_moments_kernels;
       break;
 
     default:
@@ -111,12 +116,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
         mom_vlasov->momt.kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-        }
-        else {
-          assert(false); 
-        }
+        mom_vlasov->momt.kernel = m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       mom_vlasov->momt.num_mom = vdim;
       break;
@@ -127,12 +127,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
         mom_vlasov->momt.kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-        }
-        else {
-          assert(false); 
-        }
+        mom_vlasov->momt.kernel = m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       mom_vlasov->momt.num_mom = 1;
       break;
@@ -162,12 +157,7 @@ set_cu_ptrs(struct mom_type_vlasov* mom_vlasov, enum gkyl_distribution_moments m
         mom_vlasov->momt.kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       else {
-        if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-          mom_vlasov->momt.kernel = five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
-        }
-        else {
-          assert(false); 
-        }
+        mom_vlasov->momt.kernel = five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
       }
       mom_vlasov->momt.num_mom = vdim+2;
       break;

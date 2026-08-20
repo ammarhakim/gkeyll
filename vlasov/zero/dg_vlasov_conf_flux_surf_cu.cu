@@ -291,12 +291,25 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
         up->lax_cfl[2] = tensor_ho_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
       }
       
-      // Only have Hamiltonian forces in general geometry. 
-      if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        assert(false);
-      }  
+      if (model_id == GKYL_MODEL_TRIAD_GR
+        || model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+        // Full phase-space Hamiltonian: alpha_dir = P . grad_v H evaluated at
+        // the surface nodes. Canonical-PB models supply the identity Poisson
+        // tensor, reducing this to the canonical streaming speed dH/dv_dir.
+        // Only the p=1 tensor hybrid has a phase-space Hamiltonian representation.
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = tensor_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_hamil_phase_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_hamil_phase_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = tensor_hamil_phase_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_hamil_phase_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_hamil_phase_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+        }
+      }
 
-      break;      
+      break;
 
     default:
       assert(false);
@@ -305,13 +318,25 @@ gkyl_dg_vlasov_conf_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_conf_flux_su
   // Set assembly functions for computing fluxes. 
   up->conf_flux_surf = conf_flux_surf_nodes;
   // Surface node counts for the per-node dispatch: (p+1) points per direction,
-  // p+2 for the higher-order (anti-aliasing) kernels.
-  int nq = poly_order + 1;
-  if ((poly_order > 1) && !use_lo) nq = poly_order + 2;
+  // p+2 for the higher-order (anti-aliasing) and tensor (cubic-map) kernels.
+  // The tensor p=1 hybrid (p=1 conf x p=2 vel) is anisotropic: 2 nodes per
+  // configuration direction, 3 (lo) or 4 (ho) per velocity direction.
+  int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
+  if ((poly_order > 1) && !use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
+  if (b_type == GKYL_BASIS_MODAL_TENSOR) {
+    if (poly_order == 1) {
+      nq_conf = 2;
+      nq_vel = use_lo ? 3 : 4;
+    }
+    else {
+      nq_conf = poly_order + 2;
+      nq_vel = poly_order + 2;
+    }
+  }
   up->num_nodes_conf = 1;
-  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq;
+  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq_conf;
   up->num_nodes_vel = 1;
-  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq;
+  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq_vel;
 }
 
 gkyl_dg_vlasov_conf_flux_surf*
@@ -360,12 +385,22 @@ gkyl_dg_vlasov_conf_flux_surf_cu_dev_inew(const struct gkyl_dg_vlasov_conf_flux_
   // Host mirror of the surface node counts set on the device struct by
   // set_cu_dev_ptrs; the advance wrapper needs them to size the 2D
   // (cells x nodes) kernel launch.
-  int nq = poly_order + 1;
-  if ((poly_order > 1) && !inp->use_lo) nq = poly_order + 2;
+  int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
+  if ((poly_order > 1) && !inp->use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
+  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
+    if (poly_order == 1) {
+      nq_conf = 2;
+      nq_vel = inp->use_lo ? 3 : 4;
+    }
+    else {
+      nq_conf = poly_order + 2;
+      nq_vel = poly_order + 2;
+    }
+  }
   up->num_nodes_conf = 1;
-  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq;
+  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq_conf;
   up->num_nodes_vel = 1;
-  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq;
+  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq_vel;
 
   up->flags = 0;
   GKYL_SET_CU_ALLOC(up->flags);

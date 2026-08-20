@@ -84,15 +84,17 @@ static const gkyl_dg_sr_vars_n_set_kern_list ser_sr_vars_n_set_kernels[] = {
 };
 
 // Set matrices for computing rest-frame density kernel list (Tensor kernels).
+// These are configuration-space kernels: at p=1 the tensor conf basis is
+// identical to Serendipity p=1, so the p=1 slots alias the ser kernels.
 GKYL_CU_D
 static const gkyl_dg_sr_vars_n_set_kern_list tensor_sr_vars_n_set_kernels[] = {
   // 1x kernels
-  { NULL, NULL, sr_vars_n_set_1x1v_tensor_p2, sr_vars_n_set_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, sr_vars_n_set_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, sr_vars_n_set_1x3v_tensor_p2, NULL }, // 2
+  { NULL, sr_vars_n_set_1x1v_ser_p1, sr_vars_n_set_1x1v_tensor_p2, sr_vars_n_set_1x1v_tensor_p3 }, // 0
+  { NULL, sr_vars_n_set_1x2v_ser_p1, sr_vars_n_set_1x2v_tensor_p2, NULL }, // 1
+  { NULL, sr_vars_n_set_1x3v_ser_p1, sr_vars_n_set_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, sr_vars_n_set_2x1v_tensor_p2, sr_vars_n_set_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, sr_vars_n_set_2x2v_tensor_p2, NULL }, // 4
+  { NULL, sr_vars_n_set_2x1v_ser_p1, sr_vars_n_set_2x1v_tensor_p2, sr_vars_n_set_2x1v_tensor_p3 }, // 3
+  { NULL, sr_vars_n_set_2x2v_ser_p1, sr_vars_n_set_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, sr_vars_n_set_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -117,12 +119,12 @@ static const gkyl_dg_sr_vars_n_copy_kern_list ser_sr_vars_n_copy_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_sr_vars_n_copy_kern_list tensor_sr_vars_n_copy_kernels[] = {
   // 1x kernels
-  { NULL, NULL, sr_vars_n_copy_1x1v_tensor_p2, sr_vars_n_copy_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, sr_vars_n_copy_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, sr_vars_n_copy_1x3v_tensor_p2, NULL }, // 2
+  { NULL, sr_vars_n_copy_1x1v_ser_p1, sr_vars_n_copy_1x1v_tensor_p2, sr_vars_n_copy_1x1v_tensor_p3 }, // 0
+  { NULL, sr_vars_n_copy_1x2v_ser_p1, sr_vars_n_copy_1x2v_tensor_p2, NULL }, // 1
+  { NULL, sr_vars_n_copy_1x3v_ser_p1, sr_vars_n_copy_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, sr_vars_n_copy_2x1v_tensor_p2, sr_vars_n_copy_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, sr_vars_n_copy_2x2v_tensor_p2, NULL }, // 4
+  { NULL, sr_vars_n_copy_2x1v_ser_p1, sr_vars_n_copy_2x1v_tensor_p2, sr_vars_n_copy_2x1v_tensor_p3 }, // 3
+  { NULL, sr_vars_n_copy_2x2v_ser_p1, sr_vars_n_copy_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, sr_vars_n_copy_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -147,12 +149,12 @@ static const gkyl_dg_sr_vars_GammaV_kern_list ser_sr_vars_GammaV_kernels[] = {
 GKYL_CU_D
 static const gkyl_dg_sr_vars_GammaV_kern_list tensor_sr_vars_GammaV_kernels[] = {
   // 1x kernels
-  { NULL, NULL, sr_vars_GammaV_1x1v_tensor_p2, sr_vars_GammaV_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, sr_vars_GammaV_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, sr_vars_GammaV_1x3v_tensor_p2, NULL }, // 2
+  { NULL, sr_vars_GammaV_1x1v_ser_p1, sr_vars_GammaV_1x1v_tensor_p2, sr_vars_GammaV_1x1v_tensor_p3 }, // 0
+  { NULL, sr_vars_GammaV_1x2v_ser_p1, sr_vars_GammaV_1x2v_tensor_p2, NULL }, // 1
+  { NULL, sr_vars_GammaV_1x3v_ser_p1, sr_vars_GammaV_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, sr_vars_GammaV_2x1v_tensor_p2, sr_vars_GammaV_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, sr_vars_GammaV_2x2v_tensor_p2, NULL }, // 4
+  { NULL, sr_vars_GammaV_2x1v_ser_p1, sr_vars_GammaV_2x1v_tensor_p2, sr_vars_GammaV_2x1v_tensor_p3 }, // 3
+  { NULL, sr_vars_GammaV_2x2v_ser_p1, sr_vars_GammaV_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, sr_vars_GammaV_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -177,12 +179,12 @@ static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_kernels[] =
 GKYL_CU_D
 static const gkyl_dg_sr_vars_pressure_kern_list tensor_sr_vars_pressure_kernels[] = {
   // 1x kernels
-  { NULL, NULL, sr_vars_pressure_1x1v_tensor_p2, sr_vars_pressure_1x1v_tensor_p3 }, // 0
-  { NULL, NULL, sr_vars_pressure_1x2v_tensor_p2, NULL }, // 1
-  { NULL, NULL, sr_vars_pressure_1x3v_tensor_p2, NULL }, // 2
+  { NULL, sr_vars_pressure_1x1v_tensor_p1, sr_vars_pressure_1x1v_tensor_p2, sr_vars_pressure_1x1v_tensor_p3 }, // 0
+  { NULL, sr_vars_pressure_1x2v_tensor_p1, sr_vars_pressure_1x2v_tensor_p2, NULL }, // 1
+  { NULL, sr_vars_pressure_1x3v_tensor_p1, sr_vars_pressure_1x3v_tensor_p2, NULL }, // 2
   // 2x kernels
-  { NULL, NULL, sr_vars_pressure_2x1v_tensor_p2, sr_vars_pressure_2x1v_tensor_p3 }, // 3
-  { NULL, NULL, sr_vars_pressure_2x2v_tensor_p2, NULL }, // 4
+  { NULL, sr_vars_pressure_2x1v_tensor_p1, sr_vars_pressure_2x1v_tensor_p2, sr_vars_pressure_2x1v_tensor_p3 }, // 3
+  { NULL, sr_vars_pressure_2x2v_tensor_p1, sr_vars_pressure_2x2v_tensor_p2, NULL }, // 4
   { NULL, NULL, sr_vars_pressure_2x3v_tensor_p2, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6

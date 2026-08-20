@@ -110,6 +110,11 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       m2_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m2_kernels : tensor_hamil_vel_dense_m2_kernels;
       m3i_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_m3i_kernels : tensor_hamil_vel_dense_m3i_kernels;
       five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_five_moments_kernels : tensor_hamil_vel_dense_five_moments_kernels;
+      // Phase-space Hamiltonian moments: only the p=1 tensor hybrid has a
+      // phase-space Hamiltonian representation.
+      m1i_hamil_phase_kernels = tensor_hamil_phase_m1i_kernels;
+      m2_hamil_phase_kernels = tensor_hamil_phase_m2_kernels;
+      five_moments_hamil_phase_kernels = tensor_hamil_phase_five_moments_kernels;
       break;
 
     default:
@@ -133,9 +138,6 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->momt.kernel = m1i_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
     else {
-      if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov M1i hamil_phase: Not currently supported in tensor basis.");
-      }
       assert(NULL != m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m1i_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
@@ -150,9 +152,6 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->momt.kernel = m2_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
     else {
-      if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov M2 hamil_phase: Not currently supported in tensor basis.");
-      }
       assert(NULL != m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = m2_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     } 
@@ -196,9 +195,6 @@ gkyl_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->momt.kernel = five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
     else {
-      if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov five moments hamil_phase: Not currently supported in tensor basis.");
-      }
       assert(NULL != five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     } 
@@ -298,6 +294,8 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
 
     case GKYL_BASIS_MODAL_TENSOR:
       int_five_moments_hamil_vel_kernels = hamil_sparse ? tensor_hamil_vel_sparse_int_five_moments_kernels : tensor_hamil_vel_dense_int_five_moments_kernels;
+      // Phase-space Hamiltonian integrated moments: p=1 tensor hybrid only.
+      int_five_moments_hamil_phase_kernels = tensor_hamil_phase_int_five_moments_kernels;
       break;
 
     default:
@@ -313,9 +311,6 @@ gkyl_int_mom_vlasov_inew(const struct gkyl_mom_vlasov_inp *inp)
       mom_vlasov->momt.kernel = int_five_moments_hamil_vel_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     }
     else {
-      if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
-        gkyl_exit("mom_vlasov integrated moments hamil_phase: Not currently supported in tensor basis.");
-      }
       assert(NULL != int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order]);
       mom_vlasov->momt.kernel = int_five_moments_hamil_phase_kernels[cv_index[cdim].vdim[vdim]].kernels[poly_order];
     } 

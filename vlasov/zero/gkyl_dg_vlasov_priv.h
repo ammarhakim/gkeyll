@@ -275,6 +275,22 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_phase_vol_kernels[] = 
   { NULL, vlasov_hamil_phase_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
+// Phase-space Hamiltonian volume kernels (Tensor basis): only the p=1
+// tensor hybrid has a phase-space Hamiltonian representation.
+GKYL_CU_D
+static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_phase_vol_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_hamil_phase_vol_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_hamil_phase_vol_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, vlasov_hamil_phase_vol_2x1v_tensor_p1, NULL, NULL }, // 3
+  { NULL, vlasov_hamil_phase_vol_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
 // Non-canonical Poisson Bracket, hamil vel space dependance only, volume kernels (Serendipity basis). 
 GKYL_CU_D
 static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_vel_dense_vol_kernels[] = {
@@ -491,7 +507,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_phase_vol_kernels[] 
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL, NULL }, // 2
+  { NULL, vlasov_Bx_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -581,7 +597,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_phase_vol_kernels[] 
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
   { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL, NULL }, // 2
+  { NULL, vlasov_By_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, NULL, NULL, NULL }, // 4
@@ -670,11 +686,11 @@ GKYL_CU_D
 static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_phase_vol_kernels[] = {
   // 1x kernels
   { NULL, NULL, NULL, NULL }, // 0
-  { NULL, NULL, NULL, NULL }, // 1
-  { NULL, NULL, NULL, NULL }, // 2
+  { NULL, vlasov_Bz_hamil_phase_vol_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_Bz_hamil_phase_vol_1x3v_tensor_p1, NULL, NULL }, // 2
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
-  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, vlasov_Bz_hamil_phase_vol_2x2v_tensor_p1, NULL, NULL }, // 4
   { NULL, NULL, NULL, NULL }, // 5
   // 3x kernels
   { NULL, NULL, NULL, NULL }, // 6
@@ -981,6 +997,177 @@ static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list ser_stream_ho_surf_z
   { NULL, vlasov_surfz_3x3v_ser_p1, NULL, NULL }, // 6
 };
 
+
+// Streaming from-flux surface kernels (Tensor basis): only the p=1 tensor
+// hybrid uses the from-flux streaming path (canonical/phase-Hamiltonian
+// models); lo list = plain p1 kernels, ho list = ho_ variants.
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list tensor_stream_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_surfx_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_surfx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_surfx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list tensor_stream_ho_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_ho_surfx_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_ho_surfx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_ho_surfx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_ho_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list tensor_stream_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list tensor_stream_ho_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_ho_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list tensor_stream_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_surf_from_flux_kern_list tensor_stream_ho_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list tensor_stream_boundary_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_boundary_surfx_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_boundary_surfx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_boundary_surfx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_boundary_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list tensor_stream_boundary_ho_surf_x_kernels[] = {
+  // 1x kernels
+  { NULL, vlasov_boundary_ho_surfx_1x1v_tensor_p1, NULL, NULL }, // 0
+  { NULL, vlasov_boundary_ho_surfx_1x2v_tensor_p1, NULL, NULL }, // 1
+  { NULL, vlasov_boundary_ho_surfx_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_boundary_ho_surfx_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list tensor_stream_boundary_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_boundary_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list tensor_stream_boundary_ho_surf_y_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_boundary_ho_surfy_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list tensor_stream_boundary_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
+
+GKYL_CU_D
+static const gkyl_dg_vlasov_stream_boundary_surf_from_flux_kern_list tensor_stream_boundary_ho_surf_z_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, NULL, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, NULL, NULL, NULL }, // 4
+  { NULL, NULL, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, NULL, NULL, NULL }, // 6
+};
 
 // Acceleration surface kernel list: vx-direction (Serendipity basis)
 GKYL_CU_D

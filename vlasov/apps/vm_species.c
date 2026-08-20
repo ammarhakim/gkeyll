@@ -1303,10 +1303,7 @@ vm_species_init(struct gkyl_vm *vm_app_inp, struct gkyl_vlasov_app *app, struct 
         // tensored with p=2 in velocity space (the pure p=1 tensor phase
         // basis has no kernels). The velocity basis is the p=2 tensor basis,
         // which also selects the C^1 cubic velocity map and the p=2 velocity
-        // representation of the Hamiltonian. Currently restricted to vdim=1,
-        // where the (Serendipity-flavored) gkyl_cart_modal_hybrid phase
-        // basis spans the same space as the tensor hybrid.
-        assert(vdim == 1);
+        // representation of the Hamiltonian.
         gkyl_cart_modal_hybrid(&vms->basis, cdim, vdim);
         gkyl_cart_modal_tensor(&vms->basis_surf, pdim-1, app->poly_order);
         gkyl_cart_modal_tensor(&vms->basis_vel, vdim, 2);

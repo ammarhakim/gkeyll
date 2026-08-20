@@ -325,10 +325,34 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         if (inp->has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
       }
       else if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
-        gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_TRIAD not yet supported!"); 
+        gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_TRIAD not yet supported!");
       }
       else {
-        gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_CAN_PB or GKYL_MODEL_CANONICAL_PB_GR not yet supported!"); 
+        // Canonical-PB models: only the p=1 tensor hybrid has a phase-space
+        // Hamiltonian representation. The volume term keeps the inline
+        // phase-Hamiltonian kernel; streaming goes through the precomputed
+        // configuration-space fluxes and the Hamiltonian-agnostic from-flux
+        // surface consumers, exactly like the Serendipity path.
+        vlasov->hamil_vol = tensor_hamil_phase_vol_kernels[kernel_index].kernels[poly_order];
+
+        if ( inp->use_lo ) {
+          stream_surf_from_flux_x_kernels = tensor_stream_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_surf_z_kernels;
+        }
+        else {
+          stream_surf_from_flux_x_kernels = tensor_stream_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_ho_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_ho_surf_z_kernels;
+        }
       }
       if (inp->has_E) vlasov->E_vol = tensor_E_vol_kernels[kernel_index].kernels[poly_order];
       if (inp->has_B) {

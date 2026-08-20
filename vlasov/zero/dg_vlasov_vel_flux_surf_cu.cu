@@ -365,9 +365,20 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
         up->lax_cfl[2] = tensor_ho_lax_flux_nodal_vz_cfl_kernels[kernel_index].kernels[poly_order];
       }
 
-      // Only have Hamiltonian forces in general geometry.
+      // Only have Hamiltonian forces in general geometry: the p=1 tensor
+      // hybrid is the only tensor basis with a phase-space Hamiltonian
+      // representation.
       if (model_id == GKYL_MODEL_CANONICAL_PB || model_id == GKYL_MODEL_CANONICAL_PB_GR) {
-        assert(false);
+        if ( use_lo ) {
+          up->hamil_alpha_quad[0] = tensor_hamil_phase_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_hamil_phase_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_hamil_phase_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = tensor_hamil_phase_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_hamil_phase_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_hamil_phase_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+        }
       }
 
       if ( use_lo ) {
@@ -388,7 +399,12 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
           // phase runs keep the no-op defaults set above. (The tensor p=1
           // hybrid does have B_hamil_phase kernels; hook them in with the
           // phase-Hamiltonian hybrid support.)
-          if (hamil_id != GKYL_HAMIL_PHASE) {
+          if (hamil_id == GKYL_HAMIL_PHASE) {
+            up->B_alpha_quad[0] = tensor_B_hamil_phase_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[1] = tensor_B_hamil_phase_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[2] = tensor_B_hamil_phase_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          }
+          else {
           up->B_alpha_quad[0] = hamil_sparse ?
             tensor_B_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
             tensor_B_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
@@ -425,7 +441,12 @@ gkyl_dg_vlasov_vel_flux_surf_set_cu_dev_ptrs(struct gkyl_dg_vlasov_vel_flux_surf
           // phase runs keep the no-op defaults set above. (The tensor p=1
           // hybrid does have B_hamil_phase kernels; hook them in with the
           // phase-Hamiltonian hybrid support.)
-          if (hamil_id != GKYL_HAMIL_PHASE) {
+          if (hamil_id == GKYL_HAMIL_PHASE) {
+            up->B_alpha_quad[0] = tensor_B_ho_hamil_phase_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[1] = tensor_B_ho_hamil_phase_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+            up->B_alpha_quad[2] = tensor_B_ho_hamil_phase_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          }
+          else {
           up->B_alpha_quad[0] = hamil_sparse ?
             tensor_B_ho_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order] :
             tensor_B_ho_hamil_vel_dense_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];

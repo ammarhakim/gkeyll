@@ -178,8 +178,9 @@ struct gkyl_basis * gkyl_cart_modal_tensor_new(int ndim, int poly_order);
 struct gkyl_basis * gkyl_cart_modal_tensor_cu_dev_new(int ndim, int poly_order);
 
 /**
- * Assign object members in hybrid basis. These are p=1 in configuration space
- * and p=2 in velocity space.
+ * Assign object members in hybrid basis: the tensor hybrid, a full tensor
+ * product of p=1 tensor basis in configuration space and p=2 tensor basis in
+ * velocity space (2^cdim*3^vdim functions).
  *
  * @param basis Basis object to initialize
  * @param cdim dimension of configuration space.
@@ -189,8 +190,8 @@ void gkyl_cart_modal_hybrid(struct gkyl_basis *basis, int cdim, int vdim);
 void gkyl_cart_modal_hybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim);
 
 /**
- * Create new hybrid basis. These are p=1 in configuration space
- * and p=2 in velocity space.
+ * Create new hybrid basis: the tensor hybrid, a full tensor product of p=1
+ * tensor basis in configuration space and p=2 tensor basis in velocity space.
  * This basis needs to be deallocated with free/release methods.
  *
  * @param cdim dimension of configuration space.

@@ -178,9 +178,33 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
         up->lax_flux_nodal[2] = tensor_ho_lax_flux_nodal_z_kernels[kernel_index].kernels[poly_order];
         up->lax_flux_arr[2] = tensor_ho_lax_flux_nodal_z_arr_kernels[kernel_index].kernels[poly_order];
         up->lax_cfl[2] = tensor_ho_lax_flux_nodal_z_cfl_kernels[kernel_index].kernels[poly_order];
-      } 
+      }
 
-      break;      
+      if (inp->model_id == GKYL_MODEL_TRIAD_GR
+        || inp->model_id == GKYL_MODEL_CANONICAL_PB || inp->model_id == GKYL_MODEL_CANONICAL_PB_GR) {
+        // Full phase-space Hamiltonian: alpha_dir = P . grad_v H evaluated at
+        // the surface nodes. Canonical-PB models supply the identity Poisson
+        // tensor, reducing this to the canonical streaming speed dH/dv_dir.
+        // Only the p=1 tensor hybrid has a phase-space Hamiltonian representation.
+        if ( inp->use_lo ) {
+          up->hamil_alpha_quad[0] = tensor_hamil_phase_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = tensor_hamil_phase_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_hamil_phase_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = tensor_hamil_phase_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_hamil_phase_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = tensor_hamil_phase_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = tensor_hamil_phase_ho_alpha_quad_x_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = tensor_hamil_phase_ho_alpha_quad_x_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_hamil_phase_ho_alpha_quad_y_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = tensor_hamil_phase_ho_alpha_quad_y_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_hamil_phase_ho_alpha_quad_z_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = tensor_hamil_phase_ho_alpha_quad_z_arr_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+
+      break;
 
     default:
       assert(false);
@@ -189,13 +213,25 @@ gkyl_dg_vlasov_conf_flux_surf_inew(const struct gkyl_dg_vlasov_conf_flux_surf_in
   // Set assembly functions for computing fluxes. 
   up->conf_flux_surf = conf_flux_surf_arrays;
   // Surface node counts for the per-node dispatch: (p+1) points per direction,
-  // p+2 for the higher-order (anti-aliasing) kernels.
-  int nq = poly_order + 1;
-  if ((poly_order > 1) && !inp->use_lo) nq = poly_order + 2;
+  // p+2 for the higher-order (anti-aliasing) and tensor (cubic-map) kernels.
+  // The tensor p=1 hybrid (p=1 conf x p=2 vel) is anisotropic: 2 nodes per
+  // configuration direction, 3 (lo) or 4 (ho) per velocity direction.
+  int nq_conf = poly_order + 1, nq_vel = poly_order + 1;
+  if ((poly_order > 1) && !inp->use_lo) { nq_conf = poly_order + 2; nq_vel = poly_order + 2; }
+  if (inp->conf_basis->b_type == GKYL_BASIS_MODAL_TENSOR) {
+    if (poly_order == 1) {
+      nq_conf = 2;
+      nq_vel = inp->use_lo ? 3 : 4;
+    }
+    else {
+      nq_conf = poly_order + 2;
+      nq_vel = poly_order + 2;
+    }
+  }
   up->num_nodes_conf = 1;
-  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq;
+  for (int d=0; d<cdim-1; ++d) up->num_nodes_conf *= nq_conf;
   up->num_nodes_vel = 1;
-  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq;
+  for (int d=0; d<vdim; ++d) up->num_nodes_vel *= nq_vel;
 
   // ensure non-NULL pointers
   for (int i=0; i<cdim; ++i) {
