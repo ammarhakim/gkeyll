@@ -724,6 +724,7 @@ struct gkyl_gyrokinetic_stat {
   double neut_species_react_tm; // total time for neutral reactions updaters
   double neut_species_src_tm; // Time to accumulate neutral species source onto RHS.
   double neut_species_omega_cfl_tm; // time spent in all-reduce for omega-cfl for neutrals
+  double neut_species_implicit_diffusion_tm; // Time spent solving implicit fluid-neutral diffusion.
 
   double time_rate_diags_tm; // Time spent on time rate of change diagnostics.
   double fdot_tm; // Time spent on computing \dot{f} diagnostics.

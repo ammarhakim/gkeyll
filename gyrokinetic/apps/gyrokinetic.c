@@ -2445,7 +2445,13 @@ gyrokinetic_rhs_implicit(gkyl_gyrokinetic_app* app, double tcurr, double dt,
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     struct gk_neut_species *gk_ns = &app->neut_species[i];
+    bool time_implicit_diffusion = gk_ns->is_fluid && gk_ns->implicit_diffusion;
+    struct timespec wst;
+    if (time_implicit_diffusion)
+      wst = gkyl_wall_clock();
     gk_neut_species_rhs_implicit(app, gk_ns, fin_neut[i], fout_neut[i], bflux_out_neut[i], dt);
+    if (time_implicit_diffusion)
+      app->stat.neut_species_implicit_diffusion_tm += gkyl_time_diff_now_sec(wst);
   }
 }
 
@@ -2490,7 +2496,7 @@ gkyl_gyrokinetic_app_stat(gkyl_gyrokinetic_app* app)
   stat->time_rate_diags_sum_tm = stat->fdot_tm + stat->phidot_tm;
   stat->pos_shift_sum_tm = stat->species_pos_shift_tm + stat->neut_species_pos_shift_tm + stat->pos_shift_quasineut_tm;
   stat->time_stepper_sum_tm = stat->fwd_euler_tm  + stat->field_tm + stat->bc_tm + stat->time_rate_diags_tm
-    + stat->pos_shift_tm + stat->time_stepper_arithmetic_tm;
+    + stat->pos_shift_tm + stat->time_stepper_arithmetic_tm + stat->neut_species_implicit_diffusion_tm;
   stat->io_sum_tm = stat->species_io_tm + stat->species_diag_calc_tm + stat->species_diag_io_tm + stat->neut_species_io_tm
     + stat->neut_species_diag_calc_tm + stat->neut_species_diag_io_tm + stat->field_io_tm + stat->field_diag_calc_tm
     + stat->field_diag_io_tm + stat->app_io_tm;
@@ -2543,6 +2549,7 @@ gkyl_gyrokinetic_app_print_timings(gkyl_gyrokinetic_app* app, FILE *iostream)
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Time step reduction:           %.4e sec. / %4.2f %%.\n", stat->dfdt_dt_reduce_tm            , ratio_to_percent(stat->dfdt_dt_reduce_tm            ,stat->fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Step f:                        %.4e sec. / %4.2f %%.\n", stat->fwd_euler_step_f_tm          , ratio_to_percent(stat->fwd_euler_step_f_tm          ,stat->fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Accounted for:                 %4.2f %%.\n", ratio_to_percent(stat->fwd_euler_sum_tm, stat->fwd_euler_tm, 100.0));
+  gkyl_gyrokinetic_app_cout(app, iostream, "    * Implicit neutral diffusion:      %.4e sec. / %4.2f %%.\n", stat->neut_species_implicit_diffusion_tm, ratio_to_percent(stat->neut_species_implicit_diffusion_tm,stat->time_loop_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "    * Field solves:                    %.4e sec. / %4.2f %%.\n", stat->field_tm, ratio_to_percent(stat->field_tm,stat->time_loop_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Phi eqn RHS:                   %.4e sec. / %4.2f %%.\n", stat->field_phi_rhs_tm  , ratio_to_percent(stat->field_phi_rhs_tm  ,stat->field_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, iostream, "      ^ Phi eqn solve:                 %.4e sec. / %4.2f %%.\n", stat->field_phi_solve_tm, ratio_to_percent(stat->field_phi_solve_tm,stat->field_tm, 0.0));
@@ -2666,6 +2673,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     NEUT_SPECIES_COLLISIONLESS_TM, NEUT_SPECIES_LTE_TM, NEUT_SPECIES_BFLUX_CALC_TM, NEUT_SPECIES_BFLUX_MOMS_TM,
     NEUT_SPECIES_COLL_MOM_TM, NEUT_SPECIES_COLL_TM, 
     NEUT_SPECIES_REACT_MOM_TM,  NEUT_SPECIES_REACT_TM, NEUT_SPECIES_SRC_TM, NEUT_SPECIES_OMEGA_CFL_TM,
+    NEUT_SPECIES_IMPLICIT_DIFFUSION_TM,
     FDOT_TM, PHIDOT_TM, FIELD_TM, FIELD_PHI_RHS_TM, FIELD_PHI_SOLVE_TM,
     BC_TM, SPECIES_BC_TM, NEUT_SPECIES_BC_TM,
     TIME_STEPPER_ARITHMETIC_TM,
@@ -2710,6 +2718,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
     [NEUT_SPECIES_REACT_TM] = local->neut_species_react_tm,
     [NEUT_SPECIES_SRC_TM] = local->neut_species_src_tm,
     [NEUT_SPECIES_OMEGA_CFL_TM] = local->neut_species_omega_cfl_tm,
+    [NEUT_SPECIES_IMPLICIT_DIFFUSION_TM] = local->neut_species_implicit_diffusion_tm,
     [FDOT_TM] = local->fdot_tm,
     [PHIDOT_TM] = local->phidot_tm,
     [FIELD_TM] = local->field_tm,
@@ -2773,6 +2782,7 @@ comm_reduce_app_stat(const gkyl_gyrokinetic_app* app,
   global->neut_species_react_tm = d_red_global[NEUT_SPECIES_REACT_TM];
   global->neut_species_src_tm = d_red_global[NEUT_SPECIES_SRC_TM];
   global->neut_species_omega_cfl_tm = d_red_global[NEUT_SPECIES_OMEGA_CFL_TM];
+  global->neut_species_implicit_diffusion_tm = d_red_global[NEUT_SPECIES_IMPLICIT_DIFFUSION_TM];
 
   global->fdot_tm = d_red_global[FDOT_TM];
   global->phidot_tm = d_red_global[PHIDOT_TM];
@@ -2947,6 +2957,8 @@ gkyl_gyrokinetic_app_stat_write(gkyl_gyrokinetic_app* app)
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_omega_cfl_pct : %.2f,\n", ratio_to_percent(stat.neut_species_omega_cfl_tm, stat.fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_src_tm : %.4e,\n", stat.neut_species_src_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " neut_species_src_pct : %.2f,\n", ratio_to_percent(stat.neut_species_src_tm, stat.fwd_euler_tm, 0.0));
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_implicit_diffusion_tm : %.4e,\n", stat.neut_species_implicit_diffusion_tm);
+  gkyl_gyrokinetic_app_cout(app, fp, " neut_species_implicit_diffusion_pct : %.2f,\n", ratio_to_percent(stat.neut_species_implicit_diffusion_tm, stat.time_loop_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, fp, " dfdt_dt_reduce_tm : %.4e,\n", stat.dfdt_dt_reduce_tm);
   gkyl_gyrokinetic_app_cout(app, fp, " dfdt_dt_reduce_pct : %.2f,\n", ratio_to_percent(stat.dfdt_dt_reduce_tm, stat.fwd_euler_tm, 0.0));
   gkyl_gyrokinetic_app_cout(app, fp, " fwd_euler_step_f_tm : %.4e,\n", stat.fwd_euler_step_f_tm);
