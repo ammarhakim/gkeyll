@@ -479,34 +479,63 @@ R_psiZ(const struct gkyl_tok_geo *geo, double psi, double Z, int nmaxroots,
   struct gkyl_range rangeR;
   gkyl_range_deflate(&rangeR, &geo->rzlocal, (int[]) { 0, 1 }, (int[]) { 0, zcell });
 
-  struct gkyl_range_iter riter;
-  gkyl_range_iter_init(&riter, &rangeR);
-  
-  // loop over all R cells to find psi crossing
-  while (gkyl_range_iter_next(&riter) && sidx<nmaxroots) {
-    long loc = gkyl_range_idx(&rangeR, riter.idx);
-    const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
+  // The scan has to cover the whole row: a row normally holds fewer crossings
+  // than nmaxroots, so it never exits early, and its cost therefore tracks the
+  // equilibrium file's radial resolution rather than the grid being built.
+  //
+  // Where psi enclosures are available the row is walked in runs, rejecting a
+  // whole run with one test and then the surviving cells individually; without
+  // them the same loop degenerates to one run covering the row, i.e. the plain
+  // scan. Either way the cells that are solved are visited in ascending R, so
+  // the roots come back in the same order.
+  const int rlo = geo->rzlocal.lower[0], rup = geo->rzlocal.upper[0];
+  const bool bounded = geo->psi_cell_bounds && geo->psi_block_bounds
+    && zcell >= geo->rzlocal.lower[1] && zcell <= geo->rzlocal.upper[1];
+  const int bsz = bounded ? geo->psi_block_size : rup - rlo + 1;
+  const int nblk = bounded ? geo->psi_num_blocks : 1;
+  const double *blk = bounded ? geo->psi_block_bounds
+    + 2*(size_t)(zcell - geo->rzlocal.lower[1])*nblk : 0;
 
-    double xc[2];
-    idx[0] = riter.idx[0];
-    gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
+  for (int ib=0; ib<nblk && sidx<nmaxroots; ++ib) {
+    if (blk && (psi < blk[2*ib] || psi > blk[2*ib+1]))
+      continue;
+    int i0 = rlo + ib*bsz, i1 = i0 + bsz - 1;
+    if (i1 > rup) i1 = rup;
 
-    struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
-    
-    if (sol.nsol > 0)
-      for (int s=0; s<sol.nsol && sidx<nmaxroots; ++s) {
-        if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
-          R[sidx] = sol.R[s];
-          dRdZ[sidx] = sol.dRdZ[s];
-          dR[sidx] = sol.dR[s];
-          dZ[sidx] = sol.dZ[s];
-          sidx += 1;
-        }
+    for (int ir=i0; ir<=i1 && sidx<nmaxroots; ++ir) {
+      idx[0] = ir;
+      long loc = gkyl_range_idx(&geo->rzlocal, idx);
+
+      if (bounded) {
+        const double *pbound = gkyl_array_cfetch(geo->psi_cell_bounds, loc);
+        if (psi < pbound[0] || psi > pbound[1])
+          continue;
       }
+
+      const double *psih = gkyl_array_cfetch(geo->psiRZ, loc);
+      double xc[2];
+      gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
+
+      struct RdRdZ_sol sol = geo->calc_roots(psih, psi, Z, xc, dx);
+
+      if (sol.nsol > 0)
+        for (int s=0; s<sol.nsol && sidx<nmaxroots; ++s) {
+          if( (sol.R[s] > geo->rmin) && (sol.R[s] < geo->rmax) ) {
+            R[sidx] = sol.R[s];
+            dRdZ[sidx] = sol.dRdZ[s];
+            dR[sidx] = sol.dR[s];
+            dZ[sidx] = sol.dZ[s];
+            sidx += 1;
+          }
+        }
+    }
   }
 
-  // Try again if we didn't find any
+  // Try again if we didn't find any. This fallback keeps the plain full scan:
+  // it runs only when the first pass found nothing, so its cost is irrelevant,
+  // and leaving it unfiltered means it can still recover a root there.
   if (sidx==0 && geo->inexact_roots) {
+    struct gkyl_range_iter riter;
     gkyl_range_iter_init(&riter, &rangeR);
     while (gkyl_range_iter_next(&riter) && sidx<nmaxroots) {
       long loc = gkyl_range_idx(&rangeR, riter.idx);

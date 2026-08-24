@@ -528,6 +528,15 @@ tok_geo_Z_psiR(const struct gkyl_tok_geo *geo, double psi, double R,
       int idx[2] = { ridx, iz };
       long loc = gkyl_range_idx(&geo->rzlocal, idx);
       const double *p = gkyl_array_cfetch(geo->psiRZ, loc);
+
+      // As in the R scan: this walks every Z cell of the column without an
+      // early exit, so skip the cells whose psi enclosure rules out a root.
+      if (geo->psi_cell_bounds) {
+        const double *pbound = gkyl_array_cfetch(geo->psi_cell_bounds, loc);
+        if (psi < pbound[0] || psi > pbound[1])
+          continue;
+      }
+
       double xc[2];
       gkyl_rect_grid_cell_center(&geo->rzgrid, idx, xc);
       double x = (R-xc[0])/(0.5*geo->rzgrid.dx[0]);
@@ -5274,6 +5283,122 @@ curlbhat_func(double psi, double r_curr, double Z, double phi, double *curlbhat,
 
 
 
+
+// Build a conservative enclosure of psi over every RZ cell.
+//
+// R_psiZ finds the R values where psi(R,Z) = psi0 along one Z row by solving a
+// small polynomial in each R cell of that row. The scan is O(cells in the row)
+// and does not stop early, because a row normally holds fewer crossings than
+// the caller's root budget -- so every cell is solved even though psi in almost
+// all of them is nowhere near psi0. The cost therefore tracks the equilibrium
+// file's radial resolution rather than the grid being built, and on a finely
+// resolved equilibrium that scan dominates the whole geometry build.
+//
+// psi inside a cell is the modal expansion sum_i c_i b_i with b_0 constant, so
+//
+//   psi(x) in [c_0 b_0 - S, c_0 b_0 + S],   S = sum_{i>0} |c_i| max|b_i|,
+//
+// which encloses psi by the triangle inequality. A cell whose enclosure
+// excludes psi0 cannot contain a root, so it is skipped without being solved.
+// The enclosure is widened before use, keeping the filter conservative: a cell
+// wrongly kept only costs the solve that would have happened anyway, whereas a
+// cell wrongly dropped would lose a root.
+static void
+tok_geo_calc_psi_cell_bounds(struct gkyl_tok_geo *geo)
+{
+  const struct gkyl_basis *basis = &geo->rzbasis;
+
+  // Only meaningful where the stored expansion and this basis agree.
+  if (geo->use_cubics || basis->eval == 0 || basis->ndim != 2)
+    return;
+
+  int nb = basis->num_basis;
+  double *bsup = gkyl_malloc(nb*sizeof(double));
+  double *bval = gkyl_malloc(nb*sizeof(double));
+  for (int k=0; k<nb; ++k) bsup[k] = 0.0;
+
+  // Sup norm of each basis function over the reference cell. Each is a
+  // polynomial of degree poly_order per direction, so a sweep scaled to that
+  // degree resolves its extrema; the widening applied below absorbs whatever
+  // the sweep misses.
+  const int nsamp = 64*(int) basis->poly_order + 1;
+  for (int i=0; i<nsamp; ++i) {
+    for (int j=0; j<nsamp; ++j) {
+      double z[2] = { -1.0 + 2.0*i/(nsamp-1.0), -1.0 + 2.0*j/(nsamp-1.0) };
+      basis->eval(z, bval);
+      for (int k=0; k<nb; ++k)
+        bsup[k] = fmax(bsup[k], fabs(bval[k]));
+    }
+  }
+
+  // The mean term is separated out only if b_0 really is constant; otherwise
+  // fall back to an enclosure centred on zero, which is still valid.
+  double zc[2] = { 0.0, 0.0 };
+  basis->eval(zc, bval);
+  double b0 = bval[0];
+  bool b0_const = fabs(bsup[0] - fabs(b0)) <= 1.0e-12*fmax(1.0, bsup[0]);
+
+  struct gkyl_array *bounds =
+    gkyl_array_new(GKYL_DOUBLE, 2, geo->psiRZ->size);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &geo->rzlocal);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&geo->rzlocal, iter.idx);
+    const double *c = gkyl_array_cfetch(geo->psiRZ, loc);
+
+    double mean = b0_const ? c[0]*b0 : 0.0;
+    double spread = 0.0;
+    for (int k = b0_const ? 1 : 0; k<nb; ++k)
+      spread += fabs(c[k])*bsup[k];
+
+    // Widen. The root solve tolerates a marginally negative discriminant, so a
+    // root can sit just outside the exact range of psi in the cell.
+    spread = 2.0*spread + 1.0e-12*fabs(mean);
+
+    double *b = gkyl_array_fetch(bounds, loc);
+    b[0] = mean - spread;
+    b[1] = mean + spread;
+  }
+
+  geo->psi_cell_bounds = bounds;
+
+  // Coarse level: enclose runs of neighbouring R cells so the scan can reject a
+  // whole run with a single test. A two-level scan costs about nr/b + b tests
+  // per row, which is smallest at b = sqrt(nr), so the run length follows the
+  // row rather than being fixed.
+  int rlo = geo->rzlocal.lower[0], rup = geo->rzlocal.upper[0];
+  int zlo = geo->rzlocal.lower[1], zup = geo->rzlocal.upper[1];
+  int nr = rup - rlo + 1, nz = zup - zlo + 1;
+  int bsz = (int)(sqrt((double) nr) + 0.5);
+  if (bsz < 1) bsz = 1;
+  int nblk = (nr + bsz - 1)/bsz;
+
+  double *blocks = gkyl_malloc(sizeof(double[2])*(size_t) nz*nblk);
+  for (int iz=zlo; iz<=zup; ++iz) {
+    for (int ib=0; ib<nblk; ++ib) {
+      double lo = DBL_MAX, hi = -DBL_MAX;
+      int i0 = rlo + ib*bsz, i1 = i0 + bsz - 1;
+      if (i1 > rup) i1 = rup;
+      for (int ir=i0; ir<=i1; ++ir) {
+        int cidx[2] = { ir, iz };
+        const double *cb =
+          gkyl_array_cfetch(bounds, gkyl_range_idx(&geo->rzlocal, cidx));
+        lo = fmin(lo, cb[0]);
+        hi = fmax(hi, cb[1]);
+      }
+      double *b = blocks + 2*((size_t)(iz-zlo)*nblk + ib);
+      b[0] = lo; b[1] = hi;
+    }
+  }
+  geo->psi_block_bounds = blocks;
+  geo->psi_block_size = bsz;
+  geo->psi_num_blocks = nblk;
+
+  gkyl_free(bval);
+  gkyl_free(bsup);
+}
+
 struct gkyl_tok_geo*
 gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid_inp *ginp)
 {
@@ -5338,6 +5463,8 @@ gkyl_tok_geo_new(const struct gkyl_efit_inp *inp, const struct gkyl_tok_geo_grid
   }
 
   geo->stat = (struct gkyl_tok_geo_stat) { };
+
+  tok_geo_calc_psi_cell_bounds(geo);
 
   
   return geo;
@@ -6558,6 +6685,10 @@ gkyl_tok_geo_release(struct gkyl_tok_geo *geo)
 {
   gkyl_array_release(geo->psiRZ);
   gkyl_array_release(geo->psiRZ_cubic);
+  if (geo->psi_cell_bounds)
+    gkyl_array_release(geo->psi_cell_bounds);
+  if (geo->psi_block_bounds)
+    gkyl_free(geo->psi_block_bounds);
   gkyl_array_release(geo->fpoldg);
   gkyl_array_release(geo->fpolprimedg);
   gkyl_array_release(geo->qdg);

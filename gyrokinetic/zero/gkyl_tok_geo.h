@@ -73,6 +73,15 @@ struct gkyl_tok_geo {
   int num_rzbasis; // number of basis functions in RZ
   const struct gkyl_array *psiRZ; // psi(R,Z) DG representation
   const struct gkyl_array *psiRZ_cubic; // cubic psi(R,Z) DG representation
+  // Conservative enclosure of psi over each RZ cell (2 components, lo and
+  // hi). Lets the R-root scan skip cells that cannot hold the requested
+  // level set. NULL when the enclosure does not apply.
+  struct gkyl_array *psi_cell_bounds;
+  // Coarse enclosure over runs of psi_block_size neighbouring R cells, so a
+  // whole run can be rejected with one test. NULL when unavailable.
+  double *psi_block_bounds;
+  int psi_block_size;
+  int psi_num_blocks;
   struct gkyl_basis_ops_evalf *evf ; // wrapper for cubic evaluation
                    
   struct gkyl_rect_grid fgrid; // flux grid for fpol
