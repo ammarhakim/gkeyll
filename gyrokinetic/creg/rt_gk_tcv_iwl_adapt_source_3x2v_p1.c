@@ -832,7 +832,7 @@ main(int argc, char **argv)
     .parallel_upper_bc_shift_func = bc_shift_func_up,
     .parallel_lower_bc_shift_ctx = &ctx,
     .parallel_upper_bc_shift_ctx = &ctx,
-    .ts_filter_cutoff_wavelength = 2.0*ctx.Nx/ctx.Lx,
+    .ts_filter_cutoff_wavelength = 2.0*ctx.Lx/ctx.Nx,
     .ts_filter_half_width = 1,
     .ts_upsample_factor = 2,
   };
