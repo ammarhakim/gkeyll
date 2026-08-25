@@ -1,7 +1,4 @@
-// Test the dg_lowpass_filter updater: a low-pass Blackman-windowed sinc FIR
-// filter applied along one direction of a DG field, meant e.g. to de-alias
-// the twist-shift BC by removing content beyond the coarse-grid resolution
-// before restriction.
+// Test the dg_lowpass_filter updater.
 #include <acutest.h>
 
 #include <gkyl_array.h>
@@ -15,6 +12,9 @@
 
 #include <math.h>
 
+#define FILTER_DIR 0 // Direction filtered in every test below.
+#define FOUT_FILL 7.0 // Value fout is cleared to before each application.
+
 static struct gkyl_array*
 mkarr(bool on_gpu, long nc, long size)
 {
@@ -26,8 +26,7 @@ mkarr(bool on_gpu, long nc, long size)
 static double
 filter_gain(int M, double fc, double freq)
 {
-  // Frequency response of the normalized Blackman-windowed sinc kernel
-  // at freq cycles/cell (real, since the kernel is symmetric).
+  // Frequency response of the kernel at freq cycles/cell.
   double wsum = 0.0, gain = 0.0;
   for (int k=-M; k<M+1; k++) {
     double hk = k == 0? 2.0*fc : sin(2.0*M_PI*fc*k)/(M_PI*k);
@@ -38,436 +37,306 @@ filter_gain(int M, double fc, double freq)
   return gain/wsum;
 }
 
-void eval_const_1x(double t, const double *xn, double *fout, void *ctx)
+struct profile_ctx {
+  int ndim; // Dimensionality of the field.
+  double mode_num; // Mode number along the filtered direction, domain is [0,1].
+  double x0, w; // Center and width of the bump along the filtered direction.
+};
+
+void eval_const(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 3.0;
 }
 
-void eval_linear_1x(double t, const double *xn, double *fout, void *ctx)
+void eval_linear(double t, const double *xn, double *fout, void *ctx)
 {
-  fout[0] = 1.5 + 0.5*xn[0];
+  fout[0] = 1.5 + 0.5*xn[FILTER_DIR];
 }
 
-struct mode_ctx {
-  double mode_num; // Mode number m; the domain is assumed to be [0,1].
+static double
+transverse_mod(const double *xn, int ndim)
+{
+  // Smooth modulation across the directions that are not filtered.
+  double mod = 1.0;
+  for (int d=0; d<ndim; d++) {
+    if (d != FILTER_DIR)
+      mod *= 1.0 + 0.3*cos(2.0*M_PI*xn[d]);
+  }
+  return mod;
+}
+
+void eval_mode(double t, const double *xn, double *fout, void *ctx)
+{
+  struct profile_ctx *pctx = ctx;
+  fout[0] = cos(2.0*M_PI*pctx->mode_num*xn[FILTER_DIR])*transverse_mod(xn, pctx->ndim);
+}
+
+void eval_bump(double t, const double *xn, double *fout, void *ctx)
+{
+  // Off-center bump along the filtered direction.
+  struct profile_ctx *pctx = ctx;
+  fout[0] = (0.1 + exp(-pow((xn[FILTER_DIR]-pctx->x0)/pctx->w, 2)))*transverse_mod(xn, pctx->ndim);
+}
+
+struct filter_env {
+  bool use_gpu;
+  struct gkyl_rect_grid grid;
+  struct gkyl_basis basis;
+  struct gkyl_range local, local_ext;
+  struct gkyl_array *fin, *fout; // What the updater sees.
+  struct gkyl_array *fin_ho, *fout_ho; // Host copies the checks read.
 };
 
-void eval_mode_1x(double t, const double *xn, double *fout, void *ctx)
+static void
+filter_env_new(struct filter_env *env, bool use_gpu, int ndim, const int *cells, int poly_order)
 {
-  struct mode_ctx *mctx = ctx;
-  fout[0] = cos(2.0*M_PI*mctx->mode_num*xn[0]);
-}
+  // Grid, basis, ranges and arrays for one test, on the unit cube.
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  int nghost[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; d++) {
+    lower[d] = 0.0;
+    upper[d] = 1.0;
+    nghost[d] = 1;
+  }
 
-void eval_gauss_1x(double t, const double *xn, double *fout, void *ctx)
-{
-  fout[0] = exp(-pow((xn[0]-0.5)/0.04, 2));
-}
+  env->use_gpu = use_gpu;
+  gkyl_rect_grid_init(&env->grid, ndim, lower, upper, cells);
+  gkyl_cart_modal_serendip(&env->basis, ndim, poly_order);
+  gkyl_create_grid_ranges(&env->grid, nghost, &env->local_ext, &env->local);
 
-void eval_gauss_edge_1x(double t, const double *xn, double *fout, void *ctx)
-{
-  // Peaks at the lower boundary, so the stencil there is heavily reflected.
-  fout[0] = exp(-pow(xn[0]/0.04, 2));
-}
-
-void eval_mode_3x(double t, const double *xn, double *fout, void *ctx)
-{
-  // Separable function: an x-Nyquist mode (for a 32 cell grid on [0,1])
-  // times a smooth (y,z) profile.
-  struct mode_ctx *mctx = ctx;
-  fout[0] = cos(2.0*M_PI*mctx->mode_num*xn[0])
-    * (1.0 + 0.3*cos(2.0*M_PI*xn[1])) * (1.0 + 0.2*xn[2]);
+  env->fin = mkarr(use_gpu, env->basis.num_basis, env->local_ext.volume);
+  env->fout = mkarr(use_gpu, env->basis.num_basis, env->local_ext.volume);
+  env->fin_ho = use_gpu? mkarr(false, env->fin->ncomp, env->fin->size) : gkyl_array_acquire(env->fin);
+  env->fout_ho = use_gpu? mkarr(false, env->fout->ncomp, env->fout->size) : gkyl_array_acquire(env->fout);
 }
 
 static void
-test_1x(bool use_gpu)
+filter_env_release(struct filter_env *env)
 {
-  int poly_order = 1;
-  int cells[] = {32};
-  double lower[] = {0.0}, upper[] = {1.0};
-  int nghost[] = {1};
+  gkyl_array_release(env->fin);
+  gkyl_array_release(env->fout);
+  gkyl_array_release(env->fin_ho);
+  gkyl_array_release(env->fout_ho);
+}
+
+static void
+filter_apply(struct filter_env *env, const struct gkyl_range *sub, int M,
+  double cutoff_wavelength, evalf_t func, void *func_ctx)
+{
+  // Project func and filter it over sub, leaving both fields on the host.
+  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&env->grid, &env->basis,
+    env->basis.poly_order+1, 1, func, func_ctx);
+  gkyl_proj_on_basis_advance(proj, 0.0, &env->local, env->fin_ho);
+  gkyl_proj_on_basis_release(proj);
+  gkyl_array_copy(env->fin, env->fin_ho);
+
+  gkyl_array_clear(env->fout, FOUT_FILL);
+  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(FILTER_DIR, M,
+    cutoff_wavelength, &env->basis, &env->grid, sub, env->use_gpu);
+  gkyl_dg_lowpass_filter_advance(lpf, env->fin, env->fout);
+  gkyl_dg_lowpass_filter_release(lpf);
+  gkyl_array_copy(env->fout_ho, env->fout);
+}
+
+static double
+filter_integral_check(struct filter_env *env, const struct gkyl_range *sub,
+  double tol, const char *what)
+{
+  // Change of the integral over sub, as a fraction of the mass in the range.
+  double tot_in = 0.0, tot_out = 0.0, mass = 0.0;
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, sub);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(sub, iter.idx);
+    double in = ((const double *) gkyl_array_cfetch(env->fin_ho, linidx))[0];
+    tot_in += in;
+    mass += fabs(in);
+    tot_out += ((const double *) gkyl_array_cfetch(env->fout_ho, linidx))[0];
+  }
+
+  double rel = (tot_out-tot_in)/mass;
+  TEST_CHECK( fabs(rel) < tol );
+  TEST_MSG("%s: the integral changed by %.3e of the mass in the range", what, rel);
+  return rel;
+}
+
+static void
+filter_gain_check(struct filter_env *env, const struct gkyl_range *sub, int edge_skip,
+  double gain, double tol, const char *what)
+{
+  // Check fout = gain*fin, skipping edge_skip cells at each edge of sub.
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, sub);
+  while (gkyl_range_iter_next(&iter)) {
+    if (iter.idx[FILTER_DIR] < sub->lower[FILTER_DIR]+edge_skip ||
+        iter.idx[FILTER_DIR] > sub->upper[FILTER_DIR]-edge_skip)
+      continue;
+
+    long linidx = gkyl_range_idx(sub, iter.idx);
+    const double *in_c = gkyl_array_cfetch(env->fin_ho, linidx);
+    const double *out_c = gkyl_array_cfetch(env->fout_ho, linidx);
+    for (int c=0; c<env->basis.num_basis; c++) {
+      TEST_CHECK( fabs(out_c[c] - gain*in_c[c]) < tol );
+      TEST_MSG("%s, cell %d coeff %d: expected %.13e, got %.13e",
+        what, iter.idx[FILTER_DIR], c, gain*in_c[c], out_c[c]);
+    }
+  }
+}
+
+static void
+test_response(bool use_gpu, int ndim, const int *cells)
+{
+  // Away from the edges the filter scales each field by the kernel response.
   int M = 8;
   double fc = 0.3;
 
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 1, poly_order);
+  struct filter_env env;
+  filter_env_new(&env, use_gpu, ndim, cells, 1);
+  double cutoff = env.grid.dx[FILTER_DIR]/fc;
 
-  struct gkyl_range local, local_ext;
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
+  double mod_max = 1.0; // Peak of the transverse modulation.
+  for (int d=0; d<ndim; d++)
+    mod_max *= d == FILTER_DIR? 1.0 : 1.3;
 
-  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
-    grid.dx[0]/fc, &basis, &grid, &local, use_gpu);
+  // A constant passes through everywhere, and fout's ghost cells are untouched.
+  filter_apply(&env, &env.local, M, cutoff, eval_const, NULL);
+  filter_gain_check(&env, &env.local, 0, 1.0, 1e-12, "a constant");
 
-  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
-  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
+  int idx_ghost[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; d++)
+    idx_ghost[d] = env.local.lower[d];
+  idx_ghost[FILTER_DIR] -= 1;
+  const double *out_g = gkyl_array_cfetch(env.fout_ho, gkyl_range_idx(&env.local_ext, idx_ghost));
+  for (int c=0; c<env.basis.num_basis; c++)
+    TEST_CHECK( out_g[c] == FOUT_FILL );
 
-  // a) A constant field is preserved exactly everywhere, including at
-  // the boundaries where the stencil is reflected.
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, eval_const_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
-  gkyl_proj_on_basis_release(proj);
-  gkyl_array_copy(fin, fin_ho);
+  // A ramp passes through in the interior and opens no jump at any interface.
+  filter_apply(&env, &env.local, M, cutoff, eval_linear, NULL);
+  filter_gain_check(&env, &env.local, M, 1.0, 1e-12, "a ramp");
 
-  gkyl_array_clear(fout, 7.0);
-  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
-  gkyl_array_copy(fout_ho, fout);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local);
-  while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(&local, iter.idx);
-    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
-    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
-    for (int c=0; c<basis.num_basis; c++)
-      TEST_CHECK( gkyl_compare(in_c[c], out_c[c], 1e-12) );
-  }
-  // Ghost cells of fout are untouched.
-  int idx_ghost[] = {local.lower[0]-1};
-  const double *out_g = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local_ext, idx_ghost));
-  for (int c=0; c<basis.num_basis; c++)
-    TEST_CHECK( out_g[c] == 7.0 );
-
-  // b) A linear field is preserved in the interior (where the symmetric
-  // kernel's first moment vanishes).
-  proj = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, eval_linear_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
-  gkyl_proj_on_basis_release(proj);
-  gkyl_array_copy(fin, fin_ho);
-
-  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
-  gkyl_array_copy(fout_ho, fout);
-
-  gkyl_range_iter_init(&iter, &local);
-  while (gkyl_range_iter_next(&iter)) {
-    if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
-      continue;
-    long linidx = gkyl_range_idx(&local, iter.idx);
-    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
-    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
-    for (int c=0; c<basis.num_basis; c++)
-      TEST_CHECK( gkyl_compare(in_c[c], out_c[c], 1e-12) );
-  }
-
-  // c) A single Fourier mode is scaled by the kernel's frequency
-  // response: its DG coefficients are discrete sinusoids in the cell
-  // index, so in the interior fout = gain*fin to machine precision.
-  // The Nyquist mode (m=16) checks the filter kills grid-scale content.
-  double mode_nums[] = {2.0, 8.0, 16.0};
-  for (int im=0; im<3; im++) {
-    struct mode_ctx mctx = { .mode_num = mode_nums[im] };
-    proj = gkyl_proj_on_basis_new(&grid, &basis, poly_order+1, 1, eval_mode_1x, &mctx);
-    gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
-    gkyl_proj_on_basis_release(proj);
-    gkyl_array_copy(fin, fin_ho);
-
-    gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
-    gkyl_array_copy(fout_ho, fout);
-
-    double freq = mctx.mode_num/cells[0]; // Cycles/cell.
-    double gain = filter_gain(M, fc, freq);
-
-    gkyl_range_iter_init(&iter, &local);
-    while (gkyl_range_iter_next(&iter)) {
-      if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
-        continue;
-      long linidx = gkyl_range_idx(&local, iter.idx);
-      const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
-      const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
-      for (int c=0; c<basis.num_basis; c++)
-        TEST_CHECK( fabs(out_c[c] - gain*in_c[c]) < 1e-12 );
-    }
-
-    if (im == 2) {
-      // The Nyquist mode is strongly damped in absolute terms.
-      TEST_CHECK( fabs(gain) < 1e-3 );
-      gkyl_range_iter_init(&iter, &local);
-      while (gkyl_range_iter_next(&iter)) {
-        if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
-          continue;
-        const double *out_c = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local, iter.idx));
-        for (int c=0; c<basis.num_basis; c++)
-          TEST_CHECK( fabs(out_c[c]) < 1e-3 );
-      }
-    }
-  }
-
-  gkyl_dg_lowpass_filter_release(lpf);
-  gkyl_array_release(fin);
-  gkyl_array_release(fout);
-  gkyl_array_release(fin_ho);
-  gkyl_array_release(fout_ho);
-}
-
-static void
-test_1x_conservation(bool use_gpu)
-{
-  // The total integral is conserved everywhere: the kernel weights sum to 1 (reflected stencil at the boundaries).
-  int poly_order = 1;
-  int cells[] = {64};
-  double lower[] = {0.0}, upper[] = {1.0};
-  int nghost[] = {1};
-
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 1, poly_order);
-
-  struct gkyl_range local, local_ext;
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-
-  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
-  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
-
-  // A ramp peaks at one boundary, a boundary-hugging gaussian at the other.
-  evalf_t evals[] = {eval_linear_1x, eval_gauss_edge_1x, eval_gauss_1x};
-  int half_widths[] = {8, 8, 80}; // The last stencil is wider than the grid.
-
-  for (int q=0; q<3; q++) {
-    struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, half_widths[q],
-      grid.dx[0]/0.3, &basis, &grid, &local, use_gpu);
-
-    gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
-      poly_order+1, 1, evals[q], NULL);
-    gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
-    gkyl_proj_on_basis_release(proj);
-    gkyl_array_copy(fin, fin_ho);
-
-    gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
-    gkyl_array_copy(fout_ho, fout);
-
-    double tot_in = 0.0, tot_out = 0.0;
-    struct gkyl_range_iter iter;
-    gkyl_range_iter_init(&iter, &local);
-    while (gkyl_range_iter_next(&iter)) {
-      long linidx = gkyl_range_idx(&local, iter.idx);
-      tot_in += ((const double *) gkyl_array_cfetch(fin_ho, linidx))[0];
-      tot_out += ((const double *) gkyl_array_cfetch(fout_ho, linidx))[0];
-    }
-    TEST_CHECK( fabs(tot_out-tot_in) < 1e-12*fabs(tot_in) );
-    TEST_MSG("case %d (M=%d): total in %.13e | out %.13e | rel change %.3e",
-      q, half_widths[q], tot_in, tot_out, fabs(tot_out-tot_in)/fabs(tot_in));
-
-    gkyl_dg_lowpass_filter_release(lpf);
-  }
-
-  gkyl_array_release(fin);
-  gkyl_array_release(fout);
-  gkyl_array_release(fin_ho);
-  gkyl_array_release(fout_ho);
-}
-
-static void
-test_3x(bool use_gpu)
-{
-  // Filter along x of a 3D field. For a separable field g(x)*h(y,z) the
-  // p=1 tensor coefficients factor too, so filtering in x scales the
-  // coefficients by the kernel's response at g's frequency, leaving the
-  // (y,z) dependence untouched.
-  int poly_order = 1;
-  int cells[] = {32, 8, 6};
-  double lower[] = {0.0, 0.0, 0.0}, upper[] = {1.0, 1.0, 1.0};
-  int nghost[] = {1, 1, 1};
-  int M = 8;
-  double fc = 0.3;
-
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 3, poly_order);
-
-  struct gkyl_range local, local_ext;
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-
-  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
-    grid.dx[0]/fc, &basis, &grid, &local, use_gpu);
-
-  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
-  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
-
-  struct mode_ctx mctx = { .mode_num = 16.0 }; // x-Nyquist mode for 32 cells.
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, eval_mode_3x, &mctx);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
-  gkyl_proj_on_basis_release(proj);
-  gkyl_array_copy(fin, fin_ho);
-
-  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
-  gkyl_array_copy(fout_ho, fout);
-
-  double freq = mctx.mode_num/cells[0]; // Cycles/cell.
-  double gain = filter_gain(M, fc, freq);
+  double eta_lo[GKYL_MAX_DIM] = {0.0}, eta_up[GKYL_MAX_DIM] = {0.0};
+  eta_lo[FILTER_DIR] = -1.0;
+  eta_up[FILTER_DIR] =  1.0;
+  double b_lo[32], b_up[32];
+  env.basis.eval(eta_lo, b_lo);
+  env.basis.eval(eta_up, b_up);
 
   struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &local);
+  gkyl_range_iter_init(&iter, &env.local);
   while (gkyl_range_iter_next(&iter)) {
-    if (iter.idx[0] < local.lower[0]+M || iter.idx[0] > local.upper[0]-M)
+    if (iter.idx[FILTER_DIR] == env.local.upper[FILTER_DIR])
       continue;
-    long linidx = gkyl_range_idx(&local, iter.idx);
-    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
-    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
-    for (int c=0; c<basis.num_basis; c++)
-      TEST_CHECK( fabs(out_c[c] - gain*in_c[c]) < 1e-12 );
-  }
 
-  gkyl_dg_lowpass_filter_release(lpf);
-  gkyl_array_release(fin);
-  gkyl_array_release(fout);
-  gkyl_array_release(fin_ho);
-  gkyl_array_release(fout_ho);
-}
+    int idx_up[GKYL_MAX_DIM];
+    for (int d=0; d<ndim; d++)
+      idx_up[d] = iter.idx[d];
+    idx_up[FILTER_DIR] += 1;
 
-static void
-test_1x_reflection(bool use_gpu)
-{
-  // Verify that the reflexion at the boundary is done correctly.
-  int poly_order = 1;
-  int cells[] = {64};
-  double lower[] = {0.0}, upper[] = {1.0};
-  int nghost[] = {1};
-  int M = 8;
-
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 1, poly_order);
-
-  struct gkyl_range local, local_ext;
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-
-  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
-    grid.dx[0]/0.25, &basis, &grid, &local, use_gpu);
-
-  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
-  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
-
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, eval_linear_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
-  gkyl_proj_on_basis_release(proj);
-  gkyl_array_copy(fin, fin_ho);
-
-  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
-  gkyl_array_copy(fout_ho, fout);
-
-  // Basis evaluated at the two cell edges, to take the jump across a face.
-  double b_lo[8], b_up[8];
-  basis.eval((double[]) {-1.0}, b_lo);
-  basis.eval((double[]) { 1.0}, b_up);
-
-  for (int i=local.lower[0]; i<local.upper[0]; i++) {
-    const double *left = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local, (int[]) {i}));
-    const double *right = gkyl_array_cfetch(fout_ho, gkyl_range_idx(&local, (int[]) {i+1}));
+    const double *left = gkyl_array_cfetch(env.fout_ho, gkyl_range_idx(&env.local, iter.idx));
+    const double *right = gkyl_array_cfetch(env.fout_ho, gkyl_range_idx(&env.local, idx_up));
     double jump = 0.0;
-    for (int c=0; c<basis.num_basis; c++)
+    for (int c=0; c<env.basis.num_basis; c++)
       jump += right[c]*b_lo[c] - left[c]*b_up[c];
     TEST_CHECK( fabs(jump) < 1.0e-12 );
-    TEST_MSG("interface %d: filtering a ramp opened a jump of %.3e", i, jump);
+    TEST_MSG("interface %d: filtering a ramp opened a jump of %.3e", iter.idx[FILTER_DIR], jump);
   }
 
-  gkyl_dg_lowpass_filter_release(lpf);
-  gkyl_array_release(fin);
-  gkyl_array_release(fout);
-  gkyl_array_release(fin_ho);
-  gkyl_array_release(fout_ho);
-}
+  // A single Fourier mode is scaled by the response, the Nyquist one killed.
+  double mode_nums[] = {2.0, 8.0, cells[FILTER_DIR]/2.0};
+  for (int im=0; im<3; im++) {
+    struct profile_ctx pctx = { .ndim = ndim, .mode_num = mode_nums[im] };
+    double gain = filter_gain(M, fc, pctx.mode_num/cells[FILTER_DIR]);
 
-static void
-test_1x_interior(bool use_gpu)
-{
-  // Over a range whose edges are interior (not the domain boundary), the
-  // stencil is truncated and renormalized rather than reflected. Check that a
-  // constant is preserved exactly, i.e. the renormalization keeps the zero mode
-  // even where donors are dropped at the non-physical faces.
-  int poly_order = 1;
-  int cells[] = {64};
-  double lower[] = {0.0}, upper[] = {1.0};
-  int nghost[] = {1};
-  int M = 8;
+    filter_apply(&env, &env.local, M, cutoff, eval_mode, &pctx);
+    filter_gain_check(&env, &env.local, M, gain, 1e-12, "a Fourier mode");
 
-  struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(&grid, 1, lower, upper, cells);
-  struct gkyl_basis basis;
-  gkyl_cart_modal_serendip(&basis, 1, poly_order);
-
-  struct gkyl_range local, local_ext;
-  gkyl_create_grid_ranges(&grid, nghost, &local_ext, &local);
-
-  // Sub-range with both edges interior (away from the domain boundary).
-  struct gkyl_range sub;
-  gkyl_sub_range_init(&sub, &local, (int[]) {17}, (int[]) {48});
-
-  struct gkyl_dg_lowpass_filter *lpf = gkyl_dg_lowpass_filter_new(0, M,
-    grid.dx[0]/0.25, &basis, &grid, &sub, use_gpu);
-
-  struct gkyl_array *fin = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fout = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fin_ho = use_gpu? mkarr(false, fin->ncomp, fin->size) : gkyl_array_acquire(fin);
-  struct gkyl_array *fout_ho = use_gpu? mkarr(false, fout->ncomp, fout->size) : gkyl_array_acquire(fout);
-
-  gkyl_proj_on_basis *proj = gkyl_proj_on_basis_new(&grid, &basis,
-    poly_order+1, 1, eval_const_1x, NULL);
-  gkyl_proj_on_basis_advance(proj, 0.0, &local, fin_ho);
-  gkyl_proj_on_basis_release(proj);
-  gkyl_array_copy(fin, fin_ho);
-
-  gkyl_dg_lowpass_filter_advance(lpf, fin, fout);
-  gkyl_array_copy(fout_ho, fout);
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, &sub);
-  while (gkyl_range_iter_next(&iter)) {
-    long linidx = gkyl_range_idx(&sub, iter.idx);
-    const double *in_c = gkyl_array_cfetch(fin_ho, linidx);
-    const double *out_c = gkyl_array_cfetch(fout_ho, linidx);
-    for (int c=0; c<basis.num_basis; c++) {
-      TEST_CHECK( gkyl_compare(in_c[c], out_c[c], 1e-12) );
-      TEST_MSG("cell %d, coeff %d: in %.13e out %.13e", iter.idx[0], c, in_c[c], out_c[c]);
+    if (im == 2) {
+      TEST_CHECK( fabs(gain) < 1e-3 );
+      filter_gain_check(&env, &env.local, M, 0.0, 1e-3*mod_max, "the Nyquist mode");
     }
   }
 
-  gkyl_dg_lowpass_filter_release(lpf);
-  gkyl_array_release(fin);
-  gkyl_array_release(fout);
-  gkyl_array_release(fin_ho);
-  gkyl_array_release(fout_ho);
+  filter_env_release(&env);
 }
 
-void test_1x_reflection_ho() { test_1x_reflection(false); }
-void test_1x_interior_ho() { test_1x_interior(false); }
-void test_1x_ho() { test_1x(false); }
+static void
+test_conservation(bool use_gpu, int ndim, const int *cells)
+{
+  // The integral survives a reflected stencil, and a truncated one only for a constant.
+  int M = 8;
+
+  struct filter_env env;
+  filter_env_new(&env, use_gpu, ndim, cells, 1);
+  double cutoff = env.grid.dx[FILTER_DIR]/0.25;
+
+  // Whole grid: the stencil is reflected at both ends.
+  // Sub-range ending inside the grid: the stencil is truncated at the upper end,
+  // as the twist-shift's is at the LCFS.
+  int lo[GKYL_MAX_DIM], up[GKYL_MAX_DIM];
+  for (int d=0; d<ndim; d++) {
+    lo[d] = env.local.lower[d];
+    up[d] = env.local.upper[d];
+  }
+  up[FILTER_DIR] = 3*cells[FILTER_DIR]/4;
+  struct gkyl_range cut;
+  gkyl_sub_range_init(&cut, &env.local, lo, up);
+
+  struct gkyl_range *ranges[] = {&env.local, &cut};
+  const char *const_names[] = {"reflected stencil, constant", "truncated stencil, constant"};
+  const char *bump_names[] = {"reflected stencil, bump", "truncated stencil, bump"};
+
+  // A bump next to the truncated edge, so the profile overlaps the cut rows.
+  struct profile_ctx bump = { .ndim = ndim, .x0 = 0.68, .w = 0.05 };
+
+  for (int r=0; r<2; r++) {
+    filter_apply(&env, ranges[r], M, cutoff, eval_const, NULL);
+    filter_integral_check(&env, ranges[r], 1e-12, const_names[r]);
+
+    filter_apply(&env, ranges[r], M, cutoff, eval_bump, &bump);
+    filter_integral_check(&env, ranges[r], 1e-12, bump_names[r]);
+  }
+
+  filter_env_release(&env);
+}
+
+static void test_1x_response(bool use_gpu) { test_response(use_gpu, 1, (int[]) {32}); }
+static void test_2x_response(bool use_gpu) { test_response(use_gpu, 2, (int[]) {32, 8}); }
+static void test_3x_response(bool use_gpu) { test_response(use_gpu, 3, (int[]) {32, 8, 6}); }
+
+static void test_1x_conservation(bool use_gpu) { test_conservation(use_gpu, 1, (int[]) {64}); }
+static void test_2x_conservation(bool use_gpu) { test_conservation(use_gpu, 2, (int[]) {64, 8}); }
+static void test_3x_conservation(bool use_gpu) { test_conservation(use_gpu, 3, (int[]) {64, 8, 6}); }
+
+void test_1x_response_ho() { test_1x_response(false); }
+void test_2x_response_ho() { test_2x_response(false); }
+void test_3x_response_ho() { test_3x_response(false); }
 void test_1x_conservation_ho() { test_1x_conservation(false); }
-void test_3x_ho() { test_3x(false); }
+void test_2x_conservation_ho() { test_2x_conservation(false); }
+void test_3x_conservation_ho() { test_3x_conservation(false); }
 
 #ifdef GKYL_HAVE_CUDA
-void test_1x_reflection_cu() { test_1x_reflection(true); }
-void test_1x_interior_cu() { test_1x_interior(true); }
-void test_1x_cu() { test_1x(true); }
+void test_1x_response_cu() { test_1x_response(true); }
+void test_2x_response_cu() { test_2x_response(true); }
+void test_3x_response_cu() { test_3x_response(true); }
 void test_1x_conservation_cu() { test_1x_conservation(true); }
-void test_3x_cu() { test_3x(true); }
+void test_2x_conservation_cu() { test_2x_conservation(true); }
+void test_3x_conservation_cu() { test_3x_conservation(true); }
 #endif
 
 TEST_LIST = {
-  { "test_1x_reflection", test_1x_reflection_ho },
-  { "test_1x_interior", test_1x_interior_ho },
-  { "test_1x", test_1x_ho },
+  { "test_1x_response", test_1x_response_ho },
+  { "test_2x_response", test_2x_response_ho },
+  { "test_3x_response", test_3x_response_ho },
   { "test_1x_conservation", test_1x_conservation_ho },
-  { "test_3x", test_3x_ho },
+  { "test_2x_conservation", test_2x_conservation_ho },
+  { "test_3x_conservation", test_3x_conservation_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_1x_reflection_cu", test_1x_reflection_cu },
-  { "test_1x_interior_cu", test_1x_interior_cu },
-  { "test_1x_cu", test_1x_cu },
+  { "test_1x_response_cu", test_1x_response_cu },
+  { "test_2x_response_cu", test_2x_response_cu },
+  { "test_3x_response_cu", test_3x_response_cu },
   { "test_1x_conservation_cu", test_1x_conservation_cu },
-  { "test_3x_cu", test_3x_cu },
+  { "test_2x_conservation_cu", test_2x_conservation_cu },
+  { "test_3x_conservation_cu", test_3x_conservation_cu },
 #endif
   { NULL, NULL },
 };
