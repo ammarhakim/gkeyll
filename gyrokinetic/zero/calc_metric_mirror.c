@@ -241,7 +241,6 @@ gkyl_calc_metric_mirror_advance_interior( gkyl_calc_metric_mirror *up, struct gk
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.rtg33inv_nodal, gk_geom->geo_int.rtg33inv, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 3, gk_geom->geo_int.bioverJB_nodal, gk_geom->geo_int.bioverJB, true);
   gkyl_nodal_ops_n2m(up->n2m, up->cbasis, up->grid, &gk_geom->nrange_int, &gk_geom->local, 1, gk_geom->geo_int.B3_nodal, gk_geom->geo_int.B3, true);
-
 }
 
 void gkyl_calc_metric_mirror_advance_surface( gkyl_calc_metric_mirror *up, int dir, struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid)

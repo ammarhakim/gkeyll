@@ -1,7 +1,3 @@
-/*
- * This regression test is based on Section 5.2, "Helical SOL configuration 
- * including magnetic shear", Thesis of Noah Mandell, 2021.
-*/
 #include <math.h>
 #include <stdio.h>
 #include <time.h>
@@ -21,13 +17,10 @@ struct gk_app_ctx {
   int cdim, vdim; // Dimensionality.
   
   // Geometry and magnetic field.
+  double B_axis;
   double R0;
-  double a0;
-  double B0;
-  double Bvx0;
-  double x0;
-  double H;
-  int n; // Exponent for vertical magnetic field profile.
+  double Rc;
+  double Bv0;
 
   // Plasma parameters.
   double me; double qe;
@@ -38,7 +31,7 @@ struct gk_app_ctx {
   double nu_frac;
 
   // Source parameters.
-  double Psrc;
+  double P_SOL;
   double S0;
   double xSource;
   double lambdaSource;
@@ -48,10 +41,8 @@ struct gk_app_ctx {
   double Ly; // Domain size in binormal direction.
   double Lz; // Domain size along magnetic field.
   double x_min; double x_max;
-  double y_min; double y_max;
   double z_min; double z_max;
   int Nx;
-  int Ny;
   int Nz;
   int Nvpar;
   int Nmu;
@@ -66,13 +57,12 @@ struct gk_app_ctx {
   int int_diag_calc_num; // Number of integrated diagnostics computations (=INT_MAX for every step).
   double dt_failure_tol; // Minimum allowable fraction of initial time-step.
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
-  double max_run_time; // Maximum run time in seconds, 0 means no limit.
 };
 
 // Common source density profiles.
 double sourceDensity(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], z = xn[2];
+  double x = xn[0], z = xn[1];
   double sourceFloor = 0.1;
 
   struct gk_app_ctx *app = ctx;
@@ -94,7 +84,7 @@ double sourceDensity(double t, const double * GKYL_RESTRICT xn, void *ctx)
 // Common source temperature profile.
 double sourceTemperature(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double xSource = app->xSource;
   double lambdaSource = app->lambdaSource;
@@ -108,10 +98,10 @@ double sourceTemperature(double t, const double * GKYL_RESTRICT xn, void *ctx)
 // Initial density.
 double densityInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double Ls = app->Lz/4;
-  double xSource[3] = {x, y, 0};
+  double xSource[3] = {x, 0};
   double effectiveSource = sourceDensity(t, xSource, ctx);
   double c_ss = sqrt(5/3*sourceTemperature(t, xSource, ctx)/app->mi);
   double nPeak = 4*sqrt(5)/3/c_ss*Ls*effectiveSource/2;
@@ -127,7 +117,7 @@ double densityInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 // Initial temperature.
 double temperatureInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 {
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double xSource = app->xSource;
   double lambdaSource = app->lambdaSource;
@@ -140,7 +130,7 @@ double temperatureInit(double t, const double * GKYL_RESTRICT xn, void *ctx)
 
 // Initial ion drift speed.
 double driftSpeed(const double * GKYL_RESTRICT xn, void *ctx){
-  double x = xn[0], y = xn[1], z = xn[2];
+  double x = xn[0], z = xn[1];
   struct gk_app_ctx *app = ctx;
   double xSource = app->xSource;
   double lambdaSource = app->lambdaSource;
@@ -160,67 +150,71 @@ double driftSpeed(const double * GKYL_RESTRICT xn, void *ctx){
   }
 }
 
-// Mapping
+// Radial coordinate mapping.
 double Rx(const double *xc, void *ctx)
 {
   return xc[0];
 }
-double Zx(const double *xc, void *ctx)
-{
-  return xc[2];
-}
 
-// Magnetic field functions.
+// Toroidal magnetic field.
 double Bphi(const double *xc, void *ctx)
 {
   double x = xc[0];
   struct gk_app_ctx *app = ctx;
-  double B0 = app->B0;
+  double B_axis = app->B_axis;
   double R0 = app->R0;
-
   double R = Rx(xc, ctx);
-  return B0*R0/R;
+  return B_axis*R0/R;
 }
 
+// Vertical magnetic field.
 double Bvert(const double *xc, void *ctx)
 {
   struct gk_app_ctx *app = ctx;
-  double Bvx0 = app->Bvx0;
-  double x0 = app->x0;
-  int n = app->n;
-  double R = Rx(xc, ctx);
-  
-  return Bvx0 * pow(R/x0, n);
+  double Bv0 = app->Bv0;
+  return Bv0;
 }
 
-double Bmag(const double *xc, void *ctx)
+// Magnetic field magnitude.
+double bmag(const double *xc, void *ctx)
 {
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
-  return Bv * sqrt(1 + pow(Bt/Bv,2));
+  return sqrt(pow(Bt,2) + pow(Bv,2));
 }
 
-// Toroidal angle coordinate.
+// Field line pitch.
+double thetax(const double *xc, void *ctx)
+{
+  return asin(Bvert(xc, ctx)/bmag(xc, ctx));
+}
+
+// Parallel coordinate mapping.
+double Zx(const double *xc, void *ctx)
+{
+  double theta = thetax(xc, ctx);
+  return xc[2]*sin(theta);
+}
+
 double phix(const double *xc, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   struct gk_app_ctx *app = ctx;
-  double R0 = app->R0;
-  double Lz = app->Lz;
-  double Bt = Bphi(xc, ctx);
-  double Bv = Bvert(xc, ctx);
-  return y/R0 + (Bt * z)/(Bv * x);
-}
-
-double qprofile(const double *xc, void *ctx)
-{
-  struct gk_app_ctx *app = ctx;
-  double H = app->H;
-  double R = Rx(xc, ctx);
+  double Rc = app->Rc;
   double Bt = Bphi(xc, ctx);
   double Bv = Bvert(xc, ctx);
 
-  return (H * Bt)/(2*GKYL_PI*R*Bv);
+  // Original Shi mapping. This mapping does not pass the right hand check.
+  // double theta = asin(Lp/Lt);
+  // return (y/sin(theta) + z*cos(theta))/Rc; // O
+
+  // This mapping passes right hand check but does not conserve particle!
+  // double theta = thetax(xc, ctx);
+  // return (y/sin(theta) + z*cos(theta))/x;
+
+  // Helical sheared mapping. Passes right hand check and conserves particle.
+  double theta = thetax(xc, ctx);
+  return y/Rc + (Bt * z*sin(theta))/(Bv * x); 
 }
 
 // Interface function calls.
@@ -247,10 +241,11 @@ void bfield_func(double t, const double *xc, double* GKYL_RESTRICT fout, void *c
 void zero_func(double t, const double * GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void *ctx)
 { fout[0] = 0.0; }
 
-
 // Geometry evaluation functions for the gk app
 void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
 {
+  double x = xc[0], y = xc[1], z = xc[2];
+
   // Map to cylindrical (R, Z, phi) coordinates.
   double R   = Rx(xc, ctx);
   double Z   = Zx(xc, ctx);
@@ -262,10 +257,18 @@ void mapc2p(double t, const double *xc, double* GKYL_RESTRICT xp, void *ctx)
   xp[0] = X; xp[1] = Y; xp[2] = Z;
 }
 
+// Anomalous diffusion coefficient.
+void diffusion_D_func(double t, const double* GKYL_RESTRICT xn, double* GKYL_RESTRICT fout, void* ctx)
+{
+  struct sheath_ctx *app = ctx;
+
+  fout[0] = 0.5; // Diffusivity [m^2/s].
+}
+
 struct gk_app_ctx
 create_ctx(void)
 {
-  int cdim = 3, vdim = 2; // Dimensionality.
+  int cdim = 2, vdim = 2; // Dimensionality.
 
   // Universal constant parameters.
   double eps0 = GKYL_EPSILON0, eV = GKYL_ELEMENTARY_CHARGE;
@@ -283,25 +286,21 @@ create_ctx(void)
   double n0 = 7e19; // [1/m^3] (10 times NSTX ref.)
 
   // Geometry and magnetic field.
-  double B0 = 0.5;
+  double B_axis = 0.5;
   double R0 = 0.85;
   double a0 = 0.5;
-  double H = 2.4; // Poloidal length (used to get the field line pitch).
-  double Lcx0 = 8.0; // Connection length in the middle of the domain.
-  int shear = -2;
+  double Lp = 2.4; // Poloidal length at x0.
+  double Lt = 8.0; // Toroidal length at x0.
+  double Rc = R0 + a0;
+  double B0 = B_axis*R0/Rc;
 
-  double x0 = R0 + a0;
-  
-  const double vec0[3] = {x0, 0.0, 0.0};
-  double Bc = Bphi(vec0, &(struct gk_app_ctx){.B0=B0, .R0=R0});
-  double Bvx0 = H * Bc / Lcx0;
-  double n = shear + 2;
+  double sintheta = Lp/Lt;
+  double Bv0 = B0*sintheta;
 
   // Source parameters.
-  // double P_SOL = 0.62*1e6; // Power crossing the separatrix, in Watts.
-  // double Psrc = P_SOL * Ly / (2*M_PI*Rc);
-  double S0 = 5.7691e23*10; // Taken from the input file.
-  double xSource = x0 - 0.05;
+  double P_SOL = 8.1e5;
+  double S0 = 5.7691e23*10; // Multiplied by 10 to increase beta
+  double xSource = Rc - 0.05;
   double lambdaSource = 0.005;
 
   // Collisions;
@@ -314,23 +313,19 @@ create_ctx(void)
   double rho_s = c_s/omega_ci; // Ion sound gyroradius.
 
   // Box size.
-  double Lx = 56*rho_s;
-  double Ly = 100*rho_s*H/Lcx0;
-  double Lz = H; // [m]
+  double Lx = 50*rho_s;
+  double Lz = Lt; // [m]
 
-  double x_min = x0 - Lx/2;
-  double x_max = x0 + Lx/2;
-  double y_min = -Ly/2;
-  double y_max = Ly/2;
+  double x_min = Rc - Lx/2;
+  double x_max = Rc + Lx/2;
   double z_min = -Lz/2;
   double z_max = Lz/2;
 
   // Grid parameters
-  int Nx = 8;
-  int Ny = 4;
+  int Nx = 4;
   int Nz = 4;
   int Nvpar = 4;
-  int Nmu = 2;
+  int Nmu = 4;
   int poly_order = 1;
 
   double vpar_max_elc = 4.*vte;
@@ -348,20 +343,13 @@ create_ctx(void)
   struct gk_app_ctx ctx = {
     .cdim = cdim,
     .vdim = vdim,
-
-    .B0 = B0,
-    .Bvx0 = Bvx0,
+    .B_axis = B_axis,
     .R0 = R0,
-    .a0 = a0,
-    .H = H,
-    .x0 = x0,
-    .n = n,
-
+    .Rc = Rc,
+    .Bv0 = Bv0,
     .Lx = Lx,
-    .Ly = Ly,
     .Lz = Lz,
     .x_min = x_min, .x_max = x_max,
-    .y_min = y_min, .y_max = y_max,
     .z_min = z_min, .z_max = z_max,
 
     .me = me, .qe = qe,
@@ -370,16 +358,16 @@ create_ctx(void)
   
     .nu_frac = nuFrac,
     
+    .P_SOL = P_SOL,
     .S0 = S0,
     .xSource = xSource,
     .lambdaSource = lambdaSource,
   
     .Nx = Nx,
-    .Ny = Ny,
     .Nz = Nz,
     .Nvpar = Nvpar,
     .Nmu = Nmu,
-    .cells = {Nx, Ny, Nz, Nvpar, Nmu},
+    .cells = {Nx, Nz, Nvpar, Nmu},
     .poly_order = poly_order,
     .vpar_max_elc = vpar_max_elc, .mu_max_elc = mu_max_elc,
     .vpar_max_ion = vpar_max_ion, .mu_max_ion = mu_max_ion,
@@ -409,9 +397,6 @@ main(int argc, char **argv)
   }
 
   struct gk_app_ctx ctx = create_ctx(); // Context for init functions.
-
-  // Extract variables from command line arguments.
-  sscanf(app_args.opt_args, "max_run_time=%lf",&ctx.max_run_time);
 
   int cells_x[ctx.cdim], cells_v[ctx.vdim];
   for (int d=0; d<ctx.cdim; d++)
@@ -476,8 +461,17 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING, },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING, },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann",},
+    },
+
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
     },
 
     .num_diag_moments = 9,
@@ -552,10 +546,19 @@ main(int argc, char **argv)
     .bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_ZERO_FLUX },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_CONDUCTING },
+      { .dir = 1, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann", },
+      { .dir = 1, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_SHEATH_SURROGATE,
+        .aux_str = "gyrokinetic/data/nn_model/nn_model_sheath_bc_conv_MPE.kann", },
     },
-
+    
+    .anomalous_diffusion = {
+      .anomalous_diff_id = GKYL_GK_ANOMALOUS_DIFF_D,
+      .D_profile = diffusion_D_func,
+      .D_profile_ctx = &ctx,
+//      .write_diagnostics = true,
+    },
+    
     .num_diag_moments = 9,
     .diag_moments = {GKYL_F_MOMENT_HAMILTONIAN, GKYL_F_MOMENT_BIMAXWELLIAN, 
       GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2PAR, GKYL_F_MOMENT_M2PERP, 
@@ -576,7 +579,6 @@ main(int argc, char **argv)
 
   // field
   struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_ES,
     .poisson_bcs = {
       { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
       { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_FIELD_DIRICHLET, .value = {0.0} },
@@ -588,12 +590,12 @@ main(int argc, char **argv)
   struct gkyl_gk app_inp = {
 
     .cfl_frac_omegaH = 1.0,
-    .cfl_frac = 0.9,
+    .cfl_frac = 1.0,
 
     .cdim = ctx.cdim,
-    .lower = { ctx.x_min, ctx.y_min, ctx.z_min },
-    .upper = { ctx.x_max, ctx.y_max, ctx.z_max },
-    .cells = { cells_x[0], cells_x[1], cells_x[2] },
+    .lower = { ctx.x_min, ctx.z_min },
+    .upper = { ctx.x_max, ctx.z_max },
+    .cells = { cells_x[0], cells_x[1] },
     .poly_order = ctx.poly_order,
     .basis_type = app_args.basis_type,
 
@@ -605,9 +607,6 @@ main(int argc, char **argv)
       .bfield_ctx = &ctx,
     },
 
-    .num_periodic_dir = 1,
-    .periodic_dirs = { 1 },
-
     .num_species = 2,
     .species = { elc, ion },
     .field = field,
@@ -615,11 +614,10 @@ main(int argc, char **argv)
     .parallelism = {
       .use_gpu = app_args.use_gpu,
       .comm = comm,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+      .cuts = { app_args.cuts[0], app_args.cuts[1] },
     }
   };
 
-  // Set app output name from the executable name (argv[0]).
   snprintf(app_inp.name, sizeof(app_inp.name), "%s", app_args.app_name);
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
@@ -634,10 +632,6 @@ main(int argc, char **argv)
       .restart_frame = app_args.restart_frame,
       .num_steps = app_args.num_steps,
     },
-    // .print_verbosity = {
-    //   .enabled = true,
-    //   .frequency = 1.0,
-    // }
   };
 
   gkyl_gyrokinetic_run_simulation(&run_inp);
