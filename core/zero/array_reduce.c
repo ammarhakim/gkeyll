@@ -119,3 +119,28 @@ gkyl_array_reduce_range(double *res,
   }
 }
 
+void
+gkyl_array_reduce_range_sum_abs(double *res,
+  const struct gkyl_array *arr, const struct gkyl_range *range)
+{
+  assert(arr->type == GKYL_DOUBLE);
+
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(arr)) {
+    gkyl_array_reduce_range_sum_abs_cu(res, arr, range);
+    return;
+  }
+#endif
+
+  long n = arr->ncomp;
+  for (long i=0; i<n; ++i) res[i] = 0;
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long start = gkyl_range_idx(range, iter.idx);
+    const double *d = gkyl_array_cfetch(arr, start);
+    for (long i=0; i<n; ++i)
+      res[i] += fabs(d[i]);
+  }
+}
