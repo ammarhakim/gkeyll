@@ -25,3 +25,12 @@ void gkyl_array_reduce(double *res, const struct gkyl_array *arr, enum gkyl_arra
 void gkyl_array_reduce_range(double *res,
   const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range);
 
+/**
+ * Sum the absolute values of array data component-wise over a range.
+ *
+ * @param res On output, sums of absolute values (ncomp size).
+ * @param arr Array to perform reduction on.
+ * @param range Range specifying region.
+ */
+void gkyl_array_reduce_range_sum_abs(double *res,
+  const struct gkyl_array *arr, const struct gkyl_range *range);

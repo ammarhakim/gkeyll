@@ -505,9 +505,11 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_spec
   }
 
   if (gks->info.time_rate_diagnostics) {
-    // Reduce (sum) over whole domain, append to diagnostics.
+    // Sum the absolute time-rate moment in each cell over the whole domain,
+    // then append it to diagnostics. Taking the absolute value before the
+    // reduction prevents spatial cancellation.
     gkyl_array_accumulate(gks->fdot_mom_new, -1.0, gks->fdot_mom_old);
-    gkyl_array_reduce_range(gks->red_integ_diag, gks->fdot_mom_new, GKYL_SUM, &app->local);
+    gkyl_array_reduce_range_sum_abs(gks->red_integ_diag, gks->fdot_mom_new, &app->local);
     gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom,
       gks->red_integ_diag, gks->red_integ_diag_global);
     if (app->use_gpu) {
@@ -603,7 +605,7 @@ gk_species_write_integrated_mom_dynamic(gkyl_gyrokinetic_app *app, struct gk_spe
 
       if (gks->is_first_fdot_integ_write_call) {
         struct gkyl_msgpack_map_elem io_meta_phi[] = {
-          { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integrated moments of time rate of change." }
+          { .key = "Description", .elem_type = GKYL_MP_STRING, .cval = "Volume integral of absolute moments of time rate of change." }
         };
         int io_meta_len[] = {gks->io_meta_basic_len, app->gk_geom->io_meta_basic_len, 1};
         const struct gkyl_msgpack_map_elem* io_meta[] = {gks->io_meta_basic, app->gk_geom->io_meta_basic, io_meta_phi};

@@ -1075,7 +1075,7 @@ struct gk_species {
   bool is_first_omegaH_dt_write_call; // Whether omega_H dt dynvec is being written for the first time.
 
   struct gkyl_array *fdot_mom_old, *fdot_mom_new; // Moments of f_old and f_new.
-  gkyl_dynvec fdot_integ_diag; // Integrated moments of Delta f=f_new - f_old..
+  gkyl_dynvec fdot_integ_diag; // Integrals of absolute moments of (f_new-f_old)/dt.
   bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.
 
   struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
