@@ -3398,8 +3398,10 @@ gkyl_gyrokinetic_app_from_frame_species(gkyl_gyrokinetic_app *app, int sidx, int
   gk_s->is_first_L2norm_write_call = false;
   for (int b=0; b<gk_s->bflux.num_boundaries; ++b)
     gk_s->bflux.is_first_intmom_write_call[b] = false;
-  if (gk_s->info.time_rate_diagnostics)
+  if (gk_s->info.time_rate_diagnostics) {
     gk_s->is_first_fdot_integ_write_call = false;
+    gk_s->is_first_fdot_abs_integ_write_call = false;
+  }
   if (gk_s->positivity.type)
     gk_s->positivity.is_first_integ_write_call = false;
   if (gk_s->rad.radiation_id == GKYL_GK_RADIATION)
