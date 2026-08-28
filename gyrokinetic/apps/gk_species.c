@@ -211,7 +211,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
       switch (species->lower_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
-            app->field->phi_wall_lo, f, &app->local);
+            species->phi_wall_lo.phi, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
           gkyl_bc_twistshift_advance(species->bc_ts_lo, f, f);
@@ -233,7 +233,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
       switch (species->upper_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
-            app->field->phi_wall_up, f, &app->local);
+            species->phi_wall_up.phi, f, &app->local);
           break;
         case GKYL_BC_GK_SPECIES_TWISTSHIFT:
           gkyl_bc_twistshift_advance(species->bc_ts_up, f, f);
@@ -1497,6 +1497,8 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
       gks->upper_bc[d].type = GKYL_BC_GK_SPECIES_PERIODIC;
     }
   }
+
+  gk_species_wall_potential_init(app, gks);
  
   // Species properties metadata.
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
@@ -2035,6 +2037,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   gk_species_damping_release(app, &gks->damping);
 
   gk_species_fdot_multiplier_release(app, &gks->fdot_mult);
+
+  gk_species_wall_potential_release(app, gks);
 
   gk_species_lbo_release(app, &gks->lbo);
 

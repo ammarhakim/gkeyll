@@ -690,12 +690,6 @@ gyrokinetic_calc_field_enabled(gkyl_gyrokinetic_app* app, double tcurr,
   // Compute electrostatic potential from gyrokinetic Poisson's equation.
   gk_field_accumulate_rho_c(app, app->field, fin, bflux);
 
-  // Compute biased wall potential if present and time-dependent.
-  // Note: biased wall potential use eval_on_nodes. 
-  // so does copy to GPU every call if app->use_gpu = true.
-  if (app->field->phi_wall_lo_evolve || app->field->phi_wall_up_evolve)
-    gk_field_calc_phi_wall(app, app->field, tcurr);
-
   // Solve the field equation.
   gk_field_rhs(app, app->field);
   app->stat.field_tm += gkyl_time_diff_now_sec(wtm);
@@ -982,6 +976,9 @@ void
 gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
+  for (int i=0; i<app->num_species; ++i)
+    gk_species_wall_potential_advance(app, &app->species[i], tcurr);
+
   app->calc_field_func(app, tcurr, fin, bflux);
 }
 
@@ -1060,6 +1057,9 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
   for (int i=0; i<app->num_neut_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_neut_species(app, i, t0);
+
+  for (int i=0; i<app->num_species; ++i)
+    gk_species_wall_potential_advance(app, &app->species[i], t0);
 
   // Compute the fields and apply BCs.
   struct gkyl_array *distf[app->num_species];
