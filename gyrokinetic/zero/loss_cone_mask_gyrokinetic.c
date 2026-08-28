@@ -8,9 +8,9 @@
 #include <gkyl_loss_cone_mask_gyrokinetic_priv.h>
 #include <gkyl_range.h>
 
-// The loss-cone mask is built from the escape barrier
-// EB(z,mu) = min( max_{s in [z_L,z]} U(s,mu), max_{s in [z,z_R]} U(s,mu) )
-// with U = mu*B + q*phi. A node is trapped if H < EB.
+// The loss-cone mask is built from the left and right escape barriers. A
+// sheath wall is represented by a virtual endpoint with potential phi_wall;
+// this is distinct from phi at the plasma/sheath entrance.
 
 static struct gkyl_array*
 mkarr(long nc, long size, bool use_gpu)
@@ -49,6 +49,13 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->mass = inp->mass;
   up->charge = inp->charge;
   up->use_gpu = inp->use_gpu;
+  up->lower_boundary = inp->lower_boundary;
+  up->upper_boundary = inp->upper_boundary;
+
+  assert(up->lower_boundary >= GKYL_LOSS_CONE_BC_OPEN &&
+    up->lower_boundary <= GKYL_LOSS_CONE_BC_CLOSED);
+  assert(up->upper_boundary >= GKYL_LOSS_CONE_BC_OPEN &&
+    up->upper_boundary <= GKYL_LOSS_CONE_BC_CLOSED);
 
   up->cdim = inp->conf_basis->ndim;
   up->num_basis_conf = inp->conf_basis->num_basis;
@@ -62,11 +69,17 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
 void
 gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out)
+  const struct gkyl_array *bmag, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
+  struct gkyl_array *mask_out)
 {
+  assert(up->lower_boundary != GKYL_LOSS_CONE_BC_SHEATH || phi_wall_lo);
+  assert(up->upper_boundary != GKYL_LOSS_CONE_BC_SHEATH || phi_wall_up);
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
-    gkyl_loss_cone_mask_gyrokinetic_advance_cu(up, phase_range, conf_range, bmag, phi, mask_out);
+    gkyl_loss_cone_mask_gyrokinetic_advance_cu(up, phase_range, conf_range, bmag, phi,
+      phi_wall_lo, phi_wall_up, mask_out);
     return;
   }
 #endif
@@ -119,17 +132,23 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
         linidx_conf, conf_node);
       double phi_curr = field_node_val(phi, up->basis_at_nodes_conf, num_basis_conf,
         linidx_conf, conf_node);
-      double h_curr = 0.5 * up->mass * vpar * vpar + mu * bmag_curr + up->charge * phi_curr;
+      double kinetic_energy = 0.5 * up->mass * vpar * vpar;
+      double magnetic_energy = mu * bmag_curr;
+      double electric_energy = up->charge * phi_curr;
 
       // Determine escape barriers at the node
       int zdim = cdim - 1;
       double barrier_left, barrier_right;
       escape_barriers(cdim, num_basis_conf, conf_range, up->basis_at_nodes_conf,
-        phi, bmag, conf_idx, conf_idx[zdim], conf_node, mu, up->charge,
+        phi, bmag, phi_wall_lo, phi_wall_up, conf_idx, conf_idx[zdim], conf_node,
+        mu, up->charge, up->lower_boundary, up->upper_boundary,
         &barrier_left, &barrier_right);
 
-      // If Hamiltonian is above either barrier, the node is not trapped, so the whole cell is not trapped.
-      cell_trapped = h_curr < GKYL_MIN2(barrier_left, barrier_right);
+      // Equality means that the particle reaches the wall with zero parallel
+      // kinetic energy, matching the sheath boundary's absorbing cutoff.
+      cell_trapped = hamiltonian_below_barrier(kinetic_energy, magnetic_energy,
+        electric_energy, barrier_left) && hamiltonian_below_barrier(kinetic_energy,
+        magnetic_energy, electric_energy, barrier_right);
     }
 
     long linidx_phase = gkyl_range_idx(phase_range, phase_iter.idx);

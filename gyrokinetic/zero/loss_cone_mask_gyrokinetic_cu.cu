@@ -18,6 +18,9 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(int cdim, int num_basis_conf,
   struct gkyl_range phase_range, struct gkyl_range conf_range,
   const struct gkyl_array *basis_at_nodes_conf,
   const struct gkyl_array *bmag, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
+  enum gkyl_loss_cone_boundary_type lower_boundary,
+  enum gkyl_loss_cone_boundary_type upper_boundary,
   const struct gkyl_velocity_map *gvm,
   struct gkyl_array *mask_out)
 {
@@ -66,15 +69,20 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(int cdim, int num_basis_conf,
         linidx_conf, conf_node);
       double phi_curr = field_node_val(phi, basis_at_nodes_conf, num_basis_conf,
         linidx_conf, conf_node);
-      double h_curr = 0.5 * mass * vpar * vpar + mu * bmag_curr + charge * phi_curr;
+      double kinetic_energy = 0.5 * mass * vpar * vpar;
+      double magnetic_energy = mu * bmag_curr;
+      double electric_energy = charge * phi_curr;
 
       int zdim = cdim - 1;
       double barrier_left, barrier_right;
       escape_barriers(cdim, num_basis_conf, &conf_range, basis_at_nodes_conf,
-        phi, bmag, conf_idx, conf_idx[zdim], conf_node, mu, charge,
+        phi, bmag, phi_wall_lo, phi_wall_up, conf_idx, conf_idx[zdim], conf_node,
+        mu, charge, lower_boundary, upper_boundary,
         &barrier_left, &barrier_right);
 
-      cell_trapped = h_curr < GKYL_MIN2(barrier_left, barrier_right);
+      cell_trapped = hamiltonian_below_barrier(kinetic_energy, magnetic_energy,
+        electric_energy, barrier_left) && hamiltonian_below_barrier(kinetic_energy,
+        magnetic_energy, electric_energy, barrier_right);
     }
 
     long linidx_phase = gkyl_range_idx(&phase_range, phase_idx);
@@ -86,7 +94,9 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(int cdim, int num_basis_conf,
 extern "C" void
 gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out)
+  const struct gkyl_array *bmag, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
+  struct gkyl_array *mask_out)
 {
   int pdim = phase_range->ndim;
   int vdim = pdim - up->cdim;
@@ -98,9 +108,13 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   int nblocks = phase_range->nblocks;
   int nthreads = phase_range->nthreads;
 
+  const struct gkyl_array *phi_wall_lo_dev = phi_wall_lo ? phi_wall_lo->on_dev : 0;
+  const struct gkyl_array *phi_wall_up_dev = phi_wall_up ? phi_wall_up->on_dev : 0;
+
   gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker<<<nblocks, nthreads>>>(
     up->cdim, up->num_basis_conf, num_phase_nodes, num_vel_nodes,
     up->mass, up->charge, *phase_range, *conf_range,
     up->basis_at_nodes_conf->on_dev, bmag->on_dev, phi->on_dev,
+    phi_wall_lo_dev, phi_wall_up_dev, up->lower_boundary, up->upper_boundary,
     gvm->on_dev, mask_out->on_dev);
 }
