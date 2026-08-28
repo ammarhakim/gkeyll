@@ -859,6 +859,8 @@ struct gk_fdot_multiplier_comp {
   struct gkyl_loss_cone_mask_gyrokinetic *lcm_proj_op; // Operator that projects the loss cone mask.
   struct gkyl_array *bmag_global; // Global bmag field used by the loss-cone updater.
   struct gkyl_array *phi_global; // Global phi field used by the loss-cone updater.
+  struct gkyl_array *phi_wall_lo_global; // Global lower-wall potential used by the loss-cone updater.
+  struct gkyl_array *phi_wall_up_global; // Global upper-wall potential used by the loss-cone updater.
 
   // Time dilation parameters (from input).
   double cfl_dt_min_value; // User-specified minimum dt value.

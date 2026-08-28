@@ -184,7 +184,6 @@ escape_barriers_ref(const struct gkyl_array *phi, const struct gkyl_array *bmag,
   double *barrier_right)
 {
   int zdim = cdim - 1;
-  int anchor_corner_node = corner_with_z_side_ref(cdim, anchor_corner, zdim, anchor_z_side);
   int z_upper_corner = corner_with_z_side_ref(cdim, anchor_corner, zdim, 1);
   int z_lower_corner = corner_with_z_side_ref(cdim, anchor_corner, zdim, 0);
 
@@ -200,28 +199,32 @@ escape_barriers_ref(const struct gkyl_array *phi, const struct gkyl_array *bmag,
     scan_idx[zdim] = iz;
     long linidx = gkyl_range_idx(conf_range, scan_idx);
 
-    int left_corner = z_upper_corner;
-    int right_corner = z_lower_corner;
-    if (iz == target_z_cell) {
-      left_corner = anchor_corner_node;
-      right_corner = anchor_corner_node;
-    }
+    double phi_lower = field_corner_val(phi, basis_at_corners_conf, num_basis_conf,
+      linidx, z_lower_corner);
+    double phi_upper = field_corner_val(phi, basis_at_corners_conf, num_basis_conf,
+      linidx, z_upper_corner);
+    double bmag_lower = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf,
+      linidx, z_lower_corner);
+    double bmag_upper = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf,
+      linidx, z_upper_corner);
+    double u_lower = mu * bmag_lower + charge * phi_lower;
+    double u_upper = mu * bmag_upper + charge * phi_upper;
 
-    if (iz <= target_z_cell) {
-      double phi_left = field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx, left_corner);
-      double bmag_left = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx, left_corner);
-      double u_left = mu * bmag_left + charge * phi_left;
-      if (u_left > *barrier_left) {
-        *barrier_left = u_left;
+    if (iz < target_z_cell) {
+      *barrier_left = GKYL_MAX2(*barrier_left, GKYL_MAX2(u_lower, u_upper));
+    }
+    else if (iz == target_z_cell) {
+      *barrier_left = GKYL_MAX2(*barrier_left, u_lower);
+      *barrier_right = GKYL_MAX2(*barrier_right, u_upper);
+      if (anchor_z_side == 1) {
+        *barrier_left = GKYL_MAX2(*barrier_left, u_upper);
+      }
+      else {
+        *barrier_right = GKYL_MAX2(*barrier_right, u_lower);
       }
     }
-    if (iz >= target_z_cell) {
-      double phi_right = field_corner_val(phi, basis_at_corners_conf, num_basis_conf, linidx, right_corner);
-      double bmag_right = field_corner_val(bmag, basis_at_corners_conf, num_basis_conf, linidx, right_corner);
-      double u_right = mu * bmag_right + charge * phi_right;
-      if (u_right > *barrier_right) {
-        *barrier_right = u_right;
-      }
+    else {
+      *barrier_right = GKYL_MAX2(*barrier_right, GKYL_MAX2(u_lower, u_upper));
     }
   }
 }
@@ -450,7 +453,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
   struct gkyl_array *mask_ref = mkarr(false, 1, local_ext.volume);
 
   gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask, &local, &local_conf,
-    gk_geom->geo_corn.bmag, phi, mask);
+    gk_geom->geo_corn.bmag, phi, 0, 0, mask);
   gkyl_array_copy(mask_ho, mask);
 
   struct gkyl_array *bmag_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
@@ -493,7 +496,7 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
       gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj_cpu);
 
     gkyl_loss_cone_mask_gyrokinetic_advance(proj_mask_cpu, &local, &local_conf,
-      bmag_ho, phi_ho, mask_cpu);
+      bmag_ho, phi_ho, 0, 0, mask_cpu);
 
     int gpu_cpu_mismatches = 0;
     struct gkyl_range_iter iter_cmp;
@@ -558,6 +561,256 @@ run_case_1x2v(int poly_order, bool use_gpu, bool use_nonzero_phi)
 #endif
 }
 
+struct constant_boundary_case {
+  const char *name;
+  double charge;
+  double phi_plasma;
+  double phi_wall_lo;
+  double phi_wall_up;
+  enum gkyl_loss_cone_boundary_type lower_boundary;
+  enum gkyl_loss_cone_boundary_type upper_boundary;
+};
+
+static void
+set_constant_1x_p1(struct gkyl_array *field, const struct gkyl_range *range,
+  double value)
+{
+  gkyl_array_clear(field, 0.0);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, range);
+  while (gkyl_range_iter_next(&iter)) {
+    long linidx = gkyl_range_idx(range, iter.idx);
+    double *field_d = gkyl_array_fetch(field, linidx);
+    field_d[0] = sqrt(2.0) * value;
+  }
+}
+
+static double
+constant_boundary_energy(double charge, double phi_plasma, double phi_wall,
+  enum gkyl_loss_cone_boundary_type boundary)
+{
+  if (boundary == GKYL_LOSS_CONE_BC_CLOSED) {
+    return DBL_MAX;
+  }
+  if (boundary == GKYL_LOSS_CONE_BC_OPEN) {
+    return 0.0;
+  }
+  return GKYL_MAX2(0.0, charge * (phi_wall - phi_plasma));
+}
+
+static void
+run_constant_boundary_cases(bool use_gpu)
+{
+  // With constant B and phi, mu*B cancels between H and each wall barrier.
+  // These cases therefore have an exact, independent criterion in each
+  // v_parallel cell: every velocity endpoint must satisfy K < Delta U at
+  // both boundaries.
+  const struct constant_boundary_case cases[] = {
+    {
+      .name = "grounded_wall_electron",
+      .charge = -1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      .name = "grounded_wall_ion_no_barrier",
+      .charge = 1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      .name = "grounded_wall_ion_reversed_phi",
+      .charge = 1.0, .phi_plasma = -4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      .name = "asymmetric_biased_wall_electron",
+      .charge = -1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 3.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      .name = "asymmetric_biased_wall_ion",
+      .charge = 1.0, .phi_plasma = 0.0,
+      .phi_wall_lo = 4.0, .phi_wall_up = 1.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      // This is the asymmetric electron case shifted everywhere by +7 V.
+      .name = "gauge_shifted_asymmetric_electron",
+      .charge = -1.0, .phi_plasma = 11.0,
+      .phi_wall_lo = 7.0, .phi_wall_up = 10.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      // Delta U=2 and a v_parallel endpoint is exactly |v|=2. Equality
+      // reaches the wall and must be classified as passing/absorbed.
+      .name = "sheath_cutoff_equality",
+      .charge = -1.0, .phi_plasma = 2.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      .name = "open_boundaries",
+      .charge = -1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_OPEN,
+      .upper_boundary = GKYL_LOSS_CONE_BC_OPEN,
+    },
+    {
+      .name = "open_and_closed_boundaries",
+      .charge = -1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_OPEN,
+      .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED,
+    },
+    {
+      .name = "closed_and_sheath_boundaries",
+      .charge = -1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_CLOSED,
+      .upper_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+    },
+    {
+      .name = "sheath_and_closed_boundaries",
+      .charge = -1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_SHEATH,
+      .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED,
+    },
+    {
+      .name = "closed_boundaries",
+      .charge = -1.0, .phi_plasma = 4.0,
+      .phi_wall_lo = 0.0, .phi_wall_up = 0.0,
+      .lower_boundary = GKYL_LOSS_CONE_BC_CLOSED,
+      .upper_boundary = GKYL_LOSS_CONE_BC_CLOSED,
+    },
+  };
+
+  double lower[] = { -1.0, -4.0, 0.0 };
+  double upper[] = { 1.0, 4.0, 1.0 };
+  int cells[] = { 2, 8, 1 };
+  double lower_conf[] = { lower[0] }, upper_conf[] = { upper[0] };
+  double lower_vel[] = { lower[1], lower[2] };
+  double upper_vel[] = { upper[1], upper[2] };
+  int cells_conf[] = { cells[0] }, cells_vel[] = { cells[1], cells[2] };
+
+  struct gkyl_rect_grid grid, grid_conf, grid_vel;
+  gkyl_rect_grid_init(&grid, 3, lower, upper, cells);
+  gkyl_rect_grid_init(&grid_conf, 1, lower_conf, upper_conf, cells_conf);
+  gkyl_rect_grid_init(&grid_vel, 2, lower_vel, upper_vel, cells_vel);
+
+  struct gkyl_basis basis_conf;
+  gkyl_cart_modal_serendip(&basis_conf, 1, 1);
+
+  int ghost_conf[] = { 1 };
+  int ghost_vel[] = { 0, 0 };
+  int ghost[] = { 1, 0, 0 };
+  struct gkyl_range local_conf, local_ext_conf, local_vel, local_ext_vel;
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid_conf, ghost_conf, &local_ext_conf, &local_conf);
+  gkyl_create_grid_ranges(&grid_vel, ghost_vel, &local_ext_vel, &local_vel);
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  struct gkyl_mapc2p_inp c2p_in = { };
+  struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(c2p_in, grid, grid_vel,
+    local, local_ext, local_vel, local_ext_vel, use_gpu);
+
+  struct gkyl_array *bmag = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *phi = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *phi_wall_lo = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *phi_wall_up = mkarr(use_gpu, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *mask = mkarr(use_gpu, 1, local_ext.volume);
+
+  struct gkyl_array *bmag_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *phi_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *phi_wall_lo_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *phi_wall_up_ho = mkarr(false, basis_conf.num_basis, local_ext_conf.volume);
+  struct gkyl_array *mask_ho = mkarr(false, 1, local_ext.volume);
+
+  set_constant_1x_p1(bmag_ho, &local_ext_conf, 2.0);
+  gkyl_array_copy(bmag, bmag_ho);
+
+  for (int c = 0; c < sizeof(cases) / sizeof(cases[0]); ++c) {
+    const struct constant_boundary_case *test = &cases[c];
+
+    set_constant_1x_p1(phi_ho, &local_ext_conf, test->phi_plasma);
+    set_constant_1x_p1(phi_wall_lo_ho, &local_ext_conf, test->phi_wall_lo);
+    set_constant_1x_p1(phi_wall_up_ho, &local_ext_conf, test->phi_wall_up);
+    gkyl_array_copy(phi, phi_ho);
+    gkyl_array_copy(phi_wall_lo, phi_wall_lo_ho);
+    gkyl_array_copy(phi_wall_up, phi_wall_up_ho);
+
+    struct gkyl_loss_cone_mask_gyrokinetic *up =
+      gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp) {
+        .conf_basis = &basis_conf,
+        .vel_map = gvm,
+        .use_gpu = use_gpu,
+        .mass = 1.0,
+        .charge = test->charge,
+        .lower_boundary = test->lower_boundary,
+        .upper_boundary = test->upper_boundary,
+      });
+
+    const struct gkyl_array *wall_lo = test->lower_boundary == GKYL_LOSS_CONE_BC_SHEATH
+      ? phi_wall_lo : 0;
+    const struct gkyl_array *wall_up = test->upper_boundary == GKYL_LOSS_CONE_BC_SHEATH
+      ? phi_wall_up : 0;
+    gkyl_loss_cone_mask_gyrokinetic_advance(up, &local, &local_conf,
+      bmag, phi, wall_lo, wall_up, mask);
+    gkyl_array_copy(mask_ho, mask);
+
+    double barrier_lo = constant_boundary_energy(test->charge, test->phi_plasma,
+      test->phi_wall_lo, test->lower_boundary);
+    double barrier_up = constant_boundary_energy(test->charge, test->phi_plasma,
+      test->phi_wall_up, test->upper_boundary);
+
+    struct gkyl_range_iter iter;
+    gkyl_range_iter_init(&iter, &local);
+    while (gkyl_range_iter_next(&iter)) {
+      int ivpar = iter.idx[1];
+      double vpar_lo = grid.lower[1] + (ivpar - 1) * grid.dx[1];
+      double vpar_up = vpar_lo + grid.dx[1];
+      double kinetic_max = 0.5 * GKYL_MAX2(vpar_lo * vpar_lo, vpar_up * vpar_up);
+      double expected = kinetic_max < barrier_lo && kinetic_max < barrier_up ? 1.0 : 0.0;
+
+      long linidx = gkyl_range_idx(&local, iter.idx);
+      const double *mask_d = gkyl_array_cfetch(mask_ho, linidx);
+      double actual = mask_d[0];
+      bool ok = fabs(actual - expected) < 1e-12;
+      TEST_CHECK(ok);
+      if (!ok) {
+        TEST_MSG("%s idx=(%d,%d,%d): got=%g expected=%g Kmax=%g barriers=(%g,%g)",
+          test->name, iter.idx[0], iter.idx[1], iter.idx[2], actual, expected,
+          kinetic_max, barrier_lo, barrier_up);
+      }
+    }
+
+    gkyl_loss_cone_mask_gyrokinetic_release(up);
+  }
+
+  gkyl_array_release(bmag);
+  gkyl_array_release(phi);
+  gkyl_array_release(phi_wall_lo);
+  gkyl_array_release(phi_wall_up);
+  gkyl_array_release(mask);
+  gkyl_array_release(bmag_ho);
+  gkyl_array_release(phi_ho);
+  gkyl_array_release(phi_wall_lo_ho);
+  gkyl_array_release(phi_wall_up_ho);
+  gkyl_array_release(mask_ho);
+  gkyl_velocity_map_release(gvm);
+}
+
 void
 test_1x2v_p1_gk_ho(void)
 {
@@ -568,6 +821,12 @@ void
 test_1x2v_p1_nonzero_phi_gk_ho(void)
 {
   run_case_1x2v(1, false, true);
+}
+
+void
+test_1x2v_p1_constant_boundaries_gk_ho(void)
+{
+  run_constant_boundary_cases(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
@@ -582,14 +841,22 @@ test_1x2v_p1_nonzero_phi_gk_dev(void)
 {
   run_case_1x2v(1, true, true);
 }
+
+void
+test_1x2v_p1_constant_boundaries_gk_dev(void)
+{
+  run_constant_boundary_cases(true);
+}
 #endif
 
 TEST_LIST = {
   { "test_1x2v_p1_gk_ho", test_1x2v_p1_gk_ho },
   { "test_1x2v_p1_nonzero_phi_gk_ho", test_1x2v_p1_nonzero_phi_gk_ho },
+  { "test_1x2v_p1_constant_boundaries_gk_ho", test_1x2v_p1_constant_boundaries_gk_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_1x2v_p1_gk_dev", test_1x2v_p1_gk_dev },
   { "test_1x2v_p1_nonzero_phi_gk_dev", test_1x2v_p1_nonzero_phi_gk_dev },
+  { "test_1x2v_p1_constant_boundaries_gk_dev", test_1x2v_p1_constant_boundaries_gk_dev },
 #endif
   { NULL, NULL },
 };

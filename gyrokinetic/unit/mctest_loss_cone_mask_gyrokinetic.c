@@ -167,7 +167,7 @@ test_loss_cone_mask_parallel_4dom(void)
 
   struct gkyl_array *mask_local = mkarr(1, phase_local->volume);
   gkyl_loss_cone_mask_gyrokinetic_advance(up_local, phase_local, &conf_global,
-    bmag_global_gather, phi_global_gather, mask_local);
+    bmag_global_gather, phi_global_gather, 0, 0, mask_local);
 
   struct gkyl_array *mask_dist_global = mkarr(1, phase_global.volume);
   gkyl_comm_array_allgather(comm_phase, phase_local, &phase_global, mask_local, mask_dist_global);
@@ -191,7 +191,7 @@ test_loss_cone_mask_parallel_4dom(void)
 
     struct gkyl_array *mask_ref = mkarr(1, phase_global.volume);
     gkyl_loss_cone_mask_gyrokinetic_advance(up_ref, &phase_global, &conf_global,
-      bmag_ref, phi_ref, mask_ref);
+      bmag_ref, phi_ref, 0, 0, mask_ref);
 
     struct gkyl_range_iter it;
     gkyl_range_iter_init(&it, &phase_global);

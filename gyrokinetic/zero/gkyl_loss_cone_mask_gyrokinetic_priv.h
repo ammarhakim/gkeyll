@@ -33,6 +33,8 @@ struct gkyl_loss_cone_mask_gyrokinetic {
 
   double mass; // Species mass.
   double charge; // Species charge.
+  enum gkyl_loss_cone_boundary_type lower_boundary; // Lower parallel-boundary behavior.
+  enum gkyl_loss_cone_boundary_type upper_boundary; // Upper parallel-boundary behavior.
 
   struct gkyl_array *basis_at_nodes_conf; // Basis functions at configuration-space nodes.
 };
@@ -100,18 +102,38 @@ field_node_val(const struct gkyl_array *arr, const struct gkyl_array *basis_at_n
 }
 
 GKYL_CU_DH
+static inline bool
+hamiltonian_below_barrier(double kinetic_energy, double magnetic_energy,
+  double electric_energy, double barrier)
+{
+  if (barrier == DBL_MAX) {
+    return true;
+  }
+
+  double hamiltonian = kinetic_energy + magnetic_energy + electric_energy;
+  double energy_scale = fabs(kinetic_energy) + fabs(magnetic_energy)
+    + fabs(electric_energy) + fabs(barrier);
+  double roundoff_tol = 32.0 * DBL_EPSILON * energy_scale;
+
+  // Treat equality, including equality to within modal-evaluation roundoff,
+  // as reaching the boundary rather than reflecting from it.
+  return hamiltonian < barrier - roundoff_tol;
+}
+
+GKYL_CU_DH
 static inline void
 escape_barriers(int cdim, int num_basis_conf, const struct gkyl_range *conf_range,
   const struct gkyl_array *basis_at_nodes_conf, const struct gkyl_array *phi,
-  const struct gkyl_array *bmag, const int *base_idx, int z_cell,
+  const struct gkyl_array *bmag, const struct gkyl_array *phi_wall_lo,
+  const struct gkyl_array *phi_wall_up, const int *base_idx, int z_cell,
   int anchor_conf_node, double mu, double charge,
+  enum gkyl_loss_cone_boundary_type lower_boundary,
+  enum gkyl_loss_cone_boundary_type upper_boundary,
   double *barrier_left, double *barrier_right)
 {
   int zdim = cdim - 1;
 
   int z_endpoint_index = conf_node_z_endpoint_index(cdim, anchor_conf_node, zdim);
-  int anchor_node = conf_node_with_matching_perpendicular_coords(cdim, anchor_conf_node, zdim,
-    z_endpoint_index);
   int z_upper_node = conf_node_with_matching_perpendicular_coords(cdim, anchor_conf_node,
     zdim, 1);
   int z_lower_node = conf_node_with_matching_perpendicular_coords(cdim, anchor_conf_node,
@@ -129,26 +151,63 @@ escape_barriers(int cdim, int num_basis_conf, const struct gkyl_range *conf_rang
     scan_idx[zdim] = iz;
     long linidx = gkyl_range_idx(conf_range, scan_idx);
 
-    int z_scan_node = anchor_node;
+    double phi_lower = field_node_val(phi, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_lower_node);
+    double phi_upper = field_node_val(phi, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_upper_node);
+    double bmag_lower = field_node_val(bmag, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_lower_node);
+    double bmag_upper = field_node_val(bmag, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_upper_node);
+    double u_lower = mu * bmag_lower + charge * phi_lower;
+    double u_upper = mu * bmag_upper + charge * phi_upper;
+
+    // A complete cell contributes both endpoint traces. In the anchor cell,
+    // only the portion between the anchor node and the relevant wall belongs
+    // to that directional path. Keeping both traces also handles discontinuous
+    // input fields conservatively.
     if (iz < z_cell) {
-      z_scan_node = z_upper_node;
+      *barrier_left = GKYL_MAX2(*barrier_left, GKYL_MAX2(u_lower, u_upper));
     }
-    else if (iz > z_cell) {
-      z_scan_node = z_lower_node;
+    else if (iz == z_cell) {
+      *barrier_left = GKYL_MAX2(*barrier_left, u_lower);
+      *barrier_right = GKYL_MAX2(*barrier_right, u_upper);
+      if (z_endpoint_index == 1) {
+        *barrier_left = GKYL_MAX2(*barrier_left, u_upper);
+      }
+      else {
+        *barrier_right = GKYL_MAX2(*barrier_right, u_lower);
+      }
     }
+    else {
+      *barrier_right = GKYL_MAX2(*barrier_right, GKYL_MAX2(u_lower, u_upper));
+    }
+  }
 
-    double phi_scan = field_node_val(phi, basis_at_nodes_conf, num_basis_conf,
-      linidx, z_scan_node);
-    double bmag_scan = field_node_val(bmag, basis_at_nodes_conf, num_basis_conf,
-      linidx, z_scan_node);
-    double u_scan = mu * bmag_scan + charge * phi_scan;
+  if (lower_boundary == GKYL_LOSS_CONE_BC_CLOSED) {
+    *barrier_left = DBL_MAX;
+  }
+  else if (lower_boundary == GKYL_LOSS_CONE_BC_SHEATH) {
+    scan_idx[zdim] = conf_range->lower[zdim];
+    long linidx = gkyl_range_idx(conf_range, scan_idx);
+    double bmag_wall = field_node_val(bmag, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_lower_node);
+    double phi_wall = field_node_val(phi_wall_lo, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_lower_node);
+    *barrier_left = GKYL_MAX2(*barrier_left, mu * bmag_wall + charge * phi_wall);
+  }
 
-    if (iz <= z_cell && u_scan > *barrier_left) {
-      *barrier_left = u_scan;
-    }
-    if (iz >= z_cell && u_scan > *barrier_right) {
-      *barrier_right = u_scan;
-    }
+  if (upper_boundary == GKYL_LOSS_CONE_BC_CLOSED) {
+    *barrier_right = DBL_MAX;
+  }
+  else if (upper_boundary == GKYL_LOSS_CONE_BC_SHEATH) {
+    scan_idx[zdim] = conf_range->upper[zdim];
+    long linidx = gkyl_range_idx(conf_range, scan_idx);
+    double bmag_wall = field_node_val(bmag, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_upper_node);
+    double phi_wall = field_node_val(phi_wall_up, basis_at_nodes_conf, num_basis_conf,
+      linidx, z_upper_node);
+    *barrier_right = GKYL_MAX2(*barrier_right, mu * bmag_wall + charge * phi_wall);
   }
 }
 
@@ -159,7 +218,9 @@ extern "C" {
 
 void gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
-  const struct gkyl_array *bmag, const struct gkyl_array *phi, struct gkyl_array *mask_out);
+  const struct gkyl_array *bmag, const struct gkyl_array *phi,
+  const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
+  struct gkyl_array *mask_out);
 
 #ifdef __cplusplus
 }
