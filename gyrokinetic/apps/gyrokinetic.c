@@ -171,6 +171,9 @@ gkyl_gyrokinetic_app_new_geom(struct gkyl_gk *gk)
 
   int cdim = app->cdim = gk->cdim;
   int poly_order = app->poly_order = gk->poly_order;
+  app->ts_upsample_factor = gk->geometry.ts_upsample_factor;
+  app->ts_filter_half_width = gk->geometry.ts_filter_half_width;
+  app->ts_filter_cutoff_wavelength = gk->geometry.ts_filter_cutoff_wavelength;
   int ns = app->num_species = gk->num_species;
   int neuts = app->num_neut_species = gk->num_neut_species;
 
@@ -1248,24 +1251,27 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
   for (int eI = 0; eI < 2; eI++) {
     int ghost[] = {1, 1, 1};
     // TS BC updater.
-    struct gkyl_bc_twistshift_inp ts_inp = {
+    struct gkyl_twistshift_dg_inp ts_inp = {
       .bc_dir = par_dir,
       .shift_dir = 1, // y shift.
       .shear_dir = 0, // shift varies with x.
       .edge = eI == 0? GKYL_LOWER_EDGE : GKYL_UPPER_EDGE,
       .cdim = app->cdim,
       .bcdir_ext_update_r = app->global_par_ext,
+      .bcdir_ext_update_r = app->global_par_ext,
       .num_ghost = ghost, // one ghost per config direction
+      .basis = app->basis,
+      .grid = app->grid,
       .basis = app->basis,
       .grid = app->grid,
       .shift_func = eI == 0? app->gk_geom->parallel_lower_bc_shift_func : app->gk_geom->parallel_upper_bc_shift_func,
       .shift_func_ctx = eI == 0? app->gk_geom->parallel_lower_bc_shift_ctx : app->gk_geom->parallel_upper_bc_shift_ctx,
       .use_gpu = app->use_gpu,
     };
-    struct gkyl_bc_twistshift *bc_ts_op = gkyl_bc_twistshift_new(&ts_inp);
+    struct gkyl_twistshift_dg *bc_ts_op = gkyl_twistshift_dg_new(&ts_inp);
 
     struct gkyl_array *delta_ts_x = eI == 0? app->delta_ts_x_lo : app->delta_ts_x_up;
-    delta_ts_x = gkyl_bc_twistshift_get_shift_objects(bc_ts_op,
+    delta_ts_x = gkyl_twistshift_dg_get_shift_objects(bc_ts_op,
       &app->delta_ts_x_grid, &app->delta_ts_x_rng, &app->delta_ts_x_basis);
 
     bool has_LCFS = app->gk_geom->has_LCFS;
@@ -1311,7 +1317,7 @@ gyrokinetic_app_write_ts_shift_mapc2p(struct gkyl_gyrokinetic_app *app)
 
     gkyl_array_release(delta_ts_x);
     gkyl_msgpack_data_release(mt_shift);
-    gkyl_bc_twistshift_release(bc_ts_op);
+    gkyl_twistshift_dg_release(bc_ts_op);
   }
 }
 
