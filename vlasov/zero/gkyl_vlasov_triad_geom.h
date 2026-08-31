@@ -96,6 +96,65 @@ void gkyl_vlasov_triad_geom_from_nodal(const struct gkyl_rect_grid *cgrid, const
   const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor);
 
 /**
+ * Same as gkyl_vlasov_triad_geom_from_nodal, but for nodal samples living at the
+ * per-cell Gauss-Legendre interior nodes of a global nodal range (the layout the
+ * gyrokinetic geometry stores, cf. gkyl_nodal_ops_n2m_interior): 2 nodes per
+ * direction per cell, none shared, node i of a cell decomposed lexicographically
+ * with the last dimension fastest. The Poisson tensor is assembled pointwise at
+ * the nodes and converted to modal with quad_nodal_to_modal. p=1 only.
+ *
+ * @param cgrid Configuration-space grid object
+ * @param crange Configuration-space range (cells to update)
+ * @param cbasis Configuration-space basis (p=1)
+ * @param pgrid Phase-space grid object
+ * @param prange Phase-space range
+ * @param pbasis Phase-space basis
+ * @param nrange Nodal range holding the interior nodes (2*cells per direction)
+ * @param cov_tangent_basis_nodal Cartesian covariant tangents on nrange, vdim*vdim per node
+ * @param triad_basis_nodal Orthonormal triad on nrange, vdim*vdim per node
+ * @param triad_basis_gradient_nodal d(triad)/dz^i on nrange, vdim*vdim*vdim per node
+ * @param conf_poisson_tensor The configuration component of the Poisson tensor (output)
+ */
+void gkyl_vlasov_triad_geom_from_nodal_interior(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
+  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis,
+  const struct gkyl_range *nrange,
+  const struct gkyl_array *cov_tangent_basis_nodal, const struct gkyl_array *triad_basis_nodal,
+  const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor);
+
+/**
+ * Build the b-aligned orthonormal triad and its gradients from nodal Cartesian
+ * covariant tangents in FIELD-ALIGNED coordinates (the magnetic field along the
+ * third tangent, as in gyrokinetic geometry), then assemble the conf-space
+ * Poisson tensor. Per node: bhat = e_3/|e_3|, e1 = normalize(t_1 - (t_1.bhat)bhat),
+ * e2 = bhat x e1 (right-handed). Triad gradients are second-order finite
+ * differences across the interior node grid. Construction-time checks: the
+ * Gram-Schmidt degeneracy (t_1 parallel to bhat) and, when bhat_check_nodal is
+ * given, agreement of bhat with the independently computed field direction
+ * (e.g. gyrokinetic bcart_nodal); failures print and, with exit_at_checks,
+ * assert. 3x3v and p=1 only; deflated axisymmetric conf grids need analytic
+ * d/dalpha terms and are not supported yet.
+ *
+ * @param cgrid Configuration-space grid object
+ * @param crange Configuration-space range (cells to update)
+ * @param cbasis Configuration-space basis (p=1)
+ * @param pgrid Phase-space grid object
+ * @param prange Phase-space range
+ * @param pbasis Phase-space basis
+ * @param nrange Nodal range holding the interior nodes (2*cells per direction)
+ * @param cov_tangent_basis_nodal Cartesian covariant tangents on nrange, 9 per node
+ *   (e.g. gyrokinetic dxdz_nodal)
+ * @param bhat_check_nodal Cartesian field direction on nrange, 3 per node, or NULL
+ *   to skip the cross-check
+ * @param exit_at_checks Assert when a construction-time check fails
+ * @param conf_poisson_tensor The configuration component of the Poisson tensor (output)
+ */
+void gkyl_vlasov_triad_geom_from_tangents_interior(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
+  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis,
+  const struct gkyl_range *nrange,
+  const struct gkyl_array *cov_tangent_basis_nodal, const struct gkyl_array *bhat_check_nodal,
+  bool exit_at_checks, struct gkyl_array *conf_poisson_tensor);
+
+/**
  * Preset function for the triad hamil
  *
  * @param cdim Number of configuration space dimenions
