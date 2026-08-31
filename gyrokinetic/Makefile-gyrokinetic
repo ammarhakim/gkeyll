@@ -103,6 +103,10 @@ ifdef USING_NVCC
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
 
+../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/conf_diffusion/%.c.o : $(KERNELS_DIR)/conf_diffusion/%.c
+	$(MKDIR_P) $(dir $@)
+	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
+
 ../$(BUILD_DIR)/gyrokinetic/$(KERNELS_DIR)/deflate_geo/%.c.o : $(KERNELS_DIR)/deflate_geo/%.c
 	$(MKDIR_P) $(dir $@)
 	$(CC) $(CFLAGS) $(NVCC_FLAGS) $(INCS) -c $< -o $@
