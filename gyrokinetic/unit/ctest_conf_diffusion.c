@@ -290,10 +290,11 @@ test_conf_diffusion_cu(int cdim)
     long loc = gkyl_range_idx(&local_ext, iter.idx);
     const double *rh = gkyl_array_cfetch(rhs, loc);
     const double *rd = gkyl_array_cfetch(rhs_cu_h, loc);
+    const double *ch = gkyl_array_cfetch(cfl, loc);
+    const double *cd = gkyl_array_cfetch(cfl_cu_h, loc);
     for (int k=0; k<basis.num_basis; ++k)
       TEST_CHECK(gkyl_compare(rh[k], rd[k], 1e-12));
-    TEST_CHECK(gkyl_compare(gkyl_array_cfetch(cfl, loc)[0],
-      gkyl_array_cfetch(cfl_cu_h, loc)[0], 1e-12));
+    TEST_CHECK(gkyl_compare(ch[0], cd[0], 1e-12));
   }
 
   gkyl_dg_updater_conf_diffusion_release(up_cu);
