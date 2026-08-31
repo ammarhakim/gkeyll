@@ -562,9 +562,9 @@ void gkyl_dg_vlasov_vel_flux_surf_advance(struct gkyl_dg_vlasov_vel_flux_surf *u
 
     const double *poisson_tensor_conf_d = gkyl_array_cfetch(poisson_tensor_conf, cidx);
     const double *hamil_d = gkyl_array_cfetch(hamil, hidx);
-    const double *qmem_d = gkyl_array_cfetch(qmem, cidx); 
-    const double *pot_tot_d = gkyl_array_cfetch(pot_tot, cidx); 
-    const double *rad_d = gkyl_array_cfetch(rad, vidx); 
+    const double *qmem_d = qmem ? gkyl_array_cfetch(qmem, cidx) : 0; 
+    const double *pot_tot_d = pot_tot ? gkyl_array_cfetch(pot_tot, cidx) : 0; 
+    const double *rad_d = rad ? gkyl_array_cfetch(rad, vidx) : 0; 
     const double *f_c = gkyl_array_cfetch(fin, pidx); 
     double *cflrate_d = gkyl_array_fetch(cflrate, pidx);
     double *flux = gkyl_array_fetch(vel_flux_surf, pidx); 

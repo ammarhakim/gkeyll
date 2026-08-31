@@ -62,7 +62,7 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   gkyl_array_copy_range_to_range(recyc->f_diag, recyc->f_emit, recyc->emit_skin_r, &recyc->emit_buff_r);
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, recyc->f_diag, recyc->f_diag);
   gkyl_array_copy_range_to_range(recyc->unit_phase_flux_neut, recyc->f_diag, &recyc->emit_buff_r, recyc->emit_ghost_r);
-  gkyl_dg_updater_moment_advance(recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r,
+  gkyl_mom_calc_advance(recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r,
     recyc->unit_phase_flux_neut, recyc->emit_flux);
   app->stat.neut_species_diag_calc_tm += gkyl_time_diff_now_sec(wst);
 
@@ -194,7 +194,7 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
 
   int eqc = 0;
   if (s->collisionless.collisionless_id == GKYL_GK_COLLISIONLESS_NEUTRAL)
-    eqns[eqc++] = gkyl_dg_updater_vlasov_acquire_eqn(s->collisionless.vlasov_slvr);
+    eqns[eqc++] = gkyl_dg_eqn_acquire(s->collisionless.eqn_vlasov);
 
   recyc->f0_flux_slvr = gkyl_boundary_flux_new(recyc->dir, recyc->edge, &s->grid,
     recyc->emit_skin_r, recyc->emit_ghost_r, num_eqns, eqns, app->use_gpu);  
@@ -243,12 +243,22 @@ gk_neut_species_recycle_cross_init(struct gkyl_gyrokinetic_app *app, struct gk_n
   
   recyc->unit_m0_flux_neut = mkarr(app->use_gpu, app->basis.num_basis, recyc->emit_cbuff_r.volume);
 
-  struct gkyl_mom_canonical_pb_auxfields can_pb_inp = {.hamil = s->hamil};
-  recyc->m0op_neut = gkyl_dg_updater_moment_new(&recyc->emit_grid, &app->basis,
-    &s->basis, &recyc->emit_cbuff_r, &s->local_vel, &recyc->emit_buff_r, s->model_id,
-    &can_pb_inp, GKYL_F_MOMENT_M0, false, app->use_gpu);
-  
-  gkyl_dg_updater_moment_advance(recyc->m0op_neut, &recyc->emit_normal_r,
+  struct gkyl_mom_vlasov_inp inp_mom = {
+    .conf_basis = &app->basis,
+    .phase_basis = &s->basis,
+    .vel_range = &s->local_vel,
+    .vel_map = s->vlasov_vel_map,
+    .hamil_range = &s->hamil_range,
+    .hamil = s->hamil,
+    .model_id = s->model_id,
+    .hamil_id = s->hamil_id,
+    .mom_type = GKYL_F_MOMENT_M0,
+    .use_gpu = app->use_gpu,
+  };
+  recyc->m0op_neut_type = gkyl_mom_vlasov_inew(&inp_mom);
+  recyc->m0op_neut = gkyl_mom_calc_new(&recyc->emit_grid, recyc->m0op_neut_type, app->use_gpu);
+
+  gkyl_mom_calc_advance(recyc->m0op_neut, &recyc->emit_normal_r,
     &recyc->emit_cbuff_r, recyc->unit_phase_flux_neut, recyc->unit_m0_flux_neut);
 
   // Define memory for div bin op for calculating correct scaling factor.
@@ -356,7 +366,8 @@ gk_neut_species_recycle_release(const struct gkyl_gyrokinetic_app *app, const st
   }
 
   gkyl_array_release(recyc->unit_m0_flux_neut);
-  gkyl_dg_updater_moment_release(recyc->m0op_neut);
+  gkyl_mom_type_release(recyc->m0op_neut_type);
+  gkyl_mom_calc_release(recyc->m0op_neut);
   gkyl_dg_bin_op_mem_release(recyc->mem_geo);
 
   for (int i=0; i<recyc->num_species; ++i) {

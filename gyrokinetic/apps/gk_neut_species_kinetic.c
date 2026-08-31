@@ -229,6 +229,10 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
   gkyl_array_release(ns->hamil);
   if (app->use_gpu)
     gkyl_array_release(ns->hamil_host);
+  gkyl_array_release(ns->conf_poisson_tensor);
+  if (app->use_gpu)
+    gkyl_array_release(ns->conf_poisson_tensor_host);
+  gkyl_array_release(ns->f_no_J);
 
   gk_neut_species_collisionless_release(app, &ns->collisionless);
 
@@ -628,23 +632,14 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     ghost_vel[d] = 0; // no ghost-cells in velocity space
   }
 
-  // Basis is tensor for p=1 and ser for p>1
-  if (app->poly_order > 1) {
-    gkyl_cart_modal_serendip(&s->basis, pdim, app->poly_order);
-  }
-  else if (app->poly_order == 1) {
-    gkyl_cart_modal_tensor(&s->basis, pdim, app->poly_order); // for canonical PB
-  }
+  // Serendipity basis (identical span to tensor at p=1); the triad Vlasov
+  // kernels dispatch on the serendipity basis type.
+  gkyl_cart_modal_serendip(&s->basis, pdim, app->poly_order);
 
   if (app->use_gpu) {
     // Allocate device basis if we are using GPUs.
     s->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    if (app->poly_order > 1) {
-      gkyl_cart_modal_serendip_cu_dev(s->basis_on_dev, pdim, app->poly_order);
-    }
-    else if (app->poly_order == 1) {
-      gkyl_cart_modal_tensor_cu_dev(s->basis_on_dev, pdim, app->poly_order); // for canonical PB
-    }
+    gkyl_cart_modal_serendip_cu_dev(s->basis_on_dev, pdim, app->poly_order);
   }
   else {
     s->basis_on_dev = &s->basis;
@@ -667,8 +662,12 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   gkyl_range_ten_prod(&local, &app->local, &s->local_vel);
   gkyl_create_ranges(&local, ghost, &s->local_ext, &s->local);
 
-  // Model type is Canonical PB to handle curvilinear coordinates.
-  s->model_id = GKYL_MODEL_CANONICAL_PB;
+  // Model type is the triads (orthonormal-frame velocity) formulation to handle
+  // curvilinear coordinates, with the separable H = v^2/2 (sparse velocity-space
+  // Hamiltonian expansion). GK coordinates are too sheared/distorted for the
+  // canonical-momentum formulation at practical resolutions.
+  s->model_id = GKYL_MODEL_TRIAD;
+  s->hamil_id = GKYL_HAMIL_VEL_SPARSE;
   // Field type is null as this species doesn't interact with fields.
   s->field_id = GKYL_FIELD_NULL;
 
@@ -677,16 +676,12 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
   s->vel_map = gkyl_velocity_map_new(s->info.mapc2p, s->grid, s->grid_vel,
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
-  // Identity Vlasov velocity map: the Vlasov moment and LTE updaters always
-  // evaluate the velocity coordinate from the stored map.
-  struct gkyl_basis vel_basis;
-  if (app->poly_order > 1)
-    gkyl_cart_modal_serendip(&vel_basis, vdim, app->poly_order);
-  else
-    gkyl_cart_modal_tensor(&vel_basis, vdim, app->poly_order); // for canonical PB
+  // Identity Vlasov velocity map: the Vlasov flux, moment and LTE updaters
+  // always evaluate the velocity coordinate from the stored map.
+  gkyl_cart_modal_serendip(&s->basis_vel, vdim, app->poly_order);
   struct gkyl_vlasov_velocity_map_inp inp_vvmap[GKYL_MAX_CDIM] = { 0 };
   s->vlasov_vel_map = gkyl_vlasov_velocity_map_new(&s->grid_vel, &s->local_vel,
-    &vel_basis, inp_vvmap, false, app->use_gpu);
+    &s->basis_vel, inp_vvmap, false, app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // add the parallel direction in case TS BCs are needed.
@@ -788,19 +783,44 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     s->g_ij = gkyl_array_acquire(app->gk_geom->geo_int.g_ij);
   }
 
-  // Allocate array for the Hamiltonian.
-  s->hamil = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
-    
-  // Call updater to evaluate hamiltonian
-  struct gkyl_dg_calc_gk_neut_hamil* hamil_calc = gkyl_dg_calc_gk_neut_hamil_new(&s->grid, &s->basis, app->cdim, app->use_gpu);
-  gkyl_dg_calc_gk_neut_hamil_calc(hamil_calc, &app->local, &s->local, s->gij, s->hamil);
-  gkyl_dg_calc_gk_neut_hamil_release(hamil_calc);
-    
+  // Hamiltonian: in the orthonormal triad frame H = v^2/2, a function of
+  // velocity space only (sparse expansion), built exactly as for
+  // GKYL_MODEL_DEFAULT in the Vlasov app.
+  s->hamil_range = s->local_vel;
+  s->hamil = mkarr(app->use_gpu, s->basis_vel.num_basis, s->local_vel.volume);
+  // The inverse Hamiltonian output is only meaningful relativistically; the
+  // kernels write it unconditionally, so hand them a scratch array.
+  struct gkyl_array *hamil_inv_scratch = mkarr(app->use_gpu, s->basis_vel.num_basis, s->local_vel.volume);
+  gkyl_dg_vlasov_calc_hamil(&s->grid_vel, &s->basis_vel, &s->local_vel,
+    GKYL_MODEL_DEFAULT, s->vlasov_vel_map, s->hamil, hamil_inv_scratch, app->use_gpu);
+  gkyl_array_release(hamil_inv_scratch);
+
   s->hamil_host = s->hamil;
   if (app->use_gpu) {
-    s->hamil_host = mkarr(false, s->basis.num_basis, s->local_ext.volume);
+    s->hamil_host = mkarr(false, s->basis_vel.num_basis, s->local_vel.volume);
     gkyl_array_copy(s->hamil_host, s->hamil);
   }
+
+  // Conf-space Poisson tensor: assembled from the GK geometry's nodal Cartesian
+  // tangents via the b-aligned triad construction. Built on the host (the
+  // nodal geometry arrays are host-side) and copied to the device.
+  int num_pt_indices[3] = { 1, 6, 18 };
+  s->conf_poisson_tensor = mkarr(app->use_gpu, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
+  s->conf_poisson_tensor_host = s->conf_poisson_tensor;
+  if (app->use_gpu) {
+    s->conf_poisson_tensor_host = mkarr(false, app->basis.num_basis*num_pt_indices[vdim-1], app->local_ext.volume);
+  }
+  gkyl_vlasov_triad_geom_from_tangents_interior(&app->grid, &app->local, app->basis,
+    &s->grid, &s->local, s->basis, &app->gk_geom->nrange_int,
+    app->gk_geom->geo_int.dxdz_nodal, app->gk_geom->geo_int.bcart_nodal,
+    true, s->conf_poisson_tensor_host);
+  if (app->use_gpu) {
+    gkyl_array_copy(s->conf_poisson_tensor, s->conf_poisson_tensor_host);
+  }
+
+  // Distribution function with the velocity-space Jacobian divided out,
+  // input to the velocity-space flux updater.
+  s->f_no_J = mkarr(app->use_gpu, s->basis.num_basis, s->local_ext.volume);
 
   // Initialize the collisionless solver.
   s->collisionless = (struct gk_collisionless) { };

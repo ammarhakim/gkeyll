@@ -195,36 +195,36 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
     qIn, qRhsOut);
   vlasov->E_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
+    vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0, 
     qIn, qRhsOut); 
   vlasov->phi_vol(xc, dx,
     vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(vlasov->pot_tot, cidx),
+    vlasov->pot_tot ? (const double*) gkyl_array_cfetch(vlasov->pot_tot, cidx) : 0,
     qIn, qRhsOut);
   // Nonuniform mesh kernels utilize f without the velocity-space Jacobian to handle
   // the transverse derivatives in the 1/Jvi grad_vi(H) x B cross product. 
   vlasov->Bx_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
-    (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
+    vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0, 
     (const double*) gkyl_array_cfetch(vlasov->f_no_J, pidx), 
     qRhsOut); 
   vlasov->By_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
-    (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
+    vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0, 
     (const double*) gkyl_array_cfetch(vlasov->f_no_J, pidx), 
     qRhsOut); 
   vlasov->Bz_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx), 
-    (const double*) gkyl_array_cfetch(vlasov->qmem, cidx), 
+    vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0, 
     (const double*) gkyl_array_cfetch(vlasov->f_no_J, pidx), 
     qRhsOut); 
   vlasov->rad_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
-    (const double*) gkyl_array_cfetch(vlasov->rad, vidx),
+    vlasov->rad ? (const double*) gkyl_array_cfetch(vlasov->rad, vidx) : 0,
     qIn, qRhsOut); 
 
   return 0.0;
@@ -270,7 +270,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_hamil_phase_vol_kernels[] = 
   // 2x kernels
   { NULL, vlasov_hamil_phase_vol_2x1v_ser_p1, vlasov_hamil_phase_vol_2x1v_ser_p2, vlasov_hamil_phase_vol_2x1v_ser_p3 }, // 3
   { NULL, vlasov_hamil_phase_vol_2x2v_ser_p1, vlasov_hamil_phase_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_hamil_phase_vol_2x3v_ser_p1, vlasov_hamil_phase_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_hamil_phase_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -288,7 +288,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_phase_vol_kernels[]
   { NULL, vlasov_hamil_phase_vol_2x2v_tensor_p1, NULL, NULL }, // 4
   { NULL, vlasov_hamil_phase_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_phase_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Non-canonical Poisson Bracket, hamil vel space dependance only, volume kernels (Serendipity basis). 
@@ -331,7 +331,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_phase_vol_kernels[]
   // 2x kernels
   { NULL, NULL, NULL, NULL }, // 3
   { NULL, vlasov_nc_hamil_phase_vol_2x2v_ser_p1, vlasov_nc_hamil_phase_vol_2x2v_ser_p2, NULL }, // 4
-  { NULL, vlasov_nc_hamil_phase_vol_2x3v_ser_p1, vlasov_nc_hamil_phase_vol_2x3v_ser_p2, NULL }, // 5
+  { NULL, vlasov_nc_hamil_phase_vol_2x3v_ser_p1, NULL, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_phase_vol_3x3v_ser_p1, NULL, NULL }, // 6
 };
@@ -348,7 +348,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_vel_dense_vol_kerne
   { NULL, vlasov_hamil_vel_dense_vol_2x2v_tensor_p1, vlasov_hamil_vel_dense_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, vlasov_hamil_vel_dense_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_dense_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -363,7 +363,7 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_hamil_vel_sparse_vol_kern
   { NULL, vlasov_hamil_vel_sparse_vol_2x2v_tensor_p1, vlasov_hamil_vel_sparse_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, vlasov_hamil_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_hamil_vel_sparse_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Electric field Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
@@ -393,7 +393,7 @@ static const gkyl_dg_vlasov_E_vol_kern_list tensor_E_vol_kernels[] = {
   { NULL, vlasov_E_vol_2x2v_tensor_p1, vlasov_E_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, vlasov_E_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_E_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Scalar potential, -grad(phi), force volume kernels (Serendipity basis). 
@@ -423,7 +423,7 @@ static const gkyl_dg_vlasov_phi_vol_kern_list tensor_phi_vol_kernels[] = {
   { NULL, vlasov_phi_vol_2x2v_tensor_p1, vlasov_phi_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, vlasov_phi_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_phi_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Magnetic field in x-direction Lorentz force volume kernels with velocity-space Hamiltonian (Serendipity basis). 
@@ -468,7 +468,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_vel_dense_vol_kernel
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
   { NULL, vlasov_Bx_hamil_vel_dense_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_Bx_hamil_vel_dense_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -483,7 +483,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bx_hamil_vel_sparse_vol_kerne
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
   { NULL, vlasov_Bx_hamil_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_Bx_hamil_vel_sparse_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Magnetic field in x-direction Lorentz force volume kernels with general Hamiltonian (Serendipity basis). 
@@ -558,7 +558,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_vel_dense_vol_kernel
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
   { NULL, vlasov_By_hamil_vel_dense_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_By_hamil_vel_dense_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -573,7 +573,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_By_hamil_vel_sparse_vol_kerne
   { NULL, no_B_vol, no_B_vol, NULL }, // 4
   { NULL, vlasov_By_hamil_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_By_hamil_vel_sparse_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Magnetic field in y-direction Lorentz force volume kernels with general Hamiltonian (Serendipity basis). 
@@ -648,7 +648,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_vel_dense_vol_kernel
   { NULL, vlasov_Bz_hamil_vel_dense_vol_2x2v_tensor_p1, vlasov_Bz_hamil_vel_dense_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, vlasov_Bz_hamil_vel_dense_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_Bz_hamil_vel_dense_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 // Sparse-Hamiltonian variant; currently identical to the dense table
 // (points at the same kernels) until the sparse kernels land.
@@ -663,7 +663,7 @@ static const gkyl_dg_vlasov_B_vol_kern_list tensor_Bz_hamil_vel_sparse_vol_kerne
   { NULL, vlasov_Bz_hamil_vel_sparse_vol_2x2v_tensor_p1, vlasov_Bz_hamil_vel_sparse_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, vlasov_Bz_hamil_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_Bz_hamil_vel_sparse_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Magnetic field in z-direction Lorentz force volume kernels with general Hamiltonian (Serendipity basis). 
@@ -723,7 +723,7 @@ static const gkyl_dg_vlasov_rad_vol_kern_list tensor_rad_vol_kernels[] = {
   { NULL, vlasov_rad_vol_2x2v_tensor_p1, vlasov_rad_vol_2x2v_tensor_p2, NULL }, // 4
   { NULL, vlasov_rad_vol_2x3v_tensor_p1, NULL, NULL }, // 5
   // 3x kernels
-  { NULL, NULL, NULL, NULL }, // 6
+  { NULL, vlasov_rad_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Streaming velocity-space Hamiltonian surface kernel list: x-direction (Serendipity basis)

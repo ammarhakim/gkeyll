@@ -86,9 +86,9 @@ gkyl_dg_vlasov_vel_flux_surf_advance_cu_kernel(struct gkyl_dg_vlasov_vel_flux_su
 
     poisson_tensor_conf_d = (const double*) gkyl_array_cfetch(poisson_tensor_conf, cidx);
     hamil_d = (const double*) gkyl_array_cfetch(hamil, hidx);
-    qmem_d = (const double*) gkyl_array_cfetch(qmem, cidx);
-    pot_tot_d = (const double*) gkyl_array_cfetch(pot_tot, cidx);
-    rad_d = (const double*) gkyl_array_cfetch(rad, vidx);
+    qmem_d = qmem ? (const double*) gkyl_array_cfetch(qmem, cidx) : 0;
+    pot_tot_d = pot_tot ? (const double*) gkyl_array_cfetch(pot_tot, cidx) : 0;
+    rad_d = rad ? (const double*) gkyl_array_cfetch(rad, vidx) : 0;
     jacob_pos_d = jacob_pos ? (const double*) gkyl_array_cfetch(jacob_pos, cidx) : 0;
     vmap_d = (const double*) gkyl_array_cfetch(vmap, vidx);
     f_c = (const double*) gkyl_array_cfetch(fin, pidx);
