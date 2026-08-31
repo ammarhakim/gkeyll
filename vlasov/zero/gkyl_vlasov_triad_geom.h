@@ -69,7 +69,34 @@ void gkyl_vlasov_triad_geom_new(const struct gkyl_rect_grid *cgrid, const struct
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *conf_poisson_tensor);
 
 /**
- * Preset function for the triad hamil 
+ * Construct the configuration-space Poisson tensor directly from nodal samples of
+ * the geometry, bypassing the evalf callbacks and the comp->phys coordinate map
+ * (for callers, such as gyrokinetics, that already hold the geometry as nodal
+ * arrays). Each input array is indexed on crange with a per-cell, node-major
+ * layout in cbasis.node_list order: for node i the components are contiguous,
+ * so component c of node i lives at [i*ncomp_per_node + c].
+ *
+ * @param cgrid Configuration-space grid object
+ * @param crange Configuration-space range
+ * @param cbasis Configuration-space basis
+ * @param pgrid Phase-space grid object
+ * @param prange Phase-space range
+ * @param pbasis Phase-space basis
+ * @param cov_tangent_basis_nodal Cartesian components of the covariant tangent basis
+ *   at conf-basis nodes, vdim*vdim per node (row a = tangent e_a)
+ * @param triad_basis_nodal Cartesian components of the orthonormal triad at
+ *   conf-basis nodes, vdim*vdim per node (row a = frame vector e_a)
+ * @param triad_basis_gradient_nodal d(triad)/dz^i at conf-basis nodes,
+ *   vdim*vdim*vdim per node (gradient direction slowest)
+ * @param conf_poisson_tensor The configuration component of the Poisson tensor (output)
+ */
+void gkyl_vlasov_triad_geom_from_nodal(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
+  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis,
+  const struct gkyl_array *cov_tangent_basis_nodal, const struct gkyl_array *triad_basis_nodal,
+  const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor);
+
+/**
+ * Preset function for the triad hamil
  *
  * @param cdim Number of configuration space dimenions
  * @param vdim Number of velocity space dimenions

@@ -132,7 +132,88 @@ gkyl_vlasov_triad_geom_from_basis(const struct gkyl_rect_grid *cgrid, const stru
 }
 
 void
-gkyl_vlasov_triad_geom_from_vierbein(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis, 
+gkyl_vlasov_triad_geom_from_nodal(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
+  const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis,
+  const struct gkyl_array *cov_tangent_basis_nodal, const struct gkyl_array *triad_basis_nodal,
+  const struct gkyl_array *triad_basis_gradient_nodal, struct gkyl_array *conf_poisson_tensor)
+{
+
+  int num_pt_indices[3] = { 1 , 6, 18 };
+  int cdim = cgrid->ndim;
+  int pdim = pgrid->ndim;
+  int vdim = pdim - cdim;
+
+  // Choose functions
+  metric_t compute_h_ij_from_cov_tangent_basis = choose_metric_kern(vdim);
+  metric_inv_t compute_h_ij_inv_from_h_ij = choose_metric_inv_kern(vdim);
+  metric_det_t compute_det_h_ij = choose_metric_det_kern(vdim);
+  conf_poisson_tensor_t compute_triad_poisson_tensor_ij = choose_conf_poisson_tensor_kern(vdim);
+
+  int num_basis = cbasis.num_basis;
+
+  // Nodal inputs are per conf cell, node-major in cbasis.node_list order:
+  // [node0: all components][node1: all components]...
+  assert(cov_tangent_basis_nodal->ncomp == num_basis*vdim*vdim);
+  assert(triad_basis_nodal->ncomp == num_basis*vdim*vdim);
+  assert(triad_basis_gradient_nodal->ncomp == num_basis*vdim*vdim*vdim);
+
+  // Derived quantities at nodes
+  struct gkyl_array *h_ij_at_nodes = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+1)/2, num_basis);
+  struct gkyl_array *h_ij_inv_at_nodes = gkyl_array_new(GKYL_DOUBLE, vdim*(vdim+1)/2, num_basis);
+  struct gkyl_array *det_h_at_nodes = gkyl_array_new(GKYL_DOUBLE, 1, num_basis);
+  struct gkyl_array *conf_poisson_tensor_at_nodes = gkyl_array_new(GKYL_DOUBLE, num_pt_indices[vdim-1], num_basis);
+
+  gkyl_eval_on_nodes *conf_poisson_tensor_proj = gkyl_eval_on_nodes_new(cgrid, &cbasis, num_pt_indices[vdim-1], NULL, NULL);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, crange);
+
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(crange, iter.idx);
+
+    const double *cell_cov_tangent_basis = gkyl_array_cfetch(cov_tangent_basis_nodal, lidx);
+    const double *cell_triad_basis = gkyl_array_cfetch(triad_basis_nodal, lidx);
+    const double *cell_triad_basis_gradient = gkyl_array_cfetch(triad_basis_gradient_nodal, lidx);
+
+    for (int i=0; i<num_basis; ++i) {
+
+      const double *pn_cov_tangent_basis = &cell_cov_tangent_basis[i*vdim*vdim];
+      const double *pn_triad_basis = &cell_triad_basis[i*vdim*vdim];
+      const double *pn_triad_basis_gradient = &cell_triad_basis_gradient[i*vdim*vdim*vdim];
+      double *pn_h_ij = gkyl_array_fetch(h_ij_at_nodes, i);
+      double *pn_h_ij_inv = gkyl_array_fetch(h_ij_inv_at_nodes, i);
+      double *pn_det_h = gkyl_array_fetch(det_h_at_nodes, i);
+      double *pn_conf_poisson_tensor = gkyl_array_fetch(conf_poisson_tensor_at_nodes, i);
+
+      // Compute the metric at nodal points
+      compute_h_ij_from_cov_tangent_basis(pn_cov_tangent_basis, pn_h_ij);
+
+      // Compute the metric inverse at nodal points
+      compute_h_ij_inv_from_h_ij(pn_h_ij, pn_h_ij_inv);
+
+      // Compute the sqrt(det(h_ij)) at nodal points
+      compute_det_h_ij(pn_h_ij, pn_det_h);
+
+      // Compute the Poisson Tensor in configruation space components at nodal points
+      compute_triad_poisson_tensor_ij(pn_h_ij_inv, pn_triad_basis, pn_cov_tangent_basis,
+        pn_triad_basis_gradient, pn_conf_poisson_tensor);
+
+    }
+
+    gkyl_eval_on_nodes_nod2mod(conf_poisson_tensor_proj, conf_poisson_tensor_at_nodes, gkyl_array_fetch(conf_poisson_tensor, lidx));
+  }
+
+  gkyl_eval_on_nodes_release(conf_poisson_tensor_proj);
+
+  // free temporary memory
+  gkyl_array_release(h_ij_at_nodes);
+  gkyl_array_release(h_ij_inv_at_nodes);
+  gkyl_array_release(det_h_at_nodes);
+  gkyl_array_release(conf_poisson_tensor_at_nodes);
+}
+
+void
+gkyl_vlasov_triad_geom_from_vierbein(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange, const struct gkyl_basis cbasis,
   const struct gkyl_rect_grid *pgrid, const struct gkyl_range *prange, const struct gkyl_basis pbasis, 
   struct gkyl_vlasov_triad_geom_inp inp_triad_geom, struct gkyl_array *conf_poisson_tensor)
 {

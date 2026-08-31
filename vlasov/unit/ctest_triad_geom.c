@@ -756,6 +756,222 @@ test_triad_math_3v()
 
 }
 
+// Fill per-cell, node-major nodal arrays by sampling the evalf callbacks at the
+// conf-basis nodes — the same sampling gkyl_vlasov_triad_geom_from_basis does
+// internally, so from_nodal fed these arrays must reproduce it exactly.
+static void
+fill_nodal_from_evalf(const struct gkyl_rect_grid *cgrid, const struct gkyl_range *crange,
+  const struct gkyl_basis *cbasis, int vdim,
+  evalf_t eval_cov_tangent_basis, evalf_t eval_triad_basis, evalf_t eval_triad_basis_gradient,
+  struct gkyl_array *cov_tangent_basis_nodal, struct gkyl_array *triad_basis_nodal,
+  struct gkyl_array *triad_basis_gradient_nodal)
+{
+  int num_basis = cbasis->num_basis;
+  struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, cgrid->ndim, num_basis);
+  cbasis->node_list(gkyl_array_fetch(nodes, 0));
+
+  double xc[GKYL_MAX_DIM], xmu[GKYL_MAX_DIM];
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, crange);
+  while (gkyl_range_iter_next(&iter)) {
+    gkyl_rect_grid_cell_center(cgrid, iter.idx, xc);
+    long lidx = gkyl_range_idx(crange, iter.idx);
+    double *ctb = gkyl_array_fetch(cov_tangent_basis_nodal, lidx);
+    double *tb = gkyl_array_fetch(triad_basis_nodal, lidx);
+    double *tbg = gkyl_array_fetch(triad_basis_gradient_nodal, lidx);
+    for (int i=0; i<num_basis; ++i) {
+      log_to_comp(cgrid->ndim, gkyl_array_cfetch(nodes, i), cgrid->dx, xc, xmu);
+      eval_cov_tangent_basis(0.0, xmu, &ctb[i*vdim*vdim], NULL);
+      eval_triad_basis(0.0, xmu, &tb[i*vdim*vdim], NULL);
+      eval_triad_basis_gradient(0.0, xmu, &tbg[i*vdim*vdim*vdim], NULL);
+    }
+  }
+  gkyl_array_release(nodes);
+}
+
+// A/B the from_nodal constructor against the evalf-callback constructor on an
+// analytic geometry: identical nodal inputs must give an identical Poisson tensor.
+static void
+test_triad_from_nodal(int cdim, int vdim, int poly_order,
+  const double *confLower, const double *confUpper, const int *confCells,
+  evalf_t eval_cov_tangent_basis, evalf_t eval_triad_basis, evalf_t eval_triad_basis_gradient)
+{
+  int ndim = cdim+vdim;
+  int num_pt_indices[3] = { 1 , 6, 18 };
+  int num_pt = num_pt_indices[vdim-1];
+
+  double lower[GKYL_MAX_DIM], upper[GKYL_MAX_DIM];
+  int cells[GKYL_MAX_DIM];
+  for (int d=0; d<cdim; ++d) {
+    lower[d] = confLower[d]; upper[d] = confUpper[d]; cells[d] = confCells[d];
+  }
+  for (int d=cdim; d<ndim; ++d) {
+    lower[d] = -1.0; upper[d] = 1.0; cells[d] = 2;
+  }
+
+  struct gkyl_rect_grid grid;
+  gkyl_rect_grid_init(&grid, ndim, lower, upper, cells);
+  struct gkyl_rect_grid confGrid;
+  gkyl_rect_grid_init(&confGrid, cdim, confLower, confUpper, confCells);
+
+  struct gkyl_basis basis, confBasis;
+  gkyl_cart_modal_serendip(&basis, ndim, poly_order);
+  gkyl_cart_modal_serendip(&confBasis, cdim, poly_order);
+
+  int confGhost[GKYL_MAX_DIM] = { 1, 1, 1 };
+  struct gkyl_range confLocal, confLocal_ext;
+  gkyl_create_grid_ranges(&confGrid, confGhost, &confLocal_ext, &confLocal);
+
+  int ghost[GKYL_MAX_DIM] = { 0 };
+  for (int d=0; d<cdim; ++d) ghost[d] = confGhost[d];
+  struct gkyl_range local, local_ext;
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+
+  int NC = confBasis.num_basis;
+
+  // Reference: the evalf-callback constructor
+  struct gkyl_vlasov_triad_geom_inp inp_basis_vectors = { 0 };
+  inp_basis_vectors.eval_cov_tangent_basis = eval_cov_tangent_basis;
+  inp_basis_vectors.eval_triad_basis = eval_triad_basis;
+  inp_basis_vectors.eval_triad_basis_gradient = eval_triad_basis_gradient;
+
+  struct gkyl_array *pt_ref = mkarr(NC*num_pt, confLocal_ext.volume);
+  gkyl_vlasov_triad_geom_new(&confGrid, &confLocal, confBasis,
+    &grid, &local, basis, inp_basis_vectors, pt_ref);
+
+  // from_nodal fed the same callbacks sampled at the conf-basis nodes
+  struct gkyl_array *cov_tangent_basis_nodal = mkarr(NC*vdim*vdim, confLocal_ext.volume);
+  struct gkyl_array *triad_basis_nodal = mkarr(NC*vdim*vdim, confLocal_ext.volume);
+  struct gkyl_array *triad_basis_gradient_nodal = mkarr(NC*vdim*vdim*vdim, confLocal_ext.volume);
+
+  fill_nodal_from_evalf(&confGrid, &confLocal, &confBasis, vdim,
+    eval_cov_tangent_basis, eval_triad_basis, eval_triad_basis_gradient,
+    cov_tangent_basis_nodal, triad_basis_nodal, triad_basis_gradient_nodal);
+
+  struct gkyl_array *pt_nodal = mkarr(NC*num_pt, confLocal_ext.volume);
+  gkyl_vlasov_triad_geom_from_nodal(&confGrid, &confLocal, confBasis,
+    &grid, &local, basis,
+    cov_tangent_basis_nodal, triad_basis_nodal, triad_basis_gradient_nodal, pt_nodal);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &confLocal);
+  while (gkyl_range_iter_next(&iter)) {
+    long lidx = gkyl_range_idx(&confLocal, iter.idx);
+    const double *ref_d = gkyl_array_cfetch(pt_ref, lidx);
+    const double *nod_d = gkyl_array_cfetch(pt_nodal, lidx);
+    for (int k=0; k<NC*num_pt; ++k) {
+      // 1e-14, not exact: log_to_comp is a static inline instantiated in both this
+      // TU and vlasov_triad_geom.c, and fast-math may round the node coordinate
+      // differently between the two before it reaches the trig calls.
+      TEST_CHECK( gkyl_compare_double(nod_d[k], ref_d[k], 1e-14) );
+      TEST_MSG("cell (%d), coeff %d: from_nodal %1.16e vs from_basis %1.16e",
+        iter.idx[0], k, nod_d[k], ref_d[k]);
+    }
+  }
+
+  gkyl_array_release(pt_ref);
+  gkyl_array_release(pt_nodal);
+  gkyl_array_release(cov_tangent_basis_nodal);
+  gkyl_array_release(triad_basis_nodal);
+  gkyl_array_release(triad_basis_gradient_nodal);
+}
+
+// Spherical coordinates at fixed (theta, phi) as a function of the single conf
+// coordinate r — exercises the vdim=3, 18-component Poisson tensor path.
+static const double sph_theta_c = 1.4, sph_phi_c = 0.8;
+
+void eval_cov_tangent_basis_sph_3v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double r = xn[0], theta = sph_theta_c, phi = sph_phi_c;
+  fout[0] = sin(theta)*cos(phi);
+  fout[1] = sin(theta)*sin(phi);
+  fout[2] = cos(theta);
+
+  fout[3] = r*cos(theta)*cos(phi);
+  fout[4] = r*cos(theta)*sin(phi);
+  fout[5] = -r*sin(theta);
+
+  fout[6] = -r*sin(theta)*sin(phi);
+  fout[7] = r*sin(theta)*cos(phi);
+  fout[8] = 0.0;
+}
+
+void eval_triad_basis_sph_3v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double theta = sph_theta_c, phi = sph_phi_c;
+  fout[0] = sin(theta)*cos(phi);
+  fout[1] = sin(theta)*sin(phi);
+  fout[2] = cos(theta);
+
+  fout[3] = cos(theta)*cos(phi);
+  fout[4] = cos(theta)*sin(phi);
+  fout[5] = -sin(theta);
+
+  fout[6] = -sin(phi);
+  fout[7] = cos(phi);
+  fout[8] = 0.0;
+}
+
+void eval_triad_basis_gradient_sph_3v(double t, const double *xn, double* restrict fout, void *ctx)
+{
+  double theta = sph_theta_c, phi = sph_phi_c;
+  // gradient in r
+  for (int k=0; k<9; ++k) fout[k] = 0.0;
+
+  // gradient in theta
+  fout[9] = cos(phi)*cos(theta);
+  fout[10] = cos(theta)*sin(phi);
+  fout[11] = -sin(theta);
+
+  fout[12] = -cos(phi)*sin(theta);
+  fout[13] = -sin(phi)*sin(theta);
+  fout[14] = -cos(theta);
+
+  fout[15] = 0.0;
+  fout[16] = 0.0;
+  fout[17] = 0.0;
+
+  // gradient in phi
+  fout[18] = -sin(phi)*sin(theta);
+  fout[19] = cos(phi)*sin(theta);
+  fout[20] = 0.0;
+
+  fout[21] = -cos(theta)*sin(phi);
+  fout[22] = cos(phi)*cos(theta);
+  fout[23] = 0.0;
+
+  fout[24] = -cos(phi);
+  fout[25] = -sin(phi);
+  fout[26] = 0.0;
+}
+
+void
+test_triad_from_nodal_1x2v_annulus_p1()
+{
+  double confLower[] = {0.1}, confUpper[] = {1.0};
+  int confCells[] = {4};
+  test_triad_from_nodal(1, 2, 1, confLower, confUpper, confCells,
+    eval_cov_tangent_basis_annulus_2v, eval_triad_basis_annulus_2v, eval_triad_basis_gradient_annulus_2v);
+}
+
+void
+test_triad_from_nodal_1x2v_annulus_p2()
+{
+  double confLower[] = {0.1}, confUpper[] = {1.0};
+  int confCells[] = {4};
+  test_triad_from_nodal(1, 2, 2, confLower, confUpper, confCells,
+    eval_cov_tangent_basis_annulus_2v, eval_triad_basis_annulus_2v, eval_triad_basis_gradient_annulus_2v);
+}
+
+void
+test_triad_from_nodal_1x3v_spherical_p1()
+{
+  double confLower[] = {0.1}, confUpper[] = {1.0};
+  int confCells[] = {4};
+  test_triad_from_nodal(1, 3, 1, confLower, confUpper, confCells,
+    eval_cov_tangent_basis_sph_3v, eval_triad_basis_sph_3v, eval_triad_basis_gradient_sph_3v);
+}
+
 void test_triad_1v() { test_triad_math_1v(); }
 void test_triad_1x1v_flat() { test_triad_1x1v_flat_conf(2); }
 void test_triad_1x2v_flat() { test_triad_1x2v_flat_conf(2); }
@@ -768,6 +984,9 @@ TEST_LIST = {
   { "test_triad_1x1v_flat", test_triad_1x1v_flat}, 
   { "test_triad_1x2v_flat", test_triad_1x2v_flat}, 
   { "test_triad_1x2v_annulus", test_triad_1x2v_annulus}, 
+  { "test_triad_from_nodal_1x2v_annulus_p1", test_triad_from_nodal_1x2v_annulus_p1},
+  { "test_triad_from_nodal_1x2v_annulus_p2", test_triad_from_nodal_1x2v_annulus_p2},
+  { "test_triad_from_nodal_1x3v_spherical_p1", test_triad_from_nodal_1x3v_spherical_p1},
   { "test_triad_2v", test_triad_2v},
   { "test_triad_3v", test_triad_3v},
   {NULL, NULL}
