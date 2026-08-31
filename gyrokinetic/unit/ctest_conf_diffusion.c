@@ -203,6 +203,114 @@ static void test_conf_diffusion_1x_p1(void) { test_conf_diffusion(1); }
 static void test_conf_diffusion_2x_p1(void) { test_conf_diffusion(2); }
 static void test_conf_diffusion_3x_p1(void) { test_conf_diffusion(3); }
 
+#ifdef GKYL_HAVE_CUDA
+static void
+test_conf_diffusion_cu(int cdim)
+{
+  const int cells[] = { 5, 4, 3 };
+  const double lower[] = { 0.0, 0.0, 0.0 };
+  const double upper[] = { 1.0, 1.25, 1.5 };
+  const int ghost[] = { 1, 1, 1 };
+  int boundary_flags[2*GKYL_MAX_CDIM] = { 0 };
+  struct gkyl_rect_grid grid;
+  struct gkyl_basis basis;
+  struct gkyl_range local, local_ext;
+  gkyl_rect_grid_init(&grid, cdim, lower, upper, cells);
+  gkyl_cart_modal_serendip(&basis, cdim, 1);
+  gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
+  for (int d=0; d<2*cdim; ++d) boundary_flags[d] = 1;
+
+  struct gkyl_array *K = gkyl_array_new(GKYL_DOUBLE,
+    cdim*cdim*basis.num_basis, local_ext.volume);
+  struct gkyl_array *Jinv = gkyl_array_new(GKYL_DOUBLE,
+    basis.num_basis, local_ext.volume);
+  struct gkyl_array *f = gkyl_array_new(GKYL_DOUBLE,
+    basis.num_basis, local_ext.volume);
+  struct gkyl_array *rhs = gkyl_array_new(GKYL_DOUBLE,
+    basis.num_basis, local_ext.volume);
+  struct gkyl_array *cfl = gkyl_array_new(GKYL_DOUBLE, 1, local_ext.volume);
+
+  struct gkyl_range_iter iter;
+  gkyl_range_iter_init(&iter, &local_ext);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local_ext, iter.idx);
+    double *Kp = gkyl_array_fetch(K, loc);
+    double *Jp = gkyl_array_fetch(Jinv, loc);
+    double *fp = gkyl_array_fetch(f, loc);
+    int isum = 0;
+    for (int d=0; d<cdim; ++d) isum += iter.idx[d];
+    Jp[0] = pow(sqrt(2.0), cdim);
+    for (int i=0; i<cdim; ++i)
+      for (int j=0; j<cdim; ++j)
+        for (int k=0; k<basis.num_basis; ++k)
+          Kp[(i*cdim+j)*basis.num_basis+k] = i == j
+            ? (k == 0 ? pow(sqrt(2.0),cdim)*(1.0+0.02*isum)
+                      : 0.005*cos(k+isum))
+            : 0.002*sin(i+j+k+isum);
+    fp[0] = pow(sqrt(2.0),cdim)*(1.0+0.1*sin(isum));
+    for (int k=1; k<basis.num_basis; ++k)
+      fp[k] = 0.02*cos(k+isum);
+  }
+
+  struct gkyl_dg_updater_conf_diffusion *up =
+    gkyl_dg_updater_conf_diffusion_new(&grid, &basis, &local_ext, K, Jinv,
+      boundary_flags, false);
+  gkyl_array_clear(rhs, 0.0);
+  gkyl_array_clear(cfl, 0.0);
+  gkyl_dg_updater_conf_diffusion_advance(up, &local, f, cfl, rhs);
+
+  struct gkyl_array *K_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, K->ncomp,
+    K->size);
+  struct gkyl_array *Jinv_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE,
+    Jinv->ncomp, Jinv->size);
+  struct gkyl_array *f_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, f->ncomp,
+    f->size);
+  struct gkyl_array *rhs_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, rhs->ncomp,
+    rhs->size);
+  struct gkyl_array *cfl_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1,
+    cfl->size);
+  gkyl_array_copy(K_cu, K);
+  gkyl_array_copy(Jinv_cu, Jinv);
+  gkyl_array_copy(f_cu, f);
+  gkyl_array_clear(rhs_cu, 0.0);
+  gkyl_array_clear(cfl_cu, 0.0);
+  struct gkyl_dg_updater_conf_diffusion *up_cu =
+    gkyl_dg_updater_conf_diffusion_new(&grid, &basis, &local_ext, K_cu,
+      Jinv_cu, boundary_flags, true);
+  gkyl_dg_updater_conf_diffusion_advance(up_cu, &local, f_cu, cfl_cu,
+    rhs_cu);
+
+  struct gkyl_array *rhs_cu_h = gkyl_array_new(GKYL_DOUBLE, rhs->ncomp,
+    rhs->size);
+  struct gkyl_array *cfl_cu_h = gkyl_array_new(GKYL_DOUBLE, 1, cfl->size);
+  gkyl_array_copy(rhs_cu_h, rhs_cu);
+  gkyl_array_copy(cfl_cu_h, cfl_cu);
+  gkyl_range_iter_init(&iter, &local);
+  while (gkyl_range_iter_next(&iter)) {
+    long loc = gkyl_range_idx(&local_ext, iter.idx);
+    const double *rh = gkyl_array_cfetch(rhs, loc);
+    const double *rd = gkyl_array_cfetch(rhs_cu_h, loc);
+    for (int k=0; k<basis.num_basis; ++k)
+      TEST_CHECK(gkyl_compare(rh[k], rd[k], 1e-12));
+    TEST_CHECK(gkyl_compare(gkyl_array_cfetch(cfl, loc)[0],
+      gkyl_array_cfetch(cfl_cu_h, loc)[0], 1e-12));
+  }
+
+  gkyl_dg_updater_conf_diffusion_release(up_cu);
+  gkyl_dg_updater_conf_diffusion_release(up);
+  gkyl_array_release(cfl_cu_h); gkyl_array_release(rhs_cu_h);
+  gkyl_array_release(cfl_cu); gkyl_array_release(rhs_cu);
+  gkyl_array_release(f_cu); gkyl_array_release(Jinv_cu);
+  gkyl_array_release(K_cu);
+  gkyl_array_release(cfl); gkyl_array_release(rhs);
+  gkyl_array_release(f); gkyl_array_release(Jinv); gkyl_array_release(K);
+}
+
+static void test_conf_diffusion_cu_1x_p1(void) { test_conf_diffusion_cu(1); }
+static void test_conf_diffusion_cu_2x_p1(void) { test_conf_diffusion_cu(2); }
+static void test_conf_diffusion_cu_3x_p1(void) { test_conf_diffusion_cu(3); }
+#endif
+
 struct manufactured_ctx {
   int cdim;
   double density_amp;
@@ -722,6 +830,11 @@ TEST_LIST = {
   { "conf_diffusion_1x_p1", test_conf_diffusion_1x_p1 },
   { "conf_diffusion_2x_p1", test_conf_diffusion_2x_p1 },
   { "conf_diffusion_3x_p1", test_conf_diffusion_3x_p1 },
+#ifdef GKYL_HAVE_CUDA
+  { "conf_diffusion_cu_1x_p1", test_conf_diffusion_cu_1x_p1 },
+  { "conf_diffusion_cu_2x_p1", test_conf_diffusion_cu_2x_p1 },
+  { "conf_diffusion_cu_3x_p1", test_conf_diffusion_cu_3x_p1 },
+#endif
   { "conf_diffusion_manufactured_2x_p1",
     test_conf_diffusion_manufactured_2x_p1 },
   { "conf_diffusion_manufactured_3x_p1",

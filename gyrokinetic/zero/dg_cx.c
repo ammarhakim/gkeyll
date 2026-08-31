@@ -70,10 +70,13 @@ void gkyl_dg_cx_coll_rate(const struct gkyl_dg_cx *up,
   struct gkyl_array *maxwellian_moms_ion, struct gkyl_array *maxwellian_moms_neut,
   struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx)
 {
-  // The diffusion solver is CPU-only at present. Keep this entry point
-  // explicitly host-only until the configuration-space diffusion GPU path is
-  // implemented.
-  assert(!gkyl_array_is_cu_dev(coef_cx));
+#ifdef GKYL_HAVE_CUDA
+  if (gkyl_array_is_cu_dev(coef_cx)) {
+    gkyl_dg_cx_coll_rate_cu(up, maxwellian_moms_ion,
+      maxwellian_moms_neut, upar_b_i, coef_cx);
+    return;
+  }
+#endif
 
   struct gkyl_range_iter conf_iter;
   gkyl_range_iter_init(&conf_iter, up->conf_rng);

@@ -53,6 +53,51 @@ void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up,
     up->vt_sq_ion_min, up->vt_sq_neut_min, coef_cx->on_dev, up->a, up->b);
 }
 
+__global__ static void
+gkyl_cx_react_rate_closure_cu_ker(struct gkyl_dg_cx *up,
+  const struct gkyl_range conf_rng,
+  const struct gkyl_array *maxwellian_moms_ion,
+  const struct gkyl_array *maxwellian_moms_neut,
+  const struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
+  double vt_sq_ion_min, double vt_sq_neut_min, double a, double b)
+{
+  int cidx[GKYL_MAX_CDIM];
+  for (unsigned long tid = threadIdx.x + blockIdx.x*blockDim.x;
+       tid < conf_rng.volume; tid += blockDim.x*gridDim.x) {
+    gkyl_sub_range_inv_idx(&conf_rng, tid, cidx);
+    long linidx = gkyl_range_idx(&conf_rng, cidx);
+    const double *moms_ion = (const double*)
+      gkyl_array_cfetch(maxwellian_moms_ion, linidx);
+    const double *moms_neut = (const double*)
+      gkyl_array_cfetch(maxwellian_moms_neut, linidx);
+    const double *upar = (const double*) gkyl_array_cfetch(upar_b_i, linidx);
+    double *coef = (double*) gkyl_array_fetch(coef_cx, linidx);
+    for (unsigned k=0; k<coef_cx->ncomp; ++k) coef[k] = 0.0;
+
+    // Fluid-neutral LTE moments contain five p1 fields, hence at most 40
+    // coefficients in the supported 3x p1 configuration space.
+    double moms_neut_rate[40];
+    for (unsigned k=0; k<maxwellian_moms_neut->ncomp; ++k)
+      moms_neut_rate[k] = moms_neut[k];
+    moms_neut_rate[0] = 1.0;
+    up->react_rate(a, b, vt_sq_ion_min, vt_sq_neut_min,
+      moms_ion, moms_neut_rate, upar, coef);
+  }
+}
+
+void
+gkyl_dg_cx_coll_rate_cu(const struct gkyl_dg_cx *up,
+  struct gkyl_array *maxwellian_moms_ion,
+  struct gkyl_array *maxwellian_moms_neut,
+  struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx)
+{
+  gkyl_cx_react_rate_closure_cu_ker
+    <<<up->conf_rng->nblocks, up->conf_rng->nthreads>>>(up->on_dev,
+      *up->conf_rng, maxwellian_moms_ion->on_dev,
+      maxwellian_moms_neut->on_dev, upar_b_i->on_dev, coef_cx->on_dev,
+      up->vt_sq_ion_min, up->vt_sq_neut_min, up->a, up->b);
+}
+
 gkyl_dg_cx*
 gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp)
 {

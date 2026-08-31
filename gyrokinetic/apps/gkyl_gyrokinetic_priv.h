@@ -1304,6 +1304,7 @@ struct gk_neut_species {
       struct gkyl_array *diffusion_implicit_p, *diffusion_implicit_v;
       struct gkyl_array *diffusion_implicit_s, *diffusion_implicit_t;
       struct gkyl_array *diffusion_implicit_work;
+      double *diffusion_implicit_dot; // Device reduction scalar for BiCGSTAB.
       int diffusion_implicit_last_iter;
       double diffusion_implicit_last_residual;
       struct gkyl_array *diffusion_bc_density; // Local recycling boundary density.

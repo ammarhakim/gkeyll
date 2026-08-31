@@ -14,7 +14,7 @@ struct gkyl_conf_diffusion_auxfields {
 
 /**
  * Create a configuration-space diffusion equation object. The implementation
- * supports 1x-3x serendipity p1 bases on the host.
+ * supports 1x-3x serendipity p1 bases on the host and CUDA device.
  */
 struct gkyl_dg_eqn* gkyl_conf_diffusion_new(const struct gkyl_basis *basis,
   const struct gkyl_range *conf_range, bool use_gpu);
