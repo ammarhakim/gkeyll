@@ -78,6 +78,35 @@ struct arc_length_ctx {
   // adjacent psi rows makes consecutive flux surfaces cross.
   bool ext_force_generic_route;
   bool ext_last_trace_used_generic;
+  // Anchoring's rho = S_ref/T, regularized across psi within this block.
+  // T's derivative is SPIKY near the separatrix (measured on NSTX-U
+  // DN_SOL_OUT_MID: |d(tot)/dpsi| max 154x its median, second difference
+  // 36626x its median, both peaking at psisep), and anchoring stretches each
+  // row by rho, so an isolated spike displaces one row's theta nodes relative
+  // to its neighbours and inverts cells.  These carry the causal filter state.
+  //
+  // The filter used to key on ARRIVAL, on the stated assumption that rows
+  // arrive in psi order.  They do not.  Measured 2026-08-30 on step_nonuniform
+  // ftype 16: 21 distinct psi rows, each re-traced ~39 times, arriving
+  // 1.5093 -> 1.5224 -> 1.5593 -> 1.5107 -> 1.5106 -> ..., so median-of-3 over
+  // the last two ARRIVALS mixed non-adjacent surfaces and substituted rho by
+  // up to 0.11.  In psi order that same rho_raw sequence is smooth and
+  // monotone (1.000000, 1.005842, ..., 1.203241) -- there was no spike to
+  // reject, only damage to do.
+  //
+  // The history is now ordered by RADIAL FRACTION, which is 0 at the
+  // separatrix on every block whichever way psi runs.  The separatrix row
+  // therefore has no inward neighbour, is never filtered, and keeps
+  // rho_raw == 1 exactly -- which is the cross-block seam invariant.  Ordering
+  // the filter correctly is what makes that hold, rather than a special case.
+  double anchor_rho_smooth, anchor_rf_prev;
+  int anchor_rho_hist;
+  // (radial_fraction, rho_raw) seen so far in this block, sorted by radial
+  // fraction.  A block has ~21 distinct rows; 256 is slack, and overflow
+  // degrades to unfiltered rather than to a wrong neighbour.
+  double anchor_rf_tab[256];
+  double anchor_rho_tab[256];
+  int anchor_tab_n;
   // Which crossing of the target surface anchors an X-point-ray endpoint when
   // the ray crosses more than once.  Set only by tok_ext_build_domain_trace's
   // retry, after the first-crossing anchor has produced a trace that no route
@@ -90,6 +119,13 @@ struct arc_length_ctx {
   // normalized contour arc lengths from folding the first radial cell.
   double *far_trace_r, *far_trace_z, *far_trace_s, *trace_corr_v;
   int far_trace_n, trace_corr_n;
+  // Reparameterization of the block's poloidal coordinate by the measure
+  // d(mu) = |grad psi| dl.  One map per block, applied to u BEFORE any surface
+  // is sampled, so every surface moves together and no row is perturbed
+  // relative to its neighbour.  Built lazily on first use.
+  double *gradpsi_map_v;
+  int gradpsi_map_n;
+  bool gradpsi_map_ready, gradpsi_map_failed;
   bool far_trace_initialized, far_trace_param_is_r;
   bool ordered_boundaries_initialized;
   // Marched theta correspondence w(u,psi), tabulated on a psi ladder running
@@ -99,10 +135,18 @@ struct arc_length_ctx {
   // exactly what a plate-root annihilation (204951) or a near-tangent X-point
   // ray (205004) produces.  Marching rung to rung propagates the poloidal
   // coordinate through such a surface instead of interpolating across it.
-  // Row k holds ext_ladder_n node positions at radial fraction k/ext_ladder_m.
+  // Row k holds ext_ladder_n node positions at radial fraction
+  // ext_ladder_rf[k].  Those fractions are NOT uniform: they are the block's
+  // own node rows, placed by the position map (see
+  // tok_ext_ladder_rung_fractions).  ext_ladder_rf has ext_ladder_m+1 entries
+  // and increases monotonically from 0 (separatrix) to 1 (far surface).
   double *ext_ladder_w;
+  double *ext_ladder_rf;
   int ext_ladder_m, ext_ladder_n;
   bool ext_ladder_initialized, ext_ladder_failed;
+  // The same map that places the node rows.  The ladder must march through it,
+  // or its rungs sit at different flux surfaces than the rows it is built for.
+  const struct gkyl_position_map *position_map;
   // A modest per-psi trace supplies an ordered tangent and the cumulative
   // toroidal field-line integral on exactly the same R-Z path.
   double *map_trace_r, *map_trace_z, *map_trace_s, *map_trace_phi;
