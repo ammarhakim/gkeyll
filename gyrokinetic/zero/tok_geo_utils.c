@@ -1240,6 +1240,66 @@ tok_plate_select_leg_root(struct gkyl_tok_geo *geo, struct plate_ctx *pctx,
 }
 
 // Sets zmax if plate is specified
+// gkyl_ridders reports an invalid bracket rather than iterating on one, and
+// every plate solve below took its result on faith.  status != 0 means
+// psi(plate(s)) never reaches the requested surface's psi for any s in [0,1]
+// -- the divertor plate does not span that surface, which is exactly what
+// asking the SOL to reach past the plate looks like.  The reported root is
+// DBL_MAX there, and it was fed straight into the plate parameterization: on
+// a straight plate Z_lo + (Z_up-Z_lo)*s that returns DBL_MAX scaled by the
+// plate's extent, poisoning zmin/zmax.  The run then died far downstream in a
+// wild psi fetch, with nothing said about the geometry that caused it.
+static double
+tok_plate_root_s(const struct gkyl_qr_res *res, bool lower, double psi)
+{
+  // NOT keyed on status, and not on isfinite either: gkyl_ridders reports
+  // status=2 both for an invalid bracket and for a solve that stopped before
+  // meeting eps, and the latter still returns a usable root these callers have
+  // always relied on.  Its unusable value is the DBL_MAX the search starts
+  // from -- a finite double, so isfinite() does not see it.  Every plate solve
+  // here brackets s on [0,1], so a usable root lies in it and the sentinel
+  // does not.
+  if (res->res >= 0.0 && res->res <= 1.0)
+    return res->res;
+  // The plate does not span this surface.  CLAMP to the nearest plate end
+  // rather than abort: the meaningful answer is the furthest the plate
+  // actually reaches, and the caller consumes that endpoint's R or Z.
+  //
+  // DO NOT go back to aborting here.  Measured 2026-08-26 on the 450-shot
+  // NSTX-U suite: aborting failed 12 shots at every resolution
+  // (203963_ms457, 204046_ms433, 204051_ms450, 204076_ms193, 204077_ms187,
+  // 204080_ms193, 204112_ms907, 204118_ms553, 204170_ms580, 205017_ms205,
+  // 205050_ms219, 205088_ms195), all with plate=upper, status=2,
+  // res=DBL_MAX at psisep from the PF_LO extent setup.  Every one of those
+  // shots builds a CLEAN 8-block grid when the root is clamped, and did so
+  // historically too.  What the abort caught was a value the half-domain
+  // path does not depend on.  The clamp still removes the DBL_MAX that
+  // poisoned TCV: it never reaches the plate parameterization.
+  //
+  // GKYL_TOK_PLATE_ROOT_STRICT=1 restores the hard abort for diagnosis.
+  double clamped = res->res > 1.0 || !(res->res == res->res) ? 1.0
+    : (res->res < 0.0 ? 0.0 : res->res);
+  static int nwarn = 0;
+  const char *strict = getenv("GKYL_TOK_PLATE_ROOT_STRICT");
+  if (strict && strict[0] != '\0' && strict[0] != '0') {
+    fprintf(stderr,
+      "TOK_GEO_PLATE_ROOT_FAILED plate=%s psi=%.17g status=%d res=%.17g\n"
+      "  psi(plate(s)) does not reach this surface for any s in [0,1].\n",
+      lower ? "lower" : "upper", psi, res->status, res->res);
+    abort();
+  }
+  if (nwarn < 8) {
+    ++nwarn;
+    fprintf(stderr,
+      "TOK_GEO_PLATE_ROOT_CLAMPED plate=%s psi=%.17g status=%d res=%.17g -> s=%g\n"
+      "  the divertor plate does not span this flux surface; using the\n"
+      "  nearest plate end.%s\n",
+      lower ? "lower" : "upper", psi, res->status, res->res, clamped,
+      nwarn == 8 ? "  (further occurrences suppressed)" : "");
+  }
+  return clamped;
+}
+
 void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, struct plate_ctx* pctx, double psi_curr)
 {
       double rzplate[2];
@@ -1251,7 +1311,7 @@ void set_upper_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, psi_curr);
       double s_leg;
       if (tok_plate_select_leg_root(geo, pctx, smax, &s_leg))
         smax = s_leg;
@@ -1278,7 +1338,7 @@ void set_lower_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ctx, s
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, psi_curr);
       double s_leg;
       if (tok_plate_select_leg_root(geo, pctx, smin, &s_leg))
         smin = s_leg;
@@ -1306,7 +1366,7 @@ void set_upper_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, psi_curr);
       geo->plate_func_upper(smax, rzplate);
       arc_ctx->zmax_iwl_plate = rzplate[1];
       geo->rmin = rzplate[0];
@@ -1324,7 +1384,7 @@ void set_lower_iwl_plate(struct gkyl_tok_geo *geo, struct arc_length_ctx* arc_ct
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, psi_curr);
       geo->plate_func_lower(smin, rzplate);
       arc_ctx->zmin_iwl_plate = rzplate[1];
       geo->rmin = rzplate[0];
@@ -1516,7 +1576,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, geo->psisep);
       geo->plate_func_upper(smax, rzplate);
       arc_ctx.zmin_left = rzplate[1];
 
@@ -1527,7 +1587,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, geo->psisep);
       geo->plate_func_lower(smin, rzplate);
       arc_ctx.zmin_right = rzplate[1];
     }
@@ -1595,7 +1655,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, geo->psisep);
       geo->plate_func_upper(smax, rzplate);
       arc_ctx.zmin_left = rzplate[1];
 
@@ -1607,7 +1667,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, geo->psisep);
       geo->plate_func_lower(smin, rzplate);
       arc_ctx.zmin_right = rzplate[1];
     }
@@ -1661,7 +1721,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, &pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, geo->psisep);
       geo->plate_func_upper(smax, rzplate);
       arc_ctx.zmax_right= rzplate[1];
 
@@ -1672,7 +1732,7 @@ tok_geo_set_extent(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, &pctx);
       res = gkyl_ridders(tok_plate_psi_func, &pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, geo->psisep);
       geo->plate_func_lower(smin, rzplate);
       arc_ctx.zmax_left= rzplate[1];
     }
@@ -1799,7 +1859,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, psi_curr);
       geo->plate_func_upper(smax, rzplate);
       arc_ctx->zmin_left = rzplate[1];
 
@@ -1810,7 +1870,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, psi_curr);
       geo->plate_func_lower(smin, rzplate);
       arc_ctx->zmin_right = rzplate[1];
     }
@@ -1865,7 +1925,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, psi_curr);
       geo->plate_func_upper(smax, rzplate);
       arc_ctx->zmax_right= rzplate[1];
 
@@ -1876,7 +1936,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, psi_curr);
       geo->plate_func_lower(smin, rzplate);
       arc_ctx->zmax_left= rzplate[1];
     }
@@ -1962,7 +2022,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       double fb = tok_plate_psi_func(b, pctx);
       struct gkyl_qr_res res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smax = res.res;
+      double smax = tok_plate_root_s(&res, false, psi_curr);
       geo->plate_func_upper(smax, rzplate);
       arc_ctx->zmin_left = rzplate[1];
 
@@ -1973,7 +2033,7 @@ tok_find_endpoints(struct gkyl_tok_geo_grid_inp* inp, struct gkyl_tok_geo *geo, 
       fb = tok_plate_psi_func(b, pctx);
       res = gkyl_ridders(tok_plate_psi_func, pctx,
         a, b, fa, fb, geo->root_param.max_iter, 1e-10);
-      double smin = res.res;
+      double smin = tok_plate_root_s(&res, true, psi_curr);
       geo->plate_func_lower(smin, rzplate);
       arc_ctx->zmin_right = rzplate[1];
     }
