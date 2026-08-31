@@ -681,6 +681,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
   for (int d=0; d<app->cdim; ++d) {
     if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_lo);
+      gk_species_phi_wall_release(app, &s->phi_wall_lo);
     }
     else if (s->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) { 
       gkyl_bc_twistshift_release(s->bc_ts_lo);
@@ -694,6 +695,7 @@ gk_species_release_dynamic(const gkyl_gyrokinetic_app* app, const struct gk_spec
     
     if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_SHEATH) {
       gkyl_bc_sheath_gyrokinetic_release(s->bc_sheath_up);
+      gk_species_phi_wall_release(app, &s->phi_wall_up);
     }
     else if (s->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       gkyl_bc_twistshift_release(s->bc_ts_up);
@@ -881,6 +883,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_lower_ghost_par_sol : &gks->local_lower_ghost[d];
       gks->bc_sheath_lo = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_LOWER_EDGE, gks->basis_on_dev, 
         sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
+      gk_species_phi_wall_init(app, &gks->lower_bc[d], &gks->phi_wall_lo);
     }
     else if (gks->lower_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
@@ -941,6 +944,7 @@ gk_species_init_dynamic(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app 
       struct gkyl_range *sol_ghost = gk_app_inp->geometry.has_LCFS? &gks->local_upper_ghost_par_sol : &gks->local_upper_ghost[d];
       gks->bc_sheath_up = gkyl_bc_sheath_gyrokinetic_new(d, GKYL_UPPER_EDGE, gks->basis_on_dev, 
         sol_skin, sol_ghost, gks->vel_map, cdim, 2.0*(gks->info.charge/gks->info.mass), app->use_gpu);
+      gk_species_phi_wall_init(app, &gks->upper_bc[d], &gks->phi_wall_up);
     }
     else if (gks->upper_bc[d].type == GKYL_BC_GK_SPECIES_TWISTSHIFT) {
       assert(cdim == 3);
@@ -1502,10 +1506,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
   }
 
-  int wall_dir = app->cdim-1;
-  gk_species_phi_wall_init(app, &gks->lower_bc[wall_dir], &gks->phi_wall_lo);
-  gk_species_phi_wall_init(app, &gks->upper_bc[wall_dir], &gks->phi_wall_up);
- 
   // Species properties metadata.
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
     { .key = "mass", .elem_type = GKYL_MP_DOUBLE, .dval = gks->info.mass },
@@ -2044,9 +2044,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   gk_species_damping_release(app, &gks->damping);
 
   gk_species_fdot_multiplier_release(app, &gks->fdot_mult);
-
-  gk_species_phi_wall_release(app, &gks->phi_wall_lo);
-  gk_species_phi_wall_release(app, &gks->phi_wall_up);
 
   gk_species_lbo_release(app, &gks->lbo);
 

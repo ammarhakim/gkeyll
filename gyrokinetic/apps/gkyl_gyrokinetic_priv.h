@@ -1004,6 +1004,8 @@ struct gk_species_wall_potential {
   struct gkyl_array *phi;
   struct gkyl_array *phi_host;
   gkyl_eval_on_nodes *projector;
+  void (*advance_func)(gkyl_gyrokinetic_app *app,
+    const struct gk_species_wall_potential *wall, double tm);
 };
 
 // Species data.

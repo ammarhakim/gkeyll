@@ -1,11 +1,28 @@
 #include <gkyl_array_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
 
+static void
+gk_species_phi_wall_advance_disabled(gkyl_gyrokinetic_app *app,
+  const struct gk_species_wall_potential *wall, double tm)
+{
+}
+
+static void
+gk_species_phi_wall_advance_enabled(gkyl_gyrokinetic_app *app,
+  const struct gk_species_wall_potential *wall, double tm)
+{
+  gkyl_eval_on_nodes_advance(wall->projector, tm, &app->local_ext, wall->phi_host);
+  if (app->use_gpu)
+    gkyl_array_copy(wall->phi, wall->phi_host);
+}
+
 void
 gk_species_phi_wall_init(gkyl_gyrokinetic_app *app,
   const struct gkyl_gyrokinetic_bc *bc, struct gk_species_wall_potential *wall)
 {
-  *wall = (struct gk_species_wall_potential) { };
+  *wall = (struct gk_species_wall_potential) {
+    .advance_func = gk_species_phi_wall_advance_disabled,
+  };
   if (bc->type != GKYL_BC_GK_SPECIES_SHEATH)
     return;
 
@@ -19,6 +36,7 @@ gk_species_phi_wall_init(gkyl_gyrokinetic_app *app,
 
     wall->projector = gkyl_eval_on_nodes_new(&app->grid, &app->basis,
       1, bc->aux_profile, bc->aux_ctx);
+    wall->advance_func = gk_species_phi_wall_advance_enabled;
     gk_species_phi_wall_advance(app, wall, 0.0);
   }
 }
@@ -27,11 +45,7 @@ void
 gk_species_phi_wall_advance(gkyl_gyrokinetic_app *app,
   const struct gk_species_wall_potential *wall, double tm)
 {
-  if (wall->projector) {
-    gkyl_eval_on_nodes_advance(wall->projector, tm, &app->local_ext, wall->phi_host);
-    if (app->use_gpu)
-      gkyl_array_copy(wall->phi, wall->phi_host);
-  }
+  wall->advance_func(app, wall, tm);
 }
 
 void

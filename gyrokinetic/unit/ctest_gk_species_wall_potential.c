@@ -88,6 +88,8 @@ test_species_wall_profiles(void)
   TEST_ASSERT(species.phi_wall_up.phi != 0);
   TEST_ASSERT(species.phi_wall_lo.projector != 0);
   TEST_ASSERT(species.phi_wall_up.projector != 0);
+  TEST_ASSERT(species.phi_wall_lo.advance_func != 0);
+  TEST_ASSERT(species.phi_wall_up.advance_func != 0);
   check_profile(&app, species.phi_wall_lo.phi, &lower_ctx, 0.0);
   check_profile(&app, species.phi_wall_up.phi, &upper_ctx, 0.0);
 
@@ -120,9 +122,14 @@ test_grounded_and_non_sheath_walls(void)
   TEST_ASSERT(species.phi_wall_lo.phi != 0);
   TEST_CHECK(species.phi_wall_lo.phi_host == species.phi_wall_lo.phi);
   TEST_CHECK(species.phi_wall_lo.projector == 0);
+  TEST_ASSERT(species.phi_wall_lo.advance_func != 0);
   TEST_CHECK(species.phi_wall_up.phi == 0);
   TEST_CHECK(species.phi_wall_up.phi_host == 0);
   TEST_CHECK(species.phi_wall_up.projector == 0);
+  TEST_ASSERT(species.phi_wall_up.advance_func != 0);
+
+  gk_species_phi_wall_advance(&app, &species.phi_wall_lo, 1.0);
+  gk_species_phi_wall_advance(&app, &species.phi_wall_up, 1.0);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &app.local_ext);
