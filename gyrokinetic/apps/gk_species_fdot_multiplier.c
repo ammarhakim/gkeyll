@@ -144,11 +144,11 @@ gk_species_fdot_multiplier_advance_loss_cone_mult(gkyl_gyrokinetic_app *app,
   int zdim = app->cdim - 1;
   if (gks->lower_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH) {
     gkyl_comm_array_allgather(app->comm, &app->local, &app->global,
-      app->field->phi_wall_lo, fdmul->phi_wall_lo_global);
+      gks->phi_wall_lo.phi, fdmul->phi_wall_lo_global);
   }
   if (gks->upper_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH) {
     gkyl_comm_array_allgather(app->comm, &app->local, &app->global,
-      app->field->phi_wall_up, fdmul->phi_wall_up_global);
+      gks->phi_wall_up.phi, fdmul->phi_wall_up_global);
   }
   gkyl_loss_cone_mask_gyrokinetic_advance(fdmul->lcm_proj_op, &gks->local, &app->global,
     fdmul->bmag_global, fdmul->phi_global, fdmul->phi_wall_lo_global,
@@ -338,6 +338,8 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
     }
     else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_LOSS_CONE) {
       // Operator that projects the loss cone mask.
+      fdmul->phi_wall_lo_global = 0;
+      fdmul->phi_wall_up_global = 0;
       int zdim = app->cdim - 1;
       struct gkyl_loss_cone_mask_gyrokinetic_inp inp_proj = {
         .conf_basis = &app->basis,
@@ -354,10 +356,12 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
       fdmul->bmag_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.bmag->ncomp,
         app->global_ext.volume);
       fdmul->phi_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-      fdmul->phi_wall_lo_global = mkarr(app->use_gpu, app->basis.num_basis,
-        app->global_ext.volume);
-      fdmul->phi_wall_up_global = mkarr(app->use_gpu, app->basis.num_basis,
-        app->global_ext.volume);
+      if (inp_proj.lower_boundary == GKYL_LOSS_CONE_BC_SHEATH)
+        fdmul->phi_wall_lo_global = mkarr(app->use_gpu, app->basis.num_basis,
+          app->global_ext.volume);
+      if (inp_proj.upper_boundary == GKYL_LOSS_CONE_BC_SHEATH)
+        fdmul->phi_wall_up_global = mkarr(app->use_gpu, app->basis.num_basis,
+          app->global_ext.volume);
 
       gkyl_comm_array_allgather(app->comm, &app->local, &app->global, app->gk_geom->geo_corn.bmag,
         fdmul->bmag_global);
@@ -540,8 +544,10 @@ gk_species_fdot_multiplier_release_comp(const struct gkyl_gyrokinetic_app *app,
     gkyl_array_release(fdmul->buffer);
     gkyl_array_release(fdmul->bmag_global);
     gkyl_array_release(fdmul->phi_global);
-    gkyl_array_release(fdmul->phi_wall_lo_global);
-    gkyl_array_release(fdmul->phi_wall_up_global);
+    if (fdmul->phi_wall_lo_global)
+      gkyl_array_release(fdmul->phi_wall_lo_global);
+    if (fdmul->phi_wall_up_global)
+      gkyl_array_release(fdmul->phi_wall_up_global);
     gkyl_loss_cone_mask_gyrokinetic_release(fdmul->lcm_proj_op);
   }
   else if (fdmul->type == GKYL_GK_FDOT_MULTIPLIER_CONSTANT) {

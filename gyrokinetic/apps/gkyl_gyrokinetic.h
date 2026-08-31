@@ -213,7 +213,8 @@ struct gkyl_gyrokinetic_bc {
   enum gkyl_edge_loc edge; // Which edge this BC is for.
   enum gkyl_gyrokinetic_bc_type type; // BC type flag.
   double value[3]; // Meaning depends on type.
-  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx); // Auxiliary function (e.g. wall potential).
+  // Auxiliary profile. For a species sheath BC, this is the material-wall potential.
+  void (*aux_profile)(double t, const double *xn, double *fout, void *ctx);
   void *aux_ctx; // Context for aux_profile.
   struct gkyl_gyrokinetic_projection projection; // Projection object input (e.g. for FIXED_FUNC).
   struct gkyl_gyrokinetic_emission_inp emission; 
@@ -568,16 +569,6 @@ struct gkyl_gyrokinetic_field {
   // Profile for the field at t=0.
   void (*init_field_profile)(double t, const double *xn, double *out, void *ctx);
   void *init_field_profile_ctx;
-
-  void *phi_wall_lo_ctx; // context for biased wall potential on lower wall
-  // pointer to biased wall potential on lower wall function
-  void (*phi_wall_lo)(double t, const double *xn, double *phi_wall_lo_out, void *ctx);
-  bool phi_wall_lo_evolve; // set to true if biased wall potential on lower wall function is time dependent  
-
-  void *phi_wall_up_ctx; // context for biased wall potential on upper wall
-  // pointer to biased wall potential on upper wall function
-  void (*phi_wall_up)(double t, const double *xn, double *phi_wall_up_out, void *ctx);
-  bool phi_wall_up_evolve; // set to true if biased wall potential on upper wall function is time dependent  
 
   struct gkyl_poisson_bias_line_list *bias_line_list; // Biased lines constraining the solution.
 };
