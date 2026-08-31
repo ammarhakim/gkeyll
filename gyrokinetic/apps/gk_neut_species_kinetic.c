@@ -205,6 +205,7 @@ gk_neut_species_kinetic_release(const gkyl_gyrokinetic_app* app, const struct gk
 
   gkyl_velocity_map_release(ns->vel_map);
   gkyl_vlasov_velocity_map_release(ns->vlasov_vel_map);
+  gkyl_vlasov_position_map_release(ns->vlasov_pos_map);
 
   // Release moment data.
   gk_neut_species_moment_release(app, &ns->m0);
@@ -632,14 +633,17 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     ghost_vel[d] = 0; // no ghost-cells in velocity space
   }
 
-  // Serendipity basis (identical span to tensor at p=1); the triad Vlasov
-  // kernels dispatch on the serendipity basis type.
-  gkyl_cart_modal_serendip(&s->basis, pdim, app->poly_order);
+  // Tensor p=1 hybrid basis: p=1 in configuration space tensored with p=2 in
+  // velocity space. The p=2 velocity basis represents the quadratic H = v^2/2
+  // exactly; the pure p=1 basis cannot, and its sparse-Hamiltonian moment and
+  // energy diagnostics are wrong at the O(1) level.
+  assert(app->poly_order == 1); // Neutral species are p=1 only.
+  gkyl_cart_modal_hybrid(&s->basis, cdim, vdim);
 
   if (app->use_gpu) {
     // Allocate device basis if we are using GPUs.
     s->basis_on_dev = gkyl_cu_malloc(sizeof(struct gkyl_basis));
-    gkyl_cart_modal_serendip_cu_dev(s->basis_on_dev, pdim, app->poly_order);
+    gkyl_cart_modal_hybrid_cu_dev(s->basis_on_dev, cdim, vdim);
   }
   else {
     s->basis_on_dev = &s->basis;
@@ -677,11 +681,18 @@ gk_neut_species_kinetic_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *ap
     s->local, s->local_ext, s->local_vel, s->local_ext_vel, app->use_gpu);
 
   // Identity Vlasov velocity map: the Vlasov flux, moment and LTE updaters
-  // always evaluate the velocity coordinate from the stored map.
-  gkyl_cart_modal_serendip(&s->basis_vel, vdim, app->poly_order);
+  // always evaluate the velocity coordinate from the stored map. The velocity
+  // basis is the p=2 tensor basis of the hybrid, which also selects the C^1
+  // cubic velocity map and the p=2 velocity representation of the Hamiltonian.
+  gkyl_cart_modal_tensor(&s->basis_vel, vdim, 2);
   struct gkyl_vlasov_velocity_map_inp inp_vvmap[GKYL_MAX_CDIM] = { 0 };
   s->vlasov_vel_map = gkyl_vlasov_velocity_map_new(&s->grid_vel, &s->local_vel,
     &s->basis_vel, inp_vvmap, false, app->use_gpu);
+
+  // Identity Vlasov position map, required by the Vlasov flux updaters.
+  struct gkyl_vlasov_position_map_inp inp_vpmap[GKYL_MAX_CDIM] = { 0 };
+  s->vlasov_pos_map = gkyl_vlasov_position_map_new(&app->grid, &app->local,
+    &app->local_ext, &app->basis, inp_vpmap, app->use_gpu);
 
   // Keep a copy of num_periodic_dir and periodic_dirs in species so we can
   // add the parallel direction in case TS BCs are needed.

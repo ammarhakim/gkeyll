@@ -60,6 +60,12 @@ gk_neut_species_recycle_write_flux_enabled(struct gkyl_gyrokinetic_app *app, str
   // Write out the particle flux of the emitting neutral species.
   gkyl_array_clear(recyc->f_diag, 0.0);
   gkyl_array_copy_range_to_range(recyc->f_diag, recyc->f_emit, recyc->emit_skin_r, &recyc->emit_buff_r);
+  // The from-flux Vlasov equation's boundary term reads the stored conf-space
+  // surface fluxes, so compute them for this distribution first (cflrate is
+  // scratch here; it is cleared at the start of every RHS evaluation).
+  gkyl_dg_vlasov_conf_flux_surf_advance(s->collisionless.calc_conf_flux, &app->local,
+    &s->local, &s->local_ext, s->conf_poisson_tensor, s->hamil, recyc->f_diag,
+    s->cflrate, s->collisionless.conf_flux_surf);
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, recyc->f_diag, recyc->f_diag);
   gkyl_array_copy_range_to_range(recyc->unit_phase_flux_neut, recyc->f_diag, &recyc->emit_buff_r, recyc->emit_ghost_r);
   gkyl_mom_calc_advance(recyc->m0op_neut, &recyc->emit_normal_r, &recyc->emit_cbuff_r,
@@ -204,6 +210,12 @@ gk_neut_species_recycle_init(struct gkyl_gyrokinetic_app *app, struct gk_recycle
 
   gkyl_free(eqns);
 
+  // The from-flux Vlasov equation's boundary term reads the stored conf-space
+  // surface fluxes, so compute them for the unit Maxwellian first (cflrate is
+  // scratch here; it is cleared at the start of every RHS evaluation).
+  gkyl_dg_vlasov_conf_flux_surf_advance(s->collisionless.calc_conf_flux, &app->local,
+    &s->local, &s->local_ext, s->conf_poisson_tensor, s->hamil, s->f1,
+    s->cflrate, s->collisionless.conf_flux_surf);
   gkyl_boundary_flux_advance(recyc->f0_flux_slvr, s->f1, s->f1);
   recyc->unit_phase_flux_neut = mkarr(app->use_gpu, s->basis.num_basis, recyc->emit_buff_r.volume);
   gkyl_array_copy_range_to_range(recyc->unit_phase_flux_neut, s->f1, &recyc->emit_buff_r,

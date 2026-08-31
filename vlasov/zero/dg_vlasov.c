@@ -23,9 +23,9 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   struct dg_vlasov *vlasov = container_of(base, struct dg_vlasov, eqn);
   gkyl_array_release(vlasov->poisson_tensor_conf);
   gkyl_array_release(vlasov->hamil);
-  gkyl_array_release(vlasov->qmem);
-  gkyl_array_release(vlasov->pot_tot);
-  gkyl_array_release(vlasov->rad);
+  if (vlasov->qmem) gkyl_array_release(vlasov->qmem);
+  if (vlasov->pot_tot) gkyl_array_release(vlasov->pot_tot);
+  if (vlasov->rad) gkyl_array_release(vlasov->rad);
   if (vlasov->vel_map) {
     gkyl_vlasov_velocity_map_release(vlasov->vel_map);
   }
@@ -98,9 +98,9 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
   vlasov->jacob_pos = inp->pos_map->jacob_pos; // Borrowed; kept alive by the acquired pos_map.
   vlasov->poisson_tensor_conf = gkyl_array_acquire(inp->poisson_tensor_conf); 
   vlasov->hamil = gkyl_array_acquire(inp->hamil); 
-  vlasov->qmem = gkyl_array_acquire(inp->qmem); 
-  vlasov->pot_tot = gkyl_array_acquire(inp->pot_tot); 
-  vlasov->rad = gkyl_array_acquire(inp->rad);
+  vlasov->qmem = inp->qmem ? gkyl_array_acquire(inp->qmem) : 0; 
+  vlasov->pot_tot = inp->pot_tot ? gkyl_array_acquire(inp->pot_tot) : 0; 
+  vlasov->rad = inp->rad ? gkyl_array_acquire(inp->rad) : 0;
   vlasov->use_conf_flux_surf = false;
   if (inp->model_id == GKYL_MODEL_TRIAD || inp->hamil_id == GKYL_HAMIL_PHASE){
     vlasov->use_conf_flux_surf = true;

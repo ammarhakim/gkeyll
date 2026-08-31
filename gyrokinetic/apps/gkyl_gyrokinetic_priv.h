@@ -54,6 +54,7 @@
 #include <gkyl_dg_vlasov_vel_flux_surf.h>
 #include <gkyl_mom_vlasov.h>
 #include <gkyl_mom_calc.h>
+#include <gkyl_vlasov_position_map.h>
 #include <gkyl_vlasov_triad_geom.h>
 #include <gkyl_dynvec.h>
 #include <gkyl_elem_type.h>
@@ -1253,6 +1254,8 @@ struct gk_neut_species {
       struct gkyl_velocity_map *vel_map; // Velocity mapping objects.
       // Identity Vlasov velocity map, passed to the Vlasov moment/LTE updaters.
       struct gkyl_vlasov_velocity_map *vlasov_vel_map;
+      // Identity Vlasov position map, required by the Vlasov flux updaters.
+      struct gkyl_vlasov_position_map *vlasov_pos_map;
 
       struct gkyl_array *g_ij, *gij; // Metric tensor and its conjugate.
       struct gkyl_basis basis_vel; // Velocity-space basis.

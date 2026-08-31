@@ -61,10 +61,13 @@ gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_n
     int cdim = app->cdim, vdim = gkns->info.vdim;
     int pdim = cdim+vdim;
 
-    // Surface node counts for the nodal flux expansions (serendipity p=1:
-    // p+1 nodes per direction on a surface).
-    gkcls->num_surf_vel_nodes = pow(app->poly_order+1, pdim - 1);
-    gkcls->num_surf_conf_nodes = pow(app->poly_order+1, pdim - 1);
+    // Surface node counts for the nodal flux expansions. Tensor p=1 hybrid:
+    // a velocity-direction surface has 2 nodes per configuration direction and
+    // 4 nodes per remaining velocity direction; a configuration-direction
+    // surface has 2 nodes per remaining configuration direction and 4 per
+    // velocity direction. Must match the flux updaters' node counts.
+    gkcls->num_surf_vel_nodes = (int) (pow(2, cdim) * pow(4, vdim - 1));
+    gkcls->num_surf_conf_nodes = (int) (pow(2, cdim - 1) * pow(4, vdim));
 
     // Surface expansion of the phase-space flux in configuration space.
     gkcls->conf_flux_surf = mkarr(app->use_gpu, cdim*gkcls->num_surf_conf_nodes, gkns->local_ext.volume);
@@ -74,6 +77,7 @@ gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       .phase_basis = &gkns->basis,
       .vel_range = &gkns->local_vel,
       .vel_map = gkns->vlasov_vel_map,
+      .pos_map = gkns->vlasov_pos_map,
       .hamil_range = &gkns->hamil_range,
       .model_id = gkns->model_id,
       .hamil_id = gkns->hamil_id,
@@ -88,6 +92,7 @@ gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       .conf_basis = &app->basis,
       .phase_basis = &gkns->basis,
       .vel_map = gkns->vlasov_vel_map,
+      .pos_map = gkns->vlasov_pos_map,
       .hamil_range = &gkns->hamil_range,
       .model_id = gkns->model_id,
       .hamil_id = gkns->hamil_id,
@@ -102,6 +107,7 @@ gk_neut_species_collisionless_init(struct gkyl_gyrokinetic_app *app, struct gk_n
       .hamil_range = &gkns->hamil_range,
       .phase_range = &gkns->local,
       .vel_map = gkns->vlasov_vel_map,
+      .pos_map = gkns->vlasov_pos_map,
       .model_id = gkns->model_id,
       .hamil_id = gkns->hamil_id,
       .poisson_tensor_conf = gkns->conf_poisson_tensor,
