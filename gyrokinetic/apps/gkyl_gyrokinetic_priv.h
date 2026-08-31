@@ -1030,7 +1030,6 @@ struct gk_species {
   int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
-  struct gkyl_array *fdot, *fdot_host; // Phase-space (f_new-f_old)/dt and its host copy.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
 
@@ -1056,6 +1055,9 @@ struct gk_species {
 
   // Lookup table populated from info.time_rate_diagnostics.
   bool time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM];
+  bool fdot_io_pending; // Whether the next stage-1 RHS should be written.
+  double fdot_io_tm; // Time associated with the pending Fdot frame.
+  int fdot_io_frame; // Frame associated with the pending Fdot write.
 
   struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
   double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
@@ -3283,6 +3285,16 @@ void gk_species_n_iter_corr(gkyl_gyrokinetic_app *app, const struct gk_species *
 void gk_species_write(gkyl_gyrokinetic_app* app, struct gk_species *gks, double tm, int frame);
 
 /**
+ * Write a queued Fdot diagnostic from an SSP-RK3 stage-1 RHS.
+ *
+ * @param app Gyrokinetic app object.
+ * @param gks Species object.
+ * @param fdot Stage-1 RHS to write.
+ */
+void gk_species_write_fdot(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const struct gkyl_array *fdot);
+
+/**
  * Species moment write function.
  *
  * @param app gyrokinetic app object.
@@ -3337,18 +3349,6 @@ void gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks);
  */
 void
 gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom);
-
-/**
- * Store the old-distribution contribution to the phase-space fdot diagnostic.
- */
-void
-gk_species_calc_fdot_begin_step(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt);
-
-/**
- * Add the new-distribution contribution to the phase-space fdot diagnostic.
- */
-void
-gk_species_calc_fdot_complete_step(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt);
 
 /**
  * Delete resources used in species.
