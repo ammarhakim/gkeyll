@@ -5,6 +5,7 @@
 #include <gkyl_array.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_basis.h>
+#include <gkyl_conf_diffusion_kernels.h>
 #include <gkyl_dg_updater_conf_diffusion.h>
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_range.h>
@@ -202,6 +203,66 @@ test_conf_diffusion(int cdim)
 static void test_conf_diffusion_1x_p1(void) { test_conf_diffusion(1); }
 static void test_conf_diffusion_2x_p1(void) { test_conf_diffusion(2); }
 static void test_conf_diffusion_3x_p1(void) { test_conf_diffusion(3); }
+
+static void
+test_conf_diffusion_zero_flux_boundary_kernels(void)
+{
+  typedef double (*surf_t)(const double*, const double*, const double*,
+    const double*, const double*, const double*, const double*, const double*,
+    double*);
+  typedef double (*boundary_t)(const double*, const double*, const double*,
+    const double*, int, const double*, const double*, double*);
+  const surf_t surf[3][3] = {
+    { conf_diffusion_surfx_1x_ser_p1, 0, 0 },
+    { conf_diffusion_surfx_2x_ser_p1, conf_diffusion_surfy_2x_ser_p1, 0 },
+    { conf_diffusion_surfx_3x_ser_p1, conf_diffusion_surfy_3x_ser_p1,
+      conf_diffusion_surfz_3x_ser_p1 },
+  };
+  const boundary_t boundary[3][3] = {
+    { conf_diffusion_boundary_surfx_1x_ser_p1, 0, 0 },
+    { conf_diffusion_boundary_surfx_2x_ser_p1,
+      conf_diffusion_boundary_surfy_2x_ser_p1, 0 },
+    { conf_diffusion_boundary_surfx_3x_ser_p1,
+      conf_diffusion_boundary_surfy_3x_ser_p1,
+      conf_diffusion_boundary_surfz_3x_ser_p1 },
+  };
+
+  const double w[] = { 0.1, -0.2, 0.3 };
+  const double dx[] = { 0.17, 0.23, 0.31 };
+  for (int cdim=1; cdim<=3; ++cdim) {
+    struct gkyl_basis basis;
+    gkyl_cart_modal_serendip(&basis, cdim, 1);
+    const int nb = basis.num_basis, nK = cdim*cdim;
+    double Kedge[72] = { 0.0 }, Kskin[72] = { 0.0 }, Kghost[72] = { 0.0 };
+    double fedge[8] = { 0.0 }, fskin[8] = { 0.0 }, fghost[8] = { 0.0 };
+    for (int k=0; k<nK*nb; ++k) {
+      Kedge[k] = 0.4+0.013*k;
+      Kskin[k] = 0.7-0.009*k;
+    }
+    for (int k=0; k<nb; ++k) {
+      fedge[k] = 0.2+0.031*k;
+      fskin[k] = 0.8-0.027*k;
+    }
+    for (int dir=0; dir<cdim; ++dir) {
+      basis.flip_odd_sign(dir, fskin, fghost);
+      for (int k=0; k<nK; ++k)
+        basis.flip_even_sign(dir, &Kskin[k*nb], &Kghost[k*nb]);
+      for (int edge=-1; edge<=1; edge+=2) {
+        double reflected[8] = { 0.0 }, one_sided[8] = { 0.0 };
+        if (edge == -1)
+          surf[cdim-1][dir](w, dx, Kghost, Kskin, Kedge,
+            fghost, fskin, fedge, reflected);
+        else
+          surf[cdim-1][dir](w, dx, Kedge, Kskin, Kghost,
+            fedge, fskin, fghost, reflected);
+        boundary[cdim-1][dir](w, dx, Kedge, Kskin, edge,
+          fedge, fskin, one_sided);
+        for (int k=0; k<nb; ++k)
+          TEST_CHECK(gkyl_compare(reflected[k], one_sided[k], 1e-12));
+      }
+    }
+  }
+}
 
 #ifdef GKYL_HAVE_CUDA
 static void
@@ -831,6 +892,8 @@ TEST_LIST = {
   { "conf_diffusion_1x_p1", test_conf_diffusion_1x_p1 },
   { "conf_diffusion_2x_p1", test_conf_diffusion_2x_p1 },
   { "conf_diffusion_3x_p1", test_conf_diffusion_3x_p1 },
+  { "conf_diffusion_zero_flux_boundary_kernels",
+    test_conf_diffusion_zero_flux_boundary_kernels },
 #ifdef GKYL_HAVE_CUDA
   { "conf_diffusion_cu_1x_p1", test_conf_diffusion_cu_1x_p1 },
   { "conf_diffusion_cu_2x_p1", test_conf_diffusion_cu_2x_p1 },

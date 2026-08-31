@@ -9,12 +9,16 @@ typedef double (*conf_diffusion_vol_kern_t)(const double*, const double*,
 typedef double (*conf_diffusion_surf_kern_t)(const double*, const double*,
   const double*, const double*, const double*, const double*, const double*,
   const double*, double*);
+typedef double (*conf_diffusion_boundary_surf_kern_t)(const double*,
+  const double*, const double*, const double*, int, const double*,
+  const double*, double*);
 
 struct conf_diffusion {
   struct gkyl_dg_eqn eqn;
   struct gkyl_basis basis;
   conf_diffusion_vol_kern_t vol;
   conf_diffusion_surf_kern_t surf[GKYL_MAX_CDIM];
+  conf_diffusion_boundary_surf_kern_t boundary_surf[GKYL_MAX_CDIM];
   struct gkyl_range conf_range;
   struct gkyl_conf_diffusion_auxfields auxfields;
 };
@@ -75,23 +79,14 @@ conf_diffusion_boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
 {
   const struct conf_diffusion *diffusion =
     container_of(eqn, struct conf_diffusion, eqn);
-  if (dir < 0 || dir >= GKYL_MAX_CDIM || diffusion->surf[dir] == 0)
+  if (dir < 0 || dir >= GKYL_MAX_CDIM
+    || diffusion->boundary_surf[dir] == 0)
     return 0.0;
 
-  const int nb = diffusion->basis.num_basis;
-  const int nK = diffusion->basis.ndim*diffusion->basis.ndim;
-  const double *Kedge = conf_diffusion_fetch_tensor(diffusion, idxEdge);
-  const double *Kskin = conf_diffusion_fetch_tensor(diffusion, idxSkin);
-  double qghost[8], Kghost[9*8];
-  diffusion->basis.flip_odd_sign(dir, qInSkin, qghost);
-  for (int k=0; k<nK; ++k)
-    diffusion->basis.flip_even_sign(dir, &Kskin[k*nb], &Kghost[k*nb]);
-
-  if (edge == -1)
-    return diffusion->surf[dir](xcSkin, dxSkin, Kghost, Kskin, Kedge,
-      qghost, qInSkin, qInEdge, qRhsOut);
-  return diffusion->surf[dir](xcSkin, dxSkin, Kedge, Kskin, Kghost,
-    qInEdge, qInSkin, qghost, qRhsOut);
+  return diffusion->boundary_surf[dir](xcSkin, dxSkin,
+    conf_diffusion_fetch_tensor(diffusion, idxEdge),
+    conf_diffusion_fetch_tensor(diffusion, idxSkin), edge,
+    qInEdge, qInSkin, qRhsOut);
 }
 
 void gkyl_conf_diffusion_free(const struct gkyl_ref_count *ref);

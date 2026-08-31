@@ -20,6 +20,16 @@ static const conf_diffusion_surf_kern_t ser_surf_kernels[][GKYL_MAX_CDIM] = {
     conf_diffusion_surfz_3x_ser_p1 },
 };
 
+static const conf_diffusion_boundary_surf_kern_t
+ser_boundary_surf_kernels[][GKYL_MAX_CDIM] = {
+  { conf_diffusion_boundary_surfx_1x_ser_p1, 0, 0 },
+  { conf_diffusion_boundary_surfx_2x_ser_p1,
+    conf_diffusion_boundary_surfy_2x_ser_p1, 0 },
+  { conf_diffusion_boundary_surfx_3x_ser_p1,
+    conf_diffusion_boundary_surfy_3x_ser_p1,
+    conf_diffusion_boundary_surfz_3x_ser_p1 },
+};
+
 void
 gkyl_conf_diffusion_free(const struct gkyl_ref_count *ref)
 {
@@ -74,8 +84,11 @@ gkyl_conf_diffusion_new(const struct gkyl_basis *basis,
   diffusion->eqn.gen_surf_term = 0;
   diffusion->eqn.gen_boundary_surf_term = 0;
   diffusion->vol = ser_vol_kernels[basis->ndim-1];
-  for (int d=0; d<GKYL_MAX_CDIM; ++d)
+  for (int d=0; d<GKYL_MAX_CDIM; ++d) {
     diffusion->surf[d] = ser_surf_kernels[basis->ndim-1][d];
+    diffusion->boundary_surf[d] =
+      ser_boundary_surf_kernels[basis->ndim-1][d];
+  }
   diffusion->eqn.flags = 0;
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_conf_diffusion_free);
   diffusion->eqn.on_dev = &diffusion->eqn;

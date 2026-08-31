@@ -41,20 +41,28 @@ conf_diffusion_set_cu_dev_ptrs(struct conf_diffusion *diffusion, int cdim)
   if (cdim == 1) {
     diffusion->vol = conf_diffusion_vol_1x_ser_p1;
     diffusion->surf[0] = conf_diffusion_surfx_1x_ser_p1;
+    diffusion->boundary_surf[0] = conf_diffusion_boundary_surfx_1x_ser_p1;
   }
   else if (cdim == 2) {
     diffusion->vol = conf_diffusion_vol_2x_ser_p1;
     diffusion->surf[0] = conf_diffusion_surfx_2x_ser_p1;
     diffusion->surf[1] = conf_diffusion_surfy_2x_ser_p1;
+    diffusion->boundary_surf[0] = conf_diffusion_boundary_surfx_2x_ser_p1;
+    diffusion->boundary_surf[1] = conf_diffusion_boundary_surfy_2x_ser_p1;
   }
   else {
     diffusion->vol = conf_diffusion_vol_3x_ser_p1;
     diffusion->surf[0] = conf_diffusion_surfx_3x_ser_p1;
     diffusion->surf[1] = conf_diffusion_surfy_3x_ser_p1;
     diffusion->surf[2] = conf_diffusion_surfz_3x_ser_p1;
+    diffusion->boundary_surf[0] = conf_diffusion_boundary_surfx_3x_ser_p1;
+    diffusion->boundary_surf[1] = conf_diffusion_boundary_surfy_3x_ser_p1;
+    diffusion->boundary_surf[2] = conf_diffusion_boundary_surfz_3x_ser_p1;
   }
-  for (int d=cdim; d<GKYL_MAX_CDIM; ++d)
+  for (int d=cdim; d<GKYL_MAX_CDIM; ++d) {
     diffusion->surf[d] = 0;
+    diffusion->boundary_surf[d] = 0;
+  }
   diffusion->auxfields.diffusion_tensor = 0;
   diffusion->auxfields.jacobgeo_inv = 0;
 }
