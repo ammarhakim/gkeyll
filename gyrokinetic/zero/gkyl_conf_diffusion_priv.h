@@ -23,7 +23,7 @@ GKYL_CU_DH static inline const double*
 conf_diffusion_fetch_tensor(const struct conf_diffusion *diffusion,
   const int *idx)
 {
-  return gkyl_array_cfetch(diffusion->auxfields.diffusion_tensor,
+  return (const double*) gkyl_array_cfetch(diffusion->auxfields.diffusion_tensor,
     gkyl_range_idx(&diffusion->conf_range, idx));
 }
 
@@ -31,7 +31,7 @@ GKYL_CU_DH static inline const double*
 conf_diffusion_fetch_jacobgeo_inv(const struct conf_diffusion *diffusion,
   const int *idx)
 {
-  return gkyl_array_cfetch(diffusion->auxfields.jacobgeo_inv,
+  return (const double*) gkyl_array_cfetch(diffusion->auxfields.jacobgeo_inv,
     gkyl_range_idx(&diffusion->conf_range, idx));
 }
 
