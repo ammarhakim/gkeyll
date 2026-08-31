@@ -1135,7 +1135,7 @@ struct gk_species {
   double (*rhs_implicit_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
     const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms, double dt);
   void (*bc_func)(gkyl_gyrokinetic_app *app, const struct gk_species *species,
-    struct gkyl_array *f);
+    double tm, struct gkyl_array *f);
   void (*release_func)(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
   void (*step_f_func)(struct gkyl_array* out, double dt, const struct gkyl_array* inp); 
   void (*combine_func)(struct gkyl_array *out, double c1,
@@ -3240,9 +3240,11 @@ void gk_species_apply_pos_shift(gkyl_gyrokinetic_app* app, struct gk_species *gk
  *
  * @param app gyrokinetic app object.
  * @param species Pointer to species.
+ * @param tm Time at which to apply the BCs.
  * @param f Field to apply BCs.
  */
-void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f);
+void gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  double tm, struct gkyl_array *f);
 
 /**
  * Fill stat object in app with collision timers.
@@ -3337,31 +3339,33 @@ gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, do
 void gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *s);
 
 /**
- * Initialize the wall potentials owned by a species' parallel sheath BCs.
+ * Initialize a wall potential owned by a species sheath BC.
  *
  * @param app Gyrokinetic app object.
- * @param species Species object.
+ * @param bc Species sheath BC input.
+ * @param wall Wall-potential object.
  */
-void gk_species_wall_potential_init(gkyl_gyrokinetic_app *app, struct gk_species *species);
+void gk_species_phi_wall_init(gkyl_gyrokinetic_app *app,
+  const struct gkyl_gyrokinetic_bc *bc, struct gk_species_wall_potential *wall);
 
 /**
- * Evaluate a species' sheath wall-potential profiles at the requested time.
+ * Evaluate a species sheath wall-potential profile at the requested time.
  *
  * @param app Gyrokinetic app object.
- * @param species Species object.
+ * @param wall Wall-potential object.
  * @param tm Time at which to evaluate the profiles.
  */
-void gk_species_wall_potential_advance(gkyl_gyrokinetic_app *app,
-  struct gk_species *species, double tm);
+void gk_species_phi_wall_advance(gkyl_gyrokinetic_app *app,
+  const struct gk_species_wall_potential *wall, double tm);
 
 /**
- * Release a species' sheath wall-potential resources.
+ * Release a species sheath wall-potential resource.
  *
  * @param app Gyrokinetic app object.
- * @param species Species object.
+ * @param wall Wall-potential object.
  */
-void gk_species_wall_potential_release(const gkyl_gyrokinetic_app *app,
-  const struct gk_species *species);
+void gk_species_phi_wall_release(const gkyl_gyrokinetic_app *app,
+  const struct gk_species_wall_potential *wall);
 
 /** gk_neut_species_moment API */
 

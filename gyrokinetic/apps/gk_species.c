@@ -197,7 +197,8 @@ gk_species_rhs_implicit_static(gkyl_gyrokinetic_app *app, struct gk_species *spe
 }
 
 static void
-gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  double tm, struct gkyl_array *f)
 {
   struct timespec wst = gkyl_wall_clock();
   
@@ -210,6 +211,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       switch (species->lower_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
+          gk_species_phi_wall_advance(app, &species->phi_wall_lo, tm);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_lo, app->field->phi_smooth, 
             species->phi_wall_lo.phi, f, &app->local);
           break;
@@ -232,6 +234,7 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 
       switch (species->upper_bc[d].type) {
         case GKYL_BC_GK_SPECIES_SHEATH:
+          gk_species_phi_wall_advance(app, &species->phi_wall_up, tm);
           gkyl_bc_sheath_gyrokinetic_advance(species->bc_sheath_up, app->field->phi_smooth, 
             species->phi_wall_up.phi, f, &app->local);
           break;
@@ -266,7 +269,8 @@ gk_species_apply_bc_dynamic(gkyl_gyrokinetic_app *app, const struct gk_species *
 }
 
 static void
-gk_species_apply_bc_static(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc_static(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  double tm, struct gkyl_array *f)
 {
   // do nothing
 }
@@ -1498,7 +1502,9 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
     }
   }
 
-  gk_species_wall_potential_init(app, gks);
+  int wall_dir = app->cdim-1;
+  gk_species_phi_wall_init(app, &gks->lower_bc[wall_dir], &gks->phi_wall_lo);
+  gk_species_phi_wall_init(app, &gks->upper_bc[wall_dir], &gks->phi_wall_up);
  
   // Species properties metadata.
   struct gkyl_msgpack_map_elem io_meta_sprop[] = {
@@ -1937,9 +1943,10 @@ gk_species_copy_range(struct gk_species *species, struct gkyl_array *out,
 }
 
 void
-gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species, struct gkyl_array *f)
+gk_species_apply_bc(gkyl_gyrokinetic_app *app, const struct gk_species *species,
+  double tm, struct gkyl_array *f)
 {
-  species->bc_func(app, species, f);
+  species->bc_func(app, species, tm, f);
 }
 
 void
@@ -2038,7 +2045,8 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
 
   gk_species_fdot_multiplier_release(app, &gks->fdot_mult);
 
-  gk_species_wall_potential_release(app, gks);
+  gk_species_phi_wall_release(app, &gks->phi_wall_lo);
+  gk_species_phi_wall_release(app, &gks->phi_wall_up);
 
   gk_species_lbo_release(app, &gks->lbo);
 

@@ -976,9 +976,6 @@ void
 gyrokinetic_calc_field(gkyl_gyrokinetic_app* app, double tcurr,
   const struct gkyl_array *fin[], struct gkyl_array **bflux[])
 {
-  for (int i=0; i<app->num_species; ++i)
-    gk_species_wall_potential_advance(app, &app->species[i], tcurr);
-
   app->calc_field_func(app, tcurr, fin, bflux);
 }
 
@@ -996,7 +993,7 @@ gyrokinetic_calc_field_and_apply_bc(gkyl_gyrokinetic_app* app, double tcurr,
   // Apply boundary conditions.
   struct timespec wst = gkyl_wall_clock();
   for (int i=0; i<app->num_species; ++i) {
-    gk_species_apply_bc(app, &app->species[i], distf[i]);
+    gk_species_apply_bc(app, &app->species[i], tcurr, distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);
@@ -1058,9 +1055,6 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
   for (int i=0; i<app->num_neut_species; ++i)
     gkyl_gyrokinetic_app_apply_ic_cross_neut_species(app, i, t0);
 
-  for (int i=0; i<app->num_species; ++i)
-    gk_species_wall_potential_advance(app, &app->species[i], t0);
-
   // Compute the fields and apply BCs.
   struct gkyl_array *distf[app->num_species];
   struct gkyl_array **bflux[app->num_species];
@@ -1115,7 +1109,7 @@ gkyl_gyrokinetic_app_apply_ic(gkyl_gyrokinetic_app* app, double t0)
 
   // Apply boundary conditions.
   for (int i=0; i<app->num_species; ++i) {
-    gk_species_apply_bc(app, &app->species[i], distf[i]);
+    gk_species_apply_bc(app, &app->species[i], t0, distf[i]);
   }
   for (int i=0; i<app->num_neut_species; ++i) {
     if (!app->neut_species[i].info.is_static) {
@@ -3506,7 +3500,7 @@ gkyl_gyrokinetic_app_read_from_frame(gkyl_gyrokinetic_app *app, int frame)
 
     // Apply boundary conditions.
     for (int i=0; i<app->num_species; ++i) {
-      gk_species_apply_bc(app, &app->species[i], distf[i]);
+      gk_species_apply_bc(app, &app->species[i], rstat.stime, distf[i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(app, &app->neut_species[i], distf_neut[i]);

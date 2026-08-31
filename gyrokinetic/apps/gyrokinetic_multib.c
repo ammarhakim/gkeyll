@@ -335,7 +335,7 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
         field_inp.poisson_bcs[i].value[k] = -1.0e3;
     }
   }
-  
+
   for (int i=0; i<fld->num_physical_bcs; i++) { 
     if (bid == fld->bcs[i].bidx) {
       struct gkyl_gyrokinetic_bc *bc_curr = gk_fetch_bc_with_dir_edge(field_inp.poisson_bcs, 2*cdim, fld->bcs[i].dir, fld->bcs[i].edge);
@@ -349,6 +349,15 @@ singleb_app_new_solver(const struct gkyl_gyrokinetic_multib *mbinp, int bid,
   
   const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[0];
   // Choose proper block-specific field input.
+  if (!fld->duplicate_across_blocks) {
+    for (int i=0; i<num_blocks; ++i) {
+      if (bid == fld->blocks[i].block_id) {
+        const struct gkyl_gyrokinetic_multib_field_pb *fld_pb = &fld->blocks[i];
+        break;
+      }
+    }
+  }
+
   if (!fld->duplicate_across_blocks) {
     for (int i=0; i<num_blocks; ++i) {
       if (bid == fld->blocks[i].block_id) {
@@ -910,8 +919,7 @@ gyrokinetic_multib_apply_bc(struct gkyl_gyrokinetic_multib_app* app, double tcur
     int li_charged = b * app->num_species;
     int li_neut = b * app->num_neut_species;
     for (int i=0; i<app->num_species; ++i) {
-      gk_species_wall_potential_advance(sbapp, &sbapp->species[i], tcurr);
-      gk_species_apply_bc(sbapp, &sbapp->species[i], distf[li_charged+i]);
+      gk_species_apply_bc(sbapp, &sbapp->species[i], tcurr, distf[li_charged+i]);
     }
     for (int i=0; i<app->num_neut_species; ++i) {
       gk_neut_species_apply_bc(sbapp, &sbapp->neut_species[i], distf_neut[li_neut+i]);

@@ -82,7 +82,8 @@ test_species_wall_profiles(void)
     },
   };
 
-  gk_species_wall_potential_init(&app, &species);
+  gk_species_phi_wall_init(&app, &species.lower_bc[0], &species.phi_wall_lo);
+  gk_species_phi_wall_init(&app, &species.upper_bc[0], &species.phi_wall_up);
   TEST_ASSERT(species.phi_wall_lo.phi != 0);
   TEST_ASSERT(species.phi_wall_up.phi != 0);
   TEST_ASSERT(species.phi_wall_lo.projector != 0);
@@ -91,11 +92,14 @@ test_species_wall_profiles(void)
   check_profile(&app, species.phi_wall_up.phi, &upper_ctx, 0.0);
 
   double tm = 0.625;
-  gk_species_wall_potential_advance(&app, &species, tm);
+  gk_species_phi_wall_advance(&app, &species.phi_wall_lo, tm);
   check_profile(&app, species.phi_wall_lo.phi, &lower_ctx, tm);
+  check_profile(&app, species.phi_wall_up.phi, &upper_ctx, 0.0);
+  gk_species_phi_wall_advance(&app, &species.phi_wall_up, tm);
   check_profile(&app, species.phi_wall_up.phi, &upper_ctx, tm);
 
-  gk_species_wall_potential_release(&app, &species);
+  gk_species_phi_wall_release(&app, &species.phi_wall_lo);
+  gk_species_phi_wall_release(&app, &species.phi_wall_up);
 }
 
 static void
@@ -111,7 +115,8 @@ test_grounded_and_non_sheath_walls(void)
     },
   };
 
-  gk_species_wall_potential_init(&app, &species);
+  gk_species_phi_wall_init(&app, &species.lower_bc[0], &species.phi_wall_lo);
+  gk_species_phi_wall_init(&app, &species.upper_bc[0], &species.phi_wall_up);
   TEST_ASSERT(species.phi_wall_lo.phi != 0);
   TEST_CHECK(species.phi_wall_lo.phi_host == species.phi_wall_lo.phi);
   TEST_CHECK(species.phi_wall_lo.projector == 0);
@@ -128,7 +133,8 @@ test_grounded_and_non_sheath_walls(void)
       TEST_CHECK(phi_c[k] == 0.0);
   }
 
-  gk_species_wall_potential_release(&app, &species);
+  gk_species_phi_wall_release(&app, &species.phi_wall_lo);
+  gk_species_phi_wall_release(&app, &species.phi_wall_up);
 }
 
 TEST_LIST = {
