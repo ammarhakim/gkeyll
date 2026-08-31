@@ -1065,6 +1065,7 @@ struct gk_species {
   int io_meta_conf_len; // Number of elements in io_meta_conf.
 
   struct gkyl_array *f, *f1, *fnew; // Arrays for updates.
+  struct gkyl_array *fdot, *fdot_host; // Phase-space (f_new-f_old)/dt and its host copy.
   struct gkyl_array *cflrate; // CFL rate in each cell.
   struct gkyl_array *cflrate_ho; // CFL rate in each cell on host-side.
 
@@ -1090,6 +1091,9 @@ struct gk_species {
   gkyl_dynvec fdot_abs_integ_diag; // Integrals of absolute moments of (f_new-f_old)/dt.
   bool is_first_fdot_integ_write_call; // Whether dynvec is being written for the first time.
   bool is_first_fdot_abs_integ_write_call; // Whether absolute fdot dynvec is being written for the first time.
+
+  // Lookup table populated from info.time_rate_diagnostics.
+  bool time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM];
 
   struct gkyl_array_integrate* integ_wfsq_op; // Operator to integrate w*f^2.
   double *L2norm_local, *L2norm_global; // L2norm in local MPI process and across the communicator.
@@ -3452,6 +3456,18 @@ void gk_species_write_L2norm(gkyl_gyrokinetic_app* app, struct gk_species *gks);
  */
 void
 gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom);
+
+/**
+ * Store the old-distribution contribution to the phase-space fdot diagnostic.
+ */
+void
+gk_species_calc_fdot_begin_step(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt);
+
+/**
+ * Add the new-distribution contribution to the phase-space fdot diagnostic.
+ */
+void
+gk_species_calc_fdot_complete_step(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt);
 
 /**
  * Delete resources used in species.

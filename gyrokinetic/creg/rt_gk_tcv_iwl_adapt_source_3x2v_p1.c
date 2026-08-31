@@ -700,7 +700,11 @@ main(int argc, char **argv)
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
     
-    .time_rate_diagnostics = true,
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics = {
+      GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+      GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS,
+    },
   };
 
   // ions
@@ -785,7 +789,11 @@ main(int argc, char **argv)
       .integrated_diag_moments = { GKYL_F_MOMENT_HAMILTONIAN },
     },
     
-    .time_rate_diagnostics = true,
+    .num_time_rate_diagnostics = 2,
+    .time_rate_diagnostics = {
+      GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS,
+      GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS,
+    },
   };
 
   struct gkyl_poisson_bias_line target_corner_bcs[] = {

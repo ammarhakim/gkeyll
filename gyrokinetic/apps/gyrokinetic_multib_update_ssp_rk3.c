@@ -144,6 +144,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
             // Compute moment of f_old to later compute moment of df/dt.
             // Do it before the fields are updated, but after dt is calculated.
             gk_species_calc_int_mom_dt(sbapp, gks, dt, gks->fdot_mom_old);
+            gk_species_calc_fdot_begin_step(sbapp, gks, dt);
           }
 
           // Compute field energy divided by dt for energy balance diagnostics.
@@ -371,6 +372,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
               // Compute moment of f_new to compute moment of df/dt.
               // Need to do it after the fields are updated.
               gk_species_calc_int_mom_dt(sbapp, gks, dt, gks->fdot_mom_new);
+              gk_species_calc_fdot_complete_step(sbapp, gks, dt);
             }
 
             // Compute field energy divided by dt for energy balance diagnostics.
@@ -388,5 +390,4 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 
   return st;
 }
-
 
