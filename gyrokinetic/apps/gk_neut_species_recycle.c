@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_gyrokinetic_priv.h>
 
 static void

@@ -31,11 +31,8 @@
 #include <gkyl_dg_advection.h>
 #include <gkyl_dg_array_mask.h>
 #include <gkyl_dg_bin_ops.h>
-#include <gkyl_dg_calc_canonical_pb_vars.h>
-#include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_gk_collisionless_flux.h>
-#include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
 #include <gkyl_dg_iz.h>
@@ -45,9 +42,7 @@
 #include <gkyl_dg_updater_gyrokinetic.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
-#include <gkyl_dg_updater_moment.h>
 #include <gkyl_dg_updater_rad_gyrokinetic.h>
-#include <gkyl_dg_updater_vlasov.h>
 #include <gkyl_dg_vlasov.h>
 #include <gkyl_dg_vlasov_calc_hamil.h>
 #include <gkyl_dg_vlasov_conf_flux_surf.h>
@@ -81,7 +76,6 @@
 #include <gkyl_mom_bcorr_lbo_gyrokinetic.h>
 #include <gkyl_mom_calc.h>
 #include <gkyl_mom_calc_bcorr.h>
-#include <gkyl_mom_canonical_pb.h>
 #include <gkyl_mom_gyrokinetic.h>
 #include <gkyl_null_pool.h>
 #include <gkyl_position_map.h>
