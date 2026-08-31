@@ -355,35 +355,57 @@ gk_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_species *gks, doub
   app->stat.species_io_tm += gkyl_time_diff_now_sec(wst);
   app->stat.n_io += 1;
 
-  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT]) {
-    struct timespec wdt = gkyl_wall_clock();
-
-    struct gkyl_msgpack_map_elem io_meta_fdot[] = {
-      { .key = "Description", .elem_type = GKYL_MP_STRING,
-        .cval = "Time rate of change of the distribution function." }
-    };
-    int io_meta_fdot_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
-    const struct gkyl_msgpack_map_elem* io_meta_fdot_union[] = {
-      gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_fdot
-    };
-    struct gkyl_msgpack_data *fdot_mt = gkyl_msgpack_create_union(
-      sizeof(io_meta_fdot_len)/sizeof(int), io_meta_fdot_len, io_meta_fdot_union);
-
-    const char *fdot_fmt = "%s-%s_fdot_%d.gkyl";
-    int fdot_sz = gkyl_calc_strlen(fdot_fmt, app->name, gks->info.name, frame);
-    char fdot_fileNm[fdot_sz+1]; // Ensures no buffer overflow.
-    snprintf(fdot_fileNm, sizeof fdot_fileNm, fdot_fmt, app->name, gks->info.name, frame);
-
-    if (app->use_gpu) {
-      gkyl_array_copy(gks->fdot_host, gks->fdot);
-    }
-    gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, fdot_mt,
-      gks->fdot_host, fdot_fileNm);
-
-    gkyl_msgpack_data_release(fdot_mt);
-    app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wdt);
-    app->stat.n_diag_io += 1;
+  if (!gks->info.is_static &&
+      gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT]) {
+    // The matching RHS is produced by stage 1 of the next RK step. Queue its
+    // metadata so it can be written before the forward-Euler update overwrites it.
+    gks->fdot_io_pending = true;
+    gks->fdot_io_tm = tm;
+    gks->fdot_io_frame = frame;
   }
+}
+
+void
+gk_species_write_fdot(gkyl_gyrokinetic_app *app, struct gk_species *gks,
+  const struct gkyl_array *fdot)
+{
+  if (!gks->fdot_io_pending)
+    return;
+
+  struct timespec wst = gkyl_wall_clock();
+
+  gkyl_msgpack_map_elem_set_double(gks->io_meta_phase_len, gks->io_meta_phase,
+    "time", gks->fdot_io_tm);
+  gkyl_msgpack_map_elem_set_uint(gks->io_meta_phase_len, gks->io_meta_phase,
+    "frame", gks->fdot_io_frame);
+
+  struct gkyl_msgpack_map_elem io_meta_fdot[] = {
+    { .key = "Description", .elem_type = GKYL_MP_STRING,
+      .cval = "Explicit SSP-RK3 stage-1 time rate of change of the distribution function." }
+  };
+  int io_meta_len[] = {gks->io_meta_phase_len, app->gk_geom->io_meta_basic_len, 1};
+  const struct gkyl_msgpack_map_elem* io_meta[] = {
+    gks->io_meta_phase, app->gk_geom->io_meta_basic, io_meta_fdot
+  };
+  struct gkyl_msgpack_data *mt = gkyl_msgpack_create_union(
+    sizeof(io_meta_len)/sizeof(int), io_meta_len, io_meta);
+
+  const char *fmt = "%s-%s_fdot_%d.gkyl";
+  int sz = gkyl_calc_strlen(fmt, app->name, gks->info.name, gks->fdot_io_frame);
+  char fileNm[sz+1]; // Ensures no buffer overflow.
+  snprintf(fileNm, sizeof fileNm, fmt, app->name, gks->info.name, gks->fdot_io_frame);
+
+  const struct gkyl_array *fdot_host = fdot;
+  if (app->use_gpu) {
+    gkyl_array_copy(gks->f_host, fdot);
+    fdot_host = gks->f_host;
+  }
+  gkyl_comm_array_write(gks->comm, &gks->grid, &gks->local, mt, fdot_host, fileNm);
+
+  gks->fdot_io_pending = false;
+  gkyl_msgpack_data_release(mt);
+  app->stat.species_diag_io_tm += gkyl_time_diff_now_sec(wst);
+  app->stat.n_diag_io += 1;
 }
 
 static void
@@ -505,26 +527,6 @@ void
 gk_species_calc_int_mom_dt(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt, struct gkyl_array *fdot_int_mom)
 {
   gks->calc_int_mom_dt_func(app, gks, dt, fdot_int_mom);
-}
-
-void
-gk_species_calc_fdot_begin_step(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt)
-{
-  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT]) {
-    struct timespec wst = gkyl_wall_clock();
-    gkyl_array_set(gks->fdot, -1.0/dt, gks->f);
-    app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
-  }
-}
-
-void
-gk_species_calc_fdot_complete_step(gkyl_gyrokinetic_app* app, struct gk_species *gks, double dt)
-{
-  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT]) {
-    struct timespec wst = gkyl_wall_clock();
-    gkyl_array_accumulate(gks->fdot, 1.0/dt, gks->f);
-    app->stat.fdot_tm += gkyl_time_diff_now_sec(wst);
-  }
 }
 
 static void
@@ -1571,6 +1573,7 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   for (int d=0; d<GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM; ++d) {
     gks->time_rate_diagnostics[d] = false;
   }
+  gks->fdot_io_pending = false;
   for (int d=0; d<gks->info.num_time_rate_diagnostics; ++d) {
     enum gkyl_gyrokinetic_time_rate_diagnostic diag = gks->info.time_rate_diagnostics[d];
     assert(diag >= 0 && diag < GKYL_GK_TIME_RATE_DIAGNOSTIC_NUM);
@@ -1738,14 +1741,6 @@ gk_species_init(struct gkyl_gk *gk_app_inp, struct gkyl_gyrokinetic_app *app, st
   gks->f_host = gks->f;
   if (app->use_gpu)
     gks->f_host = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
-
-  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT]) {
-    gks->fdot = mkarr(app->use_gpu, gks->basis.num_basis, gks->local_ext.volume);
-    gks->fdot_host = gks->fdot;
-    if (app->use_gpu) {
-      gks->fdot_host = mkarr(false, gks->basis.num_basis, gks->local_ext.volume);
-    }
-  }
 
   // Allocate cflrate (scalar array).
   gks->cflrate = mkarr(app->use_gpu, 1, gks->local_ext.volume);
@@ -2222,13 +2217,6 @@ gk_species_release(const gkyl_gyrokinetic_app* app, const struct gk_species *gks
   if (app->use_gpu) {
     gkyl_array_release(gks->f_host);
     gkyl_cu_free(gks->basis_on_dev);
-  }
-
-  if (gks->time_rate_diagnostics[GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT]) {
-    gkyl_array_release(gks->fdot);
-    if (app->use_gpu) {
-      gkyl_array_release(gks->fdot_host);
-    }
   }
 
   gkyl_velocity_map_release(gks->vel_map);
