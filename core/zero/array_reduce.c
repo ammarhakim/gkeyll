@@ -20,6 +20,9 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
       case GKYL_SUM:
         gkyl_array_reduce_sum_cu(out, arr);
         break;
+      default:
+        assert(false);
+        break;
     }
     return;
   }
@@ -55,6 +58,9 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
           out[k] += d[k];
       }
       break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -75,6 +81,9 @@ gkyl_array_reduce_range(double *res,
         break;
       case GKYL_SUM:
         gkyl_array_reduce_range_sum_cu(res, arr, range);
+        break;
+      case GKYL_SUM_ABS:
+        gkyl_array_reduce_range_sum_abs_cu(res, arr, range);
         break;
     }
     return;
@@ -116,31 +125,15 @@ gkyl_array_reduce_range(double *res,
           res[i] += d[i];
       }
       break;
-  }
-}
+    case GKYL_SUM_ABS:
+      for (long i=0; i<n; ++i) res[i] = 0;
 
-void
-gkyl_array_reduce_range_sum_abs(double *res,
-  const struct gkyl_array *arr, const struct gkyl_range *range)
-{
-  assert(arr->type == GKYL_DOUBLE);
-
-#ifdef GKYL_HAVE_CUDA
-  if (gkyl_array_is_cu_dev(arr)) {
-    gkyl_array_reduce_range_sum_abs_cu(res, arr, range);
-    return;
-  }
-#endif
-
-  long n = arr->ncomp;
-  for (long i=0; i<n; ++i) res[i] = 0;
-
-  struct gkyl_range_iter iter;
-  gkyl_range_iter_init(&iter, range);
-  while (gkyl_range_iter_next(&iter)) {
-    long start = gkyl_range_idx(range, iter.idx);
-    const double *d = gkyl_array_cfetch(arr, start);
-    for (long i=0; i<n; ++i)
-      res[i] += fabs(d[i]);
+      while (gkyl_range_iter_next(&iter)) {
+        long start = gkyl_range_idx(range, iter.idx);
+        const double *d = gkyl_array_cfetch(arr, start);
+        for (long i=0; i<n; ++i)
+          res[i] += fabs(d[i]);
+      }
+      break;
   }
 }

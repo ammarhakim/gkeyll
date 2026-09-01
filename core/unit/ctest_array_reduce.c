@@ -116,7 +116,7 @@ void test_sum_abs_reduce_range()
   }
 
   double asum[2];
-  gkyl_array_reduce_range_sum_abs(asum, arr, &range);
+  gkyl_array_reduce_range(asum, arr, GKYL_SUM_ABS, &range);
 
   TEST_CHECK( asum[0] == 0.5*range.volume );
   TEST_CHECK( asum[1] == 1.5*range.volume );
@@ -144,7 +144,7 @@ void test_cu_sum_abs_reduce_range()
 
   double asum[2];
   double *asum_cu = gkyl_cu_malloc(2*sizeof(double));
-  gkyl_array_reduce_range_sum_abs(asum_cu, arr_cu, &range);
+  gkyl_array_reduce_range(asum_cu, arr_cu, GKYL_SUM_ABS, &range);
   gkyl_cu_memcpy(asum, asum_cu, sizeof(asum), GKYL_CU_MEMCPY_D2H);
 
   TEST_CHECK( asum[0] == 0.5*range.volume );
