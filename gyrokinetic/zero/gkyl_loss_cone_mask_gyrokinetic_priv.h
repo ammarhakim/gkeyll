@@ -19,8 +19,8 @@ struct gkyl_loss_cone_mask_gyrokinetic {
 
   double mass; // Species mass.
   double charge; // Species charge.
-  enum gkyl_gk_loss_cone_trajectory_type lower_trajectory; // Lower-z trajectory type.
-  enum gkyl_gk_loss_cone_trajectory_type upper_trajectory; // Upper-z trajectory type.
+  enum gkyl_gk_trapped_passing_orbit_type lower_orbit; // Lower-z orbit type.
+  enum gkyl_gk_trapped_passing_orbit_type upper_orbit; // Upper-z orbit type.
 
   struct gkyl_array *basis_at_corners_conf; // Basis functions at configuration-space P1 corners.
 };
@@ -95,9 +95,9 @@ gk_lcm_hamiltonian_below_barrier(double kinetic_energy, double magnetic_energy,
 
 /**
  * Compute the maximum effective potential U=mu*B+q*phi along the lower- and
- * upper-z trajectories from one configuration-space P1 corner. base_idx fixes
- * the transverse cell indices, z_cell is the anchor cell, and a non-NULL wall
- * potential adds the material-wall endpoint to an open trajectory.
+ * upper-z orbits from one configuration-space P1 corner. base_idx fixes the
+ * transverse cell indices, z_cell is the anchor cell, and a sheath-trapped
+ * orbit includes the material-wall potential.
  */
 GKYL_CU_DH
 static inline void
@@ -107,8 +107,8 @@ gk_lcm_escape_barriers(int cdim, int num_basis_conf,
   const struct gkyl_array *bmag, const struct gkyl_array *phi_wall_lo,
   const struct gkyl_array *phi_wall_up, const int *base_idx, int z_cell,
   int anchor_conf_corner, double mu, double charge,
-  enum gkyl_gk_loss_cone_trajectory_type lower_trajectory,
-  enum gkyl_gk_loss_cone_trajectory_type upper_trajectory,
+  enum gkyl_gk_trapped_passing_orbit_type lower_orbit,
+  enum gkyl_gk_trapped_passing_orbit_type upper_orbit,
   double *barrier_left, double *barrier_right)
 {
   int zdim = cdim - 1;
@@ -164,10 +164,10 @@ gk_lcm_escape_barriers(int cdim, int num_basis_conf,
     }
   }
 
-  if (lower_trajectory == GKYL_GK_LOSS_CONE_CLOSED_TRAJECTORY) {
+  if (lower_orbit == GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL) {
     *barrier_left = DBL_MAX;
   }
-  else if (phi_wall_lo) {
+  else if (lower_orbit == GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH) {
     scan_idx[zdim] = conf_range->lower[zdim];
     long linidx = gkyl_range_idx(conf_range, scan_idx);
     double bmag_wall = gk_lcm_field_corner_value(bmag, basis_at_corners_conf,
@@ -177,10 +177,10 @@ gk_lcm_escape_barriers(int cdim, int num_basis_conf,
     *barrier_left = GKYL_MAX2(*barrier_left, mu * bmag_wall + charge * phi_wall);
   }
 
-  if (upper_trajectory == GKYL_GK_LOSS_CONE_CLOSED_TRAJECTORY) {
+  if (upper_orbit == GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL) {
     *barrier_right = DBL_MAX;
   }
-  else if (phi_wall_up) {
+  else if (upper_orbit == GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH) {
     scan_idx[zdim] = conf_range->upper[zdim];
     long linidx = gkyl_range_idx(conf_range, scan_idx);
     double bmag_wall = gk_lcm_field_corner_value(bmag, basis_at_corners_conf,

@@ -7,8 +7,7 @@
 #include <gkyl_range.h>
 
 // The loss-cone mask is built from the lower- and upper-z escape barriers.
-// A non-NULL wall potential extends an open trajectory from the plasma edge
-// to a material-wall endpoint.
+// A sheath-trapped orbit includes the material-wall potential as an endpoint.
 
 /** Allocate host or device array storage for precomputed corner data. */
 static struct gkyl_array*
@@ -56,13 +55,13 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->mass = inp->mass;
   up->charge = inp->charge;
   up->use_gpu = inp->use_gpu;
-  up->lower_trajectory = inp->lower_trajectory;
-  up->upper_trajectory = inp->upper_trajectory;
+  up->lower_orbit = inp->lower_orbit;
+  up->upper_orbit = inp->upper_orbit;
 
-  assert(up->lower_trajectory >= GKYL_GK_LOSS_CONE_OPEN_TRAJECTORY &&
-    up->lower_trajectory <= GKYL_GK_LOSS_CONE_CLOSED_TRAJECTORY);
-  assert(up->upper_trajectory >= GKYL_GK_LOSS_CONE_OPEN_TRAJECTORY &&
-    up->upper_trajectory <= GKYL_GK_LOSS_CONE_CLOSED_TRAJECTORY);
+  assert(up->lower_orbit >= GKYL_GK_TRAP_PASS_ORBIT_PASSING &&
+    up->lower_orbit <= GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL);
+  assert(up->upper_orbit >= GKYL_GK_TRAP_PASS_ORBIT_PASSING &&
+    up->upper_orbit <= GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_WALL);
 
   up->cdim = inp->conf_basis->ndim;
   up->num_basis_conf = inp->conf_basis->num_basis;
@@ -85,6 +84,9 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
   struct gkyl_array *mask_out)
 {
+  assert(up->lower_orbit != GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH || phi_wall_lo);
+  assert(up->upper_orbit != GKYL_GK_TRAP_PASS_ORBIT_TRAPPED_SHEATH || phi_wall_up);
+
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_loss_cone_mask_gyrokinetic_advance_cu(up, phase_range, conf_range, bmag, phi,
@@ -155,7 +157,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
       gk_lcm_escape_barriers(cdim, num_basis_conf, conf_range,
         &up->conf_corner_range, up->basis_at_corners_conf, phi, bmag,
         phi_wall_lo, phi_wall_up, conf_idx, conf_idx[zdim], conf_corner,
-        mu, up->charge, up->lower_trajectory, up->upper_trajectory,
+        mu, up->charge, up->lower_orbit, up->upper_orbit,
         &barrier_left, &barrier_right);
 
       // Equality means that the particle reaches the loss endpoint with zero

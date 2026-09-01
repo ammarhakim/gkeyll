@@ -17,8 +17,8 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(int cdim, int num_basis_conf,
   const struct gkyl_array *basis_at_corners_conf,
   const struct gkyl_array *bmag, const struct gkyl_array *phi,
   const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
-  enum gkyl_gk_loss_cone_trajectory_type lower_trajectory,
-  enum gkyl_gk_loss_cone_trajectory_type upper_trajectory,
+  enum gkyl_gk_trapped_passing_orbit_type lower_orbit,
+  enum gkyl_gk_trapped_passing_orbit_type upper_orbit,
   const struct gkyl_velocity_map *gvm,
   struct gkyl_array *mask_out)
 {
@@ -69,7 +69,7 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu_ker(int cdim, int num_basis_conf,
       double barrier_left, barrier_right;
       gk_lcm_escape_barriers(cdim, num_basis_conf, &conf_range, &conf_corner_range,
         basis_at_corners_conf, phi, bmag, phi_wall_lo, phi_wall_up, conf_idx,
-        conf_idx[zdim], conf_corner, mu, charge, lower_trajectory, upper_trajectory,
+        conf_idx[zdim], conf_corner, mu, charge, lower_orbit, upper_orbit,
         &barrier_left, &barrier_right);
 
       cell_trapped = gk_lcm_hamiltonian_below_barrier(kinetic_energy,
@@ -114,6 +114,6 @@ gkyl_loss_cone_mask_gyrokinetic_advance_cu(gkyl_loss_cone_mask_gyrokinetic *up,
     up->cdim, up->num_basis_conf, up->conf_corner_range, phase_corner_range,
     up->mass, up->charge, *phase_range, *conf_range,
     up->basis_at_corners_conf->on_dev, bmag->on_dev, phi->on_dev,
-    phi_wall_lo_dev, phi_wall_up_dev, up->lower_trajectory, up->upper_trajectory,
+    phi_wall_lo_dev, phi_wall_up_dev, up->lower_orbit, up->upper_orbit,
     gvm->on_dev, mask_out->on_dev);
 }
