@@ -1704,6 +1704,42 @@ tok_ext_topology_from_ftype(enum gkyl_tok_geo_type ftype, bool half_domain,
   return true;
 }
 
+// An X-point ray is the shared theta boundary of exactly TWO blocks: every
+// (xpoint, sector) pair appears once as some ftype's lower endpoint and once as
+// another's upper.  Return the endpoint at the FAR side of the block across
+// this ray, so a block can ask what its neighbour needs without any runtime
+// communication -- the answer is in the static topology table.
+static bool
+tok_ext_ray_peer_far_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
+  const struct tok_ext_endpoint *ray, struct tok_ext_endpoint *peer_far)
+{
+  if (ray->kind != TOK_EXT_XPT_RAY)
+    return false;
+  for (int f=0; f<=(int) GKYL_GEOMETRY_TOKAMAK_IWL; ++f) {
+    enum gkyl_tok_geo_type ft = (enum gkyl_tok_geo_type) f;
+    if (ft == inp->ftype)
+      continue;
+    struct tok_ext_topology t;
+    if (!tok_ext_topology_from_ftype(ft, inp->half_domain, &t))
+      continue;
+    bool lo = t.lower.kind == TOK_EXT_XPT_RAY &&
+      t.lower.xpoint == ray->xpoint && t.lower.sector == ray->sector;
+    bool up = t.upper.kind == TOK_EXT_XPT_RAY &&
+      t.upper.xpoint == ray->xpoint && t.upper.sector == ray->sector;
+    if (lo) { *peer_far = t.upper; return true; }
+    if (up) { *peer_far = t.lower; return true; }
+  }
+  return false;
+}
+
+// Set GKYL_TOK_EXT_RAY_PEER_CHECK=0 to fall back to the one-sided test.
+static bool
+tok_ext_ray_peer_check_enabled(void)
+{
+  const char *e = getenv("GKYL_TOK_EXT_RAY_PEER_CHECK");
+  return !(e && e[0] != '\0' && e[0] == '0');
+}
+
 static bool
 tok_ext_xpoint_rz(const struct gkyl_tok_geo *geo,
   enum tok_ext_xpoint which, double *r, double *z)
@@ -1857,8 +1893,9 @@ static bool
 tok_ext_fixed_ray_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
   const struct arc_length_ctx *arc_ctx,
   const struct tok_ext_endpoint *endpoint, double psi,
-  double *r, double *z)
+  double *r, double *z, bool *ambiguous)
 {
+  if (ambiguous) *ambiguous = false;
   const struct gkyl_tok_geo *geo = arc_ctx->geo;
   double rx = 0.0, zx = 0.0, rf = 0.0, zf = 0.0;
   if (!tok_ext_xpoint_rz(geo, endpoint->xpoint, &rx, &zx) ||
@@ -1931,6 +1968,11 @@ tok_ext_fixed_ray_endpoint(const struct gkyl_tok_geo_grid_inp *inp,
     qend = q;
     qprev = q; sprev = s;
   }
+  // More than one upward crossing means the ray meets this surface more than
+  // once and the anchor is a CHOICE, not a solve.  Report it: the choice has to
+  // be made jointly with the block across the ray, which cannot know to ask
+  // unless it is told the question exists.
+  if (ambiguous) *ambiguous = upward > 1;
   if (upward > 1) {
     fprintf(stderr,
       "TOK_EXT_RAY_CROSSINGS ftype=%d sector=%d psi=%.17g qtarget=%.17g "
@@ -2008,14 +2050,17 @@ static bool
 tok_ext_endpoint_point(const struct gkyl_tok_geo_grid_inp *inp,
   const struct arc_length_ctx *arc_ctx,
   const struct tok_ext_endpoint *endpoint,
-  double psi, bool separatrix, double *r, double *z)
+  double psi, bool separatrix, double *r, double *z, bool *ambiguous)
 {
   const struct gkyl_tok_geo *geo = arc_ctx->geo;
+  if (ambiguous) *ambiguous = false;
   if (endpoint->kind == TOK_EXT_XPT_RAY) {
     if (separatrix) {
+      // The separatrix anchor IS the X point; there is nothing to choose.
       return tok_ext_xpoint_rz(geo, endpoint->xpoint, r, z);
     }
-    return tok_ext_fixed_ray_endpoint(inp, arc_ctx, endpoint, psi, r, z);
+    return tok_ext_fixed_ray_endpoint(inp, arc_ctx, endpoint, psi, r, z,
+      ambiguous);
   }
   if (endpoint->kind == TOK_EXT_MIDPLANE) {
     // The midplane is a symmetry boundary, not a material one, so the same
@@ -3020,10 +3065,11 @@ tok_ext_build_domain_trace(const struct gkyl_tok_geo_grid_inp *inp,
     return false;
   }
   double r0 = 0.0, z0 = 0.0, r1 = 0.0, z1 = 0.0;
+  bool amb_lo = false, amb_up = false;
   bool lower_ok = tok_ext_endpoint_point(inp, arc_ctx, &top.lower,
-    psi, separatrix, &r0, &z0);
+    psi, separatrix, &r0, &z0, &amb_lo);
   bool upper_ok = tok_ext_endpoint_point(inp, arc_ctx, &top.upper,
-    psi, separatrix, &r1, &z1);
+    psi, separatrix, &r1, &z1, &amb_up);
   if (!lower_ok || !upper_ok) {
     fprintf(stderr,
       "TOK_ORDERED_MAP failed boundary endpoint ftype=%d psi=%.17g separatrix=%d "
@@ -3119,6 +3165,68 @@ tok_ext_build_domain_trace(const struct gkyl_tok_geo_grid_inp *inp,
       "TOK_ORDERED_MAP failed extended trace ftype=%d route=%d psi=%.17g separatrix=%d endpoints=(%.17g,%.17g)->(%.17g,%.17g)\n",
       inp->ftype, top.route, psi, separatrix, r0, z0, r1, z1);
     return false;
+  }
+  // The anchor on an X-point ray belongs to BOTH blocks that meet there, so
+  // "can I route to it?" is the wrong question -- it is block-specific, and the
+  // two sides can answer it differently about the same point.  Measured on
+  // 204502 at phase2x: DN_SOL_IN_LO re-anchored at the last crossing on 14 psi
+  // surfaces while DN_SOL_IN_MID kept the first on all but one, so one node of
+  // the 21 on their shared ray landed 9.9e-02 m (10.4 cells) apart while the
+  // other 20 agreed to 1e-16.
+  //
+  // Ask the symmetric question instead: the anchor must be reachable from the
+  // far side of BOTH blocks.  Each side evaluates the same conjunction -- its
+  // own trace AND a probe to the peer's far endpoint, which the static topology
+  // table supplies -- so the two reach the same verdict by construction, with
+  // no cross-block communication and nothing cached.
+  //
+  // This runs only where the ray genuinely crossed the surface more than once,
+  // which is rare, and never on the separatrix, where the anchor is the X point
+  // itself.  It cannot loop: the re-anchored rebuild sets
+  // ext_ray_use_last_crossing, and this block is skipped while that is set.
+  if (!separatrix && (amb_lo || amb_up) && !arc_ctx->ext_ray_use_last_crossing
+      && tok_ext_ray_peer_check_enabled()) {
+    const struct tok_ext_endpoint *ray = amb_lo ? &top.lower : &top.upper;
+    double ar = amb_lo ? r0 : r1, az = amb_lo ? z0 : z1;
+    struct tok_ext_endpoint peer_far;
+    if (tok_ext_ray_peer_far_endpoint(inp, ray, &peer_far)) {
+      double pr = 0.0, pz = 0.0;
+      bool peer_ok = tok_ext_endpoint_point(inp, arc_ctx, &peer_far, psi,
+        separatrix, &pr, &pz, NULL);
+      double *probe = NULL;
+      if (peer_ok) {
+        probe = gkyl_malloc(sizeof(double[3*(size_t) n]));
+        bool pparam = false;
+        peer_ok = tok_ext_build_open_trace(inp, arc_ctx->geo, psi, n,
+          ar, az, pr, pz, probe, probe+n, probe+2*n, &pparam);
+        gkyl_free(probe);
+      }
+      if (!peer_ok) {
+        // Re-anchor into scratch: on failure the first-crossing trace already
+        // in r/z/s must survive, so it cannot be rebuilt in place.
+        double *alt = gkyl_malloc(sizeof(double[3*(size_t) n]));
+        int alt_n = 0;
+        bool alt_param = false, alt_closed = false;
+        arc_ctx->ext_ray_use_last_crossing = true;
+        bool alt_ok = tok_ext_build_domain_trace(inp, arc_ctx, psi, separatrix,
+          alt, alt+n, alt+2*n, &alt_n, &alt_param, &alt_closed);
+        arc_ctx->ext_ray_use_last_crossing = false;
+        if (alt_ok && alt_n > 0) {
+          for (int i=0; i<alt_n; ++i) {
+            r[i] = alt[i]; z[i] = alt[n+i]; s[i] = alt[2*n+i];
+          }
+          *nout = alt_n; *param_is_r = alt_param; *closed = alt_closed;
+          gkyl_free(alt);
+          fprintf(stderr,
+            "TOK_EXT_RAY_PEER_REANCHOR ftype=%d sector=%d psi=%.17g -- the "
+            "first-crossing anchor is unreachable from the block across this "
+            "ray; both sides take the last crossing\n",
+            inp->ftype, ray->sector, psi);
+          return true;
+        }
+        gkyl_free(alt);
+      }
+    }
   }
   *nout = n; *closed = top.closed;
   if (tok_ordered_map_diag_enabled()) {
