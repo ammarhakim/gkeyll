@@ -1294,10 +1294,12 @@ struct gk_neut_species {
       int ionization_react_idx; // Ionization entry supplying electron density and loss rate.
       int diffusion_cx_react_idx; // CX entry supplying vti^2 and CX reactivity.
       struct gkyl_array *diffusion_coeff; // DG expansion of the scalar diffusion coefficient.
+      struct gkyl_array *diffusion_coeff_host; // Host mirror for diagnostics.
       struct gkyl_array *diffusion_tensor; // Full tensor K^{ij}=J D g_neut^{ij}.
       struct gkyl_array *diffusion_geom_factor; // Temporary scalar product J D.
       struct gkyl_array *diffusion_density; // Physical density n=(J rho)/J.
       struct gkyl_array *diffusion_cflrate; // CFL frequency from diffusion alone.
+      struct gkyl_array *diffusion_cflrate_host; // Host mirror for diagnostics.
       // Scalar p1 work arrays for the matrix-free implicit diffusion solve.
       struct gkyl_array *diffusion_implicit_rhs, *diffusion_implicit_x;
       struct gkyl_array *diffusion_implicit_r, *diffusion_implicit_rhat;
@@ -1316,6 +1318,7 @@ struct gk_neut_species {
       int diffusion_recycling_ion_idx[2][GKYL_MAX_SPECIES];
       struct gkyl_array *ionization_rate; // DG ne*<sigma v>_iz frequency.
       struct gkyl_array *ionization_cflrate; // Cell-average ionization CFL frequency.
+      struct gkyl_array *ionization_cflrate_host; // Host mirror for diagnostics.
     };
   };
 

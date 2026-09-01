@@ -215,6 +215,16 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
 
   if (gkns->is_fluid && gkns->has_diffusion
       && gkns->info.diffusion.write_diagnostics) {
+    // The array writer is host-only. Keep the diagnostic mirrors current
+    // before passing them to gkyl_comm_array_write.
+    if (app->use_gpu) {
+      gkyl_array_copy(gkns->diffusion_coeff_host, gkns->diffusion_coeff);
+      gkyl_array_copy(gkns->diffusion_cflrate_host,
+        gkns->diffusion_cflrate);
+      if (gkns->ionization_cflrate)
+        gkyl_array_copy(gkns->ionization_cflrate_host,
+          gkns->ionization_cflrate);
+    }
     gkyl_msgpack_map_elem_set_double(gkns->io_meta_conf_len,
       gkns->io_meta_conf, "time", tm);
     gkyl_msgpack_map_elem_set_uint(gkns->io_meta_conf_len,
@@ -244,7 +254,7 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
     char dfile[dsz+1];
     snprintf(dfile, sizeof dfile, dfmt, app->name, gkns->info.name, dname, frame);
     gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, dmt,
-      gkns->diffusion_coeff, dfile);
+      gkns->diffusion_coeff_host, dfile);
 
     struct gkyl_msgpack_map_elem desc_cfl[] = {
       { .key = "poly_order", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 },
@@ -263,7 +273,7 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
     char dcflfile[dsz+1];
     snprintf(dcflfile, sizeof dcflfile, dfmt, app->name, gkns->info.name, dname, frame);
     gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, cmt,
-      gkns->diffusion_cflrate, dcflfile);
+      gkns->diffusion_cflrate_host, dcflfile);
 
     if (gkns->ionization_cflrate) {
       dname = "ionization_cflrate";
@@ -271,7 +281,7 @@ gk_neut_species_write_dynamic(gkyl_gyrokinetic_app* app, struct gk_neut_species 
       char izcflfile[dsz+1];
       snprintf(izcflfile, sizeof izcflfile, dfmt, app->name, gkns->info.name, dname, frame);
       gkyl_comm_array_write(gkns->comm, &gkns->grid, &gkns->local, cmt,
-        gkns->ionization_cflrate, izcflfile);
+        gkns->ionization_cflrate_host, izcflfile);
     }
     gkyl_msgpack_data_release(cmt);
     gkyl_msgpack_data_release(dmt);

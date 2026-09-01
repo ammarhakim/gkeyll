@@ -704,10 +704,14 @@ gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const str
 
   if (ns->has_diffusion) {
     gkyl_array_release(ns->diffusion_coeff);
+    if (ns->diffusion_coeff_host)
+      gkyl_array_release(ns->diffusion_coeff_host);
     gkyl_array_release(ns->diffusion_tensor);
     gkyl_array_release(ns->diffusion_geom_factor);
     gkyl_array_release(ns->diffusion_density);
     gkyl_array_release(ns->diffusion_cflrate);
+    if (ns->diffusion_cflrate_host)
+      gkyl_array_release(ns->diffusion_cflrate_host);
     if (ns->implicit_diffusion) {
       gkyl_array_release(ns->diffusion_implicit_rhs);
       gkyl_array_release(ns->diffusion_implicit_x);
@@ -732,6 +736,8 @@ gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app* app, const str
   if (ns->ionization_react_idx >= 0) {
     gkyl_array_release(ns->ionization_rate);
     gkyl_array_release(ns->ionization_cflrate);
+    if (ns->ionization_cflrate_host)
+      gkyl_array_release(ns->ionization_cflrate_host);
   }
   
   if (app->use_gpu) {
@@ -819,10 +825,12 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
   ns->ionization_react_idx = -1;
   ns->diffusion_cx_react_idx = -1;
   ns->diffusion_coeff = 0;
+  ns->diffusion_coeff_host = 0;
   ns->diffusion_tensor = 0;
   ns->diffusion_geom_factor = 0;
   ns->diffusion_density = 0;
   ns->diffusion_cflrate = 0;
+  ns->diffusion_cflrate_host = 0;
   ns->diffusion_bc_density = 0;
   ns->diffusion_bc_density_tmp = 0;
   ns->diffusion_moment_ratio = 0;
@@ -832,6 +840,7 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
   ns->diffusion_recycling_num_species[1] = 0;
   ns->ionization_rate = 0;
   ns->ionization_cflrate = 0;
+  ns->ionization_cflrate_host = 0;
 
   for (int i=0; i<ns->info.react_neut.num_react; ++i) {
     enum gkyl_react_id react_id = ns->info.react_neut.react_type[i].react_id;
@@ -859,6 +868,18 @@ gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_a
     ns->diffusion_density = mkarr(app->use_gpu, app->basis.num_basis,
       app->local_ext.volume);
     ns->diffusion_cflrate = mkarr(app->use_gpu, 1, app->local_ext.volume);
+    if (ns->info.diffusion.write_diagnostics) {
+      ns->diffusion_coeff_host = app->use_gpu
+        ? mkarr(false, app->basis.num_basis, app->local_ext.volume)
+        : gkyl_array_acquire(ns->diffusion_coeff);
+      ns->diffusion_cflrate_host = app->use_gpu
+        ? mkarr(false, 1, app->local_ext.volume)
+        : gkyl_array_acquire(ns->diffusion_cflrate);
+      if (ns->ionization_cflrate)
+        ns->ionization_cflrate_host = app->use_gpu
+          ? mkarr(false, 1, app->local_ext.volume)
+          : gkyl_array_acquire(ns->ionization_cflrate);
+    }
     if (ns->implicit_diffusion) {
       ns->diffusion_implicit_rhs = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       ns->diffusion_implicit_x = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
