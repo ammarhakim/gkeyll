@@ -13,21 +13,40 @@ static const conf_diffusion_vol_kern_t ser_vol_kernels[] = {
   conf_diffusion_vol_3x_ser_p1,
 };
 
-static const conf_diffusion_surf_kern_t ser_surf_kernels[][GKYL_MAX_CDIM] = {
-  { conf_diffusion_surfx_1x_ser_p1, 0, 0 },
-  { conf_diffusion_surfx_2x_ser_p1, conf_diffusion_surfy_2x_ser_p1, 0 },
-  { conf_diffusion_surfx_3x_ser_p1, conf_diffusion_surfy_3x_ser_p1,
-    conf_diffusion_surfz_3x_ser_p1 },
+static const conf_diffusion_surf_kern_t
+ser_surf_kernels[][GKYL_MAX_CDIM][GKYL_MAX_CDIM] = {
+  { { conf_diffusion_surfxx_1x_ser_p1, 0, 0 }, { 0 }, { 0 } },
+  { { conf_diffusion_surfxx_2x_ser_p1,
+      conf_diffusion_surfxy_2x_ser_p1, 0 },
+    { conf_diffusion_surfyx_2x_ser_p1,
+      conf_diffusion_surfyy_2x_ser_p1, 0 }, { 0 } },
+  { { conf_diffusion_surfxx_3x_ser_p1,
+      conf_diffusion_surfxy_3x_ser_p1,
+      conf_diffusion_surfxz_3x_ser_p1 },
+    { conf_diffusion_surfyx_3x_ser_p1,
+      conf_diffusion_surfyy_3x_ser_p1,
+      conf_diffusion_surfyz_3x_ser_p1 },
+    { conf_diffusion_surfzx_3x_ser_p1,
+      conf_diffusion_surfzy_3x_ser_p1,
+      conf_diffusion_surfzz_3x_ser_p1 } },
 };
 
 static const conf_diffusion_boundary_surf_kern_t
-ser_boundary_surf_kernels[][GKYL_MAX_CDIM] = {
-  { conf_diffusion_boundary_surfx_1x_ser_p1, 0, 0 },
-  { conf_diffusion_boundary_surfx_2x_ser_p1,
-    conf_diffusion_boundary_surfy_2x_ser_p1, 0 },
-  { conf_diffusion_boundary_surfx_3x_ser_p1,
-    conf_diffusion_boundary_surfy_3x_ser_p1,
-    conf_diffusion_boundary_surfz_3x_ser_p1 },
+ser_boundary_surf_kernels[][GKYL_MAX_CDIM][GKYL_MAX_CDIM] = {
+  { { conf_diffusion_boundary_surfxx_1x_ser_p1, 0, 0 }, { 0 }, { 0 } },
+  { { conf_diffusion_boundary_surfxx_2x_ser_p1,
+      conf_diffusion_boundary_surfxy_2x_ser_p1, 0 },
+    { conf_diffusion_boundary_surfyx_2x_ser_p1,
+      conf_diffusion_boundary_surfyy_2x_ser_p1, 0 }, { 0 } },
+  { { conf_diffusion_boundary_surfxx_3x_ser_p1,
+      conf_diffusion_boundary_surfxy_3x_ser_p1,
+      conf_diffusion_boundary_surfxz_3x_ser_p1 },
+    { conf_diffusion_boundary_surfyx_3x_ser_p1,
+      conf_diffusion_boundary_surfyy_3x_ser_p1,
+      conf_diffusion_boundary_surfyz_3x_ser_p1 },
+    { conf_diffusion_boundary_surfzx_3x_ser_p1,
+      conf_diffusion_boundary_surfzy_3x_ser_p1,
+      conf_diffusion_boundary_surfzz_3x_ser_p1 } },
 };
 
 void
@@ -84,11 +103,12 @@ gkyl_conf_diffusion_new(const struct gkyl_basis *basis,
   diffusion->eqn.gen_surf_term = 0;
   diffusion->eqn.gen_boundary_surf_term = 0;
   diffusion->vol = ser_vol_kernels[basis->ndim-1];
-  for (int d=0; d<GKYL_MAX_CDIM; ++d) {
-    diffusion->surf[d] = ser_surf_kernels[basis->ndim-1][d];
-    diffusion->boundary_surf[d] =
-      ser_boundary_surf_kernels[basis->ndim-1][d];
-  }
+  for (int i=0; i<GKYL_MAX_CDIM; ++i)
+    for (int j=0; j<GKYL_MAX_CDIM; ++j) {
+      diffusion->surf[i][j] = ser_surf_kernels[basis->ndim-1][i][j];
+      diffusion->boundary_surf[i][j] =
+        ser_boundary_surf_kernels[basis->ndim-1][i][j];
+    }
   diffusion->eqn.flags = 0;
   diffusion->eqn.ref_count = gkyl_ref_count_init(gkyl_conf_diffusion_free);
   diffusion->eqn.on_dev = &diffusion->eqn;

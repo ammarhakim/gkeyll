@@ -6,22 +6,6 @@ extern "C" {
 #include <gkyl_conf_diffusion_priv.h>
 }
 
-// The generic hyper-DG CUDA kernel reaches equation kernels through device
-// function pointers, so nvlink cannot determine the entry kernel's complete
-// call stack and leaves the per-thread stack at CUDA's small default. The 3x
-// configuration-diffusion surface kernels require a larger frame. Request a
-// conservative limit once the 3x equation is constructed, while respecting a
-// larger limit that the application may already have selected.
-static void
-conf_diffusion_ensure_cu_stack(void)
-{
-  const size_t required_stack = 8*1024;
-  size_t current_stack = 0;
-  checkCuda(cudaDeviceGetLimit(&current_stack, cudaLimitStackSize));
-  if (current_stack < required_stack)
-    checkCuda(cudaDeviceSetLimit(cudaLimitStackSize, required_stack));
-}
-
 __global__ static void
 conf_diffusion_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
   const struct gkyl_array *diffusion_tensor,
@@ -56,29 +40,61 @@ conf_diffusion_set_cu_dev_ptrs(struct conf_diffusion *diffusion, int cdim)
 
   if (cdim == 1) {
     diffusion->vol = conf_diffusion_vol_1x_ser_p1;
-    diffusion->surf[0] = conf_diffusion_surfx_1x_ser_p1;
-    diffusion->boundary_surf[0] = conf_diffusion_boundary_surfx_1x_ser_p1;
+    diffusion->surf[0][0] = conf_diffusion_surfxx_1x_ser_p1;
+    diffusion->boundary_surf[0][0] =
+      conf_diffusion_boundary_surfxx_1x_ser_p1;
   }
   else if (cdim == 2) {
     diffusion->vol = conf_diffusion_vol_2x_ser_p1;
-    diffusion->surf[0] = conf_diffusion_surfx_2x_ser_p1;
-    diffusion->surf[1] = conf_diffusion_surfy_2x_ser_p1;
-    diffusion->boundary_surf[0] = conf_diffusion_boundary_surfx_2x_ser_p1;
-    diffusion->boundary_surf[1] = conf_diffusion_boundary_surfy_2x_ser_p1;
+    diffusion->surf[0][0] = conf_diffusion_surfxx_2x_ser_p1;
+    diffusion->surf[0][1] = conf_diffusion_surfxy_2x_ser_p1;
+    diffusion->surf[1][0] = conf_diffusion_surfyx_2x_ser_p1;
+    diffusion->surf[1][1] = conf_diffusion_surfyy_2x_ser_p1;
+    diffusion->boundary_surf[0][0] =
+      conf_diffusion_boundary_surfxx_2x_ser_p1;
+    diffusion->boundary_surf[0][1] =
+      conf_diffusion_boundary_surfxy_2x_ser_p1;
+    diffusion->boundary_surf[1][0] =
+      conf_diffusion_boundary_surfyx_2x_ser_p1;
+    diffusion->boundary_surf[1][1] =
+      conf_diffusion_boundary_surfyy_2x_ser_p1;
   }
   else {
     diffusion->vol = conf_diffusion_vol_3x_ser_p1;
-    diffusion->surf[0] = conf_diffusion_surfx_3x_ser_p1;
-    diffusion->surf[1] = conf_diffusion_surfy_3x_ser_p1;
-    diffusion->surf[2] = conf_diffusion_surfz_3x_ser_p1;
-    diffusion->boundary_surf[0] = conf_diffusion_boundary_surfx_3x_ser_p1;
-    diffusion->boundary_surf[1] = conf_diffusion_boundary_surfy_3x_ser_p1;
-    diffusion->boundary_surf[2] = conf_diffusion_boundary_surfz_3x_ser_p1;
+    diffusion->surf[0][0] = conf_diffusion_surfxx_3x_ser_p1;
+    diffusion->surf[0][1] = conf_diffusion_surfxy_3x_ser_p1;
+    diffusion->surf[0][2] = conf_diffusion_surfxz_3x_ser_p1;
+    diffusion->surf[1][0] = conf_diffusion_surfyx_3x_ser_p1;
+    diffusion->surf[1][1] = conf_diffusion_surfyy_3x_ser_p1;
+    diffusion->surf[1][2] = conf_diffusion_surfyz_3x_ser_p1;
+    diffusion->surf[2][0] = conf_diffusion_surfzx_3x_ser_p1;
+    diffusion->surf[2][1] = conf_diffusion_surfzy_3x_ser_p1;
+    diffusion->surf[2][2] = conf_diffusion_surfzz_3x_ser_p1;
+    diffusion->boundary_surf[0][0] =
+      conf_diffusion_boundary_surfxx_3x_ser_p1;
+    diffusion->boundary_surf[0][1] =
+      conf_diffusion_boundary_surfxy_3x_ser_p1;
+    diffusion->boundary_surf[0][2] =
+      conf_diffusion_boundary_surfxz_3x_ser_p1;
+    diffusion->boundary_surf[1][0] =
+      conf_diffusion_boundary_surfyx_3x_ser_p1;
+    diffusion->boundary_surf[1][1] =
+      conf_diffusion_boundary_surfyy_3x_ser_p1;
+    diffusion->boundary_surf[1][2] =
+      conf_diffusion_boundary_surfyz_3x_ser_p1;
+    diffusion->boundary_surf[2][0] =
+      conf_diffusion_boundary_surfzx_3x_ser_p1;
+    diffusion->boundary_surf[2][1] =
+      conf_diffusion_boundary_surfzy_3x_ser_p1;
+    diffusion->boundary_surf[2][2] =
+      conf_diffusion_boundary_surfzz_3x_ser_p1;
   }
-  for (int d=cdim; d<GKYL_MAX_CDIM; ++d) {
-    diffusion->surf[d] = 0;
-    diffusion->boundary_surf[d] = 0;
-  }
+  for (int i=0; i<GKYL_MAX_CDIM; ++i)
+    for (int j=0; j<GKYL_MAX_CDIM; ++j)
+      if (i >= cdim || j >= cdim) {
+        diffusion->surf[i][j] = 0;
+        diffusion->boundary_surf[i][j] = 0;
+      }
   diffusion->auxfields.diffusion_tensor = 0;
   diffusion->auxfields.jacobgeo_inv = 0;
 }
@@ -87,9 +103,6 @@ struct gkyl_dg_eqn*
 gkyl_conf_diffusion_cu_dev_new(const struct gkyl_basis *basis,
   const struct gkyl_range *conf_range)
 {
-  if (basis->ndim == 3)
-    conf_diffusion_ensure_cu_stack();
-
   struct conf_diffusion *diffusion =
     (struct conf_diffusion*) gkyl_malloc(sizeof(*diffusion));
   diffusion->basis = *basis;

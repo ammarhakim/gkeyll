@@ -17,8 +17,11 @@ struct conf_diffusion {
   struct gkyl_dg_eqn eqn;
   struct gkyl_basis basis;
   conf_diffusion_vol_kern_t vol;
-  conf_diffusion_surf_kern_t surf[GKYL_MAX_CDIM];
-  conf_diffusion_boundary_surf_kern_t boundary_surf[GKYL_MAX_CDIM];
+  // One surface kernel for each flux/derivative direction pair (i,j),
+  // following the general tensor-diffusion operator's decomposition.
+  conf_diffusion_surf_kern_t surf[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
+  conf_diffusion_boundary_surf_kern_t
+    boundary_surf[GKYL_MAX_CDIM][GKYL_MAX_CDIM];
   struct gkyl_range conf_range;
   struct gkyl_conf_diffusion_auxfields auxfields;
 };
@@ -60,13 +63,16 @@ conf_diffusion_surf(const struct gkyl_dg_eqn *eqn, int dir,
 {
   const struct conf_diffusion *diffusion =
     container_of(eqn, struct conf_diffusion, eqn);
-  if (dir < 0 || dir >= GKYL_MAX_CDIM || diffusion->surf[dir] == 0)
+  if (dir < 0 || dir >= diffusion->basis.ndim)
     return 0.0;
-  return diffusion->surf[dir](xcC, dxC,
-    conf_diffusion_fetch_tensor(diffusion, idxL),
-    conf_diffusion_fetch_tensor(diffusion, idxC),
-    conf_diffusion_fetch_tensor(diffusion, idxR),
-    qInL, qInC, qInR, qRhsOut);
+  const double *Kl = conf_diffusion_fetch_tensor(diffusion, idxL);
+  const double *Kc = conf_diffusion_fetch_tensor(diffusion, idxC);
+  const double *Kr = conf_diffusion_fetch_tensor(diffusion, idxR);
+  double cflFreq = 0.0;
+  for (int deriv_dir=0; deriv_dir<diffusion->basis.ndim; ++deriv_dir)
+    cflFreq += diffusion->surf[dir][deriv_dir](xcC, dxC, Kl, Kc, Kr,
+      qInL, qInC, qInR, qRhsOut);
+  return cflFreq;
 }
 
 GKYL_CU_DH static double
@@ -79,14 +85,16 @@ conf_diffusion_boundary_surf(const struct gkyl_dg_eqn *eqn, int dir,
 {
   const struct conf_diffusion *diffusion =
     container_of(eqn, struct conf_diffusion, eqn);
-  if (dir < 0 || dir >= GKYL_MAX_CDIM
-    || diffusion->boundary_surf[dir] == 0)
+  if (dir < 0 || dir >= diffusion->basis.ndim)
     return 0.0;
 
-  return diffusion->boundary_surf[dir](xcSkin, dxSkin,
-    conf_diffusion_fetch_tensor(diffusion, idxEdge),
-    conf_diffusion_fetch_tensor(diffusion, idxSkin), edge,
-    qInEdge, qInSkin, qRhsOut);
+  const double *Kedge = conf_diffusion_fetch_tensor(diffusion, idxEdge);
+  const double *Kskin = conf_diffusion_fetch_tensor(diffusion, idxSkin);
+  double cflFreq = 0.0;
+  for (int deriv_dir=0; deriv_dir<diffusion->basis.ndim; ++deriv_dir)
+    cflFreq += diffusion->boundary_surf[dir][deriv_dir](xcSkin, dxSkin,
+      Kedge, Kskin, edge, qInEdge, qInSkin, qRhsOut);
+  return cflFreq;
 }
 
 void gkyl_conf_diffusion_free(const struct gkyl_ref_count *ref);

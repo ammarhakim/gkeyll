@@ -1,6 +1,6 @@
 #include <gkyl_conf_diffusion_kernels.h>
 
-GKYL_CU_DH double conf_diffusion_boundary_surfx_1x_ser_p1(const double *wskin, const double *dxskin,
+GKYL_CU_DH double conf_diffusion_boundary_surfxx_1x_ser_p1(const double *wskin, const double *dxskin,
   const double *Kedge, const double *Kskin, int edge,
   const double *fedge, const double *fskin, double* GKYL_RESTRICT out)
 {

@@ -1,6 +1,6 @@
 #include <gkyl_conf_diffusion_kernels.h>
 
-GKYL_CU_DH double conf_diffusion_surfx_1x_ser_p1(const double *wc, const double *dxc, const double *Kl, const double *Kc, const double *Kr, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out) 
+GKYL_CU_DH double conf_diffusion_surfxx_1x_ser_p1(const double *wc, const double *dxc, const double *Kl, const double *Kc, const double *Kr, const double *fl, const double *fc, const double *fr, double* GKYL_RESTRICT out)
 {
   // wc[NDIM]: Cell-center coordinates.
   // dxc[NDIM]: Cell spacing.

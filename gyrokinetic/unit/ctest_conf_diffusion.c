@@ -212,19 +212,37 @@ test_conf_diffusion_zero_flux_boundary_kernels(void)
     double*);
   typedef double (*boundary_t)(const double*, const double*, const double*,
     const double*, int, const double*, const double*, double*);
-  const surf_t surf[3][3] = {
-    { conf_diffusion_surfx_1x_ser_p1, 0, 0 },
-    { conf_diffusion_surfx_2x_ser_p1, conf_diffusion_surfy_2x_ser_p1, 0 },
-    { conf_diffusion_surfx_3x_ser_p1, conf_diffusion_surfy_3x_ser_p1,
-      conf_diffusion_surfz_3x_ser_p1 },
+  const surf_t surf[3][3][3] = {
+    { { conf_diffusion_surfxx_1x_ser_p1, 0, 0 }, { 0 }, { 0 } },
+    { { conf_diffusion_surfxx_2x_ser_p1,
+        conf_diffusion_surfxy_2x_ser_p1, 0 },
+      { conf_diffusion_surfyx_2x_ser_p1,
+        conf_diffusion_surfyy_2x_ser_p1, 0 }, { 0 } },
+    { { conf_diffusion_surfxx_3x_ser_p1,
+        conf_diffusion_surfxy_3x_ser_p1,
+        conf_diffusion_surfxz_3x_ser_p1 },
+      { conf_diffusion_surfyx_3x_ser_p1,
+        conf_diffusion_surfyy_3x_ser_p1,
+        conf_diffusion_surfyz_3x_ser_p1 },
+      { conf_diffusion_surfzx_3x_ser_p1,
+        conf_diffusion_surfzy_3x_ser_p1,
+        conf_diffusion_surfzz_3x_ser_p1 } },
   };
-  const boundary_t boundary[3][3] = {
-    { conf_diffusion_boundary_surfx_1x_ser_p1, 0, 0 },
-    { conf_diffusion_boundary_surfx_2x_ser_p1,
-      conf_diffusion_boundary_surfy_2x_ser_p1, 0 },
-    { conf_diffusion_boundary_surfx_3x_ser_p1,
-      conf_diffusion_boundary_surfy_3x_ser_p1,
-      conf_diffusion_boundary_surfz_3x_ser_p1 },
+  const boundary_t boundary[3][3][3] = {
+    { { conf_diffusion_boundary_surfxx_1x_ser_p1, 0, 0 }, { 0 }, { 0 } },
+    { { conf_diffusion_boundary_surfxx_2x_ser_p1,
+        conf_diffusion_boundary_surfxy_2x_ser_p1, 0 },
+      { conf_diffusion_boundary_surfyx_2x_ser_p1,
+        conf_diffusion_boundary_surfyy_2x_ser_p1, 0 }, { 0 } },
+    { { conf_diffusion_boundary_surfxx_3x_ser_p1,
+        conf_diffusion_boundary_surfxy_3x_ser_p1,
+        conf_diffusion_boundary_surfxz_3x_ser_p1 },
+      { conf_diffusion_boundary_surfyx_3x_ser_p1,
+        conf_diffusion_boundary_surfyy_3x_ser_p1,
+        conf_diffusion_boundary_surfyz_3x_ser_p1 },
+      { conf_diffusion_boundary_surfzx_3x_ser_p1,
+        conf_diffusion_boundary_surfzy_3x_ser_p1,
+        conf_diffusion_boundary_surfzz_3x_ser_p1 } },
   };
 
   const double w[] = { 0.1, -0.2, 0.3 };
@@ -249,14 +267,16 @@ test_conf_diffusion_zero_flux_boundary_kernels(void)
         basis.flip_even_sign(dir, &Kskin[k*nb], &Kghost[k*nb]);
       for (int edge=-1; edge<=1; edge+=2) {
         double reflected[8] = { 0.0 }, one_sided[8] = { 0.0 };
-        if (edge == -1)
-          surf[cdim-1][dir](w, dx, Kghost, Kskin, Kedge,
-            fghost, fskin, fedge, reflected);
-        else
-          surf[cdim-1][dir](w, dx, Kedge, Kskin, Kghost,
-            fedge, fskin, fghost, reflected);
-        boundary[cdim-1][dir](w, dx, Kedge, Kskin, edge,
-          fedge, fskin, one_sided);
+        for (int deriv_dir=0; deriv_dir<cdim; ++deriv_dir) {
+          if (edge == -1)
+            surf[cdim-1][dir][deriv_dir](w, dx, Kghost, Kskin, Kedge,
+              fghost, fskin, fedge, reflected);
+          else
+            surf[cdim-1][dir][deriv_dir](w, dx, Kedge, Kskin, Kghost,
+              fedge, fskin, fghost, reflected);
+          boundary[cdim-1][dir][deriv_dir](w, dx, Kedge, Kskin, edge,
+            fedge, fskin, one_sided);
+        }
         for (int k=0; k<nb; ++k)
           TEST_CHECK(gkyl_compare(reflected[k], one_sided[k], 1e-12));
       }
