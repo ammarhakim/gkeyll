@@ -21,6 +21,9 @@ gkyl_array_dg_reducec(double *out, const struct gkyl_array *arr, int comp,
       case GKYL_SUM:                                      
         gkyl_array_dg_reducec_sum_cu(out, arr, comp, basis);
         break;
+      default:
+        assert(false);
+        break;
     }
     return;
   }
@@ -66,6 +69,9 @@ gkyl_array_dg_reducec(double *out, const struct gkyl_array *arr, int comp,
         }
       }
       break;
+    default:
+      assert(false);
+      break;
   }
 }
 
@@ -86,6 +92,9 @@ gkyl_array_dg_reducec_range(double *out, const struct gkyl_array *arr, int comp,
         break;
       case GKYL_SUM:
         gkyl_array_dg_reducec_range_sum_cu(out, arr, comp, basis, range);
+        break;
+      default:
+        assert(false);
         break;
     }
     return;
@@ -138,6 +147,8 @@ gkyl_array_dg_reducec_range(double *out, const struct gkyl_array *arr, int comp,
         }
       }
       break;
+    default:
+      assert(false);
+      break;
   }
 }
-

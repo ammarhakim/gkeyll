@@ -584,7 +584,7 @@ gk_species_calc_integrated_mom_dynamic(gkyl_gyrokinetic_app* app, struct gk_spec
     if (calc_fdot_abs_integ) {
       // Sum the absolute time-rate moment in each cell over the whole domain.
       // Taking the absolute value before the reduction prevents spatial cancellation.
-      gkyl_array_reduce_range_sum_abs(gks->red_integ_diag, gks->fdot_mom_new, &app->local);
+      gkyl_array_reduce_range(gks->red_integ_diag, gks->fdot_mom_new, GKYL_SUM_ABS, &app->local);
       gkyl_comm_allreduce(app->comm, GKYL_DOUBLE, GKYL_SUM, num_mom,
         gks->red_integ_diag, gks->red_integ_diag_global);
       if (app->use_gpu) {
