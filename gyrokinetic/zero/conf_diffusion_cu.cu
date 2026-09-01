@@ -6,6 +6,22 @@ extern "C" {
 #include <gkyl_conf_diffusion_priv.h>
 }
 
+// The generic hyper-DG CUDA kernel reaches equation kernels through device
+// function pointers, so nvlink cannot determine the entry kernel's complete
+// call stack and leaves the per-thread stack at CUDA's small default. The 3x
+// configuration-diffusion surface kernels require a larger frame. Request a
+// conservative limit once the 3x equation is constructed, while respecting a
+// larger limit that the application may already have selected.
+static void
+conf_diffusion_ensure_cu_stack(void)
+{
+  const size_t required_stack = 8*1024;
+  size_t current_stack = 0;
+  checkCuda(cudaDeviceGetLimit(&current_stack, cudaLimitStackSize));
+  if (current_stack < required_stack)
+    checkCuda(cudaDeviceSetLimit(cudaLimitStackSize, required_stack));
+}
+
 __global__ static void
 conf_diffusion_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
   const struct gkyl_array *diffusion_tensor,
@@ -71,6 +87,9 @@ struct gkyl_dg_eqn*
 gkyl_conf_diffusion_cu_dev_new(const struct gkyl_basis *basis,
   const struct gkyl_range *conf_range)
 {
+  if (basis->ndim == 3)
+    conf_diffusion_ensure_cu_stack();
+
   struct conf_diffusion *diffusion =
     (struct conf_diffusion*) gkyl_malloc(sizeof(*diffusion));
   diffusion->basis = *basis;
