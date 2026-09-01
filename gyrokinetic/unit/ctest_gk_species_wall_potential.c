@@ -58,6 +58,9 @@ check_profile(const gkyl_gyrokinetic_app *app, const struct gkyl_array *phi,
 static void
 test_species_wall_profiles(void)
 {
+  // A linear profile lies exactly in the P1 basis. Compare its DG expansion
+  // at both cell endpoints and the center with the closed-form profile, first
+  // at t=0 and then after advancing each wall independently to t=0.625.
   gkyl_gyrokinetic_app app = make_app();
   struct wall_profile_ctx lower_ctx = {
     .offset = 1.5,
@@ -107,6 +110,9 @@ test_species_wall_profiles(void)
 static void
 test_grounded_and_non_sheath_walls(void)
 {
+  // A sheath with no auxiliary profile represents a grounded wall, so every
+  // DG coefficient is exactly zero. A non-sheath boundary needs no wall-
+  // potential array or projector at all.
   gkyl_gyrokinetic_app app = make_app();
   struct gk_species species = {
     .lower_bc[0] = {

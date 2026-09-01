@@ -9,7 +9,6 @@
 #include <gkyl_eval_on_nodes.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
 #include <gkyl_null_comm.h>
-#include <gkyl_position_map.h>
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
@@ -17,10 +16,6 @@
 
 #ifdef GKYL_HAVE_MPI
 #include <gkyl_mpi_comm.h>
-#endif
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
 #endif
 
 struct lc_ctx {
@@ -81,6 +76,10 @@ eval_dg_on_range(const struct gkyl_rect_grid *grid, const struct gkyl_basis *bas
 static void
 test_loss_cone_mask_parallel_4dom(void)
 {
+  // The four ranks each evaluate one z slab using globally gathered B and
+  // phi. The independently evaluated single-domain result is the oracle; an
+  // exact cell-by-cell match checks that decomposition and allgather do not
+  // change the mask.
   int rank = 0, size = 1;
 #ifdef GKYL_HAVE_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
@@ -100,7 +99,7 @@ test_loss_cone_mask_parallel_4dom(void)
   const int cells_phase[] = { nz, nvpar, nmu };
   const int cells_vel[] = { nvpar, nmu };
   const int cuts[] = { 4 };
-  const double z_max = M_PI - 0.5;
+  const double z_max = GKYL_PI - 0.5;
   const double lower_phase[] = { -z_max, -6.0, 0.0 };
   const double upper_phase[] = { z_max, 6.0, 18.0 };
   const double lower_conf[] = { -z_max };
@@ -151,7 +150,6 @@ test_loss_cone_mask_parallel_4dom(void)
   gkyl_comm_array_allgather(comm_conf, conf_local, &conf_global, bmag_local, bmag_global_gather);
   gkyl_comm_array_allgather(comm_conf, conf_local, &conf_global, phi_local, phi_global_gather);
 
-  struct gkyl_position_map *pmap = gkyl_position_map_null_new();
   struct gkyl_mapc2p_inp c2p_in = { };
   struct gkyl_velocity_map *gvm_local = gkyl_velocity_map_new(c2p_in, grid_phase, grid_vel,
     *phase_local, *phase_local, vel_global, vel_global, false);
@@ -159,7 +157,6 @@ test_loss_cone_mask_parallel_4dom(void)
   struct gkyl_loss_cone_mask_gyrokinetic *up_local =
     gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp) {
       .conf_basis = &basis_conf,
-      .conf_range = &conf_global,
       .vel_map = gvm_local,
       .mass = 2.014 * GKYL_PROTON_MASS,
       .charge = GKYL_ELEMENTARY_CHARGE,
@@ -183,7 +180,6 @@ test_loss_cone_mask_parallel_4dom(void)
     struct gkyl_loss_cone_mask_gyrokinetic *up_ref =
       gkyl_loss_cone_mask_gyrokinetic_inew(&(struct gkyl_loss_cone_mask_gyrokinetic_inp) {
         .conf_basis = &basis_conf,
-        .conf_range = &conf_global,
         .vel_map = gvm_global,
         .mass = 2.014 * GKYL_PROTON_MASS,
         .charge = GKYL_ELEMENTARY_CHARGE,
@@ -213,7 +209,6 @@ test_loss_cone_mask_parallel_4dom(void)
   gkyl_array_release(mask_local);
   gkyl_loss_cone_mask_gyrokinetic_release(up_local);
   gkyl_velocity_map_release(gvm_local);
-  gkyl_position_map_release(pmap);
   gkyl_array_release(phi_global_gather);
   gkyl_array_release(bmag_global_gather);
   gkyl_array_release(phi_local);

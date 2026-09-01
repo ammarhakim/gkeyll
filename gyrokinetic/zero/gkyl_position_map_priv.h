@@ -259,8 +259,7 @@ calculate_optimal_mapping_polynomial(struct gkyl_position_map_const_B_ctx *const
 // Utility functions for numeric root finding B mapping
 
 /**
- * Calculates dB/dTheta numerically at a given xn value. Calculates
- * the derivative to the left of the point.
+ * Calculates dB/dTheta at theta with a second-order centered difference.
  * 
  * @param theta The theta value to calculate the derivative at
  * @param ctx The context for the position map
@@ -283,6 +282,17 @@ calc_bmag_global_derivative(double theta, void *ctx)
   gkyl_calc_bmag_global(0.0, xh, fout, bmag_ctx);
   double Bmag_minus = fout[0];
   return (Bmag_plus - Bmag_minus) / (2*h);
+}
+
+/**
+ * Return true when dB/dtheta is small relative to the local field variation
+ * scale B/dtheta_sample. This dimensionless comparison remains meaningful if
+ * the magnetic-field units or normalization change.
+ */
+static bool
+bmag_derivative_is_small(double dbmag, double bmag, double dtheta_sample)
+{
+  return fabs(dbmag) * dtheta_sample < 1e-10 * fabs(bmag);
 }
 
 /**
@@ -314,15 +324,20 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
   double *theta_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
   double *bmag_extrema = gkyl_malloc(sizeof(double) * (npts + 1));
 
+  // Seed the previous sample used by the first sign-change comparison.
+  xp[Z_IDX] = theta_lo;
+  gkyl_calc_bmag_global(0.0, xp, &bmag_vals[0], bmag_ctx);
+  dbmag_vals[0] = calc_bmag_global_derivative(theta_lo, gpm);
+
   for (int i = 1; i < npts; i++){
     double theta = theta_lo + i * theta_dxi;
     xp[Z_IDX] = theta;
     gkyl_calc_bmag_global(0.0, xp, &bmag_vals[i], bmag_ctx);
     dbmag_vals[i] = calc_bmag_global_derivative(theta, gpm);
 
-    // Near-zero derivative: B is locally flat here, record as a minimum.
-    // Use continue so this is mutually exclusive with the sign-change checks below.
-    if (fabs(dbmag_vals[i]) < 1e-10) {
+    // A near-stationary sample is an extrema candidate. Classification as a
+    // minimum or maximum occurs below after all candidates are collected.
+    if (bmag_derivative_is_small(dbmag_vals[i], bmag_vals[i], theta_dxi)) {
       theta_extrema[extrema] = theta;
       bmag_extrema[extrema] = bmag_vals[i];
       extrema++;
@@ -331,7 +346,8 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
 
     // Minima via sign change. Guard on |dbmag[i-1]| to avoid a double-record if the
     // previous point was already captured by the near-zero branch above.
-    if (dbmag_vals[i] > 0 && dbmag_vals[i-1] < 0 && fabs(dbmag_vals[i-1]) >= 1e-10){
+    if (dbmag_vals[i] > 0 && dbmag_vals[i-1] < 0 &&
+      !bmag_derivative_is_small(dbmag_vals[i-1], bmag_vals[i-1], theta_dxi)){
       if (bmag_vals[i] < bmag_vals[i-1])
       {
         theta_extrema[extrema] = theta;
@@ -347,7 +363,8 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
     }
 
     // Maxima via sign change. Guard on |dbmag[i-1]| for the same reason.
-    if (dbmag_vals[i] < 0 && dbmag_vals[i-1] > 0 && fabs(dbmag_vals[i-1]) >= 1e-10){
+    if (dbmag_vals[i] < 0 && dbmag_vals[i-1] > 0 &&
+      !bmag_derivative_is_small(dbmag_vals[i-1], bmag_vals[i-1], theta_dxi)){
       if (bmag_vals[i] > bmag_vals[i-1])
       {
         theta_extrema[extrema] = theta;
@@ -384,53 +401,30 @@ find_B_field_extrema(struct gkyl_position_map *gpm)
 
   // Left edge
   if (bmag_extrema[0] > bmag_extrema[1])
-  {
-    gpm->constB_ctx->min_or_max[0] = 1;  // Maximum
-  }
+  {    gpm->constB_ctx->min_or_max[0] = 1;  } // Maximum
   else if (bmag_extrema[0] < bmag_extrema[1])
-  {
-    gpm->constB_ctx->min_or_max[0] = 0;  // Minimum
-  }
+  {    gpm->constB_ctx->min_or_max[0] = 0;  } // Minimum
   else
-  {
-    printf("Error: Extrema[0] is not an extrema (bmag[0]=%.6g == bmag[1]=%.6g). "
-      "Position_map optimization failed\n", bmag_extrema[0], bmag_extrema[1]);
-  }
+  {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 
   // Middle points
   for (int i = 1; i < extrema - 1; i++)
   {
     if (bmag_extrema[i] > bmag_extrema[i-1] && bmag_extrema[i] > bmag_extrema[i+1])
-    {
-      gpm->constB_ctx->min_or_max[i] = 1;  // Maximum
-    }
+    {      gpm->constB_ctx->min_or_max[i] = 1;    } // Maximum
     else if (bmag_extrema[i] < bmag_extrema[i-1] && bmag_extrema[i] < bmag_extrema[i+1])
-    {
-      gpm->constB_ctx->min_or_max[i] = 0;  // Minimum
-    }
+    {      gpm->constB_ctx->min_or_max[i] = 0;    } // Minimum
     else
-    {
-      printf("Error: Extrema[%d] is not an extrema (bmag[%d-1]=%.6g, bmag[%d]=%.6g, bmag[%d+1]=%.6g). "
-        "Position_map optimization failed\n",
-        i, i, bmag_extrema[i-1], i, bmag_extrema[i], i, bmag_extrema[i+1]);
-    }
+    {      printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
   }
 
   // Right edge
   if (bmag_extrema[extrema-1] > bmag_extrema[extrema-2])
-  {
-    gpm->constB_ctx->min_or_max[extrema-1] = 1; // Maximum
-  }
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 1; } // Maximum
   else if (bmag_extrema[extrema-1] < bmag_extrema[extrema-2])
-  {
-    gpm->constB_ctx->min_or_max[extrema-1] = 0; // Minimum
-  }
+  {    gpm->constB_ctx->min_or_max[extrema-1] = 0; } // Minimum
   else
-  {
-    printf("Error: Extrema[%d] (right edge) is not an extrema (bmag[%d-1]=%.6g, bmag[%d]=%.6g). "
-      "Position_map optimization failed\n",
-      extrema-1, extrema-1, bmag_extrema[extrema-2], extrema-1, bmag_extrema[extrema-1]);
-  }
+  {    printf("Error: Extrema is not an extrema. Position_map optimization failed\n");  }
 
   // Free mallocs
   gkyl_free(bmag_vals);
@@ -486,7 +480,7 @@ refine_B_field_extrema(struct gkyl_position_map *gpm)
     else if (bmag_cent < bmag_left && bmag_cent < bmag_right)
     { is_maximum = false; } // Local minima
     else
-    { // printf("Error: Extrema is not an extrema. Position_map optimization failed\n");
+    { printf("Error: Extrema is not an extrema. Position_map optimization failed\n");
       break;
     }
 
@@ -687,7 +681,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
         return;
       }
       else {
-        // fprintf(stderr, "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n");
+        fprintf(stderr, "Warning: Unexpected interval evaluation state in position_map_constB_z_numeric. Using theta directly.\n");
         fout[0] = theta;
         return;
       }
@@ -698,6 +692,7 @@ position_map_constB_z_numeric(double t, const double *xn, double *fout, void *ct
     interval_lower, interval_upper, interval_lower_eval, interval_upper_eval, 10, 1e-6);
   double Theta = res.res;
   fout[0] = Theta*gpm->constB_ctx->map_strength + theta*(1-gpm->constB_ctx->map_strength); 
+
   bool enable_limits_min_B = gpm->constB_ctx->enable_maximum_slope_limits_at_min_B;
   bool enable_limits_max_B = gpm->constB_ctx->enable_maximum_slope_limits_at_max_B;
 
@@ -942,4 +937,3 @@ position_map_deriv_sep_compression(double t, const double *xn, double *fout, voi
   double deriv = A * (-cos(M_PI*xshift/w) + F);
   fout[0] = deriv;
 }
-

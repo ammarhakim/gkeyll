@@ -1,24 +1,14 @@
 #include <assert.h>
-#include <gkyl_alloc.h>
-#include <gkyl_dg_basis_ops.h>
 #include <gkyl_gyrokinetic_priv.h>
-
-static void
-proj_on_basis_c2p_position_func(const double *xcomp, double *xphys, void *ctx)
-{
-  struct gk_proj_on_basis_c2p_func_ctx *c2p_ctx = ctx;
-  gkyl_position_map_eval_mc2nu(c2p_ctx->pos_map, xcomp, xphys);
-}
+#include <gkyl_alloc.h>
 
 void
-gk_species_damping_write_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
-  int frame)
+gk_species_damping_write_disabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
 }
 
 void
-gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
-  int frame)
+gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   struct timespec wst = gkyl_wall_clock();
   // DG metadata for damping rate.
@@ -54,8 +44,7 @@ gk_species_damping_write_enabled(gkyl_gyrokinetic_app *app, struct gk_species *g
 }
 
 void
-gk_species_damping_write_init_only(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm,
-  int frame)
+gk_species_damping_write_init_only(gkyl_gyrokinetic_app *app, struct gk_species *gks, double tm, int frame)
 {
   gk_species_damping_write_enabled(app, gks, tm, frame);
   gks->damping.write_func = gk_species_damping_write_disabled;
@@ -82,15 +71,9 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
   // Default function pointers.
   damp->write_func = gk_species_damping_write_disabled;
 
-  damp->proj_on_basis_c2p_ctx.cdim = app->cdim;
-  damp->proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
-  damp->proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-  damp->proj_on_basis_c2p_ctx.pos_map = app->position_map;
-
   if (damp->type) {
     // Allocate rate array.
-    damp->rate = mkarr(app->use_gpu, num_quad == 1? 1 : gks->basis.num_basis,
-      gks->local_ext.volume);
+    damp->rate = mkarr(app->use_gpu, num_quad == 1? 1 : gks->basis.num_basis, gks->local_ext.volume);
     damp->rate_host = damp->rate;
     if (app->use_gpu)
       damp->rate_host = mkarr(false, damp->rate->ncomp, damp->rate->size);
@@ -100,22 +83,23 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
       proj_on_basis_c2p_ctx.cdim = app->cdim;
       proj_on_basis_c2p_ctx.vdim = gks->local_vel.ndim;
       proj_on_basis_c2p_ctx.vel_map = gks->vel_map;
-      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp) {
-        .grid = &gks->grid,
-        .basis = &gks->basis,
-        .num_quad = num_quad,
-        .num_ret_vals = 1,
-        .eval = gks->info.damping.rate_profile,
-        .ctx = gks->info.damping.rate_profile_ctx,
-        .c2p_func = proj_on_basis_c2p_phase_func,
-        .c2p_func_ctx = &proj_on_basis_c2p_ctx,
-      });
+      gkyl_proj_on_basis *projup = gkyl_proj_on_basis_inew( &(struct gkyl_proj_on_basis_inp) {
+          .grid = &gks->grid,
+          .basis = &gks->basis,
+          .num_quad = num_quad,
+          .num_ret_vals = 1,
+          .eval = gks->info.damping.rate_profile,
+          .ctx = gks->info.damping.rate_profile_ctx,
+          .c2p_func = proj_on_basis_c2p_phase_func,
+          .c2p_func_ctx = &proj_on_basis_c2p_ctx,
+        }
+      );
       gkyl_proj_on_basis_advance(projup, 0.0, &gks->local, damp->rate_host);
       gkyl_proj_on_basis_release(projup);
       gkyl_array_copy(damp->rate, damp->rate_host);
 
       if (num_quad == 1)
-        gkyl_array_scale_range(damp->rate, 1.0 / pow(sqrt(2.0), gks->grid.ndim), &gks->local);
+        gkyl_array_scale_range(damp->rate, 1.0/pow(sqrt(2.0),gks->grid.ndim), &gks->local);
     }
 
     // Set function pointers chosen at runtime.
@@ -129,8 +113,7 @@ gk_species_damping_init(struct gkyl_gyrokinetic_app *app, struct gk_species *gks
 }
 
 void
-gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks,
-  struct gk_damping *damp,
+gk_species_damping_advance(gkyl_gyrokinetic_app *app, const struct gk_species *gks, struct gk_damping *damp,
   const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *f_buffer,
   struct gkyl_array *rhs, struct gkyl_array *cflrate)
 {

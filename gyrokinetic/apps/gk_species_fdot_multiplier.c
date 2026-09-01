@@ -3,19 +3,19 @@
 #include <gkyl_gyrokinetic_priv.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
 
-static enum gkyl_loss_cone_boundary_type
-loss_cone_boundary_from_species_bc(enum gkyl_gyrokinetic_bc_type bc)
+static enum gkyl_gk_loss_cone_trajectory_type
+loss_cone_trajectory_from_species_bc(enum gkyl_gyrokinetic_bc_type bc)
 {
   switch (bc) {
-    case GKYL_BC_GK_SPECIES_SHEATH:
-      return GKYL_LOSS_CONE_BC_SHEATH;
     case GKYL_BC_GK_SPECIES_REFLECT:
     case GKYL_BC_GK_SPECIES_ZERO_FLUX:
     case GKYL_BC_GK_SPECIES_PERIODIC:
     case GKYL_BC_GK_SPECIES_TWISTSHIFT:
-      return GKYL_LOSS_CONE_BC_CLOSED;
+      return GKYL_GK_LOSS_CONE_CLOSED_TRAJECTORY;
     default:
-      return GKYL_LOSS_CONE_BC_OPEN;
+      // SHEATH and ABSORB both lead to an absorbing endpoint. A sheath wall
+      // is distinguished by the optional phi_wall endpoint passed at advance.
+      return GKYL_GK_LOSS_CONE_OPEN_TRAJECTORY;
   }
 }
 
@@ -347,8 +347,8 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
         .mass = gks->info.mass,
         .charge = gks->info.charge,
         .use_gpu = app->use_gpu,
-        .lower_boundary = loss_cone_boundary_from_species_bc(gks->lower_bc[zdim].type),
-        .upper_boundary = loss_cone_boundary_from_species_bc(gks->upper_bc[zdim].type),
+        .lower_trajectory = loss_cone_trajectory_from_species_bc(gks->lower_bc[zdim].type),
+        .upper_trajectory = loss_cone_trajectory_from_species_bc(gks->upper_bc[zdim].type),
       };
       fdmul->lcm_proj_op = gkyl_loss_cone_mask_gyrokinetic_inew(&inp_proj);
 
@@ -356,10 +356,10 @@ gk_species_fdot_multiplier_init_comp(gkyl_gyrokinetic_app *app, struct gk_specie
       fdmul->bmag_global = mkarr(app->use_gpu, app->gk_geom->geo_corn.bmag->ncomp,
         app->global_ext.volume);
       fdmul->phi_global = mkarr(app->use_gpu, app->basis.num_basis, app->global_ext.volume);
-      if (inp_proj.lower_boundary == GKYL_LOSS_CONE_BC_SHEATH)
+      if (gks->lower_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH)
         fdmul->phi_wall_lo_global = mkarr(app->use_gpu, app->basis.num_basis,
           app->global_ext.volume);
-      if (inp_proj.upper_boundary == GKYL_LOSS_CONE_BC_SHEATH)
+      if (gks->upper_bc[zdim].type == GKYL_BC_GK_SPECIES_SHEATH)
         fdmul->phi_wall_up_global = mkarr(app->use_gpu, app->basis.num_basis,
           app->global_ext.volume);
 

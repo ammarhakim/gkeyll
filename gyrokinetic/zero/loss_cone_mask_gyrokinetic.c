@@ -1,43 +1,50 @@
-#include <float.h>
-#include <math.h>
+#include <assert.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_array.h>
-#include <gkyl_const.h>
 #include <gkyl_loss_cone_mask_gyrokinetic.h>
 #include <gkyl_loss_cone_mask_gyrokinetic_priv.h>
 #include <gkyl_range.h>
 
-// The loss-cone mask is built from the left and right escape barriers. A
-// sheath wall is represented by a virtual endpoint with potential phi_wall;
-// this is distinct from phi at the plasma/sheath entrance.
+// The loss-cone mask is built from the lower- and upper-z escape barriers.
+// A non-NULL wall potential extends an open trajectory from the plasma edge
+// to a material-wall endpoint.
 
+/** Allocate host or device array storage for precomputed corner data. */
 static struct gkyl_array*
-mkarr(long nc, long size, bool use_gpu)
+gk_lcm_mkarr(long nc, long size, bool use_gpu)
 {
   return use_gpu? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
     : gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
-static int
-init_node_values(int ndim, const struct gkyl_basis *basis,
-  struct gkyl_array **basis_at_nodes, bool use_gpu)
+/**
+ * Precompute the configuration-space basis at every tensor-product P1 cell
+ * corner. These are interpolation/cell-classification corners, not Gaussian
+ * quadrature, positivity, or modal-basis nodes.
+ */
+static void
+gk_lcm_init_corner_values(const struct gkyl_range *corner_range,
+  const struct gkyl_basis *basis, struct gkyl_array **basis_at_corners,
+  bool use_gpu)
 {
-  int num_nodes = (int)pow(2.0, (double)ndim);
-  struct gkyl_array *basis_at_nodes_ho = gkyl_array_new(GKYL_DOUBLE, basis->num_basis,
-    num_nodes);
-  *basis_at_nodes = mkarr(basis->num_basis, num_nodes, use_gpu);
+  struct gkyl_array *basis_at_corners_ho = gkyl_array_new(GKYL_DOUBLE,
+    basis->num_basis, corner_range->volume);
+  *basis_at_corners = gk_lcm_mkarr(basis->num_basis, corner_range->volume, use_gpu);
 
   double eta[GKYL_MAX_DIM] = { 0.0 };
-  for (int node = 0; node < num_nodes; ++node) {
-    nodal_coords(ndim, node, eta);
-    basis->eval(eta, gkyl_array_fetch(basis_at_nodes_ho, node));
+  struct gkyl_range_iter corner_iter;
+  gkyl_range_iter_init(&corner_iter, corner_range);
+  while (gkyl_range_iter_next(&corner_iter)) {
+    for (int d = 0; d < corner_range->ndim; ++d) {
+      eta[d] = corner_iter.idx[d] ? 1.0 : -1.0;
+    }
+    long corner = gkyl_range_idx(corner_range, corner_iter.idx);
+    basis->eval(eta, gkyl_array_fetch(basis_at_corners_ho, corner));
   }
 
-  gkyl_array_copy(*basis_at_nodes, basis_at_nodes_ho);
-  gkyl_array_release(basis_at_nodes_ho);
-
-  return num_nodes;
+  gkyl_array_copy(*basis_at_corners, basis_at_corners_ho);
+  gkyl_array_release(basis_at_corners_ho);
 }
 
 struct gkyl_loss_cone_mask_gyrokinetic*
@@ -49,19 +56,24 @@ gkyl_loss_cone_mask_gyrokinetic_inew(const struct gkyl_loss_cone_mask_gyrokineti
   up->mass = inp->mass;
   up->charge = inp->charge;
   up->use_gpu = inp->use_gpu;
-  up->lower_boundary = inp->lower_boundary;
-  up->upper_boundary = inp->upper_boundary;
+  up->lower_trajectory = inp->lower_trajectory;
+  up->upper_trajectory = inp->upper_trajectory;
 
-  assert(up->lower_boundary >= GKYL_LOSS_CONE_BC_OPEN &&
-    up->lower_boundary <= GKYL_LOSS_CONE_BC_CLOSED);
-  assert(up->upper_boundary >= GKYL_LOSS_CONE_BC_OPEN &&
-    up->upper_boundary <= GKYL_LOSS_CONE_BC_CLOSED);
+  assert(up->lower_trajectory >= GKYL_GK_LOSS_CONE_OPEN_TRAJECTORY &&
+    up->lower_trajectory <= GKYL_GK_LOSS_CONE_CLOSED_TRAJECTORY);
+  assert(up->upper_trajectory >= GKYL_GK_LOSS_CONE_OPEN_TRAJECTORY &&
+    up->upper_trajectory <= GKYL_GK_LOSS_CONE_CLOSED_TRAJECTORY);
 
   up->cdim = inp->conf_basis->ndim;
   up->num_basis_conf = inp->conf_basis->num_basis;
-  up->num_nodes_conf = (int)pow(2.0, (double)up->cdim);
+  int corner_shape[GKYL_MAX_CDIM];
+  for (int d = 0; d < up->cdim; ++d) {
+    corner_shape[d] = 2;
+  }
+  gkyl_range_init_from_shape(&up->conf_corner_range, up->cdim, corner_shape);
 
-  init_node_values(up->cdim, inp->conf_basis, &up->basis_at_nodes_conf, inp->use_gpu);
+  gk_lcm_init_corner_values(&up->conf_corner_range, inp->conf_basis,
+    &up->basis_at_corners_conf, inp->use_gpu);
 
   return up;
 }
@@ -73,9 +85,6 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   const struct gkyl_array *phi_wall_lo, const struct gkyl_array *phi_wall_up,
   struct gkyl_array *mask_out)
 {
-  assert(up->lower_boundary != GKYL_LOSS_CONE_BC_SHEATH || phi_wall_lo);
-  assert(up->upper_boundary != GKYL_LOSS_CONE_BC_SHEATH || phi_wall_up);
-
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     gkyl_loss_cone_mask_gyrokinetic_advance_cu(up, phase_range, conf_range, bmag, phi,
@@ -87,16 +96,25 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
   int cdim = up->cdim;
   int pdim = phase_range->ndim;
   int vdim = pdim - cdim;
+  assert(vdim == 2);
   int num_basis_conf = up->num_basis_conf;
-  int num_phase_nodes = (int)pow(2.0, (double)pdim);
-  int num_vel_nodes = (int)pow(2.0, (double)vdim);
 
-  // Outer loop over all phase space cells
+  // Tensor range over the phase-space P1 cell corners. The first cdim
+  // indices identify the configuration corner and the remaining indices the
+  // velocity corner, without assuming a flattened corner ordering.
+  int corner_shape[GKYL_MAX_DIM];
+  for (int d = 0; d < pdim; ++d) {
+    corner_shape[d] = 2;
+  }
+  struct gkyl_range phase_corner_range;
+  gkyl_range_init_from_shape(&phase_corner_range, pdim, corner_shape);
+
+  // Outer loop over all phase-space cells.
   struct gkyl_range_iter phase_iter;
   gkyl_range_iter_init(&phase_iter, phase_range);
   while (gkyl_range_iter_next(&phase_iter)) {
-    int conf_idx[GKYL_MAX_DIM] = { 0 };
-    int vel_idx[GKYL_MAX_DIM] = { 0 };
+    int conf_idx[GKYL_MAX_CDIM] = { 0 };
+    int vel_idx[GKYL_MAX_VDIM] = { 0 };
     for (int d = 0; d < cdim; ++d) {
       conf_idx[d] = phase_iter.idx[d];
     }
@@ -108,47 +126,44 @@ gkyl_loss_cone_mask_gyrokinetic_advance(gkyl_loss_cone_mask_gyrokinetic *up,
     long linidx_vel = gkyl_range_idx(&gvm->local_ext_vel, vel_idx);
     const double *vmap_d = gkyl_array_cfetch(gvm->vmap, linidx_vel);
 
-    // At each phase space cell, loop over all nodes and check if they are trapped or not. If any node is not trapped, the whole cell is not trapped, so we can break out of the loop early in that case.
+    // A cell is trapped only if all of its P1 corners are trapped.
     bool cell_trapped = true;
-    for (int node = 0; node < num_phase_nodes && cell_trapped; ++node) {
-      int conf_node = node / num_vel_nodes;
-      int vel_node = node % num_vel_nodes;
+    struct gkyl_range_iter corner_iter;
+    gkyl_range_iter_init(&corner_iter, &phase_corner_range);
+    while (cell_trapped && gkyl_range_iter_next(&corner_iter)) {
+      int conf_corner = gkyl_range_idx(&up->conf_corner_range, corner_iter.idx);
 
-      // Evaluate velocity coordinates at the node
-      double xmu[GKYL_MAX_DIM] = { 0.0 };
-      for (int vd = 0; vd < vdim; ++vd) {
-        double vel_eta[GKYL_MAX_DIM] = { 0.0 };
-        nodal_coords(vdim, vel_node, vel_eta);
-        double xcomp[1] = { vel_eta[vd] };
-        xmu[cdim + vd] = gvm->vmap_basis->eval_expand(xcomp,
-          vmap_d + vd * gvm->vmap_basis->num_basis);
-      }
-      double mu = xmu[cdim + 1];
-      double vpar = xmu[cdim];
+      double vpar_eta[1] = { corner_iter.idx[cdim] ? 1.0 : -1.0 };
+      double mu_eta[1] = { corner_iter.idx[cdim + 1] ? 1.0 : -1.0 };
+      double vpar = gvm->vmap_basis->eval_expand(vpar_eta, vmap_d);
+      double mu = gvm->vmap_basis->eval_expand(mu_eta,
+        vmap_d + gvm->vmap_basis->num_basis);
 
-      // Evaluate Hamiltonian at the node
+      // Evaluate the Hamiltonian at this phase-space corner.
       long linidx_conf = gkyl_range_idx(conf_range, conf_idx);
-      double bmag_curr = field_node_val(bmag, up->basis_at_nodes_conf, num_basis_conf,
-        linidx_conf, conf_node);
-      double phi_curr = field_node_val(phi, up->basis_at_nodes_conf, num_basis_conf,
-        linidx_conf, conf_node);
+      double bmag_curr = gk_lcm_field_corner_value(bmag, up->basis_at_corners_conf,
+        num_basis_conf, linidx_conf, conf_corner);
+      double phi_curr = gk_lcm_field_corner_value(phi, up->basis_at_corners_conf,
+        num_basis_conf, linidx_conf, conf_corner);
       double kinetic_energy = 0.5 * up->mass * vpar * vpar;
       double magnetic_energy = mu * bmag_curr;
       double electric_energy = up->charge * phi_curr;
 
-      // Determine escape barriers at the node
+      // Determine both directional escape barriers at this corner.
       int zdim = cdim - 1;
       double barrier_left, barrier_right;
-      escape_barriers(cdim, num_basis_conf, conf_range, up->basis_at_nodes_conf,
-        phi, bmag, phi_wall_lo, phi_wall_up, conf_idx, conf_idx[zdim], conf_node,
-        mu, up->charge, up->lower_boundary, up->upper_boundary,
+      gk_lcm_escape_barriers(cdim, num_basis_conf, conf_range,
+        &up->conf_corner_range, up->basis_at_corners_conf, phi, bmag,
+        phi_wall_lo, phi_wall_up, conf_idx, conf_idx[zdim], conf_corner,
+        mu, up->charge, up->lower_trajectory, up->upper_trajectory,
         &barrier_left, &barrier_right);
 
-      // Equality means that the particle reaches the wall with zero parallel
-      // kinetic energy, matching the sheath boundary's absorbing cutoff.
-      cell_trapped = hamiltonian_below_barrier(kinetic_energy, magnetic_energy,
-        electric_energy, barrier_left) && hamiltonian_below_barrier(kinetic_energy,
-        magnetic_energy, electric_energy, barrier_right);
+      // Equality means that the particle reaches the loss endpoint with zero
+      // parallel kinetic energy, so it is not trapped.
+      cell_trapped = gk_lcm_hamiltonian_below_barrier(kinetic_energy,
+        magnetic_energy, electric_energy, barrier_left)
+        && gk_lcm_hamiltonian_below_barrier(kinetic_energy, magnetic_energy,
+          electric_energy, barrier_right);
     }
 
     long linidx_phase = gkyl_range_idx(phase_range, phase_iter.idx);
@@ -161,6 +176,6 @@ void
 gkyl_loss_cone_mask_gyrokinetic_release(gkyl_loss_cone_mask_gyrokinetic *up)
 {
   gkyl_velocity_map_release(up->vel_map);
-  gkyl_array_release(up->basis_at_nodes_conf);
+  gkyl_array_release(up->basis_at_corners_conf);
   gkyl_free(up);
 }

@@ -617,9 +617,11 @@ create_ctx(void)
   double mu_max_elc = me * pow(3. * vte, 2.) / (2. * B_p);
   double vpar_max_ion = 20 * vti;
   double mu_max_ion = mi * pow(3. * vti, 2.) / (2. * B_p);
-  int Nz = 32;
-  int Nvpar = 32; // Number of cells in the paralell velocity direction 96
-  int Nmu = 16;  // Number of cells in the mu direction 192
+  // Keep the default regression small enough for the 90 s regression-test
+  // budget while retaining both kinetic species and every POA phase.
+  int Nz = 16;
+  int Nvpar = 16;
+  int Nmu = 8;
   int poly_order = 1;
 
   // Factor multiplying collisionless terms.
