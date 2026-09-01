@@ -1703,7 +1703,7 @@ gkyl_twistshift_dg_choose_kernels(struct gkyl_basis basis, int cdim, int shift_p
 }
 
 struct gkyl_twistshift_dg*
-gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
+gkyl_twistshift_dg_inew(const struct gkyl_twistshift_dg_inp *inp)
 {
 
   // Allocate space for new updater.
@@ -1713,18 +1713,18 @@ gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
   up->shift_dir = inp->shift_dir;
   up->shear_dir = inp->shear_dir;
   up->edge = inp->edge;
-  up->basis = inp->basis;
-  up->grid = inp->grid;
+  up->basis = *inp->basis;
+  up->grid = *inp->grid;
   up->use_gpu = inp->use_gpu;
-  up->local_bcdir_ext_r = inp->bcdir_ext_update_r;
+  up->local_bcdir_ext_r = *inp->bcdir_ext_update_r;
 
   // Assume the poly order of the DG shift is the same as that of the field,
   // unless requested otherwise.
-  up->shift_poly_order = inp->basis.poly_order;
+  up->shift_poly_order = inp->basis->poly_order;
   if (inp->shift_poly_order)
     up->shift_poly_order = inp->shift_poly_order;
 
-  const int ndim = inp->bcdir_ext_update_r.ndim;
+  const int ndim = inp->bcdir_ext_update_r->ndim;
   // Check that it is being used for 3D or 5D. Likely only small changes are
   // needed to make it work in other dimensions.
   assert(ndim == 3 || ndim == 5); 
@@ -1734,9 +1734,9 @@ gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
   // Create 1D grid and range in the direction of the shear.
   gkyl_range_init(&up->shear_r, 1, (int[]) {up->local_bcdir_ext_r.lower[inp->shear_dir]},
                                    (int[]) {up->local_bcdir_ext_r.upper[inp->shear_dir]});
-  lo1d[0] = inp->grid.lower[up->shear_dir];
-  up1d[0] = inp->grid.upper[up->shear_dir];
-  cells1d[0] = inp->grid.cells[up->shear_dir];
+  lo1d[0] = inp->grid->lower[up->shear_dir];
+  up1d[0] = inp->grid->upper[up->shear_dir];
+  cells1d[0] = inp->grid->cells[up->shear_dir];
   gkyl_rect_grid_init(&up->shear_grid, 1, lo1d, up1d, cells1d);
   int idx[] = {up->shear_r.lower[0]};
   long linidx = gkyl_range_idx(&up->shear_r, idx);
@@ -1744,9 +1744,9 @@ gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
   // Create 1D grid and range in the diretion of the shift.
   gkyl_range_init(&up->shift_r, 1, (int[]) {up->local_bcdir_ext_r.lower[inp->shift_dir]},
                                    (int[]) {up->local_bcdir_ext_r.upper[inp->shift_dir]});
-  lo1d[0] = inp->grid.lower[up->shift_dir];
-  up1d[0] = inp->grid.upper[up->shift_dir];
-  cells1d[0] = inp->grid.cells[up->shift_dir];
+  lo1d[0] = inp->grid->lower[up->shift_dir];
+  up1d[0] = inp->grid->upper[up->shift_dir];
+  cells1d[0] = inp->grid->cells[up->shift_dir];
   gkyl_rect_grid_init(&up->shift_grid, 1, lo1d, up1d, cells1d);
 
   // Create 2D grid (and range) the twist-shift takes place in.
@@ -1765,9 +1765,9 @@ gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
   }
   gkyl_range_init(&up->ts_r, 2, (int[]) {up->local_bcdir_ext_r.lower[dimlo], up->local_bcdir_ext_r.lower[dimup]},
                                 (int[]) {up->local_bcdir_ext_r.upper[dimlo], up->local_bcdir_ext_r.upper[dimup]});
-  double lo2d[] = {inp->grid.lower[dimlo], inp->grid.lower[dimup]};
-  double up2d[] = {inp->grid.upper[dimlo], inp->grid.upper[dimup]};
-  int cells2d[] = {inp->grid.cells[dimlo], inp->grid.cells[dimup]};
+  double lo2d[] = {inp->grid->lower[dimlo], inp->grid->lower[dimup]};
+  double up2d[] = {inp->grid->upper[dimlo], inp->grid->upper[dimup]};
+  int cells2d[] = {inp->grid->cells[dimlo], inp->grid->cells[dimup]};
   gkyl_rect_grid_init(&up->ts_grid, 2, lo2d, up2d, cells2d);
 
   // Project the shift onto the shift basis.
@@ -1830,7 +1830,7 @@ gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
 
   // Choose the kernels that do the subcell and full cell integrals
   up->kernels = gkyl_malloc(sizeof(struct gkyl_twistshift_dg_kernels));
-  gkyl_twistshift_dg_choose_kernels(inp->basis, inp->cdim, up->shift_poly_order, up->kernels);
+  gkyl_twistshift_dg_choose_kernels(*inp->basis, inp->cdim, up->shift_poly_order, up->kernels);
 
   // The BC is applied as a set of matrix-matrix multiplications
   //   f_i = sum_{q}^{N_do(i)} A_q,i B_q,i
@@ -1898,6 +1898,31 @@ gkyl_twistshift_dg_new(const struct gkyl_twistshift_dg_inp *inp)
     gkyl_range_shorten_from_below(&up->ghost_r, &up->local_bcdir_ext_r, inp->bc_dir, inp->num_ghost[inp->bc_dir]);
 
   return up;
+}
+
+struct gkyl_twistshift_dg*
+gkyl_twistshift_dg_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
+  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
+  struct gkyl_array *shift_dg, int shift_poly_order, bool use_gpu)
+{
+  struct gkyl_twistshift_dg_inp inp = {
+    .bc_dir              = bc_dir            ,
+    .shift_dir           = shift_dir         ,
+    .shear_dir           = shear_dir         ,
+    .edge                = edge              ,
+    .cdim                = cdim              ,
+    .bcdir_ext_update_r  = bcdir_ext_update_r,
+    .num_ghost           = num_ghost         ,
+    .basis               = basis             ,
+    .grid                = grid              ,
+    .shift_func          = shift_func        ,
+    .shift_func_ctx      = shift_func_ctx    ,
+    .shift_dg            = shift_dg          ,
+    .use_gpu             = use_gpu           ,
+    .shift_poly_order    = shift_poly_order  ,
+  };
+  return gkyl_twistshift_dg_inew(&inp);
 }
 
 void

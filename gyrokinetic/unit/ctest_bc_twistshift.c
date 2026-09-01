@@ -219,11 +219,11 @@ test_plain_matches_twistshift_dg(void)
     struct gkyl_array *f_ref = ts_donor_new(&s);
     struct gkyl_twistshift_dg_inp tsinp = {
       .bc_dir = ts_bc_dir, .shift_dir = 1, .shear_dir = 0, .edge = edge,
-      .cdim = ts_cdim, .bcdir_ext_update_r = s.update_r, .num_ghost = s.ghost,
-      .basis = s.basis, .grid = s.grid,
+      .cdim = ts_cdim, .bcdir_ext_update_r = &s.update_r, .num_ghost = s.ghost,
+      .basis = &s.basis, .grid = &s.grid,
       .shift_func = shift_func, .shift_func_ctx = &tctx, .use_gpu = false,
     };
-    struct gkyl_twistshift_dg *ts = gkyl_twistshift_dg_new(&tsinp);
+    struct gkyl_twistshift_dg *ts = gkyl_twistshift_dg_inew(&tsinp);
     gkyl_twistshift_dg_advance(ts, f_ref, f_ref);
     gkyl_twistshift_dg_release(ts);
 

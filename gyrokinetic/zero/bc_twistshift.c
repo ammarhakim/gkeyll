@@ -125,17 +125,17 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
       .shear_dir = inp->shear_dir,
       .edge = inp->edge,
       .cdim = inp->cdim,
-      .bcdir_ext_update_r = *inp->bcdir_ext_update_r,
+      .bcdir_ext_update_r = inp->bcdir_ext_update_r,
       .num_ghost = inp->num_ghost,
-      .basis = *inp->basis,
-      .grid = *inp->grid,
+      .basis = inp->basis,
+      .grid = inp->grid,
       .shift_func = inp->shift_func,
       .shift_func_ctx = inp->shift_func_ctx,
       .shift_dg = inp->shift_dg,
       .use_gpu = inp->use_gpu,
       .shift_poly_order = inp->shift_poly_order,
     };
-    up->ts = gkyl_twistshift_dg_new(&tsinp);
+    up->ts = gkyl_twistshift_dg_inew(&tsinp);
     up->advance_func = bc_twistshift_advance_ts;
     return up;
   }
@@ -206,20 +206,49 @@ gkyl_bc_twistshift_inew(const struct gkyl_bc_twistshift_inp *inp)
     .shear_dir = inp->shear_dir,
     .edge = inp->edge,
     .cdim = inp->cdim,
-    .bcdir_ext_update_r = up->ts_update_r,
+    .bcdir_ext_update_r = &up->ts_update_r,
     .num_ghost = inp->num_ghost,
-    .basis = *inp->basis,
-    .grid = up->ts_grid,
+    .basis = inp->basis,
+    .grid = &up->ts_grid,
     .shift_func = inp->shift_func,
     .shift_func_ctx = inp->shift_func_ctx,
     .shift_dg = shift_dg,
     .use_gpu = inp->use_gpu,
     .shift_poly_order = inp->shift_poly_order,
   };
-  up->ts = gkyl_twistshift_dg_new(&tsinp);
+  up->ts = gkyl_twistshift_dg_inew(&tsinp);
   up->advance_func = bc_twistshift_advance_ts_filtered;
 
   return up;
+}
+
+struct gkyl_bc_twistshift*
+gkyl_bc_twistshift_new(int bc_dir, int shift_dir, int shear_dir,
+  enum gkyl_edge_loc edge, int cdim, const struct gkyl_range *bcdir_ext_update_r, const int *num_ghost,
+  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, evalf_t shift_func, void *shift_func_ctx,
+  struct gkyl_array *shift_dg, int shift_poly_order, int filter_half_width,
+  double filter_cutoff_wavelength, int upsample_factor, bool use_gpu)
+{
+  struct gkyl_bc_twistshift_inp inp = {
+    .bc_dir                   = bc_dir                  ,
+    .shift_dir                = shift_dir               ,
+    .shear_dir                = shear_dir               ,
+    .edge                     = edge                    ,
+    .cdim                     = cdim                    ,
+    .bcdir_ext_update_r       = bcdir_ext_update_r      ,
+    .num_ghost                = num_ghost               ,
+    .basis                    = basis                   ,
+    .grid                     = grid                    ,
+    .shift_func               = shift_func              ,
+    .shift_func_ctx           = shift_func_ctx          ,
+    .shift_dg                 = shift_dg                ,
+    .use_gpu                  = use_gpu                 ,
+    .shift_poly_order         = shift_poly_order        ,
+    .filter_half_width        = filter_half_width       ,
+    .filter_cutoff_wavelength = filter_cutoff_wavelength,
+    .upsample_factor          = upsample_factor         ,
+  };
+  return gkyl_bc_twistshift_inew(&inp);
 }
 
 void

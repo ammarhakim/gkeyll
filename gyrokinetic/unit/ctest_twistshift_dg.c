@@ -335,17 +335,17 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0, // shift varies with x.
     .edge = edge,
     .cdim = cdim,
-    .bcdir_ext_update_r = update_rng,
+    .bcdir_ext_update_r = &update_rng,
     .num_ghost = ghost,
-    .basis = basis,
-    .grid = grid,
+    .basis = &basis,
+    .grid = &grid,
     .shift_func = shift1_fig6,
 //    .shift_func = shift_fig9,
     .shift_func_ctx = &proj_ctx,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -402,7 +402,7 @@ test_bc_twistshift_3x_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_copy_range_to_range(distf, distf, &skin_rng, &ghost_rng);
   tsinp.shift_func = shift1m_fig6;
 //  tsinp.shift_func = shiftm_fig9;
-  struct gkyl_twistshift_dg *tsup_m = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup_m = gkyl_twistshift_dg_inew(&tsinp);
   gkyl_twistshift_dg_advance(tsup_m, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
@@ -592,17 +592,17 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0, // shift varies with x.
     .edge = edge,
     .cdim = cdim,
-    .bcdir_ext_update_r = update_rng,
+    .bcdir_ext_update_r = &update_rng,
     .num_ghost = ghost,
-    .basis = basis,
-    .grid = grid,
+    .basis = &basis,
+    .grid = &grid,
     .shift_func = shift1_fig6,
 //    .shift_func = shift_fig9,
     .shift_func_ctx = &proj_ctx,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -743,7 +743,7 @@ test_bc_twistshift_3x2v_fig6_wcells(const int *cells, enum gkyl_edge_loc edge,
   gkyl_array_copy_range_to_range(distf, distf, &skin_rng, &ghost_rng);
   tsinp.shift_func = shift1m_fig6;
 //  tsinp.shift_func = shiftm_fig9;
-  struct gkyl_twistshift_dg *tsup_m = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup_m = gkyl_twistshift_dg_inew(&tsinp);
   gkyl_twistshift_dg_advance(tsup_m, distf, distf);
   gkyl_array_copy(distf_ho, distf);
 
@@ -1003,16 +1003,16 @@ test_bc_twistshift_3x_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0, // shift varies with x.
     .edge = edge,
     .cdim = cdim,
-    .bcdir_ext_update_r = update_rng,
+    .bcdir_ext_update_r = &update_rng,
     .num_ghost = ghost,
-    .basis = basis,
-    .grid = grid,
+    .basis = &basis,
+    .grid = &grid,
     .shift_func = shift_fig11,
     .shift_func_ctx = &proj_ctx,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -1370,16 +1370,16 @@ test_bc_twistshift_3x_fig14_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0, // shift varies with x.
     .edge = edge,
     .cdim = cdim,
-    .bcdir_ext_update_r = update_rng,
+    .bcdir_ext_update_r = &update_rng,
     .num_ghost = ghost,
-    .basis = basis,
-    .grid = grid,
+    .basis = &basis,
+    .grid = &grid,
     .shift_func = shift_fig14,
     .shift_func_ctx = &proj_ctx,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -1820,16 +1820,16 @@ test_bc_twistshift_3x2v_fig11_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0, // shift varies with x.
     .edge = edge,
     .cdim = cdim,
-    .bcdir_ext_update_r = update_rng,
+    .bcdir_ext_update_r = &update_rng,
     .num_ghost = ghost,
-    .basis = basis,
-    .grid = grid,
+    .basis = &basis,
+    .grid = &grid,
     .shift_func = shift_fig11,
     .shift_func_ctx = &proj_ctx,
     .use_gpu = use_gpu,
   };
 
-  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_inew(&tsinp);
 
   // First apply periodicity in z.
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
@@ -2407,16 +2407,16 @@ test_bc_twistshift_3x_cbc_wcells(const int *cells, enum gkyl_edge_loc edge,
     .shear_dir = 0,
     .edge      = edge,
     .cdim      = cdim,
-    .bcdir_ext_update_r = update_rng,
+    .bcdir_ext_update_r = &update_rng,
     .num_ghost = ghost,
-    .basis     = basis,
-    .grid      = grid,
+    .basis = &basis,
+    .grid = &grid,
     .shift_func = (edge == GKYL_LOWER_EDGE) ? bc_shift_func_lo_cbc : bc_shift_func_up_cbc,
     .shift_func_ctx = &app_ctx,
     .use_gpu   = use_gpu,
   };
 
-  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_new(&tsinp);
+  struct gkyl_twistshift_dg *tsup = gkyl_twistshift_dg_inew(&tsinp);
 
   struct gkyl_array *buff_per = mkarr(use_gpu, basis.num_basis, skin_rng.volume);
   apply_periodic_bc(buff_per, distf, bc_dir, skin_ghost);
