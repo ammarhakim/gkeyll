@@ -1,0 +1,1 @@
+I'm not sure. Would it be sufficient to change 'ln -sf "../../.agents/skills/$filename"' to 'ln -sf "../.agents/skills/$filename"'?
