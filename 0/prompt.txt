@@ -1,0 +1,1 @@
+rather thank mkdir .claude/skills/<name>/SKILL.md and the equivalent .codex directory, I think you should edit repo-init.sh so these directories are created when the script mirrors what's in .agents/skills
