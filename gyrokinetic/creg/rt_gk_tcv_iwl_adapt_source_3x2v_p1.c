@@ -822,7 +822,7 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_geometry geometry = {
     .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = {0.},
-    .mapc2p = mapc2p, // mapping of cCOREutational to physical space
+    .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = &ctx,
     .bfield_func = bfield_func, // magnetic field
     .bfield_ctx = &ctx,
