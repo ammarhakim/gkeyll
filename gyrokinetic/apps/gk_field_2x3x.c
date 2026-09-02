@@ -813,7 +813,7 @@ gk_field_fem_new_2x3x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
         for (int i=0; i<GKYL_MAX_CDIM; i++)
           f->fs_avg_subdir[i] = fs_avg_subdir[i];
       }
-      f->fs_avg_op = gkyl_array_average_new(&inp_avg_xyz_to_x);
+      f->fs_avg_op = gkyl_array_average_inew(&inp_avg_xyz_to_x);
       f->fs_avg = mkarr(app->use_gpu, f->fs_avg_basis.num_basis, f->fs_avg_range_ext.volume);
       f->fs_avg_conf_one = mkarr(app->use_gpu, app->basis.num_basis, app->local_ext.volume);
       double dg_norm = pow(sqrt(2.0), app->basis.ndim);
