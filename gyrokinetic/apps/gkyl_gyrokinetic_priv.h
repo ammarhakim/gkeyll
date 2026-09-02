@@ -35,14 +35,17 @@
 #include <gkyl_dg_calc_gk_neut_hamil.h>
 #include <gkyl_dg_calc_gk_rad_vars.h>
 #include <gkyl_gk_collisionless_flux.h>
+#include <gkyl_gk_collisionless_passive_flux.h>
 #include <gkyl_dg_canonical_pb.h>
 #include <gkyl_dg_cx.h>
 #include <gkyl_dg_gyrokinetic.h>
+#include <gkyl_dg_gyrokinetic_passive.h>
 #include <gkyl_dg_iz.h>
 #include <gkyl_dg_rad_gyrokinetic_drag.h>
 #include <gkyl_dg_recomb.h>
 #include <gkyl_dg_updater_gk_anomalous_diffusion.h>
 #include <gkyl_dg_updater_gyrokinetic.h>
+#include <gkyl_dg_updater_gyrokinetic_passive.h>
 #include <gkyl_dg_updater_lbo_gyrokinetic.h>
 #include <gkyl_dg_updater_moment_gyrokinetic.h>
 #include <gkyl_dg_updater_moment.h>
@@ -289,6 +292,12 @@ struct gk_collisionless {
       struct gkyl_gk_collisionless_flux *surf_flux_em_complete_op; // EM collisionless fluxes without Apardot contribution.
       gkyl_dg_updater_gyrokinetic *slvr; // Collisionless solver.
       gkyl_dg_updater_gyrokinetic *slvr_em_complete; // EM without Apardot contribution.
+
+      // Passive advection (only for GKYL_GK_COLLISIONLESS_PASSIVE).
+      struct gkyl_array *passive_speeds;    // Conf-space passive speeds.
+      struct gkyl_array *passive_speeds_ho; // Host copy of passive_speeds.
+      struct gkyl_gk_collisionless_passive_flux *passive_surf_flux_op; // Passive flux updater.
+      gkyl_dg_updater_gyrokinetic_passive *passive_slvr; // Passive collisionless solver.
 
       // Methods chosen at runtime.
       void (*flux_func)(gkyl_gyrokinetic_app *app, struct gk_species *species,
