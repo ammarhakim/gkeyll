@@ -1,0 +1,1 @@
+What do you think of the SKILL file in .agents/skill/ ?
