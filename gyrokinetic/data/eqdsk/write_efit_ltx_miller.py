@@ -1,334 +1,500 @@
-#import postgkyl as pg
-import numpy as np
+"""
+Write an EFIT/GEQDSK equilibrium file for a Miller-geometry tokamak.
+
+Geometry conventions follow rt_gk_ltx_aiwl_2x2v_p1.c (context-struct pattern):
+all geometry functions take an explicit MillerParams argument instead of
+capturing module-level globals.
+
+Typical use
+-----------
+Run with defaults (reproduces the original LTX file):
+
+    python write_efit_ltx_miller.py
+
+Vary shape and resolution from the command line:
+
+    python write_efit_ltx_miller.py --kappa 1.5 --delta 0.2 --nw 129 --nh 129 \
+        --output shaped.geqdsk --plot
+
+Supply an arbitrary q-profile from Python (programmatic use):
+
+    from write_efit_ltx_miller import MillerParams, main
+    params = MillerParams(qprofile_func=lambda r: 2.5 + 1.8 * r**2)
+    main(params=params, output_file="custom_q.geqdsk")
+"""
+
+from __future__ import annotations
+
+import argparse
+import importlib
+import math
+from dataclasses import dataclass, field
+from typing import Callable, Optional
+
 import matplotlib.pyplot as plt
-import sys
-#import pgkylUtil as pgu
+import numpy as np
 import scipy.integrate as integrate
-from scipy.interpolate import pchip_interpolate
 import scipy.optimize as sco
-import fortranformat as ff
-from datetime import date
-from typing import Any, Generator, Iterable, List, TextIO, Union
 from scipy.interpolate import griddata
 
-import math
-from scipy.integrate import quad
+from eqdsk_io import write_geqdsk, write_wall_limiter
 
 
+# ---------------------------------------------------------------------------
+# Parameter dataclass
+# ---------------------------------------------------------------------------
 
-#Geometry and magnetic field.
-R_axis     = 0.406051632        # [m]
-B_axis     = 0.240606108        # [T]
-R_LCFSmid  = 0.61183            # Major radius of the LCFS at the outboard midplane [m].
-Rmid_min   = R_axis # Minimum midplane major radius of simulation box [m].
-Rmid_max   = 0.7   # Maximum midplane major radius of simulation box [m].
-R0         = 0.5*(Rmid_min+Rmid_max)    # Major radius of the simulation box [m].
-a_mid      = R_LCFSmid-R_axis   # Minor radius at outboard midplane [m].
-r0         = R0-R_axis          # Minor radius of the simulation box [m].
-B0         = B_axis*(R_axis/R0) # Magnetic field magnitude in the simulation box [T].
-q_LCFS     = 4.3153848          # Safety factor at the LCFS.
-s_LCFS     = 2.6899871          # Magnetic shear at the LCFS. Should be ~6.6899871 but that makes qprofile change sign in the SOL.
-kappa      = 1.3                # Elongation (=1 for no elongation).
-delta      = 0.4                # Triangularity (=0 for no triangularity).
-x_LCFS = R_LCFSmid - Rmid_min
+@dataclass
+class MillerParams:
+    """Physical parameters describing a Miller-geometry tokamak equilibrium.
+
+    All input fields have defaults matching the LTX experiment.  Derived
+    quantities are computed once in ``__post_init__`` and stored as read-only
+    attributes.
+
+    To use a fully custom safety-factor profile pass a callable to
+    ``qprofile_func``; otherwise the analytic form parametrised by
+    ``q_LCFS`` and ``s_LCFS`` is used.
+    """
+
+    # --- Primary inputs ---
+    R_axis: float = 0.406051632
+    """Major radius at the magnetic axis [m]."""
+
+    B_axis: float = 0.240606108
+    """Magnetic field magnitude at the axis [T]."""
+
+    R_LCFSmid: float = 0.61183
+    """Major radius of the LCFS at the outboard midplane [m]."""
+
+    Rmid_min: Optional[float] = None
+    """Minimum midplane major radius of the simulation box [m].
+    Defaults to ``R_axis`` (axis at inner wall)."""
+
+    Rmid_max: float = 0.7
+    """Maximum midplane major radius of the simulation box [m]."""
+
+    kappa: float = 1.3
+    """Elongation (= 1 for circular cross-section)."""
+
+    delta: float = 0.4
+    """Triangularity (= 0 for no triangular shaping)."""
+
+    q_LCFS: float = 4.3153848
+    """Safety factor at the LCFS.  Used only when ``qprofile_func`` is None."""
+
+    s_LCFS: float = 2.6899871
+    """Magnetic shear at the LCFS.  Used only when ``qprofile_func`` is None."""
+
+    qprofile_func: Optional[Callable[[float], float]] = field(
+        default=None, repr=False
+    )
+    """Optional user-supplied q(r) callable.  Receives minor radius r [m] and
+    returns the safety factor.  When provided, overrides the analytic form."""
+
+    # --- Derived (computed in __post_init__) ---
+    a_mid: float = field(init=False)
+    R0: float = field(init=False)
+    r0: float = field(init=False)
+    B0: float = field(init=False)
+    x_LCFS: float = field(init=False)
+    q0: float = field(init=False)
+    q_min: float = field(init=False)
+
+    def __post_init__(self) -> None:
+        if self.Rmid_min is None:
+            self.Rmid_min = self.R_axis
+        self.a_mid = self.R_LCFSmid - self.R_axis
+        self.R0 = 0.5 * (self.Rmid_min + self.Rmid_max)
+        self.r0 = self.R0 - self.R_axis
+        self.B0 = self.B_axis * (self.R_axis / self.R0)
+        self.x_LCFS = self.R_LCFSmid - self.Rmid_min
+        self.q0 = self.qprofile(self.r0)
+        self.q_min = self.qprofile(self.Rmid_min - self.R_axis)
+
+    def qprofile(self, r: float) -> float:
+        """Safety factor as a function of minor radius r [m]."""
+        if self.qprofile_func is not None:
+            return self.qprofile_func(r)
+        return self.q_LCFS / (1.0 - self.s_LCFS * (r - self.a_mid) / self.a_mid)
 
 
-#.Magnetic safety factor profile.
-def qprofile(r):
-    return q_LCFS/(1.-s_LCFS*((r-a_mid)/a_mid))
+# ---------------------------------------------------------------------------
+# Geometry functions
+# All follow the same convention as the C reference (rt_gk_ltx_aiwl_2x2v_p1.c):
+# explicit params argument, no global captures.
+# ---------------------------------------------------------------------------
 
-q0 = qprofile(r0)
-q_min = qprofile(Rmid_min-R_axis)
+def r_x(x: float, params: MillerParams) -> float:
+    """Convert x coordinate (distance from Rmid_min) to minor radius r [m]."""
+    return params.Rmid_min - params.R_axis + x
 
-#..................... NO MORE USER INPUTS BELOW (maybe) ....................#
 
-def r_x(x):
-    return Rmid_min-R_axis + x
-def R_f(r, theta):
-  return R_axis + r*np.cos(theta + np.arcsin(delta)*np.sin(theta))
-def Z_f(r, theta):
-  return kappa*r*np.sin(theta)
+def R_f(r: float, theta: float, params: MillerParams) -> float:
+    """Major radius R(r, theta) in the Miller parameterisation [m]."""
+    return params.R_axis + r * np.cos(theta + np.arcsin(params.delta) * np.sin(theta))
 
-#.Analytic derivatives.
-def R_f_r(r,theta):
-  return np.cos(theta + np.arcsin(delta)*np.sin(theta))
-def R_f_theta(r,theta):
-  return -r*(np.arcsin(delta)*np.cos(theta)+1.)*np.sin(np.arcsin(delta)*np.sin(theta)+theta)
-def Z_f_r(r,theta):
-  return kappa*np.sin(theta)
-def Z_f_theta(r,theta):
-  return kappa*r*np.cos(theta)
 
-def Jr_f(r, theta):
-  return R_f(r,theta)*( R_f_r(r,theta)*Z_f_theta(r,theta)-Z_f_r(r,theta)*R_f_theta(r,theta) )
+def Z_f(r: float, theta: float, params: MillerParams) -> float:
+    """Vertical position Z(r, theta) in the Miller parameterisation [m]."""
+    return params.kappa * r * np.sin(theta)
 
-def J_f(r, theta):
-    return Jr_f(r, theta)/dPsidr_f(r, theta)
 
-def integrand(t, r):
-  return Jr_f(r,t)/np.power(R_f(r,t),2)
+def R_f_r(_r: float, theta: float, params: MillerParams) -> float:
+    """Partial derivative dR/dr (independent of r in Miller geometry)."""
+    return np.cos(theta + np.arcsin(params.delta) * np.sin(theta))
 
-def dPsidr_f(r, theta):
-  integral, _ = integrate.quad(integrand, 0., 2.*np.pi, args=(r,), epsabs=1.e-8)
-  return B_axis*R_axis/(2.*np.pi*qprofile(r))*integral
 
-def Bphi_f(R):
-    return B_axis*R_axis/R
+def R_f_theta(r: float, theta: float, params: MillerParams) -> float:
+    """Partial derivative dR/dtheta."""
+    asin_d = np.arcsin(params.delta)
+    return -r * (asin_d * np.cos(theta) + 1.0) * np.sin(asin_d * np.sin(theta) + theta)
 
-def psi_fi(r,theta):
-    psi_i,_ = integrate.quad(dPsidr_f, 0, r, args=(theta,), epsabs=1.e-8)
-    return psi_i
 
-# Some functions for calculating an analytical shift
-def alpha(r, theta, phi):
-    # Wrap theta to the range [-pi, pi]
+def Z_f_r(_r: float, theta: float, params: MillerParams) -> float:
+    """Partial derivative dZ/dr (independent of r in Miller geometry)."""
+    return params.kappa * np.sin(theta)
+
+
+def Z_f_theta(r: float, theta: float, params: MillerParams) -> float:
+    """Partial derivative dZ/dtheta."""
+    return params.kappa * r * np.cos(theta)
+
+
+def Jr_f(r: float, theta: float, params: MillerParams) -> float:
+    """Jacobian determinant multiplied by R: R*(dR/dr * dZ/dtheta - dZ/dr * dR/dtheta)."""
+    return R_f(r, theta, params) * (
+        R_f_r(r, theta, params) * Z_f_theta(r, theta, params)
+        - Z_f_r(r, theta, params) * R_f_theta(r, theta, params)
+    )
+
+
+def _integrand(t: float, r: float, params: MillerParams) -> float:
+    """Integrand Jr/R² used in the flux calculations."""
+    return Jr_f(r, t, params) / np.power(R_f(r, t, params), 2)
+
+
+def dPsidr_f(r: float, _theta: float, params: MillerParams) -> float:
+    """Radial flux gradient dPsi/dr at minor radius r [Wb/rad/m].
+
+    The result is independent of theta because the integral runs over all
+    poloidal angles [0, 2pi].  The theta argument is kept so that
+    integrate.quad can pass it via args= when computing psi_fi.
+    """
+    integral, _ = integrate.quad(
+        _integrand, 0.0, 2.0 * np.pi, args=(r, params), epsabs=1.0e-8
+    )
+    return params.B_axis * params.R_axis / (2.0 * np.pi * params.qprofile(r)) * integral
+
+
+def psi_fi(r: float, theta: float, params: MillerParams) -> float:
+    """Poloidal flux Psi(r) obtained by integrating dPsi/dr from 0 to r [Wb/rad]."""
+    result, _ = integrate.quad(dPsidr_f, 0.0, r, args=(theta, params), epsabs=1.0e-8)
+    return result
+
+
+def Bphi_f(R: float, params: MillerParams) -> float:
+    """Vacuum toroidal field B_phi = B_axis * R_axis / R [T]."""
+    return params.B_axis * params.R_axis / R
+
+
+def J_f(r: float, theta: float, params: MillerParams) -> float:
+    """Full Jacobian Jr/dPsi_dr."""
+    return Jr_f(r, theta, params) / dPsidr_f(r, theta, params)
+
+
+# ---------------------------------------------------------------------------
+# Field-line angle and shift functions
+# (used by check_miller_shift.py and related analysis)
+# ---------------------------------------------------------------------------
+
+def alpha(r: float, theta: float, phi: float, params: MillerParams) -> float:
+    """Field-line label angle alpha(r, theta, phi)."""
     twrap = (theta + math.pi) % (2 * math.pi) - math.pi
 
-    # Define the integrand locally
-    def integrand_wrapper(t):
-        return integrand(t, r)
+    def _wrap(t: float) -> float:
+        return _integrand(t, r, params)
 
-    # Perform the double exponential integration
     if twrap > 0:
-        res, err = quad(integrand_wrapper, 0, twrap, epsabs=1e-10)
+        res, _ = integrate.quad(_wrap, 0.0, twrap, epsabs=1e-10)
     else:
-        res, err = quad(integrand_wrapper, twrap, 0, epsabs=1e-10)
+        res, _ = integrate.quad(_wrap, twrap, 0.0, epsabs=1e-10)
         res = -res
 
-    return phi - (B_axis * R_axis * res) / dPsidr_f(r, theta)
-
-def shift_lo_i(r):
-  return -r0/q0*alpha(r, -np.pi, 0.0)
-
-def shift_lo_angle_i(r):
-  return -alpha(r, -np.pi, 0.0)
-
-def shift_up_angle_i(r):
-    return -alpha(r, np.pi, 0.0);
-
-def shift_lo_angle_i_basic(r):
-  return -2*np.pi*qprofile(r)
+    return phi - (params.B_axis * params.R_axis * res) / dPsidr_f(r, theta, params)
 
 
-#RZ box
-NW = 81
-NH = 91
-RMIN,RMAX = 0.1,0.7
-ZMIN,ZMAX = -0.4,0.4
-RDIM = RMAX - RMIN
-ZDIM = ZMAX - ZMIN
-RLEFT=RMIN
-ZMID = (ZMAX+ZMIN)/2.0
-RMAXIS = R_axis
-ZMAXIS = 0.0
-SIMAG = psi_fi(0.0,0.0)
-SIBRY = psi_fi(Rmid_min - R_axis + x_LCFS, 0.0)
-NPSI = NW #don't write
-RCENTR = R_axis
-BCENTR = B_axis
-CURRENT = 0
+def shift_lo_i(r: float, params: MillerParams) -> float:
+    """Shift at the lower boundary."""
+    return -params.r0 / params.q0 * alpha(r, -np.pi, 0.0, params)
 
 
-# setup r, theta grids
-xmin = 0
-xmax = Rmid_max-Rmid_min
-x = np.linspace(0,xmax,NW)
-r = Rmid_min-R_axis+x
-theta=np.linspace(-np.pi,np.pi,65)
-r_grid, theta_grid = np.meshgrid(r, theta, indexing='ij')
-Rm = R_f(r_grid, theta_grid)
-Zm = Z_f(r_grid, theta_grid)
-
-#Calculate psi(r,theta)
-psi = np.zeros(len(r))
-for i,ri in enumerate(r):
-    psi[i] = psi_fi(ri,0.0)
-psi_plot = np.repeat(psi,len(theta)).reshape(len(r),len(theta))
-fig, ax = plt.subplots()
-cax = ax.contour(Rm,Zm,psi_plot, cmap = "inferno")
-plt.title("Original Psi")
-plt.colorbar(cax)
-plt.show()
+def shift_lo_angle_i(r: float, params: MillerParams) -> float:
+    """Field-line shift angle at the lower poloidal boundary."""
+    return -alpha(r, -np.pi, 0.0, params)
 
 
-#Interpolate to get psi in RZ coords
-Rgrid = np.linspace(RMIN,RMAX,NW)
-Zgrid = np.linspace(ZMIN,ZMAX,NH)
-grid_r, grid_z = np.meshgrid(Rgrid,Zgrid)
-flat_points = np.stack((Rm,Zm), axis = -1).reshape(-1, 2)
-flat_psi = psi_plot.flatten()
-psiRZ = griddata(flat_points, psi_plot.flatten(), (grid_r, grid_z), method='cubic')
-nan_mask = np.isnan(psiRZ)
-psiRZ[nan_mask] = griddata(flat_points, flat_psi, (grid_r[nan_mask], grid_z[nan_mask]), method='nearest')
-psiRZ = psiRZ.T
-
-fig, ax = plt.subplots()
-cax = ax.contour(Rgrid,Zgrid, psiRZ.T, cmap = "inferno")
-plt.title("Interpolated Psi")
-plt.colorbar(cax)
-plt.show()
+def shift_up_angle_i(r: float, params: MillerParams) -> float:
+    """Field-line shift angle at the upper poloidal boundary."""
+    return -alpha(r, np.pi, 0.0, params)
 
 
-#PSI quantities
-PSIGRID = np.linspace(SIMAG, SIBRY,NPSI)
-FPOL = np.repeat(B_axis*R_axis, NPSI)
-FFPRIM = np.repeat(0.0, NPSI)
-PPRIME = np.repeat(-1e-6,NPSI)
-PRES = integrate.cumulative_trapezoid(PPRIME,PSIGRID,initial=0)
-PSIZR = psiRZ.T
+def shift_lo_angle_i_basic(r: float, params: MillerParams) -> float:
+    """Approximate shift angle (2*pi*q approximation)."""
+    return -2 * np.pi * params.qprofile(r)
 
 
-#LIMITER and boundary STUFF
-r_LCFS = r_x(x_LCFS)
-RLCFS = R_f(r_LCFS,theta)
-ZLCFS = Z_f(r_LCFS,theta)
-plt.scatter(RLCFS,ZLCFS)
+# ---------------------------------------------------------------------------
+# Main workflow
+# ---------------------------------------------------------------------------
 
-def rlossfunc(r, psi0):
-    return psi0 - psi_fi(r,0)
-def rfunc(psi):
-    return sco.ridder(rlossfunc,0, r_LCFS, args = (psi,) )
-QPSI = np.zeros(NPSI)
-for i in range(NPSI):
-    QPSI[i] = qprofile(rfunc(PSIGRID[i]))
-
-
-NBBBS = 65
-LIMITR = 10
-RBBBS = Rm[-1,:]
-ZBBBS = Zm[-1,:]
-RLIM = np.linspace(RLEFT,R_f(r_LCFS,np.pi), LIMITR).squeeze()
-ZLIM = np.repeat(0.0,LIMITR)
-
-
-plt.figure()
-plt.scatter(RLIM,ZLIM)
-plt.scatter(RBBBS,ZBBBS)
-
-writeList = [NW, NH,                                        #3i4
-             RDIM, ZDIM, RCENTR, RLEFT, ZMID,               #5E16.9
-             RMAXIS, ZMAXIS, SIMAG, SIBRY, BCENTR,          #5e16.9
-             CURRENT, SIMAG, 0, RMAXIS, 0,                  #5E16.9
-             ZMAXIS, 0, SIBRY, 0, 0,                        #5E16.9
-             FPOL, PRES, FFPRIM, PPRIME,                    #5E16.9
-             PSIZR, QPSI,                                   #5E16.9
-             NBBBS, LIMITR,                                 #2i5
-             RBBBS, ZBBBS,                                  #5E16.9
-             RLIM, ZLIM]                                    #5E16.9
-
-#Header stuff
-header_fmt = "(a48,3i4)"
-label='GKEYLL'
-creation_date = date.today().strftime("%d/%m/%Y")
-shot = int(0)
-time = int(0)
-shot_str = f"# {shot:d}"
-time_str = f"  {time:d}ms"
-comment = f"{label:11}{creation_date:10s}   {shot_str:>8s}{time_str:16s}"
-def write_line(data: Iterable[Any], fh: TextIO, fmt: str) -> None:
-    r"""
-    Writes to a Fortran formatted ASCII data file. The file handle will be left on a
-    newline.
+def main(
+    params: Optional[MillerParams] = None,
+    output_file: str = "ltx_miller.geqdsk",
+    nw: int = 81,
+    nh: int = 91,
+    rmin: float = 0.1,
+    rmax: float = 0.7,
+    zmin: float = -0.4,
+    zmax: float = 0.4,
+    show_plots: bool = False,
+    write_wall: bool = False,
+) -> None:
+    """Generate a Miller-geometry GEQDSK equilibrium file.
 
     Parameters
-    ---------
-    data:
-        The data to write.
-    fh:
-        File handle. Should be in a text write mode, i.e. ``open(filename, "w")``.
-    fmt:
-        A Fortran IO format string, such as ``'(6a8,3i3)'``.
+    ----------
+    params      : Miller geometry parameters.  Defaults to LTX values.
+    output_file : Path for the output GEQDSK file.
+    nw          : Number of grid points in R.
+    nh          : Number of grid points in Z.
+    rmin, rmax  : R domain bounds [m].
+    zmin, zmax  : Z domain bounds [m].
+    show_plots  : Display diagnostic contour/scatter plots (blocking).
+    write_wall  : Write companion wall and limiter ASCII files.
     """
-    fh.write(ff.FortranRecordWriter(fmt).write(data))
-    fh.write("\n")
-#write_line((comment, 3, NW, NH), fh, header_fmt) #3 is idum
+    if params is None:
+        params = MillerParams()
+
+    # --- Grid setup ---
+    rdim = rmax - rmin
+    zdim = zmax - zmin
+    rleft = rmin
+    zmid = 0.5 * (zmin + zmax)
+
+    xmin = 0.0
+    xmax = params.Rmid_max - params.Rmid_min
+    x = np.linspace(xmin, xmax, nw)
+    r = params.Rmid_min - params.R_axis + x
+    theta = np.linspace(-np.pi, np.pi, 65)
+    r_grid, theta_grid = np.meshgrid(r, theta, indexing="ij")
+    Rm = R_f(r_grid, theta_grid, params)
+    Zm = Z_f(r_grid, theta_grid, params)
+
+    # --- Compute psi(r) on 1-D radial grid ---
+    psi = np.array([psi_fi(ri, 0.0, params) for ri in r])
+    psi_plot = np.repeat(psi, len(theta)).reshape(len(r), len(theta))
+
+    if show_plots:
+        fig, ax = plt.subplots()
+        cax = ax.contour(Rm, Zm, psi_plot, cmap="inferno")
+        ax.set_title("Original Psi")
+        plt.colorbar(cax)
+        plt.show()
+
+    # --- Interpolate to Cartesian (R, Z) grid ---
+    Rgrid = np.linspace(rmin, rmax, nw)
+    Zgrid = np.linspace(zmin, zmax, nh)
+    grid_r, grid_z = np.meshgrid(Rgrid, Zgrid)
+    flat_points = np.stack((Rm, Zm), axis=-1).reshape(-1, 2)
+    flat_psi = psi_plot.flatten()
+    psiRZ = griddata(flat_points, flat_psi, (grid_r, grid_z), method="cubic")
+    nan_mask = np.isnan(psiRZ)
+    psiRZ[nan_mask] = griddata(
+        flat_points, flat_psi, (grid_r[nan_mask], grid_z[nan_mask]), method="nearest"
+    )
+    # psiRZ has shape (nh, nw); preserve transpose pair from original for PSIZR
+    PSIZR = psiRZ.T.T  # (nh, nw) — no-op, kept explicit for clarity
+
+    if show_plots:
+        fig, ax = plt.subplots()
+        cax = ax.contour(Rgrid, Zgrid, PSIZR, cmap="inferno")
+        ax.set_title("Interpolated Psi")
+        plt.colorbar(cax)
+        plt.show()
+
+    # --- Scalar equilibrium quantities ---
+    SIMAG = psi_fi(0.0, 0.0, params)
+    SIBRY = psi_fi(params.Rmid_min - params.R_axis + params.x_LCFS, 0.0, params)
+    RMAXIS = params.R_axis
+    ZMAXIS = 0.0
+    RCENTR = params.R_axis
+    BCENTR = params.B_axis
+    CURRENT = 0.0
+
+    # --- 1-D profiles on uniform psi grid ---
+    NPSI = nw
+    PSIGRID = np.linspace(SIMAG, SIBRY, NPSI)
+    FPOL = np.full(NPSI, params.B_axis * params.R_axis)
+    FFPRIM = np.zeros(NPSI)
+    PPRIME = np.full(NPSI, -1e-6)
+    PRES = integrate.cumulative_trapezoid(PPRIME, PSIGRID, initial=0)
+
+    # --- Safety factor profile via flux inversion ---
+    r_LCFS = r_x(params.x_LCFS, params)
+
+    def _rlossfunc(r_val: float, psi0: float) -> float:
+        return psi0 - psi_fi(r_val, 0.0, params)
+
+    def _rfunc(psi: float) -> float:
+        return sco.ridder(_rlossfunc, 0.0, r_LCFS, args=(psi,))
+
+    QPSI = np.array([params.qprofile(_rfunc(p)) for p in PSIGRID])
+
+    # --- LCFS boundary and limiter ---
+    LIMITR = 10
+    RBBBS = Rm[-1, :]
+    ZBBBS = Zm[-1, :]
+    RLIM = np.linspace(rleft, R_f(r_LCFS, np.pi, params), LIMITR)
+    ZLIM = np.zeros(LIMITR)
+
+    if show_plots:
+        plt.figure()
+        plt.scatter(RLIM, ZLIM, label="limiter")
+        plt.scatter(RBBBS, ZBBBS, label="boundary")
+        plt.legend()
+        plt.show()
+
+    # --- Write GEQDSK file ---
+    write_geqdsk(
+        filename=output_file,
+        nw=nw,
+        nh=nh,
+        rdim=rdim,
+        zdim=zdim,
+        rcentr=RCENTR,
+        rleft=rleft,
+        zmid=zmid,
+        rmaxis=RMAXIS,
+        zmaxis=ZMAXIS,
+        simag=SIMAG,
+        sibry=SIBRY,
+        bcentr=BCENTR,
+        current=CURRENT,
+        fpol=FPOL,
+        pres=PRES,
+        ffprim=FFPRIM,
+        pprime=PPRIME,
+        psizr=PSIZR,
+        qpsi=QPSI,
+        rbbbs=RBBBS,
+        zbbbs=ZBBBS,
+        rlim=RLIM,
+        zlim=ZLIM,
+    )
+    print(f"Written: {output_file}")
+
+    if write_wall:
+        base = output_file.removesuffix(".geqdsk").removesuffix(".eqdsk")
+        wall_path = base + "_wall"
+        lim_path = base + "_limiter"
+        write_wall_limiter(wall_path, lim_path, RBBBS, ZBBBS, RLIM, ZLIM)
+        print(f"Written: {wall_path}, {lim_path}")
 
 
-#Now write the EFIT FILE
-with open('ltx_miller.geqdsk','w',newline='') as f:
-    write_line((comment, 3, NW, NH), f, header_fmt) #3 is idum
-    # rdim,zdim,rcentr,rleft,zmid
-    for i in range(2,7):
-        f.write('%16.9E'%writeList[i])
-    f.write('\n')
-    # rmaxis,zmaxis,simag,sibry,bcentr
-    for i in range(7,12):
-        f.write('%16.9E'%writeList[i])
-    f.write('\n')
-    # current, simag, xdum, rmaxis, xdum
-    for i in range(12,17):
-        f.write('%16.9E'%writeList[i])
-    f.write('\n')
-    #zmaxis,xdum,sibry,xdum,xdum
-    for i in range(17,22):
-         f.write('%16.9E'%writeList[i])
-    f.write('\n')
-    #FPOL,PRES,FFPRIM,PPRIME
-    for i in range(22,26):
-        count=0
-        for j in range(0,NW):
-            f.write('%16.9E'%writeList[i][j])
-            count = count+1
-            if count==5:
-                f.write('\n')
-                count=0
-    #PSIZR
-    for i in range(26,27):
-        count = 0
-        for j in range(0,NH):
-            for k in range(0,NW):
-                f.write('%16.9E'%writeList[i][j][k])
-                count = count+1
-                if count==5:
-                    f.write('\n')
-                    count=0
-    #QPSI
-    for i in range(27,28):
-        count=0
-        for j in range(0,NW):
-            f.write('%16.9E'%writeList[i][j])
-            count = count+1
-            if count==5:
-                f.write('\n')
-                count=0
-    #NBBBS,LIMITR
-    for i in range(28,30):
-        f.write('%5i'%writeList[i])
-    f.write('\n')
-    #RBBBS,ZBBBS
-    for i in range(30,32):
-        count=0
-        for j in range(0,NBBBS):
-            f.write('%16.9E'%writeList[i][j])
-            count = count+1
-            if count==5:
-                f.write('\n')
-                count=0
-    #RLIM,ZLIM
-    for i in range(32,34):
-        count=0
-        for j in range(0,LIMITR):
-            f.write('%16.9E'%writeList[i][j])
-            count = count+1
-            if count==5:
-                f.write('\n')
-                count=0
+# ---------------------------------------------------------------------------
+# CLI entry point
+# ---------------------------------------------------------------------------
 
-#WRITE the Wall and Limiter if desired.
-#WallCoords = np.c_[RBBBS,ZBBBS]
-#with open('miller_wall','w',newline='') as f:
-#    for i in range(NBBBS):
-#        f.write('%16.9E'%WallCoords[i,0])
-#        f.write('%16.9E'%WallCoords[i,1])
-#        f.write('\n')
-#
-#LimCoords = np.c_[RLIM,ZLIM]
-#with open('miller_limiter','w',newline='') as f:
-#    for i in range(LIMITR):
-#        f.write('%16.9E'%LimCoords[i,0])
-#        f.write('%16.9E'%LimCoords[i,1])
-#        f.write('\n')
+def _parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser(
+        description="Generate a Miller-geometry EFIT/GEQDSK equilibrium file.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    geo = p.add_argument_group("geometry")
+    geo.add_argument("--r-axis", type=float, default=0.406051632,
+                     metavar="M", help="Major radius at magnetic axis [m]")
+    geo.add_argument("--b-axis", type=float, default=0.240606108,
+                     metavar="T", help="Magnetic field at axis [T]")
+    geo.add_argument("--r-lcfs-mid", type=float, default=0.61183,
+                     metavar="M", help="Major radius of LCFS at outboard midplane [m]")
+    geo.add_argument("--rmid-min", type=float, default=None,
+                     metavar="M", help="Min midplane major radius [m] (default: R_axis)")
+    geo.add_argument("--rmid-max", type=float, default=0.7,
+                     metavar="M", help="Max midplane major radius [m]")
+    geo.add_argument("--kappa", type=float, default=1.3,
+                     help="Elongation (1 = circular)")
+    geo.add_argument("--delta", type=float, default=0.4,
+                     help="Triangularity (0 = no shaping)")
+    geo.add_argument("--q-lcfs", type=float, default=4.3153848,
+                     help="Safety factor at LCFS (analytic profile only)")
+    geo.add_argument("--s-lcfs", type=float, default=2.6899871,
+                     help="Magnetic shear at LCFS (analytic profile only)")
+    geo.add_argument(
+        "--qprofile-module", type=str, default=None, metavar="MODULE:FUNC",
+        help=(
+            "Import a custom q(r) callable, e.g. 'my_profiles:q_custom'. "
+            "Overrides --q-lcfs and --s-lcfs for the profile shape."
+        ),
+    )
+
+    grid = p.add_argument_group("grid")
+    grid.add_argument("--nw", type=int, default=81, help="Radial grid points")
+    grid.add_argument("--nh", type=int, default=91, help="Vertical grid points")
+    grid.add_argument("--rmin", type=float, default=0.1, metavar="M",
+                      help="Left R boundary [m]")
+    grid.add_argument("--rmax", type=float, default=0.7, metavar="M",
+                      help="Right R boundary [m]")
+    grid.add_argument("--zmin", type=float, default=-0.4, metavar="M",
+                      help="Bottom Z boundary [m]")
+    grid.add_argument("--zmax", type=float, default=0.4, metavar="M",
+                      help="Top Z boundary [m]")
+
+    out = p.add_argument_group("output")
+    out.add_argument("--output", type=str, default="ltx_miller.geqdsk",
+                     help="Output GEQDSK file path")
+    out.add_argument("--write-wall", action="store_true",
+                     help="Write companion wall and limiter ASCII files")
+
+    disp = p.add_argument_group("display")
+    disp.add_argument("--plot", action="store_true",
+                      help="Show diagnostic plots (blocking)")
+
+    return p.parse_args()
 
 
+if __name__ == "__main__":
+    args = _parse_args()
 
-plt.show()
+    qprofile_func: Optional[Callable[[float], float]] = None
+    if args.qprofile_module is not None:
+        module_name, func_name = args.qprofile_module.rsplit(":", 1)
+        mod = importlib.import_module(module_name)
+        qprofile_func = getattr(mod, func_name)
+
+    params = MillerParams(
+        R_axis=args.r_axis,
+        B_axis=args.b_axis,
+        R_LCFSmid=args.r_lcfs_mid,
+        Rmid_min=args.rmid_min,
+        Rmid_max=args.rmid_max,
+        kappa=args.kappa,
+        delta=args.delta,
+        q_LCFS=args.q_lcfs,
+        s_LCFS=args.s_lcfs,
+        qprofile_func=qprofile_func,
+    )
+
+    main(
+        params=params,
+        output_file=args.output,
+        nw=args.nw,
+        nh=args.nh,
+        rmin=args.rmin,
+        rmax=args.rmax,
+        zmin=args.zmin,
+        zmax=args.zmax,
+        show_plots=args.plot,
+        write_wall=args.write_wall,
+    )
