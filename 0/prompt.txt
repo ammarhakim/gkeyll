@@ -1,0 +1,1 @@
+ok, i understand the issue you are raising. Yes, please fix it. And if you can, fix it so that it works for .codex/ too
