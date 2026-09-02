@@ -6,9 +6,7 @@ user-invocable: true
 
 # Instructions
 
-1. **Change Directory:** Run `cd /Users/mfrancis/Documents/gkeyll/code/gkeyll_v0/gkeyll` using the bash tool as your very first action.
-2. **Verify Location:** Confirm you are in the target directory by checking the current working directory.
-3. **Proceed:** Perform subsequent tasks inside this folder.
+* Operate relative to the repo root (detect via git rev-parse --show-toplevel).
 
 # Gkeyll guide
 

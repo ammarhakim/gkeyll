@@ -15,17 +15,21 @@ echo "🔄 Syncing Agent Skills across Claude and Codex environments..."
 mkdir -p "$CLAUDE_DEST"
 mkdir -p "$CODEX_DEST"
 
-# Iterate over files in the source skills directory
+# Each skill lives in its own directory: .agents/skills/<name>/SKILL.md
+# Mirror each skill directory (as a whole) into .claude/skills/<name> and
+# .codex/skills/<name>, since both tools discover skills at that path shape.
 if [ -d "$SRC_DIR" ]; then
-    for file_path in "$SRC_DIR"/*; do
-        # Ensure it's a file
-        [ -f "$file_path" ] || continue
-        
-        filename=$(basename "$file_path")
-        
-        # Create relative symlinks to prevent broken paths on different machines
-        ln -sf "../../.agents/skills/$filename" "$CLAUDE_DEST/$filename"
-        ln -sf "../../.agents/skills/$filename" "$CODEX_DEST/$filename"
+    for skill_dir in "$SRC_DIR"/*/; do
+        # Ensure it's a directory
+        [ -d "$skill_dir" ] || continue
+
+        skill_name=$(basename "$skill_dir")
+
+        # Create relative symlinks to prevent broken paths on different machines.
+        # -n keeps this idempotent: it replaces an existing symlink instead of
+        # nesting a new one inside an already-linked directory.
+        ln -sfn "../../.agents/skills/$skill_name" "$CLAUDE_DEST/$skill_name"
+        ln -sfn "../../.agents/skills/$skill_name" "$CODEX_DEST/$skill_name"
     done
     echo "✅ Symlinks successfully generated in .claude/skills/ and .codex/skills/"
 else
