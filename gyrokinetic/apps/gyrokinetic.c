@@ -3353,10 +3353,10 @@ gkyl_gyrokinetic_app_from_file_neut_species(gkyl_gyrokinetic_app *app, int sidx,
   struct gk_neut_species *gk_ns = &app->neut_species[sidx];
   
   if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
-    rstat.io_status =
-      gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
+    rstat.io_status = gkyl_comm_array_read(gk_ns->comm, &gk_ns->grid, &gk_ns->local, gk_ns->f_host, fname);
     if (app->use_gpu)
       gkyl_array_copy(gk_ns->f, gk_ns->f_host);
+
     if (rstat.io_status == GKYL_ARRAY_RIO_SUCCESS) {
       gk_neut_species_source_calc(app, gk_ns, &gk_ns->src, gk_ns->lte.f_lte, 0.0);
       // Read volume and time integrated boundary flux diagnostics.
@@ -3569,11 +3569,11 @@ gkyl_gyrokinetic_app_release(gkyl_gyrokinetic_app* app)
   gkyl_dg_geom_release(app->dg_geom);
   gkyl_gk_dg_geom_release(app->gk_dg_geom);
 
-  if (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK) {
-    if (!gyrokinetic_str_ends_in_bnum(app->name)) { // Check if multiblock.
-      gkyl_array_release(app->delta_ts_x_lo);
-      gkyl_array_release(app->delta_ts_x_up);
-    }
+  if (app->cdim == 3 && (app->gk_geom->geometry_id == GKYL_GEOMETRY_TOKAMAK ||
+      (app->gk_geom->geometry_id == GKYL_GEOMETRY_MAPC2P && 
+       app->gk_geom->parallel_lower_bc_shift_func && app->gk_geom->parallel_upper_bc_shift_func))) {
+    gkyl_array_release(app->delta_ts_x_lo);
+    gkyl_array_release(app->delta_ts_x_up);
   }
   gk_field_release(app, app->field);
   gk_eirene_release(app, app->eirene);

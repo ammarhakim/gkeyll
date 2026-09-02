@@ -463,15 +463,28 @@ test_zero_shear_is_cell_translation(void)
     struct gkyl_range_iter iter;
     gkyl_range_iter_init(&iter, &s.ghost_r);
     while (gkyl_range_iter_next(&iter)) {
-      int idx_do[GKYL_MAX_DIM];
-      gkyl_copy_int_arr(ts_ndim, iter.idx, idx_do);
-      int ny = ts_cells[1];
-      idx_do[1] = ((iter.idx[1]-1-num_cells) % ny + ny) % ny + 1;
-
-      const double *tar = gkyl_array_cfetch(f, gkyl_range_idx(&s.ghost_r, iter.idx));
-      const double *don = gkyl_array_cfetch(f_pre, gkyl_range_idx(&s.ghost_r, idx_do));
-      for (int k=0; k<s.basis.num_basis; k++)
-        maxd = GKYL_MAX2(maxd, fabs(tar[k]-don[k]));
+      for (int i=0; i<num_ref0; i++) {
+        if (iter.idx[0]==idx0_ref[i]) {
+          long linidx = gkyl_range_idx(&check_ghost_rng, iter.idx);
+          double *f_c = gkyl_array_fetch(distf_ho, linidx);
+          int refidx = iter.idx[1]-1;
+          for (int k=0; k<basis.num_basis; ++k) {
+            TEST_CHECK( gkyl_compare(f0[i*cells[1]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-9) );
+            TEST_MSG( "Expected: %.9e | Got: %.9e\n", f0[i*cells[1]*basis.num_basis+refidx*basis.num_basis+k], f_c[k] );
+          }
+        }
+      }
+      for (int i=0; i<num_ref1; i++) {
+        if (iter.idx[1]==idx1_ref[i]) {
+          long linidx = gkyl_range_idx(&check_ghost_rng, iter.idx);
+          double *f_c = gkyl_array_fetch(distf_ho, linidx);
+          int refidx = iter.idx[0]-1;
+          for (int k=0; k<basis.num_basis; ++k) {
+            TEST_CHECK( gkyl_compare(f1[i*cells[0]*basis.num_basis+refidx*basis.num_basis+k], f_c[k], 1e-8) );
+            TEST_MSG( "Expected: %.9e | Got: %.9e\n", f1[i*cells[0]*basis.num_basis+refidx*basis.num_basis+k], f_c[k] );
+          }
+        }
+      }
     }
     TEST_CHECK( maxd < 1.0e-13 );
     TEST_MSG("edge %d: shift of %d cells is not an exact translation, off by %.3e",
