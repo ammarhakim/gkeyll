@@ -156,15 +156,21 @@ Jenkinsfile, and start building them.
 Per node, in parallel:
 
 1. `printenv` — for debugging the build environment.
-2. `machines/mkdeps.macos.sh` — builds `gkylsoft/` from scratch into
+2. `make clean` and `rm -rf $WORKSPACE/gkylsoft` — the workspace persists
+   across builds for a given branch/PR, so without this, a stale or (e.g.
+   from a prior interrupted or racing build) corrupted file can look
+   up-to-date and never get rebuilt/reinstalled, silently breaking the link
+   or mixing old and new dependency files. Wiping both every run makes each
+   build genuinely from scratch.
+3. `machines/mkdeps.macos.sh` — builds `gkylsoft/` from scratch into
    `$WORKSPACE/gkylsoft`.
-3. `machines/configure.macos.sh` — generates `config.mak` pointing at that
+4. `machines/configure.macos.sh` — generates `config.mak` pointing at that
    freshly-built `gkylsoft/`.
-4. `make -j3 check` — builds **and runs** all unit tests (`core`, `moments`,
+5. `make -j3 check` — builds **and runs** all unit tests (`core`, `moments`,
    `vlasov`, `gyrokinetic`, `pkpm`); a failing unit test fails the build.
-5. `make -j3 regression` — builds (does not execute) all regression tests,
+6. `make -j3 regression` — builds (does not execute) all regression tests,
    matching today's `.github/workflows/mac_build.yml` scope. There is no
    automated regression-test runner yet; running a curated subset of
    regression tests is a follow-up.
-6. Archives `build/**/*.log` so logs are downloadable from the Jenkins build
+7. Archives `build/**/*.log` so logs are downloadable from the Jenkins build
    page even on failure.

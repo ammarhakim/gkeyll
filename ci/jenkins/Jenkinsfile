@@ -14,6 +14,19 @@ def buildAndTest(String mkdepsScript, String configureScript) {
     stage('Environment') {
         sh 'printenv'
     }
+    stage('Clean') {
+        // The workspace (and its build/ and gkylsoft/ dirs) persists across
+        // builds for a given branch/PR, so a build interrupted or racing
+        // mid-compile can leave stale/corrupted files behind that a later
+        // incremental step wrongly treats as up to date (e.g. missing
+        // symbols at link time, without ever recompiling/reinstalling).
+        // Wipe both every run so each build is truly from scratch: the
+        // install-deps scripts already re-download/rebuild everything
+        // unconditionally, but don't clear their install prefix first, so a
+        // stale gkylsoft/ could otherwise mix old and new files.
+        sh 'make clean'
+        sh 'rm -rf "$WORKSPACE/gkylsoft"'
+    }
     stage('Dependencies') {
         // Build gkylsoft/ from scratch inside this build's own workspace
         // (rather than a shared, fixed path) so that concurrent builds for
