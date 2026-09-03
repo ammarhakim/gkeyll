@@ -1,0 +1,60 @@
+{
+  "cli_version": "0.10.3",
+  "checkpoint_id": "01M1K4WEHM32GEZF9Y61XGEB9D",
+  "session_id": "b0771882-fdfb-4a94-a0ba-90a492c14576",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-03T08:06:40.041209Z",
+  "branch": "agent_tools-unit_clean",
+  "checkpoints_count": 6,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "a2e367d5ff41",
+  "checkpoint_transcript_start": 763,
+  "transcript_lines_at_start": 763,
+  "compact_transcript_start": 166,
+  "token_usage": {
+    "input_tokens": 2,
+    "cache_creation_tokens": 482,
+    "cache_read_tokens": 153444,
+    "output_tokens": 1642,
+    "api_call_count": 1
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_vrtx_01EZv3GWUJQCFLgiArE3NQQ7",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "gkeyll_guide"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "58eacfeba43c",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 20,
+        "end": 21,
+        "entry_ids": [
+          "08e5bc09-bc86-407b-a622-98f68591bae4"
+        ],
+        "tool_use_id": "toolu_vrtx_01EZv3GWUJQCFLgiArE3NQQ7"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_vrtx_01EZv3GWUJQCFLgiArE3NQQ7"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: gkeyll_guide",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 13
+  }
+}
