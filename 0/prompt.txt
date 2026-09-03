@@ -1,0 +1,21 @@
+Can you help me set up testing via Jenkins for Gkeyll the way it works fo Sundials please? some old instructions are here https://github.com/llnl/sundials/tree/main/test/jenkins. My goal is to run unit and regression tests on my laptop and one other workstation (the latter I'll set up at a later time) any time a PR trying to merge into main is opened.
+
+---
+
+Correction, repo is https://github.com/gkeyllorg/gkeyll/pulls. Ok, proceed creating the plan for this work.
+
+---
+
+Correction, repo is https://github.com/gkeyllorg/gkeyll. Ok, proceed creating the plan for this work.
+
+---
+
+I'd like to modify a couple of things in the plan: 1) please call the folder ci/ instead of test/. 2) instead of laptop or gkeyll-laptop please use mana-node.
+
+---
+
+the instructions say "Get the initial admin password with cat /opt/homebrew/var/lib/jenkins/secrets/initialAdminPassword". But doing that prints out cat: /opt/homebrew/var/lib/jenkins/secrets/initialAdminPassword: No such file or directory
+
+---
+
+Is it possible to change "mana-node" to "manauref_lt1" at this point?
