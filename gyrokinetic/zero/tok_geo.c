@@ -4003,13 +4003,25 @@ tok_ext_ladder_sep_identity(double *table, int m, int n, const double *target)
 // Extending it to full domain needs the measure normalized over the SHARED
 // sub-arc rather than each block's own trace; until then arc length is correct
 // there and the devices stay exactly where they were.
+//
+// GKYL_TOK_EXT_LADDER_GRADPSI_FULL lifts the half-domain clause so the measure
+// can be MEASURED on a full-domain device.  It is a probe, not a setting: the
+// claim above -- that a leg block and a closed core block cannot share a
+// normalization -- is a statement about their TRACE ENDPOINTS, and it is only
+// a defect where two blocks that share a seam disagree.  Blocks that share no
+// seam are free to differ.  Off by default; the shipped path is unchanged.
 static bool
 tok_ext_ladder_gradpsi_theta_enabled(const struct gkyl_tok_geo_grid_inp *inp)
 {
-  if (!inp || !inp->half_domain)
+  if (!inp)
     return false;
   const char *e = getenv("GKYL_TOK_EXT_LADDER_GRADPSI_THETA");
-  return e && e[0] != '\0' && e[0] != '0';
+  if (!(e && e[0] != '\0' && e[0] != '0'))
+    return false;
+  if (inp->half_domain)
+    return true;
+  const char *f = getenv("GKYL_TOK_EXT_LADDER_GRADPSI_FULL");
+  return f && f[0] != '\0' && f[0] != '0';
 }
 
 //
@@ -4031,7 +4043,7 @@ tok_ext_ladder_gradpsi_theta_enabled(const struct gkyl_tok_geo_grid_inp *inp)
 static bool
 tok_ext_ladder_seed_by_gradpsi(const struct gkyl_tok_geo *geo, double psi,
   const double *tr, const double *tz, const double *ts, int pn, bool param_is_r,
-  int ns, double *w, int n)
+  int ns, double *w, int n, int ftype)
 {
   if (pn < 2 || n < 2 || ns < 3)
     return false;
@@ -4058,9 +4070,9 @@ tok_ext_ladder_seed_by_gradpsi(const struct gkyl_tok_geo *geo, double psi,
   }
   if (!ok || !(mu[ns-1] > 0.0) || !isfinite(mu[ns-1])) {
     if (getenv("GKYL_TOK_GRADPSI_DIAG"))
-      fprintf(stderr, "TOK_GRADPSI seed=BADMU ok=%d mu_tot=%.10g pn=%d "
+      fprintf(stderr, "TOK_GRADPSI seed=BADMU ftype=%d ok=%d mu_tot=%.10g pn=%d "
         "r0=%.7f z0=%.7f rn=%.7f zn=%.7f\n",
-        (int) ok, mu[ns-1], pn, tr[0], tz[0], tr[pn-1], tz[pn-1]);
+        ftype, (int) ok, mu[ns-1], pn, tr[0], tz[0], tr[pn-1], tz[pn-1]);
     gkyl_free(mu);
     return false;
   }
@@ -4083,15 +4095,17 @@ tok_ext_ladder_seed_by_gradpsi(const struct gkyl_tok_geo *geo, double psi,
   for (int i=1; i<n; ++i)
     if (!(w[i] > w[i-1])) {
       if (getenv("GKYL_TOK_GRADPSI_DIAG"))
-        fprintf(stderr, "TOK_GRADPSI seed=NONMONOTONE pn=%d n=%d stot=%.10g "
-          "r0=%.7f z0=%.7f rn=%.7f zn=%.7f i=%d w=%.10g wprev=%.10g\n",
-          pn, n, ts[pn-1], tr[0], tz[0], tr[pn-1], tz[pn-1], i, w[i], w[i-1]);
+        fprintf(stderr, "TOK_GRADPSI seed=NONMONOTONE ftype=%d pn=%d n=%d "
+          "stot=%.10g r0=%.7f z0=%.7f rn=%.7f zn=%.7f i=%d w=%.10g wprev=%.10g\n",
+          ftype, pn, n, ts[pn-1], tr[0], tz[0], tr[pn-1], tz[pn-1], i, w[i],
+          w[i-1]);
       return false;
     }
   if (getenv("GKYL_TOK_GRADPSI_DIAG"))
-    fprintf(stderr, "TOK_GRADPSI seed=OK pn=%d n=%d stot=%.10g "
-      "r0=%.7f z0=%.7f rn=%.7f zn=%.7f w1=%.8f wmid=%.8f\n",
-      pn, n, ts[pn-1], tr[0], tz[0], tr[pn-1], tz[pn-1], w[1], w[n/2]);
+    fprintf(stderr, "TOK_GRADPSI seed=OK ftype=%d pn=%d n=%d stot=%.10g "
+      "mu_tot=%.10g r0=%.7f z0=%.7f rn=%.7f zn=%.7f w1=%.8f wmid=%.8f\n",
+      ftype, pn, n, ts[pn-1], mtot, tr[0], tz[0], tr[pn-1], tz[pn-1],
+      w[1], w[n/2]);
   return true;
 }
 
@@ -4705,7 +4719,7 @@ tok_ext_gradpsi_map(const struct gkyl_tok_geo_grid_inp *inp,
     if (!tok_ext_ladder_seed_by_gradpsi(arc_ctx->geo, arc_ctx->geo->psisep,
           arc_ctx->sep_trace_r, arc_ctx->sep_trace_z, arc_ctx->sep_trace_s,
           arc_ctx->sep_trace_n, arc_ctx->sep_trace_param_is_r, ns,
-          arc_ctx->gradpsi_map_v, ns)) {
+          arc_ctx->gradpsi_map_v, ns, inp->ftype)) {
       arc_ctx->gradpsi_map_failed = true;
       return u;
     }
