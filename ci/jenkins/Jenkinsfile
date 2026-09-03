@@ -1,0 +1,45 @@
+// Jenkins pipeline for Gkeyll, built/run on our own persistent machines
+// (see ci/jenkins/README.md for how the Jenkins job driving this is set up).
+//
+// Unlike .github/workflows/mac_build.yml (ephemeral GitHub-hosted runner,
+// build-only), this pipeline runs on persistent nodes that already have
+// gkylsoft/ installed, and actually executes the unit tests.
+//
+// Scripted (not declarative) pipeline, since we run the same steps in
+// parallel across a set of named nodes that will grow over time.
+
+def buildAndTest() {
+    stage('Environment') {
+        sh 'printenv'
+    }
+    stage('Unit tests') {
+        sh 'make -j3 check'
+    }
+    stage('Regression build') {
+        sh 'make -j3 regression'
+    }
+}
+
+properties([disableConcurrentBuilds(abortPrevious: true)])
+
+// Add an entry here (and register the corresponding Jenkins agent with a
+// matching label) to bring the workstation online, e.g.:
+//   'workstation-node': 'workstation-node',
+def nodeLabels = [
+    'manauref_lt1': 'manauref_lt1',
+]
+
+def branches = nodeLabels.collectEntries { name, label ->
+    [(name): {
+        node(label) {
+            checkout scm
+            try {
+                buildAndTest()
+            } finally {
+                archiveArtifacts allowEmptyArchive: true, artifacts: 'build/**/*.log'
+            }
+        }
+    }]
+}
+
+parallel(branches)
