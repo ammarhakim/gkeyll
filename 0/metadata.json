@@ -59,6 +59,36 @@
   "session_metrics": {
     "turn_count": 5
   },
+  "summary": {
+    "intent": "Set up a Jenkins-based CI system for the Gkeyll repo (mirroring an old SUNDIALS Jenkins setup) to automatically run unit and regression tests on PRs targeting main, initially on the user's laptop with a workstation to be added later.",
+    "outcome": "Created ci/jenkins/Jenkinsfile (scripted pipeline running `make check` and `make regression` in parallel across named nodes) and ci/jenkins/README.md (full Homebrew Jenkins install/setup walkthrough), iterated on node naming (mana-node → manauref_lt1), fixed an incorrect JENKINS_HOME path in the README, and advised on GitHub PAT scoping. Manual GUI setup (install, credentials, job creation) remains for the user to complete.",
+    "learnings": {
+      "repo": [
+        "Repo is github.com/gkeyllorg/gkeyll (public), not the initially assumed ammarhakim/gkylzero",
+        "No automated regression-test runner exists yet in the Makefile — `make regression` is build-only today, actual regression execution is manual",
+        "CI files live under ci/jenkins/ (not test/jenkins/, per user preference) mirroring SUNDIALS' test/jenkins layout"
+      ],
+      "code": [],
+      "workflow": [
+        "Homebrew's Jenkins (jenkins-lts) uses JENKINS_HOME at ~/.jenkins by default, not /opt/homebrew/var/lib/jenkins as commonly assumed/documented elsewhere",
+        "Declarative `pipeline {}` blocks can't mix with scripted `node()`/`parallel` blocks — multi-node parallel execution requires a fully scripted pipeline",
+        "Since a personal laptop/workstation behind NAT can't receive inbound GitHub webhooks, SCM polling (e.g. every 2 minutes) is the practical trigger mechanism instead of webhooks",
+        "For a public repo, a fine-grained GitHub PAT scoped to just that repo (Contents: read, Metadata: read, Pull requests: read, Commit statuses: read/write) is sufficient and safer than a classic token's account-wide `public_repo` scope"
+      ]
+    },
+    "friction": [
+      "User initially gave wrong repo URL (ammarhakim/gkylzero) before correcting twice to gkeyllorg/gkeyll",
+      "README's documented initialAdminPassword path was wrong (assumed /opt/homebrew/var/lib/jenkins instead of actual ~/.jenkins), causing a file-not-found error for the user",
+      "First Jenkinsfile draft was invalid syntax (mixed declarative and scripted pipeline styles), had to be rewritten",
+      "Node label needed renaming twice (mana-node → manauref_lt1) after initial plan was already implemented"
+    ],
+    "open_items": [
+      "User still needs to complete manual GUI steps: Jenkins install finalization, GitHub PAT creation, multibranch pipeline job setup",
+      "Workstation ('workstation-node' or similar) onboarding deferred to later per original ask",
+      "No automated regression test runner exists yet — `make regression` only builds; actual test execution/reporting logic still needs to be written",
+      "If 'mana-node' label was already applied to the built-in node in Jenkins UI, user needs to manually update it to 'manauref_lt1' to match the renamed Jenkinsfile/README"
+    ]
+  },
   "initial_attribution": {
     "calculated_at": "2026-09-03T09:30:46.849982Z",
     "agent_lines": 167,
