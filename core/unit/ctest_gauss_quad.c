@@ -4,7 +4,7 @@
 #include <gkyl_range.h>
 
 static void
-test_g1()
+test_g1_ho()
 {
   int gauss_max = gkyl_gauss_max;
   double w[gauss_max], x[gauss_max];
@@ -25,7 +25,7 @@ test_g1()
 }
 
 static void
-test_ndim()
+test_ndim_ho()
 {
   int nquad = 4;
   double *x = gkyl_malloc(sizeof(double)*nquad*nquad*2);
@@ -60,7 +60,7 @@ test_ndim()
 }
 
 TEST_LIST = {
-  { "basic", test_g1 },
-  { "ndim", test_ndim },
+  { "basic_ho", test_g1_ho },
+  { "ndim_ho", test_ndim_ho },
   { NULL, NULL },
 };
