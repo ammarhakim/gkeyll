@@ -156,11 +156,11 @@ GKYL_CU_DH void vlasov_nc_hamil_vel_sparse_vol_alpha_2x3v_tensor_p1(const double
   outb2[6] += (-(2.7386127875258306*vmap_vx[1]*pt_conf_9[3]*hamil[7])-1.224744871391589*vmap_vx[0]*hamil[1]*pt_conf_9[3])*dv10; 
   outb2[7] += (-(2.4494897427831783*pt_conf_9[1]*vmap_vx[2]*hamil[7])-2.7386127875258306*vmap_vx[0]*pt_conf_9[1]*hamil[7]-1.224744871391589*hamil[1]*pt_conf_9[1]*vmap_vx[1])*dv10; 
   outb2[8] += (-(2.4494897427831783*pt_conf_9[2]*vmap_vx[2]*hamil[7])-2.7386127875258306*vmap_vx[0]*pt_conf_9[2]*hamil[7]-1.224744871391589*hamil[1]*vmap_vx[1]*pt_conf_9[2])*dv10; 
-  outb2[16] += (-(2.405351177211819*pt_conf_9[0]*vmap_vx[3]*hamil[7])-2.4494897427831783*pt_conf_9[0]*vmap_vx[1]*hamil[7]-1.224744871391589*pt_conf_9[0]*hamil[1]*vmap_vx[2])*dv10; 
+  outb2[16] += (-(2.4494897427831783*pt_conf_9[0]*vmap_vx[1]*hamil[7])-1.224744871391589*pt_conf_9[0]*hamil[1]*vmap_vx[2])*dv10; 
   outb2[19] += (-(2.4494897427831783*vmap_vx[2]*pt_conf_9[3]*hamil[7])-2.7386127875258306*vmap_vx[0]*pt_conf_9[3]*hamil[7]-1.224744871391589*hamil[1]*vmap_vx[1]*pt_conf_9[3])*dv10; 
-  outb2[29] += (-(2.4053511772118186*pt_conf_9[1]*vmap_vx[3]*hamil[7])-2.4494897427831783*pt_conf_9[1]*vmap_vx[1]*hamil[7]-1.224744871391589*hamil[1]*pt_conf_9[1]*vmap_vx[2])*dv10; 
-  outb2[30] += (-(2.4053511772118186*pt_conf_9[2]*vmap_vx[3]*hamil[7])-2.4494897427831783*vmap_vx[1]*pt_conf_9[2]*hamil[7]-1.224744871391589*hamil[1]*pt_conf_9[2]*vmap_vx[2])*dv10; 
-  outb2[46] += (-(2.405351177211819*pt_conf_9[3]*vmap_vx[3]*hamil[7])-2.4494897427831783*vmap_vx[1]*pt_conf_9[3]*hamil[7]-1.224744871391589*hamil[1]*vmap_vx[2]*pt_conf_9[3])*dv10; 
+  outb2[29] += (-(2.4494897427831783*pt_conf_9[1]*vmap_vx[1]*hamil[7])-1.224744871391589*hamil[1]*pt_conf_9[1]*vmap_vx[2])*dv10; 
+  outb2[30] += (-(2.4494897427831783*vmap_vx[1]*pt_conf_9[2]*hamil[7])-1.224744871391589*hamil[1]*pt_conf_9[2]*vmap_vx[2])*dv10; 
+  outb2[46] += (-(2.4494897427831783*vmap_vx[1]*pt_conf_9[3]*hamil[7])-1.224744871391589*hamil[1]*vmap_vx[2]*pt_conf_9[3])*dv10; 
   } 
 
   const double *pt_conf_10 = &poisson_tensor_conf[40]; 
@@ -200,11 +200,11 @@ GKYL_CU_DH void vlasov_nc_hamil_vel_sparse_vol_alpha_2x3v_tensor_p1(const double
   outb2[6] += (-(2.7386127875258306*vmap_vx[1]*pt_conf_10[3]*hamil[7])-1.224744871391589*vmap_vx[0]*hamil[1]*pt_conf_10[3])*dv10; 
   outb2[7] += (-(2.4494897427831783*pt_conf_10[1]*vmap_vx[2]*hamil[7])-2.7386127875258306*vmap_vx[0]*pt_conf_10[1]*hamil[7]-1.224744871391589*hamil[1]*pt_conf_10[1]*vmap_vx[1])*dv10; 
   outb2[8] += (-(2.4494897427831783*pt_conf_10[2]*vmap_vx[2]*hamil[7])-2.7386127875258306*vmap_vx[0]*pt_conf_10[2]*hamil[7]-1.224744871391589*hamil[1]*vmap_vx[1]*pt_conf_10[2])*dv10; 
-  outb2[16] += (-(2.405351177211819*pt_conf_10[0]*vmap_vx[3]*hamil[7])-2.4494897427831783*pt_conf_10[0]*vmap_vx[1]*hamil[7]-1.224744871391589*pt_conf_10[0]*hamil[1]*vmap_vx[2])*dv10; 
+  outb2[16] += (-(2.4494897427831783*pt_conf_10[0]*vmap_vx[1]*hamil[7])-1.224744871391589*pt_conf_10[0]*hamil[1]*vmap_vx[2])*dv10; 
   outb2[19] += (-(2.4494897427831783*vmap_vx[2]*pt_conf_10[3]*hamil[7])-2.7386127875258306*vmap_vx[0]*pt_conf_10[3]*hamil[7]-1.224744871391589*hamil[1]*vmap_vx[1]*pt_conf_10[3])*dv10; 
-  outb2[29] += (-(2.4053511772118186*pt_conf_10[1]*vmap_vx[3]*hamil[7])-2.4494897427831783*pt_conf_10[1]*vmap_vx[1]*hamil[7]-1.224744871391589*hamil[1]*pt_conf_10[1]*vmap_vx[2])*dv10; 
-  outb2[30] += (-(2.4053511772118186*pt_conf_10[2]*vmap_vx[3]*hamil[7])-2.4494897427831783*vmap_vx[1]*pt_conf_10[2]*hamil[7]-1.224744871391589*hamil[1]*pt_conf_10[2]*vmap_vx[2])*dv10; 
-  outb2[46] += (-(2.405351177211819*pt_conf_10[3]*vmap_vx[3]*hamil[7])-2.4494897427831783*vmap_vx[1]*pt_conf_10[3]*hamil[7]-1.224744871391589*hamil[1]*vmap_vx[2]*pt_conf_10[3])*dv10; 
+  outb2[29] += (-(2.4494897427831783*pt_conf_10[1]*vmap_vx[1]*hamil[7])-1.224744871391589*hamil[1]*pt_conf_10[1]*vmap_vx[2])*dv10; 
+  outb2[30] += (-(2.4494897427831783*vmap_vx[1]*pt_conf_10[2]*hamil[7])-1.224744871391589*hamil[1]*pt_conf_10[2]*vmap_vx[2])*dv10; 
+  outb2[46] += (-(2.4494897427831783*vmap_vx[1]*pt_conf_10[3]*hamil[7])-1.224744871391589*hamil[1]*vmap_vx[2]*pt_conf_10[3])*dv10; 
   } 
 
   const double *pt_conf_11 = &poisson_tensor_conf[44]; 
@@ -273,11 +273,11 @@ GKYL_CU_DH void vlasov_nc_hamil_vel_sparse_vol_alpha_2x3v_tensor_p1(const double
   outb3[6] += (2.7386127875258306*vmap_vy[1]*pt_conf_12[3]*hamil[8]+1.224744871391589*vmap_vy[0]*hamil[2]*pt_conf_12[3])*dv11; 
   outb3[9] += (2.4494897427831783*pt_conf_12[1]*vmap_vy[2]*hamil[8]+2.7386127875258306*vmap_vy[0]*pt_conf_12[1]*hamil[8]+1.224744871391589*pt_conf_12[1]*vmap_vy[1]*hamil[2])*dv11; 
   outb3[10] += (2.4494897427831783*pt_conf_12[2]*vmap_vy[2]*hamil[8]+2.7386127875258306*vmap_vy[0]*pt_conf_12[2]*hamil[8]+1.224744871391589*vmap_vy[1]*hamil[2]*pt_conf_12[2])*dv11; 
-  outb3[17] += (2.405351177211819*pt_conf_12[0]*vmap_vy[3]*hamil[8]+2.4494897427831783*pt_conf_12[0]*vmap_vy[1]*hamil[8]+1.224744871391589*pt_conf_12[0]*hamil[2]*vmap_vy[2])*dv11; 
+  outb3[17] += (2.4494897427831783*pt_conf_12[0]*vmap_vy[1]*hamil[8]+1.224744871391589*pt_conf_12[0]*hamil[2]*vmap_vy[2])*dv11; 
   outb3[20] += (2.4494897427831783*vmap_vy[2]*pt_conf_12[3]*hamil[8]+2.7386127875258306*vmap_vy[0]*pt_conf_12[3]*hamil[8]+1.224744871391589*vmap_vy[1]*hamil[2]*pt_conf_12[3])*dv11; 
-  outb3[32] += (2.4053511772118186*pt_conf_12[1]*vmap_vy[3]*hamil[8]+2.4494897427831783*pt_conf_12[1]*vmap_vy[1]*hamil[8]+1.224744871391589*pt_conf_12[1]*hamil[2]*vmap_vy[2])*dv11; 
-  outb3[33] += (2.4053511772118186*pt_conf_12[2]*vmap_vy[3]*hamil[8]+2.4494897427831783*vmap_vy[1]*pt_conf_12[2]*hamil[8]+1.224744871391589*hamil[2]*pt_conf_12[2]*vmap_vy[2])*dv11; 
-  outb3[49] += (2.405351177211819*pt_conf_12[3]*vmap_vy[3]*hamil[8]+2.4494897427831783*vmap_vy[1]*pt_conf_12[3]*hamil[8]+1.224744871391589*hamil[2]*vmap_vy[2]*pt_conf_12[3])*dv11; 
+  outb3[32] += (2.4494897427831783*pt_conf_12[1]*vmap_vy[1]*hamil[8]+1.224744871391589*pt_conf_12[1]*hamil[2]*vmap_vy[2])*dv11; 
+  outb3[33] += (2.4494897427831783*vmap_vy[1]*pt_conf_12[2]*hamil[8]+1.224744871391589*hamil[2]*pt_conf_12[2]*vmap_vy[2])*dv11; 
+  outb3[49] += (2.4494897427831783*vmap_vy[1]*pt_conf_12[3]*hamil[8]+1.224744871391589*hamil[2]*vmap_vy[2]*pt_conf_12[3])*dv11; 
   } 
   if (dir == 3) { 
   double *outb2 = &out[216]; 
@@ -400,11 +400,11 @@ GKYL_CU_DH void vlasov_nc_hamil_vel_sparse_vol_alpha_2x3v_tensor_p1(const double
   outb3[6] += (-(2.7386127875258306*vmap_vy[1]*pt_conf_14[3]*hamil[8])-1.224744871391589*vmap_vy[0]*hamil[2]*pt_conf_14[3])*dv11; 
   outb3[9] += (-(2.4494897427831783*pt_conf_14[1]*vmap_vy[2]*hamil[8])-2.7386127875258306*vmap_vy[0]*pt_conf_14[1]*hamil[8]-1.224744871391589*pt_conf_14[1]*vmap_vy[1]*hamil[2])*dv11; 
   outb3[10] += (-(2.4494897427831783*pt_conf_14[2]*vmap_vy[2]*hamil[8])-2.7386127875258306*vmap_vy[0]*pt_conf_14[2]*hamil[8]-1.224744871391589*vmap_vy[1]*hamil[2]*pt_conf_14[2])*dv11; 
-  outb3[17] += (-(2.405351177211819*pt_conf_14[0]*vmap_vy[3]*hamil[8])-2.4494897427831783*pt_conf_14[0]*vmap_vy[1]*hamil[8]-1.224744871391589*pt_conf_14[0]*hamil[2]*vmap_vy[2])*dv11; 
+  outb3[17] += (-(2.4494897427831783*pt_conf_14[0]*vmap_vy[1]*hamil[8])-1.224744871391589*pt_conf_14[0]*hamil[2]*vmap_vy[2])*dv11; 
   outb3[20] += (-(2.4494897427831783*vmap_vy[2]*pt_conf_14[3]*hamil[8])-2.7386127875258306*vmap_vy[0]*pt_conf_14[3]*hamil[8]-1.224744871391589*vmap_vy[1]*hamil[2]*pt_conf_14[3])*dv11; 
-  outb3[32] += (-(2.4053511772118186*pt_conf_14[1]*vmap_vy[3]*hamil[8])-2.4494897427831783*pt_conf_14[1]*vmap_vy[1]*hamil[8]-1.224744871391589*pt_conf_14[1]*hamil[2]*vmap_vy[2])*dv11; 
-  outb3[33] += (-(2.4053511772118186*pt_conf_14[2]*vmap_vy[3]*hamil[8])-2.4494897427831783*vmap_vy[1]*pt_conf_14[2]*hamil[8]-1.224744871391589*hamil[2]*pt_conf_14[2]*vmap_vy[2])*dv11; 
-  outb3[49] += (-(2.405351177211819*pt_conf_14[3]*vmap_vy[3]*hamil[8])-2.4494897427831783*vmap_vy[1]*pt_conf_14[3]*hamil[8]-1.224744871391589*hamil[2]*vmap_vy[2]*pt_conf_14[3])*dv11; 
+  outb3[32] += (-(2.4494897427831783*pt_conf_14[1]*vmap_vy[1]*hamil[8])-1.224744871391589*pt_conf_14[1]*hamil[2]*vmap_vy[2])*dv11; 
+  outb3[33] += (-(2.4494897427831783*vmap_vy[1]*pt_conf_14[2]*hamil[8])-1.224744871391589*hamil[2]*pt_conf_14[2]*vmap_vy[2])*dv11; 
+  outb3[49] += (-(2.4494897427831783*vmap_vy[1]*pt_conf_14[3]*hamil[8])-1.224744871391589*hamil[2]*vmap_vy[2]*pt_conf_14[3])*dv11; 
   } 
 
   const double *pt_conf_15 = &poisson_tensor_conf[60]; 
@@ -473,11 +473,11 @@ GKYL_CU_DH void vlasov_nc_hamil_vel_sparse_vol_alpha_2x3v_tensor_p1(const double
   outb4[6] += (2.7386127875258306*vmap_vz[1]*pt_conf_16[3]*hamil[9]+1.224744871391589*vmap_vz[0]*hamil[3]*pt_conf_16[3])*dv12; 
   outb4[12] += (2.4494897427831783*pt_conf_16[1]*vmap_vz[2]*hamil[9]+2.7386127875258306*vmap_vz[0]*pt_conf_16[1]*hamil[9]+1.224744871391589*pt_conf_16[1]*vmap_vz[1]*hamil[3])*dv12; 
   outb4[13] += (2.4494897427831783*pt_conf_16[2]*vmap_vz[2]*hamil[9]+2.7386127875258306*vmap_vz[0]*pt_conf_16[2]*hamil[9]+1.224744871391589*vmap_vz[1]*pt_conf_16[2]*hamil[3])*dv12; 
-  outb4[18] += (2.405351177211819*pt_conf_16[0]*vmap_vz[3]*hamil[9]+2.4494897427831783*pt_conf_16[0]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_16[0]*vmap_vz[2]*hamil[3])*dv12; 
+  outb4[18] += (2.4494897427831783*pt_conf_16[0]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_16[0]*vmap_vz[2]*hamil[3])*dv12; 
   outb4[23] += (2.4494897427831783*vmap_vz[2]*pt_conf_16[3]*hamil[9]+2.7386127875258306*vmap_vz[0]*pt_conf_16[3]*hamil[9]+1.224744871391589*vmap_vz[1]*hamil[3]*pt_conf_16[3])*dv12; 
-  outb4[37] += (2.4053511772118186*pt_conf_16[1]*vmap_vz[3]*hamil[9]+2.4494897427831783*pt_conf_16[1]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_16[1]*vmap_vz[2]*hamil[3])*dv12; 
-  outb4[38] += (2.4053511772118186*pt_conf_16[2]*vmap_vz[3]*hamil[9]+2.4494897427831783*vmap_vz[1]*pt_conf_16[2]*hamil[9]+1.224744871391589*pt_conf_16[2]*vmap_vz[2]*hamil[3])*dv12; 
-  outb4[58] += (2.405351177211819*pt_conf_16[3]*vmap_vz[3]*hamil[9]+2.4494897427831783*vmap_vz[1]*pt_conf_16[3]*hamil[9]+1.224744871391589*vmap_vz[2]*hamil[3]*pt_conf_16[3])*dv12; 
+  outb4[37] += (2.4494897427831783*pt_conf_16[1]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_16[1]*vmap_vz[2]*hamil[3])*dv12; 
+  outb4[38] += (2.4494897427831783*vmap_vz[1]*pt_conf_16[2]*hamil[9]+1.224744871391589*pt_conf_16[2]*vmap_vz[2]*hamil[3])*dv12; 
+  outb4[58] += (2.4494897427831783*vmap_vz[1]*pt_conf_16[3]*hamil[9]+1.224744871391589*vmap_vz[2]*hamil[3]*pt_conf_16[3])*dv12; 
   } 
   if (dir == 4) { 
   double *outb2 = &out[216]; 
@@ -517,11 +517,11 @@ GKYL_CU_DH void vlasov_nc_hamil_vel_sparse_vol_alpha_2x3v_tensor_p1(const double
   outb4[6] += (2.7386127875258306*vmap_vz[1]*pt_conf_17[3]*hamil[9]+1.224744871391589*vmap_vz[0]*hamil[3]*pt_conf_17[3])*dv12; 
   outb4[12] += (2.4494897427831783*pt_conf_17[1]*vmap_vz[2]*hamil[9]+2.7386127875258306*vmap_vz[0]*pt_conf_17[1]*hamil[9]+1.224744871391589*pt_conf_17[1]*vmap_vz[1]*hamil[3])*dv12; 
   outb4[13] += (2.4494897427831783*pt_conf_17[2]*vmap_vz[2]*hamil[9]+2.7386127875258306*vmap_vz[0]*pt_conf_17[2]*hamil[9]+1.224744871391589*vmap_vz[1]*pt_conf_17[2]*hamil[3])*dv12; 
-  outb4[18] += (2.405351177211819*pt_conf_17[0]*vmap_vz[3]*hamil[9]+2.4494897427831783*pt_conf_17[0]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_17[0]*vmap_vz[2]*hamil[3])*dv12; 
+  outb4[18] += (2.4494897427831783*pt_conf_17[0]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_17[0]*vmap_vz[2]*hamil[3])*dv12; 
   outb4[23] += (2.4494897427831783*vmap_vz[2]*pt_conf_17[3]*hamil[9]+2.7386127875258306*vmap_vz[0]*pt_conf_17[3]*hamil[9]+1.224744871391589*vmap_vz[1]*hamil[3]*pt_conf_17[3])*dv12; 
-  outb4[37] += (2.4053511772118186*pt_conf_17[1]*vmap_vz[3]*hamil[9]+2.4494897427831783*pt_conf_17[1]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_17[1]*vmap_vz[2]*hamil[3])*dv12; 
-  outb4[38] += (2.4053511772118186*pt_conf_17[2]*vmap_vz[3]*hamil[9]+2.4494897427831783*vmap_vz[1]*pt_conf_17[2]*hamil[9]+1.224744871391589*pt_conf_17[2]*vmap_vz[2]*hamil[3])*dv12; 
-  outb4[58] += (2.405351177211819*pt_conf_17[3]*vmap_vz[3]*hamil[9]+2.4494897427831783*vmap_vz[1]*pt_conf_17[3]*hamil[9]+1.224744871391589*vmap_vz[2]*hamil[3]*pt_conf_17[3])*dv12; 
+  outb4[37] += (2.4494897427831783*pt_conf_17[1]*vmap_vz[1]*hamil[9]+1.224744871391589*pt_conf_17[1]*vmap_vz[2]*hamil[3])*dv12; 
+  outb4[38] += (2.4494897427831783*vmap_vz[1]*pt_conf_17[2]*hamil[9]+1.224744871391589*pt_conf_17[2]*vmap_vz[2]*hamil[3])*dv12; 
+  outb4[58] += (2.4494897427831783*vmap_vz[1]*pt_conf_17[3]*hamil[9]+1.224744871391589*vmap_vz[2]*hamil[3]*pt_conf_17[3])*dv12; 
   } 
   if (dir == 4) { 
   double *outb3 = &out[324]; 
