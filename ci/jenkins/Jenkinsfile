@@ -1,16 +1,28 @@
 // Jenkins pipeline for Gkeyll, built/run on our own persistent machines
 // (see ci/jenkins/README.md for how the Jenkins job driving this is set up).
 //
-// Unlike .github/workflows/mac_build.yml (ephemeral GitHub-hosted runner,
-// build-only), this pipeline runs on persistent nodes that already have
-// gkylsoft/ installed, and actually executes the unit tests.
+// Unlike a shared, long-lived gkylsoft/, each build clones the repo fresh
+// and builds its own dependencies from scratch into its own workspace
+// (mirroring .github/workflows/mac_build.yml), then actually runs the unit
+// tests rather than just building them.
 //
 // Scripted (not declarative) pipeline, since we run the same steps in
-// parallel across a set of named nodes that will grow over time.
+// parallel across a set of named nodes that will grow over time and may mix
+// operating systems (hence the per-node mkdeps/configure script choice).
 
-def buildAndTest() {
+def buildAndTest(String mkdepsScript, String configureScript) {
     stage('Environment') {
         sh 'printenv'
+    }
+    stage('Dependencies') {
+        // Build gkylsoft/ from scratch inside this build's own workspace
+        // (rather than a shared, fixed path) so that concurrent builds for
+        // different branches/PRs on the same node never share or clobber
+        // each other's dependency trees.
+        sh "PREFIX=\"\$WORKSPACE/gkylsoft\" ./machines/${mkdepsScript}"
+    }
+    stage('Configure') {
+        sh "PREFIX=\"\$WORKSPACE/gkylsoft\" ./machines/${configureScript}"
     }
     stage('Unit tests') {
         sh 'make -j3 check'
@@ -22,19 +34,21 @@ def buildAndTest() {
 
 properties([disableConcurrentBuilds(abortPrevious: true)])
 
-// Add an entry here (and register the corresponding Jenkins agent with a
-// matching label) to bring the workstation online, e.g.:
-//   'workstation-node': 'workstation-node',
-def nodeLabels = [
-    'manauref_lt1': 'manauref_lt1',
+// Jenkins node label -> [mkdeps script, configure script] to use on that
+// machine (machines/ has a variant per OS/site). Add the workstation here
+// once it's registered as a Jenkins agent, using whichever scripts match its
+// OS, e.g.:
+//   'workstation-node': ['mkdeps.linux.sh', 'configure.linux.cpu.sh'],
+def nodes = [
+    'manauref_lt1': ['mkdeps.macos.sh', 'configure.macos.sh'],
 ]
 
-def branches = nodeLabels.collectEntries { name, label ->
-    [(name): {
+def branches = nodes.collectEntries { label, scripts ->
+    [(label): {
         node(label) {
             checkout scm
             try {
-                buildAndTest()
+                buildAndTest(scripts[0], scripts[1])
             } finally {
                 archiveArtifacts allowEmptyArchive: true, artifacts: 'build/**/*.log'
             }

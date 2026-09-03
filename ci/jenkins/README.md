@@ -6,11 +6,11 @@ for GitHub instead of Bitbucket) to build Gkeyll and run its unit tests on our
 own persistent machines any time a pull request into `main` is opened or
 updated.
 
-Unlike `.github/workflows/mac_build.yml`, which spins up a fresh, empty
-GitHub-hosted runner for every build, these Jenkins nodes are long-lived
-machines that already have the `gkylsoft/` toolchain installed. The pipeline
-therefore skips dependency installation (`install-deps/mkdeps.sh`) and goes
-straight to building and testing.
+Like `.github/workflows/mac_build.yml`, every build starts from a clean git
+checkout and builds its dependencies (`gkylsoft/`) from scratch into its own
+Jenkins workspace via `machines/mkdeps.macos.sh` — but on our own persistent
+hardware instead of an ephemeral GitHub-hosted runner, and it actually
+executes the unit tests rather than just building them.
 
 The controller runs on `manauref_lt1` (this laptop). A second workstation can be
 added later as an additional build node — see the last section.
@@ -59,19 +59,23 @@ Jenkins needs read access to `gkeyllorg/gkeyll` to poll for branches and PRs:
 Manage Jenkins → Nodes → "Built-In Node" → Configure → Labels: add
 `manauref_lt1`. This is the label the Jenkinsfile's `node('manauref_lt1')` matches.
 
-## 5. Confirm the toolchain is already built
+## 5. Nothing to pre-build
 
-The pipeline assumes `gkylsoft/` already exists on this machine via the usual
-flow (from the `gkeyll/` directory):
+Unlike an earlier version of this setup, the pipeline does **not** assume a
+pre-built `gkylsoft/` on this machine. Each build passes
+`PREFIX=$WORKSPACE/gkylsoft` to `machines/mkdeps.macos.sh` and
+`machines/configure.macos.sh`, so dependencies are built from scratch inside
+that build's own Jenkins workspace — isolated from any manual checkout you
+have elsewhere, and safe for concurrent builds of different branches/PRs on
+the same node (each gets its own workspace, so its own `gkylsoft/`).
 
-```
-../gkylsoft  # should already exist
-./machines/mkdeps.macos.sh   # one-time, only if gkylsoft/ is missing
-./machines/configure.macos.sh
-make -j3 install
-```
+The tradeoff is build time: expect each build to spend several extra minutes
+building SuperLU/LuaJIT from source before it even gets to compiling Gkeyll,
+same as `.github/workflows/mac_build.yml` does on GitHub's runners.
 
-If this hasn't been done yet, do it once manually before relying on Jenkins.
+You still need Xcode command line tools / a working C toolchain and `cmake`
+on this machine for `mkdeps.macos.sh` to succeed — if you've built Gkeyll
+manually before, you already have these.
 
 ## 6. Create the multibranch pipeline job
 
@@ -101,16 +105,19 @@ Jenkinsfile, and start building them.
 ## 7. Adding the second workstation later
 
 1. On the workstation: nothing to install if using SSH launch — Jenkins pushes
-   its agent jar over SSH. Make sure Java and the `gkylsoft/` toolchain are
-   present there (steps 5, mirrored on that machine).
+   its agent jar over SSH. Make sure Java, a C/C++/Fortran toolchain, and
+   `cmake` are present there — `mkdeps` builds everything else from scratch
+   per build.
 2. In Jenkins: Manage Jenkins → Nodes → New Node → "Permanent Agent" →
    Launch method "Launch agents via SSH", host/credentials for the
    workstation, label it e.g. `workstation-node`.
-3. In `ci/jenkins/Jenkinsfile`, uncomment/add a line to the `nodeLabels` map:
+3. In `ci/jenkins/Jenkinsfile`, add an entry to the `nodes` map, using
+   whichever `mkdeps`/`configure` scripts under `machines/` match that
+   machine's OS (e.g. Linux instead of macOS):
    ```groovy
-   def nodeLabels = [
-       'manauref_lt1': 'manauref_lt1',
-       'workstation-node': 'workstation-node',
+   def nodes = [
+       'manauref_lt1': ['mkdeps.macos.sh', 'configure.macos.sh'],
+       'workstation-node': ['mkdeps.linux.sh', 'configure.linux.cpu.sh'],
    ]
    ```
 4. Commit and push. The next PR build will run on both machines in parallel.
@@ -120,11 +127,15 @@ Jenkinsfile, and start building them.
 Per node, in parallel:
 
 1. `printenv` — for debugging the build environment.
-2. `make -j3 check` — builds **and runs** all unit tests (`core`, `moments`,
+2. `machines/mkdeps.macos.sh` — builds `gkylsoft/` from scratch into
+   `$WORKSPACE/gkylsoft`.
+3. `machines/configure.macos.sh` — generates `config.mak` pointing at that
+   freshly-built `gkylsoft/`.
+4. `make -j3 check` — builds **and runs** all unit tests (`core`, `moments`,
    `vlasov`, `gyrokinetic`, `pkpm`); a failing unit test fails the build.
-3. `make -j3 regression` — builds (does not execute) all regression tests,
+5. `make -j3 regression` — builds (does not execute) all regression tests,
    matching today's `.github/workflows/mac_build.yml` scope. There is no
    automated regression-test runner yet; running a curated subset of
    regression tests is a follow-up.
-4. Archives `build/**/*.log` so logs are downloadable from the Jenkins build
+6. Archives `build/**/*.log` so logs are downloadable from the Jenkins build
    page even on failure.
