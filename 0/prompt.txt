@@ -1,0 +1,33 @@
+Ok, it complained about "python: command not found". What should I do now?
+
+---
+
+Can you please plan the changes needed, perhaps to the Jenkins config file, so that the Jenkins build is only triggered by PRs authored by the user manauref (myself)? Because at the moment I don't want it to test all the PRs created by other users. If this is possible, the ci/jenkins/README.md should indicate how to do this is the node being added is a personal computer.
+
+---
+
+Do you think ci/jenkins/README.md should be modified so that its more agnostic to what kind of node will be added? For example, not say that it'll run on `manauref_lt1` as in paragraph 3, and split some of the steps (perhaps after 3) between steps to add a personal node (like manauref_lt1, which only runs for one user's PRs) or steps to add a team node (which runs for all PRs).
+
+---
+
+what exactly is the controller, and how is it different from a node?
+
+---
+
+right now the README makes it sound like there's only one controller, but what if another user wants to add their own controller and personal node?
+
+---
+
+I think other users should be able to have their own independent controller, i.e. they may not want to give my controller SSH access to their node.
+
+---
+
+To clarify, adding a remote team node (or workstation) with SSH access for a given controller is still supported and explained in the README, right?
+
+---
+
+I think the introductory paragraphs in the README should change, beacue it talks about "this laptop", but another user reading this README for the first time will be confused because they may be reading it from another computer (not necessary a laptop)
+
+---
+
+One more edit: in a few places the instructions assume that one is building on a Mac (because it installs several things with brew). In each of these places, can you add a distinction between the steps needed on a Mac and those needed on a Linux machine, if they are different?
