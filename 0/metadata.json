@@ -1,0 +1,119 @@
+{
+  "cli_version": "0.10.3",
+  "checkpoint_id": "01M1J9P5PZ19S0HZRFZXW50GWB",
+  "session_id": "51ef54d6-b705-4960-83dc-c5cf165040ab",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-03T00:11:21.692805Z",
+  "branch": "agent_tools-cfl_fix",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    "gyrokinetic/zero/gk_collisionless_flux.c",
+    "gyrokinetic/zero/gk_collisionless_flux_cu.cu",
+    "gyrokinetic/zero/gk_collisionless_passive_flux.c",
+    "gyrokinetic/zero/gk_collisionless_passive_flux_cu.cu"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-5",
+  "turn_id": "2ed31a8433f6",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 84,
+    "cache_creation_tokens": 308273,
+    "cache_read_tokens": 3122389,
+    "output_tokens": 26794,
+    "api_call_count": 42
+  },
+  "skill_events_version": 1,
+  "skill_events": [
+    {
+      "id": "claude-skill-toolu_vrtx_01MG8Gcf1hbHZ1YvmA8aKW13",
+      "event_type": "tool_invocation",
+      "skill": {
+        "name": "gkeyll_guide"
+      },
+      "source": {
+        "agent": "claude-code",
+        "signal": "skill_tool_use",
+        "confidence": "explicit"
+      },
+      "turn_id": "2ed31a8433f6",
+      "transcript_anchor": {
+        "unit": "line",
+        "start": 127,
+        "end": 128,
+        "entry_ids": [
+          "fac4a3b2-1ee1-45e9-a00b-a9befed71b2c"
+        ],
+        "tool_use_id": "toolu_vrtx_01MG8Gcf1hbHZ1YvmA8aKW13"
+      },
+      "native": {
+        "tool_name": "Skill",
+        "tool_use_id": "toolu_vrtx_01MG8Gcf1hbHZ1YvmA8aKW13"
+      },
+      "collapse": {
+        "target": "tool_pair",
+        "label": "Skill: gkeyll_guide",
+        "default_collapsed": true
+      }
+    }
+  ],
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-03T00:11:21.672687Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 12,
+    "total_committed": 0,
+    "total_lines_changed": 12,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 58894,
+      "user_lines_removed": 12,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "33341_1.775.eqdsk": 1847,
+        "33341_3.592.eqdsk": 1846,
+        "65402_t1.eqdsk": 48693,
+        "gyrokinetic/creg/rt_gk_detach_1d.c": 781,
+        "gyrokinetic/creg/rt_gk_ltx_aiwl_2x2v_p1.c": 1120,
+        "gyrokinetic/creg/rt_gk_ltx_iwl_ana_miller_3x2v_p1.c": 862,
+        "gyrokinetic/creg/rt_gk_multib_ltx_iwl_2x2v_p1.c": 1118,
+        "gyrokinetic/data/eqdsk/check_miller_shift.py": 383,
+        "gyrokinetic/data/eqdsk/eqdsk_io.py": 160,
+        "gyrokinetic/unit/ctest_fem_parproj_couplex.c.orig": 1128,
+        "gyrokinetic/unit/ctest_ts_qprofiles.c": 796,
+        "gyrokinetic/unit/run_test.c": 20,
+        "gyrokinetic/zero/gk_collisionless_flux.c": 6,
+        "gyrokinetic/zero/gk_collisionless_flux_cu.cu": 6,
+        "gyrokinetic/zero/gk_collisionless_passive_flux.c": 6,
+        "gyrokinetic/zero/gk_collisionless_passive_flux_cu.cu": 6,
+        "marimoEnv_requirements.yml": 104,
+        "new_data_flag": 1,
+        "patch.diff": 11
+      },
+      "user_removed_per_file": {
+        "gyrokinetic/zero/gk_collisionless_flux.c": 3,
+        "gyrokinetic/zero/gk_collisionless_flux_cu.cu": 3,
+        "gyrokinetic/zero/gk_collisionless_passive_flux.c": 3,
+        "gyrokinetic/zero/gk_collisionless_passive_flux_cu.cu": 3
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 58894,
+      "agent_lines_removed": 12
+    }
+  ]
+}

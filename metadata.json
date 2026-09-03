@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.10.3",
+  "checkpoint_id": "01M1J9P5PZ19S0HZRFZXW50GWB",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-cfl_fix",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/zero/gk_collisionless_flux.c",
+    "gyrokinetic/zero/gk_collisionless_flux_cu.cu",
+    "gyrokinetic/zero/gk_collisionless_passive_flux.c",
+    "gyrokinetic/zero/gk_collisionless_passive_flux_cu.cu"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 84,
+    "cache_creation_tokens": 308273,
+    "cache_read_tokens": 3122389,
+    "output_tokens": 26794,
+    "api_call_count": 42
+  }
+}

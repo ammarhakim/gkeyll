@@ -1,0 +1,13 @@
+Can you examine this issue https://github.com/gkeyllorg/gkeyll/issues/1079 and the solution proposed therein? I think the solution refers to using loc_phase instead of loc_phase_ext in line 157, and in line 168, rather than adding to cflrate_ext_d[0] I think we need to do a max reduction like cflrate_ext_d[0] = GKYL_MAX2( cflrate_ext_d[0], up->flux_surf_edge_up[dir](...) )
+
+---
+
+Sorry, I didn't mean to reject the suggested change to gk_collisionless_flux_cu.cu. Please make it and proceed.
+
+---
+
+why are you trying to compile manually instead of running make?
+
+---
+
+run make -j3 install, it hasn't been run in a while.
