@@ -80,6 +80,8 @@ static const struct gkyl_str_int_pair gk_time_rate_diagnostic_type[] = {
   { "Fdot", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT },
   { "FdotIntegratedMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_INTEGRATED_MOMENTS },
   { "FdotAbsIntegratedMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_INTEGRATED_MOMENTS },
+  { "FdotMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_MOMENTS },
+  { "FdotAbsMoments", GKYL_GK_TIME_RATE_DIAGNOSTIC_FDOT_ABS_MOMENTS },
   { 0, 0 }
 };
 

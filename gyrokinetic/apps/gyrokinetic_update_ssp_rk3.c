@@ -305,6 +305,7 @@ gyrokinetic_update_ssp_rk3(gkyl_gyrokinetic_app* app, double dt0)
             // Compute moment of f_new to compute moment of df/dt.
             // Need to do it after the fields are updated.
             gk_species_calc_int_mom_dt(app, gks, dt, gks->fdot_mom_new);
+            gk_species_calc_fdot_mom(app, gks);
           }
 
           // Scale species according to some criteria.
