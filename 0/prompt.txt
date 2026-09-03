@@ -1,0 +1,102 @@
+the Jenkins build failed with "./build-superlu.sh: line 32: cmake: command not found" but I see cmake is installed with brew using "which cmake". Why didn't it find cmake?
+
+---
+
+would option 1 work if I have multiple nodes and the path needs to be different for every node?
+
+---
+
+Do i need to restart Jenkins? how?
+
+---
+
+Is the Jenkins build running "make -j3 install" after running the mkdeps and configure scripts, and before running make check? if not, it should
+
+---
+
+Well, I see in the Jenkins console log for the latest build "/bin/sh: ./core/../build/core/unit/ctest_alloc: No such file or directory", so for some reason the unit test are not being compiled, or maybe the paths to the executable are wrong
+
+---
+
+would it be better or easier if we instead change the Makefile? because a human user to make the same mistake.
+
+---
+
+Ok, that seemed to help. Now the build is failing due to an issue with the Lua wrappers in Gkeyll I think. It printed: 
+cc -c -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"ac41dc7b7fc7\" -DGKYL_BUILD_DATE=\""2026-09-03 10:48:57 MST"\" -DGKYL_GIT_CHANGESET=\"ac41dc7b7fc7\" -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS -DGKYL_SHARE_DIR=\""/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/gkeyll/share"\" -DGKYL_HAVE_LUA -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS -DGKYL_SHARE_DIR=\""/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/gkeyll/share"\" -DGKYL_HAVE_LUA -march=native -Icore  -Izero  -Izero  -I/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/include/luajit-2.1/ -Icore  -I/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/superlu/include/ -Iminus -Iminus/STC/include -Izero -Iapps -Iker -Iker/array_average -Iker/dg_differentiate -Iker/bin_op -Iker/dg_interpolate -Iker/dg_eval_at_coord_proj -Iker/basis -Iker/array_integrate -Iker/skin_surf_from_ghost -Ilua/Comm -Ilua/Tool apps/zero_lw.c -o ../build/core/apps/zero_lw.c.o
+cc -shared -o ../build/core/libg0core.so ../build/core/minus/*.o ../build/core/ker/*/*.o ../build/core/zero/*.o ../build/core/apps/*.o -Wl,-install_name,@rpath/libg0core.so -L. -L/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/superlu/lib/ -L. -L. -L. -L/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/lib/ -lsuperlu -framework Accelerate       -Wl,-rpath,/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/lib/ -lluajit-5.1 -lm -lpthread -ldl
+mkdir -p ../build/core/
+cc -shared -o ../build/core/libg0core.so ../build/core/minus/*.o ../build/core/ker/*/*.o ../build/core/zero/*.o ../build/core/apps/*.o -Wl,-install_name,@rpath/libg0core.so -L. -L/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/superlu/lib/ -L. -L. -L. -L/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/lib/ -lsuperlu -framework Accelerate       -Wl,-rpath,/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/lib/ -lluajit-5.1 -lm -lpthread -ldl
+Undefined symbols for architecture arm64:
+  "_gkyl_register_distribution_moment_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_gkyl_register_field_bc_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_gkyl_register_species_bc_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_glua_tbl_iget_integer", referenced from:
+      _rect_decomp_lw_new in zero_lw.c.o
+      _rect_decomp_lw_new in zero_lw.c.o
+  "_glua_tbl_iget_string", referenced from:
+      _gkyl_tool_args_new in zero_lw.c.o
+ld: symbol(s) not found for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [../build/core/libg0core.so] Error 1
+make[1]: *** [core] Error 2
+make[1]: *** Waiting for unfinished jobs....
+Undefined symbols for architecture arm64:
+  "_gkyl_register_distribution_moment_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_gkyl_register_field_bc_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_gkyl_register_species_bc_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_glua_tbl_iget_integer", referenced from:
+      _rect_decomp_lw_new in zero_lw.c.o
+      _rect_decomp_lw_new in zero_lw.c.o
+  "_glua_tbl_iget_string", referenced from:
+      _gkyl_tool_args_new in zero_lw.c.o
+ld: symbol(s) not found for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [../build/core/libg0core.so] Error 1
+make[1]: *** [core-unit] Error 2
+make: *** [check] Error 2
+
+---
+
+I'm still seeing a similar error:
+
+make -j3 check
+/Library/Developer/CommandLineTools/usr/bin/make unit
+cd core && /Library/Developer/CommandLineTools/usr/bin/make -f Makefile-core
+mkdir -p ../build/core/zero/
+mkdir -p ../build/core/apps/
+cc -c -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"36db859e4729\" -DGKYL_BUILD_DATE=\""2026-09-03 11:05:34 MST"\" -DGKYL_GIT_CHANGESET=\"36db859e4729\" -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS -DGKYL_SHARE_DIR=\""/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/gkeyll/share"\" -DGKYL_HAVE_LUA -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS -DGKYL_SHARE_DIR=\""/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/gkeyll/share"\" -DGKYL_HAVE_LUA -march=native -Icore  -Izero  -Izero  -I/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/include/luajit-2.1/ -Icore  -I/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/superlu/include/ -Iminus -Iminus/STC/include -Izero -Iapps -Iker -Iker/array_average -Iker/dg_differentiate -Iker/bin_op -Iker/dg_interpolate -Iker/dg_eval_at_coord_proj -Iker/basis -Iker/array_integrate -Iker/skin_surf_from_ghost -Ilua/Comm -Ilua/Tool zero/superlu_ops.c -o ../build/core/zero/superlu_ops.c.o
+cc -c -O3 -g -ffast-math -fPIC -MMD -MP -DGIT_COMMIT_ID=\"36db859e4729\" -DGKYL_BUILD_DATE=\""2026-09-03 11:05:34 MST"\" -DGKYL_GIT_CHANGESET=\"36db859e4729\" -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS -DGKYL_SHARE_DIR=\""/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/gkeyll/share"\" -DGKYL_HAVE_LUA -DGKYL_USING_FRAMEWORK_ACCELERATE -DGKYL_HAVE_PKPM -DGKYL_HAVE_GYROKINETIC -DGKYL_HAVE_VLASOV -DGKYL_HAVE_MOMENTS -DGKYL_SHARE_DIR=\""/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/gkeyll/share"\" -DGKYL_HAVE_LUA -march=native -Icore  -Izero  -Izero  -I/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/include/luajit-2.1/ -Icore  -I/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/superlu/include/ -Iminus -Iminus/STC/include -Izero -Iapps -Iker -Iker/array_average -Iker/dg_differentiate -Iker/bin_op -Iker/dg_interpolate -Iker/dg_eval_at_coord_proj -Iker/basis -Iker/array_integrate -Iker/skin_surf_from_ghost -Ilua/Comm -Ilua/Tool apps/zero_lw.c -o ../build/core/apps/zero_lw.c.o
+mkdir -p ../build/core/
+cc -shared -o ../build/core/libg0core.so ../build/core/minus/*.o ../build/core/ker/*/*.o ../build/core/zero/*.o ../build/core/apps/*.o -Wl,-install_name,@rpath/libg0core.so -L. -L/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/superlu/lib/ -L. -L. -L. -L/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/lib/ -lsuperlu -framework Accelerate       -Wl,-rpath,/Users/mfrancis/.jenkins/workspace/gkeyll_agent_tools-jenkins/gkylsoft/luajit/lib/ -lluajit-5.1 -lm -lpthread -ldl
+Undefined symbols for architecture arm64:
+  "_gkyl_register_distribution_moment_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_gkyl_register_field_bc_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_gkyl_register_species_bc_types", referenced from:
+      _gkyl_zero_lw_openlibs in zero_lw.c.o
+  "_glua_tbl_iget_integer", referenced from:
+      _rect_decomp_lw_new in zero_lw.c.o
+      _rect_decomp_lw_new in zero_lw.c.o
+  "_glua_tbl_iget_string", referenced from:
+      _gkyl_tool_args_new in zero_lw.c.o
+ld: symbol(s) not found for architecture arm64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+make[2]: *** [../build/core/libg0core.so] Error 1
+make[1]: *** [core] Error 2
+make: *** [check] Error 2
+
+---
+
+Is it removing gkylsoft to ensure it is not polluted by previous builds launched? if not, don't you think it should?
+
+---
+
+Do I need to do anything manually now before launching a new build with Jenkins?
