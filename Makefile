@@ -268,10 +268,10 @@ everything: regression unit gkeyll ## Build everything, including unit, regressi
 core:  ## Build core infrastructure code
 	cd core && $(MAKE) -f Makefile-core
 
-core-unit: ## Build core unit tests
+core-unit: core ## Build core unit tests
 	cd core && $(MAKE) -f Makefile-core unit
 
-core-regression: ## Build core regression tests
+core-regression: core ## Build core regression tests
 	cd core && $(MAKE) -f Makefile-core regression
 
 core-install: ## Install core infrastructure code
