@@ -1987,7 +1987,7 @@ TEST_LIST = {
   { "test_2x_p2_bcnone_dev", test_2x_p2_bcnone_dev },
   // { "test_2x_p2_bcdirichlet_dev", test_2x_p2_bcdirichlet_dev },
   { "test_2x_p2_bcperiodic_dev", test_2x_p2_bcperiodic_dev },
-  { "test_2x_p1_weighted_dev_dev", test_2x_p1_weighted_dev},
+  { "test_2x_p1_weighted_dev", test_2x_p1_weighted_dev},
   { "test_2x_p1_selfadjoint_dev", test_2x_p1_selfadjoint_dev},
   { "test_2x_p1_bcdirichlet_bias_dev", test_2x_p1_bcdirichlet_bias_dev },
   { "test_3x_p1_bcnone_dev", test_3x_p1_bcnone_dev },

@@ -458,10 +458,10 @@ void test_1x2v(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_vtsq_i);
 }
 
-void test_1x1v_p1() {test_1x1v(1, false);}
-void test_1x2v_p1() {test_1x2v(1, false);}
+void test_1x1v_p1_ho() {test_1x1v(1, false);}
+void test_1x2v_p1_ho() {test_1x2v(1, false);}
 TEST_LIST = {
-  {"test_1x1v_p1", test_1x1v_p1},
-  {"test_1x2v_p1", test_1x2v_p1},
+  {"test_1x1v_p1_ho", test_1x1v_p1_ho},
+  {"test_1x2v_p1_ho", test_1x2v_p1_ho},
   {NULL, NULL},
 };

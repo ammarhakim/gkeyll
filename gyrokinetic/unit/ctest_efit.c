@@ -14,7 +14,7 @@
 
 #include <gkyl_efit.h>
 
-void test_solovev(){
+void test_solovev_ho(){
 
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/solovev.geqdsk",
@@ -33,7 +33,7 @@ void test_solovev(){
 
 }
 
-void test_step(){
+void test_step_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
@@ -51,7 +51,7 @@ void test_step(){
 
 }
 
-void test_nstxu(){
+void test_nstxu_ho(){
   // Uses DN configuration by default, but one can switch to SN by changing the filepath if desired.
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/nstxu_DN.geqdsk",
@@ -70,7 +70,7 @@ void test_nstxu(){
 
 }
 
-void test_asdex(){
+void test_asdex_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
@@ -87,7 +87,7 @@ void test_asdex(){
 
 }
 
-void test_cerfon(){
+void test_cerfon_ho(){
   
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/cerfon.geqdsk",
@@ -106,7 +106,7 @@ void test_cerfon(){
 
 }
 
-void test_elliptical(){
+void test_elliptical_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
     .rz_poly_order = 2,
@@ -124,7 +124,7 @@ void test_elliptical(){
 
 }
 
-void test_wham(){
+void test_wham_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
@@ -143,7 +143,7 @@ void test_wham(){
 }
 
 
-void test_tcv(){
+void test_tcv_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/tcv.geqdsk",
     .rz_poly_order = 2,
@@ -160,7 +160,7 @@ void test_tcv(){
 
 }
 
-void test_mast(){
+void test_mast_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/mast.geqdsk",
     .rz_poly_order = 2,
@@ -178,7 +178,7 @@ void test_mast(){
 
 }
 
-void test_ltx(){
+void test_ltx_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
@@ -197,15 +197,15 @@ void test_ltx(){
 }
 
 TEST_LIST = {
-  { "test_solovev", test_solovev},
-  { "test_step", test_step},
-  { "test_asdex", test_asdex},
-  { "test_nstxu", test_nstxu},
-  { "test_cerfon", test_cerfon},
-  { "test_elliptical", test_elliptical},
-  { "test_wham", test_wham},
-  { "test_tcv", test_tcv},
-  { "test_mast", test_mast},
-  { "test_ltx", test_ltx},
+  { "test_solovev_ho", test_solovev_ho},
+  { "test_step_ho", test_step_ho},
+  { "test_asdex_ho", test_asdex_ho},
+  { "test_nstxu_ho", test_nstxu_ho},
+  { "test_cerfon_ho", test_cerfon_ho},
+  { "test_elliptical_ho", test_elliptical_ho},
+  { "test_wham_ho", test_wham_ho},
+  { "test_tcv_ho", test_tcv_ho},
+  { "test_mast_ho", test_mast_ho},
+  { "test_ltx_ho", test_ltx_ho},
   { NULL, NULL },
 };

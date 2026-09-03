@@ -28,7 +28,7 @@ psi_ellip(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-ellip_unit(void)
+ellip_unit_ho(void)
 {
   // create RZ grid
   double lower[] = { 0.5, -4.0 }, upper[] = { 6.0, 4.0 };
@@ -124,7 +124,7 @@ psi_cerfon(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-cerfon_unit(void)
+cerfon_unit_ho(void)
 {
   // Cerfon Double Null Configuration
   
@@ -315,7 +315,7 @@ psi_wham(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-wham_2l_unit(void)
+wham_2l_unit_ho(void)
 {
   
   // WHAM Configuration
@@ -492,8 +492,8 @@ wham_beta0_rt(void)
 }
 
 TEST_LIST = {
-  { "ellip", ellip_unit },
-  { "cerfon", cerfon_unit },
-  { "wham", wham_2l_unit },
+  { "ellip_ho", ellip_unit_ho },
+  { "cerfon_ho", cerfon_unit_ho },
+  { "wham_ho", wham_2l_unit_ho },
   { NULL, NULL }
 };
