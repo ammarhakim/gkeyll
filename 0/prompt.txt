@@ -1,0 +1,21 @@
+the Jenkins build failed with "./build-superlu.sh: line 32: cmake: command not found" but I see cmake is installed with brew using "which cmake". Why didn't it find cmake?
+
+---
+
+would option 1 work if I have multiple nodes and the path needs to be different for every node?
+
+---
+
+Do i need to restart Jenkins? how?
+
+---
+
+Is the Jenkins build running "make -j3 install" after running the mkdeps and configure scripts, and before running make check? if not, it should
+
+---
+
+Well, I see in the Jenkins console log for the latest build "/bin/sh: ./core/../build/core/unit/ctest_alloc: No such file or directory", so for some reason the unit test are not being compiled, or maybe the paths to the executable are wrong
+
+---
+
+would it be better or easier if we instead change the Makefile? because a human user to make the same mistake.

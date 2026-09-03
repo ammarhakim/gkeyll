@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M1M62Q5VCA1711AZYDQZW49S",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-jenkins",
+  "checkpoints_count": 6,
+  "files_touched": [
+    "Makefile",
+    "ci/jenkins/README.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 76,
+    "cache_creation_tokens": 170788,
+    "cache_read_tokens": 5175794,
+    "output_tokens": 22998,
+    "api_call_count": 38
+  }
+}
