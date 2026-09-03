@@ -1,0 +1,5 @@
+Ok, now things are running as expected. Two gyrokinetic tests are failing, ctest_dg_iz.c and ctest_dg_recomb.c, because they require that machines/mkdeps.macos.sh be run with --build-adas=yes. Can you make the needed changes so this happens? note that this will use python, and i'm not sure if Jenkins will know the path to it, but we can deal with that later if it runs into an error.
+
+---
+
+Just out of curiosity, is it possible to add --build-adas=yes to the machine file Jenkins runs, but not to the machine file committed in the repo?
