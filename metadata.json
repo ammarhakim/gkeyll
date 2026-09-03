@@ -1,0 +1,58 @@
+{
+  "cli_version": "0.10.3",
+  "checkpoint_id": "01M1JTACXHFWG4YEHF8K3BT9ZZ",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-unit_clean",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "gyrokinetic/unit/ctest_ambi_bolt_potential.c",
+    "gyrokinetic/unit/ctest_asdex.c",
+    "gyrokinetic/unit/ctest_block_tensor.c",
+    "gyrokinetic/unit/ctest_correct_maxwellian_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_deflate_zsurf.c",
+    "gyrokinetic/unit/ctest_deflated_fem_poisson.c",
+    "gyrokinetic/unit/ctest_dg_cx.c",
+    "gyrokinetic/unit/ctest_dg_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_dg_gyrokinetic_kern_tm.c",
+    "gyrokinetic/unit/ctest_dg_iz.c",
+    "gyrokinetic/unit/ctest_dg_rad_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_dg_recomb.c",
+    "gyrokinetic/unit/ctest_efit.c",
+    "gyrokinetic/unit/ctest_fem_parproj.c",
+    "gyrokinetic/unit/ctest_fem_poisson_perp.c",
+    "gyrokinetic/unit/ctest_fem_poisson_perp_ksq.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mapc2p.c",
+    "gyrokinetic/unit/ctest_gk_geometry_mirror.c",
+    "gyrokinetic/unit/ctest_gk_geometry_tok.c",
+    "gyrokinetic/unit/ctest_gkgeom.c",
+    "gyrokinetic/unit/ctest_gkneut_hamil.c",
+    "gyrokinetic/unit/ctest_gyrokinetic_cross_prim_moms_bgk.c",
+    "gyrokinetic/unit/ctest_gyrokinetic_pol_density.c",
+    "gyrokinetic/unit/ctest_integrated_moms.c",
+    "gyrokinetic/unit/ctest_ltx_miller.c",
+    "gyrokinetic/unit/ctest_mirror_grid_gen.c",
+    "gyrokinetic/unit/ctest_mom_gyrokinetic.c",
+    "gyrokinetic/unit/ctest_nodal_ops.c",
+    "gyrokinetic/unit/ctest_position_map.c",
+    "gyrokinetic/unit/ctest_proj_gk_bimaxwellian_on_basis.c",
+    "gyrokinetic/unit/ctest_proj_gk_maxwellian_on_basis.c",
+    "gyrokinetic/unit/ctest_time_roots.c",
+    "gyrokinetic/unit/mctest_multib_allgather.c"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 194,
+    "cache_creation_tokens": 319096,
+    "cache_read_tokens": 10015640,
+    "output_tokens": 49477,
+    "api_call_count": 97
+  }
+}

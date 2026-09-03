@@ -1,0 +1,9 @@
+Please take a look at issue https://github.com/gkeyllorg/gkeyll/issues/1093. Specifically, I'd like to standardize the name of the individual tests in unit/ folders (those in the TEST_LIST table at the end of files in unit/ folders) so that they end in _ho if they are CPU tests or _dev if they are GPU tests. Could you try to enforce such standard? maybe start with gyrokinetic/unit/ only first so I can examine your changes.
+
+---
+
+Please take a look at issue https://github.com/gkeyllorg/gkeyll/issues/1093. Specifically, I'd like to standardize the name of the individual tests in unit/ folders (those in the TEST_LIST table at the end of files in unit/ folders) so that they end in _ho if they are CPU tests or _dev if they are GPU tests. Could you try to enforce such standard? maybe start with gyrokinetic/unit/ only first so I can examine your changes.
+
+---
+
+Please take a look at issue https://github.com/gkeyllorg/gkeyll/issues/1093. Specifically, I'd like to standardize the name of the individual tests in unit/ folders (those in the TEST_LIST table at the end of files in unit/ folders) so that they end in _ho if they are CPU tests or _dev if they are GPU tests. Could you try to enforce such standard? maybe start with gyrokinetic/unit/ only first so I can examine your changes.
