@@ -59,7 +59,32 @@ Jenkins needs read access to `gkeyllorg/gkeyll` to poll for branches and PRs:
 Manage Jenkins → Nodes → "Built-In Node" → Configure → Labels: add
 `manauref_lt1`. This is the label the Jenkinsfile's `node('manauref_lt1')` matches.
 
-## 5. Nothing to pre-build
+## 5. Fix this node's `PATH`
+
+Jenkins runs as a `launchd` service (via `brew services`), which does **not**
+source your shell profile (`~/.zshrc`, `~/.zprofile`) — so it starts with
+launchd's bare-bones default `PATH` (`/usr/bin:/bin:/usr/sbin:/sbin`) and
+can't find Homebrew tools like `cmake`, even though `which cmake` works fine
+in your terminal.
+
+Fix this per-node in Jenkins itself (not by editing the launchd plist)
+so it works the same way regardless of how each node's agent process is
+started — the workstation you add later may be launched over SSH instead of
+`brew services`, with a different environment altogether, so a plist edit on
+this machine wouldn't help there anyway. Each node keeps its own value here,
+which also means this generalizes cleanly once there's more than one node.
+
+Manage Jenkins → Nodes → `manauref_lt1` → Configure → Node Properties → check
+"Environment variables" → Add:
+
+- Name: `PATH`
+- Value: `/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin`
+
+(Adjust if your Homebrew prefix or toolchain lives somewhere else.) When you
+add the workstation later, give it the equivalent `PATH` for wherever *its*
+build tools live.
+
+## 6. Nothing to pre-build
 
 Unlike an earlier version of this setup, the pipeline does **not** assume a
 pre-built `gkylsoft/` on this machine. Each build passes
@@ -77,7 +102,7 @@ You still need Xcode command line tools / a working C toolchain and `cmake`
 on this machine for `mkdeps.macos.sh` to succeed — if you've built Gkeyll
 manually before, you already have these.
 
-## 6. Create the multibranch pipeline job
+## 7. Create the multibranch pipeline job
 
 New Item → name it (e.g. `gkeyll`) → **Multibranch Pipeline**.
 
@@ -102,7 +127,7 @@ just to receive webhooks.
 Save. Jenkins will scan the repo, find `main` and any open PRs with a
 Jenkinsfile, and start building them.
 
-## 7. Adding the second workstation later
+## 8. Adding the second workstation later
 
 1. On the workstation: nothing to install if using SSH launch — Jenkins pushes
    its agent jar over SSH. Make sure Java, a C/C++/Fortran toolchain, and
@@ -111,7 +136,11 @@ Jenkinsfile, and start building them.
 2. In Jenkins: Manage Jenkins → Nodes → New Node → "Permanent Agent" →
    Launch method "Launch agents via SSH", host/credentials for the
    workstation, label it e.g. `workstation-node`.
-3. In `ci/jenkins/Jenkinsfile`, add an entry to the `nodes` map, using
+3. Same as step 5 above: add a `PATH` environment variable under that node's
+   Node Properties covering wherever its build tools (`cmake`, compilers,
+   MPI, etc.) actually live — don't assume it matches `manauref_lt1`'s value,
+   especially if the workstation is Linux.
+4. In `ci/jenkins/Jenkinsfile`, add an entry to the `nodes` map, using
    whichever `mkdeps`/`configure` scripts under `machines/` match that
    machine's OS (e.g. Linux instead of macOS):
    ```groovy
@@ -120,7 +149,7 @@ Jenkinsfile, and start building them.
        'workstation-node': ['mkdeps.linux.sh', 'configure.linux.cpu.sh'],
    ]
    ```
-4. Commit and push. The next PR build will run on both machines in parallel.
+5. Commit and push. The next PR build will run on both machines in parallel.
 
 ## What the pipeline does
 

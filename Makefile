@@ -418,7 +418,9 @@ clean:
 	rm -rf ${BUILD_DIR}
 
 # Check everything
-check: unit unit-run ## Build (if needed) and run all unit tests
+check: ## Build (if needed) and run all unit tests
+	$(MAKE) unit
+	$(MAKE) unit-run
 
 # Run all unit tests
 unit-run: ## Run all unit tests without (re)building them
