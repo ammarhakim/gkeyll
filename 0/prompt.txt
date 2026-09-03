@@ -1,0 +1,111 @@
+Please take a look at issue https://github.com/gkeyllorg/gkeyll/issues/1093. Specifically, I'd like to standardize the name of the individual tests in unit/ folders (those in the TEST_LIST table at the end of files in unit/ folders) so that they end in _ho if they are CPU tests or _dev if they are GPU tests. Could you try to enforce such standard? maybe start with gyrokinetic/unit/ only first so I can examine your changes.
+
+---
+
+Please take a look at issue https://github.com/gkeyllorg/gkeyll/issues/1093. Specifically, I'd like to standardize the name of the individual tests in unit/ folders (those in the TEST_LIST table at the end of files in unit/ folders) so that they end in _ho if they are CPU tests or _dev if they are GPU tests. Could you try to enforce such standard? maybe start with gyrokinetic/unit/ only first so I can examine your changes.
+
+---
+
+Please take a look at issue https://github.com/gkeyllorg/gkeyll/issues/1093. Specifically, I'd like to standardize the name of the individual tests in unit/ folders (those in the TEST_LIST table at the end of files in unit/ folders) so that they end in _ho if they are CPU tests or _dev if they are GPU tests. Could you try to enforce such standard? maybe start with gyrokinetic/unit/ only first so I can examine your changes.
+
+---
+
+Please do the same thing to core moments vlasov and pkpm
+
+---
+
+<task-notification>
+<task-id>a7ded853315082505</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/341b4ba0-859e-4aed-a2af-1d4eca617436/tasks/a7ded853315082505.output</output-file>
+<status>completed</status>
+<summary>Agent "Standardize TEST_LIST names in pkpm/unit" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Confirmed: `pkpm/` has no `unit/` directory and no `ctest_*`/`mctest_*` files anywhere in it — only `ignore_*_tests.lua` files in `creg`/`luareg`, which are not TEST_LIST files. There is nothing in scope for this directive.
+
+**Report:**
+- **Task:** Apply TEST_LIST `_ho`/`_dev` naming standardization to `pkpm/unit/`.
+- **Finding:** `pkpm/unit/` does not exist. `pkpm/` contains only `apps/`, `creg/`, `ker/`, `luareg/`, `zero/` — no unit test folder, no `ctest_*.c`/`mctest_*.c` files anywhere under `pkpm/`.
+- **Action taken:** None — no files changed, no commits made.
+- **Anomaly (out of scope, noted only):** stray untracked files at repo root (`test_ambi_bolt_init_2x_ho`, `test_ambi_bolt_phi_calc_*_ho`, etc.) — leftover artifacts from a previous unquoted-`&gt;` shell-redirection mishap during the gyrokinetic/unit/ work, not related to this pkpm directive.</result>
+<usage><subagent_tokens>82232</subagent_tokens><tool_uses>6</tool_uses><duration_ms>32018</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a670ff824a56533ae</task-id>
+<tool-use-id>toolu_vrtx_01Xv8MPF7EMmFMv1zooXLtqc</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/341b4ba0-859e-4aed-a2af-1d4eca617436/tasks/a670ff824a56533ae.output</output-file>
+<status>completed</status>
+<summary>Agent "Standardize TEST_LIST names in vlasov/unit" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Two files (`ctest_positivity_shift_vlasov.c`, `ctest_velocity_map.c`) were already fully conformant and needed no changes. Reporting back to parent now.
+
+**vlasov/unit/ TEST_LIST standardization — directive: apply gyrokinetic/unit/'s `_ho`/`_dev` renaming rules to vlasov/unit/.**
+
+15 files modified, 2 already conformant (`ctest_positivity_shift_vlasov.c`, `ctest_velocity_map.c`), 236 insertions/236 deletions.
+
+Notable cases handled:
+- `ctest_bc_basic.c`: 16 CPU + 16 GPU (`_gpu`→`_dev`) entries renamed.
+- `ctest_canonical_pb_continuity.c`: function names got `_ho` appended; abbreviated string keys (`_ten`, `_hyb`) that don't match function names got `_ho` appended separately via sed, preserving the pre-existing abbreviation quirk.
+- `ctest_dg_em_vars.c`: renamed both active and commented-out tensor-p2 CPU/GPU entries (functions confirmed to still exist).
+- `ctest_dg_maxwell.c`, `ctest_dg_vlasov.c`, `ctest_mom_vlasov.c`: string/function mismatches (`"dg_max"`/`test_dg_max`, `"cu_dg_max"`/`test_cu_dg_max`, etc.) — renamed functions via script, then manually fixed string literals to match (e.g. `"dg_max_ho"`, `"dg_max_dev"`, `"mom_vlasov_ho"`, `"mom_vlasov_dev"`).
+- `ctest_mom_vlasov.c`: also fixed the commented-out `test_big_2x2v_p2`/`_cu` pair (function confirmed to exist).
+
+No orphaned/dead-code exceptions were found in this folder — everything referenced in TEST_LIST (active or commented) had a real function definition, so all entries could be fully renamed.
+
+Verification sweep: every quoted TEST_LIST string across all `ctest_*.c` files in vlasov/unit/ now ends in `_ho` or `_dev` — zero exceptions.
+
+Build/test sample: `ctest_bc_basic`, `ctest_canonical_pb_continuity`, `ctest_mom_vlasov`, `ctest_dg_maxwell`, `ctest_dg_vlasov` all compiled cleanly and passed 100% under their new names.
+
+No commits made.</result>
+<usage><subagent_tokens>107740</subagent_tokens><tool_uses>16</tool_uses><duration_ms>171990</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a4ab50b308553a2bc</task-id>
+<tool-use-id>REDACTED</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/341b4ba0-859e-4aed-a2af-1d4eca617436/tasks/a4ab50b308553a2bc.output</output-file>
+<status>completed</status>
+<summary>Agent "Standardize TEST_LIST names in moments/unit" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>Done. Summary of the standardization work across `core/`, `moments/`, `vlasov/`, and `pkpm/`:
+
+- **`core/unit/`** — already fully conformant (all 39 files). No changes.
+- **`vlasov/unit/`** — already fully conformant (all 17 files). No changes.
+- **`pkpm/`** — has no `unit/` folder at all. Nothing to do.
+- **`moments/unit/`** — 31 files modified. Applied the same rules as `gyrokinetic/unit/`: appended `_ho`/`_dev` to every TEST_LIST entry (string + function name), normalized old `gpu_`-prefix and `cu_`-prefix/suffix markers to the `_dev` convention, and preserved pre-existing (unrelated) string/function name mismatches.
+
+**One flagged exception worth your attention:** `moments/unit/ctest_wv_euler.c` already uses `_ho`/`_lo` to mean "high-order flux" vs. "low-order flux" (`GKYL_WV_HIGH_ORDER_FLUX`/`GKYL_WV_LOW_ORDER_FLUX`), e.g. `euler_waves_ho`, `euler_waves_lo`, `euler_waves_2_ho_roe`, `euler_waves_2_lo_hll`, etc. — nothing to do with host/device. Mechanically appending `_ho` to the CPU tests here would produce confusing double-meaning names like `euler_waves_lo_ho`. I left those 9 entries untouched rather than guess, and only renamed the one unambiguous GPU test (`cu_wv_euler` → `wv_euler_dev`). Let me know how you'd like this file handled — options include leaving it as the sole intentional exception, or picking a different naming scheme for it.
+
+Verification: swept every TEST_LIST (active and commented) across all four folders — everything ends in `_ho`/`_dev` except that one flagged file. Built and ran 10 sample files total (5 from `moments/unit/`, plus the earlier 5 from `gyrokinetic/unit/`) — all compiled and passed. No commits made.</result>
+<usage><subagent_tokens>140754</subagent_tokens><tool_uses>25</tool_uses><duration_ms>403535</duration_ms></usage>
+</task-notification>
+
+---
+
+<task-notification>
+<task-id>a9fa5c58ad351c82f</task-id>
+<tool-use-id>toolu_vrtx_01KRn9rvZ8nxvkEneJ8UodmH</tool-use-id>
+<output-file>/private/tmp/claude-503/-Users-mfrancis-Documents-gkeyll-code-gkeyll-v0-gkeyll/341b4ba0-859e-4aed-a2af-1d4eca617436/tasks/a9fa5c58ad351c82f.output</output-file>
+<status>completed</status>
+<summary>Agent "Standardize TEST_LIST names in core/unit" finished</summary>
+<note>A task-notification fires each time this agent stops with no live background children of its own. The user can send it another message and resume it, so the same task-id may notify more than once.</note>
+<result>All four solver folders are now standardized and verified.
+
+**Summary:**
+- **core/unit** — 39 files changed (839+/839-), all TEST_LIST entries standardized to `_ho`/`_dev`.
+- **moments/unit** — 31 files changed (486+/486-). Most were already conformant from prior work; this session fixed the one remaining outlier, `ctest_wv_euler.c`, where flux-type-embedded `_ho`/`_lo` markers were being confused with the CPU/GPU suffix convention (e.g. `euler_waves_2_ho_roe` → `euler_waves_2_roe_ho`, `euler_waves_lo` → `euler_waves_lo_ho`).
+- **vlasov/unit** — 15 files changed (236+/236-), already fully conformant (including its one commented-out entry pair, `test_big_2x2v_p2_ho`/`_dev`, whose functions still exist in the file, so left in place per the naming standard).
+- **pkpm** — has no `unit/` folder at all (only `apps`, `creg`, `ker`, `luareg`, `zero`), so there's nothing to standardize there.
+
+All sample builds/runs (`ctest_wv_euler`, `ctest_bc_basic`, `ctest_dg_maxwell`, plus the earlier core/gyrokinetic samples) compiled and passed. No commits were made.</result>
+<usage><subagent_tokens>88374</subagent_tokens><tool_uses>33</tool_uses><duration_ms>602247</duration_ms></usage>
+</task-notification>
+
+---
+
+maybe use _lof and _hof for low- and high-order flux, respectively. Then use _ho and _dev for host and device, respectively.
