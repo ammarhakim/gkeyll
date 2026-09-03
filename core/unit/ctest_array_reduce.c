@@ -9,7 +9,7 @@
 #include <gkyl_util.h>
 #include <time.h>
 
-void test_dummy_ho()
+void test_array_reduce_dummy_ho()
 {
 }
 
@@ -370,7 +370,7 @@ test_array_reduce_range_max_timer_32x32x32x32_dev()
 #endif
 
 TEST_LIST = {
-  { "dummy_ho", test_dummy_ho },
+  { "array_reduce_dummy_ho", test_array_reduce_dummy_ho },
   { "array_reduce_ho", test_reduce_ho },
   { "array_reduce_range_ho", test_reduce_range_ho },
   { "array_reduce_sum_range_ho", test_sum_reduce_range_ho },

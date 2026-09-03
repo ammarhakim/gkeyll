@@ -3,7 +3,7 @@
 
 #include <string.h>
 
-void test_ranges_1d_ho()
+void test_rect_decomp_ranges_1d_ho()
 {
   double lower[] = { 1.0 }, upper[] = {2.5 };
   int cells[] = { 20 };
@@ -27,7 +27,7 @@ void test_ranges_1d_ho()
   TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );
 }
 
-void test_ranges_2d_ho()
+void test_rect_decomp_ranges_2d_ho()
 {
   double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
   int cells[] = { 20, 40 };
@@ -55,7 +55,7 @@ void test_ranges_2d_ho()
   TEST_CHECK( gkyl_range_is_sub_range(&range) == 1 );  
 }
 
-void test_ranges_3d_ho()
+void test_rect_decomp_ranges_3d_ho()
 {
   double lower[] = { 1.0, 1.0, 1.0 }, upper[] = { 2.5, 5.0, 2.0 };
   int cells[] = { 20, 40, 10 };
@@ -89,7 +89,7 @@ void test_ranges_3d_ho()
 }
 
 static void
-test_ranges_from_range_2d_ho(void)
+test_rect_decomp_ranges_from_range_2d_ho(void)
 {
   struct gkyl_range inlocal;
   gkyl_range_init(&inlocal, 2, (int[]) { 1, 2 }, (int[]) { 10, 20 });
@@ -109,7 +109,7 @@ test_ranges_from_range_2d_ho(void)
 }
 
 static void
-test_ranges_from_range_3d_ho(void)
+test_rect_decomp_ranges_from_range_3d_ho(void)
 {
   struct gkyl_range inlocal;
   gkyl_range_init(&inlocal, 3, (int[]) { 1, 2, 3 }, (int[]) { 10, 20, 30 });
@@ -603,12 +603,12 @@ test_rect_decomp_from_cuts_and_cells_ho(void)
 }
 
 TEST_LIST = {
-  { "ranges_1d_ho", test_ranges_1d_ho },
-  { "ranges_2d_ho", test_ranges_2d_ho },
-  { "ranges_3d_ho", test_ranges_3d_ho },
+  { "rect_decomp_ranges_1d_ho", test_rect_decomp_ranges_1d_ho },
+  { "rect_decomp_ranges_2d_ho", test_rect_decomp_ranges_2d_ho },
+  { "rect_decomp_ranges_3d_ho", test_rect_decomp_ranges_3d_ho },
 
-  { "ranges_from_range_2d_ho", test_ranges_from_range_2d_ho },
-  { "ranges_from_range_3d_ho", test_ranges_from_range_3d_ho },  
+  { "rect_decomp_ranges_from_range_2d_ho", test_rect_decomp_ranges_from_range_2d_ho },
+  { "rect_decomp_ranges_from_range_3d_ho", test_rect_decomp_ranges_from_range_3d_ho },  
 
   { "rect_decomp_2d_ho", test_rect_decomp_2d_ho },
   { "rect_decomp_3d_ho", test_rect_decomp_3d_ho },

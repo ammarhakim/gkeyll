@@ -229,7 +229,7 @@ test_sr_euler_waves2_ho()
 
 
 TEST_LIST = {
-  { "euler_sr_prim1_ho", test_sr_euler_prim1_ho },
+  { "sr_euler_prim1_ho", test_sr_euler_prim1_ho },
   { "test_sr_euler_waves_ho", test_sr_euler_waves_ho},
   { "test_sr_euler_waves2_ho", test_sr_euler_waves2_ho},
   { NULL, NULL },

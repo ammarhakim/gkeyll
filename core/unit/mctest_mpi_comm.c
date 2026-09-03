@@ -1581,10 +1581,9 @@ TEST_LIST = {
   {"mpi_n2_sync_1d_ho", mpi_n2_sync_1d_ho},
   {"mpi_n4_sync_2d_no_corner_ho", mpi_n4_sync_2d_no_corner_ho },
   {"mpi_n4_sync_2d_use_corner_ho", mpi_n4_sync_2d_use_corner_ho},
-  {"mpi_n2_sync_1x1v_ho", mpi_n4_sync_1x1v_ho },
+  {"mpi_n4_sync_1x1v_ho", mpi_n4_sync_1x1v_ho },
   
   {"mpi_n1_per_sync_2d_ho", mpi_n1_per_sync_2d_ho },
-  {"mpi_n1_per_sync_corner_2d_ho", mpi_n1_per_sync_corner_2d_ho },
   {"mpi_n2_per_sync_2d_ho", mpi_n2_per_sync_2d_ho },
 
   {"mpi_n1_per_sync_corner_2d_ho", mpi_n1_per_sync_corner_2d_ho },  

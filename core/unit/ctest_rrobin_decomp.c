@@ -3,7 +3,7 @@
 #include <gkyl_rrobin_decomp.h>
 
 static void
-test_1_ho(void)
+test_rrobin_decomp_1_ho(void)
 {
   const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(1, 3,
     (int[]) { 1, 1, 1 });
@@ -27,7 +27,7 @@ test_1_ho(void)
 }
 
 static void
-test_2_ho(void)
+test_rrobin_decomp_2_ho(void)
 {
   const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(4, 3,
     (int[]) { 4, 1, 1 });
@@ -54,7 +54,7 @@ test_2_ho(void)
 }
 
 static void
-test_3_ho(void)
+test_rrobin_decomp_3_ho(void)
 {
   const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3,
     (int[]) { 4, 1, 1 });
@@ -81,7 +81,7 @@ test_3_ho(void)
 }
 
 static void
-test_4_ho(void)
+test_rrobin_decomp_4_ho(void)
 {
   const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3,
     (int[]) { 4, 2, 3 });
@@ -111,7 +111,7 @@ test_4_ho(void)
 }
 
 static void
-test_5_ho(void)
+test_rrobin_decomp_5_ho(void)
 {
   const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(9, 3,
     (int[]) { 4, 2, 3 });
@@ -141,7 +141,7 @@ test_5_ho(void)
 }
 
 static void
-test_6_ho(void)
+test_rrobin_decomp_6_ho(void)
 {
   const struct gkyl_rrobin_decomp *rr = gkyl_rrobin_decomp_new(6, 3,
     (int[]) { 2, 4, 3 });
@@ -171,7 +171,7 @@ test_6_ho(void)
 }
 
 static void
-test_7_ho(void)
+test_rrobin_decomp_7_ho(void)
 {
   // this is a rather strange decomposition: only 2 ranks while the
   // largest block needs 4 ranks for full concurrency
@@ -204,12 +204,12 @@ test_7_ho(void)
 }
 
 TEST_LIST = {
-  { "test_1_ho", test_1_ho },
-  { "test_2_ho", test_2_ho },
-  { "test_3_ho", test_3_ho },
-  { "test_4_ho", test_4_ho },
-  { "test_5_ho", test_5_ho },
-  { "test_6_ho", test_6_ho },
-  { "test_7_ho", test_7_ho },
+  { "test_rrobin_decomp_1_ho", test_rrobin_decomp_1_ho },
+  { "test_rrobin_decomp_2_ho", test_rrobin_decomp_2_ho },
+  { "test_rrobin_decomp_3_ho", test_rrobin_decomp_3_ho },
+  { "test_rrobin_decomp_4_ho", test_rrobin_decomp_4_ho },
+  { "test_rrobin_decomp_5_ho", test_rrobin_decomp_5_ho },
+  { "test_rrobin_decomp_6_ho", test_rrobin_decomp_6_ho },
+  { "test_rrobin_decomp_7_ho", test_rrobin_decomp_7_ho },
   { NULL, NULL },
 };

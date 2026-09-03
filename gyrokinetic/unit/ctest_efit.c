@@ -14,7 +14,7 @@
 
 #include <gkyl_efit.h>
 
-void test_solovev_ho(){
+void test_efit_solovev_ho(){
 
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/solovev.geqdsk",
@@ -33,7 +33,7 @@ void test_solovev_ho(){
 
 }
 
-void test_step_ho(){
+void test_efit_step_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
     .rz_poly_order = 2,
@@ -51,7 +51,7 @@ void test_step_ho(){
 
 }
 
-void test_nstxu_ho(){
+void test_efit_nstxu_ho(){
   // Uses DN configuration by default, but one can switch to SN by changing the filepath if desired.
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/nstxu_DN.geqdsk",
@@ -70,7 +70,7 @@ void test_nstxu_ho(){
 
 }
 
-void test_asdex_ho(){
+void test_efit_asdex_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
     .rz_poly_order = 2,
@@ -87,7 +87,7 @@ void test_asdex_ho(){
 
 }
 
-void test_cerfon_ho(){
+void test_efit_cerfon_ho(){
   
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/cerfon.geqdsk",
@@ -106,7 +106,7 @@ void test_cerfon_ho(){
 
 }
 
-void test_elliptical_ho(){
+void test_efit_elliptical_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
     .rz_poly_order = 2,
@@ -124,7 +124,7 @@ void test_elliptical_ho(){
 
 }
 
-void test_wham_ho(){
+void test_efit_wham_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
     .rz_poly_order = 2,
@@ -143,7 +143,7 @@ void test_wham_ho(){
 }
 
 
-void test_tcv_ho(){
+void test_efit_tcv_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/tcv.geqdsk",
     .rz_poly_order = 2,
@@ -160,7 +160,7 @@ void test_tcv_ho(){
 
 }
 
-void test_mast_ho(){
+void test_efit_mast_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/mast.geqdsk",
     .rz_poly_order = 2,
@@ -178,7 +178,7 @@ void test_mast_ho(){
 
 }
 
-void test_ltx_ho(){
+void test_efit_ltx_ho(){
   struct gkyl_efit_inp inp  = {
     .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
     .rz_poly_order = 2,
@@ -197,15 +197,15 @@ void test_ltx_ho(){
 }
 
 TEST_LIST = {
-  { "test_solovev_ho", test_solovev_ho},
-  { "test_step_ho", test_step_ho},
-  { "test_asdex_ho", test_asdex_ho},
-  { "test_nstxu_ho", test_nstxu_ho},
-  { "test_cerfon_ho", test_cerfon_ho},
-  { "test_elliptical_ho", test_elliptical_ho},
-  { "test_wham_ho", test_wham_ho},
-  { "test_tcv_ho", test_tcv_ho},
-  { "test_mast_ho", test_mast_ho},
-  { "test_ltx_ho", test_ltx_ho},
+  { "test_efit_solovev_ho", test_efit_solovev_ho},
+  { "test_efit_step_ho", test_efit_step_ho},
+  { "test_efit_asdex_ho", test_efit_asdex_ho},
+  { "test_efit_nstxu_ho", test_efit_nstxu_ho},
+  { "test_efit_cerfon_ho", test_efit_cerfon_ho},
+  { "test_efit_elliptical_ho", test_efit_elliptical_ho},
+  { "test_efit_wham_ho", test_efit_wham_ho},
+  { "test_efit_tcv_ho", test_efit_tcv_ho},
+  { "test_efit_mast_ho", test_efit_mast_ho},
+  { "test_efit_ltx_ho", test_efit_ltx_ho},
   { NULL, NULL },
 };

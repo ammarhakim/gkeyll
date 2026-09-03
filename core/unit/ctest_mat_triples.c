@@ -3,7 +3,7 @@
 #include <gkyl_util.h>
 #include <gkyl_range.h>
 
-void test_tri_1_ho()
+void test_mat_triples_1_ho()
 {
   gkyl_mat_triples *tri = gkyl_mat_triples_new(5, 5);
 
@@ -41,7 +41,7 @@ void test_tri_1_ho()
   gkyl_mat_triples_release(tri);
 }
 
-void test_tri_2_ho()
+void test_mat_triples_2_ho()
 {
   gkyl_mat_triples *tri = gkyl_mat_triples_new(3, 3);
 
@@ -80,7 +80,7 @@ void test_tri_2_ho()
   gkyl_mat_triples_release(tri);
 }
 
-void test_tri_3_ho()
+void test_mat_triples_3_ho()
 {
   gkyl_mat_triples *tri = gkyl_mat_triples_new(3, 3);
 
@@ -132,8 +132,8 @@ void test_tri_3_ho()
 }
 
 TEST_LIST = {
-  { "tri_1_ho", test_tri_1_ho },
-  { "tri_2_ho", test_tri_2_ho },
-  { "tri_3_ho", test_tri_3_ho },
+  { "mat_triples_1_ho", test_mat_triples_1_ho },
+  { "mat_triples_2_ho", test_mat_triples_2_ho },
+  { "mat_triples_3_ho", test_mat_triples_3_ho },
   { NULL, NULL }
 };

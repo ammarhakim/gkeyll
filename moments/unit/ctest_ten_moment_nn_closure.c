@@ -95,7 +95,7 @@ test_nn_closure_dims_ho(void)
 // Uniform stencil, B along x: b = (1,0,0), p_par = p_xx, p_perp = (p_yy+p_zz)/2,
 // all gradients zero.
 static void
-test_geom_1d_p1_uniform_bx_ho(void)
+test_nn_closure_geom_1d_p1_uniform_bx_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -133,7 +133,7 @@ test_geom_1d_p1_uniform_bx_ho(void)
 
 // Uniform stencil, B along z: b = (0,0,1), p_par = p_zz, p_perp = (p_xx+p_yy)/2.
 static void
-test_geom_1d_p1_uniform_bz_ho(void)
+test_nn_closure_geom_1d_p1_uniform_bz_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -161,7 +161,7 @@ test_geom_1d_p1_uniform_bz_ho(void)
 // Uniform stencil, B at 45 deg in the x-y plane: b = (1,1,0)/sqrt(2).
 // p_par = 0.5 p_xx + 0.5 p_yy + p_xy, p_perp = (tr(p) - p_par)/2.
 static void
-test_geom_1d_p1_diagonal_b_ho(void)
+test_nn_closure_geom_1d_p1_diagonal_b_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -195,7 +195,7 @@ test_geom_1d_p1_diagonal_b_ho(void)
 // Density gradient only: B and pressure uniform along x, density linear across
 // the stencil. drho_dx = (rho_U - rho_L)/dx; field-aligned pressure gradients 0.
 static void
-test_geom_1d_p1_density_gradient_ho(void)
+test_nn_closure_geom_1d_p1_density_gradient_ho(void)
 {
   double dx = 0.1;
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, dx);
@@ -224,7 +224,7 @@ test_geom_1d_p1_density_gradient_ho(void)
 // Pressure gradient with B uniform along x. With b = (1,0,0) and uniform b,
 // p_par_dx = d(p_xx)/dx and p_perp_dx = 0.5( d tr(p)/dx - p_par_dx ).
 static void
-test_geom_1d_p1_pressure_gradient_ho(void)
+test_nn_closure_geom_1d_p1_pressure_gradient_ho(void)
 {
   double dx = 0.1;
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, dx);
@@ -256,7 +256,7 @@ test_geom_1d_p1_pressure_gradient_ho(void)
 // Vanishing magnetic field: the closure falls back to b = (1,0,0), so p_par
 // reduces to p_xx (avoids a divide-by-zero in the field direction).
 static void
-test_geom_1d_p1_zero_b_ho(void)
+test_nn_closure_geom_1d_p1_zero_b_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -300,7 +300,7 @@ set_geom_uniform_b(struct gkyl_ten_moment_nn_closure_geom *g, int ax)
 // q_perp, q_perp_dx), the pressure-tensor source must be d(P_ij)/dt = -d(q)/dx,
 // with q_par -> Pxx and q_perp -> Pyy, Pzz (and no off-diagonal/mass/momentum).
 static void
-test_consume_1d_p1_sign_and_mapping_ho(void)
+test_nn_closure_consume_1d_p1_sign_and_mapping_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -329,7 +329,7 @@ test_consume_1d_p1_sign_and_mapping_ho(void)
 
 // Sign robustness: a negative parallel-flux gradient must flip the Pxx source.
 static void
-test_consume_1d_p1_sign_flip_ho(void)
+test_nn_closure_consume_1d_p1_sign_flip_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -352,7 +352,7 @@ test_consume_1d_p1_sign_flip_ho(void)
 // network's constant offset in static regions does not inject a spurious source
 // provided it also predicts q' ~ 0 there.
 static void
-test_consume_1d_p1_uniform_q_zero_source_ho(void)
+test_nn_closure_consume_1d_p1_uniform_q_zero_source_ho(void)
 {
   struct gkyl_ten_moment_nn_closure *nn = mk_closure_1d(1, 0.1);
 
@@ -373,14 +373,14 @@ test_consume_1d_p1_uniform_q_zero_source_ho(void)
 
 TEST_LIST = {
   { "nn_closure_dims_ho", test_nn_closure_dims_ho },
-  { "geom_1d_p1_uniform_bx_ho", test_geom_1d_p1_uniform_bx_ho },
-  { "geom_1d_p1_uniform_bz_ho", test_geom_1d_p1_uniform_bz_ho },
-  { "geom_1d_p1_diagonal_b_ho", test_geom_1d_p1_diagonal_b_ho },
-  { "geom_1d_p1_density_gradient_ho", test_geom_1d_p1_density_gradient_ho },
-  { "geom_1d_p1_pressure_gradient_ho", test_geom_1d_p1_pressure_gradient_ho },
-  { "geom_1d_p1_zero_b_ho", test_geom_1d_p1_zero_b_ho },
-  { "consume_1d_p1_sign_and_mapping_ho", test_consume_1d_p1_sign_and_mapping_ho },
-  { "consume_1d_p1_sign_flip_ho", test_consume_1d_p1_sign_flip_ho },
-  { "consume_1d_p1_uniform_q_zero_source_ho", test_consume_1d_p1_uniform_q_zero_source_ho },
+  { "nn_closure_geom_1d_p1_uniform_bx_ho", test_nn_closure_geom_1d_p1_uniform_bx_ho },
+  { "nn_closure_geom_1d_p1_uniform_bz_ho", test_nn_closure_geom_1d_p1_uniform_bz_ho },
+  { "nn_closure_geom_1d_p1_diagonal_b_ho", test_nn_closure_geom_1d_p1_diagonal_b_ho },
+  { "nn_closure_geom_1d_p1_density_gradient_ho", test_nn_closure_geom_1d_p1_density_gradient_ho },
+  { "nn_closure_geom_1d_p1_pressure_gradient_ho", test_nn_closure_geom_1d_p1_pressure_gradient_ho },
+  { "nn_closure_geom_1d_p1_zero_b_ho", test_nn_closure_geom_1d_p1_zero_b_ho },
+  { "nn_closure_consume_1d_p1_sign_and_mapping_ho", test_nn_closure_consume_1d_p1_sign_and_mapping_ho },
+  { "nn_closure_consume_1d_p1_sign_flip_ho", test_nn_closure_consume_1d_p1_sign_flip_ho },
+  { "nn_closure_consume_1d_p1_uniform_q_zero_source_ho", test_nn_closure_consume_1d_p1_uniform_q_zero_source_ho },
   { NULL, NULL },
 };

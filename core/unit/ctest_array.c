@@ -106,7 +106,7 @@ void test_array_fetch_ho()
   gkyl_array_release(arr);
 }
 
-void test_non_numeric_ho()
+void test_array_non_numeric_ho()
 {
   struct euler { double rho, u, E; };
   struct gkyl_array *arr = gkyl_array_new(GKYL_USER, sizeof(struct euler), 10);
@@ -669,11 +669,11 @@ TEST_LIST = {
   { "array_0_ho", test_array_0_ho },  
   { "array_base_ho", test_array_base_ho },
   { "array_fetch_ho", test_array_fetch_ho },
-  { "non_numeric_ho", test_non_numeric_ho },
+  { "array_non_numeric_ho", test_array_non_numeric_ho },
   { "grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho },
   { "grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho },  
   { "grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho },
-  { "grid_array_read_1_ho", test_grid_array_read_p1_ho },
+  { "grid_array_read_p1_ho", test_grid_array_read_p1_ho },
   { "array_from_buff_ho", test_array_from_buff_ho },  
 #ifdef GKYL_HAVE_CUDA
   { "array_base_dev", test_array_base_dev },

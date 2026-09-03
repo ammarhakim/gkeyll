@@ -895,7 +895,7 @@ TEST_LIST = {
   { "nmat_base_ho", test_nmat_base_ho },
   { "nmat_linsolve_ho", test_nmat_linsolve_ho },
   { "nmat_linsolve_pa_ho", test_nmat_linsolve_pa_ho },
-  { "mv_ho", test_mat_mv_ho},
+  { "mat_mv_ho", test_mat_mv_ho},
   { "nmat_mv_ho", test_nmat_mv_ho},
   { "nmat_mm_ho", test_nmat_mm_ho},
   { "mat_mm_arrays_ho", test_mat_mm_arrays_ho},

@@ -3,7 +3,7 @@
 #include <gkyl_util.h>
 
 void
-test_map_1_ho(void)
+test_mpack_map_1_ho(void)
 {
   char *data;
   mpack_writer_t writer;
@@ -108,7 +108,7 @@ test_msgpack_1_ho(void)
 }
 
 TEST_LIST = {
-  { "map_1_ho", test_map_1_ho },
+  { "mpack_map_1_ho", test_mpack_map_1_ho },
   { "msgpack_1_ho", test_msgpack_1_ho },  
   { 0, 0 },
 };

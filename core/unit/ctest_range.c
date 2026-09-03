@@ -365,7 +365,7 @@ void test_shorten_from_below_ho()
   TEST_CHECK( shortr2.volume == 20*20*3 );
 }
 
-void test_skin_ho()
+void test_range_skin_ho()
 {
   int lower[] = {1, 1}, upper[] = {10, 10};
   struct gkyl_range range;
@@ -1039,7 +1039,7 @@ void test_sub_range_split_iter_ho()
   gkyl_array_release(arr);
 }
 
-void test_nested_iter_ho()
+void test_range_nested_iter_ho()
 {
   int shape[] = {2, 2, 4, 8};
   
@@ -1074,7 +1074,7 @@ void test_nested_iter_ho()
   gkyl_array_release(carr);
 }
 
-void test_intersect_ho()
+void test_range_intersect_ho()
 {
   struct gkyl_range r1, r2, r3, r4, inter;
 
@@ -1105,7 +1105,7 @@ void test_intersect_ho()
   TEST_CHECK( 0 == gkyl_range_intersect(&inter, &r1, &r4) );
 }
 
-void test_intersect_2_ho()
+void test_range_intersect_2_ho()
 {
   struct gkyl_range r1, r2, r3, inter;
 
@@ -1121,7 +1121,7 @@ void test_intersect_2_ho()
 }
 
 void
-test_sub_intersect_ho()
+test_range_sub_intersect_ho()
 {
   struct gkyl_range local_ext;
   gkyl_range_init(&local_ext, 2, (int[]) { 1, 1 }, (int[]) { 15, 15 });
@@ -1142,7 +1142,7 @@ test_sub_intersect_ho()
   }
 }
 
-void test_extend_ho(void)
+void test_range_extend_ho(void)
 {
   int lo[] = {1, 1}, up[] = { 4, 8 };
   
@@ -1163,7 +1163,7 @@ void test_extend_ho(void)
 }
 
 static void
-test_perp_extend_ho(void)
+test_range_perp_extend_ho(void)
 {
   int lo[] = {1, 1}, up[] = { 4, 8 };
   
@@ -1200,7 +1200,7 @@ test_perp_extend_ho(void)
 }
 
 static void
-test_skin_ghost_ho(void)
+test_range_skin_ghost_ho(void)
 {
   struct gkyl_range rng;
   gkyl_range_init(&rng, 2, (int[]) { 2, 3 }, (int[]) { 100, 85 });
@@ -1250,7 +1250,7 @@ test_skin_ghost_ho(void)
 }
 
 static void
-test_skin_ghost_with_corners_ho(void)
+test_range_skin_ghost_with_corners_ho(void)
 {
   struct gkyl_range rng;
   gkyl_range_init(&rng, 2, (int[]) { 2, 3 }, (int[]) { 100, 85 });
@@ -1370,7 +1370,7 @@ TEST_LIST = {
   { "sub_range_inv_idx_ho",  test_sub_range_inv_idx_ho },
   { "shorten_from_above_ho", test_shorten_from_above_ho },
   { "shorten_from_below_ho", test_shorten_from_below_ho },
-  { "skin_ho", test_skin_ho },
+  { "range_skin_ho", test_range_skin_ho },
   { "range_index_1d_ho", test_range_index_1d_ho },
   { "range_index_2d_ho", test_range_index_2d_ho },
   { "range_index_3d_ho", test_range_index_3d_ho },
@@ -1393,14 +1393,14 @@ TEST_LIST = {
   { "range_split_iter_2_ho", test_range_split_iter_2_ho },
   { "range_split_iter_3_ho", test_range_split_iter_3_ho },
   { "sub_range_split_iter_ho", test_sub_range_split_iter_ho },
-  { "nested_iter_ho", test_nested_iter_ho },
-  { "intersect_ho", test_intersect_ho },
-  { "intersect_2_ho", test_intersect_2_ho },
-  { "sub_intersect_ho", test_sub_intersect_ho },
-  { "extend_ho", test_extend_ho },
-  { "perp_extend_ho", test_perp_extend_ho },
-  { "skin_ghost_ho", test_skin_ghost_ho },
-  { "skin_ghost_with_corners_ho", test_skin_ghost_with_corners_ho },
+  { "range_nested_iter_ho", test_range_nested_iter_ho },
+  { "range_intersect_ho", test_range_intersect_ho },
+  { "range_intersect_2_ho", test_range_intersect_2_ho },
+  { "range_sub_intersect_ho", test_range_sub_intersect_ho },
+  { "range_extend_ho", test_range_extend_ho },
+  { "range_perp_extend_ho", test_range_perp_extend_ho },
+  { "range_skin_ghost_ho", test_range_skin_ghost_ho },
+  { "range_skin_ghost_with_corners_ho", test_range_skin_ghost_with_corners_ho },
   { "range_edge_match_ho", test_range_edge_match_ho },
 #ifdef GKYL_HAVE_CUDA
   { "range_dev", test_range_dev },

@@ -5,7 +5,7 @@
 #include <math.h>
 
 void
-test_1_ho()
+test_dynvec_1_ho()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
@@ -64,7 +64,7 @@ test_1_ho()
 }
 
 void
-test_2_ho()
+test_dynvec_2_ho()
 {
   // store user-defined struct
   struct euler { double rho, rhou, rhov; };
@@ -90,7 +90,7 @@ test_2_ho()
 }
 
 void
-test_3_ho()
+test_dynvec_3_ho()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
@@ -151,7 +151,7 @@ test_3_ho()
 }
 
 void
-test_4_ho()
+test_dynvec_4_ho()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
@@ -194,7 +194,7 @@ test_4_ho()
 }
 
 void
-test_io_ho()
+test_dynvec_io_ho()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
@@ -272,7 +272,7 @@ test_io_ho()
 }
 
 void
-test_io_2_ho()
+test_dynvec_io_2_ho()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
@@ -318,7 +318,7 @@ test_io_2_ho()
 }
 
 void
-test_to_array_ho()
+test_dynvec_to_array_ho()
 {
   gkyl_dynvec dv = gkyl_dynvec_new(GKYL_DOUBLE, 3);
 
@@ -352,12 +352,12 @@ test_to_array_ho()
 }
 
 TEST_LIST = {
-  { "test_1_ho", test_1_ho },
-  { "test_2_ho", test_2_ho },
-  { "test_3_ho", test_3_ho },
-  { "test_4_ho", test_4_ho },
-  { "test_io_ho", test_io_ho },
-  { "test_io_2_ho", test_io_2_ho },
-  { "test_to_array_ho", test_to_array_ho },
+  { "test_dynvec_1_ho", test_dynvec_1_ho },
+  { "test_dynvec_2_ho", test_dynvec_2_ho },
+  { "test_dynvec_3_ho", test_dynvec_3_ho },
+  { "test_dynvec_4_ho", test_dynvec_4_ho },
+  { "test_dynvec_io_ho", test_dynvec_io_ho },
+  { "test_dynvec_io_2_ho", test_dynvec_io_2_ho },
+  { "test_dynvec_to_array_ho", test_dynvec_to_array_ho },
   { NULL, NULL },
 };
