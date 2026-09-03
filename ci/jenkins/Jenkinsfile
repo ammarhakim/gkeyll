@@ -47,21 +47,46 @@ def buildAndTest(String mkdepsScript, String configureScript) {
 
 properties([disableConcurrentBuilds(abortPrevious: true)])
 
-// Jenkins node label -> [mkdeps script, configure script] to use on that
-// machine (machines/ has a variant per OS/site). Add the workstation here
-// once it's registered as a Jenkins agent, using whichever scripts match its
-// OS, e.g.:
-//   'workstation-node': ['mkdeps.linux.sh', 'configure.linux.cpu.sh'],
+// Jenkins node label -> config to use on that machine (machines/ has a
+// mkdeps/configure script variant per OS/site). This map is shared across
+// every independent Jenkins controller building this repo (see
+// ci/jenkins/README.md) — add a node here once it's registered as a Jenkins
+// agent under whichever controller owns it, using whichever scripts match
+// its OS, e.g.:
+//   'workstation-node': [mkdeps: 'mkdeps.linux.sh', configure: 'configure.linux.cpu.sh'],
+//
+// allowedPrAuthors (optional): restricts this node to only building PRs
+// authored by one of the listed GitHub usernames — for personal machines
+// that shouldn't run arbitrary contributors' PR code. Omit it (as for a
+// shared/team node) to build PRs from anyone. Builds of `main` itself are
+// never restricted, since there's no CHANGE_AUTHOR for those.
 def nodes = [
-    'manauref_lt1': ['mkdeps.macos.sh', 'configure.macos.sh'],
+    'manauref_lt1': [mkdeps: 'mkdeps.macos.sh', configure: 'configure.macos.sh', allowedPrAuthors: ['manauref']],
 ]
 
-def branches = nodes.collectEntries { label, scripts ->
+// Every controller running this Jenkinsfile shares the `nodes` map above,
+// but only owns a subset of those labels as actual agents. Each controller
+// declares its own subset via a global environment variable (Manage Jenkins
+// -> System -> Global properties -> Environment variables), set once locally
+// and NOT committed to the repo -- see ci/jenkins/README.md. Without this, a
+// controller would try node(label) for a label it has no agent for and hang
+// forever waiting for an executor that will never exist.
+def ownedLabels = (env.CI_OWNED_NODE_LABELS ?: '').split(',').collect { it.trim() }.findAll { it }
+if (!ownedLabels) {
+    error("CI_OWNED_NODE_LABELS is not set on this controller (Manage Jenkins -> System -> Global properties -> Environment variables). Set it to a comma-separated list of the node label(s) this controller owns, e.g. 'manauref_lt1'. See ci/jenkins/README.md.")
+}
+def myNodes = nodes.findAll { label, cfg -> ownedLabels.contains(label) }
+
+def branches = myNodes.collectEntries { label, cfg ->
     [(label): {
+        if (env.CHANGE_AUTHOR && cfg.allowedPrAuthors && !cfg.allowedPrAuthors.contains(env.CHANGE_AUTHOR)) {
+            echo "Skipping ${label}: PR author '${env.CHANGE_AUTHOR}' is not in this node's allowedPrAuthors ${cfg.allowedPrAuthors}."
+            return
+        }
         node(label) {
             checkout scm
             try {
-                buildAndTest(scripts[0], scripts[1])
+                buildAndTest(cfg.mkdeps, cfg.configure)
             } finally {
                 archiveArtifacts allowEmptyArchive: true, artifacts: 'build/**/*.log'
             }
