@@ -98,9 +98,11 @@ The tradeoff is build time: expect each build to spend several extra minutes
 building SuperLU/LuaJIT from source before it even gets to compiling Gkeyll,
 same as `.github/workflows/mac_build.yml` does on GitHub's runners.
 
-You still need Xcode command line tools / a working C toolchain and `cmake`
-on this machine for `mkdeps.macos.sh` to succeed — if you've built Gkeyll
-manually before, you already have these.
+You still need Xcode command line tools / a working C toolchain, `cmake`, and
+a `python` on `PATH` with `numpy` installed (used to process the ADAS atomic
+data some gyrokinetic unit tests, e.g. `ctest_dg_iz`/`ctest_dg_recomb`, need
+at runtime) on this machine for `mkdeps.macos.sh` to succeed — if you've built
+Gkeyll manually before, you already have most of these.
 
 ## 7. Create the multibranch pipeline job
 
