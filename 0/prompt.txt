@@ -109,3 +109,7 @@ All sample builds/runs (`ctest_wv_euler`, `ctest_bc_basic`, `ctest_dg_maxwell`, 
 ---
 
 maybe use _lof and _hof for low- and high-order flux, respectively. Then use _ho and _dev for host and device, respectively.
+
+---
+
+commit the changes, use a short commit message since I'm tracking agent changes with Entire
