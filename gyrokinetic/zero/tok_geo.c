@@ -5237,9 +5237,64 @@ tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp,
   if (nr <= 0)
     return false;
   bool outboard = top.phi_reference == TOK_EXT_PHI_OUTBOARD_MIDPLANE;
-  double target_r = tok_nearest_value(outboard ? inp->rright : inp->rleft,
-    R, nr);
   double target_z = arc_ctx->geo->zmaxis;
+  // Seed the midplane reference from THIS BLOCK'S OWN TRACE rather than from
+  // the declared rright/rleft.
+  //
+  // The trace is already on the surface, so where it crosses Z=zmaxis IS the
+  // midplane point, and its outboard branch is simply the crossing at larger
+  // R.  Choosing by proximity to a declared rright is a device-specific
+  // assumption, and it fails whenever the level set has a further component:
+  // measured on tcv at psisep, the roots at zmaxis are {0.6821953, 1.0991599}
+  // while the trace spans R=[0.6799185, 0.8623851].  The real outboard
+  // crossing near 0.86 is missing from the root list, and rright=0.9 is
+  // nearer 1.0991599 -- a point 0.24 m outside the block -- so the reference
+  // landed off the trace and the whole map failed.  The trace cannot make
+  // that mistake: it only contains points of this block.
+  //
+  // The seed is then refined against psi itself, so the reference stays an
+  // exact root and does not inherit the trace's piecewise-linear error.
+  double seed_r = 0.0;
+  bool have_seed = false;
+  for (int i=0; i<arc_ctx->map_trace_n-1; ++i) {
+    const double z0 = arc_ctx->map_trace_z[i], z1 = arc_ctx->map_trace_z[i+1];
+    if ((z0-target_z)*(z1-target_z) > 0.0)
+      continue;
+    const double dz = z1-z0;
+    const double w = fabs(dz) > 0.0 ? (target_z-z0)/dz : 0.0;
+    const double rc = arc_ctx->map_trace_r[i]
+      +w*(arc_ctx->map_trace_r[i+1]-arc_ctx->map_trace_r[i]);
+    if (!isfinite(rc))
+      continue;
+    if (!have_seed || (outboard ? rc > seed_r : rc < seed_r)) {
+      seed_r = rc; have_seed = true;
+    }
+  }
+  // Refine the seed on psi itself, so the reference is an exact root and does
+  // not inherit the trace's piecewise-linear error.  Falls back to the old
+  // declared-side choice only when this block's trace never reaches zmaxis.
+  double target_r = outboard ? inp->rright : inp->rleft;
+  if (have_seed) {
+    double a = seed_r;
+    double fa = tok_eval_psi_rz_local(arc_ctx->geo, a, target_z)-arc_ctx->psi;
+    for (int it=0; it<64; ++it) {
+      if (!isfinite(fa))
+        break;
+      if (fabs(fa) <= 1e-12*fmax(1.0, fabs(arc_ctx->psi)))
+        break;
+      double gr = 0.0, gz = 0.0;
+      if (!tok_eval_psi_grad_rz_local(arc_ctx->geo, a, target_z, &gr, &gz)
+          || !(fabs(gr) > 0.0))
+        break;
+      a -= fa/gr;
+      fa = tok_eval_psi_rz_local(arc_ctx->geo, a, target_z)-arc_ctx->psi;
+    }
+    target_r = (isfinite(a) && isfinite(fa) &&
+      fabs(fa) <= 1e-9*fmax(1.0, fabs(arc_ctx->psi))) ? a : seed_r;
+  }
+  else {
+    target_r = tok_nearest_value(target_r, R, nr);
+  }
   double best_d2 = DBL_MAX, best_phi = 0.0, max_step = 0.0;
   for (int i=0; i<arc_ctx->map_trace_n-1; ++i) {
     double r0 = arc_ctx->map_trace_r[i];
@@ -5262,10 +5317,28 @@ tok_ext_set_phi_reference(const struct gkyl_tok_geo_grid_inp *inp,
   }
   if (!isfinite(best_phi) || !isfinite(best_d2) || !(max_step > 0.0) ||
       sqrt(best_d2) > 2.0*max_step) {
+    double tr_rmin = DBL_MAX, tr_rmax = -DBL_MAX;
+    double tr_zmin = DBL_MAX, tr_zmax = -DBL_MAX;
+    for (int i=0; i<arc_ctx->map_trace_n; ++i) {
+      tr_rmin = fmin(tr_rmin, arc_ctx->map_trace_r[i]);
+      tr_rmax = fmax(tr_rmax, arc_ctx->map_trace_r[i]);
+      tr_zmin = fmin(tr_zmin, arc_ctx->map_trace_z[i]);
+      tr_zmax = fmax(tr_zmax, arc_ctx->map_trace_z[i]);
+    }
     fprintf(stderr,
-      "TOK_ORDERED_MAP failed phi reference ftype=%d psi=%.17g side=%s distance=%.17g max_step=%.17g\n",
+      "TOK_ORDERED_MAP failed phi reference ftype=%d psi=%.17g side=%s "
+      "distance=%.17g max_step=%.17g target=(%.7f,%.7f) zmaxis=%.7f "
+      "rright=%.7f rleft=%.7f nroots=%d trace_n=%d "
+      "trace_R=[%.7f,%.7f] trace_Z=[%.7f,%.7f] ends=(%.7f,%.7f)-(%.7f,%.7f)\n",
       inp->ftype, arc_ctx->psi, outboard ? "outboard" : "inboard",
-      sqrt(best_d2), max_step);
+      sqrt(best_d2), max_step, target_r, target_z, arc_ctx->geo->zmaxis,
+      inp->rright, inp->rleft, nr, arc_ctx->map_trace_n,
+      tr_rmin, tr_rmax, tr_zmin, tr_zmax,
+      arc_ctx->map_trace_r[0], arc_ctx->map_trace_z[0],
+      arc_ctx->map_trace_r[arc_ctx->map_trace_n-1],
+      arc_ctx->map_trace_z[arc_ctx->map_trace_n-1]);
+    for (int k=0; k<nr && k<16; ++k)
+      fprintf(stderr, "TOK_ORDERED_MAP phi_ref_root[%d]=%.7f\n", k, R[k]);
     return false;
   }
   arc_ctx->map_trace_phi_ref = best_phi;
