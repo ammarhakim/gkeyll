@@ -7,9 +7,6 @@ GKYL_CU_DH double hamil_phase_alpha_quad_y_3x3v_tensor_p1_node(int i, int m, int
   const double dv10 = 2.0/dxv[3]; 
   const double dv11 = 2.0/dxv[4]; 
   const double dv12 = 2.0/dxv[5]; 
-  const double jacob_vx_inv = 1.0/jacob_vel_surf[0]; 
-  const double jacob_vy_inv = 1.0/jacob_vel_surf[3]; 
-  const double jacob_vz_inv = 1.0/jacob_vel_surf[6]; 
   const double *poisson_tensor_conf_0 = &poisson_tensor_conf[24]; 
   const double *poisson_tensor_conf_1 = &poisson_tensor_conf[32]; 
   const double *poisson_tensor_conf_2 = &poisson_tensor_conf[40]; 
@@ -41,7 +38,7 @@ GKYL_CU_DH double hamil_phase_alpha_quad_y_3x3v_tensor_p1_node(int i, int m, int
     for (int a = 0; a < 8; ++a) P2 += vst_3x3v_tensor_p1_confsurf_x1_ev_r[i*8 + a]*poisson_tensor_conf_2[a]; 
     double dH2 = 0.0; 
     for (int a = 0; a < 4; ++a) dH2 += vst_3x3v_tensor_p1_ph_x1_Cm[i*4 + a]*G2[a]; 
-    return P0*dH0*dv10*jacob_vx_inv + P1*dH1*dv11*jacob_vy_inv + P2*dH2*dv12*jacob_vz_inv; 
+    return P0*dH0*dv10*(1.0/jacob_vel_surf[0 + m/9]) + P1*dH1*dv11*(1.0/jacob_vel_surf[3 + m/3%3]) + P2*dH2*dv12*(1.0/jacob_vel_surf[6 + m%3]); 
   } 
   else if (hamil_pt_edge == 1) { 
     double G0[4]; 
@@ -71,7 +68,7 @@ GKYL_CU_DH double hamil_phase_alpha_quad_y_3x3v_tensor_p1_node(int i, int m, int
     for (int a = 0; a < 8; ++a) P2 += vst_3x3v_tensor_p1_confsurf_x1_ev_l[i*8 + a]*poisson_tensor_conf_2[a]; 
     double dH2 = 0.0; 
     for (int a = 0; a < 4; ++a) dH2 += vst_3x3v_tensor_p1_ph_x1_Cm[i*4 + a]*G2[a]; 
-    return P0*dH0*dv10*jacob_vx_inv + P1*dH1*dv11*jacob_vy_inv + P2*dH2*dv12*jacob_vz_inv; 
+    return P0*dH0*dv10*(1.0/jacob_vel_surf[0 + m/9]) + P1*dH1*dv11*(1.0/jacob_vel_surf[3 + m/3%3]) + P2*dH2*dv12*(1.0/jacob_vel_surf[6 + m%3]); 
   } 
   return 0.0; 
 } 

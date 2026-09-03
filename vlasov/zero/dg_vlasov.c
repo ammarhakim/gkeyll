@@ -325,7 +325,31 @@ gkyl_dg_vlasov_inew(const struct gkyl_dg_vlasov_inp *inp)
         if (inp->has_rad) vlasov->rad_vol = tensor_rad_vol_kernels[kernel_index].kernels[poly_order];
       }
       else if (inp->model_id == GKYL_MODEL_TRIAD || inp->model_id == GKYL_MODEL_TRIAD_GR) {
-        gkyl_exit("dg_vlasov: Tensor basis and general Hamiltonian, GKYL_MODEL_TRIAD not yet supported!");
+        if (inp->model_id == GKYL_MODEL_TRIAD && inp->hamil_id == GKYL_HAMIL_VEL_SPARSE) {
+          vlasov->hamil_vol = tensor_nc_hamil_vel_sparse_vol_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          gkyl_exit("dg_vlasov: Tensor basis with the dense/phase Hamiltonian triad flavors not yet supported!");
+        }
+
+        if ( inp->use_lo ) {
+          stream_surf_from_flux_x_kernels = tensor_stream_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_surf_z_kernels;
+        }
+        else {
+          stream_surf_from_flux_x_kernels = tensor_stream_ho_surf_x_kernels;
+          stream_surf_from_flux_y_kernels = tensor_stream_ho_surf_y_kernels;
+          stream_surf_from_flux_z_kernels = tensor_stream_ho_surf_z_kernels;
+
+          stream_boundary_surf_from_flux_x_kernels = tensor_stream_boundary_ho_surf_x_kernels;
+          stream_boundary_surf_from_flux_y_kernels = tensor_stream_boundary_ho_surf_y_kernels;
+          stream_boundary_surf_from_flux_z_kernels = tensor_stream_boundary_ho_surf_z_kernels;
+        }
       }
       else {
         // Canonical-PB models: only the p=1 tensor hybrid has a phase-space

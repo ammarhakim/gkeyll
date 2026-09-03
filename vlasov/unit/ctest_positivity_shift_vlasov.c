@@ -4,7 +4,6 @@
 #include <gkyl_range.h>
 #include <gkyl_rect_decomp.h>
 #include <gkyl_rect_grid.h>
-#include <gkyl_dg_updater_moment.h>
 #include <gkyl_array_ops.h>
 #include <gkyl_array_reduce.h>
 #include <gkyl_positivity_shift_vlasov.h>
@@ -166,10 +165,6 @@ test_1x2v(int poly_order, bool use_gpu)
   struct gkyl_mom_calc *mom_calc = gkyl_mom_calc_new(&grid, m0_mom_up, use_gpu);
   gkyl_mom_calc_advance(mom_calc, &local, &confLocal, distf, m0_pre);
 
-  // struct gkyl_dg_updater_moment *m0_mom_up = gkyl_dg_updater_moment_new(
-  //   &grid, &confBasis, &basis, &confLocal, 0, &local, 0, 0, GKYL_F_MOMENT_M0, false, use_gpu);
-  // struct gkyl_array *m0_pre = mkarr(use_gpu, confBasis.num_basis, confLocal_ext.volume);
-  // gkyl_dg_updater_moment_advance(m0_mom_up, &local, &confLocal, distf, m0_pre);
 
 //  // Write m0 to file.
 //  char fname0M0[1024];

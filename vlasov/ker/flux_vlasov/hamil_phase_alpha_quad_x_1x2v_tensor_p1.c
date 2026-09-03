@@ -6,8 +6,6 @@ GKYL_CU_DH double hamil_phase_alpha_quad_x_1x2v_tensor_p1_node(int i, int m, int
 { 
   const double dv10 = 2.0/dxv[1]; 
   const double dv11 = 2.0/dxv[2]; 
-  const double jacob_vx_inv = 1.0/jacob_vel_surf[0]; 
-  const double jacob_vy_inv = 1.0/jacob_vel_surf[3]; 
   const double *poisson_tensor_conf_0 = &poisson_tensor_conf[0]; 
   const double *poisson_tensor_conf_1 = &poisson_tensor_conf[2]; 
   if (hamil_pt_edge == -1) { 
@@ -29,7 +27,7 @@ GKYL_CU_DH double hamil_phase_alpha_quad_x_1x2v_tensor_p1_node(int i, int m, int
     for (int a = 0; a < 2; ++a) P1 += vst_1x2v_tensor_p1_confsurf_x0_ev_r[i*2 + a]*poisson_tensor_conf_1[a]; 
     double dH1 = 0.0; 
     for (int a = 0; a < 1; ++a) dH1 += vst_1x2v_tensor_p1_ph_x0_Cm[i*1 + a]*G1[a]; 
-    return P0*dH0*dv10*jacob_vx_inv + P1*dH1*dv11*jacob_vy_inv; 
+    return P0*dH0*dv10*(1.0/jacob_vel_surf[0 + m/3]) + P1*dH1*dv11*(1.0/jacob_vel_surf[3 + m%3]); 
   } 
   else if (hamil_pt_edge == 1) { 
     double G0[1]; 
@@ -50,7 +48,7 @@ GKYL_CU_DH double hamil_phase_alpha_quad_x_1x2v_tensor_p1_node(int i, int m, int
     for (int a = 0; a < 2; ++a) P1 += vst_1x2v_tensor_p1_confsurf_x0_ev_l[i*2 + a]*poisson_tensor_conf_1[a]; 
     double dH1 = 0.0; 
     for (int a = 0; a < 1; ++a) dH1 += vst_1x2v_tensor_p1_ph_x0_Cm[i*1 + a]*G1[a]; 
-    return P0*dH0*dv10*jacob_vx_inv + P1*dH1*dv11*jacob_vy_inv; 
+    return P0*dH0*dv10*(1.0/jacob_vel_surf[0 + m/3]) + P1*dH1*dv11*(1.0/jacob_vel_surf[3 + m%3]); 
   } 
   return 0.0; 
 } 

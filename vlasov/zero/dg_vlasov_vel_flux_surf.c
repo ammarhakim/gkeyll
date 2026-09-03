@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdlib.h>
 
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
@@ -348,6 +349,34 @@ gkyl_dg_vlasov_vel_flux_surf_inew(const struct gkyl_dg_vlasov_vel_flux_surf_inp 
           up->hamil_alpha_quad[2] = tensor_hamil_phase_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
           up->hamil_alpha_quad_arr[2] = tensor_hamil_phase_ho_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
         }
+      }
+      else if (inp->model_id == GKYL_MODEL_TRIAD && hamil_sparse && getenv("GKYL_DISABLE_TENSOR_VELFLUX") == NULL) {
+        // Triad bracket with the separable H = v^2/2 on the tensor p=1 hybrid:
+        // per-node inverse velocity-map Jacobians of the C^1 cubic map and the
+        // cubic vmap in the omega = v.Pi momentum factor.
+        if ( inp->use_lo ) {
+          up->hamil_alpha_quad[0] = tensor_nc_hamil_vel_sparse_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = tensor_nc_hamil_vel_sparse_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_nc_hamil_vel_sparse_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = tensor_nc_hamil_vel_sparse_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_nc_hamil_vel_sparse_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = tensor_nc_hamil_vel_sparse_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        }
+        else {
+          up->hamil_alpha_quad[0] = tensor_nc_hamil_vel_sparse_ho_alpha_quad_vx_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[0] = tensor_nc_hamil_vel_sparse_ho_alpha_quad_vx_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[1] = tensor_nc_hamil_vel_sparse_ho_alpha_quad_vy_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[1] = tensor_nc_hamil_vel_sparse_ho_alpha_quad_vy_arr_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad[2] = tensor_nc_hamil_vel_sparse_ho_alpha_quad_vz_kernels[kernel_index].kernels[poly_order];
+          up->hamil_alpha_quad_arr[2] = tensor_nc_hamil_vel_sparse_ho_alpha_quad_vz_arr_kernels[kernel_index].kernels[poly_order];
+        }
+      }
+      else if (inp->model_id == GKYL_MODEL_TRIAD) {
+        // Dense/phase Hamiltonian triad velocity fluxes are not generated for
+        // the tensor p=1 hybrid yet; fail loudly rather than silently running
+        // with no Hamiltonian force at velocity-space surfaces. (The env var
+        // escape hatch is a debugging aid for bisecting the force terms.)
+        assert(getenv("GKYL_DISABLE_TENSOR_VELFLUX") != NULL);
       }
 
       if ( inp->use_lo ) {

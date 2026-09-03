@@ -13,7 +13,8 @@
 
 // Types for various kernels
 typedef void (*hamil_vol_t)(const double *w, const double *dxv, const double *vmap,
-  const double *jacob_pos, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f, double* GKYL_RESTRICT out);
+  const double *jacob_pos, const double *jacob_vel, const double *poisson_tensor_conf, const double *hamil, const double *f,
+  const double *f_no_J, double* GKYL_RESTRICT out);
 
 typedef void (*E_vol_t)(const double *w, const double *dxv, 
   const double *jacob_vel, const double *qmem, const double *f, double* GKYL_RESTRICT out);
@@ -186,13 +187,17 @@ vlasov_vol(const struct gkyl_dg_eqn *eqn, const double* xc, const double* dx,
   long hidx = gkyl_range_idx(&vlasov->hamil_range, idx_hamil);
   long pidx = gkyl_range_idx(&vlasov->phase_range, idx);
 
+  // f_no_J (velocity Jacobians divided out at Gauss-Legendre points) lets the
+  // cubic-map kernels express every velocity-Jacobian factor as an EXACT
+  // polynomial multiplication by the complementary J's (division-free), which
+  // preserves the discrete bracket antisymmetry and hence exact conservation.
   vlasov->hamil_vol(xc, dx,
     vlasov->vmap ? (const double*) gkyl_array_cfetch(vlasov->vmap, vidx) : 0,
     vlasov->jacob_pos ? (const double*) gkyl_array_cfetch(vlasov->jacob_pos, cidx) : 0,
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     (const double*) gkyl_array_cfetch(vlasov->poisson_tensor_conf, cidx),
     (const double*) gkyl_array_cfetch(vlasov->hamil, hidx),
-    qIn, qRhsOut);
+    qIn, (const double*) gkyl_array_cfetch(vlasov->f_no_J, pidx), qRhsOut);
   vlasov->E_vol(xc, dx, 
     vlasov->jacob_vel ? (const double*) gkyl_array_cfetch(vlasov->jacob_vel, vidx) : 0,
     vlasov->qmem ? (const double*) gkyl_array_cfetch(vlasov->qmem, cidx) : 0, 
@@ -319,6 +324,23 @@ static const gkyl_dg_vlasov_hamil_vol_kern_list ser_nc_hamil_vel_sparse_vol_kern
   { NULL, vlasov_nc_hamil_vel_sparse_vol_2x3v_ser_p1, vlasov_nc_hamil_vel_sparse_vol_2x3v_ser_p2, NULL }, // 5
   // 3x kernels
   { NULL, vlasov_nc_hamil_vel_sparse_vol_3x3v_ser_p1, NULL, NULL }, // 6
+};
+
+// Tensor p=1 hybrid triad (non-canonical bracket) volume kernels: the C^1
+// cubic velocity map's quadratic Jacobian is divided nodally per derivative
+// direction in-kernel. Debug coverage: 1x3v and 2x2v only so far.
+GKYL_CU_D
+static const gkyl_dg_vlasov_hamil_vol_kern_list tensor_nc_hamil_vel_sparse_vol_kernels[] = {
+  // 1x kernels
+  { NULL, NULL, NULL, NULL }, // 0
+  { NULL, NULL, NULL, NULL }, // 1
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_1x3v_tensor_p1, NULL, NULL }, // 2
+  // 2x kernels
+  { NULL, NULL, NULL, NULL }, // 3
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_2x2v_tensor_p1, NULL, NULL }, // 4
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_2x3v_tensor_p1, NULL, NULL }, // 5
+  // 3x kernels
+  { NULL, vlasov_nc_hamil_vel_sparse_vol_3x3v_tensor_p1, NULL, NULL }, // 6
 };
 
 // Non-canonical Poisson Bracket, hamil phase space dependance, volume kernels (Serendipity basis). 
