@@ -1,0 +1,28 @@
+Ok, I finished the setup. But now Jenkins says "There are no branches found that contain buildable projects. Jenkins automatically builds and manages projects in branches that contain recognizable projects.". Why is that?
+
+---
+
+can you repeat the two options please?
+
+---
+
+Ok, I submitted a PR and it triggered a build on my node. But the build failed and it printed the following error:
+
+In file included from zero/superlu_ops.c:3:
+In file included from zero/gkyl_superlu_ops.h:4:
+zero/gkyl_superlu.h:In file included from zero/superlu_ops.c:3:
+In file included from zero/gkyl_superlu_ops.h:3:10: fatal error: 'slu_ddefs.h' file not found
+4:
+zero/gkyl_superlu.h:3:10: fatal error:     3 | #'slu_ddefs.h' file not found
+include <    3 | #includeslu_ddefs.h>
+      |          ^~~~~~~~~~~~~
+ <slu_ddefs.h>
+      |          ^~~~~~~~~~~~~
+
+---
+
+I'd like to change the fact that the dependencies are not built and it assumes an existing build. I think Jenkins should clone the repo (at the desired branch) and trigger a new build from scratch. For the existing node (manauref_lt1), which is a Mac, it'd have to use machines/mkdeps.macos.sh and machines/configure.macos.sh passing the appropriate path to it (see PREFIX in those scripts).
+
+---
+
+why is cmake needed?
