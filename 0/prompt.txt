@@ -31,3 +31,7 @@ could you create a plan to add clang-tidy to remove these trailing commas throug
 <status>completed</status>
 <summary>Background command "Rebuild the project after the sweep to confirm no breakage" completed (exit code 0)</summary>
 </task-notification>
+
+---
+
+Can you continue with this work, but use the opportunity to set "Cpp11BracedListStyle: false" in .clang-format
