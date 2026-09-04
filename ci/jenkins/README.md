@@ -41,7 +41,9 @@ initial admin password with:
 cat ~/.jenkins/secrets/initialAdminPassword
 ```
 
-**Linux:** follow the [official Jenkins Linux install
+**Linux:**
+
+Follow the [official Jenkins Linux install
 instructions](https://www.jenkins.io/doc/book/installing/linux/) for your
 distro (e.g. the `apt`/`yum` package repo), then start it via `systemctl
 start jenkins` (most distros enable/start it automatically on install).
@@ -52,7 +54,9 @@ password with:
 sudo cat /var/lib/jenkins/secrets/initialAdminPassword
 ```
 
-**Both:** Jenkins listens on `http://localhost:8080`. Open it, paste the
+**Both:**
+
+Jenkins listens on `http://localhost:8080`. Open it, paste the
 password, and install the "suggested plugins" set when prompted.
 
 ## 2. Install additional plugins
@@ -225,9 +229,19 @@ New Item → name it (e.g. `gkeyll`) → **Multibranch Pipeline**.
 - **Branch Sources** → Add source → GitHub:
   - Credentials: the one added in step 3.
   - Repository HTTPS URL: `https://github.com/gkeyllorg/gkeyll`
-  - Behaviors: "Discover branches" (at least `main`) and "Discover pull
-    requests from origin". Add "Discover pull requests from forks" only if
-    external contributors submit PRs from forks.
+  - Behaviors: "Discover branches" — set its strategy to **"Exclude
+    branches that are also filed as PRs"**, not "All branches". Also add
+    "Discover pull requests from origin". Add "Discover pull requests from
+    forks" only if external contributors submit PRs from forks.
+
+    Our PRs are opened from branches within the same repo (not forks), so
+    with "All branches" the scanner indexes each such branch twice — once as
+    a plain branch, once as a PR head — building it twice and posting two
+    separate GitHub status checks for the same commit
+    (`continuous-integration/jenkins/branch` and `.../pr-head`). Excluding
+    branches that are also filed as PRs leaves `main` (and any other branch
+    with no open PR) reporting as `.../branch`, while PR branches report
+    only as `.../pr-head`.
 - **Build Configuration** → Mode: "by Jenkinsfile", Script Path:
   `ci/jenkins/Jenkinsfile`.
 - **Scan Multibranch Pipeline Triggers** → check "Periodically if not
@@ -255,12 +269,12 @@ node entirely if the PR's author isn't in that node's `allowedPrAuthors`,
 when set):
 
 1. `printenv` — for debugging the build environment.
-2. `make clean` and `rm -rf $WORKSPACE/gkylsoft` — the workspace persists
-   across builds for a given branch/PR, so without this, a stale or (e.g.
-   from a prior interrupted or racing build) corrupted file can look
-   up-to-date and never get rebuilt/reinstalled, silently breaking the link
-   or mixing old and new dependency files. Wiping both every run makes each
-   build genuinely from scratch.
+2. `make clean` and `rm -rf $WORKSPACE/gkylsoft $WORKSPACE/_main_baseline` —
+   the workspace persists across builds for a given branch/PR, so without
+   this, a stale or (e.g. from a prior interrupted or racing build)
+   corrupted file can look up-to-date and never get rebuilt/reinstalled,
+   silently breaking the link or mixing old and new dependency files. Wiping
+   everything every run makes each build genuinely from scratch.
 3. That node's `mkdeps` script (e.g. `machines/mkdeps.macos.sh`) — builds
    `gkylsoft/` from scratch into `$WORKSPACE/gkylsoft`.
 4. That node's `configure` script (e.g. `machines/configure.macos.sh`) —
@@ -268,8 +282,50 @@ when set):
 5. `make -j3 check` — builds **and runs** all unit tests (`core`, `moments`,
    `vlasov`, `gyrokinetic`, `pkpm`); a failing unit test fails the build.
 6. `make -j3 regression` — builds (does not execute) all regression tests,
-   matching today's `.github/workflows/mac_build.yml` scope. There is no
-   automated regression-test runner yet; running a curated subset of
-   regression tests is a follow-up.
-7. Archives `build/**/*.log` so logs are downloadable from the Jenkins build
-   page even on failure.
+   matching today's `.github/workflows/mac_build.yml` scope. This is a cheap
+   compile-only smoke check across the full regression-test corpus; it
+   doesn't overlap with step 8 below, which actually runs a curated subset.
+7. `make -j3 gkeyll-install` — installs the built tree into
+   `$WORKSPACE/gkylsoft/gkeyll`, which the regression-test runner (step 8)
+   needs: `gkeyll` is both the interpreter it runs as, and its C tests are
+   compiled on the fly using the installed `share/Makefile`.
+8. **PR builds only** — actually runs the MOAT ("Mother Of All Tests")
+   curated regression-test subset (34 tests across `moments`/`vlasov`/
+   `gyrokinetic`/`pkpm`) via `gkeyll runregression`, and fails the build on
+   any unacknowledged failure or diff:
+   1. Builds the PR's target branch (`main`, normally) from scratch in a
+      side workspace (`$WORKSPACE/_main_baseline`) and runs
+      `gkeyll runregression run --moat create` there, producing a baseline
+      generated on this same node/build — never a stale or
+      cross-machine-generated one (the default comparison tolerance is
+      `1e-12`, tight enough that results aren't guaranteed to reproduce
+      bit-for-bit across different machines/toolchains/BLAS builds).
+   2. Configures `runregression` for the PR's own install, moves that
+      baseline's accepted outputs into the PR's own `gkeyll-results/` tree,
+      and runs `gkeyll runregression run --moat check` there, executing the
+      34 tests and diffing their output against it.
+   3. Runs `ci/jenkins/check_regression_results.lua` against the resulting
+      per-layer `regressiondb` files, which fails the build if any test
+      didn't pass **unless** it's listed in
+      `ci/jenkins/expected_regression_diffs.txt` — see below. `main`-branch
+      builds skip this whole stage (there's no target branch to diff
+      against) but do a cheap check that this file has been cleared out.
+
+   Building the PR's target branch from scratch roughly doubles a PR
+   build's total time; that's the tradeoff for a same-session baseline
+   instead of a committed or stale one.
+9. Archives `build/**/*.log` and, for the regression-test stage,
+   `gkylsoft/gkeyll-results/**/*.txt`/`regressiondb`, so logs and results are
+   downloadable from the Jenkins build page even on failure.
+
+### Acknowledging an expected regression diff
+
+If a PR intentionally changes a MOAT test's output (e.g. a physics or
+algorithm change), the build's `check_regression_results.lua` step still
+fails until you tell it that's expected: add a
+`<layer>/<test-name>` line to `ci/jenkins/expected_regression_diffs.txt`
+(the failing build's console output prints the exact line to add) with a
+short reason, then push again. **Clear those lines back out once the PR is
+merged** — an entry left behind could silently hide a real future regression
+on that same test the next time it fails for an unrelated reason. Leaving
+the file non-empty on `main` prints a (non-blocking) warning as a reminder.
