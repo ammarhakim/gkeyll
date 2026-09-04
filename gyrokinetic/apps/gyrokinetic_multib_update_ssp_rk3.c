@@ -1,12 +1,34 @@
 #include <gkyl_gyrokinetic_multib_priv.h>
 
+typedef void (*write_fdot_func_t)(struct gkyl_gyrokinetic_multib_app *app,
+  struct gkyl_array *fout[]);
+
+static void
+write_fdot_enabled(struct gkyl_gyrokinetic_multib_app *app,
+  struct gkyl_array *fout[])
+{
+  for (int b=0; b<app->num_local_blocks; ++b) {
+    struct gkyl_gyrokinetic_app *sbapp = app->singleb_apps[b];
+    int li_charged = b * app->num_species;
+    for (int i=0; i<app->num_species; ++i)
+      gk_species_write_fdot(sbapp, &sbapp->species[i], fout[li_charged+i]);
+  }
+}
+
+static void
+write_fdot_disabled(struct gkyl_gyrokinetic_multib_app *app,
+  struct gkyl_array *fout[])
+{
+  // Do nothing.
+}
+
 static void
 gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double tcurr, double dt,
   const struct gkyl_array *fin[], struct gkyl_array *fout[], 
   struct gkyl_array **bflux_in[], struct gkyl_array **bflux_out[], 
   const struct gkyl_array *fin_neut[], struct gkyl_array *fout_neut[], 
   struct gkyl_array **bflux_in_neut[], struct gkyl_array **bflux_out_neut[], 
-  struct gkyl_update_status *st)
+  write_fdot_func_t write_fdot_func, struct gkyl_update_status *st)
 {
   struct timespec wst_fe = gkyl_wall_clock();
   // Take a forward Euler step with the suggested time-step dt. This may
@@ -33,6 +55,8 @@ gyrokinetic_multib_forward_euler(struct gkyl_gyrokinetic_multib_app* app, double
   gkyl_comm_allreduce_host(app->comm, GKYL_DOUBLE, GKYL_MIN, 1, &dtmin_local, &dtmin_global);
   st->dt_actual = dtmin_global;
   app->stat.dfdt_dt_reduce_tm += gkyl_time_diff_now_sec(wtm);
+
+  write_fdot_func(app, fout);
 
   struct timespec wst = gkyl_wall_clock();
   // Complete update of distribution functions.
@@ -109,7 +133,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
         }
 
         gyrokinetic_multib_forward_euler(app, tcurr, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, write_fdot_enabled, &st);
         dt = st.dt_actual;
 
         // Subtract boundary flux f from f1 so that we only step boundary
@@ -174,7 +198,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
         }
 
         gyrokinetic_multib_forward_euler(app, tcurr+dt, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, write_fdot_disabled, &st);
 
         if (st.dt_actual < dt) {
 
@@ -263,7 +287,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
         }
 
         gyrokinetic_multib_forward_euler(app, tcurr+dt/2, dt, fin, fout, bflux_in, bflux_out,
-          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, &st);
+          fin_neut, fout_neut, bflux_in_neut, bflux_out_neut, write_fdot_disabled, &st);
 
         if (st.dt_actual < dt) {
           // Recalculate the field.
@@ -355,6 +379,7 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
               // Compute moment of f_new to compute moment of df/dt.
               // Need to do it after the fields are updated.
               gk_species_calc_int_mom_dt(sbapp, gks, dt, gks->fdot_mom_new);
+              gk_species_calc_fdot_mom(sbapp, gks);
             }
 
             // Compute field energy divided by dt for energy balance diagnostics.
@@ -372,5 +397,3 @@ gyrokinetic_multib_update_ssp_rk3(struct gkyl_gyrokinetic_multib_app* app, doubl
 
   return st;
 }
-
-
