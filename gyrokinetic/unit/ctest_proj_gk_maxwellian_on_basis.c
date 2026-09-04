@@ -631,36 +631,36 @@ test_3x2v_gk(int poly_order, bool use_gpu)
 }
 
 void
-test_1x2v_p1_gk()
+test_proj_maxwellian_1x2v_p1_gk_ho()
 {
   test_1x2v_gk(1, false);
 }
 void
-test_3x2v_p1_gk()
+test_proj_maxwellian_3x2v_p1_gk_ho()
 {
   test_3x2v_gk(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_1x2v_p1_gk_gpu()
+test_proj_maxwellian_1x2v_p1_gk_dev()
 {
   test_1x2v_gk(1, true);
 }
 void
-test_3x2v_p1_gk_gpu()
+test_proj_maxwellian_3x2v_p1_gk_dev()
 {
   test_3x2v_gk(1, true);
 }
 #endif
 
 TEST_LIST = {
-  {"test_1x2v_p1_gk", test_1x2v_p1_gk},
-  {"test_3x2v_p1_gk", test_3x2v_p1_gk},
+  {"test_proj_maxwellian_1x2v_p1_gk_ho", test_proj_maxwellian_1x2v_p1_gk_ho},
+  {"test_proj_maxwellian_3x2v_p1_gk_ho", test_proj_maxwellian_3x2v_p1_gk_ho},
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_1x2v_p1_gk_gpu", test_1x2v_p1_gk_gpu},
-  {"test_3x2v_p1_gk_gpu", test_3x2v_p1_gk_gpu},
+  {"test_proj_maxwellian_1x2v_p1_gk_dev", test_proj_maxwellian_1x2v_p1_gk_dev},
+  {"test_proj_maxwellian_3x2v_p1_gk_dev", test_proj_maxwellian_3x2v_p1_gk_dev},
 #endif
   {NULL, NULL},
 };

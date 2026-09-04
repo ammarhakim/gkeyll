@@ -1385,7 +1385,7 @@ test_fem_poisson_perp_consteps_3x_bias(
 }
 
 void
-test_2x_p1_periodic_consteps()
+test_fem_poisson_perp_2x_p1_periodic_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1395,7 +1395,7 @@ test_2x_p1_periodic_consteps()
 }
 
 void
-test_2x_p1_dirichletx_consteps()
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1407,7 +1407,7 @@ test_2x_p1_dirichletx_consteps()
 }
 
 void
-test_2x_p1_neumannx_dirichletx_consteps()
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1419,7 +1419,7 @@ test_2x_p1_neumannx_dirichletx_consteps()
 }
 
 void
-test_2x_p1_dirichletx_neumannx_consteps()
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1431,7 +1431,7 @@ test_2x_p1_dirichletx_neumannx_consteps()
 }
 
 void
-test_2x_p1_neumannx_dirichletx_consteps_update()
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1443,7 +1443,7 @@ test_2x_p1_neumannx_dirichletx_consteps_update()
 }
 
 void
-test_2x_p1_dirichletx_consteps_bias()
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1455,7 +1455,7 @@ test_2x_p1_dirichletx_consteps_bias()
 }
 
 void
-test_2x_p1_neumannx_dirichletx_consteps_bias()
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1467,7 +1467,7 @@ test_2x_p1_neumannx_dirichletx_consteps_bias()
 }
 
 void
-test_2x_p1_dirichletx_neumannx_consteps_bias()
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1479,7 +1479,7 @@ test_2x_p1_dirichletx_neumannx_consteps_bias()
 }
 
 void
-test_3x_p1_periodicx_periodicy_consteps()
+test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1491,7 +1491,7 @@ test_3x_p1_periodicx_periodicy_consteps()
 }
 
 void
-test_3x_p1_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1507,7 +1507,7 @@ test_3x_p1_dirichletx_dirichlety_consteps()
 }
 
 void
-test_3x_p1_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1521,7 +1521,7 @@ test_3x_p1_dirichletx_periodicy_consteps()
 }
 
 void
-test_3x_p1_periodicx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1535,7 +1535,7 @@ test_3x_p1_periodicx_dirichlety_consteps()
 }
 
 void
-test_3x_p1_dirichletx_neumanny_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1551,7 +1551,7 @@ test_3x_p1_dirichletx_neumanny_dirichlety_consteps()
 }
 
 void
-test_3x_p1_dirichletx_dirichlety_neumanny_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1567,7 +1567,7 @@ test_3x_p1_dirichletx_dirichlety_neumanny_consteps()
 }
 
 void
-test_3x_p1_neumannx_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1583,7 +1583,7 @@ test_3x_p1_neumannx_dirichletx_dirichlety_consteps()
 }
 
 void
-test_3x_p1_dirichletx_neumannx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1599,7 +1599,7 @@ test_3x_p1_dirichletx_neumannx_dirichlety_consteps()
 }
 
 void
-test_3x_p1_neumannx_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1615,7 +1615,7 @@ test_3x_p1_neumannx_dirichletx_periodicy_consteps()
 }
 
 void
-test_3x_p1_dirichletx_dirichlety_consteps_bias()
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1631,7 +1631,7 @@ test_3x_p1_dirichletx_dirichlety_consteps_bias()
 }
 
 void
-test_3x_p1_dirichletx_periodicy_consteps_bias()
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1645,7 +1645,7 @@ test_3x_p1_dirichletx_periodicy_consteps_bias()
 }
 
 void
-test_3x_p2_periodicx_periodicy_consteps()
+test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1657,7 +1657,7 @@ test_3x_p2_periodicx_periodicy_consteps()
 }
 
 void
-test_3x_p2_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1673,7 +1673,7 @@ test_3x_p2_dirichletx_dirichlety_consteps()
 }
 
 void
-test_3x_p2_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1687,7 +1687,7 @@ test_3x_p2_dirichletx_periodicy_consteps()
 }
 
 void
-test_3x_p2_periodicx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1701,7 +1701,7 @@ test_3x_p2_periodicx_dirichlety_consteps()
 }
 
 void
-test_3x_p2_dirichletx_neumanny_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1717,7 +1717,7 @@ test_3x_p2_dirichletx_neumanny_dirichlety_consteps()
 }
 
 void
-test_3x_p2_dirichletx_dirichlety_neumanny_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1733,7 +1733,7 @@ test_3x_p2_dirichletx_dirichlety_neumanny_consteps()
 }
 
 void
-test_3x_p2_neumannx_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1749,7 +1749,7 @@ test_3x_p2_neumannx_dirichletx_dirichlety_consteps()
 }
 
 void
-test_3x_p2_dirichletx_neumannx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1765,7 +1765,7 @@ test_3x_p2_dirichletx_neumannx_dirichlety_consteps()
 }
 
 void
-test_3x_p2_neumannx_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_ho()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1782,7 +1782,7 @@ test_3x_p2_neumannx_dirichletx_periodicy_consteps()
 
 #ifdef GKYL_HAVE_CUDA
 void
-gpu_test_2x_p1_periodic_consteps()
+test_fem_poisson_perp_2x_p1_periodic_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1792,7 +1792,7 @@ gpu_test_2x_p1_periodic_consteps()
 }
 
 void
-gpu_test_2x_p1_dirichletx_consteps()
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1804,7 +1804,7 @@ gpu_test_2x_p1_dirichletx_consteps()
 }
 
 void
-gpu_test_2x_p1_neumannx_dirichletx_consteps()
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1816,7 +1816,7 @@ gpu_test_2x_p1_neumannx_dirichletx_consteps()
 }
 
 void
-gpu_test_2x_p1_dirichletx_neumannx_consteps()
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1828,7 +1828,7 @@ gpu_test_2x_p1_dirichletx_neumannx_consteps()
 }
 
 void
-gpu_test_2x_p1_neumannx_dirichletx_consteps_update()
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1840,7 +1840,7 @@ gpu_test_2x_p1_neumannx_dirichletx_consteps_update()
 }
 
 void
-gpu_test_2x_p1_dirichletx_consteps_bias()
+test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1852,7 +1852,7 @@ gpu_test_2x_p1_dirichletx_consteps_bias()
 }
 
 void
-gpu_test_2x_p1_neumannx_dirichletx_consteps_bias()
+test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1864,7 +1864,7 @@ gpu_test_2x_p1_neumannx_dirichletx_consteps_bias()
 }
 
 void
-gpu_test_2x_p1_dirichletx_neumannx_consteps_bias()
+test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1876,7 +1876,7 @@ gpu_test_2x_p1_dirichletx_neumannx_consteps_bias()
 }
 
 void
-gpu_test_3x_p1_periodicx_periodicy_consteps()
+test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1888,7 +1888,7 @@ gpu_test_3x_p1_periodicx_periodicy_consteps()
 }
 
 void
-gpu_test_3x_p1_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1904,7 +1904,7 @@ gpu_test_3x_p1_dirichletx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p1_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1918,7 +1918,7 @@ gpu_test_3x_p1_dirichletx_periodicy_consteps()
 }
 
 void
-gpu_test_3x_p1_periodicx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1932,7 +1932,7 @@ gpu_test_3x_p1_periodicx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p1_dirichletx_neumanny_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1948,7 +1948,7 @@ gpu_test_3x_p1_dirichletx_neumanny_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p1_dirichletx_dirichlety_neumanny_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1964,7 +1964,7 @@ gpu_test_3x_p1_dirichletx_dirichlety_neumanny_consteps()
 }
 
 void
-gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1980,7 +1980,7 @@ gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1996,7 +1996,7 @@ gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2012,7 +2012,7 @@ gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps()
 }
 
 void
-gpu_test_3x_p1_dirichletx_dirichlety_consteps_bias()
+test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2028,7 +2028,7 @@ gpu_test_3x_p1_dirichletx_dirichlety_consteps_bias()
 }
 
 void
-gpu_test_3x_p1_dirichletx_periodicy_consteps_bias()
+test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2042,7 +2042,7 @@ gpu_test_3x_p1_dirichletx_periodicy_consteps_bias()
 }
 
 void
-gpu_test_3x_p2_periodicx_periodicy_consteps()
+test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2054,7 +2054,7 @@ gpu_test_3x_p2_periodicx_periodicy_consteps()
 }
 
 void
-gpu_test_3x_p2_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2070,7 +2070,7 @@ gpu_test_3x_p2_dirichletx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p2_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2084,7 +2084,7 @@ gpu_test_3x_p2_dirichletx_periodicy_consteps()
 }
 
 void
-gpu_test_3x_p2_periodicx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2098,7 +2098,7 @@ gpu_test_3x_p2_periodicx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p2_dirichletx_neumanny_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2114,7 +2114,7 @@ gpu_test_3x_p2_dirichletx_neumanny_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p2_dirichletx_dirichlety_neumanny_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2130,7 +2130,7 @@ gpu_test_3x_p2_dirichletx_dirichlety_neumanny_consteps()
 }
 
 void
-gpu_test_3x_p2_neumannx_dirichletx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2146,7 +2146,7 @@ gpu_test_3x_p2_neumannx_dirichletx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p2_dirichletx_neumannx_dirichlety_consteps()
+test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2162,7 +2162,7 @@ gpu_test_3x_p2_dirichletx_neumannx_dirichlety_consteps()
 }
 
 void
-gpu_test_3x_p2_neumannx_dirichletx_periodicy_consteps()
+test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_dev()
 {
   int cells[] = {8, 8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -2180,70 +2180,100 @@ gpu_test_3x_p2_neumannx_dirichletx_periodicy_consteps()
 #endif
 
 TEST_LIST = {
-  {"test_2x_p1_periodicx", test_2x_p1_periodic_consteps},
-  {"test_2x_p1_dirichletx", test_2x_p1_dirichletx_consteps},
-  {"test_2x_p1_neumannx_dirichletx", test_2x_p1_neumannx_dirichletx_consteps},
-  {"test_2x_p1_dirichletx_neumannx", test_2x_p1_dirichletx_neumannx_consteps},
-  {"test_2x_p1_neumannx_dirichletx_update", test_2x_p1_neumannx_dirichletx_consteps_update},
-  {"test_2x_p1_dirichletx_bias", test_2x_p1_dirichletx_consteps_bias},
-  {"test_2x_p1_neumannx_dirichletx_bias", test_2x_p1_neumannx_dirichletx_consteps_bias},
-  {"test_2x_p1_dirichletx_neumannx_bias", test_2x_p1_dirichletx_neumannx_consteps_bias},
+  {"test_fem_poisson_perp_2x_p1_periodicx_ho", test_fem_poisson_perp_2x_p1_periodic_consteps_ho},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_ho", test_fem_poisson_perp_2x_p1_dirichletx_consteps_ho},
+  {"test_fem_poisson_perp_2x_p1_neumannx_dirichletx_ho",
+    test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_ho},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_neumannx_ho",
+    test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_ho},
+  {"test_fem_poisson_perp_2x_p1_neumannx_dirichletx_update_ho",
+    test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_ho},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_bias_ho",
+    test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_ho},
+  {"test_fem_poisson_perp_2x_p1_neumannx_dirichletx_bias_ho",
+    test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_ho},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_neumannx_bias_ho",
+    test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_ho},
 
-  {"test_3x_p1_periodicx_periodicy", test_3x_p1_periodicx_periodicy_consteps},
-  {"test_3x_p1_dirichletx_dirichlety", test_3x_p1_dirichletx_dirichlety_consteps},
-  {"test_3x_p1_dirichletx_periodicy", test_3x_p1_dirichletx_periodicy_consteps},
-  {"test_3x_p1_periodicx_dirichlety", test_3x_p1_periodicx_dirichlety_consteps},
-  {"test_3x_p1_dirichletx_neumanny_dirichlety", test_3x_p1_dirichletx_neumanny_dirichlety_consteps},
-  {"test_3x_p1_dirichletx_dirichlety_neumanny", test_3x_p1_dirichletx_dirichlety_neumanny_consteps},
-  {"test_3x_p1_neumannx_dirichletx_dirichlety", test_3x_p1_neumannx_dirichletx_dirichlety_consteps},
-  {"test_3x_p1_dirichletx_neumannx_dirichlety", test_3x_p1_dirichletx_neumannx_dirichlety_consteps},
-  {"test_3x_p1_neumannx_dirichletx_periodicy", test_3x_p1_neumannx_dirichletx_periodicy_consteps},
-  {"test_3x_p1_dirichletx_dirichlety_bias", test_3x_p1_dirichletx_dirichlety_consteps_bias},
-  {"test_3x_p1_dirichletx_periodicy_bias", test_3x_p1_dirichletx_periodicy_consteps_bias},
-//  { "test_3x_p2_periodicx_periodicy", test_3x_p2_periodicx_periodicy_consteps },
-//  { "test_3x_p2_dirichletx_dirichlety", test_3x_p2_dirichletx_dirichlety_consteps },
-//  { "test_3x_p2_dirichletx_periodicy", test_3x_p2_dirichletx_periodicy_consteps },
-//  { "test_3x_p2_periodicx_dirichlety", test_3x_p2_periodicx_dirichlety_consteps },
-//  { "test_3x_p2_dirichletx_neumanny_dirichlety", test_3x_p2_dirichletx_neumanny_dirichlety_consteps },
-//  { "test_3x_p2_dirichletx_dirichlety_neumanny", test_3x_p2_dirichletx_dirichlety_neumanny_consteps },
-//  { "test_3x_p2_neumannx_dirichletx_dirichlety", test_3x_p2_neumannx_dirichletx_dirichlety_consteps },
-//  { "test_3x_p2_dirichletx_neumannx_dirichlety", test_3x_p2_dirichletx_neumannx_dirichlety_consteps },
-//  { "test_3x_p2_neumannx_dirichletx_periodicy", test_3x_p2_neumannx_dirichletx_periodicy_consteps },
+  {"test_fem_poisson_perp_3x_p1_periodicx_periodicy_ho",
+    test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_ho",
+    test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_periodicy_ho",
+    test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_periodicx_dirichlety_ho",
+    test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_ho",
+    test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_ho",
+    test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_ho",
+    test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_ho",
+    test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_ho",
+    test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_ho},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_bias_ho",
+    test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_ho},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_periodicy_bias_ho",
+    test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_ho},
+//  { "test_fem_poisson_perp_3x_p2_periodicx_periodicy_ho", test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_ho", test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_periodicy_ho", test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_periodicx_dirichlety_ho", test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_ho", test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_ho", test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_ho", test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_ho", test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_ho },
+//  { "test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_ho", test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_ho },
 #ifdef GKYL_HAVE_CUDA
-  {"gpu_test_2x_p1_periodicx", gpu_test_2x_p1_periodic_consteps},
-  {"gpu_test_2x_p1_dirichletx", gpu_test_2x_p1_dirichletx_consteps},
-  {"gpu_test_2x_p1_neumannx_dirichletx", gpu_test_2x_p1_neumannx_dirichletx_consteps},
-  {"gpu_test_2x_p1_dirichletx_neumannx", gpu_test_2x_p1_dirichletx_neumannx_consteps},
-  {"gpu_test_2x_p1_neumannx_dirichletx_update", gpu_test_2x_p1_neumannx_dirichletx_consteps_update},
-  {"gpu_test_2x_p1_dirichletx_bias", gpu_test_2x_p1_dirichletx_consteps_bias},
-  {"gpu_test_2x_p1_neumannx_dirichletx_bias", gpu_test_2x_p1_neumannx_dirichletx_consteps_bias},
-  {"gpu_test_2x_p1_dirichletx_neumannx_bias", gpu_test_2x_p1_dirichletx_neumannx_consteps_bias},
+  {"test_fem_poisson_perp_2x_p1_periodicx_dev", test_fem_poisson_perp_2x_p1_periodic_consteps_dev},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_dev",
+    test_fem_poisson_perp_2x_p1_dirichletx_consteps_dev},
+  {"test_fem_poisson_perp_2x_p1_neumannx_dirichletx_dev",
+    test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_dev},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_neumannx_dev",
+    test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_dev},
+  {"test_fem_poisson_perp_2x_p1_neumannx_dirichletx_update_dev",
+    test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_update_dev},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_bias_dev",
+    test_fem_poisson_perp_2x_p1_dirichletx_consteps_bias_dev},
+  {"test_fem_poisson_perp_2x_p1_neumannx_dirichletx_bias_dev",
+    test_fem_poisson_perp_2x_p1_neumannx_dirichletx_consteps_bias_dev},
+  {"test_fem_poisson_perp_2x_p1_dirichletx_neumannx_bias_dev",
+    test_fem_poisson_perp_2x_p1_dirichletx_neumannx_consteps_bias_dev},
 
-  {"gpu_test_3x_p1_periodicx_periodicy", gpu_test_3x_p1_periodicx_periodicy_consteps},
-  {"gpu_test_3x_p1_dirichletx_dirichlety", gpu_test_3x_p1_dirichletx_dirichlety_consteps},
-  {"gpu_test_3x_p1_dirichletx_periodicy", gpu_test_3x_p1_dirichletx_periodicy_consteps},
-  {"gpu_test_3x_p1_periodicx_dirichlety", gpu_test_3x_p1_periodicx_dirichlety_consteps},
-  {"gpu_test_3x_p1_dirichletx_neumanny_dirichlety",
-    gpu_test_3x_p1_dirichletx_neumanny_dirichlety_consteps},
-  {"gpu_test_3x_p1_dirichletx_dirichlety_neumanny",
-    gpu_test_3x_p1_dirichletx_dirichlety_neumanny_consteps},
-  {"gpu_test_3x_p1_neumannx_dirichletx_dirichlety",
-    gpu_test_3x_p1_neumannx_dirichletx_dirichlety_consteps},
-  {"gpu_test_3x_p1_dirichletx_neumannx_dirichlety",
-    gpu_test_3x_p1_dirichletx_neumannx_dirichlety_consteps},
-  {"gpu_test_3x_p1_neumannx_dirichletx_periodicy",
-    gpu_test_3x_p1_neumannx_dirichletx_periodicy_consteps},
-  {"gpu_test_3x_p1_dirichletx_dirichlety_bias", gpu_test_3x_p1_dirichletx_dirichlety_consteps_bias},
-  {"gpu_test_3x_p1_dirichletx_periodicy_bias", gpu_test_3x_p1_dirichletx_periodicy_consteps_bias},
-//  { "gpu_test_3x_p2_periodicx_periodicy", gpu_test_3x_p2_periodicx_periodicy_consteps },
-//  { "gpu_test_3x_p2_dirichletx_dirichlety", gpu_test_3x_p2_dirichletx_dirichlety_consteps },
-//  { "gpu_test_3x_p2_dirichletx_periodicy", gpu_test_3x_p2_dirichletx_periodicy_consteps },
-//  { "gpu_test_3x_p2_periodicx_dirichlety", gpu_test_3x_p2_periodicx_dirichlety_consteps },
-//  { "gpu_test_3x_p2_dirichletx_neumanny_dirichlety", gpu_test_3x_p2_dirichletx_neumanny_dirichlety_consteps },
-//  { "gpu_test_3x_p2_dirichletx_dirichlety_neumanny", gpu_test_3x_p2_dirichletx_dirichlety_neumanny_consteps },
-//  { "gpu_test_3x_p2_neumannx_dirichletx_dirichlety", gpu_test_3x_p2_neumannx_dirichletx_dirichlety_consteps },
-//  { "gpu_test_3x_p2_dirichletx_neumannx_dirichlety", gpu_test_3x_p2_dirichletx_neumannx_dirichlety_consteps },
-//  { "gpu_test_3x_p2_neumannx_dirichletx_periodicy", gpu_test_3x_p2_neumannx_dirichletx_periodicy_consteps },
+  {"test_fem_poisson_perp_3x_p1_periodicx_periodicy_dev",
+    test_fem_poisson_perp_3x_p1_periodicx_periodicy_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_dev",
+    test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_periodicy_dev",
+    test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_periodicx_dirichlety_dev",
+    test_fem_poisson_perp_3x_p1_periodicx_dirichlety_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_dev",
+    test_fem_poisson_perp_3x_p1_dirichletx_neumanny_dirichlety_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_dev",
+    test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_neumanny_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_dev",
+    test_fem_poisson_perp_3x_p1_neumannx_dirichletx_dirichlety_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_dev",
+    test_fem_poisson_perp_3x_p1_dirichletx_neumannx_dirichlety_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_dev",
+    test_fem_poisson_perp_3x_p1_neumannx_dirichletx_periodicy_consteps_dev},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_bias_dev",
+    test_fem_poisson_perp_3x_p1_dirichletx_dirichlety_consteps_bias_dev},
+  {"test_fem_poisson_perp_3x_p1_dirichletx_periodicy_bias_dev",
+    test_fem_poisson_perp_3x_p1_dirichletx_periodicy_consteps_bias_dev},
+//  { "test_fem_poisson_perp_3x_p2_periodicx_periodicy_dev", test_fem_poisson_perp_3x_p2_periodicx_periodicy_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_dev", test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_periodicy_dev", test_fem_poisson_perp_3x_p2_dirichletx_periodicy_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_periodicx_dirichlety_dev", test_fem_poisson_perp_3x_p2_periodicx_dirichlety_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_dev", test_fem_poisson_perp_3x_p2_dirichletx_neumanny_dirichlety_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_dev", test_fem_poisson_perp_3x_p2_dirichletx_dirichlety_neumanny_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_dev", test_fem_poisson_perp_3x_p2_neumannx_dirichletx_dirichlety_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_dev", test_fem_poisson_perp_3x_p2_dirichletx_neumannx_dirichlety_consteps_dev },
+//  { "test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_dev", test_fem_poisson_perp_3x_p2_neumannx_dirichletx_periodicy_consteps_dev },
 #endif
   {NULL, NULL},
 };

@@ -15,7 +15,7 @@
 #include <gkyl_efit.h>
 
 void
-test_solovev()
+test_efit_solovev_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/solovev.geqdsk",
@@ -35,7 +35,7 @@ test_solovev()
 }
 
 void
-test_step()
+test_efit_step_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/step.geqdsk",
@@ -54,7 +54,7 @@ test_step()
 }
 
 void
-test_nstxu()
+test_efit_nstxu_ho()
 {
   // Uses DN configuration by default, but one can switch to SN by changing the filepath if desired.
   struct gkyl_efit_inp inp = {
@@ -75,7 +75,7 @@ test_nstxu()
 }
 
 void
-test_asdex()
+test_efit_asdex_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/asdex.geqdsk",
@@ -94,7 +94,7 @@ test_asdex()
 }
 
 void
-test_cerfon()
+test_efit_cerfon_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/cerfon.geqdsk",
@@ -114,7 +114,7 @@ test_cerfon()
 }
 
 void
-test_elliptical()
+test_efit_elliptical_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/elliptical.geqdsk",
@@ -134,7 +134,7 @@ test_elliptical()
 }
 
 void
-test_wham()
+test_efit_wham_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk", .rz_poly_order = 2, .flux_poly_order = 1,
@@ -151,7 +151,7 @@ test_wham()
 }
 
 void
-test_tcv()
+test_efit_tcv_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/tcv.geqdsk",
@@ -169,7 +169,7 @@ test_tcv()
 }
 
 void
-test_mast()
+test_efit_mast_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/mast.geqdsk",
@@ -188,7 +188,7 @@ test_mast()
 }
 
 void
-test_ltx()
+test_efit_ltx_ho()
 {
   struct gkyl_efit_inp inp = {
     .filepath = "gyrokinetic/data/eqdsk/LTX_103955_03.eqdsk",
@@ -207,15 +207,15 @@ test_ltx()
 }
 
 TEST_LIST = {
-  {"test_solovev", test_solovev},
-  {"test_step", test_step},
-  {"test_asdex", test_asdex},
-  {"test_nstxu", test_nstxu},
-  {"test_cerfon", test_cerfon},
-  {"test_elliptical", test_elliptical},
-  {"test_wham", test_wham},
-  {"test_tcv", test_tcv},
-  {"test_mast", test_mast},
-  {"test_ltx", test_ltx},
+  {"test_efit_solovev_ho", test_efit_solovev_ho},
+  {"test_efit_step_ho", test_efit_step_ho},
+  {"test_efit_asdex_ho", test_efit_asdex_ho},
+  {"test_efit_nstxu_ho", test_efit_nstxu_ho},
+  {"test_efit_cerfon_ho", test_efit_cerfon_ho},
+  {"test_efit_elliptical_ho", test_efit_elliptical_ho},
+  {"test_efit_wham_ho", test_efit_wham_ho},
+  {"test_efit_tcv_ho", test_efit_tcv_ho},
+  {"test_efit_mast_ho", test_efit_mast_ho},
+  {"test_efit_ltx_ho", test_efit_ltx_ho},
   {NULL, NULL},
 };

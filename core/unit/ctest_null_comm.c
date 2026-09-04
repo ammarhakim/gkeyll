@@ -6,7 +6,7 @@
 #include <gkyl_null_comm.h>
 
 void
-test_1d()
+test_null_comm_1d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (int[]){1}, (int[]){100});
@@ -80,7 +80,7 @@ test_1d()
 }
 
 void
-test_allgather_1d()
+test_null_comm_allgather_1d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (int[]){1}, (int[]){100});
@@ -139,7 +139,7 @@ test_allgather_1d()
 }
 
 void
-test_bcast_1d()
+test_null_comm_bcast_1d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 1, (int[]){1}, (int[]){100});
@@ -198,7 +198,7 @@ test_bcast_1d()
 }
 
 void
-test_2d()
+test_null_comm_2d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){1, 1}, (int[]){4, 4});
@@ -267,7 +267,7 @@ test_2d()
 }
 
 void
-test_bcast_2d()
+test_null_comm_bcast_2d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){1, 1}, (int[]){4, 4});
@@ -329,7 +329,7 @@ test_bcast_2d()
 }
 
 void
-test_allgather_2d()
+test_null_comm_allgather_2d_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){1, 1}, (int[]){4, 4});
@@ -392,7 +392,7 @@ test_allgather_2d()
 }
 
 void
-test_io_2d()
+test_null_comm_io_2d_ho()
 {
   int cells[] = {32, 32};
   struct gkyl_range range;
@@ -453,7 +453,7 @@ test_io_2d()
 }
 
 void
-test_io_p1_p4(void)
+test_null_comm_io_p1_p4_ho(void)
 {
   struct gkyl_rect_grid grid;
   struct gkyl_array_header_info hdr;
@@ -506,13 +506,13 @@ test_io_p1_p4(void)
 }
 
 TEST_LIST = {
-  {"test_1d", test_1d},
-  {"test_allgather_1d", test_allgather_1d},
-  {"test_bcast_1d", test_bcast_1d},
-  {"test_2d", test_2d},
-  {"test_allgather_2d", test_allgather_2d},
-  {"test_bcast_2d", test_bcast_2d},
-  {"test_io_2d", test_io_2d},
-  {"test_io_p1_p4", test_io_p1_p4},
+  {"test_null_comm_1d_ho", test_null_comm_1d_ho},
+  {"test_null_comm_allgather_1d_ho", test_null_comm_allgather_1d_ho},
+  {"test_null_comm_bcast_1d_ho", test_null_comm_bcast_1d_ho},
+  {"test_null_comm_2d_ho", test_null_comm_2d_ho},
+  {"test_null_comm_allgather_2d_ho", test_null_comm_allgather_2d_ho},
+  {"test_null_comm_bcast_2d_ho", test_null_comm_bcast_2d_ho},
+  {"test_null_comm_io_2d_ho", test_null_comm_io_2d_ho},
+  {"test_null_comm_io_p1_p4_ho", test_null_comm_io_p1_p4_ho},
   {NULL, NULL},
 };

@@ -40,7 +40,7 @@ proj_func3d(double t, const double *xn, double *fout, void *ctx)
 }
 
 void
-test_p1_2x()
+test_nodal_ops_p1_2x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
@@ -124,7 +124,7 @@ test_p1_2x()
 }
 
 void
-test_p1_3x()
+test_nodal_ops_p1_3x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5, -1.0}, upper[] = {1.5, 1.5, 1.0};
@@ -208,7 +208,7 @@ test_p1_3x()
 }
 
 void
-test_p1_interior_2x()
+test_nodal_ops_p1_interior_2x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
@@ -261,7 +261,7 @@ test_p1_interior_2x()
 }
 
 void
-test_p1_interior_3x()
+test_nodal_ops_p1_interior_3x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5, -1.0}, upper[] = {1.5, 1.5, 1.0};
@@ -314,7 +314,7 @@ test_p1_interior_3x()
 }
 
 void
-test_p1_deflated()
+test_nodal_ops_p1_deflated_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5}, upper[] = {1.5, 1.5};
@@ -455,7 +455,7 @@ test_p1_deflated()
 }
 
 void
-test_p1_deflated_3d()
+test_nodal_ops_p1_deflated_3d_ho()
 {
   // create  grid, ranges, basis
   double lower[] = {0.0, -1.5, -2}, upper[] = {1.5, 1.5, 2};
@@ -652,25 +652,25 @@ test_p2_btype(enum gkyl_basis_type basis_type)
 }
 
 void
-test_p2_ser()
+test_nodal_ops_p2_ser_ho()
 {
   return test_p2_btype(GKYL_BASIS_MODAL_SERENDIPITY);
 }
 
 void
-test_p2_tensor()
+test_nodal_ops_p2_tensor_ho()
 {
   return test_p2_btype(GKYL_BASIS_MODAL_TENSOR);
 }
 
 TEST_LIST = {
-  {"test_p1_interior_2x", test_p1_interior_2x},
-  {"test_p1_interior_3x", test_p1_interior_3x},
-  {"test_p1_2x", test_p1_2x},
-  {"test_p1_3x", test_p1_3x},
-  {"test_p1_deflated", test_p1_deflated},
-  {"test_p1_deflated_3d", test_p1_deflated_3d},
-  {"test_p2_ser", test_p2_ser},
-  {"test_p2_tensor", test_p2_tensor},
+  {"test_nodal_ops_p1_interior_2x_ho", test_nodal_ops_p1_interior_2x_ho},
+  {"test_nodal_ops_p1_interior_3x_ho", test_nodal_ops_p1_interior_3x_ho},
+  {"test_nodal_ops_p1_2x_ho", test_nodal_ops_p1_2x_ho},
+  {"test_nodal_ops_p1_3x_ho", test_nodal_ops_p1_3x_ho},
+  {"test_nodal_ops_p1_deflated_ho", test_nodal_ops_p1_deflated_ho},
+  {"test_nodal_ops_p1_deflated_3d_ho", test_nodal_ops_p1_deflated_3d_ho},
+  {"test_nodal_ops_p2_ser_ho", test_nodal_ops_p2_ser_ho},
+  {"test_nodal_ops_p2_tensor_ho", test_nodal_ops_p2_tensor_ho},
   {NULL, NULL},
 };

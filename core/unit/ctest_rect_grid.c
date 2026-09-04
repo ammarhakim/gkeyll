@@ -5,7 +5,7 @@
 #include <gkyl_util.h>
 
 void
-test_grid_2d()
+test_grid_2d_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 20};
@@ -65,7 +65,7 @@ test_grid_2d()
  * Fourth test: One known index given (simply tests that it is the correct index)
  */
 void
-test_find_cell_1d()
+test_find_cell_1d_ho()
 {
   double lower[] = {0.0}, upper[] = {5.0};
   int cells[] = {5};
@@ -108,7 +108,7 @@ test_find_cell_1d()
  * Fourth test: One index is known 
  */
 void
-test_find_cell_2d()
+test_find_cell_2d_ho()
 {
   double lower[] = {0.0, -10.0}, upper[] = {5.0, 10.0};
   int cells[] = {5, 20};
@@ -155,7 +155,7 @@ test_find_cell_2d()
  * Fourth test: 2 indecies are known
  */
 void
-test_find_cell_3d()
+test_find_cell_3d_ho()
 {
   double lower[] = {0.0, -10.0, 1.3}, upper[] = {5.0, 10.0, 2.5};
   int cells[] = {5, 20, 100};
@@ -198,7 +198,7 @@ test_find_cell_3d()
 }
 
 void
-test_grid_io()
+test_grid_io_ho()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 20};
@@ -227,7 +227,7 @@ test_grid_io()
 int cu_rect_grid_test(const struct gkyl_rect_grid grid);
 
 void
-test_cu_grid_2d()
+test_grid_2d_dev()
 {
   double lower[] = {1.0, 1.0}, upper[] = {2.5, 5.0};
   int cells[] = {20, 20};
@@ -241,13 +241,13 @@ test_cu_grid_2d()
 #endif
 
 TEST_LIST = {
-  {"grid_2d", test_grid_2d},
-  {"grid_find_cell_1d", test_find_cell_1d},
-  {"grid_find_cell_2d", test_find_cell_2d},
-  {"grid_find_cell_3d", test_find_cell_3d},
-  {"grid_io", test_grid_io},
+  {"grid_2d_ho", test_grid_2d_ho},
+  {"grid_find_cell_1d_ho", test_find_cell_1d_ho},
+  {"grid_find_cell_2d_ho", test_find_cell_2d_ho},
+  {"grid_find_cell_3d_ho", test_find_cell_3d_ho},
+  {"grid_io_ho", test_grid_io_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"cu_grid_2d", test_cu_grid_2d},
+  {"grid_2d_dev", test_grid_2d_dev},
 #endif
   {NULL, NULL},
 };

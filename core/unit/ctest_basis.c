@@ -51,7 +51,7 @@ test_ser_1d_members(struct gkyl_basis basis1)
 }
 
 void
-test_ser_1d()
+test_basis_ser_1d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 1, 1);
@@ -163,7 +163,7 @@ test_ser_2d_members(struct gkyl_basis basis)
 }
 
 void
-test_ser_2d()
+test_basis_ser_2d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_serendip(&basis1, 2, 2);
@@ -266,7 +266,7 @@ test_ten_2d_members_p3(struct gkyl_basis basis)
 }
 
 void
-test_ten_2d()
+test_basis_ten_2d_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_tensor(&basis1, 2, 2);
@@ -319,7 +319,7 @@ test_hyb_members(struct gkyl_basis basis)
 }
 
 void
-test_hyb()
+test_basis_hyb_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_hybrid(&basis1, 1, 1);
@@ -699,7 +699,7 @@ test_gkhyb_1x2v_upwind_quad_to_modal(struct gkyl_basis basis)
 }
 
 void
-test_gkhyb()
+test_basis_gkhyb_ho()
 {
   struct gkyl_basis basis1;
   gkyl_cart_modal_gkhybrid(&basis1, 1, 2);
@@ -726,7 +726,7 @@ test_cu_ser_2d_members(struct gkyl_basis *basis)
 }
 
 void
-test_cu_ser_2d()
+test_basis_ser_2d_dev()
 {
   struct gkyl_basis *basis1 = gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_serendip_cu_dev(basis1, 2, 2);
@@ -740,13 +740,13 @@ test_cu_ser_2d()
 #endif
 
 TEST_LIST = {
-  {"ser_1d", test_ser_1d},
-  {"ser_2d", test_ser_2d},
-  {"ten_2d", test_ten_2d},
-  {"hyb", test_hyb},
-  {"gkhyb", test_gkhyb},
+  {"basis_ser_1d_ho", test_basis_ser_1d_ho},
+  {"basis_ser_2d_ho", test_basis_ser_2d_ho},
+  {"basis_ten_2d_ho", test_basis_ten_2d_ho},
+  {"basis_hyb_ho", test_basis_hyb_ho},
+  {"basis_gkhyb_ho", test_basis_gkhyb_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"cu_ser_2d", test_cu_ser_2d},
+  {"basis_ser_2d_dev", test_basis_ser_2d_dev},
 #endif
   {NULL, NULL},
 };

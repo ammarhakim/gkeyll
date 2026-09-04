@@ -1079,14 +1079,14 @@ test_3x_avgyz_avgx(int poly_order, bool use_gpu)
 }
 
 void
-test_1x_cpu()
+test_array_average_1x_ho()
 {
   for (int p = 1; p <= 2; p++)
     test_1x(p, false);
 }
 
 void
-test_2x_cpu()
+test_array_average_2x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, false);
@@ -1097,7 +1097,7 @@ test_2x_cpu()
 }
 
 void
-test_3x_cpu()
+test_array_average_3x_ho()
 {
   for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, false);
@@ -1107,14 +1107,14 @@ test_3x_cpu()
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_1x_gpu()
+test_array_average_1x_dev()
 {
   for (int p = 1; p <= 2; p++)
     test_1x(p, true);
 }
 
 void
-test_2x_gpu()
+test_array_average_2x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_2x_1step(p, true);
@@ -1125,7 +1125,7 @@ test_2x_gpu()
 }
 
 void
-test_3x_gpu()
+test_array_average_3x_dev()
 {
   for (int p = 1; p <= 2; p++) {
     test_3x_avgx_avgyz(p, true);
@@ -1136,13 +1136,13 @@ test_3x_gpu()
 #endif
 
 TEST_LIST = {
-  {"test_1x_cpu", test_1x_cpu},
-  {"test_2x_cpu", test_2x_cpu},
-  {"test_3x_cpu", test_3x_cpu},
+  {"test_array_average_1x_ho", test_array_average_1x_ho},
+  {"test_array_average_2x_ho", test_array_average_2x_ho},
+  {"test_array_average_3x_ho", test_array_average_3x_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"test_1x_gpu", test_1x_gpu},
-  {"test_2x_gpu", test_2x_gpu},
-  {"test_3x_gpu", test_3x_gpu},
+  {"test_array_average_1x_dev", test_array_average_1x_dev},
+  {"test_array_average_2x_dev", test_array_average_2x_dev},
+  {"test_array_average_3x_dev", test_array_average_3x_dev},
 #endif
   {NULL, NULL},
 };

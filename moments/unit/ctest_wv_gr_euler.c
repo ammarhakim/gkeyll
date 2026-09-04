@@ -7,7 +7,7 @@
 #include <gkyl_gr_blackhole.h>
 
 void
-test_gr_euler_basic_minkowski()
+test_gr_euler_basic_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -277,7 +277,7 @@ test_gr_euler_basic_minkowski()
 }
 
 void
-test_gr_euler_basic_schwarzschild()
+test_gr_euler_basic_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -552,7 +552,7 @@ test_gr_euler_basic_schwarzschild()
 }
 
 void
-test_gr_euler_basic_kerr()
+test_gr_euler_basic_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
@@ -827,7 +827,7 @@ test_gr_euler_basic_kerr()
 }
 
 void
-test_gr_euler_waves_minkowski()
+test_gr_euler_waves_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
@@ -1187,7 +1187,7 @@ test_gr_euler_waves_minkowski()
 }
 
 void
-test_gr_euler_waves_schwarzschild()
+test_gr_euler_waves_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
@@ -1552,7 +1552,7 @@ test_gr_euler_waves_schwarzschild()
 }
 
 void
-test_gr_euler_waves_kerr()
+test_gr_euler_waves_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
@@ -1917,11 +1917,11 @@ test_gr_euler_waves_kerr()
 }
 
 TEST_LIST = {
-  {"gr_euler_basic_minkowski", test_gr_euler_basic_minkowski},
-  {"gr_euler_basic_schwarzschild", test_gr_euler_basic_schwarzschild},
-  {"gr_euler_basic_kerr", test_gr_euler_basic_kerr},
-  {"gr_euler_waves_minkowski", test_gr_euler_waves_minkowski},
-  {"gr_euler_waves_schwarzschild", test_gr_euler_waves_schwarzschild},
-  {"gr_euler_waves_kerr", test_gr_euler_waves_kerr},
+  {"gr_euler_basic_minkowski_ho", test_gr_euler_basic_minkowski_ho},
+  {"gr_euler_basic_schwarzschild_ho", test_gr_euler_basic_schwarzschild_ho},
+  {"gr_euler_basic_kerr_ho", test_gr_euler_basic_kerr_ho},
+  {"gr_euler_waves_minkowski_ho", test_gr_euler_waves_minkowski_ho},
+  {"gr_euler_waves_schwarzschild_ho", test_gr_euler_waves_schwarzschild_ho},
+  {"gr_euler_waves_kerr_ho", test_gr_euler_waves_kerr_ho},
   {NULL, NULL},
 };

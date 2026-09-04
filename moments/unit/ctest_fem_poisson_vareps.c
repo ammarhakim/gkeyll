@@ -5327,7 +5327,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 }
 
 void
-test_2x_p1_periodicx_periodicy()
+test_poisson_vareps_2x_p1_periodicx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5339,7 +5339,7 @@ test_2x_p1_periodicx_periodicy()
 }
 
 void
-test_2x_p1_dirichletx_dirichlety()
+test_poisson_vareps_2x_p1_dirichletx_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5355,7 +5355,7 @@ test_2x_p1_dirichletx_dirichlety()
 }
 
 void
-test_2x_p1_dirichletx_periodicy()
+test_poisson_vareps_2x_p1_dirichletx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5369,7 +5369,7 @@ test_2x_p1_dirichletx_periodicy()
 }
 
 void
-test_2x_p1_periodicx_dirichlety()
+test_poisson_vareps_2x_p1_periodicx_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5383,7 +5383,7 @@ test_2x_p1_periodicx_dirichlety()
 }
 
 void
-test_2x_p1_dirichletx_neumanny_dirichlety()
+test_poisson_vareps_2x_p1_dirichletx_neumanny_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5399,7 +5399,7 @@ test_2x_p1_dirichletx_neumanny_dirichlety()
 }
 
 void
-test_2x_p1_neumannx_dirichletx_dirichlety()
+test_poisson_vareps_2x_p1_neumannx_dirichletx_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5415,7 +5415,7 @@ test_2x_p1_neumannx_dirichletx_dirichlety()
 }
 
 void
-test_2x_p2_periodicx_periodicy()
+test_poisson_vareps_2x_p2_periodicx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5427,7 +5427,7 @@ test_2x_p2_periodicx_periodicy()
 }
 
 void
-test_2x_p2_dirichletx_dirichlety()
+test_poisson_vareps_2x_p2_dirichletx_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5443,7 +5443,7 @@ test_2x_p2_dirichletx_dirichlety()
 }
 
 void
-test_2x_p2_dirichletx_periodicy()
+test_poisson_vareps_2x_p2_dirichletx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5457,7 +5457,7 @@ test_2x_p2_dirichletx_periodicy()
 }
 
 void
-test_2x_p2_periodicx_dirichlety()
+test_poisson_vareps_2x_p2_periodicx_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5471,7 +5471,7 @@ test_2x_p2_periodicx_dirichlety()
 }
 
 void
-test_2x_p2_dirichletx_neumanny_dirichlety()
+test_poisson_vareps_2x_p2_dirichletx_neumanny_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5487,7 +5487,7 @@ test_2x_p2_dirichletx_neumanny_dirichlety()
 }
 
 void
-test_2x_p2_neumannx_dirichletx_dirichlety()
+test_poisson_vareps_2x_p2_neumannx_dirichletx_dirichlety_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5504,7 +5504,7 @@ test_2x_p2_neumannx_dirichletx_dirichlety()
 
 #ifdef GKYL_HAVE_CUDA
 void
-gpu_test_2x_p1_periodicx_periodicy()
+test_poisson_vareps_2x_p1_periodicx_periodicy_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5516,7 +5516,7 @@ gpu_test_2x_p1_periodicx_periodicy()
 }
 
 void
-gpu_test_2x_p1_dirichletx_periodicy()
+test_poisson_vareps_2x_p1_dirichletx_periodicy_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5530,7 +5530,7 @@ gpu_test_2x_p1_dirichletx_periodicy()
 }
 
 void
-gpu_test_2x_p1_periodicx_dirichlety()
+test_poisson_vareps_2x_p1_periodicx_dirichlety_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5544,7 +5544,7 @@ gpu_test_2x_p1_periodicx_dirichlety()
 }
 
 void
-gpu_test_2x_p2_periodicx_periodicy()
+test_poisson_vareps_2x_p2_periodicx_periodicy_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5556,7 +5556,7 @@ gpu_test_2x_p2_periodicx_periodicy()
 }
 
 void
-gpu_test_2x_p2_dirichletx_periodicy()
+test_poisson_vareps_2x_p2_dirichletx_periodicy_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5570,7 +5570,7 @@ gpu_test_2x_p2_dirichletx_periodicy()
 }
 
 void
-gpu_test_2x_p2_periodicx_dirichlety()
+test_poisson_vareps_2x_p2_periodicx_dirichlety_dev()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -5586,25 +5586,43 @@ gpu_test_2x_p2_periodicx_dirichlety()
 
 TEST_LIST = {
   // 2x tests
-  {"test_2x_p1_periodicx_periodicy", test_2x_p1_periodicx_periodicy},
-  {"test_2x_p1_dirichletx_dirichlety", test_2x_p1_dirichletx_dirichlety},
-  {"test_2x_p1_dirichletx_periodicy", test_2x_p1_dirichletx_periodicy},
-  {"test_2x_p1_periodicx_dirichlety", test_2x_p1_periodicx_dirichlety},
-  {"test_2x_p1_dirichletx_neumanny_dirichlety", test_2x_p1_dirichletx_neumanny_dirichlety},
-  {"test_2x_p1_neumannx_dirichletx_dirichlety", test_2x_p1_neumannx_dirichletx_dirichlety},
-  {"test_2x_p2_periodicx_periodicy", test_2x_p2_periodicx_periodicy},
-  {"test_2x_p2_dirichletx_dirichlety", test_2x_p2_dirichletx_dirichlety},
-  {"test_2x_p2_dirichletx_periodicy", test_2x_p2_dirichletx_periodicy},
-  {"test_2x_p2_periodicx_dirichlety", test_2x_p2_periodicx_dirichlety},
-  {"test_2x_p2_dirichletx_neumanny_dirichlety", test_2x_p2_dirichletx_neumanny_dirichlety},
-  {"test_2x_p2_neumannx_dirichletx_dirichlety", test_2x_p2_neumannx_dirichletx_dirichlety},
+  {"test_poisson_vareps_2x_p1_periodicx_periodicy_ho",
+    test_poisson_vareps_2x_p1_periodicx_periodicy_ho},
+  {"test_poisson_vareps_2x_p1_dirichletx_dirichlety_ho",
+    test_poisson_vareps_2x_p1_dirichletx_dirichlety_ho},
+  {"test_poisson_vareps_2x_p1_dirichletx_periodicy_ho",
+    test_poisson_vareps_2x_p1_dirichletx_periodicy_ho},
+  {"test_poisson_vareps_2x_p1_periodicx_dirichlety_ho",
+    test_poisson_vareps_2x_p1_periodicx_dirichlety_ho},
+  {"test_poisson_vareps_2x_p1_dirichletx_neumanny_dirichlety_ho",
+    test_poisson_vareps_2x_p1_dirichletx_neumanny_dirichlety_ho},
+  {"test_poisson_vareps_2x_p1_neumannx_dirichletx_dirichlety_ho",
+    test_poisson_vareps_2x_p1_neumannx_dirichletx_dirichlety_ho},
+  {"test_poisson_vareps_2x_p2_periodicx_periodicy_ho",
+    test_poisson_vareps_2x_p2_periodicx_periodicy_ho},
+  {"test_poisson_vareps_2x_p2_dirichletx_dirichlety_ho",
+    test_poisson_vareps_2x_p2_dirichletx_dirichlety_ho},
+  {"test_poisson_vareps_2x_p2_dirichletx_periodicy_ho",
+    test_poisson_vareps_2x_p2_dirichletx_periodicy_ho},
+  {"test_poisson_vareps_2x_p2_periodicx_dirichlety_ho",
+    test_poisson_vareps_2x_p2_periodicx_dirichlety_ho},
+  {"test_poisson_vareps_2x_p2_dirichletx_neumanny_dirichlety_ho",
+    test_poisson_vareps_2x_p2_dirichletx_neumanny_dirichlety_ho},
+  {"test_poisson_vareps_2x_p2_neumannx_dirichletx_dirichlety_ho",
+    test_poisson_vareps_2x_p2_neumannx_dirichletx_dirichlety_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"gpu_test_2x_p1_periodicx_periodicy", gpu_test_2x_p1_periodicx_periodicy},
-  {"gpu_test_2x_p1_dirichletx_periodicy", gpu_test_2x_p1_dirichletx_periodicy},
-  {"gpu_test_2x_p1_periodicx_dirichlety", gpu_test_2x_p1_periodicx_dirichlety},
-  {"gpu_test_2x_p2_periodicx_periodicy", gpu_test_2x_p2_periodicx_periodicy},
-  {"gpu_test_2x_p2_dirichletx_periodicy", gpu_test_2x_p2_dirichletx_periodicy},
-  {"gpu_test_2x_p2_periodicx_dirichlety", gpu_test_2x_p2_periodicx_dirichlety},
+  {"test_poisson_vareps_2x_p1_periodicx_periodicy_dev",
+    test_poisson_vareps_2x_p1_periodicx_periodicy_dev},
+  {"test_poisson_vareps_2x_p1_dirichletx_periodicy_dev",
+    test_poisson_vareps_2x_p1_dirichletx_periodicy_dev},
+  {"test_poisson_vareps_2x_p1_periodicx_dirichlety_dev",
+    test_poisson_vareps_2x_p1_periodicx_dirichlety_dev},
+  {"test_poisson_vareps_2x_p2_periodicx_periodicy_dev",
+    test_poisson_vareps_2x_p2_periodicx_periodicy_dev},
+  {"test_poisson_vareps_2x_p2_dirichletx_periodicy_dev",
+    test_poisson_vareps_2x_p2_dirichletx_periodicy_dev},
+  {"test_poisson_vareps_2x_p2_periodicx_dirichlety_dev",
+    test_poisson_vareps_2x_p2_periodicx_dirichlety_dev},
 #endif
   {NULL, NULL},
 };

@@ -12,7 +12,7 @@
 #include <gkyl_rrobin_decomp.h>
 
 void
-nccl_allreduce()
+nccl_allreduce_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -87,7 +87,7 @@ nccl_allreduce()
 }
 
 void
-nccl_n2_allgather_1d()
+nccl_n2_allgather_1d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -152,7 +152,7 @@ nccl_n2_allgather_1d()
 }
 
 void
-nccl_n4_allgather_2d()
+nccl_n4_allgather_2d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -229,7 +229,7 @@ nccl_n4_allgather_2d()
 }
 
 void
-nccl_n2_allgather_1d_host()
+nccl_n2_allgather_1d_host_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -287,7 +287,7 @@ nccl_n2_allgather_1d_host()
 }
 
 void
-nccl_n4_allgather_2d_host()
+nccl_n4_allgather_2d_host_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -358,7 +358,7 @@ nccl_n4_allgather_2d_host()
 
 // MF 2024/09/12: disable these for now per 498b7d1569eaa9285ae59581bd22dab124672f7b.
 // void
-// nccl_n2_array_send_irecv_2d()
+// nccl_n2_array_send_irecv_2d_dev()
 // {
 //   // Test array_send and array_recv with a nonblocking comm.
 //   struct gkyl_range range;
@@ -471,7 +471,7 @@ nccl_n4_allgather_2d_host()
 // }
 //
 // void
-// nccl_n2_array_isend_irecv_2d()
+// nccl_n2_array_isend_irecv_2d_dev()
 // {
 //   // Test array_send and array_recv with a nonblocking comm.
 //   struct gkyl_range range;
@@ -589,7 +589,7 @@ nccl_n4_allgather_2d_host()
 // }
 
 void
-nccl_n2_sync_1d()
+nccl_n2_sync_1d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -742,18 +742,18 @@ nccl_n4_sync_2d(bool use_corners)
 }
 
 void
-nccl_n4_sync_2d_no_corner()
+nccl_n4_sync_2d_no_corner_dev()
 {
   nccl_n4_sync_2d(false);
 }
 void
-nccl_n4_sync_2d_use_corner()
+nccl_n4_sync_2d_use_corner_dev()
 {
   nccl_n4_sync_2d(true);
 }
 
 void
-nccl_n4_sync_1x1v()
+nccl_n4_sync_1x1v_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -909,7 +909,7 @@ nccl_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
 }
 
 void
-nccl_n1_per_sync_2d()
+nccl_n1_per_sync_2d_dev()
 {
   int per_dirs_0[] = {0};
   int per_dirs_1[] = {1};
@@ -1019,7 +1019,7 @@ nccl_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
 }
 
 void
-nccl_n2_per_sync_2d()
+nccl_n2_per_sync_2d_dev()
 {
   int cuts_21[] = {2, 1};
   int cuts_12[] = {1, 2};
@@ -1037,7 +1037,7 @@ nccl_n2_per_sync_2d()
 }
 
 void
-nccl_n4_multicomm_2d()
+nccl_n4_multicomm_2d_dev()
 {
   // Test the use of two gkyl_comm objects simultaneously, mimicing the case
   // where one is used to decompose space and the other species.
@@ -1158,7 +1158,7 @@ nccl_n4_multicomm_2d()
 }
 
 static void
-nccl_n4_create_comm_from_ranks_1()
+nccl_n4_create_comm_from_ranks_1_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1216,7 +1216,7 @@ nccl_n4_create_comm_from_ranks_1()
 }
 
 static void
-nccl_n4_create_comm_from_ranks_2()
+nccl_n4_create_comm_from_ranks_2_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1278,7 +1278,7 @@ nccl_n4_create_comm_from_ranks_2()
 }
 
 void
-nccl_bcast_1d()
+nccl_bcast_1d_dev()
 {
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1391,7 +1391,7 @@ nccl_bcast_2d_test(int *cuts)
 }
 
 void
-nccl_bcast_2d()
+nccl_bcast_2d_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1417,7 +1417,7 @@ nccl_bcast_2d()
 }
 
 void
-nccl_bcast_1d_host()
+nccl_bcast_1d_host_dev()
 {
   int m_sz, rank;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1522,7 +1522,7 @@ nccl_bcast_2d_host_test(int *cuts)
 }
 
 void
-nccl_bcast_2d_host()
+nccl_bcast_2d_host_dev()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1548,26 +1548,26 @@ nccl_bcast_2d_host()
 }
 
 TEST_LIST = {
-  {"nccl_allreduce", nccl_allreduce},
-  {"nccl_n2_allgather_1d", nccl_n2_allgather_1d},
-  {"nccl_n4_allgather_2d", nccl_n4_allgather_2d},
-  {"nccl_n2_allgather_1d_host", nccl_n2_allgather_1d_host},
-  {"nccl_n4_allgather_2d_host", nccl_n4_allgather_2d_host},
-  //  {"nccl_n2_array_send_irecv_2d", nccl_n2_array_send_irecv_2d},
-  //  {"nccl_n2_array_isend_irecv_2d", nccl_n2_array_isend_irecv_2d},
-  {"nccl_n2_sync_1d", nccl_n2_sync_1d},
-  {"nccl_n4_sync_2d_no_corner", nccl_n4_sync_2d_no_corner},
-  {"nccl_n4_sync_2d_use_corner", nccl_n4_sync_2d_use_corner},
-  {"nccl_n4_sync_1x1v", nccl_n4_sync_1x1v},
-  {"nccl_n1_per_sync_2d", nccl_n1_per_sync_2d},
-  {"nccl_n2_per_sync_2d", nccl_n2_per_sync_2d},
-  {"nccl_n4_multicomm_2d", nccl_n4_multicomm_2d},
-  {"nccl_n4_create_comm_from_ranks_1", nccl_n4_create_comm_from_ranks_1},
-  {"nccl_n4_create_comm_from_ranks_2", nccl_n4_create_comm_from_ranks_2},
-  {"nccl_bcast_1d", nccl_bcast_1d},
-  {"nccl_bcast_2d", nccl_bcast_2d},
-  {"nccl_bcast_1d_host", nccl_bcast_1d_host},
-  {"nccl_bcast_2d_host", nccl_bcast_2d_host},
+  {"nccl_allreduce_dev", nccl_allreduce_dev},
+  {"nccl_n2_allgather_1d_dev", nccl_n2_allgather_1d_dev},
+  {"nccl_n4_allgather_2d_dev", nccl_n4_allgather_2d_dev},
+  {"nccl_n2_allgather_1d_host_dev", nccl_n2_allgather_1d_host_dev},
+  {"nccl_n4_allgather_2d_host_dev", nccl_n4_allgather_2d_host_dev},
+  //  {"nccl_n2_array_send_irecv_2d_dev", nccl_n2_array_send_irecv_2d_dev},
+  //  {"nccl_n2_array_isend_irecv_2d_dev", nccl_n2_array_isend_irecv_2d_dev},
+  {"nccl_n2_sync_1d_dev", nccl_n2_sync_1d_dev},
+  {"nccl_n4_sync_2d_no_corner_dev", nccl_n4_sync_2d_no_corner_dev},
+  {"nccl_n4_sync_2d_use_corner_dev", nccl_n4_sync_2d_use_corner_dev},
+  {"nccl_n4_sync_1x1v_dev", nccl_n4_sync_1x1v_dev},
+  {"nccl_n1_per_sync_2d_dev", nccl_n1_per_sync_2d_dev},
+  {"nccl_n2_per_sync_2d_dev", nccl_n2_per_sync_2d_dev},
+  {"nccl_n4_multicomm_2d_dev", nccl_n4_multicomm_2d_dev},
+  {"nccl_n4_create_comm_from_ranks_1_dev", nccl_n4_create_comm_from_ranks_1_dev},
+  {"nccl_n4_create_comm_from_ranks_2_dev", nccl_n4_create_comm_from_ranks_2_dev},
+  {"nccl_bcast_1d_dev", nccl_bcast_1d_dev},
+  {"nccl_bcast_2d_dev", nccl_bcast_2d_dev},
+  {"nccl_bcast_1d_host_dev", nccl_bcast_1d_host_dev},
+  {"nccl_bcast_2d_host_dev", nccl_bcast_2d_host_dev},
   {NULL, NULL},
 };
 

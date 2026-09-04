@@ -23,7 +23,7 @@ calcq(double gas_gamma, const double *pv, double *q)
 /* CHECK FLUX FUNCTION IMPLEMENTATION */
 /**************************************/
 void
-test_mhd_basic()
+test_mhd_basic_ho()
 {
   double gas_gamma = 1.4;
   struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(
@@ -167,7 +167,7 @@ do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type, enum gkyl_wv_flux_type ftype,
 }
 
 void
-test_mhd_qfluct_lax()
+test_mhd_qfluct_lax_ho()
 {
   // jumps in bx, by, and bz; checking all three directions
   double vl[8] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.43, 0.3};
@@ -181,7 +181,7 @@ test_mhd_qfluct_lax()
 }
 
 void
-test_mhd_qfluct_roe()
+test_mhd_qfluct_roe_ho()
 {
   // no jump in bx
   double vl[8] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.4, 0.3};
@@ -195,7 +195,7 @@ test_mhd_qfluct_roe()
 }
 
 void
-test_mhd_qfluct_hlld()
+test_mhd_qfluct_hlld_ho()
 {
   // no jump in bx
   double vl[8] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.4, 0.3};
@@ -209,7 +209,7 @@ test_mhd_qfluct_hlld()
 }
 
 void
-test_glm_mhd_qfluct_lax()
+test_glm_mhd_qfluct_lax_ho()
 {
   // jumps in bx, by, and bz; checking all three directions
   double vl[9] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.5, 0.2, 0.0};
@@ -223,7 +223,7 @@ test_glm_mhd_qfluct_lax()
 }
 
 void
-test_glm_mhd_qfluct_roe()
+test_glm_mhd_qfluct_roe_ho()
 {
   // no jump in bx
   double vl[9] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.5, 0.2, 0.0};
@@ -237,7 +237,7 @@ test_glm_mhd_qfluct_roe()
 }
 
 void
-test_glm_mhd_qfluct_hlld()
+test_glm_mhd_qfluct_hlld_ho()
 {
   // no jump in bx
   double vl[9] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.5, 0.2, 0.0};
@@ -251,12 +251,12 @@ test_glm_mhd_qfluct_hlld()
 }
 
 TEST_LIST = {
-  {"mhd_basic", test_mhd_basic},
-  {"mhd_qfluct_lax", test_mhd_qfluct_lax},
-  {"mhd_qfluct_roe", test_mhd_qfluct_roe},
-  {"mhd_qfluct_hlld", test_mhd_qfluct_hlld},
-  {"glm_mhd_qfluct_lax", test_glm_mhd_qfluct_lax},
-  {"glm_mhd_qfluct_roe", test_glm_mhd_qfluct_roe},
-  {"glm_mhd_qfluct_hlld", test_glm_mhd_qfluct_hlld},
+  {"mhd_basic_ho", test_mhd_basic_ho},
+  {"mhd_qfluct_lax_ho", test_mhd_qfluct_lax_ho},
+  {"mhd_qfluct_roe_ho", test_mhd_qfluct_roe_ho},
+  {"mhd_qfluct_hlld_ho", test_mhd_qfluct_hlld_ho},
+  {"glm_mhd_qfluct_lax_ho", test_glm_mhd_qfluct_lax_ho},
+  {"glm_mhd_qfluct_roe_ho", test_glm_mhd_qfluct_roe_ho},
+  {"glm_mhd_qfluct_hlld_ho", test_glm_mhd_qfluct_hlld_ho},
   {NULL, NULL},
 };

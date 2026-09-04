@@ -56,7 +56,7 @@ eval_parabola_3x(double t, const double *xn, double *restrict fout, void *ctx)
 }
 
 void
-test_ambi_bolt_init_1x()
+test_ambi_bolt_init_1x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -94,7 +94,7 @@ test_ambi_bolt_init_1x()
 }
 
 void
-test_ambi_bolt_sheath_calc_1x()
+test_ambi_bolt_sheath_calc_1x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -204,7 +204,7 @@ test_ambi_bolt_sheath_calc_1x()
 }
 
 void
-test_ambi_bolt_phi_calc_1x()
+test_ambi_bolt_phi_calc_1x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -299,7 +299,7 @@ test_ambi_bolt_phi_calc_1x()
 }
 
 void
-test_ambi_bolt_sheath_calc_1x_hat()
+test_ambi_bolt_sheath_calc_1x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -410,7 +410,7 @@ test_ambi_bolt_sheath_calc_1x_hat()
 }
 
 void
-test_ambi_bolt_phi_calc_1x_hat()
+test_ambi_bolt_phi_calc_1x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0}, upper[] = {1.0};
@@ -509,7 +509,7 @@ test_ambi_bolt_phi_calc_1x_hat()
 }
 
 void
-test_ambi_bolt_init_2x()
+test_ambi_bolt_init_2x_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -548,7 +548,7 @@ test_ambi_bolt_init_2x()
 }
 
 void
-test_ambi_bolt_sheath_calc_2x_one()
+test_ambi_bolt_sheath_calc_2x_one_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -660,7 +660,7 @@ test_ambi_bolt_sheath_calc_2x_one()
 }
 
 void
-test_ambi_bolt_sheath_calc_2x_hat()
+test_ambi_bolt_sheath_calc_2x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -775,7 +775,7 @@ test_ambi_bolt_sheath_calc_2x_hat()
 }
 
 void
-test_ambi_bolt_sheath_calc_2x_ramp_sheath()
+test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -892,7 +892,7 @@ test_ambi_bolt_sheath_calc_2x_ramp_sheath()
 }
 
 void
-test_ambi_bolt_phi_calc_2x_one()
+test_ambi_bolt_phi_calc_2x_one_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -990,7 +990,7 @@ test_ambi_bolt_phi_calc_2x_one()
 }
 
 void
-test_ambi_bolt_phi_calc_2x_hat()
+test_ambi_bolt_phi_calc_2x_hat_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -1090,7 +1090,7 @@ test_ambi_bolt_phi_calc_2x_hat()
 }
 
 void
-test_ambi_bolt_phi_calc_2x_ramp()
+test_ambi_bolt_phi_calc_2x_ramp_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -1190,7 +1190,7 @@ test_ambi_bolt_phi_calc_2x_ramp()
 }
 
 void
-test_ambi_bolt_phi_calc_2x_parabola()
+test_ambi_bolt_phi_calc_2x_parabola_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0}, upper[] = {1.0, 1.0};
@@ -1296,7 +1296,7 @@ test_ambi_bolt_phi_calc_2x_parabola()
 }
 
 void
-test_ambi_bolt_phi_calc_3x_one()
+test_ambi_bolt_phi_calc_3x_one_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
@@ -1406,7 +1406,7 @@ test_ambi_bolt_phi_calc_3x_one()
 }
 
 void
-test_ambi_bolt_phi_calc_3x_parabola()
+test_ambi_bolt_phi_calc_3x_parabola_ho()
 {
   int poly_order = 1;
   double lower[] = {-1.0, -1.0, -1.0}, upper[] = {1.0, 1.0, 1.0};
@@ -1513,20 +1513,20 @@ test_ambi_bolt_phi_calc_3x_parabola()
 }
 
 TEST_LIST = {
-  {"test_ambi_bolt_init_1x", test_ambi_bolt_init_1x},
-  {"test_ambi_bolt_sheath_calc_1x", test_ambi_bolt_sheath_calc_1x},
-  {"test_ambi_bolt_phi_calc_1x", test_ambi_bolt_phi_calc_1x},
-  {"test_ambi_bolt_sheath_calc_1x_hat", test_ambi_bolt_sheath_calc_1x_hat},
-  {"test_ambi_bolt_phi_calc_1x_hat", test_ambi_bolt_phi_calc_1x_hat},
-  {"test_ambi_bolt_init_2x", test_ambi_bolt_init_2x},
-  {"test_ambi_bolt_sheath_calc_2x_one", test_ambi_bolt_sheath_calc_2x_one},
-  {"test_ambi_bolt_sheath_calc_2x_hat", test_ambi_bolt_sheath_calc_2x_hat},
-  {"test_ambi_bolt_sheath_calc_2x_ramp_sheath", test_ambi_bolt_sheath_calc_2x_ramp_sheath},
-  {"test_ambi_bolt_phi_calc_2x_one", test_ambi_bolt_phi_calc_2x_one},
-  {"test_ambi_bolt_phi_calc_2x_hat", test_ambi_bolt_phi_calc_2x_hat},
-  {"test_ambi_bolt_phi_calc_2x_ramp", test_ambi_bolt_phi_calc_2x_ramp},
-  {"test_ambi_bolt_phi_calc_2x_parabola", test_ambi_bolt_phi_calc_2x_parabola},
-  {"test_ambi_bolt_phi_calc_3x_one", test_ambi_bolt_phi_calc_3x_one},
-  {"test_ambi_bolt_phi_calc_3x_parabola", test_ambi_bolt_phi_calc_3x_parabola},
+  {"test_ambi_bolt_init_1x_ho", test_ambi_bolt_init_1x_ho},
+  {"test_ambi_bolt_sheath_calc_1x_ho", test_ambi_bolt_sheath_calc_1x_ho},
+  {"test_ambi_bolt_phi_calc_1x_ho", test_ambi_bolt_phi_calc_1x_ho},
+  {"test_ambi_bolt_sheath_calc_1x_hat_ho", test_ambi_bolt_sheath_calc_1x_hat_ho},
+  {"test_ambi_bolt_phi_calc_1x_hat_ho", test_ambi_bolt_phi_calc_1x_hat_ho},
+  {"test_ambi_bolt_init_2x_ho", test_ambi_bolt_init_2x_ho},
+  {"test_ambi_bolt_sheath_calc_2x_one_ho", test_ambi_bolt_sheath_calc_2x_one_ho},
+  {"test_ambi_bolt_sheath_calc_2x_hat_ho", test_ambi_bolt_sheath_calc_2x_hat_ho},
+  {"test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho", test_ambi_bolt_sheath_calc_2x_ramp_sheath_ho},
+  {"test_ambi_bolt_phi_calc_2x_one_ho", test_ambi_bolt_phi_calc_2x_one_ho},
+  {"test_ambi_bolt_phi_calc_2x_hat_ho", test_ambi_bolt_phi_calc_2x_hat_ho},
+  {"test_ambi_bolt_phi_calc_2x_ramp_ho", test_ambi_bolt_phi_calc_2x_ramp_ho},
+  {"test_ambi_bolt_phi_calc_2x_parabola_ho", test_ambi_bolt_phi_calc_2x_parabola_ho},
+  {"test_ambi_bolt_phi_calc_3x_one_ho", test_ambi_bolt_phi_calc_3x_one_ho},
+  {"test_ambi_bolt_phi_calc_3x_parabola_ho", test_ambi_bolt_phi_calc_3x_parabola_ho},
   {NULL, NULL},
 };

@@ -412,24 +412,24 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 }
 
 void
-test_1x2v_p1_gk_ho()
+test_loss_cone_mask_1x2v_p1_gk_ho()
 {
   test_1x2v_gk(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 void
-test_1x2v_p1_gk_dev()
+test_loss_cone_mask_1x2v_p1_gk_dev()
 {
   test_1x2v_gk(1, true);
 }
 #endif
 
 TEST_LIST = {
-  {"test_1x2v_p1_gk_ho", test_1x2v_p1_gk_ho},
+  {"test_loss_cone_mask_1x2v_p1_gk_ho", test_loss_cone_mask_1x2v_p1_gk_ho},
 
 #ifdef GKYL_HAVE_CUDA
-  {"test_1x2v_p1_gk_dev", test_1x2v_p1_gk_dev},
+  {"test_loss_cone_mask_1x2v_p1_gk_dev", test_loss_cone_mask_1x2v_p1_gk_dev},
 #endif
   {NULL, NULL},
 };

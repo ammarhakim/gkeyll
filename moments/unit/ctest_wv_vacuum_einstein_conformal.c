@@ -7,7 +7,7 @@
 #include <gkyl_gr_blackhole.h>
 
 void
-test_vacuum_einstein_conformal_basic_minkowski()
+test_vacuum_einstein_conformal_basic_minkowski_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING;
@@ -593,7 +593,7 @@ test_vacuum_einstein_conformal_basic_minkowski()
 }
 
 void
-test_vacuum_einstein_conformal_basic_schwarzschild()
+test_vacuum_einstein_conformal_basic_schwarzschild_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -1190,7 +1190,7 @@ test_vacuum_einstein_conformal_basic_schwarzschild()
 }
 
 void
-test_vacuum_einstein_conformal_waves_schwarzschild()
+test_vacuum_einstein_conformal_waves_schwarzschild_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -1783,7 +1783,7 @@ test_vacuum_einstein_conformal_waves_schwarzschild()
 }
 
 void
-test_vacuum_einstein_conformal_waves_kerr()
+test_vacuum_einstein_conformal_waves_kerr_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -2376,11 +2376,12 @@ test_vacuum_einstein_conformal_waves_kerr()
 }
 
 TEST_LIST = {
-  {"vacuum_einstein_conformal_basic_minkowski", test_vacuum_einstein_conformal_basic_minkowski},
-  {"vacuum_einstein_conformal_basic_schwarzschild",
-    test_vacuum_einstein_conformal_basic_schwarzschild},
-  {"vacuum_einstein_conformal_waves_schwarzschild",
-    test_vacuum_einstein_conformal_waves_schwarzschild},
-  {"vacuum_einstein_conformal_waves_kerr", test_vacuum_einstein_conformal_waves_kerr},
+  {"vacuum_einstein_conformal_basic_minkowski_ho",
+    test_vacuum_einstein_conformal_basic_minkowski_ho},
+  {"vacuum_einstein_conformal_basic_schwarzschild_ho",
+    test_vacuum_einstein_conformal_basic_schwarzschild_ho},
+  {"vacuum_einstein_conformal_waves_schwarzschild_ho",
+    test_vacuum_einstein_conformal_waves_schwarzschild_ho},
+  {"vacuum_einstein_conformal_waves_kerr_ho", test_vacuum_einstein_conformal_waves_kerr_ho},
   {NULL, NULL},
 };

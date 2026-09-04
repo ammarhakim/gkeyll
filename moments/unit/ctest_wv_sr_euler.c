@@ -18,7 +18,7 @@ calcq(double gas_gamma, const double pv[5], double q[5])
 }
 
 void
-test_sr_euler_prim1()
+test_sr_euler_prim1_ho()
 {
   double gas_gamma = 1.333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -87,7 +87,7 @@ test_sr_euler_prim1()
 }
 
 void
-test_sr_euler_waves()
+test_sr_euler_waves_ho()
 {
   double gas_gamma = 1.333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -145,7 +145,7 @@ test_sr_euler_waves()
 }
 
 void
-test_sr_euler_waves2()
+test_sr_euler_waves2_ho()
 {
   double gas_gamma = 1.3333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -203,8 +203,8 @@ test_sr_euler_waves2()
 }
 
 TEST_LIST = {
-  {"euler_sr_prim1", test_sr_euler_prim1},
-  {"test_sr_euler_waves", test_sr_euler_waves},
-  {"test_sr_euler_waves2", test_sr_euler_waves2},
+  {"sr_euler_prim1_ho", test_sr_euler_prim1_ho},
+  {"test_sr_euler_waves_ho", test_sr_euler_waves_ho},
+  {"test_sr_euler_waves2_ho", test_sr_euler_waves2_ho},
   {NULL, NULL},
 };

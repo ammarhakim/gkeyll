@@ -82,7 +82,7 @@ write_geometry(
 }
 
 void
-test_load_geometry()
+test_mirror_load_geometry_ho()
 {
   struct gkyl_efit_inp inp = {
     // psiRZ and related inputs
@@ -230,7 +230,7 @@ bmag_func(double t, const double *xn, double *GKYL_RESTRICT fout, void *ctx)
 }
 
 void
-test_3x_p1_straight_cylinder()
+test_mirror_3x_p1_straight_cylinder_ho()
 {
   // Very similar to the unit test in ctest_gk_geometry.c
   // The geometry is created to extend from Z = -1 to 1, R = (0.001, 1) in units meters
@@ -1004,7 +1004,7 @@ exact_normals_pmap(double t, const double *xn, double *GKYL_RESTRICT fout, void 
 }
 
 void
-test_3x_p1_pmap_straight_cylinder()
+test_mirror_3x_p1_pmap_straight_cylinder_ho()
 {
   // Same as the above test, but using a quadratic position map
   struct gkyl_basis basis;
@@ -1481,8 +1481,8 @@ test_3x_p1_pmap_straight_cylinder()
 }
 
 TEST_LIST = {
-  {"test_load_geometry", test_load_geometry},
-  {"test_3x_p1_straight_cylinder", test_3x_p1_straight_cylinder},
-  // { "test_3x_p1_pmap_straight_cylinder", test_3x_p1_pmap_straight_cylinder },
+  {"test_mirror_load_geometry_ho", test_mirror_load_geometry_ho},
+  {"test_mirror_3x_p1_straight_cylinder_ho", test_mirror_3x_p1_straight_cylinder_ho},
+  // { "test_mirror_3x_p1_pmap_straight_cylinder_ho", test_mirror_3x_p1_pmap_straight_cylinder_ho },
   {NULL, NULL},
 };

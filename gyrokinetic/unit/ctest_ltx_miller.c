@@ -95,7 +95,7 @@ struct gkyl_rect_grid cgrid;
 struct gkyl_range clocal, clocal_ext;
 
 void
-test_ltx_miller()
+test_ltx_miller_ho()
 {
   clock_t start, end;
   double cpu_time_used;
@@ -153,6 +153,6 @@ test_ltx_miller()
 }
 
 TEST_LIST = {
-  {"test_ltx_miller", test_ltx_miller},
+  {"test_ltx_miller_ho", test_ltx_miller_ho},
   {NULL, NULL},
 };

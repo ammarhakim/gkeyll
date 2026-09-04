@@ -7,7 +7,7 @@
 
 // This test is intended to verify: verify: h^ij h_jk = \delta^i_k = \delta_i^k raised in place
 void
-test_tensor_field_raise_idx_in_place()
+test_tensor_field_raise_idx_in_place_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -77,7 +77,7 @@ test_tensor_field_raise_idx_in_place()
 
 // This test is intended to verify: h_ij h^jk = \delta_i^k raised in place
 void
-test_tensor_field_lower_idx_in_place()
+test_tensor_field_lower_idx_in_place_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -147,7 +147,7 @@ test_tensor_field_lower_idx_in_place()
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised in place
 // Tests a denser, but still symmetric A, multiplication
 void
-test_tensor_field_lower_idx_in_place_2()
+test_tensor_field_lower_idx_in_place_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -249,7 +249,7 @@ test_tensor_field_lower_idx_in_place_2()
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised in place
 // Tests a denser, asymmetric A, multiplication
 void
-test_tensor_field_raise_idx_in_place_2()
+test_tensor_field_raise_idx_in_place_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -350,7 +350,7 @@ test_tensor_field_raise_idx_in_place_2()
 
 // This test is intended to verify: verify: h^ij h_jk = \delta^i_k = \delta_i^k raised, set
 void
-test_tensor_field_raise_idx_set()
+test_tensor_field_raise_idx_set_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -422,7 +422,7 @@ test_tensor_field_raise_idx_set()
 
 // This test is intended to verify: h_ij h^jk = \delta_i^k loweredå, set
 void
-test_tensor_field_lower_idx_set()
+test_tensor_field_lower_idx_set_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -494,7 +494,7 @@ test_tensor_field_lower_idx_set()
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised and set
 // Tests a denser, but still symmetric A, multiplication
 void
-test_tensor_field_lower_idx_set_2()
+test_tensor_field_lower_idx_set_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -598,7 +598,7 @@ test_tensor_field_lower_idx_set_2()
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised, set
 // Tests a denser, asymmetric A, multiplication
 void
-test_tensor_field_raise_idx_set_2()
+test_tensor_field_raise_idx_set_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -706,7 +706,7 @@ test_tensor_field_raise_idx_set_2()
 // This test is intended to verify: A_ij A^jk = \delta_i^k lowered and set
 // Tests a denser, asymmetric A, multiplication
 void
-test_cu_tensor_field_lower_idx_set()
+test_tensor_field_lower_idx_set_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -851,7 +851,7 @@ test_cu_tensor_field_lower_idx_set()
 }
 
 void
-test_cu_tensor_field_raise_idx_set()
+test_tensor_field_raise_idx_set_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -997,7 +997,7 @@ test_cu_tensor_field_raise_idx_set()
 // This test is intended to verify: A_ij A^jk = \delta_i^k lowered and in place
 // Tests a denser, asymmetric A, multiplication
 void
-test_cu_tensor_field_lower_idx_in_place()
+test_tensor_field_lower_idx_in_place_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -1192,7 +1192,7 @@ test_cu_tensor_field_lower_idx_in_place()
 }
 
 void
-test_cu_tensor_field_raise_idx_in_place()
+test_tensor_field_raise_idx_in_place_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -1336,19 +1336,19 @@ test_cu_tensor_field_raise_idx_in_place()
 #endif
 
 TEST_LIST = {
-  {"test_tensor_field_raise_idx_in_place", test_tensor_field_raise_idx_in_place},
-  {"test_tensor_field_lower_idx_in_place", test_tensor_field_lower_idx_in_place},
-  {"test_tensor_field_lower_idx_in_place_2", test_tensor_field_lower_idx_in_place_2},
-  {"test_tensor_field_raise_idx_in_place_2", test_tensor_field_raise_idx_in_place_2},
-  {"test_tensor_field_raise_idx_set", test_tensor_field_raise_idx_set},
-  {"test_tensor_field_lower_idx_set", test_tensor_field_lower_idx_set},
-  {"test_tensor_field_lower_idx_set_2", test_tensor_field_lower_idx_set_2},
-  {"test_tensor_field_raise_idx_set_2", test_tensor_field_raise_idx_set_2},
+  {"test_tensor_field_raise_idx_in_place_ho", test_tensor_field_raise_idx_in_place_ho},
+  {"test_tensor_field_lower_idx_in_place_ho", test_tensor_field_lower_idx_in_place_ho},
+  {"test_tensor_field_lower_idx_in_place_2_ho", test_tensor_field_lower_idx_in_place_2_ho},
+  {"test_tensor_field_raise_idx_in_place_2_ho", test_tensor_field_raise_idx_in_place_2_ho},
+  {"test_tensor_field_raise_idx_set_ho", test_tensor_field_raise_idx_set_ho},
+  {"test_tensor_field_lower_idx_set_ho", test_tensor_field_lower_idx_set_ho},
+  {"test_tensor_field_lower_idx_set_2_ho", test_tensor_field_lower_idx_set_2_ho},
+  {"test_tensor_field_raise_idx_set_2_ho", test_tensor_field_raise_idx_set_2_ho},
 #ifdef GKYL_HAVE_CUDA
-  {"cu_tensor_field_lower_idx_in_place", test_cu_tensor_field_lower_idx_in_place},
-  {"cu_tensor_field_raise_idx_in_place", test_cu_tensor_field_raise_idx_in_place},
-  {"cu_tensor_field_lower_idx_set", test_cu_tensor_field_lower_idx_set},
-  {"cu_tensor_field_raise_idx_set", test_cu_tensor_field_raise_idx_set},
+  {"tensor_field_lower_idx_in_place_dev", test_tensor_field_lower_idx_in_place_dev},
+  {"tensor_field_raise_idx_in_place_dev", test_tensor_field_raise_idx_in_place_dev},
+  {"tensor_field_lower_idx_set_dev", test_tensor_field_lower_idx_set_dev},
+  {"tensor_field_raise_idx_set_dev", test_tensor_field_raise_idx_set_dev},
 #endif
   {NULL, NULL},
 };

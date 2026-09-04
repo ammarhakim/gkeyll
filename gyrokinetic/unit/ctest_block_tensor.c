@@ -108,7 +108,7 @@ test_cartesian_2x_onecell()
 }
 
 void
-test_cartesian_2x_z()
+test_block_tensor_cartesian_2x_z_ho()
 {
   // Block 2 grid
   double lower2[] = {-1.0, 0.0}, upper2[] = {1.0, 1.0};
@@ -161,7 +161,7 @@ test_cartesian_2x_z()
 }
 
 void
-test_cartesian_2x_x()
+test_block_tensor_cartesian_2x_x_ho()
 {
   // Block 2 grid
   double lower2[] = {-1.0, 0.0}, upper2[] = {1.0, 1.0};
@@ -216,7 +216,7 @@ test_cartesian_2x_x()
 // Block 2 cartesian and block 1 is cylindrical
 // Make it such that the blocks line up
 void
-test_cyl_cart_2x_z()
+test_block_tensor_cyl_cart_2x_z_ho()
 {
   // Block 2 grid
   double lower2[] = {0.5, -1.0}, upper2[] = {1.0, 0.0};
@@ -326,8 +326,8 @@ test_cartesian_3x_onecell()
 }
 
 TEST_LIST = {
-  //{ "test_cartesian_2x_z", test_cartesian_2x_z},
-  //{ "test_cartesian_2x_x", test_cartesian_2x_x},
-  {"test_cyl_cart_2x_z", test_cyl_cart_2x_z},
+  //{ "test_block_tensor_cartesian_2x_z_ho", test_block_tensor_cartesian_2x_z_ho},
+  //{ "test_block_tensor_cartesian_2x_x_ho", test_block_tensor_cartesian_2x_x_ho},
+  {"test_block_tensor_cyl_cart_2x_z_ho", test_block_tensor_cyl_cart_2x_z_ho},
   {NULL, NULL},
 };

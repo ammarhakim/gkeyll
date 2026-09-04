@@ -223,7 +223,7 @@ test_1x1v_no_drift(int poly_order)
 }
 
 void
-test_1x1v_no_drift_p2()
+test_proj_mj_on_basis_1x1v_no_drift_p2_ho()
 {
   test_1x1v_no_drift(2);
 }
@@ -379,7 +379,7 @@ test_1x1v(int poly_order)
 
 // special note, the p1 basis does not function
 void
-test_1x1v_p2()
+test_proj_mj_on_basis_1x1v_p2_ho()
 {
   test_1x1v(2);
 }
@@ -515,7 +515,7 @@ test_1x2v(int poly_order)
 }
 
 void
-test_1x2v_p2()
+test_proj_mj_on_basis_1x2v_p2_ho()
 {
   test_1x2v(2);
 }
@@ -660,15 +660,15 @@ test_1x3v(int poly_order)
 }
 
 void
-test_1x3v_p2()
+test_proj_mj_on_basis_1x3v_p2_ho()
 {
   test_1x3v(2);
 }
 
 TEST_LIST = {
-  {"test_1x1v_no_drift_p2", test_1x1v_no_drift_p2},
-  {"test_1x1v_p2", test_1x1v_p2},
-  {"test_1x2v_p2", test_1x2v_p2},
-  {"test_1x3v_p2", test_1x3v_p2},
+  {"test_proj_mj_on_basis_1x1v_no_drift_p2_ho", test_proj_mj_on_basis_1x1v_no_drift_p2_ho},
+  {"test_proj_mj_on_basis_1x1v_p2_ho", test_proj_mj_on_basis_1x1v_p2_ho},
+  {"test_proj_mj_on_basis_1x2v_p2_ho", test_proj_mj_on_basis_1x2v_p2_ho},
+  {"test_proj_mj_on_basis_1x3v_p2_ho", test_proj_mj_on_basis_1x3v_p2_ho},
   {NULL, NULL},
 };

@@ -1037,7 +1037,7 @@ test_2x(int poly_order, const int *cells, struct gkyl_poisson_bc bcs, bool use_g
 }
 
 void
-test_2x_p1_dirichletx_periodicy()
+test_helmholtz_2x_p1_dirichletx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1051,7 +1051,7 @@ test_2x_p1_dirichletx_periodicy()
 }
 
 void
-test_2x_p2_dirichletx_periodicy()
+test_helmholtz_2x_p2_dirichletx_periodicy_ho()
 {
   int cells[] = {8, 8};
   struct gkyl_poisson_bc bc_tv;
@@ -1066,8 +1066,8 @@ test_2x_p2_dirichletx_periodicy()
 
 TEST_LIST = {
   // 2x tests
-  {"test_2x_p1_dirichletx_periodicy", test_2x_p1_dirichletx_periodicy},
-  {"test_2x_p2_dirichletx_periodicy", test_2x_p2_dirichletx_periodicy},
+  {"test_helmholtz_2x_p1_dirichletx_periodicy_ho", test_helmholtz_2x_p1_dirichletx_periodicy_ho},
+  {"test_helmholtz_2x_p2_dirichletx_periodicy_ho", test_helmholtz_2x_p2_dirichletx_periodicy_ho},
 #ifdef GKYL_HAVE_CUDA
 #endif
   {NULL, NULL},
