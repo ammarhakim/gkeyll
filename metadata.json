@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.10.4",
+  "checkpoint_id": "01M1PJFZ062E1B910297FAR1QA",
+  "strategy": "manual-commit",
+  "branch": "agent_tools-clang_format",
+  "checkpoints_count": 5,
+  "files_touched": [
+    ".agents/skills/code_style/SKILL.md",
+    ".clang-format",
+    ".pre-commit-config.yaml",
+    "dev/format-all.sh"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 190,
+    "cache_creation_tokens": 554666,
+    "cache_read_tokens": 9844402,
+    "output_tokens": 68623,
+    "api_call_count": 95,
+    "subagent_tokens": {
+      "input_tokens": 36,
+      "cache_creation_tokens": 117991,
+      "cache_read_tokens": 431566,
+      "output_tokens": 15311,
+      "api_call_count": 18
+    }
+  }
+}
