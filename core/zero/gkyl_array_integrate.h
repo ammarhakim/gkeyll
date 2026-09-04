@@ -9,13 +9,13 @@
 typedef struct gkyl_array_integrate gkyl_array_integrate;
 
 enum gkyl_array_integrate_op {
-  GKYL_ARRAY_INTEGRATE_OP_NONE = 0,  // int dx f
-  GKYL_ARRAY_INTEGRATE_OP_ABS,  // int dx |f|
-  GKYL_ARRAY_INTEGRATE_OP_SQ,  // int dx f^2
-  GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED,  // int dx w * f^2
-  GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ,  // int dx |nabla f|^2
-  GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ,  // int dx |nabla_perp f|^2
-  GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ,  // int dx epsilon*|nabla_perp f|^2
+  GKYL_ARRAY_INTEGRATE_OP_NONE = 0, // int dx f
+  GKYL_ARRAY_INTEGRATE_OP_ABS, // int dx |f|
+  GKYL_ARRAY_INTEGRATE_OP_SQ, // int dx f^2
+  GKYL_ARRAY_INTEGRATE_OP_SQ_WEIGHTED, // int dx w * f^2
+  GKYL_ARRAY_INTEGRATE_OP_GRAD_SQ, // int dx |nabla f|^2
+  GKYL_ARRAY_INTEGRATE_OP_GRADPERP_SQ, // int dx |nabla_perp f|^2
+  GKYL_ARRAY_INTEGRATE_OP_EPS_GRADPERP_SQ, // int dx epsilon*|nabla_perp f|^2
 };
 
 /**
@@ -28,9 +28,8 @@ enum gkyl_array_integrate_op {
  * @param op Additional operator to apply in very cell.
  * @param use_gpu Indicate whether to perform integral on the device.
  */
-struct gkyl_array_integrate*
-gkyl_array_integrate_new(const struct gkyl_rect_grid* grid, const struct gkyl_basis* basis,
-  int num_comp, enum gkyl_array_integrate_op op, bool use_gpu);
+struct gkyl_array_integrate *gkyl_array_integrate_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_basis *basis, int num_comp, enum gkyl_array_integrate_op op, bool use_gpu);
 
 /**
  * Compute the array integral.

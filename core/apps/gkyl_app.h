@@ -26,7 +26,7 @@ struct gkyl_app_comm_low_inp {
 // BC for blocks
 struct gkyl_block_physical_bcs {
   int bidx; // block index
-  int dir;  // direction in which BC is specified
+  int dir; // direction in which BC is specified
   enum gkyl_edge_loc edge; // which edge this BC is for
   int bc_type; // BC code
 };

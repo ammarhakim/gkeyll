@@ -2,9 +2,9 @@
 #include <gkyl_gyrokinetic_pol_density_priv.h>
 #include <gkyl_alloc.h>
 
-struct gkyl_gyrokinetic_pol_density*
-gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis, struct gkyl_rect_grid cgrid,
-  bool use_gpu)
+struct gkyl_gyrokinetic_pol_density *
+gkyl_gyrokinetic_pol_density_new(
+  struct gkyl_basis cbasis, struct gkyl_rect_grid cgrid, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_gyrokinetic_pol_density *up = gkyl_malloc(sizeof(*up));
@@ -29,7 +29,7 @@ gkyl_gyrokinetic_pol_density_new(struct gkyl_basis cbasis, struct gkyl_rect_grid
 }
 
 void
-gkyl_gyrokinetic_pol_density_advance(gkyl_gyrokinetic_pol_density* up,
+gkyl_gyrokinetic_pol_density_advance(gkyl_gyrokinetic_pol_density *up,
   const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT pol_weight,
   const struct gkyl_array *GKYL_RESTRICT phi, struct gkyl_array *GKYL_RESTRICT npol)
 {
@@ -51,11 +51,10 @@ gkyl_gyrokinetic_pol_density_advance(gkyl_gyrokinetic_pol_density* up,
 
     up->kernels->pol_den(up->grid.dx, pol_weight_d, phi_d, npol_d);
   }
-
 }
 
 void
-gkyl_gyrokinetic_pol_density_release(gkyl_gyrokinetic_pol_density* up)
+gkyl_gyrokinetic_pol_density_release(gkyl_gyrokinetic_pol_density *up)
 {
   // Release memory associated with this updater.
   if (!up->use_gpu) {

@@ -19,8 +19,8 @@ typedef struct gkyl_calc_metric_mirror gkyl_calc_metric_mirror;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_calc_metric_mirror* gkyl_calc_metric_mirror_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_rect_grid *grid, const struct gkyl_range *local, 
+gkyl_calc_metric_mirror *gkyl_calc_metric_mirror_new(const struct gkyl_basis *cbasis,
+  const struct gkyl_rect_grid *grid, const struct gkyl_range *local,
   const struct gkyl_range *local_ext, bool use_gpu);
 
 /**
@@ -32,7 +32,8 @@ gkyl_calc_metric_mirror* gkyl_calc_metric_mirror_new(const struct gkyl_basis *cb
  * @param gk_geom gk_geom objet to be populated
  * @param mirror_grid mirr_grid object with coordinates, tangents, duals, Jc, and B at nodes
  */
-void gkyl_calc_metric_mirror_advance(gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid);
+void gkyl_calc_metric_mirror_advance(gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom,
+  struct gkyl_mirror_grid_gen *mirror_grid);
 
 /**
  * calculate metric coefficients and jacobian at 
@@ -44,7 +45,8 @@ void gkyl_calc_metric_mirror_advance(gkyl_calc_metric_mirror *up, struct gk_geom
  * @param gk_geom gk_geom objet to be populated
  * @param mirror_grid mirr_grid object with coordinates, tangents, duals, Jc, and B at nodes
  */
-void gkyl_calc_metric_mirror_advance_interior(gkyl_calc_metric_mirror *up, struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid);
+void gkyl_calc_metric_mirror_advance_interior(gkyl_calc_metric_mirror *up,
+  struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid);
 
 /**
  * Use finite differences to calculate metric coefficients and jacobian at 
@@ -57,11 +59,12 @@ void gkyl_calc_metric_mirror_advance_interior(gkyl_calc_metric_mirror *up, struc
  * @param gk_geom gk_geom objet to be populated
  * @param mirror_grid mirr_grid object with coordinates, tangents, duals, Jc, and B at nodes
  */
-void gkyl_calc_metric_mirror_advance_surface( gkyl_calc_metric_mirror *up, int dir, struct gk_geometry* gk_geom, struct gkyl_mirror_grid_gen *mirror_grid);
+void gkyl_calc_metric_mirror_advance_surface(gkyl_calc_metric_mirror *up, int dir,
+  struct gk_geometry *gk_geom, struct gkyl_mirror_grid_gen *mirror_grid);
 
 /**
  * Delete updater.
  *
  * @param up Updater to delete.
  */
-void gkyl_calc_metric_mirror_release(gkyl_calc_metric_mirror* up);
+void gkyl_calc_metric_mirror_release(gkyl_calc_metric_mirror *up);

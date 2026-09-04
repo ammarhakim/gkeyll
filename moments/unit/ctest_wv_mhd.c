@@ -4,7 +4,9 @@
 #include <gkyl_wv_mhd.h>
 #include <math.h>
 
-void calcq(double gas_gamma, const double *pv, double *q) {
+void
+calcq(double gas_gamma, const double *pv, double *q)
+{
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
   q[0] = rho;
   q[1] = rho * u;
@@ -13,18 +15,19 @@ void calcq(double gas_gamma, const double *pv, double *q) {
   q[5] = pv[5];
   q[6] = pv[6];
   q[7] = pv[7]; // B field
-  double pb = 0.5 * (pv[5] * pv[5] + pv[6] * pv[6] +
-                        pv[7] * pv[7]); // magnetic pressure
+  double pb = 0.5 * (pv[5] * pv[5] + pv[6] * pv[6] + pv[7] * pv[7]); // magnetic pressure
   q[4] = pr / (gas_gamma - 1) + 0.5 * rho * (u * u + v * v + w * w) + pb;
 }
 
 /**************************************/
 /* CHECK FLUX FUNCTION IMPLEMENTATION */
 /**************************************/
-void test_mhd_basic() {
+void
+test_mhd_basic()
+{
   double gas_gamma = 1.4;
-  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(&(struct gkyl_wv_mhd_inp){
-      .gas_gamma = gas_gamma, .divergence_constraint = GKYL_MHD_DIVB_NONE});
+  struct gkyl_wv_eqn *mhd = gkyl_wv_mhd_new(
+    &(struct gkyl_wv_mhd_inp){.gas_gamma = gas_gamma, .divergence_constraint = GKYL_MHD_DIVB_NONE});
 
   TEST_CHECK(mhd->num_equations == 8);
   TEST_CHECK(mhd->num_waves == 7);
@@ -38,15 +41,12 @@ void test_mhd_basic() {
   double E = q[4];
 
   double fluxes[3][8] = {
-      {rho * u, rho * u * u - bx * bx + pr + pb, rho * u * v - bx * by,
-          rho * u * w - bx * bz, (E + pr + pb) * u - bx * u_dot_b, 0.0,
-          u * by - v * bx, u * bz - w * bx},
-      {rho * v, rho * v * u - bx * by, rho * v * v - by * by + pr + pb,
-          rho * v * w - by * bz, (E + pr + pb) * v - by * u_dot_b,
-          v * bx - u * by, 0.0, v * bz - w * by},
-      {rho * w, rho * w * u - bx * bz, rho * w * v - by * bz,
-          rho * w * w - bz * bz + pr + pb, (E + pr + pb) * w - bz * u_dot_b,
-          w * bx - u * bz, w * by - v * bz, 0.0},
+    {rho * u, rho * u * u - bx * bx + pr + pb, rho * u * v - bx * by, rho * u * w - bx * bz,
+      (E + pr + pb) * u - bx * u_dot_b, 0.0, u * by - v * bx, u * bz - w * bx},
+    {rho * v, rho * v * u - bx * by, rho * v * v - by * by + pr + pb, rho * v * w - by * bz,
+      (E + pr + pb) * v - by * u_dot_b, v * bx - u * by, 0.0, v * bz - w * by},
+    {rho * w, rho * w * u - bx * bz, rho * w * v - by * bz, rho * w * w - bz * bz + pr + pb,
+      (E + pr + pb) * w - bz * u_dot_b, w * bx - u * bz, w * by - v * bz, 0.0},
   };
 
   double norm[3][3] = {{1.0, 0.0, 0.0}, {0.0, 1.0, 0.0}, {0.0, 0.0, 1.0}};
@@ -90,16 +90,15 @@ void test_mhd_basic() {
 /*********************************************************************/
 /* CHECK IF SUM OF LEFT/RIGHT GOING FLUCTUATIONS SUM TO JUMP IN FLUX */
 /*********************************************************************/
-void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type,
-    enum gkyl_wv_flux_type ftype, enum gkyl_wv_mhd_div_constraint divb,
-    const double vl[], const double vr[], const int d, const double eps) {
+void
+do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type, enum gkyl_wv_flux_type ftype,
+  enum gkyl_wv_mhd_div_constraint divb, const double vl[], const double vr[], const int d,
+  const double eps)
+{
   double gas_gamma = 5.0 / 3.0;
   double ch = 1.2345;
-  struct gkyl_wv_eqn *eqn =
-      gkyl_wv_mhd_new(&(struct gkyl_wv_mhd_inp){.rp_type = rp_type,
-          .gas_gamma = gas_gamma,
-          .divergence_constraint = divb,
-          .glm_ch = ch});
+  struct gkyl_wv_eqn *eqn = gkyl_wv_mhd_new(&(struct gkyl_wv_mhd_inp){
+    .rp_type = rp_type, .gas_gamma = gas_gamma, .divergence_constraint = divb, .glm_ch = ch});
 
   int meq = eqn->num_equations;
   int mwv = eqn->num_waves;
@@ -133,8 +132,8 @@ void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type,
   gkyl_wv_eqn_waves(eqn, ftype, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
 
   // compute left/right-going fluctuations in local frame
-  gkyl_wv_eqn_qfluct(eqn, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds,
-      amdq_local, apdq_local);
+  gkyl_wv_eqn_qfluct(
+    eqn, ftype, ql_local, qr_local, 1.0, 1.0, waves_local, speeds, amdq_local, apdq_local);
 
   // compute fluxes in local frame
   if (divb == GKYL_MHD_DIVB_GLM) {
@@ -147,14 +146,12 @@ void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type,
 
   // rotate local-frame waves back to global frame
   for (int mw = 0; mw < mwv; ++mw)
-    gkyl_wv_eqn_rotate_to_global(eqn, tau1[d], tau2[d], norm[d],
-        &waves_local[mw * meq], &waves[mw * meq]);
+    gkyl_wv_eqn_rotate_to_global(
+      eqn, tau1[d], tau2[d], norm[d], &waves_local[mw * meq], &waves[mw * meq]);
 
   // rotate local-frame fluctuations back to global frame
-  gkyl_wv_eqn_rotate_to_global(
-      eqn, tau1[d], tau2[d], norm[d], amdq_local, amdq);
-  gkyl_wv_eqn_rotate_to_global(
-      eqn, tau1[d], tau2[d], norm[d], apdq_local, apdq);
+  gkyl_wv_eqn_rotate_to_global(eqn, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+  gkyl_wv_eqn_rotate_to_global(eqn, tau1[d], tau2[d], norm[d], apdq_local, apdq);
 
   // rotate local-frame fluxes back to global frame
   gkyl_wv_eqn_rotate_to_global(eqn, tau1[d], tau2[d], norm[d], fl_local, fl);
@@ -164,13 +161,14 @@ void do_test_mhd_qfluct(enum gkyl_wv_mhd_rp rp_type,
   for (int i = 0; i < meq; ++i)
     TEST_CHECK(gkyl_compare(fr[i] - fl[i], amdq[i] + apdq[i], eps));
   for (int i = 0; i < meq; ++i)
-    TEST_CHECK(gkyl_compare(
-        fr_local[i] - fl_local[i], amdq_local[i] + apdq_local[i], eps));
+    TEST_CHECK(gkyl_compare(fr_local[i] - fl_local[i], amdq_local[i] + apdq_local[i], eps));
 
   gkyl_wv_eqn_release(eqn);
 }
 
-void test_mhd_qfluct_lax() {
+void
+test_mhd_qfluct_lax()
+{
   // jumps in bx, by, and bz; checking all three directions
   double vl[8] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.43, 0.3};
   double vr[8] = {1.1, 0.13, 0.25, 0.34, 15.0, 0.42, 0.4, -0.3};
@@ -182,7 +180,9 @@ void test_mhd_qfluct_lax() {
     do_test_mhd_qfluct(rp_type, ftype, divb, vl, vr, d, eps);
 }
 
-void test_mhd_qfluct_roe() {
+void
+test_mhd_qfluct_roe()
+{
   // no jump in bx
   double vl[8] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.4, 0.3};
   double vr[8] = {1.1, 0.13, 0.25, 0.34, 1.54, 0.4, 0.44, 0.34};
@@ -194,7 +194,9 @@ void test_mhd_qfluct_roe() {
   do_test_mhd_qfluct(WV_MHD_RP_ROE, ftype, divb, vl, vr, d, eps);
 }
 
-void test_mhd_qfluct_hlld() {
+void
+test_mhd_qfluct_hlld()
+{
   // no jump in bx
   double vl[8] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.4, 0.3};
   double vr[8] = {1.1, 0.13, 0.25, 0.34, 1.54, 0.4, 0.44, 0.34};
@@ -206,7 +208,9 @@ void test_mhd_qfluct_hlld() {
   do_test_mhd_qfluct(rp_type, ftype, divb, vl, vr, d, eps);
 }
 
-void test_glm_mhd_qfluct_lax() {
+void
+test_glm_mhd_qfluct_lax()
+{
   // jumps in bx, by, and bz; checking all three directions
   double vl[9] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.5, 0.2, 0.0};
   double vr[9] = {1.1, 0.13, 0.25, 0.34, 15.0, 0.42, 0.4, -0.3, 0.1};
@@ -218,7 +222,9 @@ void test_glm_mhd_qfluct_lax() {
     do_test_mhd_qfluct(rp_type, ftype, divb, vl, vr, d, eps);
 }
 
-void test_glm_mhd_qfluct_roe() {
+void
+test_glm_mhd_qfluct_roe()
+{
   // no jump in bx
   double vl[9] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.5, 0.2, 0.0};
   double vr[9] = {1.1, 0.13, 0.25, 0.34, 15.0, 0.4, 0.4, -0.3, 0.1};
@@ -230,7 +236,9 @@ void test_glm_mhd_qfluct_roe() {
   do_test_mhd_qfluct(rp_type, ftype, divb, vl, vr, d, eps);
 }
 
-void test_glm_mhd_qfluct_hlld() {
+void
+test_glm_mhd_qfluct_hlld()
+{
   // no jump in bx
   double vl[9] = {1.0, 0.1, 0.2, 0.3, 1.5, 0.4, 0.5, 0.2, 0.0};
   double vr[9] = {1.1, 0.13, 0.25, 0.34, 15.0, 0.4, 0.4, -0.3, 0.1};
@@ -243,12 +251,12 @@ void test_glm_mhd_qfluct_hlld() {
 }
 
 TEST_LIST = {
-    {"mhd_basic", test_mhd_basic},
-    {"mhd_qfluct_lax", test_mhd_qfluct_lax},
-    {"mhd_qfluct_roe", test_mhd_qfluct_roe},
-    {"mhd_qfluct_hlld", test_mhd_qfluct_hlld},
-    {"glm_mhd_qfluct_lax", test_glm_mhd_qfluct_lax},
-    {"glm_mhd_qfluct_roe", test_glm_mhd_qfluct_roe},
-    {"glm_mhd_qfluct_hlld", test_glm_mhd_qfluct_hlld},
-    {NULL, NULL},
+  {"mhd_basic", test_mhd_basic},
+  {"mhd_qfluct_lax", test_mhd_qfluct_lax},
+  {"mhd_qfluct_roe", test_mhd_qfluct_roe},
+  {"mhd_qfluct_hlld", test_mhd_qfluct_hlld},
+  {"glm_mhd_qfluct_lax", test_glm_mhd_qfluct_lax},
+  {"glm_mhd_qfluct_roe", test_glm_mhd_qfluct_roe},
+  {"glm_mhd_qfluct_hlld", test_glm_mhd_qfluct_hlld},
+  {NULL, NULL},
 };

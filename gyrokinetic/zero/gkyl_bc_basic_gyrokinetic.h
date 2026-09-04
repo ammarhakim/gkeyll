@@ -25,9 +25,10 @@ typedef struct gkyl_bc_basic_gyrokinetic gkyl_bc_basic_gyrokinetic;
  * @param use_gpu Boolean to indicate whether to use the GPU.
  * @return New updater pointer.
  */
-struct gkyl_bc_basic_gyrokinetic* gkyl_bc_basic_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
-  enum gkyl_gyrokinetic_bc_type bctype, const struct gkyl_basis *basis, const struct gkyl_range *skin_r,
-  const struct gkyl_range *ghost_r, int num_comp, int cdim, bool use_gpu);
+struct gkyl_bc_basic_gyrokinetic *gkyl_bc_basic_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
+  enum gkyl_gyrokinetic_bc_type bctype, const struct gkyl_basis *basis,
+  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, int num_comp, int cdim,
+  bool use_gpu);
 
 /**
  * Advance boundary conditions *in special case where buffer is fixed in time*. 

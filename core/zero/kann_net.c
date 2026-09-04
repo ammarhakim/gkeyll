@@ -39,7 +39,7 @@ kann_net_cache_dims(struct gkyl_kann_net *net)
   net->n_const = kann_size_const(net->ann);
 }
 
-struct gkyl_kann_net*
+struct gkyl_kann_net *
 gkyl_kann_net_new(kad_node_t *cost, bool use_gpu)
 {
   struct gkyl_kann_net *net = gkyl_malloc(sizeof(*net));
@@ -67,11 +67,12 @@ gkyl_kann_net_new(kad_node_t *cost, bool use_gpu)
   return net;
 }
 
-struct gkyl_kann_net*
+struct gkyl_kann_net *
 gkyl_kann_net_load(const char *filename, bool use_gpu)
 {
   kann_t *ann = kann_load(filename);
-  if (!ann) return 0;
+  if (!ann)
+    return 0;
 
   struct gkyl_kann_net *net = gkyl_malloc(sizeof(*net));
   net->ann = ann;
@@ -109,8 +110,7 @@ gkyl_kann_net_save(const struct gkyl_kann_net *net, const char *filename)
 // assembled on device via gather kernels.
 #ifdef GKYL_HAVE_CUDA
 static int
-kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
-  const struct gkyl_kann_train_params *params,
+kann_net_train_fnn1_cu(struct gkyl_kann_net *net, const struct gkyl_kann_train_params *params,
   const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
   kann_t *ann = net->ann;
@@ -121,7 +121,8 @@ kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
 
   // Lazily create GPU graph sized for this mini-batch
   if (!net->cg || net->cg->max_batch_size < mini_size) {
-    if (net->cg) kann_cu_graph_free(net->cg);
+    if (net->cg)
+      kann_cu_graph_free(net->cg);
     net->cg = kann_cu_graph_new(ann, mini_size);
   }
   struct kann_cu_graph *cg = net->cg;
@@ -194,8 +195,7 @@ kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
     double val_cost = 0.0;
     if (n_val > 0) {
       // Upload validation indices to device
-      gkyl_cu_memcpy(d_idx, &idx[n_train], n_val * sizeof(int),
-        GKYL_CU_MEMCPY_H2D);
+      gkyl_cu_memcpy(d_idx, &idx[n_train], n_val * sizeof(int), GKYL_CU_MEMCPY_H2D);
 
       n_proc = 0;
       while (n_proc < n_val) {
@@ -214,8 +214,8 @@ kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
     }
 
     if (kann_net_verbose >= 3)
-      fprintf(stderr, "epoch: %d; training cost: %g; validation cost: %g\n",
-        epoch + 1, train_cost, val_cost);
+      fprintf(stderr, "epoch: %d; training cost: %g; validation cost: %g\n", epoch + 1, train_cost,
+        val_cost);
 
     if (epoch >= params->max_drop_streak && n_val > 0) {
       if (val_cost < min_val_cost) {
@@ -241,15 +241,16 @@ kann_net_train_fnn1_cu(struct gkyl_kann_net *net,
   }
 
   gkyl_cu_free(d_idx);
-  free(min_c); free(min_x);
-  free(idx); free(shuf);
+  free(min_c);
+  free(min_x);
+  free(idx);
+  free(shuf);
   return epoch;
 }
 #endif
 
 int
-gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net,
-  const struct gkyl_kann_train_params *params,
+gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net, const struct gkyl_kann_train_params *params,
   const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
   assert(inp->nvec == out->nvec);
@@ -261,22 +262,14 @@ gkyl_kann_net_train_fnn1(struct gkyl_kann_net *net,
     return kann_net_train_fnn1_cu(net, params, inp, out);
 #endif
 
-  return kann_train_fnn1(net->ann,
-    params->learning_rate,
-    params->mini_size,
-    params->max_epoch,
-    params->max_drop_streak,
-    params->frac_val,
-    inp->nvec,
-    inp->vals,
-    out->vals);
+  return kann_train_fnn1(net->ann, params->learning_rate, params->mini_size, params->max_epoch,
+    params->max_drop_streak, params->frac_val, inp->nvec, inp->vals, out->vals);
 }
 
 // GPU inference: feed device input, run forward, copy output to device kn_vec
 #ifdef GKYL_HAVE_CUDA
 static void
-kann_net_apply_cu(struct gkyl_kann_net *net,
-  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+kann_net_apply_cu(struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   int n_in = net->n_in, n_out = net->n_out;
   int nvec = inp->nvec;
@@ -286,7 +279,8 @@ kann_net_apply_cu(struct gkyl_kann_net *net,
 
   // Lazily create GPU graph if needed
   if (!net->cg || net->cg->max_batch_size < nvec) {
-    if (net->cg) kann_cu_graph_free(net->cg);
+    if (net->cg)
+      kann_cu_graph_free(net->cg);
     net->cg = kann_cu_graph_new(net->ann, nvec);
   }
   struct kann_cu_graph *cg = net->cg;
@@ -301,14 +295,13 @@ kann_net_apply_cu(struct gkyl_kann_net *net,
   // Copy output from graph directly to device kn_vec
   int idx = cg->out_node_idx >= 0 ? cg->out_node_idx : cg->cost_node_idx;
   struct kann_cu_node *hn = &cg->h_nodes[idx];
-  gkyl_cu_memcpy(out->data, cg->x + hn->x_off,
-    nvec * n_out * sizeof(float), GKYL_CU_MEMCPY_D2D);
+  gkyl_cu_memcpy(out->data, cg->x + hn->x_off, nvec * n_out * sizeof(float), GKYL_CU_MEMCPY_D2D);
 }
 #endif
 
 void
-gkyl_kann_net_apply(struct gkyl_kann_net *net,
-  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+gkyl_kann_net_apply(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   assert(inp->N == net->n_in);
   assert(out->N == net->n_out);
@@ -331,8 +324,8 @@ gkyl_kann_net_apply(struct gkyl_kann_net *net,
 // pre-recurrence between steps.
 #ifdef GKYL_HAVE_CUDA
 static void
-kann_net_apply_rnn_cu(struct gkyl_kann_net *net,
-  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+kann_net_apply_rnn_cu(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   int n_in = net->n_in, n_out = net->n_out;
   int nvec = inp->nvec;
@@ -341,7 +334,8 @@ kann_net_apply_rnn_cu(struct gkyl_kann_net *net,
 
   // Graph needs batch_size=1 for sequential processing
   if (!net->cg || net->cg->max_batch_size < 1) {
-    if (net->cg) kann_cu_graph_free(net->cg);
+    if (net->cg)
+      kann_cu_graph_free(net->cg);
     net->cg = kann_cu_graph_new(net->ann, 1);
   }
   struct kann_cu_graph *cg = net->cg;
@@ -353,7 +347,7 @@ kann_net_apply_rnn_cu(struct gkyl_kann_net *net,
 
   // Zero h0 nodes (initial hidden state)
   for (int i = 0; i < cg->n_pre_pairs; ++i) {
-    int h0_idx = cg->h_pre_pairs[2*i+1];
+    int h0_idx = cg->h_pre_pairs[2 * i + 1];
     struct kann_cu_node *h0_n = &cg->h_nodes[h0_idx];
     cudaMemset(cg->x + h0_n->x_off, 0, h0_n->len * sizeof(float));
   }
@@ -366,8 +360,8 @@ kann_net_apply_rnn_cu(struct gkyl_kann_net *net,
 
     // Copy output for this timestep
     struct kann_cu_node *hn = &cg->h_nodes[out_idx];
-    gkyl_cu_memcpy(out->data + t * n_out, cg->x + hn->x_off,
-      n_out * sizeof(float), GKYL_CU_MEMCPY_D2D);
+    gkyl_cu_memcpy(
+      out->data + t * n_out, cg->x + hn->x_off, n_out * sizeof(float), GKYL_CU_MEMCPY_D2D);
 
     // Apply pre-recurrence: copy output node x to h0 node x
     kann_cu_apply_pre(cg);
@@ -376,8 +370,8 @@ kann_net_apply_rnn_cu(struct gkyl_kann_net *net,
 #endif
 
 void
-gkyl_kann_net_apply_rnn(struct gkyl_kann_net *net,
-  const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+gkyl_kann_net_apply_rnn(
+  struct gkyl_kann_net *net, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   assert(inp->N == net->n_in);
   assert(out->N == net->n_out);
@@ -424,11 +418,11 @@ gkyl_kann_net_is_cu_dev(const struct gkyl_kann_net *net)
   return GKYL_IS_CU_ALLOC(net->flags);
 }
 
-struct gkyl_kann_net*
+struct gkyl_kann_net *
 gkyl_kann_net_acquire(const struct gkyl_kann_net *net)
 {
   gkyl_ref_count_inc(&net->ref_count);
-  return (struct gkyl_kann_net*) net;
+  return (struct gkyl_kann_net *)net;
 }
 
 void

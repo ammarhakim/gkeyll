@@ -17,9 +17,8 @@ gkyl_dg_array_mask_less_than_kernel(struct gkyl_range mask_rng,
 {
   int idx[GKYL_MAX_DIM];
 
-  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x;
-    tid < mask_rng.volume; tid += blockDim.x * gridDim.x) {
-
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < mask_rng.volume;
+       tid += blockDim.x * gridDim.x) {
     gkyl_sub_range_inv_idx(&mask_rng, tid, idx);
 
     if (gkyl_range_contains_idx(&mask_rng, idx)) {
@@ -40,9 +39,8 @@ gkyl_dg_array_mask_greater_than_kernel(struct gkyl_range mask_rng,
 {
   int idx[GKYL_MAX_DIM];
 
-  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x;
-    tid < mask_rng.volume; tid += blockDim.x * gridDim.x) {
-
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < mask_rng.volume;
+       tid += blockDim.x * gridDim.x) {
     gkyl_sub_range_inv_idx(&mask_rng, tid, idx);
 
     if (gkyl_range_contains_idx(&mask_rng, idx)) {
@@ -64,9 +62,8 @@ gkyl_dg_array_mask_find_local_max_kernel(struct gkyl_range conf_rng, struct gkyl
 {
   int conf_idx[GKYL_MAX_DIM];
 
-  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x;
-    tid < conf_rng.volume; tid += blockDim.x * gridDim.x) {
-
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < conf_rng.volume;
+       tid += blockDim.x * gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_rng, tid, conf_idx);
 
     if (gkyl_range_contains_idx(&conf_rng, conf_idx)) {
@@ -110,9 +107,8 @@ gkyl_dg_array_mask_spatial_frac_less_than_kernel(struct gkyl_range conf_rng,
 {
   int conf_idx[GKYL_MAX_DIM];
 
-  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x;
-    tid < conf_rng.volume; tid += blockDim.x * gridDim.x) {
-
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < conf_rng.volume;
+       tid += blockDim.x * gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_rng, tid, conf_idx);
 
     if (gkyl_range_contains_idx(&conf_rng, conf_idx)) {
@@ -152,9 +148,8 @@ gkyl_dg_array_mask_spatial_frac_greater_than_kernel(struct gkyl_range conf_rng,
 {
   int conf_idx[GKYL_MAX_DIM];
 
-  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x;
-    tid < conf_rng.volume; tid += blockDim.x * gridDim.x) {
-
+  for (unsigned long tid = threadIdx.x + blockIdx.x * blockDim.x; tid < conf_rng.volume;
+       tid += blockDim.x * gridDim.x) {
     gkyl_sub_range_inv_idx(&conf_rng, tid, conf_idx);
 
     if (gkyl_range_contains_idx(&conf_rng, conf_idx)) {
@@ -214,39 +209,37 @@ advance_cu_greater_than(struct gkyl_dg_array_mask *mask, const struct gkyl_array
 }
 
 static void
-advance_cu_less_than_frac_conf(struct gkyl_dg_array_mask *mask,
-  const struct gkyl_array *arr_to_mask)
+advance_cu_less_than_frac_conf(
+  struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
 {
   int nthreads = mask->mask_arr->nthreads;
   int conf_nblocks = mask->conf_rng->nblocks;
 
   // Phase 1: Find max in velocity space for each configuration cell
-  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
-    *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev,
-    mask->local_max_arr->on_dev);
+  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(*mask->conf_rng,
+    *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
 
   // Phase 2: Apply mask based on local thresholds
-  gkyl_dg_array_mask_spatial_frac_less_than_kernel<<<conf_nblocks, nthreads>>>(
-    *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev,
-    mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
+  gkyl_dg_array_mask_spatial_frac_less_than_kernel<<<conf_nblocks, nthreads>>>(*mask->conf_rng,
+    *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev,
+    mask->local_max_arr->on_dev, mask->threshold);
 }
 
 static void
-advance_cu_greater_than_frac_conf(struct gkyl_dg_array_mask *mask,
-  const struct gkyl_array *arr_to_mask)
+advance_cu_greater_than_frac_conf(
+  struct gkyl_dg_array_mask *mask, const struct gkyl_array *arr_to_mask)
 {
   int nthreads = mask->mask_arr->nthreads;
   int conf_nblocks = mask->conf_rng->nblocks;
 
   // Phase 1: Find max in velocity space for each configuration cell
-  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(
-    *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev,
-    mask->local_max_arr->on_dev);
+  gkyl_dg_array_mask_find_local_max_kernel<<<conf_nblocks, nthreads>>>(*mask->conf_rng,
+    *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev, mask->local_max_arr->on_dev);
 
   // Phase 2: Apply mask based on local thresholds
-  gkyl_dg_array_mask_spatial_frac_greater_than_kernel<<<conf_nblocks, nthreads>>>(
-    *mask->conf_rng, *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev,
-    mask->mask_arr->on_dev, mask->local_max_arr->on_dev, mask->threshold);
+  gkyl_dg_array_mask_spatial_frac_greater_than_kernel<<<conf_nblocks, nthreads>>>(*mask->conf_rng,
+    *mask->vel_rng, *mask->mask_rng, arr_to_mask->on_dev, mask->mask_arr->on_dev,
+    mask->local_max_arr->on_dev, mask->threshold);
 }
 
 // Host function to launch CUDA kernel.
@@ -284,8 +277,8 @@ struct dg_array_mask_idx {
 };
 
 __global__ static void
-gkyl_dg_array_mask_eval_idx_kernel(struct gkyl_dg_array_mask *mask,
-  struct dg_array_mask_idx idx_struct, bool *val)
+gkyl_dg_array_mask_eval_idx_kernel(
+  struct gkyl_dg_array_mask *mask, struct dg_array_mask_idx idx_struct, bool *val)
 {
   val[0] = mask->eval_idx_func(mask, idx_struct.idx);
 }
@@ -310,7 +303,7 @@ gkyl_dg_array_mask_set_dev_func_ptr(struct gkyl_dg_array_mask *mask, enum gkyl_d
     mask->eval_idx_func = eval_idx_ker_enabled;
 }
 
-struct gkyl_dg_array_mask*
+struct gkyl_dg_array_mask *
 gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
 {
   struct gkyl_dg_array_mask *mask = (struct gkyl_dg_array_mask *)gkyl_malloc(sizeof(*mask));
@@ -341,29 +334,29 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
 
   // Set GPU advance function pointer based on mask type
   switch (mask->type) {
-    case GKYL_DG_ARRAY_MASK_NONE:
-      mask->advance_func_cu = advance_cu_none;
-      break;
-    case GKYL_DG_ARRAY_MASK_C0_LESS:
-      mask->advance_func_cu = advance_cu_less_than;
-      break;
-    case GKYL_DG_ARRAY_MASK_C0_GREATER:
-      mask->advance_func_cu = advance_cu_greater_than;
-      break;
-    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
-      mask->advance_func_cu = advance_cu_less_than;
-      break;
-    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
-      mask->advance_func_cu = advance_cu_greater_than;
-      break;
-    case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
-      mask->advance_func_cu = advance_cu_less_than_frac_conf;
-      break;
-    case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
-      mask->advance_func_cu = advance_cu_greater_than_frac_conf;
-      break;
-    default:
-      break;
+  case GKYL_DG_ARRAY_MASK_NONE:
+    mask->advance_func_cu = advance_cu_none;
+    break;
+  case GKYL_DG_ARRAY_MASK_C0_LESS:
+    mask->advance_func_cu = advance_cu_less_than;
+    break;
+  case GKYL_DG_ARRAY_MASK_C0_GREATER:
+    mask->advance_func_cu = advance_cu_greater_than;
+    break;
+  case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC:
+    mask->advance_func_cu = advance_cu_less_than;
+    break;
+  case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC:
+    mask->advance_func_cu = advance_cu_greater_than;
+    break;
+  case GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF:
+    mask->advance_func_cu = advance_cu_less_than_frac_conf;
+    break;
+  case GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC_CONF:
+    mask->advance_func_cu = advance_cu_greater_than_frac_conf;
+    break;
+  default:
+    break;
   }
 
   if (mask->type == GKYL_DG_ARRAY_MASK_NONE)
@@ -377,10 +370,9 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       (struct gkyl_dg_array_mask *)gkyl_cu_malloc(sizeof(*mask_cu));
     gkyl_cu_memcpy(mask_cu, mask, sizeof(struct gkyl_dg_array_mask), GKYL_CU_MEMCPY_H2D);
     mask->on_dev = mask_cu;
-  }
-  else {
-    struct gkyl_array *mask_array = gkyl_array_cu_dev_new(GKYL_DOUBLE, mask_ho->mask_arr->ncomp,
-      mask_ho->mask_arr->size);
+  } else {
+    struct gkyl_array *mask_array =
+      gkyl_array_cu_dev_new(GKYL_DOUBLE, mask_ho->mask_arr->ncomp, mask_ho->mask_arr->size);
     gkyl_array_copy(mask_array, mask_ho->mask_arr);
     mask->mask_arr = mask_array->on_dev;
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC_CONF ||
@@ -388,7 +380,8 @@ gkyl_dg_array_mask_cu_dev_new(struct gkyl_dg_array_mask *mask_ho)
       mask->local_max_arr = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, mask->conf_rng_ext->volume);
     }
     if (mask->type == GKYL_DG_ARRAY_MASK_C0_LESS_FRAC ||
-      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {}
+      mask->type == GKYL_DG_ARRAY_MASK_C0_GREATER_FRAC) {
+    }
 
     // Initialize the device object.
     struct gkyl_dg_array_mask *mask_cu =

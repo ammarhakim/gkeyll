@@ -35,9 +35,9 @@ struct gkyl_wv_gr_mhd_inp {
 * @param use_gpu Whether the wave equation object is on the host (false) or the device (true).
 * @return Pointer to the general relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_gr_mhd_new(double gas_gamma, double light_speed, double b_fact, enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq,
-  struct gkyl_gr_spacetime* spacetime, bool use_gpu);
+struct gkyl_wv_eqn *gkyl_wv_gr_mhd_new(double gas_gamma, double light_speed, double b_fact,
+  enum gkyl_spacetime_gauge spacetime_gauge, int reinit_freq, struct gkyl_gr_spacetime *spacetime,
+  bool use_gpu);
 
 /**
 * Create a new general relativistic magnetohydrodynamics equations object with ideal gas equation of state, from an input context struct.
@@ -45,8 +45,7 @@ gkyl_wv_gr_mhd_new(double gas_gamma, double light_speed, double b_fact, enum gky
 * @param inp Input context struct.
 * @return Pointer to the general relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 */
-struct gkyl_wv_eqn*
-gkyl_wv_gr_mhd_inew(const struct gkyl_wv_gr_mhd_inp* inp);
+struct gkyl_wv_eqn *gkyl_wv_gr_mhd_inew(const struct gkyl_wv_gr_mhd_inp *inp);
 
 /**
 * Get adiabatic index.
@@ -54,8 +53,7 @@ gkyl_wv_gr_mhd_inew(const struct gkyl_wv_gr_mhd_inp* inp);
 * @param eqn General relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 * @return Adiabatic index.
 */
-double
-gkyl_wv_gr_mhd_gas_gamma(const struct gkyl_wv_eqn* eqn);
+double gkyl_wv_gr_mhd_gas_gamma(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get speed of light.
@@ -63,8 +61,7 @@ gkyl_wv_gr_mhd_gas_gamma(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 * @return Speed of light.
 */
-double
-gkyl_wv_gr_mhd_light_speed(const struct gkyl_wv_eqn* eqn);
+double gkyl_wv_gr_mhd_light_speed(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get factor of speed of light for magnetic field correction.
@@ -72,8 +69,7 @@ gkyl_wv_gr_mhd_light_speed(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 * @return Factor of speed of light for magnetic field correction.
 */
-double
-gkyl_wv_gr_mhd_b_fact(const struct gkyl_wv_eqn* eqn);
+double gkyl_wv_gr_mhd_b_fact(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime gauge choice.
@@ -81,8 +77,7 @@ gkyl_wv_gr_mhd_b_fact(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 * @return Spacetime gauge choice.
 */
-enum gkyl_spacetime_gauge
-gkyl_wv_gr_mhd_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
+enum gkyl_spacetime_gauge gkyl_wv_gr_mhd_spacetime_gauge(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get spacetime reinitialization frequency.
@@ -90,8 +85,7 @@ gkyl_wv_gr_mhd_spacetime_gauge(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 * @return Spacetime reinitialization frequency.
 */
-int
-gkyl_wv_gr_mhd_reinit_freq(const struct gkyl_wv_eqn* eqn);
+int gkyl_wv_gr_mhd_reinit_freq(const struct gkyl_wv_eqn *eqn);
 
 /**
 * Get base spacetime object.
@@ -99,5 +93,4 @@ gkyl_wv_gr_mhd_reinit_freq(const struct gkyl_wv_eqn* eqn);
 * @param eqn General relativistic magnetohydrodynamics equations object with ideal gas equation of state.
 * @return Pointer to the base spacetime object.
 */
-struct gkyl_gr_spacetime*
-gkyl_wv_gr_mhd_spacetime(const struct gkyl_wv_eqn* eqn);
+struct gkyl_gr_spacetime *gkyl_wv_gr_mhd_spacetime(const struct gkyl_wv_eqn *eqn);

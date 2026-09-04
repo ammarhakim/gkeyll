@@ -23,10 +23,9 @@ typedef struct gkyl_wv_apply_bc gkyl_wv_apply_bc;
  * @param ctx Context to pass to bcfunc.
  * @return New updater pointer.
  */
-gkyl_wv_apply_bc* gkyl_wv_apply_bc_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_wv_eqn *eqn, const struct gkyl_wave_geom *geom,
-  int dir, enum gkyl_edge_loc edge, const int *nghost,
-  wv_bc_func_t bcfunc, void *ctx);
+gkyl_wv_apply_bc *gkyl_wv_apply_bc_new(const struct gkyl_rect_grid *grid,
+  const struct gkyl_wv_eqn *eqn, const struct gkyl_wave_geom *geom, int dir,
+  enum gkyl_edge_loc edge, const int *nghost, wv_bc_func_t bcfunc, void *ctx);
 
 /**
  * Apply boundary condition on specified field. If the update_rng does
@@ -59,4 +58,4 @@ void gkyl_wv_apply_bc_to_buff(const gkyl_wv_apply_bc *bc, double tm,
  *
  * @param bc Updater to delete.
  */
-void gkyl_wv_apply_bc_release(gkyl_wv_apply_bc* bc);
+void gkyl_wv_apply_bc_release(gkyl_wv_apply_bc *bc);

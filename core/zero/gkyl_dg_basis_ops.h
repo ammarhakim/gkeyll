@@ -53,17 +53,18 @@ struct gkyl_basis_ops_evalf {
   void *ctx; // function context
   evalf_t eval_cubic; // function pointer to evaluate the cubic
   evalf_t eval_cubic_wgrad; // function pointer to evaluate the cubic & its gradient with signature
-                            // void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
-                            // On return, fout[0], fout[1], and fout[2] are the value, gradient in direction 0,
-                            // and gradient in direction 1 of the cubic evaluated at grid coordinates xn.
+    // void (*evalf_t)(double t, const double *xn, double *fout, void *ctx);
+    // On return, fout[0], fout[1], and fout[2] are the value, gradient in direction 0,
+    // and gradient in direction 1 of the cubic evaluated at grid coordinates xn.
   evalf_t eval_cubic_wgrad2; // function pointer to evaluate the cubic & its 2nd derivatives
-                             // On return, fout[0], fout[1], fout[2], and fout[3] are the value, second derivative
-                             // in direction 0, second derivative in direction 1, and mixed partial derivative
-                             // of the cubic evaluated at grid coordinates xn.
+    // On return, fout[0], fout[1], fout[2], and fout[3] are the value, second derivative
+    // in direction 0, second derivative in direction 1, and mixed partial derivative
+    // of the cubic evaluated at grid coordinates xn.
   eval_laplacian_expand eval_cubic_laplacian; // function pointer to evaluate the laplacian
-  eval_mixedpartial_expand eval_cubic_mixedpartial; // function pointer to evaluate the mixed partial
-  struct gkyl_ref_count ref_count;   
-};  
+  eval_mixedpartial_expand
+    eval_cubic_mixedpartial; // function pointer to evaluate the mixed partial
+  struct gkyl_ref_count ref_count;
+};
 
 /**
  * Given values and gradients at the corner of a 1D cell, compute the
@@ -104,9 +105,8 @@ void gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *co
  * @param gradxy gradxy[i] is the xy- (cross) derivative at node i
  * @param coeff On output, the DG expansion coefficients for p=3 tensor basis.
  */
-void gkyl_dg_calc_cubic_2d(const double val[4],
-  const double gradx[4], const double grady[4], const double gradxy[4],
-  double *coeff);
+void gkyl_dg_calc_cubic_2d(const double val[4], const double gradx[4], const double grady[4],
+  const double gradxy[4], double *coeff);
 
 /**
  * Allocate memory for use in the computing 1D cubic reconstruction
@@ -172,8 +172,8 @@ void gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[
  * @param nodal_vals Array holding nodal values
  * @return Struct with context and function pointer
  */
-struct gkyl_basis_ops_evalf* gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_array *nodal_vals);
+struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_array *nodal_vals);
 
 /**
  * Write the cubic DG representation to specified file.
@@ -190,7 +190,8 @@ bool gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf,
  * @param evf Memory to acquire
  * @retrun Pointer to newly acquired memory
  */
-struct gkyl_basis_ops_evalf* gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf);
+struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_acquire(
+  const struct gkyl_basis_ops_evalf *evf);
 
 /**
  * Release memory allocated for cubic interpolation.

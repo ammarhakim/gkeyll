@@ -43,10 +43,8 @@ typedef struct gkyl_translate_dim gkyl_translate_dim;
  *             cdim_tar < cdim_do (lower boundary, center, or upper boundary).
  * @param use_gpu Whether to run it on the GPU or not.
  */
-struct gkyl_translate_dim*
-gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
-  int cdim_tar, struct gkyl_basis basis_tar, int dir,
-  enum gkyl_edge_loc edge, bool use_gpu);
+struct gkyl_translate_dim *gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
+  int cdim_tar, struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge, bool use_gpu);
 
 /**
  * Run the updater that translates the DG coefficients of a donor
@@ -59,10 +57,8 @@ gkyl_translate_dim_new(int cdim_do, struct gkyl_basis basis_do,
  * @param ncomp Number of scalar fields in fdo/ftar.
  * @param ftar target field.
  */
-void
-gkyl_translate_dim_advance(gkyl_translate_dim* up,
-  const struct gkyl_range *rng_do, const struct gkyl_range *rng_tar,
-  const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
+void gkyl_translate_dim_advance(gkyl_translate_dim *up, const struct gkyl_range *rng_do,
+  const struct gkyl_range *rng_tar, const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
   struct gkyl_array *GKYL_RESTRICT ftar);
 
 /**
@@ -70,5 +66,4 @@ gkyl_translate_dim_advance(gkyl_translate_dim* up,
  *
  * @param up translate_dim updater.
  */
-void
-gkyl_translate_dim_release(gkyl_translate_dim* up);
+void gkyl_translate_dim_release(gkyl_translate_dim *up);

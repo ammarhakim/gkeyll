@@ -22,9 +22,8 @@
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-euler_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void euler_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic Maxwell equations.
@@ -37,9 +36,8 @@ euler_rgfm_reinit_level_set(gkyl_wave_prop *wv, const struct gkyl_range *update_
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_maxwell_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void gr_maxwell_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic Maxwell equations in the tetrad basis.
@@ -52,9 +50,8 @@ gr_maxwell_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_rang
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_maxwell_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void gr_maxwell_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic Euler equations (general equation of state).
@@ -67,9 +64,8 @@ gr_maxwell_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *upda
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void gr_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic Euler equations in the tetrad basis (general equation of state).
@@ -82,9 +78,8 @@ gr_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void gr_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic Euler equations (ultra-relativistic equation of state).
@@ -97,9 +92,8 @@ gr_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic Euler equations in the tetrad basis (ultra-relativistic equation of state).
@@ -112,8 +106,8 @@ gr_ultra_rel_euler_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *upd
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
+void gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv,
+  const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
   struct gkyl_array *qout, int dir);
 
 /**
@@ -127,9 +121,8 @@ gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_ran
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
- void
- gr_twofluid_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-   struct gkyl_array *qout, int dir);
+void gr_twofluid_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic two-fluid equations in the tetrad basis.
@@ -142,9 +135,8 @@ gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_ran
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
- void
- gr_twofluid_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-   struct gkyl_array *qout, int dir);
+void gr_twofluid_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic magnetohydrodynamics equations.
@@ -157,9 +149,8 @@ gr_ultra_rel_euler_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_ran
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_mhd_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void gr_mhd_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);
 
 /**
  * Impose gauge conditions for the general relativistic magnetohydrodynamics equations in the tetrad basis.
@@ -172,6 +163,5 @@ gr_mhd_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, i
  * @param qout Output array of fluid variables.
  * @param dir Direction in which to perform the update.
  */
-void
-gr_mhd_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range, int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c,
-  struct gkyl_array *qout, int dir);
+void gr_mhd_tetrad_impose_gauge(gkyl_wave_prop *wv, const struct gkyl_range *update_range,
+  int idxl[GKYL_MAX_DIM], int loidx_c, int upidx_c, struct gkyl_array *qout, int dir);

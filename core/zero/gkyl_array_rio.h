@@ -23,7 +23,7 @@ enum gkyl_array_rio_status {
  * @param status Status flag
  * @return string corresponding to flag
  */
-const char* gkyl_array_rio_status_msg(enum gkyl_array_rio_status status);
+const char *gkyl_array_rio_status_msg(enum gkyl_array_rio_status status);
 
 // Array header data to write: this is for low-level control and is
 // typically not something most users would ever encounter
@@ -48,8 +48,8 @@ struct gkyl_array_header_info {
  * @param fname Name of output file (include .gkyl extension)
  * @return Status flag
  */
-enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(struct gkyl_rect_grid *grid,
-  struct gkyl_array_header_info *hdr, const char *fname);
+enum gkyl_array_rio_status gkyl_grid_sub_array_header_read(
+  struct gkyl_rect_grid *grid, struct gkyl_array_header_info *hdr, const char *fname);
 
 /**
  * Free header info if needed (only of meta_size > 0) does this call
@@ -85,8 +85,7 @@ enum gkyl_array_rio_status gkyl_grid_sub_array_write(const struct gkyl_rect_grid
  * @return Status flag
  */
 enum gkyl_array_rio_status gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
-  const struct gkyl_range *range,
-  struct gkyl_array *arr, const char* fname);
+  const struct gkyl_range *range, struct gkyl_array *arr, const char *fname);
 
 /**
  * Read grid and array data from file, creating a new array.
@@ -95,5 +94,4 @@ enum gkyl_array_rio_status gkyl_grid_sub_array_read(struct gkyl_rect_grid *grid,
  * @param fname Name of input file
  * @return Newly created array object. NULL if failed
  */
-struct gkyl_array *gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid,
-  const char* fname);
+struct gkyl_array *gkyl_grid_array_new_from_file(struct gkyl_rect_grid *grid, const char *fname);

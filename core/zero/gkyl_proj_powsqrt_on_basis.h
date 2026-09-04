@@ -15,7 +15,7 @@ typedef struct gkyl_proj_powsqrt_on_basis gkyl_proj_powsqrt_on_basis;
  * @param use_gpu boolean indicating whether to use the GPU.
  * @return New updater pointer.
  */
-gkyl_proj_powsqrt_on_basis* gkyl_proj_powsqrt_on_basis_new(
+gkyl_proj_powsqrt_on_basis *gkyl_proj_powsqrt_on_basis_new(
   const struct gkyl_basis *basis, int num_quad, bool use_gpu);
 
 /**
@@ -36,4 +36,4 @@ void gkyl_proj_powsqrt_on_basis_advance(const gkyl_proj_powsqrt_on_basis *up,
  *
  * @param pob Updater to delete.
  */
-void gkyl_proj_powsqrt_on_basis_release(gkyl_proj_powsqrt_on_basis* up);
+void gkyl_proj_powsqrt_on_basis_release(gkyl_proj_powsqrt_on_basis *up);
