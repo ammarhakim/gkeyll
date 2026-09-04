@@ -9,8 +9,7 @@
 #include <gkyl_dg_vlasov_priv.h>
 #include <gkyl_util.h>
 
-void
-gkyl_vlasov_free(const struct gkyl_ref_count *ref)
+void gkyl_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -24,8 +23,7 @@ gkyl_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov);
 }
 
-void
-gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
+void gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -44,8 +42,8 @@ gkyl_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_a
 
 struct gkyl_dg_eqn *
 gkyl_dg_vlasov_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu)
+                   const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+                   enum gkyl_model_id model_id, enum gkyl_field_id field_id, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -189,8 +187,8 @@ gkyl_dg_vlasov_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
 
 struct gkyl_dg_eqn *
 gkyl_dg_vlasov_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  enum gkyl_model_id model_id, enum gkyl_field_id field_id)
+                          const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+                          enum gkyl_model_id model_id, enum gkyl_field_id field_id)
 {
   assert(false);
   return 0;

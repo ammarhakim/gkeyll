@@ -19,7 +19,7 @@ enum gkyl_positivity_shift_type {
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
 typedef void (*m0_t)(const double *dxv, const double *vmap, double m_, const double *bmag,
-  const double *f, double *GKYL_RESTRICT out);
+                     const double *f, double *GKYL_RESTRICT out);
 
 typedef struct {
   m0_pos_check_t kernels[3];
@@ -88,12 +88,15 @@ struct gkyl_positivity_shift_gyrokinetic {
 // Declaration of cuda device functions.
 
 void pos_shift_gk_choose_shift_kernel_cu(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype);
+                                         struct gkyl_basis cbasis, struct gkyl_basis pbasis,
+                                         enum gkyl_positivity_shift_type stype);
 
 void gkyl_positivity_shift_gyrokinetic_advance_cu(gkyl_positivity_shift_gyrokinetic *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0);
+                                                  const struct gkyl_range *conf_rng,
+                                                  const struct gkyl_range *phase_rng,
+                                                  struct gkyl_array *GKYL_RESTRICT distf,
+                                                  struct gkyl_array *GKYL_RESTRICT m0,
+                                                  struct gkyl_array *GKYL_RESTRICT delta_m0);
 
 void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
   gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
@@ -105,8 +108,8 @@ void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale_cu(
 
 GKYL_CU_D static void
 pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyrokinetic_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype,
-  bool use_gpu)
+                                 struct gkyl_basis cbasis, struct gkyl_basis pbasis,
+                                 enum gkyl_positivity_shift_type stype, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -124,9 +127,9 @@ pos_shift_gk_choose_shift_kernel(struct gkyl_positivity_shift_gyrokinetic_kernel
   case GKYL_BASIS_MODAL_SERENDIPITY:
     kernels->is_m0_positive =
       pos_shift_gk_kern_list_m0_pos_check_ser[cdim - 1].kernels[poly_order - 1];
-    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY
-      ? pos_shift_gk_kern_list_shift_ser[pdim - 2].kernels[poly_order - 1]
-      : pos_shift_gk_kern_list_MRSlimiter_ser[pdim - 2].kernels[poly_order - 1];
+    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY ?
+                       pos_shift_gk_kern_list_shift_ser[pdim - 2].kernels[poly_order - 1] :
+                       pos_shift_gk_kern_list_MRSlimiter_ser[pdim - 2].kernels[poly_order - 1];
     kernels->m0 = pos_shift_gk_kern_list_m0_ser[pdim - 2].kernels[poly_order - 1];
     kernels->conf_phase_mul_op =
       choose_mul_conf_phase_kern(pbasis_type, cdim, pdim - cdim, poly_order);

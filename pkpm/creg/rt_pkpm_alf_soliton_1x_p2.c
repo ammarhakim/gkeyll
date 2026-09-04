@@ -50,33 +50,29 @@ struct pkpm_alf_ctx {
   bool use_gpu;
 };
 
-static inline double
-maxwellian(double n, double v, double vth)
+static inline double maxwellian(double n, double v, double vth)
 {
   double v2 = v * v;
   return n / sqrt(2 * M_PI * vth * vth) * exp(-v2 / (2 * vth * vth));
 }
 
-static inline double
-sech(double x)
+static inline double sech(double x)
 {
   return 1.0 / (cosh(x));
 }
 
-static inline double
-sech2(double x)
+static inline double sech2(double x)
 {
   return 1.0 / (cosh(x) * cosh(x));
 }
 
-static inline double
-tanh2(double x)
+static inline double tanh2(double x)
 {
   return tanh(x) * tanh(x);
 }
 
-void
-evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
+                     void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
 
@@ -106,8 +102,8 @@ evalDistFuncElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[0] = fv;
   fout[1] = vt_elc * vt_elc * fv;
 }
-void
-evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
+                     void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
 
@@ -138,8 +134,7 @@ evalDistFuncIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[1] = vt_ion * vt_ion * fv;
 }
 
-void
-evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
 
@@ -167,8 +162,7 @@ evalFluidElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   fout[2] = me * vdrift_z;
 }
 
-void
-evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
 
@@ -189,8 +183,7 @@ evalFluidIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   fout[2] = mi * vdrift_z;
 }
 
-void
-evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
 
@@ -233,22 +226,19 @@ evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[7] = 0.0;
 }
 
-void
-evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalNuElc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
   fout[0] = app->nuElc;
 }
 
-void
-evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalNuIon(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   struct pkpm_alf_ctx *app = ctx;
   fout[0] = app->nuIon;
 }
 
-struct pkpm_alf_ctx
-create_ctx(void)
+struct pkpm_alf_ctx create_ctx(void)
 {
   double epsilon0 = 1.0; // permittivity of free space
   double mu0 = 1.0; // pemiability of free space
@@ -293,37 +283,36 @@ create_ctx(void)
   double init_dt = (Lx / Nx) / (5.0);
 
   struct pkpm_alf_ctx ctx = { .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .chargeElc = chargeElc,
-    .massElc = massElc,
-    .chargeIon = chargeIon,
-    .massIon = massIon,
-    .Te_Ti = Te_Ti,
-    .n0 = n0,
-    .vAe = vAe,
-    .B0 = B0,
-    .beta_elc = beta_elc,
-    .beta_ion = beta_ion,
-    .vt_elc = vt_elc,
-    .vt_ion = vt_ion,
-    .nuElc = nuElc,
-    .nuIon = nuIon,
-    .di = di,
-    .a = a,
-    .delta_B0 = delta_B0,
-    .Lx = Lx,
-    .Nx = Nx,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .init_dt = init_dt };
+                              .mu0 = mu0,
+                              .chargeElc = chargeElc,
+                              .massElc = massElc,
+                              .chargeIon = chargeIon,
+                              .massIon = massIon,
+                              .Te_Ti = Te_Ti,
+                              .n0 = n0,
+                              .vAe = vAe,
+                              .B0 = B0,
+                              .beta_elc = beta_elc,
+                              .beta_ion = beta_ion,
+                              .vt_elc = vt_elc,
+                              .vt_ion = vt_ion,
+                              .nuElc = nuElc,
+                              .nuIon = nuIon,
+                              .di = di,
+                              .a = a,
+                              .delta_B0 = delta_B0,
+                              .Lx = Lx,
+                              .Nx = Nx,
+                              .cfl_frac = cfl_frac,
+                              .t_end = t_end,
+                              .num_frames = num_frames,
+                              .dt_failure_tol = dt_failure_tol,
+                              .num_failures_max = num_failures_max,
+                              .init_dt = init_dt };
   return ctx;
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -335,8 +324,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_pkpm_app *app, double t_curr, bool 
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -358,48 +346,48 @@ main(int argc, char **argv)
 
   // electrons
   struct gkyl_pkpm_species elc = { .name = "elc",
-    .charge = ctx.chargeElc,
-    .mass = ctx.massElc,
-    .lower = { -6.0 * ctx.vt_elc },
-    .upper = { 6.0 * ctx.vt_elc },
-    .cells = { VX },
+                                   .charge = ctx.chargeElc,
+                                   .mass = ctx.massElc,
+                                   .lower = { -6.0 * ctx.vt_elc },
+                                   .upper = { 6.0 * ctx.vt_elc },
+                                   .cells = { VX },
 
-    .ctx_dist = &ctx,
-    .ctx_fluid = &ctx,
-    .init_dist = evalDistFuncElc,
-    .init_fluid = evalFluidElc,
+                                   .ctx_dist = &ctx,
+                                   .ctx_fluid = &ctx,
+                                   .init_dist = evalDistFuncElc,
+                                   .init_fluid = evalFluidElc,
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
+                                   .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
 
-      .ctx = &ctx,
-      .self_nu = evalNuElc } };
+                                                   .ctx = &ctx,
+                                                   .self_nu = evalNuElc } };
 
   // ions
   struct gkyl_pkpm_species ion = { .name = "ion",
-    .charge = ctx.chargeIon,
-    .mass = ctx.massIon,
-    .lower = { -6.0 * ctx.vt_ion },
-    .upper = { 6.0 * ctx.vt_ion },
-    .cells = { VX },
+                                   .charge = ctx.chargeIon,
+                                   .mass = ctx.massIon,
+                                   .lower = { -6.0 * ctx.vt_ion },
+                                   .upper = { 6.0 * ctx.vt_ion },
+                                   .cells = { VX },
 
-    .ctx_dist = &ctx,
-    .ctx_fluid = &ctx,
-    .init_dist = evalDistFuncIon,
-    .init_fluid = evalFluidIon,
+                                   .ctx_dist = &ctx,
+                                   .ctx_fluid = &ctx,
+                                   .init_dist = evalDistFuncIon,
+                                   .init_fluid = evalFluidIon,
 
-    .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
+                                   .collisions = { .collision_id = GKYL_LBO_COLLISIONS,
 
-      .ctx = &ctx,
-      .self_nu = evalNuIon } };
+                                                   .ctx = &ctx,
+                                                   .self_nu = evalNuIon } };
 
   // field
   struct gkyl_pkpm_field field = { .epsilon0 = 1.0,
-    .mu0 = 1.0,
-    .elcErrorSpeedFactor = 0.0,
-    .mgnErrorSpeedFactor = 0.0,
+                                   .mu0 = 1.0,
+                                   .elcErrorSpeedFactor = 0.0,
+                                   .mgnErrorSpeedFactor = 0.0,
 
-    .ctx = &ctx,
-    .init = evalFieldFunc };
+                                   .ctx = &ctx,
+                                   .init = evalFieldFunc };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -441,8 +429,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -518,8 +506,8 @@ main(int argc, char **argv)
       gkyl_pkpm_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_pkpm_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_pkpm_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_pkpm_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                           num_failures_max);
         break;
       }
     } else {
@@ -539,25 +527,25 @@ main(int argc, char **argv)
   gkyl_pkpm_app_cout(app, stdout, "Number of forward-Euler calls %ld\n", stat.nfeuler);
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-2 failures %ld\n", stat.nstage_2_fail);
   if (stat.nstage_2_fail > 0) {
-    gkyl_pkpm_app_cout(
-      app, stdout, "Max rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[1]);
-    gkyl_pkpm_app_cout(
-      app, stdout, "Min rel dt diff for RK stage-2 failures %g\n", stat.stage_2_dt_diff[0]);
+    gkyl_pkpm_app_cout(app, stdout, "Max rel dt diff for RK stage-2 failures %g\n",
+                       stat.stage_2_dt_diff[1]);
+    gkyl_pkpm_app_cout(app, stdout, "Min rel dt diff for RK stage-2 failures %g\n",
+                       stat.stage_2_dt_diff[0]);
   }
   gkyl_pkpm_app_cout(app, stdout, "Number of RK stage-3 failures %ld\n", stat.nstage_3_fail);
   gkyl_pkpm_app_cout(app, stdout, "Species RHS calc took %g secs\n", stat.species_rhs_tm);
-  gkyl_pkpm_app_cout(
-    app, stdout, "Species collisions RHS calc took %g secs\n", stat.species_coll_tm);
-  gkyl_pkpm_app_cout(
-    app, stdout, "Fluid Species RHS calc took %g secs\n", stat.fluid_species_rhs_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Species collisions RHS calc took %g secs\n",
+                     stat.species_coll_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Fluid Species RHS calc took %g secs\n",
+                     stat.fluid_species_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Field RHS calc took %g secs\n", stat.field_rhs_tm);
   gkyl_pkpm_app_cout(app, stdout, "Species PKPM Vars took %g secs\n", stat.species_pkpm_vars_tm);
-  gkyl_pkpm_app_cout(
-    app, stdout, "Species collisional moments took %g secs\n", stat.species_coll_mom_tm);
-  gkyl_pkpm_app_cout(
-    app, stdout, "EM Variables (bvar) calculation took %g secs\n", stat.field_em_vars_tm);
-  gkyl_pkpm_app_cout(
-    app, stdout, "Current evaluation and accumulate took %g secs\n", stat.current_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Species collisional moments took %g secs\n",
+                     stat.species_coll_mom_tm);
+  gkyl_pkpm_app_cout(app, stdout, "EM Variables (bvar) calculation took %g secs\n",
+                     stat.field_em_vars_tm);
+  gkyl_pkpm_app_cout(app, stdout, "Current evaluation and accumulate took %g secs\n",
+                     stat.current_tm);
 
   gkyl_pkpm_app_cout(app, stdout, "Species BCs took %g secs\n", stat.species_bc_tm);
   gkyl_pkpm_app_cout(app, stdout, "Fluid Species BCs took %g secs\n", stat.fluid_species_bc_tm);

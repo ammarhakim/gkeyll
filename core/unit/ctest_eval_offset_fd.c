@@ -3,8 +3,7 @@
 #include <gkyl_eval_offset_fd.h>
 #include <gkyl_rect_decomp.h>
 
-void
-elc_field_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void elc_field_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = x + 0.1;
@@ -12,8 +11,7 @@ elc_field_1d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = x * x * x + 0.3;
 }
 
-void
-test_eval_offset_fd_1d_ho()
+void test_eval_offset_fd_1d_ho()
 {
   double lower[] = { -2.0 }, upper[] = { 2.0 };
   int cells[] = { 2 };

@@ -6,8 +6,7 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
-void
-test_gr_mhd_basic_minkowski_ho()
+void test_gr_mhd_basic_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -63,14 +62,16 @@ test_gr_mhd_basic_minkowski_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+                                                 pow(10.0, -8.0), pow(10.0, -8.0),
+                                                 &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
+                                       pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der);
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -149,7 +150,7 @@ test_gr_mhd_basic_minkowski_ho()
       q[2] = sqrt(spatial_det) * ((rho * h_star * (W * W) * cov_vel[1]) - (lapse * b0 * cov_b[1]));
       q[3] = sqrt(spatial_det) * ((rho * h_star * (W * W) * cov_vel[2]) - (lapse * b0 * cov_b[2]));
       q[4] = sqrt(spatial_det) *
-        ((rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W));
+             ((rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W));
 
       q[5] = sqrt(spatial_det) * mag_x;
       q[6] = sqrt(spatial_det) * mag_y;
@@ -259,12 +260,10 @@ test_gr_mhd_basic_minkowski_ho()
             ((Sy * (vel[0] - (shift[0] / lapse))) - ((cov_b[1] * mag[0]) / W)),
           (lapse * sqrt(spatial_det)) *
             ((Sz * (vel[0] - (shift[0] / lapse))) - ((cov_b[2] * mag[0]) / W)),
-          (lapse * sqrt(spatial_det)) *
-            ((Etot * (vel[0] - (shift[0] / lapse))) + (p_star * vel[0]) -
-              ((lapse * b0 * mag[0]) / W)),
-          (lapse * sqrt(spatial_det)) *
-            (((vel[0] - (shift[0] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[0]) +
-              (b_fact * psi)),
+          (lapse * sqrt(spatial_det)) * ((Etot * (vel[0] - (shift[0] / lapse))) +
+                                         (p_star * vel[0]) - ((lapse * b0 * mag[0]) / W)),
+          (lapse * sqrt(spatial_det)) * (((vel[0] - (shift[0] / lapse)) * mag[0]) -
+                                         ((vel[0] - (shift[0] / lapse)) * mag[0]) + (b_fact * psi)),
           (lapse * sqrt(spatial_det)) *
             (((vel[0] - (shift[0] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[0])),
           (lapse * sqrt(spatial_det)) *
@@ -277,14 +276,12 @@ test_gr_mhd_basic_minkowski_ho()
             ((Sy * (vel[1] - (shift[1] / lapse))) + p_star - ((cov_b[1] * mag[1]) / W)),
           (lapse * sqrt(spatial_det)) *
             ((Sz * (vel[1] - (shift[1] / lapse))) - ((cov_b[2] * mag[1]) / W)),
-          (lapse * sqrt(spatial_det)) *
-            ((Etot * (vel[1] - (shift[1] / lapse))) + (p_star * vel[1]) -
-              ((lapse * b0 * mag[1]) / W)),
+          (lapse * sqrt(spatial_det)) * ((Etot * (vel[1] - (shift[1] / lapse))) +
+                                         (p_star * vel[1]) - ((lapse * b0 * mag[1]) / W)),
           (lapse * sqrt(spatial_det)) *
             (((vel[1] - (shift[1] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[1])),
-          (lapse * sqrt(spatial_det)) *
-            (((vel[1] - (shift[1] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[1]) +
-              (b_fact * psi)),
+          (lapse * sqrt(spatial_det)) * (((vel[1] - (shift[1] / lapse)) * mag[1]) -
+                                         ((vel[1] - (shift[1] / lapse)) * mag[1]) + (b_fact * psi)),
           (lapse * sqrt(spatial_det)) *
             (((vel[1] - (shift[1] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[1])),
           (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y) },
@@ -295,16 +292,14 @@ test_gr_mhd_basic_minkowski_ho()
             ((Sy * (vel[2] - (shift[2] / lapse))) - ((cov_b[1] * mag[2]) / W)),
           (lapse * sqrt(spatial_det)) *
             ((Sz * (vel[2] - (shift[2] / lapse))) + p_star - ((cov_b[2] * mag[2]) / W)),
-          (lapse * sqrt(spatial_det)) *
-            ((Etot * (vel[2] - (shift[2] / lapse))) + (p_star * vel[2]) -
-              ((lapse * b0 * mag[2]) / W)),
+          (lapse * sqrt(spatial_det)) * ((Etot * (vel[2] - (shift[2] / lapse))) +
+                                         (p_star * vel[2]) - ((lapse * b0 * mag[2]) / W)),
           (lapse * sqrt(spatial_det)) *
             (((vel[2] - (shift[2] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[2])),
           (lapse * sqrt(spatial_det)) *
             (((vel[2] - (shift[2] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[2])),
-          (lapse * sqrt(spatial_det)) *
-            (((vel[2] - (shift[2] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[2]) +
-              (b_fact * psi)),
+          (lapse * sqrt(spatial_det)) * (((vel[2] - (shift[2] / lapse)) * mag[2]) -
+                                         ((vel[2] - (shift[2] / lapse)) * mag[2]) + (b_fact * psi)),
           (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z) }
       };
 
@@ -373,8 +368,7 @@ test_gr_mhd_basic_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_mhd_basic_schwarzschild_ho()
+void test_gr_mhd_basic_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -430,14 +424,16 @@ test_gr_mhd_basic_schwarzschild_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+                                                 pow(10.0, -8.0), pow(10.0, -8.0),
+                                                 &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
+                                       pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der);
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -520,7 +516,7 @@ test_gr_mhd_basic_schwarzschild_ho()
         q[3] =
           sqrt(spatial_det) * ((rho * h_star * (W * W) * cov_vel[2]) - (lapse * b0 * cov_b[2]));
         q[4] = sqrt(spatial_det) *
-          ((rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W));
+               ((rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W));
 
         q[5] = sqrt(spatial_det) * mag_x;
         q[6] = sqrt(spatial_det) * mag_y;
@@ -630,12 +626,11 @@ test_gr_mhd_basic_schwarzschild_ho()
               ((Sy * (vel[0] - (shift[0] / lapse))) - ((cov_b[1] * mag[0]) / W)),
             (lapse * sqrt(spatial_det)) *
               ((Sz * (vel[0] - (shift[0] / lapse))) - ((cov_b[2] * mag[0]) / W)),
-            (lapse * sqrt(spatial_det)) *
-              ((Etot * (vel[0] - (shift[0] / lapse))) + (p_star * vel[0]) -
-                ((lapse * b0 * mag[0]) / W)),
+            (lapse * sqrt(spatial_det)) * ((Etot * (vel[0] - (shift[0] / lapse))) +
+                                           (p_star * vel[0]) - ((lapse * b0 * mag[0]) / W)),
             (lapse * sqrt(spatial_det)) *
               (((vel[0] - (shift[0] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[0]) +
-                (b_fact * psi)),
+               (b_fact * psi)),
             (lapse * sqrt(spatial_det)) *
               (((vel[0] - (shift[0] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[0])),
             (lapse * sqrt(spatial_det)) *
@@ -648,14 +643,13 @@ test_gr_mhd_basic_schwarzschild_ho()
               ((Sy * (vel[1] - (shift[1] / lapse))) + p_star - ((cov_b[1] * mag[1]) / W)),
             (lapse * sqrt(spatial_det)) *
               ((Sz * (vel[1] - (shift[1] / lapse))) - ((cov_b[2] * mag[1]) / W)),
-            (lapse * sqrt(spatial_det)) *
-              ((Etot * (vel[1] - (shift[1] / lapse))) + (p_star * vel[1]) -
-                ((lapse * b0 * mag[1]) / W)),
+            (lapse * sqrt(spatial_det)) * ((Etot * (vel[1] - (shift[1] / lapse))) +
+                                           (p_star * vel[1]) - ((lapse * b0 * mag[1]) / W)),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[1])),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[1]) +
-                (b_fact * psi)),
+               (b_fact * psi)),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[1])),
             (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y) },
@@ -666,16 +660,15 @@ test_gr_mhd_basic_schwarzschild_ho()
               ((Sy * (vel[2] - (shift[2] / lapse))) - ((cov_b[1] * mag[2]) / W)),
             (lapse * sqrt(spatial_det)) *
               ((Sz * (vel[2] - (shift[2] / lapse))) + p_star - ((cov_b[2] * mag[2]) / W)),
-            (lapse * sqrt(spatial_det)) *
-              ((Etot * (vel[2] - (shift[2] / lapse))) + (p_star * vel[2]) -
-                ((lapse * b0 * mag[2]) / W)),
+            (lapse * sqrt(spatial_det)) * ((Etot * (vel[2] - (shift[2] / lapse))) +
+                                           (p_star * vel[2]) - ((lapse * b0 * mag[2]) / W)),
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[2])),
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[2])),
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[2]) +
-                (b_fact * psi)),
+               (b_fact * psi)),
             (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z) }
         };
 
@@ -745,8 +738,7 @@ test_gr_mhd_basic_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_mhd_basic_kerr_ho()
+void test_gr_mhd_basic_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -802,14 +794,16 @@ test_gr_mhd_basic_kerr_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+                                                 pow(10.0, -8.0), pow(10.0, -8.0),
+                                                 &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
+                                       pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der);
 
       double *vel = gkyl_malloc(sizeof(double[3]));
       vel[0] = u;
@@ -892,7 +886,7 @@ test_gr_mhd_basic_kerr_ho()
         q[3] =
           sqrt(spatial_det) * ((rho * h_star * (W * W) * cov_vel[2]) - (lapse * b0 * cov_b[2]));
         q[4] = sqrt(spatial_det) *
-          ((rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W));
+               ((rho * h_star * (W * W)) - p_star - ((lapse * lapse) * (b0 * b0)) - (rho * W));
 
         q[5] = sqrt(spatial_det) * mag_x;
         q[6] = sqrt(spatial_det) * mag_y;
@@ -1002,12 +996,11 @@ test_gr_mhd_basic_kerr_ho()
               ((Sy * (vel[0] - (shift[0] / lapse))) - ((cov_b[1] * mag[0]) / W)),
             (lapse * sqrt(spatial_det)) *
               ((Sz * (vel[0] - (shift[0] / lapse))) - ((cov_b[2] * mag[0]) / W)),
-            (lapse * sqrt(spatial_det)) *
-              ((Etot * (vel[0] - (shift[0] / lapse))) + (p_star * vel[0]) -
-                ((lapse * b0 * mag[0]) / W)),
+            (lapse * sqrt(spatial_det)) * ((Etot * (vel[0] - (shift[0] / lapse))) +
+                                           (p_star * vel[0]) - ((lapse * b0 * mag[0]) / W)),
             (lapse * sqrt(spatial_det)) *
               (((vel[0] - (shift[0] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[0]) +
-                (b_fact * psi)),
+               (b_fact * psi)),
             (lapse * sqrt(spatial_det)) *
               (((vel[0] - (shift[0] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[0])),
             (lapse * sqrt(spatial_det)) *
@@ -1020,14 +1013,13 @@ test_gr_mhd_basic_kerr_ho()
               ((Sy * (vel[1] - (shift[1] / lapse))) + p_star - ((cov_b[1] * mag[1]) / W)),
             (lapse * sqrt(spatial_det)) *
               ((Sz * (vel[1] - (shift[1] / lapse))) - ((cov_b[2] * mag[1]) / W)),
-            (lapse * sqrt(spatial_det)) *
-              ((Etot * (vel[1] - (shift[1] / lapse))) + (p_star * vel[1]) -
-                ((lapse * b0 * mag[1]) / W)),
+            (lapse * sqrt(spatial_det)) * ((Etot * (vel[1] - (shift[1] / lapse))) +
+                                           (p_star * vel[1]) - ((lapse * b0 * mag[1]) / W)),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[1])),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[1]) +
-                (b_fact * psi)),
+               (b_fact * psi)),
             (lapse * sqrt(spatial_det)) *
               (((vel[1] - (shift[1] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[1])),
             (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_y) },
@@ -1038,16 +1030,15 @@ test_gr_mhd_basic_kerr_ho()
               ((Sy * (vel[2] - (shift[2] / lapse))) - ((cov_b[1] * mag[2]) / W)),
             (lapse * sqrt(spatial_det)) *
               ((Sz * (vel[2] - (shift[2] / lapse))) + p_star - ((cov_b[2] * mag[2]) / W)),
-            (lapse * sqrt(spatial_det)) *
-              ((Etot * (vel[2] - (shift[2] / lapse))) + (p_star * vel[2]) -
-                ((lapse * b0 * mag[2]) / W)),
+            (lapse * sqrt(spatial_det)) * ((Etot * (vel[2] - (shift[2] / lapse))) +
+                                           (p_star * vel[2]) - ((lapse * b0 * mag[2]) / W)),
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[0]) - ((vel[0] - (shift[0] / lapse)) * mag[2])),
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[1]) - ((vel[1] - (shift[1] / lapse)) * mag[2])),
             (lapse * sqrt(spatial_det)) *
               (((vel[2] - (shift[2] / lapse)) * mag[2]) - ((vel[2] - (shift[2] / lapse)) * mag[2]) +
-                (b_fact * psi)),
+               (b_fact * psi)),
             (lapse * sqrt(spatial_det)) * (b_fact * (light_speed * light_speed) * mag_z) }
         };
 
@@ -1117,8 +1108,7 @@ test_gr_mhd_basic_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_mhd_waves_minkowski_ho()
+void test_gr_mhd_waves_minkowski_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -1183,23 +1173,25 @@ test_gr_mhd_waves_minkowski_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_r);
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
       spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
       spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
+                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
       spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
+                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der_l);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der_r);
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -1304,14 +1296,13 @@ test_gr_mhd_waves_minkowski_ho()
       double ql[75], qr[75];
       ql[0] = sqrt(spatial_det_l) * rho_l * W_l;
       ql[1] = sqrt(spatial_det_l) *
-        ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[0]) - (lapse_l * b0_l * cov_b_l[0]));
+              ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[0]) - (lapse_l * b0_l * cov_b_l[0]));
       ql[2] = sqrt(spatial_det_l) *
-        ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[1]) - (lapse_l * b0_l * cov_b_l[1]));
+              ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[1]) - (lapse_l * b0_l * cov_b_l[1]));
       ql[3] = sqrt(spatial_det_l) *
-        ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[2]) - (lapse_l * b0_l * cov_b_l[2]));
-      ql[4] = sqrt(spatial_det_l) *
-        ((rho_l * h_star_l * (W_l * W_l)) - p_star_l - ((lapse_l * lapse_l) * (b0_l * b0_l)) -
-          (rho_l * W_l));
+              ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[2]) - (lapse_l * b0_l * cov_b_l[2]));
+      ql[4] = sqrt(spatial_det_l) * ((rho_l * h_star_l * (W_l * W_l)) - p_star_l -
+                                     ((lapse_l * lapse_l) * (b0_l * b0_l)) - (rho_l * W_l));
 
       ql[5] = sqrt(spatial_det_l) * mag_x_l;
       ql[6] = sqrt(spatial_det_l) * mag_y_l;
@@ -1395,14 +1386,13 @@ test_gr_mhd_waves_minkowski_ho()
 
       qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
       qr[1] = sqrt(spatial_det_r) *
-        ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[0]) - (lapse_r * b0_r * cov_b_r[0]));
+              ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[0]) - (lapse_r * b0_r * cov_b_r[0]));
       qr[2] = sqrt(spatial_det_r) *
-        ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[1]) - (lapse_r * b0_r * cov_b_r[1]));
+              ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[1]) - (lapse_r * b0_r * cov_b_r[1]));
       qr[3] = sqrt(spatial_det_r) *
-        ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[2]) - (lapse_r * b0_r * cov_b_r[2]));
-      qr[4] = sqrt(spatial_det_r) *
-        ((rho_r * h_star_r * (W_r * W_r)) - p_star_r - ((lapse_r * lapse_r) * (b0_r * b0_r)) -
-          (rho_r * W_r));
+              ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[2]) - (lapse_r * b0_r * cov_b_r[2]));
+      qr[4] = sqrt(spatial_det_r) * ((rho_r * h_star_r * (W_r * W_r)) - p_star_r -
+                                     ((lapse_r * lapse_r) * (b0_r * b0_r)) - (rho_r * W_r));
 
       qr[5] = sqrt(spatial_det_r) * mag_x_r;
       qr[6] = sqrt(spatial_det_r) * mag_y_r;
@@ -1503,15 +1493,15 @@ test_gr_mhd_waves_minkowski_ho()
         }
 
         gkyl_wv_eqn_waves(gr_mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-          waves_local, speeds);
+                          waves_local, speeds);
 
         double apdq_local[75], amdq_local[75];
         gkyl_wv_eqn_qfluct(gr_mhd, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-          waves_local, speeds, amdq_local, apdq_local);
+                           waves_local, speeds, amdq_local, apdq_local);
 
         for (int i = 0; i < 2; i++) {
-          gkyl_wv_eqn_rotate_to_global(
-            gr_mhd, tau1[d], tau2[d], norm[d], &waves_local[i * 75], &waves[i * 75]);
+          gkyl_wv_eqn_rotate_to_global(gr_mhd, tau1[d], tau2[d], norm[d], &waves_local[i * 75],
+                                       &waves[i * 75]);
         }
 
         double apdq[75], amdq[75];
@@ -1579,8 +1569,7 @@ test_gr_mhd_waves_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_mhd_waves_schwarzschild_ho()
+void test_gr_mhd_waves_schwarzschild_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -1648,23 +1637,25 @@ test_gr_mhd_waves_schwarzschild_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_r);
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
       spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
       spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
+                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
       spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
+                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der_l);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der_r);
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -1770,14 +1761,13 @@ test_gr_mhd_waves_schwarzschild_ho()
         double ql[75], qr[75];
         ql[0] = sqrt(spatial_det_l) * rho_l * W_l;
         ql[1] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[0]) - (lapse_l * b0_l * cov_b_l[0]));
+                ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[0]) - (lapse_l * b0_l * cov_b_l[0]));
         ql[2] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[1]) - (lapse_l * b0_l * cov_b_l[1]));
+                ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[1]) - (lapse_l * b0_l * cov_b_l[1]));
         ql[3] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[2]) - (lapse_l * b0_l * cov_b_l[2]));
-        ql[4] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l)) - p_star_l - ((lapse_l * lapse_l) * (b0_l * b0_l)) -
-            (rho_l * W_l));
+                ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[2]) - (lapse_l * b0_l * cov_b_l[2]));
+        ql[4] = sqrt(spatial_det_l) * ((rho_l * h_star_l * (W_l * W_l)) - p_star_l -
+                                       ((lapse_l * lapse_l) * (b0_l * b0_l)) - (rho_l * W_l));
 
         ql[5] = sqrt(spatial_det_l) * mag_x_l;
         ql[6] = sqrt(spatial_det_l) * mag_y_l;
@@ -1861,14 +1851,13 @@ test_gr_mhd_waves_schwarzschild_ho()
 
         qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
         qr[1] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[0]) - (lapse_r * b0_r * cov_b_r[0]));
+                ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[0]) - (lapse_r * b0_r * cov_b_r[0]));
         qr[2] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[1]) - (lapse_r * b0_r * cov_b_r[1]));
+                ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[1]) - (lapse_r * b0_r * cov_b_r[1]));
         qr[3] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[2]) - (lapse_r * b0_r * cov_b_r[2]));
-        qr[4] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r)) - p_star_r - ((lapse_r * lapse_r) * (b0_r * b0_r)) -
-            (rho_r * W_r));
+                ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[2]) - (lapse_r * b0_r * cov_b_r[2]));
+        qr[4] = sqrt(spatial_det_r) * ((rho_r * h_star_r * (W_r * W_r)) - p_star_r -
+                                       ((lapse_r * lapse_r) * (b0_r * b0_r)) - (rho_r * W_r));
 
         qr[5] = sqrt(spatial_det_r) * mag_x_r;
         qr[6] = sqrt(spatial_det_r) * mag_y_r;
@@ -1969,15 +1958,15 @@ test_gr_mhd_waves_schwarzschild_ho()
           }
 
           gkyl_wv_eqn_waves(gr_mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-            waves_local, speeds);
+                            waves_local, speeds);
 
           double apdq_local[75], amdq_local[75];
           gkyl_wv_eqn_qfluct(gr_mhd, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-            waves_local, speeds, amdq_local, apdq_local);
+                             waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(
-              gr_mhd, tau1[d], tau2[d], norm[d], &waves_local[i * 75], &waves[i * 75]);
+            gkyl_wv_eqn_rotate_to_global(gr_mhd, tau1[d], tau2[d], norm[d], &waves_local[i * 75],
+                                         &waves[i * 75]);
           }
 
           double apdq[75], amdq[75];
@@ -2046,8 +2035,7 @@ test_gr_mhd_waves_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_mhd_waves_kerr_ho()
+void test_gr_mhd_waves_kerr_ho()
 {
   double gas_gamma = 5.0 / 3.0;
   double light_speed = 1.0;
@@ -2115,23 +2103,25 @@ test_gr_mhd_waves_kerr_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_r);
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_l);
       spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der_r);
       spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
+                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_l);
       spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
+                                       pow(10.0, -8.0), pow(10.0, -8.0), &shift_der_r);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_l);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der_l);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der_r);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der_r);
 
       double *vel_l = gkyl_malloc(sizeof(double[3]));
       double *vel_r = gkyl_malloc(sizeof(double[3]));
@@ -2237,14 +2227,13 @@ test_gr_mhd_waves_kerr_ho()
         double ql[75], qr[75];
         ql[0] = sqrt(spatial_det_l) * rho_l * W_l;
         ql[1] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[0]) - (lapse_l * b0_l * cov_b_l[0]));
+                ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[0]) - (lapse_l * b0_l * cov_b_l[0]));
         ql[2] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[1]) - (lapse_l * b0_l * cov_b_l[1]));
+                ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[1]) - (lapse_l * b0_l * cov_b_l[1]));
         ql[3] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[2]) - (lapse_l * b0_l * cov_b_l[2]));
-        ql[4] = sqrt(spatial_det_l) *
-          ((rho_l * h_star_l * (W_l * W_l)) - p_star_l - ((lapse_l * lapse_l) * (b0_l * b0_l)) -
-            (rho_l * W_l));
+                ((rho_l * h_star_l * (W_l * W_l) * cov_vel_l[2]) - (lapse_l * b0_l * cov_b_l[2]));
+        ql[4] = sqrt(spatial_det_l) * ((rho_l * h_star_l * (W_l * W_l)) - p_star_l -
+                                       ((lapse_l * lapse_l) * (b0_l * b0_l)) - (rho_l * W_l));
 
         ql[5] = sqrt(spatial_det_l) * mag_x_l;
         ql[6] = sqrt(spatial_det_l) * mag_y_l;
@@ -2328,14 +2317,13 @@ test_gr_mhd_waves_kerr_ho()
 
         qr[0] = sqrt(spatial_det_r) * rho_r * W_r;
         qr[1] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[0]) - (lapse_r * b0_r * cov_b_r[0]));
+                ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[0]) - (lapse_r * b0_r * cov_b_r[0]));
         qr[2] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[1]) - (lapse_r * b0_r * cov_b_r[1]));
+                ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[1]) - (lapse_r * b0_r * cov_b_r[1]));
         qr[3] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[2]) - (lapse_r * b0_r * cov_b_r[2]));
-        qr[4] = sqrt(spatial_det_r) *
-          ((rho_r * h_star_r * (W_r * W_r)) - p_star_r - ((lapse_r * lapse_r) * (b0_r * b0_r)) -
-            (rho_r * W_r));
+                ((rho_r * h_star_r * (W_r * W_r) * cov_vel_r[2]) - (lapse_r * b0_r * cov_b_r[2]));
+        qr[4] = sqrt(spatial_det_r) * ((rho_r * h_star_r * (W_r * W_r)) - p_star_r -
+                                       ((lapse_r * lapse_r) * (b0_r * b0_r)) - (rho_r * W_r));
 
         qr[5] = sqrt(spatial_det_r) * mag_x_r;
         qr[6] = sqrt(spatial_det_r) * mag_y_r;
@@ -2436,15 +2424,15 @@ test_gr_mhd_waves_kerr_ho()
           }
 
           gkyl_wv_eqn_waves(gr_mhd, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
-            waves_local, speeds);
+                            waves_local, speeds);
 
           double apdq_local[75], amdq_local[75];
           gkyl_wv_eqn_qfluct(gr_mhd, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-            waves_local, speeds, amdq_local, apdq_local);
+                             waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(
-              gr_mhd, tau1[d], tau2[d], norm[d], &waves_local[i * 75], &waves[i * 75]);
+            gkyl_wv_eqn_rotate_to_global(gr_mhd, tau1[d], tau2[d], norm[d], &waves_local[i * 75],
+                                         &waves[i * 75]);
           }
 
           double apdq[75], amdq[75];
@@ -2514,8 +2502,9 @@ test_gr_mhd_waves_kerr_ho()
 }
 
 TEST_LIST = { { "gr_mhd_basic_minkowski_ho", test_gr_mhd_basic_minkowski_ho },
-  { "gr_mhd_basic_schwarzschild_ho", test_gr_mhd_basic_schwarzschild_ho },
-  { "gr_mhd_basic_kerr_ho", test_gr_mhd_basic_kerr_ho },
-  { "gr_mhd_waves_minkowski_ho", test_gr_mhd_waves_minkowski_ho },
-  { "gr_mhd_waves_schwarzschild_ho", test_gr_mhd_waves_schwarzschild_ho },
-  { "gr_mhd_waves_kerr_ho", test_gr_mhd_waves_kerr_ho }, { NULL, NULL } };
+              { "gr_mhd_basic_schwarzschild_ho", test_gr_mhd_basic_schwarzschild_ho },
+              { "gr_mhd_basic_kerr_ho", test_gr_mhd_basic_kerr_ho },
+              { "gr_mhd_waves_minkowski_ho", test_gr_mhd_waves_minkowski_ho },
+              { "gr_mhd_waves_schwarzschild_ho", test_gr_mhd_waves_schwarzschild_ho },
+              { "gr_mhd_waves_kerr_ho", test_gr_mhd_waves_kerr_ho },
+              { NULL, NULL } };

@@ -2,8 +2,7 @@
 
 // internal function that takes a single time-step using a single-step
 // Strang-split scheme
-struct gkyl_update_status
-moment_update_one_step(gkyl_moment_app *app, double dt0)
+struct gkyl_update_status moment_update_one_step(gkyl_moment_app *app, double dt0)
 {
   int ns = app->num_species, ndim = app->ndim;
   bool have_nans_occured = false;
@@ -146,7 +145,7 @@ moment_update_one_step(gkyl_moment_app *app, double dt0)
     }
   }
 
-  return (struct gkyl_update_status){
-    .success = have_nans_occured ? false : true, .dt_actual = dt, .dt_suggested = dt_suggested
-  };
+  return (struct gkyl_update_status){ .success = have_nans_occured ? false : true,
+                                      .dt_actual = dt,
+                                      .dt_suggested = dt_suggested };
 }

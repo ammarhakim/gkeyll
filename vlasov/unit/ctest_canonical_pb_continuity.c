@@ -21,27 +21,23 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-void
-info_h_ij_inv_1x1v(double t, const double *xn, double *fout, void *ctx)
+void info_h_ij_inv_1x1v(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 1;
 }
 
-void
-info_det_h_1x1v(double t, const double *xn, double *fout, void *ctx)
+void info_det_h_1x1v(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = 1;
 }
 
-void
-info_hamil_1x1v(double t, const double *xn, double *fout, void *ctx)
+void info_hamil_1x1v(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0], v = xn[1];
   fout[0] = 0.5 * v * v;
 }
 
-void
-test_1x1v(int poly_order, enum gkyl_basis_type b_type)
+void test_1x1v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = { 0.0, -5.0 }, upper[] = { 1.0, 5.0 };
@@ -132,8 +128,8 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
     gkyl_dg_calc_canonical_pb_vars_new(&grid, &confBasis, &basis, false);
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf(
-    calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
+                                            alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[2] = { 0.0, 0.0 };
@@ -155,33 +151,45 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
       gkyl_array_fetch(sgn_alpha_surf_comp_not_used, pidx);
 
     if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_ser_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_ser_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_tensor_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_tensor_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x1v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x1v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x1v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else {
       assert(false);
     }
@@ -205,7 +213,8 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
       // Iterate overthe number of basis on the surface
       for (int n = 0; n < surf_basis.num_basis; n++) {
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir * surf_basis.num_basis],
-          alpha_surf_comp_R_local[n + dir * surf_basis.num_basis], 1e-12));
+                                       alpha_surf_comp_R_local[n + dir * surf_basis.num_basis],
+                                       1e-12));
       }
     }
   }
@@ -226,8 +235,7 @@ test_1x1v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void
-info_h_ij_inv_1x2v(double t, const double *xn, double *fout, void *ctx)
+void info_h_ij_inv_1x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   // [h^{xx},h^{xy},h^{yy}]
@@ -241,8 +249,7 @@ info_h_ij_inv_1x2v(double t, const double *xn, double *fout, void *ctx)
   fout[2] = 1.0 / pow(R * sin(q[0]), 2);
 }
 
-void
-info_det_h_1x2v(double t, const double *xn, double *fout, void *ctx)
+void info_det_h_1x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double R = 1.0;
@@ -251,8 +258,7 @@ info_det_h_1x2v(double t, const double *xn, double *fout, void *ctx)
   fout[0] = pow(R, 2) * sin(q[0]);
 }
 
-void
-info_hamil_1x2v(double t, const double *xn, double *fout, void *ctx)
+void info_hamil_1x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double w0 = xn[1], w1 = xn[2];
@@ -261,12 +267,11 @@ info_hamil_1x2v(double t, const double *xn, double *fout, void *ctx)
   double *h_inv = malloc(3 * sizeof(double));
   info_h_ij_inv_1x2v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
-    0.5 * h_inv[2] * w[1] * w[1];
+            0.5 * h_inv[2] * w[1] * w[1];
   free(h_inv);
 }
 
-void
-test_1x2v(int poly_order, enum gkyl_basis_type b_type)
+void test_1x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = { pi / 4, -5.0, -5.0 }, upper[] = { pi / 2, 5.0, 5.0 };
@@ -357,8 +362,8 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
     gkyl_dg_calc_canonical_pb_vars_new(&grid, &confBasis, &basis, false);
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf(
-    calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
+                                            alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[3] = { 0.0, 0.0, 0.0 };
@@ -380,33 +385,45 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
       gkyl_array_fetch(sgn_alpha_surf_comp_not_used, pidx);
 
     if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_ser_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_ser_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_tensor_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_tensor_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x2v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x2v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x2v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else {
       assert(false);
     }
@@ -430,7 +447,8 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
       // Iterate overthe number of basis on the surface
       for (int n = 0; n < surf_basis.num_basis; n++) {
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir * surf_basis.num_basis],
-          alpha_surf_comp_R_local[n + dir * surf_basis.num_basis], 1e-12));
+                                       alpha_surf_comp_R_local[n + dir * surf_basis.num_basis],
+                                       1e-12));
       }
     }
   }
@@ -451,8 +469,7 @@ test_1x2v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void
-info_h_ij_inv_1x3v(double t, const double *xn, double *fout, void *ctx)
+void info_h_ij_inv_1x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   double q_r = xn[0];
@@ -466,16 +483,14 @@ info_h_ij_inv_1x3v(double t, const double *xn, double *fout, void *ctx)
   fout[5] = 1.0;
 }
 
-void
-info_det_h_1x3v(double t, const double *xn, double *fout, void *ctx)
+void info_det_h_1x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double q_r = xn[0];
   fout[0] = q_r;
 }
 
-void
-info_hamil_1x3v(double t, const double *xn, double *fout, void *ctx)
+void info_hamil_1x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], p_R_dot = xn[1], p_theta_dot = xn[2], p_phi_dot = xn[3];
@@ -483,13 +498,12 @@ info_hamil_1x3v(double t, const double *xn, double *fout, void *ctx)
   double *h_inv = malloc(6 * sizeof(double));
   info_h_ij_inv_1x3v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
-    0.5 * (2.0 * h_inv[2] * w[2] * w[0]) + 0.5 * h_inv[3] * w[1] * w[1] +
-    0.5 * (2.0 * h_inv[4] * w[1] * w[2]) + 0.5 * h_inv[5] * w[2] * w[2];
+            0.5 * (2.0 * h_inv[2] * w[2] * w[0]) + 0.5 * h_inv[3] * w[1] * w[1] +
+            0.5 * (2.0 * h_inv[4] * w[1] * w[2]) + 0.5 * h_inv[5] * w[2] * w[2];
   free(h_inv);
 }
 
-void
-test_1x3v(int poly_order, enum gkyl_basis_type b_type)
+void test_1x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = { 0.5, -5.0, -5.0, -5.0 }, upper[] = { 1.5, 5.0, 5.0, 5.0 };
@@ -581,8 +595,8 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
     gkyl_dg_calc_canonical_pb_vars_new(&grid, &confBasis, &basis, false);
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf(
-    calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
+                                            alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[4] = { 0.0, 0.0, 0.0, 0.0 };
@@ -604,33 +618,45 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
       gkyl_array_fetch(sgn_alpha_surf_comp_not_used, pidx);
 
     if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_ser_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_ser_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_tensor_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_tensor_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_1x3v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_1x3v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_1x3v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else {
       assert(false);
     }
@@ -654,7 +680,8 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
       // Iterate overthe number of basis on the surface
       for (int n = 0; n < surf_basis.num_basis; n++) {
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir * surf_basis.num_basis],
-          alpha_surf_comp_R_local[n + dir * surf_basis.num_basis], 1e-12));
+                                       alpha_surf_comp_R_local[n + dir * surf_basis.num_basis],
+                                       1e-12));
       }
     }
   }
@@ -675,8 +702,7 @@ test_1x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void
-info_h_ij_inv_2x2v(double t, const double *xn, double *fout, void *ctx)
+void info_h_ij_inv_2x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   // [h^{xx},h^{xy},h^{yy}]
@@ -690,8 +716,7 @@ info_h_ij_inv_2x2v(double t, const double *xn, double *fout, void *ctx)
   fout[2] = 1.0 / pow(R * sin(q[0]), 2);
 }
 
-void
-info_det_h_2x2v(double t, const double *xn, double *fout, void *ctx)
+void info_det_h_2x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double R = 1.0;
@@ -700,8 +725,7 @@ info_det_h_2x2v(double t, const double *xn, double *fout, void *ctx)
   fout[0] = pow(R, 2) * sin(q[0]);
 }
 
-void
-info_hamil_2x2v(double t, const double *xn, double *fout, void *ctx)
+void info_hamil_2x2v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double w0 = xn[2], w1 = xn[3];
@@ -710,12 +734,11 @@ info_hamil_2x2v(double t, const double *xn, double *fout, void *ctx)
   double *h_inv = malloc(3 * sizeof(double));
   info_h_ij_inv_2x2v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
-    0.5 * h_inv[2] * w[1] * w[1];
+            0.5 * h_inv[2] * w[1] * w[1];
   free(h_inv);
 }
 
-void
-test_2x2v(int poly_order, enum gkyl_basis_type b_type)
+void test_2x2v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = { pi / 4, pi / 4, -5.0, -5.0 },
@@ -807,8 +830,8 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
     gkyl_dg_calc_canonical_pb_vars_new(&grid, &confBasis, &basis, false);
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf(
-    calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
+                                            alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[4] = { 0.0, 0.0, 0.0, 0.0 };
@@ -830,41 +853,57 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
       gkyl_array_fetch(sgn_alpha_surf_comp_not_used, pidx);
 
     if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p1(w_edge_not_used, dxv, hamil_local,
-        alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p2(w_edge_not_used, dxv, hamil_local,
-        alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 2)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x2v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x2v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x2v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x2v_tensor_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else {
       assert(false);
     }
@@ -888,7 +927,8 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
       // Iterate overthe number of basis on the surface
       for (int n = 0; n < surf_basis.num_basis; n++) {
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir * surf_basis.num_basis],
-          alpha_surf_comp_R_local[n + dir * surf_basis.num_basis], 1e-9));
+                                       alpha_surf_comp_R_local[n + dir * surf_basis.num_basis],
+                                       1e-9));
       }
     }
   }
@@ -909,8 +949,7 @@ test_2x2v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void
-info_h_ij_inv_2x3v(double t, const double *xn, double *fout, void *ctx)
+void info_h_ij_inv_2x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   double q_r = xn[0], q_theta = xn[1];
@@ -924,16 +963,14 @@ info_h_ij_inv_2x3v(double t, const double *xn, double *fout, void *ctx)
   fout[5] = 1.0 / pow((2.0 + q_r * cos(q_theta)), 2);
 }
 
-void
-info_det_h_2x3v(double t, const double *xn, double *fout, void *ctx)
+void info_det_h_2x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double q_r = xn[0], q_theta = xn[1];
   fout[0] = q_r * (2.0 + q_r * cos(q_theta));
 }
 
-void
-info_hamil_2x3v(double t, const double *xn, double *fout, void *ctx)
+void info_hamil_2x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], q_theta = xn[1], p_R_dot = xn[2], p_theta_dot = xn[3], p_phi_dot = xn[4];
@@ -941,13 +978,12 @@ info_hamil_2x3v(double t, const double *xn, double *fout, void *ctx)
   double *h_inv = malloc(6 * sizeof(double));
   info_h_ij_inv_2x3v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
-    0.5 * (2.0 * h_inv[2] * w[2] * w[0]) + 0.5 * h_inv[3] * w[1] * w[1] +
-    0.5 * (2.0 * h_inv[4] * w[1] * w[2]) + 0.5 * h_inv[5] * w[2] * w[2];
+            0.5 * (2.0 * h_inv[2] * w[2] * w[0]) + 0.5 * h_inv[3] * w[1] * w[1] +
+            0.5 * (2.0 * h_inv[4] * w[1] * w[2]) + 0.5 * h_inv[5] * w[2] * w[2];
   free(h_inv);
 }
 
-void
-test_2x3v(int poly_order, enum gkyl_basis_type b_type)
+void test_2x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = { 0.5, 0.0, -5.0, -5.0, -5.0 }, upper[] = { 1.5, 2.0 * pi, 5.0, 5.0, 5.0 };
@@ -1040,13 +1076,13 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
     gkyl_dg_calc_canonical_pb_vars_new(&grid, &confBasis, &basis, false);
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf(
-    calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
+                                            alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[5] = { 0.0, 0.0, 0.0, 0.0, 0.0 };
   double dxv[5] = { confGrid.dx[0], confGrid.dx[1], vel_grid.dx[0], vel_grid.dx[1],
-    vel_grid.dx[2] };
+                    vel_grid.dx[2] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -1064,32 +1100,44 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
       gkyl_array_fetch(sgn_alpha_surf_comp_not_used, pidx);
 
     if (poly_order == 1 && b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x3v_ser_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x3v_ser_p1(w_edge_not_used, dxv, hamil_local,
-        alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x3v_ser_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x3v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x3v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x3v_ser_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if (b_type == GKYL_BASIS_MODAL_SERENDIPITY) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x3v_ser_p2(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x3v_ser_p2(w_edge_not_used, dxv, hamil_local,
-        alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x3v_ser_p2(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x3v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x3v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x3v_ser_p2(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x3v_tensor_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_2x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_2x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_2x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_2x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else {
       //Tensor p2 is not availible for 2x3v
       assert(false);
@@ -1114,7 +1162,8 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
       // Iterate overthe number of basis on the surface
       for (int n = 0; n < surf_basis.num_basis; n++) {
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir * surf_basis.num_basis],
-          alpha_surf_comp_R_local[n + dir * surf_basis.num_basis], 1e-10));
+                                       alpha_surf_comp_R_local[n + dir * surf_basis.num_basis],
+                                       1e-10));
       }
     }
   }
@@ -1135,8 +1184,7 @@ test_2x3v(int poly_order, enum gkyl_basis_type b_type)
   gkyl_dg_calc_canonical_pb_vars_release(calc_vars);
 }
 
-void
-info_h_ij_inv_3x3v(double t, const double *xn, double *fout, void *ctx)
+void info_h_ij_inv_3x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Inverse metric tensor, must be symmetric!
   double q_r = xn[0], q_theta = xn[1], q_phi = xn[2];
@@ -1150,16 +1198,14 @@ info_h_ij_inv_3x3v(double t, const double *xn, double *fout, void *ctx)
   fout[5] = 1.0 / pow((2.0 + q_r * cos(q_theta)), 2);
 }
 
-void
-info_det_h_3x3v(double t, const double *xn, double *fout, void *ctx)
+void info_det_h_3x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // determinant of the metric tensor: J = det(h_{ij})
   double q_r = xn[0], q_theta = xn[1], q_phi = xn[2];
   fout[0] = q_r * (2.0 + q_r * cos(q_theta));
 }
 
-void
-info_hamil_3x3v(double t, const double *xn, double *fout, void *ctx)
+void info_hamil_3x3v(double t, const double *xn, double *fout, void *ctx)
 {
   // Canonical coordinates:
   double q_R = xn[0], q_theta = xn[1], q_phi = xn[2], p_R_dot = xn[3], p_theta_dot = xn[4],
@@ -1168,13 +1214,12 @@ info_hamil_3x3v(double t, const double *xn, double *fout, void *ctx)
   double *h_inv = malloc(6 * sizeof(double));
   info_h_ij_inv_3x3v(t, xn, h_inv, ctx);
   fout[0] = 0.5 * h_inv[0] * w[0] * w[0] + 0.5 * (2.0 * h_inv[1] * w[1] * w[0]) +
-    0.5 * (2.0 * h_inv[2] * w[2] * w[0]) + 0.5 * h_inv[3] * w[1] * w[1] +
-    0.5 * (2.0 * h_inv[4] * w[1] * w[2]) + 0.5 * h_inv[5] * w[2] * w[2];
+            0.5 * (2.0 * h_inv[2] * w[2] * w[0]) + 0.5 * h_inv[3] * w[1] * w[1] +
+            0.5 * (2.0 * h_inv[4] * w[1] * w[2]) + 0.5 * h_inv[5] * w[2] * w[2];
   free(h_inv);
 }
 
-void
-test_3x3v(int poly_order, enum gkyl_basis_type b_type)
+void test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 {
   double pi = 3.14159265359;
   double lower[] = { 0.5, 0.0, 0.0, -5.0, -5.0, -5.0 },
@@ -1269,13 +1314,13 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
   // Pre-compute alpha_surf, sgn_alpha_surf, const_sgn_alpha, and cot_vec since they are time-independent
   struct gkyl_dg_calc_canonical_pb_vars *calc_vars =
     gkyl_dg_calc_canonical_pb_vars_new(&grid, &confBasis, &basis, false);
-  gkyl_dg_calc_canonical_pb_vars_alpha_surf(
-    calc_vars, &confLocal, &local, &local_ext, hamil, alpha_surf, sgn_alpha_surf, const_sgn_alpha);
+  gkyl_dg_calc_canonical_pb_vars_alpha_surf(calc_vars, &confLocal, &local, &local_ext, hamil,
+                                            alpha_surf, sgn_alpha_surf, const_sgn_alpha);
 
   // Check continuity (Directly via Kernels, Option 2)
   double w_edge_not_used[6] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
-  double dxv[6] = { confGrid.dx[0], confGrid.dx[1], confGrid.dx[2], vel_grid.dx[0], vel_grid.dx[1],
-    vel_grid.dx[2] };
+  double dxv[6] = { confGrid.dx[0], confGrid.dx[1], confGrid.dx[2],
+                    vel_grid.dx[0], vel_grid.dx[1], vel_grid.dx[2] };
   struct gkyl_array *alpha_surf_comp_L = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *alpha_surf_comp_R = mkarr(false, alpha_surf_sz, local_ext.volume);
   struct gkyl_array *sgn_alpha_surf_comp_not_used =
@@ -1293,24 +1338,33 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
       gkyl_array_fetch(sgn_alpha_surf_comp_not_used, pidx);
 
     if ((b_type == GKYL_BASIS_MODAL_TENSOR) && (poly_order == 1)) {
-      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_3x3v_tensor_p1(w_edge_not_used,
-        dxv, hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfy_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfz_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfz_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_R_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvy_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
-      const_sgn_alpha_surf = canonical_pb_alpha_surfvz_3x3v_tensor_p1(w_edge_not_used, dxv,
-        hamil_local, alpha_surf_comp_L_local, sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf = canonical_pb_alpha_surfx_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      int const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfx_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfy_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfy_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfz_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf_edge = canonical_pb_alpha_edge_surfz_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_R_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvx_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvy_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
+      const_sgn_alpha_surf = canonical_pb_alpha_surfvz_3x3v_tensor_p1(
+        w_edge_not_used, dxv, hamil_local, alpha_surf_comp_L_local,
+        sgn_alpha_surf_comp_not_used_local);
     } else {
       //Only tensor p1 is supported for 3x3v
       assert(false);
@@ -1335,7 +1389,8 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
       // Iterate overthe number of basis on the surface
       for (int n = 0; n < surf_basis.num_basis; n++) {
         TEST_CHECK(gkyl_compare_double(alpha_surf_comp_L_local[n + dir * surf_basis.num_basis],
-          alpha_surf_comp_R_local[n + dir * surf_basis.num_basis], 1e-10));
+                                       alpha_surf_comp_R_local[n + dir * surf_basis.num_basis],
+                                       1e-10));
       }
     }
   }
@@ -1357,114 +1412,95 @@ test_3x3v(int poly_order, enum gkyl_basis_type b_type)
 }
 
 // Check the 1x1v_p1/2 continuity
-void
-test_canonical_pb_1x1v_p1_continuity_tensor_ho()
+void test_canonical_pb_1x1v_p1_continuity_tensor_ho()
 {
   test_1x1v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_1x1v_p1_continuity_ser_ho()
+void test_canonical_pb_1x1v_p1_continuity_ser_ho()
 {
   test_1x1v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void
-test_canonical_pb_1x1v_p2_continuity_tensor_ho()
+void test_canonical_pb_1x1v_p2_continuity_tensor_ho()
 {
   test_1x1v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_1x1v_p2_continuity_ser_ho()
+void test_canonical_pb_1x1v_p2_continuity_ser_ho()
 {
   test_1x1v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 1x2v_p1/2 continuity
-void
-test_canonical_pb_1x2v_p1_continuity_tensor_ho()
+void test_canonical_pb_1x2v_p1_continuity_tensor_ho()
 {
   test_1x2v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_1x2v_p1_continuity_ser_ho()
+void test_canonical_pb_1x2v_p1_continuity_ser_ho()
 {
   test_1x2v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void
-test_canonical_pb_1x2v_p2_continuity_tensor_ho()
+void test_canonical_pb_1x2v_p2_continuity_tensor_ho()
 {
   test_1x2v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_1x2v_p2_continuity_ser_ho()
+void test_canonical_pb_1x2v_p2_continuity_ser_ho()
 {
   test_1x2v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 1x3v_p1/2 continuity
-void
-test_canonical_pb_1x3v_p1_continuity_tensor_ho()
+void test_canonical_pb_1x3v_p1_continuity_tensor_ho()
 {
   test_1x3v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_1x3v_p1_continuity_ser_ho()
+void test_canonical_pb_1x3v_p1_continuity_ser_ho()
 {
   test_1x3v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void
-test_canonical_pb_1x3v_p2_continuity_tensor_ho()
+void test_canonical_pb_1x3v_p2_continuity_tensor_ho()
 {
   test_1x3v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_1x3v_p2_continuity_ser_ho()
+void test_canonical_pb_1x3v_p2_continuity_ser_ho()
 {
   test_1x3v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 2x2v_p1/2 continuity
-void
-test_canonical_pb_2x2v_p1_continuity_tensor_ho()
+void test_canonical_pb_2x2v_p1_continuity_tensor_ho()
 {
   test_2x2v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_2x2v_p1_continuity_ser_ho()
+void test_canonical_pb_2x2v_p1_continuity_ser_ho()
 {
   test_2x2v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void
-test_canonical_pb_2x2v_p2_continuity_tensor_ho()
+void test_canonical_pb_2x2v_p2_continuity_tensor_ho()
 {
   test_2x2v(2, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_2x2v_p2_continuity_ser_ho()
+void test_canonical_pb_2x2v_p2_continuity_ser_ho()
 {
   test_2x2v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 2x3v_p1/2 continuity
-void
-test_canonical_pb_2x3v_p1_continuity_tensor_ho()
+void test_canonical_pb_2x3v_p1_continuity_tensor_ho()
 {
   test_2x3v(1, GKYL_BASIS_MODAL_TENSOR);
 }
-void
-test_canonical_pb_2x3v_p1_continuity_ser_ho()
+void test_canonical_pb_2x3v_p1_continuity_ser_ho()
 {
   test_2x3v(1, GKYL_BASIS_MODAL_SERENDIPITY);
 }
-void
-test_canonical_pb_2x3v_p2_continuity_ser_ho()
+void test_canonical_pb_2x3v_p2_continuity_ser_ho()
 {
   test_2x3v(2, GKYL_BASIS_MODAL_SERENDIPITY);
 }
 // Check the 3x3v p1 (tensor only)
-void
-test_canonical_pb_3x3v_p1_continuity_tensor_ho()
+void test_canonical_pb_3x3v_p1_continuity_tensor_ho()
 {
   test_3x3v(1, GKYL_BASIS_MODAL_TENSOR);
 }
 
-TEST_LIST = { { "test_canonical_pb_1x1v_p1_continuity_tensor_ho",
-                test_canonical_pb_1x1v_p1_continuity_tensor_ho },
+TEST_LIST = {
+  { "test_canonical_pb_1x1v_p1_continuity_tensor_ho",
+    test_canonical_pb_1x1v_p1_continuity_tensor_ho },
   { "test_canonical_pb_1x1v_p1_continuity_ser_ho", test_canonical_pb_1x1v_p1_continuity_ser_ho },
   { "test_canonical_pb_1x1v_p2_continuity_tensor_ho",
     test_canonical_pb_1x1v_p2_continuity_tensor_ho },
@@ -1493,4 +1529,5 @@ TEST_LIST = { { "test_canonical_pb_1x1v_p1_continuity_tensor_ho",
   { "test_canonical_pb_2x3v_p2_continuity_ser_ho", test_canonical_pb_2x3v_p2_continuity_ser_ho },
   { "test_canonical_pb_3x3v_p1_continuity_tensor_ho",
     test_canonical_pb_3x3v_p1_continuity_tensor_ho },
-  { NULL, NULL } };
+  { NULL, NULL }
+};

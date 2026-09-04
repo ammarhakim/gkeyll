@@ -10,9 +10,9 @@ extern "C" {
 #include <gkyl_array_integrate_priv.h>
 }
 
-__global__ static void
-gkyl_array_integrate_set_ker_cu(
-  struct gkyl_array_integrate *up, enum gkyl_array_integrate_op op, struct gkyl_basis basis)
+__global__ static void gkyl_array_integrate_set_ker_cu(struct gkyl_array_integrate *up,
+                                                       enum gkyl_array_integrate_op op,
+                                                       struct gkyl_basis basis)
 {
   int ndim = basis.ndim, poly_order = basis.poly_order;
 
@@ -39,9 +39,10 @@ gkyl_array_integrate_set_ker_cu(
   }
 }
 
-struct gkyl_array_integrate *
-gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  int num_comp, enum gkyl_array_integrate_op op)
+struct gkyl_array_integrate *gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid,
+                                                             const struct gkyl_basis *basis,
+                                                             int num_comp,
+                                                             enum gkyl_array_integrate_op op)
 {
   // Allocate space for new updater.
   struct gkyl_array_integrate *up =
@@ -67,7 +68,7 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_array_integrate), GKYL_CU_MEMCPY_H2D);
 
   // Set the kernel.
-  gkyl_array_integrate_set_ker_cu<<<1, 1>>>(up_cu, op, *basis);
+  gkyl_array_integrate_set_ker_cu<<<1, 1> > >(up_cu, op, *basis);
 
   up->on_dev = up_cu;
 
@@ -75,10 +76,11 @@ gkyl_array_integrate_cu_dev_new(const struct gkyl_rect_grid *grid, const struct 
 }
 
 template <unsigned int BLOCKSIZE>
-__global__ void
-array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct gkyl_array *inp,
-  double factor, const struct gkyl_array *weight, const struct gkyl_range range,
-  struct gkyl_range weight_range, double *out)
+__global__ void array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up,
+                                                   const struct gkyl_array *inp, double factor,
+                                                   const struct gkyl_array *weight,
+                                                   const struct gkyl_range range,
+                                                   struct gkyl_range weight_range, double *out)
 {
   unsigned long linc = blockIdx.x * blockDim.x + threadIdx.x;
 
@@ -116,9 +118,9 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct
     double bResult = 0;
     bResult = BlockReduceT(temp).Reduce(outLocal[k],
 #if CUDART_VERSION > 12090
-      ::cuda::std::plus()
+                                        ::cuda::std::plus()
 #else
-      cub::Sum()
+                                        cub::Sum()
 #endif
     );
     if (threadIdx.x == 0)
@@ -126,10 +128,10 @@ array_integrate_blockRedAtomic_cub(struct gkyl_array_integrate *up, const struct
   }
 }
 
-void
-gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl_array *fin,
-  double factor, const struct gkyl_array *weight, const struct gkyl_range *range,
-  const struct gkyl_range *weight_range, double *out)
+void gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl_array *fin,
+                                     double factor, const struct gkyl_array *weight,
+                                     const struct gkyl_range *range,
+                                     const struct gkyl_range *weight_range, double *out)
 {
   gkyl_cu_memset(out, 0, up->num_comp * sizeof(double));
 
@@ -141,7 +143,7 @@ gkyl_array_integrate_advance_cu(gkyl_array_integrate *up, const struct gkyl_arra
     weight_on_dev = weight->on_dev;
     weight_range_copy = *weight_range;
   }
-  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads>>>(
+  array_integrate_blockRedAtomic_cub<nthreads><<<nblocks, nthreads> > >(
     up->on_dev, fin->on_dev, factor, weight_on_dev, *range, weight_range_copy, out);
   // device synchronize required because out may be host pinned memory
   cudaDeviceSynchronize();

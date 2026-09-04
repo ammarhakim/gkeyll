@@ -32,9 +32,10 @@ typedef struct {
   momf_t kernels[3];
 } gkyl_canonical_pb_mom_kern_list;
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_ser_p1(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -43,9 +44,10 @@ kernel_canonical_pb_MEnergy_1x1v_ser_p1(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_ser_p2(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -54,9 +56,10 @@ kernel_canonical_pb_MEnergy_1x1v_ser_p2(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_ser_p1(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -65,9 +68,10 @@ kernel_canonical_pb_MEnergy_1x2v_ser_p1(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_ser_p2(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -76,9 +80,10 @@ kernel_canonical_pb_MEnergy_1x2v_ser_p2(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_ser_p1(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -87,9 +92,10 @@ kernel_canonical_pb_MEnergy_1x3v_ser_p1(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_ser_p2(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -98,9 +104,10 @@ kernel_canonical_pb_MEnergy_1x3v_ser_p2(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_ser_p1(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -109,9 +116,10 @@ kernel_canonical_pb_MEnergy_2x2v_ser_p1(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_ser_p2(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -120,9 +128,10 @@ kernel_canonical_pb_MEnergy_2x2v_ser_p2(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_ser_p1(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -131,9 +140,10 @@ kernel_canonical_pb_MEnergy_2x3v_ser_p1(const struct gkyl_mom_type *momt, const 
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_ser_p2(const struct gkyl_mom_type *momt,
+                                                               const double *xc, const double *dx,
+                                                               const int *idx, const double *f,
+                                                               double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -144,7 +154,8 @@ kernel_canonical_pb_MEnergy_2x3v_ser_p2(const struct gkyl_mom_type *momt, const 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -155,7 +166,8 @@ kernel_canonical_pb_int_five_moments_1x1v_ser_p1(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -166,7 +178,8 @@ kernel_canonical_pb_int_five_moments_1x1v_ser_p2(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -177,7 +190,8 @@ kernel_canonical_pb_int_five_moments_1x2v_ser_p1(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -188,7 +202,8 @@ kernel_canonical_pb_int_five_moments_1x2v_ser_p2(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -199,7 +214,8 @@ kernel_canonical_pb_int_five_moments_1x3v_ser_p1(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -210,7 +226,8 @@ kernel_canonical_pb_int_five_moments_1x3v_ser_p2(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -221,7 +238,8 @@ kernel_canonical_pb_int_five_moments_2x2v_ser_p1(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -232,7 +250,8 @@ kernel_canonical_pb_int_five_moments_2x2v_ser_p2(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -243,7 +262,8 @@ kernel_canonical_pb_int_five_moments_2x3v_ser_p1(const struct gkyl_mom_type *mom
 
 GKYL_CU_DH static void
 kernel_canonical_pb_int_five_moments_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                                 const double *dx, const int *idx, const double *f,
+                                                 double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -287,9 +307,11 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list ser_int_five_moments_kern
   { NULL, NULL, NULL } // 5
 };
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x1v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_tensor_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -298,9 +320,11 @@ kernel_canonical_pb_MEnergy_1x1v_tensor_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x1v_tensor_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -309,9 +333,11 @@ kernel_canonical_pb_MEnergy_1x1v_tensor_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x2v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_tensor_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -320,9 +346,11 @@ kernel_canonical_pb_MEnergy_1x2v_tensor_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x2v_tensor_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -331,9 +359,11 @@ kernel_canonical_pb_MEnergy_1x2v_tensor_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_tensor_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -342,9 +372,11 @@ kernel_canonical_pb_MEnergy_1x3v_tensor_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_1x3v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_1x3v_tensor_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -353,9 +385,11 @@ kernel_canonical_pb_MEnergy_1x3v_tensor_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_2x2v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_tensor_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -364,9 +398,11 @@ kernel_canonical_pb_MEnergy_2x2v_tensor_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x2v_tensor_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -375,9 +411,11 @@ kernel_canonical_pb_MEnergy_2x2v_tensor_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_2x3v_tensor_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -386,9 +424,11 @@ kernel_canonical_pb_MEnergy_2x3v_tensor_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_MEnergy_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_MEnergy_3x3v_tensor_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -397,9 +437,9 @@ kernel_canonical_pb_MEnergy_3x3v_tensor_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_1x1v_tensor_p1(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_tensor_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -408,9 +448,9 @@ kernel_canonical_pb_int_five_moments_1x1v_tensor_p1(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_1x1v_tensor_p2(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x1v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -419,9 +459,9 @@ kernel_canonical_pb_int_five_moments_1x1v_tensor_p2(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_1x2v_tensor_p1(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_tensor_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -430,9 +470,9 @@ kernel_canonical_pb_int_five_moments_1x2v_tensor_p1(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_1x2v_tensor_p2(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x2v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -441,9 +481,9 @@ kernel_canonical_pb_int_five_moments_1x2v_tensor_p2(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_1x3v_tensor_p1(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_tensor_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -452,9 +492,9 @@ kernel_canonical_pb_int_five_moments_1x3v_tensor_p1(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_1x3v_tensor_p2(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_1x3v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -463,9 +503,9 @@ kernel_canonical_pb_int_five_moments_1x3v_tensor_p2(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_2x2v_tensor_p1(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_tensor_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -474,9 +514,9 @@ kernel_canonical_pb_int_five_moments_2x2v_tensor_p1(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_2x2v_tensor_p2(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x2v_tensor_p2(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -485,9 +525,9 @@ kernel_canonical_pb_int_five_moments_2x2v_tensor_p2(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_2x3v_tensor_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -496,9 +536,9 @@ kernel_canonical_pb_int_five_moments_2x3v_tensor_p1(const struct gkyl_mom_type *
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_int_five_moments_3x3v_tensor_p1(const struct gkyl_mom_type *momt,
-  const double *xc, const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_int_five_moments_3x3v_tensor_p1(
+  const struct gkyl_mom_type *momt, const double *xc, const double *dx, const int *idx,
+  const double *f, double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -545,9 +585,11 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list tensor_int_five_moments_k
   { NULL, kernel_canonical_pb_int_five_moments_3x3v_tensor_p1, NULL } // 5
 };
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_1x1v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_ser_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -556,9 +598,11 @@ kernel_canonical_pb_M1i_from_H_1x1v_ser_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_1x1v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x1v_ser_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -567,9 +611,11 @@ kernel_canonical_pb_M1i_from_H_1x1v_ser_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_1x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_ser_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -578,9 +624,11 @@ kernel_canonical_pb_M1i_from_H_1x2v_ser_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_1x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x2v_ser_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -589,9 +637,11 @@ kernel_canonical_pb_M1i_from_H_1x2v_ser_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_1x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_ser_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -600,9 +650,11 @@ kernel_canonical_pb_M1i_from_H_1x3v_ser_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_1x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_1x3v_ser_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -611,9 +663,11 @@ kernel_canonical_pb_M1i_from_H_1x3v_ser_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_2x2v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_ser_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -622,9 +676,11 @@ kernel_canonical_pb_M1i_from_H_2x2v_ser_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_2x2v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x2v_ser_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -633,9 +689,11 @@ kernel_canonical_pb_M1i_from_H_2x2v_ser_p2(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_2x3v_ser_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x3v_ser_p1(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -644,9 +702,11 @@ kernel_canonical_pb_M1i_from_H_2x3v_ser_p1(const struct gkyl_mom_type *momt, con
     dx, (const double *)gkyl_array_cfetch(mom_can_pb->auxfields.hamil, pidx), f, out);
 }
 
-GKYL_CU_DH static void
-kernel_canonical_pb_M1i_from_H_2x3v_ser_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+GKYL_CU_DH static void kernel_canonical_pb_M1i_from_H_2x3v_ser_p2(const struct gkyl_mom_type *momt,
+                                                                  const double *xc,
+                                                                  const double *dx, const int *idx,
+                                                                  const double *f, double *out,
+                                                                  void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -679,7 +739,8 @@ GKYL_CU_D static const gkyl_canonical_pb_mom_kern_list ser_m1i_from_h_kernels[] 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_1x1v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -690,7 +751,8 @@ kernel_canonical_pb_M1i_from_H_1x1v_tensor_p1(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_1x1v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -701,7 +763,8 @@ kernel_canonical_pb_M1i_from_H_1x1v_tensor_p2(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_1x2v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -712,7 +775,8 @@ kernel_canonical_pb_M1i_from_H_1x2v_tensor_p1(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_1x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -723,7 +787,8 @@ kernel_canonical_pb_M1i_from_H_1x2v_tensor_p2(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_1x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -734,7 +799,8 @@ kernel_canonical_pb_M1i_from_H_1x3v_tensor_p1(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_1x3v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -745,7 +811,8 @@ kernel_canonical_pb_M1i_from_H_1x3v_tensor_p2(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_2x2v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -756,7 +823,8 @@ kernel_canonical_pb_M1i_from_H_2x2v_tensor_p1(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_2x2v_tensor_p2(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -767,7 +835,8 @@ kernel_canonical_pb_M1i_from_H_2x2v_tensor_p2(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_2x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -778,7 +847,8 @@ kernel_canonical_pb_M1i_from_H_2x3v_tensor_p1(const struct gkyl_mom_type *momt, 
 
 GKYL_CU_DH static void
 kernel_canonical_pb_M1i_from_H_3x3v_tensor_p1(const struct gkyl_mom_type *momt, const double *xc,
-  const double *dx, const int *idx, const double *f, double *out, void *param)
+                                              const double *dx, const int *idx, const double *f,
+                                              double *out, void *param)
 {
   struct mom_type_canonical_pb *mom_can_pb = container_of(momt, struct mom_type_canonical_pb, momt);
   long pidx = gkyl_range_idx(&mom_can_pb->phase_range, idx);
@@ -821,16 +891,18 @@ void gkyl_mom_can_pb_free(const struct gkyl_ref_count *ref);
  * see new() method above for documentation.
  */
 struct gkyl_mom_type *gkyl_mom_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range,
-  enum gkyl_distribution_moments mom_type);
+                                                       const struct gkyl_basis *pbasis,
+                                                       const struct gkyl_range *phase_range,
+                                                       enum gkyl_distribution_moments mom_type);
 
 /**
  * Create new canonical-pb integrated moment type
  * object on NV-GPU: see new() method above for documentation.
  */
 struct gkyl_mom_type *gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range,
-  enum gkyl_distribution_moments mom_type);
+                                                           const struct gkyl_basis *pbasis,
+                                                           const struct gkyl_range *phase_range,
+                                                           enum gkyl_distribution_moments mom_type);
 
 /**
  * CUDA device function to set auxiliary fields needed in computing moments.
@@ -838,7 +910,7 @@ struct gkyl_mom_type *gkyl_int_mom_canonical_pb_cu_dev_new(const struct gkyl_bas
  * @param momt moment type.
  * @param auxfields Pointer to struct of aux fields.
  */
-void gkyl_mom_canonical_pb_set_auxfields_cu(
-  const struct gkyl_mom_type *momt, struct gkyl_mom_canonical_pb_auxfields auxin);
+void gkyl_mom_canonical_pb_set_auxfields_cu(const struct gkyl_mom_type *momt,
+                                            struct gkyl_mom_canonical_pb_auxfields auxin);
 
 #endif

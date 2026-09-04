@@ -2,13 +2,11 @@
 #include <gkyl_fem_poisson_priv.h>
 #include <gkyl_array_reduce.h>
 
-static void
-fem_poisson_bias_src_disabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+static void fem_poisson_bias_src_disabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
 }
 
-static void
-fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
+static void fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -38,7 +36,7 @@ fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 
       if (up->solve_iter.idx[bp->dir] == bp_idx_m || up->solve_iter.idx[bp->dir] == bp_idx_m + 1) {
         up->kernels->bias_src_ker[keri](-1 + 2 * ((bp_idx_m + 1) - up->solve_iter.idx[bp->dir]),
-          bp->dir, bp->val, up->globalidx, brhs_p);
+                                        bp->dir, bp->val, up->globalidx, brhs_p);
       }
     }
   }
@@ -46,9 +44,9 @@ fem_poisson_bias_src_enabled(gkyl_fem_poisson *up, struct gkyl_array *rhsin)
 
 struct gkyl_fem_poisson *
 gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
-  struct gkyl_poisson_bias_plane_list *bias_planes, struct gkyl_array *epsilon,
-  struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu)
+                     const struct gkyl_basis basis, struct gkyl_poisson_bc *bcs,
+                     struct gkyl_poisson_bias_plane_list *bias_planes, struct gkyl_array *epsilon,
+                     struct gkyl_array *kSq, bool is_epsilon_const, bool use_gpu)
 {
   struct gkyl_fem_poisson *up = gkyl_malloc(sizeof(struct gkyl_fem_poisson));
 
@@ -83,11 +81,11 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
     // Create a small gkyl_array to hold the constant epsilon value.
     double *eps_avg = gkyl_malloc(sizeof(double));
 #ifdef GKYL_HAVE_CUDA
-    up->epsilon =
-      up->use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 1) : gkyl_array_new(GKYL_DOUBLE, 1, 1);
-    struct gkyl_array *eps_cellavg = up->use_gpu
-      ? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size)
-      : gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
+    up->epsilon = up->use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 1) :
+                                gkyl_array_new(GKYL_DOUBLE, 1, 1);
+    struct gkyl_array *eps_cellavg = up->use_gpu ?
+                                       gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, epsilon->size) :
+                                       gkyl_array_new(GKYL_DOUBLE, 1, epsilon->size);
     gkyl_dg_calc_average_range(&up->basis, 0, eps_cellavg, 0, epsilon, *up->solve_range);
     if (up->use_gpu) {
       double *eps_avg_cu = gkyl_cu_malloc(sizeof(double));
@@ -135,7 +133,7 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   for (int d = 0; d < up->ndim; d++) {
     // Sanity check.
     if ((bcs->lo_type[d] == GKYL_POISSON_PERIODIC && bcs->up_type[d] != GKYL_POISSON_PERIODIC) ||
-      (bcs->lo_type[d] != GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC))
+        (bcs->lo_type[d] != GKYL_POISSON_PERIODIC && bcs->up_type[d] == GKYL_POISSON_PERIODIC))
       assert(false);
   }
   for (int d = 0; d < up->ndim; d++)
@@ -178,22 +176,21 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
     up->bcvals_cu = (double *)gkyl_cu_malloc(sizeof(double[GKYL_MAX_CDIM * 3 * 2]));
-    gkyl_cu_memcpy(
-      up->bcvals_cu, up->bcvals, sizeof(double[GKYL_MAX_CDIM * 3 * 2]), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(up->bcvals_cu, up->bcvals, sizeof(double[GKYL_MAX_CDIM * 3 * 2]),
+                   GKYL_CU_MEMCPY_H2D);
   }
 #endif
 
   // Check if one of the boundaries needs a spatially varying Dirichlet BC.
   up->isdirichletvar = false;
   for (int d = 0; d < up->ndim; d++)
-    up->isdirichletvar = up->isdirichletvar ||
-      (bcs->lo_type[d] == GKYL_POISSON_DIRICHLET_VARYING ||
-        bcs->up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
+    up->isdirichletvar = up->isdirichletvar || (bcs->lo_type[d] == GKYL_POISSON_DIRICHLET_VARYING ||
+                                                bcs->up_type[d] == GKYL_POISSON_DIRICHLET_VARYING);
 
   // Compute the number of local and global nodes.
   up->numnodes_local = up->num_basis;
-  up->numnodes_global = gkyl_fem_poisson_global_num_nodes(
-    up->ndim, up->poly_order, basis.b_type, up->num_cells, up->isdirperiodic);
+  up->numnodes_global = gkyl_fem_poisson_global_num_nodes(up->ndim, up->poly_order, basis.b_type,
+                                                          up->num_cells, up->isdirperiodic);
 
   for (int d = 0; d < up->ndim; d++)
     up->dx[d] = up->grid.dx[d]; // Cell lengths.
@@ -268,10 +265,10 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
 
-    double *eps_p =
-      up->isvareps ? gkyl_array_fetch(epsilon_ho, linidx) : gkyl_array_fetch(epsilon_ho, 0);
-    double *kSq_p =
-      up->ishelmholtz ? gkyl_array_fetch(kSq_ho, linidx) : gkyl_array_fetch(kSq_ho, 0);
+    double *eps_p = up->isvareps ? gkyl_array_fetch(epsilon_ho, linidx) :
+                                   gkyl_array_fetch(epsilon_ho, 0);
+    double *kSq_p = up->ishelmholtz ? gkyl_array_fetch(kSq_ho, linidx) :
+                                      gkyl_array_fetch(kSq_ho, 0);
 
     int keri = idx_to_inup_ker(up->ndim, up->num_cells, up->solve_iter.idx);
     for (size_t d = 0; d < up->ndim; d++)
@@ -302,9 +299,9 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
         int bp_idx_m = (bp->loc - 1e-3 * dx - up->grid.lower[bp->dir]) / dx + 1;
 
         if (up->solve_iter.idx[bp->dir] == bp_idx_m ||
-          up->solve_iter.idx[bp->dir] == bp_idx_m + 1) {
+            up->solve_iter.idx[bp->dir] == bp_idx_m + 1) {
           up->kernels->bias_lhs_ker[keri](-1 + 2 * ((bp_idx_m + 1) - up->solve_iter.idx[bp->dir]),
-            bp->dir, up->globalidx, tri[0]);
+                                          bp->dir, up->globalidx, tri[0]);
         }
       }
     }
@@ -332,9 +329,8 @@ gkyl_fem_poisson_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   return up;
 }
 
-void
-gkyl_fem_poisson_set_rhs(
-  gkyl_fem_poisson *up, struct gkyl_array *rhsin, const struct gkyl_array *phibc)
+void gkyl_fem_poisson_set_rhs(gkyl_fem_poisson *up, struct gkyl_array *rhsin,
+                              const struct gkyl_array *phibc)
 {
   if (up->isdomperiodic && !(up->ishelmholtz)) {
     // Subtract the volume averaged RHS from the RHS.
@@ -372,8 +368,8 @@ gkyl_fem_poisson_set_rhs(
   while (gkyl_range_iter_next(&up->solve_iter)) {
     long linidx = gkyl_range_idx(up->solve_range, up->solve_iter.idx);
 
-    double *eps_p =
-      up->isvareps ? gkyl_array_fetch(up->epsilon, linidx) : gkyl_array_fetch(up->epsilon, 0);
+    double *eps_p = up->isvareps ? gkyl_array_fetch(up->epsilon, linidx) :
+                                   gkyl_array_fetch(up->epsilon, 0);
     double *rhsin_p = gkyl_array_fetch(rhsin, linidx);
     const double *phibc_p = up->isdirichletvar ? gkyl_array_cfetch(phibc, linidx) : NULL;
 
@@ -394,8 +390,7 @@ gkyl_fem_poisson_set_rhs(
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 }
 
-void
-gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
+void gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -425,8 +420,7 @@ gkyl_fem_poisson_solve(gkyl_fem_poisson *up, struct gkyl_array *phiout)
   }
 }
 
-void
-gkyl_fem_poisson_release(gkyl_fem_poisson *up)
+void gkyl_fem_poisson_release(gkyl_fem_poisson *up)
 {
   if (up->isdomperiodic) {
     gkyl_array_release(up->rhs_cellavg);

@@ -12,8 +12,7 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
+void gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -27,9 +26,8 @@ gkyl_vlasov_pkpm_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov_pkpm);
 }
 
-void
-gkyl_vlasov_pkpm_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_vlasov_pkpm_auxfields auxin)
+void gkyl_vlasov_pkpm_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                    struct gkyl_dg_vlasov_pkpm_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -50,9 +48,10 @@ gkyl_vlasov_pkpm_set_auxfields(
   vlasov_pkpm->auxfields.g_dist_source = auxin.g_dist_source;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis *cbasis,
+                                            const struct gkyl_basis *pbasis,
+                                            const struct gkyl_range *conf_range,
+                                            const struct gkyl_range *phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -144,9 +143,10 @@ gkyl_dg_vlasov_pkpm_new(const struct gkyl_basis *cbasis, const struct gkyl_basis
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range)
+struct gkyl_dg_eqn *gkyl_dg_vlasov_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
+                                                   const struct gkyl_basis *pbasis,
+                                                   const struct gkyl_range *conf_range,
+                                                   const struct gkyl_range *phase_range)
 {
   assert(false);
   return 0;

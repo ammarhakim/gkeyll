@@ -11,21 +11,22 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef void (*p_vars_t)(
-  const double *w, const double *dv, double *GKYL_RESTRICT gamma, double *GKYL_RESTRICT gamma_inv);
+typedef void (*p_vars_t)(const double *w, const double *dv, double *GKYL_RESTRICT gamma,
+                         double *GKYL_RESTRICT gamma_inv);
 
-typedef void (*sr_n_set_t)(
-  int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *M0, const double *M1i);
+typedef void (*sr_n_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *M0,
+                           const double *M1i);
 
-typedef void (*sr_n_copy_t)(
-  int count, struct gkyl_nmat *x, const double *M0, double *GKYL_RESTRICT n);
+typedef void (*sr_n_copy_t)(int count, struct gkyl_nmat *x, const double *M0,
+                            double *GKYL_RESTRICT n);
 
 typedef void (*sr_GammaV_t)(const double *u_i, double *GKYL_RESTRICT u_i_sq,
-  double *GKYL_RESTRICT GammaV, double *GKYL_RESTRICT GammaV_sq);
+                            double *GKYL_RESTRICT GammaV, double *GKYL_RESTRICT GammaV_sq);
 
 typedef void (*sr_pressure_t)(const double *w, const double *dxv, const double *gamma,
-  const double *gamma_inv, const double *u_i, const double *u_i_sq, const double *GammaV,
-  const double *GammaV_sq, const double *f, double *GKYL_RESTRICT sr_pressure);
+                              const double *gamma_inv, const double *u_i, const double *u_i_sq,
+                              const double *GammaV, const double *GammaV_sq, const double *f,
+                              double *GKYL_RESTRICT sr_pressure);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below
@@ -62,24 +63,21 @@ struct gkyl_dg_calc_sr_vars {
     vel_grid; // Momentum (four-velocity)-space grid for cell spacing and cell center
   // in gamma and 1/gamma computation.
   struct gkyl_range vel_range; // Momentum (four-velocity)-space range.
-  int
-    poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method).
+  int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method).
   struct gkyl_range mem_range; // Configuration-space range for linear solve.
 
   struct gkyl_nmat *As,
     *xs; // matrices for LHS and RHS for V_drift solve to find rest-frame density.
   gkyl_nmat_mem
     *mem; // memory for use in batched linear solve for V_drift solve to find rest-frame density.
-  int
-    Ncomp; // number of components in the linear solve (vdim components of V_drift from weak division).
+  int Ncomp; // number of components in the linear solve (vdim components of V_drift from weak division).
 
   p_vars_t
     sr_p_vars; // kernel for computing gamma = sqrt(1 + p^2) and its inverse on momentum (four-velocity) grid.
   sr_n_set_t sr_n_set; // kernel for setting matrices for linear solve for rest-frame density.
   sr_n_copy_t
     sr_n_copy; // kernel for copying solution for V_drift from weak division and computing rest-frame density.
-  sr_GammaV_t
-    sr_GammaV; // kernel for computing bulk four-velocity derived quantities such as GammaV.
+  sr_GammaV_t sr_GammaV; // kernel for computing bulk four-velocity derived quantities such as GammaV.
   sr_pressure_t
     sr_pressure; // kernel for computing rest-frame pressure as a velocity moment of distribution function.
 
@@ -147,8 +145,8 @@ GKYL_CU_D static const gkyl_dg_sr_vars_pressure_kern_list ser_sr_vars_pressure_k
   { NULL, sr_vars_pressure_3x3v_ser_p1, NULL } // 5
 };
 
-GKYL_CU_D static p_vars_t
-choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int vdim, int poly_order)
+GKYL_CU_D static p_vars_t choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int vdim,
+                                                int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -160,8 +158,8 @@ choose_sr_p_vars_kern(enum gkyl_basis_type b_type, int vdim, int poly_order)
   }
 }
 
-GKYL_CU_D static sr_n_set_t
-choose_sr_vars_n_set_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+GKYL_CU_D static sr_n_set_t choose_sr_vars_n_set_kern(enum gkyl_basis_type b_type, int cdim,
+                                                      int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -173,8 +171,8 @@ choose_sr_vars_n_set_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int p
   }
 }
 
-GKYL_CU_D static sr_n_copy_t
-choose_sr_vars_n_copy_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+GKYL_CU_D static sr_n_copy_t choose_sr_vars_n_copy_kern(enum gkyl_basis_type b_type, int cdim,
+                                                        int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -186,8 +184,8 @@ choose_sr_vars_n_copy_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int 
   }
 }
 
-GKYL_CU_D static sr_GammaV_t
-choose_sr_vars_GammaV_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+GKYL_CU_D static sr_GammaV_t choose_sr_vars_GammaV_kern(enum gkyl_basis_type b_type, int cdim,
+                                                        int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -199,8 +197,8 @@ choose_sr_vars_GammaV_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int 
   }
 }
 
-GKYL_CU_D static sr_pressure_t
-choose_sr_vars_pressure_kern(enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order)
+GKYL_CU_D static sr_pressure_t choose_sr_vars_pressure_kern(enum gkyl_basis_type b_type, int cdim,
+                                                            int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

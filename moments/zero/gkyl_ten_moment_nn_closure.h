@@ -62,8 +62,9 @@ int gkyl_ten_moment_nn_closure_n_out(const gkyl_ten_moment_nn_closure *nnclosure
  * @param geom Output: cached aligned geometry for this cell.
  */
 void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nnclosure,
-  const double *fluid_d[], const double *em_tot_d[], float *input_data,
-  struct gkyl_ten_moment_nn_closure_geom *geom);
+                                          const double *fluid_d[], const double *em_tot_d[],
+                                          float *input_data,
+                                          struct gkyl_ten_moment_nn_closure_geom *geom);
 
 /**
  * Construct the magnetized heat-flux tensor from a (network) prediction and
@@ -76,8 +77,8 @@ void gkyl_ten_moment_nn_closure_geom_calc(const gkyl_ten_moment_nn_closure *nncl
  * @param rhs Output: closure source for the conserved variables (length 10).
  */
 void gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nnclosure,
-  const struct gkyl_ten_moment_nn_closure_geom *geom, const float *output_data_predicted,
-  double *rhs);
+                                          const struct gkyl_ten_moment_nn_closure_geom *geom,
+                                          const float *output_data_predicted, double *rhs);
 
 /**
  * Create a new updater to update the pressure tensor in the ten moment equation system using a machine-learned magnetized closure trained on PKPM simulations,
@@ -87,8 +88,8 @@ void gkyl_ten_moment_nn_closure_construct(const gkyl_ten_moment_nn_closure *nncl
  * @param inp Input parameters for updater.
  * @return Pointer to updater.
  */
-gkyl_ten_moment_nn_closure *gkyl_ten_moment_nn_closure_new(
-  struct gkyl_ten_moment_nn_closure_inp inp);
+gkyl_ten_moment_nn_closure *
+gkyl_ten_moment_nn_closure_new(struct gkyl_ten_moment_nn_closure_inp inp);
 
 /**
  * Compute the right-hand-side contribution to the ten moment equation system from a machine-learned magnetized closure trained on PKPM simulations.
@@ -104,9 +105,11 @@ gkyl_ten_moment_nn_closure *gkyl_ten_moment_nn_closure_new(
  * @param rhs Right-hand-side output.
  */
 void gkyl_ten_moment_nn_closure_advance(const gkyl_ten_moment_nn_closure *nnclosure,
-  const struct gkyl_range *heat_flux_rng, const struct gkyl_range *update_rng,
-  const struct gkyl_array *fluid, const struct gkyl_array *em_tot, struct gkyl_array *heat_flux,
-  struct gkyl_array *rhs);
+                                        const struct gkyl_range *heat_flux_rng,
+                                        const struct gkyl_range *update_rng,
+                                        const struct gkyl_array *fluid,
+                                        const struct gkyl_array *em_tot,
+                                        struct gkyl_array *heat_flux, struct gkyl_array *rhs);
 
 /**
  * Delete updater.

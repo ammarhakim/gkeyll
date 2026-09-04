@@ -11,8 +11,7 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_maxwell_free(const struct gkyl_ref_count *ref)
+void gkyl_maxwell_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -26,9 +25,9 @@ gkyl_maxwell_free(const struct gkyl_ref_count *ref)
   gkyl_free(maxwell);
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double lightSpeed, double elcErrorSpeedFactor,
-  double mgnErrorSpeedFactor, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double lightSpeed,
+                                        double elcErrorSpeedFactor, double mgnErrorSpeedFactor,
+                                        bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -95,9 +94,9 @@ gkyl_dg_maxwell_new(const struct gkyl_basis *cbasis, double lightSpeed, double e
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis *cbasis, double lightSpeed,
-  double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+struct gkyl_dg_eqn *gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis *cbasis, double lightSpeed,
+                                               double elcErrorSpeedFactor,
+                                               double mgnErrorSpeedFactor)
 {
   assert(false);
   return 0;

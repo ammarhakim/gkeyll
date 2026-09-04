@@ -16,8 +16,7 @@
 
 #define sq(x) ((x) * (x))
 
-double
-gkyl_mhd_fast_speed(double gas_gamma, const double q[8])
+double gkyl_mhd_fast_speed(double gas_gamma, const double q[8])
 {
   double u1 = q[MX] / q[DN];
   double u2 = q[MY] / q[DN];
@@ -37,8 +36,7 @@ gkyl_mhd_fast_speed(double gas_gamma, const double q[8])
   return cf;
 }
 
-double
-gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
+double gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
 {
   double cf = gkyl_mhd_fast_speed(gas_gamma, q);
   double u = sqrt(sq(q[1]) + sq(q[2]) + sq(q[3])) / q[0];
@@ -46,8 +44,7 @@ gkyl_mhd_max_abs_speed(double gas_gamma, const double q[8])
   return u + cf;
 }
 
-void
-gkyl_mhd_eigen_speeds_roe(const double gamma, const double *ql, const double *qr, double buf[])
+void gkyl_mhd_eigen_speeds_roe(const double gamma, const double *ql, const double *qr, double buf[])
 {
   //////////////////////////////////////////////////////////////////////////////
   // STEP 1: COMPUTE PRIMITIVE VARIABLES                                      //
@@ -100,8 +97,7 @@ gkyl_mhd_eigen_speeds_roe(const double gamma, const double *ql, const double *qr
   buf[3] = sqrt(cf2);
 }
 
-double
-gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *qr)
+double gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *qr)
 {
   double buf[4];
   gkyl_mhd_eigen_speeds_roe(gamma, ql, qr, buf);
@@ -112,8 +108,7 @@ gkyl_mhd_max_abs_speed_roe(const double gamma, const double *ql, const double *q
   return v_tot + cf;
 }
 
-void
-gkyl_mhd_cons_vars(double gas_gamma, const double pv[8], double q[8])
+void gkyl_mhd_cons_vars(double gas_gamma, const double pv[8], double q[8])
 {
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
   q[0] = rho;
@@ -127,8 +122,7 @@ gkyl_mhd_cons_vars(double gas_gamma, const double pv[8], double q[8])
   q[4] = pr / (gas_gamma - 1) + 0.5 * rho * (u * u + v * v + w * w) + pb;
 }
 
-void
-gkyl_mhd_flux(double gas_gamma, const double q[8], double flux[8])
+void gkyl_mhd_flux(double gas_gamma, const double q[8], double flux[8])
 {
   double u1 = q[MX] / q[DN];
   double u2 = q[MY] / q[DN];
@@ -147,8 +141,7 @@ gkyl_mhd_flux(double gas_gamma, const double q[8], double flux[8])
   flux[BZ] = u1 * q[BZ] - u3 * q[BX];
 }
 
-void
-gkyl_glm_mhd_flux(double gas_gamma, double ch, const double q[9], double flux[9])
+void gkyl_glm_mhd_flux(double gas_gamma, double ch, const double q[9], double flux[9])
 {
   gkyl_mhd_flux(gas_gamma, q, flux);
 

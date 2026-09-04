@@ -10,10 +10,12 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void
-gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc *calc, struct gkyl_nmat *As, struct gkyl_nmat *xs,
-  struct gkyl_range conf_rng, const struct gkyl_array *moms,
-  const struct gkyl_array *boundary_corrections, const struct gkyl_array *nu)
+__global__ static void gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc *calc, struct gkyl_nmat *As,
+                                                     struct gkyl_nmat *xs,
+                                                     struct gkyl_range conf_rng,
+                                                     const struct gkyl_array *moms,
+                                                     const struct gkyl_array *boundary_corrections,
+                                                     const struct gkyl_array *nu)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -43,9 +45,9 @@ gkyl_prim_lbo_calc_set_cu_ker(gkyl_prim_lbo_calc *calc, struct gkyl_nmat *As, st
   }
 }
 
-__global__ static void
-gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs, struct gkyl_range conf_rng, int nc, int udim,
-  struct gkyl_array *prim_moms_out)
+__global__ static void gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs,
+                                                     struct gkyl_range conf_rng, int nc, int udim,
+                                                     struct gkyl_array *prim_moms_out)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -67,10 +69,10 @@ gkyl_prim_lbo_copy_sol_cu_ker(struct gkyl_nmat *xs, struct gkyl_range conf_rng, 
   }
 }
 
-void
-gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc *calc, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *moms, const struct gkyl_array *boundary_corrections,
-  const struct gkyl_array *nu, struct gkyl_array *prim_moms_out)
+void gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc *calc,
+                                   const struct gkyl_range *conf_rng, const struct gkyl_array *moms,
+                                   const struct gkyl_array *boundary_corrections,
+                                   const struct gkyl_array *nu, struct gkyl_array *prim_moms_out)
 {
   int nc = calc->prim->num_config;
   int udim = calc->prim->udim;
@@ -83,18 +85,18 @@ gkyl_prim_lbo_calc_advance_cu(struct gkyl_prim_lbo_calc *calc, const struct gkyl
     calc->is_first = false;
   }
 
-  gkyl_prim_lbo_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(calc->on_dev,
-    calc->As->on_dev, calc->xs->on_dev, *conf_rng, moms->on_dev, boundary_corrections->on_dev,
-    nu->on_dev);
+  gkyl_prim_lbo_calc_set_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads> > >(
+    calc->on_dev, calc->As->on_dev, calc->xs->on_dev, *conf_rng, moms->on_dev,
+    boundary_corrections->on_dev, nu->on_dev);
 
   bool status = gkyl_nmat_linsolve_lu_pa(calc->mem, calc->As, calc->xs);
 
-  gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads>>>(
+  gkyl_prim_lbo_copy_sol_cu_ker<<<conf_rng->nblocks, conf_rng->nthreads> > >(
     calc->xs->on_dev, *conf_rng, nc, udim, prim_moms_out->on_dev);
 }
 
-struct gkyl_prim_lbo_calc *
-gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid, struct gkyl_prim_lbo_type *prim)
+struct gkyl_prim_lbo_calc *gkyl_prim_lbo_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+                                                         struct gkyl_prim_lbo_type *prim)
 {
   gkyl_prim_lbo_calc *up = (gkyl_prim_lbo_calc *)gkyl_malloc(sizeof(gkyl_prim_lbo_calc));
   up->grid = *grid;

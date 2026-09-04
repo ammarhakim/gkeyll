@@ -8,8 +8,7 @@ extern "C" {
 #include <gkyl_array_average.h>
 }
 
-__global__ void
-gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
+__global__ void gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
 {
   int ndim = up->basis.ndim, poly_order = up->basis.poly_order;
 
@@ -20,8 +19,7 @@ gkyl_array_average_set_ker_cu(struct gkyl_array_average *up)
   up->kernel = gkyl_array_average_ker_list[ndim - 1].list[op].kernels[poly_order - 1];
 }
 
-struct gkyl_array_average *
-gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
+struct gkyl_array_average *gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
 {
   struct gkyl_array *weight_ho;
   if (up->isweighted) {
@@ -39,7 +37,7 @@ gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
   gkyl_cu_memcpy(up_cu, up, sizeof(struct gkyl_array_average), GKYL_CU_MEMCPY_H2D);
 
   // Set the kernel.
-  gkyl_array_average_set_ker_cu<<<1, 1>>>(up_cu);
+  gkyl_array_average_set_ker_cu<<<1, 1> > >(up_cu);
 
   up->weight = weight_ho;
 
@@ -48,9 +46,9 @@ gkyl_array_average_cu_dev_new(struct gkyl_array_average *up)
   return up;
 }
 
-__global__ void
-gkyl_array_average_advance_cu_ker(
-  const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout)
+__global__ void gkyl_array_average_advance_cu_ker(const struct gkyl_array_average *up,
+                                                  const struct gkyl_array *fin,
+                                                  struct gkyl_array *avgout)
 {
   int idx[GKYL_MAX_DIM] = { 0 };
   int idx_avg[GKYL_MAX_DIM] = { 0 };
@@ -79,8 +77,8 @@ gkyl_array_average_advance_cu_ker(
 
     // fetch the addresses where the weight and function are
     const double *fin_i = (const double *)gkyl_array_cfetch(fin, lidx);
-    const double *win_i = up->isweighted ? (const double *)gkyl_array_cfetch(up->weight, lidx)
-                                         : (const double *)gkyl_array_cfetch(up->weight, 0);
+    const double *win_i = up->isweighted ? (const double *)gkyl_array_cfetch(up->weight, lidx) :
+                                           (const double *)gkyl_array_cfetch(up->weight, 0);
     // fetch the address where the avg is returned
     double *avg_i = (double *)gkyl_array_fetch(avgout, lidx_avg);
 
@@ -88,17 +86,17 @@ gkyl_array_average_advance_cu_ker(
   }
 }
 
-void
-gkyl_array_average_advance_cu(
-  const struct gkyl_array_average *up, const struct gkyl_array *fin, struct gkyl_array *avgout)
+void gkyl_array_average_advance_cu(const struct gkyl_array_average *up,
+                                   const struct gkyl_array *fin, struct gkyl_array *avgout)
 {
   int nblocks = up->local.nblocks, nthreads = up->local.nthreads;
 
   gkyl_array_clear_range(avgout, 0.0, &up->local_avg);
 
-  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads>>>(up->on_dev, fin->on_dev, avgout->on_dev);
+  gkyl_array_average_advance_cu_ker<<<nblocks, nthreads> > >(up->on_dev, fin->on_dev,
+                                                             avgout->on_dev);
 
   if (up->isweighted)
-    gkyl_dg_div_op_range(
-      up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg, &up->local_avg);
+    gkyl_dg_div_op_range(up->div_mem, &up->basis_avg, 0, avgout, 0, avgout, 0, up->weight_avg,
+                         &up->local_avg);
 }

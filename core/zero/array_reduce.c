@@ -3,8 +3,7 @@
 #include <assert.h>
 #include <float.h>
 
-void
-gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op)
+void gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op op)
 {
   assert(arr->type == GKYL_DOUBLE);
 
@@ -61,9 +60,8 @@ gkyl_array_reduce(double *out, const struct gkyl_array *arr, enum gkyl_array_op 
   }
 }
 
-void
-gkyl_array_reduce_range(
-  double *res, const struct gkyl_array *arr, enum gkyl_array_op op, const struct gkyl_range *range)
+void gkyl_array_reduce_range(double *res, const struct gkyl_array *arr, enum gkyl_array_op op,
+                             const struct gkyl_range *range)
 {
   assert(arr->type == GKYL_DOUBLE);
 

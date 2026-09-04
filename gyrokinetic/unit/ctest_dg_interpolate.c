@@ -16,8 +16,7 @@
 #include <acutest.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu)
@@ -40,13 +39,13 @@ struct test_ctx {
   double upper[GKYL_MAX_DIM]; // Grid upper limit in each direction.
 };
 
-static void
-calc_int_moms(int num_mom, struct gkyl_rect_grid *confGrid, struct gkyl_basis *confBasis,
-  struct gkyl_range *confLocal, bool use_gpu, struct gkyl_array *moms, double *int_moms)
+static void calc_int_moms(int num_mom, struct gkyl_rect_grid *confGrid,
+                          struct gkyl_basis *confBasis, struct gkyl_range *confLocal, bool use_gpu,
+                          struct gkyl_array *moms, double *int_moms)
 {
   // Compute the volume integral of the moments.
-  double *integrated_moms =
-    use_gpu ? gkyl_cu_malloc(num_mom * sizeof(double)) : gkyl_malloc(num_mom * sizeof(double));
+  double *integrated_moms = use_gpu ? gkyl_cu_malloc(num_mom * sizeof(double)) :
+                                      gkyl_malloc(num_mom * sizeof(double));
 
   struct gkyl_array_integrate *integ_op =
     gkyl_array_integrate_new(confGrid, confBasis, num_mom, GKYL_ARRAY_INTEGRATE_OP_NONE, use_gpu);
@@ -65,8 +64,7 @@ calc_int_moms(int num_mom, struct gkyl_rect_grid *confGrid, struct gkyl_basis *c
   gkyl_array_integrate_release(integ_op);
 }
 
-void
-eval_fdonor_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_fdonor_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -83,8 +81,7 @@ eval_fdonor_1x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = n0 * (1.0 + 0.5 * sin((2.0 * M_PI / Lx[0]) * x));
 }
 
-void
-test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0 }, upper[] = { 1.0 };
   double mass = 1.0;
@@ -119,8 +116,8 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 
   // Create donot field.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_fdonor_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -150,8 +147,8 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -187,8 +184,7 @@ test_1x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-eval_fdonor_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_fdonor_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
 
@@ -206,8 +202,7 @@ eval_fdonor_2x(double t, const double *xn, double *restrict fout, void *ctx)
     n0 * (1.0 + 0.5 * sin((2.0 * M_PI / Lx[0]) * x)) * exp(-pow(y, 2) / (2.0 * pow(M_PI / 3.0, 2)));
 }
 
-void
-test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0, -M_PI }, upper[] = { 1.0, M_PI };
   double mass = 1.0;
@@ -242,8 +237,8 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 
   // Create donot field.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_fdonor_1x, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -273,8 +268,8 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -310,8 +305,7 @@ test_2x(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-eval_distf_1x1v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_1x1v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1];
 
@@ -338,10 +332,10 @@ eval_distf_1x1v_vlasov(double t, const double *xn, double *restrict fout, void *
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) * exp(-(pow(vx - ux, 2)) / (2.0 * vtsq));
 }
 
-static void
-calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis,
-  struct gkyl_basis *basis, struct gkyl_range *confLocal, struct gkyl_range *local, bool use_gpu,
-  struct gkyl_array *distf, struct gkyl_array *moms)
+static void calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis,
+                             struct gkyl_basis *basis, struct gkyl_range *confLocal,
+                             struct gkyl_range *local, bool use_gpu, struct gkyl_array *distf,
+                             struct gkyl_array *moms)
 {
   struct gkyl_dg_updater_moment *mom_op = gkyl_dg_updater_moment_new(
     grid, confBasis, basis, confLocal, 0, local, 0, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
@@ -349,8 +343,7 @@ calc_moms_vlasov(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis,
   gkyl_dg_updater_moment_release(mom_op);
 }
 
-void
-test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -422,8 +415,8 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_1x1v_vlasov, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -432,8 +425,8 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   int num_mom = 2 + vdim;
   // Calculate the moments.
   struct gkyl_array *moms = mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *moms_ho =
-    use_gpu ? mkarr(false, moms->ncomp, moms->size) : gkyl_array_acquire(moms);
+  struct gkyl_array *moms_ho = use_gpu ? mkarr(false, moms->ncomp, moms->size) :
+                                         gkyl_array_acquire(moms);
   calc_moms_vlasov(&grid, &confBasis, &basis, &confLocal, &local, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
@@ -481,8 +474,8 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -493,18 +486,18 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   // Calculate the moments.
   struct gkyl_array *moms_tar =
     mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_tar_ext.volume);
-  struct gkyl_array *moms_tar_ho =
-    use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) : gkyl_array_acquire(moms_tar);
-  calc_moms_vlasov(
-    &grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar, moms_tar);
+  struct gkyl_array *moms_tar_ho = use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) :
+                                             gkyl_array_acquire(moms_tar);
+  calc_moms_vlasov(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar,
+                   moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
   double int_moms_tar[num_mom];
   for (int i = 0; i < num_mom; i++)
     int_moms_tar[i] = 0.0;
-  calc_int_moms(
-    num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
+  calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar,
+                int_moms_tar);
 
   //  // Write target distribution function to file.
   //  gkyl_array_copy(distf_tar_ho, distf_tar);
@@ -538,12 +531,12 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
       for (int m = 0; m < 2 * confBasis.num_basis; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], 1e-10));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
       for (int m = 2 * confBasis.num_basis; m < moms->ncomp; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], m2_tol));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
     }
   }
@@ -565,8 +558,7 @@ test_1x1v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-eval_distf_1x2v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_1x2v_vlasov(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
 
@@ -593,11 +585,10 @@ eval_distf_1x2v_vlasov(double t, const double *xn, double *restrict fout, void *
   double vtsq = temp / mass;
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-    exp(-(pow(vx - ux, 2) + pow(vy - uy, 2)) / (2.0 * vtsq));
+            exp(-(pow(vx - ux, 2) + pow(vy - uy, 2)) / (2.0 * vtsq));
 }
 
-void
-test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -672,8 +663,8 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_1x2v_vlasov, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -682,8 +673,8 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   int num_mom = 2 + vdim;
   // Calculate the moments.
   struct gkyl_array *moms = mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *moms_ho =
-    use_gpu ? mkarr(false, moms->ncomp, moms->size) : gkyl_array_acquire(moms);
+  struct gkyl_array *moms_ho = use_gpu ? mkarr(false, moms->ncomp, moms->size) :
+                                         gkyl_array_acquire(moms);
   calc_moms_vlasov(&grid, &confBasis, &basis, &confLocal, &local, use_gpu, distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
@@ -731,8 +722,8 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -743,18 +734,18 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   // Calculate the moments.
   struct gkyl_array *moms_tar =
     mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_tar_ext.volume);
-  struct gkyl_array *moms_tar_ho =
-    use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) : gkyl_array_acquire(moms_tar);
-  calc_moms_vlasov(
-    &grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar, moms_tar);
+  struct gkyl_array *moms_tar_ho = use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) :
+                                             gkyl_array_acquire(moms_tar);
+  calc_moms_vlasov(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, use_gpu, distf_tar,
+                   moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
   double int_moms_tar[num_mom];
   for (int i = 0; i < num_mom; i++)
     int_moms_tar[i] = 0.0;
-  calc_int_moms(
-    num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
+  calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar,
+                int_moms_tar);
 
   //  // Write target distribution function to file.
   //  char fname1[1024];
@@ -787,12 +778,12 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
       for (int m = 0; m < 2 * confBasis.num_basis; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], 1e-10));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
       for (int m = 2 * confBasis.num_basis; m < moms->ncomp; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], m2_tol));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
     }
   }
@@ -812,16 +803,14 @@ test_1x2v_vlasov(const int *cells, const int *cells_tar, int poly_order, bool us
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void
-eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
 
@@ -833,8 +822,7 @@ eval_bfield_1x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = B0;
 }
 
-void
-eval_bfield_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_bfield_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
 
@@ -846,8 +834,7 @@ eval_bfield_2x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = B0;
 }
 
-void
-eval_bfield_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_bfield_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -859,8 +846,7 @@ eval_bfield_3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = B0;
 }
 
-void
-eval_distf_1x1v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_1x1v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1];
 
@@ -887,13 +873,15 @@ eval_distf_1x1v_gk(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) * exp(-(pow(vpar - upar, 2)) / (2.0 * vtsq));
 }
 
-static struct gk_geometry *
-init_gk_geo(int poly_order, struct gkyl_rect_grid confGrid, struct gkyl_basis confBasis,
-  struct gkyl_range confLocal, struct gkyl_range confLocal_ext, void *bfield_ctx, bool use_gpu)
+static struct gk_geometry *init_gk_geo(int poly_order, struct gkyl_rect_grid confGrid,
+                                       struct gkyl_basis confBasis, struct gkyl_range confLocal,
+                                       struct gkyl_range confLocal_ext, void *bfield_ctx,
+                                       bool use_gpu)
 {
   // Initialize GK geometry.
   int cdim = confBasis.ndim;
-  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0, 0.0 },
     .mapc2p = mapc2p,
     .c2p_ctx = 0,
@@ -904,16 +892,17 @@ init_gk_geo(int poly_order, struct gkyl_rect_grid confGrid, struct gkyl_basis co
     .local = confLocal,
     .local_ext = confLocal_ext,
     .global = confLocal,
-    .global_ext = confLocal_ext };
+    .global_ext = confLocal_ext
+  };
   int geo_ghost[3] = { 1, 1, 1 };
   if (cdim < 3) {
     geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
     gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
     gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
-      &geometry_input.geo_global);
+                            &geometry_input.geo_global);
     memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
-    memcpy(
-      &geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
+    memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext,
+           sizeof(struct gkyl_range));
   } else {
     geometry_input.geo_grid = confGrid;
     geometry_input.geo_basis = confBasis;
@@ -927,8 +916,8 @@ init_gk_geo(int poly_order, struct gkyl_rect_grid confGrid, struct gkyl_basis co
 
   // Deflate geometry.
   struct gk_geometry *gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
-  struct gk_geometry *gk_geom = cdim < 3 ? gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input)
-                                         : gkyl_gk_geometry_acquire(gk_geom_3d);
+  struct gk_geometry *gk_geom = cdim < 3 ? gkyl_gk_geometry_deflate(gk_geom_3d, &geometry_input) :
+                                           gkyl_gk_geometry_acquire(gk_geom_3d);
   gkyl_gk_geometry_release(gk_geom_3d);
   // If we are on the gpu, copy from host.
   if (use_gpu) {
@@ -941,20 +930,20 @@ init_gk_geo(int poly_order, struct gkyl_rect_grid confGrid, struct gkyl_basis co
   return gk_geom;
 }
 
-static void
-calc_moms_gk(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis, struct gkyl_basis *basis,
-  struct gkyl_range *confLocal, struct gkyl_range *local, double mass, double charge,
-  struct gkyl_velocity_map *gvm, struct gk_geometry *gk_geom, bool use_gpu,
-  struct gkyl_array *distf, struct gkyl_array *moms)
+static void calc_moms_gk(struct gkyl_rect_grid *grid, struct gkyl_basis *confBasis,
+                         struct gkyl_basis *basis, struct gkyl_range *confLocal,
+                         struct gkyl_range *local, double mass, double charge,
+                         struct gkyl_velocity_map *gvm, struct gk_geometry *gk_geom, bool use_gpu,
+                         struct gkyl_array *distf, struct gkyl_array *moms)
 {
-  struct gkyl_dg_updater_moment *mom_op = gkyl_dg_updater_moment_gyrokinetic_new(grid, confBasis,
-    basis, confLocal, mass, charge, gvm, gk_geom, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
+  struct gkyl_dg_updater_moment *mom_op =
+    gkyl_dg_updater_moment_gyrokinetic_new(grid, confBasis, basis, confLocal, mass, charge, gvm,
+                                           gk_geom, 0, GKYL_F_MOMENT_M0M1M2, false, use_gpu);
   gkyl_dg_updater_moment_gyrokinetic_advance(mom_op, local, confLocal, distf, moms);
   gkyl_dg_updater_moment_gyrokinetic_release(mom_op);
 }
 
-void
-test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -1028,8 +1017,8 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_1x1v_gk, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -1047,10 +1036,10 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   int num_mom = 3;
   // Calculate the moments.
   struct gkyl_array *moms = mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *moms_ho =
-    use_gpu ? mkarr(false, moms->ncomp, moms->size) : gkyl_array_acquire(moms);
+  struct gkyl_array *moms_ho = use_gpu ? mkarr(false, moms->ncomp, moms->size) :
+                                         gkyl_array_acquire(moms);
   calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, charge, gvm, gk_geom, use_gpu,
-    distf, moms);
+               distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -1096,17 +1085,18 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_create_grid_ranges(&grid_tar, ghost, &local_tar_ext, &local_tar);
 
   // Target geometry.
-  struct gk_geometry *gk_geom_tar = init_gk_geo(
-    poly_order, confGrid_tar, confBasis, confLocal_tar, confLocal_tar_ext, &proj_ctx, use_gpu);
+  struct gk_geometry *gk_geom_tar = init_gk_geo(poly_order, confGrid_tar, confBasis, confLocal_tar,
+                                                confLocal_tar_ext, &proj_ctx, use_gpu);
 
   // Target velocity space mapping.
   struct gkyl_velocity_map *gvm_tar = gkyl_velocity_map_new(c2p_in, grid_tar, velGrid_tar,
-    local_tar, local_tar_ext, velLocal_tar, velLocal_tar_ext, use_gpu);
+                                                            local_tar, local_tar_ext, velLocal_tar,
+                                                            velLocal_tar_ext, use_gpu);
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -1117,18 +1107,18 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   // Calculate the moments.
   struct gkyl_array *moms_tar =
     mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_tar_ext.volume);
-  struct gkyl_array *moms_tar_ho =
-    use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) : gkyl_array_acquire(moms_tar);
+  struct gkyl_array *moms_tar_ho = use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) :
+                                             gkyl_array_acquire(moms_tar);
   calc_moms_gk(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, mass, charge, gvm_tar,
-    gk_geom_tar, use_gpu, distf_tar, moms_tar);
+               gk_geom_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
   double int_moms_tar[num_mom];
   for (int i = 0; i < num_mom; i++)
     int_moms_tar[i] = 0.0;
-  calc_int_moms(
-    num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
+  calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar,
+                int_moms_tar);
 
   //  // Write target distribution function to file.
   //  gkyl_array_copy(distf_tar_ho, distf_tar);
@@ -1162,12 +1152,12 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
       for (int m = 0; m < 2 * confBasis.num_basis; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], 1e-10));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
       for (int m = 2 * confBasis.num_basis; m < moms->ncomp; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], m2_tol));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
     }
   }
@@ -1193,8 +1183,7 @@ test_1x1v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vpar = xn[1], mu = xn[2];
 
@@ -1223,11 +1212,10 @@ eval_distf_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-    exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
 }
 
-void
-test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double x_min = 0.0;
@@ -1302,8 +1290,8 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_1x2v_gk, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -1321,10 +1309,10 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   int num_mom = 3;
   // Calculate the moments.
   struct gkyl_array *moms = mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *moms_ho =
-    use_gpu ? mkarr(false, moms->ncomp, moms->size) : gkyl_array_acquire(moms);
+  struct gkyl_array *moms_ho = use_gpu ? mkarr(false, moms->ncomp, moms->size) :
+                                         gkyl_array_acquire(moms);
   calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, charge, gvm, gk_geom, use_gpu,
-    distf, moms);
+               distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -1370,17 +1358,18 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_create_grid_ranges(&grid_tar, ghost, &local_tar_ext, &local_tar);
 
   // Target geometry.
-  struct gk_geometry *gk_geom_tar = init_gk_geo(
-    poly_order, confGrid_tar, confBasis, confLocal_tar, confLocal_tar_ext, &proj_ctx, use_gpu);
+  struct gk_geometry *gk_geom_tar = init_gk_geo(poly_order, confGrid_tar, confBasis, confLocal_tar,
+                                                confLocal_tar_ext, &proj_ctx, use_gpu);
 
   // Target velocity space mapping.
   struct gkyl_velocity_map *gvm_tar = gkyl_velocity_map_new(c2p_in, grid_tar, velGrid_tar,
-    local_tar, local_tar_ext, velLocal_tar, velLocal_tar_ext, use_gpu);
+                                                            local_tar, local_tar_ext, velLocal_tar,
+                                                            velLocal_tar_ext, use_gpu);
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -1391,18 +1380,18 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   // Calculate the moments.
   struct gkyl_array *moms_tar =
     mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_tar_ext.volume);
-  struct gkyl_array *moms_tar_ho =
-    use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) : gkyl_array_acquire(moms_tar);
+  struct gkyl_array *moms_tar_ho = use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) :
+                                             gkyl_array_acquire(moms_tar);
   calc_moms_gk(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, mass, charge, gvm_tar,
-    gk_geom_tar, use_gpu, distf_tar, moms_tar);
+               gk_geom_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
   double int_moms_tar[num_mom];
   for (int i = 0; i < num_mom; i++)
     int_moms_tar[i] = 0.0;
-  calc_int_moms(
-    num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
+  calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar,
+                int_moms_tar);
 
   //  // Write target distribution function to file.
   //  char fname1[1024];
@@ -1435,12 +1424,12 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
       for (int m = 0; m < 2 * confBasis.num_basis; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], 1e-10));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
       for (int m = 2 * confBasis.num_basis; m < moms->ncomp; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], m2_tol));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
     }
   }
@@ -1464,8 +1453,7 @@ test_1x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
 
@@ -1494,11 +1482,10 @@ eval_distf_2x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-    exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
 }
 
-void
-test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 2;
   //  double x_min = 0.0;
@@ -1582,8 +1569,8 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_2x2v_gk, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -1601,10 +1588,10 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   int num_mom = 3;
   // Calculate the moments.
   struct gkyl_array *moms = mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *moms_ho =
-    use_gpu ? mkarr(false, moms->ncomp, moms->size) : gkyl_array_acquire(moms);
+  struct gkyl_array *moms_ho = use_gpu ? mkarr(false, moms->ncomp, moms->size) :
+                                         gkyl_array_acquire(moms);
   calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, charge, gvm, gk_geom, use_gpu,
-    distf, moms);
+               distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -1650,17 +1637,18 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_create_grid_ranges(&grid_tar, ghost, &local_tar_ext, &local_tar);
 
   // Target geometry.
-  struct gk_geometry *gk_geom_tar = init_gk_geo(
-    poly_order, confGrid_tar, confBasis, confLocal_tar, confLocal_tar_ext, &proj_ctx, use_gpu);
+  struct gk_geometry *gk_geom_tar = init_gk_geo(poly_order, confGrid_tar, confBasis, confLocal_tar,
+                                                confLocal_tar_ext, &proj_ctx, use_gpu);
 
   // Target velocity space mapping.
   struct gkyl_velocity_map *gvm_tar = gkyl_velocity_map_new(c2p_in, grid_tar, velGrid_tar,
-    local_tar, local_tar_ext, velLocal_tar, velLocal_tar_ext, use_gpu);
+                                                            local_tar, local_tar_ext, velLocal_tar,
+                                                            velLocal_tar_ext, use_gpu);
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -1671,18 +1659,18 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   // Calculate the moments.
   struct gkyl_array *moms_tar =
     mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_tar_ext.volume);
-  struct gkyl_array *moms_tar_ho =
-    use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) : gkyl_array_acquire(moms_tar);
+  struct gkyl_array *moms_tar_ho = use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) :
+                                             gkyl_array_acquire(moms_tar);
   calc_moms_gk(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, mass, charge, gvm_tar,
-    gk_geom_tar, use_gpu, distf_tar, moms_tar);
+               gk_geom_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
   double int_moms_tar[num_mom];
   for (int i = 0; i < num_mom; i++)
     int_moms_tar[i] = 0.0;
-  calc_int_moms(
-    num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
+  calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar,
+                int_moms_tar);
 
   //  // Write target distribution function to file.
   //  char fname1[1024];
@@ -1715,12 +1703,12 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
       for (int m = 0; m < 2 * confBasis.num_basis; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], 1e-10));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
       for (int m = 2 * confBasis.num_basis; m < moms->ncomp; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], m2_tol));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
     }
   }
@@ -1744,8 +1732,7 @@ test_2x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vpar = xn[3], mu = xn[4];
 
@@ -1774,11 +1761,10 @@ eval_distf_3x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
   double bmag = sqrt(bfield[0] * bfield[0] + bfield[1] * bfield[1] + bfield[2] * bfield[2]);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-    exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * bmag / mass) / (2.0 * vtsq));
 }
 
-void
-test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
+void test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gpu)
 {
   int cdim = 3;
   //  double x_min = 0.0;
@@ -1878,8 +1864,8 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
 
   // Create distribution function arrays.
   struct gkyl_array *distf = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *distf_ho =
-    use_gpu ? mkarr(false, distf->ncomp, distf->size) : gkyl_array_acquire(distf);
+  struct gkyl_array *distf_ho = use_gpu ? mkarr(false, distf->ncomp, distf->size) :
+                                          gkyl_array_acquire(distf);
   gkyl_proj_on_basis *proj_distf =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_distf_3x2v_gk, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf, 0.0, &local, distf_ho);
@@ -1897,10 +1883,10 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   int num_mom = 3;
   // Calculate the moments.
   struct gkyl_array *moms = mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_ext.volume);
-  struct gkyl_array *moms_ho =
-    use_gpu ? mkarr(false, moms->ncomp, moms->size) : gkyl_array_acquire(moms);
+  struct gkyl_array *moms_ho = use_gpu ? mkarr(false, moms->ncomp, moms->size) :
+                                         gkyl_array_acquire(moms);
   calc_moms_gk(&grid, &confBasis, &basis, &confLocal, &local, mass, charge, gvm, gk_geom, use_gpu,
-    distf, moms);
+               distf, moms);
   gkyl_array_copy(moms_ho, moms);
 
   // Calculate the integrated moments.
@@ -1946,17 +1932,18 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_create_grid_ranges(&grid_tar, ghost, &local_tar_ext, &local_tar);
 
   // Target geometry.
-  struct gk_geometry *gk_geom_tar = init_gk_geo(
-    poly_order, confGrid_tar, confBasis, confLocal_tar, confLocal_tar_ext, &proj_ctx, use_gpu);
+  struct gk_geometry *gk_geom_tar = init_gk_geo(poly_order, confGrid_tar, confBasis, confLocal_tar,
+                                                confLocal_tar_ext, &proj_ctx, use_gpu);
 
   // Target velocity space mapping.
   struct gkyl_velocity_map *gvm_tar = gkyl_velocity_map_new(c2p_in, grid_tar, velGrid_tar,
-    local_tar, local_tar_ext, velLocal_tar, velLocal_tar_ext, use_gpu);
+                                                            local_tar, local_tar_ext, velLocal_tar,
+                                                            velLocal_tar_ext, use_gpu);
 
   // Target field.
   struct gkyl_array *distf_tar = mkarr(use_gpu, basis.num_basis, local_tar_ext.volume);
-  struct gkyl_array *distf_tar_ho =
-    use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) : gkyl_array_acquire(distf_tar);
+  struct gkyl_array *distf_tar_ho = use_gpu ? mkarr(false, distf_tar->ncomp, distf_tar->size) :
+                                              gkyl_array_acquire(distf_tar);
 
   // Create the interpolation operator and interpolate onto the target grid.
   struct gkyl_dg_interpolate *interp =
@@ -1967,18 +1954,18 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   // Calculate the moments.
   struct gkyl_array *moms_tar =
     mkarr(use_gpu, num_mom * confBasis.num_basis, confLocal_tar_ext.volume);
-  struct gkyl_array *moms_tar_ho =
-    use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) : gkyl_array_acquire(moms_tar);
+  struct gkyl_array *moms_tar_ho = use_gpu ? mkarr(false, moms_tar->ncomp, moms_tar->size) :
+                                             gkyl_array_acquire(moms_tar);
   calc_moms_gk(&grid_tar, &confBasis, &basis, &confLocal_tar, &local_tar, mass, charge, gvm_tar,
-    gk_geom_tar, use_gpu, distf_tar, moms_tar);
+               gk_geom_tar, use_gpu, distf_tar, moms_tar);
   gkyl_array_copy(moms_tar_ho, moms_tar);
 
   // Calculate the integrated moments of the target.
   double int_moms_tar[num_mom];
   for (int i = 0; i < num_mom; i++)
     int_moms_tar[i] = 0.0;
-  calc_int_moms(
-    num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar, int_moms_tar);
+  calc_int_moms(num_mom, &confGrid_tar, &confBasis, &confLocal_tar, use_gpu, moms_tar,
+                int_moms_tar);
 
   //  // Write target distribution function to file.
   //  char fname1[1024];
@@ -2011,12 +1998,12 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
       for (int m = 0; m < 2 * confBasis.num_basis; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], 1e-10));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
       for (int m = 2 * confBasis.num_basis; m < moms->ncomp; m++) {
         TEST_CHECK(gkyl_compare(moms_c[m], moms_tar_c[m], m2_tol));
         TEST_MSG("idx=%d | m=%d | Got: %.13e | Expected: %.13e\n", iter.idx[0], m, moms_tar_c[m],
-          moms_c[m]);
+                 moms_c[m]);
       }
     }
   }
@@ -2040,8 +2027,7 @@ test_3x2v_gk(const int *cells, const int *cells_tar, int poly_order, bool use_gp
   gkyl_proj_on_basis_release(proj_distf);
 }
 
-void
-test_1x_hodev(bool use_gpu)
+void test_1x_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = { 6 };
@@ -2056,8 +2042,7 @@ test_1x_hodev(bool use_gpu)
   test_1x(cells_do1, cells_tar1, 2, use_gpu);
 }
 
-void
-test_2x_hodev(bool use_gpu)
+void test_2x_hodev(bool use_gpu)
 {
   // Refine along x.
   //  int cells_do0[] = {6, 8};
@@ -2096,8 +2081,7 @@ test_2x_hodev(bool use_gpu)
   //  test_2x(cells_do5, cells_tar5, 2, use_gpu);
 }
 
-void
-test_1x1v_vlasov_hodev(bool use_gpu)
+void test_1x1v_vlasov_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = { 6, 8 };
@@ -2136,8 +2120,7 @@ test_1x1v_vlasov_hodev(bool use_gpu)
   test_1x1v_vlasov(cells_do5, cells_tar5, 2, use_gpu);
 }
 
-void
-test_1x2v_vlasov_hodev(bool use_gpu)
+void test_1x2v_vlasov_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = { 6, 8, 4 };
@@ -2212,8 +2195,7 @@ test_1x2v_vlasov_hodev(bool use_gpu)
   test_1x2v_vlasov(cells_do11, cells_tar11, 2, use_gpu);
 }
 
-void
-test_1x1v_gk_hodev(bool use_gpu)
+void test_1x1v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = { 6, 8 };
@@ -2246,8 +2228,7 @@ test_1x1v_gk_hodev(bool use_gpu)
   test_1x1v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
-void
-test_1x2v_gk_hodev(bool use_gpu)
+void test_1x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = { 6, 8, 4 };
@@ -2310,8 +2291,7 @@ test_1x2v_gk_hodev(bool use_gpu)
   test_1x2v_gk(cells_do11, cells_tar11, 1, use_gpu);
 }
 
-void
-test_2x2v_gk_hodev(bool use_gpu)
+void test_2x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = { 6, 6, 8, 4 };
@@ -2344,8 +2324,7 @@ test_2x2v_gk_hodev(bool use_gpu)
   test_2x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
-void
-test_3x2v_gk_hodev(bool use_gpu)
+void test_3x2v_gk_hodev(bool use_gpu)
 {
   // Refine along x.
   int cells_do0[] = { 6, 6, 8, 8, 4 };
@@ -2378,120 +2357,104 @@ test_3x2v_gk_hodev(bool use_gpu)
   test_3x2v_gk(cells_do5, cells_tar5, 1, use_gpu);
 }
 
-void
-test_dg_interpolate_1x_ho()
+void test_dg_interpolate_1x_ho()
 {
   test_1x_hodev(false);
 }
 
-void
-test_dg_interpolate_2x_ho()
+void test_dg_interpolate_2x_ho()
 {
   test_2x_hodev(false);
 }
 
-void
-test_dg_interpolate_1x1v_vlasov_ho()
+void test_dg_interpolate_1x1v_vlasov_ho()
 {
   test_1x1v_vlasov_hodev(false);
 }
 
-void
-test_dg_interpolate_1x2v_vlasov_ho()
+void test_dg_interpolate_1x2v_vlasov_ho()
 {
   test_1x2v_vlasov_hodev(false);
 }
 
-void
-test_dg_interpolate_1x1v_gk_ho()
+void test_dg_interpolate_1x1v_gk_ho()
 {
   test_1x1v_gk_hodev(false);
 }
 
-void
-test_dg_interpolate_1x2v_gk_ho()
+void test_dg_interpolate_1x2v_gk_ho()
 {
   test_1x2v_gk_hodev(false);
 }
 
-void
-test_dg_interpolate_2x2v_gk_ho()
+void test_dg_interpolate_2x2v_gk_ho()
 {
   test_2x2v_gk_hodev(false);
 }
 
-void
-test_dg_interpolate_3x2v_gk_ho()
+void test_dg_interpolate_3x2v_gk_ho()
 {
   test_3x2v_gk_hodev(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void
-test_dg_interpolate_1x_dev()
+void test_dg_interpolate_1x_dev()
 {
   test_1x_hodev(true);
 }
 
-void
-test_dg_interpolate_2x_dev()
+void test_dg_interpolate_2x_dev()
 {
   test_2x_hodev(true);
 }
 
-void
-test_dg_interpolate_1x1v_vlasov_dev()
+void test_dg_interpolate_1x1v_vlasov_dev()
 {
   test_1x1v_vlasov_hodev(true);
 }
 
-void
-test_dg_interpolate_1x2v_vlasov_dev()
+void test_dg_interpolate_1x2v_vlasov_dev()
 {
   test_1x2v_vlasov_hodev(true);
 }
 
-void
-test_dg_interpolate_1x1v_gk_dev()
+void test_dg_interpolate_1x1v_gk_dev()
 {
   test_1x1v_gk_hodev(true);
 }
 
-void
-test_dg_interpolate_1x2v_gk_dev()
+void test_dg_interpolate_1x2v_gk_dev()
 {
   test_1x2v_gk_hodev(true);
 }
 
-void
-test_dg_interpolate_2x2v_gk_dev()
+void test_dg_interpolate_2x2v_gk_dev()
 {
   test_2x2v_gk_hodev(true);
 }
 
-void
-test_dg_interpolate_3x2v_gk_dev()
+void test_dg_interpolate_3x2v_gk_dev()
 {
   test_3x2v_gk_hodev(true);
 }
 #endif
 
 TEST_LIST = { { "test_dg_interpolate_1x_ho", test_dg_interpolate_1x_ho },
-  { "test_dg_interpolate_2x_ho", test_dg_interpolate_2x_ho },
-  { "test_dg_interpolate_1x1v_vlasov_ho", test_dg_interpolate_1x1v_vlasov_ho },
-  { "test_dg_interpolate_1x2v_vlasov_ho", test_dg_interpolate_1x2v_vlasov_ho },
-  { "test_dg_interpolate_1x1v_gk_ho", test_dg_interpolate_1x1v_gk_ho },
-  { "test_dg_interpolate_1x2v_gk_ho", test_dg_interpolate_1x2v_gk_ho },
-  { "test_dg_interpolate_2x2v_gk_ho", test_dg_interpolate_2x2v_gk_ho },
-  { "test_dg_interpolate_3x2v_gk_ho", test_dg_interpolate_3x2v_gk_ho },
+              { "test_dg_interpolate_2x_ho", test_dg_interpolate_2x_ho },
+              { "test_dg_interpolate_1x1v_vlasov_ho", test_dg_interpolate_1x1v_vlasov_ho },
+              { "test_dg_interpolate_1x2v_vlasov_ho", test_dg_interpolate_1x2v_vlasov_ho },
+              { "test_dg_interpolate_1x1v_gk_ho", test_dg_interpolate_1x1v_gk_ho },
+              { "test_dg_interpolate_1x2v_gk_ho", test_dg_interpolate_1x2v_gk_ho },
+              { "test_dg_interpolate_2x2v_gk_ho", test_dg_interpolate_2x2v_gk_ho },
+              { "test_dg_interpolate_3x2v_gk_ho", test_dg_interpolate_3x2v_gk_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_dg_interpolate_1x_dev", test_dg_interpolate_1x_dev },
-  { "test_dg_interpolate_2x_dev", test_dg_interpolate_2x_dev },
-  { "test_dg_interpolate_1x1v_vlasov_dev", test_dg_interpolate_1x1v_vlasov_dev },
-  { "test_dg_interpolate_1x2v_vlasov_dev", test_dg_interpolate_1x2v_vlasov_dev },
-  { "test_dg_interpolate_1x1v_gk_dev", test_dg_interpolate_1x1v_gk_dev },
-  { "test_dg_interpolate_1x2v_gk_dev", test_dg_interpolate_1x2v_gk_dev },
-  { "test_dg_interpolate_2x2v_gk_dev", test_dg_interpolate_2x2v_gk_dev },
-  { "test_dg_interpolate_3x2v_gk_dev", test_dg_interpolate_3x2v_gk_dev },
+              { "test_dg_interpolate_1x_dev", test_dg_interpolate_1x_dev },
+              { "test_dg_interpolate_2x_dev", test_dg_interpolate_2x_dev },
+              { "test_dg_interpolate_1x1v_vlasov_dev", test_dg_interpolate_1x1v_vlasov_dev },
+              { "test_dg_interpolate_1x2v_vlasov_dev", test_dg_interpolate_1x2v_vlasov_dev },
+              { "test_dg_interpolate_1x1v_gk_dev", test_dg_interpolate_1x1v_gk_dev },
+              { "test_dg_interpolate_1x2v_gk_dev", test_dg_interpolate_1x2v_gk_dev },
+              { "test_dg_interpolate_2x2v_gk_dev", test_dg_interpolate_2x2v_gk_dev },
+              { "test_dg_interpolate_3x2v_gk_dev", test_dg_interpolate_3x2v_gk_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

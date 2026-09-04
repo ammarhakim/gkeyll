@@ -84,8 +84,7 @@ struct burch_grad_closure_ctx {
   const char *nn_closure_file; // File path of neural network to use.
 };
 
-struct burch_grad_closure_ctx
-create_ctx(void)
+struct burch_grad_closure_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -125,8 +124,8 @@ create_ctx(void)
   double Ti1 = Ti2 * Ti1_over_Ti2; // Magnetospheric ion temperature.
 
   double Te2 = (0.5 * (b1 * b1 - b2 * b2) + 0.5 * (guide1 * guide1 - guide2 * guide2) +
-                 n1 * (Ti1 + Te1) - n2 * Ti2) /
-    n2; // Magnetosheath electron temperature (so that the system is in force balance).
+                n1 * (Ti1 + Te1) - n2 * Ti2) /
+               n2; // Magnetosheath electron temperature (so that the system is in force balance).
 
   // Simulation parameters.
   int Nx = 256; // Cell count (x-direction).
@@ -151,55 +150,54 @@ create_ctx(void)
     "moments/data/neural_nets/pkpm_ot_p1_moms_nn_1"; // File path of neural network to use.
 
   struct burch_grad_closure_ctx ctx = { .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass_ion = mass_ion,
-    .charge_ion = charge_ion,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .vAe = vAe,
-    .n0 = n0,
-    .beta2 = beta2,
-    .Ti1_over_Ti2 = Ti1_over_Ti2,
-    .Te1_over_Te2 = Te1_over_Te2,
-    .light_speed = light_speed,
-    .B0 = B0,
-    .omega_pi = omega_pi,
-    .di = di,
-    .omega0 = omega0,
-    .psi0 = psi0,
-    .guide1 = guide1,
-    .guide2 = guide2,
-    .b1 = b1,
-    .b2 = b2,
-    .n1 = n1,
-    .n2 = n2,
-    .Ti2 = Ti2,
-    .Te1 = Te1,
-    .Ti1 = Ti1,
-    .Te2 = Te2,
-    .Nx = Nx,
-    .Ny = Ny,
-    .Lx = Lx,
-    .Ly = Ly,
-    .k0_elc = k0_elc,
-    .k0_ion = k0_ion,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .field_energy_calcs = field_energy_calcs,
-    .integrated_mom_calcs = integrated_mom_calcs,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .use_nn_closure = use_nn_closure,
-    .poly_order = poly_order,
-    .nn_closure_file = nn_closure_file };
+                                        .epsilon0 = epsilon0,
+                                        .mu0 = mu0,
+                                        .mass_ion = mass_ion,
+                                        .charge_ion = charge_ion,
+                                        .mass_elc = mass_elc,
+                                        .charge_elc = charge_elc,
+                                        .vAe = vAe,
+                                        .n0 = n0,
+                                        .beta2 = beta2,
+                                        .Ti1_over_Ti2 = Ti1_over_Ti2,
+                                        .Te1_over_Te2 = Te1_over_Te2,
+                                        .light_speed = light_speed,
+                                        .B0 = B0,
+                                        .omega_pi = omega_pi,
+                                        .di = di,
+                                        .omega0 = omega0,
+                                        .psi0 = psi0,
+                                        .guide1 = guide1,
+                                        .guide2 = guide2,
+                                        .b1 = b1,
+                                        .b2 = b2,
+                                        .n1 = n1,
+                                        .n2 = n2,
+                                        .Ti2 = Ti2,
+                                        .Te1 = Te1,
+                                        .Ti1 = Ti1,
+                                        .Te2 = Te2,
+                                        .Nx = Nx,
+                                        .Ny = Ny,
+                                        .Lx = Lx,
+                                        .Ly = Ly,
+                                        .k0_elc = k0_elc,
+                                        .k0_ion = k0_ion,
+                                        .cfl_frac = cfl_frac,
+                                        .t_end = t_end,
+                                        .num_frames = num_frames,
+                                        .field_energy_calcs = field_energy_calcs,
+                                        .integrated_mom_calcs = integrated_mom_calcs,
+                                        .dt_failure_tol = dt_failure_tol,
+                                        .num_failures_max = num_failures_max,
+                                        .use_nn_closure = use_nn_closure,
+                                        .poly_order = poly_order,
+                                        .nn_closure_file = nn_closure_file };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct burch_grad_closure_ctx *app = ctx;
@@ -227,54 +225,52 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
+                 (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                  tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+               0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
   double b1y = 0.0; // Magnetospheric magnetic field (y-direction).
   double b1z = 0.5 * (guide2 - guide1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
+                 (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                  tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+               0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
 
   double Ti_tot = 0.5 * (Ti2 - Ti1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (Ti2 + Ti1); // Total ion temperature.
+                    (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                     tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+                  0.5 * (Ti2 + Ti1); // Total ion temperature.
   double Te_tot = 0.5 * (Te2 - Te1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (Te2 + Te1); // Total electron temperature.
+                    (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                     tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+                  0.5 * (Te2 + Te1); // Total electron temperature.
   double n =
     (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) /
     (Ti_tot + Te_tot); // Total number density.
 
-  double Bx = b1x -
-    psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) *
-      sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
-  double By = b1y +
-    psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) *
-      (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
+  double Bx = b1x - psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) *
+                      sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
+  double By = b1y + psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) *
+                      (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
   double Bz = b1z; // Total magnetic field (z-direction).
 
   double Te_frac = Te_tot / (Te_tot + Ti_tot); // Fraction of total temperature from electrons.
   double Ti_frac = Ti_tot / (Te_tot + Ti_tot); // Fraction of total temperature from ions;
 
   double Jx = 0.5 * (guide2 - guide1) / omega0 *
-    ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
-      (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
-      (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
-      (1.0 / cosh((y + Ly * 0.25) / omega0)) *
-        (1.0 / cosh((y + Ly * 0.25) / omega0))); // Total current density (x-direction).
+              ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
+               (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
+               (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
+               (1.0 / cosh((y + Ly * 0.25) / omega0)) *
+                 (1.0 / cosh((y + Ly * 0.25) / omega0))); // Total current density (x-direction).
   double Jy = 0.0; // Total current density (y-direction).
   double Jz = -0.5 * (b2 + b1) / omega0 *
-      ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
-        (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
-        (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
-        (1.0 / cosh((y + Ly * 0.25) / omega0)) * (1.0 / cosh((y + Ly * 0.25) / omega0))) -
-    psi0 * sin(2.0 * pi * x / Lx) *
-      ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly)) +
-        (4.0 * pi / Ly) * (4.0 * pi / Ly) *
-          cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
+                ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
+                 (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
+                 (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
+                 (1.0 / cosh((y + Ly * 0.25) / omega0)) * (1.0 / cosh((y + Ly * 0.25) / omega0))) -
+              psi0 * sin(2.0 * pi * x / Lx) *
+                ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly)) +
+                 (4.0 * pi / Ly) * (4.0 * pi / Ly) *
+                   cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
 
   double Jxe = Jx * Te_frac; // Electron current density (x-direction).
   double Jye = Jy * Te_frac; // Electron current density (y-direction).
@@ -307,8 +303,7 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[9] = pre_zz;
 }
 
-void
-evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct burch_grad_closure_ctx *app = ctx;
@@ -336,54 +331,52 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
+                 (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                  tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+               0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
   double b1y = 0.0; // Magnetospheric magnetic field (y-direction).
   double b1z = 0.5 * (guide2 - guide1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
+                 (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                  tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+               0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
 
   double Ti_tot = 0.5 * (Ti2 - Ti1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (Ti2 + Ti1); // Total ion temperature.
+                    (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                     tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+                  0.5 * (Ti2 + Ti1); // Total ion temperature.
   double Te_tot = 0.5 * (Te2 - Te1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (Te2 + Te1); // Total electron temperature.
+                    (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                     tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+                  0.5 * (Te2 + Te1); // Total electron temperature.
   double n =
     (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) /
     (Ti_tot + Te_tot); // Total number density.
 
-  double Bx = b1x -
-    psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) *
-      sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
-  double By = b1y +
-    psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) *
-      (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
+  double Bx = b1x - psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) *
+                      sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
+  double By = b1y + psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) *
+                      (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
   double Bz = b1z; // Total magnetic field (z-direction).
 
   double Te_frac = Te_tot / (Te_tot + Ti_tot); // Fraction of total temperature from electrons.
   double Ti_frac = Ti_tot / (Te_tot + Ti_tot); // Fraction of total temperature from ions;
 
   double Jx = 0.5 * (guide2 - guide1) / omega0 *
-    ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
-      (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
-      (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
-      (1.0 / cosh((y + Ly * 0.25) / omega0)) *
-        (1.0 / cosh((y + Ly * 0.25) / omega0))); // Total current density (x-direction).
+              ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
+               (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
+               (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
+               (1.0 / cosh((y + Ly * 0.25) / omega0)) *
+                 (1.0 / cosh((y + Ly * 0.25) / omega0))); // Total current density (x-direction).
   double Jy = 0.0; // Total current density (y-direction).
   double Jz = -0.5 * (b2 + b1) / omega0 *
-      ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
-        (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
-        (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
-        (1.0 / cosh((y + Ly * 0.25) / omega0)) * (1.0 / cosh((y + Ly * 0.25) / omega0))) -
-    psi0 * sin(2.0 * pi * x / Lx) *
-      ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly)) +
-        (4.0 * pi / Ly) * (4.0 * pi / Ly) *
-          cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
+                ((1.0 / cosh((y - Ly * 0.25) / omega0)) * (1.0 / cosh((y - Ly * 0.25) / omega0)) -
+                 (1.0 / cosh((y - Ly * 0.75) / omega0)) * (1.0 / cosh((y - Ly * 0.75) / omega0)) +
+                 (1.0 / cosh((y - Ly * 1.25) / omega0)) * (1.0 / cosh((y - Ly * 1.25) / omega0)) -
+                 (1.0 / cosh((y + Ly * 0.25) / omega0)) * (1.0 / cosh((y + Ly * 0.25) / omega0))) -
+              psi0 * sin(2.0 * pi * x / Lx) *
+                ((2.0 * pi / Lx) * (2.0 * pi / Lx) * (1.0 - cos(4.0 * pi * y / Ly)) +
+                 (4.0 * pi / Ly) * (4.0 * pi / Ly) *
+                   cos(4.0 * pi * y / Ly)); // Total current density (z-direction).
 
   double Jxi = Jx * Ti_frac; // Ion current density (x-direction).
   double Jyi = Jy * Ti_frac; // Ion current density (y-direction).
@@ -416,8 +409,7 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[9] = pri_zz;
 }
 
-void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct burch_grad_closure_ctx *app = ctx;
@@ -442,23 +434,23 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   double Ly = app->Ly;
 
   double b1x = 0.5 * (b2 + b1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
+                 (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                  tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+               0.5 * (b2 - b1); // Magnetospheric magnetic field (x-direction).
   double b1y = 0.0; // Magnetospheric magnetic field (y-direction).
   double b1z = 0.5 * (guide2 - guide1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
+                 (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                  tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+               0.5 * (guide2 + guide1); // Magnetospheric magnetic field (z-direction).
 
   double Ti_tot = 0.5 * (Ti2 - Ti1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (Ti2 + Ti1); // Total ion temperature.
+                    (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                     tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+                  0.5 * (Ti2 + Ti1); // Total ion temperature.
   double Te_tot = 0.5 * (Te2 - Te1) *
-      (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
-        tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
-    0.5 * (Te2 + Te1); // Total electron temperature.
+                    (tanh((y - Ly * 0.25) / omega0) - tanh((y - Ly * 0.75) / omega0) +
+                     tanh((y - Ly * 1.25) / omega0) - tanh((y + Ly * 0.25) / omega0) + 1.0) +
+                  0.5 * (Te2 + Te1); // Total electron temperature.
   double n =
     (0.5 * (b1 * b1 - b1x * b1x) + 0.5 * (guide1 * guide1 - b1z * b1z) + n1 * (Ti1 + Te1)) /
     (Ti_tot + Te_tot); // Total number density.
@@ -467,12 +459,10 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   double Ey = 0.0; // Total electric field (y-direction).
   double Ez = 0.0; // Total electric field (z-direction).
 
-  double Bx = b1x -
-    psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) *
-      sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
-  double By = b1y +
-    psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) *
-      (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
+  double Bx = b1x - psi0 * 4.0 * pi / Ly * sin(2.0 * pi * x / Lx) *
+                      sin(4.0 * pi * y / Ly); // Total magnetic field (x-direction).
+  double By = b1y + psi0 * 2.0 * pi / Lx * cos(2.0 * pi * x / Lx) *
+                      (1.0 - cos(4.0 * pi * y / Ly)); // Total magnetic field (y-direction).
   double Bz = b1z; // Total magnetic field (z-direction).
 
   // Set electric field.
@@ -486,8 +476,7 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[7] = 0.0;
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -501,25 +490,23 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
   }
 }
 
-void
-calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
+void calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr,
+                       bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
-void
-calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc)
+void calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr,
+                         bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -577,28 +564,28 @@ main(int argc, char **argv)
     ctx.k0_ion, true, ctx.use_nn_closure, ctx.poly_order, ann[1], app_args.use_gpu);
 
   struct gkyl_moment_species elc = { .name = "elc",
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
-    .equation = elc_ten_moment,
+                                     .charge = ctx.charge_elc,
+                                     .mass = ctx.mass_elc,
+                                     .equation = elc_ten_moment,
 
-    .init = evalElcInit,
-    .ctx = &ctx };
+                                     .init = evalElcInit,
+                                     .ctx = &ctx };
 
   struct gkyl_moment_species ion = { .name = "ion",
-    .charge = ctx.charge_ion,
-    .mass = ctx.mass_ion,
-    .equation = ion_ten_moment,
+                                     .charge = ctx.charge_ion,
+                                     .mass = ctx.mass_ion,
+                                     .equation = ion_ten_moment,
 
-    .init = evalIonInit,
-    .ctx = &ctx };
+                                     .init = evalIonInit,
+                                     .ctx = &ctx };
 
   // Field.
   struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .mag_error_speed_fact = 1.0,
+                                     .mu0 = ctx.mu0,
+                                     .mag_error_speed_fact = 1.0,
 
-    .init = evalFieldInit,
-    .ctx = &ctx };
+                                     .init = evalFieldInit,
+                                     .ctx = &ctx };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -652,8 +639,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -676,8 +663,8 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
+                     .comm = comm }
   };
 
   // Create app object.
@@ -696,7 +683,7 @@ main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+                           gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -711,25 +698,25 @@ main(int argc, char **argv)
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs,
+                                     .tcurr = t_curr,
+                                     .curr = frame_curr };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs,
+                                     .tcurr = t_curr,
+                                     .curr = frame_curr };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
-  };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
+                                     .tcurr = frame_curr * (t_end / num_frames),
+                                     .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -768,8 +755,8 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                             num_failures_max);
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);

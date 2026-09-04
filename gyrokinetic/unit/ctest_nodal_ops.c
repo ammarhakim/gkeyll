@@ -12,9 +12,8 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_deflate_zsurf.h>
 
-void
-check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
-  struct gkyl_array *field2)
+void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
+                struct gkyl_array *field2)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -27,20 +26,17 @@ check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *
   }
 }
 
-void
-proj_func(double t, const double *xn, double *fout, void *ctx)
+void proj_func(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = cos(xn[0]) * sin(xn[1]);
 }
 
-void
-proj_func3d(double t, const double *xn, double *fout, void *ctx)
+void proj_func3d(double t, const double *xn, double *fout, void *ctx)
 {
   fout[0] = cos(2 * xn[0]) * sin(xn[1]) * xn[2] * xn[2] * xn[2];
 }
 
-void
-test_nodal_ops_p1_2x_ho()
+void test_nodal_ops_p1_2x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
@@ -99,10 +95,10 @@ test_nodal_ops_p1_2x_ho()
 
   // Trnasform forward and back
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
-  gkyl_nodal_ops_m2n(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev, false);
-  gkyl_nodal_ops_n2m(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, false);
+  gkyl_nodal_ops_m2n(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev,
+                     false);
+  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev,
+                     false);
 
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(funcdg2, funcdg2_dev);
@@ -123,8 +119,7 @@ test_nodal_ops_p1_2x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void
-test_nodal_ops_p1_3x_ho()
+void test_nodal_ops_p1_3x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = { 0.0, -1.5, -1.0 }, upper[] = { 1.5, 1.5, 1.0 };
@@ -183,10 +178,10 @@ test_nodal_ops_p1_3x_ho()
 
   // Trnasform forward and back
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
-  gkyl_nodal_ops_m2n(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev, false);
-  gkyl_nodal_ops_n2m(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, false);
+  gkyl_nodal_ops_m2n(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev,
+                     false);
+  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev,
+                     false);
 
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(funcdg2, funcdg2_dev);
@@ -207,8 +202,7 @@ test_nodal_ops_p1_3x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void
-test_nodal_ops_p1_interior_2x_ho()
+void test_nodal_ops_p1_interior_2x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
@@ -247,8 +241,8 @@ test_nodal_ops_p1_interior_2x_ho()
   // Trnasform forward and back
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
   gkyl_nodal_ops_m2n(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev, true);
-  gkyl_nodal_ops_n2m(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, true);
+  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev,
+                     true);
 
   check_same(local, basis, funcdg, funcdg2);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func2.gkyl");
@@ -260,8 +254,7 @@ test_nodal_ops_p1_interior_2x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void
-test_nodal_ops_p1_interior_3x_ho()
+void test_nodal_ops_p1_interior_3x_ho()
 {
   // create  grid, ranges, basis
   double lower[] = { 0.0, -1.5, -1.0 }, upper[] = { 1.5, 1.5, 1.0 };
@@ -300,8 +293,8 @@ test_nodal_ops_p1_interior_3x_ho()
   // Trnasform forward and back
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&basis, &grid, use_gpu);
   gkyl_nodal_ops_m2n(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg_dev, true);
-  gkyl_nodal_ops_n2m(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, true);
+  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev,
+                     true);
 
   check_same(local, basis, funcdg, funcdg2);
   gkyl_grid_sub_array_write(&grid, &local, 0, funcdg2, "proj_func3d_2.gkyl");
@@ -313,8 +306,7 @@ test_nodal_ops_p1_interior_3x_ho()
   gkyl_nodal_ops_release(n2m);
 }
 
-void
-test_nodal_ops_p1_deflated_ho()
+void test_nodal_ops_p1_deflated_ho()
 {
   // create  grid, ranges, basis
   double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
@@ -405,15 +397,17 @@ test_nodal_ops_p1_deflated_ho()
 
   // Loop along last dim (z) and call the 1d deflator to populate the 2d nodal field
   for (int zidx = local.lower[1]; zidx <= local.upper[1]; zidx++) {
-    gkyl_deflate_zsurf_advance(
-      deflator_lo, zidx, &local, &deflated_local, funcdg_dev, deflated_funcdg_dev, 1);
+    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, funcdg_dev,
+                               deflated_funcdg_dev, 1);
     gkyl_nodal_ops_m2n_deflated(n2m_1d, deflated_basis_on_dev, &deflated_grid, &nrange,
-      &deflated_nrange, &deflated_local, 1, nodal_fld_dev, deflated_funcdg_dev, zidx - 1);
+                                &deflated_nrange, &deflated_local, 1, nodal_fld_dev,
+                                deflated_funcdg_dev, zidx - 1);
     if (zidx == local.upper[1]) {
-      gkyl_deflate_zsurf_advance(
-        deflator_up, zidx, &local, &deflated_local, funcdg_dev, deflated_funcdg_dev, 1);
+      gkyl_deflate_zsurf_advance(deflator_up, zidx, &local, &deflated_local, funcdg_dev,
+                                 deflated_funcdg_dev, 1);
       gkyl_nodal_ops_m2n_deflated(n2m_1d, deflated_basis_on_dev, &deflated_grid, &nrange,
-        &deflated_nrange, &deflated_local, 1, nodal_fld_dev, deflated_funcdg_dev, zidx);
+                                  &deflated_nrange, &deflated_local, 1, nodal_fld_dev,
+                                  deflated_funcdg_dev, zidx);
     }
   }
 
@@ -427,8 +421,8 @@ test_nodal_ops_p1_deflated_ho()
 #endif
 
   // Transform back to modal
-  gkyl_nodal_ops_n2m(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, false);
+  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev,
+                     false);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(funcdg2, funcdg2_dev);
 #endif
@@ -454,8 +448,7 @@ test_nodal_ops_p1_deflated_ho()
   gkyl_deflate_zsurf_release(deflator_up);
 }
 
-void
-test_nodal_ops_p1_deflated_3d_ho()
+void test_nodal_ops_p1_deflated_3d_ho()
 {
   // create  grid, ranges, basis
   double lower[] = { 0.0, -1.5, -2 }, upper[] = { 1.5, 1.5, 2 };
@@ -547,15 +540,17 @@ test_nodal_ops_p1_deflated_3d_ho()
 
   // Loop along last dim (z) and call the 1d deflator to populate the 2d nodal field
   for (int zidx = local.lower[2]; zidx <= local.upper[2]; zidx++) {
-    gkyl_deflate_zsurf_advance(
-      deflator_lo, zidx, &local, &deflated_local, funcdg_dev, deflated_funcdg_dev, 1);
+    gkyl_deflate_zsurf_advance(deflator_lo, zidx, &local, &deflated_local, funcdg_dev,
+                               deflated_funcdg_dev, 1);
     gkyl_nodal_ops_m2n_deflated(n2m_2d, deflated_basis_on_dev, &deflated_grid, &nrange,
-      &deflated_nrange, &deflated_local, 1, nodal_fld_dev, deflated_funcdg_dev, zidx - 1);
+                                &deflated_nrange, &deflated_local, 1, nodal_fld_dev,
+                                deflated_funcdg_dev, zidx - 1);
     if (zidx == local.upper[2]) {
-      gkyl_deflate_zsurf_advance(
-        deflator_up, zidx, &local, &deflated_local, funcdg_dev, deflated_funcdg_dev, 1);
+      gkyl_deflate_zsurf_advance(deflator_up, zidx, &local, &deflated_local, funcdg_dev,
+                                 deflated_funcdg_dev, 1);
       gkyl_nodal_ops_m2n_deflated(n2m_2d, deflated_basis_on_dev, &deflated_grid, &nrange,
-        &deflated_nrange, &deflated_local, 1, nodal_fld_dev, deflated_funcdg_dev, zidx);
+                                  &deflated_nrange, &deflated_local, 1, nodal_fld_dev,
+                                  deflated_funcdg_dev, zidx);
     }
   }
 
@@ -569,8 +564,8 @@ test_nodal_ops_p1_deflated_3d_ho()
 #endif
 
   // Transform back to modal
-  gkyl_nodal_ops_n2m(
-    n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev, false);
+  gkyl_nodal_ops_n2m(n2m, basis_on_dev, &grid, &nrange, &local, 1, nodal_fld_dev, funcdg2_dev,
+                     false);
 #ifdef GKYL_HAVE_CUDA
   gkyl_array_copy(funcdg2, funcdg2_dev);
 #endif
@@ -596,8 +591,7 @@ test_nodal_ops_p1_deflated_3d_ho()
   gkyl_deflate_zsurf_release(deflator_up);
 }
 
-void
-test_p2_btype(enum gkyl_basis_type basis_type)
+void test_p2_btype(enum gkyl_basis_type basis_type)
 {
   // create  grid
   double lower[] = { 0.0, -1.5 }, upper[] = { 1.5, 1.5 };
@@ -651,23 +645,22 @@ test_p2_btype(enum gkyl_basis_type basis_type)
   gkyl_array_release(nodal_fld);
 }
 
-void
-test_nodal_ops_p2_ser_ho()
+void test_nodal_ops_p2_ser_ho()
 {
   return test_p2_btype(GKYL_BASIS_MODAL_SERENDIPITY);
 }
 
-void
-test_nodal_ops_p2_tensor_ho()
+void test_nodal_ops_p2_tensor_ho()
 {
   return test_p2_btype(GKYL_BASIS_MODAL_TENSOR);
 }
 
 TEST_LIST = { { "test_nodal_ops_p1_interior_2x_ho", test_nodal_ops_p1_interior_2x_ho },
-  { "test_nodal_ops_p1_interior_3x_ho", test_nodal_ops_p1_interior_3x_ho },
-  { "test_nodal_ops_p1_2x_ho", test_nodal_ops_p1_2x_ho },
-  { "test_nodal_ops_p1_3x_ho", test_nodal_ops_p1_3x_ho },
-  { "test_nodal_ops_p1_deflated_ho", test_nodal_ops_p1_deflated_ho },
-  { "test_nodal_ops_p1_deflated_3d_ho", test_nodal_ops_p1_deflated_3d_ho },
-  { "test_nodal_ops_p2_ser_ho", test_nodal_ops_p2_ser_ho },
-  { "test_nodal_ops_p2_tensor_ho", test_nodal_ops_p2_tensor_ho }, { NULL, NULL } };
+              { "test_nodal_ops_p1_interior_3x_ho", test_nodal_ops_p1_interior_3x_ho },
+              { "test_nodal_ops_p1_2x_ho", test_nodal_ops_p1_2x_ho },
+              { "test_nodal_ops_p1_3x_ho", test_nodal_ops_p1_3x_ho },
+              { "test_nodal_ops_p1_deflated_ho", test_nodal_ops_p1_deflated_ho },
+              { "test_nodal_ops_p1_deflated_3d_ho", test_nodal_ops_p1_deflated_3d_ho },
+              { "test_nodal_ops_p2_ser_ho", test_nodal_ops_p2_ser_ho },
+              { "test_nodal_ops_p2_tensor_ho", test_nodal_ops_p2_tensor_ho },
+              { NULL, NULL } };

@@ -17,16 +17,14 @@
 #endif
 
 // allocate array (filled with zeros)
-static struct gkyl_array *
-mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
 {
-  struct gkyl_array *a =
-    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                                   gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-struct gkyl_comm *
-comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
+struct gkyl_comm *comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
   // Construct communicator for use in app.
   struct gkyl_comm *comm = 0;
@@ -52,8 +50,7 @@ comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
   return comm;
 }
 
-static struct gkyl_block_geom *
-create_L_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -129,8 +126,7 @@ create_L_domain_block_geom(int **cuts)
   return bgeom;
 }
 
-static struct gkyl_block_geom *
-create_SOL_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *create_SOL_domain_block_geom(int **cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -202,8 +198,7 @@ create_SOL_domain_block_geom(int **cuts)
 }
 
 // simple linear search to check if val occurs in lst
-static bool
-has_int(int n, int val, const int *lst)
+static bool has_int(int n, int val, const int *lst)
 {
   for (int i = 0; i < n; ++i)
     if (val == lst[i])
@@ -211,8 +206,7 @@ has_int(int n, int val, const int *lst)
   return false;
 }
 
-static inline int
-prod_of_elements_int(int ndim, int *arr)
+static inline int prod_of_elements_int(int ndim, int *arr)
 {
   int pr = 1;
   for (int d = 0; d < ndim; ++d)
@@ -220,8 +214,7 @@ prod_of_elements_int(int ndim, int *arr)
   return pr;
 }
 
-int **
-cuts_array_new(int num_blocks, int ndim, int *cuts_all)
+int **cuts_array_new(int num_blocks, int ndim, int *cuts_all)
 {
   // Create an array of cuts from an array with all the cuts listed flat.
   int **cuts_arr = gkyl_malloc(num_blocks * sizeof(int *));
@@ -235,8 +228,7 @@ cuts_array_new(int num_blocks, int ndim, int *cuts_all)
   return cuts_arr;
 }
 
-void
-cuts_array_release(int num_blocks, int **cuts_arr)
+void cuts_array_release(int num_blocks, int **cuts_arr)
 {
   // Release the array of cuts arrays.
   for (int i = 0; i < num_blocks; i++)
@@ -244,8 +236,7 @@ cuts_array_release(int num_blocks, int **cuts_arr)
   gkyl_free(cuts_arr);
 }
 
-static void
-test_L_domain_send_connections_dir0_cuts1_ho()
+static void test_L_domain_send_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -325,8 +316,7 @@ test_L_domain_send_connections_dir0_cuts1_ho()
   gkyl_block_geom_release(geom);
 }
 
-static void
-test_L_domain_recv_connections_dir0_cuts1_ho()
+static void test_L_domain_recv_connections_dir0_cuts1_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -406,8 +396,7 @@ test_L_domain_recv_connections_dir0_cuts1_ho()
   gkyl_block_geom_release(geom);
 }
 
-static void
-test_L_domain_send_connections_dir0_cuts2_ho()
+static void test_L_domain_send_connections_dir0_cuts2_ho()
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -519,8 +508,7 @@ test_L_domain_send_connections_dir0_cuts2_ho()
   gkyl_block_geom_release(geom);
 }
 
-static void
-test_L_domain_send_connections_dir0_cuts2_par_ho()
+static void test_L_domain_send_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -667,8 +655,7 @@ test_L_domain_send_connections_dir0_cuts2_par_ho()
   gkyl_comm_release(comm);
 }
 
-static void
-test_L_domain_recv_connections_dir0_cuts2_par_ho()
+static void test_L_domain_recv_connections_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -815,8 +802,7 @@ test_L_domain_recv_connections_dir0_cuts2_par_ho()
   gkyl_comm_release(comm);
 }
 
-static void
-test_L_domain_allgather_dir0_cuts2_par_ho()
+static void test_L_domain_allgather_dir0_cuts2_par_ho()
 {
   printf("\n");
   // Create world comm.
@@ -834,9 +820,12 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
   int ncuts_block2 = num_ranks > 1 ? 2 : 1;
 
   int cuts_flat[] = {
-    1, 1, // Block 0.
-    1, 1, // Block 1.
-    ncuts_block2, 1 // Block 2.
+    1,
+    1, // Block 0.
+    1,
+    1, // Block 1.
+    ncuts_block2,
+    1 // Block 2.
   };
   int **cuts = cuts_array_new(num_blocks, ndim, cuts_flat);
   struct gkyl_block_geom *geom = create_L_domain_block_geom(cuts);
@@ -912,7 +901,8 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
     local_ranges[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     local_ranges_ext[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     gkyl_multib_comm_conn_create_multib_ranges_in_dir(global_ranges_ext[bI], global_ranges[bI],
-      nghost, nconnected[bid], block_list[bid], dir, decomp);
+                                                      nghost, nconnected[bid], block_list[bid], dir,
+                                                      decomp);
 
     gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
     int brank = -1;
@@ -963,8 +953,8 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
       // Make range a subrange
       mbcc_send[bI]->comm_conn[ns].range = *local_ranges[bI];
@@ -972,17 +962,18 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
     for (int nr = 0; nr < mbcc_recv[bI]->num_comm_conn; ++nr) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id,
+                                  rank_list);
       mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
       // Make range a subrange
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[nr].range, global_ranges_ext[bI],
-        mbcc_recv[bI]->comm_conn[nr].range.lower, mbcc_recv[bI]->comm_conn[nr].range.upper);
+                          mbcc_recv[bI]->comm_conn[nr].range.lower,
+                          mbcc_recv[bI]->comm_conn[nr].range.upper);
     }
   }
 
-  int stat = gkyl_multib_comm_conn_array_transfer(
-    comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, array_local, array_global);
+  int stat = gkyl_multib_comm_conn_array_transfer(comm, num_local_blocks, local_blocks, mbcc_send,
+                                                  mbcc_recv, array_local, array_global);
 
   for (int bI = 0; bI < num_local_blocks; ++bI) {
     struct gkyl_rect_grid grid;
@@ -1021,8 +1012,7 @@ test_L_domain_allgather_dir0_cuts2_par_ho()
   gkyl_comm_release(comm);
 }
 
-static void
-test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
+static void test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
 {
   printf("\n");
   // Create world comm.
@@ -1144,7 +1134,8 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     local_ranges[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     local_ranges_ext[bI] = gkyl_malloc(sizeof(struct gkyl_range));
     gkyl_multib_comm_conn_create_multib_ranges_in_dir(global_ranges_ext[bI], global_ranges[bI],
-      nghost, nconnected[bid], block_list[bid], dir, decomp);
+                                                      nghost, nconnected[bid], block_list[bid], dir,
+                                                      decomp);
 
     gkyl_rrobin_decomp_getranks(round_robin_decomp, bid, rank_list);
     int brank = -1;
@@ -1167,16 +1158,16 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
       if (rank_list[i] == my_rank)
         brank = i;
     array_local[bI] = mkarr(use_gpu, basis.num_basis, local_ranges_ext[bI]->volume);
-    array_local_ho[bI] = use_gpu ? mkarr(false, basis.num_basis, local_ranges_ext[bI]->volume)
-                                 : gkyl_array_acquire(array_local[bI]);
+    array_local_ho[bI] = use_gpu ? mkarr(false, basis.num_basis, local_ranges_ext[bI]->volume) :
+                                   gkyl_array_acquire(array_local[bI]);
     gkyl_array_shiftc(array_local[bI], sqrt(pow(2, ndim)), 0); // Sets es_energy_fac=1.
     if (num_ranks > 1)
       gkyl_array_scale(array_local[bI], 0.5 * my_rank);
     else
       gkyl_array_scale_range(array_local[bI], 100.0 * bid, local_ranges[bI]);
     array_global[bI] = mkarr(use_gpu, basis.num_basis, global_ranges_ext[bI]->volume);
-    array_global_ho[bI] = use_gpu ? mkarr(false, basis.num_basis, global_ranges_ext[bI]->volume)
-                                  : gkyl_array_acquire(array_global[bI]);
+    array_global_ho[bI] = use_gpu ? mkarr(false, basis.num_basis, global_ranges_ext[bI]->volume) :
+                                    gkyl_array_acquire(array_global[bI]);
   }
   printf("made arrays\n");
 
@@ -1200,8 +1191,8 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rank_idx];
       // Make range a subrange
       mbcc_send[bI]->comm_conn[ns].range = *local_ranges[bI];
@@ -1209,12 +1200,13 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
     for (int nr = 0; nr < mbcc_recv[bI]->num_comm_conn; ++nr) {
       // need to get the actual rank that owns this cut
       int rank_idx = mbcc_recv[bI]->comm_conn[nr].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[nr].block_id,
+                                  rank_list);
       mbcc_recv[bI]->comm_conn[nr].rank = rank_list[rank_idx];
       // Make range a subrange
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[nr].range, global_ranges_ext[bI],
-        mbcc_recv[bI]->comm_conn[nr].range.lower, mbcc_recv[bI]->comm_conn[nr].range.upper);
+                          mbcc_recv[bI]->comm_conn[nr].range.lower,
+                          mbcc_recv[bI]->comm_conn[nr].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -1223,8 +1215,8 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   }
 
   printf("calling transfer\n");
-  int stat = gkyl_multib_comm_conn_array_transfer(
-    comm, num_local_blocks, local_blocks, mbcc_send, mbcc_recv, array_local, array_global);
+  int stat = gkyl_multib_comm_conn_array_transfer(comm, num_local_blocks, local_blocks, mbcc_send,
+                                                  mbcc_recv, array_local, array_global);
   printf("did transfer\n");
 
   for (int bI = 0; bI < num_local_blocks; ++bI) {
@@ -1307,15 +1299,13 @@ test_SOL_domain_allgather_dir1_cuts2_par(bool use_gpu)
   gkyl_comm_release(comm);
 }
 
-static void
-test_SOL_domain_allgather_dir1_cuts2_par_ho(void)
+static void test_SOL_domain_allgather_dir1_cuts2_par_ho(void)
 {
   test_SOL_domain_allgather_dir1_cuts2_par(false);
 }
 
 #ifdef GKYL_HAVE_NCCL
-static void
-test_SOL_domain_allgather_dir1_cuts2_par_dev(void)
+static void test_SOL_domain_allgather_dir1_cuts2_par_dev(void)
 {
   test_SOL_domain_allgather_dir1_cuts2_par(true);
 }

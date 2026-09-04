@@ -12,23 +12,20 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-static void
-set_array_to_zero_ho(struct gkyl_array *arr)
+static void set_array_to_zero_ho(struct gkyl_array *arr)
 {
   double *arr_d = arr->data;
   for (unsigned i = 0; i < arr->size; ++i)
     arr_d[i] = 0.0;
 }
 
-void
-test_array_0_ho()
+void test_array_0_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
   gkyl_array_release(arr);
 }
 
-void
-test_array_base_ho()
+void test_array_base_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 200);
 
@@ -92,8 +89,7 @@ test_array_base_ho()
   gkyl_array_release(brr);
 }
 
-void
-test_array_fetch_ho()
+void test_array_fetch_ho()
 {
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, 1, 20);
 
@@ -110,8 +106,7 @@ test_array_fetch_ho()
   gkyl_array_release(arr);
 }
 
-void
-test_array_non_numeric_ho()
+void test_array_non_numeric_ho()
 {
   struct euler {
     double rho, u, E;
@@ -139,8 +134,7 @@ test_array_non_numeric_ho()
   gkyl_array_release(brr);
 }
 
-void
-test_grid_sub_array_read_1_ho()
+void test_grid_sub_array_read_1_ho()
 {
   double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
   int cells[] = { 20, 60 };
@@ -236,8 +230,7 @@ test_grid_sub_array_read_1_ho()
   gkyl_array_release(arr2);
 }
 
-void
-test_grid_sub_array_read_2_ho()
+void test_grid_sub_array_read_2_ho()
 {
   double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
   int cells[] = { 20, 60 };
@@ -300,8 +293,7 @@ test_grid_sub_array_read_2_ho()
   gkyl_array_release(arr2);
 }
 
-void
-test_grid_array_new_from_file_1_ho()
+void test_grid_array_new_from_file_1_ho()
 {
   double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
   int cells[] = { 20, 60 };
@@ -360,8 +352,7 @@ test_grid_array_new_from_file_1_ho()
   gkyl_array_release(arr2);
 }
 
-void
-test_grid_array_read_p1_ho(void)
+void test_grid_array_read_p1_ho(void)
 {
   // read just header
   struct gkyl_rect_grid grid;
@@ -419,15 +410,15 @@ test_grid_array_read_p1_ho(void)
   // read serial data for comparison
   struct gkyl_rect_grid s_grid;
   struct gkyl_array *s_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
-  int s_status = gkyl_grid_sub_array_read(
-    &s_grid, &range, s_arr, "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
+  int s_status = gkyl_grid_sub_array_read(&s_grid, &range, s_arr,
+                                          "core/data/unit/ser-euler_riem_2d_hllc-euler_1.gkyl");
 
   // read parallel data (whole domain)
   do {
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, ext_range.volume);
-    int p_status = gkyl_grid_sub_array_read(
-      &p_grid, &range, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    int p_status = gkyl_grid_sub_array_read(&p_grid, &range, p_arr,
+                                            "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK(0 == p_status);
 
@@ -451,8 +442,8 @@ test_grid_array_read_p1_ho(void)
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
-    int p_status = gkyl_grid_sub_array_read(
-      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
+                                            "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK(0 == p_status);
 
@@ -475,8 +466,8 @@ test_grid_array_read_p1_ho(void)
 
     struct gkyl_rect_grid p_grid;
     struct gkyl_array *p_arr = gkyl_array_new(hdr.etype, nc, prange.volume);
-    int p_status = gkyl_grid_sub_array_read(
-      &p_grid, &prange, p_arr, "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
+    int p_status = gkyl_grid_sub_array_read(&p_grid, &prange, p_arr,
+                                            "core/data/unit/euler_riem_2d_hllc-euler_1.gkyl");
 
     TEST_CHECK(0 == p_status);
 
@@ -495,8 +486,7 @@ test_grid_array_read_p1_ho(void)
   gkyl_array_release(s_arr);
 }
 
-static void
-test_array_from_buff_ho(void)
+static void test_array_from_buff_ho(void)
 {
   double *buff = gkyl_malloc(sizeof(double[400]));
 
@@ -572,8 +562,7 @@ test_array_from_buff_ho(void)
 /* Function signatures of kernel calls */
 int cu_array_test_and_flip_sign(struct gkyl_array *arr);
 
-void
-test_array_base_dev()
+void test_array_base_dev()
 {
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 200);
 
@@ -613,8 +602,7 @@ test_array_base_dev()
   gkyl_array_release(arr_cu);
 }
 
-void
-test_array_kernel_dev()
+void test_array_kernel_dev()
 {
   // create a host array struct containing device data
   struct gkyl_array *arr_cu = gkyl_array_cu_dev_new(GKYL_DOUBLE, 1, 20);
@@ -672,14 +660,17 @@ test_array_kernel_dev()
 
 #endif
 
-TEST_LIST = { { "array_0_ho", test_array_0_ho }, { "array_base_ho", test_array_base_ho },
-  { "array_fetch_ho", test_array_fetch_ho }, { "array_non_numeric_ho", test_array_non_numeric_ho },
-  { "grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho },
-  { "grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho },
-  { "grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho },
-  { "grid_array_read_p1_ho", test_grid_array_read_p1_ho },
-  { "array_from_buff_ho", test_array_from_buff_ho },
+TEST_LIST = { { "array_0_ho", test_array_0_ho },
+              { "array_base_ho", test_array_base_ho },
+              { "array_fetch_ho", test_array_fetch_ho },
+              { "array_non_numeric_ho", test_array_non_numeric_ho },
+              { "grid_sub_array_read_1_ho", test_grid_sub_array_read_1_ho },
+              { "grid_sub_array_read_2_ho", test_grid_sub_array_read_2_ho },
+              { "grid_array_new_from_file_1_ho", test_grid_array_new_from_file_1_ho },
+              { "grid_array_read_p1_ho", test_grid_array_read_p1_ho },
+              { "array_from_buff_ho", test_array_from_buff_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "array_base_dev", test_array_base_dev }, { "array_kernel_dev", test_array_kernel_dev },
+              { "array_base_dev", test_array_base_dev },
+              { "array_kernel_dev", test_array_kernel_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

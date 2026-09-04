@@ -32,8 +32,7 @@ struct ProblemState {
   struct gkyl_array *density, *velocity, *pressure, *internalEnergy;
 };
 
-static struct ProblemState *
-new_ProblemState(int ncell)
+static struct ProblemState *new_ProblemState(int ncell)
 {
   struct ProblemState *ps = gkyl_malloc(sizeof(*ps));
   ps->ncell = ncell;
@@ -46,8 +45,7 @@ new_ProblemState(int ncell)
   return ps;
 }
 
-static void
-release_ProblemState(struct ProblemState *ps)
+static void release_ProblemState(struct ProblemState *ps)
 {
   gkyl_array_release(ps->density);
   gkyl_array_release(ps->velocity);
@@ -57,9 +55,8 @@ release_ProblemState(struct ProblemState *ps)
   gkyl_free(ps);
 }
 
-static void
-prefun(
-  const struct ProblemState *ps, double *F, double *FD, double P, double DK, double PK, double CK)
+static void prefun(const struct ProblemState *ps, double *F, double *FD, double P, double DK,
+                   double PK, double CK)
 {
   double PRATIO, QRT, AK, BK;
   double gas_gamma = ps->gas_gamma;
@@ -103,8 +100,7 @@ prefun(
  * @param ps Problem state
  * @return Guess for pressure in star region
  */
-static double
-guessp(struct ProblemState *ps)
+static double guessp(struct ProblemState *ps)
 {
   double GAMMA, G1, G2, G3, G4, G5, G6, G7, G8;
   double gas_gamma = ps->gas_gamma;
@@ -157,8 +153,7 @@ guessp(struct ProblemState *ps)
   return PM;
 }
 
-static void
-starpu(struct ProblemState *ps, double *pm, double *um)
+static void starpu(struct ProblemState *ps, double *pm, double *um)
 {
   double CHANGE, FL, FLD, FR, FRD, P, POLD, PSTART, TOLPRE, U, UDIFF, PSCALE;
 
@@ -220,8 +215,8 @@ starpu(struct ProblemState *ps, double *pm, double *um)
   *um = U;
 }
 
-static void
-sample(struct ProblemState *ps, double PM, double UM, double S, double *D, double *U, double *P)
+static void sample(struct ProblemState *ps, double PM, double UM, double S, double *D, double *U,
+                   double *P)
 {
   double gas_gamma = ps->gas_gamma;
   // compute constants related to gamma
@@ -356,8 +351,7 @@ sample(struct ProblemState *ps, double PM, double UM, double S, double *D, doubl
   }
 }
 
-static void
-sampleWithVacuum(struct ProblemState *ps, double S, double *D, double *U, double *P)
+static void sampleWithVacuum(struct ProblemState *ps, double S, double *D, double *U, double *P)
 {
   double gas_gamma = ps->gas_gamma;
   // compute constants related to gamma
@@ -405,8 +399,7 @@ sampleWithVacuum(struct ProblemState *ps, double S, double *D, double *U, double
   }
 }
 
-static void
-exactEulerRp(struct ProblemState *ps)
+static void exactEulerRp(struct ProblemState *ps)
 {
   double g1, g2, g3, g4, g5, g6, g7, g8;
 
@@ -456,8 +449,7 @@ exactEulerRp(struct ProblemState *ps)
   }
 }
 
-static void
-exactEulerRpWithVacuum(struct ProblemState *ps)
+static void exactEulerRpWithVacuum(struct ProblemState *ps)
 {
   double gas_gamma = ps->gas_gamma;
   double g8 = gas_gamma - 1;
@@ -492,8 +484,7 @@ exactEulerRpWithVacuum(struct ProblemState *ps)
   }
 }
 
-void
-solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
+void solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
 {
   struct ProblemState *ps = new_ProblemState(_ps.ncell);
 
@@ -536,8 +527,8 @@ solveRiemannProblem(struct _ProblemState _ps, const char *out_prefix)
   fprintf(stdout, "... done!\n");
 
   struct gkyl_rect_grid grid;
-  gkyl_rect_grid_init(
-    &grid, 1, (double[]){ _ps.lower }, (double[]){ _ps.upper }, (int[]){ _ps.ncell });
+  gkyl_rect_grid_init(&grid, 1, (double[]){ _ps.lower }, (double[]){ _ps.upper },
+                      (int[]){ _ps.ncell });
 
   struct gkyl_range range;
   gkyl_range_init_from_shape(&range, 1, (int[]){ _ps.ncell });

@@ -51,8 +51,7 @@ struct amr_euler_riem_2d_ctx {
   double loc; // Fluid boundaries (both x and y coordinates).
 };
 
-struct amr_euler_riem_2d_ctx
-create_ctx(void)
+struct amr_euler_riem_2d_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 1.4; // Adiabatic index.
@@ -98,44 +97,43 @@ create_ctx(void)
   double loc = 0.8; // Fluid boundaries (both x and y coordinates).
 
   struct amr_euler_riem_2d_ctx ctx = { .gas_gamma = gas_gamma,
-    .rho_ul = rho_ul,
-    .u_ul = u_ul,
-    .v_ul = v_ul,
-    .p_ul = p_ul,
-    .rho_ur = rho_ur,
-    .u_ur = u_ur,
-    .v_ur = v_ur,
-    .p_ur = p_ur,
-    .rho_ll = rho_ll,
-    .u_ll = u_ll,
-    .v_ll = v_ll,
-    .p_ll = p_ll,
-    .rho_lr = rho_lr,
-    .u_lr = u_lr,
-    .v_lr = v_lr,
-    .p_lr = p_lr,
-    .Nx = Nx,
-    .Ny = Ny,
-    .ref_factor1 = ref_factor1,
-    .ref_factor2 = ref_factor2,
-    .Lx = Lx,
-    .Ly = Ly,
-    .intermediate_Lx = intermediate_Lx,
-    .intermediate_Ly = intermediate_Ly,
-    .fine_Lx = fine_Lx,
-    .fine_Ly = fine_Ly,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .loc = loc };
+                                       .rho_ul = rho_ul,
+                                       .u_ul = u_ul,
+                                       .v_ul = v_ul,
+                                       .p_ul = p_ul,
+                                       .rho_ur = rho_ur,
+                                       .u_ur = u_ur,
+                                       .v_ur = v_ur,
+                                       .p_ur = p_ur,
+                                       .rho_ll = rho_ll,
+                                       .u_ll = u_ll,
+                                       .v_ll = v_ll,
+                                       .p_ll = p_ll,
+                                       .rho_lr = rho_lr,
+                                       .u_lr = u_lr,
+                                       .v_lr = v_lr,
+                                       .p_lr = p_lr,
+                                       .Nx = Nx,
+                                       .Ny = Ny,
+                                       .ref_factor1 = ref_factor1,
+                                       .ref_factor2 = ref_factor2,
+                                       .Lx = Lx,
+                                       .Ly = Ly,
+                                       .intermediate_Lx = intermediate_Lx,
+                                       .intermediate_Ly = intermediate_Ly,
+                                       .fine_Lx = fine_Lx,
+                                       .fine_Ly = fine_Ly,
+                                       .cfl_frac = cfl_frac,
+                                       .t_end = t_end,
+                                       .num_frames = num_frames,
+                                       .dt_failure_tol = dt_failure_tol,
+                                       .num_failures_max = num_failures_max,
+                                       .loc = loc };
 
   return ctx;
 }
 
-void
-evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_euler_riem_2d_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -206,12 +204,12 @@ evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * (u * u + v * v);
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct amr_euler_riem_2d_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct euler2d_double_init init = { .base_Nx = ctx.Nx,
+  struct euler2d_double_init init = {
+    .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor1 = ctx.ref_factor1,
     .ref_factor2 = ctx.ref_factor2,
@@ -248,7 +246,8 @@ main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler2d_run_double(argc, argv, &init);
 }

@@ -5,8 +5,7 @@
 #include <gkyl_dg_maxwell.h>
 #include <gkyl_dg_maxwell_priv.h>
 
-void
-test_dg_max_ho()
+void test_dg_max_ho()
 {
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, 1);
@@ -36,8 +35,7 @@ test_dg_max_ho()
 
 int cu_maxwell_test(const struct gkyl_dg_eqn *eqn);
 
-void
-test_dg_max_dev()
+void test_dg_max_dev()
 {
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 1, 1);
@@ -64,6 +62,6 @@ test_dg_max_dev()
 
 TEST_LIST = { { "dg_max_ho", test_dg_max_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "dg_max_dev", test_dg_max_dev },
+              { "dg_max_dev", test_dg_max_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

@@ -6,8 +6,8 @@
 
 #include <assert.h>
 
-struct gkyl_mom_calc *
-gkyl_mom_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt, bool use_gpu)
+struct gkyl_mom_calc *gkyl_mom_calc_new(const struct gkyl_rect_grid *grid,
+                                        const struct gkyl_mom_type *momt, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -26,8 +26,7 @@ gkyl_mom_calc_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type 
   return up;
 }
 
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
   for (int i = 0; i < cdim; ++i)
     out[i] = cidx[i];
@@ -35,10 +34,10 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
     out[i] = vidx[i - cdim];
 }
 
-void
-gkyl_mom_calc_advance(const struct gkyl_mom_calc *calc, const struct gkyl_range *phase_rng,
-  const struct gkyl_range *conf_rng, const struct gkyl_array *GKYL_RESTRICT fin,
-  struct gkyl_array *GKYL_RESTRICT mout)
+void gkyl_mom_calc_advance(const struct gkyl_mom_calc *calc, const struct gkyl_range *phase_rng,
+                           const struct gkyl_range *conf_rng,
+                           const struct gkyl_array *GKYL_RESTRICT fin,
+                           struct gkyl_array *GKYL_RESTRICT mout)
 {
   double xc[GKYL_MAX_DIM];
   struct gkyl_range vel_rng;
@@ -67,13 +66,12 @@ gkyl_mom_calc_advance(const struct gkyl_mom_calc *calc, const struct gkyl_range 
       long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
 
       gkyl_mom_type_calc(calc->momt, xc, calc->grid.dx, pidx, gkyl_array_cfetch(fin, fidx),
-        gkyl_array_fetch(mout, midx), 0);
+                         gkyl_array_fetch(mout, midx), 0);
     }
   }
 }
 
-void
-gkyl_mom_calc_release(gkyl_mom_calc *up)
+void gkyl_mom_calc_release(gkyl_mom_calc *up)
 {
   gkyl_mom_type_release(up->momt);
   if (GKYL_IS_CU_ALLOC(up->flags))
@@ -83,16 +81,17 @@ gkyl_mom_calc_release(gkyl_mom_calc *up)
 
 #ifndef GKYL_HAVE_CUDA
 
-void
-gkyl_mom_calc_advance_cu(const struct gkyl_mom_calc *mcalc, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_range, const struct gkyl_array *GKYL_RESTRICT fin,
-  struct gkyl_array *GKYL_RESTRICT mout)
+void gkyl_mom_calc_advance_cu(const struct gkyl_mom_calc *mcalc,
+                              const struct gkyl_range *phase_range,
+                              const struct gkyl_range *conf_range,
+                              const struct gkyl_array *GKYL_RESTRICT fin,
+                              struct gkyl_array *GKYL_RESTRICT mout)
 {
   assert(false);
 }
 
-gkyl_mom_calc *
-gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
+gkyl_mom_calc *gkyl_mom_calc_cu_dev_new(const struct gkyl_rect_grid *grid,
+                                        const struct gkyl_mom_type *momt)
 {
   assert(false);
 }

@@ -15,8 +15,7 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-static struct gkyl_array *
-mkarr1(bool use_gpu, long nc, long size)
+static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (use_gpu)
@@ -26,14 +25,12 @@ mkarr1(bool use_gpu, long nc, long size)
   return a;
 }
 
-void
-evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void
-evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0, fout[2] = 0.0;
@@ -51,8 +48,7 @@ struct kerntm_inp {
   bool use_gpu;
 };
 
-struct kerntm_inp
-get_inp(int argc, char **argv)
+struct kerntm_inp get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   int nx, ny, nz = 8;
@@ -116,16 +112,15 @@ get_inp(int argc, char **argv)
   }
 
   return (struct kerntm_inp){ .cdim = cdim,
-    .vdim = vdim,
-    .poly_order = poly_order,
-    .ccells = { nx, ny, nz },
-    .vcells = { nvx, nvy, nvz },
-    .nloop = nloop,
-    .use_gpu = use_gpu };
+                              .vdim = vdim,
+                              .poly_order = poly_order,
+                              .ccells = { nx, ny, nz },
+                              .vcells = { nvx, nvy, nvz },
+                              .nloop = nloop,
+                              .use_gpu = use_gpu };
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct kerntm_inp inp = get_inp(argc, argv);
 
@@ -252,12 +247,12 @@ main(int argc, char **argv)
   for (int n = 0; n < nrep; n++) {
     gkyl_array_clear(rhs, 0.0);
     gkyl_array_clear(cflrate, 0.0);
-    gkyl_vlasov_set_auxfields(eqn,
-      (struct gkyl_dg_vlasov_auxfields){ .field = qmem,
-        .cot_vec = 0,
-        .alpha_surf = 0,
-        .sgn_alpha_surf = 0,
-        .const_sgn_alpha = 0 }); // must set EM fields to use
+    gkyl_vlasov_set_auxfields(
+      eqn, (struct gkyl_dg_vlasov_auxfields){ .field = qmem,
+                                              .cot_vec = 0,
+                                              .alpha_surf = 0,
+                                              .sgn_alpha_surf = 0,
+                                              .const_sgn_alpha = 0 }); // must set EM fields to use
     gkyl_hyper_dg_advance(slvr, &phaseRange, fin, cflrate, rhs);
   }
 

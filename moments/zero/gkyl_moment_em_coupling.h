@@ -29,8 +29,7 @@ struct gkyl_moment_em_coupling_inp {
   bool static_field; // Is the plasma field static? If true, only J is updated to new time step.
   double
     t_ramp_E; // Ramp-up time for the linear ramp function for initializing external electric fields.
-  double
-    t_ramp_curr; // Ramp-up time for the linear ramp function for initializing applied currents.
+  double t_ramp_curr; // Ramp-up time for the linear ramp function for initializing applied currents.
 
   bool has_collision; // Run with collisions switched on.
   bool use_rel; // Assume special relativistic fluid species.
@@ -45,8 +44,7 @@ struct gkyl_moment_em_coupling_inp {
   bool has_nT_sources; // Run with number density and temperature sources.
 
   bool has_frictional_sources; // Run with frictional sources.
-  bool
-    use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
+  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
   double friction_Z; // Ionization number for frictional sources.
   double friction_T_elc; // Electron temperature for frictional sources.
   double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
@@ -113,8 +111,7 @@ struct gkyl_moment_em_coupling_inp {
 
   bool
     has_gr_mhd_sources; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
-  double
-    gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+  double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
 };
 
 // Moment-EM coupling object.
@@ -147,8 +144,9 @@ gkyl_moment_em_coupling *gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupl
 * @param ext_em External electromagnetic variables (for EM fields coming from external sources, e.g. coils, capacitors, etc.).
 * @param nT_sources Array of number density and temperature source terms.
 */
-void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  double dt, const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+void gkyl_moment_em_coupling_implicit_advance(
+  const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
+  const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
   const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES], struct gkyl_array *em,
   const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
@@ -176,8 +174,9 @@ void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mom
 * @param proj_app_curr The finite-volume projection routine for the external current.
 * @param nstrang Indicator of which step in the Strang splitting we are currently considering.
 */
-void gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  double dt, const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+void gkyl_moment_em_coupling_explicit_advance(
+  const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
+  const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
   const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES], struct gkyl_array *em,
   const struct gkyl_array *app_current, const struct gkyl_array *app_current1,

@@ -7,9 +7,8 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-static void
-gkyl_get_tensor_field_range_kernel_launch_dims(
-  dim3 *dimGrid, dim3 *dimBlock, gkyl_range trange, int size)
+static void gkyl_get_tensor_field_range_kernel_launch_dims(dim3 *dimGrid, dim3 *dimBlock,
+                                                           gkyl_range trange, int size)
 {
   // Create a 2D thread grid so we launch size*trange.volume number of threads
   // so we can parallelize over tensor components too
@@ -21,7 +20,8 @@ gkyl_get_tensor_field_range_kernel_launch_dims(
 
 __global__ static void
 tensor_field_raise_or_lower_idx_set_cu_kernel(const struct gkyl_tensor_field *met, int raised_idx,
-  const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *tensor_out)
+                                              const struct gkyl_tensor_field *ten,
+                                              struct gkyl_tensor_field *tensor_out)
 {
   // iterate over the components of the tensor
   long linc2 = threadIdx.y + blockIdx.y * blockDim.y;
@@ -56,14 +56,14 @@ tensor_field_raise_or_lower_idx_set_cu_kernel(const struct gkyl_tensor_field *me
   }
 }
 
-void
-tensor_field_raise_or_lower_idx_set_cu(const struct gkyl_tensor_field *met, int raised_idx,
-  const struct gkyl_tensor_field *ten, struct gkyl_tensor_field *tensor_out)
+void tensor_field_raise_or_lower_idx_set_cu(const struct gkyl_tensor_field *met, int raised_idx,
+                                            const struct gkyl_tensor_field *ten,
+                                            struct gkyl_tensor_field *tensor_out)
 {
   dim3 dimGrid, dimBlock;
   gkyl_get_tensor_field_range_kernel_launch_dims(&dimGrid, &dimBlock, ten->trange, ten->size);
 
   // ?? There is no met/tensor_out->on_dev at present
-  tensor_field_raise_or_lower_idx_set_cu_kernel<<<dimGrid, dimBlock>>>(
+  tensor_field_raise_or_lower_idx_set_cu_kernel<<<dimGrid, dimBlock> > >(
     met->on_dev, raised_idx, ten->on_dev, tensor_out->on_dev);
 }

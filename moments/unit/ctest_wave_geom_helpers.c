@@ -2,8 +2,7 @@
 #include <acutest.h>
 #include <../zero/wave_geom.c>
 
-static void
-test_geom_helpers_tri_ho()
+static void test_geom_helpers_tri_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(1, 1, 2);
   struct gkyl_vec3 p2 = gkyl_vec3_new(-2, 4, 3);
@@ -14,8 +13,7 @@ test_geom_helpers_tri_ho()
   TEST_CHECK(gkyl_compare_double(area, 10.173494974687902, 1e-15));
 }
 
-static void
-test_geom_helpers_planar_quad_1_ho()
+static void test_geom_helpers_planar_quad_1_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0, 0, 0);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1, 2, 3);
@@ -40,8 +38,7 @@ test_geom_helpers_planar_quad_1_ho()
   TEST_CHECK(gkyl_compare_double(gkyl_vec3_dot(norm, v41), 0, 1e-15));
 }
 
-static void
-test_geom_helpers_quad_1_ho()
+static void test_geom_helpers_quad_1_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0, 0, 0);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1, 2, 3);
@@ -77,8 +74,7 @@ test_geom_helpers_quad_1_ho()
   TEST_CHECK(gkyl_compare_double(gkyl_vec3_dot(norm, v41), 0, 1e-15));
 }
 
-static void
-test_geom_helpers_quad_2_ho()
+static void test_geom_helpers_quad_2_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(9., 3., 4.);
   struct gkyl_vec3 p2 = gkyl_vec3_new(9., 8., 7.);
@@ -109,8 +105,7 @@ test_geom_helpers_quad_2_ho()
   TEST_CHECK(gkyl_compare_double(cross.x[2], norm.x[2], 1e-15));
 }
 
-static void
-test_geom_helpers_vol_tetra_1_ho()
+static void test_geom_helpers_vol_tetra_1_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0, 0, 0);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1, 0, 0);
@@ -120,8 +115,7 @@ test_geom_helpers_vol_tetra_1_ho()
   TEST_CHECK(gkyl_compare_double(vol, 1. / 6., 1e-15));
 }
 
-static void
-test_geom_helpers_vol_tetra_2_ho()
+static void test_geom_helpers_vol_tetra_2_ho()
 {
   struct gkyl_vec3 p1 = gkyl_vec3_new(0.37, 0.07, 0.29);
   struct gkyl_vec3 p2 = gkyl_vec3_new(1.03, 0.08, 0.05);
@@ -131,32 +125,32 @@ test_geom_helpers_vol_tetra_2_ho()
   TEST_CHECK(gkyl_compare_double(vol, 0.12567, 1e-15));
 }
 
-static void
-test_geom_helpers_vol_hexa_1_ho()
+static void test_geom_helpers_vol_hexa_1_ho()
 {
-  struct gkyl_vec3 verts[8] = { { 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 }, { 0, 0, 1 },
-    { 1, 0, 1 }, { 1, 1, 1 }, { 0, 1, 1 } };
+  struct gkyl_vec3 verts[8] = { { 0, 0, 0 }, { 1, 0, 0 }, { 1, 1, 0 }, { 0, 1, 0 },
+                                { 0, 0, 1 }, { 1, 0, 1 }, { 1, 1, 1 }, { 0, 1, 1 } };
 
   double vol = vol_hexa(verts);
   TEST_CHECK(gkyl_compare_double(vol, 1, 1e-15));
 }
 
-static void
-test_geom_helpers_vol_hexa_2_ho()
+static void test_geom_helpers_vol_hexa_2_ho()
 {
-  struct gkyl_vec3 verts[8] = { { 0.37, 0.07, 0.21 }, { 1.16, 0.2, 0.29 }, { 1.33, 1.18, 0.23 },
-    { 0.01, 1.21, 0.28 }, { 0.38, 0.36, 1.02 }, { 1.19, 0.11, 1.01 }, { 1.04, 1.23, 1.14 },
-    { 0.22, 1.2, 1.18 } };
+  struct gkyl_vec3 verts[8] = { { 0.37, 0.07, 0.21 }, { 1.16, 0.2, 0.29 },  { 1.33, 1.18, 0.23 },
+                                { 0.01, 1.21, 0.28 }, { 0.38, 0.36, 1.02 }, { 1.19, 0.11, 1.01 },
+                                { 1.04, 1.23, 1.14 }, { 0.22, 1.2, 1.18 } };
 
   double vol = vol_hexa(verts);
   TEST_CHECK(gkyl_compare_double(vol, 0.746420666666667, 1e-15));
 }
 
 TEST_LIST = { { "geom_helpers_triangle_ho", test_geom_helpers_tri_ho },
-  { "geom_helpers_parallelogram_as_planar_quad_ho", test_geom_helpers_planar_quad_1_ho },
-  { "geom_helpers_parallelogram_as_quad_ho", test_geom_helpers_quad_1_ho },
-  { "geom_helpers_quad_ho", test_geom_helpers_quad_2_ho },
-  { "geom_helpers_vol_tetra_1_ho", test_geom_helpers_vol_tetra_1_ho },
-  { "geom_helpers_vol_tetra_2_ho", test_geom_helpers_vol_tetra_2_ho },
-  { "geom_helpers_vol_hexa_1_ho", test_geom_helpers_vol_hexa_1_ho },
-  { "geom_helpers_vol_hexa_2_ho", test_geom_helpers_vol_hexa_2_ho }, { NULL, NULL } };
+              { "geom_helpers_parallelogram_as_planar_quad_ho",
+                test_geom_helpers_planar_quad_1_ho },
+              { "geom_helpers_parallelogram_as_quad_ho", test_geom_helpers_quad_1_ho },
+              { "geom_helpers_quad_ho", test_geom_helpers_quad_2_ho },
+              { "geom_helpers_vol_tetra_1_ho", test_geom_helpers_vol_tetra_1_ho },
+              { "geom_helpers_vol_tetra_2_ho", test_geom_helpers_vol_tetra_2_ho },
+              { "geom_helpers_vol_hexa_1_ho", test_geom_helpers_vol_hexa_1_ho },
+              { "geom_helpers_vol_hexa_2_ho", test_geom_helpers_vol_hexa_2_ho },
+              { NULL, NULL } };

@@ -11,8 +11,7 @@
 // "Choose Kernel" based on cdim and polynomial order
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count *ref)
+void gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_fpo_vlasov_drag *fpo_vlasov_drag = container_of(base, struct dg_fpo_vlasov_drag, eqn);
@@ -23,9 +22,8 @@ gkyl_fpo_vlasov_drag_free(const struct gkyl_ref_count *ref)
   gkyl_free(fpo_vlasov_drag);
 }
 
-void
-gkyl_fpo_vlasov_drag_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_dg_fpo_vlasov_drag_auxfields auxin)
+void gkyl_fpo_vlasov_drag_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                        const struct gkyl_dg_fpo_vlasov_drag_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.h)) {
@@ -38,9 +36,8 @@ gkyl_fpo_vlasov_drag_set_auxfields(
   fpo_vlasov_drag->auxfields.h = auxin.h;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_fpo_vlasov_drag_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_new(const struct gkyl_basis *pbasis,
+                                                const struct gkyl_range *phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -110,9 +107,8 @@ gkyl_dg_fpo_vlasov_drag_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_fpo_vlasov_drag_cu_dev_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_drag_cu_dev_new(const struct gkyl_basis *pbasis,
+                                                       const struct gkyl_range *phase_range)
 {
   assert(false);
   return 0;

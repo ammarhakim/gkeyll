@@ -56,8 +56,7 @@ struct gkyl_culinsolver_prob {
   double **csrvalApointers_cu; // array of pointers to LHS A matrices.
 };
 
-gkyl_culinsolver_prob *
-gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
+gkyl_culinsolver_prob *gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
 {
   assert((nprob == 1) || (nrhs == 1));
 
@@ -76,8 +75,8 @@ gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
     prob->rhspointers_cu = (double **)gkyl_cu_malloc(prob->nrhs * sizeof(double *));
     for (size_t k = 0; k < prob->nrhs; k++)
       rhspointers[k] = &prob->rhs_cu[k * mrow];
-    gkyl_cu_memcpy(
-      prob->rhspointers_cu, rhspointers, prob->nrhs * sizeof(double *), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(prob->rhspointers_cu, rhspointers, prob->nrhs * sizeof(double *),
+                   GKYL_CU_MEMCPY_H2D);
     gkyl_free(rhspointers);
   }
 
@@ -118,14 +117,13 @@ gkyl_culinsolver_prob_new(int nprob, int mrow, int ncol, int nrhs)
   return prob;
 }
 
-void
-gkyl_culinsolver_amat_from_triples(
-  struct gkyl_culinsolver_prob *prob, struct gkyl_mat_triples **tri)
+void gkyl_culinsolver_amat_from_triples(struct gkyl_culinsolver_prob *prob,
+                                        struct gkyl_mat_triples **tri)
 {
   prob->nnz = gkyl_mat_triples_size(tri[0]);
   for (size_t k = 0; k < prob->nprob; k++) {
     assert(gkyl_mat_triples_size(tri[k]) ==
-      prob->nnz); // No. of nonzeros must be the same for every problem.
+           prob->nnz); // No. of nonzeros must be the same for every problem.
     assert(gkyl_mat_triples_is_rowmaj(tri[k])); // Triples must be in rowmaj order for cusolver.
   }
 
@@ -170,11 +168,11 @@ gkyl_culinsolver_amat_from_triples(
     (int *)gkyl_cu_malloc(sizeof(int) * prob->nnz); // col index of entries in csrvalA.
   prob->csrrowptrA_cu = (int *)gkyl_cu_malloc(
     sizeof(int) * (prob->mrow + 1)); // 1st entry of each row as index in csrvalA.
-  gkyl_cu_memcpy(
-    prob->csrvalA_cu, csrvalA, prob->nprob * prob->nnz * sizeof(double), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->csrvalA_cu, csrvalA, prob->nprob * prob->nnz * sizeof(double),
+                 GKYL_CU_MEMCPY_H2D);
   gkyl_cu_memcpy(prob->csrcolindA_cu, csrcolindA, sizeof(int) * prob->nnz, GKYL_CU_MEMCPY_H2D);
-  gkyl_cu_memcpy(
-    prob->csrrowptrA_cu, csrrowptrA, sizeof(int) * (prob->mrow + 1), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->csrrowptrA_cu, csrrowptrA, sizeof(int) * (prob->mrow + 1),
+                 GKYL_CU_MEMCPY_H2D);
 
   double **csrvalApointers;
   if (prob->nrhs > 1) {
@@ -183,10 +181,10 @@ gkyl_culinsolver_amat_from_triples(
     csrvalApointers = (double **)gkyl_malloc(prob->nrhs * sizeof(double *));
     prob->csrvalApointers_cu = (double **)gkyl_cu_malloc(prob->nrhs * sizeof(double *));
     for (size_t k = 0; k < prob->nrhs; k++)
-      csrvalApointers[k] =
-        prob->nprob == 1 ? &prob->csrvalA_cu[0] : &prob->csrvalA_cu[k * prob->nnz];
-    gkyl_cu_memcpy(
-      prob->csrvalApointers_cu, csrvalApointers, sizeof(double *) * prob->nrhs, GKYL_CU_MEMCPY_H2D);
+      csrvalApointers[k] = prob->nprob == 1 ? &prob->csrvalA_cu[0] :
+                                              &prob->csrvalA_cu[k * prob->nnz];
+    gkyl_cu_memcpy(prob->csrvalApointers_cu, csrvalApointers, sizeof(double *) * prob->nrhs,
+                   GKYL_CU_MEMCPY_H2D);
   }
 
   // Use CusolverRf
@@ -198,8 +196,8 @@ gkyl_culinsolver_amat_from_triples(
   //  cusolverSpXcsrsymrcmHost(prob->cusolverSpH, prob->mrow, prob->nnz,
   //    prob->A, csrrowptrA, csrcolindA, h_Qreorder);
   // AMD reordering
-  cusolverSpXcsrsymamdHost(
-    prob->cusolverSpH, prob->mrow, prob->nnz, prob->A, csrrowptrA, csrcolindA, h_Qreorder);
+  cusolverSpXcsrsymamdHost(prob->cusolverSpH, prob->mrow, prob->nnz, prob->A, csrrowptrA,
+                           csrcolindA, h_Qreorder);
   // MDQ reordering
   //  cusolverSpXcsrsymmdqHost(prob->cusolverSpH, prob->mrow, prob->nnz,
   //    prob->A, csrrowptrA, csrcolindA, h_Qreorder);
@@ -215,7 +213,7 @@ gkyl_culinsolver_amat_from_triples(
 
   size_t size_perm = 0;
   cusolverSpXcsrperm_bufferSizeHost(prob->cusolverSpH, prob->mrow, prob->ncol, prob->nnz, prob->A,
-    h_csrRowIndB, h_csrColIndB, h_Qreorder, h_Qreorder, &size_perm);
+                                    h_csrRowIndB, h_csrColIndB, h_Qreorder, h_Qreorder, &size_perm);
 
   void *buffer_cpu =
     NULL; // working space for permutation (B = Q*A*Q^T) and LU w/ partial pivoting in cusolverSp.
@@ -226,7 +224,8 @@ gkyl_culinsolver_amat_from_triples(
   for (int j = 0; j < prob->nnz; j++)
     h_mapBfromA[j] = j;
   cusolverSpXcsrpermHost(prob->cusolverSpH, prob->mrow, prob->ncol, prob->nnz, prob->A,
-    h_csrRowIndB, h_csrColIndB, h_Qreorder, h_Qreorder, h_mapBfromA, buffer_cpu);
+                         h_csrRowIndB, h_csrColIndB, h_Qreorder, h_Qreorder, h_mapBfromA,
+                         buffer_cpu);
 
   // B = A( mapBfromA )
   double *h_csrValB = (double *)gkyl_malloc(sizeof(double) * prob->nnz);
@@ -236,13 +235,14 @@ gkyl_culinsolver_amat_from_triples(
   // ................ Solve A*x = b by LU(B) in cusolverSp ................ //
 
   // Analyze LU(B) to know structure of Q and R, and upper bound for nnz(L+U).
-  cusolverSpXcsrluAnalysisHost(
-    prob->cusolverSpH, prob->mrow, prob->nnz, prob->A, h_csrRowIndB, h_csrColIndB, prob->infolu);
+  cusolverSpXcsrluAnalysisHost(prob->cusolverSpH, prob->mrow, prob->nnz, prob->A, h_csrRowIndB,
+                               h_csrColIndB, prob->infolu);
 
   // Workspace for LU(B).
   size_t size_lu = 0; // Size of working space for csrlu.
   cusolverSpDcsrluBufferInfoHost(prob->cusolverSpH, prob->mrow, prob->nnz, prob->A, h_csrValB,
-    h_csrRowIndB, h_csrColIndB, prob->infolu, &prob->size_internal, &size_lu);
+                                 h_csrRowIndB, h_csrColIndB, prob->infolu, &prob->size_internal,
+                                 &size_lu);
 
   if (buffer_cpu)
     free(buffer_cpu);
@@ -250,7 +250,8 @@ gkyl_culinsolver_amat_from_triples(
 
   // Compute Ppivot*B = L*U.
   cusolverSpDcsrluFactorHost(prob->cusolverSpH, prob->mrow, prob->nnz, prob->A, h_csrValB,
-    h_csrRowIndB, h_csrColIndB, prob->infolu, prob->pivot_threshold, buffer_cpu);
+                             h_csrRowIndB, h_csrColIndB, prob->infolu, prob->pivot_threshold,
+                             buffer_cpu);
 
   // Check if the matrix is singular \n");
   int singularity = 0;
@@ -269,8 +270,8 @@ gkyl_culinsolver_amat_from_triples(
   for (int j = 0; j < prob->mrow; j++)
     h_bhat[j] = h_b[h_Qreorder[j]]; // b_hat = Q*b
   // B*x_hat = b_hat.
-  cusolverSpDcsrluSolveHost(
-    prob->cusolverSpH, prob->mrow, h_bhat, h_xhat, prob->infolu, buffer_cpu);
+  cusolverSpDcsrluSolveHost(prob->cusolverSpH, prob->mrow, h_bhat, h_xhat, prob->infolu,
+                            buffer_cpu);
 
   // x = Q^T * x_hat
   double *h_x = (double *)gkyl_malloc(sizeof(double) * prob->ncol); // x = A \ b
@@ -293,7 +294,8 @@ gkyl_culinsolver_amat_from_triples(
   int *h_csrColIndU = (int *)gkyl_malloc(sizeof(int) * nnzU);
 
   cusolverSpDcsrluExtractHost(prob->cusolverSpH, h_Plu, h_Qlu, prob->A, h_csrValL, h_csrRowIndL,
-    h_csrColIndL, prob->A, h_csrValU, h_csrRowIndU, h_csrColIndU, prob->infolu, buffer_cpu);
+                              h_csrColIndL, prob->A, h_csrValU, h_csrRowIndU, h_csrColIndU,
+                              prob->infolu, buffer_cpu);
 
   /*  B = Qreorder*A*Qreorder^T
    *  Plu*B*Qlu^T = L*U
@@ -330,8 +332,8 @@ gkyl_culinsolver_amat_from_triples(
   cusolverRfSetAlgs(prob->cusolverRfH, prob->fact_alg, prob->solve_alg);
 
   // Matrix mode: L and U are CSR format, and L has implicit unit diagonal
-  cusolverRfSetMatrixFormat(
-    prob->cusolverRfH, CUSOLVERRF_MATRIX_FORMAT_CSR, CUSOLVERRF_UNIT_DIAGONAL_ASSUMED_L);
+  cusolverRfSetMatrixFormat(prob->cusolverRfH, CUSOLVERRF_MATRIX_FORMAT_CSR,
+                            CUSOLVERRF_UNIT_DIAGONAL_ASSUMED_L);
 
   // Fast mode for matrix assembling
   cusolverRfSetResetValuesFastMode(prob->cusolverRfH, CUSOLVERRF_RESET_VALUES_FAST_MODE_ON);
@@ -339,14 +341,14 @@ gkyl_culinsolver_amat_from_triples(
   // ............... Assemble P*A*Q = L*U .................. //
   if ((prob->nprob == 1) && (prob->nrhs == 1)) {
     cusolverRfSetupHost(prob->mrow, prob->nnz, csrrowptrA, csrcolindA, csrvalA, nnzL, h_csrRowIndL,
-      h_csrColIndL, h_csrValL, nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q,
-      prob->cusolverRfH);
+                        h_csrColIndL, h_csrValL, nnzU, h_csrRowIndU, h_csrColIndU, h_csrValU, h_P,
+                        h_Q, prob->cusolverRfH);
   } else {
     for (size_t k = 0; k < prob->nrhs; k++)
       csrvalApointers[k] = prob->nprob == 1 ? &csrvalA[0] : &csrvalA[k * prob->nnz];
     cusolverRfBatchSetupHost(prob->nrhs, prob->mrow, prob->nnz, csrrowptrA, csrcolindA,
-      csrvalApointers, nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL, nnzU, h_csrRowIndU,
-      h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
+                             csrvalApointers, nnzL, h_csrRowIndL, h_csrColIndL, h_csrValL, nnzU,
+                             h_csrRowIndU, h_csrColIndU, h_csrValU, h_P, h_Q, prob->cusolverRfH);
   }
 
   cudaDeviceSynchronize();
@@ -365,10 +367,11 @@ gkyl_culinsolver_amat_from_triples(
 
   if (prob->nrhs == 1)
     cusolverRfResetValues(prob->mrow, prob->nnz, prob->csrrowptrA_cu, prob->csrcolindA_cu,
-      prob->csrvalA_cu, prob->d_P, prob->d_Q, prob->cusolverRfH);
+                          prob->csrvalA_cu, prob->d_P, prob->d_Q, prob->cusolverRfH);
   else
     cusolverRfBatchResetValues(prob->nrhs, prob->mrow, prob->nnz, prob->csrrowptrA_cu,
-      prob->csrcolindA_cu, prob->csrvalApointers_cu, prob->d_P, prob->d_Q, prob->cusolverRfH);
+                               prob->csrcolindA_cu, prob->csrvalApointers_cu, prob->d_P, prob->d_Q,
+                               prob->cusolverRfH);
 
   cudaDeviceSynchronize();
 
@@ -385,8 +388,9 @@ gkyl_culinsolver_amat_from_triples(
     prob->d_T = (double *)gkyl_cu_malloc(
       sizeof(double) * prob->mrow); // Working space in cusolverRfSolve, |d_T| = n * nrhs.
   else
-    prob->d_T = (double *)gkyl_cu_malloc(sizeof(double) * prob->mrow * prob->nrhs *
-      2); // Working space in cusolverRfSolve, |d_T| = 2*n*nrhs*batchSize.
+    prob->d_T =
+      (double *)gkyl_cu_malloc(sizeof(double) * prob->mrow * prob->nrhs *
+                               2); // Working space in cusolverRfSolve, |d_T| = 2*n*nrhs*batchSize.
 
   gkyl_free(h_Qreorder);
 
@@ -421,8 +425,7 @@ gkyl_culinsolver_amat_from_triples(
     gkyl_free(csrvalApointers);
 }
 
-void
-gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
+void gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_triples *tri)
 {
   long nnz_rhs = gkyl_mat_triples_size(tri); // number of non-zero entries in RHS matrix B
 
@@ -435,64 +438,56 @@ gkyl_culinsolver_brhs_from_triples(struct gkyl_culinsolver_prob *prob, gkyl_mat_
   }
   gkyl_mat_triples_iter_release(iter);
 
-  gkyl_cu_memcpy(
-    prob->rhs_cu, prob->rhs, sizeof(double) * prob->mrow * prob->nrhs, GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(prob->rhs_cu, prob->rhs, sizeof(double) * prob->mrow * prob->nrhs,
+                 GKYL_CU_MEMCPY_H2D);
 }
 
-void
-gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
+void gkyl_culinsolver_solve(struct gkyl_culinsolver_prob *prob)
 {
   // MF 2023/05/25: the 1 below is nrhs, and cuSolver docs say only 1 is supported. To me it is not
   // clear whether this means one can only solve 1 system, or whether we can solve multiple systems
   // but each system can only have nrhs=1. I think it's the latter.
   if (prob->nrhs == 1)
-    cusolverRfSolve(
-      prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu, prob->mrow);
+    cusolverRfSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow, prob->rhs_cu,
+                    prob->mrow);
   else
     cusolverRfBatchSolve(prob->cusolverRfH, prob->d_P, prob->d_Q, 1, prob->d_T, prob->mrow,
-      prob->rhspointers_cu, prob->mrow);
+                         prob->rhspointers_cu, prob->mrow);
 }
 
-void
-gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
+void gkyl_culinsolver_finish_host(struct gkyl_culinsolver_prob *prob)
 {
   //cudaStreamSynchronize(prob->stream); // not needed when using blocking stream
-  gkyl_cu_memcpy(
-    prob->rhs, prob->rhs_cu, sizeof(double) * prob->mrow * prob->nrhs, GKYL_CU_MEMCPY_D2H);
+  gkyl_cu_memcpy(prob->rhs, prob->rhs_cu, sizeof(double) * prob->mrow * prob->nrhs,
+                 GKYL_CU_MEMCPY_D2H);
 }
 
-void
-gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
+void gkyl_culinsolver_clear_rhs(struct gkyl_culinsolver_prob *prob, double val)
 {
   gkyl_cu_memset(prob->rhs_cu, val, prob->mrow * prob->nrhs * sizeof(double));
 }
 
-double *
-gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+double *gkyl_culinsolver_get_rhs_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu + loc;
 }
 
-double *
-gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
+double *gkyl_culinsolver_get_sol_ptr(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs_cu + loc;
 }
 
-double
-gkyl_culinsolver_get_sol_ij(struct gkyl_culinsolver_prob *prob, long ielement, long jprob)
+double gkyl_culinsolver_get_sol_ij(struct gkyl_culinsolver_prob *prob, long ielement, long jprob)
 {
   return prob->rhs[jprob * prob->mrow + ielement];
 }
 
-double
-gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
+double gkyl_culinsolver_get_sol_lin(struct gkyl_culinsolver_prob *prob, long loc)
 {
   return prob->rhs[loc];
 }
 
-void
-gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
+void gkyl_culinsolver_prob_release(struct gkyl_culinsolver_prob *prob)
 {
   gkyl_cu_free(prob->rhs_cu);
   gkyl_cu_free(prob->csrcolindA_cu);

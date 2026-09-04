@@ -8,8 +8,7 @@
 #include <gkyl_prim_lbo_gyrokinetic.h>
 #include <gkyl_prim_lbo_gyrokinetic_priv.h>
 
-void
-prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
+void prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
   if (GKYL_IS_CU_ALLOC(prim_ty->flag))
@@ -20,9 +19,9 @@ prim_lbo_gyrokinetic_free(const struct gkyl_ref_count *ref)
   gkyl_free(gk);
 }
 
-struct gkyl_prim_lbo_type *
-gkyl_prim_lbo_gyrokinetic_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_gyrokinetic_new(const struct gkyl_basis *cbasis,
+                                                         const struct gkyl_basis *pbasis,
+                                                         bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

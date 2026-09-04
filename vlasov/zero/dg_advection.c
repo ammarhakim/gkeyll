@@ -11,8 +11,7 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_advection_free(const struct gkyl_ref_count *ref)
+void gkyl_advection_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -26,9 +25,8 @@ gkyl_advection_free(const struct gkyl_ref_count *ref)
   gkyl_free(advection);
 }
 
-void
-gkyl_advection_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_advection_auxfields auxin)
+void gkyl_advection_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                  struct gkyl_dg_advection_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.u_i)) {
@@ -41,9 +39,8 @@ gkyl_advection_set_auxfields(
   advection->auxfields.u_i = auxin.u_i;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_advection_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_advection_new(const struct gkyl_basis *cbasis,
+                                          const struct gkyl_range *conf_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -100,8 +97,8 @@ gkyl_dg_advection_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_advection_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range)
+struct gkyl_dg_eqn *gkyl_dg_advection_cu_dev_new(const struct gkyl_basis *cbasis,
+                                                 const struct gkyl_range *conf_range)
 {
   assert(false);
   return 0;

@@ -8,8 +8,7 @@
 #include <gkyl_dg_diffusion_fluid_priv.h>
 #include <gkyl_util.h>
 
-void
-gkyl_dg_diffusion_fluid_free(const struct gkyl_ref_count *ref)
+void gkyl_dg_diffusion_fluid_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -24,9 +23,8 @@ gkyl_dg_diffusion_fluid_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion);
 }
 
-void
-gkyl_dg_diffusion_fluid_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_fluid_auxfields auxin)
+void gkyl_dg_diffusion_fluid_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                           struct gkyl_dg_diffusion_fluid_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.D)) {
@@ -39,14 +37,15 @@ gkyl_dg_diffusion_fluid_set_auxfields(
   diffusion->auxfields.D = auxin.D;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, bool is_diff_const, int num_equations,
-  const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, bool is_diff_const,
+                                                int num_equations, const bool *diff_in_dir,
+                                                int diff_order, const struct gkyl_range *diff_range,
+                                                bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_fluid_cu_dev_new(
-      basis, is_diff_const, num_equations, diff_in_dir, diff_order, diff_range);
+    return gkyl_dg_diffusion_fluid_cu_dev_new(basis, is_diff_const, num_equations, diff_in_dir,
+                                              diff_order, diff_range);
 #endif
 
   struct dg_diffusion_fluid *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_fluid));
@@ -71,35 +70,35 @@ gkyl_dg_diffusion_fluid_new(const struct gkyl_basis *basis, bool is_diff_const, 
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
     vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-    surfx_kernels =
-      diffusion->const_coeff ? ser_surfx_kernels_constcoeff : ser_surfx_kernels_varcoeff;
-    surfy_kernels =
-      diffusion->const_coeff ? ser_surfy_kernels_constcoeff : ser_surfy_kernels_varcoeff;
-    surfz_kernels =
-      diffusion->const_coeff ? ser_surfz_kernels_constcoeff : ser_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff ? ser_boundary_surfx_kernels_constcoeff
-                                                    : ser_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff ? ser_boundary_surfy_kernels_constcoeff
-                                                    : ser_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff ? ser_boundary_surfz_kernels_constcoeff
-                                                    : ser_boundary_surfz_kernels_varcoeff;
+    surfx_kernels = diffusion->const_coeff ? ser_surfx_kernels_constcoeff :
+                                             ser_surfx_kernels_varcoeff;
+    surfy_kernels = diffusion->const_coeff ? ser_surfy_kernels_constcoeff :
+                                             ser_surfy_kernels_varcoeff;
+    surfz_kernels = diffusion->const_coeff ? ser_surfz_kernels_constcoeff :
+                                             ser_surfz_kernels_varcoeff;
+    boundary_surfx_kernels = diffusion->const_coeff ? ser_boundary_surfx_kernels_constcoeff :
+                                                      ser_boundary_surfx_kernels_varcoeff;
+    boundary_surfy_kernels = diffusion->const_coeff ? ser_boundary_surfy_kernels_constcoeff :
+                                                      ser_boundary_surfy_kernels_varcoeff;
+    boundary_surfz_kernels = diffusion->const_coeff ? ser_boundary_surfz_kernels_constcoeff :
+                                                      ser_boundary_surfz_kernels_varcoeff;
     break;
 
   case GKYL_BASIS_MODAL_TENSOR:
-    vol_kernels =
-      diffusion->const_coeff ? tensor_vol_kernels_constcoeff : tensor_vol_kernels_varcoeff;
-    surfx_kernels =
-      diffusion->const_coeff ? tensor_surfx_kernels_constcoeff : tensor_surfx_kernels_varcoeff;
-    surfy_kernels =
-      diffusion->const_coeff ? tensor_surfy_kernels_constcoeff : tensor_surfy_kernels_varcoeff;
-    surfz_kernels =
-      diffusion->const_coeff ? tensor_surfz_kernels_constcoeff : tensor_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff ? tensor_boundary_surfx_kernels_constcoeff
-                                                    : tensor_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff ? tensor_boundary_surfy_kernels_constcoeff
-                                                    : tensor_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff ? tensor_boundary_surfz_kernels_constcoeff
-                                                    : tensor_boundary_surfz_kernels_varcoeff;
+    vol_kernels = diffusion->const_coeff ? tensor_vol_kernels_constcoeff :
+                                           tensor_vol_kernels_varcoeff;
+    surfx_kernels = diffusion->const_coeff ? tensor_surfx_kernels_constcoeff :
+                                             tensor_surfx_kernels_varcoeff;
+    surfy_kernels = diffusion->const_coeff ? tensor_surfy_kernels_constcoeff :
+                                             tensor_surfy_kernels_varcoeff;
+    surfz_kernels = diffusion->const_coeff ? tensor_surfz_kernels_constcoeff :
+                                             tensor_surfz_kernels_varcoeff;
+    boundary_surfx_kernels = diffusion->const_coeff ? tensor_boundary_surfx_kernels_constcoeff :
+                                                      tensor_boundary_surfx_kernels_varcoeff;
+    boundary_surfy_kernels = diffusion->const_coeff ? tensor_boundary_surfy_kernels_constcoeff :
+                                                      tensor_boundary_surfy_kernels_varcoeff;
+    boundary_surfz_kernels = diffusion->const_coeff ? tensor_boundary_surfz_kernels_constcoeff :
+                                                      tensor_boundary_surfz_kernels_varcoeff;
     break;
 
   default:

@@ -2,10 +2,10 @@
 
 // initialize source solver: this should be called after all species
 // and fields are initialized
-void
-moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *src)
+void moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *src)
 {
-  struct gkyl_moment_em_coupling_inp src_inp = { .grid = &app->grid,
+  struct gkyl_moment_em_coupling_inp src_inp = {
+    .grid = &app->grid,
     .nfluids = app->num_species,
     // if there is a field, need to update electric field too, otherwise just updating fluid
     .epsilon0 = app->field.epsilon0 ? app->field.epsilon0 : 0.0,
@@ -14,15 +14,18 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     .static_field = app->field.is_static,
     // linear ramping function for slowing turning on applied accelerations, E fields, or currents
     .t_ramp_E = app->field.t_ramp_E ? app->field.t_ramp_E : 0.0,
-    .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0 };
+    .t_ramp_curr = app->field.t_ramp_curr ? app->field.t_ramp_curr : 0.0
+  };
 
   for (int i = 0; i < app->num_species; ++i)
-    src_inp.param[i] = (struct gkyl_moment_em_coupling_data){ .type = app->species[i].eqn_type,
+    src_inp.param[i] = (struct gkyl_moment_em_coupling_data){
+      .type = app->species[i].eqn_type,
       .charge = app->species[i].charge,
       .mass = app->species[i].mass,
       // The gradient-based closure defines its heat flux through k0, so k0=0.0 in the source solve to avoid double-applying it.
       // The neural-network closure supplies the heat flux directly, so k0 is retained here as the integrating-factor relaxation rate.
-      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0 };
+      .k0 = (app->species[i].has_grad_closure) ? 0.0 : app->species[i].k0
+    };
 
   src_inp.has_collision = app->has_collision;
   for (int s = 0; s < app->num_species; ++s)
@@ -38,7 +41,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   bool use_rel = 0;
   for (int n = 0; n < app->num_species; ++n)
     use_rel = use_rel || (app->species[n].eqn_type == GKYL_EQN_COLDFLUID_SR) ||
-      app->field.use_explicit_em_coupling;
+              app->field.use_explicit_em_coupling;
 
   src_inp.has_frictional_sources = false;
   src_inp.use_explicit_friction = false;
@@ -47,7 +50,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src_inp.has_frictional_sources = true;
 
       if (app->species[i].friction_Z != 0.0 || app->species[i].friction_T_elc != 0.0 ||
-        app->species[i].friction_Lambda_ee != 0.0) {
+          app->species[i].friction_Lambda_ee != 0.0) {
         src_inp.friction_Z = app->species[i].friction_Z;
         src_inp.friction_T_elc = app->species[i].friction_T_elc;
         src_inp.friction_Lambda_ee = app->species[i].friction_Lambda_ee;
@@ -65,7 +68,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src_inp.has_volume_sources = true;
 
       if (app->species[i].volume_gas_gamma != 0.0 || app->species[i].volume_U0 != 0.0 ||
-        app->species[i].volume_R0 != 0.0) {
+          app->species[i].volume_R0 != 0.0) {
         src_inp.volume_gas_gamma = app->species[i].volume_gas_gamma;
         src_inp.volume_U0 = app->species[i].volume_U0;
         src_inp.volume_R0 = app->species[i].volume_R0;
@@ -76,7 +79,7 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
     src_inp.has_volume_sources = true;
 
     if (app->field.volume_gas_gamma != 0.0 || app->field.volume_U0 != 0.0 ||
-      app->field.volume_R0 != 0.0) {
+        app->field.volume_R0 != 0.0) {
       src_inp.volume_gas_gamma = app->field.volume_gas_gamma;
       src_inp.volume_U0 = app->field.volume_U0;
       src_inp.volume_R0 = app->field.volume_R0;
@@ -89,10 +92,10 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src_inp.has_reactive_sources = true;
 
       if (app->species[i].reactivity_gas_gamma != 0.0 ||
-        app->species[i].reactivity_specific_heat_capacity != 0.0 ||
-        app->species[i].reactivity_energy_of_formation != 0.0 ||
-        app->species[i].reactivity_ignition_temperature != 0.0 ||
-        app->species[i].reactivity_reaction_rate != 0.0) {
+          app->species[i].reactivity_specific_heat_capacity != 0.0 ||
+          app->species[i].reactivity_energy_of_formation != 0.0 ||
+          app->species[i].reactivity_ignition_temperature != 0.0 ||
+          app->species[i].reactivity_reaction_rate != 0.0) {
         src_inp.reactivity_gas_gamma = app->species[i].reactivity_gas_gamma;
         src_inp.reactivity_specific_heat_capacity =
           app->species[i].reactivity_specific_heat_capacity;
@@ -143,12 +146,12 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src_inp.has_gr_twofluid_sources = true;
 
       if (app->species[i].gr_twofluid_mass_elc != 0.0 ||
-        app->species[i].gr_twofluid_mass_ion != 0.0 ||
-        app->species[i].gr_twofluid_charge_elc != 0.0 ||
-        app->species[i].gr_twofluid_charge_ion != 0.0 ||
-        app->species[i].gr_twofluid_gas_gamma_elc != 0.0 ||
-        app->species[i].gr_twofluid_gas_gamma_ion != 0.0 ||
-        app->species[i].gr_twofluid_e_fact != 0.0) {
+          app->species[i].gr_twofluid_mass_ion != 0.0 ||
+          app->species[i].gr_twofluid_charge_elc != 0.0 ||
+          app->species[i].gr_twofluid_charge_ion != 0.0 ||
+          app->species[i].gr_twofluid_gas_gamma_elc != 0.0 ||
+          app->species[i].gr_twofluid_gas_gamma_ion != 0.0 ||
+          app->species[i].gr_twofluid_e_fact != 0.0) {
         src_inp.gr_twofluid_mass_elc = app->species[i].gr_twofluid_mass_elc;
         src_inp.gr_twofluid_mass_ion = app->species[i].gr_twofluid_mass_ion;
         src_inp.gr_twofluid_charge_elc = app->species[i].gr_twofluid_charge_elc;
@@ -228,11 +231,12 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       src->non_ideal_vars[i] =
         mkarr(false, nadj[app->ndim - 1] * 10, src->non_ideal_local_ext.volume);
       struct gkyl_ten_moment_grad_closure_inp grad_closure_inp = { .grid = &app->grid,
-        .k0 = app->species[i].k0,
-        .cfl = app->cfl,
-        .comm = app->comm,
-        .update_range = &app->local,
-        .heat_flux_range = &src->non_ideal_local };
+                                                                   .k0 = app->species[i].k0,
+                                                                   .cfl = app->cfl,
+                                                                   .comm = app->comm,
+                                                                   .update_range = &app->local,
+                                                                   .heat_flux_range =
+                                                                     &src->non_ideal_local };
       src->grad_closure_slvr[i] = gkyl_ten_moment_grad_closure_new(&grad_closure_inp);
     }
   }
@@ -241,20 +245,23 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
   for (int i = 0; i < app->num_species; i++) {
     if (app->species[i].eqn_type == GKYL_EQN_TEN_MOMENT && app->species[i].has_nn_closure) {
       struct gkyl_ten_moment_nn_closure_inp nn_closure_inp = { .grid = &app->grid,
-        .k0 = app->species[i].k0,
-        .poly_order = app->species[i].poly_order,
-        .ann = app->species[i].ann };
+                                                               .k0 = app->species[i].k0,
+                                                               .poly_order =
+                                                                 app->species[i].poly_order,
+                                                               .ann = app->species[i].ann };
       src->nn_closure_slvr[i] = gkyl_ten_moment_nn_closure_new(nn_closure_inp);
     }
   }
 
   // check if braginskii terms are present
   if (app->has_braginskii) {
-    struct gkyl_moment_braginskii_inp brag_inp = { .grid = &app->grid,
+    struct gkyl_moment_braginskii_inp brag_inp = {
+      .grid = &app->grid,
       .nfluids = app->num_species,
       .epsilon0 = app->field.epsilon0,
       // Check for multiplicative collisionality factor, default is 1.0
-      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac };
+      .coll_fac = app->coll_fac == 0 ? 1.0 : app->coll_fac
+    };
     for (int i = 0; i < app->num_species; ++i) {
       // Braginskii coefficients depend on pressure and coefficient to obtain
       // pressure is different for different equation systems (gasGamma, vt, Tr(P))
@@ -266,10 +273,10 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
       }
       brag_inp.param[i] =
         (struct gkyl_moment_braginskii_data){ .type_eqn = app->species[i].eqn_type,
-          .type_brag = app->species[i].type_brag,
-          .charge = app->species[i].charge,
-          .mass = app->species[i].mass,
-          .p_fac = p_fac };
+                                              .type_brag = app->species[i].type_brag,
+                                              .charge = app->species[i].charge,
+                                              .mass = app->species[i].mass,
+                                              .p_fac = p_fac };
     }
     src->brag_slvr = gkyl_moment_braginskii_new(brag_inp);
   }
@@ -277,9 +284,8 @@ moment_coupling_init(const struct gkyl_moment_app *app, struct moment_coupling *
 
 // update sources: 'nstrang' is 0 for the first Strang step and 1 for
 // the second step
-struct gkyl_update_status
-moment_coupling_update(
-  gkyl_moment_app *app, struct moment_coupling *src, int nstrang, double tcurr, double dt)
+struct gkyl_update_status moment_coupling_update(gkyl_moment_app *app, struct moment_coupling *src,
+                                                 int nstrang, double tcurr, double dt)
 {
   int sidx[] = { 0, app->ndim };
   struct gkyl_array *fluids[GKYL_MAX_SPECIES];
@@ -294,8 +300,8 @@ moment_coupling_update(
     fluids[i] = app->species[i].f[sidx[nstrang]];
 
     if (app->species[i].app_accel_evolve) {
-      gkyl_fv_proj_advance(
-        app->species[i].app_accel_proj, tcurr, &app->local, app->species[i].app_accel);
+      gkyl_fv_proj_advance(app->species[i].app_accel_proj, tcurr, &app->local,
+                           app->species[i].app_accel);
     }
     app_accels[i] = app->species[i].app_accel;
 
@@ -303,8 +309,10 @@ moment_coupling_update(
       // Non-ideal variables are defined on an extended range with one additional "cell" in each direction.
       // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
       stat = gkyl_ten_moment_grad_closure_advance(src->grad_closure_slvr[i], &src->non_ideal_local,
-        &app->local, app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
-        src->non_ideal_cflrate[i], dt, src->non_ideal_vars[i], src->pr_rhs[i]);
+                                                  &app->local, app->species[i].f[sidx[nstrang]],
+                                                  app->field.f[sidx[nstrang]],
+                                                  src->non_ideal_cflrate[i], dt,
+                                                  src->non_ideal_vars[i], src->pr_rhs[i]);
 
       if (!stat.success)
         return (struct gkyl_update_status){ .success = false, .dt_suggested = stat.dt_suggested };
@@ -316,14 +324,16 @@ moment_coupling_update(
       // Non-ideal variables are defined on an extended range with one additional "cell" in each direction.
       // This additional cell accounts for the fact that non-ideal variables are stored at cell vertices.
       gkyl_ten_moment_nn_closure_advance(src->nn_closure_slvr[i], &src->non_ideal_local,
-        &app->local, app->species[i].f[sidx[nstrang]], app->field.f[sidx[nstrang]],
-        src->non_ideal_vars[i], src->pr_rhs[i]);
+                                         &app->local, app->species[i].f[sidx[nstrang]],
+                                         app->field.f[sidx[nstrang]], src->non_ideal_vars[i],
+                                         src->pr_rhs[i]);
     }
   }
 
   if (app->has_braginskii) {
     gkyl_moment_braginskii_advance(src->brag_slvr, src->non_ideal_local, app->local, fluids,
-      app->field.f[sidx[nstrang]], src->non_ideal_cflrate, src->non_ideal_vars, src->pr_rhs);
+                                   app->field.f[sidx[nstrang]], src->non_ideal_cflrate,
+                                   src->non_ideal_vars, src->pr_rhs);
   }
 
   if (app->field.ext_em_evolve) {
@@ -333,10 +343,10 @@ moment_coupling_update(
   if (app->field.app_current_evolve) {
     if (app->field.use_explicit_em_coupling) {
       gkyl_fv_proj_advance(app->field.app_current_proj, tcurr, &app->local, app->field.app_current);
-      gkyl_fv_proj_advance(
-        app->field.app_current_proj, tcurr + dt * 2, &app->local, app->field.app_current1);
-      gkyl_fv_proj_advance(
-        app->field.app_current_proj, tcurr + 2 * dt / 2.0, &app->local, app->field.app_current2);
+      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr + dt * 2, &app->local,
+                           app->field.app_current1);
+      gkyl_fv_proj_advance(app->field.app_current_proj, tcurr + 2 * dt / 2.0, &app->local,
+                           app->field.app_current2);
     } else {
       gkyl_fv_proj_advance(app->field.app_current_proj, tcurr, &app->local, app->field.app_current);
     }
@@ -349,9 +359,9 @@ moment_coupling_update(
 
   for (int i = 0; i < app->num_species; ++i) {
     if (app->species[i].proj_nT_source &&
-      !(app->species[i].nT_source_set_only_once && app->species[i].nT_source_is_set)) {
-      gkyl_fv_proj_advance(
-        app->species[i].proj_nT_source, tcurr, &app->local, app->species[i].nT_source);
+        !(app->species[i].nT_source_set_only_once && app->species[i].nT_source_is_set)) {
+      gkyl_fv_proj_advance(app->species[i].proj_nT_source, tcurr, &app->local,
+                           app->species[i].nT_source);
     }
     nT_sources[i] = app->species[i].nT_source;
     app->species[i].nT_source_is_set = true;
@@ -359,12 +369,14 @@ moment_coupling_update(
 
   if (app->field.use_explicit_em_coupling) {
     gkyl_moment_em_coupling_explicit_advance(src->slvr, tcurr, dt, &app->local, fluids, app_accels,
-      pr_rhs_const, app->field.f[sidx[nstrang]], app->field.app_current, app->field.app_current1,
-      app->field.app_current2, app->field.ext_em, nT_sources, app->field.app_current_proj, nstrang);
+                                             pr_rhs_const, app->field.f[sidx[nstrang]],
+                                             app->field.app_current, app->field.app_current1,
+                                             app->field.app_current2, app->field.ext_em, nT_sources,
+                                             app->field.app_current_proj, nstrang);
   } else {
     gkyl_moment_em_coupling_implicit_advance(src->slvr, tcurr, dt, &app->local, fluids, app_accels,
-      pr_rhs_const, app->field.f[sidx[nstrang]], app->field.app_current, app->field.ext_em,
-      nT_sources);
+                                             pr_rhs_const, app->field.f[sidx[nstrang]],
+                                             app->field.app_current, app->field.ext_em, nT_sources);
   }
 
   for (int i = 0; i < app->num_species; ++i) {
@@ -377,8 +389,7 @@ moment_coupling_update(
 }
 
 // free sources
-void
-moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src)
+void moment_coupling_release(const struct gkyl_moment_app *app, const struct moment_coupling *src)
 {
   gkyl_moment_em_coupling_release(src->slvr);
   for (int i = 0; i < app->num_species; ++i) {

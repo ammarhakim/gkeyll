@@ -18,8 +18,7 @@
 #include <gkyl_calc_bmag.h>
 #include <assert.h>
 
-struct gk_geometry *
-gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *up = gkyl_calloc(1, sizeof(struct gk_geometry));
   up->geometry_id = geometry_inp->geometry_id;
@@ -83,8 +82,8 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_tok_geo_calc_interior(up, &up->nrange_int, up->dzc, geo, &ginp, geometry_inp->position_map);
   // Calculate bmag and mapc2p in cylindrical coords at surfaces.
   for (int dir = 0; dir < up->grid.ndim; dir++)
-    gkyl_tok_geo_calc_surface(
-      up, dir, &up->nrange_surf[dir], up->dzc, geo, &ginp, geometry_inp->position_map);
+    gkyl_tok_geo_calc_surface(up, dir, &up->nrange_surf[dir], up->dzc, geo, &ginp,
+                              geometry_inp->position_map);
 
   // Now calculate the metrics at interior nodes.
   struct gkyl_calc_metric *mcalc = gkyl_calc_metric_new(
@@ -97,9 +96,10 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   gkyl_rz_calc_derived_geo *jcalculator =
     gkyl_rz_calc_derived_geo_new(&up->basis, &up->grid, 1, false);
   gkyl_rz_calc_derived_geo_advance(jcalculator, &up->local, up->geo_int.g_ij, up->geo_int.bmag,
-    up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij, up->geo_int.b_i,
-    up->geo_int.cmag, up->geo_int.jacobtot, up->geo_int.jacobtot_inv, up->geo_int.gxxj,
-    up->geo_int.gxyj, up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
+                                   up->geo_int.jacobgeo, up->geo_int.jacobgeo_inv, up->geo_int.gij,
+                                   up->geo_int.b_i, up->geo_int.cmag, up->geo_int.jacobtot,
+                                   up->geo_int.jacobtot_inv, up->geo_int.gxxj, up->geo_int.gxyj,
+                                   up->geo_int.gyyj, up->geo_int.gxzj, up->geo_int.eps2);
   gkyl_rz_calc_derived_geo_release(jcalculator);
   // Calculate metrics/derived geo quantities at surface.
   for (int dir = 0; dir < up->grid.ndim; dir++) {
@@ -134,8 +134,7 @@ gk_geometry_tok_init(struct gkyl_gk_geometry_inp *geometry_inp)
   return up;
 }
 
-struct gk_geometry *
-gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
+struct gk_geometry *gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
 {
   struct gk_geometry *gk_geom_3d;
   struct gk_geometry *gk_geom;
@@ -145,25 +144,25 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     switch (geometry_inp->tok_grid_info.ftype) {
     case GKYL_GEOMETRY_TOKAMAK_DN_SOL_OUT_MID:
     case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_MID:
-      len = geometry_inp->tok_grid_info.half_domain
-        ? 2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2])
-        : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+      len = geometry_inp->tok_grid_info.half_domain ?
+              2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
+              geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
       zcut = len / 2.0;
       zcenter = 0.0;
       break;
     case GKYL_GEOMETRY_TOKAMAK_CORE_R:
     case GKYL_GEOMETRY_TOKAMAK_CORE:
     case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_MID:
-      len = geometry_inp->tok_grid_info.half_domain
-        ? 2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2])
-        : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+      len = geometry_inp->tok_grid_info.half_domain ?
+              2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
+              geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
       zcenter = geometry_inp->geo_grid.lower[2] + len / 2.0;
       zcut = len / 2.0;
       break;
     case GKYL_GEOMETRY_TOKAMAK_CORE_L:
-      len = geometry_inp->tok_grid_info.half_domain
-        ? 2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2])
-        : geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
+      len = geometry_inp->tok_grid_info.half_domain ?
+              2.0 * (geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2]) :
+              geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
       zcenter = geometry_inp->geo_grid.upper[2] - len / 2.0;
       zcut = len / 2.0;
       break;
@@ -173,9 +172,9 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_UP:
     case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_LO:
       len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-      zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor
-        ? geometry_inp->geo_grid.lower[2] + len / 2.0
-        : geometry_inp->geo_grid.lower[2];
+      zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
+                  geometry_inp->geo_grid.lower[2] + len / 2.0 :
+                  geometry_inp->geo_grid.lower[2];
       zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
       break;
     case GKYL_GEOMETRY_TOKAMAK_PF_LO_L:
@@ -184,9 +183,9 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     case GKYL_GEOMETRY_TOKAMAK_DN_SOL_IN_LO:
     case GKYL_GEOMETRY_TOKAMAK_LSN_SOL_UP:
       len = geometry_inp->geo_grid.upper[2] - geometry_inp->geo_grid.lower[2];
-      zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor
-        ? geometry_inp->geo_grid.upper[2] - len / 2.0
-        : geometry_inp->geo_grid.upper[2];
+      zcenter = geometry_inp->position_map->xpt_ctx->compress_divertor ?
+                  geometry_inp->geo_grid.upper[2] - len / 2.0 :
+                  geometry_inp->geo_grid.upper[2];
       zcut = geometry_inp->position_map->xpt_ctx->compress_divertor ? len / 2.0 : len;
       break;
     default:
@@ -199,7 +198,7 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     gkyl_efit_release(efit);
     gkyl_position_map_set_compression(geometry_inp->position_map, zcut, zcenter, w, psisep);
   } else if (geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_POLYNOMIAL ||
-    geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
+             geometry_inp->position_map->id == GKYL_PMAP_CONSTANT_DB_NUMERIC) {
     // First construct the uniform 3d geometry
     gk_geom_3d = gk_geometry_tok_init(geometry_inp);
     // The array mc2nu is computed using the uniform geometry, so we need to deflate it
@@ -209,8 +208,8 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
     else
       gk_geom = gkyl_gk_geometry_acquire(gk_geom_3d);
 
-    gkyl_position_map_set_bmag(
-      geometry_inp->position_map, geometry_inp->comm, gk_geom->geo_int.bmag);
+    gkyl_position_map_set_bmag(geometry_inp->position_map, geometry_inp->comm,
+                               gk_geom->geo_int.bmag);
 
     gkyl_gk_geometry_release(gk_geom_3d); // release temporary 3d geometry
     gkyl_gk_geometry_release(gk_geom); // release 3d geometry
@@ -220,9 +219,9 @@ gkyl_gk_geometry_tok_new(struct gkyl_gk_geometry_inp *geometry_inp)
   return gk_geom_3d;
 }
 
-void
-gkyl_gk_geometry_tok_set_grid_extents(struct gkyl_efit_inp efit_info,
-  struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo, double *theta_up)
+void gkyl_gk_geometry_tok_set_grid_extents(struct gkyl_efit_inp efit_info,
+                                           struct gkyl_tok_geo_grid_inp grid_info, double *theta_lo,
+                                           double *theta_up)
 {
   struct gkyl_tok_geo *geo = gkyl_tok_geo_new(&efit_info, &grid_info);
   gkyl_tok_geo_set_extent(&grid_info, geo, theta_lo, theta_up);

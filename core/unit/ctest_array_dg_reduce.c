@@ -9,8 +9,7 @@
 #include <gkyl_util.h>
 #include <time.h>
 
-void
-test_reduce_dg(bool use_gpu)
+void test_reduce_dg(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
@@ -39,11 +38,11 @@ test_reduce_dg(bool use_gpu)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  struct gkyl_array *arr = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume)
-    : gkyl_array_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume);
-  struct gkyl_array *arr_ho =
-    use_gpu ? gkyl_array_new(GKYL_DOUBLE, arr->ncomp, arr->size) : gkyl_array_acquire(arr);
+  struct gkyl_array *arr =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume) :
+              gkyl_array_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume);
+  struct gkyl_array *arr_ho = use_gpu ? gkyl_array_new(GKYL_DOUBLE, arr->ncomp, arr->size) :
+                                        gkyl_array_acquire(arr);
 
   // Load 1D Gauss-Legendre nodes.
   int num_quad = poly_order + 1;
@@ -166,8 +165,7 @@ test_reduce_dg(bool use_gpu)
   }
 }
 
-void
-test_reduce_dg_range(bool use_gpu)
+void test_reduce_dg_range(bool use_gpu)
 {
   int poly_order = 1;
   int ncomp = 3;
@@ -196,11 +194,11 @@ test_reduce_dg_range(bool use_gpu)
   struct gkyl_range local, local_ext;
   gkyl_create_grid_ranges(&grid, ghost, &local_ext, &local);
 
-  struct gkyl_array *arr = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume)
-    : gkyl_array_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume);
-  struct gkyl_array *arr_ho =
-    use_gpu ? gkyl_array_new(GKYL_DOUBLE, arr->ncomp, arr->size) : gkyl_array_acquire(arr);
+  struct gkyl_array *arr =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume) :
+              gkyl_array_new(GKYL_DOUBLE, ncomp * basis_ho.num_basis, local_ext.volume);
+  struct gkyl_array *arr_ho = use_gpu ? gkyl_array_new(GKYL_DOUBLE, arr->ncomp, arr->size) :
+                                        gkyl_array_acquire(arr);
 
   // Load 1D Gauss-Legendre nodes.
   int num_quad = poly_order + 1;
@@ -321,14 +319,12 @@ test_reduce_dg_range(bool use_gpu)
   }
 }
 
-void
-test_reduce_dg_ho()
+void test_reduce_dg_ho()
 {
   test_reduce_dg(false);
 }
 
-void
-test_reduce_dg_range_ho()
+void test_reduce_dg_range_ho()
 {
   test_reduce_dg_range(false);
 }
@@ -336,14 +332,12 @@ test_reduce_dg_range_ho()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_reduce_dg_dev()
+void test_reduce_dg_dev()
 {
   test_reduce_dg(true);
 }
 
-void
-test_reduce_dg_range_dev()
+void test_reduce_dg_range_dev()
 {
   test_reduce_dg_range(true);
 }
@@ -351,9 +345,9 @@ test_reduce_dg_range_dev()
 #endif
 
 TEST_LIST = { { "array_reduce_dg_ho", test_reduce_dg_ho },
-  { "array_reduce_dg_range_ho", test_reduce_dg_range_ho },
+              { "array_reduce_dg_range_ho", test_reduce_dg_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "array_reduce_dg_dev", test_reduce_dg_dev },
-  { "array_reduce_dg_range_dev", test_reduce_dg_range_dev },
+              { "array_reduce_dg_dev", test_reduce_dg_dev },
+              { "array_reduce_dg_range_dev", test_reduce_dg_range_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

@@ -3,8 +3,7 @@
 #include <gkyl_block_geom.h>
 #include <gkyl_multib_comm_conn.h>
 
-static struct gkyl_block_geom *
-create_L_domain(const int *cuts)
+static struct gkyl_block_geom *create_L_domain(const int *cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -77,8 +76,7 @@ create_L_domain(const int *cuts)
   return bgeom;
 }
 
-static void
-test_multib_comm_conn_0_ho(void)
+static void test_multib_comm_conn_0_ho(void)
 {
   struct gkyl_comm_conn cclist[] = { { .rank = 1 }, { .rank = 2 } };
 
@@ -89,8 +87,7 @@ test_multib_comm_conn_0_ho(void)
   gkyl_multib_comm_conn_release(mbcc);
 }
 
-static void
-test_multib_comm_conn_L_domain_send_c1_ho(void)
+static void test_multib_comm_conn_L_domain_send_c1_ho(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){ 1, 1 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -154,8 +151,7 @@ test_multib_comm_conn_L_domain_send_c1_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void
-test_multib_comm_conn_L_domain_send_c3_ho(void)
+static void test_multib_comm_conn_L_domain_send_c3_ho(void)
 {
   // THIS IS ONLY A PARTIAL TEST: checks send volume is correct and
   // total sends are correct
@@ -210,8 +206,7 @@ test_multib_comm_conn_L_domain_send_c3_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void
-test_multib_comm_conn_L_domain_recv_c1_ho(void)
+static void test_multib_comm_conn_L_domain_recv_c1_ho(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){ 1, 1 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -275,8 +270,7 @@ test_multib_comm_conn_L_domain_recv_c1_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void
-test_multib_comm_conn_L_domain_recv_c3_ho(void)
+static void test_multib_comm_conn_L_domain_recv_c3_ho(void)
 {
   // THIS IS ONLY A PARTIAL TEST: checks recv volume is correct and
   // total recvs are correct
@@ -331,8 +325,7 @@ test_multib_comm_conn_L_domain_recv_c3_ho(void)
   gkyl_block_geom_release(geom);
 }
 
-static void
-test_L_domain_sync_c3(void)
+static void test_L_domain_sync_c3(void)
 {
   struct gkyl_block_geom *geom = create_L_domain((int[]){ 3, 3 });
   struct gkyl_block_topo *topo = gkyl_block_geom_topo(geom);
@@ -375,9 +368,11 @@ test_L_domain_sync_c3(void)
   gkyl_block_geom_release(geom);
 }
 
-TEST_LIST = { { "test_multib_comm_conn_0_ho", test_multib_comm_conn_0_ho },
+TEST_LIST = {
+  { "test_multib_comm_conn_0_ho", test_multib_comm_conn_0_ho },
   { "test_multib_comm_conn_L_domain_send_c1_ho", test_multib_comm_conn_L_domain_send_c1_ho },
   { "test_multib_comm_conn_L_domain_send_c3_ho", test_multib_comm_conn_L_domain_send_c3_ho },
   { "test_multib_comm_conn_L_domain_recv_c1_ho", test_multib_comm_conn_L_domain_recv_c1_ho },
   { "test_multib_comm_conn_L_domain_recv_c3_ho", test_multib_comm_conn_L_domain_recv_c3_ho },
-  { NULL, NULL } };
+  { NULL, NULL }
+};

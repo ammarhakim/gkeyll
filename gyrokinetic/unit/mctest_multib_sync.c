@@ -17,8 +17,7 @@
 #endif
 #endif
 
-struct gkyl_comm *
-comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
+struct gkyl_comm *comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
   // Construct communicator for use in app.
   struct gkyl_comm *comm = 0;
@@ -43,8 +42,7 @@ comm_new(bool use_mpi, bool use_gpu, FILE *iostream)
   return comm;
 }
 
-static struct gkyl_block_geom *
-create_L_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *create_L_domain_block_geom(int **cuts)
 {
   // 2D with 3 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
@@ -120,8 +118,7 @@ create_L_domain_block_geom(int **cuts)
   return bgeom;
 }
 
-static struct gkyl_block_geom *
-create_cyclic_domain_block_geom(int **cuts)
+static struct gkyl_block_geom *create_cyclic_domain_block_geom(int **cuts)
 {
   // 2D with 2 blocks
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 2);
@@ -177,8 +174,7 @@ create_cyclic_domain_block_geom(int **cuts)
   return bgeom;
 }
 
-static inline int
-prod_of_elements_int(int ndim, int *arr)
+static inline int prod_of_elements_int(int ndim, int *arr)
 {
   int pr = 1;
   for (int d = 0; d < ndim; ++d)
@@ -186,8 +182,7 @@ prod_of_elements_int(int ndim, int *arr)
   return pr;
 }
 
-static bool
-has_int(int n, int val, const int *lst)
+static bool has_int(int n, int val, const int *lst)
 {
   for (int i = 0; i < n; ++i)
     if (val == lst[i])
@@ -208,8 +203,7 @@ struct app_L {
 };
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu)
@@ -219,8 +213,7 @@ mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-static void
-test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+static void test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm *comm = comm_new(use_mpi, use_gpu, stderr);
@@ -308,16 +301,16 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 
     for (int dir = 0; dir < ndim; ++dir) {
       gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE,
-        &app->local_ext, nghost);
+                             &app->local_ext, nghost);
       gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE,
-        &app->local_ext, nghost);
+                             &app->local_ext, nghost);
     }
 
     gkyl_cart_modal_serendip(&app->basis, ndim, poly_order);
 
     app->f = mkarr(use_gpu, app->basis.num_basis, app->local_ext.volume);
-    app->f_ho = use_gpu ? mkarr(false, app->basis.num_basis, app->local_ext.volume)
-                        : gkyl_array_acquire(app->f);
+    app->f_ho = use_gpu ? mkarr(false, app->basis.num_basis, app->local_ext.volume) :
+                          gkyl_array_acquire(app->f);
 
     // Put some value in f that is distinct in every rank and block.
     //    for (int k=0; k<app->basis.num_basis; k++)
@@ -353,22 +346,24 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
     for (int ns = 0; ns < mbcc_recv[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
-        mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
+                          mbcc_recv[bI]->comm_conn[ns].range.lower,
+                          mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
-        mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
+                          mbcc_send[bI]->comm_conn[ns].range.lower,
+                          mbcc_send[bI]->comm_conn[ns].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -381,8 +376,8 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
   }
 
   // Sync blocks.
-  gkyl_multib_comm_conn_array_transfer(
-    comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, fs, fs);
+  gkyl_multib_comm_conn_array_transfer(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv,
+                                       fs, fs);
 
   // Check results.
   for (int bI = 0; bI < num_blocks_local; ++bI) {
@@ -404,7 +399,7 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
         int k = 0;
         TEST_CHECK(gkyl_compare(ref, f_c[k], 1e-10));
         TEST_MSG("bid:%d | Expected: %.13e | Got: %.13e | Cell:%d,%d\n", bid, ref, f_c[k],
-          iter.idx[0], iter.idx[1]);
+                 iter.idx[0], iter.idx[1]);
         //        }
       }
     }
@@ -443,8 +438,7 @@ test_L_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
   gkyl_comm_release(comm);
 }
 
-static void
-test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+static void test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm *comm = comm_new(use_mpi, use_gpu, stderr);
@@ -532,16 +526,16 @@ test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 
     for (int dir = 0; dir < ndim; ++dir) {
       gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE,
-        &app->local_ext, nghost);
+                             &app->local_ext, nghost);
       gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE,
-        &app->local_ext, nghost);
+                             &app->local_ext, nghost);
     }
 
     gkyl_cart_modal_serendip(&app->basis, ndim, poly_order);
 
     app->f = mkarr(use_gpu, app->basis.num_basis, app->local_ext.volume);
-    app->f_ho = use_gpu ? mkarr(false, app->basis.num_basis, app->local_ext.volume)
-                        : gkyl_array_acquire(app->f);
+    app->f_ho = use_gpu ? mkarr(false, app->basis.num_basis, app->local_ext.volume) :
+                          gkyl_array_acquire(app->f);
 
     // Put some value in f that is distinct in every rank and block.
     //    for (int k=0; k<app->basis.num_basis; k++)
@@ -578,22 +572,24 @@ test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
     for (int ns = 0; ns < mbcc_recv[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
-        mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
+                          mbcc_recv[bI]->comm_conn[ns].range.lower,
+                          mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
-        mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
+                          mbcc_send[bI]->comm_conn[ns].range.lower,
+                          mbcc_send[bI]->comm_conn[ns].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -606,8 +602,8 @@ test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
   }
 
   // Sync blocks.
-  gkyl_multib_comm_conn_array_transfer(
-    comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, fs, fs);
+  gkyl_multib_comm_conn_array_transfer(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv,
+                                       fs, fs);
 
   // Check results.
   for (int bI = 0; bI < num_blocks_local; ++bI) {
@@ -629,7 +625,7 @@ test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
         int k = 0;
         TEST_CHECK(gkyl_compare(ref, f_c[k], 1e-10));
         TEST_MSG("bid:%d | Expected: %.13e | Got: %.13e | Cell:%d,%d\n", bid, ref, f_c[k],
-          iter.idx[0], iter.idx[1]);
+                 iter.idx[0], iter.idx[1]);
         //        }
       }
     }
@@ -668,8 +664,7 @@ test_cyclic_domain_sync(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
   gkyl_comm_release(comm);
 }
 
-static void
-test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
+static void test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_order)
 {
   // Create world comm.
   struct gkyl_comm *comm = comm_new(use_mpi, use_gpu, stderr);
@@ -757,16 +752,16 @@ test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_ord
 
     for (int dir = 0; dir < ndim; ++dir) {
       gkyl_skin_ghost_ranges(&app->lower_skin[dir], &app->lower_ghost[dir], dir, GKYL_LOWER_EDGE,
-        &app->local_ext, nghost);
+                             &app->local_ext, nghost);
       gkyl_skin_ghost_ranges(&app->upper_skin[dir], &app->upper_ghost[dir], dir, GKYL_UPPER_EDGE,
-        &app->local_ext, nghost);
+                             &app->local_ext, nghost);
     }
 
     gkyl_cart_modal_serendip(&app->basis, ndim, poly_order);
 
     app->f = mkarr(use_gpu, app->basis.num_basis, app->local_ext.volume);
-    app->f_ho = use_gpu ? mkarr(false, app->basis.num_basis, app->local_ext.volume)
-                        : gkyl_array_acquire(app->f);
+    app->f_ho = use_gpu ? mkarr(false, app->basis.num_basis, app->local_ext.volume) :
+                          gkyl_array_acquire(app->f);
 
     // Put some value in f that is distinct in every rank and block.
     //    for (int k=0; k<app->basis.num_basis; k++)
@@ -817,22 +812,24 @@ test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_ord
     for (int ns = 0; ns < mbcc_recv[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_recv[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_recv[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_recv[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_recv[bI]->comm_conn[ns].range, &app->local_ext,
-        mbcc_recv[bI]->comm_conn[ns].range.lower, mbcc_recv[bI]->comm_conn[ns].range.upper);
+                          mbcc_recv[bI]->comm_conn[ns].range.lower,
+                          mbcc_recv[bI]->comm_conn[ns].range.upper);
     }
     for (int ns = 0; ns < mbcc_send[bI]->num_comm_conn; ++ns) {
       // Translate the "rank" in gkyl_multib_comm_conn (right now it is a rank index).
       int rankIdx = mbcc_send[bI]->comm_conn[ns].rank;
-      gkyl_rrobin_decomp_getranks(
-        round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id, rank_list);
+      gkyl_rrobin_decomp_getranks(round_robin_decomp, mbcc_send[bI]->comm_conn[ns].block_id,
+                                  rank_list);
       mbcc_send[bI]->comm_conn[ns].rank = rank_list[rankIdx];
       // Make range a sub range.
       gkyl_sub_range_init(&mbcc_send[bI]->comm_conn[ns].range, &app->local_ext,
-        mbcc_send[bI]->comm_conn[ns].range.lower, mbcc_send[bI]->comm_conn[ns].range.upper);
+                          mbcc_send[bI]->comm_conn[ns].range.lower,
+                          mbcc_send[bI]->comm_conn[ns].range.upper);
     }
 
     // Sort connections according to rank and block ID.
@@ -845,8 +842,8 @@ test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_ord
   }
 
   // Sync blocks.
-  gkyl_multib_comm_conn_array_transfer(
-    comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv, fs, fs);
+  gkyl_multib_comm_conn_array_transfer(comm, num_blocks_local, local_blocks, mbcc_send, mbcc_recv,
+                                       fs, fs);
 
   // Check results.
   for (int bI = 0; bI < num_blocks_local; ++bI) {
@@ -875,7 +872,7 @@ test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_ord
         int k = 0;
         TEST_CHECK(gkyl_compare(ref, f_c[k], 1e-10));
         TEST_MSG("bid:%d | Expected: %.13e | Got: %.13e | Cell:%d,%d\n", bid, ref, f_c[k],
-          iter.idx[0], iter.idx[1]);
+                 iter.idx[0], iter.idx[1]);
         //        }
       }
     }
@@ -914,8 +911,7 @@ test_cyclic_domain_sync_ser(bool use_gpu, bool use_mpi, int **cuts, int poly_ord
   gkyl_comm_release(comm);
 }
 
-int **
-cuts_array_new(int num_blocks, int ndim, int *cuts_all)
+int **cuts_array_new(int num_blocks, int ndim, int *cuts_all)
 {
   // Create an array of cuts from an array with all the cuts listed flat.
   int **cuts_arr = gkyl_malloc(num_blocks * sizeof(int *));
@@ -929,8 +925,7 @@ cuts_array_new(int num_blocks, int ndim, int *cuts_all)
   return cuts_arr;
 }
 
-void
-cuts_array_release(int num_blocks, int **cuts_arr)
+void cuts_array_release(int num_blocks, int **cuts_arr)
 {
   // Release the array of cuts arrays.
   for (int i = 0; i < num_blocks; i++)
@@ -938,8 +933,7 @@ cuts_array_release(int num_blocks, int **cuts_arr)
   gkyl_free(cuts_arr);
 }
 
-static void
-test_L_domain_sync_ho(void)
+static void test_L_domain_sync_ho(void)
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -963,8 +957,7 @@ test_L_domain_sync_ho(void)
   cuts_array_release(num_blocks, cuts1);
 }
 
-static void
-test_cyclic_domain_sync_ho(void)
+static void test_cyclic_domain_sync_ho(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
@@ -978,8 +971,7 @@ test_cyclic_domain_sync_ho(void)
   cuts_array_release(num_blocks, cuts1);
 }
 
-static void
-test_cyclic_domain_sync_ser_ho(void)
+static void test_cyclic_domain_sync_ser_ho(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
@@ -997,8 +989,7 @@ test_cyclic_domain_sync_ser_ho(void)
 }
 
 #ifdef GKYL_HAVE_CUDA
-static void
-test_L_domain_sync_dev(void)
+static void test_L_domain_sync_dev(void)
 {
   int num_blocks = 3; // L-shaped example.
   int ndim = 2;
@@ -1015,8 +1006,7 @@ test_L_domain_sync_dev(void)
   cuts_array_release(num_blocks, cuts0);
 }
 
-static void
-test_cyclic_domain_sync_dev(void)
+static void test_cyclic_domain_sync_dev(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
@@ -1032,8 +1022,7 @@ test_cyclic_domain_sync_dev(void)
   cuts_array_release(num_blocks, cuts0);
 }
 
-static void
-test_cyclic_domain_sync_ser_dev(void)
+static void test_cyclic_domain_sync_ser_dev(void)
 {
   int num_blocks = 2; // cyclic-shaped example.
   int ndim = 2;
@@ -1055,11 +1044,11 @@ test_cyclic_domain_sync_ser_dev(void)
 #endif
 
 TEST_LIST = { { "test_L_domain_sync_ho", test_L_domain_sync_ho },
-  { "test_cyclic_domain_sync_ho", test_cyclic_domain_sync_ho },
-  { "test_cyclic_domain_sync_ser_ho", test_cyclic_domain_sync_ser_ho },
+              { "test_cyclic_domain_sync_ho", test_cyclic_domain_sync_ho },
+              { "test_cyclic_domain_sync_ser_ho", test_cyclic_domain_sync_ser_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_L_domain_sync_dev", test_L_domain_sync_dev },
-  { "test_cyclic_domain_sync_dev", test_cyclic_domain_sync_dev },
-  { "test_cyclic_domain_sync_ser_dev", test_cyclic_domain_sync_ser_dev },
+              { "test_L_domain_sync_dev", test_L_domain_sync_dev },
+              { "test_cyclic_domain_sync_dev", test_cyclic_domain_sync_dev },
+              { "test_cyclic_domain_sync_ser_dev", test_cyclic_domain_sync_ser_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

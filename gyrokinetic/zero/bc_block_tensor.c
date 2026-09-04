@@ -3,8 +3,7 @@
 #include <gkyl_alloc.h>
 #include <gkyl_util.h>
 
-static inline double
-dot_product(const double *v1, const double *v2)
+static inline double dot_product(const double *v1, const double *v2)
 {
   double out = 0.0;
   for (int i = 0; i < 3; i++)
@@ -12,9 +11,10 @@ dot_product(const double *v1, const double *v2)
   return out;
 }
 
-struct bc_block_tensor *
-gkyl_bc_block_tensor_new(const struct gkyl_rect_grid *grid, const struct gkyl_range *range,
-  const struct gkyl_range *range_ext, const struct gkyl_basis *basis, bool use_gpu)
+struct bc_block_tensor *gkyl_bc_block_tensor_new(const struct gkyl_rect_grid *grid,
+                                                 const struct gkyl_range *range,
+                                                 const struct gkyl_range *range_ext,
+                                                 const struct gkyl_basis *basis, bool use_gpu)
 {
   struct bc_block_tensor *up = gkyl_malloc(sizeof(*up));
   up->basis = *basis;
@@ -33,9 +33,8 @@ gkyl_bc_block_tensor_new(const struct gkyl_rect_grid *grid, const struct gkyl_ra
   return up;
 }
 
-void
-calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej,
-  const double *e_i, double *tj_i)
+void calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, const double *ej,
+                 const double *e_i, double *tj_i)
 {
   // First evaluate at all the quadrature nodes
   double ej_surf[up->num_surf_nodes][9];
@@ -79,10 +78,9 @@ calc_tensor(struct bc_block_tensor *up, int dir, int edge1, int edge2, const dou
   }
 }
 
-void
-gkyl_bc_block_tensor_advance(struct bc_block_tensor *up, int dir, int edge1, int edge2,
-  struct gkyl_array *dxdz1, struct gkyl_array *dzdx2, struct gkyl_range *range1,
-  struct gkyl_range *range2)
+void gkyl_bc_block_tensor_advance(struct bc_block_tensor *up, int dir, int edge1, int edge2,
+                                  struct gkyl_array *dxdz1, struct gkyl_array *dzdx2,
+                                  struct gkyl_range *range1, struct gkyl_range *range2)
 {
   // Need to loop along only the directions != dir
   // For block 1, the index in dir will be min/max based on edge1
@@ -121,8 +119,7 @@ gkyl_bc_block_tensor_advance(struct bc_block_tensor *up, int dir, int edge1, int
     calc_tensor(up, dir, edge1, edge2, ej, e_i, tj_i);
   }
 }
-void
-gkyl_bc_block_tensor_release(struct bc_block_tensor *up)
+void gkyl_bc_block_tensor_release(struct bc_block_tensor *up)
 {
   gkyl_array_release(up->tensor);
   gkyl_free(up);

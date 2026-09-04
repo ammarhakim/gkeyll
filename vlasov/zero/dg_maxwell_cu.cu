@@ -11,8 +11,9 @@ extern "C" {
 
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-__global__ void static dg_maxwell_set_cu_dev_ptrs(
-  struct dg_maxwell *maxwell, enum gkyl_basis_type b_type, int cdim, int poly_order)
+__global__ void static dg_maxwell_set_cu_dev_ptrs(struct dg_maxwell *maxwell,
+                                                  enum gkyl_basis_type b_type, int cdim,
+                                                  int poly_order)
 {
   const gkyl_dg_maxwell_vol_kern_list *vol_kernels;
   const gkyl_dg_maxwell_surf_kern_list *surf_x_kernels, *surf_y_kernels, *surf_z_kernels;
@@ -51,9 +52,9 @@ __global__ void static dg_maxwell_set_cu_dev_ptrs(
     maxwell->surf[2] = CK(surf_z_kernels, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis *cbasis, double lightSpeed,
-  double elcErrorSpeedFactor, double mgnErrorSpeedFactor)
+struct gkyl_dg_eqn *gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis *cbasis, double lightSpeed,
+                                               double elcErrorSpeedFactor,
+                                               double mgnErrorSpeedFactor)
 {
   struct dg_maxwell *maxwell = (struct dg_maxwell *)gkyl_malloc(sizeof(struct dg_maxwell));
 
@@ -70,8 +71,8 @@ gkyl_dg_maxwell_cu_dev_new(const struct gkyl_basis *cbasis, double lightSpeed,
   // copy the host struct to device struct
   struct dg_maxwell *maxwell_cu = (struct dg_maxwell *)gkyl_cu_malloc(sizeof(struct dg_maxwell));
   gkyl_cu_memcpy(maxwell_cu, maxwell, sizeof(struct dg_maxwell), GKYL_CU_MEMCPY_H2D);
-  dg_maxwell_set_cu_dev_ptrs<<<1, 1>>>(
-    maxwell_cu, cbasis->b_type, cbasis->ndim, cbasis->poly_order);
+  dg_maxwell_set_cu_dev_ptrs<<<1, 1> > >(maxwell_cu, cbasis->b_type, cbasis->ndim,
+                                         cbasis->poly_order);
 
   // set parent on_dev pointer
   maxwell->eqn.on_dev = &maxwell_cu->eqn;

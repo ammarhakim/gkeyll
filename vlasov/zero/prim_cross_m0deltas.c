@@ -5,9 +5,9 @@
 #include <gkyl_array_ops_priv.h>
 #include <gkyl_alloc.h>
 
-gkyl_prim_cross_m0deltas *
-gkyl_prim_cross_m0deltas_new(bool normNu, const struct gkyl_basis *basis,
-  const struct gkyl_range *range, double betap1, bool use_gpu)
+gkyl_prim_cross_m0deltas *gkyl_prim_cross_m0deltas_new(bool normNu, const struct gkyl_basis *basis,
+                                                       const struct gkyl_range *range,
+                                                       double betap1, bool use_gpu)
 {
   gkyl_prim_cross_m0deltas *up = gkyl_malloc(sizeof(gkyl_prim_cross_m0deltas));
 
@@ -21,21 +21,22 @@ gkyl_prim_cross_m0deltas_new(bool normNu, const struct gkyl_basis *basis,
   up->use_gpu = use_gpu;
 
   // Preallocate memory for the weak division.
-  up->mem = use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(range->volume, basis->num_basis)
-                    : gkyl_dg_bin_op_mem_new(range->volume, basis->num_basis);
+  up->mem = use_gpu ? gkyl_dg_bin_op_mem_cu_dev_new(range->volume, basis->num_basis) :
+                      gkyl_dg_bin_op_mem_new(range->volume, basis->num_basis);
 
   return up;
 }
 
-void
-gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, double massself,
-  const struct gkyl_array *m0self, const struct gkyl_array *nuself, double massother,
-  const struct gkyl_array *m0other, const struct gkyl_array *nuother, struct gkyl_array *out)
+void gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, double massself,
+                                      const struct gkyl_array *m0self,
+                                      const struct gkyl_array *nuself, double massother,
+                                      const struct gkyl_array *m0other,
+                                      const struct gkyl_array *nuother, struct gkyl_array *out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_prim_cross_m0deltas_advance_cu(
-      up, massself, m0self, nuself, massother, m0other, nuother, out);
+    return gkyl_prim_cross_m0deltas_advance_cu(up, massself, m0self, nuself, massother, m0other,
+                                               nuother, out);
 #endif
 
   int num_basis = up->basis->num_basis;
@@ -118,8 +119,7 @@ gkyl_prim_cross_m0deltas_advance(gkyl_prim_cross_m0deltas *up, double massself,
   }
 }
 
-void
-gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas *up)
+void gkyl_prim_cross_m0deltas_release(gkyl_prim_cross_m0deltas *up)
 {
   gkyl_dg_bin_op_mem_release(up->mem);
   gkyl_free(up);

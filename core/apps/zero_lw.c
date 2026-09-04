@@ -21,8 +21,7 @@
 
 #include <string.h>
 
-struct gkyl_tool_args *
-gkyl_tool_args_new(lua_State *L)
+struct gkyl_tool_args *gkyl_tool_args_new(lua_State *L)
 {
   struct gkyl_tool_args *args = gkyl_malloc(sizeof(*args));
 
@@ -45,8 +44,7 @@ gkyl_tool_args_new(lua_State *L)
   return args;
 }
 
-void
-gkyl_tool_args_release(struct gkyl_tool_args *args)
+void gkyl_tool_args_release(struct gkyl_tool_args *args)
 {
   for (int i = 0; i < args->argc; ++i)
     gkyl_free(args->argv[i]);
@@ -67,8 +65,7 @@ struct rect_decomp_lw {
 };
 
 // G0.RectDecomp.new { cells = { 100, 100}, cuts = { 2, 2 } }
-static int
-rect_decomp_lw_new(lua_State *L)
+static int rect_decomp_lw_new(lua_State *L)
 {
   struct rect_decomp_lw *rd_lw = gkyl_malloc(sizeof(*rd_lw));
 
@@ -102,8 +99,7 @@ rect_decomp_lw_new(lua_State *L)
 }
 
 // Clean up memory allocated for decomp
-static int
-rect_decomp_lw_gc(lua_State *L)
+static int rect_decomp_lw_gc(lua_State *L)
 {
   struct rect_decomp_lw **l_rd_lw = GKYL_CHECK_UDATA(L, RECT_DECOMP_METATABLE_NM);
   struct rect_decomp_lw *rd_lw = *l_rd_lw;
@@ -120,8 +116,7 @@ static struct luaL_Reg rect_decomp_ctor[] = { { "new", rect_decomp_lw_new }, { 0
 // rect_decomp methods
 static struct luaL_Reg rect_decomp_funcs[] = { { 0, 0 } };
 
-static void
-rect_decomp_openlibs(lua_State *L)
+static void rect_decomp_openlibs(lua_State *L)
 {
   do {
     luaL_newmetatable(L, RECT_DECOMP_METATABLE_NM);
@@ -151,8 +146,7 @@ struct rect_grid_lw {
   struct gkyl_rect_grid grid;
 };
 
-static int
-rect_grid_lw_gc(lua_State *L)
+static int rect_grid_lw_gc(lua_State *L)
 {
   struct rect_grid_lw **l_g = GKYL_CHECK_UDATA(L, RECT_GRID_METATABLE_NM);
   gkyl_free(*l_g);
@@ -161,8 +155,7 @@ rect_grid_lw_gc(lua_State *L)
 
 static struct luaL_Reg rect_grid_funcs[] = { { 0, 0 } };
 
-static void
-rect_grid_openlibs(lua_State *L)
+static void rect_grid_openlibs(lua_State *L)
 {
   luaL_newmetatable(L, RECT_GRID_METATABLE_NM);
 
@@ -185,8 +178,7 @@ struct array_lw {
   struct gkyl_array *arr;
 };
 
-static int
-array_lw_gc(lua_State *L)
+static int array_lw_gc(lua_State *L)
 {
   struct array_lw **l_a = GKYL_CHECK_UDATA(L, ARRAY_METATABLE_NM);
   gkyl_array_release((*l_a)->arr);
@@ -196,8 +188,7 @@ array_lw_gc(lua_State *L)
 
 static struct luaL_Reg array_funcs[] = { { 0, 0 } };
 
-static void
-array_openlibs(lua_State *L)
+static void array_openlibs(lua_State *L)
 {
   luaL_newmetatable(L, ARRAY_METATABLE_NM);
 
@@ -220,8 +211,7 @@ struct range_lw {
   struct gkyl_range range;
 };
 
-static int
-range_lw_gc(lua_State *L)
+static int range_lw_gc(lua_State *L)
 {
   struct range_lw **l_r = GKYL_CHECK_UDATA(L, RANGE_METATABLE_NM);
   gkyl_free(*l_r);
@@ -230,8 +220,7 @@ range_lw_gc(lua_State *L)
 
 static struct luaL_Reg range_funcs[] = { { 0, 0 } };
 
-static void
-range_openlibs(lua_State *L)
+static void range_openlibs(lua_State *L)
 {
   luaL_newmetatable(L, RANGE_METATABLE_NM);
 
@@ -247,8 +236,7 @@ range_openlibs(lua_State *L)
 }
 
 /* -- Helper: push a rect_grid_lw onto the Lua stack -- */
-static void
-push_rect_grid(lua_State *L, const struct gkyl_rect_grid *grid)
+static void push_rect_grid(lua_State *L, const struct gkyl_rect_grid *grid)
 {
   struct rect_grid_lw *g_lw = gkyl_malloc(sizeof(*g_lw));
   g_lw->grid = *grid;
@@ -260,8 +248,7 @@ push_rect_grid(lua_State *L, const struct gkyl_rect_grid *grid)
 }
 
 /* -- Helper: push a range_lw onto the Lua stack -- */
-static void
-push_range(lua_State *L, const struct gkyl_range *range)
+static void push_range(lua_State *L, const struct gkyl_range *range)
 {
   struct range_lw *r_lw = gkyl_malloc(sizeof(*r_lw));
   r_lw->range = *range;
@@ -275,8 +262,7 @@ push_range(lua_State *L, const struct gkyl_range *range)
 /* -- G0.Zero.gkylFileType(fname) -> string -- */
 // Returns one of: "field", "dynvector", "multi-range-field",
 //                 "block-topology", "multi-block-meta", or "not-gkyl".
-static int
-gkyl_file_type_lw(lua_State *L)
+static int gkyl_file_type_lw(lua_State *L)
 {
   const char *fname = luaL_checkstring(L, 1);
   int ftype = gkyl_get_gkyl_file_type(fname);
@@ -304,8 +290,7 @@ gkyl_file_type_lw(lua_State *L)
 }
 
 /* -- G0.Zero.arrayNewFromFile(fname) -> grid_ud, array_ud  (or nil, nil on failure) -- */
-static int
-array_new_from_file_lw(lua_State *L)
+static int array_new_from_file_lw(lua_State *L)
 {
   const char *fname = luaL_checkstring(L, 1);
 
@@ -335,8 +320,7 @@ array_new_from_file_lw(lua_State *L)
 }
 
 /* -- G0.Zero.rectGridCmp(g1, g2) -> bool -- */
-static int
-rect_grid_cmp_lw(lua_State *L)
+static int rect_grid_cmp_lw(lua_State *L)
 {
   struct rect_grid_lw **l_g1 = luaL_checkudata(L, 1, RECT_GRID_METATABLE_NM);
   struct rect_grid_lw **l_g2 = luaL_checkudata(L, 2, RECT_GRID_METATABLE_NM);
@@ -345,8 +329,7 @@ rect_grid_cmp_lw(lua_State *L)
 }
 
 /* -- G0.Zero.createGridRanges(grid_ud, nghost_table) -> range_ud, ext_range_ud -- */
-static int
-create_grid_ranges_lw(lua_State *L)
+static int create_grid_ranges_lw(lua_State *L)
 {
   struct rect_grid_lw **l_g = luaL_checkudata(L, 1, RECT_GRID_METATABLE_NM);
   luaL_checktype(L, 2, LUA_TTABLE);
@@ -371,8 +354,7 @@ create_grid_ranges_lw(lua_State *L)
 /* -- G0.Zero.arrayDiff(a1_ud, a2_ud, range_ud) -> table -- */
 // Returned table has fields: is_compatible, max_abs_diff, min_abs_diff,
 //                             max_rel_diff, min_rel_diff.
-static int
-array_diff_lw(lua_State *L)
+static int array_diff_lw(lua_State *L)
 {
   struct array_lw **l_a1 = luaL_checkudata(L, 1, ARRAY_METATABLE_NM);
   struct array_lw **l_a2 = luaL_checkudata(L, 2, ARRAY_METATABLE_NM);
@@ -402,8 +384,7 @@ array_diff_lw(lua_State *L)
 
 // Returns a Lua table with all diff fields set to zero and is_compatible=false.
 // Used as the early-exit return value whenever two dynvec files cannot be compared.
-static int
-dynvec_incompat(lua_State *L)
+static int dynvec_incompat(lua_State *L)
 {
   lua_newtable(L);
   lua_pushboolean(L, 0);
@@ -429,8 +410,7 @@ dynvec_incompat(lua_State *L)
 // fields (tm_max_abs_diff, tm_min_abs_diff).  Timestamp differences are
 // computed but do not affect is_compatible: accumulated floating-point
 // drift in t += dt is expected and platform-dependent.
-static int
-dynvec_diff_lw(lua_State *L)
+static int dynvec_diff_lw(lua_State *L)
 {
   const char *f1 = luaL_checkstring(L, 1);
   const char *f2 = luaL_checkstring(L, 2);
@@ -558,8 +538,7 @@ dynvec_diff_lw(lua_State *L)
 // (same ndim, num_blocks, and all per-block connection entries), false
 // otherwise.  Block topology contains only integer/enum data, so this
 // is an exact equality check rather than a numerical diff.
-static int
-block_topo_cmp_lw(lua_State *L)
+static int block_topo_cmp_lw(lua_State *L)
 {
   const char *f1 = luaL_checkstring(L, 1);
   const char *f2 = luaL_checkstring(L, 2);
@@ -602,13 +581,14 @@ block_topo_cmp_lw(lua_State *L)
 }
 
 // Module-level functions registered under G0.Zero
-static struct luaL_Reg zero_array_funcs[] = { { "gkylFileType", gkyl_file_type_lw },
-  { "arrayNewFromFile", array_new_from_file_lw }, { "rectGridCmp", rect_grid_cmp_lw },
-  { "createGridRanges", create_grid_ranges_lw }, { "arrayDiff", array_diff_lw },
-  { "dynvecDiff", dynvec_diff_lw }, { "blockTopoCmp", block_topo_cmp_lw }, { 0, 0 } };
+static struct luaL_Reg zero_array_funcs[] = {
+  { "gkylFileType", gkyl_file_type_lw }, { "arrayNewFromFile", array_new_from_file_lw },
+  { "rectGridCmp", rect_grid_cmp_lw },   { "createGridRanges", create_grid_ranges_lw },
+  { "arrayDiff", array_diff_lw },        { "dynvecDiff", dynvec_diff_lw },
+  { "blockTopoCmp", block_topo_cmp_lw }, { 0, 0 }
+};
 
-void
-gkyl_zero_lw_openlibs(lua_State *L)
+void gkyl_zero_lw_openlibs(lua_State *L)
 {
   // Push empty global table called "G0".
   lua_newtable(L);

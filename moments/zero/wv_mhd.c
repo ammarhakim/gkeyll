@@ -19,39 +19,40 @@
 
 #define sq(x) ((x) * (x))
 
-static inline void
-cons_to_riem_8(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void cons_to_riem_8(const struct gkyl_wv_eqn *eqn, const double *qstate,
+                                  const double *qin, double *wout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 8; ++i)
     wout[i] = qin[i];
 }
-static inline void
-riem_to_cons_8(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void riem_to_cons_8(const struct gkyl_wv_eqn *eqn, const double *qstate,
+                                  const double *win, double *qout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 8; ++i)
     qout[i] = win[i];
 }
 
-static inline void
-cons_to_riem_9(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void cons_to_riem_9(const struct gkyl_wv_eqn *eqn, const double *qstate,
+                                  const double *qin, double *wout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 9; ++i)
     wout[i] = qin[i];
 }
-static inline void
-riem_to_cons_9(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void riem_to_cons_9(const struct gkyl_wv_eqn *eqn, const double *qstate,
+                                  const double *win, double *qout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 9; ++i)
     qout[i] = win[i];
 }
 
-static inline void
-rot_to_local_rect(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2,
-  const double *norm, const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local_rect(const struct gkyl_wv_eqn *eqn, const double *tau1,
+                                     const double *tau2, const double *norm,
+                                     const double *GKYL_RESTRICT qglobal,
+                                     double *GKYL_RESTRICT qlocal)
 {
   // Mass density is a scalar
   qlocal[0] = qglobal[0];
@@ -67,9 +68,10 @@ rot_to_local_rect(const struct gkyl_wv_eqn *eqn, const double *tau1, const doubl
   qlocal[7] = qglobal[5] * tau2[0] + qglobal[6] * tau2[1] + qglobal[7] * tau2[2];
 }
 
-static inline void
-rot_to_global_rect(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2,
-  const double *norm, const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global_rect(const struct gkyl_wv_eqn *eqn, const double *tau1,
+                                      const double *tau2, const double *norm,
+                                      const double *GKYL_RESTRICT qlocal,
+                                      double *GKYL_RESTRICT qglobal)
 {
   // Mass density is a scalar
   qglobal[0] = qlocal[0];
@@ -85,17 +87,19 @@ rot_to_global_rect(const struct gkyl_wv_eqn *eqn, const double *tau1, const doub
   qglobal[7] = qlocal[5] * norm[2] + qlocal[6] * tau1[2] + qlocal[7] * tau2[2];
 }
 
-static inline void
-rot_to_local_rect_glm(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2,
-  const double *norm, const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local_rect_glm(const struct gkyl_wv_eqn *eqn, const double *tau1,
+                                         const double *tau2, const double *norm,
+                                         const double *GKYL_RESTRICT qglobal,
+                                         double *GKYL_RESTRICT qlocal)
 {
   rot_to_local_rect(eqn, tau1, tau2, norm, qglobal, qlocal);
   qlocal[8] = qglobal[8];
 }
 
-static inline void
-rot_to_global_rect_glm(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2,
-  const double *norm, const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global_rect_glm(const struct gkyl_wv_eqn *eqn, const double *tau1,
+                                          const double *tau2, const double *norm,
+                                          const double *GKYL_RESTRICT qlocal,
+                                          double *GKYL_RESTRICT qglobal)
 {
   rot_to_global_rect(eqn, tau1, tau2, norm, qlocal, qglobal);
   qglobal[8] = qlocal[8];
@@ -109,8 +113,7 @@ struct wv_mhd {
   double glm_alpha; // Mignone & Tzeferacos, JCP (2010) 229, 2117, Eq (27).
 };
 
-static void
-mhd_free(const struct gkyl_ref_count *ref)
+static void mhd_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_mhd *mhd = container_of(base, struct wv_mhd, eqn);
@@ -121,9 +124,8 @@ mhd_free(const struct gkyl_ref_count *ref)
 // Following Cargo & Gallice 1997 section 4.2.
 // FIXME: is CG97 linearization consistent with the flux difference when the jump
 // in Bx is nonzero?
-static double
-wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, const double *qr,
-  double *waves, double *ev)
+static double wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+                       const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double gamma = mhd->gas_gamma;
@@ -398,9 +400,8 @@ wave_roe(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, cons
   return max_speed;
 }
 
-static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+                       const double *waves, const double *s, double *amdq, double *apdq)
 {
   int meqn = eqn->num_equations;
   for (int i = 0; i < meqn; ++i) {
@@ -414,9 +415,8 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, co
 }
 
 // Computing waves and waves speeds from Lax fluxes
-static double
-wave_lax(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, const double *qr,
-  double *waves, double *ev)
+static double wave_lax(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+                       const double *qr, double *waves, double *ev)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   int meqn = eqn->num_equations;
@@ -451,9 +451,8 @@ wave_lax(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, cons
   return ev[1];
 }
 
-static void
-qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+                       const double *waves, const double *s, double *amdq, double *apdq)
 {
   int meqn = eqn->num_equations;
   const double *w0 = &waves[0], *w1 = &waves[meqn];
@@ -467,9 +466,8 @@ qfluct_lax(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, co
 }
 
 // HLLD, Miyoshi & Kusano (2005), JCP, 208(1), 315-344
-static double
-wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, const double *qr,
-  double *waves, double *speeds)
+static double wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql,
+                        const double *qr, double *waves, double *speeds)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   double g = mhd->gas_gamma;
@@ -678,9 +676,8 @@ wave_hlld(const struct gkyl_wv_eqn *eqn, const double *dQ, const double *ql, con
   return max_speed;
 }
 
-static void
-qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, const double *waves,
-  const double *s, double *amdq, double *apdq)
+static void qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr,
+                        const double *waves, const double *s, double *amdq, double *apdq)
 {
   int meqn = eqn->num_equations;
   int mwave = eqn->num_waves;
@@ -694,10 +691,9 @@ qfluct_hlld(const struct gkyl_wv_eqn *eqn, const double *ql, const double *qr, c
   }
 }
 
-static double
-wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta,
-  const double *ql, const double *qr, const double phil, const double phir, double *waves,
-  double *s)
+static double wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+                         const double *delta, const double *ql, const double *qr, const double phil,
+                         const double phir, double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return wave_roe(eqn, delta, ql, qr, waves, s);
@@ -707,10 +703,9 @@ wave_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const dou
   return 0.0; // can't happen
 }
 
-static void
-qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
-  const double *qr, const double phil, const double phir, const double *waves, const double *s,
-  double *amdq, double *apdq)
+static void qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+                         const double *ql, const double *qr, const double phil, const double phir,
+                         const double *waves, const double *s, double *amdq, double *apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return qfluct_roe(eqn, ql, qr, waves, s, amdq, apdq);
@@ -718,10 +713,9 @@ qfluct_roe_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const d
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double
-wave_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta,
-  const double *ql, const double *qr, const double phil, const double phir, double *waves,
-  double *s)
+static double wave_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+                          const double *delta, const double *ql, const double *qr,
+                          const double phil, const double phir, double *waves, double *s)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return wave_hlld(eqn, delta, ql, qr, waves, s);
@@ -731,10 +725,9 @@ wave_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const do
   return 0.0; // can't happen
 }
 
-static void
-qfluct_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
-  const double *qr, const double phil, const double phir, const double *waves, const double *s,
-  double *amdq, double *apdq)
+static void qfluct_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+                          const double *ql, const double *qr, const double phil, const double phir,
+                          const double *waves, const double *s, double *amdq, double *apdq)
 {
   if (type == GKYL_WV_HIGH_ORDER_FLUX)
     return qfluct_hlld(eqn, ql, qr, waves, s, amdq, apdq);
@@ -742,24 +735,21 @@ qfluct_hlld_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const 
     return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static double
-wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta,
-  const double *ql, const double *qr, const double phil, const double phir, double *waves,
-  double *s)
+static double wave_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+                         const double *delta, const double *ql, const double *qr, const double phil,
+                         const double phir, double *waves, double *s)
 {
   return wave_lax(eqn, delta, ql, qr, waves, s);
 }
 
-static void
-qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
-  const double *qr, const double phil, const double phir, const double *waves, const double *s,
-  double *amdq, double *apdq)
+static void qfluct_lax_l(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+                         const double *ql, const double *qr, const double phil, const double phir,
+                         const double *waves, const double *s, double *amdq, double *apdq)
 {
   return qfluct_lax(eqn, ql, qr, waves, s, amdq, apdq);
 }
 
-static bool
-check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
 
@@ -773,23 +763,20 @@ check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
   return true;
 }
 
-static double
-max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return gkyl_mhd_max_abs_speed(mhd->gas_gamma, q);
 }
 
-static inline void
-mhd_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void mhd_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 8; i++) {
     sout[i] = 0.0;
   }
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
+struct gkyl_wv_eqn *gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 {
   struct wv_mhd *mhd = gkyl_malloc(sizeof(struct wv_mhd));
 
@@ -867,36 +854,31 @@ gkyl_wv_mhd_new(const struct gkyl_wv_mhd_inp *inp)
 // member getters and setters //
 ////////////////////////////////
 
-double
-gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn *eqn)
+double gkyl_wv_mhd_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->gas_gamma;
 }
 
-double
-gkyl_wv_mhd_divergence_constraint(const struct gkyl_wv_eqn *eqn)
+double gkyl_wv_mhd_divergence_constraint(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->divergence_constraint;
 }
 
-double
-gkyl_wv_mhd_glm_ch(const struct gkyl_wv_eqn *eqn)
+double gkyl_wv_mhd_glm_ch(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->glm_ch;
 }
 
-double
-gkyl_wv_mhd_glm_alpha(const struct gkyl_wv_eqn *eqn)
+double gkyl_wv_mhd_glm_alpha(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   return mhd->glm_alpha;
 }
 
-void
-gkyl_wv_mhd_set_glm_ch(struct gkyl_wv_eqn *eqn, const double glm_ch)
+void gkyl_wv_mhd_set_glm_ch(struct gkyl_wv_eqn *eqn, const double glm_ch)
 {
   struct wv_mhd *mhd = container_of(eqn, struct wv_mhd, eqn);
   mhd->glm_ch = glm_ch;

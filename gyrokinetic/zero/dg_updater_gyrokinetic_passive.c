@@ -15,13 +15,12 @@ gkyl_dg_updater_gyrokinetic_passive_acquire_eqn(const gkyl_dg_updater_gyrokineti
   return gkyl_dg_eqn_acquire(up->eqn_gyrokinetic_passive);
 }
 
-gkyl_dg_updater_gyrokinetic_passive *
-gkyl_dg_updater_gyrokinetic_passive_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const bool *is_zero_flux_bc, const double charge, const double mass,
-  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map, void *aux_inp,
-  bool use_gpu)
+gkyl_dg_updater_gyrokinetic_passive *gkyl_dg_updater_gyrokinetic_passive_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *cbasis,
+  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range,
+  const struct gkyl_range *phase_range, const bool *is_zero_flux_bc, const double charge,
+  const double mass, const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  void *aux_inp, bool use_gpu)
 {
   struct gkyl_dg_updater_gyrokinetic_passive *up =
     gkyl_malloc(sizeof(struct gkyl_dg_updater_gyrokinetic_passive));
@@ -55,17 +54,18 @@ gkyl_dg_updater_gyrokinetic_passive_new(const struct gkyl_rect_grid *grid,
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1; // zero-flux BCs in vel-space
 
   up->up_gyrokinetic_passive = gkyl_hyper_dg_new(grid, pbasis, up->eqn_gyrokinetic_passive,
-    num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+                                                 num_up_dirs, up_dirs, zero_flux_flags, 1,
+                                                 up->use_gpu);
 
   up->gyrokinetic_passive_tm = 0.0;
 
   return up;
 }
 
-void
-gkyl_dg_updater_gyrokinetic_passive_advance(gkyl_dg_updater_gyrokinetic_passive *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *fIn, struct gkyl_array *cflrate,
-  struct gkyl_array *rhs)
+void gkyl_dg_updater_gyrokinetic_passive_advance(gkyl_dg_updater_gyrokinetic_passive *up,
+                                                 const struct gkyl_range *update_rng,
+                                                 const struct gkyl_array *fIn,
+                                                 struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(up->up_gyrokinetic_passive, update_rng, fIn, cflrate, rhs);
@@ -79,8 +79,7 @@ gkyl_dg_updater_gyrokinetic_passive_get_tm(const gkyl_dg_updater_gyrokinetic_pas
                                                             up->gyrokinetic_passive_tm };
 }
 
-void
-gkyl_dg_updater_gyrokinetic_passive_release(gkyl_dg_updater_gyrokinetic_passive *up)
+void gkyl_dg_updater_gyrokinetic_passive_release(gkyl_dg_updater_gyrokinetic_passive *up)
 {
   gkyl_dg_eqn_release(up->eqn_gyrokinetic_passive);
   gkyl_hyper_dg_release(up->up_gyrokinetic_passive);

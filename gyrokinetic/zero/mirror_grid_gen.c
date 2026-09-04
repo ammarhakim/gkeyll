@@ -18,14 +18,12 @@ struct psirz_ctx {
   double psi; // psi to match
 };
 
-static inline double
-floor_sqrt(double x)
+static inline double floor_sqrt(double x)
 {
   return sqrt(fmax(x, 1e-14));
 }
 
-static double
-psirz(double R, void *ctx)
+static double psirz(double R, void *ctx)
 {
   struct psirz_ctx *rctx = ctx;
   double Z = rctx->Z;
@@ -35,8 +33,7 @@ psirz(double R, void *ctx)
   return fout[0] - rctx->psi;
 }
 
-static double
-calc_running_coord(double coord_lo, int i, double dx)
+static double calc_running_coord(double coord_lo, int i, double dx)
 {
   double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   double coord = coord_lo;
@@ -45,9 +42,8 @@ calc_running_coord(double coord_lo, int i, double dx)
   return coord;
 }
 
-static void
-curlbhat_func(double r_curr, double Z, double phi, struct gkyl_basis_ops_evalf *evcub,
-  struct gkyl_vec3 *curlbhat)
+static void curlbhat_func(double r_curr, double Z, double phi, struct gkyl_basis_ops_evalf *evcub,
+                          struct gkyl_vec3 *curlbhat)
 {
   // Calculate psi's various derivatives
   double Br = 0.0, Bz = 0.0, bmag = 0.0;
@@ -82,12 +78,11 @@ curlbhat_func(double r_curr, double Z, double phi, struct gkyl_basis_ops_evalf *
   // Get the polar components (contravariant, upperscript components on tangent basis)
   curlbhat->x[0] = 0.0; // R component ^1
   curlbhat->x[1] = 1.0 / bmag * 1.0 / r_curr * (dBrdZ - dBzdR) +
-    (-dBdR * Bz / r_curr + dBdZ * Br / r_curr); // Phi component ^2
+                   (-dBdR * Bz / r_curr + dBdZ * Br / r_curr); // Phi component ^2
   curlbhat->x[2] = 0.0;
 }
 
-struct gkyl_mirror_grid_gen *
-gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
+struct gkyl_mirror_grid_gen *gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 {
   struct gkyl_mirror_grid_gen *geo = gkyl_malloc(sizeof *geo);
   geo->gg_x = gkyl_malloc(sizeof *geo->gg_x);
@@ -137,13 +132,13 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   double dalpha = inp->comp_grid->dx[NAL];
 
   double z_lo = inp->comp_grid->lower[NZ] +
-    (inp->local.lower[NZ] - inp->global.lower[NZ]) * inp->comp_grid->dx[NZ];
+                (inp->local.lower[NZ] - inp->global.lower[NZ]) * inp->comp_grid->dx[NZ];
   double alpha_lo = inp->comp_grid->lower[NAL] +
-    (inp->local.lower[NAL] - inp->global.lower[NAL]) * inp->comp_grid->dx[NAL];
+                    (inp->local.lower[NAL] - inp->global.lower[NAL]) * inp->comp_grid->dx[NAL];
   psi_lo = inp->comp_grid->lower[NPSI] +
-    (inp->local.lower[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
+           (inp->local.lower[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
   psi_up = inp->comp_grid->lower[NPSI] +
-    (inp->local.upper[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
+           (inp->local.upper[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
 
   // Adjust if we are using sqrt(psi) as radial coordinate
   psic_lo = psi_lo;
@@ -193,8 +188,8 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
         pctx.psi = psi_curr;
 
-        struct gkyl_qr_res root = gkyl_ridders(
-          psirz, &pctx, rmin, rup, psi_min[0] - psi_curr, psi_max[0] - psi_curr, 100, 1e-10);
+        struct gkyl_qr_res root = gkyl_ridders(psirz, &pctx, rmin, rup, psi_min[0] - psi_curr,
+                                               psi_max[0] - psi_curr, 100, 1e-10);
 
         if (root.status) {
           status = false;
@@ -227,8 +222,9 @@ gkyl_mirror_grid_gen_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         const double *rzp = gkyl_array_cfetch(geo->nodes_rza, loc);
         double rz[2] = { rzp[0], rzp[1] };
 
-        double dZ_dz = gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
-          &inp->nrange); // derivative of the position map in Z direction
+        double dZ_dz =
+          gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
+                                  &inp->nrange); // derivative of the position map in Z direction
 
         struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
 
@@ -399,13 +395,13 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   double dalpha = inp->comp_grid->dx[NAL];
 
   double z_lo = inp->comp_grid->lower[NZ] +
-    (inp->local.lower[NZ] - inp->global.lower[NZ]) * inp->comp_grid->dx[NZ];
+                (inp->local.lower[NZ] - inp->global.lower[NZ]) * inp->comp_grid->dx[NZ];
   double alpha_lo = inp->comp_grid->lower[NAL] +
-    (inp->local.lower[NAL] - inp->global.lower[NAL]) * inp->comp_grid->dx[NAL];
+                    (inp->local.lower[NAL] - inp->global.lower[NAL]) * inp->comp_grid->dx[NAL];
   psi_lo = inp->comp_grid->lower[NPSI] +
-    (inp->local.lower[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
+           (inp->local.lower[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
   psi_up = inp->comp_grid->lower[NPSI] +
-    (inp->local.upper[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
+           (inp->local.upper[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
 
   // Adjust if we are using sqrt(psi) as radial coordinate
   psic_lo = psi_lo;
@@ -450,8 +446,8 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
       pctx.psi = psi_curr;
 
-      struct gkyl_qr_res root = gkyl_ridders(
-        psirz, &pctx, rmin, rup, psi_min[0] - psi_curr, psi_max[0] - psi_curr, 100, 1e-10);
+      struct gkyl_qr_res root = gkyl_ridders(psirz, &pctx, rmin, rup, psi_min[0] - psi_curr,
+                                             psi_max[0] - psi_curr, 100, 1e-10);
 
       if (root.status) {
         status = false;
@@ -483,8 +479,9 @@ gkyl_mirror_grid_gen_int_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         const double *rzp = gkyl_array_cfetch(geo->nodes_rza, loc);
         double rz[2] = { rzp[0], rzp[1] };
 
-        double dZ_dz = gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
-          &inp->nrange); // derivative of the position map in Z direction
+        double dZ_dz =
+          gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
+                                  &inp->nrange); // derivative of the position map in Z direction
 
         struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
 
@@ -606,13 +603,13 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   double dalpha = inp->comp_grid->dx[NAL];
 
   double z_lo = inp->comp_grid->lower[NZ] +
-    (inp->local.lower[NZ] - inp->global.lower[NZ]) * inp->comp_grid->dx[NZ];
+                (inp->local.lower[NZ] - inp->global.lower[NZ]) * inp->comp_grid->dx[NZ];
   double alpha_lo = inp->comp_grid->lower[NAL] +
-    (inp->local.lower[NAL] - inp->global.lower[NAL]) * inp->comp_grid->dx[NAL];
+                    (inp->local.lower[NAL] - inp->global.lower[NAL]) * inp->comp_grid->dx[NAL];
   psi_lo = inp->comp_grid->lower[NPSI] +
-    (inp->local.lower[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
+           (inp->local.lower[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
   psi_up = inp->comp_grid->lower[NPSI] +
-    (inp->local.upper[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
+           (inp->local.upper[NPSI] - inp->global.lower[NPSI]) * inp->comp_grid->dx[NPSI];
 
   // Adjust if we are using sqrt(psi) as radial coordinate
   psic_lo = psi_lo;
@@ -637,8 +634,8 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
   bool status = true;
   for (int iz = inp->nrange.lower[NZ]; iz <= inp->nrange.upper[NZ]; ++iz) {
     double zcurr = calc_running_coord(z_lo, iz - inp->nrange.lower[NZ], dz);
-    zcurr =
-      inp->dir == 2 ? z_lo + iz * dz : calc_running_coord(z_lo, iz - inp->nrange.lower[NZ], dz);
+    zcurr = inp->dir == 2 ? z_lo + iz * dz :
+                            calc_running_coord(z_lo, iz - inp->nrange.lower[NZ], dz);
 
     double Zcurr;
     inp->position_map->maps[2](0.0, &zcurr, &Zcurr, inp->position_map->ctxs[2]);
@@ -659,9 +656,9 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
           rz[2] = alpha_curr;
         }
       } else {
-        double psic_curr = inp->dir == 0
-          ? psic_lo + ipsi * dpsi
-          : calc_running_coord(psic_lo, ipsi - inp->nrange.lower[NPSI], dpsi);
+        double psic_curr = inp->dir == 0 ?
+                             psic_lo + ipsi * dpsi :
+                             calc_running_coord(psic_lo, ipsi - inp->nrange.lower[NPSI], dpsi);
         pctx.Z = zcurr;
 
         // We continue to do root-finding for psi and not sqrt(psi)
@@ -671,8 +668,8 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
 
         pctx.psi = psi_curr;
 
-        struct gkyl_qr_res root = gkyl_ridders(
-          psirz, &pctx, rmin, rup, psi_min[0] - psi_curr, psi_max[0] - psi_curr, 100, 1e-10);
+        struct gkyl_qr_res root = gkyl_ridders(psirz, &pctx, rmin, rup, psi_min[0] - psi_curr,
+                                               psi_max[0] - psi_curr, 100, 1e-10);
 
         if (root.status) {
           status = false;
@@ -680,9 +677,9 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         }
 
         for (int ia = inp->nrange.lower[NAL]; ia <= inp->nrange.upper[NAL]; ++ia) {
-          double alpha_curr = inp->dir == 1
-            ? alpha_lo + ia * dalpha
-            : calc_running_coord(alpha_lo, ia - inp->nrange.lower[NAL], dalpha);
+          double alpha_curr = inp->dir == 1 ?
+                                alpha_lo + ia * dalpha :
+                                calc_running_coord(alpha_lo, ia - inp->nrange.lower[NAL], dalpha);
           int idx[3] = { ipsi, ia, iz };
           double *rz = gkyl_array_fetch(geo->nodes_rza, gkyl_range_idx(&inp->nrange, idx));
           rz[0] = root.res;
@@ -707,8 +704,9 @@ gkyl_mirror_grid_gen_surf_inew(const struct gkyl_mirror_grid_gen_inp *inp)
         const double *rzp = gkyl_array_cfetch(geo->nodes_rza, loc);
         double rz[2] = { rzp[0], rzp[1] };
 
-        double dZ_dz = gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
-          &inp->nrange); // derivative of the position map in Z direction
+        double dZ_dz =
+          gkyl_position_map_slope(inp->position_map, 2, rzp[1], dz, iz,
+                                  &inp->nrange); // derivative of the position map in Z direction
 
         struct gkyl_mirror_grid_gen_geom *g = gkyl_array_fetch(geo->nodes_geom, loc);
 
@@ -828,8 +826,7 @@ cleanup:
   return geo;
 }
 
-bool
-gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geom)
+bool gkyl_mirror_grid_gen_is_include_axis(const struct gkyl_mirror_grid_gen *geom)
 {
   return geom->gg_x->include_axis;
 }
@@ -840,8 +837,7 @@ gkyl_mirror_grid_gen_fl_coord(const struct gkyl_mirror_grid_gen *geom)
   return geom->gg_x->fl_coord;
 }
 
-void
-gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
+void gkyl_mirror_grid_gen_release(struct gkyl_mirror_grid_gen *geom)
 {
   gkyl_array_release(geom->nodes_rza);
   gkyl_array_release(geom->nodes_psi);

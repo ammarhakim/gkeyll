@@ -6,8 +6,7 @@
 #include <gkyl_util.h>
 
 // This test is intended to verify: verify: h^ij h_jk = \delta^i_k = \delta_i^k raised in place
-void
-test_tensor_field_raise_idx_in_place_ho()
+void test_tensor_field_raise_idx_in_place_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -76,8 +75,7 @@ test_tensor_field_raise_idx_in_place_ho()
 }
 
 // This test is intended to verify: h_ij h^jk = \delta_i^k raised in place
-void
-test_tensor_field_lower_idx_in_place_ho()
+void test_tensor_field_lower_idx_in_place_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -146,8 +144,7 @@ test_tensor_field_lower_idx_in_place_ho()
 
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised in place
 // Tests a denser, but still symmetric A, multiplication
-void
-test_tensor_field_lower_idx_in_place_2_ho()
+void test_tensor_field_lower_idx_in_place_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -248,8 +245,7 @@ test_tensor_field_lower_idx_in_place_2_ho()
 
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised in place
 // Tests a denser, asymmetric A, multiplication
-void
-test_tensor_field_raise_idx_in_place_2_ho()
+void test_tensor_field_raise_idx_in_place_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -349,8 +345,7 @@ test_tensor_field_raise_idx_in_place_2_ho()
 }
 
 // This test is intended to verify: verify: h^ij h_jk = \delta^i_k = \delta_i^k raised, set
-void
-test_tensor_field_raise_idx_set_ho()
+void test_tensor_field_raise_idx_set_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -421,8 +416,7 @@ test_tensor_field_raise_idx_set_ho()
 }
 
 // This test is intended to verify: h_ij h^jk = \delta_i^k loweredå, set
-void
-test_tensor_field_lower_idx_set_ho()
+void test_tensor_field_lower_idx_set_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -493,8 +487,7 @@ test_tensor_field_lower_idx_set_ho()
 
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised and set
 // Tests a denser, but still symmetric A, multiplication
-void
-test_tensor_field_lower_idx_set_2_ho()
+void test_tensor_field_lower_idx_set_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -597,8 +590,7 @@ test_tensor_field_lower_idx_set_2_ho()
 
 // This test is intended to verify: A_ij A^jk = \delta_i^k raised, set
 // Tests a denser, asymmetric A, multiplication
-void
-test_tensor_field_raise_idx_set_2_ho()
+void test_tensor_field_raise_idx_set_2_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -705,8 +697,7 @@ test_tensor_field_raise_idx_set_2_ho()
 
 // This test is intended to verify: A_ij A^jk = \delta_i^k lowered and set
 // Tests a denser, asymmetric A, multiplication
-void
-test_tensor_field_lower_idx_set_dev()
+void test_tensor_field_lower_idx_set_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -802,8 +793,8 @@ test_tensor_field_lower_idx_set_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_lower_idx_set(
-    diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu, ten_res_cu);
+  gkyl_tensor_field_lower_idx_set(diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu,
+                                  ten_res_cu);
 
   // reset host array to zeros
   for (unsigned i = 0; i < size; ++i) {
@@ -850,8 +841,7 @@ test_tensor_field_lower_idx_set_dev()
   gkyl_tensor_field_release(diag_metric_contra_cu);
 }
 
-void
-test_tensor_field_raise_idx_set_dev()
+void test_tensor_field_raise_idx_set_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -946,8 +936,8 @@ test_tensor_field_raise_idx_set_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_raise_idx_set(
-    diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu, ten_res_cu);
+  gkyl_tensor_field_raise_idx_set(diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu,
+                                  ten_res_cu);
 
   // reset host array to zeros
   for (unsigned i = 0; i < size; ++i) {
@@ -996,8 +986,7 @@ test_tensor_field_raise_idx_set_dev()
 
 // This test is intended to verify: A_ij A^jk = \delta_i^k lowered and in place
 // Tests a denser, asymmetric A, multiplication
-void
-test_tensor_field_lower_idx_in_place_dev()
+void test_tensor_field_lower_idx_in_place_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -1120,8 +1109,8 @@ test_tensor_field_lower_idx_in_place_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_lower_idx_in_place(
-    diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu, mem_cu);
+  gkyl_tensor_field_lower_idx_in_place(diag_metric_cov_cu, idx_to_raise, diag_metric_contra_cu,
+                                       mem_cu);
 
   TEST_CHECK(diag_metric_cov->iloc[0] == GKYL_TENSOR_INDEX_LOWER);
   TEST_CHECK(diag_metric_cov->iloc[1] == GKYL_TENSOR_INDEX_LOWER);
@@ -1191,8 +1180,7 @@ test_tensor_field_lower_idx_in_place_dev()
   gkyl_tensor_field_release(diag_metric_contra_cu);
 }
 
-void
-test_tensor_field_raise_idx_in_place_dev()
+void test_tensor_field_raise_idx_in_place_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -1286,8 +1274,8 @@ test_tensor_field_raise_idx_in_place_dev()
 
   // compute the lowering on device, save to ten_res
   int idx_to_raise = 0;
-  gkyl_tensor_field_raise_idx_in_place(
-    diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu, mem_cu);
+  gkyl_tensor_field_raise_idx_in_place(diag_metric_contra_cu, idx_to_raise, diag_metric_cov_cu,
+                                       mem_cu);
 
   // reset host array to zeros
   for (unsigned i = 0; i < size; ++i) {
@@ -1335,8 +1323,8 @@ test_tensor_field_raise_idx_in_place_dev()
 
 #endif
 
-TEST_LIST = { { "test_tensor_field_raise_idx_in_place_ho",
-                test_tensor_field_raise_idx_in_place_ho },
+TEST_LIST = {
+  { "test_tensor_field_raise_idx_in_place_ho", test_tensor_field_raise_idx_in_place_ho },
   { "test_tensor_field_lower_idx_in_place_ho", test_tensor_field_lower_idx_in_place_ho },
   { "test_tensor_field_lower_idx_in_place_2_ho", test_tensor_field_lower_idx_in_place_2_ho },
   { "test_tensor_field_raise_idx_in_place_2_ho", test_tensor_field_raise_idx_in_place_2_ho },
@@ -1350,4 +1338,5 @@ TEST_LIST = { { "test_tensor_field_raise_idx_in_place_ho",
   { "tensor_field_lower_idx_set_dev", test_tensor_field_lower_idx_set_dev },
   { "tensor_field_raise_idx_set_dev", test_tensor_field_raise_idx_set_dev },
 #endif
-  { NULL, NULL } };
+  { NULL, NULL }
+};

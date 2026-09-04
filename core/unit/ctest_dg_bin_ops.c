@@ -10,44 +10,38 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_util.h>
 
-void
-f_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void f_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 + x;
 }
-void
-g_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void g_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 * x * x + 8;
 }
 
-void
-fv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void fv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2. + x;
   fout[1] = 1. - x;
 }
-void
-gv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void gv2_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 * x * x + 8;
   fout[1] = x * x - 8;
 }
 
-void
-fv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void fv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2. + x;
   fout[1] = 1. - x;
   fout[2] = 0.5 + x;
 }
-void
-gv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
+void gv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 2 * x * x + 8;
@@ -55,10 +49,10 @@ gv3_1d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = 0.5 * x * x + 4;
 }
 
-void
-check_dot_product_1d(const double *fv1_d, const double *gv1_d, const double *fvdgv1_d,
-  const double *fv2_d, const double *gv2_d, const double *fvdgv2_d, const double *fv3_d,
-  const double *gv3_d, const double *fvdgv3_d, int poly_order)
+void check_dot_product_1d(const double *fv1_d, const double *gv1_d, const double *fvdgv1_d,
+                          const double *fv2_d, const double *gv2_d, const double *fvdgv2_d,
+                          const double *fv3_d, const double *gv3_d, const double *fvdgv3_d,
+                          int poly_order)
 {
   if (poly_order == 1) {
     TEST_CHECK(gkyl_compare(
@@ -66,86 +60,89 @@ check_dot_product_1d(const double *fv1_d, const double *gv1_d, const double *fvd
     TEST_CHECK(gkyl_compare(
       fvdgv1_d[1], 0.7071067811865475 * (fv1_d[0] * gv1_d[1] + gv1_d[0] * fv1_d[1]), 1e-12));
     TEST_CHECK(gkyl_compare(fvdgv2_d[0],
-      0.7071067811865475 *
-        (fv2_d[3] * gv2_d[3] + fv2_d[2] * gv2_d[2] + fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
-      1e-12));
+                            0.7071067811865475 * (fv2_d[3] * gv2_d[3] + fv2_d[2] * gv2_d[2] +
+                                                  fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv2_d[1],
-      0.7071067811865475 *
-        (fv2_d[2] * gv2_d[3] + gv2_d[2] * fv2_d[3] + fv2_d[0] * gv2_d[1] + gv2_d[0] * fv2_d[1]),
-      1e-12));
+                            0.7071067811865475 * (fv2_d[2] * gv2_d[3] + gv2_d[2] * fv2_d[3] +
+                                                  fv2_d[0] * gv2_d[1] + gv2_d[0] * fv2_d[1]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv3_d[0],
-      0.7071067811865475 *
-        (fv3_d[5] * gv3_d[5] + fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] + fv3_d[2] * gv3_d[2] +
-          fv3_d[1] * gv3_d[1] + fv3_d[0] * gv3_d[0]),
-      1e-12));
+                            0.7071067811865475 *
+                              (fv3_d[5] * gv3_d[5] + fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] +
+                               fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] + fv3_d[0] * gv3_d[0]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv3_d[1],
-      0.7071067811865475 *
-        (fv3_d[4] * gv3_d[5] + gv3_d[4] * fv3_d[5] + fv3_d[2] * gv3_d[3] + gv3_d[2] * fv3_d[3] +
-          fv3_d[0] * gv3_d[1] + gv3_d[0] * fv3_d[1]),
-      1e-12));
+                            0.7071067811865475 *
+                              (fv3_d[4] * gv3_d[5] + gv3_d[4] * fv3_d[5] + fv3_d[2] * gv3_d[3] +
+                               gv3_d[2] * fv3_d[3] + fv3_d[0] * gv3_d[1] + gv3_d[0] * fv3_d[1]),
+                            1e-12));
   } else if (poly_order == 2) {
     TEST_CHECK(gkyl_compare(fvdgv1_d[0],
-      0.7071067811865475 * (fv1_d[2] * gv1_d[2] + fv1_d[1] * gv1_d[1] + fv1_d[0] * gv1_d[0]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv1_d[1],
-      0.1414213562373095 *
-        (4.47213595499958 * fv1_d[1] * gv1_d[2] + 4.47213595499958 * gv1_d[1] * fv1_d[2] +
-          5.0 * fv1_d[0] * gv1_d[1] + 5.0 * gv1_d[0] * fv1_d[1]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv1_d[2],
-      0.02020305089104421 *
-        ((22.3606797749979 * fv1_d[2] + 35.0 * fv1_d[0]) * gv1_d[2] + 35.0 * gv1_d[0] * fv1_d[2] +
-          31.30495168499706 * fv1_d[1] * gv1_d[1]),
+                            0.7071067811865475 *
+                              (fv1_d[2] * gv1_d[2] + fv1_d[1] * gv1_d[1] + fv1_d[0] * gv1_d[0]),
+                            1e-12));
+    TEST_CHECK(
+      gkyl_compare(fvdgv1_d[1],
+                   0.1414213562373095 * (4.47213595499958 * fv1_d[1] * gv1_d[2] +
+                                         4.47213595499958 * gv1_d[1] * fv1_d[2] +
+                                         5.0 * fv1_d[0] * gv1_d[1] + 5.0 * gv1_d[0] * fv1_d[1]),
+                   1e-12));
+    TEST_CHECK(gkyl_compare(
+      fvdgv1_d[2],
+      0.02020305089104421 * ((22.3606797749979 * fv1_d[2] + 35.0 * fv1_d[0]) * gv1_d[2] +
+                             35.0 * gv1_d[0] * fv1_d[2] + 31.30495168499706 * fv1_d[1] * gv1_d[1]),
       1e-12));
     TEST_CHECK(gkyl_compare(fvdgv2_d[0],
-      0.7071067811865475 *
-        (fv2_d[5] * gv2_d[5] + fv2_d[4] * gv2_d[4] + fv2_d[3] * gv2_d[3] + fv2_d[2] * gv2_d[2] +
-          fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
-      1e-12));
+                            0.7071067811865475 *
+                              (fv2_d[5] * gv2_d[5] + fv2_d[4] * gv2_d[4] + fv2_d[3] * gv2_d[3] +
+                               fv2_d[2] * gv2_d[2] + fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv2_d[1],
-      0.1414213562373095 *
-        (4.47213595499958 * fv2_d[4] * gv2_d[5] + 4.47213595499958 * gv2_d[4] * fv2_d[5] +
-          5.0 * fv2_d[3] * gv2_d[4] + 5.0 * gv2_d[3] * fv2_d[4] +
-          4.47213595499958 * fv2_d[1] * gv2_d[2] + 4.47213595499958 * gv2_d[1] * fv2_d[2] +
-          5.0 * fv2_d[0] * gv2_d[1] + 5.0 * gv2_d[0] * fv2_d[1]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[2],
-      0.02020305089104421 *
-        ((22.3606797749979 * fv2_d[5] + 35.0 * fv2_d[3]) * gv2_d[5] + 35.0 * gv2_d[3] * fv2_d[5] +
-          31.30495168499706 * fv2_d[4] * gv2_d[4] +
-          (22.3606797749979 * fv2_d[2] + 35.0 * fv2_d[0]) * gv2_d[2] + 35.0 * gv2_d[0] * fv2_d[2] +
-          31.30495168499706 * fv2_d[1] * gv2_d[1]),
+                            0.1414213562373095 *
+                              (4.47213595499958 * fv2_d[4] * gv2_d[5] +
+                               4.47213595499958 * gv2_d[4] * fv2_d[5] + 5.0 * fv2_d[3] * gv2_d[4] +
+                               5.0 * gv2_d[3] * fv2_d[4] + 4.47213595499958 * fv2_d[1] * gv2_d[2] +
+                               4.47213595499958 * gv2_d[1] * fv2_d[2] + 5.0 * fv2_d[0] * gv2_d[1] +
+                               5.0 * gv2_d[0] * fv2_d[1]),
+                            1e-12));
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[2],
+      0.02020305089104421 * ((22.3606797749979 * fv2_d[5] + 35.0 * fv2_d[3]) * gv2_d[5] +
+                             35.0 * gv2_d[3] * fv2_d[5] + 31.30495168499706 * fv2_d[4] * gv2_d[4] +
+                             (22.3606797749979 * fv2_d[2] + 35.0 * fv2_d[0]) * gv2_d[2] +
+                             35.0 * gv2_d[0] * fv2_d[2] + 31.30495168499706 * fv2_d[1] * gv2_d[1]),
       1e-12));
     TEST_CHECK(gkyl_compare(fvdgv3_d[0],
-      0.7071067811865475 *
-        (fv3_d[8] * gv3_d[8] + fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] + fv3_d[5] * gv3_d[5] +
-          fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] + fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] +
-          fv3_d[0] * gv3_d[0]),
-      1e-12));
+                            0.7071067811865475 *
+                              (fv3_d[8] * gv3_d[8] + fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] +
+                               fv3_d[5] * gv3_d[5] + fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] +
+                               fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] + fv3_d[0] * gv3_d[0]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv3_d[1],
-      0.1414213562373095 *
-        (4.47213595499958 * fv3_d[7] * gv3_d[8] + 4.47213595499958 * gv3_d[7] * fv3_d[8] +
-          5.0 * fv3_d[6] * gv3_d[7] + 5.0 * gv3_d[6] * fv3_d[7] +
-          4.47213595499958 * fv3_d[4] * gv3_d[5] + 4.47213595499958 * gv3_d[4] * fv3_d[5] +
-          5.0 * fv3_d[3] * gv3_d[4] + 5.0 * gv3_d[3] * fv3_d[4] +
-          4.47213595499958 * fv3_d[1] * gv3_d[2] + 4.47213595499958 * gv3_d[1] * fv3_d[2] +
-          5.0 * fv3_d[0] * gv3_d[1] + 5.0 * gv3_d[0] * fv3_d[1]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[2],
-      0.02020305089104421 *
-        ((22.3606797749979 * fv3_d[8] + 35.0 * fv3_d[6]) * gv3_d[8] + 35.0 * gv3_d[6] * fv3_d[8] +
-          31.30495168499706 * fv3_d[7] * gv3_d[7] +
-          (22.3606797749979 * fv3_d[5] + 35.0 * fv3_d[3]) * gv3_d[5] + 35.0 * gv3_d[3] * fv3_d[5] +
-          31.30495168499706 * fv3_d[4] * gv3_d[4] +
-          (22.3606797749979 * fv3_d[2] + 35.0 * fv3_d[0]) * gv3_d[2] + 35.0 * gv3_d[0] * fv3_d[2] +
-          31.30495168499706 * fv3_d[1] * gv3_d[1]),
+                            0.1414213562373095 *
+                              (4.47213595499958 * fv3_d[7] * gv3_d[8] +
+                               4.47213595499958 * gv3_d[7] * fv3_d[8] + 5.0 * fv3_d[6] * gv3_d[7] +
+                               5.0 * gv3_d[6] * fv3_d[7] + 4.47213595499958 * fv3_d[4] * gv3_d[5] +
+                               4.47213595499958 * gv3_d[4] * fv3_d[5] + 5.0 * fv3_d[3] * gv3_d[4] +
+                               5.0 * gv3_d[3] * fv3_d[4] + 4.47213595499958 * fv3_d[1] * gv3_d[2] +
+                               4.47213595499958 * gv3_d[1] * fv3_d[2] + 5.0 * fv3_d[0] * gv3_d[1] +
+                               5.0 * gv3_d[0] * fv3_d[1]),
+                            1e-12));
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[2],
+      0.02020305089104421 * ((22.3606797749979 * fv3_d[8] + 35.0 * fv3_d[6]) * gv3_d[8] +
+                             35.0 * gv3_d[6] * fv3_d[8] + 31.30495168499706 * fv3_d[7] * gv3_d[7] +
+                             (22.3606797749979 * fv3_d[5] + 35.0 * fv3_d[3]) * gv3_d[5] +
+                             35.0 * gv3_d[3] * fv3_d[5] + 31.30495168499706 * fv3_d[4] * gv3_d[4] +
+                             (22.3606797749979 * fv3_d[2] + 35.0 * fv3_d[0]) * gv3_d[2] +
+                             35.0 * gv3_d[0] * fv3_d[2] + 31.30495168499706 * fv3_d[1] * gv3_d[1]),
       1e-12));
   }
   return;
 }
 
-void
-test_1d(int poly_order, bool use_gpu)
+void test_1d(int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0 }, upper[] = { 1.0 };
   int cells[] = { 2 };
@@ -326,8 +323,8 @@ test_1d(int poly_order, bool use_gpu)
     const double *fv3_d = gkyl_array_cfetch(fv3, i);
     const double *gv3_d = gkyl_array_cfetch(gv3, i);
     const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, i);
-    check_dot_product_1d(
-      fv1_d, gv1_d, fvdgv1_d, fv2_d, gv2_d, fvdgv2_d, fv3_d, gv3_d, fvdgv3_d, poly_order);
+    check_dot_product_1d(fv1_d, gv1_d, fvdgv1_d, fv2_d, gv2_d, fvdgv2_d, fv3_d, gv3_d, fvdgv3_d,
+                         poly_order);
   }
 
   // Test range methods
@@ -397,8 +394,8 @@ test_1d(int poly_order, bool use_gpu)
     const double *fv3_d = gkyl_array_cfetch(fv3, loc);
     const double *gv3_d = gkyl_array_cfetch(gv3, loc);
     const double *fvdgv3_d = gkyl_array_cfetch(fvdgv3, loc);
-    check_dot_product_1d(
-      fv1_d, gv1_d, fvdgv1_d, fv2_d, gv2_d, fvdgv2_d, fv3_d, gv3_d, fvdgv3_d, poly_order);
+    check_dot_product_1d(fv1_d, gv1_d, fvdgv1_d, fv2_d, gv2_d, fvdgv2_d, fv3_d, gv3_d, fvdgv3_d,
+                         poly_order);
   }
 
   // mean ops
@@ -469,8 +466,7 @@ test_1d(int poly_order, bool use_gpu)
   }
 }
 
-void
-test_inv_1d(int poly_order, bool use_gpu)
+void test_inv_1d(int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0 }, upper[] = { 1.0 };
   int cells[] = { 2 };
@@ -564,38 +560,33 @@ test_inv_1d(int poly_order, bool use_gpu)
   }
 }
 
-void
-f_1d2d(double t, const double *xn, double *restrict fout, void *ctx)
+void f_1d2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 1 + x;
 }
 
-void
-f_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void f_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   fout[0] = 2 + x + y;
 }
-void
-g_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void g_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   fout[0] = 2 * x * y + 8;
 }
 
-void
-fv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void fv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   fout[0] = 2 + x + y;
   fout[1] = 1 - x + y;
 }
-void
-gv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void gv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -603,8 +594,7 @@ gv2_2d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = x * y - 4;
 }
 
-void
-fv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void fv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -612,8 +602,7 @@ fv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = 1 - x + y;
   fout[2] = 0.5 + x - y;
 }
-void
-gv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
+void gv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -622,326 +611,327 @@ gv3_2d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = 0.5 * x * y + 2;
 }
 
-void
-check_dot_product_2d(const double *fv2_d, const double *gv2_d, const double *fvdgv2_d,
-  const double *fv3_d, const double *gv3_d, const double *fvdgv3_d, int poly_order)
+void check_dot_product_2d(const double *fv2_d, const double *gv2_d, const double *fvdgv2_d,
+                          const double *fv3_d, const double *gv3_d, const double *fvdgv3_d,
+                          int poly_order)
 {
   if (poly_order == 1) {
     TEST_CHECK(gkyl_compare(fvdgv2_d[0],
-      0.5 *
-        (fv2_d[7] * gv2_d[7] + fv2_d[6] * gv2_d[6] + fv2_d[5] * gv2_d[5] + fv2_d[4] * gv2_d[4] +
-          fv2_d[3] * gv2_d[3] + fv2_d[2] * gv2_d[2] + fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
-      1e-12));
+                            0.5 * (fv2_d[7] * gv2_d[7] + fv2_d[6] * gv2_d[6] + fv2_d[5] * gv2_d[5] +
+                                   fv2_d[4] * gv2_d[4] + fv2_d[3] * gv2_d[3] + fv2_d[2] * gv2_d[2] +
+                                   fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv2_d[1],
-      0.5 *
-        (fv2_d[6] * gv2_d[7] + gv2_d[6] * fv2_d[7] + fv2_d[4] * gv2_d[5] + gv2_d[4] * fv2_d[5] +
-          fv2_d[2] * gv2_d[3] + gv2_d[2] * fv2_d[3] + fv2_d[0] * gv2_d[1] + gv2_d[0] * fv2_d[1]),
-      1e-12));
+                            0.5 * (fv2_d[6] * gv2_d[7] + gv2_d[6] * fv2_d[7] + fv2_d[4] * gv2_d[5] +
+                                   gv2_d[4] * fv2_d[5] + fv2_d[2] * gv2_d[3] + gv2_d[2] * fv2_d[3] +
+                                   fv2_d[0] * gv2_d[1] + gv2_d[0] * fv2_d[1]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv2_d[2],
-      0.5 *
-        (fv2_d[5] * gv2_d[7] + gv2_d[5] * fv2_d[7] + fv2_d[4] * gv2_d[6] + gv2_d[4] * fv2_d[6] +
-          fv2_d[1] * gv2_d[3] + gv2_d[1] * fv2_d[3] + fv2_d[0] * gv2_d[2] + gv2_d[0] * fv2_d[2]),
-      1e-12));
+                            0.5 * (fv2_d[5] * gv2_d[7] + gv2_d[5] * fv2_d[7] + fv2_d[4] * gv2_d[6] +
+                                   gv2_d[4] * fv2_d[6] + fv2_d[1] * gv2_d[3] + gv2_d[1] * fv2_d[3] +
+                                   fv2_d[0] * gv2_d[2] + gv2_d[0] * fv2_d[2]),
+                            1e-12));
     TEST_CHECK(gkyl_compare(fvdgv2_d[3],
-      0.5 *
-        (fv2_d[4] * gv2_d[7] + gv2_d[4] * fv2_d[7] + fv2_d[5] * gv2_d[6] + gv2_d[5] * fv2_d[6] +
-          fv2_d[0] * gv2_d[3] + gv2_d[0] * fv2_d[3] + fv2_d[1] * gv2_d[2] + gv2_d[1] * fv2_d[2]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[0],
-      0.5 *
-        (fv3_d[11] * gv3_d[11] + fv3_d[10] * gv3_d[10] + fv3_d[9] * gv3_d[9] + fv3_d[8] * gv3_d[8] +
-          fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] + fv3_d[5] * gv3_d[5] + fv3_d[4] * gv3_d[4] +
-          fv3_d[3] * gv3_d[3] + fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] + fv3_d[0] * gv3_d[0]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[1],
-      0.5 *
-        (fv3_d[10] * gv3_d[11] + gv3_d[10] * fv3_d[11] + fv3_d[8] * gv3_d[9] + gv3_d[8] * fv3_d[9] +
-          fv3_d[6] * gv3_d[7] + gv3_d[6] * fv3_d[7] + fv3_d[4] * gv3_d[5] + gv3_d[4] * fv3_d[5] +
-          fv3_d[2] * gv3_d[3] + gv3_d[2] * fv3_d[3] + fv3_d[0] * gv3_d[1] + gv3_d[0] * fv3_d[1]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[2],
-      0.5 *
-        (fv3_d[9] * gv3_d[11] + gv3_d[9] * fv3_d[11] + fv3_d[8] * gv3_d[10] + gv3_d[8] * fv3_d[10] +
-          fv3_d[5] * gv3_d[7] + gv3_d[5] * fv3_d[7] + fv3_d[4] * gv3_d[6] + gv3_d[4] * fv3_d[6] +
-          fv3_d[1] * gv3_d[3] + gv3_d[1] * fv3_d[3] + fv3_d[0] * gv3_d[2] + gv3_d[0] * fv3_d[2]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[3],
-      0.5 *
-        (fv3_d[8] * gv3_d[11] + gv3_d[8] * fv3_d[11] + fv3_d[9] * gv3_d[10] + gv3_d[9] * fv3_d[10] +
-          fv3_d[4] * gv3_d[7] + gv3_d[4] * fv3_d[7] + fv3_d[5] * gv3_d[6] + gv3_d[5] * fv3_d[6] +
-          fv3_d[0] * gv3_d[3] + gv3_d[0] * fv3_d[3] + fv3_d[1] * gv3_d[2] + gv3_d[1] * fv3_d[2]),
-      1e-12));
+                            0.5 * (fv2_d[4] * gv2_d[7] + gv2_d[4] * fv2_d[7] + fv2_d[5] * gv2_d[6] +
+                                   gv2_d[5] * fv2_d[6] + fv2_d[0] * gv2_d[3] + gv2_d[0] * fv2_d[3] +
+                                   fv2_d[1] * gv2_d[2] + gv2_d[1] * fv2_d[2]),
+                            1e-12));
+    TEST_CHECK(
+      gkyl_compare(fvdgv3_d[0],
+                   0.5 * (fv3_d[11] * gv3_d[11] + fv3_d[10] * gv3_d[10] + fv3_d[9] * gv3_d[9] +
+                          fv3_d[8] * gv3_d[8] + fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] +
+                          fv3_d[5] * gv3_d[5] + fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] +
+                          fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] + fv3_d[0] * gv3_d[0]),
+                   1e-12));
+    TEST_CHECK(
+      gkyl_compare(fvdgv3_d[1],
+                   0.5 * (fv3_d[10] * gv3_d[11] + gv3_d[10] * fv3_d[11] + fv3_d[8] * gv3_d[9] +
+                          gv3_d[8] * fv3_d[9] + fv3_d[6] * gv3_d[7] + gv3_d[6] * fv3_d[7] +
+                          fv3_d[4] * gv3_d[5] + gv3_d[4] * fv3_d[5] + fv3_d[2] * gv3_d[3] +
+                          gv3_d[2] * fv3_d[3] + fv3_d[0] * gv3_d[1] + gv3_d[0] * fv3_d[1]),
+                   1e-12));
+    TEST_CHECK(
+      gkyl_compare(fvdgv3_d[2],
+                   0.5 * (fv3_d[9] * gv3_d[11] + gv3_d[9] * fv3_d[11] + fv3_d[8] * gv3_d[10] +
+                          gv3_d[8] * fv3_d[10] + fv3_d[5] * gv3_d[7] + gv3_d[5] * fv3_d[7] +
+                          fv3_d[4] * gv3_d[6] + gv3_d[4] * fv3_d[6] + fv3_d[1] * gv3_d[3] +
+                          gv3_d[1] * fv3_d[3] + fv3_d[0] * gv3_d[2] + gv3_d[0] * fv3_d[2]),
+                   1e-12));
+    TEST_CHECK(
+      gkyl_compare(fvdgv3_d[3],
+                   0.5 * (fv3_d[8] * gv3_d[11] + gv3_d[8] * fv3_d[11] + fv3_d[9] * gv3_d[10] +
+                          gv3_d[9] * fv3_d[10] + fv3_d[4] * gv3_d[7] + gv3_d[4] * fv3_d[7] +
+                          fv3_d[5] * gv3_d[6] + gv3_d[5] * fv3_d[6] + fv3_d[0] * gv3_d[3] +
+                          gv3_d[0] * fv3_d[3] + fv3_d[1] * gv3_d[2] + gv3_d[1] * fv3_d[2]),
+                   1e-12));
   } else if (poly_order == 2) {
-    TEST_CHECK(gkyl_compare(fvdgv2_d[0],
-      0.5 *
-        (fv2_d[15] * gv2_d[15] + fv2_d[14] * gv2_d[14] + fv2_d[13] * gv2_d[13] +
-          fv2_d[12] * gv2_d[12] + fv2_d[11] * gv2_d[11] + fv2_d[10] * gv2_d[10] +
-          fv2_d[9] * gv2_d[9] + fv2_d[8] * gv2_d[8] + fv2_d[7] * gv2_d[7] + fv2_d[6] * gv2_d[6] +
-          fv2_d[5] * gv2_d[5] + fv2_d[4] * gv2_d[4] + fv2_d[3] * gv2_d[3] + fv2_d[2] * gv2_d[2] +
-          fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[0],
+      0.5 * (fv2_d[15] * gv2_d[15] + fv2_d[14] * gv2_d[14] + fv2_d[13] * gv2_d[13] +
+             fv2_d[12] * gv2_d[12] + fv2_d[11] * gv2_d[11] + fv2_d[10] * gv2_d[10] +
+             fv2_d[9] * gv2_d[9] + fv2_d[8] * gv2_d[8] + fv2_d[7] * gv2_d[7] + fv2_d[6] * gv2_d[6] +
+             fv2_d[5] * gv2_d[5] + fv2_d[4] * gv2_d[4] + fv2_d[3] * gv2_d[3] + fv2_d[2] * gv2_d[2] +
+             fv2_d[1] * gv2_d[1] + fv2_d[0] * gv2_d[0]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[1],
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[1],
       0.03333333333333333 *
         (15.0 * fv2_d[13] * gv2_d[15] + 15.0 * gv2_d[13] * fv2_d[15] +
-          13.41640786499874 * fv2_d[11] * gv2_d[14] + 13.41640786499874 * gv2_d[11] * fv2_d[14] +
-          13.41640786499874 * fv2_d[9] * gv2_d[12] + 13.41640786499874 * gv2_d[9] * fv2_d[12] +
-          15.0 * fv2_d[10] * gv2_d[11] + 15.0 * gv2_d[10] * fv2_d[11] + 15.0 * fv2_d[8] * gv2_d[9] +
-          15.0 * gv2_d[8] * fv2_d[9] + 15.0 * fv2_d[5] * gv2_d[7] + 15.0 * gv2_d[5] * fv2_d[7] +
-          13.41640786499874 * fv2_d[3] * gv2_d[6] + 13.41640786499874 * gv2_d[3] * fv2_d[6] +
-          13.41640786499874 * fv2_d[1] * gv2_d[4] + 13.41640786499874 * gv2_d[1] * fv2_d[4] +
-          15.0 * fv2_d[2] * gv2_d[3] + 15.0 * gv2_d[2] * fv2_d[3] + 15.0 * fv2_d[0] * gv2_d[1] +
-          15.0 * gv2_d[0] * fv2_d[1]),
+         13.41640786499874 * fv2_d[11] * gv2_d[14] + 13.41640786499874 * gv2_d[11] * fv2_d[14] +
+         13.41640786499874 * fv2_d[9] * gv2_d[12] + 13.41640786499874 * gv2_d[9] * fv2_d[12] +
+         15.0 * fv2_d[10] * gv2_d[11] + 15.0 * gv2_d[10] * fv2_d[11] + 15.0 * fv2_d[8] * gv2_d[9] +
+         15.0 * gv2_d[8] * fv2_d[9] + 15.0 * fv2_d[5] * gv2_d[7] + 15.0 * gv2_d[5] * fv2_d[7] +
+         13.41640786499874 * fv2_d[3] * gv2_d[6] + 13.41640786499874 * gv2_d[3] * fv2_d[6] +
+         13.41640786499874 * fv2_d[1] * gv2_d[4] + 13.41640786499874 * gv2_d[1] * fv2_d[4] +
+         15.0 * fv2_d[2] * gv2_d[3] + 15.0 * gv2_d[2] * fv2_d[3] + 15.0 * fv2_d[0] * gv2_d[1] +
+         15.0 * gv2_d[0] * fv2_d[1]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[2],
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[2],
       0.03333333333333333 *
         (13.41640786499874 * fv2_d[11] * gv2_d[15] + 13.41640786499874 * gv2_d[11] * fv2_d[15] +
-          15.0 * fv2_d[12] * gv2_d[14] + 15.0 * gv2_d[12] * fv2_d[14] +
-          13.41640786499874 * fv2_d[10] * gv2_d[13] + 13.41640786499874 * gv2_d[10] * fv2_d[13] +
-          15.0 * fv2_d[9] * gv2_d[11] + 15.0 * gv2_d[9] * fv2_d[11] + 15.0 * fv2_d[8] * gv2_d[10] +
-          15.0 * gv2_d[8] * fv2_d[10] + 13.41640786499874 * fv2_d[3] * gv2_d[7] +
-          13.41640786499874 * gv2_d[3] * fv2_d[7] + 15.0 * fv2_d[4] * gv2_d[6] +
-          15.0 * gv2_d[4] * fv2_d[6] + 13.41640786499874 * fv2_d[2] * gv2_d[5] +
-          13.41640786499874 * gv2_d[2] * fv2_d[5] + 15.0 * fv2_d[1] * gv2_d[3] +
-          15.0 * gv2_d[1] * fv2_d[3] + 15.0 * fv2_d[0] * gv2_d[2] + 15.0 * gv2_d[0] * fv2_d[2]),
+         15.0 * fv2_d[12] * gv2_d[14] + 15.0 * gv2_d[12] * fv2_d[14] +
+         13.41640786499874 * fv2_d[10] * gv2_d[13] + 13.41640786499874 * gv2_d[10] * fv2_d[13] +
+         15.0 * fv2_d[9] * gv2_d[11] + 15.0 * gv2_d[9] * fv2_d[11] + 15.0 * fv2_d[8] * gv2_d[10] +
+         15.0 * gv2_d[8] * fv2_d[10] + 13.41640786499874 * fv2_d[3] * gv2_d[7] +
+         13.41640786499874 * gv2_d[3] * fv2_d[7] + 15.0 * fv2_d[4] * gv2_d[6] +
+         15.0 * gv2_d[4] * fv2_d[6] + 13.41640786499874 * fv2_d[2] * gv2_d[5] +
+         13.41640786499874 * gv2_d[2] * fv2_d[5] + 15.0 * fv2_d[1] * gv2_d[3] +
+         15.0 * gv2_d[1] * fv2_d[3] + 15.0 * fv2_d[0] * gv2_d[2] + 15.0 * gv2_d[0] * fv2_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[3],
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[3],
       0.03333333333333333 *
         ((12.0 * fv2_d[14] + 13.41640786499874 * fv2_d[10]) * gv2_d[15] +
-          (12.0 * gv2_d[14] + 13.41640786499874 * gv2_d[10]) * fv2_d[15] +
-          13.41640786499874 * fv2_d[9] * gv2_d[14] + 13.41640786499874 * gv2_d[9] * fv2_d[14] +
-          13.41640786499874 * fv2_d[11] * gv2_d[13] + 13.41640786499874 * gv2_d[11] * fv2_d[13] +
-          13.41640786499874 * fv2_d[11] * gv2_d[12] + 13.41640786499874 * gv2_d[11] * fv2_d[12] +
-          15.0 * fv2_d[8] * gv2_d[11] + 15.0 * gv2_d[8] * fv2_d[11] + 15.0 * fv2_d[9] * gv2_d[10] +
-          15.0 * gv2_d[9] * fv2_d[10] +
-          (12.0 * fv2_d[6] + 13.41640786499874 * fv2_d[2]) * gv2_d[7] +
-          (12.0 * gv2_d[6] + 13.41640786499874 * gv2_d[2]) * fv2_d[7] +
-          13.41640786499874 * fv2_d[1] * gv2_d[6] + 13.41640786499874 * gv2_d[1] * fv2_d[6] +
-          13.41640786499874 * fv2_d[3] * gv2_d[5] + 13.41640786499874 * gv2_d[3] * fv2_d[5] +
-          13.41640786499874 * fv2_d[3] * gv2_d[4] + 13.41640786499874 * gv2_d[3] * fv2_d[4] +
-          15.0 * fv2_d[0] * gv2_d[3] + 15.0 * gv2_d[0] * fv2_d[3] + 15.0 * fv2_d[1] * gv2_d[2] +
-          15.0 * gv2_d[1] * fv2_d[2]),
+         (12.0 * gv2_d[14] + 13.41640786499874 * gv2_d[10]) * fv2_d[15] +
+         13.41640786499874 * fv2_d[9] * gv2_d[14] + 13.41640786499874 * gv2_d[9] * fv2_d[14] +
+         13.41640786499874 * fv2_d[11] * gv2_d[13] + 13.41640786499874 * gv2_d[11] * fv2_d[13] +
+         13.41640786499874 * fv2_d[11] * gv2_d[12] + 13.41640786499874 * gv2_d[11] * fv2_d[12] +
+         15.0 * fv2_d[8] * gv2_d[11] + 15.0 * gv2_d[8] * fv2_d[11] + 15.0 * fv2_d[9] * gv2_d[10] +
+         15.0 * gv2_d[9] * fv2_d[10] + (12.0 * fv2_d[6] + 13.41640786499874 * fv2_d[2]) * gv2_d[7] +
+         (12.0 * gv2_d[6] + 13.41640786499874 * gv2_d[2]) * fv2_d[7] +
+         13.41640786499874 * fv2_d[1] * gv2_d[6] + 13.41640786499874 * gv2_d[1] * fv2_d[6] +
+         13.41640786499874 * fv2_d[3] * gv2_d[5] + 13.41640786499874 * gv2_d[3] * fv2_d[5] +
+         13.41640786499874 * fv2_d[3] * gv2_d[4] + 13.41640786499874 * gv2_d[3] * fv2_d[4] +
+         15.0 * fv2_d[0] * gv2_d[3] + 15.0 * gv2_d[0] * fv2_d[3] + 15.0 * fv2_d[1] * gv2_d[2] +
+         15.0 * gv2_d[1] * fv2_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[4],
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[4],
       0.004761904761904762 *
         (93.91485505499116 * fv2_d[15] * gv2_d[15] +
-          (67.0820393249937 * fv2_d[14] + 105.0 * fv2_d[10]) * gv2_d[14] +
-          105.0 * gv2_d[10] * fv2_d[14] +
-          (67.0820393249937 * fv2_d[12] + 105.0 * fv2_d[8]) * gv2_d[12] +
-          105.0 * gv2_d[8] * fv2_d[12] + 93.91485505499116 * fv2_d[11] * gv2_d[11] +
-          93.91485505499116 * fv2_d[9] * gv2_d[9] + 93.91485505499116 * fv2_d[7] * gv2_d[7] +
-          (67.0820393249937 * fv2_d[6] + 105.0 * fv2_d[2]) * gv2_d[6] +
-          105.0 * gv2_d[2] * fv2_d[6] +
-          (67.0820393249937 * fv2_d[4] + 105.0 * fv2_d[0]) * gv2_d[4] +
-          105.0 * gv2_d[0] * fv2_d[4] + 93.91485505499116 * fv2_d[3] * gv2_d[3] +
-          93.91485505499116 * fv2_d[1] * gv2_d[1]),
+         (67.0820393249937 * fv2_d[14] + 105.0 * fv2_d[10]) * gv2_d[14] +
+         105.0 * gv2_d[10] * fv2_d[14] +
+         (67.0820393249937 * fv2_d[12] + 105.0 * fv2_d[8]) * gv2_d[12] +
+         105.0 * gv2_d[8] * fv2_d[12] + 93.91485505499116 * fv2_d[11] * gv2_d[11] +
+         93.91485505499116 * fv2_d[9] * gv2_d[9] + 93.91485505499116 * fv2_d[7] * gv2_d[7] +
+         (67.0820393249937 * fv2_d[6] + 105.0 * fv2_d[2]) * gv2_d[6] + 105.0 * gv2_d[2] * fv2_d[6] +
+         (67.0820393249937 * fv2_d[4] + 105.0 * fv2_d[0]) * gv2_d[4] + 105.0 * gv2_d[0] * fv2_d[4] +
+         93.91485505499116 * fv2_d[3] * gv2_d[3] + 93.91485505499116 * fv2_d[1] * gv2_d[1]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[5],
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[5],
       0.004761904761904762 *
         ((67.0820393249937 * fv2_d[15] + 105.0 * fv2_d[9]) * gv2_d[15] +
-          105.0 * gv2_d[9] * fv2_d[15] + 93.91485505499116 * fv2_d[14] * gv2_d[14] +
-          (67.0820393249937 * fv2_d[13] + 105.0 * fv2_d[8]) * gv2_d[13] +
-          105.0 * gv2_d[8] * fv2_d[13] + 93.91485505499116 * fv2_d[11] * gv2_d[11] +
-          93.91485505499116 * fv2_d[10] * gv2_d[10] +
-          (67.0820393249937 * fv2_d[7] + 105.0 * fv2_d[1]) * gv2_d[7] +
-          105.0 * gv2_d[1] * fv2_d[7] + 93.91485505499116 * fv2_d[6] * gv2_d[6] +
-          (67.0820393249937 * fv2_d[5] + 105.0 * fv2_d[0]) * gv2_d[5] +
-          105.0 * gv2_d[0] * fv2_d[5] + 93.91485505499116 * fv2_d[3] * gv2_d[3] +
-          93.91485505499116 * fv2_d[2] * gv2_d[2]),
+         105.0 * gv2_d[9] * fv2_d[15] + 93.91485505499116 * fv2_d[14] * gv2_d[14] +
+         (67.0820393249937 * fv2_d[13] + 105.0 * fv2_d[8]) * gv2_d[13] +
+         105.0 * gv2_d[8] * fv2_d[13] + 93.91485505499116 * fv2_d[11] * gv2_d[11] +
+         93.91485505499116 * fv2_d[10] * gv2_d[10] +
+         (67.0820393249937 * fv2_d[7] + 105.0 * fv2_d[1]) * gv2_d[7] + 105.0 * gv2_d[1] * fv2_d[7] +
+         93.91485505499116 * fv2_d[6] * gv2_d[6] +
+         (67.0820393249937 * fv2_d[5] + 105.0 * fv2_d[0]) * gv2_d[5] + 105.0 * gv2_d[0] * fv2_d[5] +
+         93.91485505499116 * fv2_d[3] * gv2_d[3] + 93.91485505499116 * fv2_d[2] * gv2_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[6],
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[6],
       0.004761904761904762 *
         (84.0 * fv2_d[11] * gv2_d[15] + 84.0 * gv2_d[11] * fv2_d[15] +
-          (93.91485505499116 * fv2_d[13] + 67.0820393249937 * fv2_d[12] + 105.0 * fv2_d[8]) *
-            gv2_d[14] +
-          (93.91485505499116 * gv2_d[13] + 67.0820393249937 * gv2_d[12] + 105.0 * gv2_d[8]) *
-            fv2_d[14] +
-          105.0 * fv2_d[10] * gv2_d[12] + 105.0 * gv2_d[10] * fv2_d[12] +
-          93.91485505499116 * fv2_d[9] * gv2_d[11] + 93.91485505499116 * gv2_d[9] * fv2_d[11] +
-          84.0 * fv2_d[3] * gv2_d[7] + 84.0 * gv2_d[3] * fv2_d[7] +
-          (93.91485505499116 * fv2_d[5] + 67.0820393249937 * fv2_d[4] + 105.0 * fv2_d[0]) *
-            gv2_d[6] +
-          (93.91485505499116 * gv2_d[5] + 67.0820393249937 * gv2_d[4] + 105.0 * gv2_d[0]) *
-            fv2_d[6] +
-          105.0 * fv2_d[2] * gv2_d[4] + 105.0 * gv2_d[2] * fv2_d[4] +
-          93.91485505499116 * fv2_d[1] * gv2_d[3] + 93.91485505499116 * gv2_d[1] * fv2_d[3]),
+         (93.91485505499116 * fv2_d[13] + 67.0820393249937 * fv2_d[12] + 105.0 * fv2_d[8]) *
+           gv2_d[14] +
+         (93.91485505499116 * gv2_d[13] + 67.0820393249937 * gv2_d[12] + 105.0 * gv2_d[8]) *
+           fv2_d[14] +
+         105.0 * fv2_d[10] * gv2_d[12] + 105.0 * gv2_d[10] * fv2_d[12] +
+         93.91485505499116 * fv2_d[9] * gv2_d[11] + 93.91485505499116 * gv2_d[9] * fv2_d[11] +
+         84.0 * fv2_d[3] * gv2_d[7] + 84.0 * gv2_d[3] * fv2_d[7] +
+         (93.91485505499116 * fv2_d[5] + 67.0820393249937 * fv2_d[4] + 105.0 * fv2_d[0]) * gv2_d[6] +
+         (93.91485505499116 * gv2_d[5] + 67.0820393249937 * gv2_d[4] + 105.0 * gv2_d[0]) * fv2_d[6] +
+         105.0 * fv2_d[2] * gv2_d[4] + 105.0 * gv2_d[2] * fv2_d[4] +
+         93.91485505499116 * fv2_d[1] * gv2_d[3] + 93.91485505499116 * gv2_d[1] * fv2_d[3]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv2_d[7],
+    TEST_CHECK(gkyl_compare(
+      fvdgv2_d[7],
       0.004761904761904762 *
         ((67.0820393249937 * fv2_d[13] + 93.91485505499116 * fv2_d[12] + 105.0 * fv2_d[8]) *
-            gv2_d[15] +
-          (67.0820393249937 * gv2_d[13] + 93.91485505499116 * gv2_d[12] + 105.0 * gv2_d[8]) *
-            fv2_d[15] +
-          84.0 * fv2_d[11] * gv2_d[14] + 84.0 * gv2_d[11] * fv2_d[14] +
-          105.0 * fv2_d[9] * gv2_d[13] + 105.0 * gv2_d[9] * fv2_d[13] +
-          93.91485505499116 * fv2_d[10] * gv2_d[11] + 93.91485505499116 * gv2_d[10] * fv2_d[11] +
-          (67.0820393249937 * fv2_d[5] + 93.91485505499116 * fv2_d[4] + 105.0 * fv2_d[0]) *
-            gv2_d[7] +
-          (67.0820393249937 * gv2_d[5] + 93.91485505499116 * gv2_d[4] + 105.0 * gv2_d[0]) *
-            fv2_d[7] +
-          84.0 * fv2_d[3] * gv2_d[6] + 84.0 * gv2_d[3] * fv2_d[6] + 105.0 * fv2_d[1] * gv2_d[5] +
-          105.0 * gv2_d[1] * fv2_d[5] + 93.91485505499116 * fv2_d[2] * gv2_d[3] +
-          93.91485505499116 * gv2_d[2] * fv2_d[3]),
+           gv2_d[15] +
+         (67.0820393249937 * gv2_d[13] + 93.91485505499116 * gv2_d[12] + 105.0 * gv2_d[8]) *
+           fv2_d[15] +
+         84.0 * fv2_d[11] * gv2_d[14] + 84.0 * gv2_d[11] * fv2_d[14] +
+         105.0 * fv2_d[9] * gv2_d[13] + 105.0 * gv2_d[9] * fv2_d[13] +
+         93.91485505499116 * fv2_d[10] * gv2_d[11] + 93.91485505499116 * gv2_d[10] * fv2_d[11] +
+         (67.0820393249937 * fv2_d[5] + 93.91485505499116 * fv2_d[4] + 105.0 * fv2_d[0]) * gv2_d[7] +
+         (67.0820393249937 * gv2_d[5] + 93.91485505499116 * gv2_d[4] + 105.0 * gv2_d[0]) * fv2_d[7] +
+         84.0 * fv2_d[3] * gv2_d[6] + 84.0 * gv2_d[3] * fv2_d[6] + 105.0 * fv2_d[1] * gv2_d[5] +
+         105.0 * gv2_d[1] * fv2_d[5] + 93.91485505499116 * fv2_d[2] * gv2_d[3] +
+         93.91485505499116 * gv2_d[2] * fv2_d[3]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[0],
-      0.5 *
-        (fv3_d[23] * gv3_d[23] + fv3_d[22] * gv3_d[22] + fv3_d[21] * gv3_d[21] +
-          fv3_d[20] * gv3_d[20] + fv3_d[19] * gv3_d[19] + fv3_d[18] * gv3_d[18] +
-          fv3_d[17] * gv3_d[17] + fv3_d[16] * gv3_d[16] + fv3_d[15] * gv3_d[15] +
-          fv3_d[14] * gv3_d[14] + fv3_d[13] * gv3_d[13] + fv3_d[12] * gv3_d[12] +
-          fv3_d[11] * gv3_d[11] + fv3_d[10] * gv3_d[10] + fv3_d[9] * gv3_d[9] +
-          fv3_d[8] * gv3_d[8] + fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] + fv3_d[5] * gv3_d[5] +
-          fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] + fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] +
-          fv3_d[0] * gv3_d[0]),
-      1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[1],
+    TEST_CHECK(
+      gkyl_compare(fvdgv3_d[0],
+                   0.5 * (fv3_d[23] * gv3_d[23] + fv3_d[22] * gv3_d[22] + fv3_d[21] * gv3_d[21] +
+                          fv3_d[20] * gv3_d[20] + fv3_d[19] * gv3_d[19] + fv3_d[18] * gv3_d[18] +
+                          fv3_d[17] * gv3_d[17] + fv3_d[16] * gv3_d[16] + fv3_d[15] * gv3_d[15] +
+                          fv3_d[14] * gv3_d[14] + fv3_d[13] * gv3_d[13] + fv3_d[12] * gv3_d[12] +
+                          fv3_d[11] * gv3_d[11] + fv3_d[10] * gv3_d[10] + fv3_d[9] * gv3_d[9] +
+                          fv3_d[8] * gv3_d[8] + fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] +
+                          fv3_d[5] * gv3_d[5] + fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] +
+                          fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] + fv3_d[0] * gv3_d[0]),
+                   1e-12));
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[1],
       0.03333333333333333 *
         (15.0 * fv3_d[21] * gv3_d[23] + 15.0 * gv3_d[21] * fv3_d[23] +
-          13.41640786499874 * fv3_d[19] * gv3_d[22] + 13.41640786499874 * gv3_d[19] * fv3_d[22] +
-          13.41640786499874 * fv3_d[17] * gv3_d[20] + 13.41640786499874 * gv3_d[17] * fv3_d[20] +
-          15.0 * fv3_d[18] * gv3_d[19] + 15.0 * gv3_d[18] * fv3_d[19] +
-          15.0 * fv3_d[16] * gv3_d[17] + 15.0 * gv3_d[16] * fv3_d[17] +
-          15.0 * fv3_d[13] * gv3_d[15] + 15.0 * gv3_d[13] * fv3_d[15] +
-          13.41640786499874 * fv3_d[11] * gv3_d[14] + 13.41640786499874 * gv3_d[11] * fv3_d[14] +
-          13.41640786499874 * fv3_d[9] * gv3_d[12] + 13.41640786499874 * gv3_d[9] * fv3_d[12] +
-          15.0 * fv3_d[10] * gv3_d[11] + 15.0 * gv3_d[10] * fv3_d[11] + 15.0 * fv3_d[8] * gv3_d[9] +
-          15.0 * gv3_d[8] * fv3_d[9] + 15.0 * fv3_d[5] * gv3_d[7] + 15.0 * gv3_d[5] * fv3_d[7] +
-          13.41640786499874 * fv3_d[3] * gv3_d[6] + 13.41640786499874 * gv3_d[3] * fv3_d[6] +
-          13.41640786499874 * fv3_d[1] * gv3_d[4] + 13.41640786499874 * gv3_d[1] * fv3_d[4] +
-          15.0 * fv3_d[2] * gv3_d[3] + 15.0 * gv3_d[2] * fv3_d[3] + 15.0 * fv3_d[0] * gv3_d[1] +
-          15.0 * gv3_d[0] * fv3_d[1]),
+         13.41640786499874 * fv3_d[19] * gv3_d[22] + 13.41640786499874 * gv3_d[19] * fv3_d[22] +
+         13.41640786499874 * fv3_d[17] * gv3_d[20] + 13.41640786499874 * gv3_d[17] * fv3_d[20] +
+         15.0 * fv3_d[18] * gv3_d[19] + 15.0 * gv3_d[18] * fv3_d[19] +
+         15.0 * fv3_d[16] * gv3_d[17] + 15.0 * gv3_d[16] * fv3_d[17] +
+         15.0 * fv3_d[13] * gv3_d[15] + 15.0 * gv3_d[13] * fv3_d[15] +
+         13.41640786499874 * fv3_d[11] * gv3_d[14] + 13.41640786499874 * gv3_d[11] * fv3_d[14] +
+         13.41640786499874 * fv3_d[9] * gv3_d[12] + 13.41640786499874 * gv3_d[9] * fv3_d[12] +
+         15.0 * fv3_d[10] * gv3_d[11] + 15.0 * gv3_d[10] * fv3_d[11] + 15.0 * fv3_d[8] * gv3_d[9] +
+         15.0 * gv3_d[8] * fv3_d[9] + 15.0 * fv3_d[5] * gv3_d[7] + 15.0 * gv3_d[5] * fv3_d[7] +
+         13.41640786499874 * fv3_d[3] * gv3_d[6] + 13.41640786499874 * gv3_d[3] * fv3_d[6] +
+         13.41640786499874 * fv3_d[1] * gv3_d[4] + 13.41640786499874 * gv3_d[1] * fv3_d[4] +
+         15.0 * fv3_d[2] * gv3_d[3] + 15.0 * gv3_d[2] * fv3_d[3] + 15.0 * fv3_d[0] * gv3_d[1] +
+         15.0 * gv3_d[0] * fv3_d[1]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[2],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[2],
       0.03333333333333333 *
         (13.41640786499874 * fv3_d[19] * gv3_d[23] + 13.41640786499874 * gv3_d[19] * fv3_d[23] +
-          15.0 * fv3_d[20] * gv3_d[22] + 15.0 * gv3_d[20] * fv3_d[22] +
-          13.41640786499874 * fv3_d[18] * gv3_d[21] + 13.41640786499874 * gv3_d[18] * fv3_d[21] +
-          15.0 * fv3_d[17] * gv3_d[19] + 15.0 * gv3_d[17] * fv3_d[19] +
-          15.0 * fv3_d[16] * gv3_d[18] + 15.0 * gv3_d[16] * fv3_d[18] +
-          13.41640786499874 * fv3_d[11] * gv3_d[15] + 13.41640786499874 * gv3_d[11] * fv3_d[15] +
-          15.0 * fv3_d[12] * gv3_d[14] + 15.0 * gv3_d[12] * fv3_d[14] +
-          13.41640786499874 * fv3_d[10] * gv3_d[13] + 13.41640786499874 * gv3_d[10] * fv3_d[13] +
-          15.0 * fv3_d[9] * gv3_d[11] + 15.0 * gv3_d[9] * fv3_d[11] + 15.0 * fv3_d[8] * gv3_d[10] +
-          15.0 * gv3_d[8] * fv3_d[10] + 13.41640786499874 * fv3_d[3] * gv3_d[7] +
-          13.41640786499874 * gv3_d[3] * fv3_d[7] + 15.0 * fv3_d[4] * gv3_d[6] +
-          15.0 * gv3_d[4] * fv3_d[6] + 13.41640786499874 * fv3_d[2] * gv3_d[5] +
-          13.41640786499874 * gv3_d[2] * fv3_d[5] + 15.0 * fv3_d[1] * gv3_d[3] +
-          15.0 * gv3_d[1] * fv3_d[3] + 15.0 * fv3_d[0] * gv3_d[2] + 15.0 * gv3_d[0] * fv3_d[2]),
+         15.0 * fv3_d[20] * gv3_d[22] + 15.0 * gv3_d[20] * fv3_d[22] +
+         13.41640786499874 * fv3_d[18] * gv3_d[21] + 13.41640786499874 * gv3_d[18] * fv3_d[21] +
+         15.0 * fv3_d[17] * gv3_d[19] + 15.0 * gv3_d[17] * fv3_d[19] +
+         15.0 * fv3_d[16] * gv3_d[18] + 15.0 * gv3_d[16] * fv3_d[18] +
+         13.41640786499874 * fv3_d[11] * gv3_d[15] + 13.41640786499874 * gv3_d[11] * fv3_d[15] +
+         15.0 * fv3_d[12] * gv3_d[14] + 15.0 * gv3_d[12] * fv3_d[14] +
+         13.41640786499874 * fv3_d[10] * gv3_d[13] + 13.41640786499874 * gv3_d[10] * fv3_d[13] +
+         15.0 * fv3_d[9] * gv3_d[11] + 15.0 * gv3_d[9] * fv3_d[11] + 15.0 * fv3_d[8] * gv3_d[10] +
+         15.0 * gv3_d[8] * fv3_d[10] + 13.41640786499874 * fv3_d[3] * gv3_d[7] +
+         13.41640786499874 * gv3_d[3] * fv3_d[7] + 15.0 * fv3_d[4] * gv3_d[6] +
+         15.0 * gv3_d[4] * fv3_d[6] + 13.41640786499874 * fv3_d[2] * gv3_d[5] +
+         13.41640786499874 * gv3_d[2] * fv3_d[5] + 15.0 * fv3_d[1] * gv3_d[3] +
+         15.0 * gv3_d[1] * fv3_d[3] + 15.0 * fv3_d[0] * gv3_d[2] + 15.0 * gv3_d[0] * fv3_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[3],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[3],
       0.03333333333333333 *
         ((12.0 * fv3_d[22] + 13.41640786499874 * fv3_d[18]) * gv3_d[23] +
-          (12.0 * gv3_d[22] + 13.41640786499874 * gv3_d[18]) * fv3_d[23] +
-          13.41640786499874 * fv3_d[17] * gv3_d[22] + 13.41640786499874 * gv3_d[17] * fv3_d[22] +
-          13.41640786499874 * fv3_d[19] * gv3_d[21] + 13.41640786499874 * gv3_d[19] * fv3_d[21] +
-          13.41640786499874 * fv3_d[19] * gv3_d[20] + 13.41640786499874 * gv3_d[19] * fv3_d[20] +
-          15.0 * fv3_d[16] * gv3_d[19] + 15.0 * gv3_d[16] * fv3_d[19] +
-          15.0 * fv3_d[17] * gv3_d[18] + 15.0 * gv3_d[17] * fv3_d[18] +
-          (12.0 * fv3_d[14] + 13.41640786499874 * fv3_d[10]) * gv3_d[15] +
-          (12.0 * gv3_d[14] + 13.41640786499874 * gv3_d[10]) * fv3_d[15] +
-          13.41640786499874 * fv3_d[9] * gv3_d[14] + 13.41640786499874 * gv3_d[9] * fv3_d[14] +
-          13.41640786499874 * fv3_d[11] * gv3_d[13] + 13.41640786499874 * gv3_d[11] * fv3_d[13] +
-          13.41640786499874 * fv3_d[11] * gv3_d[12] + 13.41640786499874 * gv3_d[11] * fv3_d[12] +
-          15.0 * fv3_d[8] * gv3_d[11] + 15.0 * gv3_d[8] * fv3_d[11] + 15.0 * fv3_d[9] * gv3_d[10] +
-          15.0 * gv3_d[9] * fv3_d[10] +
-          (12.0 * fv3_d[6] + 13.41640786499874 * fv3_d[2]) * gv3_d[7] +
-          (12.0 * gv3_d[6] + 13.41640786499874 * gv3_d[2]) * fv3_d[7] +
-          13.41640786499874 * fv3_d[1] * gv3_d[6] + 13.41640786499874 * gv3_d[1] * fv3_d[6] +
-          13.41640786499874 * fv3_d[3] * gv3_d[5] + 13.41640786499874 * gv3_d[3] * fv3_d[5] +
-          13.41640786499874 * fv3_d[3] * gv3_d[4] + 13.41640786499874 * gv3_d[3] * fv3_d[4] +
-          15.0 * fv3_d[0] * gv3_d[3] + 15.0 * gv3_d[0] * fv3_d[3] + 15.0 * fv3_d[1] * gv3_d[2] +
-          15.0 * gv3_d[1] * fv3_d[2]),
+         (12.0 * gv3_d[22] + 13.41640786499874 * gv3_d[18]) * fv3_d[23] +
+         13.41640786499874 * fv3_d[17] * gv3_d[22] + 13.41640786499874 * gv3_d[17] * fv3_d[22] +
+         13.41640786499874 * fv3_d[19] * gv3_d[21] + 13.41640786499874 * gv3_d[19] * fv3_d[21] +
+         13.41640786499874 * fv3_d[19] * gv3_d[20] + 13.41640786499874 * gv3_d[19] * fv3_d[20] +
+         15.0 * fv3_d[16] * gv3_d[19] + 15.0 * gv3_d[16] * fv3_d[19] +
+         15.0 * fv3_d[17] * gv3_d[18] + 15.0 * gv3_d[17] * fv3_d[18] +
+         (12.0 * fv3_d[14] + 13.41640786499874 * fv3_d[10]) * gv3_d[15] +
+         (12.0 * gv3_d[14] + 13.41640786499874 * gv3_d[10]) * fv3_d[15] +
+         13.41640786499874 * fv3_d[9] * gv3_d[14] + 13.41640786499874 * gv3_d[9] * fv3_d[14] +
+         13.41640786499874 * fv3_d[11] * gv3_d[13] + 13.41640786499874 * gv3_d[11] * fv3_d[13] +
+         13.41640786499874 * fv3_d[11] * gv3_d[12] + 13.41640786499874 * gv3_d[11] * fv3_d[12] +
+         15.0 * fv3_d[8] * gv3_d[11] + 15.0 * gv3_d[8] * fv3_d[11] + 15.0 * fv3_d[9] * gv3_d[10] +
+         15.0 * gv3_d[9] * fv3_d[10] + (12.0 * fv3_d[6] + 13.41640786499874 * fv3_d[2]) * gv3_d[7] +
+         (12.0 * gv3_d[6] + 13.41640786499874 * gv3_d[2]) * fv3_d[7] +
+         13.41640786499874 * fv3_d[1] * gv3_d[6] + 13.41640786499874 * gv3_d[1] * fv3_d[6] +
+         13.41640786499874 * fv3_d[3] * gv3_d[5] + 13.41640786499874 * gv3_d[3] * fv3_d[5] +
+         13.41640786499874 * fv3_d[3] * gv3_d[4] + 13.41640786499874 * gv3_d[3] * fv3_d[4] +
+         15.0 * fv3_d[0] * gv3_d[3] + 15.0 * gv3_d[0] * fv3_d[3] + 15.0 * fv3_d[1] * gv3_d[2] +
+         15.0 * gv3_d[1] * fv3_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[4],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[4],
       0.004761904761904762 *
         (93.91485505499116 * fv3_d[23] * gv3_d[23] +
-          (67.0820393249937 * fv3_d[22] + 105.0 * fv3_d[18]) * gv3_d[22] +
-          105.0 * gv3_d[18] * fv3_d[22] +
-          (67.0820393249937 * fv3_d[20] + 105.0 * fv3_d[16]) * gv3_d[20] +
-          105.0 * gv3_d[16] * fv3_d[20] + 93.91485505499116 * fv3_d[19] * gv3_d[19] +
-          93.91485505499116 * fv3_d[17] * gv3_d[17] + 93.91485505499116 * fv3_d[15] * gv3_d[15] +
-          (67.0820393249937 * fv3_d[14] + 105.0 * fv3_d[10]) * gv3_d[14] +
-          105.0 * gv3_d[10] * fv3_d[14] +
-          (67.0820393249937 * fv3_d[12] + 105.0 * fv3_d[8]) * gv3_d[12] +
-          105.0 * gv3_d[8] * fv3_d[12] + 93.91485505499116 * fv3_d[11] * gv3_d[11] +
-          93.91485505499116 * fv3_d[9] * gv3_d[9] + 93.91485505499116 * fv3_d[7] * gv3_d[7] +
-          (67.0820393249937 * fv3_d[6] + 105.0 * fv3_d[2]) * gv3_d[6] +
-          105.0 * gv3_d[2] * fv3_d[6] +
-          (67.0820393249937 * fv3_d[4] + 105.0 * fv3_d[0]) * gv3_d[4] +
-          105.0 * gv3_d[0] * fv3_d[4] + 93.91485505499116 * fv3_d[3] * gv3_d[3] +
-          93.91485505499116 * fv3_d[1] * gv3_d[1]),
+         (67.0820393249937 * fv3_d[22] + 105.0 * fv3_d[18]) * gv3_d[22] +
+         105.0 * gv3_d[18] * fv3_d[22] +
+         (67.0820393249937 * fv3_d[20] + 105.0 * fv3_d[16]) * gv3_d[20] +
+         105.0 * gv3_d[16] * fv3_d[20] + 93.91485505499116 * fv3_d[19] * gv3_d[19] +
+         93.91485505499116 * fv3_d[17] * gv3_d[17] + 93.91485505499116 * fv3_d[15] * gv3_d[15] +
+         (67.0820393249937 * fv3_d[14] + 105.0 * fv3_d[10]) * gv3_d[14] +
+         105.0 * gv3_d[10] * fv3_d[14] +
+         (67.0820393249937 * fv3_d[12] + 105.0 * fv3_d[8]) * gv3_d[12] +
+         105.0 * gv3_d[8] * fv3_d[12] + 93.91485505499116 * fv3_d[11] * gv3_d[11] +
+         93.91485505499116 * fv3_d[9] * gv3_d[9] + 93.91485505499116 * fv3_d[7] * gv3_d[7] +
+         (67.0820393249937 * fv3_d[6] + 105.0 * fv3_d[2]) * gv3_d[6] + 105.0 * gv3_d[2] * fv3_d[6] +
+         (67.0820393249937 * fv3_d[4] + 105.0 * fv3_d[0]) * gv3_d[4] + 105.0 * gv3_d[0] * fv3_d[4] +
+         93.91485505499116 * fv3_d[3] * gv3_d[3] + 93.91485505499116 * fv3_d[1] * gv3_d[1]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[5],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[5],
       0.004761904761904762 *
         ((67.0820393249937 * fv3_d[23] + 105.0 * fv3_d[17]) * gv3_d[23] +
-          105.0 * gv3_d[17] * fv3_d[23] + 93.91485505499116 * fv3_d[22] * gv3_d[22] +
-          (67.0820393249937 * fv3_d[21] + 105.0 * fv3_d[16]) * gv3_d[21] +
-          105.0 * gv3_d[16] * fv3_d[21] + 93.91485505499116 * fv3_d[19] * gv3_d[19] +
-          93.91485505499116 * fv3_d[18] * gv3_d[18] +
-          (67.0820393249937 * fv3_d[15] + 105.0 * fv3_d[9]) * gv3_d[15] +
-          105.0 * gv3_d[9] * fv3_d[15] + 93.91485505499116 * fv3_d[14] * gv3_d[14] +
-          (67.0820393249937 * fv3_d[13] + 105.0 * fv3_d[8]) * gv3_d[13] +
-          105.0 * gv3_d[8] * fv3_d[13] + 93.91485505499116 * fv3_d[11] * gv3_d[11] +
-          93.91485505499116 * fv3_d[10] * gv3_d[10] +
-          (67.0820393249937 * fv3_d[7] + 105.0 * fv3_d[1]) * gv3_d[7] +
-          105.0 * gv3_d[1] * fv3_d[7] + 93.91485505499116 * fv3_d[6] * gv3_d[6] +
-          (67.0820393249937 * fv3_d[5] + 105.0 * fv3_d[0]) * gv3_d[5] +
-          105.0 * gv3_d[0] * fv3_d[5] + 93.91485505499116 * fv3_d[3] * gv3_d[3] +
-          93.91485505499116 * fv3_d[2] * gv3_d[2]),
+         105.0 * gv3_d[17] * fv3_d[23] + 93.91485505499116 * fv3_d[22] * gv3_d[22] +
+         (67.0820393249937 * fv3_d[21] + 105.0 * fv3_d[16]) * gv3_d[21] +
+         105.0 * gv3_d[16] * fv3_d[21] + 93.91485505499116 * fv3_d[19] * gv3_d[19] +
+         93.91485505499116 * fv3_d[18] * gv3_d[18] +
+         (67.0820393249937 * fv3_d[15] + 105.0 * fv3_d[9]) * gv3_d[15] +
+         105.0 * gv3_d[9] * fv3_d[15] + 93.91485505499116 * fv3_d[14] * gv3_d[14] +
+         (67.0820393249937 * fv3_d[13] + 105.0 * fv3_d[8]) * gv3_d[13] +
+         105.0 * gv3_d[8] * fv3_d[13] + 93.91485505499116 * fv3_d[11] * gv3_d[11] +
+         93.91485505499116 * fv3_d[10] * gv3_d[10] +
+         (67.0820393249937 * fv3_d[7] + 105.0 * fv3_d[1]) * gv3_d[7] + 105.0 * gv3_d[1] * fv3_d[7] +
+         93.91485505499116 * fv3_d[6] * gv3_d[6] +
+         (67.0820393249937 * fv3_d[5] + 105.0 * fv3_d[0]) * gv3_d[5] + 105.0 * gv3_d[0] * fv3_d[5] +
+         93.91485505499116 * fv3_d[3] * gv3_d[3] + 93.91485505499116 * fv3_d[2] * gv3_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[6],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[6],
       0.004761904761904762 *
         (84.0 * fv3_d[19] * gv3_d[23] + 84.0 * gv3_d[19] * fv3_d[23] +
-          (93.91485505499116 * fv3_d[21] + 67.0820393249937 * fv3_d[20] + 105.0 * fv3_d[16]) *
-            gv3_d[22] +
-          (93.91485505499116 * gv3_d[21] + 67.0820393249937 * gv3_d[20] + 105.0 * gv3_d[16]) *
-            fv3_d[22] +
-          105.0 * fv3_d[18] * gv3_d[20] + 105.0 * gv3_d[18] * fv3_d[20] +
-          93.91485505499116 * fv3_d[17] * gv3_d[19] + 93.91485505499116 * gv3_d[17] * fv3_d[19] +
-          84.0 * fv3_d[11] * gv3_d[15] + 84.0 * gv3_d[11] * fv3_d[15] +
-          (93.91485505499116 * fv3_d[13] + 67.0820393249937 * fv3_d[12] + 105.0 * fv3_d[8]) *
-            gv3_d[14] +
-          (93.91485505499116 * gv3_d[13] + 67.0820393249937 * gv3_d[12] + 105.0 * gv3_d[8]) *
-            fv3_d[14] +
-          105.0 * fv3_d[10] * gv3_d[12] + 105.0 * gv3_d[10] * fv3_d[12] +
-          93.91485505499116 * fv3_d[9] * gv3_d[11] + 93.91485505499116 * gv3_d[9] * fv3_d[11] +
-          84.0 * fv3_d[3] * gv3_d[7] + 84.0 * gv3_d[3] * fv3_d[7] +
-          (93.91485505499116 * fv3_d[5] + 67.0820393249937 * fv3_d[4] + 105.0 * fv3_d[0]) *
-            gv3_d[6] +
-          (93.91485505499116 * gv3_d[5] + 67.0820393249937 * gv3_d[4] + 105.0 * gv3_d[0]) *
-            fv3_d[6] +
-          105.0 * fv3_d[2] * gv3_d[4] + 105.0 * gv3_d[2] * fv3_d[4] +
-          93.91485505499116 * fv3_d[1] * gv3_d[3] + 93.91485505499116 * gv3_d[1] * fv3_d[3]),
+         (93.91485505499116 * fv3_d[21] + 67.0820393249937 * fv3_d[20] + 105.0 * fv3_d[16]) *
+           gv3_d[22] +
+         (93.91485505499116 * gv3_d[21] + 67.0820393249937 * gv3_d[20] + 105.0 * gv3_d[16]) *
+           fv3_d[22] +
+         105.0 * fv3_d[18] * gv3_d[20] + 105.0 * gv3_d[18] * fv3_d[20] +
+         93.91485505499116 * fv3_d[17] * gv3_d[19] + 93.91485505499116 * gv3_d[17] * fv3_d[19] +
+         84.0 * fv3_d[11] * gv3_d[15] + 84.0 * gv3_d[11] * fv3_d[15] +
+         (93.91485505499116 * fv3_d[13] + 67.0820393249937 * fv3_d[12] + 105.0 * fv3_d[8]) *
+           gv3_d[14] +
+         (93.91485505499116 * gv3_d[13] + 67.0820393249937 * gv3_d[12] + 105.0 * gv3_d[8]) *
+           fv3_d[14] +
+         105.0 * fv3_d[10] * gv3_d[12] + 105.0 * gv3_d[10] * fv3_d[12] +
+         93.91485505499116 * fv3_d[9] * gv3_d[11] + 93.91485505499116 * gv3_d[9] * fv3_d[11] +
+         84.0 * fv3_d[3] * gv3_d[7] + 84.0 * gv3_d[3] * fv3_d[7] +
+         (93.91485505499116 * fv3_d[5] + 67.0820393249937 * fv3_d[4] + 105.0 * fv3_d[0]) * gv3_d[6] +
+         (93.91485505499116 * gv3_d[5] + 67.0820393249937 * gv3_d[4] + 105.0 * gv3_d[0]) * fv3_d[6] +
+         105.0 * fv3_d[2] * gv3_d[4] + 105.0 * gv3_d[2] * fv3_d[4] +
+         93.91485505499116 * fv3_d[1] * gv3_d[3] + 93.91485505499116 * gv3_d[1] * fv3_d[3]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[7],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[7],
       0.004761904761904762 *
         ((67.0820393249937 * fv3_d[21] + 93.91485505499116 * fv3_d[20] + 105.0 * fv3_d[16]) *
-            gv3_d[23] +
-          (67.0820393249937 * gv3_d[21] + 93.91485505499116 * gv3_d[20] + 105.0 * gv3_d[16]) *
-            fv3_d[23] +
-          84.0 * fv3_d[19] * gv3_d[22] + 84.0 * gv3_d[19] * fv3_d[22] +
-          105.0 * fv3_d[17] * gv3_d[21] + 105.0 * gv3_d[17] * fv3_d[21] +
-          93.91485505499116 * fv3_d[18] * gv3_d[19] + 93.91485505499116 * gv3_d[18] * fv3_d[19] +
-          (67.0820393249937 * fv3_d[13] + 93.91485505499116 * fv3_d[12] + 105.0 * fv3_d[8]) *
-            gv3_d[15] +
-          (67.0820393249937 * gv3_d[13] + 93.91485505499116 * gv3_d[12] + 105.0 * gv3_d[8]) *
-            fv3_d[15] +
-          84.0 * fv3_d[11] * gv3_d[14] + 84.0 * gv3_d[11] * fv3_d[14] +
-          105.0 * fv3_d[9] * gv3_d[13] + 105.0 * gv3_d[9] * fv3_d[13] +
-          93.91485505499116 * fv3_d[10] * gv3_d[11] + 93.91485505499116 * gv3_d[10] * fv3_d[11] +
-          (67.0820393249937 * fv3_d[5] + 93.91485505499116 * fv3_d[4] + 105.0 * fv3_d[0]) *
-            gv3_d[7] +
-          (67.0820393249937 * gv3_d[5] + 93.91485505499116 * gv3_d[4] + 105.0 * gv3_d[0]) *
-            fv3_d[7] +
-          84.0 * fv3_d[3] * gv3_d[6] + 84.0 * gv3_d[3] * fv3_d[6] + 105.0 * fv3_d[1] * gv3_d[5] +
-          105.0 * gv3_d[1] * fv3_d[5] + 93.91485505499116 * fv3_d[2] * gv3_d[3] +
-          93.91485505499116 * gv3_d[2] * fv3_d[3]),
+           gv3_d[23] +
+         (67.0820393249937 * gv3_d[21] + 93.91485505499116 * gv3_d[20] + 105.0 * gv3_d[16]) *
+           fv3_d[23] +
+         84.0 * fv3_d[19] * gv3_d[22] + 84.0 * gv3_d[19] * fv3_d[22] +
+         105.0 * fv3_d[17] * gv3_d[21] + 105.0 * gv3_d[17] * fv3_d[21] +
+         93.91485505499116 * fv3_d[18] * gv3_d[19] + 93.91485505499116 * gv3_d[18] * fv3_d[19] +
+         (67.0820393249937 * fv3_d[13] + 93.91485505499116 * fv3_d[12] + 105.0 * fv3_d[8]) *
+           gv3_d[15] +
+         (67.0820393249937 * gv3_d[13] + 93.91485505499116 * gv3_d[12] + 105.0 * gv3_d[8]) *
+           fv3_d[15] +
+         84.0 * fv3_d[11] * gv3_d[14] + 84.0 * gv3_d[11] * fv3_d[14] +
+         105.0 * fv3_d[9] * gv3_d[13] + 105.0 * gv3_d[9] * fv3_d[13] +
+         93.91485505499116 * fv3_d[10] * gv3_d[11] + 93.91485505499116 * gv3_d[10] * fv3_d[11] +
+         (67.0820393249937 * fv3_d[5] + 93.91485505499116 * fv3_d[4] + 105.0 * fv3_d[0]) * gv3_d[7] +
+         (67.0820393249937 * gv3_d[5] + 93.91485505499116 * gv3_d[4] + 105.0 * gv3_d[0]) * fv3_d[7] +
+         84.0 * fv3_d[3] * gv3_d[6] + 84.0 * gv3_d[3] * fv3_d[6] + 105.0 * fv3_d[1] * gv3_d[5] +
+         105.0 * gv3_d[1] * fv3_d[5] + 93.91485505499116 * fv3_d[2] * gv3_d[3] +
+         93.91485505499116 * gv3_d[2] * fv3_d[3]),
       1e-12));
   }
   return;
 }
 
-void
-test_2d(int poly_order, bool use_gpu)
+void test_2d(int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
   int cells[] = { 2, 2 };
@@ -1146,8 +1136,8 @@ test_2d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
     // w = cfield*f
-    gkyl_dg_mul_conf_phase_op_range(
-      &cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
+    gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange,
+                                    &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv2_cu, 0.0);
@@ -1214,80 +1204,84 @@ test_2d(int poly_order, bool use_gpu)
     } else if (poly_order == 2) {
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * (cf_d[0] * f_d[0] + cf_d[1] * f_d[1] + cf_d[2] * f_d[4]),
-          wbar_d[0], 1e-12));
+                     wbar_d[0], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * (cf_d[1] * f_d[4] + cf_d[2] * f_d[1]) +
-          0.7071067811865475 * (cf_d[0] * f_d[1] + cf_d[1] * f_d[0]),
-        wbar_d[1], 1e-12));
+                                0.7071067811865475 * (cf_d[0] * f_d[1] + cf_d[1] * f_d[0]),
+                              wbar_d[1], 1e-12));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * (cf_d[0] * f_d[2] + cf_d[1] * f_d[3] + cf_d[2] * f_d[6]),
-          wbar_d[2], 1e-12));
+                     wbar_d[2], 1e-12));
       TEST_CHECK(gkyl_compare(0.632455532033676 * (cf_d[1] * f_d[6] + cf_d[2] * f_d[3]) +
-          0.7071067811865475 * (cf_d[0] * f_d[3] + cf_d[1] * f_d[2]),
-        wbar_d[3], 1e-12));
+                                0.7071067811865475 * (cf_d[0] * f_d[3] + cf_d[1] * f_d[2]),
+                              wbar_d[3], 1e-12));
       TEST_CHECK(gkyl_compare(0.4517539514526256 * cf_d[2] * f_d[4] +
-          0.7071067811865475 * (cf_d[0] * f_d[4] + cf_d[2] * f_d[0]) +
-          0.6324555320336759 * cf_d[1] * f_d[1],
-        wbar_d[4], 1e-12));
+                                0.7071067811865475 * (cf_d[0] * f_d[4] + cf_d[2] * f_d[0]) +
+                                0.6324555320336759 * cf_d[1] * f_d[1],
+                              wbar_d[4], 1e-12));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * (cf_d[1] * f_d[7] + cf_d[0] * f_d[5]), wbar_d[5], 1e-12));
       TEST_CHECK(gkyl_compare(0.4517539514526256 * cf_d[2] * f_d[6] +
-          0.7071067811865475 * (cf_d[0] * f_d[6] + cf_d[2] * f_d[2]) +
-          0.632455532033676 * cf_d[1] * f_d[3],
-        wbar_d[6], 1e-12));
+                                0.7071067811865475 * (cf_d[0] * f_d[6] + cf_d[2] * f_d[2]) +
+                                0.632455532033676 * cf_d[1] * f_d[3],
+                              wbar_d[6], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[7] +
-          0.7071067811865475 * (cf_d[0] * f_d[7] + cf_d[1] * f_d[5]),
-        wbar_d[7], 1e-12));
+                                0.7071067811865475 * (cf_d[0] * f_d[7] + cf_d[1] * f_d[5]),
+                              wbar_d[7], 1e-12));
     } else if (poly_order == 3) {
-      TEST_CHECK(
-        gkyl_compare(0.7071067811865475 * cf_d[3] * f_d[8] + 0.7071067811865475 * cf_d[2] * f_d[4] +
-            0.7071067811865475 * cf_d[1] * f_d[1] + 0.7071067811865475 * cf_d[0] * f_d[0],
-          wbar_d[0], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.6210590034081186 * cf_d[2] * f_d[8] + 0.6210590034081186 * cf_d[3] * f_d[4] +
-            0.6324555320336759 * cf_d[1] * f_d[4] + 0.6324555320336759 * f_d[1] * cf_d[2] +
-            0.7071067811865475 * cf_d[0] * f_d[1] + 0.7071067811865475 * f_d[0] * cf_d[1],
-          wbar_d[1], 1e-12));
-      TEST_CHECK(gkyl_compare(0.7071067811865474 * cf_d[3] * f_d[10] +
-          0.7071067811865475 * cf_d[2] * f_d[6] + 0.7071067811865475 * cf_d[1] * f_d[3] +
-          0.7071067811865475 * cf_d[0] * f_d[2],
+      TEST_CHECK(gkyl_compare(
+        0.7071067811865475 * cf_d[3] * f_d[8] + 0.7071067811865475 * cf_d[2] * f_d[4] +
+          0.7071067811865475 * cf_d[1] * f_d[1] + 0.7071067811865475 * cf_d[0] * f_d[0],
+        wbar_d[0], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.6210590034081186 * cf_d[2] * f_d[8] + 0.6210590034081186 * cf_d[3] * f_d[4] +
+          0.6324555320336759 * cf_d[1] * f_d[4] + 0.6324555320336759 * f_d[1] * cf_d[2] +
+          0.7071067811865475 * cf_d[0] * f_d[1] + 0.7071067811865475 * f_d[0] * cf_d[1],
+        wbar_d[1], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.7071067811865474 * cf_d[3] * f_d[10] + 0.7071067811865475 * cf_d[2] * f_d[6] +
+          0.7071067811865475 * cf_d[1] * f_d[3] + 0.7071067811865475 * cf_d[0] * f_d[2],
         wbar_d[2], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6210590034081187 * cf_d[2] * f_d[10] +
-          0.6210590034081187 * cf_d[3] * f_d[6] + 0.632455532033676 * cf_d[1] * f_d[6] +
-          0.6324555320336759 * cf_d[2] * f_d[3] + 0.7071067811865475 * cf_d[0] * f_d[3] +
-          0.7071067811865475 * cf_d[1] * f_d[2],
+      TEST_CHECK(gkyl_compare(
+        0.6210590034081187 * cf_d[2] * f_d[10] + 0.6210590034081187 * cf_d[3] * f_d[6] +
+          0.632455532033676 * cf_d[1] * f_d[6] + 0.6324555320336759 * cf_d[2] * f_d[3] +
+          0.7071067811865475 * cf_d[0] * f_d[3] + 0.7071067811865475 * cf_d[1] * f_d[2],
         wbar_d[3], 1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[3] * f_d[8] +
-          0.6210590034081186 * cf_d[1] * f_d[8] + 0.4517539514526256 * cf_d[2] * f_d[4] +
-          0.7071067811865475 * cf_d[0] * f_d[4] + 0.6210590034081186 * f_d[1] * cf_d[3] +
-          0.7071067811865475 * f_d[0] * cf_d[2] + 0.6324555320336759 * cf_d[1] * f_d[1],
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[3] * f_d[8] + 0.6210590034081186 * cf_d[1] * f_d[8] +
+          0.4517539514526256 * cf_d[2] * f_d[4] + 0.7071067811865475 * cf_d[0] * f_d[4] +
+          0.6210590034081186 * f_d[1] * cf_d[3] + 0.7071067811865475 * f_d[0] * cf_d[2] +
+          0.6324555320336759 * cf_d[1] * f_d[1],
         wbar_d[4], 1e-12));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[7] + 0.7071067811865475 * cf_d[0] * f_d[5],
-          wbar_d[5], 1e-12));
-      TEST_CHECK(gkyl_compare(0.4216370213557839 * cf_d[3] * f_d[10] +
-          0.6210590034081187 * cf_d[1] * f_d[10] + 0.4517539514526256 * cf_d[2] * f_d[6] +
-          0.7071067811865475 * cf_d[0] * f_d[6] + 0.6210590034081187 * cf_d[3] * f_d[3] +
-          0.632455532033676 * cf_d[1] * f_d[3] + 0.7071067811865475 * cf_d[2] * f_d[2],
+                     wbar_d[5], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.4216370213557839 * cf_d[3] * f_d[10] + 0.6210590034081187 * cf_d[1] * f_d[10] +
+          0.4517539514526256 * cf_d[2] * f_d[6] + 0.7071067811865475 * cf_d[0] * f_d[6] +
+          0.6210590034081187 * cf_d[3] * f_d[3] + 0.632455532033676 * cf_d[1] * f_d[3] +
+          0.7071067811865475 * cf_d[2] * f_d[2],
         wbar_d[6], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[7] +
-          0.7071067811865475 * cf_d[0] * f_d[7] + 0.7071067811865475 * cf_d[1] * f_d[5],
-        wbar_d[7], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.421637021355784 * cf_d[2] * f_d[8] + 0.7071067811865475 * cf_d[0] * f_d[8] +
-            0.421637021355784 * cf_d[3] * f_d[4] + 0.6210590034081186 * cf_d[1] * f_d[4] +
-            0.7071067811865475 * f_d[0] * cf_d[3] + 0.6210590034081186 * f_d[1] * cf_d[2],
-          wbar_d[8], 1e-12));
+                                0.7071067811865475 * cf_d[0] * f_d[7] +
+                                0.7071067811865475 * cf_d[1] * f_d[5],
+                              wbar_d[7], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[2] * f_d[8] + 0.7071067811865475 * cf_d[0] * f_d[8] +
+          0.421637021355784 * cf_d[3] * f_d[4] + 0.6210590034081186 * cf_d[1] * f_d[4] +
+          0.7071067811865475 * f_d[0] * cf_d[3] + 0.6210590034081186 * f_d[1] * cf_d[2],
+        wbar_d[8], 1e-12));
       TEST_CHECK(
         gkyl_compare(0.7071067811865474 * cf_d[1] * f_d[11] + 0.7071067811865475 * cf_d[0] * f_d[9],
-          wbar_d[9], 1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[2] * f_d[10] +
-          0.7071067811865475 * cf_d[0] * f_d[10] + 0.4216370213557839 * cf_d[3] * f_d[6] +
-          0.6210590034081187 * cf_d[1] * f_d[6] + 0.6210590034081187 * cf_d[2] * f_d[3] +
-          0.7071067811865474 * f_d[2] * cf_d[3],
+                     wbar_d[9], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[2] * f_d[10] + 0.7071067811865475 * cf_d[0] * f_d[10] +
+          0.4216370213557839 * cf_d[3] * f_d[6] + 0.6210590034081187 * cf_d[1] * f_d[6] +
+          0.6210590034081187 * cf_d[2] * f_d[3] + 0.7071067811865474 * f_d[2] * cf_d[3],
         wbar_d[10], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[11] +
-          0.7071067811865475 * cf_d[0] * f_d[11] + 0.7071067811865474 * cf_d[1] * f_d[9],
-        wbar_d[11], 1e-12));
+                                0.7071067811865475 * cf_d[0] * f_d[11] +
+                                0.7071067811865474 * cf_d[1] * f_d[9],
+                              wbar_d[11], 1e-12));
     }
 
     const double *fv2_d = gkyl_array_cfetch(fv2, loc);
@@ -1368,8 +1362,7 @@ test_2d(int poly_order, bool use_gpu)
   }
 }
 
-void
-test_inv_2d(int poly_order, bool use_gpu)
+void test_inv_2d(int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
   int cells[] = { 2, 2 };
@@ -1433,9 +1426,9 @@ test_inv_2d(int poly_order, bool use_gpu)
     const double A3R3 = pow(A[3], 3);
     const double A3R4 = pow(A[3], 4);
 
-    double det = 0.0625 *
-      (A3R4 + ((-2.0 * A2R2) - 2.0 * A1R2 - 2.0 * A0R2) * A3R2 + 8.0 * A[0] * A[1] * A[2] * A[3] +
-        A2R4 + ((-2.0 * A1R2) - 2.0 * A0R2) * A2R2 + A1R4 - 2.0 * A0R2 * A1R2 + A0R4);
+    double det = 0.0625 * (A3R4 + ((-2.0 * A2R2) - 2.0 * A1R2 - 2.0 * A0R2) * A3R2 +
+                           8.0 * A[0] * A[1] * A[2] * A[3] + A2R4 +
+                           ((-2.0 * A1R2) - 2.0 * A0R2) * A2R2 + A1R4 - 2.0 * A0R2 * A1R2 + A0R4);
 
     A_inv_expected[0] =
       -(0.25 * (A[0] * A3R2 - 2.0 * A[1] * A[2] * A[3] + A[0] * A2R2 + A[0] * A1R2 - 1.0 * A0R3)) /
@@ -1445,10 +1438,9 @@ test_inv_2d(int poly_order, bool use_gpu)
       det;
     A_inv_expected[2] =
       -(0.25 * (A[2] * A3R2 - 2.0 * A[0] * A[1] * A[3] - 1.0 * A2R3 + (A1R2 + A0R2) * A[2])) / det;
-    A_inv_expected[3] =
-      (0.25 *
-        (A3R3 + ((-1.0 * A2R2) - 1.0 * A1R2 - 1.0 * A0R2) * A[3] + 2.0 * A[0] * A[1] * A[2])) /
-      det;
+    A_inv_expected[3] = (0.25 * (A3R3 + ((-1.0 * A2R2) - 1.0 * A1R2 - 1.0 * A0R2) * A[3] +
+                                 2.0 * A[0] * A[1] * A[2])) /
+                        det;
 
     for (int k = 0; k < basis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12));
@@ -1483,9 +1475,9 @@ test_inv_2d(int poly_order, bool use_gpu)
     const double A3R3 = pow(A[3], 3);
     const double A3R4 = pow(A[3], 4);
 
-    double det = 0.0625 *
-      (A3R4 + ((-2.0 * A2R2) - 2.0 * A1R2 - 2.0 * A0R2) * A3R2 + 8.0 * A[0] * A[1] * A[2] * A[3] +
-        A2R4 + ((-2.0 * A1R2) - 2.0 * A0R2) * A2R2 + A1R4 - 2.0 * A0R2 * A1R2 + A0R4);
+    double det = 0.0625 * (A3R4 + ((-2.0 * A2R2) - 2.0 * A1R2 - 2.0 * A0R2) * A3R2 +
+                           8.0 * A[0] * A[1] * A[2] * A[3] + A2R4 +
+                           ((-2.0 * A1R2) - 2.0 * A0R2) * A2R2 + A1R4 - 2.0 * A0R2 * A1R2 + A0R4);
 
     A_inv_expected[0] =
       -(0.25 * (A[0] * A3R2 - 2.0 * A[1] * A[2] * A[3] + A[0] * A2R2 + A[0] * A1R2 - 1.0 * A0R3)) /
@@ -1495,10 +1487,9 @@ test_inv_2d(int poly_order, bool use_gpu)
       det;
     A_inv_expected[2] =
       -(0.25 * (A[2] * A3R2 - 2.0 * A[0] * A[1] * A[3] - 1.0 * A2R3 + (A1R2 + A0R2) * A[2])) / det;
-    A_inv_expected[3] =
-      (0.25 *
-        (A3R3 + ((-1.0 * A2R2) - 1.0 * A1R2 - 1.0 * A0R2) * A[3] + 2.0 * A[0] * A[1] * A[2])) /
-      det;
+    A_inv_expected[3] = (0.25 * (A3R3 + ((-1.0 * A2R2) - 1.0 * A1R2 - 1.0 * A0R2) * A[3] +
+                                 2.0 * A[0] * A[1] * A[2])) /
+                        det;
 
     for (int k = 0; k < basis.num_basis; ++k) {
       TEST_CHECK(gkyl_compare(A_inv_expected[k], A_inv[k], 1e-12));
@@ -1530,23 +1521,20 @@ test_inv_2d(int poly_order, bool use_gpu)
   }
 }
 
-void
-f_1d3d(double t, const double *xn, double *restrict fout, void *ctx)
+void f_1d3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 5 + x;
 }
 
-void
-f_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void f_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
   double z = xn[2];
   fout[0] = 5 + x + y + z;
 }
-void
-g_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void g_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1554,8 +1542,7 @@ g_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = ((x * y * z + 8) * (x * y * z + 8) + 100);
 }
 
-void
-fg_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void fg_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1568,8 +1555,7 @@ fg_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = f[0] * g[0];
 }
 
-void
-fv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void fv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1578,8 +1564,7 @@ fv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[1] = 2.5 - x + y - z;
   fout[2] = 12.5 + x - y + z;
 }
-void
-gv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
+void gv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -1589,98 +1574,97 @@ gv3_3d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[2] = ((x * y * z + 2) * (x * y * z - 2) + 25);
 }
 
-void
-check_dot_product_3d(
-  const double *fv3_d, const double *gv3_d, const double *fvdgv3_d, int poly_order)
+void check_dot_product_3d(const double *fv3_d, const double *gv3_d, const double *fvdgv3_d,
+                          int poly_order)
 {
   if (poly_order == 1) {
-    TEST_CHECK(gkyl_compare(fvdgv3_d[0],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[0],
       0.3535533905932737 *
         (fv3_d[23] * gv3_d[23] + fv3_d[22] * gv3_d[22] + fv3_d[21] * gv3_d[21] +
-          fv3_d[20] * gv3_d[20] + fv3_d[19] * gv3_d[19] + fv3_d[18] * gv3_d[18] +
-          fv3_d[17] * gv3_d[17] + fv3_d[16] * gv3_d[16] + fv3_d[15] * gv3_d[15] +
-          fv3_d[14] * gv3_d[14] + fv3_d[13] * gv3_d[13] + fv3_d[12] * gv3_d[12] +
-          fv3_d[11] * gv3_d[11] + fv3_d[10] * gv3_d[10] + fv3_d[9] * gv3_d[9] +
-          fv3_d[8] * gv3_d[8] + fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] + fv3_d[5] * gv3_d[5] +
-          fv3_d[4] * gv3_d[4] + fv3_d[3] * gv3_d[3] + fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] +
-          fv3_d[0] * gv3_d[0]),
+         fv3_d[20] * gv3_d[20] + fv3_d[19] * gv3_d[19] + fv3_d[18] * gv3_d[18] +
+         fv3_d[17] * gv3_d[17] + fv3_d[16] * gv3_d[16] + fv3_d[15] * gv3_d[15] +
+         fv3_d[14] * gv3_d[14] + fv3_d[13] * gv3_d[13] + fv3_d[12] * gv3_d[12] +
+         fv3_d[11] * gv3_d[11] + fv3_d[10] * gv3_d[10] + fv3_d[9] * gv3_d[9] + fv3_d[8] * gv3_d[8] +
+         fv3_d[7] * gv3_d[7] + fv3_d[6] * gv3_d[6] + fv3_d[5] * gv3_d[5] + fv3_d[4] * gv3_d[4] +
+         fv3_d[3] * gv3_d[3] + fv3_d[2] * gv3_d[2] + fv3_d[1] * gv3_d[1] + fv3_d[0] * gv3_d[0]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[1],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[1],
       0.3535533905932737 *
         (fv3_d[22] * gv3_d[23] + gv3_d[22] * fv3_d[23] + fv3_d[19] * gv3_d[21] +
-          gv3_d[19] * fv3_d[21] + fv3_d[18] * gv3_d[20] + gv3_d[18] * fv3_d[20] +
-          fv3_d[16] * gv3_d[17] + gv3_d[16] * fv3_d[17] + fv3_d[14] * gv3_d[15] +
-          gv3_d[14] * fv3_d[15] + fv3_d[11] * gv3_d[13] + gv3_d[11] * fv3_d[13] +
-          fv3_d[10] * gv3_d[12] + gv3_d[10] * fv3_d[12] + fv3_d[8] * gv3_d[9] +
-          gv3_d[8] * fv3_d[9] + fv3_d[6] * gv3_d[7] + gv3_d[6] * fv3_d[7] + fv3_d[3] * gv3_d[5] +
-          gv3_d[3] * fv3_d[5] + fv3_d[2] * gv3_d[4] + gv3_d[2] * fv3_d[4] + fv3_d[0] * gv3_d[1] +
-          gv3_d[0] * fv3_d[1]),
+         gv3_d[19] * fv3_d[21] + fv3_d[18] * gv3_d[20] + gv3_d[18] * fv3_d[20] +
+         fv3_d[16] * gv3_d[17] + gv3_d[16] * fv3_d[17] + fv3_d[14] * gv3_d[15] +
+         gv3_d[14] * fv3_d[15] + fv3_d[11] * gv3_d[13] + gv3_d[11] * fv3_d[13] +
+         fv3_d[10] * gv3_d[12] + gv3_d[10] * fv3_d[12] + fv3_d[8] * gv3_d[9] + gv3_d[8] * fv3_d[9] +
+         fv3_d[6] * gv3_d[7] + gv3_d[6] * fv3_d[7] + fv3_d[3] * gv3_d[5] + gv3_d[3] * fv3_d[5] +
+         fv3_d[2] * gv3_d[4] + gv3_d[2] * fv3_d[4] + fv3_d[0] * gv3_d[1] + gv3_d[0] * fv3_d[1]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[2],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[2],
       0.3535533905932737 *
         (fv3_d[21] * gv3_d[23] + gv3_d[21] * fv3_d[23] + fv3_d[19] * gv3_d[22] +
-          gv3_d[19] * fv3_d[22] + fv3_d[17] * gv3_d[20] + gv3_d[17] * fv3_d[20] +
-          fv3_d[16] * gv3_d[18] + gv3_d[16] * fv3_d[18] + fv3_d[13] * gv3_d[15] +
-          gv3_d[13] * fv3_d[15] + fv3_d[11] * gv3_d[14] + gv3_d[11] * fv3_d[14] +
-          fv3_d[9] * gv3_d[12] + gv3_d[9] * fv3_d[12] + fv3_d[8] * gv3_d[10] +
-          gv3_d[8] * fv3_d[10] + fv3_d[5] * gv3_d[7] + gv3_d[5] * fv3_d[7] + fv3_d[3] * gv3_d[6] +
-          gv3_d[3] * fv3_d[6] + fv3_d[1] * gv3_d[4] + gv3_d[1] * fv3_d[4] + fv3_d[0] * gv3_d[2] +
-          gv3_d[0] * fv3_d[2]),
+         gv3_d[19] * fv3_d[22] + fv3_d[17] * gv3_d[20] + gv3_d[17] * fv3_d[20] +
+         fv3_d[16] * gv3_d[18] + gv3_d[16] * fv3_d[18] + fv3_d[13] * gv3_d[15] +
+         gv3_d[13] * fv3_d[15] + fv3_d[11] * gv3_d[14] + gv3_d[11] * fv3_d[14] +
+         fv3_d[9] * gv3_d[12] + gv3_d[9] * fv3_d[12] + fv3_d[8] * gv3_d[10] + gv3_d[8] * fv3_d[10] +
+         fv3_d[5] * gv3_d[7] + gv3_d[5] * fv3_d[7] + fv3_d[3] * gv3_d[6] + gv3_d[3] * fv3_d[6] +
+         fv3_d[1] * gv3_d[4] + gv3_d[1] * fv3_d[4] + fv3_d[0] * gv3_d[2] + gv3_d[0] * fv3_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[3],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[3],
       0.3535533905932737 *
         (fv3_d[20] * gv3_d[23] + gv3_d[20] * fv3_d[23] + fv3_d[18] * gv3_d[22] +
-          gv3_d[18] * fv3_d[22] + fv3_d[17] * gv3_d[21] + gv3_d[17] * fv3_d[21] +
-          fv3_d[16] * gv3_d[19] + gv3_d[16] * fv3_d[19] + fv3_d[12] * gv3_d[15] +
-          gv3_d[12] * fv3_d[15] + fv3_d[10] * gv3_d[14] + gv3_d[10] * fv3_d[14] +
-          fv3_d[9] * gv3_d[13] + gv3_d[9] * fv3_d[13] + fv3_d[8] * gv3_d[11] +
-          gv3_d[8] * fv3_d[11] + fv3_d[4] * gv3_d[7] + gv3_d[4] * fv3_d[7] + fv3_d[2] * gv3_d[6] +
-          gv3_d[2] * fv3_d[6] + fv3_d[1] * gv3_d[5] + gv3_d[1] * fv3_d[5] + fv3_d[0] * gv3_d[3] +
-          gv3_d[0] * fv3_d[3]),
+         gv3_d[18] * fv3_d[22] + fv3_d[17] * gv3_d[21] + gv3_d[17] * fv3_d[21] +
+         fv3_d[16] * gv3_d[19] + gv3_d[16] * fv3_d[19] + fv3_d[12] * gv3_d[15] +
+         gv3_d[12] * fv3_d[15] + fv3_d[10] * gv3_d[14] + gv3_d[10] * fv3_d[14] +
+         fv3_d[9] * gv3_d[13] + gv3_d[9] * fv3_d[13] + fv3_d[8] * gv3_d[11] + gv3_d[8] * fv3_d[11] +
+         fv3_d[4] * gv3_d[7] + gv3_d[4] * fv3_d[7] + fv3_d[2] * gv3_d[6] + gv3_d[2] * fv3_d[6] +
+         fv3_d[1] * gv3_d[5] + gv3_d[1] * fv3_d[5] + fv3_d[0] * gv3_d[3] + gv3_d[0] * fv3_d[3]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[4],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[4],
       0.3535533905932737 *
         (fv3_d[19] * gv3_d[23] + gv3_d[19] * fv3_d[23] + fv3_d[21] * gv3_d[22] +
-          gv3_d[21] * fv3_d[22] + fv3_d[16] * gv3_d[20] + gv3_d[16] * fv3_d[20] +
-          fv3_d[17] * gv3_d[18] + gv3_d[17] * fv3_d[18] + fv3_d[11] * gv3_d[15] +
-          gv3_d[11] * fv3_d[15] + fv3_d[13] * gv3_d[14] + gv3_d[13] * fv3_d[14] +
-          fv3_d[8] * gv3_d[12] + gv3_d[8] * fv3_d[12] + fv3_d[9] * gv3_d[10] +
-          gv3_d[9] * fv3_d[10] + fv3_d[3] * gv3_d[7] + gv3_d[3] * fv3_d[7] + fv3_d[5] * gv3_d[6] +
-          gv3_d[5] * fv3_d[6] + fv3_d[0] * gv3_d[4] + gv3_d[0] * fv3_d[4] + fv3_d[1] * gv3_d[2] +
-          gv3_d[1] * fv3_d[2]),
+         gv3_d[21] * fv3_d[22] + fv3_d[16] * gv3_d[20] + gv3_d[16] * fv3_d[20] +
+         fv3_d[17] * gv3_d[18] + gv3_d[17] * fv3_d[18] + fv3_d[11] * gv3_d[15] +
+         gv3_d[11] * fv3_d[15] + fv3_d[13] * gv3_d[14] + gv3_d[13] * fv3_d[14] +
+         fv3_d[8] * gv3_d[12] + gv3_d[8] * fv3_d[12] + fv3_d[9] * gv3_d[10] + gv3_d[9] * fv3_d[10] +
+         fv3_d[3] * gv3_d[7] + gv3_d[3] * fv3_d[7] + fv3_d[5] * gv3_d[6] + gv3_d[5] * fv3_d[6] +
+         fv3_d[0] * gv3_d[4] + gv3_d[0] * fv3_d[4] + fv3_d[1] * gv3_d[2] + gv3_d[1] * fv3_d[2]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[5],
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[5],
       0.3535533905932737 *
         (fv3_d[18] * gv3_d[23] + gv3_d[18] * fv3_d[23] + fv3_d[20] * gv3_d[22] +
-          gv3_d[20] * fv3_d[22] + fv3_d[16] * gv3_d[21] + gv3_d[16] * fv3_d[21] +
-          fv3_d[17] * gv3_d[19] + gv3_d[17] * fv3_d[19] + fv3_d[10] * gv3_d[15] +
-          gv3_d[10] * fv3_d[15] + fv3_d[12] * gv3_d[14] + gv3_d[12] * fv3_d[14] +
-          fv3_d[8] * gv3_d[13] + gv3_d[8] * fv3_d[13] + fv3_d[9] * gv3_d[11] +
-          gv3_d[9] * fv3_d[11] + fv3_d[2] * gv3_d[7] + gv3_d[2] * fv3_d[7] + fv3_d[4] * gv3_d[6] +
-          gv3_d[4] * fv3_d[6] + fv3_d[0] * gv3_d[5] + gv3_d[0] * fv3_d[5] + fv3_d[1] * gv3_d[3] +
-          gv3_d[1] * fv3_d[3]),
+         gv3_d[20] * fv3_d[22] + fv3_d[16] * gv3_d[21] + gv3_d[16] * fv3_d[21] +
+         fv3_d[17] * gv3_d[19] + gv3_d[17] * fv3_d[19] + fv3_d[10] * gv3_d[15] +
+         gv3_d[10] * fv3_d[15] + fv3_d[12] * gv3_d[14] + gv3_d[12] * fv3_d[14] +
+         fv3_d[8] * gv3_d[13] + gv3_d[8] * fv3_d[13] + fv3_d[9] * gv3_d[11] + gv3_d[9] * fv3_d[11] +
+         fv3_d[2] * gv3_d[7] + gv3_d[2] * fv3_d[7] + fv3_d[4] * gv3_d[6] + gv3_d[4] * fv3_d[6] +
+         fv3_d[0] * gv3_d[5] + gv3_d[0] * fv3_d[5] + fv3_d[1] * gv3_d[3] + gv3_d[1] * fv3_d[3]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[6],
-      0.3535533905932737 *
-        (fv3_d[17] * gv3_d[23] + gv3_d[17] * fv3_d[23] + fv3_d[16] * gv3_d[22] +
-          gv3_d[16] * fv3_d[22] + fv3_d[20] * gv3_d[21] + gv3_d[20] * fv3_d[21] +
-          fv3_d[18] * gv3_d[19] + gv3_d[18] * fv3_d[19] + fv3_d[9] * gv3_d[15] +
-          gv3_d[9] * fv3_d[15] + fv3_d[8] * gv3_d[14] + gv3_d[8] * fv3_d[14] +
-          fv3_d[12] * gv3_d[13] + gv3_d[12] * fv3_d[13] + fv3_d[10] * gv3_d[11] +
-          gv3_d[10] * fv3_d[11] + fv3_d[1] * gv3_d[7] + gv3_d[1] * fv3_d[7] + fv3_d[0] * gv3_d[6] +
-          gv3_d[0] * fv3_d[6] + fv3_d[4] * gv3_d[5] + gv3_d[4] * fv3_d[5] + fv3_d[2] * gv3_d[3] +
-          gv3_d[2] * fv3_d[3]),
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[6],
+      0.3535533905932737 * (fv3_d[17] * gv3_d[23] + gv3_d[17] * fv3_d[23] + fv3_d[16] * gv3_d[22] +
+                            gv3_d[16] * fv3_d[22] + fv3_d[20] * gv3_d[21] + gv3_d[20] * fv3_d[21] +
+                            fv3_d[18] * gv3_d[19] + gv3_d[18] * fv3_d[19] + fv3_d[9] * gv3_d[15] +
+                            gv3_d[9] * fv3_d[15] + fv3_d[8] * gv3_d[14] + gv3_d[8] * fv3_d[14] +
+                            fv3_d[12] * gv3_d[13] + gv3_d[12] * fv3_d[13] + fv3_d[10] * gv3_d[11] +
+                            gv3_d[10] * fv3_d[11] + fv3_d[1] * gv3_d[7] + gv3_d[1] * fv3_d[7] +
+                            fv3_d[0] * gv3_d[6] + gv3_d[0] * fv3_d[6] + fv3_d[4] * gv3_d[5] +
+                            gv3_d[4] * fv3_d[5] + fv3_d[2] * gv3_d[3] + gv3_d[2] * fv3_d[3]),
       1e-12));
-    TEST_CHECK(gkyl_compare(fvdgv3_d[7],
-      0.3535533905932737 *
-        (fv3_d[16] * gv3_d[23] + gv3_d[16] * fv3_d[23] + fv3_d[17] * gv3_d[22] +
-          gv3_d[17] * fv3_d[22] + fv3_d[18] * gv3_d[21] + gv3_d[18] * fv3_d[21] +
-          fv3_d[19] * gv3_d[20] + gv3_d[19] * fv3_d[20] + fv3_d[8] * gv3_d[15] +
-          gv3_d[8] * fv3_d[15] + fv3_d[9] * gv3_d[14] + gv3_d[9] * fv3_d[14] +
-          fv3_d[10] * gv3_d[13] + gv3_d[10] * fv3_d[13] + fv3_d[11] * gv3_d[12] +
-          gv3_d[11] * fv3_d[12] + fv3_d[0] * gv3_d[7] + gv3_d[0] * fv3_d[7] + fv3_d[1] * gv3_d[6] +
-          gv3_d[1] * fv3_d[6] + fv3_d[2] * gv3_d[5] + gv3_d[2] * fv3_d[5] + fv3_d[3] * gv3_d[4] +
-          gv3_d[3] * fv3_d[4]),
+    TEST_CHECK(gkyl_compare(
+      fvdgv3_d[7],
+      0.3535533905932737 * (fv3_d[16] * gv3_d[23] + gv3_d[16] * fv3_d[23] + fv3_d[17] * gv3_d[22] +
+                            gv3_d[17] * fv3_d[22] + fv3_d[18] * gv3_d[21] + gv3_d[18] * fv3_d[21] +
+                            fv3_d[19] * gv3_d[20] + gv3_d[19] * fv3_d[20] + fv3_d[8] * gv3_d[15] +
+                            gv3_d[8] * fv3_d[15] + fv3_d[9] * gv3_d[14] + gv3_d[9] * fv3_d[14] +
+                            fv3_d[10] * gv3_d[13] + gv3_d[10] * fv3_d[13] + fv3_d[11] * gv3_d[12] +
+                            gv3_d[11] * fv3_d[12] + fv3_d[0] * gv3_d[7] + gv3_d[0] * fv3_d[7] +
+                            fv3_d[1] * gv3_d[6] + gv3_d[1] * fv3_d[6] + fv3_d[2] * gv3_d[5] +
+                            gv3_d[2] * fv3_d[5] + fv3_d[3] * gv3_d[4] + gv3_d[3] * fv3_d[4]),
       1e-12));
   } else if (poly_order == 2) {
     // Not checked/implemented because the kernels are too big.
@@ -1688,8 +1672,7 @@ check_dot_product_3d(
   return;
 }
 
-void
-test_3d(int poly_order, bool use_gpu)
+void test_3d(int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
   int cells[] = { 2, 2, 2 };
@@ -1872,8 +1855,8 @@ test_3d(int poly_order, bool use_gpu)
     // g_bar = h/f = g
     gkyl_dg_div_op_range(mem, &basis, 0, g_bar_cu, 0, h_cu, 0, distf_cu, &arr_range);
     // w = cfield*f
-    gkyl_dg_mul_conf_phase_op_range(
-      &cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
+    gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange,
+                                    &arr_range);
 
     // fvdgv = fv . gv
     gkyl_array_clear(fvdgv3_cu, 0.0);
@@ -1925,222 +1908,242 @@ test_3d(int poly_order, bool use_gpu)
     if (poly_order == 1) {
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[1] + 0.7071067811865475 * cf_d[0] * f_d[0],
-          wbar_d[0], 1e-8));
+                     wbar_d[0], 1e-8));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[0] * f_d[1] + 0.7071067811865475 * f_d[0] * cf_d[1],
-          wbar_d[1], 1e-8));
+                     wbar_d[1], 1e-8));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[4] + 0.7071067811865475 * cf_d[0] * f_d[2],
-          wbar_d[2], 1e-8));
+                     wbar_d[2], 1e-8));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[5] + 0.7071067811865475 * cf_d[0] * f_d[3],
-          wbar_d[3], 1e-8));
+                     wbar_d[3], 1e-8));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[0] * f_d[4] + 0.7071067811865475 * cf_d[1] * f_d[2],
-          wbar_d[4], 1e-8));
+                     wbar_d[4], 1e-8));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[0] * f_d[5] + 0.7071067811865475 * cf_d[1] * f_d[3],
-          wbar_d[5], 1e-8));
+                     wbar_d[5], 1e-8));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[7] + 0.7071067811865475 * cf_d[0] * f_d[6],
-          wbar_d[6], 1e-8));
+                     wbar_d[6], 1e-8));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[0] * f_d[7] + 0.7071067811865475 * cf_d[1] * f_d[6],
-          wbar_d[7], 1e-8));
+                     wbar_d[7], 1e-8));
     } else if (poly_order == 2) {
       TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[2] * f_d[7] +
-          0.7071067811865475 * cf_d[1] * f_d[1] + 0.7071067811865475 * cf_d[0] * f_d[0],
-        wbar_d[0], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.6324555320336759 * cf_d[1] * f_d[7] + 0.6324555320336759 * f_d[1] * cf_d[2] +
-            0.7071067811865475 * cf_d[0] * f_d[1] + 0.7071067811865475 * f_d[0] * cf_d[1],
-          wbar_d[1], 1e-12));
-      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[2] * f_d[11] +
-          0.7071067811865475 * cf_d[1] * f_d[4] + 0.7071067811865475 * cf_d[0] * f_d[2],
-        wbar_d[2], 1e-12));
-      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[2] * f_d[13] +
-          0.7071067811865475 * cf_d[1] * f_d[5] + 0.7071067811865475 * cf_d[0] * f_d[3],
-        wbar_d[3], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.632455532033676 * cf_d[1] * f_d[11] + 0.6324555320336759 * cf_d[2] * f_d[4] +
-            0.7071067811865475 * cf_d[0] * f_d[4] + 0.7071067811865475 * cf_d[1] * f_d[2],
-          wbar_d[4], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.632455532033676 * cf_d[1] * f_d[13] + 0.6324555320336759 * cf_d[2] * f_d[5] +
-            0.7071067811865475 * cf_d[0] * f_d[5] + 0.7071067811865475 * cf_d[1] * f_d[3],
-          wbar_d[5], 1e-12));
-      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[2] * f_d[17] +
-          0.7071067811865475 * cf_d[1] * f_d[10] + 0.7071067811865475 * cf_d[0] * f_d[6],
-        wbar_d[6], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.4517539514526256 * cf_d[2] * f_d[7] + 0.7071067811865475 * cf_d[0] * f_d[7] +
-            0.7071067811865475 * f_d[0] * cf_d[2] + 0.6324555320336759 * cf_d[1] * f_d[1],
-          wbar_d[7], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[12] + 0.7071067811865475 * cf_d[0] * f_d[8],
-          wbar_d[8], 1e-12));
-      TEST_CHECK(
-        gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[15] + 0.7071067811865475 * cf_d[0] * f_d[9],
-          wbar_d[9], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[1] * f_d[17] +
-          0.6324555320336759 * cf_d[2] * f_d[10] + 0.7071067811865475 * cf_d[0] * f_d[10] +
-          0.7071067811865475 * cf_d[1] * f_d[6],
-        wbar_d[10], 1e-12));
-      TEST_CHECK(gkyl_compare(0.4517539514526256 * cf_d[2] * f_d[11] +
-          0.7071067811865475 * cf_d[0] * f_d[11] + 0.632455532033676 * cf_d[1] * f_d[4] +
-          0.7071067811865475 * cf_d[2] * f_d[2],
-        wbar_d[11], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[12] +
-          0.7071067811865475 * cf_d[0] * f_d[12] + 0.7071067811865475 * cf_d[1] * f_d[8],
-        wbar_d[12], 1e-12));
-      TEST_CHECK(gkyl_compare(0.4517539514526256 * cf_d[2] * f_d[13] +
-          0.7071067811865475 * cf_d[0] * f_d[13] + 0.632455532033676 * cf_d[1] * f_d[5] +
-          0.7071067811865475 * cf_d[2] * f_d[3],
-        wbar_d[13], 1e-12));
+                                0.7071067811865475 * cf_d[1] * f_d[1] +
+                                0.7071067811865475 * cf_d[0] * f_d[0],
+                              wbar_d[0], 1e-12));
       TEST_CHECK(gkyl_compare(
-        0.7071067811865475 * cf_d[1] * f_d[18] + 0.7071067811865475 * cf_d[0] * f_d[14], wbar_d[14],
-        1e-12));
-      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[15] +
-          0.7071067811865475 * cf_d[0] * f_d[15] + 0.7071067811865475 * cf_d[1] * f_d[9],
-        wbar_d[15], 1e-12));
-      TEST_CHECK(gkyl_compare(
-        0.7071067811865475 * cf_d[1] * f_d[19] + 0.7071067811865475 * cf_d[0] * f_d[16], wbar_d[16],
-        1e-12));
-      TEST_CHECK(gkyl_compare(0.4517539514526256 * cf_d[2] * f_d[17] +
-          0.7071067811865475 * cf_d[0] * f_d[17] + 0.6324555320336759 * cf_d[1] * f_d[10] +
-          0.7071067811865475 * cf_d[2] * f_d[6],
-        wbar_d[17], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[18] +
-          0.7071067811865475 * cf_d[0] * f_d[18] + 0.7071067811865475 * cf_d[1] * f_d[14],
-        wbar_d[18], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[19] +
-          0.7071067811865475 * cf_d[0] * f_d[19] + 0.7071067811865475 * cf_d[1] * f_d[16],
-        wbar_d[19], 1e-12));
-    } else if (poly_order == 3) {
-      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[3] * f_d[17] +
-          0.7071067811865475 * cf_d[2] * f_d[7] + 0.7071067811865475 * cf_d[1] * f_d[1] +
-          0.7071067811865475 * cf_d[0] * f_d[0],
-        wbar_d[0], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6210590034081186 * cf_d[2] * f_d[17] +
-          0.6210590034081186 * cf_d[3] * f_d[7] + 0.6324555320336759 * cf_d[1] * f_d[7] +
-          0.6324555320336759 * f_d[1] * cf_d[2] + 0.7071067811865475 * cf_d[0] * f_d[1] +
-          0.7071067811865475 * f_d[0] * cf_d[1],
+        0.6324555320336759 * cf_d[1] * f_d[7] + 0.6324555320336759 * f_d[1] * cf_d[2] +
+          0.7071067811865475 * cf_d[0] * f_d[1] + 0.7071067811865475 * f_d[0] * cf_d[1],
         wbar_d[1], 1e-12));
-      TEST_CHECK(gkyl_compare(0.7071067811865474 * cf_d[3] * f_d[23] +
-          0.7071067811865475 * cf_d[2] * f_d[11] + 0.7071067811865475 * cf_d[1] * f_d[4] +
-          0.7071067811865475 * cf_d[0] * f_d[2],
-        wbar_d[2], 1e-12));
-      TEST_CHECK(gkyl_compare(0.7071067811865474 * cf_d[3] * f_d[25] +
-          0.7071067811865475 * cf_d[2] * f_d[13] + 0.7071067811865475 * cf_d[1] * f_d[5] +
-          0.7071067811865475 * cf_d[0] * f_d[3],
-        wbar_d[3], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6210590034081187 * cf_d[2] * f_d[23] +
-          0.6210590034081187 * cf_d[3] * f_d[11] + 0.632455532033676 * cf_d[1] * f_d[11] +
-          0.6324555320336759 * cf_d[2] * f_d[4] + 0.7071067811865475 * cf_d[0] * f_d[4] +
-          0.7071067811865475 * cf_d[1] * f_d[2],
+      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[2] * f_d[11] +
+                                0.7071067811865475 * cf_d[1] * f_d[4] +
+                                0.7071067811865475 * cf_d[0] * f_d[2],
+                              wbar_d[2], 1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[2] * f_d[13] +
+                                0.7071067811865475 * cf_d[1] * f_d[5] +
+                                0.7071067811865475 * cf_d[0] * f_d[3],
+                              wbar_d[3], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.632455532033676 * cf_d[1] * f_d[11] + 0.6324555320336759 * cf_d[2] * f_d[4] +
+          0.7071067811865475 * cf_d[0] * f_d[4] + 0.7071067811865475 * cf_d[1] * f_d[2],
         wbar_d[4], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6210590034081187 * cf_d[2] * f_d[25] +
-          0.6210590034081187 * cf_d[3] * f_d[13] + 0.632455532033676 * cf_d[1] * f_d[13] +
-          0.6324555320336759 * cf_d[2] * f_d[5] + 0.7071067811865475 * cf_d[0] * f_d[5] +
-          0.7071067811865475 * cf_d[1] * f_d[3],
+      TEST_CHECK(gkyl_compare(
+        0.632455532033676 * cf_d[1] * f_d[13] + 0.6324555320336759 * cf_d[2] * f_d[5] +
+          0.7071067811865475 * cf_d[0] * f_d[5] + 0.7071067811865475 * cf_d[1] * f_d[3],
         wbar_d[5], 1e-12));
-      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[3] * f_d[29] +
-          0.7071067811865475 * cf_d[2] * f_d[20] + 0.7071067811865475 * cf_d[1] * f_d[10] +
-          0.7071067811865475 * cf_d[0] * f_d[6],
-        wbar_d[6], 1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[3] * f_d[17] +
-          0.6210590034081186 * cf_d[1] * f_d[17] + 0.4517539514526256 * cf_d[2] * f_d[7] +
-          0.7071067811865475 * cf_d[0] * f_d[7] + 0.6210590034081186 * f_d[1] * cf_d[3] +
+      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[2] * f_d[17] +
+                                0.7071067811865475 * cf_d[1] * f_d[10] +
+                                0.7071067811865475 * cf_d[0] * f_d[6],
+                              wbar_d[6], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.4517539514526256 * cf_d[2] * f_d[7] + 0.7071067811865475 * cf_d[0] * f_d[7] +
           0.7071067811865475 * f_d[0] * cf_d[2] + 0.6324555320336759 * cf_d[1] * f_d[1],
         wbar_d[7], 1e-12));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[12] + 0.7071067811865475 * cf_d[0] * f_d[8],
-          wbar_d[8], 1e-12));
+                     wbar_d[8], 1e-12));
       TEST_CHECK(
         gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[15] + 0.7071067811865475 * cf_d[0] * f_d[9],
-          wbar_d[9], 1e-12));
-      TEST_CHECK(gkyl_compare(0.6210590034081186 * cf_d[2] * f_d[29] +
-          0.6210590034081186 * cf_d[3] * f_d[20] + 0.6324555320336759 * cf_d[1] * f_d[20] +
-          0.6324555320336759 * cf_d[2] * f_d[10] + 0.7071067811865475 * cf_d[0] * f_d[10] +
-          0.7071067811865475 * cf_d[1] * f_d[6],
+                     wbar_d[9], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.6324555320336759 * cf_d[1] * f_d[17] + 0.6324555320336759 * cf_d[2] * f_d[10] +
+          0.7071067811865475 * cf_d[0] * f_d[10] + 0.7071067811865475 * cf_d[1] * f_d[6],
         wbar_d[10], 1e-12));
-      TEST_CHECK(gkyl_compare(0.4216370213557839 * cf_d[3] * f_d[23] +
-          0.6210590034081187 * cf_d[1] * f_d[23] + 0.4517539514526256 * cf_d[2] * f_d[11] +
-          0.7071067811865475 * cf_d[0] * f_d[11] + 0.6210590034081187 * cf_d[3] * f_d[4] +
+      TEST_CHECK(gkyl_compare(
+        0.4517539514526256 * cf_d[2] * f_d[11] + 0.7071067811865475 * cf_d[0] * f_d[11] +
           0.632455532033676 * cf_d[1] * f_d[4] + 0.7071067811865475 * cf_d[2] * f_d[2],
         wbar_d[11], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[12] +
-          0.7071067811865475 * cf_d[0] * f_d[12] + 0.7071067811865475 * cf_d[1] * f_d[8],
-        wbar_d[12], 1e-12));
-      TEST_CHECK(gkyl_compare(0.4216370213557839 * cf_d[3] * f_d[25] +
-          0.6210590034081187 * cf_d[1] * f_d[25] + 0.4517539514526256 * cf_d[2] * f_d[13] +
-          0.7071067811865475 * cf_d[0] * f_d[13] + 0.6210590034081187 * cf_d[3] * f_d[5] +
+                                0.7071067811865475 * cf_d[0] * f_d[12] +
+                                0.7071067811865475 * cf_d[1] * f_d[8],
+                              wbar_d[12], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.4517539514526256 * cf_d[2] * f_d[13] + 0.7071067811865475 * cf_d[0] * f_d[13] +
           0.632455532033676 * cf_d[1] * f_d[5] + 0.7071067811865475 * cf_d[2] * f_d[3],
         wbar_d[13], 1e-12));
-      TEST_CHECK(gkyl_compare(
-        0.7071067811865475 * cf_d[1] * f_d[21] + 0.7071067811865475 * cf_d[0] * f_d[14], wbar_d[14],
-        1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[18] +
+                                0.7071067811865475 * cf_d[0] * f_d[14],
+                              wbar_d[14], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[15] +
-          0.7071067811865475 * cf_d[0] * f_d[15] + 0.7071067811865475 * cf_d[1] * f_d[9],
-        wbar_d[15], 1e-12));
+                                0.7071067811865475 * cf_d[0] * f_d[15] +
+                                0.7071067811865475 * cf_d[1] * f_d[9],
+                              wbar_d[15], 1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[19] +
+                                0.7071067811865475 * cf_d[0] * f_d[16],
+                              wbar_d[16], 1e-12));
       TEST_CHECK(gkyl_compare(
-        0.7071067811865475 * cf_d[1] * f_d[22] + 0.7071067811865475 * cf_d[0] * f_d[16], wbar_d[16],
-        1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[2] * f_d[17] +
-          0.7071067811865475 * cf_d[0] * f_d[17] + 0.421637021355784 * cf_d[3] * f_d[7] +
-          0.6210590034081186 * cf_d[1] * f_d[7] + 0.7071067811865475 * f_d[0] * cf_d[3] +
-          0.6210590034081186 * f_d[1] * cf_d[2],
-        wbar_d[17], 1e-12));
-      TEST_CHECK(gkyl_compare(
-        0.7071067811865474 * cf_d[1] * f_d[24] + 0.7071067811865475 * cf_d[0] * f_d[18], wbar_d[18],
-        1e-12));
-      TEST_CHECK(gkyl_compare(
-        0.7071067811865474 * cf_d[1] * f_d[27] + 0.7071067811865475 * cf_d[0] * f_d[19], wbar_d[19],
-        1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[3] * f_d[29] +
-          0.6210590034081186 * cf_d[1] * f_d[29] + 0.4517539514526256 * cf_d[2] * f_d[20] +
-          0.7071067811865475 * cf_d[0] * f_d[20] + 0.6210590034081186 * cf_d[3] * f_d[10] +
+        0.4517539514526256 * cf_d[2] * f_d[17] + 0.7071067811865475 * cf_d[0] * f_d[17] +
           0.6324555320336759 * cf_d[1] * f_d[10] + 0.7071067811865475 * cf_d[2] * f_d[6],
+        wbar_d[17], 1e-12));
+      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[18] +
+                                0.7071067811865475 * cf_d[0] * f_d[18] +
+                                0.7071067811865475 * cf_d[1] * f_d[14],
+                              wbar_d[18], 1e-12));
+      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[19] +
+                                0.7071067811865475 * cf_d[0] * f_d[19] +
+                                0.7071067811865475 * cf_d[1] * f_d[16],
+                              wbar_d[19], 1e-12));
+    } else if (poly_order == 3) {
+      TEST_CHECK(gkyl_compare(
+        0.7071067811865475 * cf_d[3] * f_d[17] + 0.7071067811865475 * cf_d[2] * f_d[7] +
+          0.7071067811865475 * cf_d[1] * f_d[1] + 0.7071067811865475 * cf_d[0] * f_d[0],
+        wbar_d[0], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.6210590034081186 * cf_d[2] * f_d[17] + 0.6210590034081186 * cf_d[3] * f_d[7] +
+          0.6324555320336759 * cf_d[1] * f_d[7] + 0.6324555320336759 * f_d[1] * cf_d[2] +
+          0.7071067811865475 * cf_d[0] * f_d[1] + 0.7071067811865475 * f_d[0] * cf_d[1],
+        wbar_d[1], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.7071067811865474 * cf_d[3] * f_d[23] + 0.7071067811865475 * cf_d[2] * f_d[11] +
+          0.7071067811865475 * cf_d[1] * f_d[4] + 0.7071067811865475 * cf_d[0] * f_d[2],
+        wbar_d[2], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.7071067811865474 * cf_d[3] * f_d[25] + 0.7071067811865475 * cf_d[2] * f_d[13] +
+          0.7071067811865475 * cf_d[1] * f_d[5] + 0.7071067811865475 * cf_d[0] * f_d[3],
+        wbar_d[3], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.6210590034081187 * cf_d[2] * f_d[23] + 0.6210590034081187 * cf_d[3] * f_d[11] +
+          0.632455532033676 * cf_d[1] * f_d[11] + 0.6324555320336759 * cf_d[2] * f_d[4] +
+          0.7071067811865475 * cf_d[0] * f_d[4] + 0.7071067811865475 * cf_d[1] * f_d[2],
+        wbar_d[4], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.6210590034081187 * cf_d[2] * f_d[25] + 0.6210590034081187 * cf_d[3] * f_d[13] +
+          0.632455532033676 * cf_d[1] * f_d[13] + 0.6324555320336759 * cf_d[2] * f_d[5] +
+          0.7071067811865475 * cf_d[0] * f_d[5] + 0.7071067811865475 * cf_d[1] * f_d[3],
+        wbar_d[5], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.7071067811865475 * cf_d[3] * f_d[29] + 0.7071067811865475 * cf_d[2] * f_d[20] +
+          0.7071067811865475 * cf_d[1] * f_d[10] + 0.7071067811865475 * cf_d[0] * f_d[6],
+        wbar_d[6], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[3] * f_d[17] + 0.6210590034081186 * cf_d[1] * f_d[17] +
+          0.4517539514526256 * cf_d[2] * f_d[7] + 0.7071067811865475 * cf_d[0] * f_d[7] +
+          0.6210590034081186 * f_d[1] * cf_d[3] + 0.7071067811865475 * f_d[0] * cf_d[2] +
+          0.6324555320336759 * cf_d[1] * f_d[1],
+        wbar_d[7], 1e-12));
+      TEST_CHECK(
+        gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[12] + 0.7071067811865475 * cf_d[0] * f_d[8],
+                     wbar_d[8], 1e-12));
+      TEST_CHECK(
+        gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[15] + 0.7071067811865475 * cf_d[0] * f_d[9],
+                     wbar_d[9], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.6210590034081186 * cf_d[2] * f_d[29] + 0.6210590034081186 * cf_d[3] * f_d[20] +
+          0.6324555320336759 * cf_d[1] * f_d[20] + 0.6324555320336759 * cf_d[2] * f_d[10] +
+          0.7071067811865475 * cf_d[0] * f_d[10] + 0.7071067811865475 * cf_d[1] * f_d[6],
+        wbar_d[10], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.4216370213557839 * cf_d[3] * f_d[23] + 0.6210590034081187 * cf_d[1] * f_d[23] +
+          0.4517539514526256 * cf_d[2] * f_d[11] + 0.7071067811865475 * cf_d[0] * f_d[11] +
+          0.6210590034081187 * cf_d[3] * f_d[4] + 0.632455532033676 * cf_d[1] * f_d[4] +
+          0.7071067811865475 * cf_d[2] * f_d[2],
+        wbar_d[11], 1e-12));
+      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[12] +
+                                0.7071067811865475 * cf_d[0] * f_d[12] +
+                                0.7071067811865475 * cf_d[1] * f_d[8],
+                              wbar_d[12], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.4216370213557839 * cf_d[3] * f_d[25] + 0.6210590034081187 * cf_d[1] * f_d[25] +
+          0.4517539514526256 * cf_d[2] * f_d[13] + 0.7071067811865475 * cf_d[0] * f_d[13] +
+          0.6210590034081187 * cf_d[3] * f_d[5] + 0.632455532033676 * cf_d[1] * f_d[5] +
+          0.7071067811865475 * cf_d[2] * f_d[3],
+        wbar_d[13], 1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[21] +
+                                0.7071067811865475 * cf_d[0] * f_d[14],
+                              wbar_d[14], 1e-12));
+      TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[15] +
+                                0.7071067811865475 * cf_d[0] * f_d[15] +
+                                0.7071067811865475 * cf_d[1] * f_d[9],
+                              wbar_d[15], 1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865475 * cf_d[1] * f_d[22] +
+                                0.7071067811865475 * cf_d[0] * f_d[16],
+                              wbar_d[16], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[2] * f_d[17] + 0.7071067811865475 * cf_d[0] * f_d[17] +
+          0.421637021355784 * cf_d[3] * f_d[7] + 0.6210590034081186 * cf_d[1] * f_d[7] +
+          0.7071067811865475 * f_d[0] * cf_d[3] + 0.6210590034081186 * f_d[1] * cf_d[2],
+        wbar_d[17], 1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865474 * cf_d[1] * f_d[24] +
+                                0.7071067811865475 * cf_d[0] * f_d[18],
+                              wbar_d[18], 1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865474 * cf_d[1] * f_d[27] +
+                                0.7071067811865475 * cf_d[0] * f_d[19],
+                              wbar_d[19], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[3] * f_d[29] + 0.6210590034081186 * cf_d[1] * f_d[29] +
+          0.4517539514526256 * cf_d[2] * f_d[20] + 0.7071067811865475 * cf_d[0] * f_d[20] +
+          0.6210590034081186 * cf_d[3] * f_d[10] + 0.6324555320336759 * cf_d[1] * f_d[10] +
+          0.7071067811865475 * cf_d[2] * f_d[6],
         wbar_d[20], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[21] +
-          0.7071067811865475 * cf_d[0] * f_d[21] + 0.7071067811865475 * cf_d[1] * f_d[14],
-        wbar_d[21], 1e-12));
+                                0.7071067811865475 * cf_d[0] * f_d[21] +
+                                0.7071067811865475 * cf_d[1] * f_d[14],
+                              wbar_d[21], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[22] +
-          0.7071067811865475 * cf_d[0] * f_d[22] + 0.7071067811865475 * cf_d[1] * f_d[16],
-        wbar_d[22], 1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[2] * f_d[23] +
-          0.7071067811865475 * cf_d[0] * f_d[23] + 0.4216370213557839 * cf_d[3] * f_d[11] +
-          0.6210590034081187 * cf_d[1] * f_d[11] + 0.6210590034081187 * cf_d[2] * f_d[4] +
-          0.7071067811865474 * f_d[2] * cf_d[3],
+                                0.7071067811865475 * cf_d[0] * f_d[22] +
+                                0.7071067811865475 * cf_d[1] * f_d[16],
+                              wbar_d[22], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[2] * f_d[23] + 0.7071067811865475 * cf_d[0] * f_d[23] +
+          0.4216370213557839 * cf_d[3] * f_d[11] + 0.6210590034081187 * cf_d[1] * f_d[11] +
+          0.6210590034081187 * cf_d[2] * f_d[4] + 0.7071067811865474 * f_d[2] * cf_d[3],
         wbar_d[23], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[24] +
-          0.7071067811865475 * cf_d[0] * f_d[24] + 0.7071067811865474 * cf_d[1] * f_d[18],
-        wbar_d[24], 1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[2] * f_d[25] +
-          0.7071067811865475 * cf_d[0] * f_d[25] + 0.4216370213557839 * cf_d[3] * f_d[13] +
-          0.6210590034081187 * cf_d[1] * f_d[13] + 0.6210590034081187 * cf_d[2] * f_d[5] +
-          0.7071067811865474 * cf_d[3] * f_d[3],
+                                0.7071067811865475 * cf_d[0] * f_d[24] +
+                                0.7071067811865474 * cf_d[1] * f_d[18],
+                              wbar_d[24], 1e-12));
+      TEST_CHECK(gkyl_compare(
+        0.421637021355784 * cf_d[2] * f_d[25] + 0.7071067811865475 * cf_d[0] * f_d[25] +
+          0.4216370213557839 * cf_d[3] * f_d[13] + 0.6210590034081187 * cf_d[1] * f_d[13] +
+          0.6210590034081187 * cf_d[2] * f_d[5] + 0.7071067811865474 * cf_d[3] * f_d[3],
         wbar_d[25], 1e-12));
-      TEST_CHECK(gkyl_compare(
-        0.7071067811865474 * cf_d[1] * f_d[30] + 0.7071067811865475 * cf_d[0] * f_d[26], wbar_d[26],
-        1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865474 * cf_d[1] * f_d[30] +
+                                0.7071067811865475 * cf_d[0] * f_d[26],
+                              wbar_d[26], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[27] +
-          0.7071067811865475 * cf_d[0] * f_d[27] + 0.7071067811865474 * cf_d[1] * f_d[19],
-        wbar_d[27], 1e-12));
+                                0.7071067811865475 * cf_d[0] * f_d[27] +
+                                0.7071067811865474 * cf_d[1] * f_d[19],
+                              wbar_d[27], 1e-12));
+      TEST_CHECK(gkyl_compare(0.7071067811865474 * cf_d[1] * f_d[31] +
+                                0.7071067811865475 * cf_d[0] * f_d[28],
+                              wbar_d[28], 1e-12));
       TEST_CHECK(gkyl_compare(
-        0.7071067811865474 * cf_d[1] * f_d[31] + 0.7071067811865475 * cf_d[0] * f_d[28], wbar_d[28],
-        1e-12));
-      TEST_CHECK(gkyl_compare(0.421637021355784 * cf_d[2] * f_d[29] +
-          0.7071067811865475 * cf_d[0] * f_d[29] + 0.421637021355784 * cf_d[3] * f_d[20] +
-          0.6210590034081186 * cf_d[1] * f_d[20] + 0.6210590034081186 * cf_d[2] * f_d[10] +
-          0.7071067811865475 * cf_d[3] * f_d[6],
+        0.421637021355784 * cf_d[2] * f_d[29] + 0.7071067811865475 * cf_d[0] * f_d[29] +
+          0.421637021355784 * cf_d[3] * f_d[20] + 0.6210590034081186 * cf_d[1] * f_d[20] +
+          0.6210590034081186 * cf_d[2] * f_d[10] + 0.7071067811865475 * cf_d[3] * f_d[6],
         wbar_d[29], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[30] +
-          0.7071067811865475 * cf_d[0] * f_d[30] + 0.7071067811865474 * cf_d[1] * f_d[26],
-        wbar_d[30], 1e-12));
+                                0.7071067811865475 * cf_d[0] * f_d[30] +
+                                0.7071067811865474 * cf_d[1] * f_d[26],
+                              wbar_d[30], 1e-12));
       TEST_CHECK(gkyl_compare(0.6324555320336759 * cf_d[2] * f_d[31] +
-          0.7071067811865475 * cf_d[0] * f_d[31] + 0.7071067811865474 * cf_d[1] * f_d[28],
-        wbar_d[31], 1e-12));
+                                0.7071067811865475 * cf_d[0] * f_d[31] +
+                                0.7071067811865474 * cf_d[1] * f_d[28],
+                              wbar_d[31], 1e-12));
     }
 
     const double *fv3_d = gkyl_array_cfetch(fv3, loc);
@@ -2212,15 +2215,13 @@ test_3d(int poly_order, bool use_gpu)
   }
 }
 
-void
-f_2d2d(double t, const double *xn, double *restrict fout, void *ctx)
+void f_2d2d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   fout[0] = 5 + x * y;
 }
 
-void
-f_4d(double t, const double *xn, double *restrict fout, void *ctx)
+void f_4d(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -2229,8 +2230,7 @@ f_4d(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = 5 + (x + y) * (vx + vy);
 }
 
-void
-test_4d(int poly_order, bool use_gpu)
+void test_4d(int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0, 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0, 1.0 };
   int cells[] = { 2, 2, 2, 2 };
@@ -2302,8 +2302,8 @@ test_4d(int poly_order, bool use_gpu)
   if (use_gpu) {
     gkyl_array_clear(w_bar_cu, 0.0);
     // w = cfield*f
-    gkyl_dg_mul_conf_phase_op_range(
-      &cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange, &arr_range);
+    gkyl_dg_mul_conf_phase_op_range(&cbasis, &basis, w_bar_cu, cfield_cu, distf_cu, &arr_crange,
+                                    &arr_range);
 
     // copy from device and check if things are ok
     gkyl_array_copy(w_bar, w_bar_cu);
@@ -2375,305 +2375,331 @@ test_4d(int poly_order, bool use_gpu)
         0.5 * (cf_d[0] * f_d[15] + cf_d[1] * f_d[14] + cf_d[2] * f_d[13] + cf_d[3] * f_d[10]),
         wbar_d[15], 1e-8));
     } else if (poly_order == 2) {
-      TEST_CHECK(gkyl_compare(0.5 *
-          (cf_d[7] * f_d[20] + cf_d[6] * f_d[19] + cf_d[5] * f_d[12] + cf_d[4] * f_d[11] +
-            cf_d[3] * f_d[5] + cf_d[2] * f_d[2] + cf_d[1] * f_d[1] + cf_d[0] * f_d[0]),
-        wbar_d[0], 1e-8));
+      TEST_CHECK(gkyl_compare(0.5 * (cf_d[7] * f_d[20] + cf_d[6] * f_d[19] + cf_d[5] * f_d[12] +
+                                     cf_d[4] * f_d[11] + cf_d[3] * f_d[5] + cf_d[2] * f_d[2] +
+                                     cf_d[1] * f_d[1] + cf_d[0] * f_d[0]),
+                              wbar_d[0], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (15.0 * cf_d[5] * f_d[20] + 13.41640786499874 * cf_d[3] * f_d[19] +
-            15.0 * cf_d[7] * f_d[12] + 13.41640786499874 * cf_d[1] * f_d[11] +
-            13.41640786499874 * f_d[5] * cf_d[6] + 15.0 * cf_d[2] * f_d[5] +
-            13.41640786499874 * f_d[1] * cf_d[4] + 15.0 * f_d[2] * cf_d[3] +
-            15.0 * cf_d[0] * f_d[1] + 15.0 * f_d[0] * cf_d[1]),
-        wbar_d[1], 1e-8));
+                                (15.0 * cf_d[5] * f_d[20] + 13.41640786499874 * cf_d[3] * f_d[19] +
+                                 15.0 * cf_d[7] * f_d[12] + 13.41640786499874 * cf_d[1] * f_d[11] +
+                                 13.41640786499874 * f_d[5] * cf_d[6] + 15.0 * cf_d[2] * f_d[5] +
+                                 13.41640786499874 * f_d[1] * cf_d[4] + 15.0 * f_d[2] * cf_d[3] +
+                                 15.0 * cf_d[0] * f_d[1] + 15.0 * f_d[0] * cf_d[1]),
+                              wbar_d[1], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (13.41640786499874 * cf_d[3] * f_d[20] + 15.0 * cf_d[4] * f_d[19] +
-            13.41640786499874 * cf_d[2] * f_d[12] + 15.0 * cf_d[6] * f_d[11] +
-            13.41640786499874 * f_d[5] * cf_d[7] + 15.0 * cf_d[1] * f_d[5] +
-            13.41640786499874 * f_d[2] * cf_d[5] + 15.0 * f_d[1] * cf_d[3] +
-            15.0 * cf_d[0] * f_d[2] + 15.0 * f_d[0] * cf_d[2]),
-        wbar_d[2], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (15.0 * cf_d[7] * f_d[33] + 15.0 * cf_d[6] * f_d[32] + 15.0 * cf_d[5] * f_d[22] +
-            15.0 * cf_d[4] * f_d[21] + 15.0 * cf_d[3] * f_d[15] + 15.0 * cf_d[2] * f_d[7] +
-            15.0 * cf_d[1] * f_d[6] + 15.0 * cf_d[0] * f_d[3]),
-        wbar_d[3], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (15.0 * cf_d[7] * f_d[36] + 15.0 * cf_d[6] * f_d[35] + 15.0 * cf_d[5] * f_d[26] +
-            15.0 * cf_d[4] * f_d[25] + 15.0 * cf_d[3] * f_d[16] + 15.0 * cf_d[2] * f_d[9] +
-            15.0 * cf_d[1] * f_d[8] + 15.0 * cf_d[0] * f_d[4]),
-        wbar_d[4], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+                                (13.41640786499874 * cf_d[3] * f_d[20] + 15.0 * cf_d[4] * f_d[19] +
+                                 13.41640786499874 * cf_d[2] * f_d[12] + 15.0 * cf_d[6] * f_d[11] +
+                                 13.41640786499874 * f_d[5] * cf_d[7] + 15.0 * cf_d[1] * f_d[5] +
+                                 13.41640786499874 * f_d[2] * cf_d[5] + 15.0 * f_d[1] * cf_d[3] +
+                                 15.0 * cf_d[0] * f_d[2] + 15.0 * f_d[0] * cf_d[2]),
+                              wbar_d[2], 1e-8));
+      TEST_CHECK(
+        gkyl_compare(0.03333333333333333 * (15.0 * cf_d[7] * f_d[33] + 15.0 * cf_d[6] * f_d[32] +
+                                            15.0 * cf_d[5] * f_d[22] + 15.0 * cf_d[4] * f_d[21] +
+                                            15.0 * cf_d[3] * f_d[15] + 15.0 * cf_d[2] * f_d[7] +
+                                            15.0 * cf_d[1] * f_d[6] + 15.0 * cf_d[0] * f_d[3]),
+                     wbar_d[3], 1e-8));
+      TEST_CHECK(
+        gkyl_compare(0.03333333333333333 * (15.0 * cf_d[7] * f_d[36] + 15.0 * cf_d[6] * f_d[35] +
+                                            15.0 * cf_d[5] * f_d[26] + 15.0 * cf_d[4] * f_d[25] +
+                                            15.0 * cf_d[3] * f_d[16] + 15.0 * cf_d[2] * f_d[9] +
+                                            15.0 * cf_d[1] * f_d[8] + 15.0 * cf_d[0] * f_d[4]),
+                     wbar_d[4], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((12.0 * cf_d[6] + 13.41640786499874 * cf_d[2]) * f_d[20] +
-            (12.0 * cf_d[7] + 13.41640786499874 * cf_d[1]) * f_d[19] +
-            13.41640786499874 * cf_d[3] * f_d[12] + 13.41640786499874 * cf_d[3] * f_d[11] +
-            13.41640786499874 * f_d[2] * cf_d[7] + 13.41640786499874 * f_d[1] * cf_d[6] +
-            (13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[5] +
-            15.0 * f_d[0] * cf_d[3] + 15.0 * cf_d[1] * f_d[2] + 15.0 * f_d[1] * cf_d[2]),
+           (12.0 * cf_d[7] + 13.41640786499874 * cf_d[1]) * f_d[19] +
+           13.41640786499874 * cf_d[3] * f_d[12] + 13.41640786499874 * cf_d[3] * f_d[11] +
+           13.41640786499874 * f_d[2] * cf_d[7] + 13.41640786499874 * f_d[1] * cf_d[6] +
+           (13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[5] +
+           15.0 * f_d[0] * cf_d[3] + 15.0 * cf_d[1] * f_d[2] + 15.0 * f_d[1] * cf_d[2]),
         wbar_d[5], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           (15.0 * cf_d[5] * f_d[33] + 13.41640786499874 * cf_d[3] * f_d[32] +
-            15.0 * cf_d[7] * f_d[22] + 13.41640786499874 * cf_d[1] * f_d[21] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[15] + 15.0 * cf_d[3] * f_d[7] +
-            (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[6] + 15.0 * cf_d[1] * f_d[3]),
+           15.0 * cf_d[7] * f_d[22] + 13.41640786499874 * cf_d[1] * f_d[21] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[15] + 15.0 * cf_d[3] * f_d[7] +
+           (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[6] + 15.0 * cf_d[1] * f_d[3]),
         wbar_d[6], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (13.41640786499874 * cf_d[3] * f_d[33] + 15.0 * cf_d[4] * f_d[32] +
-            13.41640786499874 * cf_d[2] * f_d[22] + 15.0 * cf_d[6] * f_d[21] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[15] +
-            (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[7] + 15.0 * cf_d[3] * f_d[6] +
-            15.0 * cf_d[2] * f_d[3]),
-        wbar_d[7], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+                                (13.41640786499874 * cf_d[3] * f_d[33] + 15.0 * cf_d[4] * f_d[32] +
+                                 13.41640786499874 * cf_d[2] * f_d[22] + 15.0 * cf_d[6] * f_d[21] +
+                                 (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[15] +
+                                 (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[7] +
+                                 15.0 * cf_d[3] * f_d[6] + 15.0 * cf_d[2] * f_d[3]),
+                              wbar_d[7], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           (15.0 * cf_d[5] * f_d[36] + 13.41640786499874 * cf_d[3] * f_d[35] +
-            15.0 * cf_d[7] * f_d[26] + 13.41640786499874 * cf_d[1] * f_d[25] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[16] + 15.0 * cf_d[3] * f_d[9] +
-            (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[8] + 15.0 * cf_d[1] * f_d[4]),
+           15.0 * cf_d[7] * f_d[26] + 13.41640786499874 * cf_d[1] * f_d[25] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[16] + 15.0 * cf_d[3] * f_d[9] +
+           (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[8] + 15.0 * cf_d[1] * f_d[4]),
         wbar_d[8], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (13.41640786499874 * cf_d[3] * f_d[36] + 15.0 * cf_d[4] * f_d[35] +
-            13.41640786499874 * cf_d[2] * f_d[26] + 15.0 * cf_d[6] * f_d[25] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[16] +
-            (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[9] + 15.0 * cf_d[3] * f_d[8] +
-            15.0 * cf_d[2] * f_d[4]),
-        wbar_d[9], 1e-8));
-      TEST_CHECK(gkyl_compare(0.5 *
-          (cf_d[7] * f_d[45] + cf_d[6] * f_d[44] + cf_d[5] * f_d[38] + cf_d[4] * f_d[37] +
-            cf_d[3] * f_d[31] + cf_d[2] * f_d[18] + cf_d[1] * f_d[17] + cf_d[0] * f_d[10]),
-        wbar_d[10], 1e-8));
+                                (13.41640786499874 * cf_d[3] * f_d[36] + 15.0 * cf_d[4] * f_d[35] +
+                                 13.41640786499874 * cf_d[2] * f_d[26] + 15.0 * cf_d[6] * f_d[25] +
+                                 (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[16] +
+                                 (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[9] +
+                                 15.0 * cf_d[3] * f_d[8] + 15.0 * cf_d[2] * f_d[4]),
+                              wbar_d[9], 1e-8));
+      TEST_CHECK(gkyl_compare(0.5 * (cf_d[7] * f_d[45] + cf_d[6] * f_d[44] + cf_d[5] * f_d[38] +
+                                     cf_d[4] * f_d[37] + cf_d[3] * f_d[31] + cf_d[2] * f_d[18] +
+                                     cf_d[1] * f_d[17] + cf_d[0] * f_d[10]),
+                              wbar_d[10], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          (93.91485505499116 * cf_d[7] * f_d[20] +
-            (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[19] +
-            (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[11] + 105.0 * f_d[2] * cf_d[6] +
-            93.91485505499116 * cf_d[3] * f_d[5] + 105.0 * f_d[0] * cf_d[4] +
-            93.91485505499116 * cf_d[1] * f_d[1]),
-        wbar_d[11], 1e-8));
+                                (93.91485505499116 * cf_d[7] * f_d[20] +
+                                 (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[19] +
+                                 (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[11] +
+                                 105.0 * f_d[2] * cf_d[6] + 93.91485505499116 * cf_d[3] * f_d[5] +
+                                 105.0 * f_d[0] * cf_d[4] + 93.91485505499116 * cf_d[1] * f_d[1]),
+                              wbar_d[11], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[20] +
-            93.91485505499116 * cf_d[6] * f_d[19] +
-            (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[12] + 105.0 * f_d[1] * cf_d[7] +
-            93.91485505499116 * cf_d[3] * f_d[5] + 105.0 * f_d[0] * cf_d[5] +
-            93.91485505499116 * cf_d[2] * f_d[2]),
-        wbar_d[12], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (15.0 * cf_d[3] * f_d[34] + 15.0 * cf_d[2] * f_d[24] + 15.0 * cf_d[1] * f_d[23] +
-            15.0 * cf_d[0] * f_d[13]),
-        wbar_d[13], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (15.0 * cf_d[3] * f_d[41] + 15.0 * cf_d[2] * f_d[29] + 15.0 * cf_d[1] * f_d[28] +
-            15.0 * cf_d[0] * f_d[14]),
-        wbar_d[14], 1e-8));
-      TEST_CHECK(gkyl_compare(0.006666666666666667 *
+                                ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[20] +
+                                 93.91485505499116 * cf_d[6] * f_d[19] +
+                                 (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[12] +
+                                 105.0 * f_d[1] * cf_d[7] + 93.91485505499116 * cf_d[3] * f_d[5] +
+                                 105.0 * f_d[0] * cf_d[5] + 93.91485505499116 * cf_d[2] * f_d[2]),
+                              wbar_d[12], 1e-8));
+      TEST_CHECK(
+        gkyl_compare(0.03333333333333333 * (15.0 * cf_d[3] * f_d[34] + 15.0 * cf_d[2] * f_d[24] +
+                                            15.0 * cf_d[1] * f_d[23] + 15.0 * cf_d[0] * f_d[13]),
+                     wbar_d[13], 1e-8));
+      TEST_CHECK(
+        gkyl_compare(0.03333333333333333 * (15.0 * cf_d[3] * f_d[41] + 15.0 * cf_d[2] * f_d[29] +
+                                            15.0 * cf_d[1] * f_d[28] + 15.0 * cf_d[0] * f_d[14]),
+                     wbar_d[14], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.006666666666666667 *
           ((60.00000000000001 * cf_d[6] + 67.0820393249937 * cf_d[2]) * f_d[33] +
-            (60.00000000000001 * cf_d[7] + 67.0820393249937 * cf_d[1]) * f_d[32] +
-            67.08203932499369 * cf_d[3] * f_d[22] + 67.08203932499369 * cf_d[3] * f_d[21] +
-            (67.0820393249937 * cf_d[5] + 67.0820393249937 * cf_d[4] + 75.0 * cf_d[0]) * f_d[15] +
-            (67.08203932499369 * cf_d[7] + 75.0 * cf_d[1]) * f_d[7] +
-            (67.08203932499369 * cf_d[6] + 75.0 * cf_d[2]) * f_d[6] + 75.0 * cf_d[3] * f_d[3]),
+           (60.00000000000001 * cf_d[7] + 67.0820393249937 * cf_d[1]) * f_d[32] +
+           67.08203932499369 * cf_d[3] * f_d[22] + 67.08203932499369 * cf_d[3] * f_d[21] +
+           (67.0820393249937 * cf_d[5] + 67.0820393249937 * cf_d[4] + 75.0 * cf_d[0]) * f_d[15] +
+           (67.08203932499369 * cf_d[7] + 75.0 * cf_d[1]) * f_d[7] +
+           (67.08203932499369 * cf_d[6] + 75.0 * cf_d[2]) * f_d[6] + 75.0 * cf_d[3] * f_d[3]),
         wbar_d[15], 1e-8));
-      TEST_CHECK(gkyl_compare(0.006666666666666667 *
+      TEST_CHECK(gkyl_compare(
+        0.006666666666666667 *
           ((60.00000000000001 * cf_d[6] + 67.0820393249937 * cf_d[2]) * f_d[36] +
-            (60.00000000000001 * cf_d[7] + 67.0820393249937 * cf_d[1]) * f_d[35] +
-            67.08203932499369 * cf_d[3] * f_d[26] + 67.08203932499369 * cf_d[3] * f_d[25] +
-            (67.0820393249937 * cf_d[5] + 67.0820393249937 * cf_d[4] + 75.0 * cf_d[0]) * f_d[16] +
-            (67.08203932499369 * cf_d[7] + 75.0 * cf_d[1]) * f_d[9] +
-            (67.08203932499369 * cf_d[6] + 75.0 * cf_d[2]) * f_d[8] + 75.0 * cf_d[3] * f_d[4]),
+           (60.00000000000001 * cf_d[7] + 67.0820393249937 * cf_d[1]) * f_d[35] +
+           67.08203932499369 * cf_d[3] * f_d[26] + 67.08203932499369 * cf_d[3] * f_d[25] +
+           (67.0820393249937 * cf_d[5] + 67.0820393249937 * cf_d[4] + 75.0 * cf_d[0]) * f_d[16] +
+           (67.08203932499369 * cf_d[7] + 75.0 * cf_d[1]) * f_d[9] +
+           (67.08203932499369 * cf_d[6] + 75.0 * cf_d[2]) * f_d[8] + 75.0 * cf_d[3] * f_d[4]),
         wbar_d[16], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           (15.0 * cf_d[5] * f_d[45] + 13.41640786499874 * cf_d[3] * f_d[44] +
-            15.0 * cf_d[7] * f_d[38] + 13.41640786499874 * cf_d[1] * f_d[37] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[31] + 15.0 * cf_d[3] * f_d[18] +
-            (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[17] + 15.0 * cf_d[1] * f_d[10]),
+           15.0 * cf_d[7] * f_d[38] + 13.41640786499874 * cf_d[1] * f_d[37] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[31] + 15.0 * cf_d[3] * f_d[18] +
+           (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[17] + 15.0 * cf_d[1] * f_d[10]),
         wbar_d[17], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (13.41640786499874 * cf_d[3] * f_d[45] + 15.0 * cf_d[4] * f_d[44] +
-            13.41640786499874 * cf_d[2] * f_d[38] + 15.0 * cf_d[6] * f_d[37] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[31] +
-            (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[18] + 15.0 * cf_d[3] * f_d[17] +
-            15.0 * cf_d[2] * f_d[10]),
-        wbar_d[18], 1e-8));
-      TEST_CHECK(gkyl_compare(0.004761904761904762 *
+                                (13.41640786499874 * cf_d[3] * f_d[45] + 15.0 * cf_d[4] * f_d[44] +
+                                 13.41640786499874 * cf_d[2] * f_d[38] + 15.0 * cf_d[6] * f_d[37] +
+                                 (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[31] +
+                                 (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[18] +
+                                 15.0 * cf_d[3] * f_d[17] + 15.0 * cf_d[2] * f_d[10]),
+                              wbar_d[18], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.004761904761904762 *
           (84.0 * cf_d[3] * f_d[20] +
-            (93.91485505499116 * cf_d[5] + 67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[19] +
-            93.91485505499116 * cf_d[6] * f_d[12] +
-            (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[11] + 84.0 * f_d[5] * cf_d[7] +
-            105.0 * f_d[0] * cf_d[6] + 93.91485505499116 * cf_d[1] * f_d[5] +
-            105.0 * f_d[2] * cf_d[4] + 93.91485505499116 * f_d[1] * cf_d[3]),
+           (93.91485505499116 * cf_d[5] + 67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[19] +
+           93.91485505499116 * cf_d[6] * f_d[12] +
+           (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[11] + 84.0 * f_d[5] * cf_d[7] +
+           105.0 * f_d[0] * cf_d[6] + 93.91485505499116 * cf_d[1] * f_d[5] +
+           105.0 * f_d[2] * cf_d[4] + 93.91485505499116 * f_d[1] * cf_d[3]),
         wbar_d[19], 1e-8));
-      TEST_CHECK(gkyl_compare(0.004761904761904762 *
+      TEST_CHECK(gkyl_compare(
+        0.004761904761904762 *
           ((67.0820393249937 * cf_d[5] + 93.91485505499116 * cf_d[4] + 105.0 * cf_d[0]) * f_d[20] +
-            84.0 * cf_d[3] * f_d[19] + (67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[12] +
-            93.91485505499116 * cf_d[7] * f_d[11] + 105.0 * f_d[0] * cf_d[7] +
-            84.0 * f_d[5] * cf_d[6] + 93.91485505499116 * cf_d[2] * f_d[5] +
-            105.0 * f_d[1] * cf_d[5] + 93.91485505499116 * f_d[2] * cf_d[3]),
+           84.0 * cf_d[3] * f_d[19] + (67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[12] +
+           93.91485505499116 * cf_d[7] * f_d[11] + 105.0 * f_d[0] * cf_d[7] +
+           84.0 * f_d[5] * cf_d[6] + 93.91485505499116 * cf_d[2] * f_d[5] +
+           105.0 * f_d[1] * cf_d[5] + 93.91485505499116 * f_d[2] * cf_d[3]),
         wbar_d[20], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          (93.91485505499116 * cf_d[7] * f_d[33] +
-            (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[32] +
-            (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[21] +
-            93.91485505499116 * cf_d[3] * f_d[15] + 105.0 * cf_d[6] * f_d[7] +
-            93.91485505499116 * cf_d[1] * f_d[6] + 105.0 * f_d[3] * cf_d[4]),
-        wbar_d[21], 1e-8));
+                                (93.91485505499116 * cf_d[7] * f_d[33] +
+                                 (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[32] +
+                                 (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[21] +
+                                 93.91485505499116 * cf_d[3] * f_d[15] + 105.0 * cf_d[6] * f_d[7] +
+                                 93.91485505499116 * cf_d[1] * f_d[6] + 105.0 * f_d[3] * cf_d[4]),
+                              wbar_d[21], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[33] +
-            93.91485505499116 * cf_d[6] * f_d[32] +
-            (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[22] +
-            93.91485505499116 * cf_d[3] * f_d[15] + 93.91485505499116 * cf_d[2] * f_d[7] +
-            105.0 * f_d[6] * cf_d[7] + 105.0 * f_d[3] * cf_d[5]),
-        wbar_d[22], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+                                ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[33] +
+                                 93.91485505499116 * cf_d[6] * f_d[32] +
+                                 (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[22] +
+                                 93.91485505499116 * cf_d[3] * f_d[15] +
+                                 93.91485505499116 * cf_d[2] * f_d[7] + 105.0 * f_d[6] * cf_d[7] +
+                                 105.0 * f_d[3] * cf_d[5]),
+                              wbar_d[22], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[34] + 15.0 * cf_d[3] * f_d[24] +
-            (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[23] + 15.0 * cf_d[1] * f_d[13]),
+           (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[23] + 15.0 * cf_d[1] * f_d[13]),
         wbar_d[23], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[34] +
-            (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[24] + 15.0 * cf_d[3] * f_d[23] +
-            15.0 * cf_d[2] * f_d[13]),
-        wbar_d[24], 1e-8));
+                                ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[34] +
+                                 (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[24] +
+                                 15.0 * cf_d[3] * f_d[23] + 15.0 * cf_d[2] * f_d[13]),
+                              wbar_d[24], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          (93.91485505499116 * cf_d[7] * f_d[36] +
-            (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[35] +
-            (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[25] +
-            93.91485505499116 * cf_d[3] * f_d[16] + 105.0 * cf_d[6] * f_d[9] +
-            93.91485505499116 * cf_d[1] * f_d[8] + 105.0 * cf_d[4] * f_d[4]),
-        wbar_d[25], 1e-8));
+                                (93.91485505499116 * cf_d[7] * f_d[36] +
+                                 (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[35] +
+                                 (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[25] +
+                                 93.91485505499116 * cf_d[3] * f_d[16] + 105.0 * cf_d[6] * f_d[9] +
+                                 93.91485505499116 * cf_d[1] * f_d[8] + 105.0 * cf_d[4] * f_d[4]),
+                              wbar_d[25], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[36] +
-            93.91485505499116 * cf_d[6] * f_d[35] +
-            (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[26] +
-            93.91485505499116 * cf_d[3] * f_d[16] + 93.91485505499116 * cf_d[2] * f_d[9] +
-            105.0 * cf_d[7] * f_d[8] + 105.0 * f_d[4] * cf_d[5]),
-        wbar_d[26], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (15.0 * cf_d[3] * f_d[46] + 15.0 * cf_d[2] * f_d[40] + 15.0 * cf_d[1] * f_d[39] +
-            15.0 * cf_d[0] * f_d[27]),
-        wbar_d[27], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+                                ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[36] +
+                                 93.91485505499116 * cf_d[6] * f_d[35] +
+                                 (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[26] +
+                                 93.91485505499116 * cf_d[3] * f_d[16] +
+                                 93.91485505499116 * cf_d[2] * f_d[9] + 105.0 * cf_d[7] * f_d[8] +
+                                 105.0 * f_d[4] * cf_d[5]),
+                              wbar_d[26], 1e-8));
+      TEST_CHECK(
+        gkyl_compare(0.03333333333333333 * (15.0 * cf_d[3] * f_d[46] + 15.0 * cf_d[2] * f_d[40] +
+                                            15.0 * cf_d[1] * f_d[39] + 15.0 * cf_d[0] * f_d[27]),
+                     wbar_d[27], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[41] + 15.0 * cf_d[3] * f_d[29] +
-            (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[28] + 15.0 * cf_d[1] * f_d[14]),
+           (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[28] + 15.0 * cf_d[1] * f_d[14]),
         wbar_d[28], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[41] +
-            (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[29] + 15.0 * cf_d[3] * f_d[28] +
-            15.0 * cf_d[2] * f_d[14]),
-        wbar_d[29], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          (15.0 * cf_d[3] * f_d[47] + 15.0 * cf_d[2] * f_d[43] + 15.0 * cf_d[1] * f_d[42] +
-            15.0 * cf_d[0] * f_d[30]),
-        wbar_d[30], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+                                ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[41] +
+                                 (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[29] +
+                                 15.0 * cf_d[3] * f_d[28] + 15.0 * cf_d[2] * f_d[14]),
+                              wbar_d[29], 1e-8));
+      TEST_CHECK(
+        gkyl_compare(0.03333333333333333 * (15.0 * cf_d[3] * f_d[47] + 15.0 * cf_d[2] * f_d[43] +
+                                            15.0 * cf_d[1] * f_d[42] + 15.0 * cf_d[0] * f_d[30]),
+                     wbar_d[30], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((12.0 * cf_d[6] + 13.41640786499874 * cf_d[2]) * f_d[45] +
-            (12.0 * cf_d[7] + 13.41640786499874 * cf_d[1]) * f_d[44] +
-            13.41640786499874 * cf_d[3] * f_d[38] + 13.41640786499874 * cf_d[3] * f_d[37] +
-            (13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[31] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[18] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[17] + 15.0 * cf_d[3] * f_d[10]),
+           (12.0 * cf_d[7] + 13.41640786499874 * cf_d[1]) * f_d[44] +
+           13.41640786499874 * cf_d[3] * f_d[38] + 13.41640786499874 * cf_d[3] * f_d[37] +
+           (13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[31] +
+           (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[18] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[17] + 15.0 * cf_d[3] * f_d[10]),
         wbar_d[31], 1e-8));
-      TEST_CHECK(gkyl_compare(9.523809523809524e-4 *
+      TEST_CHECK(gkyl_compare(
+        9.523809523809524e-4 *
           (420.0 * cf_d[3] * f_d[33] +
-            (469.5742752749559 * cf_d[5] + 335.4101966249685 * cf_d[4] + 525.0 * cf_d[0]) *
-              f_d[32] +
-            469.5742752749559 * cf_d[6] * f_d[22] +
-            (335.4101966249685 * cf_d[6] + 525.0000000000001 * cf_d[2]) * f_d[21] +
-            (420.0000000000001 * cf_d[7] + 469.5742752749559 * cf_d[1]) * f_d[15] +
-            525.0 * cf_d[4] * f_d[7] + 469.5742752749559 * cf_d[3] * f_d[6] +
-            525.0000000000001 * f_d[3] * cf_d[6]),
+           (469.5742752749559 * cf_d[5] + 335.4101966249685 * cf_d[4] + 525.0 * cf_d[0]) * f_d[32] +
+           469.5742752749559 * cf_d[6] * f_d[22] +
+           (335.4101966249685 * cf_d[6] + 525.0000000000001 * cf_d[2]) * f_d[21] +
+           (420.0000000000001 * cf_d[7] + 469.5742752749559 * cf_d[1]) * f_d[15] +
+           525.0 * cf_d[4] * f_d[7] + 469.5742752749559 * cf_d[3] * f_d[6] +
+           525.0000000000001 * f_d[3] * cf_d[6]),
         wbar_d[32], 1e-8));
-      TEST_CHECK(gkyl_compare(9.523809523809524e-4 *
+      TEST_CHECK(gkyl_compare(
+        9.523809523809524e-4 *
           ((335.4101966249685 * cf_d[5] + 469.5742752749559 * cf_d[4] + 525.0 * cf_d[0]) * f_d[33] +
-            420.0 * cf_d[3] * f_d[32] +
-            (335.4101966249685 * cf_d[7] + 525.0000000000001 * cf_d[1]) * f_d[22] +
-            469.5742752749559 * cf_d[7] * f_d[21] +
-            (420.0000000000001 * cf_d[6] + 469.5742752749559 * cf_d[2]) * f_d[15] +
-            469.5742752749559 * cf_d[3] * f_d[7] + 525.0000000000001 * f_d[3] * cf_d[7] +
-            525.0 * cf_d[5] * f_d[6]),
+           420.0 * cf_d[3] * f_d[32] +
+           (335.4101966249685 * cf_d[7] + 525.0000000000001 * cf_d[1]) * f_d[22] +
+           469.5742752749559 * cf_d[7] * f_d[21] +
+           (420.0000000000001 * cf_d[6] + 469.5742752749559 * cf_d[2]) * f_d[15] +
+           469.5742752749559 * cf_d[3] * f_d[7] + 525.0000000000001 * f_d[3] * cf_d[7] +
+           525.0 * cf_d[5] * f_d[6]),
         wbar_d[33], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[34] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[24] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[23] + 15.0 * cf_d[3] * f_d[13]),
+           (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[24] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[23] + 15.0 * cf_d[3] * f_d[13]),
         wbar_d[34], 1e-8));
-      TEST_CHECK(gkyl_compare(9.523809523809524e-4 *
+      TEST_CHECK(gkyl_compare(
+        9.523809523809524e-4 *
           (420.0 * cf_d[3] * f_d[36] +
-            (469.5742752749559 * cf_d[5] + 335.4101966249685 * cf_d[4] + 525.0 * cf_d[0]) *
-              f_d[35] +
-            469.5742752749559 * cf_d[6] * f_d[26] +
-            (335.4101966249685 * cf_d[6] + 525.0000000000001 * cf_d[2]) * f_d[25] +
-            (420.0000000000001 * cf_d[7] + 469.5742752749559 * cf_d[1]) * f_d[16] +
-            525.0 * cf_d[4] * f_d[9] + 469.5742752749559 * cf_d[3] * f_d[8] +
-            525.0000000000001 * f_d[4] * cf_d[6]),
+           (469.5742752749559 * cf_d[5] + 335.4101966249685 * cf_d[4] + 525.0 * cf_d[0]) * f_d[35] +
+           469.5742752749559 * cf_d[6] * f_d[26] +
+           (335.4101966249685 * cf_d[6] + 525.0000000000001 * cf_d[2]) * f_d[25] +
+           (420.0000000000001 * cf_d[7] + 469.5742752749559 * cf_d[1]) * f_d[16] +
+           525.0 * cf_d[4] * f_d[9] + 469.5742752749559 * cf_d[3] * f_d[8] +
+           525.0000000000001 * f_d[4] * cf_d[6]),
         wbar_d[35], 1e-8));
-      TEST_CHECK(gkyl_compare(9.523809523809524e-4 *
+      TEST_CHECK(gkyl_compare(
+        9.523809523809524e-4 *
           ((335.4101966249685 * cf_d[5] + 469.5742752749559 * cf_d[4] + 525.0 * cf_d[0]) * f_d[36] +
-            420.0 * cf_d[3] * f_d[35] +
-            (335.4101966249685 * cf_d[7] + 525.0000000000001 * cf_d[1]) * f_d[26] +
-            469.5742752749559 * cf_d[7] * f_d[25] +
-            (420.0000000000001 * cf_d[6] + 469.5742752749559 * cf_d[2]) * f_d[16] +
-            469.5742752749559 * cf_d[3] * f_d[9] + 525.0 * cf_d[5] * f_d[8] +
-            525.0000000000001 * f_d[4] * cf_d[7]),
+           420.0 * cf_d[3] * f_d[35] +
+           (335.4101966249685 * cf_d[7] + 525.0000000000001 * cf_d[1]) * f_d[26] +
+           469.5742752749559 * cf_d[7] * f_d[25] +
+           (420.0000000000001 * cf_d[6] + 469.5742752749559 * cf_d[2]) * f_d[16] +
+           469.5742752749559 * cf_d[3] * f_d[9] + 525.0 * cf_d[5] * f_d[8] +
+           525.0000000000001 * f_d[4] * cf_d[7]),
         wbar_d[36], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          (93.91485505499116 * cf_d[7] * f_d[45] +
-            (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[44] +
-            (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[37] +
-            93.91485505499116 * cf_d[3] * f_d[31] + 105.0 * cf_d[6] * f_d[18] +
-            93.91485505499116 * cf_d[1] * f_d[17] + 105.0 * cf_d[4] * f_d[10]),
-        wbar_d[37], 1e-8));
+                                (93.91485505499116 * cf_d[7] * f_d[45] +
+                                 (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[44] +
+                                 (67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[37] +
+                                 93.91485505499116 * cf_d[3] * f_d[31] + 105.0 * cf_d[6] * f_d[18] +
+                                 93.91485505499116 * cf_d[1] * f_d[17] + 105.0 * cf_d[4] * f_d[10]),
+                              wbar_d[37], 1e-8));
       TEST_CHECK(gkyl_compare(0.004761904761904762 *
-          ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[45] +
-            93.91485505499116 * cf_d[6] * f_d[44] +
-            (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[38] +
-            93.91485505499116 * cf_d[3] * f_d[31] + 93.91485505499116 * cf_d[2] * f_d[18] +
-            105.0 * cf_d[7] * f_d[17] + 105.0 * cf_d[5] * f_d[10]),
-        wbar_d[38], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+                                ((67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[45] +
+                                 93.91485505499116 * cf_d[6] * f_d[44] +
+                                 (67.0820393249937 * cf_d[5] + 105.0 * cf_d[0]) * f_d[38] +
+                                 93.91485505499116 * cf_d[3] * f_d[31] +
+                                 93.91485505499116 * cf_d[2] * f_d[18] + 105.0 * cf_d[7] * f_d[17] +
+                                 105.0 * cf_d[5] * f_d[10]),
+                              wbar_d[38], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[46] + 15.0 * cf_d[3] * f_d[40] +
-            (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[39] + 15.0 * cf_d[1] * f_d[27]),
+           (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[39] + 15.0 * cf_d[1] * f_d[27]),
         wbar_d[39], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[46] +
-            (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[40] + 15.0 * cf_d[3] * f_d[39] +
-            15.0 * cf_d[2] * f_d[27]),
-        wbar_d[40], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+                                ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[46] +
+                                 (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[40] +
+                                 15.0 * cf_d[3] * f_d[39] + 15.0 * cf_d[2] * f_d[27]),
+                              wbar_d[40], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[41] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[29] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[28] + 15.0 * cf_d[3] * f_d[14]),
+           (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[29] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[28] + 15.0 * cf_d[3] * f_d[14]),
         wbar_d[41], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[47] + 15.0 * cf_d[3] * f_d[43] +
-            (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[42] + 15.0 * cf_d[1] * f_d[30]),
+           (13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[42] + 15.0 * cf_d[1] * f_d[30]),
         wbar_d[42], 1e-8));
       TEST_CHECK(gkyl_compare(0.03333333333333333 *
-          ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[47] +
-            (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[43] + 15.0 * cf_d[3] * f_d[42] +
-            15.0 * cf_d[2] * f_d[30]),
-        wbar_d[43], 1e-8));
-      TEST_CHECK(gkyl_compare(0.004761904761904762 *
+                                ((13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[47] +
+                                 (13.41640786499874 * cf_d[5] + 15.0 * cf_d[0]) * f_d[43] +
+                                 15.0 * cf_d[3] * f_d[42] + 15.0 * cf_d[2] * f_d[30]),
+                              wbar_d[43], 1e-8));
+      TEST_CHECK(gkyl_compare(
+        0.004761904761904762 *
           (84.0 * cf_d[3] * f_d[45] +
-            (93.91485505499116 * cf_d[5] + 67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[44] +
-            93.91485505499116 * cf_d[6] * f_d[38] +
-            (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[37] +
-            (84.0 * cf_d[7] + 93.91485505499116 * cf_d[1]) * f_d[31] + 105.0 * cf_d[4] * f_d[18] +
-            93.91485505499116 * cf_d[3] * f_d[17] + 105.0 * cf_d[6] * f_d[10]),
+           (93.91485505499116 * cf_d[5] + 67.0820393249937 * cf_d[4] + 105.0 * cf_d[0]) * f_d[44] +
+           93.91485505499116 * cf_d[6] * f_d[38] +
+           (67.0820393249937 * cf_d[6] + 105.0 * cf_d[2]) * f_d[37] +
+           (84.0 * cf_d[7] + 93.91485505499116 * cf_d[1]) * f_d[31] + 105.0 * cf_d[4] * f_d[18] +
+           93.91485505499116 * cf_d[3] * f_d[17] + 105.0 * cf_d[6] * f_d[10]),
         wbar_d[44], 1e-8));
-      TEST_CHECK(gkyl_compare(0.004761904761904762 *
+      TEST_CHECK(gkyl_compare(
+        0.004761904761904762 *
           ((67.0820393249937 * cf_d[5] + 93.91485505499116 * cf_d[4] + 105.0 * cf_d[0]) * f_d[45] +
-            84.0 * cf_d[3] * f_d[44] + (67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[38] +
-            93.91485505499116 * cf_d[7] * f_d[37] +
-            (84.0 * cf_d[6] + 93.91485505499116 * cf_d[2]) * f_d[31] +
-            93.91485505499116 * cf_d[3] * f_d[18] + 105.0 * cf_d[5] * f_d[17] +
-            105.0 * cf_d[7] * f_d[10]),
+           84.0 * cf_d[3] * f_d[44] + (67.0820393249937 * cf_d[7] + 105.0 * cf_d[1]) * f_d[38] +
+           93.91485505499116 * cf_d[7] * f_d[37] +
+           (84.0 * cf_d[6] + 93.91485505499116 * cf_d[2]) * f_d[31] +
+           93.91485505499116 * cf_d[3] * f_d[18] + 105.0 * cf_d[5] * f_d[17] +
+           105.0 * cf_d[7] * f_d[10]),
         wbar_d[45], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[46] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[40] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[39] + 15.0 * cf_d[3] * f_d[27]),
+           (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[40] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[39] + 15.0 * cf_d[3] * f_d[27]),
         wbar_d[46], 1e-8));
-      TEST_CHECK(gkyl_compare(0.03333333333333333 *
+      TEST_CHECK(gkyl_compare(
+        0.03333333333333333 *
           ((13.41640786499874 * cf_d[5] + 13.41640786499874 * cf_d[4] + 15.0 * cf_d[0]) * f_d[47] +
-            (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[43] +
-            (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[42] + 15.0 * cf_d[3] * f_d[30]),
+           (13.41640786499874 * cf_d[7] + 15.0 * cf_d[1]) * f_d[43] +
+           (13.41640786499874 * cf_d[6] + 15.0 * cf_d[2]) * f_d[42] + 15.0 * cf_d[3] * f_d[30]),
         wbar_d[47], 1e-8));
     }
   }
@@ -2690,74 +2716,61 @@ test_4d(int poly_order, bool use_gpu)
   }
 }
 
-void
-test_bin_ops_1d_p1_ho()
+void test_bin_ops_1d_p1_ho()
 {
   test_1d(1, false);
 }
-void
-test_bin_ops_1d_p2_ho()
+void test_bin_ops_1d_p2_ho()
 {
   test_1d(2, false);
 }
-void
-test_bin_ops_1d_p3_ho()
+void test_bin_ops_1d_p3_ho()
 {
   test_1d(3, false);
 }
 
-void
-test_bin_ops_inv_1d_p1_ho()
+void test_bin_ops_inv_1d_p1_ho()
 {
   test_inv_1d(1, false);
 }
 
-void
-test_bin_ops_2d_p1_ho()
+void test_bin_ops_2d_p1_ho()
 {
   test_2d(1, false);
 }
-void
-test_bin_ops_2d_p2_ho()
+void test_bin_ops_2d_p2_ho()
 {
   test_2d(2, false);
 }
-void
-test_bin_ops_2d_p3_ho()
+void test_bin_ops_2d_p3_ho()
 {
   test_2d(3, false);
 }
 
-void
-test_bin_ops_inv_2d_p1_ho()
+void test_bin_ops_inv_2d_p1_ho()
 {
   test_inv_2d(1, false);
 }
 
-void
-test_bin_ops_3d_p1_ho()
+void test_bin_ops_3d_p1_ho()
 {
   test_3d(1, false);
 }
-void
-test_bin_ops_3d_p2_ho()
+void test_bin_ops_3d_p2_ho()
 {
   test_3d(2, false);
 }
 
-void
-test_bin_ops_4d_p1_ho()
+void test_bin_ops_4d_p1_ho()
 {
   test_4d(1, false);
 }
-void
-test_bin_ops_4d_p2_ho()
+void test_bin_ops_4d_p2_ho()
 {
   test_4d(2, false);
 }
 
-void
-f_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
+void f_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -2766,8 +2779,7 @@ f_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
     ((5 + x) * (5 + y) * (5 + z) * (5 + x) * (5 + y) * (5 + z) * (5 + x) * (5 + y) * (5 + z) + 100);
 }
 
-void
-g_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
+void g_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -2775,8 +2787,7 @@ g_3d_p3(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = ((x * y * z + 8) * (x * y * z + 8) * (x * y * z + 8) + 100);
 }
 
-void
-test_bin_ops_3d_p3_ho()
+void test_bin_ops_3d_p3_ho()
 {
   int poly_order = 3;
   double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
@@ -2876,34 +2887,29 @@ test_bin_ops_3d_p3_ho()
 // where f(x)=x, g(x,vx,vy)=sin(x)*cos(vx)+vy, ones=1
 // verifies gkyl_dg_mul_conf_phase_op_accumulate_range with a=-1 and pop=constant 1.
 
-void
-f_sub_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void f_sub_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = xn[0]; // f(x) = x
 }
 
-void
-g_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void g_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
   fout[0] = sin(x) * cos(vx) + vy; // g(x,vx,vy) = sin(x)*cos(vx) + vy
 }
 
-void
-ones_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void ones_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 1.0;
 }
 
-void
-h_sol_eval(double t, const double *xn, double *restrict fout, void *ctx)
+void h_sol_eval(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vx = xn[1], vy = xn[2];
   fout[0] = sin(x) * cos(vx) + vy - x; // h = g - f
 }
 
-void
-test_subspace_accumulate(int poly_order, bool use_gpu)
+void test_subspace_accumulate(int poly_order, bool use_gpu)
 {
   // Main dimension
   int dim = 3;
@@ -2957,21 +2963,21 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
   gkyl_proj_on_basis_advance(proj_h, 0.0, &local, h_sol_ho);
 
   // If GPU is enabled, make device copies of arrays and copy data to device
-  struct gkyl_array *f_sub = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, subbasis.num_basis, sub_local.volume)
-    : gkyl_array_acquire(f_sub_ho);
-  struct gkyl_array *g_full = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume)
-    : gkyl_array_acquire(g_full_ho);
-  struct gkyl_array *ones_phase = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume)
-    : gkyl_array_acquire(ones_ho);
-  struct gkyl_array *h_expect = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume)
-    : gkyl_array_acquire(h_sol_ho);
-  struct gkyl_array *pout = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume)
-    : gkyl_array_acquire(pout_ho);
+  struct gkyl_array *f_sub =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, subbasis.num_basis, sub_local.volume) :
+              gkyl_array_acquire(f_sub_ho);
+  struct gkyl_array *g_full = use_gpu ?
+                                gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) :
+                                gkyl_array_acquire(g_full_ho);
+  struct gkyl_array *ones_phase =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) :
+              gkyl_array_acquire(ones_ho);
+  struct gkyl_array *h_expect =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) :
+              gkyl_array_acquire(h_sol_ho);
+  struct gkyl_array *pout = use_gpu ?
+                              gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local.volume) :
+                              gkyl_array_acquire(pout_ho);
 
   // copy data to device if using GPU
   gkyl_array_copy(f_sub, f_sub_ho);
@@ -2980,8 +2986,8 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
 
   // pout = g, then pout += -1 * f_sub * ones_phase  =>  pout = g - f
   gkyl_array_copy(pout, g_full);
-  gkyl_dg_mul_conf_phase_op_accumulate_range(
-    &subbasis, &basis, pout, -1.0, f_sub, ones_phase, &sub_local, &local);
+  gkyl_dg_mul_conf_phase_op_accumulate_range(&subbasis, &basis, pout, -1.0, f_sub, ones_phase,
+                                             &sub_local, &local);
 
   // Copy pout back to host if using GPU
   gkyl_array_copy(pout_ho, pout);
@@ -3009,13 +3015,11 @@ test_subspace_accumulate(int poly_order, bool use_gpu)
   gkyl_array_release(pout_ho);
 }
 
-void
-test_bin_ops_conf_phase_accumulate_subtract_p1_ho()
+void test_bin_ops_conf_phase_accumulate_subtract_p1_ho()
 {
   test_subspace_accumulate(1, false);
 }
-void
-test_bin_ops_conf_phase_accumulate_subtract_p2_ho()
+void test_bin_ops_conf_phase_accumulate_subtract_p2_ho()
 {
   test_subspace_accumulate(2, false);
 }
@@ -3023,63 +3027,52 @@ test_bin_ops_conf_phase_accumulate_subtract_p2_ho()
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_bin_ops_1d_p1_dev()
+void test_bin_ops_1d_p1_dev()
 {
   test_1d(1, true);
 }
-void
-test_bin_ops_1d_p2_dev()
+void test_bin_ops_1d_p2_dev()
 {
   test_1d(2, true);
 }
-void
-test_bin_ops_1d_p3_dev()
+void test_bin_ops_1d_p3_dev()
 {
   test_1d(3, true);
 }
 
-void
-test_bin_ops_inv_1d_p1_dev()
+void test_bin_ops_inv_1d_p1_dev()
 {
   test_inv_1d(1, true);
 }
 
-void
-test_bin_ops_2d_p1_dev()
+void test_bin_ops_2d_p1_dev()
 {
   test_2d(1, true);
 }
-void
-test_bin_ops_2d_p2_dev()
+void test_bin_ops_2d_p2_dev()
 {
   test_2d(2, true);
 }
-void
-test_bin_ops_2d_p3_dev()
+void test_bin_ops_2d_p3_dev()
 {
   test_2d(3, true);
 }
 
-void
-test_bin_ops_inv_2d_p1_dev()
+void test_bin_ops_inv_2d_p1_dev()
 {
   test_inv_2d(1, true);
 }
 
-void
-test_bin_ops_3d_p1_dev()
+void test_bin_ops_3d_p1_dev()
 {
   test_3d(1, true);
 }
-void
-test_bin_ops_3d_p2_dev()
+void test_bin_ops_3d_p2_dev()
 {
   test_3d(2, true);
 }
 
-void
-test_bin_ops_3d_p3_dev()
+void test_bin_ops_3d_p3_dev()
 {
   int poly_order = 3;
   double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
@@ -3200,13 +3193,11 @@ test_bin_ops_3d_p3_dev()
   gkyl_dg_bin_op_mem_release(mem);
 }
 
-void
-test_bin_ops_conf_phase_accumulate_subtract_p1_dev()
+void test_bin_ops_conf_phase_accumulate_subtract_p1_dev()
 {
   test_subspace_accumulate(1, true);
 }
-void
-test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
+void test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
 {
   test_subspace_accumulate(2, true);
 }
@@ -3214,37 +3205,37 @@ test_bin_ops_conf_phase_accumulate_subtract_p2_dev()
 #endif
 
 TEST_LIST = { { "test_bin_ops_1d_p1_ho", test_bin_ops_1d_p1_ho },
-  { "test_bin_ops_inv_1d_p1_ho", test_bin_ops_inv_1d_p1_ho },
-  { "test_bin_ops_1d_p2_ho", test_bin_ops_1d_p2_ho },
-  { "test_bin_ops_1d_p3_ho", test_bin_ops_1d_p3_ho },
-  { "test_bin_ops_2d_p1_ho", test_bin_ops_2d_p1_ho },
-  { "test_bin_ops_inv_2d_p1_ho", test_bin_ops_inv_2d_p1_ho },
-  { "test_bin_ops_2d_p2_ho", test_bin_ops_2d_p2_ho },
-  { "test_bin_ops_2d_p3_ho", test_bin_ops_2d_p3_ho },
-  { "test_bin_ops_3d_p1_ho", test_bin_ops_3d_p1_ho },
-  { "test_bin_ops_3d_p2_ho", test_bin_ops_3d_p2_ho },
-  { "test_bin_ops_3d_p3_ho", test_bin_ops_3d_p3_ho },
-  { "test_bin_ops_4d_p1_ho", test_bin_ops_4d_p1_ho },
-  { "test_bin_ops_4d_p2_ho", test_bin_ops_4d_p2_ho },
-  { "test_bin_ops_conf_phase_accumulate_subtract_p1_ho",
-    test_bin_ops_conf_phase_accumulate_subtract_p1_ho },
-  { "test_bin_ops_conf_phase_accumulate_subtract_p2_ho",
-    test_bin_ops_conf_phase_accumulate_subtract_p2_ho },
+              { "test_bin_ops_inv_1d_p1_ho", test_bin_ops_inv_1d_p1_ho },
+              { "test_bin_ops_1d_p2_ho", test_bin_ops_1d_p2_ho },
+              { "test_bin_ops_1d_p3_ho", test_bin_ops_1d_p3_ho },
+              { "test_bin_ops_2d_p1_ho", test_bin_ops_2d_p1_ho },
+              { "test_bin_ops_inv_2d_p1_ho", test_bin_ops_inv_2d_p1_ho },
+              { "test_bin_ops_2d_p2_ho", test_bin_ops_2d_p2_ho },
+              { "test_bin_ops_2d_p3_ho", test_bin_ops_2d_p3_ho },
+              { "test_bin_ops_3d_p1_ho", test_bin_ops_3d_p1_ho },
+              { "test_bin_ops_3d_p2_ho", test_bin_ops_3d_p2_ho },
+              { "test_bin_ops_3d_p3_ho", test_bin_ops_3d_p3_ho },
+              { "test_bin_ops_4d_p1_ho", test_bin_ops_4d_p1_ho },
+              { "test_bin_ops_4d_p2_ho", test_bin_ops_4d_p2_ho },
+              { "test_bin_ops_conf_phase_accumulate_subtract_p1_ho",
+                test_bin_ops_conf_phase_accumulate_subtract_p1_ho },
+              { "test_bin_ops_conf_phase_accumulate_subtract_p2_ho",
+                test_bin_ops_conf_phase_accumulate_subtract_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_bin_ops_1d_p1_dev", test_bin_ops_1d_p1_dev },
-  { "test_bin_ops_inv_1d_p1_dev", test_bin_ops_inv_1d_p1_dev },
-  { "test_bin_ops_1d_p2_dev", test_bin_ops_1d_p2_dev },
-  { "test_bin_ops_1d_p3_dev", test_bin_ops_1d_p3_dev },
-  { "test_bin_ops_2d_p1_dev", test_bin_ops_2d_p1_dev },
-  { "test_bin_ops_inv_2d_p1_dev", test_bin_ops_inv_2d_p1_dev },
-  { "test_bin_ops_2d_p2_dev", test_bin_ops_2d_p2_dev },
-  { "test_bin_ops_2d_p3_dev", test_bin_ops_2d_p3_dev },
-  { "test_bin_ops_3d_p1_dev", test_bin_ops_3d_p1_dev },
-  { "test_bin_ops_3d_p2_dev", test_bin_ops_3d_p2_dev },
-  { "test_bin_ops_3d_p3_dev", test_bin_ops_3d_p3_dev },
-  { "test_bin_ops_conf_phase_accumulate_subtract_p1_dev",
-    test_bin_ops_conf_phase_accumulate_subtract_p1_dev },
-  { "test_bin_ops_conf_phase_accumulate_subtract_p2_dev",
-    test_bin_ops_conf_phase_accumulate_subtract_p2_dev },
+              { "test_bin_ops_1d_p1_dev", test_bin_ops_1d_p1_dev },
+              { "test_bin_ops_inv_1d_p1_dev", test_bin_ops_inv_1d_p1_dev },
+              { "test_bin_ops_1d_p2_dev", test_bin_ops_1d_p2_dev },
+              { "test_bin_ops_1d_p3_dev", test_bin_ops_1d_p3_dev },
+              { "test_bin_ops_2d_p1_dev", test_bin_ops_2d_p1_dev },
+              { "test_bin_ops_inv_2d_p1_dev", test_bin_ops_inv_2d_p1_dev },
+              { "test_bin_ops_2d_p2_dev", test_bin_ops_2d_p2_dev },
+              { "test_bin_ops_2d_p3_dev", test_bin_ops_2d_p3_dev },
+              { "test_bin_ops_3d_p1_dev", test_bin_ops_3d_p1_dev },
+              { "test_bin_ops_3d_p2_dev", test_bin_ops_3d_p2_dev },
+              { "test_bin_ops_3d_p3_dev", test_bin_ops_3d_p3_dev },
+              { "test_bin_ops_conf_phase_accumulate_subtract_p1_dev",
+                test_bin_ops_conf_phase_accumulate_subtract_p1_dev },
+              { "test_bin_ops_conf_phase_accumulate_subtract_p2_dev",
+                test_bin_ops_conf_phase_accumulate_subtract_p2_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

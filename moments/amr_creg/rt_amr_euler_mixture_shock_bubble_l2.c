@@ -47,8 +47,7 @@ struct amr_shock_bubble_ctx {
   double bub_rad; // Bubble radius.
 };
 
-struct amr_shock_bubble_ctx
-create_ctx(void)
+struct amr_shock_bubble_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma1 = 1.4; // First species adiabatic index.
@@ -95,45 +94,44 @@ create_ctx(void)
   double bub_rad = 0.025; // Bubble radius.
 
   struct amr_shock_bubble_ctx ctx = { .gas_gamma1 = gas_gamma1,
-    .gas_gamma2 = gas_gamma2,
-    .rho_pre = rho_pre,
-    .u_pre = u_pre,
-    .alpha1_pre = alpha1_pre,
-    .rho_post = rho_post,
-    .u_post = u_post,
-    .alpha1_post = alpha1_post,
-    .rho_bub = rho_bub,
-    .u_bub = u_bub,
-    .alpha1_bub = alpha1_bub,
-    .p_pre = p_pre,
-    .p_post = p_post,
-    .p_bub = p_bub,
-    .Nx = Nx,
-    .Ny = Ny,
-    .ref_factor1 = ref_factor1,
-    .ref_factor2 = ref_factor2,
-    .Lx = Lx,
-    .Ly = Ly,
-    .intermediate_Lx = intermediate_Lx,
-    .intermediate_Ly = intermediate_Ly,
-    .fine_Lx = fine_Lx,
-    .fine_Ly = fine_Ly,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .x_loc = x_loc,
-    .bub_loc_x = bub_loc_x,
-    .bub_loc_y = bub_loc_y,
-    .bub_rad = bub_rad };
+                                      .gas_gamma2 = gas_gamma2,
+                                      .rho_pre = rho_pre,
+                                      .u_pre = u_pre,
+                                      .alpha1_pre = alpha1_pre,
+                                      .rho_post = rho_post,
+                                      .u_post = u_post,
+                                      .alpha1_post = alpha1_post,
+                                      .rho_bub = rho_bub,
+                                      .u_bub = u_bub,
+                                      .alpha1_bub = alpha1_bub,
+                                      .p_pre = p_pre,
+                                      .p_post = p_post,
+                                      .p_bub = p_bub,
+                                      .Nx = Nx,
+                                      .Ny = Ny,
+                                      .ref_factor1 = ref_factor1,
+                                      .ref_factor2 = ref_factor2,
+                                      .Lx = Lx,
+                                      .Ly = Ly,
+                                      .intermediate_Lx = intermediate_Lx,
+                                      .intermediate_Ly = intermediate_Ly,
+                                      .fine_Lx = fine_Lx,
+                                      .fine_Ly = fine_Ly,
+                                      .cfl_frac = cfl_frac,
+                                      .t_end = t_end,
+                                      .num_frames = num_frames,
+                                      .dt_failure_tol = dt_failure_tol,
+                                      .num_failures_max = num_failures_max,
+                                      .x_loc = x_loc,
+                                      .bub_loc_x = bub_loc_x,
+                                      .bub_loc_y = bub_loc_y,
+                                      .bub_rad = bub_rad };
 
   return ctx;
 }
 
-void
-evalEulerMixtureInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalEulerMixtureInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
+                          void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_shock_bubble_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -202,9 +200,9 @@ evalEulerMixtureInit(
   double rho_total = (alpha1 * rho1) + ((1.0 - alpha1) * rho2); // Total mixture density.
 
   double E1 = (p_total / (gas_gamma1 - 1.0)) +
-    (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
+              (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
   double E2 = (p_total / (gas_gamma2 - 1.0)) +
-    (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
+              (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
   double E_total = (alpha1 * E1) + ((1.0 - alpha1) * E2); // Total mixture energy.
 
   // Set fluid mixture total mass density.
@@ -222,8 +220,7 @@ evalEulerMixtureInit(
   fout[7] = (1.0 - alpha1) * rho2;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct amr_shock_bubble_ctx ctx = create_ctx(); // Context for initialization functions.
 
@@ -231,7 +228,8 @@ main(int argc, char **argv)
   gas_gamma_s[0] = ctx.gas_gamma1;
   gas_gamma_s[1] = ctx.gas_gamma2;
 
-  struct euler_mixture2d_double_init init = { .base_Nx = ctx.Nx,
+  struct euler_mixture2d_double_init init = {
+    .base_Nx = ctx.Nx,
     .base_Ny = ctx.Ny,
     .ref_factor1 = ctx.ref_factor1,
     .ref_factor2 = ctx.ref_factor2,
@@ -269,7 +267,8 @@ main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler_mixture2d_run_double(argc, argv, &init);
 

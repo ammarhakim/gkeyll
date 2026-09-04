@@ -1,8 +1,8 @@
 #include <assert.h>
 #include <gkyl_vlasov_priv.h>
 
-void
-vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src)
+void vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s,
+                            struct vm_source *src)
 {
   int vdim = app->vdim;
   src->calc_bflux = false;
@@ -61,8 +61,8 @@ vm_species_source_init(struct gkyl_vlasov_app *app, struct vm_species *s, struct
   s->src.is_first_integ_write_call = true;
 }
 
-void
-vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src, double tm)
+void vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *s, struct vm_source *src,
+                            double tm)
 {
   if (s->source_id) {
     if (src->num_sources > 1) {
@@ -78,9 +78,9 @@ vm_species_source_calc(gkyl_vlasov_app *app, struct vm_species *s, struct vm_sou
 }
 
 // computes rhs of the boundary flux
-void
-vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species, struct vm_source *src,
-  const struct gkyl_array *fin[], struct gkyl_array *rhs[])
+void vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species,
+                           struct vm_source *src, const struct gkyl_array *fin[],
+                           struct gkyl_array *rhs[])
 {
   int species_idx;
   species_idx = vm_find_species_idx(app, species->info.name);
@@ -114,8 +114,7 @@ vm_species_source_rhs(gkyl_vlasov_app *app, const struct vm_species *species, st
   gkyl_array_accumulate(rhs[species_idx], src->scale_factor, src->source);
 }
 
-void
-vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_source *src)
+void vm_species_source_release(const struct gkyl_vlasov_app *app, const struct vm_source *src)
 {
   gkyl_array_release(src->source);
 

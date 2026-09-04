@@ -6,8 +6,7 @@
 #include <gkyl_wv_euler.h>
 #include <gkyl_wv_euler_priv.h>
 
-void
-gkyl_euler_free(const struct gkyl_ref_count *ref)
+void gkyl_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
 
@@ -21,8 +20,7 @@ gkyl_euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler);
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
+struct gkyl_wv_eqn *gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
 {
 #ifdef GKYL_HAVE_CUDA
   if (inp->use_gpu) {
@@ -107,15 +105,13 @@ gkyl_wv_euler_inew(const struct gkyl_wv_euler_inp *inp)
   return &euler->eqn;
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_euler_new(double gas_gamma, bool use_gpu)
+struct gkyl_wv_eqn *gkyl_wv_euler_new(double gas_gamma, bool use_gpu)
 {
   return gkyl_wv_euler_inew(&(struct gkyl_wv_euler_inp){
     .gas_gamma = gas_gamma, .rp_type = WV_EULER_RP_ROE, .use_gpu = use_gpu });
 }
 
-double
-gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
+double gkyl_wv_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_euler *euler = container_of(eqn, struct wv_euler, eqn);
   return euler->gas_gamma;

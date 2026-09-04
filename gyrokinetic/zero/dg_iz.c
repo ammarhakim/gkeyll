@@ -16,8 +16,7 @@
 #include <gkyl_rect_decomp.h>
 #include <gkyl_array_ops_priv.h>
 
-struct gkyl_dg_iz *
-gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
+struct gkyl_dg_iz *gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
 {
   gkyl_dg_iz *up = gkyl_malloc(sizeof(struct gkyl_dg_iz));
 
@@ -71,7 +70,7 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   // Allocate grid and DG array.
   struct gkyl_rect_grid tn_grid;
   gkyl_rect_grid_init(&tn_grid, 2, (double[]){ logTmin, logNmin }, (double[]){ logTmax, logNmax },
-    (int[]){ data.NT - 1, data.NN - 1 });
+                      (int[]){ data.NT - 1, data.NN - 1 });
 
   if (use_gpu) {
     // Allocate device basis if we are using GPUs.
@@ -92,8 +91,8 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
     gkyl_array_new(GKYL_DOUBLE, up->adas_basis.num_basis, modal_range_ext.volume);
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
-  gkyl_nodal_ops_n2m(
-    n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg, false);
+  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal,
+                     adas_dg, false);
   gkyl_nodal_ops_release(n2m);
 
   // ADAS data pointers
@@ -124,10 +123,9 @@ gkyl_dg_iz_new(struct gkyl_dg_iz_inp *inp, bool use_gpu)
   return up;
 }
 
-void
-gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_elc,
-  struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2, struct gkyl_array *coef_iz,
-  struct gkyl_array *cflrate)
+void gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_elc,
+                     struct gkyl_array *vtSq_iz1, struct gkyl_array *vtSq_iz2,
+                     struct gkyl_array *coef_iz, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef_iz)) {
@@ -199,16 +197,16 @@ gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_
           vtSq_iz2_d[0] = temp_elc_2 * up->elem_charge / (up->mass_elc * cell_av_fac);
           // T_e1 = T_e - 2/3*E_iz - T_e2
           array_set2(nc, 2 * nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
-          vtSq_iz1_d[0] = vtSq_iz1_d[0] -
-            up->elem_charge * (2. / 3. * up->E + temp_elc_2) / (up->mass_elc * cell_av_fac);
+          vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge * (2. / 3. * up->E + temp_elc_2) /
+                                            (up->mass_elc * cell_av_fac);
         } else if (3. / 2. * temp_elc_av >= up->E) {
           // T_e2 = 1/3*(3/2*T_e - E_iz)
           temp_elc_2 = temp_elc_av / 2.0 - up->E / 3.0;
           vtSq_iz2_d[0] = temp_elc_2 * up->elem_charge / (up->mass_elc * cell_av_fac);
           // T_e1 = T_e - 2/3*E_iz - T_e2
           array_set2(nc, 2 * nc, vtSq_iz1_d, 1.0, prim_vars_elc_d);
-          vtSq_iz1_d[0] = vtSq_iz1_d[0] -
-            up->elem_charge * (2. / 3. * up->E + temp_elc_2) / (up->mass_elc * cell_av_fac);
+          vtSq_iz1_d[0] = vtSq_iz1_d[0] - up->elem_charge * (2. / 3. * up->E + temp_elc_2) /
+                                            (up->mass_elc * cell_av_fac);
         } else {
           vtSq_iz2_d[0] = temp_flr * up->elem_charge / (up->mass_elc * cell_av_fac);
           vtSq_iz1_d[0] = temp_flr * up->elem_charge / (up->mass_elc * cell_av_fac);
@@ -218,8 +216,7 @@ gkyl_dg_iz_coll(const struct gkyl_dg_iz *up, const struct gkyl_array *prim_vars_
   }
 }
 
-void
-gkyl_dg_iz_release(struct gkyl_dg_iz *up)
+void gkyl_dg_iz_release(struct gkyl_dg_iz *up)
 {
   gkyl_array_release(up->ioniz_data);
   free(up);

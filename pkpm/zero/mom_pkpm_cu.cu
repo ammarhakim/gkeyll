@@ -14,9 +14,8 @@ extern "C" {
 
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-__global__ static void
-set_cu_ptrs(
-  struct mom_type_pkpm *mom_pkpm, enum gkyl_basis_type b_type, int cdim, int poly_order, bool diag)
+__global__ static void set_cu_ptrs(struct mom_type_pkpm *mom_pkpm, enum gkyl_basis_type b_type,
+                                   int cdim, int poly_order, bool diag)
 {
   // choose kernel tables based on basis-function type
   const gkyl_mom_pkpm_kern_list *mom_pkpm_kernels, *mom_pkpm_diag_kernels;
@@ -48,9 +47,9 @@ set_cu_ptrs(
   }
 }
 
-struct gkyl_mom_type *
-gkyl_mom_pkpm_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, double mass, bool diag)
+struct gkyl_mom_type *gkyl_mom_pkpm_cu_dev_new(const struct gkyl_basis *cbasis,
+                                               const struct gkyl_basis *pbasis, double mass,
+                                               bool diag)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -81,7 +80,7 @@ gkyl_mom_pkpm_cu_dev_new(
     (struct mom_type_pkpm *)gkyl_cu_malloc(sizeof(struct mom_type_pkpm));
   gkyl_cu_memcpy(mom_pkpm_cu, mom_pkpm, sizeof(struct mom_type_pkpm), GKYL_CU_MEMCPY_H2D);
 
-  set_cu_ptrs<<<1, 1>>>(mom_pkpm_cu, cbasis->b_type, cdim, poly_order, diag);
+  set_cu_ptrs<<<1, 1> > >(mom_pkpm_cu, cbasis->b_type, cdim, poly_order, diag);
 
   mom_pkpm->momt.on_dev = &mom_pkpm_cu->momt;
 

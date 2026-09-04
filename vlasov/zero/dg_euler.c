@@ -14,8 +14,7 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_dg_euler_free(const struct gkyl_ref_count *ref)
+void gkyl_dg_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
   struct dg_euler *euler = container_of(base, struct dg_euler, eqn);
@@ -30,8 +29,7 @@ gkyl_dg_euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(euler);
 }
 
-void
-gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
+void gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.u)) {
@@ -47,9 +45,10 @@ gkyl_euler_set_auxfields(const struct gkyl_dg_eqn *eqn, struct gkyl_dg_euler_aux
   euler->auxfields.p_surf = auxin.p_surf;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_euler_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_euler_new(const struct gkyl_basis *cbasis,
+                                      const struct gkyl_range *conf_range,
+                                      const struct gkyl_wv_eqn *wv_eqn,
+                                      const struct gkyl_wave_geom *geom, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -121,9 +120,10 @@ gkyl_dg_euler_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_euler_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom)
+struct gkyl_dg_eqn *gkyl_dg_euler_cu_dev_new(const struct gkyl_basis *cbasis,
+                                             const struct gkyl_range *conf_range,
+                                             const struct gkyl_wv_eqn *wv_eqn,
+                                             const struct gkyl_wave_geom *geom)
 {
   assert(false);
   return 0;

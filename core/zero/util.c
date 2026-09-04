@@ -13,8 +13,8 @@
 #include <mpack.h>
 #include <assert.h>
 
-int
-gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str, int def)
+int gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const char *str,
+                                    int def)
 {
   for (int i = 0; pairs[i].str != 0; ++i) {
     if (strcmp(pairs[i].str, str) == 0)
@@ -23,8 +23,8 @@ gkyl_search_str_int_pair_by_str(const struct gkyl_str_int_pair pairs[], const ch
   return def;
 }
 
-const char *
-gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val, const char *def)
+const char *gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val,
+                                            const char *def)
 {
   for (int i = 0; pairs[i].str != 0; ++i) {
     if (pairs[i].val == val)
@@ -33,8 +33,7 @@ gkyl_search_str_int_pair_by_int(const struct gkyl_str_int_pair pairs[], int val,
   return def;
 }
 
-int
-gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
+int gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
 {
   int status = 0;
   if (tcurr >= tmt->tcurr) {
@@ -45,15 +44,13 @@ gkyl_tm_trigger_check_and_bump(struct gkyl_tm_trigger *tmt, double tcurr)
   return status;
 }
 
-void
-gkyl_exit(const char *msg)
+void gkyl_exit(const char *msg)
 {
   fprintf(stderr, "Error: %s\n", msg);
   exit(EXIT_FAILURE);
 }
 
-int
-gkyl_compare_float(float a, float b, float eps)
+int gkyl_compare_float(float a, float b, float eps)
 {
   //if (isnanf(a) || isnanf(b)) return 0;
 
@@ -70,8 +67,7 @@ gkyl_compare_float(float a, float b, float eps)
   return diff / fminf(absa + absb, FLT_MAX) < eps;
 }
 
-int
-gkyl_compare_double(double a, double b, double eps)
+int gkyl_compare_double(double a, double b, double eps)
 {
   if (isnan(a) || isnan(b))
     return 0;
@@ -88,8 +84,7 @@ gkyl_compare_double(double a, double b, double eps)
   return diff / fmin(absa + absb, DBL_MAX) < eps;
 }
 
-struct timespec
-gkyl_wall_clock(void)
+struct timespec gkyl_wall_clock(void)
 {
   struct timespec tm = { 0 };
 #ifdef GKYL_HAVE_CUDA
@@ -100,8 +95,7 @@ gkyl_wall_clock(void)
   return tm;
 }
 
-struct timespec
-gkyl_time_diff(struct timespec start, struct timespec end)
+struct timespec gkyl_time_diff(struct timespec start, struct timespec end)
 {
   struct timespec tm;
   if ((end.tv_nsec - start.tv_nsec) < 0) {
@@ -114,26 +108,22 @@ gkyl_time_diff(struct timespec start, struct timespec end)
   return tm;
 }
 
-double
-gkyl_time_diff_now_sec(struct timespec tm)
+double gkyl_time_diff_now_sec(struct timespec tm)
 {
   return gkyl_time_sec(gkyl_time_diff(tm, gkyl_wall_clock()));
 }
 
-double
-gkyl_time_sec(struct timespec tm)
+double gkyl_time_sec(struct timespec tm)
 {
   return tm.tv_sec + 1e-9 * tm.tv_nsec;
 }
 
-double
-gkyl_time_now(void)
+double gkyl_time_now(void)
 {
   return gkyl_time_sec(gkyl_wall_clock());
 }
 
-pcg32_random_t
-gkyl_pcg32_init(bool nd_seed)
+pcg32_random_t gkyl_pcg32_init(bool nd_seed)
 {
   pcg32_random_t rng;
   int rounds = 5;
@@ -149,20 +139,18 @@ gkyl_pcg32_init(bool nd_seed)
   return rng;
 }
 
-uint32_t
-gkyl_pcg32_rand_uint32(pcg32_random_t *rng)
+uint32_t gkyl_pcg32_rand_uint32(pcg32_random_t *rng)
 {
   return pcg32_random_r(rng);
 }
 
-double
-gkyl_pcg32_rand_double(pcg32_random_t *rng)
+double gkyl_pcg32_rand_double(pcg32_random_t *rng)
 {
   return ldexp(pcg32_random_r(rng), -32);
 }
 
-static void
-pcg64_srandom_r(pcg64_random_t *rng, uint64_t seed1, uint64_t seed2, uint64_t seq1, uint64_t seq2)
+static void pcg64_srandom_r(pcg64_random_t *rng, uint64_t seed1, uint64_t seed2, uint64_t seq1,
+                            uint64_t seq2)
 {
   uint64_t mask = ~0ull >> 1;
   // stream for each generators *must* be distinct
@@ -174,49 +162,43 @@ pcg64_srandom_r(pcg64_random_t *rng, uint64_t seed1, uint64_t seed2, uint64_t se
 
 static int _dummy_global = 0; // just to provide address for use in seed
 
-pcg64_random_t
-gkyl_pcg64_init(bool nd_seed)
+pcg64_random_t gkyl_pcg64_init(bool nd_seed)
 {
   pcg64_random_t rng;
   int rounds = 5;
 
   if (nd_seed)
     pcg64_srandom_r(&rng, time(NULL) ^ (intptr_t)&printf, ~time(NULL) ^ (intptr_t)&pcg32_random_r,
-      (intptr_t)&rounds, (intptr_t)&_dummy_global);
+                    (intptr_t)&rounds, (intptr_t)&_dummy_global);
   else
     pcg64_srandom_r(&rng, 42u, 42u, 54u, 54u);
 
   return rng;
 }
 
-uint64_t
-gkyl_pcg64_rand_uint64(pcg64_random_t *rng)
+uint64_t gkyl_pcg64_rand_uint64(pcg64_random_t *rng)
 {
   return ((uint64_t)(pcg32_random_r(rng->gen)) << 32) | pcg32_random_r(rng->gen + 1);
 }
 
-double
-gkyl_pcg64_rand_double(pcg64_random_t *rng)
+double gkyl_pcg64_rand_double(pcg64_random_t *rng)
 {
   return ldexp(gkyl_pcg64_rand_uint64(rng), -64);
 }
 
-bool
-gkyl_check_file_exists(const char *fname)
+bool gkyl_check_file_exists(const char *fname)
 {
   return access(fname, F_OK) == 0;
 }
 
-int64_t
-gkyl_file_size(const char *fname)
+int64_t gkyl_file_size(const char *fname)
 {
   struct stat st;
   stat(fname, &st);
   return st.st_size;
 }
 
-char *
-gkyl_load_file(const char *fname, int64_t *sz)
+char *gkyl_load_file(const char *fname, int64_t *sz)
 {
   int64_t msz = gkyl_file_size(fname);
   char *buff = gkyl_malloc(msz);
@@ -227,8 +209,8 @@ gkyl_load_file(const char *fname, int64_t *sz)
   return buff;
 }
 
-bool
-gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem *elist, const char *key)
+bool gkyl_msgpack_map_elem_has_key(int nvals, const struct gkyl_msgpack_map_elem *elist,
+                                   const char *key)
 {
   bool has_key = false;
   for (int i = 0; i < nvals; ++i) {
@@ -294,7 +276,7 @@ gkyl_msgpack_map_elem_clone(int nvals, const struct gkyl_msgpack_map_elem *elist
 
 struct gkyl_msgpack_map_elem *
 gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
-  const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len)
+                            const struct gkyl_msgpack_map_elem **elist_union, int *elist_out_len)
 {
   int nvals_tot = 0; // Total number of elements.
   for (int j = 0; j < numlist_union; ++j)
@@ -360,9 +342,8 @@ gkyl_msgpack_map_elem_union(int numlist_union, int *nvals_union,
   return elist_out;
 }
 
-void
-gkyl_msgpack_map_elem_set_double(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, double value)
+void gkyl_msgpack_map_elem_set_double(int nvals, struct gkyl_msgpack_map_elem *elist,
+                                      const char *key, double value)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -373,9 +354,8 @@ gkyl_msgpack_map_elem_set_double(
   }
 }
 
-void
-gkyl_msgpack_map_elem_set_uint(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key, unsigned int value)
+void gkyl_msgpack_map_elem_set_uint(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key,
+                                    unsigned int value)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -386,8 +366,8 @@ gkyl_msgpack_map_elem_set_uint(
   }
 }
 
-double
-gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
+double gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist,
+                                        const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -398,8 +378,8 @@ gkyl_msgpack_map_elem_get_double(int nvals, struct gkyl_msgpack_map_elem *elist,
   return 0;
 }
 
-unsigned int
-gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
+unsigned int gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist,
+                                            const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -410,8 +390,8 @@ gkyl_msgpack_map_elem_get_uint(int nvals, struct gkyl_msgpack_map_elem *elist, c
   return 0;
 }
 
-char *
-gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
+char *gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+                                       const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -422,9 +402,8 @@ gkyl_msgpack_map_elem_get_string(int nvals, struct gkyl_msgpack_map_elem *elist,
   return 0;
 }
 
-void
-gkyl_msgpack_map_elem_release_string(
-  int nvals, struct gkyl_msgpack_map_elem *elist, const char *key)
+void gkyl_msgpack_map_elem_release_string(int nvals, struct gkyl_msgpack_map_elem *elist,
+                                          const char *key)
 {
   for (int i = 0; i < nvals; ++i) {
     if (strcmp(key, elist[i].key) == 0) {
@@ -435,8 +414,7 @@ gkyl_msgpack_map_elem_release_string(
   }
 }
 
-void
-gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in)
+void gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in)
 {
   for (int i = 0; i < nvals; ++i) {
     gkyl_free(elist_in[i].key);
@@ -448,8 +426,7 @@ gkyl_msgpack_map_elem_release(int nvals, struct gkyl_msgpack_map_elem *elist_in)
   gkyl_free(elist_in);
 }
 
-struct gkyl_msgpack_data *
-gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
+struct gkyl_msgpack_data *gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
 {
   struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
   mdata->meta_sz = 0;
@@ -507,8 +484,8 @@ gkyl_msgpack_create(int nvals, const struct gkyl_msgpack_map_elem *elist)
 }
 
 struct gkyl_msgpack_data *
-gkyl_msgpack_create_union(
-  int numlist_union, int *nvals_union, const struct gkyl_msgpack_map_elem **elist_union)
+gkyl_msgpack_create_union(int numlist_union, int *nvals_union,
+                          const struct gkyl_msgpack_map_elem **elist_union)
 {
   struct gkyl_msgpack_data *mdata = gkyl_malloc(sizeof *mdata);
   mdata->meta_sz = 0;
@@ -571,8 +548,7 @@ gkyl_msgpack_create_union(
   return mdata;
 }
 
-static void
-msgpack_copy_value(mpack_reader_t *r, mpack_writer_t *w)
+static void msgpack_copy_value(mpack_reader_t *r, mpack_writer_t *w)
 {
   // Copy the current entry at the top of the reader stack into the writer
   // stack. If it's a map (most cases in Gkeyll so far), loop over the
@@ -642,8 +618,7 @@ msgpack_copy_value(mpack_reader_t *r, mpack_writer_t *w)
   }
 }
 
-struct gkyl_msgpack_data *
-gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
+struct gkyl_msgpack_data *gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
 {
   struct gkyl_msgpack_data *mdata_out = gkyl_malloc(sizeof *mdata_out);
   mdata_out->meta_sz = 0;
@@ -658,8 +633,8 @@ gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
 
   // Check copy was successful.
   if ((mpack_reader_destroy(&reader) != mpack_ok || mpack_writer_destroy(&writer) != mpack_ok) ||
-    (!(mdata_in->meta_sz == mdata_out->meta_sz &&
-      memcmp(mdata_in->meta, mdata_out->meta, mdata_in->meta_sz) == 0))) {
+      (!(mdata_in->meta_sz == mdata_out->meta_sz &&
+         memcmp(mdata_in->meta, mdata_out->meta, mdata_in->meta_sz) == 0))) {
     fprintf(stderr, "gkyl_msgpack_clone: error copying MessagePack.\n");
     MPACK_FREE(mdata_out->meta); // we need to use free here as mpack does its own malloc
     gkyl_free(mdata_out);
@@ -669,9 +644,8 @@ gkyl_msgpack_clone(struct gkyl_msgpack_data *mdata_in)
   return mdata_out;
 }
 
-void
-gkyl_msgpack_to_map_elem_list(
-  struct gkyl_msgpack_data *mpack_in, int nvals, struct gkyl_msgpack_map_elem *elist)
+void gkyl_msgpack_to_map_elem_list(struct gkyl_msgpack_data *mpack_in, int nvals,
+                                   struct gkyl_msgpack_map_elem *elist)
 {
   mpack_tree_t tree;
   mpack_tree_init_data(&tree, mpack_in->meta, mpack_in->meta_sz);
@@ -715,8 +689,7 @@ gkyl_msgpack_to_map_elem_list(
   mpack_tree_destroy(&tree);
 }
 
-void
-gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata)
+void gkyl_msgpack_data_release(struct gkyl_msgpack_data *mdata)
 {
   if (!mdata)
     return;

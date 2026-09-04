@@ -12,8 +12,7 @@
 // "Choose Kernel" based on cdim and polyorder
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref)
+void gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -29,9 +28,8 @@ gkyl_canonical_pb_fluid_free(const struct gkyl_ref_count *ref)
   gkyl_free(can_pb_fluid);
 }
 
-void
-gkyl_canonical_pb_fluid_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_fluid_auxfields auxin)
+void gkyl_canonical_pb_fluid_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                           struct gkyl_dg_canonical_pb_fluid_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -47,9 +45,9 @@ gkyl_canonical_pb_fluid_set_auxfields(
   can_pb_fluid->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range,
-  const struct gkyl_wv_eqn *wv_eqn, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis *cbasis,
+                                                   const struct gkyl_range *conf_range,
+                                                   const struct gkyl_wv_eqn *wv_eqn, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -125,9 +123,9 @@ gkyl_dg_canonical_pb_fluid_new(const struct gkyl_basis *cbasis, const struct gky
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_wv_eqn *wv_eqn)
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_fluid_cu_dev_new(const struct gkyl_basis *cbasis,
+                                                          const struct gkyl_range *conf_range,
+                                                          const struct gkyl_wv_eqn *wv_eqn)
 {
   assert(false);
   return 0;

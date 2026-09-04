@@ -5,8 +5,7 @@
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 
-gkyl_moment_em_coupling *
-gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
+gkyl_moment_em_coupling *gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
 {
   gkyl_moment_em_coupling *mom_em = gkyl_malloc(sizeof(gkyl_moment_em_coupling));
 
@@ -138,13 +137,15 @@ gkyl_moment_em_coupling_new(struct gkyl_moment_em_coupling_inp inp)
   return mom_em;
 }
 
-void
-gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  double dt, const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
-  const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
-  const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES], struct gkyl_array *em,
-  const struct gkyl_array *app_current, const struct gkyl_array *ext_em,
-  const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES])
+void gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                              double dt, const struct gkyl_range *update_range,
+                                              struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+                                              const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
+                                              const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES],
+                                              struct gkyl_array *em,
+                                              const struct gkyl_array *app_current,
+                                              const struct gkyl_array *ext_em,
+                                              const struct gkyl_array *nT_sources[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
   double *fluid_s[GKYL_MAX_SPECIES];
@@ -170,13 +171,13 @@ gkyl_moment_em_coupling_implicit_advance(const gkyl_moment_em_coupling *mom_em, 
     const double *ext_em_arr = ext_em ? gkyl_array_cfetch(ext_em, cell_idx) : 0;
 
     implicit_source_coupling_update(mom_em, t_curr, dt, fluid_s, app_accel_s, p_rhs_s, em_arr,
-      app_current_arr, ext_em_arr, nT_sources_s);
+                                    app_current_arr, ext_em_arr, nT_sources_s);
   }
 }
 
-void
-gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  double dt, const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
+void gkyl_moment_em_coupling_explicit_advance(
+  const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
+  const struct gkyl_range *update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *app_accel[GKYL_MAX_SPECIES],
   const struct gkyl_array *p_rhs[GKYL_MAX_SPECIES], struct gkyl_array *em,
   const struct gkyl_array *app_current, const struct gkyl_array *app_current1,
@@ -210,13 +211,13 @@ gkyl_moment_em_coupling_explicit_advance(const gkyl_moment_em_coupling *mom_em, 
 
     if (mom_em->use_rel) {
       explicit_source_coupling_update(mom_em, t_curr, dt_local, fluid_s, app_accel_s, em_arr,
-        app_current_arr, app_current1_arr, app_current2_arr, ext_em_arr, nstrang);
+                                      app_current_arr, app_current1_arr, app_current2_arr,
+                                      ext_em_arr, nstrang);
     }
   }
 }
 
-void
-gkyl_moment_em_coupling_release(gkyl_moment_em_coupling *mom_em)
+void gkyl_moment_em_coupling_release(gkyl_moment_em_coupling *mom_em)
 {
   gkyl_free(mom_em);
 }

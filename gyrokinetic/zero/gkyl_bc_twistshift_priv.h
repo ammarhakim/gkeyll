@@ -12,14 +12,15 @@
 
 // Function pointer type for twistshift kernels.
 typedef void (*twistshift_xlimdg_t)(double sFac, const double *xLimLo, const double *xLimUp,
-  double yLimLo, double yLimUp, double dyDo, double yOff, const double *ySh,
-  struct gkyl_mat *tsmat);
+                                    double yLimLo, double yLimUp, double dyDo, double yOff,
+                                    const double *ySh, struct gkyl_mat *tsmat);
 
 typedef void (*twistshift_ylimdg_t)(double sFac, double xLimLo, double xLimUp, const double *yLimLo,
-  const double *yLimUp, double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat);
+                                    const double *yLimUp, double dyDo, double yOff,
+                                    const double *ySh, struct gkyl_mat *tsmat);
 
-typedef void (*twistshift_fullcell_t)(
-  double dyDo, double yOff, const double *ySh, struct gkyl_mat *tsmat);
+typedef void (*twistshift_fullcell_t)(double dyDo, double yOff, const double *ySh,
+                                      struct gkyl_mat *tsmat);
 
 typedef struct {
   twistshift_xlimdg_t kernels[3];
@@ -47,13 +48,16 @@ static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v_yShp1
 };
 
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v_yShp1[] = {
-  { NULL, NULL, NULL }, { NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL }
+  { NULL, NULL, NULL },
+  { NULL, twistshift_xlimdg_3x2v_ser_p1_yshift_p1, NULL }
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v_yShp1[] = {
-  { NULL, NULL, NULL }, { NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL }
+  { NULL, NULL, NULL },
+  { NULL, twistshift_ylimdg_3x2v_ser_p1_yshift_p1, NULL }
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v_yShp1[] = {
-  { NULL, NULL, NULL }, { NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL }
+  { NULL, NULL, NULL },
+  { NULL, twistshift_fullcell_3x2v_ser_p1_yshift_p1, NULL }
 };
 // p=2 representation of the shift:
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_0v_yShp2[] = {
@@ -70,13 +74,16 @@ static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_0v_yShp2
 };
 
 static const twistshift_xlimdg_kern_list ser_twistshift_xlimdg_list_2v_yShp2[] = {
-  { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  { NULL, NULL, NULL },
+  { NULL, NULL, NULL }
 };
 static const twistshift_ylimdg_kern_list ser_twistshift_ylimdg_list_2v_yShp2[] = {
-  { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  { NULL, NULL, NULL },
+  { NULL, NULL, NULL }
 };
 static const twistshift_fullcell_kern_list ser_twistshift_fullcell_list_2v_yShp2[] = {
-  { NULL, NULL, NULL }, { NULL, NULL, NULL }
+  { NULL, NULL, NULL },
+  { NULL, NULL, NULL }
 };
 
 struct gkyl_bc_twistshift_kernels {
@@ -123,7 +130,7 @@ struct gkyl_bc_twistshift {
 
   int *num_do; // Number of donors at each cell in shear_dir;
   int *shift_dir_idx_do; // Indices of donor cells, in the direction of the
-    // shift, for each cell in the TS grid.
+  // shift, for each cell in the TS grid.
 
   struct gkyl_bc_twistshift_kernels *kernels; // kernels for sub-cell integrals.
 
@@ -137,16 +144,16 @@ struct gkyl_bc_twistshift {
   struct gkyl_nmat *mm_contr; // Contribution resulting from a mat-mat mult.
 
   long *num_numcol_fidx_do; // 1D indexer, from a index identitying the num-numcol
-    // plane (in the num-numcol-num_basis space), to a
-    // linear index into the donor distribution function f.
+  // plane (in the num-numcol-num_basis space), to a
+  // linear index into the donor distribution function f.
 
   long *num_numcol_fidx_tar; // 1D indexer, from a index identitying the num-numcol
-    // plane (in the num-numcol-num_basis space), to a
-    // linear index into the target distribution function f.
+  // plane (in the num-numcol-num_basis space), to a
+  // linear index into the target distribution function f.
 
   int *num_do_cum; // Cumulative number of donors up to a give cell in shear_dir;
   struct gkyl_range permutted_ghost_r; // Ghost range to populate in the target
-    // field, with some dimensions permutted.
+  // field, with some dimensions permutted.
   struct gkyl_range ghost_r; // Ghost range this BC fills.
 };
 
@@ -159,6 +166,6 @@ struct gkyl_bc_twistshift {
  * @param fdo Donor field.
  * @param ftar Target field.
  */
-void gkyl_bc_twistshift_advance_cu(
-  struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar);
+void gkyl_bc_twistshift_advance_cu(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo,
+                                   struct gkyl_array *ftar);
 #endif

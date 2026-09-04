@@ -9,14 +9,12 @@
 #include <gkyl_wave_geom.h>
 #include <gkyl_wave_geom_priv.h>
 
-static bool
-wave_geom_is_cu_dev(const struct gkyl_wave_geom *wg)
+static bool wave_geom_is_cu_dev(const struct gkyl_wave_geom *wg)
 {
   return GKYL_IS_CU_ALLOC(wg->flags);
 }
 
-void
-gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
+void gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wave_geom *wg = container_of(ref, struct gkyl_wave_geom, ref_count);
   gkyl_array_release(wg->geom);
@@ -26,9 +24,9 @@ gkyl_wave_geom_free(const struct gkyl_ref_count *ref)
   gkyl_free(wg);
 }
 
-struct gkyl_wave_geom *
-gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range, evalf_t mapc2p,
-  void *ctx, bool use_gpu)
+struct gkyl_wave_geom *gkyl_wave_geom_new(const struct gkyl_rect_grid *grid,
+                                          struct gkyl_range *range, evalf_t mapc2p, void *ctx,
+                                          bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -74,15 +72,13 @@ gkyl_wave_geom_new(const struct gkyl_rect_grid *grid, struct gkyl_range *range, 
   return wg;
 }
 
-struct gkyl_wave_geom *
-gkyl_wave_geom_acquire(const struct gkyl_wave_geom *wg)
+struct gkyl_wave_geom *gkyl_wave_geom_acquire(const struct gkyl_wave_geom *wg)
 {
   gkyl_ref_count_inc(&wg->ref_count);
   return (struct gkyl_wave_geom *)wg;
 }
 
-void
-gkyl_wave_geom_release(const struct gkyl_wave_geom *wg)
+void gkyl_wave_geom_release(const struct gkyl_wave_geom *wg)
 {
   gkyl_ref_count_dec(&wg->ref_count);
 }

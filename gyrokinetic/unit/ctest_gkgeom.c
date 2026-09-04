@@ -12,41 +12,34 @@
 
 // Elliptical "equilibrium"
 
-static inline double
-sq(double x)
+static inline double sq(double x)
 {
   return x * x;
 }
-static inline double
-cub(double x)
+static inline double cub(double x)
 {
   return x * x * x;
 }
-static inline double
-qad(double x)
+static inline double qad(double x)
 {
   return x * x * x * x;
 }
-static inline double
-pen(double x)
+static inline double pen(double x)
 {
   return x * x * x * x * x;
 }
-static inline double
-hex(double x)
+static inline double hex(double x)
 {
   return x * x * x * x * x * x;
 }
 
-void
-psi_ellip(double t, const double *xn, double *fout, void *ctx)
+void psi_ellip(double t, const double *xn, double *fout, void *ctx)
 {
   double R = xn[0], Z = xn[1];
   fout[0] = (R - 2) * (R - 2) + Z * Z / 4;
 }
 
-void
-gkgeom_ellip_unit_ho(void)
+void gkgeom_ellip_unit_ho(void)
 {
   // create RZ grid
   double lower[] = { 0.5, -4.0 }, upper[] = { 6.0, 4.0 };
@@ -77,11 +70,11 @@ gkgeom_ellip_unit_ho(void)
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "ellip_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp){ // psiRZ and related inputs
-    .rzgrid = &rzgrid,
-    .rzbasis = &rzbasis,
-    .psiRZ = psiRZ,
-    .rzlocal = &rzlocal,
-    .quad_param = { .eps = 1e-14 } });
+                                                                .rzgrid = &rzgrid,
+                                                                .rzbasis = &rzbasis,
+                                                                .psiRZ = psiRZ,
+                                                                .rzlocal = &rzlocal,
+                                                                .quad_param = { .eps = 1e-14 } });
 
   // exact values computed with the following Maxima code
   /*
@@ -124,8 +117,7 @@ struct cerfon_ctx {
   double R0, psi_prefactor;
 };
 
-void
-psi_cerfon(double t, const double *xn, double *fout, void *ctx)
+void psi_cerfon(double t, const double *xn, double *fout, void *ctx)
 {
   struct cerfon_ctx *s = ctx;
   double R0 = s->R0, psi_prefactor = s->psi_prefactor;
@@ -133,18 +125,17 @@ psi_cerfon(double t, const double *xn, double *fout, void *ctx)
   double x = R / R0, y = Z / R0;
 
   fout[0] = psi_prefactor *
-    (0.00373804283369699 * hex(x) * log(x) - 0.00574955335438162 * hex(x) -
-      0.0448565140043639 * qad(x) * sq(y) * log(x) + 0.0503044260840946 * qad(x) * sq(y) +
-      0.017623348727471 * qad(x) * log(x) + 0.0956643504553683 * qad(x) +
-      0.0299043426695759 * sq(x) * qad(y) * log(x) - 0.0160920841654771 * sq(x) * qad(y) -
-      0.0704933949098842 * sq(x) * sq(y) * log(x) + 0.0644725519961135 * sq(x) * sq(y) -
-      7.00898484784405e-5 * sq(x) * log(x) - 0.303766642191745 * sq(x) -
-      0.00199362284463839 * hex(y) + 0.0117488991516474 * qad(y) + 7.00898484784405e-5 * sq(y) +
-      0.0145368720253975);
+            (0.00373804283369699 * hex(x) * log(x) - 0.00574955335438162 * hex(x) -
+             0.0448565140043639 * qad(x) * sq(y) * log(x) + 0.0503044260840946 * qad(x) * sq(y) +
+             0.017623348727471 * qad(x) * log(x) + 0.0956643504553683 * qad(x) +
+             0.0299043426695759 * sq(x) * qad(y) * log(x) - 0.0160920841654771 * sq(x) * qad(y) -
+             0.0704933949098842 * sq(x) * sq(y) * log(x) + 0.0644725519961135 * sq(x) * sq(y) -
+             7.00898484784405e-5 * sq(x) * log(x) - 0.303766642191745 * sq(x) -
+             0.00199362284463839 * hex(y) + 0.0117488991516474 * qad(y) +
+             7.00898484784405e-5 * sq(y) + 0.0145368720253975);
 }
 
-void
-gkgeom_cerfon_unit_ho(void)
+void gkgeom_cerfon_unit_ho(void)
 {
   // Cerfon Double Null Configuration
 
@@ -177,10 +168,10 @@ gkgeom_cerfon_unit_ho(void)
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "cerfon_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp){ // psiRZ and related inputs
-    .rzgrid = &rzgrid,
-    .rzbasis = &rzbasis,
-    .psiRZ = psiRZ,
-    .rzlocal = &rzlocal });
+                                                                .rzgrid = &rzgrid,
+                                                                .rzbasis = &rzbasis,
+                                                                .psiRZ = psiRZ,
+                                                                .rzlocal = &rzlocal });
 
   int cum_nroots = 0;
 
@@ -244,14 +235,14 @@ gkgeom_cerfon_unit_ho(void)
       gkyl_array_new(GKYL_DOUBLE, 2 * cbasis.num_basis, clocal_ext.volume);
 
     struct gkyl_gkgeom_geo_inp ginp = { .cgrid = &cgrid,
-      .cbasis = &cbasis,
-      .ftype = GKYL_GEOM_SOL_DN,
-      .rclose = upper[0],
-      .zmin = lower[1],
-      .zmax = upper[1],
+                                        .cbasis = &cbasis,
+                                        .ftype = GKYL_GEOM_SOL_DN,
+                                        .rclose = upper[0],
+                                        .zmin = lower[1],
+                                        .zmax = upper[1],
 
-      .write_node_coord_array = true,
-      .node_file_nm = "cerfon_out_sol_nod.gkyl" };
+                                        .write_node_coord_array = true,
+                                        .node_file_nm = "cerfon_out_sol_nod.gkyl" };
 
     gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
 
@@ -283,14 +274,14 @@ gkgeom_cerfon_unit_ho(void)
       gkyl_array_new(GKYL_DOUBLE, 2 * cbasis.num_basis, clocal_ext.volume);
 
     struct gkyl_gkgeom_geo_inp ginp = { .cgrid = &cgrid,
-      .cbasis = &cbasis,
-      .ftype = GKYL_GEOM_SOL_DN,
-      .rclose = lower[0],
-      .zmin = lower[1],
-      .zmax = upper[1],
+                                        .cbasis = &cbasis,
+                                        .ftype = GKYL_GEOM_SOL_DN,
+                                        .rclose = lower[0],
+                                        .zmin = lower[1],
+                                        .zmax = upper[1],
 
-      .write_node_coord_array = true,
-      .node_file_nm = "cerfon_in_sol_nod.gkyl" };
+                                        .write_node_coord_array = true,
+                                        .node_file_nm = "cerfon_in_sol_nod.gkyl" };
 
     gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
 
@@ -306,8 +297,7 @@ struct wham_ctx {
   double B, gamma, Zm;
 };
 
-void
-psi_wham(double t, const double *xn, double *fout, void *ctx)
+void psi_wham(double t, const double *xn, double *fout, void *ctx)
 {
   struct wham_ctx *s = ctx;
   double B = s->B, gamma = s->gamma, Zm = s->Zm;
@@ -315,13 +305,12 @@ psi_wham(double t, const double *xn, double *fout, void *ctx)
 
   // double Lorentzian: See Francisquez PoP 2023.
   double psi = sq(R) * B / (2 * M_PI * gamma) *
-    (1 / (1 + sq((Z - Zm) / gamma)) + 1 / (1 + sq((Z + Zm) / gamma)));
+               (1 / (1 + sq((Z - Zm) / gamma)) + 1 / (1 + sq((Z + Zm) / gamma)));
 
   fout[0] = psi;
 }
 
-void
-gkgeom_wham_2l_unit_ho(void)
+void gkgeom_wham_2l_unit_ho(void)
 {
   // WHAM Configuration
   struct wham_ctx ctx = { .B = 6.51292, .gamma = 0.124904, .Zm = 0.98 };
@@ -354,10 +343,10 @@ gkgeom_wham_2l_unit_ho(void)
   gkyl_grid_sub_array_write(&rzgrid, &rzlocal, 0, psiRZ, "wham_psi.gkyl");
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp){ // psiRZ and related inputs
-    .rzgrid = &rzgrid,
-    .rzbasis = &rzbasis,
-    .psiRZ = psiRZ,
-    .rzlocal = &rzlocal });
+                                                                .rzgrid = &rzgrid,
+                                                                .rzbasis = &rzbasis,
+                                                                .psiRZ = psiRZ,
+                                                                .rzlocal = &rzlocal });
 
   int cum_nroots = 0;
 
@@ -387,14 +376,14 @@ gkgeom_wham_2l_unit_ho(void)
       gkyl_array_new(GKYL_DOUBLE, 2 * cbasis.num_basis, clocal_ext.volume);
 
     struct gkyl_gkgeom_geo_inp ginp = { .cgrid = &cgrid,
-      .cbasis = &cbasis,
-      .ftype = GKYL_GEOM_SOL_DN,
-      .rclose = upper[0],
-      .zmin = lower[1],
-      .zmax = upper[1],
+                                        .cbasis = &cbasis,
+                                        .ftype = GKYL_GEOM_SOL_DN,
+                                        .rclose = upper[0],
+                                        .zmin = lower[1],
+                                        .zmax = upper[1],
 
-      .write_node_coord_array = true,
-      .node_file_nm = "wham_out_sol_nod.gkyl" };
+                                        .write_node_coord_array = true,
+                                        .node_file_nm = "wham_out_sol_nod.gkyl" };
 
     gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
 
@@ -405,8 +394,7 @@ gkgeom_wham_2l_unit_ho(void)
   gkyl_array_release(psiRZ);
 }
 
-void
-wham_beta0_rt(void)
+void wham_beta0_rt(void)
 {
   fprintf(stdout, "---- WHAM beta-0 Configuration\n");
 
@@ -424,10 +412,10 @@ wham_beta0_rt(void)
   gkyl_cart_modal_serendip(&rzbasis, 2, rz_poly_order);
 
   gkyl_gkgeom *geo = gkyl_gkgeom_new(&(struct gkyl_gkgeom_inp){ // psiRZ and related inputs
-    .rzgrid = &rzgrid,
-    .rzbasis = &rzbasis,
-    .psiRZ = psiRZ,
-    .rzlocal = &rzlocal });
+                                                                .rzgrid = &rzgrid,
+                                                                .rzbasis = &rzbasis,
+                                                                .psiRZ = psiRZ,
+                                                                .rzlocal = &rzlocal });
 
   int cum_nroots = 0;
 
@@ -458,21 +446,21 @@ wham_beta0_rt(void)
       gkyl_array_new(GKYL_DOUBLE, 2 * cbasis.num_basis, clocal_ext.volume);
 
     struct gkyl_gkgeom_geo_inp ginp = { .cgrid = &cgrid,
-      .cbasis = &cbasis,
-      .ftype = GKYL_GEOM_SOL_DN,
-      .rclose = rzgrid.upper[0],
-      .zmin = -2.0, //rzgrid.lower[1],
-      .zmax = 2.0, //rzgrid.upper[1],
+                                        .cbasis = &cbasis,
+                                        .ftype = GKYL_GEOM_SOL_DN,
+                                        .rclose = rzgrid.upper[0],
+                                        .zmin = -2.0, //rzgrid.lower[1],
+                                        .zmax = 2.0, //rzgrid.upper[1],
 
-      .write_node_coord_array = true,
-      .node_file_nm = "wham_out_sol_nod.gkyl" };
+                                        .write_node_coord_array = true,
+                                        .node_file_nm = "wham_out_sol_nod.gkyl" };
 
     gkyl_gkgeom_calcgeom(geo, &ginp, mapc2p);
 
     struct gkyl_gkgeom_stat stat = gkyl_gkgeom_get_stat(geo);
     fprintf(stdout,
-      "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
-      stat.nquad_cont_calls - cum_nroots, stat.nroot_cont_calls);
+            "Total number of contour funcs called = %ld. Total calls from root-finder = %ld\n",
+            stat.nquad_cont_calls - cum_nroots, stat.nroot_cont_calls);
 
     gkyl_array_release(mapc2p);
   } while (0);
@@ -482,5 +470,6 @@ wham_beta0_rt(void)
 }
 
 TEST_LIST = { { "gkgeom_ellip_ho", gkgeom_ellip_unit_ho },
-  { "gkgeom_cerfon_ho", gkgeom_cerfon_unit_ho }, { "gkgeom_wham_ho", gkgeom_wham_2l_unit_ho },
-  { NULL, NULL } };
+              { "gkgeom_cerfon_ho", gkgeom_cerfon_unit_ho },
+              { "gkgeom_wham_ho", gkgeom_wham_2l_unit_ho },
+              { NULL, NULL } };

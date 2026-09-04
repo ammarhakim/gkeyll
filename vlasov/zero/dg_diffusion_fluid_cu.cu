@@ -13,23 +13,24 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_dg_diffusion_fluid_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *D)
+gkyl_dg_diffusion_fluid_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
+                                                const struct gkyl_array *D)
 {
   struct dg_diffusion_fluid *diffusion = container_of(eqn, struct dg_diffusion_fluid, eqn);
   diffusion->auxfields.D = D;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void
-gkyl_dg_diffusion_fluid_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_fluid_auxfields auxin)
+void gkyl_dg_diffusion_fluid_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
+                                              struct gkyl_dg_diffusion_fluid_auxfields auxin)
 {
-  gkyl_dg_diffusion_fluid_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin.D->on_dev);
+  gkyl_dg_diffusion_fluid_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.D->on_dev);
 }
 
 __global__ void static dg_diffusion_fluid_set_cu_dev_ptrs(struct dg_diffusion_fluid *diffusion,
-  enum gkyl_basis_type b_type, int cdim, int poly_order, int diff_order, int diffdirs_linidx)
+                                                          enum gkyl_basis_type b_type, int cdim,
+                                                          int poly_order, int diff_order,
+                                                          int diffdirs_linidx)
 {
   diffusion->auxfields.D = 0;
 
@@ -44,18 +45,18 @@ __global__ void static dg_diffusion_fluid_set_cu_dev_ptrs(struct dg_diffusion_fl
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
     vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-    surfx_kernels =
-      diffusion->const_coeff ? ser_surfx_kernels_constcoeff : ser_surfx_kernels_varcoeff;
-    surfy_kernels =
-      diffusion->const_coeff ? ser_surfy_kernels_constcoeff : ser_surfy_kernels_varcoeff;
-    surfz_kernels =
-      diffusion->const_coeff ? ser_surfz_kernels_constcoeff : ser_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff ? ser_boundary_surfx_kernels_constcoeff
-                                                    : ser_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff ? ser_boundary_surfy_kernels_constcoeff
-                                                    : ser_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff ? ser_boundary_surfz_kernels_constcoeff
-                                                    : ser_boundary_surfz_kernels_varcoeff;
+    surfx_kernels = diffusion->const_coeff ? ser_surfx_kernels_constcoeff :
+                                             ser_surfx_kernels_varcoeff;
+    surfy_kernels = diffusion->const_coeff ? ser_surfy_kernels_constcoeff :
+                                             ser_surfy_kernels_varcoeff;
+    surfz_kernels = diffusion->const_coeff ? ser_surfz_kernels_constcoeff :
+                                             ser_surfz_kernels_varcoeff;
+    boundary_surfx_kernels = diffusion->const_coeff ? ser_boundary_surfx_kernels_constcoeff :
+                                                      ser_boundary_surfx_kernels_varcoeff;
+    boundary_surfy_kernels = diffusion->const_coeff ? ser_boundary_surfy_kernels_constcoeff :
+                                                      ser_boundary_surfy_kernels_varcoeff;
+    boundary_surfz_kernels = diffusion->const_coeff ? ser_boundary_surfz_kernels_constcoeff :
+                                                      ser_boundary_surfz_kernels_varcoeff;
     break;
 
   default:
@@ -82,9 +83,10 @@ __global__ void static dg_diffusion_fluid_set_cu_dev_ptrs(struct dg_diffusion_fl
     diffusion->boundary_surf[2] = CKSURF(boundary_surfz_kernels, diff_order, cdim, poly_order);
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_fluid_cu_dev_new(const struct gkyl_basis *basis, bool is_diff_const,
-  int num_equations, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_fluid_cu_dev_new(const struct gkyl_basis *basis,
+                                                       bool is_diff_const, int num_equations,
+                                                       const bool *diff_in_dir, int diff_order,
+                                                       const struct gkyl_range *diff_range)
 {
   struct dg_diffusion_fluid *diffusion =
     (struct dg_diffusion_fluid *)gkyl_malloc(sizeof(struct dg_diffusion_fluid));
@@ -110,8 +112,8 @@ gkyl_dg_diffusion_fluid_cu_dev_new(const struct gkyl_basis *basis, bool is_diff_
   struct dg_diffusion_fluid *diffusion_cu =
     (struct dg_diffusion_fluid *)gkyl_cu_malloc(sizeof(struct dg_diffusion_fluid));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_fluid), GKYL_CU_MEMCPY_H2D);
-  dg_diffusion_fluid_set_cu_dev_ptrs<<<1, 1>>>(
-    diffusion_cu, basis->b_type, cdim, poly_order, diff_order, dirs_linidx);
+  dg_diffusion_fluid_set_cu_dev_ptrs<<<1, 1> > >(diffusion_cu, basis->b_type, cdim, poly_order,
+                                                 diff_order, dirs_linidx);
 
   // set parent on_dev pointer
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

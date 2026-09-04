@@ -11,8 +11,8 @@ extern "C" {
 #include <gkyl_cart_modal_gkhybrid_priv.h>
 }
 
-__global__ void static gkyl_cart_modal_gkhybrid_cu_dev_kern(
-  struct gkyl_basis *basis, int cdim, int vdim)
+__global__ void static gkyl_cart_modal_gkhybrid_cu_dev_kern(struct gkyl_basis *basis, int cdim,
+                                                            int vdim)
 {
   int ndim = cdim + vdim;
   assert(ev_list[ndim].ev[1]);
@@ -35,8 +35,7 @@ __global__ void static gkyl_cart_modal_gkhybrid_cu_dev_kern(
   basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[1];
 }
 
-void
-gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
+void gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
 {
   int ndim = cdim + vdim;
   assert(ndim > 1 && ndim < 6);
@@ -49,11 +48,10 @@ gkyl_cart_modal_gkhybrid_cu_dev(struct gkyl_basis *basis, int cdim, int vdim)
   // "type" field can't be done on the device
   gkyl_cu_memcpy(basis, &ho_basis, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_cart_modal_gkhybrid_cu_dev_kern<<<1, 1>>>(basis, cdim, vdim);
+  gkyl_cart_modal_gkhybrid_cu_dev_kern<<<1, 1> > >(basis, cdim, vdim);
 }
 
-struct gkyl_basis *
-gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim)
+struct gkyl_basis *gkyl_cart_modal_gkhybrid_cu_dev_new(int cdim, int vdim)
 {
   struct gkyl_basis *basis = (struct gkyl_basis *)gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_gkhybrid_cu_dev(basis, cdim, vdim);

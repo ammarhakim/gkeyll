@@ -11,8 +11,8 @@ extern "C" {
 
 // CUDA kernel to set device pointers to euler kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void
-wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
+__global__ static void wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type,
+                                                struct wv_euler *euler)
 {
   switch (rp_type) {
   case WV_EULER_RP_ROE:
@@ -57,8 +57,7 @@ wv_euler_set_cu_dev_ptrs(enum gkyl_wv_euler_rp rp_type, struct wv_euler *euler)
   euler->eqn.source_func = euler_source;
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
+struct gkyl_wv_eqn *gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
 {
   struct wv_euler *euler = (struct wv_euler *)gkyl_malloc(sizeof(struct wv_euler));
 
@@ -76,7 +75,7 @@ gkyl_wv_euler_cu_dev_inew(const struct gkyl_wv_euler_inp *inp)
   struct wv_euler *euler_cu = (struct wv_euler *)gkyl_cu_malloc(sizeof(struct wv_euler));
   gkyl_cu_memcpy(euler_cu, euler, sizeof(struct wv_euler), GKYL_CU_MEMCPY_H2D);
 
-  wv_euler_set_cu_dev_ptrs<<<1, 1>>>(inp->rp_type, euler_cu);
+  wv_euler_set_cu_dev_ptrs<<<1, 1> > >(inp->rp_type, euler_cu);
 
   euler->eqn.on_dev = &euler_cu->eqn; // CPU eqn obj points to itself
   return &euler->eqn;

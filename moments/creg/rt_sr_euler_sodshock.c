@@ -11,8 +11,8 @@ struct sr_euler_ctx {
   double gas_gamma; // gas constant
 };
 
-void
-evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
+                     void *ctx)
 {
   struct sr_euler_ctx *app = ctx;
   double gas_gamma = app->gas_gamma;
@@ -40,14 +40,12 @@ evalSREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   fout[4] = 0.;
 }
 
-struct sr_euler_ctx
-sr_euler_ctx(void)
+struct sr_euler_ctx sr_euler_ctx(void)
 {
   return (struct sr_euler_ctx){ .gas_gamma = 5. / 3. };
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -64,12 +62,12 @@ main(int argc, char **argv)
 
   struct gkyl_moment_species fluid = { .name = "sr_euler",
 
-    .equation = sr_euler,
+                                       .equation = sr_euler,
 
-    .ctx = &ctx,
-    .init = evalSREulerInit,
+                                       .ctx = &ctx,
+                                       .init = evalSREulerInit,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+                                       .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   // VM app
   struct gkyl_moment app_inp = {

@@ -9,9 +9,9 @@
 
 #include <gkyl_array_ops_priv.h>
 
-gkyl_calc_bmag *
-gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_rect_grid *cgrid, const struct gkyl_rect_grid *pgrid, bool use_gpu)
+gkyl_calc_bmag *gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+                                   const struct gkyl_rect_grid *cgrid,
+                                   const struct gkyl_rect_grid *pgrid, bool use_gpu)
 {
   gkyl_calc_bmag *up = gkyl_malloc(sizeof(gkyl_calc_bmag));
   up->cbasis = cbasis;
@@ -22,8 +22,7 @@ gkyl_calc_bmag_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pba
   return up;
 }
 
-void
-gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
+void gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_bmag_ctx *gc = (struct gkyl_bmag_ctx *)ctx;
   // Need a crude an manual deflated coordinate because this works on deflated geometry due to the allgather
@@ -56,8 +55,7 @@ gkyl_calc_bmag_global(double t, const double *xn, double *fout, void *ctx)
   fout[0] = gc->cbasis->eval_expand(xyz, mcoeffs);
 }
 
-static inline void
-bmag_comp(double t, const double *xn, double *fout, void *ctx)
+static inline void bmag_comp(double t, const double *xn, double *fout, void *ctx)
 {
   struct gkyl_bmag_ctx *gc = (struct gkyl_bmag_ctx *)ctx;
   double RZPHI[gc->cgrid->ndim];
@@ -107,12 +105,12 @@ bmag_comp(double t, const double *xn, double *fout, void *ctx)
   fout[0] = gc->basis->eval_expand(xy, coeffs);
 }
 
-void
-gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange,
-  const struct gkyl_range *crange_ext, const struct gkyl_range *crange_global,
-  const struct gkyl_range *prange, const struct gkyl_range *prange_ext,
-  const struct gkyl_array *bmagrz, struct gkyl_array *bmag_compdg, struct gkyl_array *mapc2p,
-  bool use_quad)
+void gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange,
+                            const struct gkyl_range *crange_ext,
+                            const struct gkyl_range *crange_global, const struct gkyl_range *prange,
+                            const struct gkyl_range *prange_ext, const struct gkyl_array *bmagrz,
+                            struct gkyl_array *bmag_compdg, struct gkyl_array *mapc2p,
+                            bool use_quad)
 {
   // Convert bmag into computational coordinates
   struct gkyl_bmag_ctx *ctx = gkyl_malloc(sizeof(*ctx));
@@ -141,8 +139,7 @@ gkyl_calc_bmag_advance(const gkyl_calc_bmag *up, const struct gkyl_range *crange
   gkyl_free(ctx);
 }
 
-void
-gkyl_calc_bmag_release(gkyl_calc_bmag *up)
+void gkyl_calc_bmag_release(gkyl_calc_bmag *up)
 {
   gkyl_free(up);
 }

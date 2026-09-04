@@ -16,10 +16,10 @@ gkyl_dg_updater_diffusion_fluid_acquire_eqn(const struct gkyl_dg_updater_diffusi
   return gkyl_dg_eqn_acquire(up->dgeqn);
 }
 
-struct gkyl_dg_updater_diffusion_fluid *
-gkyl_dg_updater_diffusion_fluid_new(const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, bool is_diff_const, int num_equations, const bool *diff_in_dir,
-  int diff_order, const struct gkyl_range *diff_range, const bool *is_zero_flux_dir, bool use_gpu)
+struct gkyl_dg_updater_diffusion_fluid *gkyl_dg_updater_diffusion_fluid_new(
+  const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis, bool is_diff_const,
+  int num_equations, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
+  const bool *is_zero_flux_dir, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_fluid *up =
     gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_fluid));
@@ -30,8 +30,8 @@ gkyl_dg_updater_diffusion_fluid_new(const struct gkyl_rect_grid *grid,
   for (int d = 0; d < ndim; d++)
     is_dir_diffusive[d] = diff_in_dir == NULL ? true : diff_in_dir[d];
 
-  up->dgeqn = gkyl_dg_diffusion_fluid_new(
-    basis, is_diff_const, num_equations, is_dir_diffusive, diff_order, diff_range, up->use_gpu);
+  up->dgeqn = gkyl_dg_diffusion_fluid_new(basis, is_diff_const, num_equations, is_dir_diffusive,
+                                          diff_order, diff_range, up->use_gpu);
 
   int num_up_dirs = 0;
   for (int d = 0; d < ndim; d++)
@@ -46,24 +46,25 @@ gkyl_dg_updater_diffusion_fluid_new(const struct gkyl_rect_grid *grid,
     zero_flux_flags[d] = zero_flux_flags[d + ndim] = is_zero_flux_dir[d] ? 1 : 0;
   }
 
-  up->hyperdg = gkyl_hyper_dg_new(
-    grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1, up->use_gpu);
+  up->hyperdg = gkyl_hyper_dg_new(grid, basis, up->dgeqn, num_up_dirs, up_dirs, zero_flux_flags, 1,
+                                  up->use_gpu);
 
   up->diffusion_tm = 0.0;
 
   return up;
 }
 
-void
-gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fluid *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
-  struct gkyl_array *GKYL_RESTRICT rhs)
+void gkyl_dg_updater_diffusion_fluid_advance(struct gkyl_dg_updater_diffusion_fluid *up,
+                                             const struct gkyl_range *update_rng,
+                                             const struct gkyl_array *coeff,
+                                             const struct gkyl_array *GKYL_RESTRICT fIn,
+                                             struct gkyl_array *GKYL_RESTRICT cflrate,
+                                             struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   // Set arrays needed and call the specific advance method required
-  gkyl_dg_diffusion_fluid_set_auxfields(
-    up->dgeqn, (struct gkyl_dg_diffusion_fluid_auxfields){ .D = coeff });
+  gkyl_dg_diffusion_fluid_set_auxfields(up->dgeqn,
+                                        (struct gkyl_dg_diffusion_fluid_auxfields){ .D = coeff });
   gkyl_hyper_dg_advance(up->hyperdg, update_rng, fIn, cflrate, rhs);
   up->diffusion_tm += gkyl_time_diff_now_sec(wst);
 }
@@ -74,8 +75,7 @@ gkyl_dg_updater_diffusion_fluid_get_tm(const struct gkyl_dg_updater_diffusion_fl
   return (struct gkyl_dg_updater_diffusion_fluid_tm){ .diffusion_tm = up->diffusion_tm };
 }
 
-void
-gkyl_dg_updater_diffusion_fluid_release(struct gkyl_dg_updater_diffusion_fluid *up)
+void gkyl_dg_updater_diffusion_fluid_release(struct gkyl_dg_updater_diffusion_fluid *up)
 {
   gkyl_dg_eqn_release(up->dgeqn);
   gkyl_hyper_dg_release(up->hyperdg);

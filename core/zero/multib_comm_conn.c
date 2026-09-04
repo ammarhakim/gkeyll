@@ -10,8 +10,7 @@ struct multib_comm_conn {
   struct gkyl_multib_comm_conn mcc;
 };
 
-static void
-multib_comm_conn_free(const struct gkyl_ref_count *ref)
+static void multib_comm_conn_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_multib_comm_conn *mcc = container_of(ref, struct gkyl_multib_comm_conn, ref_count);
   struct multib_comm_conn *cconn = container_of(mcc, struct multib_comm_conn, mcc);
@@ -21,8 +20,8 @@ multib_comm_conn_free(const struct gkyl_ref_count *ref)
   gkyl_free(cconn);
 }
 
-struct gkyl_multib_comm_conn *
-gkyl_multib_comm_conn_new(int num, const struct gkyl_comm_conn *comm_conn)
+struct gkyl_multib_comm_conn *gkyl_multib_comm_conn_new(int num,
+                                                        const struct gkyl_comm_conn *comm_conn)
 {
   struct multib_comm_conn *cconn = gkyl_malloc(sizeof *cconn);
   cconn->mcc.num_comm_conn = num;
@@ -42,7 +41,8 @@ gkyl_multib_comm_conn_new(int num, const struct gkyl_comm_conn *comm_conn)
 // private method to compute send/recv connections
 static struct gkyl_multib_comm_conn *
 multib_comm_conn_new_sr(enum multib_send_recv sr, int block_id, int block_rank, const int *nghost,
-  const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp)
+                        const struct gkyl_block_connections *block_conn,
+                        struct gkyl_rect_decomp **decomp)
 {
   int ndim = decomp[0]->ndim;
   // determine maximum number of ranks we can send/recv data
@@ -145,10 +145,11 @@ multib_comm_conn_new_sr(enum multib_send_recv sr, int block_id, int block_rank, 
   return mbcc;
 }
 
-void
-gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *multib_range_ext,
-  struct gkyl_range *multib_range, const int *nghost, int nconnected, int *block_list, int dir,
-  struct gkyl_rect_decomp **decomp)
+void gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *multib_range_ext,
+                                                       struct gkyl_range *multib_range,
+                                                       const int *nghost, int nconnected,
+                                                       int *block_list, int dir,
+                                                       struct gkyl_rect_decomp **decomp)
 {
   // Construct the multib range which spans all the parent ranges
   // Block list is always in order in dir
@@ -171,7 +172,8 @@ gkyl_multib_comm_conn_create_multib_ranges_in_dir(struct gkyl_range *multib_rang
 // public method to compute send connections from block list
 struct gkyl_multib_comm_conn *
 gkyl_multib_comm_conn_new_send_from_connections(int block_id, int block_rank, const int *nghost,
-  int nconnected, int *block_list, int dir, struct gkyl_rect_decomp **decomp)
+                                                int nconnected, int *block_list, int dir,
+                                                struct gkyl_rect_decomp **decomp)
 {
   int ndim = decomp[0]->ndim;
   // determine maximum number of ranks we can send/recv data
@@ -188,8 +190,8 @@ gkyl_multib_comm_conn_new_send_from_connections(int block_id, int block_rank, co
   const struct gkyl_range *src_block_range = &decomp[block_id]->ranges[block_rank];
 
   struct gkyl_range cross_range, cross_range_ext;
-  gkyl_multib_comm_conn_create_multib_ranges_in_dir(
-    &cross_range_ext, &cross_range, nghost, nconnected, block_list, dir, decomp);
+  gkyl_multib_comm_conn_create_multib_ranges_in_dir(&cross_range_ext, &cross_range, nghost,
+                                                    nconnected, block_list, dir, decomp);
 
   // Get block indices into the index space of the cross range
   int new_lower[GKYL_MAX_DIM];
@@ -249,7 +251,8 @@ gkyl_multib_comm_conn_new_send_from_connections(int block_id, int block_rank, co
 // public method to compute recv connections from block list
 struct gkyl_multib_comm_conn *
 gkyl_multib_comm_conn_new_recv_from_connections(int block_id, int block_rank, const int *nghost,
-  int nconnected, int *block_list, int dir, struct gkyl_rect_decomp **decomp)
+                                                int nconnected, int *block_list, int dir,
+                                                struct gkyl_rect_decomp **decomp)
 {
   int ndim = decomp[0]->ndim;
   // determine maximum number of ranks we can send/recv data
@@ -266,8 +269,8 @@ gkyl_multib_comm_conn_new_recv_from_connections(int block_id, int block_rank, co
   const struct gkyl_range *src_block_range = &decomp[block_id]->ranges[block_rank];
 
   struct gkyl_range cross_range, cross_range_ext;
-  gkyl_multib_comm_conn_create_multib_ranges_in_dir(
-    &cross_range_ext, &cross_range, nghost, nconnected, block_list, dir, decomp);
+  gkyl_multib_comm_conn_create_multib_ranges_in_dir(&cross_range_ext, &cross_range, nghost,
+                                                    nconnected, block_list, dir, decomp);
 
   // Need to get other block indices into the index space of the cross range
   for (int ib = 0; ib < nconnected; ib++) {
@@ -328,52 +331,52 @@ gkyl_multib_comm_conn_new_recv_from_connections(int block_id, int block_rank, co
 
 struct gkyl_multib_comm_conn *
 gkyl_multib_comm_conn_new_send(int block_id, int block_rank, const int *nghost,
-  const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp)
+                               const struct gkyl_block_connections *block_conn,
+                               struct gkyl_rect_decomp **decomp)
 {
-  return multib_comm_conn_new_sr(
-    GKYL_COMM_CONN_SEND, block_id, block_rank, nghost, block_conn, decomp);
+  return multib_comm_conn_new_sr(GKYL_COMM_CONN_SEND, block_id, block_rank, nghost, block_conn,
+                                 decomp);
 }
 
 struct gkyl_multib_comm_conn *
 gkyl_multib_comm_conn_new_recv(int block_id, int block_rank, const int *nghost,
-  const struct gkyl_block_connections *block_conn, struct gkyl_rect_decomp **decomp)
+                               const struct gkyl_block_connections *block_conn,
+                               struct gkyl_rect_decomp **decomp)
 {
-  return multib_comm_conn_new_sr(
-    GKYL_COMM_CONN_RECV, block_id, block_rank, nghost, block_conn, decomp);
+  return multib_comm_conn_new_sr(GKYL_COMM_CONN_RECV, block_id, block_rank, nghost, block_conn,
+                                 decomp);
 }
 
-int
-gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_local,
-  const int *blocks_local, struct gkyl_multib_comm_conn **mbcc_send,
-  struct gkyl_multib_comm_conn **mbcc_recv, struct gkyl_array **arr_send,
-  struct gkyl_array **arr_recv)
+int gkyl_multib_comm_conn_array_transfer(struct gkyl_comm *comm, int num_blocks_local,
+                                         const int *blocks_local,
+                                         struct gkyl_multib_comm_conn **mbcc_send,
+                                         struct gkyl_multib_comm_conn **mbcc_recv,
+                                         struct gkyl_array **arr_send, struct gkyl_array **arr_recv)
 {
   int err;
   if (strcmp(comm->id, "null_comm") == 0) {
-    err = gkyl_multib_comm_conn_array_transfer_null(
-      comm, num_blocks_local, blocks_local, mbcc_send, mbcc_recv, arr_send, arr_recv);
+    err = gkyl_multib_comm_conn_array_transfer_null(comm, num_blocks_local, blocks_local, mbcc_send,
+                                                    mbcc_recv, arr_send, arr_recv);
   } else if (strcmp(comm->id, "mpi_comm") == 0) {
-    err = gkyl_multib_comm_conn_array_transfer_mpi(
-      comm, num_blocks_local, blocks_local, mbcc_send, mbcc_recv, arr_send, arr_recv);
+    err = gkyl_multib_comm_conn_array_transfer_mpi(comm, num_blocks_local, blocks_local, mbcc_send,
+                                                   mbcc_recv, arr_send, arr_recv);
   } else if (strcmp(comm->id, "nccl_comm") == 0) {
-    err = gkyl_multib_comm_conn_array_transfer_nccl(
-      comm, num_blocks_local, blocks_local, mbcc_send, mbcc_recv, arr_send, arr_recv);
+    err = gkyl_multib_comm_conn_array_transfer_nccl(comm, num_blocks_local, blocks_local, mbcc_send,
+                                                    mbcc_recv, arr_send, arr_recv);
   } else
     assert(false);
 
   return err;
 }
 
-static void
-swap_comm_conns(struct gkyl_comm_conn *ccj, struct gkyl_comm_conn *cck)
+static void swap_comm_conns(struct gkyl_comm_conn *ccj, struct gkyl_comm_conn *cck)
 {
   struct gkyl_comm_conn cc_tmp = *ccj;
   *ccj = *cck;
   *cck = cc_tmp;
 }
 
-void
-gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
+void gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
 {
   int num_conn = mbcc->num_comm_conn;
   // First sort connections in ascending rank (w/ bubble sort).
@@ -421,8 +424,7 @@ gkyl_multib_comm_conn_sort(struct gkyl_multib_comm_conn *mbcc)
   }
 }
 
-void
-gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn)
+void gkyl_multib_comm_conn_release(const struct gkyl_multib_comm_conn *cconn)
 {
   if (cconn)
     gkyl_ref_count_dec(&cconn->ref_count);

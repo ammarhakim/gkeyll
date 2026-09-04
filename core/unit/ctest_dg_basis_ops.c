@@ -6,36 +6,32 @@
 #include <gkyl_range.h>
 #include <gkyl_proj_on_basis.h>
 
-static inline double
-sq(double x)
+static inline double sq(double x)
 {
   return x * x;
 }
-static inline double
-cub(double x)
+static inline double cub(double x)
 {
   return x * x * x;
 }
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *
-mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
 {
-  struct gkyl_array *a =
-    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                                   gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-static void
-eval_array_at_coord_1d_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+static void eval_array_at_coord_1d_func(double t, const double *xc, double *GKYL_RESTRICT fout,
+                                        void *ctx)
 {
   double x = xc[0];
   double Lx = 5.0;
   fout[0] = 3.3 * 0.5 * (1.0 + cos((2 * M_PI / Lx) * x));
 }
 
-void
-test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
+void test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
 {
   double lower[] = { 0.0 }, upper[] = { 5.0 };
   int cells[] = { 8 };
@@ -55,12 +51,12 @@ test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
 
   struct gkyl_basis basis;
   gkyl_cart_modal_tensor(&basis, ndim, poly_order);
-  struct gkyl_basis *basis_on_dev = use_gpu ? gkyl_cart_modal_tensor_cu_dev_new(ndim, poly_order)
-                                            : gkyl_cart_modal_tensor_new(ndim, poly_order);
+  struct gkyl_basis *basis_on_dev = use_gpu ? gkyl_cart_modal_tensor_cu_dev_new(ndim, poly_order) :
+                                              gkyl_cart_modal_tensor_new(ndim, poly_order);
 
   struct gkyl_array *fld = mkarr(use_gpu, basis.num_basis, local_ext.volume);
-  struct gkyl_array *fld_ho =
-    use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) : gkyl_array_acquire(fld);
+  struct gkyl_array *fld_ho = use_gpu ? mkarr(false, basis.num_basis, local_ext.volume) :
+                                        gkyl_array_acquire(fld);
 
   gkyl_proj_on_basis *proj_op =
     gkyl_proj_on_basis_new(&grid, &basis, poly_order + 1, 1, eval_array_at_coord_1d_func, NULL);
@@ -78,8 +74,8 @@ test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
     memcpy(eval_coord, eval_coord_ho, ndim * sizeof(double));
   }
 
-  gkyl_dg_basis_ops_eval_array_at_coord_comp(
-    fld, eval_coord, basis_on_dev, &grid, &local, fld_at_coord);
+  gkyl_dg_basis_ops_eval_array_at_coord_comp(fld, eval_coord, basis_on_dev, &grid, &local,
+                                             fld_at_coord);
 
   double fld_at_coord_ho[1];
   if (use_gpu)
@@ -105,8 +101,7 @@ test_eval_array_at_coord_1d_p_hodev(int poly_order, bool use_gpu)
   gkyl_array_release(fld);
 }
 
-void
-test_basis_ops_cubic_1d_ho(void)
+void test_basis_ops_cubic_1d_ho(void)
 {
   double val[2] = { 1.0, 2.0 };
   double grad[2] = { -1.0, -2.0 };
@@ -126,8 +121,7 @@ test_basis_ops_cubic_1d_ho(void)
     gkyl_compare_double(grad[1], b3.eval_grad_expand(0, (double[1]){ 1.0 }, coeff), 1.0e-15));
 }
 
-void
-test_basis_ops_cubic_2d_ho(void)
+void test_basis_ops_cubic_2d_ho(void)
 {
   double val[4] = { 1.0, 2.0, 3.0, 4.0 };
   double gradx[4] = { -1.0, -2.0, -3.0, -4.0 };
@@ -146,27 +140,26 @@ test_basis_ops_cubic_2d_ho(void)
   TEST_CHECK(gkyl_compare_double(val[2], b3.eval_expand((double[2]){ 1.0, -1.0 }, coeff), 1.0e-15));
   TEST_CHECK(gkyl_compare_double(val[3], b3.eval_expand((double[2]){ 1.0, 1.0 }, coeff), 1.0e-15));
 
-  TEST_CHECK(gkyl_compare_double(
-    gradx[0], b3.eval_grad_expand(0, (double[2]){ -1.0, -1.0 }, coeff), 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(
-    gradx[1], b3.eval_grad_expand(0, (double[2]){ -1.0, 1.0 }, coeff), 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(
-    gradx[2], b3.eval_grad_expand(0, (double[2]){ 1.0, -1.0 }, coeff), 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(gradx[0], b3.eval_grad_expand(0, (double[2]){ -1.0, -1.0 }, coeff),
+                                 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(gradx[1], b3.eval_grad_expand(0, (double[2]){ -1.0, 1.0 }, coeff),
+                                 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(gradx[2], b3.eval_grad_expand(0, (double[2]){ 1.0, -1.0 }, coeff),
+                                 1.0e-15));
   TEST_CHECK(
     gkyl_compare_double(gradx[3], b3.eval_grad_expand(0, (double[2]){ 1.0, 1.0 }, coeff), 1.0e-15));
 
-  TEST_CHECK(gkyl_compare_double(
-    grady[0], b3.eval_grad_expand(1, (double[2]){ -1.0, -1.0 }, coeff), 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(
-    grady[1], b3.eval_grad_expand(1, (double[2]){ -1.0, 1.0 }, coeff), 1.0e-15));
-  TEST_CHECK(gkyl_compare_double(
-    grady[2], b3.eval_grad_expand(1, (double[2]){ 1.0, -1.0 }, coeff), 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(grady[0], b3.eval_grad_expand(1, (double[2]){ -1.0, -1.0 }, coeff),
+                                 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(grady[1], b3.eval_grad_expand(1, (double[2]){ -1.0, 1.0 }, coeff),
+                                 1.0e-15));
+  TEST_CHECK(gkyl_compare_double(grady[2], b3.eval_grad_expand(1, (double[2]){ 1.0, -1.0 }, coeff),
+                                 1.0e-15));
   TEST_CHECK(
     gkyl_compare_double(grady[3], b3.eval_grad_expand(1, (double[2]){ 1.0, 1.0 }, coeff), 1.0e-15));
 }
 
-void
-test_basis_ops_cubic_evalf_2d_ho(void)
+void test_basis_ops_cubic_evalf_2d_ho(void)
 {
   double lower[] = { 0.0, 0.0 }, upper[] = { 5.0, 5.0 };
   int cells[] = { 8, 8 };
@@ -237,28 +230,27 @@ test_basis_ops_cubic_evalf_2d_ho(void)
   gkyl_dg_basis_ops_evalf_release(evf);
 }
 
-void
-test_basis_ops_eval_array_at_coord_1d_ho()
+void test_basis_ops_eval_array_at_coord_1d_ho()
 {
   // p = 1
   test_eval_array_at_coord_1d_p_hodev(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void
-test_basis_ops_eval_array_at_coord_1d_dev()
+void test_basis_ops_eval_array_at_coord_1d_dev()
 {
   // p = 1
   test_eval_array_at_coord_1d_p_hodev(1, true);
 }
 #endif
 
-TEST_LIST = { { "test_basis_ops_eval_array_at_coord_1d_ho",
-                test_basis_ops_eval_array_at_coord_1d_ho },
+TEST_LIST = {
+  { "test_basis_ops_eval_array_at_coord_1d_ho", test_basis_ops_eval_array_at_coord_1d_ho },
   { "basis_ops_cubic_1d_ho", test_basis_ops_cubic_1d_ho },
   { "basis_ops_cubic_2d_ho", test_basis_ops_cubic_2d_ho },
   { "basis_ops_cubic_evalf_2d_ho", test_basis_ops_cubic_evalf_2d_ho },
 #ifdef GKYL_HAVE_CUDA
   { "test_basis_ops_eval_array_at_coord_1d_dev", test_basis_ops_eval_array_at_coord_1d_dev },
 #endif
-  { NULL, NULL } };
+  { NULL, NULL }
+};

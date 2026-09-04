@@ -15,9 +15,9 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void
-gkyl_dg_calc_pkpm_vars_set_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *As,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *vlasov_pkpm_moms,
+__global__ static void gkyl_dg_calc_pkpm_vars_set_cu_kernel(
+  gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
+  struct gkyl_range conf_range, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *euler_pkpm, const struct gkyl_array *p_ij,
   const struct gkyl_array *pkpm_div_ppar, struct gkyl_array *cell_avg_prim)
 {
@@ -48,9 +48,11 @@ gkyl_dg_calc_pkpm_vars_set_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_nma
   }
 }
 
-__global__ static void
-gkyl_dg_calc_pkpm_vars_copy_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *xs,
-  struct gkyl_range conf_range, struct gkyl_array *prim, struct gkyl_array *prim_surf)
+__global__ static void gkyl_dg_calc_pkpm_vars_copy_cu_kernel(gkyl_dg_calc_pkpm_vars *up,
+                                                             struct gkyl_nmat *xs,
+                                                             struct gkyl_range conf_range,
+                                                             struct gkyl_array *prim,
+                                                             struct gkyl_array *prim_surf)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -75,30 +77,32 @@ gkyl_dg_calc_pkpm_vars_copy_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_nm
 }
 
 // Host-side wrapper for pkpm primitive variable calculation
-void
-gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *p_ij, const struct gkyl_array *pkpm_div_ppar,
-  struct gkyl_array *cell_avg_prim, struct gkyl_array *prim, struct gkyl_array *prim_surf)
+void gkyl_dg_calc_pkpm_vars_advance_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                       const struct gkyl_array *vlasov_pkpm_moms,
+                                       const struct gkyl_array *euler_pkpm,
+                                       const struct gkyl_array *p_ij,
+                                       const struct gkyl_array *pkpm_div_ppar,
+                                       struct gkyl_array *cell_avg_prim, struct gkyl_array *prim,
+                                       struct gkyl_array *prim_surf)
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_dg_calc_pkpm_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
-    up->As->on_dev, up->xs->on_dev, conf_range, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev,
-    p_ij->on_dev, pkpm_div_ppar->on_dev, cell_avg_prim->on_dev);
+  gkyl_dg_calc_pkpm_vars_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+    up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, vlasov_pkpm_moms->on_dev,
+    euler_pkpm->on_dev, p_ij->on_dev, pkpm_div_ppar->on_dev, cell_avg_prim->on_dev);
 
   if (up->poly_order > 1) {
     bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
     assert(status);
   }
 
-  gkyl_dg_calc_pkpm_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_dg_calc_pkpm_vars_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, prim->on_dev, prim_surf->on_dev);
 }
 
-__global__ static void
-gkyl_dg_calc_pkpm_vars_u_set_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *As,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *vlasov_pkpm_moms,
+__global__ static void gkyl_dg_calc_pkpm_vars_u_set_cu_kernel(
+  gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
+  struct gkyl_range conf_range, const struct gkyl_array *vlasov_pkpm_moms,
   const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim)
 {
   int idx[GKYL_MAX_DIM];
@@ -125,9 +129,10 @@ gkyl_dg_calc_pkpm_vars_u_set_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_n
   }
 }
 
-__global__ static void
-gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_nmat *xs,
-  struct gkyl_range conf_range, struct gkyl_array *pkpm_u)
+__global__ static void gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel(gkyl_dg_calc_pkpm_vars *up,
+                                                               struct gkyl_nmat *xs,
+                                                               struct gkyl_range conf_range,
+                                                               struct gkyl_array *pkpm_u)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -151,30 +156,31 @@ gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel(gkyl_dg_calc_pkpm_vars *up, struct gkyl_
 }
 
 // Host-side wrapper for pkpm flow velocity calculation
-void
-gkyl_dg_calc_pkpm_vars_u_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u)
+void gkyl_dg_calc_pkpm_vars_u_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                 const struct gkyl_array *vlasov_pkpm_moms,
+                                 const struct gkyl_array *euler_pkpm,
+                                 struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u)
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_dg_calc_pkpm_vars_u_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(up->on_dev,
-    up->As_u->on_dev, up->xs_u->on_dev, conf_range, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev,
-    cell_avg_prim->on_dev);
+  gkyl_dg_calc_pkpm_vars_u_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
+    up->on_dev, up->As_u->on_dev, up->xs_u->on_dev, conf_range, vlasov_pkpm_moms->on_dev,
+    euler_pkpm->on_dev, cell_avg_prim->on_dev);
 
   if (up->poly_order > 1) {
     bool status = gkyl_nmat_linsolve_lu_pa(up->mem_u, up->As_u, up->xs_u);
     assert(status);
   }
 
-  gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_dg_calc_pkpm_vars_u_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->xs_u->on_dev, conf_range, pkpm_u->on_dev);
 }
 
-__global__ void
-gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
-  struct gkyl_range conf_range, const struct gkyl_array *bvar,
-  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *p_ij)
+__global__ void gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
+                                                       struct gkyl_range conf_range,
+                                                       const struct gkyl_array *bvar,
+                                                       const struct gkyl_array *vlasov_pkpm_moms,
+                                                       struct gkyl_array *p_ij)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -198,22 +204,22 @@ gkyl_calc_pkpm_vars_pressure_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
 }
 
 // Host-side wrapper for pkpm pressure calculation
-void
-gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bvar,
-  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *p_ij)
+void gkyl_dg_calc_pkpm_vars_pressure_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                        const struct gkyl_range *conf_range,
+                                        const struct gkyl_array *bvar,
+                                        const struct gkyl_array *vlasov_pkpm_moms,
+                                        struct gkyl_array *p_ij)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_calc_pkpm_vars_pressure_cu_kernel<<<nblocks, nthreads>>>(
+  gkyl_calc_pkpm_vars_pressure_cu_kernel<<<nblocks, nthreads> > >(
     up->on_dev, *conf_range, bvar->on_dev, vlasov_pkpm_moms->on_dev, p_ij->on_dev);
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
-  struct gkyl_range conf_range, const struct gkyl_array *prim_surf, const struct gkyl_array *prim,
-  const struct gkyl_array *bvar, const struct gkyl_array *div_b, const struct gkyl_array *nu,
-  struct gkyl_array *pkpm_accel)
+__global__ void gkyl_dg_calc_pkpm_vars_accel_cu_kernel(
+  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range,
+  const struct gkyl_array *prim_surf, const struct gkyl_array *prim, const struct gkyl_array *bvar,
+  const struct gkyl_array *div_b, const struct gkyl_array *nu, struct gkyl_array *pkpm_accel)
 {
   int cdim = up->cdim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -254,27 +260,29 @@ gkyl_dg_calc_pkpm_vars_accel_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
       const double *prim_surf_r = (const double *)gkyl_array_cfetch(prim_surf, linr);
 
       up->pkpm_accel[dir](up->conf_grid.dx, prim_surf_l, prim_surf_c, prim_surf_r, prim_d, bvar_d,
-        nu_d, pkpm_accel_d);
+                          nu_d, pkpm_accel_d);
     }
   }
 }
 
 // Host-side wrapper for pkpm acceleration variable calculations with averaging for gradients
-void
-gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *prim_surf,
-  const struct gkyl_array *prim, const struct gkyl_array *bvar, const struct gkyl_array *div_b,
-  const struct gkyl_array *nu, struct gkyl_array *pkpm_accel)
+void gkyl_dg_calc_pkpm_vars_accel_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                     const struct gkyl_range *conf_range,
+                                     const struct gkyl_array *prim_surf,
+                                     const struct gkyl_array *prim, const struct gkyl_array *bvar,
+                                     const struct gkyl_array *div_b, const struct gkyl_array *nu,
+                                     struct gkyl_array *pkpm_accel)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_accel_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range,
-    prim_surf->on_dev, prim->on_dev, bvar->on_dev, div_b->on_dev, nu->on_dev, pkpm_accel->on_dev);
+  gkyl_dg_calc_pkpm_vars_accel_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *conf_range,
+                                                                  prim_surf->on_dev, prim->on_dev,
+                                                                  bvar->on_dev, div_b->on_dev,
+                                                                  nu->on_dev, pkpm_accel->on_dev);
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
-  struct gkyl_range conf_range, struct gkyl_range conf_range_ext,
+__global__ void gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(
+  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range, struct gkyl_range conf_range_ext,
   const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
   const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm, struct gkyl_array *pkpm_lax,
   struct gkyl_array *pkpm_penalization)
@@ -317,8 +325,8 @@ gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
       const double *euler_pkpm_l = (const double *)gkyl_array_cfetch(euler_pkpm, linl);
 
       up->pkpm_penalization[dir](up->tol, up->force_lax, up->wv_eqn, geom, vlasov_pkpm_moms_l,
-        vlasov_pkpm_moms_d, p_ij_l, p_ij_d, prim_l, prim_d, euler_pkpm_l, euler_pkpm_d, pkpm_lax_d,
-        pkpm_penalization_d);
+                                 vlasov_pkpm_moms_d, p_ij_l, p_ij_d, prim_l, prim_d, euler_pkpm_l,
+                                 euler_pkpm_d, pkpm_lax_d, pkpm_penalization_d);
 
       // If the configuration-space index is at the local configuration space upper value,
       // we are at the configuration space upper edge and we also need to evaluate the
@@ -342,33 +350,31 @@ gkyl_dg_calc_pkpm_vars_penalization_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
         double *pkpm_penalization_r = (double *)gkyl_array_fetch(pkpm_penalization, linr);
 
         up->pkpm_penalization[dir](up->tol, up->force_lax, up->wv_eqn, geom_r, vlasov_pkpm_moms_d,
-          vlasov_pkpm_moms_r, p_ij_d, p_ij_r, prim_d, prim_r, euler_pkpm_d, euler_pkpm_r,
-          pkpm_lax_r, pkpm_penalization_r);
+                                   vlasov_pkpm_moms_r, p_ij_d, p_ij_r, prim_d, prim_r, euler_pkpm_d,
+                                   euler_pkpm_r, pkpm_lax_r, pkpm_penalization_r);
       }
     }
   }
 }
 
 // Host-side wrapper for surface expansions of pkpm penalization variables calculation
-void
-gkyl_dg_calc_pkpm_vars_penalization_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
-  const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm, struct gkyl_array *pkpm_lax,
-  struct gkyl_array *pkpm_penalization)
+void gkyl_dg_calc_pkpm_vars_penalization_cu(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *conf_range_ext, const struct gkyl_array *vlasov_pkpm_moms,
+  const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm,
+  struct gkyl_array *pkpm_lax, struct gkyl_array *pkpm_penalization)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_penalization_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range,
-    *conf_range_ext, vlasov_pkpm_moms->on_dev, p_ij->on_dev, prim->on_dev, euler_pkpm->on_dev,
-    pkpm_lax->on_dev, pkpm_penalization->on_dev);
+  gkyl_dg_calc_pkpm_vars_penalization_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, *conf_range_ext, vlasov_pkpm_moms->on_dev, p_ij->on_dev, prim->on_dev,
+    euler_pkpm->on_dev, pkpm_lax->on_dev, pkpm_penalization->on_dev);
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_integrated_vars_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
-  struct gkyl_range conf_range, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, const struct gkyl_array *prim,
-  struct gkyl_array *int_pkpm_vars)
+__global__ void gkyl_dg_calc_pkpm_integrated_vars_cu_kernel(
+  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range,
+  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
+  const struct gkyl_array *prim, struct gkyl_array *int_pkpm_vars)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -393,23 +399,26 @@ gkyl_dg_calc_pkpm_integrated_vars_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
 }
 
 // Host-side wrapper for pkpm integrated variables calculation
-void
-gkyl_dg_calc_pkpm_integrated_vars_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, const struct gkyl_array *prim,
-  struct gkyl_array *int_pkpm_vars)
+void gkyl_dg_calc_pkpm_integrated_vars_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                          const struct gkyl_range *conf_range,
+                                          const struct gkyl_array *vlasov_pkpm_moms,
+                                          const struct gkyl_array *euler_pkpm,
+                                          const struct gkyl_array *prim,
+                                          struct gkyl_array *int_pkpm_vars)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_integrated_vars_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range,
-    vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, prim->on_dev, int_pkpm_vars->on_dev);
+  gkyl_dg_calc_pkpm_integrated_vars_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, prim->on_dev,
+    int_pkpm_vars->on_dev);
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_source_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
-  struct gkyl_range conf_range, const struct gkyl_array *qmem,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  struct gkyl_array *rhs)
+__global__ void gkyl_dg_calc_pkpm_vars_source_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
+                                                        struct gkyl_range conf_range,
+                                                        const struct gkyl_array *qmem,
+                                                        const struct gkyl_array *vlasov_pkpm_moms,
+                                                        const struct gkyl_array *euler_pkpm,
+                                                        struct gkyl_array *rhs)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -434,20 +443,22 @@ gkyl_dg_calc_pkpm_vars_source_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
 }
 
 // Host-side wrapper for pkpm source term calculations
-void
-gkyl_dg_calc_pkpm_vars_source_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *qmem,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  struct gkyl_array *rhs)
+void gkyl_dg_calc_pkpm_vars_source_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                      const struct gkyl_range *conf_range,
+                                      const struct gkyl_array *qmem,
+                                      const struct gkyl_array *vlasov_pkpm_moms,
+                                      const struct gkyl_array *euler_pkpm, struct gkyl_array *rhs)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_source_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range,
-    qmem->on_dev, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, rhs->on_dev);
+  gkyl_dg_calc_pkpm_vars_source_cu_kernel<<<nblocks, nthreads> > >(up->on_dev, *conf_range,
+                                                                   qmem->on_dev,
+                                                                   vlasov_pkpm_moms->on_dev,
+                                                                   euler_pkpm->on_dev, rhs->on_dev);
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_io_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range,
+__global__ void gkyl_dg_calc_pkpm_vars_io_cu_kernel(
+  struct gkyl_dg_calc_pkpm_vars *up, struct gkyl_range conf_range,
   const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
   const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *pkpm_accel,
   struct gkyl_array *fluid_io, struct gkyl_array *pkpm_vars_io)
@@ -473,30 +484,33 @@ gkyl_dg_calc_pkpm_vars_io_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up, struct gk
 
     double *fluid_io_d = (double *)gkyl_array_fetch(fluid_io, loc);
     double *pkpm_vars_io_d = (double *)gkyl_array_fetch(pkpm_vars_io, loc);
-    up->pkpm_io(
-      vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, prim_d, pkpm_accel_d, fluid_io_d, pkpm_vars_io_d);
+    up->pkpm_io(vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, prim_d, pkpm_accel_d, fluid_io_d,
+                pkpm_vars_io_d);
   }
 }
 
 // Host-side wrapper for pkpm io. Computes conserved variables and copies primitive and acceleration variables to output array
-void
-gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *pkpm_accel,
-  struct gkyl_array *fluid_io, struct gkyl_array *pkpm_vars_io)
+void gkyl_dg_calc_pkpm_vars_io_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                  const struct gkyl_range *conf_range,
+                                  const struct gkyl_array *vlasov_pkpm_moms,
+                                  const struct gkyl_array *euler_pkpm,
+                                  const struct gkyl_array *p_ij, const struct gkyl_array *prim,
+                                  const struct gkyl_array *pkpm_accel, struct gkyl_array *fluid_io,
+                                  struct gkyl_array *pkpm_vars_io)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_io_cu_kernel<<<nblocks, nthreads>>>(up->on_dev, *conf_range,
-    vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, p_ij->on_dev, prim->on_dev, pkpm_accel->on_dev,
-    fluid_io->on_dev, pkpm_vars_io->on_dev);
+  gkyl_dg_calc_pkpm_vars_io_cu_kernel<<<nblocks, nthreads> > >(
+    up->on_dev, *conf_range, vlasov_pkpm_moms->on_dev, euler_pkpm->on_dev, p_ij->on_dev,
+    prim->on_dev, pkpm_accel->on_dev, fluid_io->on_dev, pkpm_vars_io->on_dev);
 }
 
-__global__ void
-gkyl_dg_calc_pkpm_vars_limiter_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
-  struct gkyl_range conf_range, const struct gkyl_array *prim,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
-  struct gkyl_array *fluid)
+__global__ void gkyl_dg_calc_pkpm_vars_limiter_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
+                                                         struct gkyl_range conf_range,
+                                                         const struct gkyl_array *prim,
+                                                         const struct gkyl_array *vlasov_pkpm_moms,
+                                                         const struct gkyl_array *p_ij,
+                                                         struct gkyl_array *fluid)
 {
   int cdim = up->cdim;
   int idxl[GKYL_MAX_DIM], idxc[GKYL_MAX_DIM], idxr[GKYL_MAX_DIM];
@@ -536,29 +550,30 @@ gkyl_dg_calc_pkpm_vars_limiter_cu_kernel(struct gkyl_dg_calc_pkpm_vars *up,
       double *fluid_r = (double *)gkyl_array_fetch(fluid, linr);
 
       up->pkpm_limiter[dir](up->limiter_fac, up->wv_eqn, geom, prim_c, vlasov_pkpm_moms_l,
-        vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, p_ij_l, p_ij_c, p_ij_r, fluid_l, fluid_c, fluid_r);
+                            vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, p_ij_l, p_ij_c, p_ij_r, fluid_l,
+                            fluid_c, fluid_r);
     }
   }
 }
 
 // Host-side wrapper for slope limiter of fluid variables
-void
-gkyl_dg_calc_pkpm_vars_limiter_cu(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *prim,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
-  struct gkyl_array *fluid)
+void gkyl_dg_calc_pkpm_vars_limiter_cu(struct gkyl_dg_calc_pkpm_vars *up,
+                                       const struct gkyl_range *conf_range,
+                                       const struct gkyl_array *prim,
+                                       const struct gkyl_array *vlasov_pkpm_moms,
+                                       const struct gkyl_array *p_ij, struct gkyl_array *fluid)
 {
   int nblocks = conf_range->nblocks;
   int nthreads = conf_range->nthreads;
-  gkyl_dg_calc_pkpm_vars_limiter_cu_kernel<<<nblocks, nthreads>>>(
+  gkyl_dg_calc_pkpm_vars_limiter_cu_kernel<<<nblocks, nthreads> > >(
     up->on_dev, *conf_range, prim->on_dev, vlasov_pkpm_moms->on_dev, p_ij->on_dev, fluid->on_dev);
 }
 
 // CUDA kernel to set device pointers to pkpm vars kernel functions
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol
-__global__ static void
-dg_calc_pkpm_vars_set_cu_dev_ptrs(
-  struct gkyl_dg_calc_pkpm_vars *up, enum gkyl_basis_type b_type, int cdim, int poly_order)
+__global__ static void dg_calc_pkpm_vars_set_cu_dev_ptrs(struct gkyl_dg_calc_pkpm_vars *up,
+                                                         enum gkyl_basis_type b_type, int cdim,
+                                                         int poly_order)
 {
   up->pkpm_set = choose_pkpm_set_kern(b_type, cdim, poly_order);
   up->pkpm_copy = choose_pkpm_copy_kern(b_type, cdim, poly_order);
@@ -577,10 +592,12 @@ dg_calc_pkpm_vars_set_cu_dev_ptrs(
   }
 }
 
-gkyl_dg_calc_pkpm_vars *
-gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range,
-  const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *wg, double limiter_fac)
+gkyl_dg_calc_pkpm_vars *gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
+                                                          const struct gkyl_basis *cbasis,
+                                                          const struct gkyl_range *mem_range,
+                                                          const struct gkyl_wv_eqn *wv_eqn,
+                                                          const struct gkyl_wave_geom *wg,
+                                                          double limiter_fac)
 {
   struct gkyl_dg_calc_pkpm_vars *up =
     (struct gkyl_dg_calc_pkpm_vars *)gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
@@ -638,7 +655,7 @@ gkyl_dg_calc_pkpm_vars_cu_dev_new(const struct gkyl_rect_grid *conf_grid,
     (struct gkyl_dg_calc_pkpm_vars *)gkyl_cu_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_dg_calc_pkpm_vars), GKYL_CU_MEMCPY_H2D);
 
-  dg_calc_pkpm_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, poly_order);
+  dg_calc_pkpm_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

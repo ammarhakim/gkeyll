@@ -28,22 +28,19 @@ extern "C" {
 // ============================================================
 
 // --- add (op 1): p = child[0] + child[1] (with broadcasting) ---
-__global__ static void
-ker_add_fwd(int n0, int n1, const float *x0, const float *x1, float *px)
+__global__ static void ker_add_fwd(int n0, int n1, const float *x0, const float *x1, float *px)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n0; i += blockDim.x * gridDim.x)
     px[i] = x0[i] + x1[i % n1];
 }
 
-__global__ static void
-ker_add_bwd_child0(int n, const float *pg, float *g0)
+__global__ static void ker_add_bwd_child0(int n, const float *pg, float *g0)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     g0[i] += pg[i];
 }
 
-__global__ static void
-ker_add_bwd_child1(int n0, int n1, const float *pg, float *g1)
+__global__ static void ker_add_bwd_child1(int n0, int n1, const float *pg, float *g1)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n1; i += blockDim.x * gridDim.x) {
     float s = 0.0f;
@@ -54,22 +51,21 @@ ker_add_bwd_child1(int n0, int n1, const float *pg, float *g1)
 }
 
 // --- mul (op 2): element-wise multiplication with broadcasting ---
-__global__ static void
-ker_mul_fwd(int n0, int n1, const float *x0, const float *x1, float *px)
+__global__ static void ker_mul_fwd(int n0, int n1, const float *x0, const float *x1, float *px)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n0; i += blockDim.x * gridDim.x)
     px[i] = x0[i] * x1[i % n1];
 }
 
-__global__ static void
-ker_mul_bwd_child0(int n0, int n1, const float *pg, const float *x1, float *g0)
+__global__ static void ker_mul_bwd_child0(int n0, int n1, const float *pg, const float *x1,
+                                          float *g0)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n0; i += blockDim.x * gridDim.x)
     g0[i] += pg[i] * x1[i % n1];
 }
 
-__global__ static void
-ker_mul_bwd_child1(int n0, int n1, const float *pg, const float *x0, float *g1)
+__global__ static void ker_mul_bwd_child1(int n0, int n1, const float *pg, const float *x0,
+                                          float *g1)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n1; i += blockDim.x * gridDim.x) {
     float s = 0.0f;
@@ -80,23 +76,20 @@ ker_mul_bwd_child1(int n0, int n1, const float *pg, const float *x0, float *g1)
 }
 
 // --- sigm (op 6): sigmoid ---
-__global__ static void
-ker_sigm_fwd(int n, const float *qx, float *px)
+__global__ static void ker_sigm_fwd(int n, const float *qx, float *px)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     px[i] = 1.0f / (1.0f + expf(-qx[i]));
 }
 
-__global__ static void
-ker_sigm_bwd(int n, const float *pg, const float *px, float *qg)
+__global__ static void ker_sigm_bwd(int n, const float *pg, const float *px, float *qg)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     qg[i] += pg[i] * (px[i] * (1.0f - px[i]));
 }
 
 // --- tanh (op 7) ---
-__global__ static void
-ker_tanh_fwd(int n, const float *qx, float *px)
+__global__ static void ker_tanh_fwd(int n, const float *qx, float *px)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x) {
     if (qx[i] < -20.0f)
@@ -108,23 +101,20 @@ ker_tanh_fwd(int n, const float *qx, float *px)
   }
 }
 
-__global__ static void
-ker_tanh_bwd(int n, const float *pg, const float *px, float *qg)
+__global__ static void ker_tanh_bwd(int n, const float *pg, const float *px, float *qg)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     qg[i] += pg[i] * (1.0f - px[i] * px[i]);
 }
 
 // --- relu (op 8) ---
-__global__ static void
-ker_relu_fwd(int n, const float *qx, float *px)
+__global__ static void ker_relu_fwd(int n, const float *qx, float *px)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     px[i] = qx[i] > 0.0f ? qx[i] : 0.0f;
 }
 
-__global__ static void
-ker_relu_bwd(int n, const float *pg, const float *qx, float *qg)
+__global__ static void ker_relu_bwd(int n, const float *pg, const float *qx, float *qg)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     if (qx[i] > 0.0f)
@@ -132,23 +122,20 @@ ker_relu_bwd(int n, const float *pg, const float *qx, float *qg)
 }
 
 // --- 1minus (op 11): p = 1 - child ---
-__global__ static void
-ker_1minus_fwd(int n, const float *qx, float *px)
+__global__ static void ker_1minus_fwd(int n, const float *qx, float *px)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     px[i] = 1.0f - qx[i];
 }
 
-__global__ static void
-ker_1minus_bwd(int n, const float *pg, float *qg)
+__global__ static void ker_1minus_bwd(int n, const float *pg, float *qg)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     qg[i] -= pg[i];
 }
 
 // --- softmax (op 14) ---
-__global__ static void
-ker_softmax_fwd(int d0, int n1, const float *qx, float *px)
+__global__ static void ker_softmax_fwd(int d0, int n1, const float *qx, float *px)
 {
   int row = blockIdx.x;
   if (row >= d0)
@@ -170,8 +157,7 @@ ker_softmax_fwd(int d0, int n1, const float *qx, float *px)
     y[i] *= s;
 }
 
-__global__ static void
-ker_softmax_bwd(int d0, int n1, const float *pg, const float *px, float *qg)
+__global__ static void ker_softmax_bwd(int d0, int n1, const float *pg, const float *px, float *qg)
 {
   int row = blockIdx.x;
   if (row >= d0)
@@ -188,8 +174,7 @@ ker_softmax_bwd(int d0, int n1, const float *pg, const float *px, float *qg)
 }
 
 // --- mse (op 29): mean square error ---
-__global__ static void
-ker_mse_fwd(int n, const float *y1, const float *y0, float *cost)
+__global__ static void ker_mse_fwd(int n, const float *y1, const float *y0, float *cost)
 {
   __shared__ float sdata[KANN_CU_THREADS];
   int tid = threadIdx.x;
@@ -210,8 +195,8 @@ ker_mse_fwd(int n, const float *y1, const float *y0, float *cost)
     cost[0] = sdata[0] / n;
 }
 
-__global__ static void
-ker_mse_bwd(int n, const float *pg, const float *y1, const float *y0, float *y1g)
+__global__ static void ker_mse_bwd(int n, const float *pg, const float *y1, const float *y0,
+                                   float *y1g)
 {
   float t = 2.0f * pg[0] / n;
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
@@ -222,8 +207,7 @@ ker_mse_bwd(int n, const float *pg, const float *y1, const float *y0, float *y1g
 // Each row of length n is independently normalized: subtract mean, divide by std.
 // si_out stores per-row 1/std for backward pass.
 // One block per row, shared-memory reduction.
-__global__ static void
-ker_stdnorm_fwd(int m, int n, const float *qx, float *px, float *si_out)
+__global__ static void ker_stdnorm_fwd(int m, int n, const float *qx, float *px, float *si_out)
 {
   int row = blockIdx.x;
   if (row >= m)
@@ -273,8 +257,8 @@ ker_stdnorm_fwd(int m, int n, const float *qx, float *px, float *si_out)
 }
 
 // Backward: qg[i] += std_inv * (pg[i] - mean(pg) - px[i] * mean(px * pg))
-__global__ static void
-ker_stdnorm_bwd(int m, int n, const float *pg, const float *px, const float *si, float *qg)
+__global__ static void ker_stdnorm_bwd(int m, int n, const float *pg, const float *px,
+                                       const float *si, float *qg)
 {
   int row = blockIdx.x;
   if (row >= m)
@@ -315,23 +299,20 @@ ker_stdnorm_bwd(int m, int n, const float *pg, const float *px, const float *si,
 // Support kernels
 // ============================================================
 
-__global__ static void
-ker_zero(int n, float *buf)
+__global__ static void ker_zero(int n, float *buf)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     buf[i] = 0.0f;
 }
 
-__global__ static void
-ker_saxpy(int n, float a, const float *x, float *y)
+__global__ static void ker_saxpy(int n, float a, const float *x, float *y)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x)
     y[i] += a * x[i];
 }
 
 // RMSprop: r = (1-decay)*g^2 + decay*r; t -= lr/sqrt(r+eps)*g
-__global__ static void
-ker_rmsprop(int n, float lr, float decay, const float *g, float *t, float *r)
+__global__ static void ker_rmsprop(int n, float lr, float decay, const float *g, float *t, float *r)
 {
   float d1 = 1.0f - decay;
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < n; i += blockDim.x * gridDim.x) {
@@ -343,8 +324,7 @@ ker_rmsprop(int n, float lr, float decay, const float *g, float *t, float *r)
 // ============================================================
 // Helper: compute grid size
 // ============================================================
-static inline int
-cu_nblocks(int n)
+static inline int cu_nblocks(int n)
 {
   return (n + KANN_CU_THREADS - 1) / KANN_CU_THREADS;
 }
@@ -353,8 +333,7 @@ cu_nblocks(int n)
 // Graph construction: flatten kad_node_t** into kann_cu_graph
 // ============================================================
 
-static int
-host_kad_len(const kad_node_t *p)
+static int host_kad_len(const kad_node_t *p)
 {
   int n = 1;
   for (int i = 0; i < p->n_d; ++i)
@@ -362,8 +341,7 @@ host_kad_len(const kad_node_t *p)
   return n;
 }
 
-struct kann_cu_graph *
-kann_cu_graph_new(kann_t *ann, int max_batch_size)
+struct kann_cu_graph *kann_cu_graph_new(kann_t *ann, int max_batch_size)
 {
   int n = ann->n;
   kad_node_t **v = ann->v;
@@ -531,8 +509,8 @@ kann_cu_graph_new(kann_t *ann, int max_batch_size)
     }
     // Assign stdnorm cache offset (m floats per stdnorm node)
     if (p->op == 32 && p->n_child > 0) {
-      int child_n = cg->h_nodes[cg->h_nodes[i].child_idx[0]]
-                      .d[cg->h_nodes[cg->h_nodes[i].child_idx[0]].n_d - 1];
+      int child_n =
+        cg->h_nodes[cg->h_nodes[i].child_idx[0]].d[cg->h_nodes[cg->h_nodes[i].child_idx[0]].n_d - 1];
       int m = cg->h_nodes[i].len / child_n;
       cg->h_nodes[i].si_off = si_total;
       si_total += m;
@@ -586,8 +564,7 @@ kann_cu_graph_new(kann_t *ann, int max_batch_size)
   return cg;
 }
 
-void
-kann_cu_graph_free(struct kann_cu_graph *cg)
+void kann_cu_graph_free(struct kann_cu_graph *cg)
 {
   if (!cg)
     return;
@@ -606,44 +583,41 @@ kann_cu_graph_free(struct kann_cu_graph *cg)
   free(cg);
 }
 
-void
-kann_cu_graph_upload_vars(struct kann_cu_graph *cg, const kann_t *ann)
+void kann_cu_graph_upload_vars(struct kann_cu_graph *cg, const kann_t *ann)
 {
   if (!ann->x)
     return;
   int host_off = 0;
   for (int i = 0; i < cg->n_var_nodes; ++i) {
     struct kann_cu_var_node *vn = &cg->h_vars[i];
-    gkyl_cu_memcpy(
-      cg->x + vn->x_off, ann->x + host_off, vn->len * sizeof(float), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(cg->x + vn->x_off, ann->x + host_off, vn->len * sizeof(float),
+                   GKYL_CU_MEMCPY_H2D);
     host_off += vn->len;
   }
 }
 
-void
-kann_cu_graph_download_vars(struct kann_cu_graph *cg, kann_t *ann)
+void kann_cu_graph_download_vars(struct kann_cu_graph *cg, kann_t *ann)
 {
   if (!ann->x)
     return;
   int host_off = 0;
   for (int i = 0; i < cg->n_var_nodes; ++i) {
     struct kann_cu_var_node *vn = &cg->h_vars[i];
-    gkyl_cu_memcpy(
-      ann->x + host_off, cg->x + vn->x_off, vn->len * sizeof(float), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(ann->x + host_off, cg->x + vn->x_off, vn->len * sizeof(float),
+                   GKYL_CU_MEMCPY_D2H);
     host_off += vn->len;
   }
 }
 
-void
-kann_cu_graph_upload_consts(struct kann_cu_graph *cg, const kann_t *ann)
+void kann_cu_graph_upload_consts(struct kann_cu_graph *cg, const kann_t *ann)
 {
   if (!ann->c)
     return;
   int host_off = 0;
   for (int i = 0; i < cg->n_const_nodes; ++i) {
     struct kann_cu_var_node *cn = &cg->h_consts[i];
-    gkyl_cu_memcpy(
-      cg->x + cn->x_off, ann->c + host_off, cn->len * sizeof(float), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(cg->x + cn->x_off, ann->c + host_off, cn->len * sizeof(float),
+                   GKYL_CU_MEMCPY_H2D);
     host_off += cn->len;
   }
 }
@@ -651,8 +625,7 @@ kann_cu_graph_upload_consts(struct kann_cu_graph *cg, const kann_t *ann)
 // Update node dimensions for a new batch size. Uses the host kann_t
 // to run proper kad_sync_dim propagation, then copies updated dims
 // to the host mirror and re-uploads to device.
-void
-kann_cu_sync_dim(struct kann_cu_graph *cg, kann_t *ann, int batch_size)
+void kann_cu_sync_dim(struct kann_cu_graph *cg, kann_t *ann, int batch_size)
 {
   if (batch_size == cg->cur_batch_size)
     return;
@@ -671,8 +644,8 @@ kann_cu_sync_dim(struct kann_cu_graph *cg, kann_t *ann, int batch_size)
   }
 
   // Re-upload metadata to device
-  gkyl_cu_memcpy(
-    cg->nodes, cg->h_nodes, cg->n_node * sizeof(struct kann_cu_node), GKYL_CU_MEMCPY_H2D);
+  gkyl_cu_memcpy(cg->nodes, cg->h_nodes, cg->n_node * sizeof(struct kann_cu_node),
+                 GKYL_CU_MEMCPY_H2D);
 
   cg->cur_batch_size = batch_size;
 }
@@ -681,9 +654,8 @@ kann_cu_sync_dim(struct kann_cu_graph *cg, kann_t *ann, int batch_size)
 // Forward pass dispatch: host loop, one kernel per node
 // ============================================================
 
-static void
-dispatch_forward(
-  struct kann_cu_graph *cg, cublasHandle_t cublas_h, struct kann_cu_node *hn, int idx)
+static void dispatch_forward(struct kann_cu_graph *cg, cublasHandle_t cublas_h,
+                             struct kann_cu_node *hn, int idx)
 {
   struct kann_cu_node *p = &hn[idx];
   int len = p->len;
@@ -705,12 +677,12 @@ dispatch_forward(
   switch (p->op) {
   case 1: // add
     nb = cu_nblocks(clen[0]);
-    ker_add_fwd<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], cx[0], cx[1], px);
+    ker_add_fwd<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], cx[0], cx[1], px);
     break;
 
   case 2: // mul
     nb = cu_nblocks(clen[0]);
-    ker_mul_fwd<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], cx[0], cx[1], px);
+    ker_mul_fwd<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], cx[0], cx[1], px);
     break;
 
   case 3: { // cmul: Y = X * W^T via cublasSgemm
@@ -732,39 +704,39 @@ dispatch_forward(
     // Row-major C = A * B^T  <==>  col-major C^T = B * A^T
     float alpha = 1.0f, beta = 0.0f;
     cublasSgemm(cublas_h, CUBLAS_OP_T, CUBLAS_OP_N, n_b_row, n_a_row, n_col, &alpha, cx[1], n_b_col,
-      cx[0], n_a_col, &beta, px, n_b_row);
+                cx[0], n_a_col, &beta, px, n_b_row);
     break;
   }
 
   case 6: // sigm
     nb = cu_nblocks(len);
-    ker_sigm_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
+    ker_sigm_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
     break;
 
   case 7: // tanh
     nb = cu_nblocks(len);
-    ker_tanh_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
+    ker_tanh_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
     break;
 
   case 8: // relu
     nb = cu_nblocks(len);
-    ker_relu_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
+    ker_relu_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
     break;
 
   case 10: { // avg: mean of n_child tensors
     float inv = 1.0f / p->n_child;
     nb = cu_nblocks(len);
-    ker_zero<<<nb, KANN_CU_THREADS>>>(len, px);
+    ker_zero<<<nb, KANN_CU_THREADS> > >(len, px);
     for (int c = 0; c < p->n_child; ++c) {
       int ci = p->child_idx[c];
-      ker_saxpy<<<nb, KANN_CU_THREADS>>>(len, inv, cg->x + hn[ci].x_off, px);
+      ker_saxpy<<<nb, KANN_CU_THREADS> > >(len, inv, cg->x + hn[ci].x_off, px);
     }
     break;
   }
 
   case 11: // 1minus
     nb = cu_nblocks(len);
-    ker_1minus_fwd<<<nb, KANN_CU_THREADS>>>(len, cx[0], px);
+    ker_1minus_fwd<<<nb, KANN_CU_THREADS> > >(len, cx[0], px);
     break;
 
   case 12: { // select
@@ -780,12 +752,12 @@ dispatch_forward(
   case 14: { // softmax
     int n1 = hn[p->child_idx[0]].d[hn[p->child_idx[0]].n_d - 1];
     int d0 = clen[0] / n1;
-    ker_softmax_fwd<<<d0, 1>>>(d0, n1, cx[0], px);
+    ker_softmax_fwd<<<d0, 1> > >(d0, n1, cx[0], px);
     break;
   }
 
   case 29: // mse
-    ker_mse_fwd<<<1, KANN_CU_THREADS>>>(clen[0], cx[0], cx[1], px);
+    ker_mse_fwd<<<1, KANN_CU_THREADS> > >(clen[0], cx[0], cx[1], px);
     break;
 
   case 32: { // stdnorm (layer normalization)
@@ -799,7 +771,8 @@ dispatch_forward(
     int t2 = 1;
     while (t2 * 2 <= threads)
       t2 *= 2;
-    ker_stdnorm_fwd<<<sm, t2, t2 * sizeof(float)>>>(sm, sn, cx[0], px, cg->stdnorm_si + p->si_off);
+    ker_stdnorm_fwd<<<sm, t2, t2 * sizeof(float)> > >(sm, sn, cx[0], px,
+                                                      cg->stdnorm_si + p->si_off);
     break;
   }
 
@@ -809,9 +782,8 @@ dispatch_forward(
   }
 }
 
-static void
-dispatch_backward(
-  struct kann_cu_graph *cg, cublasHandle_t cublas_h, struct kann_cu_node *hn, int idx)
+static void dispatch_backward(struct kann_cu_graph *cg, cublasHandle_t cublas_h,
+                              struct kann_cu_node *hn, int idx)
 {
   struct kann_cu_node *p = &hn[idx];
   float *pg = cg->g + p->g_off;
@@ -836,22 +808,22 @@ dispatch_backward(
   case 1: // add
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(clen[0]);
-      ker_add_bwd_child0<<<nb, KANN_CU_THREADS>>>(clen[0], pg, cg_arr[0]);
+      ker_add_bwd_child0<<<nb, KANN_CU_THREADS> > >(clen[0], pg, cg_arr[0]);
     }
     if ((cflag[1] & KAD_VAR) && cg_arr[1]) {
       nb = cu_nblocks(clen[1]);
-      ker_add_bwd_child1<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], pg, cg_arr[1]);
+      ker_add_bwd_child1<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], pg, cg_arr[1]);
     }
     break;
 
   case 2: // mul
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(clen[0]);
-      ker_mul_bwd_child0<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], pg, cx[1], cg_arr[0]);
+      ker_mul_bwd_child0<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], pg, cx[1], cg_arr[0]);
     }
     if ((cflag[1] & KAD_VAR) && cg_arr[1]) {
       nb = cu_nblocks(clen[1]);
-      ker_mul_bwd_child1<<<nb, KANN_CU_THREADS>>>(clen[0], clen[1], pg, cx[0], cg_arr[1]);
+      ker_mul_bwd_child1<<<nb, KANN_CU_THREADS> > >(clen[0], clen[1], pg, cx[0], cg_arr[1]);
     }
     break;
 
@@ -875,12 +847,12 @@ dispatch_backward(
     // G_x += G_y * W
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       cublasSgemm(cublas_h, CUBLAS_OP_N, CUBLAS_OP_N, n_a_col, n_a_row, n_b_row, &alpha, cx[1],
-        n_b_col, pg, n_b_row, &beta, cg_arr[0], n_a_col);
+                  n_b_col, pg, n_b_row, &beta, cg_arr[0], n_a_col);
     }
     // G_w += G_y^T * X
     if ((cflag[1] & KAD_VAR) && cg_arr[1]) {
       cublasSgemm(cublas_h, CUBLAS_OP_N, CUBLAS_OP_T, n_b_col, n_b_row, n_a_row, &alpha, cx[0],
-        n_a_col, pg, n_b_row, &beta, cg_arr[1], n_b_col);
+                  n_a_col, pg, n_b_row, &beta, cg_arr[1], n_b_col);
     }
     break;
   }
@@ -889,7 +861,7 @@ dispatch_backward(
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       float *px = cg->x + p->x_off;
       nb = cu_nblocks(p->len);
-      ker_sigm_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, px, cg_arr[0]);
+      ker_sigm_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, px, cg_arr[0]);
     }
     break;
 
@@ -897,14 +869,14 @@ dispatch_backward(
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       float *px = cg->x + p->x_off;
       nb = cu_nblocks(p->len);
-      ker_tanh_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, px, cg_arr[0]);
+      ker_tanh_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, px, cg_arr[0]);
     }
     break;
 
   case 8: // relu
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(p->len);
-      ker_relu_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, cx[0], cg_arr[0]);
+      ker_relu_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, cx[0], cg_arr[0]);
     }
     break;
 
@@ -914,7 +886,7 @@ dispatch_backward(
     for (int c = 0; c < p->n_child; ++c) {
       int ci = p->child_idx[c];
       if ((hn[ci].flag & KAD_VAR) && hn[ci].g_off >= 0)
-        ker_saxpy<<<nb, KANN_CU_THREADS>>>(p->len, inv, pg, cg->g + hn[ci].g_off);
+        ker_saxpy<<<nb, KANN_CU_THREADS> > >(p->len, inv, pg, cg->g + hn[ci].g_off);
     }
     break;
   }
@@ -922,7 +894,7 @@ dispatch_backward(
   case 11: // 1minus
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(p->len);
-      ker_1minus_bwd<<<nb, KANN_CU_THREADS>>>(p->len, pg, cg_arr[0]);
+      ker_1minus_bwd<<<nb, KANN_CU_THREADS> > >(p->len, pg, cg_arr[0]);
     }
     break;
 
@@ -934,7 +906,7 @@ dispatch_backward(
     if ((hn[ci].flag & KAD_VAR) && hn[ci].g_off >= 0) {
       int slen = hn[ci].len;
       nb = cu_nblocks(slen);
-      ker_saxpy<<<nb, KANN_CU_THREADS>>>(slen, 1.0f, pg, cg->g + hn[ci].g_off);
+      ker_saxpy<<<nb, KANN_CU_THREADS> > >(slen, 1.0f, pg, cg->g + hn[ci].g_off);
     }
     break;
   }
@@ -945,7 +917,7 @@ dispatch_backward(
       int n1 = q->d[q->n_d - 1];
       int d0 = q->len / n1;
       float *px = cg->x + p->x_off;
-      ker_softmax_bwd<<<d0, 1>>>(d0, n1, pg, px, cg_arr[0]);
+      ker_softmax_bwd<<<d0, 1> > >(d0, n1, pg, px, cg_arr[0]);
     }
     break;
   }
@@ -953,7 +925,7 @@ dispatch_backward(
   case 29: // mse
     if ((cflag[0] & KAD_VAR) && cg_arr[0]) {
       nb = cu_nblocks(clen[0]);
-      ker_mse_bwd<<<nb, KANN_CU_THREADS>>>(clen[0], pg, cx[0], cx[1], cg_arr[0]);
+      ker_mse_bwd<<<nb, KANN_CU_THREADS> > >(clen[0], pg, cx[0], cx[1], cg_arr[0]);
     }
     break;
 
@@ -969,8 +941,8 @@ dispatch_backward(
       int t2 = 1;
       while (t2 * 2 <= threads)
         t2 *= 2;
-      ker_stdnorm_bwd<<<sm, t2, 2 * t2 * sizeof(float)>>>(
-        sm, sn, pg, px, cg->stdnorm_si + p->si_off, cg_arr[0]);
+      ker_stdnorm_bwd<<<sm, t2, 2 * t2 * sizeof(float)> > >(sm, sn, pg, px,
+                                                            cg->stdnorm_si + p->si_off, cg_arr[0]);
     }
     break;
   }
@@ -985,8 +957,7 @@ dispatch_backward(
 // Public API implementations
 // ============================================================
 
-void
-kann_cu_forward(struct kann_cu_graph *cg, void *cublas_h, int to)
+void kann_cu_forward(struct kann_cu_graph *cg, void *cublas_h, int to)
 {
   struct kann_cu_node *hn = cg->h_nodes; // use persistent host mirror
 
@@ -999,8 +970,7 @@ kann_cu_forward(struct kann_cu_graph *cg, void *cublas_h, int to)
   }
 }
 
-void
-kann_cu_backward(struct kann_cu_graph *cg, void *cublas_h, int from)
+void kann_cu_backward(struct kann_cu_graph *cg, void *cublas_h, int from)
 {
   struct kann_cu_node *hn = cg->h_nodes;
 
@@ -1024,21 +994,20 @@ kann_cu_backward(struct kann_cu_graph *cg, void *cublas_h, int from)
   }
 }
 
-void
-kann_cu_zero_grad(struct kann_cu_graph *cg)
+void kann_cu_zero_grad(struct kann_cu_graph *cg)
 {
   if (cg->g_total > 0)
     cudaMemset(cg->g, 0, cg->g_total * sizeof(float));
 }
 
-void
-kann_cu_rmsprop(struct kann_cu_graph *cg, float lr, float decay)
+void kann_cu_rmsprop(struct kann_cu_graph *cg, float lr, float decay)
 {
   // Variables are scattered in the x buffer, so iterate per variable node
   for (int i = 0; i < cg->n_var_nodes; ++i) {
     struct kann_cu_var_node *vn = &cg->h_vars[i];
     int nb = cu_nblocks(vn->len);
-    ker_rmsprop<<<nb, KANN_CU_THREADS>>>(vn->len, lr, decay,
+    ker_rmsprop<<<nb, KANN_CU_THREADS> > >(
+      vn->len, lr, decay,
       cg->g + vn->g_off, // this variable's gradients (contiguous in g)
       cg->x + vn->x_off, // this variable's values (scattered in x)
       cg->r + vn->r_off // this variable's RMSprop accumulator
@@ -1046,23 +1015,21 @@ kann_cu_rmsprop(struct kann_cu_graph *cg, float lr, float decay)
   }
 }
 
-void
-kann_cu_feed_input(struct kann_cu_graph *cg, int batch_size, const float *x_host)
+void kann_cu_feed_input(struct kann_cu_graph *cg, int batch_size, const float *x_host)
 {
   struct kann_cu_node *hn = &cg->h_nodes[cg->in_node_idx];
   gkyl_cu_memcpy(cg->x + hn->x_off, x_host, hn->len * sizeof(float), GKYL_CU_MEMCPY_H2D);
 }
 
-void
-kann_cu_feed_truth(struct kann_cu_graph *cg, int batch_size, const float *y_host)
+void kann_cu_feed_truth(struct kann_cu_graph *cg, int batch_size, const float *y_host)
 {
   struct kann_cu_node *hn = &cg->h_nodes[cg->truth_node_idx];
   gkyl_cu_memcpy(cg->x + hn->x_off, y_host, hn->len * sizeof(float), GKYL_CU_MEMCPY_H2D);
 }
 
 // Gather kernel: pick rows from src using indices and write contiguous
-__global__ static void
-ker_gather_rows(int total, int stride, const float *src, const int *indices, int offset, float *dst)
+__global__ static void ker_gather_rows(int total, int stride, const float *src, const int *indices,
+                                       int offset, float *dst)
 {
   for (int i = threadIdx.x + blockIdx.x * blockDim.x; i < total; i += blockDim.x * gridDim.x) {
     int row = i / stride;
@@ -1071,38 +1038,35 @@ ker_gather_rows(int total, int stride, const float *src, const int *indices, int
   }
 }
 
-void
-kann_cu_gather_input(struct kann_cu_graph *cg, const float *data_d, const int *indices_d,
-  int offset, int batch_size, int stride)
+void kann_cu_gather_input(struct kann_cu_graph *cg, const float *data_d, const int *indices_d,
+                          int offset, int batch_size, int stride)
 {
   struct kann_cu_node *hn = &cg->h_nodes[cg->in_node_idx];
   int total = batch_size * stride;
   int nb = cu_nblocks(total);
-  ker_gather_rows<<<nb, KANN_CU_THREADS>>>(
-    total, stride, data_d, indices_d, offset, cg->x + hn->x_off);
+  ker_gather_rows<<<nb, KANN_CU_THREADS> > >(total, stride, data_d, indices_d, offset,
+                                             cg->x + hn->x_off);
 }
 
-void
-kann_cu_gather_truth(struct kann_cu_graph *cg, const float *data_d, const int *indices_d,
-  int offset, int batch_size, int stride)
+void kann_cu_gather_truth(struct kann_cu_graph *cg, const float *data_d, const int *indices_d,
+                          int offset, int batch_size, int stride)
 {
   struct kann_cu_node *hn = &cg->h_nodes[cg->truth_node_idx];
   int total = batch_size * stride;
   int nb = cu_nblocks(total);
-  ker_gather_rows<<<nb, KANN_CU_THREADS>>>(
-    total, stride, data_d, indices_d, offset, cg->x + hn->x_off);
+  ker_gather_rows<<<nb, KANN_CU_THREADS> > >(total, stride, data_d, indices_d, offset,
+                                             cg->x + hn->x_off);
 }
 
-void
-kann_cu_feed_input_dev(struct kann_cu_graph *cg, int batch_size, const float *x_dev, int stride)
+void kann_cu_feed_input_dev(struct kann_cu_graph *cg, int batch_size, const float *x_dev,
+                            int stride)
 {
   struct kann_cu_node *hn = &cg->h_nodes[cg->in_node_idx];
-  cudaMemcpy(
-    cg->x + hn->x_off, x_dev, batch_size * stride * sizeof(float), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(cg->x + hn->x_off, x_dev, batch_size * stride * sizeof(float),
+             cudaMemcpyDeviceToDevice);
 }
 
-float
-kann_cu_get_cost(const struct kann_cu_graph *cg)
+float kann_cu_get_cost(const struct kann_cu_graph *cg)
 {
   struct kann_cu_node *hn = &cg->h_nodes[cg->cost_node_idx];
   float cost;
@@ -1110,16 +1074,14 @@ kann_cu_get_cost(const struct kann_cu_graph *cg)
   return cost;
 }
 
-void
-kann_cu_get_output(const struct kann_cu_graph *cg, int batch_size, float *out_host)
+void kann_cu_get_output(const struct kann_cu_graph *cg, int batch_size, float *out_host)
 {
   int idx = cg->out_node_idx >= 0 ? cg->out_node_idx : cg->cost_node_idx;
   struct kann_cu_node *hn = &cg->h_nodes[idx];
   gkyl_cu_memcpy(out_host, cg->x + hn->x_off, hn->len * sizeof(float), GKYL_CU_MEMCPY_D2H);
 }
 
-void
-kann_cu_apply_pre(struct kann_cu_graph *cg)
+void kann_cu_apply_pre(struct kann_cu_graph *cg)
 {
   for (int i = 0; i < cg->n_pre_pairs; ++i) {
     int out_idx = cg->h_pre_pairs[2 * i];
@@ -1127,7 +1089,7 @@ kann_cu_apply_pre(struct kann_cu_graph *cg)
     struct kann_cu_node *out_n = &cg->h_nodes[out_idx];
     struct kann_cu_node *h0_n = &cg->h_nodes[h0_idx];
     int len = h0_n->len < out_n->len ? h0_n->len : out_n->len;
-    cudaMemcpy(
-      cg->x + h0_n->x_off, cg->x + out_n->x_off, len * sizeof(float), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(cg->x + h0_n->x_off, cg->x + out_n->x_off, len * sizeof(float),
+               cudaMemcpyDeviceToDevice);
   }
 }

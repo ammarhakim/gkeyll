@@ -7,9 +7,8 @@ extern "C" {
 #include <gkyl_range.h>
 }
 
-__global__ static void
-gkyl_proj_exp_on_basis_advance_cu_ker(int num_quad, const struct gkyl_range range,
-  const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
+__global__ static void gkyl_proj_exp_on_basis_advance_cu_ker(
+  int num_quad, const struct gkyl_range range, const struct gkyl_array *GKYL_RESTRICT basis_at_ords,
   const struct gkyl_array *GKYL_RESTRICT weights, double alpha, double beta,
   const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT fOut)
 {
@@ -52,11 +51,13 @@ gkyl_proj_exp_on_basis_advance_cu_ker(int num_quad, const struct gkyl_range rang
   }
 }
 
-void
-gkyl_proj_exp_on_basis_advance_cu(const gkyl_proj_exp_on_basis *up, const struct gkyl_range *range,
-  double alpha, double beta, const struct gkyl_array *fIn, struct gkyl_array *fOut)
+void gkyl_proj_exp_on_basis_advance_cu(const gkyl_proj_exp_on_basis *up,
+                                       const struct gkyl_range *range, double alpha, double beta,
+                                       const struct gkyl_array *fIn, struct gkyl_array *fOut)
 {
   int nblocks = range->nblocks, nthreads = range->nthreads;
-  gkyl_proj_exp_on_basis_advance_cu_ker<<<nblocks, nthreads>>>(up->num_quad, *range,
-    up->basis_at_ords->on_dev, up->weights->on_dev, alpha, beta, fIn->on_dev, fOut->on_dev);
+  gkyl_proj_exp_on_basis_advance_cu_ker<<<nblocks, nthreads> > >(up->num_quad, *range,
+                                                                 up->basis_at_ords->on_dev,
+                                                                 up->weights->on_dev, alpha, beta,
+                                                                 fIn->on_dev, fOut->on_dev);
 }

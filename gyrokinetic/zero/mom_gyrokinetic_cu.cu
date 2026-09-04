@@ -12,8 +12,7 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-static int
-gk_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
+static int gk_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
 {
   int num_mom = 0;
 
@@ -49,9 +48,10 @@ gk_num_mom(int vdim, enum gkyl_distribution_moments mom_type)
   return num_mom;
 }
 
-__global__ static void
-set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk, enum gkyl_distribution_moments mom_type,
-  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
+__global__ static void set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk,
+                                   enum gkyl_distribution_moments mom_type,
+                                   enum gkyl_basis_type b_type, int vdim, int poly_order,
+                                   int tblidx)
 {
   // choose kernel tables based on basis-function type
   const gkyl_gyrokinetic_mom_kern_list *m0_kernels, *m1_kernels, *m2_kernels, *m2_par_kernels,
@@ -135,9 +135,10 @@ set_cu_ptrs(struct mom_type_gyrokinetic *mom_gk, enum gkyl_distribution_moments 
 
 struct gkyl_mom_type *
 gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, double mass, double charge,
-  const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
-  struct gkyl_array *phi, enum gkyl_distribution_moments mom_type)
+                                const struct gkyl_range *conf_range, double mass, double charge,
+                                const struct gkyl_velocity_map *vel_map,
+                                const struct gk_geometry *gk_geom, struct gkyl_array *phi,
+                                enum gkyl_distribution_moments mom_type)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -183,8 +184,8 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gk
 
   assert(cv_index[cdim].vdim[vdim] != -1);
 
-  set_cu_ptrs<<<1, 1>>>(
-    mom_gk_cu, mom_type, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]);
+  set_cu_ptrs<<<1, 1> > >(mom_gk_cu, mom_type, cbasis->b_type, vdim, poly_order,
+                          cv_index[cdim].vdim[vdim]);
 
   mom_gk->momt.on_dev = &mom_gk_cu->momt;
 
@@ -196,9 +197,10 @@ gkyl_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis, const struct gk
   return &mom_gk->momt;
 }
 
-__global__ static void
-set_int_cu_ptrs(struct mom_type_gyrokinetic *momt, enum gkyl_distribution_moments mom_type,
-  enum gkyl_basis_type b_type, int vdim, int poly_order, int tblidx)
+__global__ static void set_int_cu_ptrs(struct mom_type_gyrokinetic *momt,
+                                       enum gkyl_distribution_moments mom_type,
+                                       enum gkyl_basis_type b_type, int vdim, int poly_order,
+                                       int tblidx)
 {
   // Choose kernel tables based on basis-function type.
   const gkyl_gyrokinetic_mom_kern_list *int_m0_kernels, *int_m1_kernels, *int_m2_par_kernel,
@@ -274,9 +276,9 @@ set_int_cu_ptrs(struct mom_type_gyrokinetic *momt, enum gkyl_distribution_moment
   }
 }
 
-struct gkyl_mom_type *
-gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis,
-  const struct gkyl_basis *pbasis, const struct gkyl_range *conf_range, double mass, double charge,
+struct gkyl_mom_type *gkyl_int_mom_gyrokinetic_cu_dev_new(
+  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
+  const struct gkyl_range *conf_range, double mass, double charge,
   const struct gkyl_velocity_map *vel_map, const struct gk_geometry *gk_geom,
   struct gkyl_array *phi, enum gkyl_distribution_moments mom_type)
 {
@@ -322,8 +324,8 @@ gkyl_int_mom_gyrokinetic_cu_dev_new(const struct gkyl_basis *cbasis,
     (struct mom_type_gyrokinetic *)gkyl_cu_malloc(sizeof(struct mom_type_gyrokinetic));
   gkyl_cu_memcpy(momt_cu, momt, sizeof(struct mom_type_gyrokinetic), GKYL_CU_MEMCPY_H2D);
 
-  set_int_cu_ptrs<<<1, 1>>>(
-    momt_cu, mom_type, cbasis->b_type, vdim, poly_order, cv_index[cdim].vdim[vdim]);
+  set_int_cu_ptrs<<<1, 1> > >(momt_cu, mom_type, cbasis->b_type, vdim, poly_order,
+                              cv_index[cdim].vdim[vdim]);
 
   momt->momt.on_dev = &momt_cu->momt;
 

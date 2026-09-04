@@ -10,10 +10,11 @@
 #include <gkyl_wv_euler.h>
 #include <gkyl_util.h>
 
-gkyl_dg_calc_fluid_vars *
-gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_wave_geom *geom,
-  const struct gkyl_basis *cbasis, const struct gkyl_range *mem_range, double limiter_fac,
-  bool use_gpu)
+gkyl_dg_calc_fluid_vars *gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn,
+                                                     const struct gkyl_wave_geom *geom,
+                                                     const struct gkyl_basis *cbasis,
+                                                     const struct gkyl_range *mem_range,
+                                                     double limiter_fac, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -71,9 +72,10 @@ gkyl_dg_calc_fluid_vars_new(const struct gkyl_wv_eqn *wv_eqn, const struct gkyl_
   return up;
 }
 
-void
-gkyl_dg_calc_fluid_vars_advance(struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_array *fluid,
-  struct gkyl_array *cell_avg_prim, struct gkyl_array *u, struct gkyl_array *u_surf)
+void gkyl_dg_calc_fluid_vars_advance(struct gkyl_dg_calc_fluid_vars *up,
+                                     const struct gkyl_array *fluid,
+                                     struct gkyl_array *cell_avg_prim, struct gkyl_array *u,
+                                     struct gkyl_array *u_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(u)) {
@@ -116,10 +118,10 @@ gkyl_dg_calc_fluid_vars_advance(struct gkyl_dg_calc_fluid_vars *up, const struct
   }
 }
 
-void
-gkyl_dg_calc_fluid_vars_pressure(struct gkyl_dg_calc_fluid_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u,
-  struct gkyl_array *p, struct gkyl_array *p_surf)
+void gkyl_dg_calc_fluid_vars_pressure(struct gkyl_dg_calc_fluid_vars *up,
+                                      const struct gkyl_range *conf_range,
+                                      const struct gkyl_array *fluid, const struct gkyl_array *u,
+                                      struct gkyl_array *p, struct gkyl_array *p_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(p)) {
@@ -142,9 +144,9 @@ gkyl_dg_calc_fluid_vars_pressure(struct gkyl_dg_calc_fluid_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_fluid_vars_ke(struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *fluid, const struct gkyl_array *u, struct gkyl_array *ke)
+void gkyl_dg_calc_fluid_vars_ke(struct gkyl_dg_calc_fluid_vars *up,
+                                const struct gkyl_range *conf_range, const struct gkyl_array *fluid,
+                                const struct gkyl_array *u, struct gkyl_array *ke)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(ke)) {
@@ -166,9 +168,8 @@ gkyl_dg_calc_fluid_vars_ke(struct gkyl_dg_calc_fluid_vars *up, const struct gkyl
   }
 }
 
-void
-gkyl_dg_calc_fluid_vars_limiter(
-  struct gkyl_dg_calc_fluid_vars *up, const struct gkyl_range *conf_range, struct gkyl_array *fluid)
+void gkyl_dg_calc_fluid_vars_limiter(struct gkyl_dg_calc_fluid_vars *up,
+                                     const struct gkyl_range *conf_range, struct gkyl_array *fluid)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fluid)) {
@@ -204,10 +205,11 @@ gkyl_dg_calc_fluid_vars_limiter(
   }
 }
 
-void
-gkyl_dg_calc_fluid_integrated_vars(struct gkyl_dg_calc_fluid_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *fluid, const struct gkyl_array *u_i,
-  const struct gkyl_array *p_ij, struct gkyl_array *fluid_int_vars)
+void gkyl_dg_calc_fluid_integrated_vars(struct gkyl_dg_calc_fluid_vars *up,
+                                        const struct gkyl_range *conf_range,
+                                        const struct gkyl_array *fluid,
+                                        const struct gkyl_array *u_i, const struct gkyl_array *p_ij,
+                                        struct gkyl_array *fluid_int_vars)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fluid_int_vars)) {
@@ -229,10 +231,10 @@ gkyl_dg_calc_fluid_integrated_vars(struct gkyl_dg_calc_fluid_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_fluid_vars_source(struct gkyl_dg_calc_fluid_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *app_accel,
-  const struct gkyl_array *fluid, struct gkyl_array *rhs)
+void gkyl_dg_calc_fluid_vars_source(struct gkyl_dg_calc_fluid_vars *up,
+                                    const struct gkyl_range *conf_range,
+                                    const struct gkyl_array *app_accel,
+                                    const struct gkyl_array *fluid, struct gkyl_array *rhs)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
@@ -253,8 +255,7 @@ gkyl_dg_calc_fluid_vars_source(struct gkyl_dg_calc_fluid_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_fluid_vars_release(gkyl_dg_calc_fluid_vars *up)
+void gkyl_dg_calc_fluid_vars_release(gkyl_dg_calc_fluid_vars *up)
 {
   gkyl_wv_eqn_release(up->wv_eqn);
   gkyl_wave_geom_release(up->geom);

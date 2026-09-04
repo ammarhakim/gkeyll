@@ -11,9 +11,9 @@
 
 // Gets a table with given name from a table, pushing it on the
 // stack. Table is popped when the scope ends
-#define with_lua_tbl_tbl(L, key)                                                     \
-  for (bool _break = (lua_getfield(L, -1, key),                                      \
-         (lua_isnil(L, -1) || !lua_istable(L, -1) ? (lua_pop(L, 1), false) : true)); \
+#define with_lua_tbl_tbl(L, key)                                                                  \
+  for (bool _break = (lua_getfield(L, -1, key),                                                   \
+                      (lua_isnil(L, -1) || !lua_istable(L, -1) ? (lua_pop(L, 1), false) : true)); \
        _break; _break = false, lua_pop(L, 1))
 
 // Pushes the value associated with key on stack, popping it when the scope exits
@@ -48,8 +48,7 @@
  *
  * @return Length of object on top of stack.
  */
-static inline size_t
-glua_objlen(lua_State *L)
+static inline size_t glua_objlen(lua_State *L)
 {
   return lua_objlen(L, -1);
 }

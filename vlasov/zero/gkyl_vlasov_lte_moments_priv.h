@@ -25,8 +25,7 @@ struct gkyl_vlasov_lte_moments {
   struct gkyl_array *temperature;
   struct gkyl_dg_bin_op_mem *mem;
 
-  union
-  {
+  union {
     // special relativistic Vlasov-Maxwell model
     struct {
       struct gkyl_array *V_drift_sq;

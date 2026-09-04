@@ -20,16 +20,14 @@
 
 #include <gkyl_deflated_dg_bin_ops.h>
 
-void
-proj_jac(double t, const double *xn, double *fout, void *ctx)
+void proj_jac(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = 1.0 + z * z * cos(x);
 }
 
-void
-proj_rho(double t, const double *xn, double *fout, void *ctx)
+void proj_rho(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
@@ -37,9 +35,8 @@ proj_rho(double t, const double *xn, double *fout, void *ctx)
 }
 
 // Check continuity along last dim in 2x
-void
-check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_basis basis,
-  struct gkyl_array *field)
+void check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range,
+                         struct gkyl_basis basis, struct gkyl_array *field)
 {
   struct gkyl_array *nodes = gkyl_array_new(GKYL_DOUBLE, grid.ndim, basis.num_basis);
   basis.node_list(gkyl_array_fetch(nodes, 0));
@@ -74,9 +71,8 @@ check_continuity_2x(struct gkyl_rect_grid grid, struct gkyl_range range, struct 
   gkyl_array_release(nodes);
 }
 
-void
-check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
-  struct gkyl_array *field2)
+void check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *field1,
+                struct gkyl_array *field2)
 {
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range);
@@ -89,8 +85,7 @@ check_same(struct gkyl_range range, struct gkyl_basis basis, struct gkyl_array *
   }
 }
 
-void
-test_bop(bool use_gpu)
+void test_bop(bool use_gpu)
 {
   int c_lop = 0;
   int c_rop = 0;
@@ -113,8 +108,8 @@ test_bop(bool use_gpu)
   struct gkyl_basis basis;
   gkyl_cart_modal_serendip(&basis, 2, poly_order);
 
-  struct gkyl_basis *basis_on_dev = use_gpu ? gkyl_cart_modal_serendip_cu_dev_new(2, poly_order)
-                                            : gkyl_cart_modal_serendip_new(2, poly_order);
+  struct gkyl_basis *basis_on_dev = use_gpu ? gkyl_cart_modal_serendip_cu_dev_new(2, poly_order) :
+                                              gkyl_cart_modal_serendip_new(2, poly_order);
 
   // project initial functions on 2d field
   struct gkyl_array *rho = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
@@ -135,13 +130,13 @@ test_bop(bool use_gpu)
   gkyl_dg_mul_op(&basis, 0, Cxz, 0, rho, 0, jac);
   //gkyl_grid_sub_array_write(&grid, &local, 0, Cxz, "Cxz.gkyl");
 
-  struct gkyl_array *Cxz_dev = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume)
-    : gkyl_array_acquire(Cxz);
+  struct gkyl_array *Cxz_dev =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) :
+              gkyl_array_acquire(Cxz);
   gkyl_array_copy(Cxz_dev, Cxz);
-  struct gkyl_array *jac_dev = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume)
-    : gkyl_array_acquire(jac);
+  struct gkyl_array *jac_dev =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) :
+              gkyl_array_acquire(jac);
   gkyl_array_copy(jac_dev, jac);
 
   // Allocate Exz which will store C/J, the smoothed version of it, and
@@ -150,15 +145,15 @@ test_bop(bool use_gpu)
   struct gkyl_array *Exz_smooth = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   struct gkyl_array *Fxz = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
 
-  struct gkyl_array *Exz_dev = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume)
-    : gkyl_array_acquire(Exz);
-  struct gkyl_array *Exz_smooth_dev = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume)
-    : gkyl_array_acquire(Exz_smooth);
-  struct gkyl_array *Fxz_dev = use_gpu
-    ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume)
-    : gkyl_array_acquire(Fxz);
+  struct gkyl_array *Exz_dev =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) :
+              gkyl_array_acquire(Exz);
+  struct gkyl_array *Exz_smooth_dev =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) :
+              gkyl_array_acquire(Exz_smooth);
+  struct gkyl_array *Fxz_dev =
+    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume) :
+              gkyl_array_acquire(Fxz);
 
   // Make deflated array operator
   struct gkyl_deflated_dg_bin_ops *operator=
@@ -208,19 +203,17 @@ test_bop(bool use_gpu)
   gkyl_deflated_dg_bin_ops_release(operator);
 }
 
-void
-test_deflated_bop_ho(void)
+void test_deflated_bop_ho(void)
 {
   test_bop(false);
 }
-void
-test_deflated_bop_dev(void)
+void test_deflated_bop_dev(void)
 {
   test_bop(true);
 }
 
 TEST_LIST = { { "test_deflated_bop_ho", test_deflated_bop_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_deflated_bop_dev", test_deflated_bop_dev },
+              { "test_deflated_bop_dev", test_deflated_bop_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

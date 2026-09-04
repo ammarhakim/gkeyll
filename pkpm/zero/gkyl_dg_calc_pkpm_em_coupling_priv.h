@@ -12,15 +12,20 @@
 #include <assert.h>
 
 typedef void (*pkpm_em_coupling_set_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-  double epsilon0, bool pkpm_field_static, double dt, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current,
-  const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES], const double *pkpm_u[GKYL_MAX_SPECIES],
-  double *GKYL_RESTRICT em);
+                                       double epsilon0, bool pkpm_field_static, double dt,
+                                       struct gkyl_nmat *A, struct gkyl_nmat *rhs,
+                                       const double *app_accel[GKYL_MAX_SPECIES],
+                                       const double *ext_em, const double *app_current,
+                                       const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
+                                       const double *pkpm_u[GKYL_MAX_SPECIES],
+                                       double *GKYL_RESTRICT em);
 
 typedef void (*pkpm_em_coupling_copy_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-  double epsilon0, struct gkyl_nmat *x, const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
-  const double *pkpm_u[GKYL_MAX_SPECIES], double *GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES],
-  double *GKYL_RESTRICT em);
+                                        double epsilon0, struct gkyl_nmat *x,
+                                        const double *vlasov_pkpm_moms[GKYL_MAX_SPECIES],
+                                        const double *pkpm_u[GKYL_MAX_SPECIES],
+                                        double *GKYL_RESTRICT euler_pkpm[GKYL_MAX_SPECIES],
+                                        double *GKYL_RESTRICT em);
 
 // for use in kernel tables
 typedef struct {
@@ -68,23 +73,21 @@ GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_set_kern_list ten_pkpm_em_coupli
 };
 
 // Copy solution for implicit source solve for fluid-em coupling in the PKPM system. (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list
-  ser_pkpm_em_coupling_copy_kernels[] = {
-    { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
-      euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
-    { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, NULL, NULL }, // 1
-    { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL } // 2
-  };
+GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list ser_pkpm_em_coupling_copy_kernels[] = {
+  { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
+    euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
+  { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL } // 2
+};
 
 // Copy solution for implicit source solve for fluid-em coupling in the PKPM system. (Tensor kernels)
-GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list
-  ten_pkpm_em_coupling_copy_kernels[] = {
-    { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
-      euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
-    { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, euler_pkpm_em_coupling_copy_2x_tensor_p2,
-      NULL }, // 1
-    { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL } // 2
-  };
+GKYL_CU_D static const gkyl_dg_pkpm_em_coupling_copy_kern_list ten_pkpm_em_coupling_copy_kernels[] = {
+  { NULL, euler_pkpm_em_coupling_copy_1x_ser_p1, euler_pkpm_em_coupling_copy_1x_ser_p2,
+    euler_pkpm_em_coupling_copy_1x_ser_p3 }, // 0
+  { NULL, euler_pkpm_em_coupling_copy_2x_ser_p1, euler_pkpm_em_coupling_copy_2x_tensor_p2,
+    NULL }, // 1
+  { NULL, euler_pkpm_em_coupling_copy_3x_ser_p1, NULL, NULL } // 2
+};
 
 GKYL_CU_D static pkpm_em_coupling_set_t
 choose_pkpm_em_coupling_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)

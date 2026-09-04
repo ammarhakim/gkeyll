@@ -11,22 +11,19 @@
 #include "math.h"
 
 // allocate array (filled with zeros)
-static struct gkyl_array *
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void
-eval_fun_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_fun_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx));
 }
-void
-eval_powsqrt_fun_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_powsqrt_fun_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2. * M_PI;
@@ -36,8 +33,7 @@ eval_powsqrt_fun_1x(double t, const double *xn, double *restrict fout, void *ctx
   fout[0] = pow(sqrt(fun[0]), exponent);
 }
 
-void
-test_1x(int poly_order, bool use_gpu)
+void test_1x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI;
   double lower[] = { -Lx / 2. }, upper[] = { Lx / 2. };
@@ -121,15 +117,13 @@ test_1x(int poly_order, bool use_gpu)
   gkyl_proj_powsqrt_on_basis_release(proj_up);
 }
 
-void
-eval_fun_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_fun_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx)) * (y + Ly);
 }
-void
-eval_powsqrt_fun_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_powsqrt_fun_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
@@ -139,8 +133,7 @@ eval_powsqrt_fun_2x(double t, const double *xn, double *restrict fout, void *ctx
   fout[0] = pow(sqrt(fun[0]), exponent);
 }
 
-void
-test_2x(int poly_order, bool use_gpu)
+void test_2x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI;
   double lower[] = { -Lx / 2., -Ly / 2. }, upper[] = { Lx / 2., Ly / 2. };
@@ -226,15 +219,13 @@ test_2x(int poly_order, bool use_gpu)
   gkyl_proj_powsqrt_on_basis_release(proj_up);
 }
 
-void
-eval_fun_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_fun_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
   fout[0] = 0.5 * (1. + cos(0.5 * 2. * M_PI * x / Lx)) * (y + Ly) * (Lz / 2. - 0.5 * fabs(z));
 }
-void
-eval_powsqrt_fun_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_powsqrt_fun_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
@@ -244,8 +235,7 @@ eval_powsqrt_fun_3x(double t, const double *xn, double *restrict fout, void *ctx
   fout[0] = pow(sqrt(fun[0]), exponent);
 }
 
-void
-test_3x(int poly_order, bool use_gpu)
+void test_3x(int poly_order, bool use_gpu)
 {
   double Lx = 2. * M_PI, Ly = 8. * M_PI, Lz = 4. * M_PI;
   double lower[] = { -Lx / 2., -Ly / 2., -Lz / 2. }, upper[] = { Lx / 2., Ly / 2., Lz / 2. };
@@ -333,90 +323,78 @@ test_3x(int poly_order, bool use_gpu)
   gkyl_proj_powsqrt_on_basis_release(proj_up);
 }
 
-void
-test_powsqrt_1x_p1_ho()
+void test_powsqrt_1x_p1_ho()
 {
   test_1x(1, false);
 }
-void
-test_powsqrt_1x_p2_ho()
+void test_powsqrt_1x_p2_ho()
 {
   test_1x(2, false);
 }
 
-void
-test_powsqrt_2x_p1_ho()
+void test_powsqrt_2x_p1_ho()
 {
   test_2x(1, false);
 }
-void
-test_powsqrt_2x_p2_ho()
+void test_powsqrt_2x_p2_ho()
 {
   test_2x(2, false);
 }
 
-void
-test_powsqrt_3x_p1_ho()
+void test_powsqrt_3x_p1_ho()
 {
   test_3x(1, false);
 }
-void
-test_powsqrt_3x_p2_ho()
+void test_powsqrt_3x_p2_ho()
 {
   test_3x(2, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void
-test_powsqrt_1x_p1_dev()
+void test_powsqrt_1x_p1_dev()
 {
   test_1x(1, true);
 }
-void
-test_powsqrt_1x_p2_dev()
+void test_powsqrt_1x_p2_dev()
 {
   test_1x(2, true);
 }
 
-void
-test_powsqrt_2x_p1_dev()
+void test_powsqrt_2x_p1_dev()
 {
   test_2x(1, true);
 }
-void
-test_powsqrt_2x_p2_dev()
+void test_powsqrt_2x_p2_dev()
 {
   test_2x(2, true);
 }
 
-void
-test_powsqrt_3x_p1_dev()
+void test_powsqrt_3x_p1_dev()
 {
   test_3x(1, true);
 }
-void
-test_powsqrt_3x_p2_dev()
+void test_powsqrt_3x_p2_dev()
 {
   test_3x(2, true);
 }
 #endif
 
 TEST_LIST = { { "test_powsqrt_1x_p1_ho", test_powsqrt_1x_p1_ho },
-  { "test_powsqrt_1x_p2_ho", test_powsqrt_1x_p2_ho },
+              { "test_powsqrt_1x_p2_ho", test_powsqrt_1x_p2_ho },
 
-  { "test_powsqrt_2x_p1_ho", test_powsqrt_2x_p1_ho },
-  { "test_powsqrt_2x_p2_ho", test_powsqrt_2x_p2_ho },
+              { "test_powsqrt_2x_p1_ho", test_powsqrt_2x_p1_ho },
+              { "test_powsqrt_2x_p2_ho", test_powsqrt_2x_p2_ho },
 
-  { "test_powsqrt_3x_p1_ho", test_powsqrt_3x_p1_ho },
-  { "test_powsqrt_3x_p2_ho", test_powsqrt_3x_p2_ho },
+              { "test_powsqrt_3x_p1_ho", test_powsqrt_3x_p1_ho },
+              { "test_powsqrt_3x_p2_ho", test_powsqrt_3x_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_powsqrt_1x_p1_dev", test_powsqrt_1x_p1_dev },
-  { "test_powsqrt_1x_p2_dev", test_powsqrt_1x_p2_dev },
+              { "test_powsqrt_1x_p1_dev", test_powsqrt_1x_p1_dev },
+              { "test_powsqrt_1x_p2_dev", test_powsqrt_1x_p2_dev },
 
-  { "test_powsqrt_2x_p1_dev", test_powsqrt_2x_p1_dev },
-  { "test_powsqrt_2x_p2_dev", test_powsqrt_2x_p2_dev },
+              { "test_powsqrt_2x_p1_dev", test_powsqrt_2x_p1_dev },
+              { "test_powsqrt_2x_p2_dev", test_powsqrt_2x_p2_dev },
 
-  { "test_powsqrt_3x_p1_dev", test_powsqrt_3x_p1_dev },
-  { "test_powsqrt_3x_p2_dev", test_powsqrt_3x_p2_dev },
+              { "test_powsqrt_3x_p1_dev", test_powsqrt_3x_p1_dev },
+              { "test_powsqrt_3x_p2_dev", test_powsqrt_3x_p2_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

@@ -1,8 +1,7 @@
 #include <gkyl_gyrokinetic_comms.h>
 #include <assert.h>
 
-struct gkyl_comm *
-gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, FILE *iostream)
+struct gkyl_comm *gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, FILE *iostream)
 {
   // Construct communicator for use in app.
   struct gkyl_comm *comm = 0;
@@ -27,8 +26,7 @@ gkyl_gyrokinetic_comms_new(bool use_mpi, bool use_gpu, FILE *iostream)
   return comm;
 }
 
-void
-gkyl_gyrokinetic_comms_release(struct gkyl_comm *comm)
+void gkyl_gyrokinetic_comms_release(struct gkyl_comm *comm)
 {
   if (comm != 0)
     gkyl_comm_release(comm);

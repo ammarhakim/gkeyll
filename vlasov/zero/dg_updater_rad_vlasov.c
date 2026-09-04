@@ -9,11 +9,10 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_updater_rad_vlasov *
-gkyl_dg_updater_rad_vlasov_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const struct gkyl_range *conf_range, struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp,
-  bool use_gpu)
+struct gkyl_dg_updater_rad_vlasov *gkyl_dg_updater_rad_vlasov_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
+  struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp, bool use_gpu)
 {
   struct gkyl_dg_updater_rad_vlasov *up = gkyl_malloc(sizeof(*up));
   up->use_gpu = use_gpu;
@@ -33,18 +32,19 @@ gkyl_dg_updater_rad_vlasov_new(const struct gkyl_rect_grid *phase_grid,
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = 1;
 
-  up->drag = gkyl_hyper_dg_new(
-    phase_grid, phase_basis, up->rad_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(phase_grid, phase_basis, up->rad_drag, num_up_dirs, up_dirs,
+                               zero_flux_flags, 1, use_gpu);
 
   up->drag_tm = 0.0;
 
   return up;
 }
 
-void
-gkyl_dg_updater_rad_vlasov_advance(struct gkyl_dg_updater_rad_vlasov *rad,
-  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
-  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
+void gkyl_dg_updater_rad_vlasov_advance(struct gkyl_dg_updater_rad_vlasov *rad,
+                                        const struct gkyl_range *update_rng,
+                                        const struct gkyl_array *GKYL_RESTRICT fIn,
+                                        struct gkyl_array *GKYL_RESTRICT cflrate,
+                                        struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(rad->drag, update_rng, fIn, cflrate, rhs);
@@ -57,8 +57,7 @@ gkyl_dg_updater_rad_vlasov_get_tm(const gkyl_dg_updater_rad_vlasov *rad)
   return (struct gkyl_dg_updater_rad_vlasov_tm){ .drag_tm = rad->drag_tm };
 }
 
-void
-gkyl_dg_updater_rad_vlasov_release(gkyl_dg_updater_rad_vlasov *rad)
+void gkyl_dg_updater_rad_vlasov_release(gkyl_dg_updater_rad_vlasov *rad)
 {
   gkyl_dg_eqn_release(rad->rad_drag);
   gkyl_hyper_dg_release(rad->drag);

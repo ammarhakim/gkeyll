@@ -11,14 +11,12 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_gk_dg_geom.h>
 
-static bool
-gk_dg_geom_is_cu_dev(const struct gkyl_gk_dg_geom *dgg)
+static bool gk_dg_geom_is_cu_dev(const struct gkyl_gk_dg_geom *dgg)
 {
   return GKYL_IS_CU_ALLOC(dgg->flags);
 }
 
-void
-gk_dg_geom_free(const struct gkyl_ref_count *ref)
+void gk_dg_geom_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_gk_dg_geom *dgg = container_of(ref, struct gkyl_gk_dg_geom, ref_count);
 
@@ -33,8 +31,7 @@ gk_dg_geom_free(const struct gkyl_ref_count *ref)
   gkyl_free(dgg);
 }
 
-struct gkyl_gk_dg_geom *
-gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
 {
   struct gkyl_gk_dg_geom *dgg = gkyl_malloc(sizeof *dgg);
 
@@ -50,8 +47,9 @@ gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
   gkyl_range_init_from_shape(&dgg->vol_quad_range, ndim, shape);
 
   for (int d = 0; d < ndim; ++d)
-    dgg->surf_geom[d] = gkyl_array_new(GKYL_USER,
-      sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]), dgg->range.volume);
+    dgg->surf_geom[d] =
+      gkyl_array_new(GKYL_USER, sizeof(struct gkyl_gk_dg_surf_geom[dgg->surf_quad_range.volume]),
+                     dgg->range.volume);
 
   dgg->vol_geom = gkyl_array_new(
     GKYL_USER, sizeof(struct gkyl_gk_dg_vol_geom[dgg->vol_quad_range.volume]), dgg->range.volume);
@@ -64,9 +62,8 @@ gkyl_gk_dg_geom_new(const struct gkyl_gk_dg_geom_inp *inp)
   return dgg;
 }
 
-struct gkyl_gk_dg_geom *
-gkyl_gk_dg_geom_new_from_host(
-  const struct gkyl_gk_dg_geom_inp *inp, struct gkyl_gk_dg_geom *up_host, bool use_gpu)
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_new_from_host(const struct gkyl_gk_dg_geom_inp *inp,
+                                                      struct gkyl_gk_dg_geom *up_host, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -76,27 +73,23 @@ gkyl_gk_dg_geom_new_from_host(
   return up_host;
 }
 
-struct gkyl_gk_dg_geom *
-gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom *dgg)
+struct gkyl_gk_dg_geom *gkyl_gk_dg_geom_acquire(const struct gkyl_gk_dg_geom *dgg)
 {
   gkyl_ref_count_inc(&dgg->ref_count);
   return (struct gkyl_gk_dg_geom *)dgg;
 }
 
-void
-gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom *dgg, const char *fname)
+void gkyl_gk_dg_geom_write(const struct gkyl_gk_dg_geom *dgg, const char *fname)
 {
 }
 
-void
-gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
+void gkyl_gk_dg_geom_release(const struct gkyl_gk_dg_geom *dgg)
 {
   gkyl_ref_count_dec(&dgg->ref_count);
 }
 
-void
-gkyl_gk_dg_geom_populate_vol(
-  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom)
+void gkyl_gk_dg_geom_populate_vol(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom,
+                                  struct gk_geometry *gk_geom)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate volume nodes
@@ -161,9 +154,8 @@ gkyl_gk_dg_geom_populate_vol(
   }
 }
 
-void
-gkyl_gk_dg_geom_populate_surf(
-  struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom, struct gk_geometry *gk_geom)
+void gkyl_gk_dg_geom_populate_surf(struct gkyl_dg_geom *dg_geom, struct gkyl_gk_dg_geom *gk_dg_geom,
+                                   struct gk_geometry *gk_geom)
 {
   int ndim = gk_geom->grid.ndim;
   // Populate surface nodes
@@ -187,9 +179,9 @@ gkyl_gk_dg_geom_populate_surf(
       while (gkyl_range_iter_next(&qsiter)) {
         int count = 0;
         for (int d = 0; d < ndim; ++d) {
-          global_nodal_idx[d] = d == dir
-            ? iter.idx[d] - gk_geom->local.lower[d]
-            : (iter.idx[d] - gk_geom->local.lower[d]) * 2 + qsiter.idx[count];
+          global_nodal_idx[d] = d == dir ?
+                                  iter.idx[d] - gk_geom->local.lower[d] :
+                                  (iter.idx[d] - gk_geom->local.lower[d]) * 2 + qsiter.idx[count];
           if (d != dir)
             count += 1;
         }

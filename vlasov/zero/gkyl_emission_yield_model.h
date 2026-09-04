@@ -8,8 +8,8 @@
 // Object type
 struct gkyl_emission_yield_model;
 
-typedef void (*emission_yield_func_t)(
-  double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM]);
+typedef void (*emission_yield_func_t)(double *out, struct gkyl_emission_yield_model *yield,
+                                      double xc[GKYL_MAX_DIM]);
 
 // Base model type
 struct gkyl_emission_yield_model {
@@ -77,8 +77,7 @@ struct gkyl_emission_yield_constant {
  */
 bool gkyl_emission_yield_model_is_cu_dev(const struct gkyl_emission_yield_model *model);
 
-static void
-gkyl_emission_yield_furman_pivi_free(const struct gkyl_ref_count *ref)
+static void gkyl_emission_yield_furman_pivi_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_yield_model *yield =
     container_of(ref, struct gkyl_emission_yield_model, ref_count);
@@ -94,8 +93,7 @@ gkyl_emission_yield_furman_pivi_free(const struct gkyl_ref_count *ref)
   gkyl_free(model);
 }
 
-static void
-gkyl_emission_yield_schou_free(const struct gkyl_ref_count *ref)
+static void gkyl_emission_yield_schou_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_yield_model *yield =
     container_of(ref, struct gkyl_emission_yield_model, ref_count);
@@ -112,8 +110,7 @@ gkyl_emission_yield_schou_free(const struct gkyl_ref_count *ref)
 }
 
 // SRIM
-static void
-gkyl_emission_yield_schou_srim_free(const struct gkyl_ref_count *ref)
+static void gkyl_emission_yield_schou_srim_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_yield_model *yield =
     container_of(ref, struct gkyl_emission_yield_model, ref_count);
@@ -129,8 +126,7 @@ gkyl_emission_yield_schou_srim_free(const struct gkyl_ref_count *ref)
   gkyl_free(model);
 }
 
-static void
-gkyl_emission_yield_constant_free(const struct gkyl_ref_count *ref)
+static void gkyl_emission_yield_constant_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_emission_yield_model *yield =
     container_of(ref, struct gkyl_emission_yield_model, ref_count);
@@ -147,9 +143,9 @@ gkyl_emission_yield_constant_free(const struct gkyl_ref_count *ref)
 }
 
 // Furman-Pivi SEY calculation */
-GKYL_CU_D static void
-gkyl_emission_yield_furman_pivi_yield(
-  double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM])
+GKYL_CU_D static void gkyl_emission_yield_furman_pivi_yield(double *out,
+                                                            struct gkyl_emission_yield_model *yield,
+                                                            double xc[GKYL_MAX_DIM])
 // Electron impact model adapted from https://link.aps.org/doi/10.1103/PhysRevSTAB.5.124404
 {
   const struct gkyl_emission_yield_furman_pivi *model =
@@ -180,9 +176,9 @@ gkyl_emission_yield_furman_pivi_yield(
 }
 
 // Schou SEY calculation
-GKYL_CU_D static void
-gkyl_emission_yield_schou_yield(
-  double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM])
+GKYL_CU_D static void gkyl_emission_yield_schou_yield(double *out,
+                                                      struct gkyl_emission_yield_model *yield,
+                                                      double xc[GKYL_MAX_DIM])
 // Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
 { // No angular dependence atm. Will have to add later
   const struct gkyl_emission_yield_schou *model =
@@ -206,7 +202,7 @@ gkyl_emission_yield_schou_yield(
   }
 
   double Es = E * 1.66053906660e-27 /
-    1.67262192369e-27; // Scale energy by ratio of atomic mass unit to proton mass
+              1.67262192369e-27; // Scale energy by ratio of atomic mass unit to proton mass
   double eps_low = A2 * pow(Es, 0.45);
   double eps_high = 0.0;
   if (Es != 0) { // Divide by zero error catching. If Es is not 0, then do the normal calculation.
@@ -218,9 +214,9 @@ gkyl_emission_yield_schou_yield(
 }
 
 // Schou SEY calculation w/ SRIM
-GKYL_CU_D static void
-gkyl_emission_yield_schou_srim_yield(
-  double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM])
+GKYL_CU_D static void gkyl_emission_yield_schou_srim_yield(double *out,
+                                                           struct gkyl_emission_yield_model *yield,
+                                                           double xc[GKYL_MAX_DIM])
 // Ion impact model adapted from https://doi.org/10.1103/PhysRevB.22.2141
 { // No angular dependence atm. Will have to add later
   const struct gkyl_emission_yield_schou_srim *model =
@@ -258,9 +254,9 @@ gkyl_emission_yield_schou_srim_yield(
 }
 
 // Fixed constant SEY
-GKYL_CU_D static void
-gkyl_emission_yield_constant_yield(
-  double *out, struct gkyl_emission_yield_model *yield, double xc[GKYL_MAX_DIM])
+GKYL_CU_D static void gkyl_emission_yield_constant_yield(double *out,
+                                                         struct gkyl_emission_yield_model *yield,
+                                                         double xc[GKYL_MAX_DIM])
 {
   const struct gkyl_emission_yield_constant *model =
     container_of(yield, struct gkyl_emission_yield_constant, yield);
@@ -283,9 +279,9 @@ gkyl_emission_yield_constant_yield(
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_new(double charge,
-  double deltahat_ts, double Ehat_ts, double t1, double t2, double t3, double t4, double s,
-  bool use_gpu);
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_furman_pivi_new(double charge, double deltahat_ts, double Ehat_ts, double t1,
+                                    double t2, double t3, double t4, double s, bool use_gpu);
 
 /**
  * Create the emission yield model using Schou
@@ -301,7 +297,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_new(double cha
  * @return New model
  */
 struct gkyl_emission_yield_model *gkyl_emission_yield_schou_new(double charge, double int_wall,
-  double a2, double a3, double a4, double a5, double nw, bool use_gpu);
+                                                                double a2, double a3, double a4,
+                                                                double a5, double nw, bool use_gpu);
 
 /**
  * Create the emission yield model using Schou (SRIM ion stopping power)
@@ -319,9 +316,10 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_new(double charge, d
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_new(double charge, double int_wall,
-  double lorentz_norm, double E0, double tau, double alpha, double beta, double gauss_norm,
-  double gauss_E0, double gauss_tau, bool use_gpu);
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_schou_srim_new(double charge, double int_wall, double lorentz_norm, double E0,
+                                   double tau, double alpha, double beta, double gauss_norm,
+                                   double gauss_E0, double gauss_tau, bool use_gpu);
 
 /**
  * Create the emission yield model using a constant yield
@@ -331,8 +329,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_new(double char
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_constant_new(
-  double charge, double delta, bool use_gpu);
+struct gkyl_emission_yield_model *gkyl_emission_yield_constant_new(double charge, double delta,
+                                                                   bool use_gpu);
 
 /**
  * Acquire pointer to model object. Delete using the release()
@@ -341,8 +339,8 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_constant_new(
  * @param model Model object.
  * @return Acquired model obj pointer
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_model_acquire(
-  const struct gkyl_emission_yield_model *model);
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_model_acquire(const struct gkyl_emission_yield_model *model);
 
 /**
  * Delete model object
@@ -364,8 +362,9 @@ void gkyl_emission_yield_model_release(const struct gkyl_emission_yield_model *m
  * @param s Fitting parameter
  * @return New model
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_cu_dev_new(double charge,
-  double deltahat_ts, double Ehat_ts, double t1, double t2, double t3, double t4, double s);
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_furman_pivi_cu_dev_new(double charge, double deltahat_ts, double Ehat_ts,
+                                           double t1, double t2, double t3, double t4, double s);
 
 /**
  * Create the emission yield model using Schou on NV-GPU
@@ -380,8 +379,10 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_furman_pivi_cu_dev_new(dou
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_cu_dev_new(
-  double charge, double int_wall, double a2, double a3, double a4, double a5, double nw);
+struct gkyl_emission_yield_model *gkyl_emission_yield_schou_cu_dev_new(double charge,
+                                                                       double int_wall, double a2,
+                                                                       double a3, double a4,
+                                                                       double a5, double nw);
 
 /**
  * Create the emission yield model using Schou (SRIM stopping power) on NV-GPU
@@ -399,9 +400,10 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_cu_dev_new(
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_cu_dev_new(double charge,
-  double int_wall, double lorentz_norm, double E0, double tau, double alpha, double beta,
-  double gauss_norm, double gauss_E0, double gauss_tau);
+struct gkyl_emission_yield_model *
+gkyl_emission_yield_schou_srim_cu_dev_new(double charge, double int_wall, double lorentz_norm,
+                                          double E0, double tau, double alpha, double beta,
+                                          double gauss_norm, double gauss_E0, double gauss_tau);
 
 /**
  * Create the emission yield model using a constant yield on NV-GPU
@@ -411,5 +413,5 @@ struct gkyl_emission_yield_model *gkyl_emission_yield_schou_srim_cu_dev_new(doub
  * @param use_gpu bool to determine if on GPU
  * @return New model
  */
-struct gkyl_emission_yield_model *gkyl_emission_yield_constant_cu_dev_new(
-  double charge, double delta);
+struct gkyl_emission_yield_model *gkyl_emission_yield_constant_cu_dev_new(double charge,
+                                                                          double delta);

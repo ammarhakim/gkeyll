@@ -3,11 +3,12 @@
 #include <gkyl_alloc.h>
 #include <gkyl_alloc_flags_priv.h>
 
-struct gkyl_dg_interpolate *
-gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
-  const struct gkyl_rect_grid *grid_do, const struct gkyl_rect_grid *grid_tar,
-  const struct gkyl_range *range_do, const struct gkyl_range *range_tar, const int *nghost,
-  bool use_gpu)
+struct gkyl_dg_interpolate *gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
+                                                    const struct gkyl_rect_grid *grid_do,
+                                                    const struct gkyl_rect_grid *grid_tar,
+                                                    const struct gkyl_range *range_do,
+                                                    const struct gkyl_range *range_tar,
+                                                    const int *nghost, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_dg_interpolate *up = gkyl_malloc(sizeof(*up));
@@ -81,15 +82,16 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
   } else {
     for (int k = 0; k < up->num_interp_dirs; k++)
       up->interp_ops[k] = gkyl_dg_interpolate_new(cdim, basis, &up->grids[k], &up->grids[k + 1],
-        &up->ranges[k], &up->ranges[k + 1], nghost, use_gpu);
+                                                  &up->ranges[k], &up->ranges[k + 1], nghost,
+                                                  use_gpu);
   }
 
   // Pre-allocate fields for intermediate grids.
   up->fields = gkyl_malloc((up->num_interp_dirs + 1) * sizeof(struct gkyl_array *));
   for (int k = 1; k < up->num_interp_dirs; k++) {
-    up->fields[k] = up->use_gpu
-      ? gkyl_array_cu_dev_new(GKYL_DOUBLE, basis->num_basis, ranges_ext[k].volume)
-      : gkyl_array_new(GKYL_DOUBLE, basis->num_basis, ranges_ext[k].volume);
+    up->fields[k] = up->use_gpu ?
+                      gkyl_array_cu_dev_new(GKYL_DOUBLE, basis->num_basis, ranges_ext[k].volume) :
+                      gkyl_array_new(GKYL_DOUBLE, basis->num_basis, ranges_ext[k].volume);
   }
   gkyl_free(ranges_ext);
 
@@ -117,7 +119,7 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
       double decimalL = 1.0 - ((i - 1) * up->dxRat - floor((i - 1) * up->dxRat));
       double decimalU = 1.0 - (ceil(i * up->dxRat) - i * up->dxRat);
       int currSize = dg_interp_floor(up->dxRat - decimalL - decimalU, 1e-13, 0.0) +
-        dg_interp_ceil(decimalL, 1e-13, 0.0) + dg_interp_ceil(decimalU, 1e-13, 0.0);
+                     dg_interp_ceil(decimalL, 1e-13, 0.0) + dg_interp_ceil(decimalU, 1e-13, 0.0);
       maxSize = GKYL_MAX2(maxSize, currSize);
     }
     intStencilSize = maxSize;
@@ -186,10 +188,10 @@ gkyl_dg_interpolate_new(int cdim, const struct gkyl_basis *basis,
   return up;
 }
 
-static void
-dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl_range *range_do,
-  const struct gkyl_range *range_tar, const struct gkyl_array *GKYL_RESTRICT fdo,
-  struct gkyl_array *GKYL_RESTRICT ftar)
+static void dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl_range *range_do,
+                                      const struct gkyl_range *range_tar,
+                                      const struct gkyl_array *GKYL_RESTRICT fdo,
+                                      struct gkyl_array *GKYL_RESTRICT ftar)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -241,22 +243,20 @@ dg_interpolate_advance_1x(gkyl_dg_interpolate *up, const struct gkyl_range *rang
   }
 }
 
-void
-gkyl_dg_interpolate_advance(
-  gkyl_dg_interpolate *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
+void gkyl_dg_interpolate_advance(gkyl_dg_interpolate *up, struct gkyl_array *fdo,
+                                 struct gkyl_array *ftar)
 {
   up->fields[0] = fdo;
   up->fields[up->num_interp_dirs] = ftar;
 
   // Loop over interpolating dimensions and do each interpolation separately.
   for (int k = 0; k < up->num_interp_dirs; k++) {
-    dg_interpolate_advance_1x(
-      up->interp_ops[k], &up->ranges[k], &up->ranges[k + 1], up->fields[k], up->fields[k + 1]);
+    dg_interpolate_advance_1x(up->interp_ops[k], &up->ranges[k], &up->ranges[k + 1], up->fields[k],
+                              up->fields[k + 1]);
   }
 }
 
-void
-gkyl_dg_interpolate_release(gkyl_dg_interpolate *up)
+void gkyl_dg_interpolate_release(gkyl_dg_interpolate *up)
 {
   // Release memory associated with this updater.
 

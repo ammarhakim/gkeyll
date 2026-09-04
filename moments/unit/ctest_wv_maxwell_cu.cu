@@ -11,8 +11,7 @@ extern "C" {
 int cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn);
 }
 
-__global__ void
-ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
+__global__ void ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
 {
   *nfail = 0;
 
@@ -43,16 +42,16 @@ ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
                             b_fact * q[7], -q[2], q[1],
 
                             e_fact * q[0], b_fact * c2 * q[3] },
-    { -c2 * q[5], e_fact * c2 * q[6], c2 * q[3],
+                          { -c2 * q[5], e_fact * c2 * q[6], c2 * q[3],
 
-      q[2], b_fact * q[7], -q[0],
+                            q[2], b_fact * q[7], -q[0],
 
-      e_fact * q[1], b_fact * c2 * q[4] },
-    { c2 * q[4], -c2 * q[3], e_fact * c2 * q[6],
+                            e_fact * q[1], b_fact * c2 * q[4] },
+                          { c2 * q[4], -c2 * q[3], e_fact * c2 * q[6],
 
-      -q[1], q[0], b_fact * q[7],
+                            -q[1], q[0], b_fact * q[7],
 
-      e_fact * q[2], b_fact * c2 * q[5] }
+                            e_fact * q[2], b_fact * c2 * q[5] }
 
   };
 
@@ -86,11 +85,10 @@ ker_cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn, int *nfail)
   }
 }
 
-int
-cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn)
+int cu_wv_maxwell_test(const struct gkyl_wv_eqn *eqn)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  ker_cu_wv_maxwell_test<<<1, 1>>>(eqn, nfail_dev);
+  ker_cu_wv_maxwell_test<<<1, 1> > >(eqn, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

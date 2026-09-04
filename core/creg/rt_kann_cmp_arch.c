@@ -12,16 +12,14 @@ struct xrange {
   int N;
 };
 
-static inline float
-xrange_n(struct xrange xr, int n)
+static inline float xrange_n(struct xrange xr, int n)
 {
   float dx = (xr.xright - xr.xleft) / (xr.N - 1);
   return xr.xleft + dx * n;
 }
 
 // function to fit
-static inline float
-ufunc(float t, float x)
+static inline float ufunc(float t, float x)
 {
   return sinf(2.0f * M_PI * x) * sinf(2.0f * t) * expf(-t);
 }
@@ -36,8 +34,7 @@ struct train_inp {
   enum ann_layer_type layer_type;
 };
 
-void
-train_ann(struct train_inp *nn_inp, const char *nn_name)
+void train_ann(struct train_inp *nn_inp, const char *nn_name)
 {
   kad_node_t *t_net;
   t_net = kann_layer_input(2);
@@ -85,8 +82,8 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   float frac_val = 0.1f; // fraction of samples to use for validation
 
   // run training
-  kann_train_fnn1(
-    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, Nx * Nt, inp->vals, out->vals);
+  kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, Nx * Nt, inp->vals,
+                  out->vals);
   kann_save(nn_name, ann); // save to file
 
   gkyl_kn_vec_release(inp);
@@ -95,8 +92,7 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
 }
 
 // run inference on N input values
-void
-infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+void infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   kann_t *ann = kann_load(nn_name);
   const float *ov;
@@ -108,8 +104,7 @@ infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec
   kann_delete(ann);
 }
 
-void
-write_to_gplot(void)
+void write_to_gplot(void)
 {
   const char *gp_code =
     "set macros\n"
@@ -131,8 +126,8 @@ write_to_gplot(void)
   }
 }
 
-void
-write_infer_data(const char *fname, const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
+void write_infer_data(const char *fname, const struct gkyl_kn_vec *inp,
+                      const struct gkyl_kn_vec *out)
 {
   FILE *fp = 0;
   with_file(fp, fname, "w")
@@ -142,8 +137,7 @@ write_infer_data(const char *fname, const struct gkyl_kn_vec *inp, const struct 
   }
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int p_train = 0, p_infer = 0, p_verbose = 0, c;
   while ((c = getopt(argc, argv, "+htiv")) != -1) {
@@ -178,19 +172,19 @@ main(int argc, char *argv[])
   if (p_train) {
     fprintf(stdout, "*** Training MLP\n");
     train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
-                .ndepth = 2,
-                .nwidth = 64,
-                .learning_rate = 1e-3f,
-                .layer_type = ANN_DENSE },
-      "rt_kann_cmp_arch_mlp.kann");
+                                   .ndepth = 2,
+                                   .nwidth = 64,
+                                   .learning_rate = 1e-3f,
+                                   .layer_type = ANN_DENSE },
+              "rt_kann_cmp_arch_mlp.kann");
 
     fprintf(stdout, "*** Training GRU\n");
     train_ann(&(struct train_inp){ .ntrain = { 101, 101 },
-                .ndepth = 2,
-                .nwidth = 32,
-                .learning_rate = 1e-3f,
-                .layer_type = ANN_GRU },
-      "rt_kann_cmp_arch_gru.kann");
+                                   .ndepth = 2,
+                                   .nwidth = 32,
+                                   .learning_rate = 1e-3f,
+                                   .layer_type = ANN_GRU },
+              "rt_kann_cmp_arch_gru.kann");
   }
 
   if (p_infer) {

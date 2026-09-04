@@ -8,14 +8,12 @@
 #include <gkyl_vlasov.h>
 #include <gkyl_util.h>
 
-void
-evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalDistFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void
-evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldFunc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0, fout[2] = 0.0;
@@ -33,8 +31,7 @@ struct kerntm_inp {
   bool use_gpu;
 };
 
-struct kerntm_inp
-get_inp(int argc, char **argv)
+struct kerntm_inp get_inp(int argc, char **argv)
 {
   int c, cdim = 2, vdim = 2, poly_order = 2, nloop = 10;
   bool use_gpu = false;
@@ -71,16 +68,15 @@ get_inp(int argc, char **argv)
   }
 
   return (struct kerntm_inp){ .cdim = cdim,
-    .vdim = vdim,
-    .poly_order = poly_order,
-    .ccells = { 8, 8, 8 },
-    .vcells = { 16, 16, 16 },
-    .nloop = nloop,
-    .use_gpu = use_gpu };
+                              .vdim = vdim,
+                              .poly_order = poly_order,
+                              .ccells = { 8, 8, 8 },
+                              .vcells = { 16, 16, 16 },
+                              .nloop = nloop,
+                              .use_gpu = use_gpu };
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct kerntm_inp inp = get_inp(argc, argv);
 
@@ -104,14 +100,16 @@ main(int argc, char **argv)
   printf("nloop = %d\n", inp.nloop);
 
   // electrons
-  struct gkyl_vlasov_species elc = { .name = "elc",
+  struct gkyl_vlasov_species elc = {
+    .name = "elc",
     .charge = -1.0,
     .mass = 1.0,
     .lower = { -6.0, -6.0, -6.0 },
     .upper = { 6.0, 6.0, 6.0 },
     .cells = { inp.vcells[0], inp.vcells[1], inp.vcells[2] },
     .num_init = 1,
-    .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalDistFunc, .ctx_func = 0 } };
+    .projection[0] = { .proj_id = GKYL_PROJ_FUNC, .func = evalDistFunc, .ctx_func = 0 }
+  };
 
   // field
   struct gkyl_vlasov_field field = { .epsilon0 = 1.0, .mu0 = 1.0, .init = evalFieldFunc };
@@ -119,18 +117,18 @@ main(int argc, char **argv)
   // VM app
   struct gkyl_vm vm = { .name = "kern-timer",
 
-    .cdim = inp.cdim,
-    .vdim = inp.vdim,
-    .lower = { -1.0, -1.0, -1.0 },
-    .upper = { 1.0, 1.0, 1.0 },
-    .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
-    .poly_order = inp.poly_order,
+                        .cdim = inp.cdim,
+                        .vdim = inp.vdim,
+                        .lower = { -1.0, -1.0, -1.0 },
+                        .upper = { 1.0, 1.0, 1.0 },
+                        .cells = { inp.ccells[0], inp.ccells[1], inp.ccells[2] },
+                        .poly_order = inp.poly_order,
 
-    .parallelism = { .use_gpu = inp.use_gpu },
+                        .parallelism = { .use_gpu = inp.use_gpu },
 
-    .num_species = 1,
-    .species = { elc },
-    .field = field };
+                        .num_species = 1,
+                        .species = { elc },
+                        .field = field };
 
   // create app object
   gkyl_vlasov_app *app = gkyl_vlasov_app_new(&vm);

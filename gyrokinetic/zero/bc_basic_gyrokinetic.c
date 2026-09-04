@@ -5,9 +5,9 @@
 
 // Private function to create a pointer to the function that applies the BC,
 // i.e., the array_copy_func applied to expansion coefficients in ghost cell.
-struct gkyl_array_copy_func *
-gkyl_bc_basic_gyrokinetic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge, int cdim,
-  enum gkyl_gyrokinetic_bc_type bctype, const struct gkyl_basis *basis, int ncomp, bool use_gpu)
+struct gkyl_array_copy_func *gkyl_bc_basic_gyrokinetic_create_arr_copy_func(
+  int dir, enum gkyl_edge_loc edge, int cdim, enum gkyl_gyrokinetic_bc_type bctype,
+  const struct gkyl_basis *basis, int ncomp, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -68,9 +68,9 @@ gkyl_bc_basic_gyrokinetic_create_arr_copy_func(int dir, enum gkyl_edge_loc edge,
 
 struct gkyl_bc_basic_gyrokinetic *
 gkyl_bc_basic_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
-  enum gkyl_gyrokinetic_bc_type bctype, const struct gkyl_basis *basis,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, int num_comp, int cdim,
-  bool use_gpu)
+                              enum gkyl_gyrokinetic_bc_type bctype, const struct gkyl_basis *basis,
+                              const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r,
+                              int num_comp, int cdim, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_bc_basic_gyrokinetic *up = gkyl_malloc(sizeof(struct gkyl_bc_basic_gyrokinetic));
@@ -85,22 +85,21 @@ gkyl_bc_basic_gyrokinetic_new(int dir, enum gkyl_edge_loc edge,
 
   // Create function applied to array contents (DG coefficients) when
   // copying to/from buffer.
-  up->array_copy_func = gkyl_bc_basic_gyrokinetic_create_arr_copy_func(
-    dir, edge, cdim, up->bctype, basis, num_comp, use_gpu);
+  up->array_copy_func = gkyl_bc_basic_gyrokinetic_create_arr_copy_func(dir, edge, cdim, up->bctype,
+                                                                       basis, num_comp, use_gpu);
   return up;
 }
 
-void
-gkyl_bc_basic_gyrokinetic_buffer_fixed_func(
-  const struct gkyl_bc_basic_gyrokinetic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
+void gkyl_bc_basic_gyrokinetic_buffer_fixed_func(const struct gkyl_bc_basic_gyrokinetic *up,
+                                                 struct gkyl_array *buff_arr,
+                                                 struct gkyl_array *f_arr)
 {
   if (up->bctype == GKYL_BC_GK_SPECIES_FIXED_FUNC)
     gkyl_array_copy_to_buffer_fn(buff_arr->data, f_arr, up->ghost_r, up->array_copy_func->on_dev);
 }
 
-void
-gkyl_bc_basic_gyrokinetic_advance(
-  const struct gkyl_bc_basic_gyrokinetic *up, struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
+void gkyl_bc_basic_gyrokinetic_advance(const struct gkyl_bc_basic_gyrokinetic *up,
+                                       struct gkyl_array *buff_arr, struct gkyl_array *f_arr)
 {
   // Apply BC in two steps:
   // 1) Copy skin to buffer while applying array_copy_func.
@@ -111,8 +110,8 @@ gkyl_bc_basic_gyrokinetic_advance(
     break;
 
   case GKYL_BC_GK_SPECIES_REFLECT:
-    gkyl_array_flip_copy_to_buffer_fn(
-      buff_arr->data, f_arr, up->cdim, up->skin_r, up->array_copy_func->on_dev);
+    gkyl_array_flip_copy_to_buffer_fn(buff_arr->data, f_arr, up->cdim, up->skin_r,
+                                      up->array_copy_func->on_dev);
     break;
 
   case GKYL_BC_GK_SPECIES_BOUNDARY_VALUE:
@@ -135,8 +134,7 @@ gkyl_bc_basic_gyrokinetic_advance(
   gkyl_array_copy_from_buffer(f_arr, buff_arr->data, up->ghost_r);
 }
 
-void
-gkyl_bc_basic_gyrokinetic_release(struct gkyl_bc_basic_gyrokinetic *up)
+void gkyl_bc_basic_gyrokinetic_release(struct gkyl_bc_basic_gyrokinetic *up)
 {
   // Release memory associated with array_copy_func.
   if (up->use_gpu) {

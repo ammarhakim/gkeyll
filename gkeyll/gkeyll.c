@@ -63,24 +63,25 @@ struct tool_description {
 };
 
 // List of available Tools
-static struct tool_description tool_list[] = { { "man", "man.lua", "Gkeyll online manual" },
+static struct tool_description tool_list[] = {
+  { "man", "man.lua", "Gkeyll online manual" },
   { "woman", "man.lua", "Gkeyll online manual (Woe without man)" },
   { "queryrdb", "queryrdb.lua", "Query/modify regression test DB" },
   { "exacteulerrp", "exacteulerrp.lua", "Exact Euler Riemann problem solver" },
   { "runregression", "runregression.lua", "Run regression/unit tests" },
   { "multimomlinear", "multimomlinear.lua",
     "Linear dispersion solver for multi-moment, multifluid equations" },
-  { "eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files" }, { 0, 0 } };
+  { "eqdskreader", "eqdskreader.lua", "Read eqdsk file, writing data to files" },
+  { 0, 0 }
+};
 
-static int
-max2(int a, int b)
+static int max2(int a, int b)
 {
   return a > b ? a : b;
 }
 
 // Show list of available Tools
-static void
-show_tool_list(void)
+static void show_tool_list(void)
 {
   fprintf(stdout, "Following tools are available. Query tool help for more information.\n\n");
 
@@ -97,8 +98,7 @@ show_tool_list(void)
 
 // Returns tool Lua script name given tool name. Returns 0 if Tool
 // does no exist
-static const char *
-get_tool_from_name(const char *nm)
+static const char *get_tool_from_name(const char *nm)
 {
   for (int i = 0; tool_list[i].tool_name != 0; ++i)
     if (strcmp(tool_list[i].tool_name, nm) == 0)
@@ -106,8 +106,7 @@ get_tool_from_name(const char *nm)
   return 0;
 }
 
-static char *
-find_exec_path(void)
+static char *find_exec_path(void)
 {
   int len = wai_getExecutablePath(NULL, 0, NULL);
   char *path = gkyl_malloc(len + 1);
@@ -117,27 +116,23 @@ find_exec_path(void)
   return path;
 }
 
-static int
-calc_output_prefix_len(const char *fn)
+static int calc_output_prefix_len(const char *fn)
 {
   const char *suff = strrchr(fn, '.');
   return strlen(fn) - (suff ? strlen(suff) : 0);
 }
 
-static const char *
-get_fname(const char *fn)
+static const char *get_fname(const char *fn)
 {
   return strrchr(fn, '/');
 }
 
-static const char *
-get_fname_with_dir(const char *fn)
+static const char *get_fname_with_dir(const char *fn)
 {
   return fn;
 }
 
-static void
-show_banner(FILE *fp)
+static void show_banner(FILE *fp)
 {
   if (fp) {
     fprintf(fp, "Gkeyll built with Git changeset %s\n", STRINGIFY(GKYL_GIT_CHANGESET));
@@ -182,8 +177,7 @@ show_banner(FILE *fp)
 }
 
 // show usage
-static void
-show_usage()
+static void show_usage()
 {
   fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
   fprintf(stdout, "Type 'gkeyll man' for help.\n\n");
@@ -206,12 +200,11 @@ show_usage()
   fprintf(stdout, "  restart    Restart simulation \n");
   fprintf(stdout, "To get help for commands type command name followed by -h\n\n");
 
-  fprintf(
-    stdout, "Individual tools may take other options and commands. See their specific help.\n");
+  fprintf(stdout,
+          "Individual tools may take other options and commands. See their specific help.\n");
 }
 
-static void
-show_version()
+static void show_version()
 {
   fprintf(stdout, "This is the Gkeyll code. See gkeyll.rtfd.io for details.\n");
   fprintf(stdout, "Type 'gkyl -h' for help.\n\n");
@@ -250,8 +243,7 @@ struct app_args {
   char *exec_path; // location of executable
 };
 
-static void
-release_opt_args(struct app_args *args)
+static void release_opt_args(struct app_args *args)
 {
   for (int i = 0; i < args->num_opt_args; ++i)
     gkyl_free(args->opt_args[i]);
@@ -264,8 +256,7 @@ release_opt_args(struct app_args *args)
   gkyl_free(args);
 }
 
-static struct app_args *
-parse_app_args(int argc, char **argv)
+static struct app_args *parse_app_args(int argc, char **argv)
 {
   struct app_args *args = gkyl_malloc(sizeof(*args));
 
@@ -353,8 +344,7 @@ parse_app_args(int argc, char **argv)
   return args;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct app_args *app_args = parse_app_args(argc, argv);
 
@@ -620,8 +610,7 @@ main(int argc, char **argv)
 
 #include <stdio.h>
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   fprintf(stderr, "Gkeyll built without Lua support!\n");
   return 0;

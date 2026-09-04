@@ -54,8 +54,7 @@ struct amr_5m_gem_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_5m_gem_ctx
-create_ctx(void)
+struct amr_5m_gem_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -104,46 +103,45 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct amr_5m_gem_ctx ctx = { .pi = pi,
-    .gas_gamma = gas_gamma,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass_ion = mass_ion,
-    .charge_ion = charge_ion,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .Ti_over_Te = Ti_over_Te,
-    .lambda = lambda,
-    .n0 = n0,
-    .nb_over_n0 = nb_over_n0,
-    .B0 = B0,
-    .beta = beta,
-    .k0_elc = k0_elc,
-    .k0_ion = k0_ion,
-    .psi0 = psi0,
-    .Ti_frac = Ti_frac,
-    .Te_frac = Te_frac,
-    .T_tot = T_tot,
-    .Nx = Nx,
-    .Ny = Ny,
-    .ref_factor1 = ref_factor1,
-    .ref_factor2 = ref_factor2,
-    .Lx = Lx,
-    .Ly = Ly,
-    .intermediate_Lx = intermediate_Lx,
-    .intermediate_Ly = intermediate_Ly,
-    .fine_Lx = fine_Lx,
-    .fine_Ly = fine_Ly,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                                .gas_gamma = gas_gamma,
+                                .epsilon0 = epsilon0,
+                                .mu0 = mu0,
+                                .mass_ion = mass_ion,
+                                .charge_ion = charge_ion,
+                                .mass_elc = mass_elc,
+                                .charge_elc = charge_elc,
+                                .Ti_over_Te = Ti_over_Te,
+                                .lambda = lambda,
+                                .n0 = n0,
+                                .nb_over_n0 = nb_over_n0,
+                                .B0 = B0,
+                                .beta = beta,
+                                .k0_elc = k0_elc,
+                                .k0_ion = k0_ion,
+                                .psi0 = psi0,
+                                .Ti_frac = Ti_frac,
+                                .Te_frac = Te_frac,
+                                .T_tot = T_tot,
+                                .Nx = Nx,
+                                .Ny = Ny,
+                                .ref_factor1 = ref_factor1,
+                                .ref_factor2 = ref_factor2,
+                                .Lx = Lx,
+                                .Ly = Ly,
+                                .intermediate_Lx = intermediate_Lx,
+                                .intermediate_Ly = intermediate_Ly,
+                                .fine_Lx = fine_Lx,
+                                .fine_Ly = fine_Ly,
+                                .cfl_frac = cfl_frac,
+                                .t_end = t_end,
+                                .num_frames = num_frames,
+                                .dt_failure_tol = dt_failure_tol,
+                                .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -170,7 +168,7 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   double rhoe = n * mass_elc; // Electron mass density.
   double momze = (mass_elc / charge_elc) * Jz * Te_frac; // Electron momentum density (z-direction).
   double Ee_tot = n * T_tot * Te_frac / (gas_gamma - 1.0) +
-    0.5 * momze * momze / rhoe; // Electron total energy density.
+                  0.5 * momze * momze / rhoe; // Electron total energy density.
 
   // Set electron mass density.
   fout[0] = rhoe;
@@ -182,8 +180,7 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[4] = Ee_tot;
 }
 
-void
-evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -210,7 +207,7 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   double rhoi = n * mass_ion; // Ion mass density.
   double momzi = (mass_ion / charge_ion) * Jz * Ti_frac; // Ion momentum density (z-direction).
   double Ei_tot = n * T_tot * Ti_frac / (gas_gamma - 1.0) +
-    0.5 * momzi * momzi / rhoi; // Ion total energy density.
+                  0.5 * momzi * momzi / rhoi; // Ion total energy density.
 
   // Set ion mass density.
   fout[0] = rhoi;
@@ -222,8 +219,7 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[4] = Ei_tot;
 }
 
-void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct amr_5m_gem_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -240,11 +236,10 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   double Ly = app->Ly;
 
   double Bxb = B0 * tanh(y / lambda); // Total magnetic field strength.
-  double Bx = Bxb -
-    psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) *
-      sin(pi * y / Ly); // Total magnetic field (x-direction).
+  double Bx = Bxb - psi0 * (pi / Ly) * cos(2.0 * pi * x / Lx) *
+                      sin(pi * y / Ly); // Total magnetic field (x-direction).
   double By = psi0 * (2.0 * pi / Lx) * sin(2.0 * pi * x / Lx) *
-    cos(pi * y / Ly); // Total magnetic field (y-direction).
+              cos(pi * y / Ly); // Total magnetic field (y-direction).
   double Bz = 0.0; // Total magnetic field (z-direction).
 
   // Set electric field.
@@ -260,64 +255,63 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[7] = 0.0;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct amr_5m_gem_ctx ctx = create_ctx(); // Context for initialization functions.
 
   struct five_moment_2d_double_init init = { .base_Nx = ctx.Nx,
-    .base_Ny = ctx.Ny,
-    .ref_factor1 = ctx.ref_factor1,
-    .ref_factor2 = ctx.ref_factor2,
+                                             .base_Ny = ctx.Ny,
+                                             .ref_factor1 = ctx.ref_factor1,
+                                             .ref_factor2 = ctx.ref_factor2,
 
-    .coarse_x1 = -0.5 * ctx.Lx,
-    .coarse_y1 = -0.5 * ctx.Ly,
-    .coarse_x2 = 0.5 * ctx.Lx,
-    .coarse_y2 = 0.5 * ctx.Ly,
+                                             .coarse_x1 = -0.5 * ctx.Lx,
+                                             .coarse_y1 = -0.5 * ctx.Ly,
+                                             .coarse_x2 = 0.5 * ctx.Lx,
+                                             .coarse_y2 = 0.5 * ctx.Ly,
 
-    .intermediate_x1 = -0.5 * ctx.intermediate_Lx,
-    .intermediate_y1 = -0.5 * ctx.intermediate_Ly,
-    .intermediate_x2 = 0.5 * ctx.intermediate_Lx,
-    .intermediate_y2 = 0.5 * ctx.intermediate_Ly,
+                                             .intermediate_x1 = -0.5 * ctx.intermediate_Lx,
+                                             .intermediate_y1 = -0.5 * ctx.intermediate_Ly,
+                                             .intermediate_x2 = 0.5 * ctx.intermediate_Lx,
+                                             .intermediate_y2 = 0.5 * ctx.intermediate_Ly,
 
-    .refined_x1 = -0.5 * ctx.fine_Lx,
-    .refined_y1 = -0.5 * ctx.fine_Ly,
-    .refined_x2 = 0.5 * ctx.fine_Lx,
-    .refined_y2 = 0.5 * ctx.fine_Ly,
+                                             .refined_x1 = -0.5 * ctx.fine_Lx,
+                                             .refined_y1 = -0.5 * ctx.fine_Ly,
+                                             .refined_x2 = 0.5 * ctx.fine_Lx,
+                                             .refined_y2 = 0.5 * ctx.fine_Ly,
 
-    .eval_elc = evalElcInit,
-    .eval_ion = evalIonInit,
-    .eval_field = evalFieldInit,
+                                             .eval_elc = evalElcInit,
+                                             .eval_ion = evalIonInit,
+                                             .eval_field = evalFieldInit,
 
-    .gas_gamma = ctx.gas_gamma,
-    .k0_elc = ctx.k0_elc,
-    .k0_ion = ctx.k0_ion,
+                                             .gas_gamma = ctx.gas_gamma,
+                                             .k0_elc = ctx.k0_elc,
+                                             .k0_ion = ctx.k0_ion,
 
-    .light_speed = 1.0,
-    .e_fact = 0.0,
-    .b_fact = 1.0,
+                                             .light_speed = 1.0,
+                                             .e_fact = 0.0,
+                                             .b_fact = 1.0,
 
-    .epsilon0 = ctx.epsilon0,
-    .mass_elc = ctx.mass_elc,
-    .charge_elc = ctx.charge_elc,
-    .mass_ion = ctx.mass_ion,
-    .charge_ion = ctx.charge_ion,
+                                             .epsilon0 = ctx.epsilon0,
+                                             .mass_elc = ctx.mass_elc,
+                                             .charge_elc = ctx.charge_elc,
+                                             .mass_ion = ctx.mass_ion,
+                                             .charge_ion = ctx.charge_ion,
 
-    .copy_x = true,
-    .copy_y = false,
+                                             .copy_x = true,
+                                             .copy_y = false,
 
-    .wall_x = false,
-    .wall_y = true,
+                                             .wall_x = false,
+                                             .wall_y = true,
 
-    .five_moment_output = "amr_5m_gem_l2",
+                                             .five_moment_output = "amr_5m_gem_l2",
 
-    .low_order_flux = false,
-    .cfl_frac = ctx.cfl_frac,
+                                             .low_order_flux = false,
+                                             .cfl_frac = ctx.cfl_frac,
 
-    .t_end = ctx.t_end,
-    .num_frames = ctx.num_frames,
-    .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+                                             .t_end = ctx.t_end,
+                                             .num_frames = ctx.num_frames,
+                                             .dt_failure_tol = ctx.dt_failure_tol,
+                                             .num_failures_max = ctx.num_failures_max };
 
   five_moment_2d_run_double(argc, argv, &init);
 }

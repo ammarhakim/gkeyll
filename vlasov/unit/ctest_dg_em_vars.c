@@ -18,22 +18,19 @@
 #include <time.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-static struct gkyl_array *
-mk_int_arr(long nc, long size)
+static struct gkyl_array *mk_int_arr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_INT, nc, size);
   return a;
 }
 
-void
-eval_field_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_field_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2.0 * M_PI;
@@ -68,8 +65,7 @@ eval_field_1x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void
-eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2.0 * M_PI;
@@ -131,8 +127,7 @@ eval_analytic_bvar_1x(double t, const double *xn, double *restrict fout, void *c
   fout[8] = bzbz;
 }
 
-void
-eval_analytic_ExB_1x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_analytic_ExB_1x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double Lx = 2.0 * M_PI;
@@ -167,8 +162,7 @@ eval_analytic_ExB_1x(double t, const double *xn, double *restrict fout, void *ct
   fout[2] = num_ExB_z / magB2;
 }
 
-void
-eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -192,19 +186,19 @@ eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
       rand_phase_x = gkyl_pcg64_rand_double(&rng);
       rand_phase_y = gkyl_pcg64_rand_double(&rng);
       Ex += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Ey += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Ez += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
-        sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
-        cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
       Bx += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
       By += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Bz += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
-        sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
-        cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
     }
   }
 
@@ -218,8 +212,7 @@ eval_field_2x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void
-eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -243,19 +236,19 @@ eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, void *c
       rand_phase_x = gkyl_pcg64_rand_double(&rng);
       rand_phase_y = gkyl_pcg64_rand_double(&rng);
       Ex += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Ey += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Ez += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
-        sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
-        cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
       Bx += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
       By += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Bz += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
-        sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
-        cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
     }
   }
 
@@ -296,8 +289,7 @@ eval_analytic_bvar_2x(double t, const double *xn, double *restrict fout, void *c
   fout[8] = bzbz;
 }
 
-void
-eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -321,19 +313,19 @@ eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, void *ct
       rand_phase_x = gkyl_pcg64_rand_double(&rng);
       rand_phase_y = gkyl_pcg64_rand_double(&rng);
       Ex += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Ey += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Ez += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
-        sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
-        cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
       Bx += rand_amp * j * ky * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            cos(j * ky * y + 2.0 * M_PI * rand_phase_y);
       By += -rand_amp * i * kx * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-        sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
+            sin(j * ky * y + 2.0 * M_PI * rand_phase_y);
       Bz += gkyl_pcg64_rand_double(&rng) * j * ky * i * kx *
-        sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
-        cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
+            sin(i * kx * x + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng)) *
+            cos(j * ky * y + 2.0 * M_PI * gkyl_pcg64_rand_double(&rng));
     }
   }
 
@@ -347,8 +339,7 @@ eval_analytic_ExB_2x(double t, const double *xn, double *restrict fout, void *ct
   fout[2] = num_ExB_z / magB2;
 }
 
-void
-eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -377,17 +368,23 @@ eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
         rand_phase_y = gkyl_pcg64_rand_double(&rng);
         rand_phase_z = gkyl_pcg64_rand_double(&rng);
         Ex += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Ey += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          sin(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Ez += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Bx += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         By += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          sin(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Bz += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
       }
     }
   }
@@ -402,8 +399,7 @@ eval_field_3x(double t, const double *xn, double *restrict fout, void *ctx)
   fout[7] = 0.0;
 }
 
-void
-eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -432,17 +428,23 @@ eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, void *c
         rand_phase_y = gkyl_pcg64_rand_double(&rng);
         rand_phase_z = gkyl_pcg64_rand_double(&rng);
         Ex += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Ey += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          sin(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Ez += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Bx += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         By += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          sin(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Bz += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
       }
     }
   }
@@ -484,8 +486,7 @@ eval_analytic_bvar_3x(double t, const double *xn, double *restrict fout, void *c
   fout[8] = bzbz;
 }
 
-void
-eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -514,17 +515,23 @@ eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, void *ct
         rand_phase_y = gkyl_pcg64_rand_double(&rng);
         rand_phase_z = gkyl_pcg64_rand_double(&rng);
         Ex += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Ey += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          sin(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Ez += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Bx += rand_amp * j * ky * k * kz * sin(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         By += -2.0 * rand_amp * i * kx * k * kz * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          sin(j * ky * y + 2.0 * M_PI * rand_phase_y) * cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              sin(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              cos(k * kz * z + 2.0 * M_PI * rand_phase_z);
         Bz += rand_amp * i * kx * j * ky * cos(i * kx * x + 2.0 * M_PI * rand_phase_x) *
-          cos(j * ky * y + 2.0 * M_PI * rand_phase_y) * sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
+              cos(j * ky * y + 2.0 * M_PI * rand_phase_y) *
+              sin(k * kz * z + 2.0 * M_PI * rand_phase_z);
       }
     }
   }
@@ -539,9 +546,8 @@ eval_analytic_ExB_3x(double t, const double *xn, double *restrict fout, void *ct
   fout[2] = num_ExB_z / magB2;
 }
 
-void
-test(
-  int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_analytic, bool use_gpu)
+void test(int ndim, int Nx, int poly_order, double eps, bool use_tensor, bool check_analytic,
+          bool use_gpu)
 {
   double L = 2. * M_PI;
 
@@ -823,10 +829,10 @@ test(
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", alt_bvar_p[m], m, iter.idx[0]);
       else if (ndim == 2)
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_bvar_p[m], m,
-          iter.idx[0], iter.idx[1]);
+                 iter.idx[0], iter.idx[1]);
       else
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_bvar_p[m], m,
-          iter.idx[0], iter.idx[1], iter.idx[2]);
+                 iter.idx[0], iter.idx[1], iter.idx[2]);
       TEST_MSG("Produced: %.13e, coefficient (%d)", bvar_p[m], m);
     }
     if (check_analytic) {
@@ -834,50 +840,52 @@ test(
       for (int m = 3 * basis.num_basis; m < 9 * basis.num_basis; ++m) {
         TEST_CHECK(gkyl_compare(alt_bvar_p[m], analytic_bvar_p[m], eps));
         if (ndim == 1)
-          TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]);
+          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m,
+                   iter.idx[0]);
         else if (ndim == 2)
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1]);
+                   iter.idx[0], iter.idx[1]);
         else
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+                   iter.idx[0], iter.idx[1], iter.idx[2]);
         TEST_MSG("Produced: %.13e, coefficient (%d)", alt_bvar_p[m], m);
       }
       // Check b_i b_j from inverse operator against analytic solution
       for (int m = 0; m < 9 * basis.num_basis; ++m) {
         TEST_CHECK(gkyl_compare(bvar_p[m], analytic_bvar_p[m], eps));
         if (ndim == 1)
-          TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m, iter.idx[0]);
+          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_bvar_p[m], m,
+                   iter.idx[0]);
         else if (ndim == 2)
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1]);
+                   iter.idx[0], iter.idx[1]);
         else
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_bvar_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+                   iter.idx[0], iter.idx[1], iter.idx[2]);
         TEST_MSG("Produced: %.13e, coefficient (%d)", bvar_p[m], m);
       }
     }
 
     // Check if B . B/|B|^2 = 1
     TEST_CHECK(gkyl_compare(alt_bvar_p[3 * basis.num_basis] + alt_bvar_p[6 * basis.num_basis] +
-        alt_bvar_p[8 * basis.num_basis],
-      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis],
-      1.0e-14));
+                              alt_bvar_p[8 * basis.num_basis],
+                            bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] +
+                              bvar_p[8 * basis.num_basis],
+                            1.0e-14));
     if (ndim == 1)
       TEST_MSG("Expected: %.13e in cell (%d)", sqrt(2.0), iter.idx[0]);
     else if (ndim == 2)
       TEST_MSG("Expected: %.13e in cell (%d, %d)", 2.0, iter.idx[0], iter.idx[1]);
     else
       TEST_MSG("Expected: %.13e in cell (%d, %d, %d)", 2.0 * sqrt(2.0), iter.idx[0], iter.idx[1],
-        iter.idx[2]);
+               iter.idx[2]);
 
     TEST_MSG("Cell average B . B/|B|^2 produced by EM vars computation: %.13e",
-      bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] + bvar_p[8 * basis.num_basis]);
+             bvar_p[3 * basis.num_basis] + bvar_p[6 * basis.num_basis] +
+               bvar_p[8 * basis.num_basis]);
     TEST_MSG("Cell average B . B/|B|^2 Produced by dg_bin_op: %.13e",
-      alt_bvar_p[3 * basis.num_basis] + alt_bvar_p[6 * basis.num_basis] +
-        alt_bvar_p[8 * basis.num_basis]);
+             alt_bvar_p[3 * basis.num_basis] + alt_bvar_p[6 * basis.num_basis] +
+               alt_bvar_p[8 * basis.num_basis]);
 
     // Check b . b = 1 by checking cell average (should 2^d/2) and x slope (should be zero)
     const double *b_dot_b_p = gkyl_array_cfetch(b_dot_b, linidx);
@@ -896,35 +904,35 @@ test(
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", alt_ExB_p[m], m, iter.idx[0]);
       else if (ndim == 2)
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", alt_ExB_p[m], m, iter.idx[0],
-          iter.idx[1]);
+                 iter.idx[1]);
       else
         TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", alt_ExB_p[m], m,
-          iter.idx[0], iter.idx[1], iter.idx[2]);
+                 iter.idx[0], iter.idx[1], iter.idx[2]);
       TEST_MSG("Produced: %.13e, coefficient (%d)", ExB_p[m], m);
       if (check_analytic) {
         // Check bin_op solution against analytic solution
         TEST_CHECK(gkyl_compare(alt_ExB_p[m], analytic_ExB_p[m], eps));
         if (ndim == 1)
-          TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]);
+          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m,
+                   iter.idx[0]);
         else if (ndim == 2)
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1]);
+                   iter.idx[0], iter.idx[1]);
         else
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+                   iter.idx[0], iter.idx[1], iter.idx[2]);
         TEST_MSG("Produced: %.13e, coefficient (%d)", alt_ExB_p[m], m);
         // Check ExB from inverse operator against analytic solution
         TEST_CHECK(gkyl_compare(ExB_p[m], analytic_ExB_p[m], eps));
         if (ndim == 1)
-          TEST_MSG(
-            "Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m, iter.idx[0]);
+          TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d)", analytic_ExB_p[m], m,
+                   iter.idx[0]);
         else if (ndim == 2)
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1]);
+                   iter.idx[0], iter.idx[1]);
         else
           TEST_MSG("Expected: %.13e, coefficient (%d) in cell (%d, %d, %d)", analytic_ExB_p[m], m,
-            iter.idx[0], iter.idx[1], iter.idx[2]);
+                   iter.idx[0], iter.idx[1], iter.idx[2]);
         TEST_MSG("Produced: %.13e, coefficient (%d)", ExB_p[m], m);
       }
     }
@@ -1010,68 +1018,56 @@ test(
   gkyl_dg_calc_em_vars_release(calc_ExB);
 }
 
-void
-test_dg_em_vars_1x_p1_ho()
+void test_dg_em_vars_1x_p1_ho()
 {
   test(1, 8, 1, 1.0e-12, 0, 0, false);
 }
-void
-test_dg_em_vars_2x_p1_ho()
+void test_dg_em_vars_2x_p1_ho()
 {
   test(2, 8, 1, 1.0e-12, 0, 0, false);
 }
-void
-test_dg_em_vars_3x_p1_ho()
+void test_dg_em_vars_3x_p1_ho()
 {
   test(3, 4, 1, 1.0e-12, 0, 0, false);
 }
 
-void
-test_dg_em_vars_1x_p2_ho()
+void test_dg_em_vars_1x_p2_ho()
 {
   test(1, 8, 2, 1.0e-12, 0, 0, false);
 }
 // Higher dimensions, p=2, *only* testing is b . b = 1 like we expect
-void
-test_dg_em_vars_2x_tensor_p2_ho()
+void test_dg_em_vars_2x_tensor_p2_ho()
 {
   test(2, 8, 2, 1.0e-12, 1, 0, false);
 }
-void
-test_dg_em_vars_3x_tensor_p2_ho()
+void test_dg_em_vars_3x_tensor_p2_ho()
 {
   test(3, 8, 2, 1.0e-12, 1, 0, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void
-test_dg_em_vars_1x_p1_dev()
+void test_dg_em_vars_1x_p1_dev()
 {
   test(1, 8, 1, 1.0e-12, 0, 0, true);
 }
-void
-test_dg_em_vars_2x_p1_dev()
+void test_dg_em_vars_2x_p1_dev()
 {
   test(2, 8, 1, 1.0e-12, 0, 0, true);
 }
-void
-test_dg_em_vars_3x_p1_dev()
+void test_dg_em_vars_3x_p1_dev()
 {
   test(3, 8, 1, 1.0e-12, 0, 0, true);
 }
 
-void
-test_dg_em_vars_1x_p2_dev()
+void test_dg_em_vars_1x_p2_dev()
 {
   test(1, 8, 2, 1.0e-12, 0, 0, true);
 }
-void
-test_dg_em_vars_2x_tensor_p2_dev()
+void test_dg_em_vars_2x_tensor_p2_dev()
 {
   test(2, 8, 2, 1.0e-12, 1, 0, true);
 }
-void
-test_dg_em_vars_3x_tensor_p2_dev()
+void test_dg_em_vars_3x_tensor_p2_dev()
 {
   test(3, 8, 2, 1.0e-12, 1, 0, true);
 }
@@ -1079,10 +1075,10 @@ test_dg_em_vars_3x_tensor_p2_dev()
 #endif
 
 TEST_LIST = { { "test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho },
-  { "test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho },
-  { "test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho },
+              { "test_dg_em_vars_2x_p1_ho", test_dg_em_vars_2x_p1_ho },
+              { "test_dg_em_vars_3x_p1_ho", test_dg_em_vars_3x_p1_ho },
 
-  { "test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho },
+              { "test_dg_em_vars_1x_p2_ho", test_dg_em_vars_1x_p2_ho },
 // The tensor p2 bvar comparison is disabled (CPU and GPU): the em_vars
 // operator's positivity-control fallback keeps only the cell average of
 // b_i b_j in cells where b_i b_i is negative at control points, while the
@@ -1092,14 +1088,14 @@ TEST_LIST = { { "test_dg_em_vars_1x_p1_ho", test_dg_em_vars_1x_p1_ho },
 // { "test_dg_em_vars_3x_tensor_p2_ho", test_dg_em_vars_3x_tensor_p2_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev },
-  { "test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev },
-  { "test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev },
+              { "test_dg_em_vars_1x_p1_dev", test_dg_em_vars_1x_p1_dev },
+              { "test_dg_em_vars_2x_p1_dev", test_dg_em_vars_2x_p1_dev },
+              { "test_dg_em_vars_3x_p1_dev", test_dg_em_vars_3x_p1_dev },
 
-  { "test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev },
+              { "test_dg_em_vars_1x_p2_dev", test_dg_em_vars_1x_p2_dev },
 // Disabled for the same positivity-fallback reason as the CPU tensor tests.
 // { "test_dg_em_vars_2x_tensor_p2_dev", test_dg_em_vars_2x_tensor_p2_dev },
 // { "test_dg_em_vars_3x_tensor_p2_dev", test_dg_em_vars_3x_tensor_p2_dev },
 
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

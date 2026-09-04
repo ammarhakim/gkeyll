@@ -1,8 +1,7 @@
 #include <acutest.h>
 #include <gkyl_alloc.h>
 
-void
-test_aligned_alloc_ho()
+void test_aligned_alloc_ho()
 {
   int *d1 = gkyl_aligned_alloc(8, 100 * sizeof(int));
   TEST_CHECK((ptrdiff_t)d1 % 8 == 0);
@@ -21,8 +20,7 @@ test_aligned_alloc_ho()
   gkyl_aligned_free(d4);
 }
 
-void
-test_aligned_realloc_ho()
+void test_aligned_realloc_ho()
 {
   int n = 10;
   int *d = gkyl_aligned_alloc(16, n * sizeof(int));
@@ -40,13 +38,12 @@ test_aligned_realloc_ho()
   gkyl_aligned_free(rd);
 }
 
-void
-test_mem_buff(bool use_gpu)
+void test_mem_buff(bool use_gpu)
 {
   // Create a new memory buffer.
   int nelem = 7;
-  gkyl_mem_buff mbuff = use_gpu ? gkyl_mem_buff_cu_new(nelem * sizeof(double))
-                                : gkyl_mem_buff_new(nelem * sizeof(double));
+  gkyl_mem_buff mbuff = use_gpu ? gkyl_mem_buff_cu_new(nelem * sizeof(double)) :
+                                  gkyl_mem_buff_new(nelem * sizeof(double));
 
   // Check its size.
   TEST_CHECK(gkyl_mem_buff_size(mbuff) == nelem * sizeof(double));
@@ -89,8 +86,8 @@ test_mem_buff(bool use_gpu)
 
   mbuff_p = (double *)gkyl_mem_buff_data(mbuff);
   if (use_gpu)
-    gkyl_cu_memcpy(
-      mbuff_p + nelem, test_vals_new, (nelem_new - nelem) * sizeof(double), GKYL_CU_MEMCPY_H2D);
+    gkyl_cu_memcpy(mbuff_p + nelem, test_vals_new, (nelem_new - nelem) * sizeof(double),
+                   GKYL_CU_MEMCPY_H2D);
   else {
     for (int i = nelem; i < nelem_new; i++)
       mbuff_p[i] = test_vals_new[i - nelem];
@@ -115,20 +112,17 @@ test_mem_buff(bool use_gpu)
   gkyl_mem_buff_release(mbuff);
 }
 
-void
-test_alloc_mem_buff_ho()
+void test_alloc_mem_buff_ho()
 {
   test_mem_buff(false);
 }
-void
-test_alloc_mem_buff_dev()
+void test_alloc_mem_buff_dev()
 {
   test_mem_buff(true);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void
-test_malloc_dev()
+void test_malloc_dev()
 {
   // Test a simple allocation on the GPU.
   int nelem = 6;
@@ -151,8 +145,7 @@ test_malloc_dev()
 
 int dev_cu_malloc_array(double **arr, int narr, int nelem);
 
-void
-test_malloc_array_dev()
+void test_malloc_array_dev()
 {
   // Test allocation of arrays of arrays on the GPU.
   int narr = 2;
@@ -189,10 +182,11 @@ test_malloc_array_dev()
 #endif
 
 TEST_LIST = { { "aligned_alloc_ho", test_aligned_alloc_ho },
-  { "aligned_realloc_ho", test_aligned_realloc_ho },
-  { "alloc_mem_buff_ho", test_alloc_mem_buff_ho },
+              { "aligned_realloc_ho", test_aligned_realloc_ho },
+              { "alloc_mem_buff_ho", test_alloc_mem_buff_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "malloc_dev", test_malloc_dev }, { "malloc_array_dev", test_malloc_array_dev },
-  { "alloc_mem_buff_dev", test_alloc_mem_buff_dev },
+              { "malloc_dev", test_malloc_dev },
+              { "malloc_array_dev", test_malloc_array_dev },
+              { "alloc_mem_buff_dev", test_alloc_mem_buff_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

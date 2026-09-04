@@ -33,8 +33,7 @@ struct gkyl_kep_scheme {
   struct gkyl_wave_geom *geom; // geometry object
 };
 
-gkyl_kep_scheme *
-gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp)
+gkyl_kep_scheme *gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp)
 {
   struct gkyl_kep_scheme *up;
   up = gkyl_malloc(sizeof(*up));
@@ -56,14 +55,12 @@ gkyl_kep_scheme_new(const struct gkyl_kep_scheme_inp *inp)
 }
 
 // compute kinetic energy (no density factor)
-static inline double
-euler_ke(const double v[5])
+static inline double euler_ke(const double v[5])
 {
   return 0.5 * (v[1] * v[1] + v[2] * v[2] + v[3] * v[3]);
 }
 
-static inline double
-euler_flux(int dir, double gas_gamma, const double q[5], double flux[5])
+static inline double euler_flux(int dir, double gas_gamma, const double q[5], double flux[5])
 {
   const int *d = dir_shuffle[dir];
 
@@ -79,8 +76,8 @@ euler_flux(int dir, double gas_gamma, const double q[5], double flux[5])
 }
 
 // Lax fluxes
-static inline void
-mlax_flux(int dir, double gas_gamma, const double qm[5], const double qp[5], double flux[5])
+static inline void mlax_flux(int dir, double gas_gamma, const double qm[5], const double qp[5],
+                             double flux[5])
 {
   double fm[5], fp[5];
 
@@ -92,8 +89,8 @@ mlax_flux(int dir, double gas_gamma, const double qm[5], const double qp[5], dou
 }
 
 // Numerical flux using modified KEP scheme
-static inline void
-mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], double flux[5])
+static inline void mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5],
+                             double flux[5])
 {
   double vbar[5];
 
@@ -111,17 +108,15 @@ mkep_flux(int dir, double gas_gamma, const double vm[5], const double vp[5], dou
   flux[ER] = gas_gamma / (gas_gamma - 1) * vbar[PR] * vbar[RHOU] + flux[0] * kebar; // (E+p)*u
 }
 
-static inline long
-get_offset(int dir, int loc, const struct gkyl_range *range)
+static inline long get_offset(int dir, int loc, const struct gkyl_range *range)
 {
   int idx[GKYL_MAX_CDIM] = { 0, 0, 0 };
   idx[dir] = loc;
   return gkyl_range_offset(range, idx);
 }
 
-static void
-calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
-  const struct gkyl_array *qin, struct gkyl_array *alpha)
+static void calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
+                       const struct gkyl_array *qin, struct gkyl_array *alpha)
 {
   int ndim = update_rng->ndim;
   gkyl_array_clear_range(alpha, 0.0, update_rng);
@@ -191,10 +186,9 @@ calc_alpha(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
   }
 }
 
-void
-gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
-  const struct gkyl_array *qin, struct gkyl_array *alpha, struct gkyl_array *cflrate,
-  struct gkyl_array *rhs)
+void gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *update_rng,
+                             const struct gkyl_array *qin, struct gkyl_array *alpha,
+                             struct gkyl_array *cflrate, struct gkyl_array *rhs)
 {
   int ndim = update_rng->ndim;
   double gas_gamma = gkyl_wv_euler_gas_gamma(kep->equation);
@@ -279,9 +273,8 @@ gkyl_kep_scheme_advance(const gkyl_kep_scheme *kep, const struct gkyl_range *upd
   }
 }
 
-double
-gkyl_kep_scheme_max_dt(
-  const gkyl_kep_scheme *kep, const struct gkyl_range *update_range, const struct gkyl_array *qin)
+double gkyl_kep_scheme_max_dt(const gkyl_kep_scheme *kep, const struct gkyl_range *update_range,
+                              const struct gkyl_array *qin)
 {
   double max_dt = DBL_MAX;
 
@@ -301,8 +294,7 @@ gkyl_kep_scheme_max_dt(
   return max_dt;
 }
 
-void
-gkyl_kep_scheme_release(gkyl_kep_scheme *up)
+void gkyl_kep_scheme_release(gkyl_kep_scheme *up)
 {
   gkyl_wv_eqn_release(up->equation);
   gkyl_wave_geom_release(up->geom);

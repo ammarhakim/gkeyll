@@ -10,8 +10,7 @@
 #include <gkyl_range.h>
 
 // create range to loop over quadrature points.
-static inline struct gkyl_range
-get_qrange(int dim, int num_quad)
+static inline struct gkyl_range get_qrange(int dim, int num_quad)
 {
   int qshape[GKYL_MAX_DIM];
   for (int i = 0; i < dim; ++i)
@@ -23,9 +22,9 @@ get_qrange(int dim, int num_quad)
 
 // Sets weights and basis functions at ords. Returns total
 // number of quadrature nodes.
-static int
-init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array **weights,
-  struct gkyl_array **basis_at_ords, bool use_gpu)
+static int init_quad_values(const struct gkyl_basis *basis, int num_quad,
+                            struct gkyl_array **weights, struct gkyl_array **basis_at_ords,
+                            bool use_gpu)
 {
   int ndim = basis->ndim;
   double ordinates1[num_quad], weights1[num_quad];
@@ -90,8 +89,8 @@ init_quad_values(const struct gkyl_basis *basis, int num_quad, struct gkyl_array
   return tot_quad;
 }
 
-gkyl_proj_exp_on_basis *
-gkyl_proj_exp_on_basis_new(const struct gkyl_basis *basis, int num_quad, bool use_gpu)
+gkyl_proj_exp_on_basis *gkyl_proj_exp_on_basis_new(const struct gkyl_basis *basis, int num_quad,
+                                                   bool use_gpu)
 {
   gkyl_proj_exp_on_basis *up = gkyl_malloc(sizeof(gkyl_proj_exp_on_basis));
 
@@ -112,8 +111,8 @@ gkyl_proj_exp_on_basis_new(const struct gkyl_basis *basis, int num_quad, bool us
   return up;
 }
 
-static void
-proj_on_basis(const gkyl_proj_exp_on_basis *up, const struct gkyl_array *fun_at_ords, double *f)
+static void proj_on_basis(const gkyl_proj_exp_on_basis *up, const struct gkyl_array *fun_at_ords,
+                          double *f)
 {
   int num_basis = up->num_basis;
   int tot_quad = up->tot_quad;
@@ -132,9 +131,9 @@ proj_on_basis(const gkyl_proj_exp_on_basis *up, const struct gkyl_array *fun_at_
   }
 }
 
-void
-gkyl_proj_exp_on_basis_advance(const gkyl_proj_exp_on_basis *up, const struct gkyl_range *range,
-  double alpha, double beta, const struct gkyl_array *fIn, struct gkyl_array *fOut)
+void gkyl_proj_exp_on_basis_advance(const gkyl_proj_exp_on_basis *up,
+                                    const struct gkyl_range *range, double alpha, double beta,
+                                    const struct gkyl_array *fIn, struct gkyl_array *fOut)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
@@ -173,8 +172,7 @@ gkyl_proj_exp_on_basis_advance(const gkyl_proj_exp_on_basis *up, const struct gk
   }
 }
 
-void
-gkyl_proj_exp_on_basis_release(gkyl_proj_exp_on_basis *up)
+void gkyl_proj_exp_on_basis_release(gkyl_proj_exp_on_basis *up)
 {
   gkyl_array_release(up->weights);
   gkyl_array_release(up->basis_at_ords);

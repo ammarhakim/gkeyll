@@ -54,8 +54,7 @@ struct sodshock_lax_ctx {
   const char *nn_closure_file; // File path of neural network to use.
 };
 
-struct sodshock_lax_ctx
-create_ctx(void)
+struct sodshock_lax_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double rhol = 3.0; // Left fluid mass density.
@@ -86,30 +85,29 @@ create_ctx(void)
     "moments/data/neural_nets/pkpm_periodic_es_shock_p1_moms_nn_1"; // File path of neural network to use.
 
   struct sodshock_lax_ctx ctx = { .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
-    .Nx = Nx,
-    .Lx = Lx,
-    .k0 = k0,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .field_energy_calcs = field_energy_calcs,
-    .integrated_mom_calcs = integrated_mom_calcs,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .use_nn_closure = use_nn_closure,
-    .poly_order = poly_order,
-    .nn_closure_file = nn_closure_file };
+                                  .ul = ul,
+                                  .pl = pl,
+                                  .rhor = rhor,
+                                  .ur = ur,
+                                  .pr = pr,
+                                  .Nx = Nx,
+                                  .Lx = Lx,
+                                  .k0 = k0,
+                                  .cfl_frac = cfl_frac,
+                                  .t_end = t_end,
+                                  .num_frames = num_frames,
+                                  .field_energy_calcs = field_energy_calcs,
+                                  .integrated_mom_calcs = integrated_mom_calcs,
+                                  .dt_failure_tol = dt_failure_tol,
+                                  .num_failures_max = num_failures_max,
+                                  .use_nn_closure = use_nn_closure,
+                                  .poly_order = poly_order,
+                                  .nn_closure_file = nn_closure_file };
 
   return ctx;
 }
 
-void
-eval10mInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void eval10mInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct sodshock_lax_ctx *app = ctx;
@@ -162,8 +160,7 @@ eval10mInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[9] = pr_zz;
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr) || force_write) {
     int frame = iot->curr - 1;
@@ -177,25 +174,23 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
   }
 }
 
-void
-calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr, bool force_calc)
+void calc_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr,
+                       bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr) || force_calc) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
   }
 }
 
-void
-calc_integrated_mom(
-  struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr, bool force_calc)
+void calc_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr,
+                         bool force_calc)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr) || force_calc) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -232,17 +227,17 @@ main(int argc, char **argv)
   }
 
   // Fluid equations.
-  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(
-    ctx.k0, false, ctx.use_nn_closure, ctx.poly_order, ann[0], app_args.use_gpu);
+  struct gkyl_wv_eqn *ten_moment = gkyl_wv_ten_moment_new(ctx.k0, false, ctx.use_nn_closure,
+                                                          ctx.poly_order, ann[0], app_args.use_gpu);
 
   struct gkyl_moment_species fluid = { .name = "10m",
-    .equation = ten_moment,
+                                       .equation = ten_moment,
 
-    .init = eval10mInit,
-    .force_low_order_flux = true, // Use Lax fluxes.
-    .ctx = &ctx,
+                                       .init = eval10mInit,
+                                       .force_low_order_flux = true, // Use Lax fluxes.
+                                       .ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+                                       .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -294,8 +289,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -332,7 +327,7 @@ main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+                           gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -347,25 +342,25 @@ main(int argc, char **argv)
 
   // Create trigger for field energy.
   int field_energy_calcs = ctx.field_energy_calcs;
-  struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_calcs, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_calcs,
+                                     .tcurr = t_curr,
+                                     .curr = frame_curr };
 
   calc_field_energy(&fe_trig, app, t_curr, false);
 
   // Create trigger for integrated moments.
   int integrated_mom_calcs = ctx.integrated_mom_calcs;
-  struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_calcs, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_calcs,
+                                     .tcurr = t_curr,
+                                     .curr = frame_curr };
 
   calc_integrated_mom(&im_trig, app, t_curr, false);
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
-  };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
+                                     .tcurr = frame_curr * (t_end / num_frames),
+                                     .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 
@@ -404,8 +399,8 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                             num_failures_max);
 
         calc_field_energy(&fe_trig, app, t_curr, true);
         calc_integrated_mom(&im_trig, app, t_curr, true);

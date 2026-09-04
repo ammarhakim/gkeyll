@@ -3,9 +3,11 @@
 #include <gkyl_alloc.h>
 #include <assert.h>
 
-struct gkyl_skin_surf_from_ghost *
-gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gkyl_basis basis,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, bool use_gpu)
+struct gkyl_skin_surf_from_ghost *gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge,
+                                                                const struct gkyl_basis basis,
+                                                                const struct gkyl_range *skin_r,
+                                                                const struct gkyl_range *ghost_r,
+                                                                bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_skin_surf_from_ghost *up = gkyl_malloc(sizeof(*up));
@@ -29,9 +31,8 @@ gkyl_skin_surf_from_ghost_new(int dir, enum gkyl_edge_loc edge, const struct gky
   return up;
 }
 
-void
-gkyl_skin_surf_from_ghost_advance(
-  const struct gkyl_skin_surf_from_ghost *up, struct gkyl_array *field)
+void gkyl_skin_surf_from_ghost_advance(const struct gkyl_skin_surf_from_ghost *up,
+                                       struct gkyl_array *field)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -63,8 +64,7 @@ gkyl_skin_surf_from_ghost_advance(
   }
 }
 
-void
-gkyl_skin_surf_from_ghost_release(struct gkyl_skin_surf_from_ghost *up)
+void gkyl_skin_surf_from_ghost_release(struct gkyl_skin_surf_from_ghost *up)
 {
   // Release memory associated with this updater.
   if (!up->use_gpu)

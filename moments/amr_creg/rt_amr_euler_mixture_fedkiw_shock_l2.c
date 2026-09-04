@@ -37,8 +37,7 @@ struct amr_fedkiw_shock_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_fedkiw_shock_ctx
-create_ctx(void)
+struct amr_fedkiw_shock_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma1 = 1.4; // First species adiabatic index.
@@ -74,37 +73,36 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct amr_fedkiw_shock_ctx ctx = { .gas_gamma1 = gas_gamma1,
-    .gas_gamma2 = gas_gamma2,
-    .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .alpha1_l = alpha1_l,
-    .rhoc = rhoc,
-    .uc = uc,
-    .pc = pc,
-    .alpha1_c = alpha1_c,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
-    .alpha1_r = alpha1_r,
-    .Nx = Nx,
-    .ref_factor1 = ref_factor1,
-    .ref_factor2 = ref_factor2,
-    .Lx = Lx,
-    .intermediate_Lx = intermediate_Lx,
-    .fine_Lx = fine_Lx,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                                      .gas_gamma2 = gas_gamma2,
+                                      .rhol = rhol,
+                                      .ul = ul,
+                                      .pl = pl,
+                                      .alpha1_l = alpha1_l,
+                                      .rhoc = rhoc,
+                                      .uc = uc,
+                                      .pc = pc,
+                                      .alpha1_c = alpha1_c,
+                                      .rhor = rhor,
+                                      .ur = ur,
+                                      .pr = pr,
+                                      .alpha1_r = alpha1_r,
+                                      .Nx = Nx,
+                                      .ref_factor1 = ref_factor1,
+                                      .ref_factor2 = ref_factor2,
+                                      .Lx = Lx,
+                                      .intermediate_Lx = intermediate_Lx,
+                                      .fine_Lx = fine_Lx,
+                                      .cfl_frac = cfl_frac,
+                                      .t_end = t_end,
+                                      .num_frames = num_frames,
+                                      .dt_failure_tol = dt_failure_tol,
+                                      .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalEulerMixtureInit(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalEulerMixtureInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
+                          void *ctx)
 {
   double x = xn[0];
   struct amr_fedkiw_shock_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -162,9 +160,9 @@ evalEulerMixtureInit(
   double rho_total = (alpha1 * rho1) + ((1.0 - alpha1) * rho2); // Total mixture density.
 
   double E1 = (p_total / (gas_gamma1 - 1.0)) +
-    (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
+              (0.5 * rho1 * (vx_total * vx_total)); // First species total energy.
   double E2 = (p_total / (gas_gamma2 - 1.0)) +
-    (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
+              (0.5 * rho2 * (vx_total * vx_total)); // Second species total energy.
   double E_total = (alpha1 * E1) + ((1.0 - alpha1) * E2); // Total mixture energy.
 
   // Set fluid mixture total mass density.
@@ -182,8 +180,7 @@ evalEulerMixtureInit(
   fout[7] = (1.0 - alpha1) * rho2;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct amr_fedkiw_shock_ctx ctx = create_ctx(); // Context for initialization functions.
 
@@ -191,7 +188,8 @@ main(int argc, char **argv)
   gas_gamma_s[0] = ctx.gas_gamma1;
   gas_gamma_s[1] = ctx.gas_gamma2;
 
-  struct euler_mixture1d_double_init init = { .base_Nx = ctx.Nx,
+  struct euler_mixture1d_double_init init = {
+    .base_Nx = ctx.Nx,
     .ref_factor1 = ctx.ref_factor1,
     .ref_factor2 = ctx.ref_factor2,
 
@@ -216,7 +214,8 @@ main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   euler_mixture1d_run_double(argc, argv, &init);
 

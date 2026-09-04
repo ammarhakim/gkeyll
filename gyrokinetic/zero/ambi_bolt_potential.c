@@ -2,9 +2,10 @@
 #include <gkyl_ambi_bolt_potential_priv.h>
 #include <gkyl_alloc.h>
 
-gkyl_ambi_bolt_potential *
-gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  double mass_e, double charge_e, double temp_e, bool use_gpu)
+gkyl_ambi_bolt_potential *gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid,
+                                                       const struct gkyl_basis *basis,
+                                                       double mass_e, double charge_e,
+                                                       double temp_e, bool use_gpu)
 {
   struct gkyl_ambi_bolt_potential *up = gkyl_malloc(sizeof(struct gkyl_ambi_bolt_potential));
 
@@ -37,16 +38,16 @@ gkyl_ambi_bolt_potential_new(const struct gkyl_rect_grid *grid, const struct gky
   return up;
 }
 
-void
-gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge,
-  const struct gkyl_range *skin_r, const struct gkyl_range *ghost_r, const struct gkyl_array *cmag,
+void gkyl_ambi_bolt_potential_sheath_calc(
+  struct gkyl_ambi_bolt_potential *up, enum gkyl_edge_loc edge, const struct gkyl_range *skin_r,
+  const struct gkyl_range *ghost_r, const struct gkyl_array *cmag,
   const struct gkyl_array *jacobtot_inv, const struct gkyl_array *gammai,
   const struct gkyl_array *m0i, const struct gkyl_array *Jm0i, struct gkyl_array *sheath_vals)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
-    return gkyl_ambi_bolt_potential_sheath_calc_cu(
-      up, edge, skin_r, ghost_r, cmag, jacobtot_inv, gammai, m0i, Jm0i, sheath_vals);
+    return gkyl_ambi_bolt_potential_sheath_calc_cu(up, edge, skin_r, ghost_r, cmag, jacobtot_inv,
+                                                   gammai, m0i, Jm0i, sheath_vals);
 #endif
 
   unsigned int keridx = (edge == GKYL_LOWER_EDGE) ? 0 : 1;
@@ -62,8 +63,8 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
   while (gkyl_range_iter_next(&iter)) {
     gkyl_copy_int_arr(up->cdim, iter.idx, idx_s);
     // Assume only 1 ghost cell on either side along the field line.
-    idx_s[up->cdim - 1] =
-      edge == GKYL_LOWER_EDGE ? iter.idx[up->cdim - 1] + 1 : iter.idx[up->cdim - 1] - 1;
+    idx_s[up->cdim - 1] = edge == GKYL_LOWER_EDGE ? iter.idx[up->cdim - 1] + 1 :
+                                                    iter.idx[up->cdim - 1] - 1;
 
     long ghost_loc = gkyl_range_idx(ghost_r, iter.idx);
     long skin_loc = gkyl_range_idx(skin_r, idx_s);
@@ -76,14 +77,15 @@ gkyl_ambi_bolt_potential_sheath_calc(struct gkyl_ambi_bolt_potential *up, enum g
     double *out_p = (double *)gkyl_array_cfetch(sheath_vals, ghost_loc);
 
     up->kernels->sheath_calc[keridx](up->dz, up->charge_e, up->mass_e, up->temp_e, cmag_p,
-      jacobtotinv_p, gammai_p, m0i_p, Jm0i_p, out_p);
+                                     jacobtotinv_p, gammai_p, m0i_p, Jm0i_p, out_p);
   }
 }
 
-void
-gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
-  const struct gkyl_range *local, const struct gkyl_range *local_ext, const struct gkyl_array *m0i,
-  const struct gkyl_array *sheath_vals, struct gkyl_array *phi)
+void gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
+                                       const struct gkyl_range *local,
+                                       const struct gkyl_range *local_ext,
+                                       const struct gkyl_array *m0i,
+                                       const struct gkyl_array *sheath_vals, struct gkyl_array *phi)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu)
@@ -111,8 +113,7 @@ gkyl_ambi_bolt_potential_phi_calc(struct gkyl_ambi_bolt_potential *up,
   }
 }
 
-void
-gkyl_ambi_bolt_potential_release(gkyl_ambi_bolt_potential *up)
+void gkyl_ambi_bolt_potential_release(gkyl_ambi_bolt_potential *up)
 {
   gkyl_free(up->kernels);
 #ifdef GKYL_HAVE_CUDA

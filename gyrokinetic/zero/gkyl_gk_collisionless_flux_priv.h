@@ -10,17 +10,17 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-typedef double (*gk_collisionless_flux_surf_t)(const double *w, const double *dxv,
-  const double *vmap, const double *vmapSq, const double q_, const double m_,
-  const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs, const double *bmag,
-  const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR, const double *phi,
-  const double *JfL, const double *JfR, double *GKYL_RESTRICT flux_surf);
+typedef double (*gk_collisionless_flux_surf_t)(
+  const double *w, const double *dxv, const double *vmap, const double *vmapSq, const double q_,
+  const double m_, const struct gkyl_dg_surf_geom *dgs, const struct gkyl_gk_dg_surf_geom *gkdgs,
+  const double *bmag, const double *jacobgeo_rat_surfL, const double *jacobgeo_rat_surfR,
+  const double *phi, const double *JfL, const double *JfR, double *GKYL_RESTRICT flux_surf);
 
-typedef double (*gk_collisionless_flux_surfvpar_t)(const double *w, const double *dxv,
-  const double *vmap_prime_l, const double *vmap_prime_r, const double *vmap, const double *vmapSq,
-  const double q_, const double m_, const struct gkyl_dg_vol_geom *dgv,
-  const struct gkyl_gk_dg_vol_geom *gkdgv, const double *bmag, const double *phi, const double *JfL,
-  const double *JfR, double *GKYL_RESTRICT flux_surf);
+typedef double (*gk_collisionless_flux_surfvpar_t)(
+  const double *w, const double *dxv, const double *vmap_prime_l, const double *vmap_prime_r,
+  const double *vmap, const double *vmapSq, const double q_, const double m_,
+  const struct gkyl_dg_vol_geom *dgv, const struct gkyl_gk_dg_vol_geom *gkdgv, const double *bmag,
+  const double *phi, const double *JfL, const double *JfR, double *GKYL_RESTRICT flux_surf);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
@@ -313,8 +313,8 @@ GKYL_CU_D static const gkyl_gk_collisionless_flux_surf_kern_list
   };
 
 GKYL_CU_D static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_surf_conf_kern(
-  int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+choose_gk_collisionless_flux_surf_conf_kern(int dir, int cdim, int vdim, int poly_order,
+                                            enum gkyl_gyrokinetic_bc_type bc)
 {
   if (bc == GKYL_BC_GK_SKIP) {
     if (dir == 0)
@@ -341,8 +341,8 @@ choose_gk_collisionless_flux_surf_conf_kern(
 }
 
 GKYL_CU_D static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_edge_surf_conf_kern(
-  int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+choose_gk_collisionless_flux_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order,
+                                                 enum gkyl_gyrokinetic_bc_type bc)
 {
   if (bc == GKYL_BC_GK_SKIP) {
     if (dir == 0)
@@ -378,21 +378,18 @@ choose_gk_collisionless_flux_surf_vpar_kern(int cdim, int vdim, int poly_order)
 }
 
 GKYL_CU_D static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_no_by_surf_conf_kern(
-  int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+choose_gk_collisionless_flux_no_by_surf_conf_kern(int dir, int cdim, int vdim, int poly_order,
+                                                  enum gkyl_gyrokinetic_bc_type bc)
 {
   if (bc == GKYL_BC_GK_SKIP) {
     if (dir == 0)
-      return ser_gk_collisionless_flux_no_by_multib_boundary_surfx_kernels[cv_index[cdim]
-                                                                             .vdim[vdim]]
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfx_kernels[cv_index[cdim].vdim[vdim]]
         .kernels[poly_order];
     else if (dir == 1)
-      return ser_gk_collisionless_flux_no_by_multib_boundary_surfy_kernels[cv_index[cdim]
-                                                                             .vdim[vdim]]
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfy_kernels[cv_index[cdim].vdim[vdim]]
         .kernels[poly_order];
     else if (dir == 2)
-      return ser_gk_collisionless_flux_no_by_multib_boundary_surfz_kernels[cv_index[cdim]
-                                                                             .vdim[vdim]]
+      return ser_gk_collisionless_flux_no_by_multib_boundary_surfz_kernels[cv_index[cdim].vdim[vdim]]
         .kernels[poly_order];
     else
       return NULL;
@@ -412,8 +409,8 @@ choose_gk_collisionless_flux_no_by_surf_conf_kern(
 }
 
 GKYL_CU_D static gk_collisionless_flux_surf_t
-choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(
-  int dir, int cdim, int vdim, int poly_order, enum gkyl_gyrokinetic_bc_type bc)
+choose_gk_collisionless_flux_no_by_edge_surf_conf_kern(int dir, int cdim, int vdim, int poly_order,
+                                                       enum gkyl_gyrokinetic_bc_type bc)
 {
   if (bc == GKYL_BC_GK_SKIP) {
     if (dir == 0)
@@ -468,8 +465,10 @@ struct gkyl_gk_collisionless_flux *gkyl_gk_collisionless_flux_cu_dev_new(
  * Host-side wrappers for gyrokinetic vars operations on device
  */
 void gkyl_gk_collisionless_flux_surf_cu(struct gkyl_gk_collisionless_flux *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_ext_range, const struct gkyl_range *phase_ext_range,
-  const struct gkyl_array *phi, const struct gkyl_array *fin, struct gkyl_array *flux_surf,
-  struct gkyl_array *cflrate);
+                                        const struct gkyl_range *conf_range,
+                                        const struct gkyl_range *phase_range,
+                                        const struct gkyl_range *conf_ext_range,
+                                        const struct gkyl_range *phase_ext_range,
+                                        const struct gkyl_array *phi, const struct gkyl_array *fin,
+                                        struct gkyl_array *flux_surf, struct gkyl_array *cflrate);
 #endif

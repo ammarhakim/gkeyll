@@ -2,8 +2,7 @@
 
 // Take time-step using an implicit method for collisions.
 // Use the actual timestep used to update explicit advection.
-void
-gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
+void gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
 {
   // Add contribution from implicit collision terms.
   double tcurr = app->tcurr, dt = dt0;
@@ -39,8 +38,8 @@ gyrokinetic_update_implicit_coll(gkyl_gyrokinetic_app *app, double dt0)
   }
 
   // Compute df/dt from implicit terms.
-  gyrokinetic_rhs_implicit(
-    app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut, bflux_out_neut, &st);
+  gyrokinetic_rhs_implicit(app, tcurr, dt, fin, fout, bflux_out, fin_neut, fout_neut,
+                           bflux_out_neut, &st);
 
   // Apply boundary conditions and copy solution.
   gyrokinetic_calc_field_and_apply_bc(app, tcurr, fout, bflux_out, fout_neut);

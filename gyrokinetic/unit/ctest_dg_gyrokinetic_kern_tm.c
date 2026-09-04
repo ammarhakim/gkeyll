@@ -13,24 +13,21 @@
 #include <gkyl_velocity_map.h>
 #include <gkyl_position_map.h>
 
-void
-mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void
-bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 1.0;
 }
 
-static struct gkyl_array *
-mkarr1(bool use_gpu, long nc, long size)
+static struct gkyl_array *mkarr1(bool use_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (use_gpu)
@@ -40,8 +37,7 @@ mkarr1(bool use_gpu, long nc, long size)
   return a;
 }
 
-void
-test_3x2v_p1(bool use_gpu)
+void test_3x2v_p1(bool use_gpu)
 {
   // initialize grid and ranges
   int cdim = 3, vdim = 2;
@@ -92,7 +88,8 @@ test_3x2v_p1(bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -110,7 +107,8 @@ test_3x2v_p1(bool use_gpu)
     .geo_local_ext = confRange_ext,
     .geo_global = confRange,
     .geo_global_ext = confRange_ext,
-    .geo_basis = confBasis };
+    .geo_basis = confBasis
+  };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -132,7 +130,8 @@ test_3x2v_p1(bool use_gpu)
 
   struct gkyl_dg_updater_gyrokinetic *up;
   up = gkyl_dg_updater_gyrokinetic_new(&phaseGrid, &confBasis, &basis, &confRange, &phaseRange,
-    is_zero_flux, 1.0, 1.0, GKYL_GK_COLLISIONLESS_ES, gk_geom, gvm, &aux, use_gpu);
+                                       is_zero_flux, 1.0, 1.0, GKYL_GK_COLLISIONLESS_ES, gk_geom,
+                                       gvm, &aux, use_gpu);
 
   // initialize arrays
   struct gkyl_array *fin, *rhs, *cflrate;
@@ -169,20 +168,18 @@ test_3x2v_p1(bool use_gpu)
   gkyl_dg_updater_gyrokinetic_release(up);
 }
 
-void
-test_gyrokinetic_kern_tm_3x2v_p1_ho()
+void test_gyrokinetic_kern_tm_3x2v_p1_ho()
 {
   test_3x2v_p1(false);
 }
 
-void
-test_gyrokinetic_kern_tm_3x2v_p1_dev()
+void test_gyrokinetic_kern_tm_3x2v_p1_dev()
 {
   test_3x2v_p1(true);
 }
 
 TEST_LIST = { { "test_gyrokinetic_kern_tm_3x2v_p1_ho", test_gyrokinetic_kern_tm_3x2v_p1_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_gyrokinetic_kern_tm_3x2v_p1_dev", test_gyrokinetic_kern_tm_3x2v_p1_dev },
+              { "test_gyrokinetic_kern_tm_3x2v_p1_dev", test_gyrokinetic_kern_tm_3x2v_p1_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

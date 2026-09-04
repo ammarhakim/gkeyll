@@ -56,8 +56,7 @@ struct coldfluid_beach_ctx {
   double omega_drive; // Drive current angular frequency.
 };
 
-struct coldfluid_beach_ctx
-create_ctx(void)
+struct coldfluid_beach_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -87,36 +86,36 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   double deltaT = Lx100 / light_speed; // Arbitrary constant, with units of time.
-  double factor = deltaT * deltaT * charge_elc * charge_elc /
+  double factor =
+    deltaT * deltaT * charge_elc * charge_elc /
     (mass_elc * epsilon0); // Numerical factor for calculation of electron number density.
   double omega_drive = pi / 10.0 / deltaT; // Drive current angular frequency.
 
   struct coldfluid_beach_ctx ctx = { .pi = pi,
-    .gas_gamma = gas_gamma,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .J0 = J0,
-    .light_speed = light_speed,
-    .Nx = Nx,
-    .Lx = Lx,
-    .Lx100 = Lx100,
-    .x_last_edge = x_last_edge,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max,
-    .deltaT = deltaT,
-    .factor = factor,
-    .omega_drive = omega_drive };
+                                     .gas_gamma = gas_gamma,
+                                     .epsilon0 = epsilon0,
+                                     .mu0 = mu0,
+                                     .mass_elc = mass_elc,
+                                     .charge_elc = charge_elc,
+                                     .J0 = J0,
+                                     .light_speed = light_speed,
+                                     .Nx = Nx,
+                                     .Lx = Lx,
+                                     .Lx100 = Lx100,
+                                     .x_last_edge = x_last_edge,
+                                     .cfl_frac = cfl_frac,
+                                     .t_end = t_end,
+                                     .num_frames = num_frames,
+                                     .dt_failure_tol = dt_failure_tol,
+                                     .num_failures_max = num_failures_max,
+                                     .deltaT = deltaT,
+                                     .factor = factor,
+                                     .omega_drive = omega_drive };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct coldfluid_beach_ctx *app = ctx;
@@ -144,8 +143,7 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[3] = 0.0;
 }
 
-void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0;
@@ -158,8 +156,7 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[7] = 0.0;
 }
 
-void
-evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct coldfluid_beach_ctx *app = ctx;
@@ -183,8 +180,7 @@ evalAppCurrent(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT f
   }
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -196,8 +192,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -220,24 +215,24 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *elc_cold = gkyl_wv_coldfluid_new();
 
   struct gkyl_moment_species elc = { .name = "elc",
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
-    .equation = elc_cold,
-    .split_type = GKYL_WAVE_FWAVE,
+                                     .charge = ctx.charge_elc,
+                                     .mass = ctx.mass_elc,
+                                     .equation = elc_cold,
+                                     .split_type = GKYL_WAVE_FWAVE,
 
-    .init = evalElcInit,
-    .ctx = &ctx };
+                                     .init = evalElcInit,
+                                     .ctx = &ctx };
 
   // Field.
   struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .use_explicit_em_coupling = true,
+                                     .mu0 = ctx.mu0,
+                                     .use_explicit_em_coupling = true,
 
-    .init = evalFieldInit,
-    .ctx = &ctx,
-    .app_current = evalAppCurrent,
-    .app_current_ctx = &ctx,
-    .app_current_evolve = true };
+                                     .init = evalFieldInit,
+                                     .ctx = &ctx,
+                                     .app_current = evalAppCurrent,
+                                     .app_current_ctx = &ctx,
+                                     .app_current_evolve = true };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -289,8 +284,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -362,8 +357,8 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                             num_failures_max);
         break;
       }
     } else {

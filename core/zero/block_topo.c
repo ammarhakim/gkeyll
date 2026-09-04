@@ -18,16 +18,14 @@ static const enum gkyl_oriented_edge complimentary_edges[] = {
 
 static const char *block_edge_names[] = { "lower", "upper" };
 
-static void
-block_topo_free(const struct gkyl_ref_count *ref)
+static void block_topo_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_block_topo *btopo = container_of(ref, struct gkyl_block_topo, ref_count);
   gkyl_free(btopo->conn);
   gkyl_free(btopo);
 }
 
-static struct gkyl_msgpack_data *
-btopo_create_mpack(const struct gkyl_block_topo *btopo)
+static struct gkyl_msgpack_data *btopo_create_mpack(const struct gkyl_block_topo *btopo)
 {
   struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof(*mt));
   mt->meta_sz = 0;
@@ -76,8 +74,7 @@ btopo_create_mpack(const struct gkyl_block_topo *btopo)
   return mt;
 }
 
-static void
-btopo_array_meta_release(struct gkyl_msgpack_data *amet)
+static void btopo_array_meta_release(struct gkyl_msgpack_data *amet)
 {
   if (!amet)
     return;
@@ -85,8 +82,7 @@ btopo_array_meta_release(struct gkyl_msgpack_data *amet)
   gkyl_free(amet);
 }
 
-struct gkyl_block_topo *
-gkyl_block_topo_new(int ndim, int nblocks)
+struct gkyl_block_topo *gkyl_block_topo_new(int ndim, int nblocks)
 {
   struct gkyl_block_topo *btopo = gkyl_malloc(sizeof(struct gkyl_block_topo));
   btopo->ndim = ndim;
@@ -98,8 +94,7 @@ gkyl_block_topo_new(int ndim, int nblocks)
   return btopo;
 }
 
-int
-gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo)
+int gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo)
 {
   for (int i = 0; i < btopo->num_blocks; ++i) {
     for (int d = 0; d < btopo->ndim; ++d) {
@@ -133,8 +128,7 @@ gkyl_block_topo_check_consistency(const struct gkyl_block_topo *btopo)
   return 1;
 }
 
-int
-gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
+int gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
 {
   enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
   FILE *fp = 0;
@@ -144,10 +138,10 @@ gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
     struct gkyl_msgpack_data *amet = btopo_create_mpack(btopo);
     if (amet) {
       status = gkyl_header_meta_write_fp(
-        &(struct gkyl_array_header_info){
-          .file_type = gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
-          .meta_size = amet->meta_sz,
-          .meta = amet->meta },
+        &(struct gkyl_array_header_info){ .file_type =
+                                            gkyl_file_type_int[GKYL_BLOCK_TOPO_DATA_FILE],
+                                          .meta_size = amet->meta_sz,
+                                          .meta = amet->meta },
         fp);
       btopo_array_meta_release(amet);
     } else {
@@ -157,8 +151,7 @@ gkyl_block_topo_write(const struct gkyl_block_topo *btopo, const char *fname)
   return status;
 }
 
-struct gkyl_block_topo *
-gkyl_block_topo_read(const char *fname, int *status)
+struct gkyl_block_topo *gkyl_block_topo_read(const char *fname, int *status)
 {
   struct gkyl_block_topo *btopo = 0;
 
@@ -217,15 +210,13 @@ gkyl_block_topo_read(const char *fname, int *status)
   return btopo;
 }
 
-struct gkyl_block_topo *
-gkyl_block_topo_acquire(const struct gkyl_block_topo *btopo)
+struct gkyl_block_topo *gkyl_block_topo_acquire(const struct gkyl_block_topo *btopo)
 {
   gkyl_ref_count_inc(&btopo->ref_count);
   return (struct gkyl_block_topo *)btopo;
 }
 
-void
-gkyl_block_topo_release(struct gkyl_block_topo *btopo)
+void gkyl_block_topo_release(struct gkyl_block_topo *btopo)
 {
   gkyl_ref_count_dec(&btopo->ref_count);
 }

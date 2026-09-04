@@ -12,16 +12,20 @@
 #include <assert.h>
 
 typedef void (*fluid_em_coupling_set_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-  double epsilon0, double dt, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-  const double *app_accel[GKYL_MAX_SPECIES], const double *ext_em, const double *app_current,
-  double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES], double *GKYL_RESTRICT em);
+                                        double epsilon0, double dt, struct gkyl_nmat *A,
+                                        struct gkyl_nmat *rhs,
+                                        const double *app_accel[GKYL_MAX_SPECIES],
+                                        const double *ext_em, const double *app_current,
+                                        double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
+                                        double *GKYL_RESTRICT em);
 
 typedef void (*fluid_em_coupling_copy_t)(int count, int num_species, double qbym[GKYL_MAX_SPECIES],
-  double epsilon0, struct gkyl_nmat *x, double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
-  double *GKYL_RESTRICT em);
+                                         double epsilon0, struct gkyl_nmat *x,
+                                         double *GKYL_RESTRICT fluid[GKYL_MAX_SPECIES],
+                                         double *GKYL_RESTRICT em);
 
-typedef void (*fluid_em_coupling_energy_t)(
-  const double *ke_old, const double *ke_new, double *GKYL_RESTRICT fluid);
+typedef void (*fluid_em_coupling_energy_t)(const double *ke_old, const double *ke_new,
+                                           double *GKYL_RESTRICT fluid);
 
 // for use in kernel tables
 typedef struct {
@@ -36,8 +40,7 @@ typedef struct {
 
 struct gkyl_dg_calc_fluid_em_coupling {
   int cdim; // Configuration space dimensionality
-  int
-    poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
+  int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
   struct gkyl_range mem_range; // Configuration space range for linear solve
 
   struct gkyl_nmat *As, *xs; // matrices for LHS and RHS
@@ -57,22 +60,20 @@ struct gkyl_dg_calc_fluid_em_coupling {
 };
 
 // Set matrices for computing implicit source solve for fluid-em coupling (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_fluid_em_coupling_set_kern_list
-  ser_fluid_em_coupling_set_kernels[] = {
-    { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2,
-      fluid_em_coupling_set_1x_ser_p3 }, // 0
-    { NULL, fluid_em_coupling_set_2x_ser_p1, NULL, NULL }, // 1
-    { NULL, fluid_em_coupling_set_3x_ser_p1, NULL, NULL } // 2
-  };
+GKYL_CU_D static const gkyl_dg_fluid_em_coupling_set_kern_list ser_fluid_em_coupling_set_kernels[] = {
+  { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2,
+    fluid_em_coupling_set_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_set_2x_ser_p1, NULL, NULL }, // 1
+  { NULL, fluid_em_coupling_set_3x_ser_p1, NULL, NULL } // 2
+};
 
 // Set matrices for computing implicit source solve for fluid-em coupling (Tensor kernels)
-GKYL_CU_D static const gkyl_dg_fluid_em_coupling_set_kern_list
-  ten_fluid_em_coupling_set_kernels[] = {
-    { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2,
-      fluid_em_coupling_set_1x_ser_p3 }, // 0
-    { NULL, fluid_em_coupling_set_2x_ser_p1, fluid_em_coupling_set_2x_tensor_p2, NULL }, // 1
-    { NULL, fluid_em_coupling_set_3x_ser_p1, NULL, NULL } // 2
-  };
+GKYL_CU_D static const gkyl_dg_fluid_em_coupling_set_kern_list ten_fluid_em_coupling_set_kernels[] = {
+  { NULL, fluid_em_coupling_set_1x_ser_p1, fluid_em_coupling_set_1x_ser_p2,
+    fluid_em_coupling_set_1x_ser_p3 }, // 0
+  { NULL, fluid_em_coupling_set_2x_ser_p1, fluid_em_coupling_set_2x_tensor_p2, NULL }, // 1
+  { NULL, fluid_em_coupling_set_3x_ser_p1, NULL, NULL } // 2
+};
 
 // Copy solution for implicit source solve for fluid-em coupling (Serendipity kernels)
 GKYL_CU_D static const gkyl_dg_fluid_em_coupling_copy_kern_list

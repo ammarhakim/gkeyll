@@ -53,8 +53,7 @@ struct kh_2d_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct kh_2d_ctx
-create_ctx(void)
+struct kh_2d_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -85,29 +84,28 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct kh_2d_ctx ctx = { .pi = pi,
-    .gas_gamma = gas_gamma,
-    .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
-    .yloc = yloc,
-    .Nx = Nx,
-    .Ny = Ny,
-    .Lx = Lx,
-    .Ly = Ly,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                           .gas_gamma = gas_gamma,
+                           .rhol = rhol,
+                           .ul = ul,
+                           .pl = pl,
+                           .rhor = rhor,
+                           .ur = ur,
+                           .pr = pr,
+                           .yloc = yloc,
+                           .Nx = Nx,
+                           .Ny = Ny,
+                           .Lx = Lx,
+                           .Ly = Ly,
+                           .cfl_frac = cfl_frac,
+                           .t_end = t_end,
+                           .num_frames = num_frames,
+                           .dt_failure_tol = dt_failure_tol,
+                           .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1];
   struct kh_2d_ctx *app = ctx;
@@ -149,9 +147,9 @@ evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   for (int i = 0; i < 16; i++) {
     for (int j = 0; j < 16; j++) {
       vx += alpha * gkyl_pcg64_rand_double(&rng) *
-        sin(i * k * x + j * k * y + 2.0 * pi * gkyl_pcg64_rand_double(&rng));
+            sin(i * k * x + j * k * y + 2.0 * pi * gkyl_pcg64_rand_double(&rng));
       vy += alpha * gkyl_pcg64_rand_double(&rng) *
-        sin(i * k * x + j * k * y + 2.0 * pi * gkyl_pcg64_rand_double(&rng));
+            sin(i * k * x + j * k * y + 2.0 * pi * gkyl_pcg64_rand_double(&rng));
     }
   }
 
@@ -165,8 +163,7 @@ evalEulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[4] = p / (gas_gamma - 1.0) + 0.5 * rho * (vx * vx + vy * vy);
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -178,8 +175,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -203,10 +199,10 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *euler = gkyl_wv_euler_new(ctx.gas_gamma, app_args.use_gpu);
 
   struct gkyl_moment_species fluid = { .name = "euler",
-    .equation = euler,
+                                       .equation = euler,
 
-    .init = evalEulerInit,
-    .ctx = &ctx };
+                                       .init = evalEulerInit,
+                                       .ctx = &ctx };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -257,8 +253,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -280,8 +276,8 @@ main(int argc, char **argv)
     .species = { fluid },
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
+                     .comm = comm }
   };
 
   // Create app object.
@@ -333,8 +329,8 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                             num_failures_max);
         break;
       }
     } else {

@@ -10,8 +10,7 @@
 #include <acutest.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu)
@@ -21,11 +20,11 @@ mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void
-create_lower_dim_objects(int cdim_tar, struct gkyl_rect_grid grid_tar, int poly_order,
-  struct gkyl_rect_grid *grid, struct gkyl_rect_grid *confGrid, struct gkyl_basis *basis,
-  struct gkyl_basis *confBasis, struct gkyl_range *confLocal, struct gkyl_range *confLocal_ext,
-  struct gkyl_range *local, struct gkyl_range *local_ext)
+void create_lower_dim_objects(int cdim_tar, struct gkyl_rect_grid grid_tar, int poly_order,
+                              struct gkyl_rect_grid *grid, struct gkyl_rect_grid *confGrid,
+                              struct gkyl_basis *basis, struct gkyl_basis *confBasis,
+                              struct gkyl_range *confLocal, struct gkyl_range *confLocal_ext,
+                              struct gkyl_range *local, struct gkyl_range *local_ext)
 {
   // Create lower dimensional grid, basis and range based on the target
   // dimensionality and grid.
@@ -89,14 +88,12 @@ struct test_ctx {
   double mu_max; // Maximum mu of the grid.
 };
 
-double
-den_profile_1x(double n0, double z)
+double den_profile_1x(double n0, double z)
 {
   return n0 * (1.0 + 0.3 * cos(2.0 * M_PI * z));
 }
 
-void
-eval_distf_2x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_2x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // This projects a low-dim (1x2v) distribution for the 2x2v test.
   double x = xn[0], vpar = xn[1], mu = xn[2];
@@ -112,11 +109,10 @@ eval_distf_2x2v_low(double t, const double *xn, double *restrict fout, void *ctx
   double den = den_profile_1x(n0, x);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-    exp(-(pow(vpar - upar, 2) + 2.0 * mu * B0 / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * B0 / mass) / (2.0 * vtsq));
 }
 
-void
-test_2x2v(int poly_order, bool use_gpu)
+void test_2x2v(int poly_order, bool use_gpu)
 {
   const int cdim = 2;
   double vpar_max = 6.0;
@@ -177,17 +173,18 @@ test_2x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal_low, confLocal_ext_low;
   struct gkyl_range local_low, local_ext_low;
   create_lower_dim_objects(cdim, grid, poly_order, &grid_low, &confGrid_low, &basis_low,
-    &confBasis_low, &confLocal_low, &confLocal_ext_low, &local_low, &local_ext_low);
+                           &confBasis_low, &confLocal_low, &confLocal_ext_low, &local_low,
+                           &local_ext_low);
 
   // Create donor distribution function arrays.
   struct gkyl_array *distf_low_ho, *distf_low;
   distf_low = mkarr(use_gpu, basis_low.num_basis, local_ext_low.volume);
-  distf_low_ho =
-    use_gpu ? mkarr(false, distf_low->ncomp, distf_low->size) : gkyl_array_acquire(distf_low);
+  distf_low_ho = use_gpu ? mkarr(false, distf_low->ncomp, distf_low->size) :
+                           gkyl_array_acquire(distf_low);
 
   // Project the donor distribution.
-  gkyl_proj_on_basis *proj_distf_low = gkyl_proj_on_basis_new(
-    &grid_low, &basis_low, poly_order + 1, 1, eval_distf_2x2v_low, &proj_ctx);
+  gkyl_proj_on_basis *proj_distf_low = gkyl_proj_on_basis_new(&grid_low, &basis_low, poly_order + 1,
+                                                              1, eval_distf_2x2v_low, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf_low, 0.0, &local_low, distf_low_ho);
   gkyl_array_copy(distf_low, distf_low_ho);
 
@@ -216,8 +213,8 @@ test_2x2v(int poly_order, bool use_gpu)
 
   // How DG coefficients of the higher dim field are mapped to those of the
   // lower dim field. If <0, its amplitude is 0.
-  int dg_map[] = { 0, -1, 1, 2, 3, -1, -1, 4, -1, 5, 6, -1, -1, -1, 7, -1, 8, -1, 9, 10, -1, -1, 11,
-    -1 };
+  int dg_map[] = { 0,  -1, 1, 2,  3, -1, -1, 4,  -1, 5,  6,  -1,
+                   -1, -1, 7, -1, 8, -1, 9,  10, -1, -1, 11, -1 };
 
   // Check coefficients of the higher dimensional field.
   int pidx_do[GKYL_MAX_DIM] = { -1 };
@@ -253,14 +250,12 @@ test_2x2v(int poly_order, bool use_gpu)
   gkyl_array_release(distf_low_ho);
 }
 
-double
-den_profile_2x(double n0, double x, double z)
+double den_profile_2x(double n0, double x, double z)
 {
   return n0 * (1.0 - x) * (1.0 + 0.3 * cos(2.0 * M_PI * z));
 }
 
-void
-eval_distf_3x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_3x2v_low(double t, const double *xn, double *restrict fout, void *ctx)
 {
   // This projects a low-dim (2x2v) distribution for the 3x2v test.
   double x = xn[0], y = xn[1], vpar = xn[2], mu = xn[3];
@@ -276,11 +271,10 @@ eval_distf_3x2v_low(double t, const double *xn, double *restrict fout, void *ctx
   double den = den_profile_2x(n0, x, y);
 
   fout[0] = (den / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-    exp(-(pow(vpar - upar, 2) + 2.0 * mu * B0 / mass) / (2.0 * vtsq));
+            exp(-(pow(vpar - upar, 2) + 2.0 * mu * B0 / mass) / (2.0 * vtsq));
 }
 
-void
-test_3x2v(int poly_order, bool use_gpu)
+void test_3x2v(int poly_order, bool use_gpu)
 {
   const int cdim = 3;
   double vpar_max = 6.0;
@@ -342,17 +336,18 @@ test_3x2v(int poly_order, bool use_gpu)
   struct gkyl_range confLocal_low, confLocal_ext_low;
   struct gkyl_range local_low, local_ext_low;
   create_lower_dim_objects(cdim, grid, poly_order, &grid_low, &confGrid_low, &basis_low,
-    &confBasis_low, &confLocal_low, &confLocal_ext_low, &local_low, &local_ext_low);
+                           &confBasis_low, &confLocal_low, &confLocal_ext_low, &local_low,
+                           &local_ext_low);
 
   // Create donor distribution function arrays.
   struct gkyl_array *distf_low_ho, *distf_low;
   distf_low = mkarr(use_gpu, basis_low.num_basis, local_ext_low.volume);
-  distf_low_ho =
-    use_gpu ? mkarr(false, distf_low->ncomp, distf_low->size) : gkyl_array_acquire(distf_low);
+  distf_low_ho = use_gpu ? mkarr(false, distf_low->ncomp, distf_low->size) :
+                           gkyl_array_acquire(distf_low);
 
   // Project the donor distribution.
-  gkyl_proj_on_basis *proj_distf_low = gkyl_proj_on_basis_new(
-    &grid_low, &basis_low, poly_order + 1, 1, eval_distf_3x2v_low, &proj_ctx);
+  gkyl_proj_on_basis *proj_distf_low = gkyl_proj_on_basis_new(&grid_low, &basis_low, poly_order + 1,
+                                                              1, eval_distf_3x2v_low, &proj_ctx);
   gkyl_proj_on_basis_advance(proj_distf_low, 0.0, &local_low, distf_low_ho);
   gkyl_array_copy(distf_low, distf_low_ho);
 
@@ -381,9 +376,9 @@ test_3x2v(int poly_order, bool use_gpu)
 
   // How DG coefficients of the higher dim field are mapped to those of the
   // lower dim field. If <0, its amplitude is 0.
-  int dg_map[] = { 0, 1, -1, 2, 3, 4, -1, 5, -1, 6, -1, 7, 8, -1, 9, 10, -1, -1, 11, -1, -1, 12, -1,
-    13, -1, 14, -1, -1, -1, 15, -1, -1, 16, 17, -1, 18, 19, -1, 20, -1, 21, -1, 22, -1, -1, 23, -1,
-    -1 };
+  int dg_map[] = { 0,  1,  -1, 2,  3,  4,  -1, 5,  -1, 6,  -1, 7,  8,  -1, 9,  10,
+                   -1, -1, 11, -1, -1, 12, -1, 13, -1, 14, -1, -1, -1, 15, -1, -1,
+                   16, 17, -1, 18, 19, -1, 20, -1, 21, -1, 22, -1, -1, 23, -1, -1 };
 
   // Check coefficients of the higher dimensional field.
   int pidx_do[GKYL_MAX_DIM] = { -1 };
@@ -419,34 +414,30 @@ test_3x2v(int poly_order, bool use_gpu)
   gkyl_array_release(distf_low_ho);
 }
 
-void
-test_translate_dim_2x2v_ho()
+void test_translate_dim_2x2v_ho()
 {
   test_2x2v(1, false);
 }
 
-void
-test_translate_dim_2x2v_dev()
+void test_translate_dim_2x2v_dev()
 {
   test_2x2v(1, true);
 }
 
-void
-test_translate_dim_3x2v_ho()
+void test_translate_dim_3x2v_ho()
 {
   test_3x2v(1, false);
 }
 
-void
-test_translate_dim_3x2v_dev()
+void test_translate_dim_3x2v_dev()
 {
   test_3x2v(1, true);
 }
 
 TEST_LIST = { { "test_translate_dim_2x2v_ho", test_translate_dim_2x2v_ho },
-  { "test_translate_dim_3x2v_ho", test_translate_dim_3x2v_ho },
+              { "test_translate_dim_3x2v_ho", test_translate_dim_3x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_translate_dim_2x2v_dev", test_translate_dim_2x2v_dev },
-  { "test_translate_dim_3x2v_dev", test_translate_dim_3x2v_dev },
+              { "test_translate_dim_2x2v_dev", test_translate_dim_2x2v_dev },
+              { "test_translate_dim_3x2v_dev", test_translate_dim_3x2v_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

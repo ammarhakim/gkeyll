@@ -11,8 +11,7 @@
 // "Choose Kernel" based on cdim and polynomial order
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_diffusion_gen_free(const struct gkyl_ref_count *ref)
+void gkyl_diffusion_gen_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -27,9 +26,8 @@ gkyl_diffusion_gen_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion_gen);
 }
 
-void
-gkyl_diffusion_gen_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gen_auxfields auxin)
+void gkyl_diffusion_gen_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                      struct gkyl_dg_diffusion_gen_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.Dij)) {
@@ -42,9 +40,8 @@ gkyl_diffusion_gen_set_auxfields(
   diffusion_gen->auxfields.Dij = auxin.Dij;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_gen_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_new(const struct gkyl_basis *cbasis,
+                                              const struct gkyl_range *conf_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -122,9 +119,8 @@ gkyl_dg_diffusion_gen_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_gen_cu_dev_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_range *conf_range)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_gen_cu_dev_new(const struct gkyl_basis *cbasis,
+                                                     const struct gkyl_range *conf_range)
 {
   assert(false);
   return 0;

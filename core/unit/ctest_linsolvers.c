@@ -17,8 +17,7 @@ void test_cudss_ops_dev();
 void test_cudss_ops_update_amat_dev();
 void test_cudss_ops_multiple_rhs_dev();
 
-void
-test_slu_example_ho()
+void test_slu_example_ho()
 {
   /*  
  * This is the small 5x5 example used in the Sections 2 and 3 of the 
@@ -130,8 +129,7 @@ test_slu_example_ho()
   StatFree(&stat);
 }
 
-void
-test_superlu_ops(const bool separateLUdecomp)
+void test_superlu_ops(const bool separateLUdecomp)
 {
   /*  
    * Like test_slu_example_ho but using superlu_ops.
@@ -209,20 +207,17 @@ test_superlu_ops(const bool separateLUdecomp)
   gkyl_superlu_prob_release(sluprob);
 }
 
-void
-test_superlu_ops_basic_ho()
+void test_superlu_ops_basic_ho()
 {
   test_superlu_ops(false);
 }
 
-void
-test_superlu_ops_separateLU_ho()
+void test_superlu_ops_separateLU_ho()
 {
   test_superlu_ops(true);
 }
 
-void
-test_superlu_ops_basic_update_amat_ho()
+void test_superlu_ops_basic_update_amat_ho()
 {
   /*  
    * Like test_slu_example_ho but using superlu_ops.
@@ -336,8 +331,7 @@ test_superlu_ops_basic_update_amat_ho()
   gkyl_superlu_prob_release(sluprob);
 }
 
-double
-superlu_test_answer(double s, double u, double p, double e, double r, double l, int idx)
+double superlu_test_answer(double s, double u, double p, double e, double r, double l, int idx)
 {
   // Solution is: [-1/32, 11/168, 3/224, 1/16, 11/336].
   // for a unit RHS vector and
@@ -346,33 +340,32 @@ superlu_test_answer(double s, double u, double p, double e, double r, double l, 
   switch (idx) {
   case 0:
     sol = (e * l * r + e * p * r - l * p * u - e * r * u - p * r * u + p * pow(u, 2)) /
-      (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2));
+          (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2));
     break;
   case 1:
     sol = (r * (-(e * l * p) + e * p * s + e * l * u + l * p * u)) /
-      (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
+          (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
     break;
   case 2:
     sol = -((-(e * pow(l, 2) * r) + e * l * r * s + pow(l, 2) * r * u - e * r * s * u +
-              pow(l, 2) * pow(u, 2) - l * pow(u, 3)) /
-      (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2))));
+             pow(l, 2) * pow(u, 2) - l * pow(u, 3)) /
+            (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2))));
     break;
   case 3:
     sol = (-(pow(l, 2) * p) + pow(l, 2) * r + l * p * s + p * r * s + pow(l, 2) * u + l * p * u -
-            p * s * u - l * pow(u, 2)) /
-      (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2));
+           p * s * u - l * pow(u, 2)) /
+          (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2));
     break;
   case 4:
     sol = (e * pow(l, 2) * p - e * l * p * s - e * pow(l, 2) * u - e * l * p * u -
-            pow(l, 2) * p * u + e * p * s * u + e * l * pow(u, 2) + l * p * pow(u, 2)) /
-      (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
+           pow(l, 2) * p * u + e * p * s * u + e * l * pow(u, 2) + l * p * pow(u, 2)) /
+          (u * (e * pow(l, 2) * r + e * p * r * s - pow(l, 2) * p * u + l * p * pow(u, 2)));
     break;
   }
   return sol;
 };
 
-void
-test_superlu_ops_multiple_prob_ho()
+void test_superlu_ops_multiple_prob_ho()
 {
   double s, u, p, e, r, l;
   int nprob, m, n;
@@ -447,14 +440,13 @@ test_superlu_ops_multiple_prob_ho()
     l = 12.0 * (k + 1) / nprob;
     for (int i = 0; i < m; i++)
       TEST_CHECK(gkyl_compare_double(superlu_test_answer(s, u, p, e, r, l, i),
-        gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
+                                     gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
   }
 
   gkyl_superlu_prob_release(prob);
 }
 
-void
-test_superlu_ops_multiple_prob_update_amat_ho()
+void test_superlu_ops_multiple_prob_update_amat_ho()
 {
   double s, u, p, e, r, l;
   int nprob, m, n;
@@ -525,7 +517,7 @@ test_superlu_ops_multiple_prob_update_amat_ho()
     l = 12.0 * (k + 1) / nprob;
     for (int i = 0; i < m; i++)
       TEST_CHECK(gkyl_compare_double(superlu_test_answer(s, u, p, e, r, l, i),
-        gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
+                                     gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
   }
 
   // Now update the LHS matrix. Multiply it by a constant, and multiply the RHS
@@ -589,7 +581,7 @@ test_superlu_ops_multiple_prob_update_amat_ho()
     l = fac * 12.0 * (k + 1) / nprob;
     for (int i = 0; i < m; i++)
       TEST_CHECK(gkyl_compare_double(superlu_test_answer(s, u, p, e, r, l, i),
-        gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
+                                     gkyl_superlu_get_rhs_lin(prob, k * m + i), 1e-10));
   }
 
   gkyl_free(prob_fac_per_rhs);
@@ -602,21 +594,24 @@ test_superlu_ops_multiple_prob_update_amat_ho()
 }
 
 TEST_LIST = { { "slu_example_ho", test_slu_example_ho },
-  { "superlu_ops_basic_ho", test_superlu_ops_basic_ho },
-  { "superlu_ops_basic_update_amat_ho", test_superlu_ops_basic_update_amat_ho },
-  { "superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho },
-  { "superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho },
-  { "superlu_ops_multiple_prob_update_amat_ho", test_superlu_ops_multiple_prob_update_amat_ho },
+              { "superlu_ops_basic_ho", test_superlu_ops_basic_ho },
+              { "superlu_ops_basic_update_amat_ho", test_superlu_ops_basic_update_amat_ho },
+              { "superlu_ops_separateLU_ho", test_superlu_ops_separateLU_ho },
+              { "superlu_ops_multiple_prob_ho", test_superlu_ops_multiple_prob_ho },
+              { "superlu_ops_multiple_prob_update_amat_ho",
+                test_superlu_ops_multiple_prob_update_amat_ho },
 #ifdef GKYL_HAVE_CUDA
 #ifdef GKYL_HAVE_CUDSS
-  { "cudss_simple_dev", test_cudss_simple_dev }, { "cudss_ops_dev", test_cudss_ops_dev },
-  { "cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev },
-  { "cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev },
+              { "cudss_simple_dev", test_cudss_simple_dev },
+              { "cudss_ops_dev", test_cudss_ops_dev },
+              { "cudss_ops_update_amat_dev", test_cudss_ops_update_amat_dev },
+              { "cudss_ops_multiple_rhs_dev", test_cudss_ops_multiple_rhs_dev },
 #else
-  { "cusolver_qr_dev", test_cusolver_qr_dev }, { "cusolver_rf_dev", test_cusolver_rf_dev },
-  { "cusolver_ops_dev", test_cusolver_ops_dev },
-  { "cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev },
-  { "cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev },
+              { "cusolver_qr_dev", test_cusolver_qr_dev },
+              { "cusolver_rf_dev", test_cusolver_rf_dev },
+              { "cusolver_ops_dev", test_cusolver_ops_dev },
+              { "cusolver_ops_multiple_rhs_dev", test_cusolver_ops_multiple_rhs_dev },
+              { "cusolver_ops_multiple_prob_dev", test_cusolver_ops_multiple_prob_dev },
 #endif
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

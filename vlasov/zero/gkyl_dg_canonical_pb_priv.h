@@ -10,28 +10,32 @@
 #include <gkyl_util.h>
 
 // Types for various kernels
-typedef double (*canonical_pb_stream_surf_t)(const double *w, const double *dxv,
-  const double *hamil, const double *alpha_surf_edge, const double *alpha_surf_skin,
-  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin,
-  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, const double *fl,
-  const double *fc, const double *fr, double *GKYL_RESTRICT out);
+typedef double (*canonical_pb_stream_surf_t)(
+  const double *w, const double *dxv, const double *hamil, const double *alpha_surf_edge,
+  const double *alpha_surf_skin, const double *sgn_alpha_surf_edge,
+  const double *sgn_alpha_surf_skin, const int *const_sgn_alpha_edge,
+  const int *const_sgn_alpha_skin, const double *fl, const double *fc, const double *fr,
+  double *GKYL_RESTRICT out);
 
-typedef double (*canonical_pb_accel_surf_t)(const double *w, const double *dxv, const double *hamil,
-  const double *alpha_surf_l, const double *alpha_surf_r, const double *sgn_alpha_surf_l,
-  const double *sgn_alpha_surf_r, const int *const_sgn_alpha_l, const int *const_sgn_alpha_r,
-  const double *fl, const double *fc, const double *fr, double *GKYL_RESTRICT out);
+typedef double (*canonical_pb_accel_surf_t)(
+  const double *w, const double *dxv, const double *hamil, const double *alpha_surf_l,
+  const double *alpha_surf_r, const double *sgn_alpha_surf_l, const double *sgn_alpha_surf_r,
+  const int *const_sgn_alpha_l, const int *const_sgn_alpha_r, const double *fl, const double *fc,
+  const double *fr, double *GKYL_RESTRICT out);
 
-typedef double (*canonical_pb_accel_boundary_surf_t)(const double *w, const double *dxv,
-  const double *hamil, const double *alpha_surf_edge, const double *alpha_surf_skin,
-  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin,
-  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, const int edge,
-  const double *fedge, const double *fskin, double *GKYL_RESTRICT out);
+typedef double (*canonical_pb_accel_boundary_surf_t)(
+  const double *w, const double *dxv, const double *hamil, const double *alpha_surf_edge,
+  const double *alpha_surf_skin, const double *sgn_alpha_surf_edge,
+  const double *sgn_alpha_surf_skin, const int *const_sgn_alpha_edge,
+  const int *const_sgn_alpha_skin, const int edge, const double *fedge, const double *fskin,
+  double *GKYL_RESTRICT out);
 
-typedef double (*canonical_pb_stream_boundary_surf_t)(const double *w, const double *dxv,
-  const double *hamil, const double *alpha_surf_edge, const double *alpha_surf_skin,
-  const double *sgn_alpha_surf_edge, const double *sgn_alpha_surf_skin,
-  const int *const_sgn_alpha_edge, const int *const_sgn_alpha_skin, const int edge,
-  const double *fedge, const double *fskin, double *GKYL_RESTRICT out);
+typedef double (*canonical_pb_stream_boundary_surf_t)(
+  const double *w, const double *dxv, const double *hamil, const double *alpha_surf_edge,
+  const double *alpha_surf_skin, const double *sgn_alpha_surf_edge,
+  const double *sgn_alpha_surf_skin, const int *const_sgn_alpha_edge,
+  const int *const_sgn_alpha_skin, const int edge, const double *fedge, const double *fskin,
+  double *GKYL_RESTRICT out);
 
 // for use in kernel tables
 typedef struct {
@@ -80,9 +84,10 @@ static struct {
 // Need to be separated like this for GPU build
 //
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -91,9 +96,10 @@ kernel_canonical_pb_vol_1x1v_ser_p1(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -102,9 +108,10 @@ kernel_canonical_pb_vol_1x1v_ser_p2(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -113,9 +120,10 @@ kernel_canonical_pb_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -124,9 +132,10 @@ kernel_canonical_pb_vol_1x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -135,9 +144,10 @@ kernel_canonical_pb_vol_1x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -146,9 +156,10 @@ kernel_canonical_pb_vol_1x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -157,9 +168,10 @@ kernel_canonical_pb_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -168,9 +180,10 @@ kernel_canonical_pb_vol_2x2v_ser_p2(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -179,9 +192,10 @@ kernel_canonical_pb_vol_2x3v_ser_p1(const struct gkyl_dg_eqn *eqn, const double 
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_2x3v_ser_p2(const struct gkyl_dg_eqn *eqn,
+                                                             const double *xc, const double *dx,
+                                                             const int *idx, const double *qIn,
+                                                             double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -385,9 +399,10 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
 // Need to be separated like this for GPU build
 //
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x1v_tensor_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x1v_tensor_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -396,9 +411,10 @@ kernel_canonical_pb_vol_1x1v_tensor_p1(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x1v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x1v_tensor_p2(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -407,9 +423,10 @@ kernel_canonical_pb_vol_1x1v_tensor_p2(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x2v_tensor_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x2v_tensor_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -418,9 +435,10 @@ kernel_canonical_pb_vol_1x2v_tensor_p1(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x2v_tensor_p2(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -429,9 +447,10 @@ kernel_canonical_pb_vol_1x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x3v_tensor_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x3v_tensor_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -440,9 +459,10 @@ kernel_canonical_pb_vol_1x3v_tensor_p1(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_1x3v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_1x3v_tensor_p2(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -451,9 +471,10 @@ kernel_canonical_pb_vol_1x3v_tensor_p2(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x2v_tensor_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_2x2v_tensor_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -462,9 +483,10 @@ kernel_canonical_pb_vol_2x2v_tensor_p1(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_2x2v_tensor_p2(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -473,9 +495,10 @@ kernel_canonical_pb_vol_2x2v_tensor_p2(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_2x3v_tensor_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_2x3v_tensor_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -484,9 +507,10 @@ kernel_canonical_pb_vol_2x3v_tensor_p1(const struct gkyl_dg_eqn *eqn, const doub
     xc, dx, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_canonical_pb_vol_3x3v_tensor_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_canonical_pb_vol_3x3v_tensor_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   long pidx = gkyl_range_idx(&canonical_pb->phase_range, idx);
@@ -697,11 +721,11 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_stream_boundary_surf_kern_list
  */
 void gkyl_canonical_pb_free(const struct gkyl_ref_count *ref);
 
-GKYL_CU_D static double
-surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC,
-  const double *xcR, const double *dxL, const double *dxC, const double *dxR, const int *idxL,
-  const int *idxC, const int *idxR, const double *qInL, const double *qInC, const double *qInR,
-  double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL,
+                             const double *xcC, const double *xcR, const double *dxL,
+                             const double *dxC, const double *dxR, const int *idxL, const int *idxC,
+                             const int *idxR, const double *qInL, const double *qInC,
+                             const double *qInR, double *GKYL_RESTRICT qRhsOut)
 {
   // Each cell owns the *lower* edge surface alpha
   // Since alpha is continuous, fetch alpha_surf in center cell for lower edge
@@ -710,8 +734,8 @@ surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xc
   long pidxC = gkyl_range_idx(&canonical_pb->phase_range, idxC);
   long pidxR = gkyl_range_idx(&canonical_pb->phase_range, idxR);
   if (dir < canonical_pb->cdim) {
-    return canonical_pb->stream_surf[dir](xcC, dxC,
-      (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
+    return canonical_pb->stream_surf[dir](
+      xcC, dxC, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxC),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxR),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxC),
@@ -720,8 +744,8 @@ surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xc
       (const int *)gkyl_array_cfetch(canonical_pb->auxfields.const_sgn_alpha, pidxR), qInL, qInC,
       qInR, qRhsOut);
   } else {
-    return canonical_pb->accel_surf[dir - canonical_pb->cdim](xcC, dxC,
-      (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
+    return canonical_pb->accel_surf[dir - canonical_pb->cdim](
+      xcC, dxC, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxC),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxC),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxR),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxC),
@@ -733,18 +757,19 @@ surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xc
   return 0.;
 }
 
-GKYL_CU_D static double
-boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
-  const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
-  const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge,
+                                      const double *xcSkin, const double *dxEdge,
+                                      const double *dxSkin, const int *idxEdge, const int *idxSkin,
+                                      const int edge, const double *qInEdge, const double *qInSkin,
+                                      double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_canonical_pb *canonical_pb = container_of(eqn, struct dg_canonical_pb, eqn);
   if (dir < canonical_pb->cdim) {
     // Each cell owns the *lower* edge surface alpha
     long pidxEdge = gkyl_range_idx(&canonical_pb->phase_range, idxEdge);
     long pidxSkin = gkyl_range_idx(&canonical_pb->phase_range, idxSkin);
-    return canonical_pb->stream_boundary_surf[dir](xcSkin, dxSkin,
-      (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxSkin),
+    return canonical_pb->stream_boundary_surf[dir](
+      xcSkin, dxSkin, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxSkin),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxEdge),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxSkin),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxEdge),
@@ -757,8 +782,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, cons
     // Each cell owns the *lower* edge surface alpha
     long pidxEdge = gkyl_range_idx(&canonical_pb->phase_range, idxEdge);
     long pidxSkin = gkyl_range_idx(&canonical_pb->phase_range, idxSkin);
-    return canonical_pb->accel_boundary_surf[dir - canonical_pb->cdim](xcSkin, dxSkin,
-      (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxSkin),
+    return canonical_pb->accel_boundary_surf[dir - canonical_pb->cdim](
+      xcSkin, dxSkin, (const double *)gkyl_array_cfetch(canonical_pb->auxfields.hamil, pidxSkin),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxEdge),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.alpha_surf, pidxSkin),
       (const double *)gkyl_array_cfetch(canonical_pb->auxfields.sgn_alpha_surf, pidxEdge),
@@ -770,11 +795,12 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, cons
   return 0.;
 }
 
-GKYL_CU_D static double
-boundary_diag(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
-  const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
-  const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_D static double boundary_diag(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge,
+                                      const double *xcSkin, const double *dxEdge,
+                                      const double *dxSkin, const int *idxEdge, const int *idxSkin,
+                                      const int edge, const double *qInEdge, const double *qInSkin,
+                                      double *GKYL_RESTRICT qRhsOut)
 {
-  return boundary_surf(
-    eqn, dir, xcEdge, xcSkin, dxEdge, dxSkin, idxEdge, idxSkin, edge, qInEdge, qInSkin, qRhsOut);
+  return boundary_surf(eqn, dir, xcEdge, xcSkin, dxEdge, dxSkin, idxEdge, idxSkin, edge, qInEdge,
+                       qInSkin, qRhsOut);
 }

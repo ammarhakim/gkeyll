@@ -3,8 +3,7 @@
 // Take time-step using the RK3 method. Also sets the status object
 // which has the actual and suggested dts used. These can be different
 // from the actual time-step.
-struct gkyl_update_status
-vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
+struct gkyl_update_status vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
 {
   int ns = app->num_species;
   int nfs = app->num_fluid_species;
@@ -71,7 +70,7 @@ vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
         } else {
           for (int i = 0; i < ns; ++i)
             array_combine(app->species[i].f1, 3.0 / 4.0, app->species[i].f, 1.0 / 4.0,
-              app->species[i].fnew, &app->species[i].local_ext);
+                          app->species[i].fnew, &app->species[i].local_ext);
 
           // Compute the fields and apply BCs.
           for (int i = 0; i < ns; ++i) {
@@ -116,9 +115,9 @@ vlasov_poisson_update_ssp_rk3(gkyl_vlasov_app *app, double dt0)
         } else {
           for (int i = 0; i < ns; ++i) {
             array_combine(app->species[i].f1, 1.0 / 3.0, app->species[i].f, 2.0 / 3.0,
-              app->species[i].fnew, &app->species[i].local_ext);
-            gkyl_array_copy_range(
-              app->species[i].f, app->species[i].f1, &app->species[i].local_ext);
+                          app->species[i].fnew, &app->species[i].local_ext);
+            gkyl_array_copy_range(app->species[i].f, app->species[i].f1,
+                                  &app->species[i].local_ext);
           }
 
           // Compute the fields and apply BCs

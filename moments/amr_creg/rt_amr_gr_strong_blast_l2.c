@@ -38,8 +38,7 @@ struct amr_gr_strong_blast_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct amr_gr_strong_blast_ctx
-create_ctx(void)
+struct amr_gr_strong_blast_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double gas_gamma = 5.0 / 3.0; // Adiabatic index.
@@ -70,30 +69,30 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct amr_gr_strong_blast_ctx ctx = { .gas_gamma = gas_gamma,
-    .rhol = rhol,
-    .ul = ul,
-    .pl = pl,
-    .rhor = rhor,
-    .ur = ur,
-    .pr = pr,
-    .spacetime = spacetime,
-    .Nx = Nx,
-    .ref_factor1 = ref_factor1,
-    .ref_factor2 = ref_factor2,
-    .Lx = Lx,
-    .intermediate_Lx = intermediate_Lx,
-    .fine_Lx = fine_Lx,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                                         .rhol = rhol,
+                                         .ul = ul,
+                                         .pl = pl,
+                                         .rhor = rhor,
+                                         .ur = ur,
+                                         .pr = pr,
+                                         .spacetime = spacetime,
+                                         .Nx = Nx,
+                                         .ref_factor1 = ref_factor1,
+                                         .ref_factor2 = ref_factor2,
+                                         .Lx = Lx,
+                                         .intermediate_Lx = intermediate_Lx,
+                                         .fine_Lx = fine_Lx,
+                                         .cfl_frac = cfl_frac,
+                                         .t_end = t_end,
+                                         .num_frames = num_frames,
+                                         .dt_failure_tol = dt_failure_tol,
+                                         .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
+                     void *ctx)
 {
   double x = xn[0];
   struct amr_gr_strong_blast_ctx new_ctx = create_ctx(); // Context for initialization functions.
@@ -228,12 +227,12 @@ evalGREulerInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT 
   gkyl_free(vel);
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct amr_gr_strong_blast_ctx ctx = create_ctx(); // Context for initialization functions.
 
-  struct gr_euler1d_double_init init = { .base_Nx = ctx.Nx,
+  struct gr_euler1d_double_init init = {
+    .base_Nx = ctx.Nx,
     .ref_factor1 = ctx.ref_factor1,
     .ref_factor2 = ctx.ref_factor2,
 
@@ -258,7 +257,8 @@ main(int argc, char **argv)
     .t_end = ctx.t_end,
     .num_frames = ctx.num_frames,
     .dt_failure_tol = ctx.dt_failure_tol,
-    .num_failures_max = ctx.num_failures_max };
+    .num_failures_max = ctx.num_failures_max
+  };
 
   gr_euler1d_run_double(argc, argv, &init);
 }

@@ -16,23 +16,21 @@
 double eval_f(const double *phi, double x, double y, double z, int cdim);
 
 // Function to allocate a gkyl array, zero-initialized, on CPU or GPU
-static struct gkyl_array *
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
-  return on_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size)
-                : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  return on_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                  gkyl_array_new(GKYL_DOUBLE, nc, size);
 }
 
 // Analytical field evaluation function, setting field to zero
-void
-eval_field(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_field(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
 // Function to set up and test the ghost-to-skin surface copy updater
-void
-test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir, bool control)
+void test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int dir,
+               bool control)
 {
   double lower[cdim], upper[cdim];
   int cells[cdim];
@@ -178,8 +176,7 @@ test_ssfg(int cdim, int poly_order, bool use_gpu, enum gkyl_edge_loc edge, int d
 }
 
 // Tests for 3D case on CPU
-void
-test_ssfg_ho()
+void test_ssfg_ho()
 {
   bool use_gpu = false;
   int poly_order = 1;
@@ -194,8 +191,7 @@ test_ssfg_ho()
 }
 
 // Tests for 3D case on GPU (if available)
-void
-test_ssfg_dev()
+void test_ssfg_dev()
 {
   int poly_order = 1;
   bool use_gpu = true;
@@ -210,8 +206,7 @@ test_ssfg_dev()
 }
 
 // Evaluate the projection of the modal representation inside a cell from 1x to 3x
-double
-eval_f(const double *phi, const double x, const double y, const double z, const int cdim)
+double eval_f(const double *phi, const double x, const double y, const double z, const int cdim)
 {
   double sqrt2 = sqrt(2.0);
   double sqrt3 = sqrt(3.0);
@@ -221,11 +216,12 @@ eval_f(const double *phi, const double x, const double y, const double z, const 
     return (sqrt3 * phi[1] * x) / sqrt2 + phi[0] / sqrt2;
   case 2:
     return (3 * phi[3] * x * y) / 2.0 + (sqrt3 * phi[2] * y) / 2.0 + (sqrt3 * phi[1] * x) / 2.0 +
-      phi[0] / 2.0;
+           phi[0] / 2.0;
   case 3:
     return (pow(3.0, 1.5) * phi[7] * x * y * z) / denom + (3 * phi[6] * y * z) / denom +
-      (3 * phi[5] * x * z) / denom + (sqrt3 * phi[3] * z) / denom + (3 * phi[4] * x * y) / denom +
-      (sqrt3 * phi[2] * y) / denom + (sqrt3 * phi[1] * x) / denom + phi[0] / denom;
+           (3 * phi[5] * x * z) / denom + (sqrt3 * phi[3] * z) / denom +
+           (3 * phi[4] * x * y) / denom + (sqrt3 * phi[2] * y) / denom +
+           (sqrt3 * phi[1] * x) / denom + phi[0] / denom;
   default:
     fprintf(stderr, "Invalid cdim value: %d. Must be 0, 1, or 2.\n", cdim);
     return 0.0;
@@ -235,6 +231,6 @@ eval_f(const double *phi, const double x, const double y, const double z, const 
 // List of tests for the test framework
 TEST_LIST = { { "test_ssfg_ho", test_ssfg_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_ssfg_dev", test_ssfg_dev },
+              { "test_ssfg_dev", test_ssfg_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

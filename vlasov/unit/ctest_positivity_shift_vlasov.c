@@ -13,8 +13,7 @@
 #include <acutest.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu)
@@ -35,8 +34,7 @@ struct test_ctx {
   double vy_max; // Maximum vy of the grid.
 };
 
-void
-eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0], vy = xn[1], vx = xn[2];
 
@@ -49,15 +47,14 @@ eval_distf_1x2v(double t, const double *xn, double *restrict fout, void *ctx)
   int vdim = tctx->vdim;
 
   fout[0] = (n0 / pow(2.0 * M_PI * vtsq, vdim / 2.0)) *
-    exp(-(pow(vx - ux, 2) + pow(vy - uy, 2)) / (2.0 * vtsq));
+            exp(-(pow(vx - ux, 2) + pow(vy - uy, 2)) / (2.0 * vtsq));
 
   // Intentionally set some places to be negative.
   if (fabs(vx) > 0.8 * tctx->vx_max || fabs(vy) > 0.8 * tctx->vy_max)
     fout[0] = -0.2 * (n0 / pow(2.0 * M_PI * vtsq, vdim / 2.0));
 }
 
-void
-test_1x2v(int poly_order, bool use_gpu)
+void test_1x2v(int poly_order, bool use_gpu)
 {
   int cdim = 1;
   double vx_max = 6.0, vy_max = 6.0;
@@ -231,17 +228,17 @@ test_1x2v(int poly_order, bool use_gpu)
 
   // Check the integrated moments.
   TEST_CHECK(gkyl_compare(intmom_shift[0], -4.22405166400353e-16, 1e-10));
-  TEST_MSG(
-    "intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0], -4.22405166400353e-16);
+  TEST_MSG("intmom_shift[0]: produced: %.14e | expected: %.14e", intmom_shift[0],
+           -4.22405166400353e-16);
   TEST_CHECK(gkyl_compare(intmom_shift[1], 4.16333634234434e-16, 1e-10));
-  TEST_MSG(
-    "intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1], 4.16333634234434e-16);
+  TEST_MSG("intmom_shift[1]: produced: %.14e | expected: %.14e", intmom_shift[1],
+           4.16333634234434e-16);
   TEST_CHECK(gkyl_compare(intmom_shift[2], 1.38777878078145e-17, 1e-10));
-  TEST_MSG(
-    "intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2], 1.38777878078145e-17);
+  TEST_MSG("intmom_shift[2]: produced: %.14e | expected: %.14e", intmom_shift[2],
+           1.38777878078145e-17);
   TEST_CHECK(gkyl_compare(intmom_shift[3], 2.09905432920501e+01, 1e-10));
-  TEST_MSG(
-    "intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3], 2.09905432920501e+01);
+  TEST_MSG("intmom_shift[3]: produced: %.14e | expected: %.14e", intmom_shift[3],
+           2.09905432920501e+01);
 
   gkyl_array_release(distf);
   gkyl_array_release(deltaf);
@@ -263,20 +260,18 @@ test_1x2v(int poly_order, bool use_gpu)
   gkyl_positivity_shift_vlasov_release(pos_shift);
 }
 
-void
-test_positivity_shift_vlasov_1x2v_ho()
+void test_positivity_shift_vlasov_1x2v_ho()
 {
   test_1x2v(1, false);
 }
 
-void
-test_positivity_shift_vlasov_1x2v_dev()
+void test_positivity_shift_vlasov_1x2v_dev()
 {
   test_1x2v(1, true);
 }
 
 TEST_LIST = { { "test_positivity_shift_vlasov_1x2v_ho", test_positivity_shift_vlasov_1x2v_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev },
+              { "test_positivity_shift_vlasov_1x2v_dev", test_positivity_shift_vlasov_1x2v_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

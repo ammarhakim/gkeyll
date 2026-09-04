@@ -9,8 +9,7 @@
 #include <gkyl_prim_lbo_vlasov_priv.h>
 #include <gkyl_util.h>
 
-void
-prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
+void prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_prim_lbo_type *prim_ty = container_of(ref, struct gkyl_prim_lbo_type, ref_count);
   if (GKYL_IS_CU_ALLOC(prim_ty->flag))
@@ -20,9 +19,8 @@ prim_lbo_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(vlasov);
 }
 
-struct gkyl_prim_lbo_type *
-gkyl_prim_lbo_vlasov_new(
-  const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis, bool use_gpu)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_vlasov_new(const struct gkyl_basis *cbasis,
+                                                    const struct gkyl_basis *pbasis, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 #ifdef GKYL_HAVE_CUDA
@@ -74,8 +72,8 @@ gkyl_prim_lbo_vlasov_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_prim_lbo_type *
-gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis)
+struct gkyl_prim_lbo_type *gkyl_prim_lbo_vlasov_cu_dev_new(const struct gkyl_basis *cbasis,
+                                                           const struct gkyl_basis *pbasis)
 {
   assert(false);
   return 0;

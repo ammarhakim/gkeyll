@@ -8,10 +8,10 @@ extern "C" {
 }
 
 // CUDA kernel to set device pointers to kernels.
-__global__ static void
-gkyl_trans_dim_set_cu_ker_ptrs(struct gkyl_translate_dim_kernels *kernels, int cdim_do,
-  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir,
-  enum gkyl_edge_loc edge)
+__global__ static void gkyl_trans_dim_set_cu_ker_ptrs(struct gkyl_translate_dim_kernels *kernels,
+                                                      int cdim_do, struct gkyl_basis basis_do,
+                                                      int cdim_tar, struct gkyl_basis basis_tar,
+                                                      int dir, enum gkyl_edge_loc edge)
 {
   enum gkyl_basis_type basis_type = basis_tar.b_type;
   int poly_order = basis_tar.poly_order;
@@ -57,20 +57,19 @@ gkyl_trans_dim_set_cu_ker_ptrs(struct gkyl_translate_dim_kernels *kernels, int c
   }
 };
 
-void
-trans_dim_choose_kernel_cu(struct gkyl_translate_dim_kernels *kernels, int cdim_do,
-  struct gkyl_basis basis_do, int cdim_tar, struct gkyl_basis basis_tar, int dir,
-  enum gkyl_edge_loc edge)
+void trans_dim_choose_kernel_cu(struct gkyl_translate_dim_kernels *kernels, int cdim_do,
+                                struct gkyl_basis basis_do, int cdim_tar,
+                                struct gkyl_basis basis_tar, int dir, enum gkyl_edge_loc edge)
 {
-  gkyl_trans_dim_set_cu_ker_ptrs<<<1, 1>>>(
-    kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir, edge);
+  gkyl_trans_dim_set_cu_ker_ptrs<<<1, 1> > >(kernels, cdim_do, basis_do, cdim_tar, basis_tar, dir,
+                                             edge);
 }
 
-__global__ static void
-gkyl_translate_dim_advance_cu_ker(int cdim_do, int cdim_tar, int vdim_do, int vdim_tar,
-  int num_basis_do, int num_basis_tar, int dir, struct gkyl_translate_dim_kernels *kernels,
-  const struct gkyl_range rng_do, const struct gkyl_range rng_tar,
-  const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp, struct gkyl_array *GKYL_RESTRICT ftar)
+__global__ static void gkyl_translate_dim_advance_cu_ker(
+  int cdim_do, int cdim_tar, int vdim_do, int vdim_tar, int num_basis_do, int num_basis_tar,
+  int dir, struct gkyl_translate_dim_kernels *kernels, const struct gkyl_range rng_do,
+  const struct gkyl_range rng_tar, const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
+  struct gkyl_array *GKYL_RESTRICT ftar)
 {
   int idx_do[GKYL_MAX_DIM] = { 0 };
   int idx_tar[GKYL_MAX_DIM] = { 0 };
@@ -94,14 +93,14 @@ gkyl_translate_dim_advance_cu_ker(int cdim_do, int cdim_tar, int vdim_do, int vd
   }
 }
 
-void
-gkyl_translate_dim_advance_cu(gkyl_translate_dim *up, const struct gkyl_range *rng_do,
-  const struct gkyl_range *rng_tar, const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
-  struct gkyl_array *GKYL_RESTRICT ftar)
+void gkyl_translate_dim_advance_cu(gkyl_translate_dim *up, const struct gkyl_range *rng_do,
+                                   const struct gkyl_range *rng_tar,
+                                   const struct gkyl_array *GKYL_RESTRICT fdo, int ncomp,
+                                   struct gkyl_array *GKYL_RESTRICT ftar)
 {
   int nblocks = rng_tar->nblocks, nthreads = rng_tar->nthreads;
 
-  gkyl_translate_dim_advance_cu_ker<<<nblocks, nthreads>>>(up->cdim_do, up->cdim_tar, up->vdim_do,
-    up->vdim_tar, up->num_basis_do, up->num_basis_tar, up->dir, up->kernels, *rng_do, *rng_tar,
-    fdo->on_dev, ncomp, ftar->on_dev);
+  gkyl_translate_dim_advance_cu_ker<<<nblocks, nthreads> > >(
+    up->cdim_do, up->cdim_tar, up->vdim_do, up->vdim_tar, up->num_basis_do, up->num_basis_tar,
+    up->dir, up->kernels, *rng_do, *rng_tar, fdo->on_dev, ncomp, ftar->on_dev);
 }

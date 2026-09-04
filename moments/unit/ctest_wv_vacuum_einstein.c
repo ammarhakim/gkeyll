@@ -6,8 +6,7 @@
 #include <gkyl_gr_minkowski.h>
 #include <gkyl_gr_blackhole.h>
 
-void
-test_vacuum_einstein_basic_minkowski_ho()
+void test_vacuum_einstein_basic_minkowski_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_HARMONIC_SLICING;
@@ -63,14 +62,16 @@ test_vacuum_einstein_basic_minkowski_ho()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+                                                 pow(10.0, -8.0), pow(10.0, -8.0),
+                                                 &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
+                                       pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -322,68 +323,132 @@ test_vacuum_einstein_basic_minkowski_ho()
         }
       }
 
-      double fluxes[3][42] = {
-        { extrinsic_curvature_flux[0][0][0], extrinsic_curvature_flux[0][0][1],
-          extrinsic_curvature_flux[0][0][2], extrinsic_curvature_flux[0][1][0],
-          extrinsic_curvature_flux[0][1][1], extrinsic_curvature_flux[0][1][2],
-          extrinsic_curvature_flux[0][2][0], extrinsic_curvature_flux[0][2][1],
-          extrinsic_curvature_flux[0][2][2], spatial_metric_der_flux[0][0][0][0],
-          spatial_metric_der_flux[0][0][0][1], spatial_metric_der_flux[0][0][0][2],
-          spatial_metric_der_flux[0][0][1][0], spatial_metric_der_flux[0][0][1][1],
-          spatial_metric_der_flux[0][0][1][2], spatial_metric_der_flux[0][0][2][0],
-          spatial_metric_der_flux[0][0][2][1], spatial_metric_der_flux[0][0][2][2],
-          spatial_metric_der_flux[0][1][0][0], spatial_metric_der_flux[0][1][0][1],
-          spatial_metric_der_flux[0][1][0][2], spatial_metric_der_flux[0][1][1][0],
-          spatial_metric_der_flux[0][1][1][1], spatial_metric_der_flux[0][1][1][2],
-          spatial_metric_der_flux[0][1][2][0], spatial_metric_der_flux[0][1][2][1],
-          spatial_metric_der_flux[0][1][2][2], spatial_metric_der_flux[0][2][0][0],
-          spatial_metric_der_flux[0][2][0][1], spatial_metric_der_flux[0][2][0][2],
-          spatial_metric_der_flux[0][2][1][0], spatial_metric_der_flux[0][2][1][1],
-          spatial_metric_der_flux[0][2][1][2], spatial_metric_der_flux[0][2][2][0],
-          spatial_metric_der_flux[0][2][2][1], spatial_metric_der_flux[0][2][2][2],
-          lapse_der_flux[0][0], lapse_der_flux[0][1], lapse_der_flux[0][2], aux_vect_flux[0][0],
-          aux_vect_flux[0][1], aux_vect_flux[0][2] },
-        { extrinsic_curvature_flux[1][0][0], extrinsic_curvature_flux[1][0][1],
-          extrinsic_curvature_flux[1][0][2], extrinsic_curvature_flux[1][1][0],
-          extrinsic_curvature_flux[1][1][1], extrinsic_curvature_flux[1][1][2],
-          extrinsic_curvature_flux[1][2][0], extrinsic_curvature_flux[1][2][1],
-          extrinsic_curvature_flux[1][2][2], spatial_metric_der_flux[1][0][0][0],
-          spatial_metric_der_flux[1][0][0][1], spatial_metric_der_flux[1][0][0][2],
-          spatial_metric_der_flux[1][0][1][0], spatial_metric_der_flux[1][0][1][1],
-          spatial_metric_der_flux[1][0][1][2], spatial_metric_der_flux[1][0][2][0],
-          spatial_metric_der_flux[1][0][2][1], spatial_metric_der_flux[1][0][2][2],
-          spatial_metric_der_flux[1][1][0][0], spatial_metric_der_flux[1][1][0][1],
-          spatial_metric_der_flux[1][1][0][2], spatial_metric_der_flux[1][1][1][0],
-          spatial_metric_der_flux[1][1][1][1], spatial_metric_der_flux[1][1][1][2],
-          spatial_metric_der_flux[1][1][2][0], spatial_metric_der_flux[1][1][2][1],
-          spatial_metric_der_flux[1][1][2][2], spatial_metric_der_flux[1][2][0][0],
-          spatial_metric_der_flux[1][2][0][1], spatial_metric_der_flux[1][2][0][2],
-          spatial_metric_der_flux[1][2][1][0], spatial_metric_der_flux[1][2][1][1],
-          spatial_metric_der_flux[1][2][1][2], spatial_metric_der_flux[1][2][2][0],
-          spatial_metric_der_flux[1][2][2][1], spatial_metric_der_flux[1][2][2][2],
-          lapse_der_flux[1][0], lapse_der_flux[1][1], lapse_der_flux[1][2], aux_vect_flux[1][0],
-          aux_vect_flux[1][1], aux_vect_flux[1][2] },
-        { extrinsic_curvature_flux[2][0][0], extrinsic_curvature_flux[2][0][1],
-          extrinsic_curvature_flux[2][0][2], extrinsic_curvature_flux[2][1][0],
-          extrinsic_curvature_flux[2][1][1], extrinsic_curvature_flux[2][1][2],
-          extrinsic_curvature_flux[2][2][0], extrinsic_curvature_flux[2][2][1],
-          extrinsic_curvature_flux[2][2][2], spatial_metric_der_flux[2][0][0][0],
-          spatial_metric_der_flux[2][0][0][1], spatial_metric_der_flux[2][0][0][2],
-          spatial_metric_der_flux[2][0][1][0], spatial_metric_der_flux[2][0][1][1],
-          spatial_metric_der_flux[2][0][1][2], spatial_metric_der_flux[2][0][2][0],
-          spatial_metric_der_flux[2][0][2][1], spatial_metric_der_flux[2][0][2][2],
-          spatial_metric_der_flux[2][1][0][0], spatial_metric_der_flux[2][1][0][1],
-          spatial_metric_der_flux[2][1][0][2], spatial_metric_der_flux[2][1][1][0],
-          spatial_metric_der_flux[2][1][1][1], spatial_metric_der_flux[2][1][1][2],
-          spatial_metric_der_flux[2][1][2][0], spatial_metric_der_flux[2][1][2][1],
-          spatial_metric_der_flux[2][1][2][2], spatial_metric_der_flux[2][2][0][0],
-          spatial_metric_der_flux[2][2][0][1], spatial_metric_der_flux[2][2][0][2],
-          spatial_metric_der_flux[2][2][1][0], spatial_metric_der_flux[2][2][1][1],
-          spatial_metric_der_flux[2][2][1][2], spatial_metric_der_flux[2][2][2][0],
-          spatial_metric_der_flux[2][2][2][1], spatial_metric_der_flux[2][2][2][2],
-          lapse_der_flux[2][0], lapse_der_flux[2][1], lapse_der_flux[2][2], aux_vect_flux[2][0],
-          aux_vect_flux[2][1], aux_vect_flux[2][2] }
-      };
+      double fluxes[3][42] = { { extrinsic_curvature_flux[0][0][0],
+                                 extrinsic_curvature_flux[0][0][1],
+                                 extrinsic_curvature_flux[0][0][2],
+                                 extrinsic_curvature_flux[0][1][0],
+                                 extrinsic_curvature_flux[0][1][1],
+                                 extrinsic_curvature_flux[0][1][2],
+                                 extrinsic_curvature_flux[0][2][0],
+                                 extrinsic_curvature_flux[0][2][1],
+                                 extrinsic_curvature_flux[0][2][2],
+                                 spatial_metric_der_flux[0][0][0][0],
+                                 spatial_metric_der_flux[0][0][0][1],
+                                 spatial_metric_der_flux[0][0][0][2],
+                                 spatial_metric_der_flux[0][0][1][0],
+                                 spatial_metric_der_flux[0][0][1][1],
+                                 spatial_metric_der_flux[0][0][1][2],
+                                 spatial_metric_der_flux[0][0][2][0],
+                                 spatial_metric_der_flux[0][0][2][1],
+                                 spatial_metric_der_flux[0][0][2][2],
+                                 spatial_metric_der_flux[0][1][0][0],
+                                 spatial_metric_der_flux[0][1][0][1],
+                                 spatial_metric_der_flux[0][1][0][2],
+                                 spatial_metric_der_flux[0][1][1][0],
+                                 spatial_metric_der_flux[0][1][1][1],
+                                 spatial_metric_der_flux[0][1][1][2],
+                                 spatial_metric_der_flux[0][1][2][0],
+                                 spatial_metric_der_flux[0][1][2][1],
+                                 spatial_metric_der_flux[0][1][2][2],
+                                 spatial_metric_der_flux[0][2][0][0],
+                                 spatial_metric_der_flux[0][2][0][1],
+                                 spatial_metric_der_flux[0][2][0][2],
+                                 spatial_metric_der_flux[0][2][1][0],
+                                 spatial_metric_der_flux[0][2][1][1],
+                                 spatial_metric_der_flux[0][2][1][2],
+                                 spatial_metric_der_flux[0][2][2][0],
+                                 spatial_metric_der_flux[0][2][2][1],
+                                 spatial_metric_der_flux[0][2][2][2],
+                                 lapse_der_flux[0][0],
+                                 lapse_der_flux[0][1],
+                                 lapse_der_flux[0][2],
+                                 aux_vect_flux[0][0],
+                                 aux_vect_flux[0][1],
+                                 aux_vect_flux[0][2] },
+                               { extrinsic_curvature_flux[1][0][0],
+                                 extrinsic_curvature_flux[1][0][1],
+                                 extrinsic_curvature_flux[1][0][2],
+                                 extrinsic_curvature_flux[1][1][0],
+                                 extrinsic_curvature_flux[1][1][1],
+                                 extrinsic_curvature_flux[1][1][2],
+                                 extrinsic_curvature_flux[1][2][0],
+                                 extrinsic_curvature_flux[1][2][1],
+                                 extrinsic_curvature_flux[1][2][2],
+                                 spatial_metric_der_flux[1][0][0][0],
+                                 spatial_metric_der_flux[1][0][0][1],
+                                 spatial_metric_der_flux[1][0][0][2],
+                                 spatial_metric_der_flux[1][0][1][0],
+                                 spatial_metric_der_flux[1][0][1][1],
+                                 spatial_metric_der_flux[1][0][1][2],
+                                 spatial_metric_der_flux[1][0][2][0],
+                                 spatial_metric_der_flux[1][0][2][1],
+                                 spatial_metric_der_flux[1][0][2][2],
+                                 spatial_metric_der_flux[1][1][0][0],
+                                 spatial_metric_der_flux[1][1][0][1],
+                                 spatial_metric_der_flux[1][1][0][2],
+                                 spatial_metric_der_flux[1][1][1][0],
+                                 spatial_metric_der_flux[1][1][1][1],
+                                 spatial_metric_der_flux[1][1][1][2],
+                                 spatial_metric_der_flux[1][1][2][0],
+                                 spatial_metric_der_flux[1][1][2][1],
+                                 spatial_metric_der_flux[1][1][2][2],
+                                 spatial_metric_der_flux[1][2][0][0],
+                                 spatial_metric_der_flux[1][2][0][1],
+                                 spatial_metric_der_flux[1][2][0][2],
+                                 spatial_metric_der_flux[1][2][1][0],
+                                 spatial_metric_der_flux[1][2][1][1],
+                                 spatial_metric_der_flux[1][2][1][2],
+                                 spatial_metric_der_flux[1][2][2][0],
+                                 spatial_metric_der_flux[1][2][2][1],
+                                 spatial_metric_der_flux[1][2][2][2],
+                                 lapse_der_flux[1][0],
+                                 lapse_der_flux[1][1],
+                                 lapse_der_flux[1][2],
+                                 aux_vect_flux[1][0],
+                                 aux_vect_flux[1][1],
+                                 aux_vect_flux[1][2] },
+                               { extrinsic_curvature_flux[2][0][0],
+                                 extrinsic_curvature_flux[2][0][1],
+                                 extrinsic_curvature_flux[2][0][2],
+                                 extrinsic_curvature_flux[2][1][0],
+                                 extrinsic_curvature_flux[2][1][1],
+                                 extrinsic_curvature_flux[2][1][2],
+                                 extrinsic_curvature_flux[2][2][0],
+                                 extrinsic_curvature_flux[2][2][1],
+                                 extrinsic_curvature_flux[2][2][2],
+                                 spatial_metric_der_flux[2][0][0][0],
+                                 spatial_metric_der_flux[2][0][0][1],
+                                 spatial_metric_der_flux[2][0][0][2],
+                                 spatial_metric_der_flux[2][0][1][0],
+                                 spatial_metric_der_flux[2][0][1][1],
+                                 spatial_metric_der_flux[2][0][1][2],
+                                 spatial_metric_der_flux[2][0][2][0],
+                                 spatial_metric_der_flux[2][0][2][1],
+                                 spatial_metric_der_flux[2][0][2][2],
+                                 spatial_metric_der_flux[2][1][0][0],
+                                 spatial_metric_der_flux[2][1][0][1],
+                                 spatial_metric_der_flux[2][1][0][2],
+                                 spatial_metric_der_flux[2][1][1][0],
+                                 spatial_metric_der_flux[2][1][1][1],
+                                 spatial_metric_der_flux[2][1][1][2],
+                                 spatial_metric_der_flux[2][1][2][0],
+                                 spatial_metric_der_flux[2][1][2][1],
+                                 spatial_metric_der_flux[2][1][2][2],
+                                 spatial_metric_der_flux[2][2][0][0],
+                                 spatial_metric_der_flux[2][2][0][1],
+                                 spatial_metric_der_flux[2][2][0][2],
+                                 spatial_metric_der_flux[2][2][1][0],
+                                 spatial_metric_der_flux[2][2][1][1],
+                                 spatial_metric_der_flux[2][2][1][2],
+                                 spatial_metric_der_flux[2][2][2][0],
+                                 spatial_metric_der_flux[2][2][2][1],
+                                 spatial_metric_der_flux[2][2][2][2],
+                                 lapse_der_flux[2][0],
+                                 lapse_der_flux[2][1],
+                                 lapse_der_flux[2][2],
+                                 aux_vect_flux[2][0],
+                                 aux_vect_flux[2][1],
+                                 aux_vect_flux[2][2] } };
 
       double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -393,12 +458,12 @@ test_vacuum_einstein_basic_minkowski_ho()
 
       double q_local[64], flux_local[64], flux[64];
       for (int d = 0; d < 3; d++) {
-        vacuum_einstein->rotate_to_local_func(
-          vacuum_einstein, tau1[d], tau2[d], norm[d], q, q_local);
-        gkyl_vacuum_einstein_flux(
-          excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local);
-        vacuum_einstein->rotate_to_global_func(
-          vacuum_einstein, tau1[d], tau2[d], norm[d], flux_local, flux);
+        vacuum_einstein->rotate_to_local_func(vacuum_einstein, tau1[d], tau2[d], norm[d], q,
+                                              q_local);
+        gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution,
+                                  q_local, flux_local);
+        vacuum_einstein->rotate_to_global_func(vacuum_einstein, tau1[d], tau2[d], norm[d],
+                                               flux_local, flux);
 
         for (int i = 0; i < 42; i++) {
           TEST_CHECK(gkyl_compare(flux[i + 10], fluxes[d][i], 1e-8));
@@ -448,8 +513,7 @@ test_vacuum_einstein_basic_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_vacuum_einstein_basic_schwarzschild_ho()
+void test_vacuum_einstein_basic_schwarzschild_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -505,14 +569,16 @@ test_vacuum_einstein_basic_schwarzschild_ho()
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spatial_metric);
       spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &extrinsic_curvature);
+                                                 pow(10.0, -8.0), pow(10.0, -8.0),
+                                                 &extrinsic_curvature);
 
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0), pow(10.0, -8.0), &shift_der);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
+                                         pow(10.0, -8.0), pow(10.0, -8.0), &lapse_der);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0), pow(10.0, -8.0),
+                                       pow(10.0, -8.0), &shift_der);
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -8.0),
-        pow(10.0, -8.0), pow(10.0, -8.0), &spatial_metric_der);
+                                                pow(10.0, -8.0), pow(10.0, -8.0),
+                                                &spatial_metric_der);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -765,68 +831,132 @@ test_vacuum_einstein_basic_schwarzschild_ho()
           }
         }
 
-        double fluxes[3][42] = {
-          { extrinsic_curvature_flux[0][0][0], extrinsic_curvature_flux[0][0][1],
-            extrinsic_curvature_flux[0][0][2], extrinsic_curvature_flux[0][1][0],
-            extrinsic_curvature_flux[0][1][1], extrinsic_curvature_flux[0][1][2],
-            extrinsic_curvature_flux[0][2][0], extrinsic_curvature_flux[0][2][1],
-            extrinsic_curvature_flux[0][2][2], spatial_metric_der_flux[0][0][0][0],
-            spatial_metric_der_flux[0][0][0][1], spatial_metric_der_flux[0][0][0][2],
-            spatial_metric_der_flux[0][0][1][0], spatial_metric_der_flux[0][0][1][1],
-            spatial_metric_der_flux[0][0][1][2], spatial_metric_der_flux[0][0][2][0],
-            spatial_metric_der_flux[0][0][2][1], spatial_metric_der_flux[0][0][2][2],
-            spatial_metric_der_flux[0][1][0][0], spatial_metric_der_flux[0][1][0][1],
-            spatial_metric_der_flux[0][1][0][2], spatial_metric_der_flux[0][1][1][0],
-            spatial_metric_der_flux[0][1][1][1], spatial_metric_der_flux[0][1][1][2],
-            spatial_metric_der_flux[0][1][2][0], spatial_metric_der_flux[0][1][2][1],
-            spatial_metric_der_flux[0][1][2][2], spatial_metric_der_flux[0][2][0][0],
-            spatial_metric_der_flux[0][2][0][1], spatial_metric_der_flux[0][2][0][2],
-            spatial_metric_der_flux[0][2][1][0], spatial_metric_der_flux[0][2][1][1],
-            spatial_metric_der_flux[0][2][1][2], spatial_metric_der_flux[0][2][2][0],
-            spatial_metric_der_flux[0][2][2][1], spatial_metric_der_flux[0][2][2][2],
-            lapse_der_flux[0][0], lapse_der_flux[0][1], lapse_der_flux[0][2], aux_vect_flux[0][0],
-            aux_vect_flux[0][1], aux_vect_flux[0][2] },
-          { extrinsic_curvature_flux[1][0][0], extrinsic_curvature_flux[1][0][1],
-            extrinsic_curvature_flux[1][0][2], extrinsic_curvature_flux[1][1][0],
-            extrinsic_curvature_flux[1][1][1], extrinsic_curvature_flux[1][1][2],
-            extrinsic_curvature_flux[1][2][0], extrinsic_curvature_flux[1][2][1],
-            extrinsic_curvature_flux[1][2][2], spatial_metric_der_flux[1][0][0][0],
-            spatial_metric_der_flux[1][0][0][1], spatial_metric_der_flux[1][0][0][2],
-            spatial_metric_der_flux[1][0][1][0], spatial_metric_der_flux[1][0][1][1],
-            spatial_metric_der_flux[1][0][1][2], spatial_metric_der_flux[1][0][2][0],
-            spatial_metric_der_flux[1][0][2][1], spatial_metric_der_flux[1][0][2][2],
-            spatial_metric_der_flux[1][1][0][0], spatial_metric_der_flux[1][1][0][1],
-            spatial_metric_der_flux[1][1][0][2], spatial_metric_der_flux[1][1][1][0],
-            spatial_metric_der_flux[1][1][1][1], spatial_metric_der_flux[1][1][1][2],
-            spatial_metric_der_flux[1][1][2][0], spatial_metric_der_flux[1][1][2][1],
-            spatial_metric_der_flux[1][1][2][2], spatial_metric_der_flux[1][2][0][0],
-            spatial_metric_der_flux[1][2][0][1], spatial_metric_der_flux[1][2][0][2],
-            spatial_metric_der_flux[1][2][1][0], spatial_metric_der_flux[1][2][1][1],
-            spatial_metric_der_flux[1][2][1][2], spatial_metric_der_flux[1][2][2][0],
-            spatial_metric_der_flux[1][2][2][1], spatial_metric_der_flux[1][2][2][2],
-            lapse_der_flux[1][0], lapse_der_flux[1][1], lapse_der_flux[1][2], aux_vect_flux[1][0],
-            aux_vect_flux[1][1], aux_vect_flux[1][2] },
-          { extrinsic_curvature_flux[2][0][0], extrinsic_curvature_flux[2][0][1],
-            extrinsic_curvature_flux[2][0][2], extrinsic_curvature_flux[2][1][0],
-            extrinsic_curvature_flux[2][1][1], extrinsic_curvature_flux[2][1][2],
-            extrinsic_curvature_flux[2][2][0], extrinsic_curvature_flux[2][2][1],
-            extrinsic_curvature_flux[2][2][2], spatial_metric_der_flux[2][0][0][0],
-            spatial_metric_der_flux[2][0][0][1], spatial_metric_der_flux[2][0][0][2],
-            spatial_metric_der_flux[2][0][1][0], spatial_metric_der_flux[2][0][1][1],
-            spatial_metric_der_flux[2][0][1][2], spatial_metric_der_flux[2][0][2][0],
-            spatial_metric_der_flux[2][0][2][1], spatial_metric_der_flux[2][0][2][2],
-            spatial_metric_der_flux[2][1][0][0], spatial_metric_der_flux[2][1][0][1],
-            spatial_metric_der_flux[2][1][0][2], spatial_metric_der_flux[2][1][1][0],
-            spatial_metric_der_flux[2][1][1][1], spatial_metric_der_flux[2][1][1][2],
-            spatial_metric_der_flux[2][1][2][0], spatial_metric_der_flux[2][1][2][1],
-            spatial_metric_der_flux[2][1][2][2], spatial_metric_der_flux[2][2][0][0],
-            spatial_metric_der_flux[2][2][0][1], spatial_metric_der_flux[2][2][0][2],
-            spatial_metric_der_flux[2][2][1][0], spatial_metric_der_flux[2][2][1][1],
-            spatial_metric_der_flux[2][2][1][2], spatial_metric_der_flux[2][2][2][0],
-            spatial_metric_der_flux[2][2][2][1], spatial_metric_der_flux[2][2][2][2],
-            lapse_der_flux[2][0], lapse_der_flux[2][1], lapse_der_flux[2][2], aux_vect_flux[2][0],
-            aux_vect_flux[2][1], aux_vect_flux[2][2] }
-        };
+        double fluxes[3][42] = { { extrinsic_curvature_flux[0][0][0],
+                                   extrinsic_curvature_flux[0][0][1],
+                                   extrinsic_curvature_flux[0][0][2],
+                                   extrinsic_curvature_flux[0][1][0],
+                                   extrinsic_curvature_flux[0][1][1],
+                                   extrinsic_curvature_flux[0][1][2],
+                                   extrinsic_curvature_flux[0][2][0],
+                                   extrinsic_curvature_flux[0][2][1],
+                                   extrinsic_curvature_flux[0][2][2],
+                                   spatial_metric_der_flux[0][0][0][0],
+                                   spatial_metric_der_flux[0][0][0][1],
+                                   spatial_metric_der_flux[0][0][0][2],
+                                   spatial_metric_der_flux[0][0][1][0],
+                                   spatial_metric_der_flux[0][0][1][1],
+                                   spatial_metric_der_flux[0][0][1][2],
+                                   spatial_metric_der_flux[0][0][2][0],
+                                   spatial_metric_der_flux[0][0][2][1],
+                                   spatial_metric_der_flux[0][0][2][2],
+                                   spatial_metric_der_flux[0][1][0][0],
+                                   spatial_metric_der_flux[0][1][0][1],
+                                   spatial_metric_der_flux[0][1][0][2],
+                                   spatial_metric_der_flux[0][1][1][0],
+                                   spatial_metric_der_flux[0][1][1][1],
+                                   spatial_metric_der_flux[0][1][1][2],
+                                   spatial_metric_der_flux[0][1][2][0],
+                                   spatial_metric_der_flux[0][1][2][1],
+                                   spatial_metric_der_flux[0][1][2][2],
+                                   spatial_metric_der_flux[0][2][0][0],
+                                   spatial_metric_der_flux[0][2][0][1],
+                                   spatial_metric_der_flux[0][2][0][2],
+                                   spatial_metric_der_flux[0][2][1][0],
+                                   spatial_metric_der_flux[0][2][1][1],
+                                   spatial_metric_der_flux[0][2][1][2],
+                                   spatial_metric_der_flux[0][2][2][0],
+                                   spatial_metric_der_flux[0][2][2][1],
+                                   spatial_metric_der_flux[0][2][2][2],
+                                   lapse_der_flux[0][0],
+                                   lapse_der_flux[0][1],
+                                   lapse_der_flux[0][2],
+                                   aux_vect_flux[0][0],
+                                   aux_vect_flux[0][1],
+                                   aux_vect_flux[0][2] },
+                                 { extrinsic_curvature_flux[1][0][0],
+                                   extrinsic_curvature_flux[1][0][1],
+                                   extrinsic_curvature_flux[1][0][2],
+                                   extrinsic_curvature_flux[1][1][0],
+                                   extrinsic_curvature_flux[1][1][1],
+                                   extrinsic_curvature_flux[1][1][2],
+                                   extrinsic_curvature_flux[1][2][0],
+                                   extrinsic_curvature_flux[1][2][1],
+                                   extrinsic_curvature_flux[1][2][2],
+                                   spatial_metric_der_flux[1][0][0][0],
+                                   spatial_metric_der_flux[1][0][0][1],
+                                   spatial_metric_der_flux[1][0][0][2],
+                                   spatial_metric_der_flux[1][0][1][0],
+                                   spatial_metric_der_flux[1][0][1][1],
+                                   spatial_metric_der_flux[1][0][1][2],
+                                   spatial_metric_der_flux[1][0][2][0],
+                                   spatial_metric_der_flux[1][0][2][1],
+                                   spatial_metric_der_flux[1][0][2][2],
+                                   spatial_metric_der_flux[1][1][0][0],
+                                   spatial_metric_der_flux[1][1][0][1],
+                                   spatial_metric_der_flux[1][1][0][2],
+                                   spatial_metric_der_flux[1][1][1][0],
+                                   spatial_metric_der_flux[1][1][1][1],
+                                   spatial_metric_der_flux[1][1][1][2],
+                                   spatial_metric_der_flux[1][1][2][0],
+                                   spatial_metric_der_flux[1][1][2][1],
+                                   spatial_metric_der_flux[1][1][2][2],
+                                   spatial_metric_der_flux[1][2][0][0],
+                                   spatial_metric_der_flux[1][2][0][1],
+                                   spatial_metric_der_flux[1][2][0][2],
+                                   spatial_metric_der_flux[1][2][1][0],
+                                   spatial_metric_der_flux[1][2][1][1],
+                                   spatial_metric_der_flux[1][2][1][2],
+                                   spatial_metric_der_flux[1][2][2][0],
+                                   spatial_metric_der_flux[1][2][2][1],
+                                   spatial_metric_der_flux[1][2][2][2],
+                                   lapse_der_flux[1][0],
+                                   lapse_der_flux[1][1],
+                                   lapse_der_flux[1][2],
+                                   aux_vect_flux[1][0],
+                                   aux_vect_flux[1][1],
+                                   aux_vect_flux[1][2] },
+                                 { extrinsic_curvature_flux[2][0][0],
+                                   extrinsic_curvature_flux[2][0][1],
+                                   extrinsic_curvature_flux[2][0][2],
+                                   extrinsic_curvature_flux[2][1][0],
+                                   extrinsic_curvature_flux[2][1][1],
+                                   extrinsic_curvature_flux[2][1][2],
+                                   extrinsic_curvature_flux[2][2][0],
+                                   extrinsic_curvature_flux[2][2][1],
+                                   extrinsic_curvature_flux[2][2][2],
+                                   spatial_metric_der_flux[2][0][0][0],
+                                   spatial_metric_der_flux[2][0][0][1],
+                                   spatial_metric_der_flux[2][0][0][2],
+                                   spatial_metric_der_flux[2][0][1][0],
+                                   spatial_metric_der_flux[2][0][1][1],
+                                   spatial_metric_der_flux[2][0][1][2],
+                                   spatial_metric_der_flux[2][0][2][0],
+                                   spatial_metric_der_flux[2][0][2][1],
+                                   spatial_metric_der_flux[2][0][2][2],
+                                   spatial_metric_der_flux[2][1][0][0],
+                                   spatial_metric_der_flux[2][1][0][1],
+                                   spatial_metric_der_flux[2][1][0][2],
+                                   spatial_metric_der_flux[2][1][1][0],
+                                   spatial_metric_der_flux[2][1][1][1],
+                                   spatial_metric_der_flux[2][1][1][2],
+                                   spatial_metric_der_flux[2][1][2][0],
+                                   spatial_metric_der_flux[2][1][2][1],
+                                   spatial_metric_der_flux[2][1][2][2],
+                                   spatial_metric_der_flux[2][2][0][0],
+                                   spatial_metric_der_flux[2][2][0][1],
+                                   spatial_metric_der_flux[2][2][0][2],
+                                   spatial_metric_der_flux[2][2][1][0],
+                                   spatial_metric_der_flux[2][2][1][1],
+                                   spatial_metric_der_flux[2][2][1][2],
+                                   spatial_metric_der_flux[2][2][2][0],
+                                   spatial_metric_der_flux[2][2][2][1],
+                                   spatial_metric_der_flux[2][2][2][2],
+                                   lapse_der_flux[2][0],
+                                   lapse_der_flux[2][1],
+                                   lapse_der_flux[2][2],
+                                   aux_vect_flux[2][0],
+                                   aux_vect_flux[2][1],
+                                   aux_vect_flux[2][2] } };
 
         double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -836,12 +966,12 @@ test_vacuum_einstein_basic_schwarzschild_ho()
 
         double q_local[64], flux_local[64], flux[64];
         for (int d = 0; d < 3; d++) {
-          vacuum_einstein->rotate_to_local_func(
-            vacuum_einstein, tau1[d], tau2[d], norm[d], q, q_local);
-          gkyl_vacuum_einstein_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, q_local, flux_local);
-          vacuum_einstein->rotate_to_global_func(
-            vacuum_einstein, tau1[d], tau2[d], norm[d], flux_local, flux);
+          vacuum_einstein->rotate_to_local_func(vacuum_einstein, tau1[d], tau2[d], norm[d], q,
+                                                q_local);
+          gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution,
+                                    q_local, flux_local);
+          vacuum_einstein->rotate_to_global_func(vacuum_einstein, tau1[d], tau2[d], norm[d],
+                                                 flux_local, flux);
 
           for (int i = 0; i < 42; i++) {
             TEST_CHECK(gkyl_compare(flux[i + 10], fluxes[d][i], 1e-6));
@@ -892,8 +1022,7 @@ test_vacuum_einstein_basic_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_vacuum_einstein_waves_schwarzschild_ho()
+void test_vacuum_einstein_waves_schwarzschild_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -963,27 +1092,27 @@ test_vacuum_einstein_waves_schwarzschild_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &inv_spatial_metric_l);
-      spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &inv_spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+      spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0,
+                                                &inv_spatial_metric_l);
+      spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0,
+                                                &inv_spatial_metric_r);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_r);
 
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_l);
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_r);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_l);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_r);
-      spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_l);
-      spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_r);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                         &lapse_der_l);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                         &lapse_der_r);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                       &shift_der_l);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                       &shift_der_r);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                &spatial_metric_der_l);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                &spatial_metric_der_r);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -1286,28 +1415,28 @@ test_vacuum_einstein_waves_schwarzschild_ho()
           }
 
           gkyl_wv_eqn_waves(vacuum_einstein, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local,
-            1.0, 1.0, waves_local, speeds);
+                            1.0, 1.0, waves_local, speeds);
 
           double apdq_local[64], amdq_local[64];
           gkyl_wv_eqn_qfluct(vacuum_einstein, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-            waves_local, speeds, amdq_local, apdq_local);
+                             waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(
-              vacuum_einstein, tau1[d], tau2[d], norm[d], &waves_local[i * 64], &waves[i * 64]);
+            gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d],
+                                         &waves_local[i * 64], &waves[i * 64]);
           }
 
           double apdq[64], amdq[64];
-          gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein, tau1[d], tau2[d], norm[d], apdq_local, apdq);
-          gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+          gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], apdq_local,
+                                       apdq);
+          gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], amdq_local,
+                                       amdq);
 
           double fl_local[64], fr_local[64];
-          gkyl_vacuum_einstein_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, ql_local, fl_local);
-          gkyl_vacuum_einstein_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, qr_local, fr_local);
+          gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution,
+                                    ql_local, fl_local);
+          gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution,
+                                    qr_local, fr_local);
 
           double fl[64], fr[64];
           gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], fl_local, fl);
@@ -1354,8 +1483,7 @@ test_vacuum_einstein_waves_schwarzschild_ho()
   }
 }
 
-void
-test_vacuum_einstein_waves_kerr_ho()
+void test_vacuum_einstein_waves_kerr_ho()
 {
   double excision_threshold = 0.3;
   enum gkyl_spacetime_slicing spacetime_slicing = GKYL_1PLUSLOG_SLICING;
@@ -1425,27 +1553,27 @@ test_vacuum_einstein_waves_kerr_ho()
 
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, &spatial_metric_l);
       spacetime->spatial_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, &spatial_metric_r);
-      spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, &inv_spatial_metric_l);
-      spacetime->spatial_inv_metric_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, &inv_spatial_metric_r);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_l);
-      spacetime->extrinsic_curvature_tensor_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &extrinsic_curvature_r);
+      spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0,
+                                                &inv_spatial_metric_l);
+      spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0,
+                                                &inv_spatial_metric_r);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_l);
+      spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                 &extrinsic_curvature_r);
 
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_l);
-      spacetime->lapse_function_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &lapse_der_r);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_l);
-      spacetime->shift_vector_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &shift_der_r);
-      spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_l);
-      spacetime->spatial_metric_tensor_der_func(
-        spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1, &spatial_metric_der_r);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                         &lapse_der_l);
+      spacetime->lapse_function_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                         &lapse_der_r);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                       &shift_der_l);
+      spacetime->shift_vector_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                       &shift_der_r);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x - 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                &spatial_metric_der_l);
+      spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x + 0.1, y, 0.0, 0.1, 0.1, 0.1,
+                                                &spatial_metric_der_r);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -1748,28 +1876,28 @@ test_vacuum_einstein_waves_kerr_ho()
           }
 
           gkyl_wv_eqn_waves(vacuum_einstein, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local,
-            1.0, 1.0, waves_local, speeds);
+                            1.0, 1.0, waves_local, speeds);
 
           double apdq_local[64], amdq_local[64];
           gkyl_wv_eqn_qfluct(vacuum_einstein, GKYL_WV_HIGH_ORDER_FLUX, ql_local, qr_local, 1.0, 1.0,
-            waves_local, speeds, amdq_local, apdq_local);
+                             waves_local, speeds, amdq_local, apdq_local);
 
           for (int i = 0; i < 2; i++) {
-            gkyl_wv_eqn_rotate_to_global(
-              vacuum_einstein, tau1[d], tau2[d], norm[d], &waves_local[i * 64], &waves[i * 64]);
+            gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d],
+                                         &waves_local[i * 64], &waves[i * 64]);
           }
 
           double apdq[64], amdq[64];
-          gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein, tau1[d], tau2[d], norm[d], apdq_local, apdq);
-          gkyl_wv_eqn_rotate_to_global(
-            vacuum_einstein, tau1[d], tau2[d], norm[d], amdq_local, amdq);
+          gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], apdq_local,
+                                       apdq);
+          gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], amdq_local,
+                                       amdq);
 
           double fl_local[64], fr_local[64];
-          gkyl_vacuum_einstein_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, ql_local, fl_local);
-          gkyl_vacuum_einstein_flux(
-            excision_threshold, spacetime_slicing, spacetime_evolution, qr_local, fr_local);
+          gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution,
+                                    ql_local, fl_local);
+          gkyl_vacuum_einstein_flux(excision_threshold, spacetime_slicing, spacetime_evolution,
+                                    qr_local, fr_local);
 
           double fl[64], fr[64];
           gkyl_wv_eqn_rotate_to_global(vacuum_einstein, tau1[d], tau2[d], norm[d], fl_local, fl);
@@ -1816,7 +1944,10 @@ test_vacuum_einstein_waves_kerr_ho()
   }
 }
 
-TEST_LIST = { { "vacuum_einstein_basic_minkowski_ho", test_vacuum_einstein_basic_minkowski_ho },
+TEST_LIST = {
+  { "vacuum_einstein_basic_minkowski_ho", test_vacuum_einstein_basic_minkowski_ho },
   { "vacuum_einstein_basic_schwarzschild_ho", test_vacuum_einstein_basic_schwarzschild_ho },
   { "vacuum_einstein_waves_schwarzschild_ho", test_vacuum_einstein_waves_schwarzschild_ho },
-  { "vacuum_einstein_waves_kerr_ho", test_vacuum_einstein_waves_kerr_ho }, { NULL, NULL } };
+  { "vacuum_einstein_waves_kerr_ho", test_vacuum_einstein_waves_kerr_ho },
+  { NULL, NULL }
+};

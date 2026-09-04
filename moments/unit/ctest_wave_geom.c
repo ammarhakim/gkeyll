@@ -8,16 +8,14 @@
 
 #include <math.h>
 
-static void
-my_nomapc2p(double t, const double *xc, double *xp, void *ctx)
+static void my_nomapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   int *ndim = ctx;
   for (int i = 0; i < (*ndim); ++i)
     xp[i] = xc[i];
 }
 
-void
-test_wv_geom_1d_1_ho()
+void test_wv_geom_1d_1_ho()
 {
   int ndim = 1;
   double lower[] = { 0.0 }, upper[] = { 1.0 };
@@ -49,8 +47,7 @@ test_wv_geom_1d_1_ho()
   gkyl_wave_geom_release(wg);
 }
 
-static void
-mapc2p(double t, const double *xc, double *xp, void *ctx)
+static void mapc2p(double t, const double *xc, double *xp, void *ctx)
 {
   // quadratic mapping
   int *ndim = ctx;
@@ -58,8 +55,7 @@ mapc2p(double t, const double *xc, double *xp, void *ctx)
     xp[i] = xc[i] * xc[i];
 }
 
-void
-test_wv_geom_1d_2_ho()
+void test_wv_geom_1d_2_ho()
 {
   int ndim = 1;
   double lower[] = { 0.0 }, upper[] = { 1.0 };
@@ -100,8 +96,7 @@ test_wv_geom_1d_2_ho()
   gkyl_wave_geom_release(wg);
 }
 
-void
-test_wv_geom_2d_1_ho()
+void test_wv_geom_2d_1_ho()
 {
   int ndim = 2;
   double lower[] = { 0.0, 0.0 }, upper[] = { 1.0, 1.0 };
@@ -160,18 +155,16 @@ test_wv_geom_2d_1_ho()
   gkyl_wave_geom_release(wg);
 }
 
-static void
-mapc2p_2d(double t, const double *xc, double *xp, void *ctx)
+static void mapc2p_2d(double t, const double *xc, double *xp, void *ctx)
 {
   double x = xc[0], y = xc[1];
 
   xp[0] = 0.375 * ((x + 1.0) * y + x + 1.0) - 0.25 * ((x + 1.0) * y - 1.0 * x - 1.0) -
-    0.125 * ((x - 1.0) * y + x - 1.0);
+          0.125 * ((x - 1.0) * y + x - 1.0);
   xp[1] = 0.25 * ((x + 1.0) * y + x + 1.0) - 0.25 * ((x - 1.0) * y + x - 1.0);
 }
 
-void
-test_wv_geom_2d_2_ho()
+void test_wv_geom_2d_2_ho()
 {
   int ndim = 2;
   double lower[] = { -1.0, -1.0 }, upper[] = { 1.0, 1.0 };
@@ -231,16 +224,14 @@ test_wv_geom_2d_2_ho()
 }
 
 // map (r,theta) -> (x,y)
-void
-mapc2p_polar(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p_polar(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   double r = xc[0], th = xc[1];
   xp[0] = r * cos(th);
   xp[1] = r * sin(th);
 }
 
-void
-test_wv_geom_2d_3_ho()
+void test_wv_geom_2d_3_ho()
 {
   int ndim = 2;
   double r_inn = 0.25, r_out = 1.25;
@@ -305,8 +296,7 @@ test_wv_geom_2d_3_ho()
   gkyl_wave_geom_release(wg);
 }
 
-void
-test_wv_geom_3d_1_ho()
+void test_wv_geom_3d_1_ho()
 {
   int ndim = 3;
   double lower[] = { 0.0, 0.0, 0.0 }, upper[] = { 1.0, 1.0, 1.0 };
@@ -382,8 +372,7 @@ test_wv_geom_3d_1_ho()
 }
 
 // map (r,theta) -> (x,y)
-void
-mapc2p_cylind(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p_cylind(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   double r = xc[0], th = xc[1], z = xc[2];
   xp[0] = r * cos(th);
@@ -391,8 +380,7 @@ mapc2p_cylind(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
   xp[2] = z;
 }
 
-void
-test_wv_geom_3d_2_ho()
+void test_wv_geom_3d_2_ho()
 {
   int ndim = 3;
   double z_min = 0, z_max = 1;
@@ -463,8 +451,7 @@ test_wv_geom_3d_2_ho()
 
 int cu_wave_geom_test(const struct gkyl_wave_geom *wg);
 
-void
-test_wv_geom_3d_dev()
+void test_wv_geom_3d_dev()
 {
   int ndim = 3;
   double z_min = 0, z_max = 1;
@@ -493,10 +480,13 @@ test_wv_geom_3d_dev()
 #endif
 
 TEST_LIST = { { "wv_geom_1d_1_ho", test_wv_geom_1d_1_ho },
-  { "wv_geom_1d_2_ho", test_wv_geom_1d_2_ho }, { "wv_geom_2d_1_ho", test_wv_geom_2d_1_ho },
-  { "wv_geom_2d_2_ho", test_wv_geom_2d_2_ho }, { "wv_geom_2d_3_ho", test_wv_geom_2d_3_ho },
-  { "wv_geom_3d_1_ho", test_wv_geom_3d_1_ho }, { "wv_geom_3d_2_ho", test_wv_geom_3d_2_ho },
+              { "wv_geom_1d_2_ho", test_wv_geom_1d_2_ho },
+              { "wv_geom_2d_1_ho", test_wv_geom_2d_1_ho },
+              { "wv_geom_2d_2_ho", test_wv_geom_2d_2_ho },
+              { "wv_geom_2d_3_ho", test_wv_geom_2d_3_ho },
+              { "wv_geom_3d_1_ho", test_wv_geom_3d_1_ho },
+              { "wv_geom_3d_2_ho", test_wv_geom_3d_2_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "wv_geom_3d_dev", test_wv_geom_3d_dev },
+              { "wv_geom_3d_dev", test_wv_geom_3d_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

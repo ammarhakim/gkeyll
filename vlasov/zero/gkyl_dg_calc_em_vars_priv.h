@@ -16,14 +16,15 @@ typedef void (*em_calc_temp_t)(const double *em, double *GKYL_RESTRICT out);
 typedef int (*em_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs, const double *temp);
 
 typedef void (*em_copy_t)(int count, struct gkyl_nmat *x, const double *em, int *cell_avg_magB2,
-  double *GKYL_RESTRICT out, double *GKYL_RESTRICT out_surf);
+                          double *GKYL_RESTRICT out, double *GKYL_RESTRICT out_surf);
 
 typedef void (*em_div_b_t)(const double *dxv, const double *bvar_surf_l, const double *bvar_surf_c,
-  const double *bvar_surf_r, const double *bvar_c, double *GKYL_RESTRICT max_b,
-  double *GKYL_RESTRICT div_b);
+                           const double *bvar_surf_r, const double *bvar_c,
+                           double *GKYL_RESTRICT max_b, double *GKYL_RESTRICT div_b);
 
 typedef void (*em_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_cell_geom *geom, double *ql, double *qc, double *qr);
+                             const struct gkyl_wave_cell_geom *geom, double *ql, double *qc,
+                             double *qr);
 
 // for use in kernel tables
 typedef struct {
@@ -54,8 +55,7 @@ typedef struct {
 struct gkyl_dg_calc_em_vars {
   struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
-  int
-    poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
+  int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
   struct gkyl_range mem_range; // Configuration space range for linear solve
 
   const struct gkyl_wv_eqn *wv_eqn; // Wave equation for characteristic limiting of solution
@@ -70,8 +70,7 @@ struct gkyl_dg_calc_em_vars {
 
   em_calc_temp_t em_calc_temp; // kernel for intermediate variable computation
   em_set_t em_set; // kernel for setting matrices for linear solve
-  em_copy_t
-    em_copy; // kernel for copying solution to output, also computes needed surface expansions
+  em_copy_t em_copy; // kernel for copying solution to output, also computes needed surface expansions
   em_div_b_t em_div_b[3]; // kernel for computing div(b) and max(|b_i|) penalization
   em_limiter_t em_limiter[3]; // kernel for limiting slopes of em variables
 
@@ -246,8 +245,8 @@ GKYL_CU_D static const gkyl_dg_em_limiter_kern_list ten_em_limiter_z_kernels[] =
   { NULL, em_vars_limiterz_3x_ser_p1, NULL, NULL } // 2
 };
 
-GKYL_CU_D static em_calc_temp_t
-choose_em_calc_BB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_calc_temp_t choose_em_calc_BB_kern(enum gkyl_basis_type b_type, int cdim,
+                                                       int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -262,8 +261,8 @@ choose_em_calc_BB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static em_calc_temp_t
-choose_em_calc_num_ExB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_calc_temp_t choose_em_calc_num_ExB_kern(enum gkyl_basis_type b_type, int cdim,
+                                                            int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -278,8 +277,8 @@ choose_em_calc_num_ExB_kern(enum gkyl_basis_type b_type, int cdim, int poly_orde
   }
 }
 
-GKYL_CU_D static em_set_t
-choose_em_set_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_set_t choose_em_set_bvar_kern(enum gkyl_basis_type b_type, int cdim,
+                                                  int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -294,8 +293,8 @@ choose_em_set_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static em_set_t
-choose_em_set_ExB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_set_t choose_em_set_ExB_kern(enum gkyl_basis_type b_type, int cdim,
+                                                 int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -310,8 +309,8 @@ choose_em_set_ExB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static em_copy_t
-choose_em_copy_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_copy_t choose_em_copy_bvar_kern(enum gkyl_basis_type b_type, int cdim,
+                                                    int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -326,8 +325,8 @@ choose_em_copy_bvar_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static em_copy_t
-choose_em_copy_ExB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_copy_t choose_em_copy_ExB_kern(enum gkyl_basis_type b_type, int cdim,
+                                                   int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -342,8 +341,8 @@ choose_em_copy_ExB_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static em_div_b_t
-choose_em_div_b_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_div_b_t choose_em_div_b_kern(int dir, enum gkyl_basis_type b_type, int cdim,
+                                                 int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -372,8 +371,8 @@ choose_em_div_b_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_or
   }
 }
 
-GKYL_CU_D static em_limiter_t
-choose_em_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static em_limiter_t choose_em_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim,
+                                                     int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

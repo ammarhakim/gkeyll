@@ -5,9 +5,8 @@
 #include <gkyl_moment_em_coupling_priv.h>
 #include <gkyl_mat.h>
 
-void
-explicit_nT_source_update_euler(const double mass, const double dt, double *fluid_old,
-  double *fluid_new, const double *nT_sources)
+void explicit_nT_source_update_euler(const double mass, const double dt, double *fluid_old,
+                                     double *fluid_new, const double *nT_sources)
 {
   double rho_old = fluid_old[0];
   double n_old = rho_old / mass;
@@ -29,9 +28,9 @@ explicit_nT_source_update_euler(const double mass, const double dt, double *flui
   fluid_new[4] = (n_new * TT_new) + (0.5 * rho_new * v_sq);
 }
 
-void
-explicit_nT_source_update(const gkyl_moment_em_coupling *mom_em, const double dt,
-  double *fluid_s[GKYL_MAX_SPECIES], const double *nT_sources_s[GKYL_MAX_SPECIES])
+void explicit_nT_source_update(const gkyl_moment_em_coupling *mom_em, const double dt,
+                               double *fluid_s[GKYL_MAX_SPECIES],
+                               const double *nT_sources_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -45,10 +44,11 @@ explicit_nT_source_update(const gkyl_moment_em_coupling *mom_em, const double dt
   }
 }
 
-void
-explicit_frictional_source_update_euler(const gkyl_moment_em_coupling *mom_em, const double Z,
-  const double T_elc, const double Lambda_ee, double t_curr, const double dt, double *f_elc_old,
-  double *f_ion_old, double *f_elc_new, double *f_ion_new)
+void explicit_frictional_source_update_euler(const gkyl_moment_em_coupling *mom_em, const double Z,
+                                             const double T_elc, const double Lambda_ee,
+                                             double t_curr, const double dt, double *f_elc_old,
+                                             double *f_ion_old, double *f_elc_new,
+                                             double *f_ion_new)
 {
   int nfluids = mom_em->nfluids;
   double pi = M_PI;
@@ -65,10 +65,10 @@ explicit_frictional_source_update_euler(const gkyl_moment_em_coupling *mom_em, c
 
     double n_elc = rho_elc / mass_elc;
 
-    double tau_ei = (1.0 / Z) *
-      ((3.0 * sqrt(mass_elc) * ((4.0 * pi * epsilon0) * (4.0 * pi * epsilon0)) *
-         pow(T_elc, 3.0 / 2.0)) /
-        (4.0 * sqrt(2.0 * pi) * n_elc * exp(4.0) * log(Lambda_ee)));
+    double tau_ei =
+      (1.0 / Z) * ((3.0 * sqrt(mass_elc) * ((4.0 * pi * epsilon0) * (4.0 * pi * epsilon0)) *
+                    pow(T_elc, 3.0 / 2.0)) /
+                   (4.0 * sqrt(2.0 * pi) * n_elc * exp(4.0) * log(Lambda_ee)));
     double alpha_par =
       1.0 - (pow(Z, 2.0 / 3.0) / ((1.46 * pow(Z, 2.0 / 3.0)) - (0.33 * pow(Z, 1.0 / 3.0)) + 0.888));
 
@@ -98,9 +98,8 @@ explicit_frictional_source_update_euler(const gkyl_moment_em_coupling *mom_em, c
   }
 }
 
-void
-explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  const double dt, double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                       const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -146,8 +145,8 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double 
       f_ion_old[i] = f_ion[i];
     }
 
-    explicit_frictional_source_update_euler(
-      mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old, f_ion_old, f_elc_new, f_ion_new);
+    explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr, dt, f_elc_old,
+                                            f_ion_old, f_elc_new, f_ion_new);
     for (int i = 0; i < elc_num_equations; i++) {
       f_elc_stage1[i] = f_elc_new[i];
     }
@@ -156,7 +155,7 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double 
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr + dt, dt,
-      f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new);
+                                            f_elc_stage1, f_ion_stage1, f_elc_new, f_ion_new);
     for (int i = 0; i < elc_num_equations; i++) {
       f_elc_stage2[i] = (0.75 * f_elc_old[i]) + (0.25 * f_elc_new[i]);
     }
@@ -165,7 +164,7 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double 
     }
 
     explicit_frictional_source_update_euler(mom_em, Z, T_elc, Lambda_ee, t_curr + (0.5 * dt), dt,
-      f_elc_stage2, f_ion_stage2, f_elc_new, f_ion_new);
+                                            f_elc_stage2, f_ion_stage2, f_elc_new, f_ion_new);
     for (int i = 0; i < elc_num_equations; i++) {
       f_elc[i] = ((1.0 / 3.0) * f_elc_old[i]) + ((2.0 / 3.0) * f_elc_new[i]);
     }
@@ -175,10 +174,10 @@ explicit_frictional_source_update(const gkyl_moment_em_coupling *mom_em, double 
   }
 }
 
-void
-explicit_volume_source_5m_update_euler(const gkyl_moment_em_coupling *mom_em,
-  const double gas_gamma, const double U0, const double R0, double t_curr, const double dt,
-  double *fluid_old, double *fluid_new)
+void explicit_volume_source_5m_update_euler(const gkyl_moment_em_coupling *mom_em,
+                                            const double gas_gamma, const double U0,
+                                            const double R0, double t_curr, const double dt,
+                                            double *fluid_old, double *fluid_new)
 {
   double rho = fluid_old[0];
   double vx = fluid_old[1] / rho;
@@ -203,9 +202,9 @@ explicit_volume_source_5m_update_euler(const gkyl_moment_em_coupling *mom_em,
   fluid_new[4] = (p_new / (gas_gamma - 1.0)) + (0.5 * rho * (vx * vx) + (vy * vy) + (vz * vz));
 }
 
-void
-explicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling *mom_em, const double U0,
-  const double R0, double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling *mom_em, const double U0,
+                                             const double R0, double t_curr, const double dt,
+                                             double *fluid_old, double *fluid_new)
 {
   double rho = fluid_old[0];
   double vx = fluid_old[1] / rho;
@@ -234,10 +233,10 @@ explicit_volume_source_10m_update_euler(const gkyl_moment_em_coupling *mom_em, c
   fluid_new[9] -= dt * ((((2.0 * U0) / (a * R0)) * Pzz) + (((2.0 * U0) / (a * R0)) * Pzz));
 }
 
-void
-explicit_volume_source_maxwell_update_euler(const gkyl_moment_em_coupling *mom_em, const double U0,
-  const double R0, double t_curr, const double dt, double *em_old, double *em_new,
-  const double *ext_em)
+void explicit_volume_source_maxwell_update_euler(const gkyl_moment_em_coupling *mom_em,
+                                                 const double U0, const double R0, double t_curr,
+                                                 const double dt, double *em_old, double *em_new,
+                                                 const double *ext_em)
 {
   double a = 1.0 + ((U0 * t_curr) / R0);
 
@@ -262,9 +261,9 @@ explicit_volume_source_maxwell_update_euler(const gkyl_moment_em_coupling *mom_e
   em_new[5] -= dt * (U0 / (a * R0)) * Bz;
 }
 
-void
-explicit_volume_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
-  double *fluid_s[GKYL_MAX_SPECIES], double *em, const double *ext_em)
+void explicit_volume_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                   const double dt, double *fluid_s[GKYL_MAX_SPECIES], double *em,
+                                   const double *ext_em)
 {
   int nfluids = mom_em->nfluids;
 
@@ -287,14 +286,14 @@ explicit_volume_source_update(const gkyl_moment_em_coupling *mom_em, double t_cu
         f_stage1[j] = f_new[j];
       }
 
-      explicit_volume_source_5m_update_euler(
-        mom_em, gas_gamma, U0, R0, t_curr + dt, dt, f_stage1, f_new);
+      explicit_volume_source_5m_update_euler(mom_em, gas_gamma, U0, R0, t_curr + dt, dt, f_stage1,
+                                             f_new);
       for (int j = 0; j < 5; j++) {
         f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
       }
 
-      explicit_volume_source_5m_update_euler(
-        mom_em, gas_gamma, U0, R0, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+      explicit_volume_source_5m_update_euler(mom_em, gas_gamma, U0, R0, t_curr + (0.5 * dt), dt,
+                                             f_stage2, f_new);
       for (int j = 0; j < 5; j++) {
         f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
       }
@@ -315,8 +314,8 @@ explicit_volume_source_update(const gkyl_moment_em_coupling *mom_em, double t_cu
         f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
       }
 
-      explicit_volume_source_10m_update_euler(
-        mom_em, U0, R0, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+      explicit_volume_source_10m_update_euler(mom_em, U0, R0, t_curr + (0.5 * dt), dt, f_stage2,
+                                              f_new);
       for (int j = 0; j < 10; j++) {
         f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
       }
@@ -334,24 +333,26 @@ explicit_volume_source_update(const gkyl_moment_em_coupling *mom_em, double t_cu
     em_stage1[i] = em_new[i];
   }
 
-  explicit_volume_source_maxwell_update_euler(
-    mom_em, U0, R0, t_curr + dt, dt, em_stage1, em_new, ext_em);
+  explicit_volume_source_maxwell_update_euler(mom_em, U0, R0, t_curr + dt, dt, em_stage1, em_new,
+                                              ext_em);
   for (int i = 0; i < 8; i++) {
     em_stage2[i] = (0.75 * em_old[i]) + (0.25 * em_new[i]);
   }
 
-  explicit_volume_source_maxwell_update_euler(
-    mom_em, U0, R0, t_curr + (0.5 * dt), dt, em_stage2, em_new, ext_em);
+  explicit_volume_source_maxwell_update_euler(mom_em, U0, R0, t_curr + (0.5 * dt), dt, em_stage2,
+                                              em_new, ext_em);
   for (int i = 0; i < 8; i++) {
     em[i] = ((1.0 / 3.0) * em_old[i]) + ((2.0 / 3.0) * em_new[i]);
   }
 }
 
-void
-explicit_reactive_source_update_euler(const gkyl_moment_em_coupling *mom_em, const double gas_gamma,
-  const double specific_heat_capacity, const double energy_of_formation,
-  const double ignition_temperature, const double reaction_rate, double t_curr, const double dt,
-  double *fluid_old, double *fluid_new)
+void explicit_reactive_source_update_euler(const gkyl_moment_em_coupling *mom_em,
+                                           const double gas_gamma,
+                                           const double specific_heat_capacity,
+                                           const double energy_of_formation,
+                                           const double ignition_temperature,
+                                           const double reaction_rate, double t_curr,
+                                           const double dt, double *fluid_old, double *fluid_new)
 {
   double rho = fluid_old[0];
   double vx = fluid_old[1] / rho;
@@ -360,7 +361,8 @@ explicit_reactive_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
   double reaction_progress = fluid_old[5] / rho;
 
   double specific_internal_energy = (fluid_old[4] / rho) -
-    (0.5 * ((vx * vx) + (vy * vy) + (vz * vz))) - (energy_of_formation * (reaction_progress - 1.0));
+                                    (0.5 * ((vx * vx) + (vy * vy) + (vz * vz))) -
+                                    (energy_of_formation * (reaction_progress - 1.0));
   double temperature = specific_internal_energy / specific_heat_capacity;
 
   for (int i = 0; i < 6; i++) {
@@ -372,9 +374,8 @@ explicit_reactive_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
   }
 }
 
-void
-explicit_reactive_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  const double dt, double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_reactive_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                     const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -394,29 +395,31 @@ explicit_reactive_source_update(const gkyl_moment_em_coupling *mom_em, double t_
     }
 
     explicit_reactive_source_update_euler(mom_em, gas_gamma, specific_heat_capacity,
-      energy_of_formation, ignition_temperature, reaction_rate, t_curr, dt, f_old, f_new);
+                                          energy_of_formation, ignition_temperature, reaction_rate,
+                                          t_curr, dt, f_old, f_new);
     for (int j = 0; j < 6; j++) {
       f_stage1[j] = f_new[j];
     }
 
     explicit_reactive_source_update_euler(mom_em, gas_gamma, specific_heat_capacity,
-      energy_of_formation, ignition_temperature, reaction_rate, t_curr + dt, dt, f_stage1, f_new);
+                                          energy_of_formation, ignition_temperature, reaction_rate,
+                                          t_curr + dt, dt, f_stage1, f_new);
     for (int j = 0; j < 6; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
     explicit_reactive_source_update_euler(mom_em, gas_gamma, specific_heat_capacity,
-      energy_of_formation, ignition_temperature, reaction_rate, t_curr + (0.5 * dt), dt, f_stage2,
-      f_new);
+                                          energy_of_formation, ignition_temperature, reaction_rate,
+                                          t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 6; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }
 }
 
-void
-explicit_medium_source_update_euler(const gkyl_moment_em_coupling *mom_em, const double gas_gamma,
-  const double kappa, double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_medium_source_update_euler(const gkyl_moment_em_coupling *mom_em,
+                                         const double gas_gamma, const double kappa, double t_curr,
+                                         const double dt, double *fluid_old, double *fluid_new)
 {
   double exp_2a = fluid_old[0];
 
@@ -431,15 +434,15 @@ explicit_medium_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
   double Etot = fluid_old[13];
   double mom = fluid_old[14];
 
-  double rho = (1.0 / (gas_gamma - 1.0)) *
-    ((-0.5 * (2.0 - gas_gamma) * Etot) +
-      sqrt((0.25 * (2.0 - gas_gamma) * (2.0 - gas_gamma) * Etot * Etot) +
-        ((gas_gamma - 1.0) * ((Etot * Etot) - (mom * mom)))));
+  double rho =
+    (1.0 / (gas_gamma - 1.0)) * ((-0.5 * (2.0 - gas_gamma) * Etot) +
+                                 sqrt((0.25 * (2.0 - gas_gamma) * (2.0 - gas_gamma) * Etot * Etot) +
+                                      ((gas_gamma - 1.0) * ((Etot * Etot) - (mom * mom)))));
 
   double vel = 0.0;
   if (fabs(mom) > pow(10.0, -8.0)) {
     vel = ((gas_gamma * rho) / (2.0 * mom)) *
-      (sqrt(1.0 + ((4 * mom * mom) / ((gas_gamma * gas_gamma) * (rho * rho)))) - 1.0);
+          (sqrt(1.0 + ((4 * mom * mom) / ((gas_gamma * gas_gamma) * (rho * rho)))) - 1.0);
   }
 
   double p = (gas_gamma - 1.0) * rho;
@@ -455,20 +458,17 @@ explicit_medium_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
 
   fluid_new[0] += dt * (2.0 * a_dt * exp_2a);
 
-  fluid_new[1] += dt *
-    (a_dx_dx + (b_dt * b_dt) - (b_dx * b_dx) - (c_dt * c_dt) + (c_dx * c_dx) -
-      (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
+  fluid_new[1] += dt * (a_dx_dx + (b_dt * b_dt) - (b_dx * b_dx) - (c_dt * c_dt) + (c_dx * c_dx) -
+                        (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
   fluid_new[2] += dt * (a_dt_dx);
-  fluid_new[3] += dt *
-    (b_dx_dx - (2.0 * (b_dt * b_dt)) + (2.0 * (b_dx * b_dx)) +
-      (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
+  fluid_new[3] += dt * (b_dx_dx - (2.0 * (b_dt * b_dt)) + (2.0 * (b_dx * b_dx)) +
+                        (0.5 * kappa * exp_2a * (Etot - ((mom * vel) + p))));
   fluid_new[4] += dt * (b_dt_dx);
   fluid_new[5] += dt * (c_dx_dx - (2.0 * ((b_dt * c_dt) - (b_dx * c_dx))));
   fluid_new[6] += dt * (c_dt_dx);
 
-  fluid_new[7] += dt *
-    ((2.0 * (b_dt * b_dt_dx)) - (2.0 * (b_dx * b_dx_dx)) - (2.0 * (c_dt * c_dt_dx)) +
-      (2.0 * (c_dx * c_dx_dx)));
+  fluid_new[7] += dt * ((2.0 * (b_dt * b_dt_dx)) - (2.0 * (b_dx * b_dx_dx)) -
+                        (2.0 * (c_dt * c_dt_dx)) + (2.0 * (c_dx * c_dx_dx)));
   fluid_new[8] += 0.0;
   fluid_new[9] += dt * (-(4.0 * (b_dt * b_dt_dx)) + (4.0 * (b_dx * b_dx_dx)));
   fluid_new[10] += 0.0;
@@ -476,17 +476,14 @@ explicit_medium_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
     dt * (-2.0 * ((b_dt * c_dt_dx) - (b_dx * c_dx_dx) + (b_dt_dx * c_dt) - (b_dx_dx * c_dx)));
   fluid_new[12] += 0.0;
 
-  fluid_new[13] += dt *
-    ((-Etot * (a_dt + (2.0 * b_dt))) - (2.0 * mom * (a_dx + b_dx)) - (((mom * vel) + p) * a_dt) -
-      (2.0 * p * b_dt));
-  fluid_new[14] += dt *
-    ((-Etot * a_dx) - (2.0 * mom * (a_dt + b_dt)) - (((mom * vel) + p) * (a_dx + (2.0 * b_dx))) +
-      (2.0 * p * b_dx));
+  fluid_new[13] += dt * ((-Etot * (a_dt + (2.0 * b_dt))) - (2.0 * mom * (a_dx + b_dx)) -
+                         (((mom * vel) + p) * a_dt) - (2.0 * p * b_dt));
+  fluid_new[14] += dt * ((-Etot * a_dx) - (2.0 * mom * (a_dt + b_dt)) -
+                         (((mom * vel) + p) * (a_dx + (2.0 * b_dx))) + (2.0 * p * b_dx));
 }
 
-void
-explicit_medium_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
-  double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_medium_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                   const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -512,17 +509,18 @@ explicit_medium_source_update(const gkyl_moment_em_coupling *mom_em, double t_cu
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
-    explicit_medium_source_update_euler(
-      mom_em, gas_gamma, kappa, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    explicit_medium_source_update_euler(mom_em, gas_gamma, kappa, t_curr + (0.5 * dt), dt, f_stage2,
+                                        f_new);
     for (int j = 0; j < 15; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }
 }
 
-void
-explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-  const double gas_gamma, double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mom_em,
+                                               const double gas_gamma, double t_curr,
+                                               const double dt, double *fluid_old,
+                                               double *fluid_new)
 {
   double lapse = fluid_old[4];
   double shift_x = fluid_old[5];
@@ -541,15 +539,12 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mom_em,
   spatial_metric[2][2] = fluid_old[16];
 
   double inv_spatial_metric[3][3];
-  double spatial_det = (spatial_metric[0][0] *
-                         ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                           (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] *
-      ((spatial_metric[1][0] * spatial_metric[2][2]) -
-        (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] *
-      ((spatial_metric[1][0] * spatial_metric[2][1]) -
-        (spatial_metric[1][1] * spatial_metric[2][0])));
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                       (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                       (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -589,9 +584,9 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mom_em,
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-          (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      inv_spatial_metric[i][j] =
+        (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 
@@ -630,8 +625,8 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mom_em,
     }
 
     double beta = 0.25 * (2.0 - gas_gamma);
-    double p = -(2.0 * beta * Etot) +
-      sqrt((4.0 * (beta * beta) * (Etot * Etot)) + ((gas_gamma - 1.0) * ((Etot * Etot) - mom_sq)));
+    double p = -(2.0 * beta * Etot) + sqrt((4.0 * (beta * beta) * (Etot * Etot)) +
+                                           ((gas_gamma - 1.0) * ((Etot * Etot) - mom_sq)));
     if (p < pow(10.0, -8.0)) {
       p = pow(10.0, -8.0);
     }
@@ -816,9 +811,8 @@ explicit_gr_ultra_rel_source_update_euler(const gkyl_moment_em_coupling *mom_em,
   }
 }
 
-void
-explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  const double dt, double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                         const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -843,17 +837,17 @@ explicit_gr_ultra_rel_source_update(const gkyl_moment_em_coupling *mom_em, doubl
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
-    explicit_gr_ultra_rel_source_update_euler(
-      mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    explicit_gr_ultra_rel_source_update_euler(mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2,
+                                              f_new);
     for (int j = 0; j < 70; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }
 }
 
-void
-explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, const double gas_gamma,
-  double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em,
+                                           const double gas_gamma, double t_curr, const double dt,
+                                           double *fluid_old, double *fluid_new)
 {
   double lapse = fluid_old[5];
   double shift_x = fluid_old[6];
@@ -872,15 +866,12 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
   spatial_metric[2][2] = fluid_old[17];
 
   double inv_spatial_metric[3][3];
-  double spatial_det = (spatial_metric[0][0] *
-                         ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                           (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] *
-      ((spatial_metric[1][0] * spatial_metric[2][2]) -
-        (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] *
-      ((spatial_metric[1][0] * spatial_metric[2][1]) -
-        (spatial_metric[1][1] * spatial_metric[2][0])));
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                       (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                       (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -920,9 +911,9 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-          (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      inv_spatial_metric[i][j] =
+        (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 
@@ -952,9 +943,9 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
     double C =
       D / sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
     double C0 = (D + Etot) /
-      sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
+                sqrt(((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)));
     if (((Etot + D) * (Etot + D)) - ((momx * momx) + (momy * momy) + (momz * momz)) <
-      pow(10.0, -8.0)) {
+        pow(10.0, -8.0)) {
       C = D / sqrt(pow(10.0, -8.0));
       C0 = (D + Etot) / sqrt(pow(10.0, -8.0));
     }
@@ -962,7 +953,7 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
     double alpha0 = -1.0 / (gas_gamma * gas_gamma);
     double alpha1 = -2.0 * C * ((gas_gamma - 1.0) / (gas_gamma * gas_gamma));
     double alpha2 = ((gas_gamma - 2.0) / gas_gamma) * ((C0 * C0) - 1.0) + 1.0 -
-      (C * C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
+                    (C * C) * ((gas_gamma - 1.0) / gas_gamma) * ((gas_gamma - 1.0) / gas_gamma);
     double alpha4 = (C0 * C0) - 1.0;
     double eta = 2.0 * C * ((gas_gamma - 1.0) / gas_gamma);
 
@@ -971,9 +962,9 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
 
     while (iter < 100) {
       double poly = (alpha4 * (guess * guess * guess) * (guess - eta)) +
-        (alpha2 * (guess * guess)) + (alpha1 * guess) + alpha0;
+                    (alpha2 * (guess * guess)) + (alpha1 * guess) + alpha0;
       double poly_der = alpha1 + (2.0 * alpha2 * guess) + (4.0 * alpha4 * (guess * guess * guess)) -
-        (3.0 * eta * alpha4 * (guess * guess));
+                        (3.0 * eta * alpha4 * (guess * guess));
 
       double guess_new = guess - (poly / poly_der);
 
@@ -986,10 +977,8 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
     }
 
     double W = 0.5 * C0 * guess *
-      (1.0 +
-        sqrt(1.0 +
-          (4.0 * ((gas_gamma - 1.0) / gas_gamma) *
-            ((1.0 - (C * guess)) / ((C0 * C0) * (guess * guess))))));
+               (1.0 + sqrt(1.0 + (4.0 * ((gas_gamma - 1.0) / gas_gamma) *
+                                  ((1.0 - (C * guess)) / ((C0 * C0) * (guess * guess))))));
     double h = 1.0 / (C * guess);
 
     double rho = D / W;
@@ -1133,9 +1122,8 @@ explicit_gr_euler_source_update_euler(const gkyl_moment_em_coupling *mom_em, con
   }
 }
 
-void
-explicit_gr_euler_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  const double dt, double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_gr_euler_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                     const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -1160,18 +1148,19 @@ explicit_gr_euler_source_update(const gkyl_moment_em_coupling *mom_em, double t_
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
-    explicit_gr_euler_source_update_euler(
-      mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    explicit_gr_euler_source_update_euler(mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2,
+                                          f_new);
     for (int j = 0; j < 71; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }
 }
 
-void
-explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_em,
-  const double gas_gamma_elc, const double mass_elc, const double charge_elc, double t_curr,
-  const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_em,
+                                                  const double gas_gamma_elc, const double mass_elc,
+                                                  const double charge_elc, double t_curr,
+                                                  const double dt, double *fluid_old,
+                                                  double *fluid_new)
 {
   for (int i = 0; i < 84; i++) {
     fluid_new[i] = fluid_old[i];
@@ -1202,15 +1191,12 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_
   }
 
   if (!in_excision_region) {
-    double spatial_det = (spatial_metric[0][0] *
-                           ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                             (spatial_metric[2][1] * spatial_metric[1][2]))) -
-      (spatial_metric[0][1] *
-        ((spatial_metric[1][0] * spatial_metric[2][2]) -
-          (spatial_metric[1][2] * spatial_metric[2][0]))) +
-      (spatial_metric[0][2] *
-        ((spatial_metric[1][0] * spatial_metric[2][1]) -
-          (spatial_metric[1][1] * spatial_metric[2][0])));
+    double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                         (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                         (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
 
     double D_elc = fluid_old[0] / sqrt(spatial_det);
     double momx_elc = fluid_old[1] / sqrt(spatial_det);
@@ -1218,15 +1204,15 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_
     double momz_elc = fluid_old[3] / sqrt(spatial_det);
     double Etot_elc = fluid_old[4] / sqrt(spatial_det);
 
-    double C_elc = D_elc /
-      sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    double C_elc =
+      D_elc / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                   ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
     double C0_elc = (D_elc + Etot_elc) /
-      sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+                    sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                         ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
     if (((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) <
-      pow(10.0, -8.0)) {
+          ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) <
+        pow(10.0, -8.0)) {
       C_elc = D_elc / sqrt(pow(10.0, -8.0));
       C0_elc = (D_elc + Etot_elc) / sqrt(pow(10.0, -8.0));
     }
@@ -1234,8 +1220,8 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_
     double alpha0_elc = -1.0 / (gas_gamma_elc * gas_gamma_elc);
     double alpha1_elc = -2.0 * C_elc * ((gas_gamma_elc - 1.0) / (gas_gamma_elc * gas_gamma_elc));
     double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 -
-      (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-        ((gas_gamma_elc - 1.0) / gas_gamma_elc);
+                        (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
+                          ((gas_gamma_elc - 1.0) / gas_gamma_elc);
     double alpha4_elc = (C0_elc * C0_elc) - 1.0;
     double eta_elc = 2.0 * C_elc * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
 
@@ -1244,10 +1230,11 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_
 
     while (iter_elc < 100) {
       double poly_elc = (alpha4_elc * (guess_elc * guess_elc * guess_elc) * (guess_elc - eta_elc)) +
-        (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) + alpha0_elc;
+                        (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) +
+                        alpha0_elc;
       double poly_der_elc = alpha1_elc + (2.0 * alpha2_elc * guess_elc) +
-        (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) -
-        (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
+                            (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) -
+                            (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
 
       double guess_new_elc = guess_elc - (poly_elc / poly_der_elc);
 
@@ -1259,11 +1246,11 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_
       }
     }
 
-    double W_elc = 0.5 * C0_elc * guess_elc *
+    double W_elc =
+      0.5 * C0_elc * guess_elc *
       (1.0 +
-        sqrt(1.0 +
-          (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-            ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
+       sqrt(1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
+                   ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
     double h_elc = 1.0 / (C_elc * guess_elc);
 
     double rho_elc = D_elc / W_elc;
@@ -1301,29 +1288,30 @@ explicit_gr_twofluid_source_update_elc_euler(const gkyl_moment_em_coupling *mom_
     fluid_new[1] +=
       (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * covD[0];
     fluid_new[1] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc *
-      ((vy_elc * covB[2]) - (vz_elc * covB[1]));
+                    ((vy_elc * covB[2]) - (vz_elc * covB[1]));
     fluid_new[2] +=
       (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * covD[1];
     fluid_new[2] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc *
-      ((vz_elc * covB[0]) - (vx_elc * covB[2]));
+                    ((vz_elc * covB[0]) - (vx_elc * covB[2]));
     fluid_new[3] +=
       (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc * covD[2];
     fluid_new[3] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc *
-      ((vx_elc * covB[1]) - (vy_elc * covB[0]));
+                    ((vx_elc * covB[1]) - (vy_elc * covB[0]));
 
     fluid_new[4] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc *
-      vx_elc * covD[0];
+                    vx_elc * covD[0];
     fluid_new[4] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc *
-      vy_elc * covD[1];
+                    vy_elc * covD[1];
     fluid_new[4] += (lapse * sqrt(spatial_det)) * dt * (charge_elc / mass_elc) * rho_elc * W_elc *
-      vz_elc * covD[2];
+                    vz_elc * covD[2];
   }
 }
 
-void
-explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_em,
-  const double gas_gamma_ion, const double mass_ion, const double charge_ion, double t_curr,
-  const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_em,
+                                                  const double gas_gamma_ion, const double mass_ion,
+                                                  const double charge_ion, double t_curr,
+                                                  const double dt, double *fluid_old,
+                                                  double *fluid_new)
 {
   for (int i = 0; i < 84; i++) {
     fluid_new[i] = fluid_old[i];
@@ -1354,15 +1342,12 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_
   }
 
   if (!in_excision_region) {
-    double spatial_det = (spatial_metric[0][0] *
-                           ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                             (spatial_metric[2][1] * spatial_metric[1][2]))) -
-      (spatial_metric[0][1] *
-        ((spatial_metric[1][0] * spatial_metric[2][2]) -
-          (spatial_metric[1][2] * spatial_metric[2][0]))) +
-      (spatial_metric[0][2] *
-        ((spatial_metric[1][0] * spatial_metric[2][1]) -
-          (spatial_metric[1][1] * spatial_metric[2][0])));
+    double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                         (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                         (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
 
     double D_ion = fluid_old[5] / sqrt(spatial_det);
     double momx_ion = fluid_old[6] / sqrt(spatial_det);
@@ -1370,15 +1355,15 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_
     double momz_ion = fluid_old[8] / sqrt(spatial_det);
     double Etot_ion = fluid_old[9] / sqrt(spatial_det);
 
-    double C_ion = D_ion /
-      sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    double C_ion =
+      D_ion / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                   ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
     double C0_ion = (D_ion + Etot_ion) /
-      sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+                    sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                         ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
     if (((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) <
-      pow(10.0, -8.0)) {
+          ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) <
+        pow(10.0, -8.0)) {
       C_ion = D_ion / sqrt(pow(10.0, -8.0));
       C0_ion = (D_ion + Etot_ion) / sqrt(pow(10.0, -8.0));
     }
@@ -1386,8 +1371,8 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_
     double alpha0_ion = -1.0 / (gas_gamma_ion * gas_gamma_ion);
     double alpha1_ion = -2.0 * C_ion * ((gas_gamma_ion - 1.0) / (gas_gamma_ion * gas_gamma_ion));
     double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 -
-      (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-        ((gas_gamma_ion - 1.0) / gas_gamma_ion);
+                        (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
+                          ((gas_gamma_ion - 1.0) / gas_gamma_ion);
     double alpha4_ion = (C0_ion * C0_ion) - 1.0;
     double eta_ion = 2.0 * C_ion * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
 
@@ -1396,10 +1381,11 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_
 
     while (iter_ion < 100) {
       double poly_ion = (alpha4_ion * (guess_ion * guess_ion * guess_ion) * (guess_ion - eta_ion)) +
-        (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) + alpha0_ion;
+                        (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) +
+                        alpha0_ion;
       double poly_der_ion = alpha1_ion + (2.0 * alpha2_ion * guess_ion) +
-        (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) -
-        (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
+                            (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) -
+                            (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
 
       double guess_new_ion = guess_ion - (poly_ion / poly_der_ion);
 
@@ -1411,11 +1397,11 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_
       }
     }
 
-    double W_ion = 0.5 * C0_ion * guess_ion *
+    double W_ion =
+      0.5 * C0_ion * guess_ion *
       (1.0 +
-        sqrt(1.0 +
-          (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-            ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
+       sqrt(1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
+                   ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
     double h_ion = 1.0 / (C_ion * guess_ion);
 
     double rho_ion = D_ion / W_ion;
@@ -1453,30 +1439,29 @@ explicit_gr_twofluid_source_update_ion_euler(const gkyl_moment_em_coupling *mom_
     fluid_new[6] +=
       (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * covD[0];
     fluid_new[6] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion *
-      ((vy_ion * covB[2]) - (vz_ion * covB[1]));
+                    ((vy_ion * covB[2]) - (vz_ion * covB[1]));
     fluid_new[7] +=
       (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * covD[1];
     fluid_new[7] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion *
-      ((vz_ion * covB[0]) - (vx_ion * covB[2]));
+                    ((vz_ion * covB[0]) - (vx_ion * covB[2]));
     fluid_new[8] +=
       (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion * covD[2];
     fluid_new[8] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion *
-      ((vx_ion * covB[1]) - (vy_ion * covB[0]));
+                    ((vx_ion * covB[1]) - (vy_ion * covB[0]));
 
     fluid_new[9] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion *
-      vx_ion * covD[0];
+                    vx_ion * covD[0];
     fluid_new[9] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion *
-      vy_ion * covD[1];
+                    vy_ion * covD[1];
     fluid_new[9] += (lapse * sqrt(spatial_det)) * dt * (charge_ion / mass_ion) * rho_ion * W_ion *
-      vz_ion * covD[2];
+                    vz_ion * covD[2];
   }
 }
 
-void
-explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_em,
-  const double gas_gamma_elc, const double gas_gamma_ion, const double mass_elc,
-  const double charge_elc, const double mass_ion, const double charge_ion, double e_fact,
-  double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_twofluid_source_update_em_euler(
+  const gkyl_moment_em_coupling *mom_em, const double gas_gamma_elc, const double gas_gamma_ion,
+  const double mass_elc, const double charge_elc, const double mass_ion, const double charge_ion,
+  double e_fact, double t_curr, const double dt, double *fluid_old, double *fluid_new)
 {
   for (int i = 0; i < 84; i++) {
     fluid_new[i] = fluid_old[i];
@@ -1501,15 +1486,12 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
   }
 
   if (!in_excision_region) {
-    double spatial_det = (spatial_metric[0][0] *
-                           ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                             (spatial_metric[2][1] * spatial_metric[1][2]))) -
-      (spatial_metric[0][1] *
-        ((spatial_metric[1][0] * spatial_metric[2][2]) -
-          (spatial_metric[1][2] * spatial_metric[2][0]))) +
-      (spatial_metric[0][2] *
-        ((spatial_metric[1][0] * spatial_metric[2][1]) -
-          (spatial_metric[1][1] * spatial_metric[2][0])));
+    double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                         (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                         (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
 
     double D_elc = fluid_old[0] / sqrt(spatial_det);
     double momx_elc = fluid_old[1] / sqrt(spatial_det);
@@ -1517,15 +1499,15 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
     double momz_elc = fluid_old[3] / sqrt(spatial_det);
     double Etot_elc = fluid_old[4] / sqrt(spatial_det);
 
-    double C_elc = D_elc /
-      sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    double C_elc =
+      D_elc / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                   ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
     double C0_elc = (D_elc + Etot_elc) /
-      sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+                    sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                         ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
     if (((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) <
-      pow(10.0, -8.0)) {
+          ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) <
+        pow(10.0, -8.0)) {
       C_elc = D_elc / sqrt(pow(10.0, -8.0));
       C0_elc = (D_elc + Etot_elc) / sqrt(pow(10.0, -8.0));
     }
@@ -1533,8 +1515,8 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
     double alpha0_elc = -1.0 / (gas_gamma_elc * gas_gamma_elc);
     double alpha1_elc = -2.0 * C_elc * ((gas_gamma_elc - 1.0) / (gas_gamma_elc * gas_gamma_elc));
     double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 -
-      (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-        ((gas_gamma_elc - 1.0) / gas_gamma_elc);
+                        (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
+                          ((gas_gamma_elc - 1.0) / gas_gamma_elc);
     double alpha4_elc = (C0_elc * C0_elc) - 1.0;
     double eta_elc = 2.0 * C_elc * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
 
@@ -1543,10 +1525,11 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
 
     while (iter_elc < 100) {
       double poly_elc = (alpha4_elc * (guess_elc * guess_elc * guess_elc) * (guess_elc - eta_elc)) +
-        (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) + alpha0_elc;
+                        (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) +
+                        alpha0_elc;
       double poly_der_elc = alpha1_elc + (2.0 * alpha2_elc * guess_elc) +
-        (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) -
-        (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
+                            (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) -
+                            (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
 
       double guess_new_elc = guess_elc - (poly_elc / poly_der_elc);
 
@@ -1558,11 +1541,11 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
       }
     }
 
-    double W_elc = 0.5 * C0_elc * guess_elc *
+    double W_elc =
+      0.5 * C0_elc * guess_elc *
       (1.0 +
-        sqrt(1.0 +
-          (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-            ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
+       sqrt(1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
+                   ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
     double h_elc = 1.0 / (C_elc * guess_elc);
 
     double rho_elc = D_elc / W_elc;
@@ -1584,15 +1567,15 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
     double momz_ion = fluid_old[8] / sqrt(spatial_det);
     double Etot_ion = fluid_old[9] / sqrt(spatial_det);
 
-    double C_ion = D_ion /
-      sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    double C_ion =
+      D_ion / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                   ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
     double C0_ion = (D_ion + Etot_ion) /
-      sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+                    sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                         ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
     if (((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) <
-      pow(10.0, -8.0)) {
+          ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) <
+        pow(10.0, -8.0)) {
       C_ion = D_ion / sqrt(pow(10.0, -8.0));
       C0_ion = (D_ion + Etot_ion) / sqrt(pow(10.0, -8.0));
     }
@@ -1600,8 +1583,8 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
     double alpha0_ion = -1.0 / (gas_gamma_ion * gas_gamma_ion);
     double alpha1_ion = -2.0 * C_ion * ((gas_gamma_ion - 1.0) / (gas_gamma_ion * gas_gamma_ion));
     double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 -
-      (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-        ((gas_gamma_ion - 1.0) / gas_gamma_ion);
+                        (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
+                          ((gas_gamma_ion - 1.0) / gas_gamma_ion);
     double alpha4_ion = (C0_ion * C0_ion) - 1.0;
     double eta_ion = 2.0 * C_ion * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
 
@@ -1610,10 +1593,11 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
 
     while (iter_ion < 100) {
       double poly_ion = (alpha4_ion * (guess_ion * guess_ion * guess_ion) * (guess_ion - eta_ion)) +
-        (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) + alpha0_ion;
+                        (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) +
+                        alpha0_ion;
       double poly_der_ion = alpha1_ion + (2.0 * alpha2_ion * guess_ion) +
-        (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) -
-        (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
+                            (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) -
+                            (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
 
       double guess_new_ion = guess_ion - (poly_ion / poly_der_ion);
 
@@ -1625,11 +1609,11 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
       }
     }
 
-    double W_ion = 0.5 * C0_ion * guess_ion *
+    double W_ion =
+      0.5 * C0_ion * guess_ion *
       (1.0 +
-        sqrt(1.0 +
-          (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-            ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
+       sqrt(1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
+                   ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
     double h_ion = 1.0 / (C_ion * guess_ion);
 
     double rho_ion = D_ion / W_ion;
@@ -1657,9 +1641,10 @@ explicit_gr_twofluid_source_update_em_euler(const gkyl_moment_em_coupling *mom_e
   }
 }
 
-void
-explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coupling *mom_em,
-  const double gas_gamma_elc, double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coupling *mom_em,
+                                                            const double gas_gamma_elc,
+                                                            double t_curr, const double dt,
+                                                            double *fluid_old, double *fluid_new)
 {
   double lapse = fluid_old[18];
   double shift_x = fluid_old[19];
@@ -1678,15 +1663,12 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
   spatial_metric[2][2] = fluid_old[30];
 
   double inv_spatial_metric[3][3];
-  double spatial_det = (spatial_metric[0][0] *
-                         ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                           (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] *
-      ((spatial_metric[1][0] * spatial_metric[2][2]) -
-        (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] *
-      ((spatial_metric[1][0] * spatial_metric[2][1]) -
-        (spatial_metric[1][1] * spatial_metric[2][0])));
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                       (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                       (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -1726,9 +1708,9 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-          (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      inv_spatial_metric[i][j] =
+        (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 
@@ -1755,15 +1737,15 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
     double momz_elc = fluid_old[3] / sqrt(spatial_det);
     double Etot_elc = fluid_old[4] / sqrt(spatial_det);
 
-    double C_elc = D_elc /
-      sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+    double C_elc =
+      D_elc / sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                   ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
     double C0_elc = (D_elc + Etot_elc) /
-      sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
+                    sqrt(((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
+                         ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)));
     if (((Etot_elc + D_elc) * (Etot_elc + D_elc)) -
-        ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) <
-      pow(10.0, -8.0)) {
+          ((momx_elc * momx_elc) + (momy_elc * momy_elc) + (momz_elc * momz_elc)) <
+        pow(10.0, -8.0)) {
       C_elc = D_elc / sqrt(pow(10.0, -8.0));
       C0_elc = (D_elc + Etot_elc) / sqrt(pow(10.0, -8.0));
     }
@@ -1771,8 +1753,8 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
     double alpha0_elc = -1.0 / (gas_gamma_elc * gas_gamma_elc);
     double alpha1_elc = -2.0 * C_elc * ((gas_gamma_elc - 1.0) / (gas_gamma_elc * gas_gamma_elc));
     double alpha2_elc = ((gas_gamma_elc - 2.0) / gas_gamma_elc) * ((C0_elc * C0_elc) - 1.0) + 1.0 -
-      (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-        ((gas_gamma_elc - 1.0) / gas_gamma_elc);
+                        (C_elc * C_elc) * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
+                          ((gas_gamma_elc - 1.0) / gas_gamma_elc);
     double alpha4_elc = (C0_elc * C0_elc) - 1.0;
     double eta_elc = 2.0 * C_elc * ((gas_gamma_elc - 1.0) / gas_gamma_elc);
 
@@ -1781,10 +1763,11 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
 
     while (iter_elc < 100) {
       double poly_elc = (alpha4_elc * (guess_elc * guess_elc * guess_elc) * (guess_elc - eta_elc)) +
-        (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) + alpha0_elc;
+                        (alpha2_elc * (guess_elc * guess_elc)) + (alpha1_elc * guess_elc) +
+                        alpha0_elc;
       double poly_der_elc = alpha1_elc + (2.0 * alpha2_elc * guess_elc) +
-        (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) -
-        (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
+                            (4.0 * alpha4_elc * (guess_elc * guess_elc * guess_elc)) -
+                            (3.0 * eta_elc * alpha4_elc * (guess_elc * guess_elc));
 
       double guess_new_elc = guess_elc - (poly_elc / poly_der_elc);
 
@@ -1796,11 +1779,11 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
       }
     }
 
-    double W_elc = 0.5 * C0_elc * guess_elc *
+    double W_elc =
+      0.5 * C0_elc * guess_elc *
       (1.0 +
-        sqrt(1.0 +
-          (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
-            ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
+       sqrt(1.0 + (4.0 * ((gas_gamma_elc - 1.0) / gas_gamma_elc) *
+                   ((1.0 - (C_elc * guess_elc)) / ((C0_elc * C0_elc) * (guess_elc * guess_elc))))));
     double h_elc = 1.0 / (C_elc * guess_elc);
 
     double rho_elc = D_elc / W_elc;
@@ -1844,7 +1827,7 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < 4; j++) {
         stress_energy_elc[i][j] = (rho_elc * h_elc * spacetime_vel_elc[i] * spacetime_vel_elc[j]) +
-          (p_elc * inv_spacetime_metric[i][j]);
+                                  (p_elc * inv_spacetime_metric[i][j]);
       }
     }
 
@@ -1924,8 +1907,8 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
 
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
-          fluid_new[1 + j] += dt *
-            (0.5 * stress_energy_elc[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+          fluid_new[1 + j] += dt * (0.5 * stress_energy_elc[0][0] * shift[k] * shift[l] *
+                                    spatial_metric_der[j][k][l]);
           fluid_new[1 + j] +=
             dt * (0.5 * stress_energy_elc[k + 1][l + 1] * spatial_metric_der[j][k][l]);
         }
@@ -1945,9 +1928,10 @@ explicit_gr_twofluid_source_update_elc_spacetime_euler(const gkyl_moment_em_coup
   }
 }
 
-void
-explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coupling *mom_em,
-  const double gas_gamma_ion, double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coupling *mom_em,
+                                                            const double gas_gamma_ion,
+                                                            double t_curr, const double dt,
+                                                            double *fluid_old, double *fluid_new)
 {
   double lapse = fluid_old[18];
   double shift_x = fluid_old[19];
@@ -1966,15 +1950,12 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
   spatial_metric[2][2] = fluid_old[30];
 
   double inv_spatial_metric[3][3];
-  double spatial_det = (spatial_metric[0][0] *
-                         ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                           (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] *
-      ((spatial_metric[1][0] * spatial_metric[2][2]) -
-        (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] *
-      ((spatial_metric[1][0] * spatial_metric[2][1]) -
-        (spatial_metric[1][1] * spatial_metric[2][0])));
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                       (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                       (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -2014,9 +1995,9 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-          (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      inv_spatial_metric[i][j] =
+        (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 
@@ -2043,15 +2024,15 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
     double momz_ion = fluid_old[8] / sqrt(spatial_det);
     double Etot_ion = fluid_old[9] / sqrt(spatial_det);
 
-    double C_ion = D_ion /
-      sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+    double C_ion =
+      D_ion / sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                   ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
     double C0_ion = (D_ion + Etot_ion) /
-      sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
+                    sqrt(((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
+                         ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)));
     if (((Etot_ion + D_ion) * (Etot_ion + D_ion)) -
-        ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) <
-      pow(10.0, -8.0)) {
+          ((momx_ion * momx_ion) + (momy_ion * momy_ion) + (momz_ion * momz_ion)) <
+        pow(10.0, -8.0)) {
       C_ion = D_ion / sqrt(pow(10.0, -8.0));
       C0_ion = (D_ion + Etot_ion) / sqrt(pow(10.0, -8.0));
     }
@@ -2059,8 +2040,8 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
     double alpha0_ion = -1.0 / (gas_gamma_ion * gas_gamma_ion);
     double alpha1_ion = -2.0 * C_ion * ((gas_gamma_ion - 1.0) / (gas_gamma_ion * gas_gamma_ion));
     double alpha2_ion = ((gas_gamma_ion - 2.0) / gas_gamma_ion) * ((C0_ion * C0_ion) - 1.0) + 1.0 -
-      (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-        ((gas_gamma_ion - 1.0) / gas_gamma_ion);
+                        (C_ion * C_ion) * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
+                          ((gas_gamma_ion - 1.0) / gas_gamma_ion);
     double alpha4_ion = (C0_ion * C0_ion) - 1.0;
     double eta_ion = 2.0 * C_ion * ((gas_gamma_ion - 1.0) / gas_gamma_ion);
 
@@ -2069,10 +2050,11 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
 
     while (iter_ion < 100) {
       double poly_ion = (alpha4_ion * (guess_ion * guess_ion * guess_ion) * (guess_ion - eta_ion)) +
-        (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) + alpha0_ion;
+                        (alpha2_ion * (guess_ion * guess_ion)) + (alpha1_ion * guess_ion) +
+                        alpha0_ion;
       double poly_der_ion = alpha1_ion + (2.0 * alpha2_ion * guess_ion) +
-        (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) -
-        (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
+                            (4.0 * alpha4_ion * (guess_ion * guess_ion * guess_ion)) -
+                            (3.0 * eta_ion * alpha4_ion * (guess_ion * guess_ion));
 
       double guess_new_ion = guess_ion - (poly_ion / poly_der_ion);
 
@@ -2084,11 +2066,11 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
       }
     }
 
-    double W_ion = 0.5 * C0_ion * guess_ion *
+    double W_ion =
+      0.5 * C0_ion * guess_ion *
       (1.0 +
-        sqrt(1.0 +
-          (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
-            ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
+       sqrt(1.0 + (4.0 * ((gas_gamma_ion - 1.0) / gas_gamma_ion) *
+                   ((1.0 - (C_ion * guess_ion)) / ((C0_ion * C0_ion) * (guess_ion * guess_ion))))));
     double h_ion = 1.0 / (C_ion * guess_ion);
 
     double rho_ion = D_ion / W_ion;
@@ -2132,7 +2114,7 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < 4; j++) {
         stress_energy_ion[i][j] = (rho_ion * h_ion * spacetime_vel_ion[i] * spacetime_vel_ion[j]) +
-          (p_ion * inv_spacetime_metric[i][j]);
+                                  (p_ion * inv_spacetime_metric[i][j]);
       }
     }
 
@@ -2212,8 +2194,8 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
 
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
-          fluid_new[6 + j] += dt *
-            (0.5 * stress_energy_ion[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
+          fluid_new[6 + j] += dt * (0.5 * stress_energy_ion[0][0] * shift[k] * shift[l] *
+                                    spatial_metric_der[j][k][l]);
           fluid_new[6 + j] +=
             dt * (0.5 * stress_energy_ion[k + 1][l + 1] * spatial_metric_der[j][k][l]);
         }
@@ -2233,9 +2215,8 @@ explicit_gr_twofluid_source_update_ion_spacetime_euler(const gkyl_moment_em_coup
   }
 }
 
-void
-explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  const double dt, double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                        const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -2258,16 +2239,17 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, double
       f_old[j] = f[j];
     }
 
-    explicit_gr_twofluid_source_update_elc_euler(
-      mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr, dt, f_old, f_new_elc);
-    explicit_gr_twofluid_source_update_elc_spacetime_euler(
-      mom_em, gas_gamma_elc, t_curr, dt, f_new_elc, f_new_elc_spacetime);
-    explicit_gr_twofluid_source_update_ion_euler(
-      mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr, dt, f_old, f_new_ion);
-    explicit_gr_twofluid_source_update_ion_spacetime_euler(
-      mom_em, gas_gamma_ion, t_curr, dt, f_new_ion, f_new_ion_spacetime);
+    explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc,
+                                                 t_curr, dt, f_old, f_new_elc);
+    explicit_gr_twofluid_source_update_elc_spacetime_euler(mom_em, gas_gamma_elc, t_curr, dt,
+                                                           f_new_elc, f_new_elc_spacetime);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion,
+                                                 t_curr, dt, f_old, f_new_ion);
+    explicit_gr_twofluid_source_update_ion_spacetime_euler(mom_em, gas_gamma_ion, t_curr, dt,
+                                                           f_new_ion, f_new_ion_spacetime);
     explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc,
-      charge_elc, mass_ion, charge_ion, e_fact, t_curr, dt, f_old, f_new);
+                                                charge_elc, mass_ion, charge_ion, e_fact, t_curr,
+                                                dt, f_old, f_new);
     for (int j = 0; j < 5; j++) {
       f_stage1[j] = f_new_elc_spacetime[j];
     }
@@ -2278,16 +2260,17 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, double
       f_stage1[j] = f_new[j];
     }
 
-    explicit_gr_twofluid_source_update_elc_euler(
-      mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr + dt, dt, f_stage1, f_new_elc);
-    explicit_gr_twofluid_source_update_elc_spacetime_euler(
-      mom_em, gas_gamma_elc, t_curr + dt, dt, f_new_elc, f_new_elc_spacetime);
-    explicit_gr_twofluid_source_update_ion_euler(
-      mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + dt, dt, f_stage1, f_new_ion);
-    explicit_gr_twofluid_source_update_ion_spacetime_euler(
-      mom_em, gas_gamma_ion, t_curr + dt, dt, f_new_ion, f_new_ion_spacetime);
+    explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc,
+                                                 t_curr + dt, dt, f_stage1, f_new_elc);
+    explicit_gr_twofluid_source_update_elc_spacetime_euler(mom_em, gas_gamma_elc, t_curr + dt, dt,
+                                                           f_new_elc, f_new_elc_spacetime);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion,
+                                                 t_curr + dt, dt, f_stage1, f_new_ion);
+    explicit_gr_twofluid_source_update_ion_spacetime_euler(mom_em, gas_gamma_ion, t_curr + dt, dt,
+                                                           f_new_ion, f_new_ion_spacetime);
     explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc,
-      charge_elc, mass_ion, charge_ion, e_fact, t_curr + dt, dt, f_stage1, f_new);
+                                                charge_elc, mass_ion, charge_ion, e_fact,
+                                                t_curr + dt, dt, f_stage1, f_new);
     for (int j = 0; j < 5; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new_elc_spacetime[j]);
     }
@@ -2298,16 +2281,17 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, double
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
-    explicit_gr_twofluid_source_update_elc_euler(
-      mom_em, gas_gamma_elc, mass_elc, charge_elc, t_curr + (0.5 * dt), dt, f_stage2, f_new_elc);
+    explicit_gr_twofluid_source_update_elc_euler(mom_em, gas_gamma_elc, mass_elc, charge_elc,
+                                                 t_curr + (0.5 * dt), dt, f_stage2, f_new_elc);
     explicit_gr_twofluid_source_update_elc_spacetime_euler(
       mom_em, gas_gamma_elc, t_curr + (0.5 * dt), dt, f_new_elc, f_new_elc_spacetime);
-    explicit_gr_twofluid_source_update_ion_euler(
-      mom_em, gas_gamma_ion, mass_ion, charge_ion, t_curr + (0.5 * dt), dt, f_stage2, f_new_ion);
+    explicit_gr_twofluid_source_update_ion_euler(mom_em, gas_gamma_ion, mass_ion, charge_ion,
+                                                 t_curr + (0.5 * dt), dt, f_stage2, f_new_ion);
     explicit_gr_twofluid_source_update_ion_spacetime_euler(
       mom_em, gas_gamma_ion, t_curr + (0.5 * dt), dt, f_new_ion, f_new_ion_spacetime);
     explicit_gr_twofluid_source_update_em_euler(mom_em, gas_gamma_elc, gas_gamma_ion, mass_elc,
-      charge_elc, mass_ion, charge_ion, e_fact, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+                                                charge_elc, mass_ion, charge_ion, e_fact,
+                                                t_curr + (0.5 * dt), dt, f_stage2, f_new);
     for (int j = 0; j < 5; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new_elc_spacetime[j]);
     }
@@ -2320,9 +2304,9 @@ explicit_gr_twofluid_source_update(const gkyl_moment_em_coupling *mom_em, double
   }
 }
 
-void
-explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-  const double excision_threshold, const enum gkyl_spacetime_slicing spacetime_slicing,
+void explicit_vacuum_einstein_source_update_euler(
+  const gkyl_moment_em_coupling *mom_em, const double excision_threshold,
+  const enum gkyl_spacetime_slicing spacetime_slicing,
   const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
   double *fluid_old, double *fluid_new)
 {
@@ -2414,15 +2398,12 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling *mom_
 
   if (!in_excision_region) {
     double inv_spatial_metric[3][3];
-    double spatial_det = (spatial_metric[0][0] *
-                           ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                             (spatial_metric[2][1] * spatial_metric[1][2]))) -
-      (spatial_metric[0][1] *
-        ((spatial_metric[1][0] * spatial_metric[2][2]) -
-          (spatial_metric[1][2] * spatial_metric[2][0]))) +
-      (spatial_metric[0][2] *
-        ((spatial_metric[1][0] * spatial_metric[2][1]) -
-          (spatial_metric[1][1] * spatial_metric[2][0])));
+    double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                  (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                         (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                  (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                         (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                  (spatial_metric[1][1] * spatial_metric[2][0])));
 
     double trace = 0.0;
     for (int i = 0; i < 3; i++) {
@@ -2462,9 +2443,9 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling *mom_
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        inv_spatial_metric[i][j] = (1.0 / spatial_det) *
-          ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-            (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+        inv_spatial_metric[i][j] =
+          (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                                 (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
       }
     }
 
@@ -2680,14 +2661,14 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling *mom_
               lapse * spatial_christoffel[k][r][i] * spatial_christoffel[r][k][j];
 
             extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[i][k][r] *
-              spatial_metric_der_raised3[r][j][k];
+                                                spatial_metric_der_raised3[r][j][k];
             extrinsic_curvature_source[i][j] += 2.0 * lapse * spatial_metric_der_raised3[j][k][r] *
-              spatial_metric_der_raised3[r][i][k];
+                                                spatial_metric_der_raised3[r][i][k];
             extrinsic_curvature_source[i][j] +=
               lapse * spatial_christoffel[k][k][r] * spatial_christoffel[r][i][j];
 
-            extrinsic_curvature_source[i][j] -= lapse *
-              (2.0 * spatial_metric_der_raised3[k][r][k] - lapse_der[r]) *
+            extrinsic_curvature_source[i][j] -=
+              lapse * (2.0 * spatial_metric_der_raised3[k][r][k] - lapse_der[r]) *
               (spatial_metric_der_raised3[i][j][r] + spatial_metric_der_raised3[j][i][r]);
           }
 
@@ -2726,7 +2707,7 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling *mom_
         }
 
         extrinsic_curvature_source[i][j] -= (0.25 * evolution_func * lapse * spatial_metric[i][j]) *
-          (extrinsic_curvature_trace * extrinsic_curvature_trace);
+                                            (extrinsic_curvature_trace * extrinsic_curvature_trace);
       }
     }
 
@@ -2815,9 +2796,8 @@ explicit_vacuum_einstein_source_update_euler(const gkyl_moment_em_coupling *mom_
   }
 }
 
-void
-explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  const double dt, double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                            const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -2834,29 +2814,31 @@ explicit_vacuum_einstein_source_update(const gkyl_moment_em_coupling *mom_em, do
       f_old[j] = f[j];
     }
 
-    explicit_vacuum_einstein_source_update_euler(
-      mom_em, excision_threshold, spacetime_slicing, spacetime_evolution, t_curr, dt, f_old, f_new);
+    explicit_vacuum_einstein_source_update_euler(mom_em, excision_threshold, spacetime_slicing,
+                                                 spacetime_evolution, t_curr, dt, f_old, f_new);
     for (int j = 0; j < 64; j++) {
       f_stage1[j] = f_new[j];
     }
 
     explicit_vacuum_einstein_source_update_euler(mom_em, excision_threshold, spacetime_slicing,
-      spacetime_evolution, t_curr + dt, dt, f_stage1, f_new);
+                                                 spacetime_evolution, t_curr + dt, dt, f_stage1,
+                                                 f_new);
     for (int j = 0; j < 64; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
     explicit_vacuum_einstein_source_update_euler(mom_em, excision_threshold, spacetime_slicing,
-      spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+                                                 spacetime_evolution, t_curr + (0.5 * dt), dt,
+                                                 f_stage2, f_new);
     for (int j = 0; j < 64; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }
 }
 
-void
-explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coupling *mom_em,
-  const double excision_threshold, const enum gkyl_spacetime_slicing spacetime_slicing,
+void explicit_vacuum_einstein_conformal_source_update_euler(
+  const gkyl_moment_em_coupling *mom_em, const double excision_threshold,
+  const enum gkyl_spacetime_slicing spacetime_slicing,
   const enum gkyl_spacetime_evolution spacetime_evolution, double t_curr, const double dt,
   double *fluid_old, double *fluid_new)
 {
@@ -2984,14 +2966,14 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
     double inv_conformal_spatial_metric[3][3];
     double conformal_spatial_det =
       (conformal_spatial_metric[0][0] *
-        ((conformal_spatial_metric[1][1] * conformal_spatial_metric[2][2]) -
-          (conformal_spatial_metric[2][1] * conformal_spatial_metric[1][2]))) -
+       ((conformal_spatial_metric[1][1] * conformal_spatial_metric[2][2]) -
+        (conformal_spatial_metric[2][1] * conformal_spatial_metric[1][2]))) -
       (conformal_spatial_metric[0][1] *
-        ((conformal_spatial_metric[1][0] * conformal_spatial_metric[2][2]) -
-          (conformal_spatial_metric[1][2] * conformal_spatial_metric[2][0]))) +
+       ((conformal_spatial_metric[1][0] * conformal_spatial_metric[2][2]) -
+        (conformal_spatial_metric[1][2] * conformal_spatial_metric[2][0]))) +
       (conformal_spatial_metric[0][2] *
-        ((conformal_spatial_metric[1][0] * conformal_spatial_metric[2][1]) -
-          (conformal_spatial_metric[1][1] * conformal_spatial_metric[2][0])));
+       ((conformal_spatial_metric[1][0] * conformal_spatial_metric[2][1]) -
+        (conformal_spatial_metric[1][1] * conformal_spatial_metric[2][0])));
 
     double trace = 0.0;
     for (int i = 0; i < 3; i++) {
@@ -3032,9 +3014,10 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
 
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        inv_conformal_spatial_metric[i][j] = (1.0 / conformal_spatial_det) *
+        inv_conformal_spatial_metric[i][j] =
+          (1.0 / conformal_spatial_det) *
           ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-            (trace * conformal_spatial_metric[i][j]) + conformal_spatial_metric_sq[i][j]);
+           (trace * conformal_spatial_metric[i][j]) + conformal_spatial_metric_sq[i][j]);
       }
     }
 
@@ -3073,7 +3056,8 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
         for (int l = 0; l < 3; l++) {
           for (int m = 0; m < 3; m++) {
             conformal_extrinsic_curvature_raised[i][j] += inv_conformal_spatial_metric[i][l] *
-              inv_conformal_spatial_metric[m][j] * conformal_extrinsic_curvature[l][m];
+                                                          inv_conformal_spatial_metric[m][j] *
+                                                          conformal_extrinsic_curvature[l][m];
           }
         }
       }
@@ -3099,7 +3083,8 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
         for (int l = 0; l < 3; l++) {
           for (int m = 0; m < 3; m++) {
             conformal_shift_vect_der_switched[i][k] += inv_conformal_spatial_metric[i][l] *
-              conformal_spatial_metric[m][k] * conformal_shift_vect_der[l][m];
+                                                       conformal_spatial_metric[m][k] *
+                                                       conformal_shift_vect_der[l][m];
           }
         }
       }
@@ -3113,7 +3098,8 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
     double conformal_symmetrized_shift[3][3];
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        conformal_symmetrized_shift[i][j] = (1.0 / conformal_lapse) *
+        conformal_symmetrized_shift[i][j] =
+          (1.0 / conformal_lapse) *
           (conformal_shift_vect_der_lowered[i][j] + conformal_shift_vect_der_lowered[j][i]);
       }
     }
@@ -3123,9 +3109,10 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
       slicing_func = 0.0;
     } else if (spacetime_slicing == GKYL_HARMONIC_SLICING) {
       slicing_func = conformal_extrinsic_curvature_trace /
-        (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
+                     (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
     } else if (spacetime_slicing == GKYL_1PLUSLOG_SLICING) {
-      slicing_func = 2.0 * conformal_extrinsic_curvature_trace /
+      slicing_func =
+        2.0 * conformal_extrinsic_curvature_trace /
         (conformal_lapse * (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
     }
 
@@ -3165,8 +3152,9 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
 
           for (int l = 0; l < 3; l++) {
             for (int m = 0; m < 3; m++) {
-              conformal_spatial_metric_der_lowered1[i][j][k] += inv_conformal_spatial_metric[j][l] *
-                inv_conformal_spatial_metric[m][k] * conformal_spatial_metric_der[i][l][m];
+              conformal_spatial_metric_der_lowered1[i][j][k] +=
+                inv_conformal_spatial_metric[j][l] * inv_conformal_spatial_metric[m][k] *
+                conformal_spatial_metric_der[i][l][m];
             }
           }
         }
@@ -3181,8 +3169,9 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
 
           for (int l = 0; l < 3; l++) {
             for (int m = 0; m < 3; m++) {
-              conformal_spatial_metric_der_lowered3[i][j][k] += inv_conformal_spatial_metric[i][l] *
-                inv_conformal_spatial_metric[m][j] * conformal_spatial_metric_der[l][m][k];
+              conformal_spatial_metric_der_lowered3[i][j][k] +=
+                inv_conformal_spatial_metric[i][l] * inv_conformal_spatial_metric[m][j] *
+                conformal_spatial_metric_der[l][m][k];
             }
           }
         }
@@ -3242,7 +3231,7 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
 
         for (int k = 0; k < 3; k++) {
           Y_tensor[i][j] += 2.0 * conformal_spatial_metric[i][j] * conformal_fact_der_raised[k] *
-            conformal_fact_der[k];
+                            conformal_fact_der[k];
         }
 
         for (int r = 0; r < 3; r++) {
@@ -3266,9 +3255,10 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
     double conformal_spatial_metric_source[3][3];
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
-        conformal_spatial_metric_source[i][j] = -2.0 * conformal_lapse *
+        conformal_spatial_metric_source[i][j] =
+          -2.0 * conformal_lapse *
           (conformal_extrinsic_curvature[i][j] /
-            (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
+           (conformal_fact * conformal_fact * conformal_fact * conformal_fact));
         conformal_spatial_metric_source[i][j] +=
           2.0 * conformal_lapse * conformal_symmetrized_shift[i][j];
 
@@ -3303,39 +3293,45 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
         for (int k = 0; k < 3; k++) {
           conformal_extrinsic_curvature_source[i][j] -=
             (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][k] *
-              conformal_extrinsic_curvature[k][j]) /
+             conformal_extrinsic_curvature[k][j]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
           conformal_extrinsic_curvature_source[i][j] +=
             (conformal_lapse * conformal_extrinsic_curvature_trace *
-              conformal_extrinsic_curvature[i][j]) /
+             conformal_extrinsic_curvature[i][j]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
           for (int r = 0; r < 3; r++) {
             conformal_extrinsic_curvature_source[i][j] -= conformal_lapse *
-              conformal_spatial_christoffel[k][r][i] * conformal_spatial_christoffel[r][k][j];
+                                                          conformal_spatial_christoffel[k][r][i] *
+                                                          conformal_spatial_christoffel[r][k][j];
 
-            conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse *
-              conformal_spatial_metric_der_raised3[i][k][r] *
+            conformal_extrinsic_curvature_source[i][j] +=
+              2.0 * conformal_lapse * conformal_spatial_metric_der_raised3[i][k][r] *
               conformal_spatial_metric_der_raised3[r][j][k];
-            conformal_extrinsic_curvature_source[i][j] += 2.0 * conformal_lapse *
-              conformal_spatial_metric_der_raised3[j][k][r] *
+            conformal_extrinsic_curvature_source[i][j] +=
+              2.0 * conformal_lapse * conformal_spatial_metric_der_raised3[j][k][r] *
               conformal_spatial_metric_der_raised3[r][i][k];
             conformal_extrinsic_curvature_source[i][j] += conformal_lapse *
-              conformal_spatial_christoffel[k][k][r] * conformal_spatial_christoffel[r][i][j];
+                                                          conformal_spatial_christoffel[k][k][r] *
+                                                          conformal_spatial_christoffel[r][i][j];
 
-            conformal_extrinsic_curvature_source[i][j] -= conformal_lapse *
+            conformal_extrinsic_curvature_source[i][j] -=
+              conformal_lapse *
               (2.0 * conformal_spatial_metric_der_raised3[k][r][k] - conformal_lapse_der[r]) *
               (conformal_spatial_metric_der_raised3[i][j][r] +
-                conformal_spatial_metric_der_raised3[j][i][r]);
+               conformal_spatial_metric_der_raised3[j][i][r]);
           }
 
-          conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[i] *
+          conformal_extrinsic_curvature_source[i][j] +=
+            conformal_lapse * conformal_lapse_der[i] *
             (conformal_aux_vect[j] - (0.5 * conformal_spatial_metric_der_raised3[j][k][k]));
-          conformal_extrinsic_curvature_source[i][j] += conformal_lapse * conformal_lapse_der[j] *
+          conformal_extrinsic_curvature_source[i][j] +=
+            conformal_lapse * conformal_lapse_der[j] *
             (conformal_aux_vect[i] - (0.5 * conformal_spatial_metric_der_raised3[i][k][k]));
 
           conformal_extrinsic_curvature_source[i][j] -= conformal_lapse * evolution_func *
-            conformal_aux_vect_raised[k] * conformal_spatial_metric_der[k][i][j];
+                                                        conformal_aux_vect_raised[k] *
+                                                        conformal_spatial_metric_der[k][i][j];
         }
 
         for (int k = 0; k < 3; k++) {
@@ -3361,14 +3357,14 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
           for (int s = 0; s < 3; s++) {
             conformal_extrinsic_curvature_source[i][j] +=
               ((0.25 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) *
-                conformal_extrinsic_curvature_raised[r][s] * conformal_extrinsic_curvature[r][s]) /
+               conformal_extrinsic_curvature_raised[r][s] * conformal_extrinsic_curvature[r][s]) /
               (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
           }
         }
 
         conformal_extrinsic_curvature_source[i][j] -=
           ((0.25 * evolution_func * conformal_lapse * conformal_spatial_metric[i][j]) *
-            (conformal_extrinsic_curvature_trace * conformal_extrinsic_curvature_trace)) /
+           (conformal_extrinsic_curvature_trace * conformal_extrinsic_curvature_trace)) /
           (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
         conformal_extrinsic_curvature_source[i][j] -= Y_tensor[i][j];
@@ -3381,7 +3377,8 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
           conformal_extrinsic_curvature_source[i][j] +=
             conformal_spatial_metric[i][j] * (evolution_func - 1.0) * Y_tensor_mixed[k][k];
           conformal_extrinsic_curvature_source[i][j] -= 2.0 * conformal_spatial_metric[i][j] *
-            conformal_lapse_der_raised[k] * conformal_fact_der[k];
+                                                        conformal_lapse_der_raised[k] *
+                                                        conformal_fact_der[k];
         }
       }
     }
@@ -3404,29 +3401,31 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
         for (int s = 0; s < 3; s++) {
           conformal_aux_vect_source[i] +=
             (conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] *
-              conformal_spatial_metric_der_raised3[i][r][s]) /
+             conformal_spatial_metric_der_raised3[i][r][s]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
           conformal_aux_vect_source[i] -=
             (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[s][r] *
-              conformal_spatial_metric_der_raised3[r][i][s]) /
+             conformal_spatial_metric_der_raised3[r][i][s]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
           conformal_aux_vect_source[i] -=
             (conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] *
-              conformal_spatial_metric_der_raised3[r][s][s]) /
+             conformal_spatial_metric_der_raised3[r][s][s]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
           conformal_aux_vect_source[i] +=
             (2.0 * conformal_lapse * conformal_extrinsic_curvature_mixed[i][r] *
-              conformal_spatial_metric_der_raised3[s][r][s]) /
+             conformal_spatial_metric_der_raised3[s][r][s]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
-          conformal_aux_vect_source[i] -= (6.0 * conformal_lapse * conformal_fact_der[r] *
-                                            conformal_extrinsic_curvature_mixed[s][r]) /
+          conformal_aux_vect_source[i] -=
+            (6.0 * conformal_lapse * conformal_fact_der[r] *
+             conformal_extrinsic_curvature_mixed[s][r]) /
             (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
 
           if (s == r) {
-            conformal_aux_vect_source[i] += (2.0 * conformal_lapse * conformal_fact_der[r] *
-                                              conformal_extrinsic_curvature_trace) /
+            conformal_aux_vect_source[i] +=
+              (2.0 * conformal_lapse * conformal_fact_der[r] *
+               conformal_extrinsic_curvature_trace) /
               (conformal_fact * conformal_fact * conformal_fact * conformal_fact);
           }
         }
@@ -3441,12 +3440,12 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
 
         for (int s = 0; s < 3; s++) {
           conformal_aux_vect_source[i] += 2.0 * conformal_spatial_metric_der_raised3[r][i][s] *
-            conformal_shift_vect_der_switched[r][s];
+                                          conformal_shift_vect_der_switched[r][s];
 
           if (i == s) {
             for (int j = 0; j < 3; j++) {
               conformal_aux_vect_source[i] -= 2.0 * conformal_spatial_metric_der_raised1[j][j][r] *
-                conformal_shift_vect_der_switched[r][s];
+                                              conformal_shift_vect_der_switched[r][s];
             }
           }
         }
@@ -3500,9 +3499,9 @@ explicit_vacuum_einstein_conformal_source_update_euler(const gkyl_moment_em_coup
   }
 }
 
-void
-explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling *mom_em,
-  double t_curr, const double dt, double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling *mom_em,
+                                                      double t_curr, const double dt,
+                                                      double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -3528,22 +3527,25 @@ explicit_vacuum_einstein_conformal_source_update(const gkyl_moment_em_coupling *
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold,
-      spacetime_slicing, spacetime_evolution, t_curr + dt, dt, f_stage1, f_new);
+                                                           spacetime_slicing, spacetime_evolution,
+                                                           t_curr + dt, dt, f_stage1, f_new);
     for (int j = 0; j < 77; j++) {
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
     explicit_vacuum_einstein_conformal_source_update_euler(mom_em, excision_threshold,
-      spacetime_slicing, spacetime_evolution, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+                                                           spacetime_slicing, spacetime_evolution,
+                                                           t_curr + (0.5 * dt), dt, f_stage2,
+                                                           f_new);
     for (int j = 0; j < 77; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }
 }
 
-void
-explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const double gas_gamma,
-  double t_curr, const double dt, double *fluid_old, double *fluid_new)
+void explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em,
+                                         const double gas_gamma, double t_curr, const double dt,
+                                         double *fluid_old, double *fluid_new)
 {
   double lapse = fluid_old[9];
   double shift_x = fluid_old[10];
@@ -3562,15 +3564,12 @@ explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
   spatial_metric[2][2] = fluid_old[21];
 
   double inv_spatial_metric[3][3];
-  double spatial_det = (spatial_metric[0][0] *
-                         ((spatial_metric[1][1] * spatial_metric[2][2]) -
-                           (spatial_metric[2][1] * spatial_metric[1][2]))) -
-    (spatial_metric[0][1] *
-      ((spatial_metric[1][0] * spatial_metric[2][2]) -
-        (spatial_metric[1][2] * spatial_metric[2][0]))) +
-    (spatial_metric[0][2] *
-      ((spatial_metric[1][0] * spatial_metric[2][1]) -
-        (spatial_metric[1][1] * spatial_metric[2][0])));
+  double spatial_det = (spatial_metric[0][0] * ((spatial_metric[1][1] * spatial_metric[2][2]) -
+                                                (spatial_metric[2][1] * spatial_metric[1][2]))) -
+                       (spatial_metric[0][1] * ((spatial_metric[1][0] * spatial_metric[2][2]) -
+                                                (spatial_metric[1][2] * spatial_metric[2][0]))) +
+                       (spatial_metric[0][2] * ((spatial_metric[1][0] * spatial_metric[2][1]) -
+                                                (spatial_metric[1][1] * spatial_metric[2][0])));
 
   double trace = 0.0;
   for (int i = 0; i < 3; i++) {
@@ -3610,9 +3609,9 @@ explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
 
   for (int i = 0; i < 3; i++) {
     for (int j = 0; j < 3; j++) {
-      inv_spatial_metric[i][j] = (1.0 / spatial_det) *
-        ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
-          (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
+      inv_spatial_metric[i][j] =
+        (1.0 / spatial_det) * ((0.5 * ((trace * trace) - sq_trace) * euclidean_metric[i][j]) -
+                               (trace * spatial_metric[i][j]) + spatial_metric_sq[i][j]);
     }
   }
 
@@ -3699,7 +3698,7 @@ explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
       z = epsilon1 - mag_sq;
 
       double v_sq = ((M_sq * (z * z)) + ((tau_star * tau_star) * (mag_sq + (2.0 * z)))) /
-        ((z * z) * (mag_sq + z) * (mag_sq + z));
+                    ((z * z) * (mag_sq + z) * (mag_sq + z));
       W = 1.0 / sqrt(1.0 - v_sq);
       rho = D / W;
       double h = z / (W * W * rho);
@@ -3802,7 +3801,8 @@ explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
     for (int i = 0; i < 4; i++) {
       for (int j = 0; j < 4; j++) {
         stress_energy[i][j] = (rho * h_star * spacetime_vel[i] * spacetime_vel[j]) +
-          (p_star * inv_spacetime_metric[i][j]) - (spacetime_b[i] * spacetime_b[j]);
+                              (p_star * inv_spacetime_metric[i][j]) -
+                              (spacetime_b[i] * spacetime_b[j]);
       }
     }
 
@@ -3865,11 +3865,11 @@ explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
     for (int i = 0; i < 3; i++) {
       for (int j = 0; j < 3; j++) {
         fluid_new[4] += dt * (lapse * sqrt(spatial_det)) *
-          (stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
+                        (stress_energy[0][0] * shift[i] * shift[j] * extrinsic_curvature[i][j]);
         fluid_new[4] += dt * (lapse * sqrt(spatial_det)) *
-          (2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
+                        (2.0 * stress_energy[0][i + 1] * shift[j] * extrinsic_curvature[i][j]);
         fluid_new[4] += dt * (lapse * sqrt(spatial_det)) *
-          (stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j]);
+                        (stress_energy[i + 1][j + 1] * extrinsic_curvature[i][j]);
       }
 
       fluid_new[4] -=
@@ -3884,17 +3884,18 @@ explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
 
       for (int k = 0; k < 3; k++) {
         for (int l = 0; l < 3; l++) {
-          fluid_new[1 + j] += dt * (lapse * sqrt(spatial_det)) *
+          fluid_new[1 + j] +=
+            dt * (lapse * sqrt(spatial_det)) *
             (0.5 * stress_energy[0][0] * shift[k] * shift[l] * spatial_metric_der[j][k][l]);
           fluid_new[1 + j] += dt * (lapse * sqrt(spatial_det)) *
-            (0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l]);
+                              (0.5 * stress_energy[k + 1][l + 1] * spatial_metric_der[j][k][l]);
         }
 
         fluid_new[1 + j] += dt * (lapse * sqrt(spatial_det)) * ((mom[k] / lapse) * shift_der[j][k]);
 
         for (int i = 0; i < 3; i++) {
           fluid_new[1 + j] += dt * (lapse * sqrt(spatial_det)) *
-            (stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
+                              (stress_energy[0][i + 1] * shift[k] * spatial_metric_der[j][i][k]);
         }
       }
     }
@@ -3905,9 +3906,8 @@ explicit_gr_mhd_source_update_euler(const gkyl_moment_em_coupling *mom_em, const
   }
 }
 
-void
-explicit_gr_mhd_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, const double dt,
-  double *fluid_s[GKYL_MAX_SPECIES])
+void explicit_gr_mhd_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                   const double dt, double *fluid_s[GKYL_MAX_SPECIES])
 {
   int nfluids = mom_em->nfluids;
 
@@ -3932,18 +3932,18 @@ explicit_gr_mhd_source_update(const gkyl_moment_em_coupling *mom_em, double t_cu
       f_stage2[j] = (0.75 * f_old[j]) + (0.25 * f_new[j]);
     }
 
-    explicit_gr_mhd_source_update_euler(
-      mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2, f_new);
+    explicit_gr_mhd_source_update_euler(mom_em, gas_gamma, t_curr + (0.5 * dt), dt, f_stage2,
+                                        f_new);
     for (int j = 0; j < 75; j++) {
       f[j] = ((1.0 / 3.0) * f_old[j]) + ((2.0 / 3.0) * f_new[j]);
     }
   }
 }
 
-void
-explicit_e_field_source_update_euler(const gkyl_moment_em_coupling *mom_em, double t_curr,
-  double dt, double e_field_old[3], double *e_field_new, double *fluid_s[GKYL_MAX_SPECIES],
-  const double *app_current)
+void explicit_e_field_source_update_euler(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                          double dt, double e_field_old[3], double *e_field_new,
+                                          double *fluid_s[GKYL_MAX_SPECIES],
+                                          const double *app_current)
 {
   int nfluids = mom_em->nfluids;
 
@@ -3980,10 +3980,10 @@ explicit_e_field_source_update_euler(const gkyl_moment_em_coupling *mom_em, doub
   }
 }
 
-void
-explicit_e_field_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
-  double *fluid_s[GKYL_MAX_SPECIES], double *em, const double *app_current,
-  const double *app_current1, const double *app_current2, const double *ext_em)
+void explicit_e_field_source_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
+                                    double *fluid_s[GKYL_MAX_SPECIES], double *em,
+                                    const double *app_current, const double *app_current1,
+                                    const double *app_current2, const double *ext_em)
 {
   double e_field_new[3], e_field_stage1[3], e_field_stage2[3];
   double e_field_old[3];
@@ -3991,28 +3991,27 @@ explicit_e_field_source_update(const gkyl_moment_em_coupling *mom_em, double t_c
   e_field_old[1] = em[1];
   e_field_old[2] = em[2];
 
-  explicit_e_field_source_update_euler(
-    mom_em, t_curr, dt, e_field_old, e_field_new, fluid_s, app_current);
+  explicit_e_field_source_update_euler(mom_em, t_curr, dt, e_field_old, e_field_new, fluid_s,
+                                       app_current);
   e_field_stage1[0] = e_field_new[0];
   e_field_stage1[1] = e_field_new[1];
   e_field_stage1[2] = e_field_new[2];
 
-  explicit_e_field_source_update_euler(
-    mom_em, t_curr + dt, dt, e_field_stage1, e_field_new, fluid_s, app_current1);
+  explicit_e_field_source_update_euler(mom_em, t_curr + dt, dt, e_field_stage1, e_field_new,
+                                       fluid_s, app_current1);
   e_field_stage2[0] = (0.75 * e_field_old[0]) + (0.25 * e_field_new[0]);
   e_field_stage2[1] = (0.75 * e_field_old[1]) + (0.25 * e_field_new[1]);
   e_field_stage2[2] = (0.75 * e_field_old[2]) + (0.25 * e_field_new[2]);
 
-  explicit_e_field_source_update_euler(
-    mom_em, t_curr + (0.5 * dt), dt, e_field_stage2, e_field_new, fluid_s, app_current2);
+  explicit_e_field_source_update_euler(mom_em, t_curr + (0.5 * dt), dt, e_field_stage2, e_field_new,
+                                       fluid_s, app_current2);
   em[0] = ((1.0 / 3.0) * e_field_old[0]) + ((2.0 / 3.0) * e_field_new[0]);
   em[1] = ((1.0 / 3.0) * e_field_old[1]) + ((2.0 / 3.0) * e_field_new[1]);
   em[2] = ((1.0 / 3.0) * e_field_old[2]) + ((2.0 / 3.0) * e_field_new[2]);
 }
 
-void
-explicit_higuera_cary_push(double *vel, const double q, const double m, const double dt,
-  const double c, const double e_field[3], const double b_field[3])
+void explicit_higuera_cary_push(double *vel, const double q, const double m, const double dt,
+                                const double c, const double e_field[3], const double b_field[3])
 {
   const double q_over_m = (0.5 * dt) * (q / m);
   const double Ex = q_over_m * e_field[0];
@@ -4028,9 +4027,10 @@ explicit_higuera_cary_push(double *vel, const double q, const double m, const do
 
   const double vel_star =
     (vel_x_minus * (Bx / c)) + (vel_y_minus * (By / c)) + (vel_z_minus * (Bz / c));
-  const double gamma_minus = sqrt(1.0 +
+  const double gamma_minus = sqrt(
+    1.0 +
     (((vel_x_minus * vel_x_minus) + (vel_y_minus * vel_y_minus) + (vel_z_minus * vel_z_minus)) /
-      (c * c)));
+     (c * c)));
   const double dot_tau_tau = (Bx * Bx) + (By * By) + (Bz * Bz);
   const double sigma = (gamma_minus * gamma_minus) - dot_tau_tau;
   const double gamma_new =
@@ -4054,10 +4054,10 @@ explicit_higuera_cary_push(double *vel, const double q, const double m, const do
   vel[2] = vel_z_plus + Ez + ((vel_x_plus * ty) - (vel_y_plus * tx));
 }
 
-void
-explicit_higuera_cary_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
-  double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
-  const double *ext_em)
+void explicit_higuera_cary_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
+                                  double *fluid_s[GKYL_MAX_SPECIES],
+                                  const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
+                                  const double *ext_em)
 {
   int nfluids = mom_em->nfluids;
 
@@ -4102,15 +4102,15 @@ explicit_higuera_cary_update(const gkyl_moment_em_coupling *mom_em, double t_cur
   }
 }
 
-void
-explicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, double t_curr, double dt,
-  double *fluid_s[GKYL_MAX_SPECIES], const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
-  const double *app_current, const double *app_current1, const double *app_current2,
-  const double *ext_em, int nstrang)
+void explicit_source_coupling_update(const gkyl_moment_em_coupling *mom_em, double t_curr,
+                                     double dt, double *fluid_s[GKYL_MAX_SPECIES],
+                                     const double *app_accel_s[GKYL_MAX_SPECIES], double *em,
+                                     const double *app_current, const double *app_current1,
+                                     const double *app_current2, const double *ext_em, int nstrang)
 {
   if (nstrang == 0) {
-    explicit_e_field_source_update(
-      mom_em, t_curr, dt, fluid_s, em, app_current, app_current1, app_current2, ext_em);
+    explicit_e_field_source_update(mom_em, t_curr, dt, fluid_s, em, app_current, app_current1,
+                                   app_current2, ext_em);
   } else if (nstrang == 1) {
     explicit_higuera_cary_update(mom_em, t_curr, dt, fluid_s, app_accel_s, em, ext_em);
   }

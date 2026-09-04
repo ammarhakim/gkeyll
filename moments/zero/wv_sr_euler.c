@@ -9,32 +9,31 @@ struct wv_sr_euler {
   double gas_gamma; // gas adiabatic constant
 };
 
-static void
-sr_euler_free(const struct gkyl_ref_count *ref)
+static void sr_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_sr_euler *sr_euler = container_of(base, struct wv_sr_euler, eqn);
   gkyl_free(sr_euler);
 }
 
-static inline void
-cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *qin, double *wout)
+static inline void cons_to_riem(const struct gkyl_wv_eqn *eqn, const double *qstate,
+                                const double *qin, double *wout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 5; ++i)
     wout[i] = qin[i];
 }
-static inline void
-riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate, const double *win, double *qout)
+static inline void riem_to_cons(const struct gkyl_wv_eqn *eqn, const double *qstate,
+                                const double *win, double *qout)
 {
   // TODO: this should use proper L matrix
   for (int i = 0; i < 5; ++i)
     qout[i] = win[i];
 }
 
-static inline void
-rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2,
-  const double *norm, const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
+static inline void rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1,
+                                const double *tau2, const double *norm,
+                                const double *GKYL_RESTRICT qglobal, double *GKYL_RESTRICT qlocal)
 {
   // Mass density and energy are scalars
   qlocal[0] = qglobal[0];
@@ -45,9 +44,9 @@ rot_to_local(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *ta
   qlocal[4] = qglobal[2] * tau2[0] + qglobal[3] * tau2[1] + qglobal[4] * tau2[2];
 }
 
-static inline void
-rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *tau2,
-  const double *norm, const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
+static inline void rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1,
+                                 const double *tau2, const double *norm,
+                                 const double *GKYL_RESTRICT qlocal, double *GKYL_RESTRICT qglobal)
 {
   // Mass density and energy are scalars
   qglobal[0] = qlocal[0];
@@ -59,10 +58,9 @@ rot_to_global(const struct gkyl_wv_eqn *eqn, const double *tau1, const double *t
 }
 
 // Waves and speeds using Roe averaging
-static double
-wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *delta,
-  const double *ql, const double *qr, const double phil, const double phir, double *waves,
-  double *s)
+static double wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type,
+                       const double *delta, const double *ql, const double *qr, const double phil,
+                       const double phir, double *waves, double *s)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   double vl[5], vr[5];
@@ -120,7 +118,7 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const doubl
   wv[3] = a1 * v2;
   wv[4] = a1 * v3;
   s[0] = ((1. - gas_gamma * v4) * v0 * v1 - sqrt(s2) * y) /
-    ((1. - gas_gamma * v4) * v0 * v0 + s2); //10.12
+         ((1. - gas_gamma * v4) * v0 * v0 + s2); //10.12
 
   // Wave 2: eigenvalue is u, u, u three waves are lumped into one
   wv = &waves[5];
@@ -140,16 +138,15 @@ wave_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const doubl
   wv[4] = a2 * v3;
   ;
   s[2] = ((1. - gas_gamma * v4) * v0 * v1 + sqrt(s2) * y) /
-    ((1. - gas_gamma * v4) * v0 * v0 + s2); //10.12
+         ((1. - gas_gamma * v4) * v0 * v0 + s2); //10.12
 
   return ((1. - gas_gamma * v4) * v0 * fabs(v1) + sqrt(s2) * y) /
-    ((1. - gas_gamma * v4) * v0 * v0 + s2);
+         ((1. - gas_gamma * v4) * v0 * v0 + s2);
 }
 
-static void
-qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
-  const double *qr, const double phil, const double phir, const double *waves, const double *s,
-  double *amdq, double *apdq)
+static void qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const double *ql,
+                       const double *qr, const double phil, const double phir, const double *waves,
+                       const double *s, double *amdq, double *apdq)
 {
   const double *w0 = &waves[0], *w1 = &waves[5], *w2 = &waves[10];
   double s0m = fmin(0.0, s[0]), s1m = fmin(0.0, s[1]), s2m = fmin(0.0, s[2]);
@@ -161,29 +158,25 @@ qfluct_roe(const struct gkyl_wv_eqn *eqn, enum gkyl_wv_flux_type type, const dou
   }
 }
 
-static bool
-check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
+static bool check_inv(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   return true; // TODO
 }
 
-static double
-max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
+static double max_speed(const struct gkyl_wv_eqn *eqn, const double *q)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   return gkyl_sr_euler_max_abs_speed(sr_euler->gas_gamma, q);
 }
 
-static inline void
-sr_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
+static inline void sr_euler_source(const struct gkyl_wv_eqn *eqn, const double *qin, double *sout)
 {
   for (int i = 0; i < 5; i++) {
     sout[i] = 0.0;
   }
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_sr_euler_new(double gas_gamma)
+struct gkyl_wv_eqn *gkyl_wv_sr_euler_new(double gas_gamma)
 {
   struct wv_sr_euler *sr_euler = gkyl_malloc(sizeof(struct wv_sr_euler));
 
@@ -213,8 +206,7 @@ gkyl_wv_sr_euler_new(double gas_gamma)
   return &sr_euler->eqn;
 }
 
-double
-gkyl_wv_sr_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
+double gkyl_wv_sr_euler_gas_gamma(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_sr_euler *sr_euler = container_of(eqn, struct wv_sr_euler, eqn);
   return sr_euler->gas_gamma;

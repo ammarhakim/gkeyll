@@ -9,8 +9,7 @@ extern "C" {
 int cu_range_test(const struct gkyl_range rng);
 }
 
-__global__ void
-ker_cu_range_test(const struct gkyl_range rng, int *nfail)
+__global__ void ker_cu_range_test(const struct gkyl_range rng, int *nfail)
 {
   *nfail = 0;
 
@@ -25,11 +24,10 @@ ker_cu_range_test(const struct gkyl_range rng, int *nfail)
   }
 }
 
-int
-cu_range_test(const struct gkyl_range rng)
+int cu_range_test(const struct gkyl_range rng)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  ker_cu_range_test<<<1, 1>>>(rng, nfail_dev);
+  ker_cu_range_test<<<1, 1> > >(rng, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);

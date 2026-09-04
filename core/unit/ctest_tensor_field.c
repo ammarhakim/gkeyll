@@ -4,8 +4,7 @@
 #include <gkyl_tensor_field.h>
 #include <gkyl_util.h>
 
-void
-test_tensor_field_ho()
+void test_tensor_field_ho()
 {
   // Tensor field size
   int rank = 2;
@@ -22,8 +21,7 @@ test_tensor_field_ho()
   gkyl_tensor_field_release(tfld);
 }
 
-void
-test_tensor_field_base_ho()
+void test_tensor_field_base_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -74,8 +72,7 @@ test_tensor_field_base_ho()
   gkyl_tensor_field_release(tfld);
 }
 
-void
-test_tensor_field_fetch_ho()
+void test_tensor_field_fetch_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -118,8 +115,7 @@ test_tensor_field_fetch_ho()
   gkyl_tensor_field_release(tfld);
 }
 
-void
-test_tensor_field_set_ho()
+void test_tensor_field_set_ho()
 {
   int rank = 2;
   int ndim = 3;
@@ -194,8 +190,7 @@ test_tensor_field_set_ho()
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_tensor_field_base_dev()
+void test_tensor_field_base_dev()
 {
   int rank = 2;
   int ndim = 3;
@@ -248,10 +243,10 @@ test_tensor_field_base_dev()
 #endif
 
 TEST_LIST = { { "test_tensor_field_ho", test_tensor_field_ho },
-  { "test_tensor_field_base_ho", test_tensor_field_base_ho },
-  { "test_tensor_field_fetch_ho", test_tensor_field_fetch_ho },
-  { "test_tensor_field_set_ho", test_tensor_field_set_ho },
+              { "test_tensor_field_base_ho", test_tensor_field_base_ho },
+              { "test_tensor_field_fetch_ho", test_tensor_field_fetch_ho },
+              { "test_tensor_field_set_ho", test_tensor_field_set_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "tensor_field_base_dev", test_tensor_field_base_dev },
+              { "tensor_field_base_dev", test_tensor_field_base_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

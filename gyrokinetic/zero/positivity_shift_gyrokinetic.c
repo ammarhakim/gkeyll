@@ -4,16 +4,16 @@
 #include <gkyl_array_ops.h>
 #include <float.h>
 
-struct gkyl_positivity_shift_gyrokinetic *
-gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basis pbasis,
-  struct gkyl_rect_grid grid, double mass, const struct gk_geometry *gk_geom,
-  const struct gkyl_velocity_map *vel_map, const struct gkyl_range *conf_rng_ext, bool use_gpu)
+struct gkyl_positivity_shift_gyrokinetic *gkyl_positivity_shift_gyrokinetic_new(
+  struct gkyl_basis cbasis, struct gkyl_basis pbasis, struct gkyl_rect_grid grid, double mass,
+  const struct gk_geometry *gk_geom, const struct gkyl_velocity_map *vel_map,
+  const struct gkyl_range *conf_rng_ext, bool use_gpu)
 {
   // Allocate space for new updater.
   struct gkyl_positivity_shift_gyrokinetic *up = gkyl_malloc(sizeof(*up));
 
   assert(pbasis.poly_order == 1); // Because of the way a rescale/division is
-    // done in advance.
+  // done in advance.
 
   up->ffloor_fac = 0.0; // ffloor will be set to max(f)*ffloor_fac.
   up->grid = grid;
@@ -51,11 +51,12 @@ gkyl_positivity_shift_gyrokinetic_new(struct gkyl_basis cbasis, struct gkyl_basi
   return up;
 }
 
-void
-gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0)
+void gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic *up,
+                                               const struct gkyl_range *conf_rng,
+                                               const struct gkyl_range *phase_rng,
+                                               struct gkyl_array *GKYL_RESTRICT distf,
+                                               struct gkyl_array *GKYL_RESTRICT m0,
+                                               struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -188,10 +189,9 @@ gkyl_positivity_shift_gyrokinetic_advance(gkyl_positivity_shift_gyrokinetic *up,
   up->ffloor[0] = up->ffloor_fac * distf_max * up->cellav_fac;
 }
 
-void
-gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gyrokinetic *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  const struct gkyl_array *GKYL_RESTRICT delta_m0s,
+void gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(
+  gkyl_positivity_shift_gyrokinetic *up, const struct gkyl_range *conf_rng,
+  const struct gkyl_range *phase_rng, const struct gkyl_array *GKYL_RESTRICT delta_m0s,
   const struct gkyl_array *GKYL_RESTRICT delta_m0s_tot,
   const struct gkyl_array *GKYL_RESTRICT delta_m0r_tot, const struct gkyl_array *GKYL_RESTRICT m0s,
   struct gkyl_array *GKYL_RESTRICT fs)
@@ -264,8 +264,7 @@ gkyl_positivity_shift_gyrokinetic_quasineutrality_scale(gkyl_positivity_shift_gy
   }
 }
 
-void
-gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic *up)
+void gkyl_positivity_shift_gyrokinetic_release(gkyl_positivity_shift_gyrokinetic *up)
 {
   // Release memory associated with this updater.
   gkyl_gk_geometry_release(up->gk_geom);

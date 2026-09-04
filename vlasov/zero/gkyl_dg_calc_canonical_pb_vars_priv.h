@@ -12,11 +12,14 @@
 #include <assert.h>
 
 typedef int (*canonical_pb_alpha_surf_t)(const double *w, const double *dxv, const double *hamil,
-  double *GKYL_RESTRICT alpha_surf, double *GKYL_RESTRICT sgn_alpha_surf);
+                                         double *GKYL_RESTRICT alpha_surf,
+                                         double *GKYL_RESTRICT sgn_alpha_surf);
 typedef void (*canonical_pb_m1i_contra_to_cov_t)(const double *h_ij, const double *v_i,
-  const double *nv_i, double *GKYL_RESTRICT v_i_cov, double *GKYL_RESTRICT nv_i_cov);
+                                                 const double *nv_i, double *GKYL_RESTRICT v_i_cov,
+                                                 double *GKYL_RESTRICT nv_i_cov);
 typedef void (*canonical_pb_pressure_t)(const double *h_ij_inv, const double *MEnergy,
-  const double *v_i, const double *nv_i, double *GKYL_RESTRICT d_Jv_P);
+                                        const double *v_i, const double *nv_i,
+                                        double *GKYL_RESTRICT d_Jv_P);
 
 // for use in kernel tables
 typedef struct {
@@ -216,18 +219,17 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_m1i_contra_to_cov_kern_list
   };
 
 // canonical_pb Pressure (d*P*Jv = 2*E - n*h^{ij}*u_i*u_j) (Serendipity kernels)
-GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list
-  ser_canonical_pb_pressure_kernels[] = {
-    // 1x kernels
-    { NULL, canonical_pb_vars_pressure_1x1v_ser_p1, canonical_pb_vars_pressure_1x1v_ser_p2 }, // 0
-    { NULL, canonical_pb_vars_pressure_1x2v_ser_p1, canonical_pb_vars_pressure_1x2v_ser_p2 }, // 1
-    { NULL, canonical_pb_vars_pressure_1x3v_ser_p1, canonical_pb_vars_pressure_1x3v_ser_p2 }, // 2
-    // 2x kernels
-    { NULL, canonical_pb_vars_pressure_2x2v_ser_p1, canonical_pb_vars_pressure_2x2v_ser_p2 }, // 3
-    { NULL, canonical_pb_vars_pressure_2x3v_ser_p1, canonical_pb_vars_pressure_2x3v_ser_p2 }, // 4
-    // 3x kernels
-    { NULL, NULL, NULL } // 5
-  };
+GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list ser_canonical_pb_pressure_kernels[] = {
+  // 1x kernels
+  { NULL, canonical_pb_vars_pressure_1x1v_ser_p1, canonical_pb_vars_pressure_1x1v_ser_p2 }, // 0
+  { NULL, canonical_pb_vars_pressure_1x2v_ser_p1, canonical_pb_vars_pressure_1x2v_ser_p2 }, // 1
+  { NULL, canonical_pb_vars_pressure_1x3v_ser_p1, canonical_pb_vars_pressure_1x3v_ser_p2 }, // 2
+  // 2x kernels
+  { NULL, canonical_pb_vars_pressure_2x2v_ser_p1, canonical_pb_vars_pressure_2x2v_ser_p2 }, // 3
+  { NULL, canonical_pb_vars_pressure_2x3v_ser_p1, canonical_pb_vars_pressure_2x3v_ser_p2 }, // 4
+  // 3x kernels
+  { NULL, NULL, NULL } // 5
+};
 
 //
 // Tensor surface kernels general geometry
@@ -412,8 +414,8 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_pressure_kern_list
   };
 
 GKYL_CU_D static canonical_pb_alpha_surf_t
-choose_canonical_pb_alpha_surf_kern(
-  enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order)
+choose_canonical_pb_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cv_index, int cdim,
+                                    int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -457,8 +459,8 @@ choose_canonical_pb_alpha_surf_kern(
 }
 
 GKYL_CU_D static canonical_pb_alpha_surf_t
-choose_canonical_pb_alpha_edge_surf_kern(
-  enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order)
+choose_canonical_pb_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, int cv_index,
+                                         int cdim, int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -502,8 +504,8 @@ choose_canonical_pb_alpha_edge_surf_kern(
 }
 
 GKYL_CU_D static canonical_pb_alpha_surf_t
-choose_canonical_pb_alpha_surf_v_kern(
-  enum gkyl_basis_type b_type, int dir, int cv_index, int cdim, int vdim, int poly_order)
+choose_canonical_pb_alpha_surf_v_kern(enum gkyl_basis_type b_type, int dir, int cv_index, int cdim,
+                                      int vdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -547,8 +549,8 @@ choose_canonical_pb_alpha_surf_v_kern(
 }
 
 GKYL_CU_D static canonical_pb_m1i_contra_to_cov_t
-choose_canonical_pb_m1i_contra_to_cov_kern(
-  enum gkyl_basis_type b_type, int cv_index, int cdim, int poly_order)
+choose_canonical_pb_m1i_contra_to_cov_kern(enum gkyl_basis_type b_type, int cv_index, int cdim,
+                                           int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -571,8 +573,8 @@ choose_canonical_pb_m1i_contra_to_cov_kern(
 }
 
 GKYL_CU_D static canonical_pb_pressure_t
-choose_canonical_pb_pressure_kern(
-  enum gkyl_basis_type b_type, int cv_index, int cdim, int poly_order)
+choose_canonical_pb_pressure_kern(enum gkyl_basis_type b_type, int cv_index, int cdim,
+                                  int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

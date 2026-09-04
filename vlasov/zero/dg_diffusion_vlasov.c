@@ -8,8 +8,7 @@
 #include <gkyl_dg_diffusion_vlasov_priv.h>
 #include <gkyl_util.h>
 
-void
-gkyl_dg_diffusion_vlasov_free(const struct gkyl_ref_count *ref)
+void gkyl_dg_diffusion_vlasov_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -24,9 +23,8 @@ gkyl_dg_diffusion_vlasov_free(const struct gkyl_ref_count *ref)
   gkyl_free(diffusion);
 }
 
-void
-gkyl_dg_diffusion_vlasov_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_vlasov_auxfields auxin)
+void gkyl_dg_diffusion_vlasov_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                            struct gkyl_dg_diffusion_vlasov_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.D)) {
@@ -39,15 +37,16 @@ gkyl_dg_diffusion_vlasov_set_auxfields(
   diffusion->auxfields.D = auxin.D;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_vlasov_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range,
-  bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_vlasov_new(const struct gkyl_basis *basis,
+                                                 const struct gkyl_basis *cbasis,
+                                                 bool is_diff_const, const bool *diff_in_dir,
+                                                 int diff_order,
+                                                 const struct gkyl_range *diff_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
-    return gkyl_dg_diffusion_vlasov_cu_dev_new(
-      basis, cbasis, is_diff_const, diff_in_dir, diff_order, diff_range);
+    return gkyl_dg_diffusion_vlasov_cu_dev_new(basis, cbasis, is_diff_const, diff_in_dir,
+                                               diff_order, diff_range);
 #endif
 
   struct dg_diffusion_vlasov *diffusion = gkyl_malloc(sizeof(struct dg_diffusion_vlasov));
@@ -72,18 +71,18 @@ gkyl_dg_diffusion_vlasov_new(const struct gkyl_basis *basis, const struct gkyl_b
   switch (cbasis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
     vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-    surfx_kernels = diffusion->const_coeff ? ser_vlasov_surfx_kernels_constcoeff
-                                           : ser_vlasov_surfx_kernels_varcoeff;
-    surfy_kernels = diffusion->const_coeff ? ser_vlasov_surfy_kernels_constcoeff
-                                           : ser_vlasov_surfy_kernels_varcoeff;
-    surfz_kernels = diffusion->const_coeff ? ser_vlasov_surfz_kernels_constcoeff
-                                           : ser_vlasov_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfx_kernels_constcoeff
-                                                    : ser_vlasov_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfy_kernels_constcoeff
-                                                    : ser_vlasov_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfz_kernels_constcoeff
-                                                    : ser_vlasov_boundary_surfz_kernels_varcoeff;
+    surfx_kernels = diffusion->const_coeff ? ser_vlasov_surfx_kernels_constcoeff :
+                                             ser_vlasov_surfx_kernels_varcoeff;
+    surfy_kernels = diffusion->const_coeff ? ser_vlasov_surfy_kernels_constcoeff :
+                                             ser_vlasov_surfy_kernels_varcoeff;
+    surfz_kernels = diffusion->const_coeff ? ser_vlasov_surfz_kernels_constcoeff :
+                                             ser_vlasov_surfz_kernels_varcoeff;
+    boundary_surfx_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfx_kernels_constcoeff :
+                                                      ser_vlasov_boundary_surfx_kernels_varcoeff;
+    boundary_surfy_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfy_kernels_constcoeff :
+                                                      ser_vlasov_boundary_surfy_kernels_varcoeff;
+    boundary_surfz_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfz_kernels_constcoeff :
+                                                      ser_vlasov_boundary_surfz_kernels_varcoeff;
     break;
 
   default:

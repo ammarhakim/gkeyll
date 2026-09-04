@@ -10,8 +10,7 @@
 #include <gkyl_dg_recomb.h>
 #include <read_adas.h>
 
-void
-read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data)
+void read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data)
 {
   char fname[4000];
   const char *fmt = "%s/%s";
@@ -162,8 +161,7 @@ read_adas_field_iz(enum gkyl_ion_type type_ion, struct adas_field *data)
     fprintf(stderr, "Incorrect ion type for ionization.");
 }
 
-void
-read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data)
+void read_adas_field_recomb(enum gkyl_ion_type type_ion, struct adas_field *data)
 {
   char fname[4000];
   const char *fmt = "%s/%s";

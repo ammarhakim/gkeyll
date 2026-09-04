@@ -55,8 +55,7 @@ struct friction_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct friction_ctx
-create_ctx(void)
+struct friction_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double vt = 1.0; // Thermal velocity.
@@ -96,36 +95,35 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct friction_ctx ctx = { .vt = vt,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .mass_ion = mass_ion,
-    .charge_ion = charge_ion,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .n_elc = n_elc,
-    .n_ion = n_ion,
-    .u_elc = u_elc,
-    .u_ion = u_ion,
-    .friction_Z = friction_Z,
-    .friction_T_elc = friction_T_elc,
-    .friction_Lambda_ee = friction_Lambda_ee,
-    .rho_elc = rho_elc,
-    .rho_ion = rho_ion,
-    .mom_elc = mom_elc,
-    .mom_ion = mom_ion,
-    .Nx = Nx,
-    .Lx = Lx,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                              .epsilon0 = epsilon0,
+                              .mu0 = mu0,
+                              .mass_ion = mass_ion,
+                              .charge_ion = charge_ion,
+                              .mass_elc = mass_elc,
+                              .charge_elc = charge_elc,
+                              .n_elc = n_elc,
+                              .n_ion = n_ion,
+                              .u_elc = u_elc,
+                              .u_ion = u_ion,
+                              .friction_Z = friction_Z,
+                              .friction_T_elc = friction_T_elc,
+                              .friction_Lambda_ee = friction_Lambda_ee,
+                              .rho_elc = rho_elc,
+                              .rho_ion = rho_ion,
+                              .mom_elc = mom_elc,
+                              .mom_ion = mom_ion,
+                              .Nx = Nx,
+                              .Lx = Lx,
+                              .cfl_frac = cfl_frac,
+                              .t_end = t_end,
+                              .num_frames = num_frames,
+                              .dt_failure_tol = dt_failure_tol,
+                              .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct friction_ctx *app = ctx;
@@ -141,8 +139,7 @@ evalElcInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[3] = 0.0;
 }
 
-void
-evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct friction_ctx *app = ctx;
@@ -158,8 +155,7 @@ evalIonInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout
   fout[3] = 0.0;
 }
 
-void
-evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   // Set electric field.
   fout[0] = 0.0, fout[1] = 0.0;
@@ -172,8 +168,7 @@ evalFieldInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fo
   fout[7] = 0.0;
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -185,8 +180,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -210,41 +204,41 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *ion_iso_euler = gkyl_wv_iso_euler_new(ctx.vt, false);
 
   struct gkyl_moment_species elc = { .name = "elc",
-    .charge = ctx.charge_elc,
-    .mass = ctx.mass_elc,
-    .equation = elc_iso_euler,
+                                     .charge = ctx.charge_elc,
+                                     .mass = ctx.mass_elc,
+                                     .equation = elc_iso_euler,
 
-    .init = evalElcInit,
-    .ctx = &ctx,
+                                     .init = evalElcInit,
+                                     .ctx = &ctx,
 
-    .has_friction = true,
-    .use_explicit_friction = true,
-    .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee };
+                                     .has_friction = true,
+                                     .use_explicit_friction = true,
+                                     .friction_Z = ctx.friction_Z,
+                                     .friction_T_elc = ctx.friction_T_elc,
+                                     .friction_Lambda_ee = ctx.friction_Lambda_ee };
 
   struct gkyl_moment_species ion = { .name = "ion",
-    .charge = ctx.charge_ion,
-    .mass = ctx.mass_ion,
-    .equation = ion_iso_euler,
+                                     .charge = ctx.charge_ion,
+                                     .mass = ctx.mass_ion,
+                                     .equation = ion_iso_euler,
 
-    .init = evalIonInit,
-    .ctx = &ctx,
+                                     .init = evalIonInit,
+                                     .ctx = &ctx,
 
-    .has_friction = true,
-    .use_explicit_friction = true,
-    .friction_Z = ctx.friction_Z,
-    .friction_T_elc = ctx.friction_T_elc,
-    .friction_Lambda_ee = ctx.friction_Lambda_ee };
+                                     .has_friction = true,
+                                     .use_explicit_friction = true,
+                                     .friction_Z = ctx.friction_Z,
+                                     .friction_T_elc = ctx.friction_T_elc,
+                                     .friction_Lambda_ee = ctx.friction_Lambda_ee };
 
   // Field.
   struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
-    .mag_error_speed_fact = 1.0,
+                                     .mu0 = ctx.mu0,
+                                     .mag_error_speed_fact = 1.0,
 
-    .is_static = true,
-    .init = evalFieldInit,
-    .ctx = &ctx };
+                                     .is_static = true,
+                                     .init = evalFieldInit,
+                                     .ctx = &ctx };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -304,8 +298,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -379,8 +373,8 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                             num_failures_max);
         break;
       }
     } else {

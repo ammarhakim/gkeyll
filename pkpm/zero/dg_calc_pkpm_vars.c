@@ -13,13 +13,13 @@
 
 gkyl_dg_calc_pkpm_vars *
 gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid, const struct gkyl_basis *cbasis,
-  const struct gkyl_range *mem_range, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu)
+                           const struct gkyl_range *mem_range, const struct gkyl_wv_eqn *wv_eqn,
+                           const struct gkyl_wave_geom *geom, double limiter_fac, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_dg_calc_pkpm_vars_cu_dev_new(
-      conf_grid, cbasis, mem_range, wv_eqn, geom, limiter_fac);
+    return gkyl_dg_calc_pkpm_vars_cu_dev_new(conf_grid, cbasis, mem_range, wv_eqn, geom,
+                                             limiter_fac);
   }
 #endif
   gkyl_dg_calc_pkpm_vars *up = gkyl_malloc(sizeof(gkyl_dg_calc_pkpm_vars));
@@ -87,16 +87,18 @@ gkyl_dg_calc_pkpm_vars_new(const struct gkyl_rect_grid *conf_grid, const struct 
   return up;
 }
 
-void
-gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *p_ij, const struct gkyl_array *pkpm_div_ppar,
-  struct gkyl_array *cell_avg_prim, struct gkyl_array *prim, struct gkyl_array *prim_surf)
+void gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
+                                    const struct gkyl_array *vlasov_pkpm_moms,
+                                    const struct gkyl_array *euler_pkpm,
+                                    const struct gkyl_array *p_ij,
+                                    const struct gkyl_array *pkpm_div_ppar,
+                                    struct gkyl_array *cell_avg_prim, struct gkyl_array *prim,
+                                    struct gkyl_array *prim_surf)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(prim)) {
-    return gkyl_dg_calc_pkpm_vars_advance_cu(
-      up, vlasov_pkpm_moms, euler_pkpm, p_ij, pkpm_div_ppar, cell_avg_prim, prim, prim_surf);
+    return gkyl_dg_calc_pkpm_vars_advance_cu(up, vlasov_pkpm_moms, euler_pkpm, p_ij, pkpm_div_ppar,
+                                             cell_avg_prim, prim, prim_surf);
   }
 #endif
 
@@ -114,8 +116,8 @@ gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
 
     int *cell_avg_prim_d = gkyl_array_fetch(cell_avg_prim, loc);
 
-    cell_avg_prim_d[0] = up->pkpm_set(
-      count, up->As, up->xs, vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, pkpm_div_ppar_d);
+    cell_avg_prim_d[0] = up->pkpm_set(count, up->As, up->xs, vlasov_pkpm_moms_d, euler_pkpm_d,
+                                      p_ij_d, pkpm_div_ppar_d);
 
     count += up->Ncomp;
   }
@@ -139,10 +141,10 @@ gkyl_dg_calc_pkpm_vars_advance(struct gkyl_dg_calc_pkpm_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_u(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  struct gkyl_array *cell_avg_prim, struct gkyl_array *pkpm_u)
+void gkyl_dg_calc_pkpm_vars_u(struct gkyl_dg_calc_pkpm_vars *up,
+                              const struct gkyl_array *vlasov_pkpm_moms,
+                              const struct gkyl_array *euler_pkpm, struct gkyl_array *cell_avg_prim,
+                              struct gkyl_array *pkpm_u)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_u)) {
@@ -186,10 +188,11 @@ gkyl_dg_calc_pkpm_vars_u(struct gkyl_dg_calc_pkpm_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *bvar,
-  const struct gkyl_array *vlasov_pkpm_moms, struct gkyl_array *p_ij)
+void gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up,
+                                     const struct gkyl_range *conf_range,
+                                     const struct gkyl_array *bvar,
+                                     const struct gkyl_array *vlasov_pkpm_moms,
+                                     struct gkyl_array *p_ij)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(p_ij)) {
@@ -211,15 +214,16 @@ gkyl_dg_calc_pkpm_vars_pressure(struct gkyl_dg_calc_pkpm_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *prim_surf, const struct gkyl_array *prim, const struct gkyl_array *bvar,
-  const struct gkyl_array *div_b, const struct gkyl_array *nu, struct gkyl_array *pkpm_accel)
+void gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up,
+                                  const struct gkyl_range *conf_range,
+                                  const struct gkyl_array *prim_surf, const struct gkyl_array *prim,
+                                  const struct gkyl_array *bvar, const struct gkyl_array *div_b,
+                                  const struct gkyl_array *nu, struct gkyl_array *pkpm_accel)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_accel)) {
-    return gkyl_dg_calc_pkpm_vars_accel_cu(
-      up, conf_range, prim_surf, prim, bvar, div_b, nu, pkpm_accel);
+    return gkyl_dg_calc_pkpm_vars_accel_cu(up, conf_range, prim_surf, prim, bvar, div_b, nu,
+                                           pkpm_accel);
   }
 #endif
 
@@ -258,22 +262,22 @@ gkyl_dg_calc_pkpm_vars_accel(struct gkyl_dg_calc_pkpm_vars *up, const struct gky
       const double *prim_surf_r = gkyl_array_cfetch(prim_surf, linr);
 
       up->pkpm_accel[dir](up->conf_grid.dx, prim_surf_l, prim_surf_c, prim_surf_r, prim_d, bvar_d,
-        nu_d, pkpm_accel_d);
+                          nu_d, pkpm_accel_d);
     }
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_range *conf_range_ext,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
-  const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm, struct gkyl_array *pkpm_lax,
-  struct gkyl_array *pkpm_penalization)
+void gkyl_dg_calc_pkpm_vars_penalization(
+  struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
+  const struct gkyl_range *conf_range_ext, const struct gkyl_array *vlasov_pkpm_moms,
+  const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *euler_pkpm,
+  struct gkyl_array *pkpm_lax, struct gkyl_array *pkpm_penalization)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_penalization)) {
     return gkyl_dg_calc_pkpm_vars_penalization_cu(up, conf_range, conf_range_ext, vlasov_pkpm_moms,
-      p_ij, prim, euler_pkpm, pkpm_lax, pkpm_penalization);
+                                                  p_ij, prim, euler_pkpm, pkpm_lax,
+                                                  pkpm_penalization);
   }
 #endif
 
@@ -310,8 +314,8 @@ gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up,
       const double *euler_pkpm_l = gkyl_array_cfetch(euler_pkpm, linl);
 
       up->pkpm_penalization[dir](up->tol, up->force_lax, up->wv_eqn, geom, vlasov_pkpm_moms_l,
-        vlasov_pkpm_moms_d, p_ij_l, p_ij_d, prim_l, prim_d, euler_pkpm_l, euler_pkpm_d, pkpm_lax_d,
-        pkpm_penalization_d);
+                                 vlasov_pkpm_moms_d, p_ij_l, p_ij_d, prim_l, prim_d, euler_pkpm_l,
+                                 euler_pkpm_d, pkpm_lax_d, pkpm_penalization_d);
 
       // If the configuration-space index is at the local configuration space upper value,
       // we are at the configuration space upper edge and we also need to evaluate the
@@ -334,25 +338,26 @@ gkyl_dg_calc_pkpm_vars_penalization(struct gkyl_dg_calc_pkpm_vars *up,
         double *pkpm_penalization_r = gkyl_array_fetch(pkpm_penalization, linr);
 
         up->pkpm_penalization[dir](up->tol, up->force_lax, up->wv_eqn, geom_r, vlasov_pkpm_moms_d,
-          vlasov_pkpm_moms_r, p_ij_d, p_ij_r, prim_d, prim_r, euler_pkpm_d, euler_pkpm_r,
-          pkpm_lax_r, pkpm_penalization_r);
+                                   vlasov_pkpm_moms_r, p_ij_d, p_ij_r, prim_d, prim_r, euler_pkpm_d,
+                                   euler_pkpm_r, pkpm_lax_r, pkpm_penalization_r);
       }
     }
   }
 }
 
-void
-gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *vlasov_pkpm_moms,
-  const struct gkyl_array *euler_pkpm, const struct gkyl_array *prim,
-  struct gkyl_array *pkpm_int_vars)
+void gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
+                                       const struct gkyl_range *conf_range,
+                                       const struct gkyl_array *vlasov_pkpm_moms,
+                                       const struct gkyl_array *euler_pkpm,
+                                       const struct gkyl_array *prim,
+                                       struct gkyl_array *pkpm_int_vars)
 {
 // Check if more than one of the output arrays is on device?
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_int_vars)) {
-    return gkyl_dg_calc_pkpm_integrated_vars_cu(
-      up, conf_range, vlasov_pkpm_moms, euler_pkpm, prim, pkpm_int_vars);
+    return gkyl_dg_calc_pkpm_integrated_vars_cu(up, conf_range, vlasov_pkpm_moms, euler_pkpm, prim,
+                                                pkpm_int_vars);
   }
 #endif
 
@@ -370,16 +375,16 @@ gkyl_dg_calc_pkpm_integrated_vars(struct gkyl_dg_calc_pkpm_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *qmem,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  struct gkyl_array *rhs)
+void gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
+                                   const struct gkyl_range *conf_range,
+                                   const struct gkyl_array *qmem,
+                                   const struct gkyl_array *vlasov_pkpm_moms,
+                                   const struct gkyl_array *euler_pkpm, struct gkyl_array *rhs)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(rhs)) {
-    return gkyl_dg_calc_pkpm_vars_source_cu(
-      up, conf_range, qmem, vlasov_pkpm_moms, euler_pkpm, rhs);
+    return gkyl_dg_calc_pkpm_vars_source_cu(up, conf_range, qmem, vlasov_pkpm_moms, euler_pkpm,
+                                            rhs);
   }
 #endif
 
@@ -397,18 +402,19 @@ gkyl_dg_calc_pkpm_vars_source(struct gkyl_dg_calc_pkpm_vars *up,
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_range *conf_range,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *euler_pkpm,
-  const struct gkyl_array *p_ij, const struct gkyl_array *prim, const struct gkyl_array *pkpm_accel,
-  struct gkyl_array *fluid_io, struct gkyl_array *pkpm_vars_io)
+void gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up,
+                               const struct gkyl_range *conf_range,
+                               const struct gkyl_array *vlasov_pkpm_moms,
+                               const struct gkyl_array *euler_pkpm, const struct gkyl_array *p_ij,
+                               const struct gkyl_array *prim, const struct gkyl_array *pkpm_accel,
+                               struct gkyl_array *fluid_io, struct gkyl_array *pkpm_vars_io)
 {
 // Check if more than one of the output arrays is on device?
 // Probably a better way to do this (JJ: 11/16/22)
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(pkpm_vars_io)) {
-    return gkyl_dg_calc_pkpm_vars_io_cu(
-      up, conf_range, vlasov_pkpm_moms, euler_pkpm, p_ij, prim, pkpm_accel, fluid_io, pkpm_vars_io);
+    return gkyl_dg_calc_pkpm_vars_io_cu(up, conf_range, vlasov_pkpm_moms, euler_pkpm, p_ij, prim,
+                                        pkpm_accel, fluid_io, pkpm_vars_io);
   }
 #endif
 
@@ -425,16 +431,16 @@ gkyl_dg_calc_pkpm_vars_io(struct gkyl_dg_calc_pkpm_vars *up, const struct gkyl_r
 
     double *fluid_io_d = gkyl_array_fetch(fluid_io, loc);
     double *pkpm_vars_io_d = gkyl_array_fetch(pkpm_vars_io, loc);
-    up->pkpm_io(
-      vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, prim_d, pkpm_accel_d, fluid_io_d, pkpm_vars_io_d);
+    up->pkpm_io(vlasov_pkpm_moms_d, euler_pkpm_d, p_ij_d, prim_d, pkpm_accel_d, fluid_io_d,
+                pkpm_vars_io_d);
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_limiter(struct gkyl_dg_calc_pkpm_vars *up,
-  const struct gkyl_range *conf_range, const struct gkyl_array *prim,
-  const struct gkyl_array *vlasov_pkpm_moms, const struct gkyl_array *p_ij,
-  struct gkyl_array *fluid)
+void gkyl_dg_calc_pkpm_vars_limiter(struct gkyl_dg_calc_pkpm_vars *up,
+                                    const struct gkyl_range *conf_range,
+                                    const struct gkyl_array *prim,
+                                    const struct gkyl_array *vlasov_pkpm_moms,
+                                    const struct gkyl_array *p_ij, struct gkyl_array *fluid)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(fluid)) {
@@ -475,13 +481,13 @@ gkyl_dg_calc_pkpm_vars_limiter(struct gkyl_dg_calc_pkpm_vars *up,
       double *fluid_r = gkyl_array_fetch(fluid, linr);
 
       up->pkpm_limiter[dir](up->limiter_fac, up->wv_eqn, geom, prim_c, vlasov_pkpm_moms_l,
-        vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, p_ij_l, p_ij_c, p_ij_r, fluid_l, fluid_c, fluid_r);
+                            vlasov_pkpm_moms_c, vlasov_pkpm_moms_r, p_ij_l, p_ij_c, p_ij_r, fluid_l,
+                            fluid_c, fluid_r);
     }
   }
 }
 
-void
-gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
+void gkyl_dg_calc_pkpm_vars_release(gkyl_dg_calc_pkpm_vars *up)
 {
   gkyl_wv_eqn_release(up->wv_eqn);
   gkyl_wave_geom_release(up->geom);

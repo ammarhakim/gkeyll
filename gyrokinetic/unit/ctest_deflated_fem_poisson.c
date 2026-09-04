@@ -19,9 +19,8 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_dg_bin_ops.h>
 
-double
-calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext,
-  struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
+double calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range range_ext,
+               struct gkyl_basis basis, struct gkyl_array *field1, struct gkyl_array *field2)
 {
   struct gkyl_array *diff = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, range_ext.volume);
   struct gkyl_range_iter iter;
@@ -46,70 +45,61 @@ calc_l2(struct gkyl_rect_grid grid, struct gkyl_range range, struct gkyl_range r
 }
 
 // functions for the charge density
-void
-rho_func_zdep_nd(double t, const double *xn, double *fout, void *ctx)
+void rho_func_zdep_nd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = 4 * cos(z) * cos(2 * x);
 }
 
-void
-phi_func_zdep_nd(double t, const double *xn, double *fout, void *ctx)
+void phi_func_zdep_nd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = cos(z) * cos(2 * x);
 }
 
-void
-rho_func_simplez_dd(double t, const double *xn, double *fout, void *ctx)
+void rho_func_simplez_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = 4 * z * cos(2 * x - M_PI / 2);
 }
 
-void
-phi_func_simplez_dd(double t, const double *xn, double *fout, void *ctx)
+void phi_func_simplez_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = z * cos(2 * x - M_PI / 2);
 }
 
-void
-rho_func_zind_dd(double t, const double *xn, double *fout, void *ctx)
+void rho_func_zind_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = 4 * cos(2 * x - M_PI / 2);
 }
 
-void
-phi_func_zind_dd(double t, const double *xn, double *fout, void *ctx)
+void phi_func_zind_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double z = xn[1];
   fout[0] = cos(2 * x - M_PI / 2);
 }
 
-void
-rho_func_zind_dd_1x(double t, const double *xn, double *fout, void *ctx)
+void rho_func_zind_dd_1x(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = 4 * cos(2 * x - M_PI / 2);
 }
 
-void
-phi_func_zind_dd_1x(double t, const double *xn, double *fout, void *ctx)
+void phi_func_zind_dd_1x(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   fout[0] = cos(2 * x - M_PI / 2);
 }
 
-void
-rho_func_3x_dd_dd(double t, const double *xn, double *fout, void *ctx)
+void rho_func_3x_dd_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -118,8 +108,7 @@ rho_func_3x_dd_dd(double t, const double *xn, double *fout, void *ctx)
   //fout[0] = 4*cos(2*y);
 }
 
-void
-phi_func_3x_dd_dd(double t, const double *xn, double *fout, void *ctx)
+void phi_func_3x_dd_dd(double t, const double *xn, double *fout, void *ctx)
 {
   double x = xn[0];
   double y = xn[1];
@@ -128,8 +117,7 @@ phi_func_3x_dd_dd(double t, const double *xn, double *fout, void *ctx)
   //fout[0] = cos(2*y);
 }
 
-double
-test_zdep_nd_nxnz(int nx, int ny)
+double test_zdep_nd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
@@ -237,8 +225,7 @@ test_zdep_nd_nxnz(int nx, int ny)
   return l2;
 }
 
-double
-test_simplez_dd_nxnz(int nx, int ny)
+double test_simplez_dd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
@@ -346,8 +333,7 @@ test_simplez_dd_nxnz(int nx, int ny)
   return l2;
 }
 
-double
-test_zind_dd_nxnz(int nx, int ny)
+double test_zind_dd_nxnz(int nx, int ny)
 {
   // create the 2d field
   // create xz grid
@@ -454,8 +440,7 @@ test_zind_dd_nxnz(int nx, int ny)
   return l2;
 }
 
-double
-test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
+double test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
 {
   // create the 2d field
   // create xz grid
@@ -581,8 +566,7 @@ test_3x_dd_dd_nxnynz(int nx, int ny, int nz)
   return l2;
 }
 
-void
-test_deflated_fem_poisson_zind_dd_ho()
+void test_deflated_fem_poisson_zind_dd_ho()
 {
   double l2s[6];
   int ny = 32;
@@ -595,8 +579,7 @@ test_deflated_fem_poisson_zind_dd_ho()
   }
 }
 
-void
-test_deflated_fem_poisson_simplez_dd_ho()
+void test_deflated_fem_poisson_simplez_dd_ho()
 {
   double l2s[6];
   int ny = 32;
@@ -609,8 +592,7 @@ test_deflated_fem_poisson_simplez_dd_ho()
   }
 }
 
-void
-test_deflated_fem_poisson_zdep_nd_ho()
+void test_deflated_fem_poisson_zdep_nd_ho()
 {
   // Expected results
   //double l2s[6] = { 1.4891748591339167, 0.4361776844752765, 0.1139546668200294, 0.0288104647768966, 0.0072320934639821, 0.0018431764053742};
@@ -625,8 +607,7 @@ test_deflated_fem_poisson_zdep_nd_ho()
   }
 }
 
-void
-test_deflated_fem_poisson_3x_dd_dd_ho()
+void test_deflated_fem_poisson_3x_dd_dd_ho()
 {
   // Expected results
   //double l2s[6] = { 4.2333527815296019, 1.5169449008531153, 0.4618522366946782, 0.1324749882413162, 0.0438774243422054, 0.0212827374990034};
@@ -643,7 +624,8 @@ test_deflated_fem_poisson_3x_dd_dd_ho()
 }
 
 TEST_LIST = { { "test_deflated_fem_poisson_zind_dd_ho", test_deflated_fem_poisson_zind_dd_ho },
-  { "test_deflated_fem_poisson_simplez_dd_ho", test_deflated_fem_poisson_simplez_dd_ho },
-  { "test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho },
-  { "test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho },
-  { NULL, NULL } };
+              { "test_deflated_fem_poisson_simplez_dd_ho",
+                test_deflated_fem_poisson_simplez_dd_ho },
+              { "test_deflated_fem_poisson_zdep_nd_ho", test_deflated_fem_poisson_zdep_nd_ho },
+              { "test_deflated_fem_poisson_3x_dd_dd_ho", test_deflated_fem_poisson_3x_dd_dd_ho },
+              { NULL, NULL } };

@@ -4,10 +4,10 @@
 // Note: this may not be the actual time-step taken. However, the function will never
 // take a time-step larger than dt even if it is allowed by stability.
 // The actual time-step and dt_suggested are returned in the status object.
-void
-pkpm_forward_euler(gkyl_pkpm_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
-  const struct gkyl_array *fluidin[], const struct gkyl_array *emin, struct gkyl_array *fout[],
-  struct gkyl_array *fluidout[], struct gkyl_array *emout, struct gkyl_update_status *st)
+void pkpm_forward_euler(gkyl_pkpm_app *app, double tcurr, double dt, const struct gkyl_array *fin[],
+                        const struct gkyl_array *fluidin[], const struct gkyl_array *emin,
+                        struct gkyl_array *fout[], struct gkyl_array *fluidout[],
+                        struct gkyl_array *emout, struct gkyl_update_status *st)
 {
   app->stat.nfeuler += 1;
 
@@ -47,7 +47,7 @@ pkpm_forward_euler(gkyl_pkpm_app *app, double tcurr, double dt, const struct gky
     // compute necessary moments for cross-species collisions
     // needs to be done after self-collisions moments, so separate loop over species
     if (app->species[i].collision_id == GKYL_LBO_COLLISIONS &&
-      app->species[i].lbo.num_cross_collisions) {
+        app->species[i].lbo.num_cross_collisions) {
       pkpm_species_lbo_cross_moms(app, &app->species[i], &app->species[i].lbo, fin[i]);
     }
     // Finish computing parallel-kinetic-perpendicular moment (pkpm) variables.

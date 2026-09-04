@@ -42,8 +42,7 @@ struct coldfluid_clouda_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct coldfluid_clouda_ctx
-create_ctx(void)
+struct coldfluid_clouda_ctx create_ctx(void)
 {
   // Physical constants (using normalized code units).
   double rhol = 2.0; // Left cold fluid mass density.
@@ -63,22 +62,21 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct coldfluid_clouda_ctx ctx = { .rhol = rhol,
-    .ul = ul,
-    .rhor = rhor,
-    .ur = ur,
-    .Nx = Nx,
-    .Lx = Lx,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                                      .ul = ul,
+                                      .rhor = rhor,
+                                      .ur = ur,
+                                      .Nx = Nx,
+                                      .Lx = Lx,
+                                      .cfl_frac = cfl_frac,
+                                      .t_end = t_end,
+                                      .num_frames = num_frames,
+                                      .dt_failure_tol = dt_failure_tol,
+                                      .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalColdInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void evalColdInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   struct coldfluid_clouda_ctx *app = ctx;
@@ -108,8 +106,7 @@ evalColdInit(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fou
   fout[3] = 0.0;
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -121,8 +118,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -145,13 +141,13 @@ main(int argc, char **argv)
   struct gkyl_wv_eqn *coldf = gkyl_wv_coldfluid_new();
 
   struct gkyl_moment_species fluid = { .name = "cold",
-    .equation = coldf,
+                                       .equation = coldf,
 
-    .init = evalColdInit,
-    .split_type = GKYL_WAVE_FWAVE,
-    .ctx = &ctx,
+                                       .init = evalColdInit,
+                                       .split_type = GKYL_WAVE_FWAVE,
+                                       .ctx = &ctx,
 
-    .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
+                                       .bcx = { GKYL_SPECIES_COPY, GKYL_SPECIES_COPY } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -203,8 +199,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -274,8 +270,8 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                             num_failures_max);
         break;
       }
     } else {

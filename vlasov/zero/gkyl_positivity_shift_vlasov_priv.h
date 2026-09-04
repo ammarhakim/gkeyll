@@ -18,8 +18,8 @@ enum gkyl_positivity_shift_type {
 // Function pointer type for sheath reflection kernels.
 typedef bool (*m0_pos_check_t)(const double *m0);
 typedef bool (*shift_t)(double ffloor, double *distf);
-typedef void (*m0_t)(
-  const double *xc, const double *dx, const int *idx, const double *fIn, double *GKYL_RESTRICT out);
+typedef void (*m0_t)(const double *xc, const double *dx, const int *idx, const double *fIn,
+                     double *GKYL_RESTRICT out);
 
 typedef struct {
   m0_pos_check_t kernels[3];
@@ -39,14 +39,14 @@ GKYL_CU_D static const pos_shift_vlasov_kern_list_m0_pos_check
     { positivity_shift_vlasov_conf_pos_check_3x_tensor_p1, NULL, NULL }
   };
 
-GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
-  pos_shift_vlasov_kern_list_shift_tensor[] = { { positivity_shift_vlasov_shift_only_1x1v_tensor_p1,
-                                                  NULL, NULL },
-    { positivity_shift_vlasov_shift_only_1x2v_tensor_p1, NULL, NULL },
-    { positivity_shift_vlasov_shift_only_1x3v_tensor_p1, NULL, NULL },
-    { positivity_shift_vlasov_shift_only_2x2v_tensor_p1, NULL, NULL },
-    { positivity_shift_vlasov_shift_only_2x3v_tensor_p1, NULL, NULL },
-    { positivity_shift_vlasov_shift_only_3x3v_tensor_p1, NULL, NULL } };
+GKYL_CU_D static const pos_shift_vlasov_kern_list_shift pos_shift_vlasov_kern_list_shift_tensor[] = {
+  { positivity_shift_vlasov_shift_only_1x1v_tensor_p1, NULL, NULL },
+  { positivity_shift_vlasov_shift_only_1x2v_tensor_p1, NULL, NULL },
+  { positivity_shift_vlasov_shift_only_1x3v_tensor_p1, NULL, NULL },
+  { positivity_shift_vlasov_shift_only_2x2v_tensor_p1, NULL, NULL },
+  { positivity_shift_vlasov_shift_only_2x3v_tensor_p1, NULL, NULL },
+  { positivity_shift_vlasov_shift_only_3x3v_tensor_p1, NULL, NULL }
+};
 
 GKYL_CU_D static const pos_shift_vlasov_kern_list_shift
   pos_shift_vlasov_kern_list_MRSlimiter_tensor[] = {
@@ -100,18 +100,21 @@ struct gkyl_positivity_shift_vlasov {
 // Declaration of cuda device functions.
 
 void pos_shift_vlasov_choose_shift_kernel_cu(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype);
+                                             struct gkyl_basis cbasis, struct gkyl_basis pbasis,
+                                             enum gkyl_positivity_shift_type stype);
 
 void gkyl_positivity_shift_vlasov_advance_cu(gkyl_positivity_shift_vlasov *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0);
+                                             const struct gkyl_range *conf_rng,
+                                             const struct gkyl_range *phase_rng,
+                                             struct gkyl_array *GKYL_RESTRICT distf,
+                                             struct gkyl_array *GKYL_RESTRICT m0,
+                                             struct gkyl_array *GKYL_RESTRICT delta_m0);
 #endif
 
 GKYL_CU_D static void
 pos_shift_vlasov_choose_shift_kernel(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype,
-  bool use_gpu)
+                                     struct gkyl_basis cbasis, struct gkyl_basis pbasis,
+                                     enum gkyl_positivity_shift_type stype, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -131,9 +134,9 @@ pos_shift_vlasov_choose_shift_kernel(struct gkyl_positivity_shift_vlasov_kernels
   case GKYL_BASIS_MODAL_TENSOR:
     kernels->is_m0_positive =
       pos_shift_vlasov_kern_list_m0_pos_check_tensor[cdim - 1].kernels[poly_order - 1];
-    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY
-      ? pos_shift_vlasov_kern_list_shift_tensor[plin].kernels[poly_order - 1]
-      : pos_shift_vlasov_kern_list_MRSlimiter_tensor[plin].kernels[poly_order - 1];
+    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY ?
+                       pos_shift_vlasov_kern_list_shift_tensor[plin].kernels[poly_order - 1] :
+                       pos_shift_vlasov_kern_list_MRSlimiter_tensor[plin].kernels[poly_order - 1];
     kernels->m0 = pos_shift_vlasov_kern_list_m0_tensor[plin].kernels[poly_order - 1];
     kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim, vdim, poly_order);
     break;

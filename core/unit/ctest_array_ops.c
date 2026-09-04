@@ -13,17 +13,15 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-static struct gkyl_array *
-mkarr(bool use_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool use_gpu, long nc, long size)
 {
   // Allocate array (filled with zeros)
-  struct gkyl_array *a =
-    use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) : gkyl_array_new(GKYL_DOUBLE, nc, size);
+  struct gkyl_array *a = use_gpu ? gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size) :
+                                   gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void
-test_array_clear_ho()
+void test_array_clear_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
@@ -36,8 +34,7 @@ test_array_clear_ho()
   gkyl_array_release(a1);
 }
 
-void
-test_array_clear_range_ho()
+void test_array_clear_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -53,8 +50,7 @@ test_array_clear_range_ho()
   gkyl_array_release(a1);
 }
 
-void
-test_array_accumulate_ho()
+void test_array_accumulate_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -74,8 +70,7 @@ test_array_accumulate_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_accumulate_range_ho()
+void test_array_accumulate_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -121,8 +116,7 @@ test_array_accumulate_range_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_accumulate_offset_ho()
+void test_array_accumulate_offset_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3 * a1->ncomp, 10);
@@ -155,8 +149,8 @@ test_array_accumulate_offset_ho()
   for (unsigned i = 0; i < a1->size; ++i) {
     for (unsigned j = 0; j < a1->ncomp; ++j) {
       TEST_CHECK(gkyl_compare(a2_d[i * a2->ncomp + 0 * a1->ncomp + j], i * 0.1 + j, 1e-14));
-      TEST_CHECK(gkyl_compare(
-        a2_d[i * a2->ncomp + 1 * a1->ncomp + j], i * 0.1 + j + 0.5 * (i * 1.0 + j), 1e-14));
+      TEST_CHECK(gkyl_compare(a2_d[i * a2->ncomp + 1 * a1->ncomp + j],
+                              i * 0.1 + j + 0.5 * (i * 1.0 + j), 1e-14));
       TEST_CHECK(gkyl_compare(a2_d[i * a2->ncomp + 2 * a1->ncomp + j], i * 0.1 + j, 1e-14));
     }
   }
@@ -165,8 +159,7 @@ test_array_accumulate_offset_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_accumulate_offset_range_ho()
+void test_array_accumulate_offset_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -212,8 +205,7 @@ test_array_accumulate_offset_range_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_combine_ho()
+void test_array_combine_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -237,8 +229,7 @@ test_array_combine_ho()
   gkyl_array_release(b);
 }
 
-void
-test_array_set_ho()
+void test_array_set_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -258,8 +249,7 @@ test_array_set_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_set_range_ho()
+void test_array_set_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -305,8 +295,7 @@ test_array_set_range_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_set_offset_ho()
+void test_array_set_offset_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 3 * a1->ncomp, a1->size);
@@ -349,8 +338,7 @@ test_array_set_offset_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_set_offset_range_ho()
+void test_array_set_offset_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -395,8 +383,7 @@ test_array_set_offset_range_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_scale_ho()
+void test_array_scale_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
 
@@ -413,8 +400,7 @@ test_array_scale_ho()
   gkyl_array_release(a1);
 }
 
-void
-test_array_scale_by_cell_ho()
+void test_array_scale_by_cell_ho()
 {
   struct gkyl_array *a1 = mkarr(false, 3, 10);
   struct gkyl_array *s = mkarr(false, 1, 10);
@@ -439,8 +425,7 @@ test_array_scale_by_cell_ho()
   gkyl_array_release(s);
 }
 
-void
-test_array_divide_by_cell()
+void test_array_divide_by_cell()
 {
   struct gkyl_array *a1 = mkarr(false, 3, 10);
   struct gkyl_array *s = mkarr(false, 1, 10);
@@ -465,8 +450,7 @@ test_array_divide_by_cell()
   gkyl_array_release(s);
 }
 
-void
-test_array_shiftc_ho()
+void test_array_shiftc_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 10);
 
@@ -520,8 +504,7 @@ test_array_shiftc_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_invert_by_cell_ho()
+void test_array_invert_by_cell_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 3, 8);
   double *a1_d = a1->data;
@@ -544,8 +527,7 @@ test_array_invert_by_cell_ho()
   gkyl_array_release(a1);
 }
 
-void
-test_array_shiftc_range(bool on_gpu)
+void test_array_shiftc_range(bool on_gpu)
 {
   int lower[] = { 1 }, upper[] = { 10 };
   struct gkyl_range range;
@@ -643,8 +625,7 @@ test_array_shiftc_range(bool on_gpu)
     gkyl_array_release(a2);
 }
 
-void
-test_array_min_by_cell(bool on_gpu)
+void test_array_min_by_cell(bool on_gpu)
 {
   struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 10);
   struct gkyl_array *a1 = a1_ho;
@@ -711,8 +692,7 @@ test_array_min_by_cell(bool on_gpu)
     gkyl_array_release(a2);
 }
 
-void
-test_array_min_range(bool on_gpu)
+void test_array_min_range(bool on_gpu)
 {
   int lower[] = { 1 }, upper[] = { 10 };
   struct gkyl_range range;
@@ -807,8 +787,7 @@ test_array_min_range(bool on_gpu)
     gkyl_array_release(a2);
 }
 
-void
-test_array_opcombine_ho()
+void test_array_opcombine_ho()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   struct gkyl_array *a2 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -829,8 +808,7 @@ test_array_opcombine_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_ops_comp_ho() // more than 1 "component" in array
+void test_array_ops_comp_ho() // more than 1 "component" in array
 {
   int nc = 5; // number of "components"
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, nc, 10);
@@ -852,8 +830,7 @@ test_array_ops_comp_ho() // more than 1 "component" in array
   gkyl_array_release(arr);
 }
 
-void
-test_array_copy_buffer_ho()
+void test_array_copy_buffer_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -895,15 +872,13 @@ test_array_copy_buffer_ho()
 }
 
 // function for use in the buffer_fn method
-GKYL_CU_DH static void
-buffer_fn(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_DH static void buffer_fn(size_t nc, double *out, const double *inp, void *ctx)
 {
   for (size_t i = 0; i < nc; ++i)
     out[i] = 2 * inp[i];
 }
 
-void
-test_array_copy_buffer_fn_ho()
+void test_array_copy_buffer_fn_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -923,8 +898,8 @@ test_array_copy_buffer_fn_ho()
   gkyl_sub_range_init(&sub_range, &range, lower, upper);
 
   double *buff = gkyl_malloc(sizeof(double) * sub_range.volume);
-  gkyl_array_copy_to_buffer_fn(
-    buff, arr, &sub_range, &(struct gkyl_array_copy_func){ .func = buffer_fn, .ctx = 0 });
+  gkyl_array_copy_to_buffer_fn(buff, arr, &sub_range,
+                               &(struct gkyl_array_copy_func){ .func = buffer_fn, .ctx = 0 });
 
   long count = 0;
   gkyl_range_iter_init(&iter, &sub_range);
@@ -945,8 +920,7 @@ test_array_copy_buffer_fn_ho()
   gkyl_free(buff);
 }
 
-void
-test_array_flip_copy_buffer_fn_ho()
+void test_array_flip_copy_buffer_fn_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -967,15 +941,15 @@ test_array_flip_copy_buffer_fn_ho()
 
   double *buff = gkyl_malloc(sizeof(double) * sub_range.volume);
 
-  gkyl_array_flip_copy_to_buffer_fn(
-    buff, arr, 0, &sub_range, &(struct gkyl_array_copy_func){ .func = buffer_fn, .ctx = 0 });
+  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 0, &sub_range,
+                                    &(struct gkyl_array_copy_func){ .func = buffer_fn, .ctx = 0 });
   long count = 0;
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter))
     TEST_CHECK(buff[count++] == 2 * ((5 + 1) - iter.idx[0] + 10.5 * iter.idx[1]));
 
-  gkyl_array_flip_copy_to_buffer_fn(
-    buff, arr, 1, &sub_range, &(struct gkyl_array_copy_func){ .func = buffer_fn, .ctx = 0 });
+  gkyl_array_flip_copy_to_buffer_fn(buff, arr, 1, &sub_range,
+                                    &(struct gkyl_array_copy_func){ .func = buffer_fn, .ctx = 0 });
   count = 0;
   gkyl_range_iter_init(&iter, &sub_range);
   while (gkyl_range_iter_next(&iter))
@@ -996,8 +970,7 @@ test_array_flip_copy_buffer_fn_ho()
   gkyl_free(buff);
 }
 
-void
-test_array_copy_range_ho()
+void test_array_copy_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -1044,7 +1017,7 @@ test_array_copy_range_ho()
     double *d = gkyl_array_fetch(a2, gkyl_range_idx(&sub_range_r, iter.idx));
     TEST_CHECK(d[0] == idx_l[0] + 10.5 * idx_l[1]);
     TEST_MSG("Expected: %.13e in cell (%d,%d)", iter.idx[0] + 10.5 * iter.idx[1], iter.idx[0],
-      iter.idx[1]);
+             iter.idx[1]);
     TEST_MSG("Produced: %.13e", d[0]);
   }
 
@@ -1052,8 +1025,7 @@ test_array_copy_range_ho()
   gkyl_array_release(a2);
 }
 
-void
-test_array_copy_split_ho()
+void test_array_copy_split_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -1109,14 +1081,12 @@ test_array_copy_split_ho()
   gkyl_free(buff);
 }
 
-void
-test_array_shiftc_range_ho()
+void test_array_shiftc_range_ho()
 {
   test_array_shiftc_range(false);
 }
 
-void
-test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
+void test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
 {
   // Test array_copy_range_to_range with ranges of different dimensionality.
   // MF 2025/01/22: at the moment this only works for deflating the last
@@ -1131,8 +1101,8 @@ test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
   gkyl_range_init_from_shape(&range_do, ndim_do, shape_do);
 
   struct gkyl_array *a_do = mkarr(use_gpu, ncomp, range_do.volume);
-  struct gkyl_array *a_do_ho =
-    use_gpu ? mkarr(false, ncomp, range_do.volume) : gkyl_array_acquire(a_do);
+  struct gkyl_array *a_do_ho = use_gpu ? mkarr(false, ncomp, range_do.volume) :
+                                         gkyl_array_acquire(a_do);
 
   struct gkyl_range_iter iter;
   gkyl_range_iter_init(&iter, &range_do);
@@ -1156,8 +1126,8 @@ test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
     gkyl_range_init_from_shape(&range_tar, ndim_tar, shape_tar);
 
     struct gkyl_array *a_tar = mkarr(use_gpu, ncomp, range_tar.volume);
-    struct gkyl_array *a_tar_ho =
-      use_gpu ? mkarr(false, ncomp, range_tar.volume) : gkyl_array_acquire(a_tar);
+    struct gkyl_array *a_tar_ho = use_gpu ? mkarr(false, ncomp, range_tar.volume) :
+                                            gkyl_array_acquire(a_tar);
 
     struct gkyl_range range_do_defl; // Deflated range as a subrange.
     int remove_dir[GKYL_MAX_DIM] = { 0 };
@@ -1184,7 +1154,7 @@ test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
 
         TEST_CHECK(a_tar_c[k] == ref_val);
         TEST_MSG("k:%2d Expected: %.13e in cell (%d) | Produced: %.13e", k, a_tar_c[k],
-          iter.idx[remaining_dir], ref_val);
+                 iter.idx[remaining_dir], ref_val);
       }
     }
 
@@ -1196,20 +1166,17 @@ test_array_copy_range_to_range_diff_range_dim(bool use_gpu)
   gkyl_array_release(a_do_ho);
 }
 
-void
-test_array_copy_range_to_range_diff_range_dim_ho()
+void test_array_copy_range_to_range_diff_range_dim_ho()
 {
   test_array_copy_range_to_range_diff_range_dim(false);
 }
 
-void
-test_array_min_by_cell_ho()
+void test_array_min_by_cell_ho()
 {
   test_array_min_by_cell(false);
 }
 
-void
-test_array_min_range_ho()
+void test_array_min_range_ho()
 {
   test_array_min_range(false);
 }
@@ -1217,8 +1184,7 @@ test_array_min_range_ho()
 // Cuda specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_array_clear_dev()
+void test_array_clear_dev()
 {
   // create host array
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1238,8 +1204,7 @@ test_array_clear_dev()
   gkyl_array_release(a1_cu);
 }
 
-void
-test_array_clear_range_dev()
+void test_array_clear_range_dev()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -1261,8 +1226,7 @@ test_array_clear_range_dev()
   gkyl_array_release(a1_cu);
 }
 
-void
-test_array_accumulate_dev()
+void test_array_accumulate_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1295,8 +1259,7 @@ test_array_accumulate_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_accumulate_range_dev()
+void test_array_accumulate_range_dev()
 {
   int shape[] = { 20, 10 };
   struct gkyl_range range;
@@ -1363,8 +1326,7 @@ test_array_accumulate_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_accumulate_offset_dev()
+void test_array_accumulate_offset_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
@@ -1408,8 +1370,8 @@ test_array_accumulate_offset_dev()
   for (unsigned i = 0; i < a1->size; ++i) {
     for (unsigned j = 0; j < a1->ncomp; ++j) {
       TEST_CHECK(gkyl_compare(a2_d[i * a2->ncomp + 0 * a1->ncomp + j], i * 0.1 + j, 1e-14));
-      TEST_CHECK(gkyl_compare(
-        a2_d[i * a2->ncomp + 1 * a1->ncomp + j], i * 0.1 + j + 0.5 * (i * 1.0 + j), 1e-14));
+      TEST_CHECK(gkyl_compare(a2_d[i * a2->ncomp + 1 * a1->ncomp + j],
+                              i * 0.1 + j + 0.5 * (i * 1.0 + j), 1e-14));
       TEST_CHECK(gkyl_compare(a2_d[i * a2->ncomp + 2 * a1->ncomp + j], i * 0.1 + j, 1e-14));
     }
   }
@@ -1420,8 +1382,7 @@ test_array_accumulate_offset_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_accumulate_offset_range_dev()
+void test_array_accumulate_offset_range_dev()
 {
   int shape[] = { 20, 10 };
   struct gkyl_range range;
@@ -1485,8 +1446,7 @@ test_array_accumulate_offset_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_accumulate_range_4d_dev()
+void test_array_accumulate_range_4d_dev()
 {
   int lower[] = { 1, 1, 1, 1 };
   int upper[] = { 46, 46, 32, 32 };
@@ -1538,8 +1498,7 @@ test_array_accumulate_range_4d_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_combine_dev()
+void test_array_combine_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1580,8 +1539,7 @@ test_array_combine_dev()
   gkyl_array_release(b_cu);
 }
 
-void
-test_array_set_dev()
+void test_array_set_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
@@ -1614,8 +1572,7 @@ test_array_set_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_set_range_dev()
+void test_array_set_range_dev()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -1675,8 +1632,7 @@ test_array_set_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_set_offset_dev()
+void test_array_set_offset_dev()
 {
   // create host arrays
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 2, 10);
@@ -1731,8 +1687,7 @@ test_array_set_offset_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_set_offset_range_dev()
+void test_array_set_offset_range_dev()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -1789,8 +1744,7 @@ test_array_set_offset_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_scale_dev()
+void test_array_scale_dev()
 {
   struct gkyl_array *a1 = gkyl_array_new(GKYL_DOUBLE, 1, 10);
   // make device copies
@@ -1816,8 +1770,7 @@ test_array_scale_dev()
   gkyl_array_release(a1_cu);
 }
 
-void
-test_array_scale_by_cell_dev()
+void test_array_scale_by_cell_dev()
 {
   struct gkyl_array *a1 = mkarr(true, 3, 10);
   struct gkyl_array *s = mkarr(true, 1, 10);
@@ -1854,8 +1807,7 @@ test_array_scale_by_cell_dev()
   gkyl_array_release(s_ho);
 }
 
-void
-test_cu_array_divide_by_cell()
+void test_cu_array_divide_by_cell()
 {
   struct gkyl_array *a1 = mkarr(true, 3, 10);
   struct gkyl_array *s = mkarr(true, 1, 10);
@@ -1892,8 +1844,7 @@ test_cu_array_divide_by_cell()
   gkyl_array_release(s_ho);
 }
 
-void
-test_array_shiftc_dev()
+void test_array_shiftc_dev()
 {
   double s = -0.5;
 
@@ -1961,8 +1912,7 @@ test_array_shiftc_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_invert_by_cell_dev()
+void test_array_invert_by_cell_dev()
 {
   struct gkyl_array *a1_ho = gkyl_array_new(GKYL_DOUBLE, 3, 8);
   struct gkyl_array *a1 = gkyl_array_cu_dev_new(GKYL_DOUBLE, 3, 8);
@@ -1993,8 +1943,7 @@ test_array_invert_by_cell_dev()
   gkyl_array_release(a1);
 }
 
-void
-test_array_copy_buffer_dev()
+void test_array_copy_buffer_dev()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -2042,8 +1991,7 @@ test_array_copy_buffer_dev()
 // declare so we can use below
 void set_array_copy_fn(struct gkyl_array_copy_func *fn);
 
-void
-test_array_copy_buffer_fn_dev()
+void test_array_copy_buffer_fn_dev()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -2091,8 +2039,7 @@ test_array_copy_buffer_fn_dev()
   gkyl_cu_free(fn);
 }
 
-void
-test_array_flip_copy_buffer_fn_dev()
+void test_array_flip_copy_buffer_fn_dev()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -2170,8 +2117,7 @@ test_array_flip_copy_buffer_fn_dev()
   gkyl_cu_free(fn);
 }
 
-void
-test_array_copy_range_dev()
+void test_array_copy_range_dev()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -2230,7 +2176,7 @@ test_array_copy_range_dev()
     double *d = gkyl_array_fetch(a2, gkyl_range_idx(&sub_range_r, iter.idx));
     TEST_CHECK(d[0] == idx_l[0] + 10.5 * idx_l[1]);
     TEST_MSG("Expected: %.13e in cell (%d,%d)", iter.idx[0] + 10.5 * iter.idx[1], iter.idx[0],
-      iter.idx[1]);
+             iter.idx[1]);
     TEST_MSG("Produced: %.13e", d[0]);
   }
 
@@ -2240,26 +2186,22 @@ test_array_copy_range_dev()
   gkyl_array_release(a2_cu);
 }
 
-void
-test_array_shiftc_range_dev()
+void test_array_shiftc_range_dev()
 {
   test_array_shiftc_range(true);
 }
 
-void
-test_array_copy_range_to_range_diff_range_dim_dev()
+void test_array_copy_range_to_range_diff_range_dim_dev()
 {
   test_array_copy_range_to_range_diff_range_dim(true);
 }
 
-void
-test_array_min_by_cell_dev()
+void test_array_min_by_cell_dev()
 {
   test_array_min_by_cell(true);
 }
 
-void
-test_array_min_range_dev()
+void test_array_min_range_dev()
 {
   test_array_min_range(true);
 }
@@ -2267,55 +2209,57 @@ test_array_min_range_dev()
 #endif
 
 TEST_LIST = { { "array_clear_ho", test_array_clear_ho },
-  { "array_clear_range_ho", test_array_clear_range_ho },
-  { "array_accumulate_ho", test_array_accumulate_ho },
-  { "array_accumulate_range_ho", test_array_accumulate_range_ho },
-  { "array_accumulate_offset_ho", test_array_accumulate_offset_ho },
-  { "array_accumulate_offset_range_ho", test_array_accumulate_offset_range_ho },
-  { "array_combine_ho", test_array_combine_ho }, { "array_set_ho", test_array_set_ho },
-  { "array_set_range_ho", test_array_set_range_ho },
-  { "array_set_offset_ho", test_array_set_offset_ho },
-  { "array_set_offset_range_ho", test_array_set_offset_range_ho },
-  { "array_scale_ho", test_array_scale_ho },
-  { "array_scale_by_cell_ho", test_array_scale_by_cell_ho },
-  { "array_invert_by_cell_ho", test_array_invert_by_cell_ho },
-  { "array_shiftc_ho", test_array_shiftc_ho },
-  { "array_shiftc_range_ho", test_array_shiftc_range_ho },
-  { "array_min_by_cell_ho", test_array_min_by_cell_ho },
-  { "array_min_range_ho", test_array_min_range_ho },
-  { "array_opcombine_ho", test_array_opcombine_ho },
-  { "array_ops_comp_ho", test_array_ops_comp_ho },
-  { "array_copy_buffer_ho", test_array_copy_buffer_ho },
-  { "array_copy_buffer_fn_ho", test_array_copy_buffer_fn_ho },
-  { "array_flip_copy_buffer_fn_ho", test_array_flip_copy_buffer_fn_ho },
-  { "array_copy_range_ho", test_array_copy_range_ho },
-  { "array_copy_split_ho", test_array_copy_split_ho },
-  { "array_copy_range_to_range_diff_range_dim_ho",
-    test_array_copy_range_to_range_diff_range_dim_ho },
+              { "array_clear_range_ho", test_array_clear_range_ho },
+              { "array_accumulate_ho", test_array_accumulate_ho },
+              { "array_accumulate_range_ho", test_array_accumulate_range_ho },
+              { "array_accumulate_offset_ho", test_array_accumulate_offset_ho },
+              { "array_accumulate_offset_range_ho", test_array_accumulate_offset_range_ho },
+              { "array_combine_ho", test_array_combine_ho },
+              { "array_set_ho", test_array_set_ho },
+              { "array_set_range_ho", test_array_set_range_ho },
+              { "array_set_offset_ho", test_array_set_offset_ho },
+              { "array_set_offset_range_ho", test_array_set_offset_range_ho },
+              { "array_scale_ho", test_array_scale_ho },
+              { "array_scale_by_cell_ho", test_array_scale_by_cell_ho },
+              { "array_invert_by_cell_ho", test_array_invert_by_cell_ho },
+              { "array_shiftc_ho", test_array_shiftc_ho },
+              { "array_shiftc_range_ho", test_array_shiftc_range_ho },
+              { "array_min_by_cell_ho", test_array_min_by_cell_ho },
+              { "array_min_range_ho", test_array_min_range_ho },
+              { "array_opcombine_ho", test_array_opcombine_ho },
+              { "array_ops_comp_ho", test_array_ops_comp_ho },
+              { "array_copy_buffer_ho", test_array_copy_buffer_ho },
+              { "array_copy_buffer_fn_ho", test_array_copy_buffer_fn_ho },
+              { "array_flip_copy_buffer_fn_ho", test_array_flip_copy_buffer_fn_ho },
+              { "array_copy_range_ho", test_array_copy_range_ho },
+              { "array_copy_split_ho", test_array_copy_split_ho },
+              { "array_copy_range_to_range_diff_range_dim_ho",
+                test_array_copy_range_to_range_diff_range_dim_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "array_clear_dev", test_array_clear_dev },
-  { "array_clear_range_dev", test_array_clear_range_dev },
-  { "array_accumulate_dev", test_array_accumulate_dev },
-  { "array_accumulate_range_dev", test_array_accumulate_range_dev },
-  { "array_accumulate_offset_dev", test_array_accumulate_offset_dev },
-  { "array_accumulate_offset_range_dev", test_array_accumulate_offset_range_dev },
-  { "array_accumulate_range_4d_dev", test_array_accumulate_range_4d_dev },
-  { "array_combine_dev", test_array_combine_dev }, { "array_set_dev", test_array_set_dev },
-  { "array_set_range_dev", test_array_set_range_dev },
-  { "array_set_offset_dev", test_array_set_offset_dev },
-  { "array_set_offset_range_dev", test_array_set_offset_range_dev },
-  { "array_scale_dev", test_array_scale_dev },
-  { "array_scale_by_cell_dev", test_array_scale_by_cell_dev },
-  { "array_invert_by_cell_dev", test_array_invert_by_cell_dev },
-  { "array_shiftc_dev", test_array_shiftc_dev },
-  { "array_shiftc_range_dev", test_array_shiftc_range_dev },
-  { "array_min_by_cell_dev", test_array_min_by_cell_dev },
-  { "array_min_by_cell_range_dev", test_array_min_range_dev },
-  { "array_copy_buffer_dev", test_array_copy_buffer_dev },
-  { "array_copy_buffer_fn_dev", test_array_copy_buffer_fn_dev },
-  { "array_flip_copy_buffer_fn_dev", test_array_flip_copy_buffer_fn_dev },
-  { "array_copy_range_dev", test_array_copy_range_dev },
-  { "array_copy_range_to_range_diff_range_dim_dev",
-    test_array_copy_range_to_range_diff_range_dim_dev },
+              { "array_clear_dev", test_array_clear_dev },
+              { "array_clear_range_dev", test_array_clear_range_dev },
+              { "array_accumulate_dev", test_array_accumulate_dev },
+              { "array_accumulate_range_dev", test_array_accumulate_range_dev },
+              { "array_accumulate_offset_dev", test_array_accumulate_offset_dev },
+              { "array_accumulate_offset_range_dev", test_array_accumulate_offset_range_dev },
+              { "array_accumulate_range_4d_dev", test_array_accumulate_range_4d_dev },
+              { "array_combine_dev", test_array_combine_dev },
+              { "array_set_dev", test_array_set_dev },
+              { "array_set_range_dev", test_array_set_range_dev },
+              { "array_set_offset_dev", test_array_set_offset_dev },
+              { "array_set_offset_range_dev", test_array_set_offset_range_dev },
+              { "array_scale_dev", test_array_scale_dev },
+              { "array_scale_by_cell_dev", test_array_scale_by_cell_dev },
+              { "array_invert_by_cell_dev", test_array_invert_by_cell_dev },
+              { "array_shiftc_dev", test_array_shiftc_dev },
+              { "array_shiftc_range_dev", test_array_shiftc_range_dev },
+              { "array_min_by_cell_dev", test_array_min_by_cell_dev },
+              { "array_min_by_cell_range_dev", test_array_min_range_dev },
+              { "array_copy_buffer_dev", test_array_copy_buffer_dev },
+              { "array_copy_buffer_fn_dev", test_array_copy_buffer_fn_dev },
+              { "array_flip_copy_buffer_fn_dev", test_array_flip_copy_buffer_fn_dev },
+              { "array_copy_range_dev", test_array_copy_range_dev },
+              { "array_copy_range_to_range_diff_range_dim_dev",
+                test_array_copy_range_to_range_diff_range_dim_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

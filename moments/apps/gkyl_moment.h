@@ -27,8 +27,7 @@ struct gkyl_moment_species {
   enum gkyl_braginskii_type type_brag; // which Braginskii equations
 
   bool has_friction; // Run with frictional sources.
-  bool
-    use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
+  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
   double friction_Z; // Ionization number for frictional sources.
   double friction_T_elc; // Electron temperature for frictional sources.
   double friction_Lambda_ee; // Electron-electron collisional term for frictional sources.
@@ -46,8 +45,7 @@ struct gkyl_moment_species {
   double reactivity_ignition_temperature; // Ignition temperature for reactive sources.
   double reactivity_reaction_rate; // Reaction rate for reactive sources.
 
-  bool
-    has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
+  bool has_einstein_medium; // Run with coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double
     medium_gas_gamma; // Adiabatic index for coupled fluid-Einstein sources in plane-symmetric spacetimes.
   double
@@ -94,8 +92,7 @@ struct gkyl_moment_species {
 
   bool
     has_gr_mhd; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
-  double
-    gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+  double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
 
   bool force_low_order_flux; // should  we force low-order flux?
 
@@ -306,8 +303,8 @@ void gkyl_moment_app_apply_ic_embed(gkyl_moment_app *app, double t0);
  * @param fname File to read from.
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_app_from_file_field(
-  gkyl_moment_app *app, const char *fname);
+struct gkyl_app_restart_status gkyl_moment_app_from_file_field(gkyl_moment_app *app,
+                                                               const char *fname);
 
 /**
  * Read species data from .gkyl file.
@@ -317,8 +314,8 @@ struct gkyl_app_restart_status gkyl_moment_app_from_file_field(
  * @param fname File to read from.
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_app_from_file_species(
-  gkyl_moment_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_moment_app_from_file_species(gkyl_moment_app *app, int sidx,
+                                                                 const char *fname);
 
 /**
  * Read field data from specified frame of previous simulation.
@@ -337,8 +334,8 @@ struct gkyl_app_restart_status gkyl_moment_app_from_frame_field(gkyl_moment_app 
  * @param frame Frame number to read from
  * @return Status of read
  */
-struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(
-  gkyl_moment_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_moment_app_from_frame_species(gkyl_moment_app *app, int sidx,
+                                                                  int frame);
 
 /**
  * Initialize the Moment app from a specific frame.

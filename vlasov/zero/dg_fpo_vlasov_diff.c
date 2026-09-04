@@ -11,8 +11,7 @@
 // "Choose Kernel" based on cdim and polynomial order
 #define CK(lst, cdim, poly_order) lst[cdim - 1].kernels[poly_order]
 
-void
-gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref)
+void gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -27,9 +26,8 @@ gkyl_fpo_vlasov_diff_free(const struct gkyl_ref_count *ref)
   gkyl_free(fpo_vlasov_diff);
 }
 
-void
-gkyl_fpo_vlasov_diff_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
+void gkyl_fpo_vlasov_diff_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                        struct gkyl_dg_fpo_vlasov_diff_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(auxin.g)) {
@@ -42,9 +40,8 @@ gkyl_fpo_vlasov_diff_set_auxfields(
   fpo_vlasov_diff->auxfields.g = auxin.g;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_fpo_vlasov_diff_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_new(const struct gkyl_basis *pbasis,
+                                                const struct gkyl_range *phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu)
@@ -158,9 +155,8 @@ gkyl_dg_fpo_vlasov_diff_new(
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_fpo_vlasov_diff_cu_dev_new(
-  const struct gkyl_basis *pbasis, const struct gkyl_range *phase_range)
+struct gkyl_dg_eqn *gkyl_dg_fpo_vlasov_diff_cu_dev_new(const struct gkyl_basis *pbasis,
+                                                       const struct gkyl_range *phase_range)
 {
   assert(false);
   return 0;

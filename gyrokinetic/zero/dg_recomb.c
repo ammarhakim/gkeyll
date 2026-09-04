@@ -15,8 +15,7 @@
 #include <gkyl_nodal_ops.h>
 #include <gkyl_rect_decomp.h>
 
-struct gkyl_dg_recomb *
-gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
+struct gkyl_dg_recomb *gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
 {
   gkyl_dg_recomb *up = gkyl_malloc(sizeof(struct gkyl_dg_recomb));
 
@@ -78,7 +77,7 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   // allocate grid and DG array
   struct gkyl_rect_grid tn_grid;
   gkyl_rect_grid_init(&tn_grid, 2, (double[]){ logTmin, logNmin }, (double[]){ logTmax, logNmax },
-    (int[]){ data.NT - 1, data.NN - 1 });
+                      (int[]){ data.NT - 1, data.NN - 1 });
 
   if (use_gpu) {
     // allocate device basis if we are using GPUs
@@ -101,8 +100,8 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   //create_dg_from_nodal(&tn_grid, &range_node, adas_nodal, adas_dg, charge_state);
 
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&up->adas_basis, &tn_grid, false);
-  gkyl_nodal_ops_n2m(
-    n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal, adas_dg, false);
+  gkyl_nodal_ops_n2m(n2m, &up->adas_basis, &tn_grid, &range_nodal, &modal_range, 1, adas_nodal,
+                     adas_dg, false);
   gkyl_nodal_ops_release(n2m);
 
   // ADAS data pointers
@@ -134,9 +133,8 @@ gkyl_dg_recomb_new(struct gkyl_dg_recomb_inp *inp, bool use_gpu)
   return up;
 }
 
-void
-gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
-  struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
+void gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_array *prim_vars_elc,
+                         struct gkyl_array *coef_recomb, struct gkyl_array *cflrate)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(coef_recomb)) {
@@ -215,8 +213,7 @@ gkyl_dg_recomb_coll(const struct gkyl_dg_recomb *up, const struct gkyl_array *pr
   /* } */
 }
 
-void
-gkyl_dg_recomb_release(struct gkyl_dg_recomb *up)
+void gkyl_dg_recomb_release(struct gkyl_dg_recomb *up)
 {
   gkyl_array_release(up->recomb_data);
   free(up);

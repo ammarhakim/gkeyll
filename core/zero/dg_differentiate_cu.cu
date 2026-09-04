@@ -10,9 +10,10 @@ extern "C" {
 // Compute size of 'arr'
 #define NSIZE(arr) (arr->size)
 
-__global__ void
-gkyl_dg_differentiate_op_local_cu_kernel(struct gkyl_basis basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp)
+__global__ void gkyl_dg_differentiate_op_local_cu_kernel(struct gkyl_basis basis, int dir,
+                                                         int diff_order, double dx, int c_oop,
+                                                         struct gkyl_array *out, int c_iop,
+                                                         const struct gkyl_array *inp)
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
@@ -37,18 +38,19 @@ gkyl_dg_differentiate_op_local_cu_kernel(struct gkyl_basis basis, int dir, int d
   }
 }
 
-void
-gkyl_dg_differentiate_op_local_cu(const struct gkyl_basis *basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp)
+void gkyl_dg_differentiate_op_local_cu(const struct gkyl_basis *basis, int dir, int diff_order,
+                                       double dx, int c_oop, struct gkyl_array *out, int c_iop,
+                                       const struct gkyl_array *inp)
 {
-  gkyl_dg_differentiate_op_local_cu_kernel<<<out->nblocks, out->nthreads>>>(
+  gkyl_dg_differentiate_op_local_cu_kernel<<<out->nblocks, out->nthreads> > >(
     *basis, dir, diff_order, dx, c_oop, out->on_dev, c_iop, inp->on_dev);
 }
 
-__global__ void
-gkyl_dg_differentiate_op_local_range_cu_kernel(struct gkyl_basis basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp,
-  struct gkyl_range range)
+__global__ void gkyl_dg_differentiate_op_local_range_cu_kernel(struct gkyl_basis basis, int dir,
+                                                               int diff_order, double dx, int c_oop,
+                                                               struct gkyl_array *out, int c_iop,
+                                                               const struct gkyl_array *inp,
+                                                               struct gkyl_range range)
 {
   int num_basis = basis.num_basis;
   int ndim = basis.ndim;
@@ -84,13 +86,14 @@ gkyl_dg_differentiate_op_local_range_cu_kernel(struct gkyl_basis basis, int dir,
   }
 }
 
-void
-gkyl_dg_differentiate_op_local_range_cu(const struct gkyl_basis *basis, int dir, int diff_order,
-  double dx, int c_oop, struct gkyl_array *out, int c_iop, const struct gkyl_array *inp,
-  const struct gkyl_range *range)
+void gkyl_dg_differentiate_op_local_range_cu(const struct gkyl_basis *basis, int dir,
+                                             int diff_order, double dx, int c_oop,
+                                             struct gkyl_array *out, int c_iop,
+                                             const struct gkyl_array *inp,
+                                             const struct gkyl_range *range)
 {
   int nblocks = range->nblocks;
   int nthreads = range->nthreads;
-  gkyl_dg_differentiate_op_local_range_cu_kernel<<<nblocks, nthreads>>>(
+  gkyl_dg_differentiate_op_local_range_cu_kernel<<<nblocks, nthreads> > >(
     *basis, dir, diff_order, dx, c_oop, out->on_dev, c_iop, inp->on_dev, *range);
 }

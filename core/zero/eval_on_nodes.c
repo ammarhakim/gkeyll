@@ -23,8 +23,7 @@ struct gkyl_eval_on_nodes {
 };
 
 // Identity comp to phys coord mapping, for when user doesn't provide a map.
-static inline void
-c2p_identity(const double *xcomp, double *xphys, void *ctx)
+static inline void c2p_identity(const double *xcomp, double *xphys, void *ctx)
 {
   struct gkyl_rect_grid *grid = ctx;
   int ndim = grid->ndim;
@@ -32,21 +31,20 @@ c2p_identity(const double *xcomp, double *xphys, void *ctx)
     xphys[d] = xcomp[d];
 }
 
-struct gkyl_eval_on_nodes *
-gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  int num_ret_vals, evalf_t eval, void *ctx)
+struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_new(const struct gkyl_rect_grid *grid,
+                                                  const struct gkyl_basis *basis, int num_ret_vals,
+                                                  evalf_t eval, void *ctx)
 {
   return gkyl_eval_on_nodes_inew(&(struct gkyl_eval_on_nodes_inp){ .grid = grid,
-    .basis = basis,
-    .num_ret_vals = num_ret_vals,
-    .eval = eval,
-    .ctx = ctx,
-    .c2p_func = 0,
-    .c2p_func_ctx = NULL });
+                                                                   .basis = basis,
+                                                                   .num_ret_vals = num_ret_vals,
+                                                                   .eval = eval,
+                                                                   .ctx = ctx,
+                                                                   .c2p_func = 0,
+                                                                   .c2p_func_ctx = NULL });
 }
 
-struct gkyl_eval_on_nodes *
-gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp)
+struct gkyl_eval_on_nodes *gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp)
 {
   struct gkyl_eval_on_nodes *up = gkyl_malloc(sizeof(struct gkyl_eval_on_nodes));
 
@@ -72,30 +70,27 @@ gkyl_eval_on_nodes_inew(const struct gkyl_eval_on_nodes_inp *inp)
   return up;
 }
 
-static inline void
-log_to_comp(int ndim, const double *eta, const double *GKYL_RESTRICT dx,
-  const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
+static inline void log_to_comp(int ndim, const double *eta, const double *GKYL_RESTRICT dx,
+                               const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
 {
   for (int d = 0; d < ndim; ++d)
     xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
 }
 
-static inline void
-copy_double_arr(int n, const double *GKYL_RESTRICT inp, double *GKYL_RESTRICT out)
+static inline void copy_double_arr(int n, const double *GKYL_RESTRICT inp,
+                                   double *GKYL_RESTRICT out)
 {
   for (int i = 0; i < n; ++i)
     out[i] = inp[i];
 }
 
-double *
-gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node)
+double *gkyl_eval_on_nodes_fetch_node(const struct gkyl_eval_on_nodes *up, long node)
 {
   return gkyl_array_fetch(up->nodes, node);
 }
 
-void
-gkyl_eval_on_nodes_nod2mod(
-  const struct gkyl_eval_on_nodes *up, const struct gkyl_array *fun_at_nodes, double *f)
+void gkyl_eval_on_nodes_nod2mod(const struct gkyl_eval_on_nodes *up,
+                                const struct gkyl_array *fun_at_nodes, double *f)
 {
   const double *fao = gkyl_array_cfetch(fun_at_nodes, 0); // pointer to values at nodes
 
@@ -113,9 +108,8 @@ gkyl_eval_on_nodes_nod2mod(
   }
 }
 
-void
-gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up, double tm,
-  const struct gkyl_range *update_range, struct gkyl_array *arr)
+void gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up, double tm,
+                                const struct gkyl_range *update_range, struct gkyl_array *arr)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr))
@@ -147,8 +141,7 @@ gkyl_eval_on_nodes_advance(const struct gkyl_eval_on_nodes *up, double tm,
   gkyl_array_release(fun_at_nodes);
 }
 
-void
-gkyl_eval_on_nodes_release(struct gkyl_eval_on_nodes *up)
+void gkyl_eval_on_nodes_release(struct gkyl_eval_on_nodes *up)
 {
   gkyl_array_release(up->nodes);
   gkyl_free(up);

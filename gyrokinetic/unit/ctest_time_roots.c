@@ -16,22 +16,20 @@
 
 // Compute roots R(psi,Z) and dR/dZ(psi,Z) in a p=2 DG cell with tensor basis
 // Use more accurate roots from numerical recipes in C 2007 section 5.6
-static inline struct RdRdZ_sol
-quad_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+static inline struct RdRdZ_sol quad_root(const double *psi, double psi0, double Z, double xc[2],
+                                         double dx[2])
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
-  double aq = 0.125 *
-    (45.0 * psi[8] * SQ(y) + 23.2379000772445 * psi[6] * y - 15.0 * psi[8] +
-      13.41640786499874 * psi[4]);
-  double bq = 0.125 *
-    (23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y - 7.745966692414834 * psi[7] +
-      6.928203230275509 * psi[1]);
-  double cq = 0.125 *
-      ((13.41640786499874 * psi[5] - 15.0 * psi[8]) * SQ(y) +
-        (6.928203230275509 * psi[2] - 7.745966692414834 * psi[6]) * y + 5.0 * psi[8] -
-        4.47213595499958 * psi[5] - 4.47213595499958 * psi[4] + 4.0 * psi[0]) -
+  double aq = 0.125 * (45.0 * psi[8] * SQ(y) + 23.2379000772445 * psi[6] * y - 15.0 * psi[8] +
+                       13.41640786499874 * psi[4]);
+  double bq = 0.125 * (23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
+                       7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
+  double cq =
+    0.125 * ((13.41640786499874 * psi[5] - 15.0 * psi[8]) * SQ(y) +
+             (6.928203230275509 * psi[2] - 7.745966692414834 * psi[6]) * y + 5.0 * psi[8] -
+             4.47213595499958 * psi[5] - 4.47213595499958 * psi[4] + 4.0 * psi[0]) -
     psi0;
 
   double delta2 = bq * bq - 4 * aq * cq;
@@ -50,17 +48,15 @@ quad_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
       sol.R[sidx] = r1 * dx[0] * 0.5 + xc[0];
 
       double x = r1;
-      double C = 0.125 *
-        (SQ(x) * (90.0 * psi[8] * y + 23.2379000772445 * psi[6]) +
-          x * (46.47580015448901 * psi[7] * y + 12.0 * psi[3]) +
-          2 * (13.41640786499874 * psi[5] - 15.0 * psi[8]) * y - 7.745966692414834 * psi[6] +
-          6.928203230275509 * psi[2]);
-      double A = 0.125 *
-        (2 * x *
-            (45.0 * psi[8] * SQ(y) + 23.2379000772445 * psi[6] * y - 15.0 * psi[8] +
-              13.41640786499874 * psi[4]) +
-          23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y - 7.745966692414834 * psi[7] +
-          6.928203230275509 * psi[1]);
+      double C = 0.125 * (SQ(x) * (90.0 * psi[8] * y + 23.2379000772445 * psi[6]) +
+                          x * (46.47580015448901 * psi[7] * y + 12.0 * psi[3]) +
+                          2 * (13.41640786499874 * psi[5] - 15.0 * psi[8]) * y -
+                          7.745966692414834 * psi[6] + 6.928203230275509 * psi[2]);
+      double A = 0.125 * (2 * x *
+                            (45.0 * psi[8] * SQ(y) + 23.2379000772445 * psi[6] * y - 15.0 * psi[8] +
+                             13.41640786499874 * psi[4]) +
+                          23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
+                          7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
 
       sidx += 1;
@@ -70,17 +66,15 @@ quad_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
       sol.R[sidx] = r2 * dx[0] * 0.5 + xc[0];
 
       double x = r2;
-      double C = 0.125 *
-        (SQ(x) * (90.0 * psi[8] * y + 23.2379000772445 * psi[6]) +
-          x * (46.47580015448901 * psi[7] * y + 12.0 * psi[3]) +
-          2 * (13.41640786499874 * psi[5] - 15.0 * psi[8]) * y - 7.745966692414834 * psi[6] +
-          6.928203230275509 * psi[2]);
-      double A = 0.125 *
-        (2 * x *
-            (45.0 * psi[8] * SQ(y) + 23.2379000772445 * psi[6] * y - 15.0 * psi[8] +
-              13.41640786499874 * psi[4]) +
-          23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y - 7.745966692414834 * psi[7] +
-          6.928203230275509 * psi[1]);
+      double C = 0.125 * (SQ(x) * (90.0 * psi[8] * y + 23.2379000772445 * psi[6]) +
+                          x * (46.47580015448901 * psi[7] * y + 12.0 * psi[3]) +
+                          2 * (13.41640786499874 * psi[5] - 15.0 * psi[8]) * y -
+                          7.745966692414834 * psi[6] + 6.928203230275509 * psi[2]);
+      double A = 0.125 * (2 * x *
+                            (45.0 * psi[8] * SQ(y) + 23.2379000772445 * psi[6] * y - 15.0 * psi[8] +
+                             13.41640786499874 * psi[4]) +
+                          23.2379000772445 * psi[7] * SQ(y) + 12.0 * psi[3] * y -
+                          7.745966692414834 * psi[7] + 6.928203230275509 * psi[1]);
       sol.dRdZ[sidx] = -C / A * dx[0] / dx[1];
 
       sidx += 1;
@@ -89,41 +83,38 @@ quad_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
   return sol;
 }
 
-static inline double
-cub(double x)
+static inline double cub(double x)
 {
   return x * x * x;
 }
-static inline struct RdRdZ_sol
-cub_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
+static inline struct RdRdZ_sol cub_root(const double *psi, double psi0, double Z, double xc[2],
+                                        double dx[2])
 {
   struct RdRdZ_sol sol = { .nsol = 0 };
   double y = (Z - xc[1]) / (dx[1] * 0.5);
 
   double coeffs[4];
   // coeffs = [x^0, x^1, x^2, x^3]
-  coeffs[3] = 0.125 *
-    (175.0 * psi[15] * cub(y) + 88.74119674649424 * psi[13] * SQ(y) +
-      (45.8257569495584 * psi[11] - 105.0 * psi[15]) * y + 26.45751311064591 * psi[8] -
-      29.58039891549808 * psi[13]);
-  coeffs[2] = 0.125 *
-    (88.74119674649424 * psi[14] * cub(y) + 45.0 * psi[10] * SQ(y) +
-      (23.2379000772445 * psi[6] - 53.24471804789655 * psi[14]) * y + 13.41640786499874 * psi[4] -
-      15.0 * psi[10]);
-  coeffs[1] = 0.125 *
-    ((45.8257569495584 * psi[12] - 105.0 * psi[15]) * cub(y) +
-      (23.2379000772445 * psi[7] - 53.24471804789655 * psi[13]) * SQ(y) +
-      (12.0 * psi[3] + 63.0 * psi[15] - 27.49545416973504 * psi[12] - 27.49545416973504 * psi[11]) *
-        y -
-      15.87450786638754 * psi[8] - 7.745966692414834 * psi[7] + 17.74823934929885 * psi[13] +
-      6.928203230275509 * psi[1]);
-  coeffs[0] = 0.125 *
-      ((26.45751311064591 * psi[9] - 29.58039891549808 * psi[14]) * cub(y) +
-        (13.41640786499874 * psi[5] - 15.0 * psi[10]) * SQ(y) +
-        (-15.87450786638754 * psi[9] - 7.745966692414834 * psi[6] + 6.928203230275509 * psi[2] +
-          17.74823934929885 * psi[14]) *
-          y -
-        4.47213595499958 * psi[5] - 4.47213595499958 * psi[4] + 5.0 * psi[10] + 4.0 * psi[0]) -
+  coeffs[3] = 0.125 * (175.0 * psi[15] * cub(y) + 88.74119674649424 * psi[13] * SQ(y) +
+                       (45.8257569495584 * psi[11] - 105.0 * psi[15]) * y +
+                       26.45751311064591 * psi[8] - 29.58039891549808 * psi[13]);
+  coeffs[2] = 0.125 * (88.74119674649424 * psi[14] * cub(y) + 45.0 * psi[10] * SQ(y) +
+                       (23.2379000772445 * psi[6] - 53.24471804789655 * psi[14]) * y +
+                       13.41640786499874 * psi[4] - 15.0 * psi[10]);
+  coeffs[1] = 0.125 * ((45.8257569495584 * psi[12] - 105.0 * psi[15]) * cub(y) +
+                       (23.2379000772445 * psi[7] - 53.24471804789655 * psi[13]) * SQ(y) +
+                       (12.0 * psi[3] + 63.0 * psi[15] - 27.49545416973504 * psi[12] -
+                        27.49545416973504 * psi[11]) *
+                         y -
+                       15.87450786638754 * psi[8] - 7.745966692414834 * psi[7] +
+                       17.74823934929885 * psi[13] + 6.928203230275509 * psi[1]);
+  coeffs[0] =
+    0.125 * ((26.45751311064591 * psi[9] - 29.58039891549808 * psi[14]) * cub(y) +
+             (13.41640786499874 * psi[5] - 15.0 * psi[10]) * SQ(y) +
+             (-15.87450786638754 * psi[9] - 7.745966692414834 * psi[6] +
+              6.928203230275509 * psi[2] + 17.74823934929885 * psi[14]) *
+               y -
+             4.47213595499958 * psi[5] - 4.47213595499958 * psi[4] + 5.0 * psi[10] + 4.0 * psi[0]) -
     psi0;
 
   coeffs[0] = coeffs[0] / coeffs[3];
@@ -141,7 +132,8 @@ cub_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
       sol.R[sidx] = rts.rpart[i] * dx[0] * 0.5 + xc[0];
 
       double x = rts.rpart[i];
-      double dpsidx = 6.5625000000000000e+01 * (x * x) * (y * y * y) * psi[15] +
+      double dpsidx =
+        6.5625000000000000e+01 * (x * x) * (y * y * y) * psi[15] +
         -9.6824583655185426e-01 * psi[7] + -6.6555897559870685e+00 * (y * y) * psi[13] +
         5.7282196186947996e+00 * (y * y * y) * psi[12] + 2.9047375096555625e+00 * psi[7] * (y * y) +
         3.3277948779935343e+01 * (x * x) * (y * y) * psi[13] +
@@ -155,7 +147,8 @@ cub_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
         -1.1092649593311780e+01 * (x * x) * psi[13] +
         1.1250000000000000e+01 * x * (y * y) * psi[10] + 7.8750000000000000e+00 * y * psi[15] +
         3.3541019662496847e+00 * x * psi[4];
-      double dpsidy = -9.6824583655185426e-01 * psi[6] + 1.5000000000000000e+00 * x * psi[3] +
+      double dpsidy =
+        -9.6824583655185426e-01 * psi[6] + 1.5000000000000000e+00 * x * psi[3] +
         2.2185299186623560e+01 * (x * x * x) * y * psi[13] + 7.8750000000000000e+00 * x * psi[15] +
         3.3277948779935343e+01 * (x * x) * psi[14] * (y * y) + 2.2185299186623562e+00 * psi[14] +
         -3.4369317712168801e+00 * x * psi[12] + 9.9215674164922145e+00 * (y * y) * psi[9] +
@@ -178,9 +171,9 @@ cub_root(const double *psi, double psi0, double Z, double xc[2], double dx[2])
   return sol;
 }
 
-static int
-getR(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid, struct gkyl_array *psiRZ,
-  double psi, double Z, int nmaxroots, double *R, double *dR)
+static int getR(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid,
+                struct gkyl_array *psiRZ, double psi, double Z, int nmaxroots, double *R,
+                double *dR)
 {
   int zcell = get_idx(1, Z, &rzgrid, &rzlocal);
 
@@ -215,9 +208,9 @@ getR(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid, struct
   return sidx;
 }
 
-static int
-getRcub(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid,
-  struct gkyl_array *psiRZ, double psi, double Z, int nmaxroots, double *R, double *dR)
+static int getRcub(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid,
+                   struct gkyl_array *psiRZ, double psi, double Z, int nmaxroots, double *R,
+                   double *dR)
 {
   int zcell = get_idx(1, Z, &rzgrid, &rzlocal);
 
@@ -252,16 +245,15 @@ getRcub(const struct gkyl_range rzlocal, const struct gkyl_rect_grid rzgrid,
   return sidx;
 }
 
-void
-time_roots_compare_quad_and_cub_ho(void)
+void time_roots_compare_quad_and_cub_ho(void)
 {
   clock_t start, end;
   double cpu_time_used;
 
   struct gkyl_efit_inp inp = { .filepath = "gyrokinetic/data/eqdsk/wham.geqdsk",
-    .rz_poly_order = 2,
-    .flux_poly_order = 1,
-    .reflect = true };
+                               .rz_poly_order = 2,
+                               .flux_poly_order = 1,
+                               .reflect = true };
   struct gkyl_efit *efit = gkyl_efit_new(&inp);
 
   // project the cubic on cubic basis: this should result in the same
@@ -278,10 +270,10 @@ time_roots_compare_quad_and_cub_ho(void)
   gkyl_cart_modal_tensor(&basis, 2, 3);
   gkyl_proj_on_basis *projCub =
     gkyl_proj_on_basis_inew(&(struct gkyl_proj_on_basis_inp){ .grid = &grid,
-      .basis = &basis,
-      .num_ret_vals = 1,
-      .ctx = efit->evf->ctx,
-      .eval = efit->evf->eval_cubic });
+                                                              .basis = &basis,
+                                                              .num_ret_vals = 1,
+                                                              .ctx = efit->evf->ctx,
+                                                              .eval = efit->evf->eval_cubic });
   struct gkyl_array *psi_cubic_DG = gkyl_array_new(GKYL_DOUBLE, basis.num_basis, local_ext.volume);
   gkyl_proj_on_basis_advance(projCub, 0.0, &local, psi_cubic_DG);
   gkyl_grid_sub_array_write(&grid, &local, 0, psi_cubic_DG, "psi_cubic.gkyl");
@@ -335,4 +327,4 @@ time_roots_compare_quad_and_cub_ho(void)
 }
 
 TEST_LIST = { { "time_roots_compare_quad_and_cub_ho", time_roots_compare_quad_and_cub_ho },
-  { NULL, NULL } };
+              { NULL, NULL } };

@@ -18,9 +18,9 @@ extern "C" {
 // start ID for use in various loops
 #define START_ID (threadIdx.x + blockIdx.x * blockDim.x)
 
-__global__ void
-gkyl_bc_twistshift_set_distf_mats_cu_ker(
-  const struct gkyl_array *fdo, const long *num_numcol_fidx_do, struct gkyl_nmat *fmat)
+__global__ void gkyl_bc_twistshift_set_distf_mats_cu_ker(const struct gkyl_array *fdo,
+                                                         const long *num_numcol_fidx_do,
+                                                         struct gkyl_nmat *fmat)
 {
   // Assign the distribution matrices.
   // This assumes that fdo->ncomp = fmat->nr.
@@ -40,10 +40,11 @@ gkyl_bc_twistshift_set_distf_mats_cu_ker(
   }
 }
 
-__global__ void
-gkyl_bc_twistshift_add_contr_cu_ker(struct gkyl_array *ftar, long *num_numcol_fidx_tar,
-  int num_cells_skin, struct gkyl_nmat *mm_contr, int *num_do_cum,
-  struct gkyl_range permutted_ghost_r, struct gkyl_rect_grid grid)
+__global__ void gkyl_bc_twistshift_add_contr_cu_ker(struct gkyl_array *ftar,
+                                                    long *num_numcol_fidx_tar, int num_cells_skin,
+                                                    struct gkyl_nmat *mm_contr, int *num_do_cum,
+                                                    struct gkyl_range permutted_ghost_r,
+                                                    struct gkyl_rect_grid grid)
 {
   long linidx_tar = START_ID / ftar->ncomp;
   int row_idx = START_ID % ftar->ncomp;
@@ -76,15 +77,14 @@ gkyl_bc_twistshift_add_contr_cu_ker(struct gkyl_array *ftar, long *num_numcol_fi
   }
 }
 
-void
-gkyl_bc_twistshift_advance_cu(
-  struct gkyl_bc_twistshift *up, struct gkyl_array *fdo, struct gkyl_array *ftar)
+void gkyl_bc_twistshift_advance_cu(struct gkyl_bc_twistshift *up, struct gkyl_array *fdo,
+                                   struct gkyl_array *ftar)
 {
   // Set the columns of the donor matrix with the donor distributions.
   int num_blocks_set =
     (up->fmat->num * up->fmat->nr * up->fmat->nc + GKYL_DEFAULT_NUM_THREADS - 1) /
     GKYL_DEFAULT_NUM_THREADS;
-  gkyl_bc_twistshift_set_distf_mats_cu_ker<<<num_blocks_set, GKYL_DEFAULT_NUM_THREADS>>>(
+  gkyl_bc_twistshift_set_distf_mats_cu_ker<<<num_blocks_set, GKYL_DEFAULT_NUM_THREADS> > >(
     fdo->on_dev, up->num_numcol_fidx_do, up->fmat->on_dev);
 
   // Perform the mat-mat multiplications.
@@ -97,7 +97,7 @@ gkyl_bc_twistshift_advance_cu(
   int num_cells_skin = (up->shear_r.upper[0] - up->shear_r.lower[0] + 1) * up->fmat->nc;
   int num_blocks_add =
     (ftar->ncomp * num_cells_skin + GKYL_DEFAULT_NUM_THREADS - 1) / GKYL_DEFAULT_NUM_THREADS;
-  gkyl_bc_twistshift_add_contr_cu_ker<<<num_blocks_add, GKYL_DEFAULT_NUM_THREADS>>>(ftar->on_dev,
-    up->num_numcol_fidx_tar, num_cells_skin, up->mm_contr->on_dev, up->num_do_cum,
+  gkyl_bc_twistshift_add_contr_cu_ker<<<num_blocks_add, GKYL_DEFAULT_NUM_THREADS> > >(
+    ftar->on_dev, up->num_numcol_fidx_tar, num_cells_skin, up->mm_contr->on_dev, up->num_do_cum,
     up->permutted_ghost_r, up->grid);
 }

@@ -15,23 +15,20 @@
 #include <gkyl_array_ops.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void
-mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p_3x(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void
-bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
   fout[0] = 0.0;
@@ -39,8 +36,7 @@ bfield_func_3x(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx
   fout[2] = 1.0;
 }
 
-void
-eval_prim_moms_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
+void eval_prim_moms_1x2v_gk(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double den = 1.0;
@@ -54,8 +50,7 @@ eval_prim_moms_1x2v_gk(double t, const double *xn, double *restrict fout, void *
   fout[3] = tperp / mass; // Perpendicular temperature divided by mass (vtperp^2).
 }
 
-void
-test_1x2v_gk(int poly_order, bool use_gpu)
+void test_1x2v_gk(int poly_order, bool use_gpu)
 {
   double mass = 1.0;
   double lower[] = { 0.1, -6.0, 0.0 }, upper[] = { 1.0, 6.0, 6.0 };
@@ -107,7 +102,8 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p_3x, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -119,10 +115,11 @@ test_1x2v_gk(int poly_order, bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis };
+    .basis = confBasis
+  };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
-  gkyl_create_grid_ranges(
-    &geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext, &geometry_input.geo_local);
+  gkyl_create_grid_ranges(&geometry_input.geo_grid, confGhost, &geometry_input.geo_local_ext,
+                          &geometry_input.geo_local);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   struct gk_geometry *gk_geom_3d;
   gk_geom_3d = gkyl_gk_geometry_mapc2p_new(&geometry_input);
@@ -167,32 +164,32 @@ test_1x2v_gk(int poly_order, bool use_gpu)
 
   // bi-Maxwellian projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
-    .conf_basis = &confBasis,
-    .phase_basis = &basis,
-    .conf_range = &confLocal,
-    .conf_range_ext = &confLocal_ext,
-    .vel_range = &velLocal,
-    .gk_geom = gk_geom,
-    .vel_map = gvm,
-    .mass = mass,
-    .bimaxwellian = true,
-    .use_gpu = use_gpu };
+                                                           .conf_basis = &confBasis,
+                                                           .phase_basis = &basis,
+                                                           .conf_range = &confLocal,
+                                                           .conf_range_ext = &confLocal_ext,
+                                                           .vel_range = &velLocal,
+                                                           .gk_geom = gk_geom,
+                                                           .vel_map = gvm,
+                                                           .mass = mass,
+                                                           .bimaxwellian = true,
+                                                           .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
   if (use_gpu) {
-    gkyl_gk_maxwellian_proj_on_basis_advance(
-      proj_max, &local, &confLocal, prim_moms, false, distf_cu);
+    gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, prim_moms, false,
+                                             distf_cu);
     gkyl_array_copy(distf, distf_cu);
   } else {
     gkyl_gk_maxwellian_proj_on_basis_advance(proj_max, &local, &confLocal, prim_moms, false, distf);
   }
 
   // values to compare  at index (1, 9, 9) [remember, lower-left index is (1,1,1)]
-  double p1_vals[] = { 1.2845117649060e-03, 3.4098924955929e-20, 2.6352311336353e-05,
-    -2.2927175349421e-04, -1.0358294364538e-20, 1.1737441012087e-20, -4.7036086346421e-06,
-    3.2926920104084e-21, -2.0499212907186e-05, -6.6910161820819e-21, 3.6588925200118e-06,
-    -6.7667527142105e-21 };
+  double p1_vals[] = { 1.2845117649060e-03,  3.4098924955929e-20,  2.6352311336353e-05,
+                       -2.2927175349421e-04, -1.0358294364538e-20, 1.1737441012087e-20,
+                       -4.7036086346421e-06, 3.2926920104084e-21,  -2.0499212907186e-05,
+                       -6.6910161820819e-21, 3.6588925200118e-06,  -6.7667527142105e-21 };
 
   const double *fv = gkyl_array_cfetch(distf, gkyl_range_idx(&local_ext, (int[3]){ 1, 9, 9 }));
 
@@ -216,15 +213,13 @@ test_1x2v_gk(int poly_order, bool use_gpu)
   gkyl_gk_maxwellian_proj_on_basis_release(proj_max);
 }
 
-void
-test_proj_bimaxwellian_1x2v_p1_gk_ho()
+void test_proj_bimaxwellian_1x2v_p1_gk_ho()
 {
   test_1x2v_gk(1, false);
 }
 
 #ifdef GKYL_HAVE_CUDA
-void
-test_proj_bimaxwellian_1x2v_p1_gk_dev()
+void test_proj_bimaxwellian_1x2v_p1_gk_dev()
 {
   test_1x2v_gk(1, true);
 }
@@ -233,6 +228,6 @@ test_proj_bimaxwellian_1x2v_p1_gk_dev()
 TEST_LIST = { { "test_proj_bimaxwellian_1x2v_p1_gk_ho", test_proj_bimaxwellian_1x2v_p1_gk_ho },
 
 #ifdef GKYL_HAVE_CUDA
-  { "test_proj_bimaxwellian_1x2v_p1_gk_dev", test_proj_bimaxwellian_1x2v_p1_gk_dev },
+              { "test_proj_bimaxwellian_1x2v_p1_gk_dev", test_proj_bimaxwellian_1x2v_p1_gk_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

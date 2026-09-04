@@ -21,8 +21,7 @@ struct gkyl_moment_em_coupling {
   double
     t_ramp_E; // Ramp-up time for the linear ramp function for initializing external electric fields.
   bool ramp_app_curr; // Use a linear ramp function for initializing applied currents.
-  double
-    t_ramp_curr; // Ramp-up time for the linear ramp function for initializing applied currents.
+  double t_ramp_curr; // Ramp-up time for the linear ramp function for initializing applied currents.
 
   bool has_collision; // Run with collisions switched on.
   bool use_rel; // Assume special relativistic fluid species.
@@ -37,8 +36,7 @@ struct gkyl_moment_em_coupling {
   bool has_nT_sources; // Run with number density and temperature sources.
 
   bool has_frictional_sources; // Run with frictional sources.
-  bool
-    use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
+  bool use_explicit_friction; // Use an explicit (SSP-RK3) solver for integrating frictional sources.
   double friction_Z; // Ionization number for frictional sources.
   double friction_T_elc; // Electron temperature for frictional sources.
   double friction_Lambda_ee; // Electron-electron collisional terms for frictional sources.
@@ -105,6 +103,5 @@ struct gkyl_moment_em_coupling {
 
   bool
     has_gr_mhd_sources; // Run with general relativistic source terms (general relativistic magnetohydrodynamics equations).
-  double
-    gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
+  double gr_mhd_gas_gamma; // Adiabatic index for general relativistic magnetohydrodynamics equations.
 };

@@ -7,8 +7,9 @@
 #include <assert.h>
 
 typedef double (*dg_cx_react_ratef_t)(const double a, const double b, double vt_sq_ion_min,
-  double vt_sq_neut_min, const double *maxwellian_moms_ion, const double *maxwellian_moms_neut,
-  const double *u_ion, double *GKYL_RESTRICT v_sigma_cx);
+                                      double vt_sq_neut_min, const double *maxwellian_moms_ion,
+                                      const double *maxwellian_moms_neut, const double *u_ion,
+                                      double *GKYL_RESTRICT v_sigma_cx);
 
 // for use in kernel tables
 typedef struct {
@@ -43,8 +44,7 @@ struct gkyl_dg_cx {
   struct gkyl_dg_cx *on_dev; // pointer to itself or device data
 };
 
-GKYL_CU_D static dg_cx_react_ratef_t
-choose_kern(struct gkyl_basis cbasis)
+GKYL_CU_D static dg_cx_react_ratef_t choose_kern(struct gkyl_basis cbasis)
 {
   int cdim = cbasis.ndim;
   int poly_order = cbasis.poly_order;
@@ -61,8 +61,7 @@ choose_kern(struct gkyl_basis cbasis)
   return 0;
 }
 
-static void
-fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
+static void fit_param(enum gkyl_ion_type type_ion, double *a, double *b)
 {
   // These values are from E. Meier's PhD Thesis
   if (type_ion == GKYL_ION_H) {
@@ -102,6 +101,6 @@ struct gkyl_dg_cx *gkyl_dg_cx_cu_dev_new(struct gkyl_dg_cx_inp *inp);
  * @param cflrate CFL scalar rate (frequency) array (units of 1/[T]) 
  */
 void gkyl_dg_cx_coll_cu(const struct gkyl_dg_cx *up, struct gkyl_array *maxwellian_moms_ion,
-  struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i, struct gkyl_array *coef_cx,
-  struct gkyl_array *cflrate);
+                        struct gkyl_array *maxwellian_moms_neut, struct gkyl_array *upar_b_i,
+                        struct gkyl_array *coef_cx, struct gkyl_array *cflrate);
 #endif

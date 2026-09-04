@@ -12,8 +12,7 @@ int cu_wave_geom_test(const struct gkyl_wave_geom *wg);
 }
 
 // FIXME: duplicate of gkyl_compare_double in util.c
-GKYL_CU_D static int
-compare(double a, double b, double eps)
+GKYL_CU_D static int compare(double a, double b, double eps)
 {
   double absa = fabs(a), absb = fabs(b), diff = fabs(a - b);
   if (a == b)
@@ -27,8 +26,7 @@ compare(double a, double b, double eps)
   return diff / fmin(absa + absb, DBL_MAX) < eps;
 }
 
-__global__ void
-ker_cu_wave_geom_test(const struct gkyl_wave_geom *wg, int *nfail)
+__global__ void ker_cu_wave_geom_test(const struct gkyl_wave_geom *wg, int *nfail)
 {
   *nfail = 0;
 
@@ -64,12 +62,11 @@ ker_cu_wave_geom_test(const struct gkyl_wave_geom *wg, int *nfail)
   }
 }
 
-int
-cu_wave_geom_test(const struct gkyl_wave_geom *wg_dev)
+int cu_wave_geom_test(const struct gkyl_wave_geom *wg_dev)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
 
-  ker_cu_wave_geom_test<<<1, 1>>>(wg_dev, nfail_dev);
+  ker_cu_wave_geom_test<<<1, 1> > >(wg_dev, nfail_dev);
   checkCuda(cudaGetLastError());
 
   int nfail;

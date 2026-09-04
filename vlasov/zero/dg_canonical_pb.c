@@ -9,8 +9,7 @@
 #include <gkyl_util.h>
 #include "gkyl_dg_eqn.h"
 
-void
-gkyl_canonical_pb_free(const struct gkyl_ref_count *ref)
+void gkyl_canonical_pb_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_dg_eqn *base = container_of(ref, struct gkyl_dg_eqn, ref_count);
 
@@ -24,9 +23,8 @@ gkyl_canonical_pb_free(const struct gkyl_ref_count *ref)
   gkyl_free(canonical_pb);
 }
 
-void
-gkyl_canonical_pb_set_auxfields(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_canonical_pb_auxfields auxin)
+void gkyl_canonical_pb_set_auxfields(const struct gkyl_dg_eqn *eqn,
+                                     struct gkyl_dg_canonical_pb_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_dg_eqn_is_cu_dev(eqn)) {
@@ -42,9 +40,9 @@ gkyl_canonical_pb_set_auxfields(
   canonical_pb->auxfields.const_sgn_alpha = auxin.const_sgn_alpha;
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_canonical_pb_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *phase_range, bool use_gpu)
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_new(const struct gkyl_basis *cbasis,
+                                             const struct gkyl_basis *pbasis,
+                                             const struct gkyl_range *phase_range, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -191,9 +189,9 @@ gkyl_dg_canonical_pb_new(const struct gkyl_basis *cbasis, const struct gkyl_basi
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_dg_eqn *
-gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *phase_range)
+struct gkyl_dg_eqn *gkyl_dg_canonical_pb_cu_dev_new(const struct gkyl_basis *cbasis,
+                                                    const struct gkyl_basis *pbasis,
+                                                    const struct gkyl_range *phase_range)
 {
   assert(false);
   return 0;

@@ -4,8 +4,7 @@
 #include <gkyl_moment_prim_sr_euler.h>
 #include <gkyl_wv_sr_euler.h>
 
-void
-calcq(double gas_gamma, const double pv[5], double q[5])
+void calcq(double gas_gamma, const double pv[5], double q[5])
 {
   double rho = pv[0], u = pv[1], v = pv[2], w = pv[3], pr = pv[4];
   double gamma = 1 / sqrt(1 - u * u - v * v - w * w);
@@ -17,8 +16,7 @@ calcq(double gas_gamma, const double pv[5], double q[5])
   q[4] = gamma * gamma * rhoh * w;
 }
 
-void
-test_sr_euler_prim1_ho()
+void test_sr_euler_prim1_ho()
 {
   double gas_gamma = 1.333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -44,10 +42,10 @@ test_sr_euler_prim1_ho()
   double fluxes[3][5] = { { gamma * rho * u, gamma * gamma * rhoh * u,
                             gamma * gamma * rhoh * u * u + pr, gamma * gamma * rhoh * u * v,
                             gamma * gamma * rhoh * u * w },
-    { gamma * rho * v, gamma * gamma * rhoh * v, gamma * gamma * rhoh * v * u,
-      gamma * gamma * rhoh * v * v + pr, gamma * gamma * rhoh * v * w },
-    { gamma * rho * w, gamma * gamma * rhoh * w, gamma * gamma * rhoh * w * u,
-      gamma * gamma * rhoh * w * v, gamma * gamma * rhoh * w * w + pr } };
+                          { gamma * rho * v, gamma * gamma * rhoh * v, gamma * gamma * rhoh * v * u,
+                            gamma * gamma * rhoh * v * v + pr, gamma * gamma * rhoh * v * w },
+                          { gamma * rho * w, gamma * gamma * rhoh * w, gamma * gamma * rhoh * w * u,
+                            gamma * gamma * rhoh * w * v, gamma * gamma * rhoh * w * w + pr } };
 
   double norm[3][3] = { { 1.0, 0.0, 0.0 }, { 0.0, 1.0, 0.0 }, { 0.0, 0.0, 1.0 } };
 
@@ -85,8 +83,7 @@ test_sr_euler_prim1_ho()
   gkyl_wv_eqn_release(sr_euler);
 }
 
-void
-test_sr_euler_waves_ho()
+void test_sr_euler_waves_ho()
 {
   double gas_gamma = 1.333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -115,17 +112,17 @@ test_sr_euler_waves_ho()
     for (int i = 0; i < 5; ++i)
       delta[i] = qr_local[i] - ql_local[i];
 
-    gkyl_wv_eqn_waves(
-      sr_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+    gkyl_wv_eqn_waves(sr_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
+                      waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 3; ++mw)
-      gkyl_wv_eqn_rotate_to_global(
-        sr_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]);
+      gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5],
+                                   &waves[mw * 5]);
 
     double apdq[5], amdq[5];
-    gkyl_wv_eqn_qfluct(
-      sr_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(sr_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq,
+                       apdq);
 
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[5], fr_local[5];
@@ -143,8 +140,7 @@ test_sr_euler_waves_ho()
   gkyl_wv_eqn_release(sr_euler);
 }
 
-void
-test_sr_euler_waves2_ho()
+void test_sr_euler_waves2_ho()
 {
   double gas_gamma = 1.3333;
   struct gkyl_wv_eqn *sr_euler = gkyl_wv_sr_euler_new(gas_gamma);
@@ -173,17 +169,17 @@ test_sr_euler_waves2_ho()
     for (int i = 0; i < 5; ++i)
       delta[i] = qr_local[i] - ql_local[i];
 
-    gkyl_wv_eqn_waves(
-      sr_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0, waves_local, speeds);
+    gkyl_wv_eqn_waves(sr_euler, GKYL_WV_HIGH_ORDER_FLUX, delta, ql_local, qr_local, 1.0, 1.0,
+                      waves_local, speeds);
 
     // rotate waves back to global frame
     for (int mw = 0; mw < 3; ++mw)
-      gkyl_wv_eqn_rotate_to_global(
-        sr_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5], &waves[mw * 5]);
+      gkyl_wv_eqn_rotate_to_global(sr_euler, tau1[d], tau2[d], norm[d], &waves_local[mw * 5],
+                                   &waves[mw * 5]);
 
     double apdq[5], amdq[5];
-    gkyl_wv_eqn_qfluct(
-      sr_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq, apdq);
+    gkyl_wv_eqn_qfluct(sr_euler, GKYL_WV_HIGH_ORDER_FLUX, ql, qr, 1.0, 1.0, waves, speeds, amdq,
+                       apdq);
 
     // check if sum of left/right going fluctuations sum to jump in flux
     double fl_local[5], fr_local[5];
@@ -202,5 +198,6 @@ test_sr_euler_waves2_ho()
 }
 
 TEST_LIST = { { "sr_euler_prim1_ho", test_sr_euler_prim1_ho },
-  { "test_sr_euler_waves_ho", test_sr_euler_waves_ho },
-  { "test_sr_euler_waves2_ho", test_sr_euler_waves2_ho }, { NULL, NULL } };
+              { "test_sr_euler_waves_ho", test_sr_euler_waves_ho },
+              { "test_sr_euler_waves2_ho", test_sr_euler_waves2_ho },
+              { NULL, NULL } };

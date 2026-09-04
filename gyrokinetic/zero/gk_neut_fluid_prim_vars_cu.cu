@@ -10,10 +10,9 @@ extern "C" {
 #include <gkyl_util.h>
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  const struct gkyl_array *moms)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
+  struct gkyl_range conf_range, const struct gkyl_array *moms)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -36,9 +35,9 @@ gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel(gkyl_gk_neut_fluid_prim_vars *
   }
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, struct gkyl_array *out, int out_coff)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  struct gkyl_array *out, int out_coff)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -69,13 +68,13 @@ gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars 
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                                    const struct gkyl_array *moms,
+                                                    struct gkyl_array *out, int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
@@ -83,14 +82,13 @@ gkyl_gk_neut_fluid_prim_vars_udrift_advance_cu(struct gkyl_gk_neut_fluid_prim_va
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_udrift_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, out->on_dev, out_coff);
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *moms,
-  struct gkyl_array *out, int out_coff)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -126,13 +124,13 @@ gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel(gkyl_gk_neut_fluid_prim_var
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                                      const struct gkyl_array *moms,
+                                                      struct gkyl_array *out, int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
@@ -140,14 +138,13 @@ gkyl_gk_neut_fluid_prim_vars_pressure_advance_cu(struct gkyl_gk_neut_fluid_prim_
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_pressure_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff);
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  const struct gkyl_array *moms)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
+  struct gkyl_range conf_range, const struct gkyl_array *moms)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -170,10 +167,9 @@ gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up
   }
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *moms,
-  struct gkyl_array *out, int out_coff)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -203,13 +199,13 @@ gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *u
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                                  const struct gkyl_array *moms,
+                                                  struct gkyl_array *out, int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_temp_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
@@ -217,14 +213,13 @@ gkyl_gk_neut_fluid_prim_vars_temp_advance_cu(struct gkyl_gk_neut_fluid_prim_vars
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_temp_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff);
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *moms,
-  struct gkyl_array *out, int out_coff)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -260,13 +255,13 @@ gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kernel(gkyl_gk_neut_fluid_p
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                                             const struct gkyl_array *moms,
+                                                             struct gkyl_array *out, int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
-  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_udrift_set_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
@@ -275,14 +270,13 @@ gkyl_gk_neut_fluid_prim_vars_udrift_pressure_advance_cu(struct gkyl_gk_neut_flui
   }
 
   gkyl_gk_neut_fluid_prim_vars_udrift_pressure_copy_cu_kernel<<<conf_range.nblocks,
-    conf_range.nthreads>>>(
+                                                                conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff);
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  const struct gkyl_array *moms)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
+  struct gkyl_range conf_range, const struct gkyl_array *moms)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -305,10 +299,9 @@ gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel(gkyl_gk_neut_fluid_prim_v
   }
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *moms,
-  struct gkyl_array *out, int out_coff)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -340,14 +333,15 @@ gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel(gkyl_gk_neut_fluid_prim_
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                                         const struct gkyl_array *moms,
+                                                         struct gkyl_array *out, int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
   gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel<<<conf_range.nblocks,
-    conf_range.nthreads>>>(up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
+                                                           conf_range.nthreads> > >(
+    up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
     bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
@@ -355,14 +349,13 @@ gkyl_gk_neut_fluid_prim_vars_udrift_temp_advance_cu(struct gkyl_gk_neut_fluid_pr
   }
 
   gkyl_gk_neut_fluid_prim_vars_udrift_temp_copy_cu_kernel<<<conf_range.nblocks,
-    conf_range.nthreads>>>(
+                                                            conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff);
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *moms,
-  struct gkyl_array *out, int out_coff)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -402,28 +395,28 @@ gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_lte_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                                 const struct gkyl_array *moms,
+                                                 struct gkyl_array *out, int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
   gkyl_gk_neut_fluid_prim_vars_udrift_temp_set_cu_kernel<<<conf_range.nblocks,
-    conf_range.nthreads>>>(up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
+                                                           conf_range.nthreads> > >(
+    up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
     bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
     assert(status);
   }
 
-  gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads>>>(
+  gkyl_gk_neut_fluid_prim_vars_lte_copy_cu_kernel<<<conf_range.nblocks, conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff);
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *As, struct gkyl_nmat *xs, struct gkyl_range conf_range,
-  const struct gkyl_array *moms)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *As, struct gkyl_nmat *xs,
+  struct gkyl_range conf_range, const struct gkyl_array *moms)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -446,10 +439,9 @@ gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel(gkyl_gk_neut_fluid_prim_v
   }
 }
 
-__global__ static void
-gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel(gkyl_gk_neut_fluid_prim_vars *up,
-  struct gkyl_nmat *xs, struct gkyl_range conf_range, const struct gkyl_array *moms,
-  struct gkyl_array *out, int out_coff)
+__global__ static void gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel(
+  gkyl_gk_neut_fluid_prim_vars *up, struct gkyl_nmat *xs, struct gkyl_range conf_range,
+  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
 {
   int idx[GKYL_MAX_DIM];
 
@@ -480,14 +472,15 @@ gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel(gkyl_gk_neut_fluid_prim_
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
-  const struct gkyl_array *moms, struct gkyl_array *out, int out_coff)
+void gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                                         const struct gkyl_array *moms,
+                                                         struct gkyl_array *out, int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
   gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel<<<conf_range.nblocks,
-    conf_range.nthreads>>>(up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
+                                                           conf_range.nthreads> > >(
+    up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
     bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
@@ -495,7 +488,7 @@ gkyl_gk_neut_fluid_prim_vars_flow_energy_advance_cu(struct gkyl_gk_neut_fluid_pr
   }
 
   gkyl_gk_neut_fluid_prim_vars_flow_energy_copy_cu_kernel<<<conf_range.nblocks,
-    conf_range.nthreads>>>(
+                                                            conf_range.nthreads> > >(
     up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff);
 }
 
@@ -542,15 +535,15 @@ gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_copy_cu_kernel(
   }
 }
 
-void
-gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
+void gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
   struct gkyl_gk_neut_fluid_prim_vars *up, const struct gkyl_array *moms, struct gkyl_array *out,
   int out_coff)
 {
   struct gkyl_range conf_range = up->mem_range;
 
   gkyl_gk_neut_fluid_prim_vars_flow_energy_set_cu_kernel<<<conf_range.nblocks,
-    conf_range.nthreads>>>(up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
+                                                           conf_range.nthreads> > >(
+    up->on_dev, up->As->on_dev, up->xs->on_dev, conf_range, moms->on_dev);
 
   if (up->poly_order > 1) {
     bool status = gkyl_nmat_linsolve_lu_pa(up->mem, up->As, up->xs);
@@ -558,15 +551,15 @@ gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_advance_cu(
   }
 
   gkyl_gk_neut_fluid_prim_vars_mass_momentum_flow_thermal_energy_copy_cu_kernel<<<
-    conf_range.nblocks, conf_range.nthreads>>>(
-    up->on_dev, up->xs->on_dev, conf_range, moms->on_dev, out->on_dev, out_coff);
+    conf_range.nblocks, conf_range.nthreads> > >(up->on_dev, up->xs->on_dev, conf_range,
+                                                 moms->on_dev, out->on_dev, out_coff);
 }
 
 // CUDA kernel to set device pointers to fluid vars kernel functions.
 // Doing function pointer stuff in here avoids troublesome cudaMemcpyFromSymbol.
 __global__ static void
-gk_neut_fluid_prim_vars_set_cu_dev_ptrs(
-  struct gkyl_gk_neut_fluid_prim_vars *up, enum gkyl_basis_type b_type, int cdim, int poly_order)
+gk_neut_fluid_prim_vars_set_cu_dev_ptrs(struct gkyl_gk_neut_fluid_prim_vars *up,
+                                        enum gkyl_basis_type b_type, int cdim, int poly_order)
 {
   up->udrift_set_prob_ker = choose_udrift_set_prob_ker(b_type, cdim, poly_order);
   up->udrift_get_sol_ker = choose_udrift_get_sol_ker(b_type, cdim, poly_order);
@@ -579,10 +572,10 @@ gk_neut_fluid_prim_vars_set_cu_dev_ptrs(
   up->flowE_get_sol_ker = choose_flowE_get_sol_ker(b_type, cdim, poly_order);
 }
 
-gkyl_gk_neut_fluid_prim_vars *
-gkyl_gk_neut_fluid_prim_vars_cu_dev_new(double gas_gamma, double mass,
-  const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid, const struct gkyl_range *mem_range,
-  enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type, bool is_integrated)
+gkyl_gk_neut_fluid_prim_vars *gkyl_gk_neut_fluid_prim_vars_cu_dev_new(
+  double gas_gamma, double mass, const struct gkyl_basis *cbasis, struct gkyl_rect_grid *grid,
+  const struct gkyl_range *mem_range, enum gkyl_gk_neut_fluid_prim_vars_type prim_vars_type,
+  bool is_integrated)
 {
   struct gkyl_gk_neut_fluid_prim_vars *up =
     (struct gkyl_gk_neut_fluid_prim_vars *)gkyl_malloc(sizeof(gkyl_gk_neut_fluid_prim_vars));
@@ -612,7 +605,7 @@ gkyl_gk_neut_fluid_prim_vars_cu_dev_new(double gas_gamma, double mass,
   if (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_UDRIFT) {
     nprob = up->udrift_ncomp;
   } else if ((prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE) ||
-    (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY)) {
+             (prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_THERMAL_ENERGY)) {
     nprob = up->udrift_ncomp;
     up->thermalE_fac =
       prim_vars_type == GKYL_GK_NEUT_FLUID_PRIM_VARS_PRESSURE ? 1.0 : 1.0 / (up->gas_gamma - 1.0);
@@ -645,7 +638,7 @@ gkyl_gk_neut_fluid_prim_vars_cu_dev_new(double gas_gamma, double mass,
     (struct gkyl_gk_neut_fluid_prim_vars *)gkyl_cu_malloc(sizeof(gkyl_gk_neut_fluid_prim_vars));
   gkyl_cu_memcpy(up_cu, up, sizeof(gkyl_gk_neut_fluid_prim_vars), GKYL_CU_MEMCPY_H2D);
 
-  gk_neut_fluid_prim_vars_set_cu_dev_ptrs<<<1, 1>>>(up_cu, b_type, cdim, poly_order);
+  gk_neut_fluid_prim_vars_set_cu_dev_ptrs<<<1, 1> > >(up_cu, b_type, cdim, poly_order);
 
   // set parent on_dev pointer
   up->on_dev = up_cu;

@@ -48,8 +48,7 @@ struct annular_wg_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct annular_wg_ctx
-create_ctx(void)
+struct annular_wg_ctx create_ctx(void)
 {
   // Mathematical constants (dimensionless).
   double pi = M_PI;
@@ -81,30 +80,29 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct annular_wg_ctx ctx = { .pi = pi,
-    .epsilon0 = epsilon0,
-    .mu0 = mu0,
-    .w_mode = w_mode,
-    .bessel_order = bessel_order,
-    .a_coeff = a_coeff,
-    .b_coeff = b_coeff,
-    .t_period = t_period,
-    .Nr = Nr,
-    .Ntheta = Ntheta,
-    .Lr = Lr,
-    .Ltheta = Ltheta,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .field_energy_writes = field_energy_writes,
-    .integrated_mom_writes = integrated_mom_writes,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                                .epsilon0 = epsilon0,
+                                .mu0 = mu0,
+                                .w_mode = w_mode,
+                                .bessel_order = bessel_order,
+                                .a_coeff = a_coeff,
+                                .b_coeff = b_coeff,
+                                .t_period = t_period,
+                                .Nr = Nr,
+                                .Ntheta = Ntheta,
+                                .Lr = Lr,
+                                .Ltheta = Ltheta,
+                                .cfl_frac = cfl_frac,
+                                .t_end = t_end,
+                                .num_frames = num_frames,
+                                .field_energy_writes = field_energy_writes,
+                                .integrated_mom_writes = integrated_mom_writes,
+                                .dt_failure_tol = dt_failure_tol,
+                                .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-evalFieldInit(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
+void evalFieldInit(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double r = zc[0], theta = zc[1];
   struct annular_wg_ctx *app = ctx;
@@ -136,8 +134,8 @@ evalFieldInit(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fo
   fout[7] = 0.0;
 }
 
-static inline void
-mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
+static inline void mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp,
+                          void *ctx)
 {
   double r = zc[0], theta = zc[1];
 
@@ -146,8 +144,7 @@ mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void 
   xp[1] = r * sin(theta);
 }
 
-void
-write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
+void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -159,8 +156,7 @@ write_data(struct gkyl_tm_trigger *iot, gkyl_moment_app *app, double t_curr, boo
   }
 }
 
-void
-write_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr)
+void write_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(fet, t_curr)) {
     gkyl_moment_app_calc_field_energy(app, t_curr);
@@ -168,8 +164,7 @@ write_field_energy(struct gkyl_tm_trigger *fet, gkyl_moment_app *app, double t_c
   }
 }
 
-void
-write_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr)
+void write_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t_curr)
 {
   if (gkyl_tm_trigger_check_and_bump(imt, t_curr)) {
     gkyl_moment_app_calc_integrated_mom(app, t_curr);
@@ -177,8 +172,7 @@ write_integrated_mom(struct gkyl_tm_trigger *imt, gkyl_moment_app *app, double t
   }
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -200,13 +194,13 @@ main(int argc, char **argv)
 
   // Field.
   struct gkyl_moment_field field = { .epsilon0 = ctx.epsilon0,
-    .mu0 = ctx.mu0,
+                                     .mu0 = ctx.mu0,
 
-    .limiter = GKYL_NO_LIMITER,
-    .init = evalFieldInit,
-    .ctx = &ctx,
+                                     .limiter = GKYL_NO_LIMITER,
+                                     .init = evalFieldInit,
+                                     .ctx = &ctx,
 
-    .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
+                                     .bcx = { GKYL_FIELD_PEC_WALL, GKYL_FIELD_PEC_WALL } };
 
   int nrank = 1; // Number of processes in simulation.
 #ifdef GKYL_HAVE_MPI
@@ -258,8 +252,8 @@ main(int argc, char **argv)
 
   if (ncuts != comm_size) {
     if (my_rank == 0) {
-      fprintf(
-        stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size, ncuts);
+      fprintf(stderr, "*** Number of ranks, %d, does not match total cuts, %d!\n", comm_size,
+              ncuts);
     }
     goto mpifinalize;
   }
@@ -282,8 +276,8 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1] },
-      .comm = comm }
+                     .cuts = { app_args.cuts[0], app_args.cuts[1] },
+                     .comm = comm }
   };
 
   // Create app object.
@@ -302,7 +296,7 @@ main(int argc, char **argv)
 
     if (status.io_status != GKYL_ARRAY_RIO_SUCCESS) {
       gkyl_moment_app_cout(app, stderr, "*** Failed to read restart file! (%s)\n",
-        gkyl_array_rio_status_msg(status.io_status));
+                           gkyl_array_rio_status_msg(status.io_status));
       goto freeresources;
     }
 
@@ -317,25 +311,25 @@ main(int argc, char **argv)
 
   // Create trigger for IO.
   int num_frames = ctx.num_frames;
-  struct gkyl_tm_trigger io_trig = {
-    .dt = t_end / num_frames, .tcurr = frame_curr * (t_end / num_frames), .curr = frame_curr
-  };
+  struct gkyl_tm_trigger io_trig = { .dt = t_end / num_frames,
+                                     .tcurr = frame_curr * (t_end / num_frames),
+                                     .curr = frame_curr };
 
   write_data(&io_trig, app, t_curr, false);
 
   // Create trigger for field energy.
   int field_energy_writes = ctx.field_energy_writes;
-  struct gkyl_tm_trigger fe_trig = {
-    .dt = t_end / field_energy_writes, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger fe_trig = { .dt = t_end / field_energy_writes,
+                                     .tcurr = t_curr,
+                                     .curr = frame_curr };
 
   write_field_energy(&fe_trig, app, t_curr);
 
   // Create trigger for integrated moments.
   int integrated_mom_writes = ctx.integrated_mom_writes;
-  struct gkyl_tm_trigger im_trig = {
-    .dt = t_end / integrated_mom_writes, .tcurr = t_curr, .curr = frame_curr
-  };
+  struct gkyl_tm_trigger im_trig = { .dt = t_end / integrated_mom_writes,
+                                     .tcurr = t_curr,
+                                     .curr = frame_curr };
 
   write_integrated_mom(&im_trig, app, t_curr);
 
@@ -374,8 +368,8 @@ main(int argc, char **argv)
       gkyl_moment_app_cout(app, stdout, " num_failures = %d\n", num_failures);
       if (num_failures >= num_failures_max) {
         gkyl_moment_app_cout(app, stdout, "ERROR: Time-step was below %g*dt_init ", dt_failure_tol);
-        gkyl_moment_app_cout(
-          app, stdout, "%d consecutive times. Aborting simulation ....\n", num_failures_max);
+        gkyl_moment_app_cout(app, stdout, "%d consecutive times. Aborting simulation ....\n",
+                             num_failures_max);
         break;
       }
     } else {

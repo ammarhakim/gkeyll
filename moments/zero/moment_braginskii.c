@@ -23,8 +23,7 @@ struct gkyl_moment_braginskii {
     coll_fac; // constant multiplicative factor for collision time to increase or decrease collisionality
 };
 
-static void
-create_offsets_vertices(const struct gkyl_range *range, long offsets[])
+static void create_offsets_vertices(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
   struct gkyl_range box3;
@@ -39,8 +38,7 @@ create_offsets_vertices(const struct gkyl_range *range, long offsets[])
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
 }
 
-static void
-create_offsets_centers(const struct gkyl_range *range, long offsets[])
+static void create_offsets_centers(const struct gkyl_range *range, long offsets[])
 {
   // box spanning stencil
   struct gkyl_range box3;
@@ -56,12 +54,12 @@ create_offsets_centers(const struct gkyl_range *range, long offsets[])
 }
 
 // Fetch input quantities and compute derived quantities for magnetized Braginskii
-static void
-mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
-  const double *fluid_d[][GKYL_MAX_SPECIES], const double *em_tot_d[], double u[][2][3],
-  double b[][3], double T[][2], double tau[][2], double eta_par[][2], double eta_perp[][2],
-  double eta_cross[][2], double kappa_par[][2], double kappa_perp[][2], double kappa_cross[][2],
-  double current_par[][3], double current_cross[][3])
+static void mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
+                          const double *fluid_d[][GKYL_MAX_SPECIES], const double *em_tot_d[],
+                          double u[][2][3], double b[][3], double T[][2], double tau[][2],
+                          double eta_par[][2], double eta_perp[][2], double eta_cross[][2],
+                          double kappa_par[][2], double kappa_perp[][2], double kappa_cross[][2],
+                          double current_par[][3], double current_cross[][3])
 {
   int nfluids = bes->nfluids;
 
@@ -85,11 +83,12 @@ mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
 
       // Pressure information is different for each equation type
       if (bes->param[n].type_eqn == GKYL_EQN_EULER)
-        p[n] = gkyl_euler_pressure(bes->param[n].p_fac,
+        p[n] = gkyl_euler_pressure(
+          bes->param[n].p_fac,
           fluid_d[j][n]); // Euler needs to divide out gas_gamma factor to obtain pressure
       else if (bes->param[n].type_eqn == GKYL_EQN_ISO_EULER)
         p[n] = rho[n] * bes->param[n].p_fac *
-          bes->param[n].p_fac; // isothermal Euler input is vth, pressure = rho*vth^2
+               bes->param[n].p_fac; // isothermal Euler input is vth, pressure = rho*vth^2
 
       T[j][n] = m[n] * p[n] / rho[n];
 
@@ -100,10 +99,10 @@ mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
     calc_bhat(em_tot_d[j], b[j]);
 
     // Derived collision times
-    tau[j][ELC] = calc_tau(
-      1.0, bes->coll_fac, bes->epsilon0, q[ELC], q[ION], m[ELC], m[ION], rho[ION], T[j][ELC]);
+    tau[j][ELC] = calc_tau(1.0, bes->coll_fac, bes->epsilon0, q[ELC], q[ION], m[ELC], m[ION],
+                           rho[ION], T[j][ELC]);
     tau[j][ION] = calc_tau(1.0, sqrt(2.0) * bes->coll_fac, bes->epsilon0, q[ION], q[ION], m[ION],
-      m[ION], rho[ION], T[j][ION]);
+                           m[ION], rho[ION], T[j][ION]);
 
     // Brag-type enum is used to turn coefficients on/off in a branchless fashion
     bool electron_viscosity = (bes->param[ELC].type_brag & GKYL_BRAG_VISC);
@@ -129,27 +128,29 @@ mag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
     kappa_cross[j][ION] = ion_heatFlux * 2.5 * p[ION] / (m[ION] * omega_c[ION]);
 
     double thermal_par = electron_heatFlux * -0.71 *
-      p[ELC]; // Parallel thermal force coefficient (same for each species)
-    double thermal_perp = electron_heatFlux * 1.5 * p[ELC] /
+                         p[ELC]; // Parallel thermal force coefficient (same for each species)
+    double thermal_perp =
+      electron_heatFlux * 1.5 * p[ELC] /
       (omega_c[ELC] *
-        tau[j][ELC]); // Perpendicular thermal force coefficient (same for each species)
+       tau[j][ELC]); // Perpendicular thermal force coefficient (same for each species)
     double b_dot_j = b[j][0] * (u[j][ION][0] - u[j][ELC][0]) +
-      b[j][1] * (u[j][ION][1] - u[j][ELC][1]) + b[j][2] * (u[j][ION][2] - u[j][ELC][2]);
+                     b[j][1] * (u[j][ION][1] - u[j][ELC][1]) +
+                     b[j][2] * (u[j][ION][2] - u[j][ELC][2]);
     current_par[j][0] = thermal_par * b[j][0] * b_dot_j;
     current_par[j][1] = thermal_par * b[j][1] * b_dot_j;
     current_par[j][2] = thermal_par * b[j][2] * b_dot_j;
-    current_cross[j][0] = thermal_perp *
-      (b[j][1] * (u[j][ION][2] - u[j][ELC][2]) - b[j][2] * (u[j][ION][1] - u[j][ELC][1]));
-    current_cross[j][1] = thermal_perp *
-      (b[j][2] * (u[j][ION][0] - u[j][ELC][0]) - b[j][0] * (u[j][ION][2] - u[j][ELC][2]));
-    current_cross[j][2] = thermal_perp *
-      (b[j][0] * (u[j][ION][1] - u[j][ELC][1]) - b[j][1] * (u[j][ION][0] - u[j][ELC][0]));
+    current_cross[j][0] = thermal_perp * (b[j][1] * (u[j][ION][2] - u[j][ELC][2]) -
+                                          b[j][2] * (u[j][ION][1] - u[j][ELC][1]));
+    current_cross[j][1] = thermal_perp * (b[j][2] * (u[j][ION][0] - u[j][ELC][0]) -
+                                          b[j][0] * (u[j][ION][2] - u[j][ELC][2]));
+    current_cross[j][2] = thermal_perp * (b[j][0] * (u[j][ION][1] - u[j][ELC][1]) -
+                                          b[j][1] * (u[j][ION][0] - u[j][ELC][0]));
   }
 }
 
-static void
-mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GKYL_MAX_SPECIES],
-  const double *em_tot_d[], double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES])
+static void mag_brag_calc_vars(const gkyl_moment_braginskii *bes,
+                               const double *fluid_d[][GKYL_MAX_SPECIES], const double *em_tot_d[],
+                               double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES])
 {
   int nfluids = bes->nfluids;
   const int ndim = bes->ndim;
@@ -210,7 +211,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
 
     // Compute derived quantities
     mag_var_setup(bes, L_1D, U_1D, fluid_d, em_tot_d, u, b, T, tau, eta_par, eta_perp, eta_cross,
-      kappa_par, kappa_perp, kappa_cross, current_par, current_cross);
+                  kappa_par, kappa_perp, kappa_cross, current_par, current_cross);
 
     // Magnetic field at cell edges (using arithmetic average)
     for (int k = 0; k < 3; ++k)
@@ -275,7 +276,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
 
     // Compute derived quantities
     mag_var_setup(bes, LL_2D, UU_2D, fluid_d, em_tot_d, u, b, T, tau, eta_par, eta_perp, eta_cross,
-      kappa_par, kappa_perp, kappa_cross, current_par, current_cross);
+                  kappa_par, kappa_perp, kappa_cross, current_par, current_cross);
 
     // Magnetic field at cell vertices (using arithmetic average)
     for (int k = 0; k < 3; ++k)
@@ -283,12 +284,12 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
 
     for (int n = 0; n < nfluids; ++n) {
       // Parallel viscosity, perpendicular viscosity, and gyro-viscosity coefficients at cell edges (using harmonic average)
-      eta_par_avg[n] = calc_harmonic_avg_2D(
-        eta_par[LL_2D][n], eta_par[LU_2D][n], eta_par[UL_2D][n], eta_par[UU_2D][n]);
-      eta_perp_avg[n] = calc_harmonic_avg_2D(
-        eta_perp[LL_2D][n], eta_perp[LU_2D][n], eta_perp[UL_2D][n], eta_perp[UU_2D][n]);
-      eta_cross_avg[n] = calc_harmonic_avg_2D(
-        eta_cross[LL_2D][n], eta_cross[LU_2D][n], eta_cross[UL_2D][n], eta_cross[UU_2D][n]);
+      eta_par_avg[n] = calc_harmonic_avg_2D(eta_par[LL_2D][n], eta_par[LU_2D][n], eta_par[UL_2D][n],
+                                            eta_par[UU_2D][n]);
+      eta_perp_avg[n] = calc_harmonic_avg_2D(eta_perp[LL_2D][n], eta_perp[LU_2D][n],
+                                             eta_perp[UL_2D][n], eta_perp[UU_2D][n]);
+      eta_cross_avg[n] = calc_harmonic_avg_2D(eta_cross[LL_2D][n], eta_cross[LU_2D][n],
+                                              eta_cross[UL_2D][n], eta_cross[UU_2D][n]);
 
       // Rate of strain tensor at cell vertices for electrons and ions
       calc_ros_2D(dx, dy, u[LL_2D][n], u[LU_2D][n], u[UL_2D][n], u[UU_2D][n], w[n]);
@@ -296,12 +297,12 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
       // Calculate heat flux and viscous heating if energy variable exists
       if (bes->param[n].type_eqn == GKYL_EQN_EULER) {
         // Parallel conductivity, perpendicular conductivity, and gyro-conductivity coefficients at cell edges (using harmonic average)
-        kappa_par_avg[n] = calc_harmonic_avg_2D(
-          kappa_par[LL_2D][n], kappa_par[LU_2D][n], kappa_par[UL_2D][n], kappa_par[UU_2D][n]);
-        kappa_perp_avg[n] = calc_harmonic_avg_2D(
-          kappa_perp[LL_2D][n], kappa_perp[LU_2D][n], kappa_perp[UL_2D][n], kappa_perp[UU_2D][n]);
+        kappa_par_avg[n] = calc_harmonic_avg_2D(kappa_par[LL_2D][n], kappa_par[LU_2D][n],
+                                                kappa_par[UL_2D][n], kappa_par[UU_2D][n]);
+        kappa_perp_avg[n] = calc_harmonic_avg_2D(kappa_perp[LL_2D][n], kappa_perp[LU_2D][n],
+                                                 kappa_perp[UL_2D][n], kappa_perp[UU_2D][n]);
         kappa_cross_avg[n] = calc_harmonic_avg_2D(kappa_cross[LL_2D][n], kappa_cross[LU_2D][n],
-          kappa_cross[UL_2D][n], kappa_cross[UU_2D][n]);
+                                                  kappa_cross[UL_2D][n], kappa_cross[UU_2D][n]);
 
         gradxT[n] = calc_sym_gradx_2D(dx, T[LL_2D][n], T[LU_2D][n], T[UL_2D][n], T[UU_2D][n]);
         gradyT[n] = calc_sym_grady_2D(dy, T[LL_2D][n], T[LU_2D][n], T[UL_2D][n], T[UU_2D][n]);
@@ -327,10 +328,10 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
       for (int k = 0; k < 3; ++k) {
         // Parallel current multiplied by parallel thermal force coefficient at cell edges (using arithmetic average)
         current_par_avg[k] = calc_arithm_avg_2D(current_par[LL_2D][k], current_par[LU_2D][k],
-          current_par[UL_2D][k], current_par[UU_2D][k]);
+                                                current_par[UL_2D][k], current_par[UU_2D][k]);
         // Cross current multiplied by perpendicular thermal force coefficient at cell edges (using arithmetic average)
         current_cross_avg[k] = calc_arithm_avg_2D(current_cross[LL_2D][k], current_cross[LU_2D][k],
-          current_cross[UL_2D][k], current_cross[UU_2D][k]);
+                                                  current_cross[UL_2D][k], current_cross[UU_2D][k]);
       }
   }
 
@@ -354,7 +355,7 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
     // Total heat flux + viscous heating
     for (int k = 0; k < 3; ++k)
       brag_d[n][QX + k] = -kappa_par_avg[n] * bbgradT[n][k] - kappa_perp_avg[n] * perp_gradT[n][k] +
-        kappa_cross_avg[n] * cross_gradT[n][k] + Piu[k];
+                          kappa_cross_avg[n] * cross_gradT[n][k] + Piu[k];
   }
 
   for (int k = 0; k < 3; ++k)
@@ -362,10 +363,10 @@ mag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GK
 }
 
 // Fetch input quantities and compute derived quantities for UNmagnetized Braginskii
-static void
-unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
-  const double *fluid_d[][GKYL_MAX_SPECIES], double u[][2][3], double T[][2], double tau[][2],
-  double eta[][2], double kappa[][2], double current[][3])
+static void unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
+                            const double *fluid_d[][GKYL_MAX_SPECIES], double u[][2][3],
+                            double T[][2], double tau[][2], double eta[][2], double kappa[][2],
+                            double current[][3])
 {
   int nfluids = bes->nfluids;
 
@@ -388,19 +389,20 @@ unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
 
       // Pressure information is different for each equation type
       if (bes->param[n].type_eqn == GKYL_EQN_EULER)
-        p[n] = gkyl_euler_pressure(bes->param[n].p_fac,
+        p[n] = gkyl_euler_pressure(
+          bes->param[n].p_fac,
           fluid_d[j][n]); // Euler needs to divide out gas_gamma factor to obtain pressure
       else if (bes->param[n].type_eqn == GKYL_EQN_ISO_EULER)
         p[n] = rho[n] * bes->param[n].p_fac *
-          bes->param[n].p_fac; // isothermal Euler input is vth, pressure = rho*vth^2
+               bes->param[n].p_fac; // isothermal Euler input is vth, pressure = rho*vth^2
 
       T[j][n] = m[n] * p[n] / rho[n];
     }
 
-    tau[j][ELC] = calc_tau(
-      1.0, bes->coll_fac, bes->epsilon0, q[ELC], q[ION], m[ELC], m[ION], rho[ION], T[j][ELC]);
+    tau[j][ELC] = calc_tau(1.0, bes->coll_fac, bes->epsilon0, q[ELC], q[ION], m[ELC], m[ION],
+                           rho[ION], T[j][ELC]);
     tau[j][ION] = calc_tau(1.0, sqrt(2.0) * bes->coll_fac, bes->epsilon0, q[ION], q[ION], m[ION],
-      m[ION], rho[ION], T[j][ION]);
+                           m[ION], rho[ION], T[j][ION]);
 
     // Brag-type enum is used to turn coefficients on/off in a branchless fashion
     bool electron_viscosity = (bes->param[ELC].type_brag & GKYL_BRAG_VISC);
@@ -421,9 +423,10 @@ unmag_var_setup(const gkyl_moment_braginskii *bes, int start, int end,
   }
 }
 
-static void
-unmag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][GKYL_MAX_SPECIES],
-  double *cflrate[GKYL_MAX_SPECIES], double *brag_d[GKYL_MAX_SPECIES])
+static void unmag_brag_calc_vars(const gkyl_moment_braginskii *bes,
+                                 const double *fluid_d[][GKYL_MAX_SPECIES],
+                                 double *cflrate[GKYL_MAX_SPECIES],
+                                 double *brag_d[GKYL_MAX_SPECIES])
 {
   const int nfluids = bes->nfluids;
   const int ndim = bes->ndim;
@@ -532,8 +535,8 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][
     // Current multiplied by thermal force coefficient at cell edges (using arithmetic average)
     if (bes->param[ELC].type_eqn == GKYL_EQN_EULER)
       for (int k = 0; k < 3; ++k)
-        current_avg[k] = calc_arithm_avg_2D(
-          current[LL_2D][k], current[LU_2D][k], current[UL_2D][k], current[UU_2D][k]);
+        current_avg[k] = calc_arithm_avg_2D(current[LL_2D][k], current[LU_2D][k], current[UL_2D][k],
+                                            current[UU_2D][k]);
   }
 
   for (int n = 0; n < nfluids; ++n) {
@@ -559,9 +562,9 @@ unmag_brag_calc_vars(const gkyl_moment_braginskii *bes, const double *fluid_d[][
     brag_d[ELC][QX + k] += current_avg[k];
 }
 
-static void
-brag_calc_update(const gkyl_moment_braginskii *bes, const double *brag_d[][GKYL_MAX_SPECIES],
-  double *rhs[GKYL_MAX_SPECIES])
+static void brag_calc_update(const gkyl_moment_braginskii *bes,
+                             const double *brag_d[][GKYL_MAX_SPECIES],
+                             double *rhs[GKYL_MAX_SPECIES])
 {
   int nfluids = bes->nfluids;
   const int ndim = bes->ndim;
@@ -637,8 +640,7 @@ brag_calc_update(const gkyl_moment_braginskii *bes, const double *brag_d[][GKYL_
   }
 }
 
-gkyl_moment_braginskii *
-gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
+gkyl_moment_braginskii *gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
 {
   gkyl_moment_braginskii *up = gkyl_malloc(sizeof(gkyl_moment_braginskii));
 
@@ -653,8 +655,7 @@ gkyl_moment_braginskii_new(struct gkyl_moment_braginskii_inp inp)
   return up;
 }
 
-static bool
-has_mag(const gkyl_moment_braginskii *bes)
+static bool has_mag(const gkyl_moment_braginskii *bes)
 {
   bool mag = false;
   for (int n = 0; n < bes->nfluids; ++n)
@@ -664,8 +665,8 @@ has_mag(const gkyl_moment_braginskii *bes)
   return mag;
 }
 
-void
-gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes, struct gkyl_range brag_vars_range,
+void gkyl_moment_braginskii_advance(
+  const gkyl_moment_braginskii *bes, struct gkyl_range brag_vars_range,
   struct gkyl_range update_range, struct gkyl_array *fluid[GKYL_MAX_SPECIES],
   const struct gkyl_array *em_tot, struct gkyl_array *cflrate[GKYL_MAX_SPECIES],
   struct gkyl_array *brag_vars[GKYL_MAX_SPECIES], struct gkyl_array *rhs[GKYL_MAX_SPECIES])
@@ -728,8 +729,7 @@ gkyl_moment_braginskii_advance(const gkyl_moment_braginskii *bes, struct gkyl_ra
   }
 }
 
-void
-gkyl_moment_braginskii_release(gkyl_moment_braginskii *up)
+void gkyl_moment_braginskii_release(gkyl_moment_braginskii *up)
 {
   free(up);
 }

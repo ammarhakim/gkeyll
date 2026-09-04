@@ -7,8 +7,7 @@
 #include <mpack.h>
 
 // compute total number of ranges specified by cuts
-static inline int
-calc_cuts(int ndim, const int *cuts)
+static inline int calc_cuts(int ndim, const int *cuts)
 {
   int tc = 1;
   for (int d = 0; d < ndim; ++d)
@@ -17,8 +16,7 @@ calc_cuts(int ndim, const int *cuts)
 }
 
 // simple linear search to check if val occurs in lst
-static bool
-has_int(int n, int val, const int *lst)
+static bool has_int(int n, int val, const int *lst)
 {
   for (int i = 0; i < n; ++i)
     if (val == lst[i])
@@ -27,8 +25,7 @@ has_int(int n, int val, const int *lst)
 }
 
 // compute total and maximum number of cuts
-static void
-calc_tot_and_max_cuts(const struct gkyl_block_geom *block_geom, int tot_max[2])
+static void calc_tot_and_max_cuts(const struct gkyl_block_geom *block_geom, int tot_max[2])
 {
   int ndim = gkyl_block_geom_ndim(block_geom);
   int num_blocks = gkyl_block_geom_num_blocks(block_geom);
@@ -45,8 +42,7 @@ calc_tot_and_max_cuts(const struct gkyl_block_geom *block_geom, int tot_max[2])
 }
 
 // construct the mpack meta-data for multi-block data files
-static struct gkyl_msgpack_data *
-moment_multib_meta(struct moment_multib_output_meta meta)
+static struct gkyl_msgpack_data *moment_multib_meta(struct moment_multib_output_meta meta)
 {
   struct gkyl_msgpack_data *mt = gkyl_malloc(sizeof *mt);
 
@@ -83,8 +79,7 @@ moment_multib_meta(struct moment_multib_output_meta meta)
 }
 
 // write out multi-block data files
-static int
-moment_multib_data_write(const char *fname, struct moment_multib_output_meta meta)
+static int moment_multib_data_write(const char *fname, struct moment_multib_output_meta meta)
 {
   enum gkyl_array_rio_status status = GKYL_ARRAY_RIO_FOPEN_FAILED;
   FILE *fp = 0;
@@ -94,10 +89,10 @@ moment_multib_data_write(const char *fname, struct moment_multib_output_meta met
     struct gkyl_msgpack_data *amet = moment_multib_meta(meta);
     if (amet) {
       status = gkyl_header_meta_write_fp(
-        &(struct gkyl_array_header_info){
-          .file_type = gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
-          .meta_size = amet->meta_sz,
-          .meta = amet->meta },
+        &(struct gkyl_array_header_info){ .file_type =
+                                            gkyl_file_type_int[GKYL_MULTI_BLOCK_DATA_FILE],
+                                          .meta_size = amet->meta_sz,
+                                          .meta = amet->meta },
         fp);
       MPACK_FREE(amet->meta);
       gkyl_free(amet);
@@ -109,9 +104,8 @@ moment_multib_data_write(const char *fname, struct moment_multib_output_meta met
 }
 
 // construct single-block App for given block ID
-static struct gkyl_moment_app *
-singleb_app_new(
-  const struct gkyl_moment_multib *mbinp, int bid, const struct gkyl_moment_multib_app *mbapp)
+static struct gkyl_moment_app *singleb_app_new(const struct gkyl_moment_multib *mbinp, int bid,
+                                               const struct gkyl_moment_multib_app *mbapp)
 {
   int ndim = gkyl_block_geom_ndim(mbapp->block_geom);
   int num_blocks = gkyl_block_geom_num_blocks(mbapp->block_geom);
@@ -288,8 +282,7 @@ singleb_app_new(
   return gkyl_moment_app_new(&app_inp);
 }
 
-struct gkyl_moment_multib_app *
-gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
+struct gkyl_moment_multib_app *gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
 {
   int my_rank;
   gkyl_comm_get_rank(mbinp->comm, &my_rank);
@@ -349,8 +342,8 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
     mbapp->decomp[i] = gkyl_rect_decomp_new_from_cuts(ndim, bgi->cuts, &block_global_range);
 
     bool status;
-    mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(
-      mbinp->comm, branks[i], rank_list, mbapp->decomp[i], &status);
+    mbapp->block_comms[i] = gkyl_comm_create_comm_from_ranks(mbinp->comm, branks[i], rank_list,
+                                                             mbapp->decomp[i], &status);
   }
   gkyl_free(rank_list);
   mbapp->num_local_blocks = num_local_blocks;
@@ -388,15 +381,13 @@ gkyl_moment_multib_app_new(const struct gkyl_moment_multib *mbinp)
   return mbapp;
 }
 
-double
-gkyl_moment_multib_app_max_dt(gkyl_moment_multib_app *app)
+double gkyl_moment_multib_app_max_dt(gkyl_moment_multib_app *app)
 {
   // TODO
   return 0;
 }
 
-void
-gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app *app, double t0)
+void gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app *app, double t0)
 {
   app->tcurr = t0;
   gkyl_moment_multib_app_apply_ic_field(app, t0);
@@ -404,8 +395,7 @@ gkyl_moment_multib_app_apply_ic(gkyl_moment_multib_app *app, double t0)
     gkyl_moment_multib_app_apply_ic_species(app, i, t0);
 }
 
-void
-gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app *app, double t0)
+void gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app *app, double t0)
 {
   app->tcurr = t0;
   for (int i = 0; i < app->num_local_blocks; ++i)
@@ -413,8 +403,7 @@ gkyl_moment_multib_app_apply_ic_field(gkyl_moment_multib_app *app, double t0)
   gkyl_comm_barrier(app->comm);
 }
 
-void
-gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app *app, int sidx, double t0)
+void gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app *app, int sidx, double t0)
 {
   app->tcurr = t0;
   for (int i = 0; i < app->num_local_blocks; ++i)
@@ -422,8 +411,8 @@ gkyl_moment_multib_app_apply_ic_species(gkyl_moment_multib_app *app, int sidx, d
   gkyl_comm_barrier(app->comm);
 }
 
-struct gkyl_app_restart_status
-gkyl_moment_multib_app_from_frame_field(gkyl_moment_multib_app *app, int frame)
+struct gkyl_app_restart_status gkyl_moment_multib_app_from_frame_field(gkyl_moment_multib_app *app,
+                                                                       int frame)
 {
   // TODO
   return (struct gkyl_app_restart_status){};
@@ -437,8 +426,8 @@ gkyl_moment_multib_app_from_frame_species(gkyl_moment_multib_app *app, int sidx,
 }
 
 // private function to handle variable argument list for printing
-static void
-v_moment_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, va_list argp)
+static void v_moment_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt,
+                              va_list argp)
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -446,8 +435,7 @@ v_moment_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, 
     vfprintf(fp, fmt, argp);
 }
 
-void
-gkyl_moment_multib_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, ...)
+void gkyl_moment_multib_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const char *fmt, ...)
 {
   va_list argp;
   va_start(argp, fmt);
@@ -455,8 +443,7 @@ gkyl_moment_multib_app_cout(const gkyl_moment_multib_app *app, FILE *fp, const c
   va_end(argp);
 }
 
-void
-gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app *app)
+void gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app *app)
 {
   int rank;
   gkyl_comm_get_rank(app->comm, &rank);
@@ -467,16 +454,14 @@ gkyl_moment_multib_app_write_topo(const gkyl_moment_multib_app *app)
   }
 }
 
-void
-gkyl_moment_multib_app_write(const gkyl_moment_multib_app *app, double tm, int frame)
+void gkyl_moment_multib_app_write(const gkyl_moment_multib_app *app, double tm, int frame)
 {
   gkyl_moment_multib_app_write_field(app, tm, frame);
   for (int i = 0; i < app->num_species; ++i)
     gkyl_moment_multib_app_write_species(app, i, tm, frame);
 }
 
-void
-gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm, int frame)
+void gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm, int frame)
 {
   for (int i = 0; i < app->num_local_blocks; ++i)
     gkyl_moment_app_write_field(app->singleb_apps[i], tm, frame);
@@ -488,11 +473,11 @@ gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm,
       cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, "field", frame);
       cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
 
-      moment_multib_data_write(file_name.str,
-        (struct moment_multib_output_meta){ .frame = frame,
-          .stime = tm,
-          .topo_file_name = topo_file_name.str,
-          .app_name = app->name });
+      moment_multib_data_write(
+        file_name.str, (struct moment_multib_output_meta){ .frame = frame,
+                                                           .stime = tm,
+                                                           .topo_file_name = topo_file_name.str,
+                                                           .app_name = app->name });
 
       cstr_drop(&topo_file_name);
       cstr_drop(&file_name);
@@ -502,9 +487,8 @@ gkyl_moment_multib_app_write_field(const gkyl_moment_multib_app *app, double tm,
   gkyl_comm_barrier(app->comm);
 }
 
-void
-gkyl_moment_multib_app_write_species(
-  const gkyl_moment_multib_app *app, int sidx, double tm, int frame)
+void gkyl_moment_multib_app_write_species(const gkyl_moment_multib_app *app, int sidx, double tm,
+                                          int frame)
 {
   for (int i = 0; i < app->num_local_blocks; ++i)
     gkyl_moment_app_write_species(app->singleb_apps[i], sidx, tm, frame);
@@ -515,7 +499,8 @@ gkyl_moment_multib_app_write_species(
     cstr file_name = cstr_from_fmt("%s-%s_%d.gkyl", app->name, app->species_name[sidx], frame);
     cstr topo_file_name = cstr_from_fmt("%s_btopo.gkyl", app->name);
 
-    moment_multib_data_write(file_name.str,
+    moment_multib_data_write(
+      file_name.str,
       (struct moment_multib_output_meta){
         .frame = frame, .stime = tm, .topo_file_name = topo_file_name.str, .app_name = app->name });
 
@@ -526,57 +511,48 @@ gkyl_moment_multib_app_write_species(
   gkyl_comm_barrier(app->comm);
 }
 
-void
-gkyl_moment_multib_app_write_field_energy(gkyl_moment_multib_app *app)
+void gkyl_moment_multib_app_write_field_energy(gkyl_moment_multib_app *app)
 {
   // TODO
 }
 
-void
-gkyl_moment_multib_app_write_integrated_mom(gkyl_moment_multib_app *app)
+void gkyl_moment_multib_app_write_integrated_mom(gkyl_moment_multib_app *app)
 {
   // TODO
 }
 
-void
-gkyl_moment_multib_app_stat_write(const gkyl_moment_multib_app *app)
+void gkyl_moment_multib_app_stat_write(const gkyl_moment_multib_app *app)
 {
   // TODO
 }
 
-struct gkyl_update_status
-gkyl_moment_multib_update(gkyl_moment_multib_app *app, double dt)
+struct gkyl_update_status gkyl_moment_multib_update(gkyl_moment_multib_app *app, double dt)
 {
   // TODO
   return (struct gkyl_update_status){};
 }
 
-void
-gkyl_moment_multib_app_calc_field_energy(gkyl_moment_multib_app *app, double tm)
+void gkyl_moment_multib_app_calc_field_energy(gkyl_moment_multib_app *app, double tm)
 {
   // TODO
 }
 
-void
-gkyl_moment_multib_app_get_field_energy(gkyl_moment_multib_app *app, double *vals)
+void gkyl_moment_multib_app_get_field_energy(gkyl_moment_multib_app *app, double *vals)
 {
   // TODO
 }
 
-void
-gkyl_moment_multib_app_calc_integrated_mom(gkyl_moment_multib_app *app, double tm)
+void gkyl_moment_multib_app_calc_integrated_mom(gkyl_moment_multib_app *app, double tm)
 {
   // TODO
 }
 
-struct gkyl_moment_stat
-gkyl_moment_multib_app_stat(gkyl_moment_multib_app *app)
+struct gkyl_moment_stat gkyl_moment_multib_app_stat(gkyl_moment_multib_app *app)
 {
   return app->stat;
 }
 
-void
-gkyl_moment_multib_app_release(gkyl_moment_multib_app *mbapp)
+void gkyl_moment_multib_app_release(gkyl_moment_multib_app *mbapp)
 {
   if (mbapp->singleb_apps) {
     for (int i = 0; i < mbapp->num_local_blocks; ++i)

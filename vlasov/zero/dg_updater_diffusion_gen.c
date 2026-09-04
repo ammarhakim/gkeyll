@@ -18,7 +18,7 @@ gkyl_dg_updater_diffusion_gen_acquire_eqn(const struct gkyl_dg_updater_diffusion
 
 struct gkyl_dg_updater_diffusion_gen *
 gkyl_dg_updater_diffusion_gen_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const struct gkyl_range *diff_range, bool use_gpu)
+                                  const struct gkyl_range *diff_range, bool use_gpu)
 {
   struct gkyl_dg_updater_diffusion_gen *up =
     gkyl_malloc(sizeof(struct gkyl_dg_updater_diffusion_gen));
@@ -41,16 +41,17 @@ gkyl_dg_updater_diffusion_gen_new(const struct gkyl_rect_grid *grid, const struc
   return up;
 }
 
-void
-gkyl_dg_updater_diffusion_gen_advance(struct gkyl_dg_updater_diffusion_gen *up,
-  const struct gkyl_range *update_rng, const struct gkyl_array *coeff,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT cflrate,
-  struct gkyl_array *GKYL_RESTRICT rhs)
+void gkyl_dg_updater_diffusion_gen_advance(struct gkyl_dg_updater_diffusion_gen *up,
+                                           const struct gkyl_range *update_rng,
+                                           const struct gkyl_array *coeff,
+                                           const struct gkyl_array *GKYL_RESTRICT fIn,
+                                           struct gkyl_array *GKYL_RESTRICT cflrate,
+                                           struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   // Set arrays needed and call the specific advance method required
-  gkyl_diffusion_gen_set_auxfields(
-    up->dgeqn, (struct gkyl_dg_diffusion_gen_auxfields){ .Dij = coeff });
+  gkyl_diffusion_gen_set_auxfields(up->dgeqn,
+                                   (struct gkyl_dg_diffusion_gen_auxfields){ .Dij = coeff });
 #ifdef GKYL_HAVE_CUDA
   //    if (up->use_gpu)
   //      // hyper_dg_gen_stencil NOT YET IMPLEMENTED ON DEVICE
@@ -70,8 +71,7 @@ gkyl_dg_updater_diffusion_gen_get_tm(const struct gkyl_dg_updater_diffusion_gen 
   return (struct gkyl_dg_updater_diffusion_gen_tm){ .diffusion_tm = up->diffusion_tm };
 }
 
-void
-gkyl_dg_updater_diffusion_gen_release(struct gkyl_dg_updater_diffusion_gen *up)
+void gkyl_dg_updater_diffusion_gen_release(struct gkyl_dg_updater_diffusion_gen *up)
 {
   gkyl_dg_eqn_release(up->dgeqn);
   gkyl_hyper_dg_release(up->hyperdg);

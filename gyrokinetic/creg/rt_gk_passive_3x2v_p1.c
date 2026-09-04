@@ -50,8 +50,7 @@ struct passive_ctx {
   int num_failures_max; // Maximum allowable number of consecutive small time-steps.
 };
 
-struct passive_ctx
-create_ctx(void)
+struct passive_ctx create_ctx(void)
 {
   int cdim = 3, vdim = 2; // Dimensionality.
 
@@ -80,7 +79,8 @@ create_ctx(void)
   double Lz = 1.0; // Domain size (configuration space: z-direction).
   double vpar_max_elc =
     4.0 * vte; // Domain boundary (electron velocity space: parallel velocity direction).
-  double mu_max_elc = mass_elc * pow(vpar_max_elc, 2.0) /
+  double mu_max_elc =
+    mass_elc * pow(vpar_max_elc, 2.0) /
     (2.0 * B0); // Domain boundary (electron velocity space: magnetic moment direction).
   int poly_order = 1; // Polynomial order.
   double cfl_frac = 1.0; // CFL coefficient.
@@ -94,42 +94,41 @@ create_ctx(void)
   int num_failures_max = 20; // Maximum allowable number of consecutive small time-steps.
 
   struct passive_ctx ctx = { .cdim = cdim,
-    .vdim = vdim,
-    .mass_elc = mass_elc,
-    .charge_elc = charge_elc,
-    .Te = Te,
-    .n0 = n0,
-    .B0 = B0,
-    .ux = ux,
-    .uy = uy,
-    uz = uz,
-    .f_amplitude = f_amplitude,
-    .f_floor = f_floor,
-    .Nx = Nx,
-    .Ny = Ny,
-    .Nz = Nz,
-    .Nvpar = Nvpar,
-    .Nmu = Nmu,
-    .cells = { Nx, Ny, Nz, Nvpar, Nmu },
-    .Lx = Lx,
-    .Ly = Ly,
-    .Lz = Lz,
-    .vpar_max_elc = vpar_max_elc,
-    .mu_max_elc = mu_max_elc,
-    .poly_order = poly_order,
-    .cfl_frac = cfl_frac,
-    .t_end = t_end,
-    .num_frames = num_frames,
-    .write_phase_freq = write_phase_freq,
-    .int_diag_calc_num = int_diag_calc_num,
-    .dt_failure_tol = dt_failure_tol,
-    .num_failures_max = num_failures_max };
+                             .vdim = vdim,
+                             .mass_elc = mass_elc,
+                             .charge_elc = charge_elc,
+                             .Te = Te,
+                             .n0 = n0,
+                             .B0 = B0,
+                             .ux = ux,
+                             .uy = uy,
+                             uz = uz,
+                             .f_amplitude = f_amplitude,
+                             .f_floor = f_floor,
+                             .Nx = Nx,
+                             .Ny = Ny,
+                             .Nz = Nz,
+                             .Nvpar = Nvpar,
+                             .Nmu = Nmu,
+                             .cells = { Nx, Ny, Nz, Nvpar, Nmu },
+                             .Lx = Lx,
+                             .Ly = Ly,
+                             .Lz = Lz,
+                             .vpar_max_elc = vpar_max_elc,
+                             .mu_max_elc = mu_max_elc,
+                             .poly_order = poly_order,
+                             .cfl_frac = cfl_frac,
+                             .t_end = t_end,
+                             .num_frames = num_frames,
+                             .write_phase_freq = write_phase_freq,
+                             .int_diag_calc_num = int_diag_calc_num,
+                             .dt_failure_tol = dt_failure_tol,
+                             .num_failures_max = num_failures_max };
 
   return ctx;
 }
 
-void
-distf_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void distf_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2], vpar = xn[3], mu = xn[4];
 
@@ -151,9 +150,8 @@ distf_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
     fout[0] = f_floor;
 }
 
-void
-passive_velocity_elc(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void passive_velocity_elc(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout,
+                          void *ctx)
 {
   double x = xn[0], y = xn[1], z = xn[2];
 
@@ -167,8 +165,8 @@ passive_velocity_elc(
   fout[2] = uz;
 }
 
-static inline void
-mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void *ctx)
+static inline void mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp,
+                          void *ctx)
 {
   double x = zc[0], y = zc[1], z = zc[2];
 
@@ -179,8 +177,7 @@ mapc2p(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT xp, void 
   xp[2] = z;
 }
 
-void
-bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
+void bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = zc[0], y = zc[1], z = zc[2];
 
@@ -194,8 +191,7 @@ bfield_func(double t, const double *GKYL_RESTRICT zc, double *GKYL_RESTRICT fout
   fout[2] = B0;
 }
 
-void
-bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xc[0], y = xc[1], z = xc[2];
 
@@ -204,15 +200,13 @@ bc_shift_func_lo(double t, const double *xc, double *GKYL_RESTRICT fout, void *c
   fout[0] = -(x - 0.5);
 }
 
-void
-bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void bc_shift_func_up(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   bc_shift_func_lo(t, xc, fout, ctx);
   fout[0] *= -1.0;
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -251,14 +245,14 @@ main(int argc, char **argv)
     .projection = { .proj_id = GKYL_PROJ_FUNC, .func = distf_elc, .ctx_func = &ctx },
 
     .collisionless = { .type = GKYL_GK_COLLISIONLESS_PASSIVE,
-      .passive_speeds = passive_velocity_elc,
-      .passive_speeds_ctx = &ctx,
-      .write_diagnostics = true },
+                       .passive_speeds = passive_velocity_elc,
+                       .passive_speeds_ctx = &ctx,
+                       .write_diagnostics = true },
 
     .bcs = { { .dir = 0, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY },
-      { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY },
-      { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT },
-      { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT } },
+             { .dir = 0, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_COPY },
+             { .dir = 2, .edge = GKYL_LOWER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT },
+             { .dir = 2, .edge = GKYL_UPPER_EDGE, .type = GKYL_BC_GK_SPECIES_TWISTSHIFT } },
 
     .num_diag_moments = 3,
     .diag_moments = { GKYL_F_MOMENT_M0, GKYL_F_MOMENT_M1, GKYL_F_MOMENT_M2 }
@@ -276,9 +270,9 @@ main(int argc, char **argv)
   };
 
   // Field.
-  struct gkyl_gyrokinetic_field field = {
-    .gkfield_id = GKYL_GK_FIELD_BOLTZMANN, .zero_init_field = true, .is_static = true
-  };
+  struct gkyl_gyrokinetic_field field = { .gkfield_id = GKYL_GK_FIELD_BOLTZMANN,
+                                          .zero_init_field = true,
+                                          .is_static = true };
 
   // Gyrokinetic app.
   struct gkyl_gk app_inp = {
@@ -293,15 +287,15 @@ main(int argc, char **argv)
     .cfl_frac = ctx.cfl_frac,
 
     .geometry = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
-      .world = {},
-      .mapc2p = mapc2p,
-      .c2p_ctx = &ctx,
-      .bfield_func = bfield_func,
-      .bfield_ctx = &ctx,
-      .parallel_lower_bc_shift_func = bc_shift_func_lo,
-      .parallel_upper_bc_shift_func = bc_shift_func_up,
-      .parallel_lower_bc_shift_ctx = &ctx,
-      .parallel_upper_bc_shift_ctx = &ctx },
+                  .world = {},
+                  .mapc2p = mapc2p,
+                  .c2p_ctx = &ctx,
+                  .bfield_func = bfield_func,
+                  .bfield_ctx = &ctx,
+                  .parallel_lower_bc_shift_func = bc_shift_func_lo,
+                  .parallel_upper_bc_shift_func = bc_shift_func_up,
+                  .parallel_lower_bc_shift_ctx = &ctx,
+                  .parallel_upper_bc_shift_ctx = &ctx },
 
     .num_periodic_dir = 1,
     .periodic_dirs = { 1 },
@@ -312,8 +306,8 @@ main(int argc, char **argv)
     .field = field,
 
     .parallelism = { .use_gpu = app_args.use_gpu,
-      .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
-      .comm = comm }
+                     .cuts = { app_args.cuts[0], app_args.cuts[1], app_args.cuts[2] },
+                     .comm = comm }
   };
 
   // Set app output name from the executable name (argv[0]).
@@ -322,14 +316,14 @@ main(int argc, char **argv)
   struct gkyl_gyrokinetic_run_inp run_inp = {
     .app_inp = app_inp,
     .time_stepping = { .t_end = ctx.t_end,
-      .num_frames = ctx.num_frames,
-      .write_phase_freq = ctx.write_phase_freq,
-      .int_diag_calc_num = ctx.int_diag_calc_num,
-      .dt_failure_tol = ctx.dt_failure_tol,
-      .num_failures_max = ctx.num_failures_max,
-      .is_restart = app_args.is_restart,
-      .restart_frame = app_args.restart_frame,
-      .num_steps = app_args.num_steps }
+                       .num_frames = ctx.num_frames,
+                       .write_phase_freq = ctx.write_phase_freq,
+                       .int_diag_calc_num = ctx.int_diag_calc_num,
+                       .dt_failure_tol = ctx.dt_failure_tol,
+                       .num_failures_max = ctx.num_failures_max,
+                       .is_restart = app_args.is_restart,
+                       .restart_frame = app_args.restart_frame,
+                       .num_steps = app_args.num_steps }
     //    .print_verbosity = {
     //      .enabled = true,
     //      .disable_timings = true,

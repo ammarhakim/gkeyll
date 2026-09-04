@@ -9,10 +9,10 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-struct gkyl_dg_updater_collisions *
-gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid,
-  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
-  const struct gkyl_range *conf_range, struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp,
+struct gkyl_dg_updater_collisions *gkyl_dg_updater_lbo_vlasov_new(
+  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
+  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
+  struct gkyl_dg_lbo_vlasov_drag_auxfields *drag_inp,
   struct gkyl_dg_lbo_vlasov_diff_auxfields *diff_inp, bool use_gpu)
 {
   struct gkyl_dg_updater_collisions *up = gkyl_malloc(sizeof(gkyl_dg_updater_collisions));
@@ -36,10 +36,10 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid,
   for (int d = cdim; d < pdim; ++d)
     zero_flux_flags[d] = zero_flux_flags[d + pdim] = 1;
 
-  up->drag = gkyl_hyper_dg_new(
-    phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
-  up->diff = gkyl_hyper_dg_new(
-    phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs, zero_flux_flags, 1, use_gpu);
+  up->drag = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_drag, num_up_dirs, up_dirs,
+                               zero_flux_flags, 1, use_gpu);
+  up->diff = gkyl_hyper_dg_new(phase_grid, phase_basis, up->coll_diff, num_up_dirs, up_dirs,
+                               zero_flux_flags, 1, use_gpu);
 
   up->diff_tm = 0.0;
   up->drag_tm = 0.0;
@@ -47,10 +47,11 @@ gkyl_dg_updater_lbo_vlasov_new(const struct gkyl_rect_grid *phase_grid,
   return up;
 }
 
-void
-gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
-  const struct gkyl_range *update_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
-  struct gkyl_array *GKYL_RESTRICT cflrate, struct gkyl_array *GKYL_RESTRICT rhs)
+void gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
+                                        const struct gkyl_range *update_rng,
+                                        const struct gkyl_array *GKYL_RESTRICT fIn,
+                                        struct gkyl_array *GKYL_RESTRICT cflrate,
+                                        struct gkyl_array *GKYL_RESTRICT rhs)
 {
   struct timespec wst = gkyl_wall_clock();
   gkyl_hyper_dg_advance(lbo->drag, update_rng, fIn, cflrate, rhs);
@@ -64,12 +65,11 @@ gkyl_dg_updater_lbo_vlasov_advance(struct gkyl_dg_updater_collisions *lbo,
 struct gkyl_dg_updater_lbo_vlasov_tm
 gkyl_dg_updater_lbo_vlasov_get_tm(const gkyl_dg_updater_collisions *coll)
 {
-  return (
-    struct gkyl_dg_updater_lbo_vlasov_tm){ .diff_tm = coll->diff_tm, .drag_tm = coll->drag_tm };
+  return (struct gkyl_dg_updater_lbo_vlasov_tm){ .diff_tm = coll->diff_tm,
+                                                 .drag_tm = coll->drag_tm };
 }
 
-void
-gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_collisions *coll)
+void gkyl_dg_updater_lbo_vlasov_release(gkyl_dg_updater_collisions *coll)
 {
   gkyl_dg_eqn_release(coll->coll_drag);
   gkyl_dg_eqn_release(coll->coll_diff);

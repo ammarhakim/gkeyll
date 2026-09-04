@@ -10,7 +10,8 @@ extern "C" {
 // CUDA kernel to set device pointers to kernels.
 __global__ static void
 gkyl_pos_shift_vlasov_set_cu_ker_ptrs(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
+                                      struct gkyl_basis cbasis, struct gkyl_basis pbasis,
+                                      enum gkyl_positivity_shift_type stype)
 {
   int cdim = cbasis.ndim, pdim = pbasis.ndim;
   int vdim = pdim - cdim;
@@ -23,9 +24,9 @@ gkyl_pos_shift_vlasov_set_cu_ker_ptrs(struct gkyl_positivity_shift_vlasov_kernel
   case GKYL_BASIS_MODAL_TENSOR:
     kernels->is_m0_positive =
       pos_shift_vlasov_kern_list_m0_pos_check_tensor[cdim - 1].kernels[poly_order - 1];
-    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY
-      ? pos_shift_vlasov_kern_list_shift_tensor[plin].kernels[poly_order - 1]
-      : pos_shift_vlasov_kern_list_MRSlimiter_tensor[plin].kernels[poly_order - 1];
+    kernels->shift = stype == GKYL_POSITIVITY_SHIFT_TYPE_SHIFT_ONLY ?
+                       pos_shift_vlasov_kern_list_shift_tensor[plin].kernels[poly_order - 1] :
+                       pos_shift_vlasov_kern_list_MRSlimiter_tensor[plin].kernels[poly_order - 1];
     kernels->m0 = pos_shift_vlasov_kern_list_m0_tensor[plin].kernels[poly_order - 1];
     kernels->conf_phase_mul_op = choose_mul_conf_phase_kern(pbasis_type, cdim, vdim, poly_order);
     break;
@@ -45,16 +46,15 @@ gkyl_pos_shift_vlasov_set_cu_ker_ptrs(struct gkyl_positivity_shift_vlasov_kernel
   }
 };
 
-void
-pos_shift_vlasov_choose_shift_kernel_cu(struct gkyl_positivity_shift_vlasov_kernels *kernels,
-  struct gkyl_basis cbasis, struct gkyl_basis pbasis, enum gkyl_positivity_shift_type stype)
+void pos_shift_vlasov_choose_shift_kernel_cu(struct gkyl_positivity_shift_vlasov_kernels *kernels,
+                                             struct gkyl_basis cbasis, struct gkyl_basis pbasis,
+                                             enum gkyl_positivity_shift_type stype)
 {
-  gkyl_pos_shift_vlasov_set_cu_ker_ptrs<<<1, 1>>>(kernels, cbasis, pbasis, stype);
+  gkyl_pos_shift_vlasov_set_cu_ker_ptrs<<<1, 1> > >(kernels, cbasis, pbasis, stype);
 }
 
 // Function borrowed from array_reduce_cu.cu.
-__device__ static __forceinline__ double
-pos_shift_atomicMax_double(double *address, double val)
+__device__ static __forceinline__ double pos_shift_atomicMax_double(double *address, double val)
 {
   unsigned long long int ret = __double_as_longlong(*address);
   while (val > __longlong_as_double(ret)) {
@@ -65,8 +65,8 @@ pos_shift_atomicMax_double(double *address, double val)
   return __longlong_as_double(ret);
 }
 
-__global__ void
-gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker(struct gkyl_array *out, int val)
+__global__ void gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker(struct gkyl_array *out,
+                                                                            int val)
 {
   int *out_d = (int *)out->data;
   unsigned long start_id = threadIdx.x + blockIdx.x * blockDim.x;
@@ -75,12 +75,12 @@ gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker(struct gkyl_array *o
     out_d[linc] = val;
 }
 
-__global__ static void
-gkyl_positivity_shift_vlasov_advance_shift_cu_ker(struct gkyl_positivity_shift_vlasov_kernels *kers,
-  const struct gkyl_rect_grid grid, const struct gkyl_range conf_range,
-  const struct gkyl_range phase_range, double *ffloor, double ffloor_fac, double cellav_fac,
-  struct gkyl_array *GKYL_RESTRICT shiftedf, struct gkyl_array *GKYL_RESTRICT distf,
-  struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0)
+__global__ static void gkyl_positivity_shift_vlasov_advance_shift_cu_ker(
+  struct gkyl_positivity_shift_vlasov_kernels *kers, const struct gkyl_rect_grid grid,
+  const struct gkyl_range conf_range, const struct gkyl_range phase_range, double *ffloor,
+  double ffloor_fac, double cellav_fac, struct gkyl_array *GKYL_RESTRICT shiftedf,
+  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
   int pidx[GKYL_MAX_DIM];
   double xc[GKYL_MAX_DIM];
@@ -152,8 +152,7 @@ gkyl_positivity_shift_vlasov_advance_shift_cu_ker(struct gkyl_positivity_shift_v
   pos_shift_atomicMax_double(ffloor, ffloor_fac * distf_max * cellav_fac);
 }
 
-__global__ static void
-gkyl_positivity_shift_vlasov_advance_scalef_cu_ker(
+__global__ static void gkyl_positivity_shift_vlasov_advance_scalef_cu_ker(
   struct gkyl_positivity_shift_vlasov_kernels *kers, const struct gkyl_range conf_range,
   const struct gkyl_range phase_range, const struct gkyl_array *GKYL_RESTRICT shiftedf,
   const struct gkyl_array *GKYL_RESTRICT m0, const struct gkyl_array *GKYL_RESTRICT delta_m0,
@@ -187,10 +186,10 @@ gkyl_positivity_shift_vlasov_advance_scalef_cu_ker(
   }
 }
 
-__global__ static void
-gkyl_positivity_shift_vlasov_advance_m0fix_cu_ker(struct gkyl_positivity_shift_vlasov_kernels *kers,
-  const struct gkyl_range conf_range, const struct gkyl_array *GKYL_RESTRICT shiftedf,
-  struct gkyl_array *GKYL_RESTRICT m0, struct gkyl_array *GKYL_RESTRICT delta_m0)
+__global__ static void gkyl_positivity_shift_vlasov_advance_m0fix_cu_ker(
+  struct gkyl_positivity_shift_vlasov_kernels *kers, const struct gkyl_range conf_range,
+  const struct gkyl_array *GKYL_RESTRICT shiftedf, struct gkyl_array *GKYL_RESTRICT m0,
+  struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
   int cidx[GKYL_MAX_CDIM];
 
@@ -221,11 +220,12 @@ gkyl_positivity_shift_vlasov_advance_m0fix_cu_ker(struct gkyl_positivity_shift_v
   }
 }
 
-void
-gkyl_positivity_shift_vlasov_advance_cu(gkyl_positivity_shift_vlasov *up,
-  const struct gkyl_range *conf_rng, const struct gkyl_range *phase_rng,
-  struct gkyl_array *GKYL_RESTRICT distf, struct gkyl_array *GKYL_RESTRICT m0,
-  struct gkyl_array *GKYL_RESTRICT delta_m0)
+void gkyl_positivity_shift_vlasov_advance_cu(gkyl_positivity_shift_vlasov *up,
+                                             const struct gkyl_range *conf_rng,
+                                             const struct gkyl_range *phase_rng,
+                                             struct gkyl_array *GKYL_RESTRICT distf,
+                                             struct gkyl_array *GKYL_RESTRICT m0,
+                                             struct gkyl_array *GKYL_RESTRICT delta_m0)
 {
   int nblocks_phase = phase_rng->nblocks, nthreads_phase = phase_rng->nthreads;
   int nblocks_conf = conf_rng->nblocks, nthreads_conf = conf_rng->nthreads;
@@ -234,19 +234,20 @@ gkyl_positivity_shift_vlasov_advance_cu(gkyl_positivity_shift_vlasov *up,
   gkyl_array_clear_range(delta_m0, 0.0, conf_rng);
 
   // Set shiftedf boolean (int) to 0s.
-  gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker<<<nblocks_conf, nthreads_conf>>>(
+  gkyl_positivity_shift_vlasov_advance_int_array_clear_cu_ker<<<nblocks_conf, nthreads_conf> > >(
     up->shiftedf->on_dev, 0);
 
   // Shift f is needed & scale f locally if initial local contribution to M0 was >0.
-  gkyl_positivity_shift_vlasov_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase>>>(up->kernels,
-    up->grid, *conf_rng, *phase_rng, up->ffloor, up->ffloor_fac, up->cellav_fac,
+  gkyl_positivity_shift_vlasov_advance_shift_cu_ker<<<nblocks_phase, nthreads_phase> > >(
+    up->kernels, up->grid, *conf_rng, *phase_rng, up->ffloor, up->ffloor_fac, up->cellav_fac,
     up->shiftedf->on_dev, distf->on_dev, m0->on_dev, delta_m0->on_dev);
 
   // If a shift took place, rescale f so it keeps the same M0.
-  gkyl_positivity_shift_vlasov_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase>>>(up->kernels,
-    *conf_rng, *phase_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev, distf->on_dev);
+  gkyl_positivity_shift_vlasov_advance_scalef_cu_ker<<<nblocks_phase, nthreads_phase> > >(
+    up->kernels, *conf_rng, *phase_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev,
+    distf->on_dev);
 
   // Ensure m0 and delta_m0 are correct based on whether a shift took place.
-  gkyl_positivity_shift_vlasov_advance_m0fix_cu_ker<<<nblocks_conf, nthreads_conf>>>(
+  gkyl_positivity_shift_vlasov_advance_m0fix_cu_ker<<<nblocks_conf, nthreads_conf> > >(
     up->kernels, *conf_rng, up->shiftedf->on_dev, m0->on_dev, delta_m0->on_dev);
 }

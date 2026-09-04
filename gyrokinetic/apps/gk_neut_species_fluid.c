@@ -1,8 +1,10 @@
 #include <gkyl_gk_neut_species_priv.h>
 
-static double
-gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_species *species,
-  const struct gkyl_array *fin, struct gkyl_array *rhs, struct gkyl_array **bflux_moms)
+static double gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app,
+                                                struct gk_neut_species *species,
+                                                const struct gkyl_array *fin,
+                                                struct gkyl_array *rhs,
+                                                struct gkyl_array **bflux_moms)
 {
   double omega_cfl = 1 / DBL_MAX;
   gkyl_array_clear(species->cflrate, 0.0);
@@ -32,10 +34,11 @@ gk_neut_species_fluid_rhs_dynamic(gkyl_gyrokinetic_app *app, struct gk_neut_spec
   return app->cfl / omega_cfl;
 }
 
-static double
-gk_neut_species_fluid_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app,
-  struct gk_neut_species *species, const struct gkyl_array *fin, struct gkyl_array *rhs,
-  struct gkyl_array **bflux_moms, double dt)
+static double gk_neut_species_fluid_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app,
+                                                         struct gk_neut_species *species,
+                                                         const struct gkyl_array *fin,
+                                                         struct gkyl_array *rhs,
+                                                         struct gkyl_array **bflux_moms, double dt)
 {
   double omega_cfl = 1 / DBL_MAX;
   gkyl_array_clear(species->cflrate, 0.0);
@@ -61,9 +64,8 @@ gk_neut_species_fluid_rhs_implicit_dynamic(gkyl_gyrokinetic_app *app,
   return app->cfl / omega_cfl;
 }
 
-static void
-gk_neut_species_fluid_release_dynamic(
-  const gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns)
+static void gk_neut_species_fluid_release_dynamic(const gkyl_gyrokinetic_app *app,
+                                                  const struct gk_neut_species *ns)
 {
   // Release memory allocated for dynamic neutrals.
   gkyl_array_release(ns->cflrate);
@@ -89,8 +91,8 @@ gk_neut_species_fluid_release_dynamic(
   }
 }
 
-static void
-gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_neut_species *ns)
+static void gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app,
+                                          const struct gk_neut_species *ns)
 {
   // Release resources for fluid neutral species.
   gkyl_msgpack_map_elem_release(ns->io_meta_basic_len, ns->io_meta_basic);
@@ -128,9 +130,8 @@ gk_neut_species_fluid_release(const gkyl_gyrokinetic_app *app, const struct gk_n
   ns->release_is_static_func(app, ns);
 }
 
-static void
-gk_neut_species_fluid_init_dynamic(
-  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+static void gk_neut_species_fluid_init_dynamic(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
+                                               struct gk_neut_species *ns)
 {
   int cdim = app->cdim;
 
@@ -177,9 +178,8 @@ gk_neut_species_fluid_init_dynamic(
   ns->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
 }
 
-static void
-gk_neut_species_fluid_init_static(
-  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *s)
+static void gk_neut_species_fluid_init_static(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
+                                              struct gk_neut_species *s)
 {
   // Set pointers for RK methods.
   s->f1 = gkyl_array_acquire(s->f);
@@ -201,13 +201,12 @@ gk_neut_species_fluid_init_static(
   s->report_n_iter_corr_func = gk_neut_species_n_iter_corr_disabled;
 }
 
-void
-gk_neut_species_fluid_init(
-  struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app, struct gk_neut_species *ns)
+void gk_neut_species_fluid_init(struct gkyl_gk *gk, struct gkyl_gyrokinetic_app *app,
+                                struct gk_neut_species *ns)
 {
   ns->is_fluid = true; // Fluid neutrals.
-  assert(
-    ns->info.vdim == 0); // Ensure user provided vdim=0 in input file, or didn't provide it at all.
+  assert(ns->info.vdim ==
+         0); // Ensure user provided vdim=0 in input file, or didn't provide it at all.
 
   ns->model_id = GKYL_MODEL_DEFAULT;
   ns->field_id = GKYL_FIELD_NULL;
@@ -272,10 +271,10 @@ gk_neut_species_fluid_init(
   // Metadata for integrated quantities.
   const struct gkyl_msgpack_map_elem *io_meta_basic_union[] = { app->io_meta_basic, io_meta_sprop };
   int io_meta_basic_union_len[] = { app->io_meta_basic_len,
-    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]) };
-  ns->io_meta_basic =
-    gkyl_msgpack_map_elem_union(sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]),
-      io_meta_basic_union_len, io_meta_basic_union, &ns->io_meta_basic_len);
+                                    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]) };
+  ns->io_meta_basic = gkyl_msgpack_map_elem_union(
+    sizeof(io_meta_basic_union) / sizeof(io_meta_basic_union[0]), io_meta_basic_union_len,
+    io_meta_basic_union, &ns->io_meta_basic_len);
 
   // Metadata for conf-space quantities.
   struct gkyl_msgpack_map_elem io_meta_conf[] = {
@@ -285,13 +284,13 @@ gk_neut_species_fluid_init(
     { .key = "frame", .elem_type = GKYL_MP_UNSIGNED_INT, .uval = 0 }
   };
   const struct gkyl_msgpack_map_elem *io_meta_conf_union[] = { app->io_meta_basic, io_meta_sprop,
-    io_meta_conf };
+                                                               io_meta_conf };
   int io_meta_conf_union_len[] = { app->io_meta_basic_len,
-    sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
-    sizeof(io_meta_conf) / sizeof(io_meta_conf[0]) };
+                                   sizeof(io_meta_sprop) / sizeof(io_meta_sprop[0]),
+                                   sizeof(io_meta_conf) / sizeof(io_meta_conf[0]) };
   ns->io_meta_conf =
     gkyl_msgpack_map_elem_union(sizeof(io_meta_conf_union) / sizeof(io_meta_conf_union[0]),
-      io_meta_conf_union_len, io_meta_conf_union, &ns->io_meta_conf_len);
+                                io_meta_conf_union_len, io_meta_conf_union, &ns->io_meta_conf_len);
 
   // Metadata for phase-space quantities.
   ns->io_meta_phase = ns->io_meta_conf;
@@ -310,13 +309,13 @@ gk_neut_species_fluid_init(
   // Create skin/ghost ranges.
   for (int dir = 0; dir < cdim; ++dir) {
     gkyl_skin_ghost_ranges(&ns->local_lower_skin[dir], &ns->local_lower_ghost[dir], dir,
-      GKYL_LOWER_EDGE, &ns->local_ext, ghost);
+                           GKYL_LOWER_EDGE, &ns->local_ext, ghost);
     gkyl_skin_ghost_ranges(&ns->local_upper_skin[dir], &ns->local_upper_ghost[dir], dir,
-      GKYL_UPPER_EDGE, &ns->local_ext, ghost);
+                           GKYL_UPPER_EDGE, &ns->local_ext, ghost);
     gkyl_skin_ghost_ranges(&ns->global_lower_skin[dir], &ns->global_lower_ghost[dir], dir,
-      GKYL_LOWER_EDGE, &ns->global_ext, ghost);
+                           GKYL_LOWER_EDGE, &ns->global_ext, ghost);
     gkyl_skin_ghost_ranges(&ns->global_upper_skin[dir], &ns->global_upper_ghost[dir], dir,
-      GKYL_UPPER_EDGE, &ns->local_ext, ghost);
+                           GKYL_UPPER_EDGE, &ns->local_ext, ghost);
   }
 
   // Initialize projection routine for initial conditions.

@@ -36,8 +36,7 @@ struct gkyl_app_args {
   char opt_args[128]; // optional arguments
 };
 
-static int
-get_basis_type(const char *nm)
+static int get_basis_type(const char *nm)
 {
   if (strcmp(nm, "ms") == 0) {
     return GKYL_BASIS_MODAL_SERENDIPITY;
@@ -47,8 +46,7 @@ get_basis_type(const char *nm)
   return -1;
 }
 
-static int
-get_mp_recon_type(const char *nm)
+static int get_mp_recon_type(const char *nm)
 {
   if (strcmp(nm, "u1") == 0) {
     return GKYL_MP_U1;
@@ -67,8 +65,7 @@ get_mp_recon_type(const char *nm)
   return -1;
 }
 
-static struct gkyl_app_args
-parse_app_args(int argc, char **argv)
+static struct gkyl_app_args parse_app_args(int argc, char **argv)
 {
   bool use_gpu = false;
   bool use_mpi = false;

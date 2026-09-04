@@ -13,8 +13,7 @@
 // Gas constant
 static const double gas_gamma = 1.4;
 
-struct gkyl_block_geom *
-create_block_geom(void)
+struct gkyl_block_geom *create_block_geom(void)
 {
   struct gkyl_block_geom *bgeom = gkyl_block_geom_new(2, 3);
 
@@ -90,9 +89,8 @@ create_block_geom(void)
   return bgeom;
 }
 
-static void
-write_data(
-  struct gkyl_tm_trigger *iot, gkyl_moment_multib_app *app, double t_curr, bool force_write)
+static void write_data(struct gkyl_tm_trigger *iot, gkyl_moment_multib_app *app, double t_curr,
+                       bool force_write)
 {
   if (gkyl_tm_trigger_check_and_bump(iot, t_curr)) {
     int frame = iot->curr - 1;
@@ -103,8 +101,7 @@ write_data(
   }
 }
 
-void
-initFluidSod(double t, const double *xn, double *restrict fout, void *ctx)
+void initFluidSod(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double xsloc = 1.25, ysloc = 1.5;
   double x = xn[0], y = xn[1];
@@ -122,8 +119,7 @@ initFluidSod(double t, const double *xn, double *restrict fout, void *ctx)
   fout[4] = pr / (gas_gamma - 1);
 }
 
-int
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
   struct gkyl_app_args app_args = parse_app_args(argc, argv);
 
@@ -154,7 +150,8 @@ main(int argc, char **argv)
   struct gkyl_moment_multib_species_pb euler_blocks[1];
   euler_blocks[0] = (struct gkyl_moment_multib_species_pb){ .init = initFluidSod };
 
-  struct gkyl_block_physical_bcs euler_phys_bcs[] = { // block 0 BCs
+  struct gkyl_block_physical_bcs euler_phys_bcs[] = {
+    // block 0 BCs
     { .bidx = 0, .dir = 0, .edge = GKYL_LOWER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
     { .bidx = 0, .dir = 0, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_REFLECT },
     { .bidx = 0, .dir = 1, .edge = GKYL_UPPER_EDGE, .bc_type = GKYL_SPECIES_COPY },
@@ -168,15 +165,15 @@ main(int argc, char **argv)
   };
 
   struct gkyl_moment_multib_species euler = { .name = "euler",
-    .charge = 0.0,
-    .mass = 1.0,
-    .equation = euler_eqn,
+                                              .charge = 0.0,
+                                              .mass = 1.0,
+                                              .equation = euler_eqn,
 
-    .duplicate_across_blocks = true,
-    .blocks = euler_blocks,
+                                              .duplicate_across_blocks = true,
+                                              .blocks = euler_blocks,
 
-    .num_physical_bcs = 8,
-    .bcs = euler_phys_bcs };
+                                              .num_physical_bcs = 8,
+                                              .bcs = euler_phys_bcs };
 
   struct gkyl_moment_multib app_inp = {
 

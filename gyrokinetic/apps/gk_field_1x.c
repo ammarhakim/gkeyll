@@ -12,15 +12,13 @@
 #include <float.h>
 #include <time.h>
 
-static void
-gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
+static void gk_field_rhs_phi_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *field)
 {
   // Solve the Poisson equation in 1x with the parallel FEM projection.
   gk_field_fem_projection_par(app, field, field->rho_c, field->phi_smooth);
 }
 
-static void
-gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
+static void gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   gkyl_array_release(f->rho_c);
   gkyl_array_release(f->rho_c_global_dg);
@@ -43,8 +41,7 @@ gk_field_fem_release_1x(const gkyl_gyrokinetic_app *app, struct gk_field *f)
   gkyl_array_integrate_release(f->calc_em_energy);
 }
 
-void
-gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
+void gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
 {
   // Create global subrange we'll copy the field solver solution from (into local).
   gkyl_sub_range_intersect(&f->global_sub_range, &app->global, &app->local);
@@ -118,8 +115,8 @@ gk_field_fem_new_1x(struct gkyl_gyrokinetic_app *app, struct gk_field *f)
       fem_parproj_bc = GKYL_FEM_PARPROJ_PERIODIC;
     }
 
-  f->fem_parproj = gkyl_fem_parproj_new(
-    &app->global, &app->grid, &app->basis, fem_parproj_bc, 0, epsilon_global, 0, app->use_gpu);
+  f->fem_parproj = gkyl_fem_parproj_new(&app->global, &app->grid, &app->basis, fem_parproj_bc, 0,
+                                        epsilon_global, 0, app->use_gpu);
 
   f->es_energy_fac_1d = 0.5 * polarization_weight * f->info.kperpSq + es_energy_fac_1d_adiabatic;
 

@@ -16,23 +16,20 @@
 #include <math.h>
 
 // allocate array (filled with zeros)
-static struct gkyl_array *
-mkarr(long nc, long size)
+static struct gkyl_array *mkarr(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
 // allocate cu_dev array
-static struct gkyl_array *
-mkarr_cu(long nc, long size)
+static struct gkyl_array *mkarr_cu(long nc, long size)
 {
   struct gkyl_array *a = gkyl_array_cu_dev_new(GKYL_DOUBLE, nc, size);
   return a;
 }
 
-void
-nu_prof(double t, const double *xn, double *restrict fout, void *ctx)
+void nu_prof(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
@@ -40,8 +37,7 @@ nu_prof(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = 1.0;
 }
 
-void
-maxwellian1x2v(double t, const double *xn, double *restrict fout, void *ctx)
+void maxwellian1x2v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
@@ -49,16 +45,14 @@ maxwellian1x2v(double t, const double *xn, double *restrict fout, void *ctx)
   fout[0] = 1.0 / (2 * M_PI) * exp(-(pow(vx, 2) + pow(vy, 2)) / 2);
 }
 
-void
-maxwellian1x1v(double t, const double *xn, double *restrict fout, void *ctx)
+void maxwellian1x1v(double t, const double *xn, double *restrict fout, void *ctx)
 {
   double x = xn[0];
   double vx = xn[1];
   fout[0] = 1.0 / sqrt(2 * M_PI) * exp(-(pow(vx, 2)) / 2);
 }
 
-void
-test_dg_lbo_vlasov_1x1v_p2_ho()
+void test_dg_lbo_vlasov_1x1v_p2_ho()
 {
   // initialize grid and ranges
   int cdim = 1, vdim = 1;
@@ -117,11 +111,11 @@ test_dg_lbo_vlasov_1x1v_p2_ho()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum,
-    .nuPrimMomsSum = nuPrimMomsSum };
+                                                        .nuPrimMomsSum = nuPrimMomsSum };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum,
-    .nuPrimMomsSum = nuPrimMomsSum };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(
-    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
+                                                        .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
+                                        &diff_inp, false);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -183,8 +177,7 @@ test_dg_lbo_vlasov_1x1v_p2_ho()
   gkyl_dg_updater_lbo_vlasov_release(slvr);
 }
 
-void
-test_dg_lbo_vlasov_1x2v_p2_ho()
+void test_dg_lbo_vlasov_1x2v_p2_ho()
 {
   // initialize grid and ranges
   int cdim = 1, vdim = 2;
@@ -243,11 +236,11 @@ test_dg_lbo_vlasov_1x2v_p2_ho()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum,
-    .nuPrimMomsSum = nuPrimMomsSum };
+                                                        .nuPrimMomsSum = nuPrimMomsSum };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum,
-    .nuPrimMomsSum = nuPrimMomsSum };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(
-    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, false);
+                                                        .nuPrimMomsSum = nuPrimMomsSum };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
+                                        &diff_inp, false);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -336,8 +329,7 @@ test_dg_lbo_vlasov_1x2v_p2_ho()
 
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_dg_lbo_vlasov_1x1v_p2_dev()
+void test_dg_lbo_vlasov_1x1v_p2_dev()
 {
   // initialize grid and ranges
   int cdim = 1, vdim = 1;
@@ -403,11 +395,11 @@ test_dg_lbo_vlasov_1x1v_p2_dev()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu,
-    .nuPrimMomsSum = nuPrimMomsSum_cu };
+                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu,
-    .nuPrimMomsSum = nuPrimMomsSum_cu };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(
-    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
+                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
+                                        &diff_inp, true);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -473,8 +465,7 @@ test_dg_lbo_vlasov_1x1v_p2_dev()
   gkyl_dg_updater_lbo_vlasov_release(slvr);
 }
 
-void
-test_dg_lbo_vlasov_1x2v_p2_dev()
+void test_dg_lbo_vlasov_1x2v_p2_dev()
 {
   // initialize grid and ranges
   int cdim = 1, vdim = 2;
@@ -540,11 +531,11 @@ test_dg_lbo_vlasov_1x2v_p2_dev()
   gkyl_dg_updater_collisions *slvr;
   // LBO updater
   struct gkyl_dg_lbo_vlasov_drag_auxfields drag_inp = { .nuSum = nuSum_cu,
-    .nuPrimMomsSum = nuPrimMomsSum_cu };
+                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
   struct gkyl_dg_lbo_vlasov_diff_auxfields diff_inp = { .nuSum = nuSum_cu,
-    .nuPrimMomsSum = nuPrimMomsSum_cu };
-  slvr = gkyl_dg_updater_lbo_vlasov_new(
-    &phaseGrid, &confBasis, &basis, &confRange, &drag_inp, &diff_inp, true);
+                                                        .nuPrimMomsSum = nuPrimMomsSum_cu };
+  slvr = gkyl_dg_updater_lbo_vlasov_new(&phaseGrid, &confBasis, &basis, &confRange, &drag_inp,
+                                        &diff_inp, true);
 
   // run hyper_dg_advance
   int nrep = 10;
@@ -637,9 +628,9 @@ test_dg_lbo_vlasov_1x2v_p2_dev()
 #endif
 
 TEST_LIST = { { "test_dg_lbo_vlasov_1x1v_p2_ho", test_dg_lbo_vlasov_1x1v_p2_ho },
-  { "test_dg_lbo_vlasov_1x2v_p2_ho", test_dg_lbo_vlasov_1x2v_p2_ho },
+              { "test_dg_lbo_vlasov_1x2v_p2_ho", test_dg_lbo_vlasov_1x2v_p2_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_dg_lbo_vlasov_1x1v_p2_dev", test_dg_lbo_vlasov_1x1v_p2_dev },
-  { "test_dg_lbo_vlasov_1x2v_p2_dev", test_dg_lbo_vlasov_1x2v_p2_dev },
+              { "test_dg_lbo_vlasov_1x1v_p2_dev", test_dg_lbo_vlasov_1x1v_p2_dev },
+              { "test_dg_lbo_vlasov_1x2v_p2_dev", test_dg_lbo_vlasov_1x2v_p2_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

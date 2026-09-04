@@ -6,8 +6,7 @@
 #include <gkyl_gr_neutronstar.h>
 #include <gkyl_gr_brill_lindquist.h>
 
-void
-test_gr_spacetime_minkowski_ho()
+void test_gr_spacetime_minkowski_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_minkowski_new(false);
 
@@ -103,14 +102,17 @@ test_gr_spacetime_minkowski_ho()
       }
 
       spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &spatial_metric_der);
+                                                pow(10.0, -6.0), pow(10.0, -6.0),
+                                                &spatial_metric_der);
       spacetime->spatial_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
+                                          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
 
       spacetime->spacetime_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_metric_der);
+                                                  pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                                  &spacetime_metric_der);
       spacetime->spacetime_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_christoffel);
+                                            pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                            &spacetime_christoffel);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -151,11 +153,12 @@ test_gr_spacetime_minkowski_ho()
       }
 
       spacetime->lapse_function_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &lapse_function_der);
+                                         pow(10.0, -6.0), pow(10.0, -6.0), &lapse_function_der);
       spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0), pow(10.0, -6.0),
-        pow(10.0, -6.0), &shift_vector_der);
+                                       pow(10.0, -6.0), &shift_vector_der);
       spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+                                                 pow(10.0, -6.0), pow(10.0, -6.0),
+                                                 &extrinsic_curvature);
 
       for (int i = 0; i < 3; i++) {
         TEST_CHECK(gkyl_compare(lapse_function_der[i], 0.0, 1e-10));
@@ -190,13 +193,14 @@ test_gr_spacetime_minkowski_ho()
       }
 
       spacetime->spatial_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &spatial_riemann_tensor);
+                                             pow(10.0, -6.0), pow(10.0, -6.0),
+                                             &spatial_riemann_tensor);
       spacetime->spatial_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &spatial_weyl_tensor);
+                                          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_weyl_tensor);
       spacetime->spatial_ricci_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor);
+                                           pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_tensor);
       spacetime->spatial_ricci_scalar_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar);
+                                           pow(10.0, -6.0), pow(10.0, -6.0), &spatial_ricci_scalar);
 
       for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
@@ -235,13 +239,17 @@ test_gr_spacetime_minkowski_ho()
       }
 
       spacetime->spacetime_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_riemann_tensor);
+                                               pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                               &spacetime_riemann_tensor);
       spacetime->spacetime_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_weyl_tensor);
+                                            pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                            &spacetime_weyl_tensor);
       spacetime->spacetime_ricci_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_tensor);
+                                             pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                             &spacetime_ricci_tensor);
       spacetime->spacetime_ricci_scalar_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-        pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_scalar);
+                                             pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                             &spacetime_ricci_scalar);
 
       for (int i = 0; i < 4; i++) {
         for (int j = 0; j < 4; j++) {
@@ -332,8 +340,7 @@ test_gr_spacetime_minkowski_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_spacetime_schwarzschild_ho()
+void test_gr_spacetime_schwarzschild_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.0, 0.0, 0.0, 0.0);
 
@@ -375,8 +382,8 @@ test_gr_spacetime_schwarzschild_ho()
         spacetime->spacetime_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric);
 
         spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
-        spacetime->spacetime_inv_metric_tensor_func(
-          spacetime, 0.0, x, y, 0.0, &inv_spacetime_metric);
+        spacetime->spacetime_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0,
+                                                    &inv_spacetime_metric);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -414,8 +421,8 @@ test_gr_spacetime_schwarzschild_ho()
         spacetime->spacetime_metric_det_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric_det);
         spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse_function);
 
-        TEST_CHECK(gkyl_compare(
-          sqrt(-spacetime_metric_det), lapse_function * sqrt(spatial_metric_det), 1e-10));
+        TEST_CHECK(gkyl_compare(sqrt(-spacetime_metric_det),
+                                lapse_function * sqrt(spatial_metric_det), 1e-10));
 
         double ***spatial_metric_der = gkyl_malloc(sizeof(double **[3]));
         double ***spatial_christoffel = gkyl_malloc(sizeof(double **[3]));
@@ -434,9 +441,10 @@ test_gr_spacetime_schwarzschild_ho()
         }
 
         spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_metric_der);
+                                                  pow(10.0, -6.0), pow(10.0, -6.0),
+                                                  &spatial_metric_der);
         spacetime->spatial_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
+                                            pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -472,9 +480,11 @@ test_gr_spacetime_schwarzschild_ho()
         }
 
         spacetime->spacetime_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_metric_der);
+                                                    pow(10.0, -6.0), pow(10.0, -6.0),
+                                                    pow(10.0, -6.0), &spacetime_metric_der);
         spacetime->spacetime_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_christoffel);
+                                              pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                              &spacetime_christoffel);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -510,9 +520,10 @@ test_gr_spacetime_schwarzschild_ho()
         }
 
         spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
+                                         pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
         spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+                                                   pow(10.0, -6.0), pow(10.0, -6.0),
+                                                   &extrinsic_curvature);
 
         double *shift_vector = gkyl_malloc(sizeof(double[3]));
         spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
@@ -538,7 +549,8 @@ test_gr_spacetime_schwarzschild_ho()
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
             TEST_CHECK(gkyl_compare(2.0 * lapse_function * extrinsic_curvature[i][j],
-              -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]), 1e-6));
+                                    -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]),
+                                    1e-6));
           }
         }
 
@@ -549,9 +561,11 @@ test_gr_spacetime_schwarzschild_ho()
         }
 
         spacetime->spacetime_ricci_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_tensor);
+                                               pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                               &spacetime_ricci_tensor);
         spacetime->spacetime_ricci_scalar_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_scalar);
+                                               pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                               &spacetime_ricci_scalar);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -588,9 +602,11 @@ test_gr_spacetime_schwarzschild_ho()
         }
 
         spacetime->spacetime_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_riemann_tensor);
+                                                 pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                                 &spacetime_riemann_tensor);
         spacetime->spacetime_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_weyl_tensor);
+                                              pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                              &spacetime_weyl_tensor);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -610,7 +626,7 @@ test_gr_spacetime_schwarzschild_ho()
             for (int k = 0; k < 4; k++) {
               for (int l = 0; l < 4; l++) {
                 TEST_CHECK(gkyl_compare(covariant_spacetime_riemann_tensor[i][j][k][l],
-                  spacetime_weyl_tensor[i][j][k][l], 1e-2));
+                                        spacetime_weyl_tensor[i][j][k][l], 1e-2));
               }
             }
           }
@@ -700,8 +716,7 @@ test_gr_spacetime_schwarzschild_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_spacetime_kerr_ho()
+void test_gr_spacetime_kerr_ho()
 {
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_blackhole_new(false, 0.1, 0.9, 0.0, 0.0, 0.0);
 
@@ -743,8 +758,8 @@ test_gr_spacetime_kerr_ho()
         spacetime->spacetime_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric);
 
         spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
-        spacetime->spacetime_inv_metric_tensor_func(
-          spacetime, 0.0, x, y, 0.0, &inv_spacetime_metric);
+        spacetime->spacetime_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0,
+                                                    &inv_spacetime_metric);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -782,8 +797,8 @@ test_gr_spacetime_kerr_ho()
         spacetime->spacetime_metric_det_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric_det);
         spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse_function);
 
-        TEST_CHECK(gkyl_compare(
-          sqrt(-spacetime_metric_det), lapse_function * sqrt(spatial_metric_det), 1e-10));
+        TEST_CHECK(gkyl_compare(sqrt(-spacetime_metric_det),
+                                lapse_function * sqrt(spatial_metric_det), 1e-10));
 
         double ***spatial_metric_der = gkyl_malloc(sizeof(double **[3]));
         double ***spatial_christoffel = gkyl_malloc(sizeof(double **[3]));
@@ -802,9 +817,10 @@ test_gr_spacetime_kerr_ho()
         }
 
         spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_metric_der);
+                                                  pow(10.0, -6.0), pow(10.0, -6.0),
+                                                  &spatial_metric_der);
         spacetime->spatial_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
+                                            pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -840,9 +856,11 @@ test_gr_spacetime_kerr_ho()
         }
 
         spacetime->spacetime_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_metric_der);
+                                                    pow(10.0, -6.0), pow(10.0, -6.0),
+                                                    pow(10.0, -6.0), &spacetime_metric_der);
         spacetime->spacetime_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_christoffel);
+                                              pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                              &spacetime_christoffel);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -878,9 +896,10 @@ test_gr_spacetime_kerr_ho()
         }
 
         spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
+                                         pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
         spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+                                                   pow(10.0, -6.0), pow(10.0, -6.0),
+                                                   &extrinsic_curvature);
 
         double *shift_vector = gkyl_malloc(sizeof(double[3]));
         spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
@@ -906,7 +925,8 @@ test_gr_spacetime_kerr_ho()
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
             TEST_CHECK(gkyl_compare(2.0 * lapse_function * extrinsic_curvature[i][j],
-              -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]), 1e-6));
+                                    -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]),
+                                    1e-6));
           }
         }
 
@@ -917,9 +937,11 @@ test_gr_spacetime_kerr_ho()
         }
 
         spacetime->spacetime_ricci_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_tensor);
+                                               pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                               &spacetime_ricci_tensor);
         spacetime->spacetime_ricci_scalar_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_ricci_scalar);
+                                               pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                               &spacetime_ricci_scalar);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -956,9 +978,11 @@ test_gr_spacetime_kerr_ho()
         }
 
         spacetime->spacetime_riemann_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_riemann_tensor);
+                                                 pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                                 &spacetime_riemann_tensor);
         spacetime->spacetime_weyl_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_weyl_tensor);
+                                              pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                              &spacetime_weyl_tensor);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -978,7 +1002,7 @@ test_gr_spacetime_kerr_ho()
             for (int k = 0; k < 4; k++) {
               for (int l = 0; l < 4; l++) {
                 TEST_CHECK(gkyl_compare(covariant_spacetime_riemann_tensor[i][j][k][l],
-                  spacetime_weyl_tensor[i][j][k][l], 1e-2));
+                                        spacetime_weyl_tensor[i][j][k][l], 1e-2));
               }
             }
           }
@@ -1068,8 +1092,7 @@ test_gr_spacetime_kerr_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_spacetime_neutronstar_static_ho()
+void test_gr_spacetime_neutronstar_static_ho()
 {
   double mass = 0.1;
   double spin = 0.0;
@@ -1085,9 +1108,9 @@ test_gr_spacetime_neutronstar_static_ho()
   double mass_quadrupole =
     -alpha * (spin_dimensionless * spin_dimensionless) * (mass * mass * mass);
   double spin_octupole = -beta * (spin_dimensionless * spin_dimensionless * spin_dimensionless) *
-    (mass * mass * mass * mass);
-  double mass_hexadecapole = gamma *
-    (spin_dimensionless * spin_dimensionless * spin_dimensionless * spin_dimensionless) *
+                         (mass * mass * mass * mass);
+  double mass_hexadecapole =
+    gamma * (spin_dimensionless * spin_dimensionless * spin_dimensionless * spin_dimensionless) *
     (mass * mass * mass * mass * mass);
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_new(
@@ -1131,8 +1154,8 @@ test_gr_spacetime_neutronstar_static_ho()
         spacetime->spacetime_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric);
 
         spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
-        spacetime->spacetime_inv_metric_tensor_func(
-          spacetime, 0.0, x, y, 0.0, &inv_spacetime_metric);
+        spacetime->spacetime_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0,
+                                                    &inv_spacetime_metric);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -1170,8 +1193,8 @@ test_gr_spacetime_neutronstar_static_ho()
         spacetime->spacetime_metric_det_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric_det);
         spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse_function);
 
-        TEST_CHECK(gkyl_compare(
-          sqrt(-spacetime_metric_det), lapse_function * sqrt(spatial_metric_det), 1e-10));
+        TEST_CHECK(gkyl_compare(sqrt(-spacetime_metric_det),
+                                lapse_function * sqrt(spatial_metric_det), 1e-10));
 
         double ***spatial_metric_der = gkyl_malloc(sizeof(double **[3]));
         double ***spatial_christoffel = gkyl_malloc(sizeof(double **[3]));
@@ -1190,9 +1213,10 @@ test_gr_spacetime_neutronstar_static_ho()
         }
 
         spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_metric_der);
+                                                  pow(10.0, -6.0), pow(10.0, -6.0),
+                                                  &spatial_metric_der);
         spacetime->spatial_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
+                                            pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -1228,9 +1252,11 @@ test_gr_spacetime_neutronstar_static_ho()
         }
 
         spacetime->spacetime_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_metric_der);
+                                                    pow(10.0, -6.0), pow(10.0, -6.0),
+                                                    pow(10.0, -6.0), &spacetime_metric_der);
         spacetime->spacetime_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_christoffel);
+                                              pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                              &spacetime_christoffel);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -1266,9 +1292,10 @@ test_gr_spacetime_neutronstar_static_ho()
         }
 
         spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
+                                         pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
         spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+                                                   pow(10.0, -6.0), pow(10.0, -6.0),
+                                                   &extrinsic_curvature);
 
         double *shift_vector = gkyl_malloc(sizeof(double[3]));
         spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
@@ -1294,7 +1321,8 @@ test_gr_spacetime_neutronstar_static_ho()
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
             TEST_CHECK(gkyl_compare(2.0 * lapse_function * extrinsic_curvature[i][j],
-              -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]), 1e-6));
+                                    -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]),
+                                    1e-6));
           }
         }
 
@@ -1365,8 +1393,7 @@ test_gr_spacetime_neutronstar_static_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_spacetime_neutronstar_spinning_ho()
+void test_gr_spacetime_neutronstar_spinning_ho()
 {
   double mass = 0.1;
   double spin = -0.12;
@@ -1382,9 +1409,9 @@ test_gr_spacetime_neutronstar_spinning_ho()
   double mass_quadrupole =
     -alpha * (spin_dimensionless * spin_dimensionless) * (mass * mass * mass);
   double spin_octupole = -beta * (spin_dimensionless * spin_dimensionless * spin_dimensionless) *
-    (mass * mass * mass * mass);
-  double mass_hexadecapole = gamma *
-    (spin_dimensionless * spin_dimensionless * spin_dimensionless * spin_dimensionless) *
+                         (mass * mass * mass * mass);
+  double mass_hexadecapole =
+    gamma * (spin_dimensionless * spin_dimensionless * spin_dimensionless * spin_dimensionless) *
     (mass * mass * mass * mass * mass);
 
   struct gkyl_gr_spacetime *spacetime = gkyl_gr_neutronstar_new(
@@ -1428,8 +1455,8 @@ test_gr_spacetime_neutronstar_spinning_ho()
         spacetime->spacetime_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric);
 
         spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
-        spacetime->spacetime_inv_metric_tensor_func(
-          spacetime, 0.0, x, y, 0.0, &inv_spacetime_metric);
+        spacetime->spacetime_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0,
+                                                    &inv_spacetime_metric);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -1467,8 +1494,8 @@ test_gr_spacetime_neutronstar_spinning_ho()
         spacetime->spacetime_metric_det_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric_det);
         spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse_function);
 
-        TEST_CHECK(gkyl_compare(
-          sqrt(-spacetime_metric_det), lapse_function * sqrt(spatial_metric_det), 1e-10));
+        TEST_CHECK(gkyl_compare(sqrt(-spacetime_metric_det),
+                                lapse_function * sqrt(spatial_metric_det), 1e-10));
 
         double ***spatial_metric_der = gkyl_malloc(sizeof(double **[3]));
         double ***spatial_christoffel = gkyl_malloc(sizeof(double **[3]));
@@ -1487,9 +1514,10 @@ test_gr_spacetime_neutronstar_spinning_ho()
         }
 
         spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_metric_der);
+                                                  pow(10.0, -6.0), pow(10.0, -6.0),
+                                                  &spatial_metric_der);
         spacetime->spatial_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
+                                            pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -1525,9 +1553,11 @@ test_gr_spacetime_neutronstar_spinning_ho()
         }
 
         spacetime->spacetime_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_metric_der);
+                                                    pow(10.0, -6.0), pow(10.0, -6.0),
+                                                    pow(10.0, -6.0), &spacetime_metric_der);
         spacetime->spacetime_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_christoffel);
+                                              pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                              &spacetime_christoffel);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -1563,9 +1593,10 @@ test_gr_spacetime_neutronstar_spinning_ho()
         }
 
         spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
+                                         pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
         spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+                                                   pow(10.0, -6.0), pow(10.0, -6.0),
+                                                   &extrinsic_curvature);
 
         double *shift_vector = gkyl_malloc(sizeof(double[3]));
         spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
@@ -1591,7 +1622,8 @@ test_gr_spacetime_neutronstar_spinning_ho()
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
             TEST_CHECK(gkyl_compare(2.0 * lapse_function * extrinsic_curvature[i][j],
-              -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]), 1e-6));
+                                    -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]),
+                                    1e-6));
           }
         }
 
@@ -1662,8 +1694,7 @@ test_gr_spacetime_neutronstar_spinning_ho()
   gkyl_gr_spacetime_release(spacetime);
 }
 
-void
-test_gr_spacetime_brill_lindquist_ho()
+void test_gr_spacetime_brill_lindquist_ho()
 {
   double mass1 = 0.5;
   double mass2 = 0.5;
@@ -1685,7 +1716,7 @@ test_gr_spacetime_brill_lindquist_ho()
       double y = 1.0 * y_ind;
 
       if (sqrt(((x - 3.0) * (x - 3.0)) + (y * y)) > 1.0 &&
-        sqrt(((x + 3.0) * (x + 3.0)) + (y * y)) > 1.0) {
+          sqrt(((x + 3.0) * (x + 3.0)) + (y * y)) > 1.0) {
         double **spatial_metric = gkyl_malloc(sizeof(double *[3]));
         double **inv_spatial_metric = gkyl_malloc(sizeof(double *[3]));
         double **spatial_metric_prod = gkyl_malloc(sizeof(double *[3]));
@@ -1718,8 +1749,8 @@ test_gr_spacetime_brill_lindquist_ho()
         spacetime->spacetime_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric);
 
         spacetime->spatial_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0, &inv_spatial_metric);
-        spacetime->spacetime_inv_metric_tensor_func(
-          spacetime, 0.0, x, y, 0.0, &inv_spacetime_metric);
+        spacetime->spacetime_inv_metric_tensor_func(spacetime, 0.0, x, y, 0.0,
+                                                    &inv_spacetime_metric);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -1757,8 +1788,8 @@ test_gr_spacetime_brill_lindquist_ho()
         spacetime->spacetime_metric_det_func(spacetime, 0.0, x, y, 0.0, &spacetime_metric_det);
         spacetime->lapse_function_func(spacetime, 0.0, x, y, 0.0, &lapse_function);
 
-        TEST_CHECK(gkyl_compare(
-          sqrt(-spacetime_metric_det), lapse_function * sqrt(spatial_metric_det), 1e-10));
+        TEST_CHECK(gkyl_compare(sqrt(-spacetime_metric_det),
+                                lapse_function * sqrt(spatial_metric_det), 1e-10));
 
         double ***spatial_metric_der = gkyl_malloc(sizeof(double **[3]));
         double ***spatial_christoffel = gkyl_malloc(sizeof(double **[3]));
@@ -1777,9 +1808,10 @@ test_gr_spacetime_brill_lindquist_ho()
         }
 
         spacetime->spatial_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_metric_der);
+                                                  pow(10.0, -6.0), pow(10.0, -6.0),
+                                                  &spatial_metric_der);
         spacetime->spatial_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
+                                            pow(10.0, -6.0), pow(10.0, -6.0), &spatial_christoffel);
 
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
@@ -1815,9 +1847,11 @@ test_gr_spacetime_brill_lindquist_ho()
         }
 
         spacetime->spacetime_metric_tensor_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_metric_der);
+                                                    pow(10.0, -6.0), pow(10.0, -6.0),
+                                                    pow(10.0, -6.0), &spacetime_metric_der);
         spacetime->spacetime_christoffel_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0), &spacetime_christoffel);
+                                              pow(10.0, -6.0), pow(10.0, -6.0), pow(10.0, -6.0),
+                                              &spacetime_christoffel);
 
         for (int i = 0; i < 4; i++) {
           for (int j = 0; j < 4; j++) {
@@ -1853,9 +1887,10 @@ test_gr_spacetime_brill_lindquist_ho()
         }
 
         spacetime->shift_vector_der_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
+                                         pow(10.0, -6.0), pow(10.0, -6.0), &shift_vector_der);
         spacetime->extrinsic_curvature_tensor_func(spacetime, 0.0, x, y, 0.0, pow(10.0, -6.0),
-          pow(10.0, -6.0), pow(10.0, -6.0), &extrinsic_curvature);
+                                                   pow(10.0, -6.0), pow(10.0, -6.0),
+                                                   &extrinsic_curvature);
 
         double *shift_vector = gkyl_malloc(sizeof(double[3]));
         spacetime->shift_vector_func(spacetime, 0.0, x, y, 0.0, &shift_vector);
@@ -1881,7 +1916,8 @@ test_gr_spacetime_brill_lindquist_ho()
         for (int i = 0; i < 3; i++) {
           for (int j = 0; j < 3; j++) {
             TEST_CHECK(gkyl_compare(2.0 * lapse_function * extrinsic_curvature[i][j],
-              -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]), 1e-6));
+                                    -(shift_covector_cov_der[j][i] + shift_covector_cov_der[i][j]),
+                                    1e-6));
           }
         }
 
@@ -1953,8 +1989,9 @@ test_gr_spacetime_brill_lindquist_ho()
 }
 
 TEST_LIST = { { "gr_spacetime_minkowski_ho", test_gr_spacetime_minkowski_ho },
-  { "gr_spacetime_schwarzschild_ho", test_gr_spacetime_schwarzschild_ho },
-  { "gr_spacetime_kerr_ho", test_gr_spacetime_kerr_ho },
-  { "gr_spacetime_neutronstar_static_ho", test_gr_spacetime_neutronstar_static_ho },
-  { "gr_spacetime_neutronstar_spinning_ho", test_gr_spacetime_neutronstar_spinning_ho },
-  { "gr_spacetime_brill_lindquist_ho", test_gr_spacetime_brill_lindquist_ho }, { NULL, NULL } };
+              { "gr_spacetime_schwarzschild_ho", test_gr_spacetime_schwarzschild_ho },
+              { "gr_spacetime_kerr_ho", test_gr_spacetime_kerr_ho },
+              { "gr_spacetime_neutronstar_static_ho", test_gr_spacetime_neutronstar_static_ho },
+              { "gr_spacetime_neutronstar_spinning_ho", test_gr_spacetime_neutronstar_spinning_ho },
+              { "gr_spacetime_brill_lindquist_ho", test_gr_spacetime_brill_lindquist_ho },
+              { NULL, NULL } };

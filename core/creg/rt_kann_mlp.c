@@ -11,16 +11,14 @@ struct xrange {
   int N;
 };
 
-static inline float
-xrange_n(struct xrange xr, int n)
+static inline float xrange_n(struct xrange xr, int n)
 {
   float dx = (xr.xright - xr.xleft) / (xr.N - 1);
   return xr.xleft + dx * n;
 }
 
 // function to fit
-static inline float
-ufunc(float x)
+static inline float ufunc(float x)
 {
   return 1.0f / (1.0f + 100.0f * x * x);
 }
@@ -32,8 +30,7 @@ struct train_inp {
   float learning_rate;
 };
 
-void
-train_ann(struct train_inp *nn_inp, const char *nn_name)
+void train_ann(struct train_inp *nn_inp, const char *nn_name)
 {
   kad_node_t *t_net;
   t_net = kann_layer_input(1);
@@ -67,8 +64,8 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
   float frac_val = 0.1f; // fraction of samples to use for validation
 
   // run training
-  kann_train_fnn1(
-    ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals, out->vals);
+  kann_train_fnn1(ann, lr, mini_size, max_epoch, max_drop_streak, frac_val, N, inp->vals,
+                  out->vals);
   kann_save(nn_name, ann); // save to file
 
   gkyl_kn_vec_release(inp);
@@ -77,8 +74,7 @@ train_ann(struct train_inp *nn_inp, const char *nn_name)
 }
 
 // run inference on N input values
-void
-infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
+void infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec *out)
 {
   kann_t *ann = kann_load(nn_name);
   const float *ov;
@@ -90,8 +86,7 @@ infer_ann(const char *nn_name, const struct gkyl_kn_vec *inp, struct gkyl_kn_vec
   kann_delete(ann);
 }
 
-void
-write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
+void write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
 {
   const char *gpcode = "set macros\n"
                        "set style line 1 lc rgb '#0060ad' lt 1 lw 2 pt 5   # blue\n"
@@ -116,8 +111,7 @@ write_to_gplot(const struct gkyl_kn_vec *inp, const struct gkyl_kn_vec *out)
   }
 }
 
-int
-main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
   int p_train = 0, p_infer = 0, p_verbose = 0, c;
   while ((c = getopt(argc, argv, "+htiv")) != -1) {

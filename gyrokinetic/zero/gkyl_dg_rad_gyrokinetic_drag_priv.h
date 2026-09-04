@@ -7,15 +7,17 @@
 
 // Types for various kernels
 typedef double (*rad_gyrokinetic_surf_t)(const double *w, const double *dxv, const double *vmap,
-  const double *vmap_prime_l, const double *vmap_prime_c, const double *vmap_prime_r,
-  const double *nvnu_l, const double *nvnu_r, const double *nvsqnu_l, const double *nvsqnu_r,
-  const double *fl, const double *fc, const double *fr, double *GKYL_RESTRICT out);
+                                         const double *vmap_prime_l, const double *vmap_prime_c,
+                                         const double *vmap_prime_r, const double *nvnu_l,
+                                         const double *nvnu_r, const double *nvsqnu_l,
+                                         const double *nvsqnu_r, const double *fl, const double *fc,
+                                         const double *fr, double *GKYL_RESTRICT out);
 
-typedef double (*rad_gyrokinetic_boundary_surf_t)(const double *w, const double *dxv,
-  const double *vmap, const double *vmap_prime_edge, const double *vmap_prime_skin,
-  const double *nvnu_edge, const double *nvnu_skin, const double *nvsqnu_edge,
-  const double *nvsqnu_skin, const int edge, const double *fedge, const double *fskin,
-  double *GKYL_RESTRICT out);
+typedef double (*rad_gyrokinetic_boundary_surf_t)(
+  const double *w, const double *dxv, const double *vmap, const double *vmap_prime_edge,
+  const double *vmap_prime_skin, const double *nvnu_edge, const double *nvnu_skin,
+  const double *nvsqnu_edge, const double *nvsqnu_skin, const int edge, const double *fedge,
+  const double *fskin, double *GKYL_RESTRICT out);
 
 // The cv_index[cd].vdim[vd] is used to index the various list of
 // kernels below.
@@ -60,9 +62,10 @@ struct dg_rad_gyrokinetic_drag {
 // Need to be separated like this for GPU build
 //
 
-GKYL_CU_DH static double
-kernel_rad_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_rad_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *grad_drag =
     container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
@@ -75,15 +78,16 @@ kernel_rad_gyrokinetic_vol_1x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
 
-  return rad_gyrokinetic_vol_1x2v_ser_p1(xc, dx,
-    (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+  return rad_gyrokinetic_vol_1x2v_ser_p1(
+    xc, dx, (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
     (const double *)gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx),
     (const double *)gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_rad_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_rad_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *grad_drag =
     container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
@@ -96,15 +100,16 @@ kernel_rad_gyrokinetic_vol_2x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
 
-  return rad_gyrokinetic_vol_2x2v_ser_p1(xc, dx,
-    (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+  return rad_gyrokinetic_vol_2x2v_ser_p1(
+    xc, dx, (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
     (const double *)gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx),
     (const double *)gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), qIn, qRhsOut);
 }
 
-GKYL_CU_DH static double
-kernel_rad_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const double *xc,
-  const double *dx, const int *idx, const double *qIn, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_DH static double kernel_rad_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn,
+                                                                const double *xc, const double *dx,
+                                                                const int *idx, const double *qIn,
+                                                                double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *grad_drag =
     container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
@@ -117,8 +122,8 @@ kernel_rad_gyrokinetic_vol_3x2v_ser_p1(const struct gkyl_dg_eqn *eqn, const doub
   long vidx = gkyl_range_idx(&grad_drag->vel_map->local_vel, vel_idx);
   long pidx = gkyl_range_idx(&grad_drag->phase_range, idx);
 
-  return rad_gyrokinetic_vol_3x2v_ser_p1(xc, dx,
-    (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
+  return rad_gyrokinetic_vol_3x2v_ser_p1(
+    xc, dx, (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidx),
     (const double *)gkyl_array_cfetch(grad_drag->auxfields.nvnu, pidx),
     (const double *)gkyl_array_cfetch(grad_drag->auxfields.nvsqnu, pidx), qIn, qRhsOut);
 }
@@ -182,11 +187,11 @@ GKYL_CU_D static const gkyl_dg_rad_gyrokinetic_boundary_surf_kern_list
 
 void gkyl_rad_gyrokinetic_free(const struct gkyl_ref_count *ref);
 
-GKYL_CU_D static double
-surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xcC,
-  const double *xcR, const double *dxL, const double *dxC, const double *dxR, const int *idxL,
-  const int *idxC, const int *idxR, const double *qInL, const double *qInC, const double *qInR,
-  double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_D static double surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL,
+                             const double *xcC, const double *xcR, const double *dxL,
+                             const double *dxC, const double *dxR, const int *idxL, const int *idxC,
+                             const int *idxR, const double *qInL, const double *qInC,
+                             const double *qInR, double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *grad_drag =
     container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
@@ -208,8 +213,8 @@ surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xc
     long pidxC = gkyl_range_idx(&grad_drag->phase_range, idxC);
     long pidxR = gkyl_range_idx(&grad_drag->phase_range, idxR);
     long cidx = gkyl_range_idx(&grad_drag->conf_range, idxR);
-    return grad_drag->surf[dir - grad_drag->cdim](xcC, dxC,
-      (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxC),
+    return grad_drag->surf[dir - grad_drag->cdim](
+      xcC, dxC, (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxC),
       (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxL),
       (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxC),
       (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxR),
@@ -222,10 +227,11 @@ surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcL, const double *xc
   return 0.;
 }
 
-GKYL_CU_D static double
-boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, const double *xcSkin,
-  const double *dxEdge, const double *dxSkin, const int *idxEdge, const int *idxSkin,
-  const int edge, const double *qInEdge, const double *qInSkin, double *GKYL_RESTRICT qRhsOut)
+GKYL_CU_D static double boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge,
+                                      const double *xcSkin, const double *dxEdge,
+                                      const double *dxSkin, const int *idxEdge, const int *idxSkin,
+                                      const int edge, const double *qInEdge, const double *qInSkin,
+                                      double *GKYL_RESTRICT qRhsOut)
 {
   struct dg_rad_gyrokinetic_drag *grad_drag =
     container_of(eqn, struct dg_rad_gyrokinetic_drag, eqn);
@@ -245,8 +251,8 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, cons
     long pidxEdge = gkyl_range_idx(&grad_drag->phase_range, idxEdge);
     long pidxSkin = gkyl_range_idx(&grad_drag->phase_range, idxSkin);
 
-    return grad_drag->boundary_surf[dir - grad_drag->cdim](xcSkin, dxSkin,
-      (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxSkin),
+    return grad_drag->boundary_surf[dir - grad_drag->cdim](
+      xcSkin, dxSkin, (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap, vidxSkin),
       (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxEdge),
       (const double *)gkyl_array_cfetch(grad_drag->vel_map->vmap_prime, vidxSkin),
       (const double *)gkyl_array_cfetch(grad_drag->auxfields.nvnu_surf, pidxEdge),
@@ -269,13 +275,14 @@ boundary_surf(const struct gkyl_dg_eqn *eqn, int dir, const double *xcEdge, cons
  * @param vel_map Velocity space mapping object.
  * @return Pointer to RAD equation object
  */
-struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *phase_range,
-  const struct gkyl_range *conf_range, const struct gkyl_velocity_map *vel_map);
+struct gkyl_dg_eqn *gkyl_dg_rad_gyrokinetic_drag_cu_dev_new(
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *phase_range, const struct gkyl_range *conf_range,
+  const struct gkyl_velocity_map *vel_map);
 
 /**
  * CUDA device function to set auxiliary fields needed in updating the drag flux term.
  */
-void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_rad_gyrokinetic_auxfields auxin);
+void gkyl_rad_gyrokinetic_drag_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
+                                                struct gkyl_dg_rad_gyrokinetic_auxfields auxin);
 #endif

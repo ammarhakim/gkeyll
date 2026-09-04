@@ -20,8 +20,7 @@ struct gkyl_ref_count {
  * @param free Function pointer to the delete function
  * @return Ref object
  */
-static inline struct gkyl_ref_count
-gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count *))
+static inline struct gkyl_ref_count gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count *))
 {
   return (struct gkyl_ref_count){ .free = free, .count = 1 };
 }
@@ -31,8 +30,7 @@ gkyl_ref_count_init(void (*free)(const struct gkyl_ref_count *))
  *
  * @param ref Object to increment.
  */
-static inline void
-gkyl_ref_count_inc(const struct gkyl_ref_count *ref)
+static inline void gkyl_ref_count_inc(const struct gkyl_ref_count *ref)
 {
   ((struct gkyl_ref_count *)ref)->count++;
 }
@@ -43,8 +41,7 @@ gkyl_ref_count_inc(const struct gkyl_ref_count *ref)
  *
  * @param ref Object to decrement.
  */
-static inline void
-gkyl_ref_count_dec(const struct gkyl_ref_count *ref)
+static inline void gkyl_ref_count_dec(const struct gkyl_ref_count *ref)
 {
   if (--((struct gkyl_ref_count *)ref)->count == 0)
     ref->free(ref);

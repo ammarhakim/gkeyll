@@ -3,8 +3,7 @@
 #include <gkyl_util.h>
 #include <gkyl_range.h>
 
-static void
-test_gauss_quad_basic_ho()
+static void test_gauss_quad_basic_ho()
 {
   int gauss_max = gkyl_gauss_max;
   double w[gauss_max], x[gauss_max];
@@ -24,8 +23,7 @@ test_gauss_quad_basic_ho()
   }
 }
 
-static void
-test_gauss_quad_ndim_ho()
+static void test_gauss_quad_ndim_ho()
 {
   int nquad = 4;
   double *x = gkyl_malloc(sizeof(double) * nquad * nquad * 2);
@@ -60,4 +58,5 @@ test_gauss_quad_ndim_ho()
 }
 
 TEST_LIST = { { "gauss_quad_basic_ho", test_gauss_quad_basic_ho },
-  { "gauss_quad_ndim_ho", test_gauss_quad_ndim_ho }, { NULL, NULL } };
+              { "gauss_quad_ndim_ho", test_gauss_quad_ndim_ho },
+              { NULL, NULL } };

@@ -1,8 +1,7 @@
 #include <gkyl_gk_geometry.h>
 #include <gkyl_nodal_ops.h>
 
-static inline void
-get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
+static inline void get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
 {
   // Remove path from 'filepath' and output only the file name (including its extension)
   // to the buffer 'out_buffer' of size 'out_size'.
@@ -15,8 +14,7 @@ get_filename_from_path(const char *filepath, char *out_buffer, size_t out_size)
   }
 }
 
-static double
-calc_running_coord(double coord_lo, int i, double dx)
+static double calc_running_coord(double coord_lo, int i, double dx)
 {
   double dels[2] = { 1.0 / sqrt(3), 1.0 - 1.0 / sqrt(3) };
   double coord = coord_lo;
@@ -25,8 +23,7 @@ calc_running_coord(double coord_lo, int i, double dx)
   return coord;
 }
 
-static double
-calc_running_surf_coord(double coord_lo, int i, double dx)
+static double calc_running_surf_coord(double coord_lo, int i, double dx)
 {
   double dels[3] = { (1.0 - 1.0 / sqrt(3)) / 2.0, 1.0 / sqrt(3), (1.0 - 1.0 / sqrt(3)) / 2.0 };
   double coord = coord_lo;
@@ -35,8 +32,7 @@ calc_running_surf_coord(double coord_lo, int i, double dx)
   return coord;
 }
 
-static void
-gk_geometry_set_nodal_ranges(struct gk_geometry *up)
+static void gk_geometry_set_nodal_ranges(struct gk_geometry *up)
 {
   int poly_order = up->basis.poly_order;
 
@@ -60,19 +56,18 @@ gk_geometry_set_nodal_ranges(struct gk_geometry *up)
   int num_nodes_quad_surf_in_dir[up->grid.ndim][GKYL_MAX_CDIM];
   for (int dir = 0; dir < up->grid.ndim; ++dir)
     for (int d = 0; d < up->grid.ndim; ++d)
-      num_nodes_quad_surf_in_dir[dir][d] = d == dir
-        ? gkyl_range_shape(&up->local, d) + 1
-        : gkyl_range_shape(&up->local, d) * num_quad_points;
+      num_nodes_quad_surf_in_dir[dir][d] = d == dir ?
+                                             gkyl_range_shape(&up->local, d) + 1 :
+                                             gkyl_range_shape(&up->local, d) * num_quad_points;
 
   gkyl_range_init_from_shape(&up->nrange_corn, up->grid.ndim, num_nodes_corners);
   gkyl_range_init_from_shape(&up->nrange_int, up->grid.ndim, num_nodes_quad_interior);
   for (int dir = 0; dir < up->grid.ndim; ++dir)
-    gkyl_range_init_from_shape(
-      &up->nrange_surf[dir], up->grid.ndim, num_nodes_quad_surf_in_dir[dir]);
+    gkyl_range_init_from_shape(&up->nrange_surf[dir], up->grid.ndim,
+                               num_nodes_quad_surf_in_dir[dir]);
 }
 
-static void
-gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
+static void gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
 {
   // mapc2p for calculations of tangents
   int num_fd_nodes = 13;
@@ -123,8 +118,7 @@ gk_geometry_surf_alloc_nodal(struct gk_geometry *gk_geom, int dir)
     gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_surf[dir].volume);
 }
 
-static void
-gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
+static void gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
 {
   up->geo_surf[dir].bmag =
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
@@ -150,8 +144,7 @@ gk_geometry_surf_alloc_expansions(struct gk_geometry *up, int dir)
     gkyl_array_new(GKYL_DOUBLE, 1 * up->num_surf_basis, up->local_ext.volume);
 }
 
-static void
-gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
+static void gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
 {
   gkyl_array_release(gk_geom->geo_surf[dir].mc2p_nodal_fd);
   gkyl_array_release(gk_geom->geo_surf[dir].mc2p_nodal);
@@ -177,8 +170,7 @@ gk_geometry_surf_release_nodal(struct gk_geometry *gk_geom, int dir)
   gkyl_array_release(gk_geom->geo_surf[dir].deltats_nodal);
 }
 
-static void
-gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
+static void gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
 {
   // mapc2p for calculations of tangents
   int num_fd_nodes = 13;
@@ -210,8 +202,7 @@ gk_geometry_int_alloc_nodal(struct gk_geometry *gk_geom)
   gk_geom->geo_int.bioverJB_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_int.volume);
 }
 
-static void
-gk_geometry_int_alloc_expansions(struct gk_geometry *up)
+static void gk_geometry_int_alloc_expansions(struct gk_geometry *up)
 {
   // mapc2p
   up->geo_int.mc2p = gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
@@ -250,8 +241,7 @@ gk_geometry_int_alloc_expansions(struct gk_geometry *up)
   up->geo_int.qprofile = gkyl_array_new(GKYL_DOUBLE, up->basis.num_basis, up->local_ext.volume);
 }
 
-static void
-gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
+static void gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
 {
   gkyl_array_release(gk_geom->geo_int.mc2p_nodal_fd);
   gkyl_array_release(gk_geom->geo_int.mc2p_nodal);
@@ -277,8 +267,7 @@ gk_geometry_int_release_nodal(struct gk_geometry *gk_geom)
   gkyl_array_release(gk_geom->geo_int.bioverJB_nodal);
 }
 
-static void
-gk_geometry_corn_alloc_nodal(struct gk_geometry *gk_geom)
+static void gk_geometry_corn_alloc_nodal(struct gk_geometry *gk_geom)
 {
   // mapc2p
   gk_geom->geo_corn.mc2p_nodal = gkyl_array_new(GKYL_DOUBLE, 3, gk_geom->nrange_corn.volume);
@@ -286,8 +275,7 @@ gk_geometry_corn_alloc_nodal(struct gk_geometry *gk_geom)
   gk_geom->geo_corn.bmag_nodal = gkyl_array_new(GKYL_DOUBLE, 1, gk_geom->nrange_corn.volume);
 }
 
-static void
-gk_geometry_corn_alloc_expansions(struct gk_geometry *up)
+static void gk_geometry_corn_alloc_expansions(struct gk_geometry *up)
 {
   // mapc2p
   up->geo_corn.mc2p = gkyl_array_new(GKYL_DOUBLE, 3 * up->basis.num_basis, up->local_ext.volume);
@@ -303,17 +291,15 @@ gk_geometry_corn_alloc_expansions(struct gk_geometry *up)
     gkyl_array_new(GKYL_DOUBLE, up->grid.ndim * up->basis.num_basis, up->local_ext.volume);
 }
 
-static void
-gk_geometry_corn_release_nodal(struct gk_geometry *gk_geom)
+static void gk_geometry_corn_release_nodal(struct gk_geometry *gk_geom)
 {
   gkyl_array_release(gk_geom->geo_corn.mc2p_nodal);
   gkyl_array_release(gk_geom->geo_corn.mc2nu_pos_nodal);
   gkyl_array_release(gk_geom->geo_corn.bmag_nodal);
 }
 
-static void
-gk_geometry_surf_calc_expansions(
-  struct gk_geometry *gk_geom, int dir, struct gkyl_range nrange_quad_surf)
+static void gk_geometry_surf_calc_expansions(struct gk_geometry *gk_geom, int dir,
+                                             struct gkyl_range nrange_quad_surf)
 {
   struct gk_geom_surf up_surf = gk_geom->geo_surf[dir];
   struct gkyl_nodal_ops *n2m = gkyl_nodal_ops_new(&gk_geom->basis, &gk_geom->grid, false);
@@ -325,27 +311,30 @@ gk_geometry_surf_calc_expansions(
   gkyl_sub_range_init(&local_ext_in_dir, &gk_geom->local_ext, lower, upper);
 
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.bmag_nodal, up_surf.bmag, dir);
+                             &local_ext_in_dir, 1, up_surf.bmag_nodal, up_surf.bmag, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir);
+                             &local_ext_in_dir, 1, up_surf.jacobgeo_nodal, up_surf.jacobgeo, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 3, up_surf.b_i_nodal, up_surf.b_i, dir);
+                             &local_ext_in_dir, 3, up_surf.b_i_nodal, up_surf.b_i, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.cmag_nodal, up_surf.cmag, dir);
+                             &local_ext_in_dir, 1, up_surf.cmag_nodal, up_surf.cmag, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.jacobtot_inv_nodal, up_surf.jacobtot_inv, dir);
+                             &local_ext_in_dir, 1, up_surf.jacobtot_inv_nodal, up_surf.jacobtot_inv,
+                             dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.B3_nodal, up_surf.B3, dir);
+                             &local_ext_in_dir, 1, up_surf.B3_nodal, up_surf.B3, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.normcurlbhat_nodal, up_surf.normcurlbhat, dir);
+                             &local_ext_in_dir, 1, up_surf.normcurlbhat_nodal, up_surf.normcurlbhat,
+                             dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 9, up_surf.normals_nodal, up_surf.normals, dir);
+                             &local_ext_in_dir, 9, up_surf.normals_nodal, up_surf.normals, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.lenr_nodal, up_surf.lenr, dir);
+                             &local_ext_in_dir, 1, up_surf.lenr_nodal, up_surf.lenr, dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.bimpactangle_nodal, up_surf.bimpactangle, dir);
+                             &local_ext_in_dir, 1, up_surf.bimpactangle_nodal, up_surf.bimpactangle,
+                             dir);
   gkyl_nodal_ops_n2m_surface(n2m, &gk_geom->surf_basis, &gk_geom->grid, &nrange_quad_surf,
-    &local_ext_in_dir, 1, up_surf.deltats_nodal, up_surf.deltats, dir);
+                             &local_ext_in_dir, 1, up_surf.deltats_nodal, up_surf.deltats, dir);
 
   // jacobgeo_ratio is not used in single block.
   int cdim = gk_geom->grid.ndim;

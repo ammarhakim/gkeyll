@@ -7,8 +7,8 @@ struct rrobin_decomp {
   int *branks; // ranks per block
 };
 
-const struct gkyl_rrobin_decomp *
-gkyl_rrobin_decomp_new(int total_ranks, int nblocks, const int *branks)
+const struct gkyl_rrobin_decomp *gkyl_rrobin_decomp_new(int total_ranks, int nblocks,
+                                                        const int *branks)
 {
   struct rrobin_decomp *rr = gkyl_malloc(sizeof(*rr));
   rr->rrobin.total_ranks = total_ranks;
@@ -25,15 +25,13 @@ gkyl_rrobin_decomp_new(int total_ranks, int nblocks, const int *branks)
   return &rr->rrobin;
 }
 
-int
-gkyl_rrobin_decomp_nranks(const struct gkyl_rrobin_decomp *rr, int bn)
+int gkyl_rrobin_decomp_nranks(const struct gkyl_rrobin_decomp *rr, int bn)
 {
   struct rrobin_decomp *rrd = container_of(rr, struct rrobin_decomp, rrobin);
   return rrd->branks[bn];
 }
 
-void
-gkyl_rrobin_decomp_getranks(const struct gkyl_rrobin_decomp *rr, int bn, int ranks[])
+void gkyl_rrobin_decomp_getranks(const struct gkyl_rrobin_decomp *rr, int bn, int ranks[])
 {
   struct rrobin_decomp *rrd = container_of(rr, struct rrobin_decomp, rrobin);
 
@@ -46,8 +44,7 @@ gkyl_rrobin_decomp_getranks(const struct gkyl_rrobin_decomp *rr, int bn, int ran
     ranks[i] = (start + i) % rr->total_ranks;
 }
 
-void
-gkyl_rrobin_decomp_release(const struct gkyl_rrobin_decomp *rr)
+void gkyl_rrobin_decomp_release(const struct gkyl_rrobin_decomp *rr)
 {
   struct rrobin_decomp *rrd = container_of(rr, struct rrobin_decomp, rrobin);
 

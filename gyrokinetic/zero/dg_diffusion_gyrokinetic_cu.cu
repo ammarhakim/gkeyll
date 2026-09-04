@@ -13,8 +13,7 @@ extern "C" {
 // CUDA kernel to set pointer to auxiliary fields.
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
-__global__ static void
-gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel(
+__global__ static void gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel(
   const struct gkyl_dg_eqn *eqn, const struct gkyl_array *D, const struct gkyl_array *jacobgeo_inv)
 {
   struct dg_diffusion_gyrokinetic *diffusion =
@@ -24,12 +23,11 @@ gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel(
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void
-gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(
+void gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu(
   const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_gyrokinetic_auxfields auxin)
 {
-  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1, 1>>>(
-    eqn, auxin.D->on_dev, auxin.jacobgeo_inv->on_dev);
+  gkyl_dg_diffusion_gyrokinetic_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.D->on_dev,
+                                                                    auxin.jacobgeo_inv->on_dev);
 }
 
 __global__ void static dg_diffusion_gyrokinetic_set_cu_dev_ptrs(
@@ -53,30 +51,30 @@ __global__ void static dg_diffusion_gyrokinetic_set_cu_dev_ptrs(
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
     vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-    surfx_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfx_kernels_constcoeff
-                                           : ser_gyrokinetic_surfx_kernels_varcoeff;
-    surfy_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfy_kernels_constcoeff
-                                           : ser_gyrokinetic_surfy_kernels_varcoeff;
-    surfz_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfz_kernels_constcoeff
-                                           : ser_gyrokinetic_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff
-      ? ser_gyrokinetic_boundary_surfx_kernels_constcoeff
-      : ser_gyrokinetic_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff
-      ? ser_gyrokinetic_boundary_surfy_kernels_constcoeff
-      : ser_gyrokinetic_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff
-      ? ser_gyrokinetic_boundary_surfz_kernels_constcoeff
-      : ser_gyrokinetic_boundary_surfz_kernels_varcoeff;
-    boundary_diagx_kernels = diffusion->const_coeff
-      ? ser_gyrokinetic_boundary_diagx_kernels_constcoeff
-      : ser_gyrokinetic_boundary_diagx_kernels_varcoeff;
-    boundary_diagy_kernels = diffusion->const_coeff
-      ? ser_gyrokinetic_boundary_diagy_kernels_constcoeff
-      : ser_gyrokinetic_boundary_diagy_kernels_varcoeff;
-    boundary_diagz_kernels = diffusion->const_coeff
-      ? ser_gyrokinetic_boundary_diagz_kernels_constcoeff
-      : ser_gyrokinetic_boundary_diagz_kernels_varcoeff;
+    surfx_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfx_kernels_constcoeff :
+                                             ser_gyrokinetic_surfx_kernels_varcoeff;
+    surfy_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfy_kernels_constcoeff :
+                                             ser_gyrokinetic_surfy_kernels_varcoeff;
+    surfz_kernels = diffusion->const_coeff ? ser_gyrokinetic_surfz_kernels_constcoeff :
+                                             ser_gyrokinetic_surfz_kernels_varcoeff;
+    boundary_surfx_kernels = diffusion->const_coeff ?
+                               ser_gyrokinetic_boundary_surfx_kernels_constcoeff :
+                               ser_gyrokinetic_boundary_surfx_kernels_varcoeff;
+    boundary_surfy_kernels = diffusion->const_coeff ?
+                               ser_gyrokinetic_boundary_surfy_kernels_constcoeff :
+                               ser_gyrokinetic_boundary_surfy_kernels_varcoeff;
+    boundary_surfz_kernels = diffusion->const_coeff ?
+                               ser_gyrokinetic_boundary_surfz_kernels_constcoeff :
+                               ser_gyrokinetic_boundary_surfz_kernels_varcoeff;
+    boundary_diagx_kernels = diffusion->const_coeff ?
+                               ser_gyrokinetic_boundary_diagx_kernels_constcoeff :
+                               ser_gyrokinetic_boundary_diagx_kernels_varcoeff;
+    boundary_diagy_kernels = diffusion->const_coeff ?
+                               ser_gyrokinetic_boundary_diagy_kernels_constcoeff :
+                               ser_gyrokinetic_boundary_diagy_kernels_varcoeff;
+    boundary_diagz_kernels = diffusion->const_coeff ?
+                               ser_gyrokinetic_boundary_diagz_kernels_constcoeff :
+                               ser_gyrokinetic_boundary_diagz_kernels_varcoeff;
     break;
 
   default:
@@ -114,10 +112,9 @@ __global__ void static dg_diffusion_gyrokinetic_set_cu_dev_ptrs(
       CKSURF(boundary_diagz_kernels, diff_order, cdim, vdim, poly_order);
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis,
-  const struct gkyl_basis *cbasis, bool is_diff_const, const bool *diff_in_dir, int diff_order,
-  const struct gkyl_range *diff_range)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_gyrokinetic_cu_dev_new(
+  const struct gkyl_basis *basis, const struct gkyl_basis *cbasis, bool is_diff_const,
+  const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
 {
   struct dg_diffusion_gyrokinetic *diffusion =
     (struct dg_diffusion_gyrokinetic *)gkyl_malloc(sizeof(struct dg_diffusion_gyrokinetic));
@@ -142,10 +139,10 @@ gkyl_dg_diffusion_gyrokinetic_cu_dev_new(const struct gkyl_basis *basis,
   // copy the host struct to device struct
   struct dg_diffusion_gyrokinetic *diffusion_cu =
     (struct dg_diffusion_gyrokinetic *)gkyl_cu_malloc(sizeof(struct dg_diffusion_gyrokinetic));
-  gkyl_cu_memcpy(
-    diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic), GKYL_CU_MEMCPY_H2D);
-  dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1, 1>>>(
-    diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx);
+  gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_gyrokinetic),
+                 GKYL_CU_MEMCPY_H2D);
+  dg_diffusion_gyrokinetic_set_cu_dev_ptrs<<<1, 1> > >(diffusion_cu, cbasis->b_type, cdim, vdim,
+                                                       poly_order, diff_order, dirs_linidx);
 
   // set parent on_dev pointer
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

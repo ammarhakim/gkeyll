@@ -13,24 +13,21 @@
 #include <gkyl_basis.h>
 #include <gkyl_position_map.h>
 
-void
-mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void
-bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 1.0;
 }
 
-void
-test_dg_gyrokinetic_ho()
+void test_dg_gyrokinetic_ho()
 {
   // initialize grid and ranges
   int cdim = 3, vdim = 2;
@@ -79,7 +76,8 @@ test_dg_gyrokinetic_ho()
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0, 0.0 },
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -97,7 +95,8 @@ test_dg_gyrokinetic_ho()
     .geo_local_ext = confRange_ext,
     .geo_global = confRange,
     .geo_global_ext = confRange_ext,
-    .geo_basis = confBasis };
+    .geo_basis = confBasis
+  };
 
   struct gk_geometry *gk_geom = gkyl_gk_geometry_mapc2p_new(&geometry_input);
 
@@ -109,8 +108,8 @@ test_dg_gyrokinetic_ho()
   struct gkyl_velocity_map *gvm = gkyl_velocity_map_new(
     c2p_in, phaseGrid, velGrid, phaseRange, phaseRange_ext, velLocal, velLocal_ext, false);
 
-  struct gkyl_dg_eqn *eqn = gkyl_dg_gyrokinetic_new(
-    &confBasis, &basis, &confRange, &phaseRange, charge, mass, 0, gk_geom, gvm, false);
+  struct gkyl_dg_eqn *eqn = gkyl_dg_gyrokinetic_new(&confBasis, &basis, &confRange, &phaseRange,
+                                                    charge, mass, 0, gk_geom, gvm, false);
 
   TEST_CHECK(eqn->num_equations == 1);
 
@@ -135,4 +134,4 @@ test_dg_gyrokinetic_ho()
 TEST_LIST = { { "dg_gyrokinetic_ho", test_dg_gyrokinetic_ho },
 #ifdef GKYL_HAVE_CUDA
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

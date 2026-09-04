@@ -25,7 +25,7 @@ struct gkyl_gk_maxwellian_correct_inp {
   bool bimaxwellian; // Bool for whether we are projecting a bi-Maxwellian instead of a Maxwellian.
   bool divide_jacobgeo; // Bool for whether to divide out the conf-space Jacobian from density.
   bool use_last_converged; // Boolean for if we are using the results of the iterative scheme
-    // *even if* the scheme fails to converge.
+  // *even if* the scheme fails to converge.
   bool use_gpu; // Bool for gpu useage.
   double eps; // Tolerance for the iterator.
   int max_iter; // Number of total iterations.
@@ -45,8 +45,8 @@ struct gkyl_gk_maxwellian_correct_status {
  * @param inp Input parameters defined in gkyl_gk_maxwellian_correct_inp struct.
  * @return New updater pointer.
  */
-struct gkyl_gk_maxwellian_correct *gkyl_gk_maxwellian_correct_inew(
-  const struct gkyl_gk_maxwellian_correct_inp *inp);
+struct gkyl_gk_maxwellian_correct *
+gkyl_gk_maxwellian_correct_inew(const struct gkyl_gk_maxwellian_correct_inp *inp);
 
 /**
  * Fix the gyrokinetic Maxwellian (or bi-Maxwellian) distribution function
@@ -79,8 +79,10 @@ struct gkyl_gk_maxwellian_correct_status gkyl_gk_maxwellian_correct_all_moments(
  * @param moms_abs_diff Absolute value of the difference between the cell averages of moms_iter and moms_target
  */
 void gkyl_gk_maxwellian_correct_all_moments_abs_diff_cu(const struct gkyl_range *conf_range,
-  int num_comp, int nc, const struct gkyl_array *moms_target, const struct gkyl_array *moms_iter,
-  struct gkyl_array *moms_abs_diff);
+                                                        int num_comp, int nc,
+                                                        const struct gkyl_array *moms_target,
+                                                        const struct gkyl_array *moms_iter,
+                                                        struct gkyl_array *moms_abs_diff);
 
 /**
  * Delete updater.

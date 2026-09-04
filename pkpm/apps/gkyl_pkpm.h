@@ -349,8 +349,8 @@ void gkyl_pkpm_app_stat_write(gkyl_pkpm_app *app);
  * @param output_data Array of output data to train on (across the computational domain).
  */
 void gkyl_pkpm_app_train(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann,
-  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
-  struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data);
+                         int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+                         struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data);
 
 /**
  * Train neural network on PKPM moments data for a particular fluid species.
@@ -368,8 +368,9 @@ void gkyl_pkpm_app_train(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_k
  * @param output_data Array of output data to train on (across the computational domain).
  */
 void gkyl_pkpm_app_train_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data, struct gkyl_kn_vec *output_data);
+                             struct gkyl_kann_net **ann, int num_input_moms, int *input_moms,
+                             int num_output_moms, int *output_moms, struct gkyl_kn_vec *input_data,
+                             struct gkyl_kn_vec *output_data);
 
 /**
  * Write out PKPM moments neural network for each fluid species.
@@ -390,8 +391,8 @@ void gkyl_pkpm_app_write_nn(gkyl_pkpm_app *app, double tm, int frame, struct gky
  * @param frame Frame number.
  * @param ann Neural network architecture.
  */
-void gkyl_pkpm_app_write_nn_mom(
-  gkyl_pkpm_app *app, int sidx, double tm, int frame, struct gkyl_kann_net **ann);
+void gkyl_pkpm_app_write_nn_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
+                                struct gkyl_kann_net **ann);
 
 /**
  * Test neural network on PKPM moments data for each fluid species, and write moments to a file.
@@ -409,9 +410,9 @@ void gkyl_pkpm_app_write_nn_mom(
  * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
 void gkyl_pkpm_app_test(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_kann_net **ann,
-  int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
-  struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
-  struct gkyl_kn_vec *output_data_predicted);
+                        int num_input_moms, int *input_moms, int num_output_moms, int *output_moms,
+                        struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
+                        struct gkyl_kn_vec *output_data_predicted);
 
 /**
  * Test neural network on PKPM moments data for a particular fluid species, and write moments to a file.
@@ -430,9 +431,11 @@ void gkyl_pkpm_app_test(gkyl_pkpm_app *app, double tm, int frame, struct gkyl_ka
  * @param output_data_predicted Array of predicted output data to validate (across the computational domain).
  */
 void gkyl_pkpm_app_test_mom(gkyl_pkpm_app *app, int sidx, double tm, int frame,
-  struct gkyl_kann_net **ann, int num_input_moms, int *input_moms, int num_output_moms,
-  int *output_moms, struct gkyl_kn_vec *input_data_real, struct gkyl_kn_vec *output_data_real,
-  struct gkyl_kn_vec *output_data_predicted);
+                            struct gkyl_kann_net **ann, int num_input_moms, int *input_moms,
+                            int num_output_moms, int *output_moms,
+                            struct gkyl_kn_vec *input_data_real,
+                            struct gkyl_kn_vec *output_data_real,
+                            struct gkyl_kn_vec *output_data_predicted);
 
 /**
  * Initialize field from file
@@ -449,8 +452,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_file_field(gkyl_pkpm_app *app,
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(
-  gkyl_pkpm_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(gkyl_pkpm_app *app, int sidx,
+                                                               const char *fname);
 
 /**
  * Initialize pkpm fluid species from file
@@ -459,8 +462,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_file_species(
  * @param sidx gk species index
  * @param fname file to read
  */
-struct gkyl_app_restart_status gkyl_pkpm_app_from_file_fluid_species(
-  gkyl_pkpm_app *app, int sidx, const char *fname);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_file_fluid_species(gkyl_pkpm_app *app, int sidx,
+                                                                     const char *fname);
 
 /**
  * Initialize field from frame
@@ -477,8 +480,8 @@ struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_field(gkyl_pkpm_app *app
  * @param sidx gk species index
  * @param frame frame to read
  */
-struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_species(
-  gkyl_pkpm_app *app, int sidx, int frame);
+struct gkyl_app_restart_status gkyl_pkpm_app_from_frame_species(gkyl_pkpm_app *app, int sidx,
+                                                                int frame);
 
 /**
  * Initialize the pkpm app from a specific frame.

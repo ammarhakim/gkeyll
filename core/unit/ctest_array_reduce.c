@@ -9,13 +9,11 @@
 #include <gkyl_util.h>
 #include <time.h>
 
-void
-test_array_reduce_dummy_ho()
+void test_array_reduce_dummy_ho()
 {
 }
 
-void
-test_reduce_ho()
+void test_reduce_ho()
 {
   int ncomp = 3, ncells = 200;
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, ncomp, ncells);
@@ -38,8 +36,7 @@ test_reduce_ho()
   gkyl_array_release(arr);
 }
 
-void
-test_reduce_range_ho()
+void test_reduce_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -77,8 +74,7 @@ test_reduce_range_ho()
   gkyl_array_release(arr);
 }
 
-void
-test_sum_reduce_range_ho()
+void test_sum_reduce_range_ho()
 {
   int shape[] = { 10, 20 };
   struct gkyl_range range;
@@ -109,8 +105,7 @@ test_sum_reduce_range_ho()
 // CUDA specific tests
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_array_reduce_max_dev()
+void test_array_reduce_max_dev()
 {
   unsigned long numComp = 3, numCells = 10;
   // Create host array and device copy
@@ -143,8 +138,7 @@ test_array_reduce_max_dev()
   gkyl_array_release(a1_cu);
 }
 
-void
-test_array_reduce_max_big_dev()
+void test_array_reduce_max_big_dev()
 {
   unsigned long numComp = 12, numCells = 1000;
   // Create host array and device copy
@@ -180,8 +174,7 @@ test_array_reduce_max_big_dev()
   gkyl_array_release(a1_cu);
 }
 
-void
-test_array_reduce_range_1d_max_dev()
+void test_array_reduce_range_1d_max_dev()
 {
   unsigned long numComp = 1, numCells = 10;
   // create host array and device copy
@@ -229,8 +222,7 @@ test_array_reduce_range_1d_max_dev()
   gkyl_array_release(a1_cu);
 }
 
-void
-test_array_reduce_range_2d_max_dev()
+void test_array_reduce_range_2d_max_dev()
 {
   int cells[] = { 8, 10 };
   int ghost[] = { 1, 0 };
@@ -298,8 +290,7 @@ test_array_reduce_range_2d_max_dev()
   gkyl_array_release(b1_cu);
 }
 
-void
-test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
+void test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
 {
   int cells[] = { NX, NY, VX, VY };
   int ghost[] = { 1, 1, 0, 0 };
@@ -364,14 +355,12 @@ test_cu_array_reduce_range_max_timer(int NX, int NY, int VX, int VY)
   gkyl_array_release(b1_cu);
 }
 
-void
-test_array_reduce_range_max_timer_32x32x40x40_dev()
+void test_array_reduce_range_max_timer_32x32x40x40_dev()
 {
   test_cu_array_reduce_range_max_timer(32, 32, 40, 40);
 }
 
-void
-test_array_reduce_range_max_timer_32x32x32x32_dev()
+void test_array_reduce_range_max_timer_32x32x32x32_dev()
 {
   test_cu_array_reduce_range_max_timer(32, 32, 32, 32);
 }
@@ -379,16 +368,17 @@ test_array_reduce_range_max_timer_32x32x32x32_dev()
 #endif
 
 TEST_LIST = { { "array_reduce_dummy_ho", test_array_reduce_dummy_ho },
-  { "array_reduce_ho", test_reduce_ho }, { "array_reduce_range_ho", test_reduce_range_ho },
-  { "array_reduce_sum_range_ho", test_sum_reduce_range_ho },
+              { "array_reduce_ho", test_reduce_ho },
+              { "array_reduce_range_ho", test_reduce_range_ho },
+              { "array_reduce_sum_range_ho", test_sum_reduce_range_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "array_reduce_max_dev", test_array_reduce_max_dev },
-  { "array_reduce_max_big_dev", test_array_reduce_max_big_dev },
-  { "array_reduce_range_1d_max_dev", test_array_reduce_range_1d_max_dev },
-  { "array_reduce_range_2d_max_dev", test_array_reduce_range_2d_max_dev },
-  { "array_reduce_range_max_timer_32x32x40x40_dev",
-    test_array_reduce_range_max_timer_32x32x40x40_dev },
-  { "array_reduce_range_max_timer_32x32x32x32_dev",
-    test_array_reduce_range_max_timer_32x32x32x32_dev },
+              { "array_reduce_max_dev", test_array_reduce_max_dev },
+              { "array_reduce_max_big_dev", test_array_reduce_max_big_dev },
+              { "array_reduce_range_1d_max_dev", test_array_reduce_range_1d_max_dev },
+              { "array_reduce_range_2d_max_dev", test_array_reduce_range_2d_max_dev },
+              { "array_reduce_range_max_timer_32x32x40x40_dev",
+                test_array_reduce_range_max_timer_32x32x40x40_dev },
+              { "array_reduce_range_max_timer_32x32x32x32_dev",
+                test_array_reduce_range_max_timer_32x32x32x32_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

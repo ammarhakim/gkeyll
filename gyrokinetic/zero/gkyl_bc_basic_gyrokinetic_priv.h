@@ -31,9 +31,10 @@ struct gkyl_bc_basic_gyrokinetic {
  * @param num_comp Number of components (DOFs) within a cell.
  * @return Pointer to array_copy_func which can be passed to array_copy_fn methods.
  */
-struct gkyl_array_copy_func *gkyl_bc_basic_gyrokinetic_create_arr_copy_func_cu(int dir,
-  enum gkyl_edge_loc edge, int cdim, enum gkyl_gyrokinetic_bc_type bctype,
-  const struct gkyl_basis *basis, int num_comp);
+struct gkyl_array_copy_func *
+gkyl_bc_basic_gyrokinetic_create_arr_copy_func_cu(int dir, enum gkyl_edge_loc edge, int cdim,
+                                                  enum gkyl_gyrokinetic_bc_type bctype,
+                                                  const struct gkyl_basis *basis, int num_comp);
 
 #endif
 
@@ -46,8 +47,7 @@ struct dg_bc_ctx {
   const struct gkyl_basis *basis; // basis function.
 };
 
-GKYL_CU_D static void
-copy_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void copy_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Copy skin cell into ghost cell
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
@@ -56,8 +56,7 @@ copy_bc(size_t nc, double *out, const double *inp, void *ctx)
     out[c] = inp[c];
 }
 
-GKYL_CU_D static void
-species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Set ghost cell to zero.
   struct dg_bc_ctx *mc = (struct dg_bc_ctx *)ctx;
@@ -66,8 +65,7 @@ species_absorb_bc(size_t nc, double *out, const double *inp, void *ctx)
     out[c] = 0.0;
 }
 
-GKYL_CU_D static void
-species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Fill the ghost cell with a reflection of the distribution function
   // in the skin cell so that particle are reflected back into the domain.
@@ -80,8 +78,7 @@ species_reflect_bc(size_t nc, double *out, const double *inp, void *ctx)
   mc->basis->flip_odd_sign(cdim, out, out);
 }
 
-GKYL_CU_D static void
-conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Fill the ghost cell with the skin cell evaluated at the boundary,
   // so it has no variation in the direction of the BC.
@@ -172,8 +169,7 @@ conf_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
   }
 }
 
-GKYL_CU_D static void
-phase_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_D static void phase_boundary_value_bc(size_t nc, double *out, const double *inp, void *ctx)
 {
   // Fill the ghost cell with the skin cell evaluated at the boundary,
   // so it has no variation in the direction of the BC.

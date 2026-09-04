@@ -15,8 +15,7 @@
 #include <stdlib.h>
 
 // Allocate array (filled with zeros).
-static struct gkyl_array *
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu)
@@ -26,33 +25,28 @@ mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void
-evalFunc1x_1(double t, const double *xn, double *restrict fout, void *ctx)
+void evalFunc1x_1(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = 1.0;
 }
 
-void
-evalFunc1x_quad(double t, const double *xn, double *restrict fout, void *ctx)
+void evalFunc1x_quad(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = -pow(xn[0] - 0.5, 2) + 1.0;
 }
 
-void
-evalFunc2x_quad(double t, const double *xn, double *restrict fout, void *ctx)
+void evalFunc2x_quad(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] = (-pow(xn[0] - 0.5, 2) + 1.0) * (-pow(xn[1] - 0.5, 2) + 1.0);
 }
 
-void
-evalFunc3x_quad(double t, const double *xn, double *restrict fout, void *ctx)
+void evalFunc3x_quad(double t, const double *xn, double *restrict fout, void *ctx)
 {
   fout[0] =
     (-pow(xn[0] - 0.5, 2) + 1.0) * (-pow(xn[1] - 0.5, 2) + 1.0) * (-pow(xn[2] - 0.5, 2) + 1.0);
 }
 
-void
-test_1x_flat(bool use_gpu)
+void test_1x_flat(bool use_gpu)
 {
   int cells[] = { 8 };
   int poly_order = 1;
@@ -72,11 +66,11 @@ test_1x_flat(bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
   struct gkyl_array *npol = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *npol_ho =
-    use_gpu ? mkarr(false, npol->ncomp, npol->size) : gkyl_array_acquire(npol);
+  struct gkyl_array *npol_ho = use_gpu ? mkarr(false, npol->ncomp, npol->size) :
+                                         gkyl_array_acquire(npol);
   struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *epsilon_ho =
-    use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) : gkyl_array_acquire(epsilon);
+  struct gkyl_array *epsilon_ho = use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) :
+                                            gkyl_array_acquire(epsilon);
 
   struct gkyl_eval_on_nodes *epsilon_proj =
     gkyl_eval_on_nodes_new(&grid, &basis, 1, evalFunc1x_1, NULL);
@@ -88,8 +82,8 @@ test_1x_flat(bool use_gpu)
   gkyl_cart_modal_tensor(&phi_pol_basis, 1, poly_order + 1);
 
   struct gkyl_array *phi_pol = mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *phi_pol_ho =
-    use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) : gkyl_array_acquire(phi_pol);
+  struct gkyl_array *phi_pol_ho = use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) :
+                                            gkyl_array_acquire(phi_pol);
 
   struct gkyl_eval_on_nodes *phi_pol_proj =
     gkyl_eval_on_nodes_new(&grid, &phi_pol_basis, 1, evalFunc1x_1, NULL);
@@ -122,20 +116,17 @@ test_1x_flat(bool use_gpu)
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
-void
-test_pol_density_1x_flat_ho()
+void test_pol_density_1x_flat_ho()
 {
   test_1x_flat(false);
 }
 
-void
-test_pol_density_1x_flat_dev()
+void test_pol_density_1x_flat_dev()
 {
   test_1x_flat(true);
 }
 
-void
-test_1x_quad(bool use_gpu)
+void test_1x_quad(bool use_gpu)
 {
   int cells[] = { 8 };
   int poly_order = 1;
@@ -154,11 +145,11 @@ test_1x_quad(bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
   struct gkyl_array *npol = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *npol_ho =
-    use_gpu ? mkarr(false, npol->ncomp, npol->size) : gkyl_array_acquire(npol);
+  struct gkyl_array *npol_ho = use_gpu ? mkarr(false, npol->ncomp, npol->size) :
+                                         gkyl_array_acquire(npol);
   struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *epsilon_ho =
-    use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) : gkyl_array_acquire(epsilon);
+  struct gkyl_array *epsilon_ho = use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) :
+                                            gkyl_array_acquire(epsilon);
 
   struct gkyl_eval_on_nodes *epsilon_proj =
     gkyl_eval_on_nodes_new(&grid, &basis, 1, evalFunc1x_1, NULL);
@@ -170,8 +161,8 @@ test_1x_quad(bool use_gpu)
   gkyl_cart_modal_tensor(&phi_pol_basis, 1, poly_order + 1);
 
   struct gkyl_array *phi_pol = mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *phi_pol_ho =
-    use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) : gkyl_array_acquire(phi_pol);
+  struct gkyl_array *phi_pol_ho = use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) :
+                                            gkyl_array_acquire(phi_pol);
 
   struct gkyl_eval_on_nodes *phi_pol_proj =
     gkyl_eval_on_nodes_new(&grid, &phi_pol_basis, 1, evalFunc1x_quad, NULL);
@@ -244,20 +235,17 @@ test_1x_quad(bool use_gpu)
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
-void
-test_pol_density_1x_quad_ho()
+void test_pol_density_1x_quad_ho()
 {
   test_1x_quad(false);
 }
 
-void
-test_pol_density_1x_quad_dev()
+void test_pol_density_1x_quad_dev()
 {
   test_1x_quad(true);
 }
 
-void
-test_2x_quad(bool use_gpu)
+void test_2x_quad(bool use_gpu)
 {
   int cells[] = { 7, 7 };
   int poly_order = 1;
@@ -277,11 +265,11 @@ test_2x_quad(bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
   struct gkyl_array *npol = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *npol_ho =
-    use_gpu ? mkarr(false, npol->ncomp, npol->size) : gkyl_array_acquire(npol);
+  struct gkyl_array *npol_ho = use_gpu ? mkarr(false, npol->ncomp, npol->size) :
+                                         gkyl_array_acquire(npol);
   struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *epsilon_ho =
-    use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) : gkyl_array_acquire(epsilon);
+  struct gkyl_array *epsilon_ho = use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) :
+                                            gkyl_array_acquire(epsilon);
 
   struct gkyl_eval_on_nodes *epsilon_proj =
     gkyl_eval_on_nodes_new(&grid, &basis, 1, evalFunc1x_1, NULL);
@@ -293,8 +281,8 @@ test_2x_quad(bool use_gpu)
   gkyl_cart_modal_tensor(&phi_pol_basis, dim, poly_order + 1);
 
   struct gkyl_array *phi_pol = mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *phi_pol_ho =
-    use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) : gkyl_array_acquire(phi_pol);
+  struct gkyl_array *phi_pol_ho = use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) :
+                                            gkyl_array_acquire(phi_pol);
 
   struct gkyl_eval_on_nodes *phi_pol_proj =
     gkyl_eval_on_nodes_new(&grid, &phi_pol_basis, 1, evalFunc2x_quad, NULL);
@@ -362,20 +350,17 @@ test_2x_quad(bool use_gpu)
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
-void
-test_pol_density_2x_quad_ho()
+void test_pol_density_2x_quad_ho()
 {
   test_2x_quad(false);
 }
 
-void
-test_pol_density_2x_quad_dev()
+void test_pol_density_2x_quad_dev()
 {
   test_2x_quad(true);
 }
 
-void
-test_3x_flat(bool use_gpu)
+void test_3x_flat(bool use_gpu)
 {
   int cells[] = { 7, 7, 7 };
   int poly_order = 1;
@@ -395,11 +380,11 @@ test_3x_flat(bool use_gpu)
   gkyl_create_grid_ranges(&grid, ghost, &localRange_ext, &localRange);
 
   struct gkyl_array *npol = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *npol_ho =
-    use_gpu ? mkarr(false, npol->ncomp, npol->size) : gkyl_array_acquire(npol);
+  struct gkyl_array *npol_ho = use_gpu ? mkarr(false, npol->ncomp, npol->size) :
+                                         gkyl_array_acquire(npol);
   struct gkyl_array *epsilon = mkarr(use_gpu, basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *epsilon_ho =
-    use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) : gkyl_array_acquire(epsilon);
+  struct gkyl_array *epsilon_ho = use_gpu ? mkarr(false, epsilon->ncomp, epsilon->size) :
+                                            gkyl_array_acquire(epsilon);
 
   struct gkyl_eval_on_nodes *epsilon_proj =
     gkyl_eval_on_nodes_new(&grid, &basis, 1, evalFunc1x_1, NULL);
@@ -411,8 +396,8 @@ test_3x_flat(bool use_gpu)
   gkyl_cart_modal_tensor(&phi_pol_basis, dim, poly_order + 1);
 
   struct gkyl_array *phi_pol = mkarr(use_gpu, phi_pol_basis.num_basis, localRange_ext.volume);
-  struct gkyl_array *phi_pol_ho =
-    use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) : gkyl_array_acquire(phi_pol);
+  struct gkyl_array *phi_pol_ho = use_gpu ? mkarr(false, phi_pol->ncomp, phi_pol->size) :
+                                            gkyl_array_acquire(phi_pol);
 
   struct gkyl_eval_on_nodes *phi_pol_proj =
     gkyl_eval_on_nodes_new(&grid, &phi_pol_basis, 1, evalFunc1x_quad, NULL);
@@ -452,26 +437,24 @@ test_3x_flat(bool use_gpu)
   gkyl_gyrokinetic_pol_density_release(npol_op);
 }
 
-void
-test_pol_density_3x_flat_ho()
+void test_pol_density_3x_flat_ho()
 {
   test_3x_flat(false);
 }
 
-void
-test_pol_density_3x_flat_dev()
+void test_pol_density_3x_flat_dev()
 {
   test_3x_flat(true);
 }
 
 TEST_LIST = { { "test_pol_density_1x_flat_ho", test_pol_density_1x_flat_ho },
-  { "test_pol_density_1x_quad_ho", test_pol_density_1x_quad_ho },
-  { "test_pol_density_2x_quad_ho", test_pol_density_2x_quad_ho },
-  { "test_pol_density_3x_flat_ho", test_pol_density_3x_flat_ho },
+              { "test_pol_density_1x_quad_ho", test_pol_density_1x_quad_ho },
+              { "test_pol_density_2x_quad_ho", test_pol_density_2x_quad_ho },
+              { "test_pol_density_3x_flat_ho", test_pol_density_3x_flat_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_pol_density_1x_flat_dev", test_pol_density_1x_flat_dev },
-  { "test_pol_density_1x_quad_dev", test_pol_density_1x_quad_dev },
-  { "test_pol_density_2x_quad_dev", test_pol_density_2x_quad_dev },
-  { "test_pol_density_3x_flat_dev", test_pol_density_3x_flat_dev },
+              { "test_pol_density_1x_flat_dev", test_pol_density_1x_flat_dev },
+              { "test_pol_density_1x_quad_dev", test_pol_density_1x_quad_dev },
+              { "test_pol_density_2x_quad_dev", test_pol_density_2x_quad_dev },
+              { "test_pol_density_3x_flat_dev", test_pol_density_3x_flat_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

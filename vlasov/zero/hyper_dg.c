@@ -10,8 +10,7 @@
 #include <gkyl_range.h>
 #include <gkyl_util.h>
 
-static void
-create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *range, long offsets[])
+static void create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *range, long offsets[])
 {
   // Construct the offsets *only* in the directions being updated.
   // No need to load the neighbors that are not needed for the update.
@@ -34,8 +33,7 @@ create_offsets(struct gkyl_hyper_dg *up, const struct gkyl_range *range, long of
     offsets[count++] = gkyl_range_offset(range, iter3.idx);
 }
 
-void
-gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term)
+void gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -46,9 +44,9 @@ gkyl_hyper_dg_set_update_vol(gkyl_hyper_dg *up, int update_vol_term)
   up->update_vol_term = update_vol_term;
 }
 
-void
-gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_range,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
+void gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_range,
+                           const struct gkyl_array *fIn, struct gkyl_array *cflrate,
+                           struct gkyl_array *rhs)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -72,7 +70,8 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_
     long linc = gkyl_range_idx(update_range, idxc);
     if (up->update_vol_term) {
       double cflr = up->equation->vol_term(up->equation, xcc, up->grid.dx, idxc,
-        gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc));
+                                           gkyl_array_cfetch(fIn, linc),
+                                           gkyl_array_fetch(rhs, linc));
       double *cflrate_d = gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cflr; // frequencies are additive
     }
@@ -82,7 +81,7 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_
       double cfls = 0.0;
       // Assumes update_range owns lower and upper edges of the domain
       if ((up->zero_flux_flags[dir] && idxc[dir] == update_range->lower[dir]) ||
-        (up->zero_flux_flags[dir + ndim] && idxc[dir] == update_range->upper[dir])) {
+          (up->zero_flux_flags[dir + ndim] && idxc[dir] == update_range->upper[dir])) {
         gkyl_copy_int_arr(ndim, iter.idx, idx_edge);
         edge = (idxc[dir] == update_range->lower[dir]) ? -1 : 1;
         // idx_edge stores interior edge index (first index away from skin cell)
@@ -92,8 +91,10 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_
         long lin_edge = gkyl_range_idx(update_range, idx_edge);
 
         cfls = up->equation->boundary_surf_term(up->equation, dir, xc_edge, xcc, up->grid.dx,
-          up->grid.dx, idx_edge, idxc, edge, gkyl_array_cfetch(fIn, lin_edge),
-          gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc));
+                                                up->grid.dx, idx_edge, idxc, edge,
+                                                gkyl_array_cfetch(fIn, lin_edge),
+                                                gkyl_array_cfetch(fIn, linc),
+                                                gkyl_array_fetch(rhs, linc));
       } else {
         gkyl_copy_int_arr(ndim, iter.idx, idxl);
         gkyl_copy_int_arr(ndim, iter.idx, idxr);
@@ -106,8 +107,9 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_
         long linr = gkyl_range_idx(update_range, idxr);
 
         cfls = up->equation->surf_term(up->equation, dir, xcl, xcc, xcr, up->grid.dx, up->grid.dx,
-          up->grid.dx, idxl, idxc, idxr, gkyl_array_cfetch(fIn, linl), gkyl_array_cfetch(fIn, linc),
-          gkyl_array_cfetch(fIn, linr), gkyl_array_fetch(rhs, linc));
+                                       up->grid.dx, idxl, idxc, idxr, gkyl_array_cfetch(fIn, linl),
+                                       gkyl_array_cfetch(fIn, linc), gkyl_array_cfetch(fIn, linr),
+                                       gkyl_array_fetch(rhs, linc));
       }
       double *cflrate_d = gkyl_array_fetch(cflrate, linc);
       cflrate_d[0] += cfls; // frequencies are additive
@@ -115,9 +117,9 @@ gkyl_hyper_dg_advance(struct gkyl_hyper_dg *up, const struct gkyl_range *update_
   }
 }
 
-void
-gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *up, const struct gkyl_range *update_range,
-  const struct gkyl_array *fIn, struct gkyl_array *cflrate, struct gkyl_array *rhs)
+void gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *up, const struct gkyl_range *update_range,
+                                       const struct gkyl_array *fIn, struct gkyl_array *cflrate,
+                                       struct gkyl_array *rhs)
 {
   int ndim = up->ndim;
   long sz[] = { 3, 9, 27 };
@@ -147,7 +149,7 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *up, const struct gkyl_range *up
     gkyl_copy_int_arr(ndim, iter.idx, idxc);
     gkyl_rect_grid_cell_center(&up->grid, idxc, xcc);
     double cflr = up->equation->vol_term(up->equation, xcc, up->grid.dx, idxc,
-      gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc));
+                                         gkyl_array_cfetch(fIn, linc), gkyl_array_fetch(rhs, linc));
     double *cflrate_d = gkyl_array_fetch(cflrate, linc);
     cflrate_d[0] += cflr; // frequencies are additive
 
@@ -185,12 +187,13 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *up, const struct gkyl_range *up
         int dir2 = up->update_dirs[d2];
         // Assumes update_range owns lower and upper edges of the domain
         if (idxc[dir1] == update_range->lower[dir1] || idxc[dir1] == update_range->upper[dir1] ||
-          idxc[dir2] == update_range->lower[dir2] || idxc[dir2] == update_range->upper[dir2]) {
+            idxc[dir2] == update_range->lower[dir2] || idxc[dir2] == update_range->upper[dir2]) {
           cfls = up->equation->gen_boundary_surf_term(up->equation, dir1, dir2, xcc, up->grid.dx,
-            idxc, sz_dim, idx, fIn_d, gkyl_array_fetch(rhs, linc));
+                                                      idxc, sz_dim, idx, fIn_d,
+                                                      gkyl_array_fetch(rhs, linc));
         } else {
           cfls = up->equation->gen_surf_term(up->equation, dir1, dir2, xcc, up->grid.dx, idxc,
-            sz_dim, idx, fIn_d, gkyl_array_fetch(rhs, linc));
+                                             sz_dim, idx, fIn_d, gkyl_array_fetch(rhs, linc));
         }
         double *cflrate_d = gkyl_array_fetch(cflrate, linc);
         cflrate_d[0] += cfls; // frequencies are additive
@@ -199,15 +202,16 @@ gkyl_hyper_dg_gen_stencil_advance(gkyl_hyper_dg *up, const struct gkyl_range *up
   }
 }
 
-gkyl_hyper_dg *
-gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
-  const struct gkyl_dg_eqn *equation, int num_up_dirs, int update_dirs[GKYL_MAX_DIM],
-  int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term, bool use_gpu)
+gkyl_hyper_dg *gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *basis,
+                                 const struct gkyl_dg_eqn *equation, int num_up_dirs,
+                                 int update_dirs[GKYL_MAX_DIM],
+                                 int zero_flux_flags[2 * GKYL_MAX_DIM], int update_vol_term,
+                                 bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
-    return gkyl_hyper_dg_cu_dev_new(
-      grid, basis, equation, num_up_dirs, update_dirs, zero_flux_flags, update_vol_term);
+    return gkyl_hyper_dg_cu_dev_new(grid, basis, equation, num_up_dirs, update_dirs,
+                                    zero_flux_flags, update_vol_term);
   }
 #endif
   gkyl_hyper_dg *up = gkyl_malloc(sizeof(gkyl_hyper_dg));
@@ -235,8 +239,7 @@ gkyl_hyper_dg_new(const struct gkyl_rect_grid *grid, const struct gkyl_basis *ba
   return up;
 }
 
-void
-gkyl_hyper_dg_release(struct gkyl_hyper_dg *up)
+void gkyl_hyper_dg_release(struct gkyl_hyper_dg *up)
 {
   gkyl_dg_eqn_release(up->equation);
   if (GKYL_IS_CU_ALLOC(up->flags))

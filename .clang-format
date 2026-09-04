@@ -1,4 +1,9 @@
-# Gkeyll code style: a Linux-kernel-flavored style with 2-space indentation.
+# Gkeyll code style (EXPERIMENTAL): the actual Linux kernel .clang-format
+# (as shipped at the root of torvalds/linux), with every place it hard-codes
+# the kernel's 8-character-wide indentation changed to 2 (spaces, not tabs).
+# The upstream file's ForEachMacros list is dropped -- it enumerates Linux
+# kernel internal iteration macros (bpf_*, drm_*, hlist_*, etc.) that don't
+# exist in gkeyll, so keeping it would only add clutter with no effect.
 #
 # Applies to C/C++/CUDA source under core/, moments/, vlasov/, gyrokinetic/,
 # pkpm/, gkeyll/ -- EXCLUDING anything under */ker/* (auto-generated DG kernel
@@ -7,17 +12,12 @@
 # are enforced by the tooling (pre-commit, CI, ci/format-all.sh), not by this
 # file, since clang-format configs can't express path excludes.
 Language: Cpp
-BasedOnStyle: LLVM
-IndentWidth: 2
-TabWidth: 2
-UseTab: Never
-ContinuationIndentWidth: 2
-ColumnLimit: 100
-AlignAfterOpenBracket: DontAlign
+AccessModifierOffset: -2
+AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
 AlignEscapedNewlines: Left
-AlignOperands: false
+AlignOperands: true
 AlignTrailingComments: false
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortBlocksOnASingleLine: false
@@ -25,39 +25,99 @@ AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: None
 AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
-AlwaysBreakAfterReturnType: AllDefinitions
+AlwaysBreakAfterDefinitionReturnType: None
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: false
 BinPackArguments: true
 BinPackParameters: true
-BreakBeforeBraces: Custom
 BraceWrapping:
+  AfterClass: false
   AfterControlStatement: false
   AfterEnum: false
   AfterFunction: true
+  AfterNamespace: true
+  AfterObjCDeclaration: false
   AfterStruct: false
-  AfterUnion: true
+  AfterUnion: false
   AfterExternBlock: false
-  BeforeElse: false
   BeforeCatch: false
+  BeforeElse: false
   IndentBraces: false
   SplitEmptyFunction: true
   SplitEmptyRecord: true
   SplitEmptyNamespace: true
+BreakBeforeBinaryOperators: None
+BreakBeforeBraces: Custom
+BreakBeforeInheritanceComma: false
+BreakBeforeTernaryOperators: false
+BreakConstructorInitializersBeforeComma: false
+BreakConstructorInitializers: BeforeComma
+BreakAfterJavaFieldAnnotations: false
+BreakStringLiterals: false
+ColumnLimit: 100
+CommentPragmas: '^ IWYU pragma:'
+CompactNamespaces: false
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerIndentWidth: 2
+ContinuationIndentWidth: 2
 Cpp11BracedListStyle: false
+DerivePointerAlignment: false
+DisableFormat: false
+ExperimentalAutoDetectBinPacking: false
+FixNamespaceComments: false
+IncludeBlocks: Preserve
+IncludeCategories:
+  - Regex: '.*'
+    Priority: 1
+IncludeIsMainRegex: '(Test)?$'
 IndentCaseLabels: false
+IndentGotoLabels: false
+IndentPPDirectives: None
+IndentWidth: 2
+IndentWrappedFunctionNames: false
+JavaScriptQuotes: Leave
+JavaScriptWrapImports: true
 KeepEmptyLinesAtTheStartOfBlocks: false
+MacroBlockBegin: ''
+MacroBlockEnd: ''
 MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+ObjCBinPackProtocolList: Auto
+ObjCBlockIndentWidth: 2
+ObjCSpaceAfterProperty: true
+ObjCSpaceBeforeProtocolList: true
+
+# Taken from git's rules (as in the upstream kernel .clang-format)
+PenaltyBreakAssignment: 10
+PenaltyBreakBeforeFirstCallParameter: 30
+PenaltyBreakComment: 10
+PenaltyBreakFirstLessLess: 0
+PenaltyBreakString: 10
+PenaltyExcessCharacter: 100
+PenaltyReturnTypeOnItsOwnLine: 60
+
 PointerAlignment: Right
 ReflowComments: false
 SortIncludes: false
+SortUsingDeclarations: false
 SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
 SpaceBeforeAssignmentOperators: true
-SpaceBeforeParens: ControlStatements
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatementsExceptForEachMacros
+SpaceBeforeRangeBasedForLoopColon: true
 SpaceInEmptyParentheses: false
 SpacesBeforeTrailingComments: 1
 SpacesInAngles: false
+SpacesInContainerLiterals: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
 SpacesInSquareBrackets: false
+Standard: Cpp03
+TabWidth: 2
+UseTab: Never
 AttributeMacros:
   - GKYL_CU_DH
   - GKYL_CU_D

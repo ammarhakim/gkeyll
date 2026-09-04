@@ -9,12 +9,11 @@
 #include <gkyl_hyper_dg.h>
 #include <gkyl_util.h>
 
-gkyl_dg_updater_pkpm *
-gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid,
-  const struct gkyl_rect_grid *phase_grid, const struct gkyl_basis *conf_basis,
-  const struct gkyl_basis *phase_basis, const struct gkyl_range *conf_range,
-  const struct gkyl_range *phase_range, const bool *is_zero_flux_dir,
-  struct gkyl_dg_vlasov_pkpm_auxfields *vlasov_pkpm_inp,
+gkyl_dg_updater_pkpm *gkyl_dg_updater_pkpm_new(
+  const struct gkyl_rect_grid *conf_grid, const struct gkyl_rect_grid *phase_grid,
+  const struct gkyl_basis *conf_basis, const struct gkyl_basis *phase_basis,
+  const struct gkyl_range *conf_range, const struct gkyl_range *phase_range,
+  const bool *is_zero_flux_dir, struct gkyl_dg_vlasov_pkpm_auxfields *vlasov_pkpm_inp,
   struct gkyl_dg_euler_pkpm_auxfields *euler_pkpm_inp, bool use_gpu)
 {
   gkyl_dg_updater_pkpm *up = gkyl_malloc(sizeof(gkyl_dg_updater_pkpm));
@@ -46,9 +45,9 @@ gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid,
   int num_up_dirs_phase = pdim;
 
   up->up_vlasov = gkyl_hyper_dg_new(phase_grid, phase_basis, up->eqn_vlasov, num_up_dirs_phase,
-    up_dirs_phase, zero_flux_flags_phase, 1, up->use_gpu);
+                                    up_dirs_phase, zero_flux_flags_phase, 1, up->use_gpu);
   up->up_fluid = gkyl_hyper_dg_new(conf_grid, conf_basis, up->eqn_fluid, num_up_dirs_conf,
-    up_dirs_conf, zero_flux_flags_conf, 1, up->use_gpu);
+                                   up_dirs_conf, zero_flux_flags_conf, 1, up->use_gpu);
 
   up->vlasov_tm = 0.0;
   up->fluid_tm = 0.0;
@@ -56,8 +55,8 @@ gkyl_dg_updater_pkpm_new(const struct gkyl_rect_grid *conf_grid,
   return up;
 }
 
-void
-gkyl_dg_updater_pkpm_advance(gkyl_dg_updater_pkpm *pkpm, const struct gkyl_range *update_phase_rng,
+void gkyl_dg_updater_pkpm_advance(
+  gkyl_dg_updater_pkpm *pkpm, const struct gkyl_range *update_phase_rng,
   const struct gkyl_range *update_conf_rng, const struct gkyl_array *GKYL_RESTRICT fIn,
   const struct gkyl_array *GKYL_RESTRICT fluidIn, struct gkyl_array *GKYL_RESTRICT cflrate_f,
   struct gkyl_array *GKYL_RESTRICT cflrate_fluid, struct gkyl_array *GKYL_RESTRICT rhs_f,
@@ -72,15 +71,13 @@ gkyl_dg_updater_pkpm_advance(gkyl_dg_updater_pkpm *pkpm, const struct gkyl_range
   pkpm->fluid_tm += gkyl_time_diff_now_sec(wst);
 }
 
-struct gkyl_dg_updater_pkpm_tm
-gkyl_dg_updater_pkpm_get_tm(const gkyl_dg_updater_pkpm *pkpm)
+struct gkyl_dg_updater_pkpm_tm gkyl_dg_updater_pkpm_get_tm(const gkyl_dg_updater_pkpm *pkpm)
 {
-  return (
-    struct gkyl_dg_updater_pkpm_tm){ .vlasov_tm = pkpm->vlasov_tm, .fluid_tm = pkpm->fluid_tm };
+  return (struct gkyl_dg_updater_pkpm_tm){ .vlasov_tm = pkpm->vlasov_tm,
+                                           .fluid_tm = pkpm->fluid_tm };
 }
 
-void
-gkyl_dg_updater_pkpm_release(gkyl_dg_updater_pkpm *pkpm)
+void gkyl_dg_updater_pkpm_release(gkyl_dg_updater_pkpm *pkpm)
 {
   gkyl_dg_eqn_release(pkpm->eqn_vlasov);
   gkyl_dg_eqn_release(pkpm->eqn_fluid);

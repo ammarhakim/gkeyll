@@ -9,8 +9,8 @@
 #include <gkyl_culinsolver_ops.h>
 #endif
 
-static long
-gkyl_fem_parproj_global_num_nodes(const struct gkyl_basis *basis, bool isperiodic, int parnum_cells)
+static long gkyl_fem_parproj_global_num_nodes(const struct gkyl_basis *basis, bool isperiodic,
+                                              int parnum_cells)
 {
   int dim = basis->ndim;
   int poly_order = basis->poly_order;
@@ -18,30 +18,30 @@ gkyl_fem_parproj_global_num_nodes(const struct gkyl_basis *basis, bool isperiodi
 
   if (dim == 1) {
     if (poly_order == 1) {
-      return isperiodic ? fem_parproj_num_nodes_global_1x_ser_p1_periodicx(parnum_cells)
-                        : fem_parproj_num_nodes_global_1x_ser_p1_nonperiodicx(parnum_cells);
+      return isperiodic ? fem_parproj_num_nodes_global_1x_ser_p1_periodicx(parnum_cells) :
+                          fem_parproj_num_nodes_global_1x_ser_p1_nonperiodicx(parnum_cells);
     } else if (poly_order == 2) {
-      return isperiodic ? fem_parproj_num_nodes_global_1x_ser_p2_periodicx(parnum_cells)
-                        : fem_parproj_num_nodes_global_1x_ser_p2_nonperiodicx(parnum_cells);
+      return isperiodic ? fem_parproj_num_nodes_global_1x_ser_p2_periodicx(parnum_cells) :
+                          fem_parproj_num_nodes_global_1x_ser_p2_nonperiodicx(parnum_cells);
     }
   } else if (dim == 2) {
     if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       if (poly_order == 1) {
-        return isperiodic ? fem_parproj_num_nodes_global_2x_ser_p1_periodicy(parnum_cells)
-                          : fem_parproj_num_nodes_global_2x_ser_p1_nonperiodicy(parnum_cells);
+        return isperiodic ? fem_parproj_num_nodes_global_2x_ser_p1_periodicy(parnum_cells) :
+                            fem_parproj_num_nodes_global_2x_ser_p1_nonperiodicy(parnum_cells);
       } else if (poly_order == 2) {
-        return isperiodic ? fem_parproj_num_nodes_global_2x_ser_p2_periodicy(parnum_cells)
-                          : fem_parproj_num_nodes_global_2x_ser_p2_nonperiodicy(parnum_cells);
+        return isperiodic ? fem_parproj_num_nodes_global_2x_ser_p2_periodicy(parnum_cells) :
+                            fem_parproj_num_nodes_global_2x_ser_p2_nonperiodicy(parnum_cells);
       }
     }
   } else if (dim == 3) {
     if (basis_type == GKYL_BASIS_MODAL_SERENDIPITY) {
       if (poly_order == 1) {
-        return isperiodic ? fem_parproj_num_nodes_global_3x_ser_p1_periodicz(parnum_cells)
-                          : fem_parproj_num_nodes_global_3x_ser_p1_nonperiodicz(parnum_cells);
+        return isperiodic ? fem_parproj_num_nodes_global_3x_ser_p1_periodicz(parnum_cells) :
+                            fem_parproj_num_nodes_global_3x_ser_p1_nonperiodicz(parnum_cells);
       } else if (poly_order == 2) {
-        return isperiodic ? fem_parproj_num_nodes_global_3x_ser_p2_periodicz(parnum_cells)
-                          : fem_parproj_num_nodes_global_3x_ser_p2_nonperiodicz(parnum_cells);
+        return isperiodic ? fem_parproj_num_nodes_global_3x_ser_p2_periodicz(parnum_cells) :
+                            fem_parproj_num_nodes_global_3x_ser_p2_nonperiodicz(parnum_cells);
       }
     }
   }
@@ -64,8 +64,7 @@ typedef struct {
 } local2global_kern_list;
 
 // Serendipity local-to-global kernels.
-GKYL_CU_D static const local2global_kern_list ser_loc2glob_list[] = {
-  // 1x
+GKYL_CU_D static const local2global_kern_list ser_loc2glob_list[] = { // 1x
   {.list =
       {// periodicx
         {.list = {{fem_parproj_local_to_global_1x_ser_p1_inx_periodicx,
@@ -102,8 +101,8 @@ GKYL_CU_D static const local2global_kern_list ser_loc2glob_list[] = {
           fem_parproj_local_to_global_3x_ser_p2_upz_nonperiodicz}}}}}};
 
 // Function pointer type for lhs kernels.
-typedef void (*lhsstencil_t)(
-  const double *weight, const long *globalIdxs, struct gkyl_mat_triples *tri);
+typedef void (*lhsstencil_t)(const double *weight, const long *globalIdxs,
+                             struct gkyl_mat_triples *tri);
 
 // For use in kernel tables.
 typedef struct {
@@ -117,8 +116,7 @@ typedef struct {
 } lhsstencil_kern_list;
 
 // Serendipity unweighted lhs kernels.
-static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
-  // 1x
+static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = { // 1x
   {.list =
       {// nondirichletx
         {.list = {{fem_parproj_lhs_stencil_noweight_1x_ser_p1_inx_nondirichletx,
@@ -167,8 +165,7 @@ static const lhsstencil_kern_list ser_lhsstencil_list_noweight[] = {
           fem_parproj_lhs_stencil_noweight_3x_ser_p2_upz_dirichletz}}}}}};
 
 // Serendipity weighted lhs kernels.
-static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = {
-  // 1x
+static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = { // 1x
   {.list =
       {// nondirichletx
         {.list = {{fem_parproj_lhs_stencil_weighted_1x_ser_p1_inx_nondirichletx,
@@ -218,7 +215,7 @@ static const lhsstencil_kern_list ser_lhsstencil_list_weighted[] = {
 
 // Function pointer type for rhs source kernels.
 typedef void (*srcstencil_t)(const double *weight, const double *rho, const double *phiBC,
-  long nodeOff, const long *globalIdxs, double *bsrc);
+                             long nodeOff, const long *globalIdxs, double *bsrc);
 
 typedef struct {
   srcstencil_t kernels[3];
@@ -231,8 +228,7 @@ typedef struct {
 } srcstencil_kern_list; // For use in kernel tables.
 
 // Serendipity src kernels.
-GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
-  // 1x
+GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = { // 1x
   {.list =
       {// nondirichletx
         {.list = {{fem_parproj_src_stencil_noweight_1x_ser_p1_inx_nondirichletx,
@@ -301,8 +297,7 @@ GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_noweight[] = {
           fem_parproj_src_stencil_noweight_3x_ser_p2_loz_dirichlet_skinz,
           fem_parproj_src_stencil_noweight_3x_ser_p2_upz_dirichlet_skinz}}}}}};
 
-GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
-  // 1x
+GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_weighted[] = { // 1x
   {.list =
       {// nondirichletx
         {.list = {{fem_parproj_src_stencil_weighted_1x_ser_p1_inx_nondirichletx,
@@ -373,8 +368,8 @@ GKYL_CU_D static const srcstencil_kern_list ser_srcstencil_list_weighted[] = {
 
 // Function pointer type for kernels that convert the solution from nodal to
 // modal.
-typedef void (*solstencil_t)(
-  const double *sol_nodal_global, long nodeOff, const long *globalIdxs, double *sol_modal_local);
+typedef void (*solstencil_t)(const double *sol_nodal_global, long nodeOff, const long *globalIdxs,
+                             double *sol_modal_local);
 
 typedef struct {
   solstencil_t kernels[3];
@@ -388,8 +383,8 @@ GKYL_CU_D static const solstencil_kern_list ser_solstencil_list[] = {
 };
 
 // Function pointer type for kernels that enforce biasing in LHS matrix.
-typedef void (*bias_lhs_t)(
-  const int *edge, const int *perp_dirs, const long *globalIdxs, gkyl_mat_triples *tri);
+typedef void (*bias_lhs_t)(const int *edge, const int *perp_dirs, const long *globalIdxs,
+                           gkyl_mat_triples *tri);
 
 // For use in kernel tables.
 typedef struct {
@@ -403,8 +398,7 @@ typedef struct {
 } bias_lhs_kern_dim_list;
 
 // Serendipity bias_lhs kernels.
-static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = {
-  // 1x
+static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = { // 1x
   {.list =
       {// periodicy
         {.list = {{NULL, NULL}, {NULL, NULL}}},
@@ -435,7 +429,7 @@ static const bias_lhs_kern_dim_list ser_bias_lhs_list[] = {
 
 // Function pointer type for kernels that enforce biasing in RHS source.
 typedef void (*bias_src_t)(const int *edge, const int *perp_dirs, double val, long nodeOff,
-  const long *globalIdxs, double *bsrc);
+                           const long *globalIdxs, double *bsrc);
 
 // For use in kernel tables.
 typedef struct {
@@ -449,8 +443,7 @@ typedef struct {
 } bias_src_kern_dim_list;
 
 // Serendipity bias_src kernels.
-GKYL_CU_D static const bias_src_kern_dim_list ser_bias_src_list[] = {
-  // 1x
+GKYL_CU_D static const bias_src_kern_dim_list ser_bias_src_list[] = { // 1x
   {.list =
       {// periodicy
         {.list = {{NULL, NULL}, {NULL, NULL}}},
@@ -478,12 +471,14 @@ GKYL_CU_D static const bias_src_kern_dim_list ser_bias_src_list[] = {
 
 // Functions that return the value to impose as Dirichlet BC.
 typedef const double *(*get_diri_val_t)(int par_dir, int par_num_cells, const int *idx,
-  const struct gkyl_range *solve_range, const struct gkyl_array *phibc);
+                                        const struct gkyl_range *solve_range,
+                                        const struct gkyl_array *phibc);
 
 // No Dirichlet BC.
-GKYL_CU_D static const double *
-get_dirichlet_value_disabled(int par_dir, int par_num_cells, const int *idx,
-  const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+GKYL_CU_D static const double *get_dirichlet_value_disabled(int par_dir, int par_num_cells,
+                                                            const int *idx,
+                                                            const struct gkyl_range *solve_range,
+                                                            const struct gkyl_array *phibc)
 {
   return 0;
 }
@@ -491,21 +486,23 @@ get_dirichlet_value_disabled(int par_dir, int par_num_cells, const int *idx,
 // Dirichlet BC using the ghost value.
 GKYL_CU_D static const double *
 get_dirichlet_value_enabled_ghost(int par_dir, int par_num_cells, const int *idx,
-  const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+                                  const struct gkyl_range *solve_range,
+                                  const struct gkyl_array *phibc)
 {
   int dirichlet_idx[GKYL_MAX_CDIM];
   for (size_t d = 0; d < par_dir + 1; d++)
     dirichlet_idx[d] = idx[d];
 
-  dirichlet_idx[par_dir] = dirichlet_idx[par_dir] == par_num_cells ? dirichlet_idx[par_dir] + 1
-                                                                   : dirichlet_idx[par_dir] - 1;
+  dirichlet_idx[par_dir] = dirichlet_idx[par_dir] == par_num_cells ? dirichlet_idx[par_dir] + 1 :
+                                                                     dirichlet_idx[par_dir] - 1;
   return (const double *)gkyl_array_cfetch(phibc, gkyl_range_idx(solve_range, dirichlet_idx));
 }
 
 // Dirichlet BC using the skin value.
 GKYL_CU_D static const double *
 get_dirichlet_value_enabled_skin(int par_dir, int par_num_cells, const int *idx,
-  const struct gkyl_range *solve_range, const struct gkyl_array *phibc)
+                                 const struct gkyl_range *solve_range,
+                                 const struct gkyl_array *phibc)
 {
   int dirichlet_idx[GKYL_MAX_CDIM];
   for (size_t d = 0; d < par_dir + 1; d++)
@@ -580,7 +577,8 @@ struct gkyl_fem_parproj {
 
 #ifdef GKYL_HAVE_CUDA
 void fem_parproj_choose_kernels_cu(const struct gkyl_basis *basis, bool has_weight_lhs,
-  bool has_weight_rhs, enum gkyl_fem_parproj_bc_type bctype, struct gkyl_fem_parproj_kernels *kers);
+                                   bool has_weight_rhs, enum gkyl_fem_parproj_bc_type bctype,
+                                   struct gkyl_fem_parproj_kernels *kers);
 
 /**
  * Assign the right-side vector with the discontinuous (DG) source field
@@ -590,8 +588,8 @@ void fem_parproj_choose_kernels_cu(const struct gkyl_basis *basis, bool has_weig
  * @param rhsin DG field to set as RHS source.
  * @param phibc Potential to use for Dirichlet BCs (only use ghost cells).
  */
-void gkyl_fem_parproj_set_rhs_cu(
-  struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc);
+void gkyl_fem_parproj_set_rhs_cu(struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin,
+                                 const struct gkyl_array *phibc);
 
 /**
  * Replace the entries in the RHS src vector with the biased potential values.
@@ -610,9 +608,9 @@ void gkyl_fem_parproj_bias_src_enabled_cu(gkyl_fem_parproj *up, const struct gky
 void gkyl_fem_parproj_solve_cu(struct gkyl_fem_parproj *up, struct gkyl_array *phiout);
 #endif
 
-GKYL_CU_D static void
-fem_parproj_choose_local2global_kernel(
-  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype, local2global_t *l2gout)
+GKYL_CU_D static void fem_parproj_choose_local2global_kernel(const struct gkyl_basis *basis,
+                                                             enum gkyl_fem_parproj_bc_type bctype,
+                                                             local2global_t *l2gout)
 {
   int bckey[1] = { -1 };
   bckey[0] = bctype == GKYL_FEM_PARPROJ_PERIODIC ? 0 : 1;
@@ -628,9 +626,9 @@ fem_parproj_choose_local2global_kernel(
   }
 }
 
-GKYL_CU_D static void
-fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
-  bool isweighted, lhsstencil_t *lhsout)
+GKYL_CU_D static void fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis,
+                                                    enum gkyl_fem_parproj_bc_type bctype,
+                                                    bool isweighted, lhsstencil_t *lhsout)
 {
   int bckey[1] = { -1 };
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST || bctype == GKYL_FEM_PARPROJ_DIRICHLET_SKIN)
@@ -641,9 +639,9 @@ fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parp
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
     for (int k = 0; k < 3; k++)
-      lhsout[k] = isweighted
-        ? CK(ser_lhsstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k)
-        : CK(ser_lhsstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k);
+      lhsout[k] = isweighted ?
+                    CK(ser_lhsstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k) :
+                    CK(ser_lhsstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k);
     break;
   default:
     assert(false);
@@ -651,9 +649,9 @@ fem_parproj_choose_lhs_kernel(const struct gkyl_basis *basis, enum gkyl_fem_parp
   }
 }
 
-GKYL_CU_D static void
-fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis,
-  enum gkyl_fem_parproj_bc_type bctype, bool isweighted, srcstencil_t *srcout)
+GKYL_CU_D static void fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis,
+                                                           enum gkyl_fem_parproj_bc_type bctype,
+                                                           bool isweighted, srcstencil_t *srcout)
 {
   int bckey[1] = { -1 };
   if (bctype == GKYL_FEM_PARPROJ_DIRICHLET_GHOST)
@@ -666,9 +664,9 @@ fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis,
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
     for (int k = 0; k < 3; k++)
-      srcout[k] = isweighted
-        ? CK(ser_srcstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k)
-        : CK(ser_srcstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k);
+      srcout[k] = isweighted ?
+                    CK(ser_srcstencil_list_weighted, basis->ndim, bckey[0], basis->poly_order, k) :
+                    CK(ser_srcstencil_list_noweight, basis->ndim, bckey[0], basis->poly_order, k);
     break;
   default:
     assert(false);
@@ -676,8 +674,7 @@ fem_parproj_choose_srcstencil_kernel(const struct gkyl_basis *basis,
   }
 }
 
-GKYL_CU_D static solstencil_t
-fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
+GKYL_CU_D static solstencil_t fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
 {
   switch (basis->b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -689,9 +686,9 @@ fem_parproj_choose_solstencil_kernel(const struct gkyl_basis *basis)
   return 0;
 }
 
-GKYL_CU_D static void
-fem_parproj_choose_bias_lhs_kernels(
-  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype, bias_lhs_t *blhs_out)
+GKYL_CU_D static void fem_parproj_choose_bias_lhs_kernels(const struct gkyl_basis *basis,
+                                                          enum gkyl_fem_parproj_bc_type bctype,
+                                                          bias_lhs_t *blhs_out)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
@@ -713,9 +710,9 @@ fem_parproj_choose_bias_lhs_kernels(
   }
 }
 
-GKYL_CU_D static void
-fem_parproj_choose_bias_src_kernels(
-  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype, bias_src_t *bsrc_out)
+GKYL_CU_D static void fem_parproj_choose_bias_src_kernels(const struct gkyl_basis *basis,
+                                                          enum gkyl_fem_parproj_bc_type bctype,
+                                                          bias_src_t *bsrc_out)
 {
   int poly_order = basis->poly_order;
   int ndim = basis->ndim;
@@ -737,9 +734,10 @@ fem_parproj_choose_bias_src_kernels(
   }
 }
 
-GKYL_CU_D static void
-fem_parproj_choose_kernels(const struct gkyl_basis *basis, bool has_weight_lhs, bool has_weight_rhs,
-  enum gkyl_fem_parproj_bc_type bctype, bool use_gpu, struct gkyl_fem_parproj_kernels *kers)
+GKYL_CU_D static void fem_parproj_choose_kernels(const struct gkyl_basis *basis,
+                                                 bool has_weight_lhs, bool has_weight_rhs,
+                                                 enum gkyl_fem_parproj_bc_type bctype, bool use_gpu,
+                                                 struct gkyl_fem_parproj_kernels *kers)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -773,8 +771,7 @@ fem_parproj_choose_kernels(const struct gkyl_basis *basis, bool has_weight_lhs, 
   fem_parproj_choose_bias_src_kernels(basis, bctype, kers->bias_src_ker);
 }
 
-GKYL_CU_DH static inline int
-idx_to_inloup_ker(int num_cells, int idx)
+GKYL_CU_DH static inline int idx_to_inloup_ker(int num_cells, int idx)
 {
   // Return the index of the kernel (in the array of kernels) needed given the grid index.
   // This function is for kernels that differentiate between lower, interior

@@ -1,14 +1,12 @@
 #include <gkyl_fem_parproj.h>
 #include <gkyl_fem_parproj_priv.h>
 
-static void
-fem_parproj_bias_src_disabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
+static void fem_parproj_bias_src_disabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
 {
   // Do nothing.
 }
 
-static void
-fem_parproj_bias_src_enabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
+static void fem_parproj_bias_src_enabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -50,25 +48,27 @@ fem_parproj_bias_src_enabled(gkyl_fem_parproj *up, const struct gkyl_array *rhsi
         }
 
         if ((idx1[bl->perp_dirs[0]] == bl_idx_m[0] && idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
-          (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
-          (idx1[bl->perp_dirs[0]] == bl_idx_m[0] && idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
-          (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
-            idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
+            (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 && idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
+            (idx1[bl->perp_dirs[0]] == bl_idx_m[0] && idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
+            (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
+             idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
           int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
-            -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
-          up->kernels->bias_src_ker[keri](
-            edge, bl->perp_dirs, bl->val, perpProbOff, up->globalidx, brhs_p);
+                          -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
+          up->kernels->bias_src_ker[keri](edge, bl->perp_dirs, bl->val, perpProbOff, up->globalidx,
+                                          brhs_p);
         }
       }
     }
   }
 }
 
-struct gkyl_fem_parproj *
-gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rect_grid *grid,
-  const struct gkyl_basis *basis, enum gkyl_fem_parproj_bc_type bctype,
-  struct gkyl_poisson_bias_line_list *bias_lines, const struct gkyl_array *weight_left,
-  const struct gkyl_array *weight_right, bool use_gpu)
+struct gkyl_fem_parproj *gkyl_fem_parproj_new(const struct gkyl_range *solve_range,
+                                              const struct gkyl_rect_grid *grid,
+                                              const struct gkyl_basis *basis,
+                                              enum gkyl_fem_parproj_bc_type bctype,
+                                              struct gkyl_poisson_bias_line_list *bias_lines,
+                                              const struct gkyl_array *weight_left,
+                                              const struct gkyl_array *weight_right, bool use_gpu)
 {
   struct gkyl_fem_parproj *up = gkyl_malloc(sizeof(struct gkyl_fem_parproj));
 
@@ -93,8 +93,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   struct gkyl_array *weight_left_ho;
   if (weight_left) {
     has_weight_lhs = true;
-    weight_left_ho = use_gpu ? gkyl_array_new(GKYL_DOUBLE, weight_left->ncomp, weight_left->size)
-                             : gkyl_array_acquire(weight_left);
+    weight_left_ho = use_gpu ? gkyl_array_new(GKYL_DOUBLE, weight_left->ncomp, weight_left->size) :
+                               gkyl_array_acquire(weight_left);
     gkyl_array_copy(weight_left_ho, weight_left);
   }
 
@@ -125,8 +125,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   up->numnodes_local = up->num_basis;
   up->numnodes_global = gkyl_fem_parproj_global_num_nodes(basis, up->isperiodic, par_range.volume);
 
-  up->brhs = gkyl_array_new(
-    GKYL_DOUBLE, 1, up->numnodes_global * perp_range.volume); // Global right side vector.
+  up->brhs = gkyl_array_new(GKYL_DOUBLE, 1,
+                            up->numnodes_global * perp_range.volume); // Global right side vector.
 
   // Allocate struct holding kernel pointers.
   struct gkyl_fem_parproj_kernels *kernels_ho =
@@ -140,8 +140,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
 #endif
 
   // Choose kernels.
-  fem_parproj_choose_kernels(
-    basis, has_weight_lhs, up->has_weight_rhs, bctype, use_gpu, up->kernels);
+  fem_parproj_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, use_gpu,
+                             up->kernels);
 
   // Select kernels for building LHS matrix on host:
   fem_parproj_choose_kernels(basis, has_weight_lhs, up->has_weight_rhs, bctype, false, kernels_ho);
@@ -180,8 +180,9 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
           }
         }
 
-        bool pick_lower[3] = { true, true,
-          true }; // If at a cell boundary, pick the cell lower than the biased line.
+        bool pick_lower[3] = {
+          true, true, true
+        }; // If at a cell boundary, pick the cell lower than the biased line.
         int line_idx[GKYL_MAX_CDIM];
         gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){ -1, -1, -1 }, line_idx);
         bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
@@ -200,8 +201,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
           if (on_upper_cell_boundary) {
             pick_lower[0] = pick_lower[1] = pick_lower[2] =
               false; // If at a cell boundary, pick the cell upper than the biased line.
-            gkyl_rect_grid_find_cell(
-              grid, line_coords, pick_lower, (int[3]){ -1, -1, -1 }, line_idx);
+            gkyl_rect_grid_find_cell(grid, line_coords, pick_lower, (int[3]){ -1, -1, -1 },
+                                     line_idx);
             bl_in_solve_range[i] = gkyl_range_contains_idx(solve_range, line_idx);
           }
         }
@@ -218,8 +219,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
         for (int i = 0; i < bias_lines->num_bias_line; i++) {
           if (bl_in_solve_range[i]) {
             struct gkyl_poisson_bias_line *bl = &bias_lines->bl[i];
-            memcpy(
-              &bias_lines_buff[blc], &bias_lines->bl[i], sizeof(struct gkyl_poisson_bias_line));
+            memcpy(&bias_lines_buff[blc], &bias_lines->bl[i],
+                   sizeof(struct gkyl_poisson_bias_line));
             blc++;
           }
         }
@@ -251,8 +252,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   } else {
     if (has_weight_lhs || up->num_bias_line) {
       nrhs = 1;
-      gkyl_range_init(
-        &prob_range, up->perp_range2d.ndim, up->perp_range2d.lower, up->perp_range2d.upper);
+      gkyl_range_init(&prob_range, up->perp_range2d.ndim, up->perp_range2d.lower,
+                      up->perp_range2d.upper);
     } else {
       nrhs = perp_range.volume;
       gkyl_range_init(&prob_range, 1, &((int){ 1 }), &((int){ 1 }));
@@ -339,14 +340,14 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
             }
 
             if ((idx1[bl->perp_dirs[0]] == bl_idx_m[0] && idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
-              (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
-                idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
-              (idx1[bl->perp_dirs[0]] == bl_idx_m[0] &&
-                idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
-              (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
-                idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
+                (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
+                 idx1[bl->perp_dirs[1]] == bl_idx_m[1]) ||
+                (idx1[bl->perp_dirs[0]] == bl_idx_m[0] &&
+                 idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1) ||
+                (idx1[bl->perp_dirs[0]] == bl_idx_m[0] + 1 &&
+                 idx1[bl->perp_dirs[1]] == bl_idx_m[1] + 1)) {
               int edge[2] = { -1 + 2 * ((bl_idx_m[0] + 1) - idx1[bl->perp_dirs[0]]),
-                -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
+                              -1 + 2 * ((bl_idx_m[1] + 1) - idx1[bl->perp_dirs[1]]) };
               kernels_ho->bias_lhs_ker[keri](edge, bl->perp_dirs, up->globalidx, tri[perpidx]);
             }
           }
@@ -380,9 +381,8 @@ gkyl_fem_parproj_new(const struct gkyl_range *solve_range, const struct gkyl_rec
   return up;
 }
 
-void
-gkyl_fem_parproj_set_rhs(
-  struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin, const struct gkyl_array *phibc)
+void gkyl_fem_parproj_set_rhs(struct gkyl_fem_parproj *up, const struct gkyl_array *rhsin,
+                              const struct gkyl_array *phibc)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -414,8 +414,8 @@ gkyl_fem_parproj_set_rhs(
 
       const double *wgt_p = up->has_weight_rhs ? gkyl_array_cfetch(up->weight_rhs, linidx) : NULL;
       const double *rhsin_p = gkyl_array_cfetch(rhsin, linidx);
-      const double *phibc_p = up->kernels->get_dirichlet_value(
-        up->pardir, up->parnum_cells, idx1, up->solve_range, phibc);
+      const double *phibc_p = up->kernels->get_dirichlet_value(up->pardir, up->parnum_cells, idx1,
+                                                               up->solve_range, phibc);
 
       long perpProbOff = perpidx * up->numnodes_global;
 
@@ -433,8 +433,7 @@ gkyl_fem_parproj_set_rhs(
   gkyl_superlu_brhs_from_array(up->prob, brhs_p);
 }
 
-void
-gkyl_fem_parproj_solve(struct gkyl_fem_parproj *up, struct gkyl_array *phiout)
+void gkyl_fem_parproj_solve(struct gkyl_fem_parproj *up, struct gkyl_array *phiout)
 {
 #ifdef GKYL_HAVE_CUDA
   if (up->use_gpu) {
@@ -467,14 +466,13 @@ gkyl_fem_parproj_solve(struct gkyl_fem_parproj *up, struct gkyl_array *phiout)
       int keri = up->par_iter1d.idx[0] == up->parnum_cells ? 1 : 0;
       up->kernels->l2g[keri](up->parnum_cells, paridx, up->globalidx);
 
-      up->kernels->solker(
-        gkyl_superlu_get_rhs_ptr(up->prob, 0), perpProbOff, up->globalidx, phiout_p);
+      up->kernels->solker(gkyl_superlu_get_rhs_ptr(up->prob, 0), perpProbOff, up->globalidx,
+                          phiout_p);
     }
   }
 }
 
-void
-gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
+void gkyl_fem_parproj_release(struct gkyl_fem_parproj *up)
 {
   if (up->has_weight_rhs) {
     gkyl_array_release(up->weight_rhs);

@@ -13,24 +13,24 @@ extern "C" {
 // This is required because eqn object lives on device,
 // and so its members cannot be modified without a full __global__ kernel on device.
 __global__ static void
-gkyl_dg_diffusion_vlasov_set_auxfields_cu_kernel(
-  const struct gkyl_dg_eqn *eqn, const struct gkyl_array *D)
+gkyl_dg_diffusion_vlasov_set_auxfields_cu_kernel(const struct gkyl_dg_eqn *eqn,
+                                                 const struct gkyl_array *D)
 {
   struct dg_diffusion_vlasov *diffusion = container_of(eqn, struct dg_diffusion_vlasov, eqn);
   diffusion->auxfields.D = D;
 }
 
 // Host-side wrapper for set_auxfields_cu_kernel
-void
-gkyl_dg_diffusion_vlasov_set_auxfields_cu(
-  const struct gkyl_dg_eqn *eqn, struct gkyl_dg_diffusion_vlasov_auxfields auxin)
+void gkyl_dg_diffusion_vlasov_set_auxfields_cu(const struct gkyl_dg_eqn *eqn,
+                                               struct gkyl_dg_diffusion_vlasov_auxfields auxin)
 {
-  gkyl_dg_diffusion_vlasov_set_auxfields_cu_kernel<<<1, 1>>>(eqn, auxin.D->on_dev);
+  gkyl_dg_diffusion_vlasov_set_auxfields_cu_kernel<<<1, 1> > >(eqn, auxin.D->on_dev);
 }
 
 __global__ void static dg_diffusion_vlasov_set_cu_dev_ptrs(struct dg_diffusion_vlasov *diffusion,
-  enum gkyl_basis_type b_type, int cdim, int vdim, int poly_order, int diff_order,
-  int diffdirs_linidx)
+                                                           enum gkyl_basis_type b_type, int cdim,
+                                                           int vdim, int poly_order, int diff_order,
+                                                           int diffdirs_linidx)
 {
   diffusion->auxfields.D = 0;
 
@@ -45,18 +45,18 @@ __global__ void static dg_diffusion_vlasov_set_cu_dev_ptrs(struct dg_diffusion_v
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
     vol_kernels = diffusion->const_coeff ? ser_vol_kernels_constcoeff : ser_vol_kernels_varcoeff;
-    surfx_kernels = diffusion->const_coeff ? ser_vlasov_surfx_kernels_constcoeff
-                                           : ser_vlasov_surfx_kernels_varcoeff;
-    surfy_kernels = diffusion->const_coeff ? ser_vlasov_surfy_kernels_constcoeff
-                                           : ser_vlasov_surfy_kernels_varcoeff;
-    surfz_kernels = diffusion->const_coeff ? ser_vlasov_surfz_kernels_constcoeff
-                                           : ser_vlasov_surfz_kernels_varcoeff;
-    boundary_surfx_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfx_kernels_constcoeff
-                                                    : ser_vlasov_boundary_surfx_kernels_varcoeff;
-    boundary_surfy_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfy_kernels_constcoeff
-                                                    : ser_vlasov_boundary_surfy_kernels_varcoeff;
-    boundary_surfz_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfz_kernels_constcoeff
-                                                    : ser_vlasov_boundary_surfz_kernels_varcoeff;
+    surfx_kernels = diffusion->const_coeff ? ser_vlasov_surfx_kernels_constcoeff :
+                                             ser_vlasov_surfx_kernels_varcoeff;
+    surfy_kernels = diffusion->const_coeff ? ser_vlasov_surfy_kernels_constcoeff :
+                                             ser_vlasov_surfy_kernels_varcoeff;
+    surfz_kernels = diffusion->const_coeff ? ser_vlasov_surfz_kernels_constcoeff :
+                                             ser_vlasov_surfz_kernels_varcoeff;
+    boundary_surfx_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfx_kernels_constcoeff :
+                                                      ser_vlasov_boundary_surfx_kernels_varcoeff;
+    boundary_surfy_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfy_kernels_constcoeff :
+                                                      ser_vlasov_boundary_surfy_kernels_varcoeff;
+    boundary_surfz_kernels = diffusion->const_coeff ? ser_vlasov_boundary_surfz_kernels_constcoeff :
+                                                      ser_vlasov_boundary_surfz_kernels_varcoeff;
     break;
 
   default:
@@ -85,9 +85,11 @@ __global__ void static dg_diffusion_vlasov_set_cu_dev_ptrs(struct dg_diffusion_v
       CKSURF(boundary_surfz_kernels, diff_order, cdim, vdim, poly_order);
 }
 
-struct gkyl_dg_eqn *
-gkyl_dg_diffusion_vlasov_cu_dev_new(const struct gkyl_basis *basis, const struct gkyl_basis *cbasis,
-  bool is_diff_const, const bool *diff_in_dir, int diff_order, const struct gkyl_range *diff_range)
+struct gkyl_dg_eqn *gkyl_dg_diffusion_vlasov_cu_dev_new(const struct gkyl_basis *basis,
+                                                        const struct gkyl_basis *cbasis,
+                                                        bool is_diff_const, const bool *diff_in_dir,
+                                                        int diff_order,
+                                                        const struct gkyl_range *diff_range)
 {
   struct dg_diffusion_vlasov *diffusion =
     (struct dg_diffusion_vlasov *)gkyl_malloc(sizeof(struct dg_diffusion_vlasov));
@@ -113,8 +115,8 @@ gkyl_dg_diffusion_vlasov_cu_dev_new(const struct gkyl_basis *basis, const struct
   struct dg_diffusion_vlasov *diffusion_cu =
     (struct dg_diffusion_vlasov *)gkyl_cu_malloc(sizeof(struct dg_diffusion_vlasov));
   gkyl_cu_memcpy(diffusion_cu, diffusion, sizeof(struct dg_diffusion_vlasov), GKYL_CU_MEMCPY_H2D);
-  dg_diffusion_vlasov_set_cu_dev_ptrs<<<1, 1>>>(
-    diffusion_cu, cbasis->b_type, cdim, vdim, poly_order, diff_order, dirs_linidx);
+  dg_diffusion_vlasov_set_cu_dev_ptrs<<<1, 1> > >(diffusion_cu, cbasis->b_type, cdim, vdim,
+                                                  poly_order, diff_order, dirs_linidx);
 
   // set parent on_dev pointer
   diffusion->eqn.on_dev = &diffusion_cu->eqn;

@@ -12,11 +12,14 @@
 #include <assert.h>
 
 typedef int (*canonical_pb_fluid_alpha_surf_t)(const double *w, const double *dxv,
-  const double *phi, double *GKYL_RESTRICT alpha_surf, double *GKYL_RESTRICT sgn_alpha_surf);
+                                               const double *phi, double *GKYL_RESTRICT alpha_surf,
+                                               double *GKYL_RESTRICT sgn_alpha_surf);
 typedef void (*canonical_pb_fluid_source_t)(const double *dxv, double alpha, const double *phi,
-  const double *n0, const double *adiabatic_coupling_phi_n, double *GKYL_RESTRICT rhs);
-typedef void (*canonical_pb_fluid_subtract_zonal_t)(
-  const double *phi_zonal, const double *n_zonal, double *GKYL_RESTRICT adiabatic_coupling_phi_n);
+                                            const double *n0,
+                                            const double *adiabatic_coupling_phi_n,
+                                            double *GKYL_RESTRICT rhs);
+typedef void (*canonical_pb_fluid_subtract_zonal_t)(const double *phi_zonal, const double *n_zonal,
+                                                    double *GKYL_RESTRICT adiabatic_coupling_phi_n);
 
 // for use in kernel tables
 typedef struct {
@@ -55,8 +58,7 @@ struct gkyl_dg_calc_canonical_pb_fluid_vars {
   struct gkyl_array *adiabatic_coupling_phi_n; // combined (phi, n) array for adiabatic coupling
 
   struct gkyl_range x_local; // x range for the zonal components after integrating over y
-  struct gkyl_range
-    x_local_ext; // extended x range for the zonal components after integrating over y
+  struct gkyl_range x_local_ext; // extended x range for the zonal components after integrating over y
   struct gkyl_array *phi_zonal; // 1/Ly int phi dy
   struct gkyl_array *n_zonal; // 1/Ly int n dy
   struct gkyl_array_average *int_y; // Updater for computing zonal components by averaging in y
@@ -223,8 +225,8 @@ GKYL_CU_D static const gkyl_dg_canonical_pb_fluid_subtract_zonal_kern_list
   };
 
 GKYL_CU_D static canonical_pb_fluid_alpha_surf_t
-choose_canonical_pb_fluid_alpha_surf_kern(
-  enum gkyl_basis_type b_type, int dir, int cdim, int poly_order)
+choose_canonical_pb_fluid_alpha_surf_kern(enum gkyl_basis_type b_type, int dir, int cdim,
+                                          int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -250,8 +252,8 @@ choose_canonical_pb_fluid_alpha_surf_kern(
 }
 
 GKYL_CU_D static canonical_pb_fluid_alpha_surf_t
-choose_canonical_pb_fluid_alpha_edge_surf_kern(
-  enum gkyl_basis_type b_type, int dir, int cdim, int poly_order)
+choose_canonical_pb_fluid_alpha_edge_surf_kern(enum gkyl_basis_type b_type, int dir, int cdim,
+                                               int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -277,8 +279,8 @@ choose_canonical_pb_fluid_alpha_edge_surf_kern(
 }
 
 GKYL_CU_D static canonical_pb_fluid_source_t
-choose_canonical_pb_fluid_hasegawa_mima_source_kern(
-  enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_canonical_pb_fluid_hasegawa_mima_source_kern(enum gkyl_basis_type b_type, int cdim,
+                                                    int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -294,8 +296,8 @@ choose_canonical_pb_fluid_hasegawa_mima_source_kern(
 }
 
 GKYL_CU_D static canonical_pb_fluid_source_t
-choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(
-  enum gkyl_basis_type b_type, int cdim, int poly_order)
+choose_canonical_pb_fluid_hasegawa_wakatani_source_kern(enum gkyl_basis_type b_type, int cdim,
+                                                        int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

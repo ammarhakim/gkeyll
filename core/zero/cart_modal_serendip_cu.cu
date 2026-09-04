@@ -11,8 +11,8 @@ extern "C" {
 #include <gkyl_cart_modal_serendip_priv.h>
 }
 
-__global__ void static gkyl_cart_modal_serendip_cu_dev_kern(
-  struct gkyl_basis *basis, int ndim, int poly_order)
+__global__ void static gkyl_cart_modal_serendip_cu_dev_kern(struct gkyl_basis *basis, int ndim,
+                                                            int poly_order)
 {
   assert(ev_list[ndim].ev[poly_order]);
 
@@ -34,8 +34,7 @@ __global__ void static gkyl_cart_modal_serendip_cu_dev_kern(
   basis->modal_to_quad_nodal = m2qn_list[ndim].n2m[poly_order];
 }
 
-void
-gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order)
+void gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_order)
 {
   assert(ndim > 0 && ndim <= 6);
 
@@ -46,11 +45,10 @@ gkyl_cart_modal_serendip_cu_dev(struct gkyl_basis *basis, int ndim, int poly_ord
   // "type" field can't be done on the device
   gkyl_cu_memcpy(basis, &ho_basis, sizeof(struct gkyl_basis), GKYL_CU_MEMCPY_H2D);
 
-  gkyl_cart_modal_serendip_cu_dev_kern<<<1, 1>>>(basis, ndim, poly_order);
+  gkyl_cart_modal_serendip_cu_dev_kern<<<1, 1> > >(basis, ndim, poly_order);
 }
 
-struct gkyl_basis *
-gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order)
+struct gkyl_basis *gkyl_cart_modal_serendip_cu_dev_new(int ndim, int poly_order)
 {
   struct gkyl_basis *basis = (struct gkyl_basis *)gkyl_cu_malloc(sizeof(struct gkyl_basis));
   gkyl_cart_modal_serendip_cu_dev(basis, ndim, poly_order);

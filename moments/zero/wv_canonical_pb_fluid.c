@@ -6,8 +6,7 @@
 #include <gkyl_wv_canonical_pb_fluid.h>
 #include <gkyl_wv_canonical_pb_fluid_priv.h>
 
-void
-gkyl_wv_can_pb_incompress_euler_free(const struct gkyl_ref_count *ref)
+void gkyl_wv_can_pb_incompress_euler_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_can_pb_incompress_euler *can_pb_incompress_euler =
@@ -15,8 +14,7 @@ gkyl_wv_can_pb_incompress_euler_free(const struct gkyl_ref_count *ref)
   gkyl_free(can_pb_incompress_euler);
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_can_pb_incompress_euler_new()
+struct gkyl_wv_eqn *gkyl_wv_can_pb_incompress_euler_new()
 {
   struct wv_can_pb_incompress_euler *can_pb_incompress_euler =
     gkyl_malloc(sizeof(struct wv_can_pb_incompress_euler));
@@ -34,8 +32,7 @@ gkyl_wv_can_pb_incompress_euler_new()
   return &can_pb_incompress_euler->eqn;
 }
 
-void
-gkyl_wv_can_pb_hasegawa_mima_free(const struct gkyl_ref_count *ref)
+void gkyl_wv_can_pb_hasegawa_mima_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima =
@@ -43,8 +40,7 @@ gkyl_wv_can_pb_hasegawa_mima_free(const struct gkyl_ref_count *ref)
   gkyl_free(can_pb_hasegawa_mima);
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_can_pb_hasegawa_mima_new()
+struct gkyl_wv_eqn *gkyl_wv_can_pb_hasegawa_mima_new()
 {
   struct wv_can_pb_hasegawa_mima *can_pb_hasegawa_mima =
     gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_mima));
@@ -60,8 +56,7 @@ gkyl_wv_can_pb_hasegawa_mima_new()
   return &can_pb_hasegawa_mima->eqn;
 }
 
-void
-gkyl_wv_can_pb_hasegawa_wakatani_free(const struct gkyl_ref_count *ref)
+void gkyl_wv_can_pb_hasegawa_wakatani_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_wv_eqn *base = container_of(ref, struct gkyl_wv_eqn, ref_count);
   struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani =
@@ -69,8 +64,7 @@ gkyl_wv_can_pb_hasegawa_wakatani_free(const struct gkyl_ref_count *ref)
   gkyl_free(can_pb_hasegawa_wakatani);
 }
 
-struct gkyl_wv_eqn *
-gkyl_wv_can_pb_hasegawa_wakatani_new(double alpha, bool is_modified)
+struct gkyl_wv_eqn *gkyl_wv_can_pb_hasegawa_wakatani_new(double alpha, bool is_modified)
 {
   struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani =
     gkyl_malloc(sizeof(struct wv_can_pb_hasegawa_wakatani));
@@ -90,16 +84,14 @@ gkyl_wv_can_pb_hasegawa_wakatani_new(double alpha, bool is_modified)
   return &can_pb_hasegawa_wakatani->eqn;
 }
 
-double
-gkyl_wv_can_pb_hasegawa_wakatani_alpha(const struct gkyl_wv_eqn *eqn)
+double gkyl_wv_can_pb_hasegawa_wakatani_alpha(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani =
     container_of(eqn, struct wv_can_pb_hasegawa_wakatani, eqn);
   return can_pb_hasegawa_wakatani->alpha;
 }
 
-bool
-gkyl_wv_can_pb_hasegawa_wakatani_is_modified(const struct gkyl_wv_eqn *eqn)
+bool gkyl_wv_can_pb_hasegawa_wakatani_is_modified(const struct gkyl_wv_eqn *eqn)
 {
   const struct wv_can_pb_hasegawa_wakatani *can_pb_hasegawa_wakatani =
     container_of(eqn, struct wv_can_pb_hasegawa_wakatani, eqn);

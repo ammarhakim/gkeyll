@@ -10,9 +10,8 @@
 #include <gkyl_mom_calc_bcorr_priv.h>
 #include <gkyl_util.h>
 
-struct gkyl_mom_calc_bcorr *
-gkyl_mom_calc_bcorr_new(
-  const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt, bool use_gpu)
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_new(const struct gkyl_rect_grid *grid,
+                                                    const struct gkyl_mom_type *momt, bool use_gpu)
 {
 #ifdef GKYL_HAVE_CUDA
   if (use_gpu) {
@@ -29,8 +28,7 @@ gkyl_mom_calc_bcorr_new(
   return up;
 }
 
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
   for (int i = 0; i < cdim; ++i)
     out[i] = cidx[i];
@@ -38,10 +36,11 @@ copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
     out[i] = vidx[i - cdim];
 }
 
-void
-gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out)
+void gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
+                                 const struct gkyl_range *phase_rng,
+                                 const struct gkyl_range *conf_rng,
+                                 const struct gkyl_array *GKYL_RESTRICT fIn,
+                                 struct gkyl_array *GKYL_RESTRICT out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (GKYL_IS_CU_ALLOC(bcorr->flags)) {
@@ -102,7 +101,7 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
 
         long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
         gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx, gkyl_array_cfetch(fIn, fidx),
-          gkyl_array_fetch(out, midx), &edge);
+                           gkyl_array_fetch(out, midx), &edge);
       }
 
       // loop over lower edge of velocity space
@@ -119,7 +118,7 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
 
         long fidx = gkyl_range_idx(&vel_rng, vel_iter.idx);
         gkyl_mom_type_calc(bcorr->momt, xc, bcorr->grid.dx, pidx, gkyl_array_cfetch(fIn, fidx),
-          gkyl_array_fetch(out, midx), &edge);
+                           gkyl_array_fetch(out, midx), &edge);
       }
       rem_dir[cdim + d] = 0;
       pidx[cdim + d] = 0;
@@ -127,8 +126,7 @@ gkyl_mom_calc_bcorr_advance(const struct gkyl_mom_calc_bcorr *bcorr,
   }
 }
 
-void
-gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr *up)
+void gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr *up)
 {
   gkyl_mom_type_release(up->momt);
   if (GKYL_IS_CU_ALLOC(up->flags))
@@ -138,16 +136,17 @@ gkyl_mom_calc_bcorr_release(gkyl_mom_calc_bcorr *up)
 
 #ifndef GKYL_HAVE_CUDA
 
-struct gkyl_mom_calc_bcorr *
-gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid, const struct gkyl_mom_type *momt)
+struct gkyl_mom_calc_bcorr *gkyl_mom_calc_bcorr_cu_dev_new(const struct gkyl_rect_grid *grid,
+                                                           const struct gkyl_mom_type *momt)
 {
   assert(false);
 }
 
-void
-gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
-  const struct gkyl_range *phase_rng, const struct gkyl_range *conf_rng,
-  const struct gkyl_array *GKYL_RESTRICT fIn, struct gkyl_array *GKYL_RESTRICT out)
+void gkyl_mom_calc_bcorr_advance_cu(const struct gkyl_mom_calc_bcorr *bcorr,
+                                    const struct gkyl_range *phase_rng,
+                                    const struct gkyl_range *conf_rng,
+                                    const struct gkyl_array *GKYL_RESTRICT fIn,
+                                    struct gkyl_array *GKYL_RESTRICT out)
 {
   assert(false);
 }

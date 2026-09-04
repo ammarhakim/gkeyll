@@ -15,8 +15,7 @@
 #include <gkyl_rrobin_decomp.h>
 #include <gkyl_util.h>
 
-static void
-mpi_0_ho()
+static void mpi_0_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -40,8 +39,7 @@ mpi_0_ho()
   gkyl_comm_release(comm);
 }
 
-static void
-mpi_1_ho()
+static void mpi_1_ho()
 {
   struct gkyl_range range;
   gkyl_range_init(&range, 2, (int[]){ 1, 1 }, (int[]){ 100, 100 });
@@ -71,8 +69,7 @@ mpi_1_ho()
   gkyl_comm_release(comm);
 }
 
-static void
-mpi_n2_allreduce_ho()
+static void mpi_n2_allreduce_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -119,8 +116,7 @@ mpi_n2_allreduce_ho()
   gkyl_comm_release(comm);
 }
 
-static void
-mpi_n2_allgather_1d_ho()
+static void mpi_n2_allgather_1d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -176,8 +172,7 @@ mpi_n2_allgather_1d_ho()
   gkyl_array_release(arr_global);
 }
 
-static void
-mpi_n4_allgather_2d_ho()
+static void mpi_n4_allgather_2d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -245,8 +240,7 @@ mpi_n4_allgather_2d_ho()
   gkyl_array_release(arr_global);
 }
 
-static void
-mpi_n2_allgather_1d_host_ho()
+static void mpi_n2_allgather_1d_host_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -302,8 +296,7 @@ mpi_n2_allgather_1d_host_ho()
   gkyl_array_release(arr_global);
 }
 
-static void
-mpi_n4_allgather_2d_host_ho()
+static void mpi_n4_allgather_2d_host_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -371,8 +364,7 @@ mpi_n4_allgather_2d_host_ho()
   gkyl_array_release(arr_global);
 }
 
-static void
-mpi_n2_sync_1d_ho()
+static void mpi_n2_sync_1d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -424,8 +416,7 @@ mpi_n2_sync_1d_ho()
   gkyl_array_release(arr);
 }
 
-static void
-mpi_n4_sync_2d(bool use_corners)
+static void mpi_n4_sync_2d(bool use_corners)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -483,7 +474,7 @@ mpi_n4_sync_2d(bool use_corners)
     } else {
       // excludes corners
       if (gkyl_range_contains_idx(&local_ext_x, iter.idx) ||
-        gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
+          gkyl_range_contains_idx(&local_ext_y, iter.idx)) {
         TEST_CHECK(iter.idx[0] == f[0]);
         TEST_CHECK(iter.idx[1] == f[1]);
       }
@@ -495,19 +486,16 @@ mpi_n4_sync_2d(bool use_corners)
   gkyl_array_release(arr);
 }
 
-void
-mpi_n4_sync_2d_no_corner_ho()
+void mpi_n4_sync_2d_no_corner_ho()
 {
   mpi_n4_sync_2d(false);
 }
-void
-mpi_n4_sync_2d_use_corner_ho()
+void mpi_n4_sync_2d_use_corner_ho()
 {
   mpi_n4_sync_2d(true);
 }
 
-static void
-mpi_n4_sync_1x1v_ho()
+static void mpi_n4_sync_1x1v_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -571,8 +559,7 @@ mpi_n4_sync_1x1v_ho()
   gkyl_rect_decomp_release(decomp);
 }
 
-static void
-mpi_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
+static void mpi_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -638,7 +625,7 @@ mpi_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
         for (int n = 0; n < local.ndim; ++n) {
           TEST_CHECK(idx[n] == f[n]);
           TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %d | Produced: %.13e", rank, iter.idx[0],
-            iter.idx[1], idx[n], f[n]);
+                   iter.idx[1], idx[n], f[n]);
         }
       }
     }
@@ -649,8 +636,7 @@ mpi_n1_per_sync_2d_tests(int num_per_dirs, int *per_dirs)
   gkyl_array_release(arr);
 }
 
-static void
-mpi_n1_per_sync_2d_ho()
+static void mpi_n1_per_sync_2d_ho()
 {
   int per_dirs_0[] = { 0 };
   int per_dirs_1[] = { 1 };
@@ -665,8 +651,7 @@ mpi_n1_per_sync_2d_ho()
   mpi_n1_per_sync_2d_tests(2, per_dirs_01);
 }
 
-static void
-mpi_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
+static void mpi_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -700,8 +685,8 @@ mpi_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
   delta[decomp_dir] = 2 * rank - 1;
   struct gkyl_range local_ext_x_shifted;
   gkyl_range_shift(&local_ext_x_shifted, &local_ext_x[decomp_dir], delta);
-  gkyl_sub_range_init(
-    &local_ext_x[decomp_dir], &local_ext, local_ext_x_shifted.lower, local_ext_x_shifted.upper);
+  gkyl_sub_range_init(&local_ext_x[decomp_dir], &local_ext, local_ext_x_shifted.lower,
+                      local_ext_x_shifted.upper);
 
   struct gkyl_array *arr = gkyl_array_new(GKYL_DOUBLE, range.ndim, local_ext.volume);
   gkyl_array_clear(arr, 200005);
@@ -742,7 +727,7 @@ mpi_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
         for (int n = 0; n < local.ndim; ++n) {
           TEST_CHECK(idx[n] == f[n]);
           TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %d | Produced: %.13e", rank, iter.idx[0],
-            iter.idx[1], idx[n], f[n]);
+                   iter.idx[1], idx[n], f[n]);
         }
       }
     }
@@ -753,8 +738,7 @@ mpi_n2_per_sync_2d_tests(int *cuts, int num_per_dirs, int *per_dirs)
   gkyl_array_release(arr);
 }
 
-static void
-mpi_per_sync_corner_2d(int nrank, int cuts[])
+static void mpi_per_sync_corner_2d(int nrank, int cuts[])
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -794,24 +778,20 @@ mpi_per_sync_corner_2d(int nrank, int cuts[])
   gkyl_array_release(arr);
 }
 
-static void
-mpi_n1_per_sync_corner_2d_ho(void)
+static void mpi_n1_per_sync_corner_2d_ho(void)
 {
   mpi_per_sync_corner_2d(1, (int[]){ 1, 1 });
 }
-static void
-mpi_n2_per_sync_corner_2d_ho(void)
+static void mpi_n2_per_sync_corner_2d_ho(void)
 {
   mpi_per_sync_corner_2d(2, (int[]){ 2, 1 });
 }
-static void
-mpi_n4_per_sync_corner_2d_ho(void)
+static void mpi_n4_per_sync_corner_2d_ho(void)
 {
   mpi_per_sync_corner_2d(4, (int[]){ 2, 2 });
 }
 
-static void
-mpi_n2_per_sync_2d_ho()
+static void mpi_n2_per_sync_2d_ho()
 {
   int cuts_21[] = { 2, 1 };
   int cuts_12[] = { 1, 2 };
@@ -828,8 +808,7 @@ mpi_n2_per_sync_2d_ho()
   mpi_n2_per_sync_2d_tests(cuts_12, 2, per_dirs_01);
 }
 
-static void
-mpi_per_sync_corner_3d(int nrank, int cuts[])
+static void mpi_per_sync_corner_3d(int nrank, int cuts[])
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -864,7 +843,7 @@ mpi_per_sync_corner_3d(int nrank, int cuts[])
     const double *d = gkyl_array_cfetch(arr, gkyl_range_idx(&local_ext, iter.idx));
     if (!TEST_CHECK(d[0] == 1.5)) {
       TEST_MSG("3D periodic sync failed on rank %d (%d,%d,%d). Expected %g. Got %g\n", rank,
-        iter.idx[0], iter.idx[1], iter.idx[2], 1.5, d[0]);
+               iter.idx[0], iter.idx[1], iter.idx[2], 1.5, d[0]);
     }
   }
 
@@ -873,28 +852,23 @@ mpi_per_sync_corner_3d(int nrank, int cuts[])
   gkyl_array_release(arr);
 }
 
-static void
-mpi_n1_per_sync_corner_3d_ho(void)
+static void mpi_n1_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(1, (int[]){ 1, 1, 1 });
 }
-static void
-mpi_n2_per_sync_corner_3d_ho(void)
+static void mpi_n2_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(2, (int[]){ 2, 1, 1 });
 }
-static void
-mpi_n4_per_sync_corner_3d_ho(void)
+static void mpi_n4_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(4, (int[]){ 2, 1, 2 });
 }
-static void
-mpi_n8_per_sync_corner_3d_ho(void)
+static void mpi_n8_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(8, (int[]){ 2, 2, 2 });
 }
-static void
-mpi_n27_per_sync_corner_3d_ho(void)
+static void mpi_n27_per_sync_corner_3d_ho(void)
 {
   mpi_per_sync_corner_3d(27, (int[]){ 3, 3, 3 });
 }
@@ -1128,8 +1102,7 @@ mpi_n27_per_sync_corner_3d_ho(void)
 /*   gkyl_comm_release(worldcomm); */
 /* } */
 
-static void
-mpi_n4_create_comm_from_ranks_1_ho()
+static void mpi_n4_create_comm_from_ranks_1_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1185,8 +1158,7 @@ mpi_n4_create_comm_from_ranks_1_ho()
   gkyl_comm_release(comm_b2);
 }
 
-static void
-mpi_n4_create_comm_from_ranks_2_ho()
+static void mpi_n4_create_comm_from_ranks_2_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1246,8 +1218,7 @@ mpi_n4_create_comm_from_ranks_2_ho()
   gkyl_comm_release(comm_b2);
 }
 
-static void
-mpi_bcast_1d_ho()
+static void mpi_bcast_1d_ho()
 {
   int bcast_rank = 1;
 
@@ -1295,8 +1266,7 @@ mpi_bcast_1d_ho()
   gkyl_array_release(arr);
 }
 
-static void
-mpi_bcast_2d_test(int *cuts)
+static void mpi_bcast_2d_test(int *cuts)
 {
   int bcast_rank = 1;
 
@@ -1343,7 +1313,7 @@ mpi_bcast_2d_test(int *cuts)
     double val = iter.idx[0] + iter.idx[1] * (bcast_rank + 1.0) + 10.0 * bcast_rank;
     TEST_CHECK(val == f[0]);
     TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %.13e | Produced: %.13e", rank, iter.idx[0],
-      iter.idx[1], val, f[0]);
+             iter.idx[1], val, f[0]);
   }
 
   gkyl_rect_decomp_release(decomp);
@@ -1351,8 +1321,7 @@ mpi_bcast_2d_test(int *cuts)
   gkyl_array_release(arr);
 }
 
-static void
-mpi_bcast_2d_ho()
+static void mpi_bcast_2d_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1377,8 +1346,7 @@ mpi_bcast_2d_ho()
   }
 }
 
-void
-mpi_bcast_1d_host_ho()
+void mpi_bcast_1d_host_ho()
 {
   int bcast_rank = 1;
 
@@ -1426,8 +1394,7 @@ mpi_bcast_1d_host_ho()
   gkyl_array_release(arr);
 }
 
-void
-mpi_bcast_2d_host_test(int *cuts)
+void mpi_bcast_2d_host_test(int *cuts)
 {
   int bcast_rank = 1;
 
@@ -1474,7 +1441,7 @@ mpi_bcast_2d_host_test(int *cuts)
     double val = iter.idx[0] + iter.idx[1] * (bcast_rank + 1.0) + 10.0 * bcast_rank;
     TEST_CHECK(val == f[0]);
     TEST_MSG("rank:%d | At idx=(%d,%d) | Expected: %.13e | Produced: %.13e", rank, iter.idx[0],
-      iter.idx[1], val, f[0]);
+             iter.idx[1], val, f[0]);
   }
 
   gkyl_rect_decomp_release(decomp);
@@ -1482,8 +1449,7 @@ mpi_bcast_2d_host_test(int *cuts)
   gkyl_array_release(arr);
 }
 
-void
-mpi_bcast_2d_host_ho()
+void mpi_bcast_2d_host_ho()
 {
   int m_sz;
   MPI_Comm_size(MPI_COMM_WORLD, &m_sz);
@@ -1508,46 +1474,48 @@ mpi_bcast_2d_host_ho()
   }
 }
 
-TEST_LIST = { { "mpi_0_ho", mpi_0_ho }, { "mpi_1_ho", mpi_1_ho },
-  { "mpi_n2_allreduce_ho", mpi_n2_allreduce_ho },
+TEST_LIST = { { "mpi_0_ho", mpi_0_ho },
+              { "mpi_1_ho", mpi_1_ho },
+              { "mpi_n2_allreduce_ho", mpi_n2_allreduce_ho },
 
-  { "mpi_n2_allgather_1d_ho", mpi_n2_allgather_1d_ho },
-  { "mpi_n4_allgather_2d_ho", mpi_n4_allgather_2d_ho },
+              { "mpi_n2_allgather_1d_ho", mpi_n2_allgather_1d_ho },
+              { "mpi_n4_allgather_2d_ho", mpi_n4_allgather_2d_ho },
 
-  { "mpi_n2_allgather_1d_host_ho", mpi_n2_allgather_1d_host_ho },
-  { "mpi_n4_allgather_2d_host_ho", mpi_n4_allgather_2d_host_ho },
+              { "mpi_n2_allgather_1d_host_ho", mpi_n2_allgather_1d_host_ho },
+              { "mpi_n4_allgather_2d_host_ho", mpi_n4_allgather_2d_host_ho },
 
-  { "mpi_n2_sync_1d_ho", mpi_n2_sync_1d_ho },
-  { "mpi_n4_sync_2d_no_corner_ho", mpi_n4_sync_2d_no_corner_ho },
-  { "mpi_n4_sync_2d_use_corner_ho", mpi_n4_sync_2d_use_corner_ho },
-  { "mpi_n4_sync_1x1v_ho", mpi_n4_sync_1x1v_ho },
+              { "mpi_n2_sync_1d_ho", mpi_n2_sync_1d_ho },
+              { "mpi_n4_sync_2d_no_corner_ho", mpi_n4_sync_2d_no_corner_ho },
+              { "mpi_n4_sync_2d_use_corner_ho", mpi_n4_sync_2d_use_corner_ho },
+              { "mpi_n4_sync_1x1v_ho", mpi_n4_sync_1x1v_ho },
 
-  { "mpi_n1_per_sync_2d_ho", mpi_n1_per_sync_2d_ho },
-  { "mpi_n2_per_sync_2d_ho", mpi_n2_per_sync_2d_ho },
+              { "mpi_n1_per_sync_2d_ho", mpi_n1_per_sync_2d_ho },
+              { "mpi_n2_per_sync_2d_ho", mpi_n2_per_sync_2d_ho },
 
-  { "mpi_n1_per_sync_corner_2d_ho", mpi_n1_per_sync_corner_2d_ho },
-  { "mpi_n2_per_sync_corner_2d_ho", mpi_n2_per_sync_corner_2d_ho },
-  { "mpi_n4_per_sync_corner_2d_ho", mpi_n4_per_sync_corner_2d_ho },
+              { "mpi_n1_per_sync_corner_2d_ho", mpi_n1_per_sync_corner_2d_ho },
+              { "mpi_n2_per_sync_corner_2d_ho", mpi_n2_per_sync_corner_2d_ho },
+              { "mpi_n4_per_sync_corner_2d_ho", mpi_n4_per_sync_corner_2d_ho },
 
-  { "mpi_n1_per_sync_corner_3d_ho", mpi_n1_per_sync_corner_3d_ho },
-  { "mpi_n2_per_sync_corner_3d_ho", mpi_n2_per_sync_corner_3d_ho },
-  { "mpi_n4_per_sync_corner_3d_ho", mpi_n4_per_sync_corner_3d_ho },
-  { "mpi_n8_per_sync_corner_3d_ho", mpi_n8_per_sync_corner_3d_ho },
-  { "mpi_n27_per_sync_corner_3d_ho", mpi_n27_per_sync_corner_3d_ho },
+              { "mpi_n1_per_sync_corner_3d_ho", mpi_n1_per_sync_corner_3d_ho },
+              { "mpi_n2_per_sync_corner_3d_ho", mpi_n2_per_sync_corner_3d_ho },
+              { "mpi_n4_per_sync_corner_3d_ho", mpi_n4_per_sync_corner_3d_ho },
+              { "mpi_n8_per_sync_corner_3d_ho", mpi_n8_per_sync_corner_3d_ho },
+              { "mpi_n27_per_sync_corner_3d_ho", mpi_n27_per_sync_corner_3d_ho },
 
-  /* {"mpi_n2_array_send_irecv_1d_ho", mpi_n2_array_send_irecv_1d_ho }, */
-  /* {"mpi_n2_array_isend_irecv_2d_ho", mpi_n2_array_isend_irecv_2d_ho }, */
+              /* {"mpi_n2_array_send_irecv_1d_ho", mpi_n2_array_send_irecv_1d_ho }, */
+              /* {"mpi_n2_array_isend_irecv_2d_ho", mpi_n2_array_isend_irecv_2d_ho }, */
 
-  /* {"mpi_n4_split_comm_2d_ho", mpi_n4_split_comm_2d_ho }, */
-  { "mpi_n4_create_comm_from_ranks_1_ho", mpi_n4_create_comm_from_ranks_1_ho },
-  { "mpi_n4_create_comm_from_ranks_2_ho", mpi_n4_create_comm_from_ranks_2_ho },
+              /* {"mpi_n4_split_comm_2d_ho", mpi_n4_split_comm_2d_ho }, */
+              { "mpi_n4_create_comm_from_ranks_1_ho", mpi_n4_create_comm_from_ranks_1_ho },
+              { "mpi_n4_create_comm_from_ranks_2_ho", mpi_n4_create_comm_from_ranks_2_ho },
 
-  { "mpi_bcast_1d_ho", mpi_bcast_1d_ho }, { "mpi_bcast_2d_ho", mpi_bcast_2d_ho },
+              { "mpi_bcast_1d_ho", mpi_bcast_1d_ho },
+              { "mpi_bcast_2d_ho", mpi_bcast_2d_ho },
 
-  { "mpi_bcast_1d_host_ho", mpi_bcast_1d_host_ho },
-  { "mpi_bcast_2d_host_ho", mpi_bcast_2d_host_ho },
+              { "mpi_bcast_1d_host_ho", mpi_bcast_1d_host_ho },
+              { "mpi_bcast_2d_host_ho", mpi_bcast_2d_host_ho },
 
-  { NULL, NULL } };
+              { NULL, NULL } };
 
 #else
 

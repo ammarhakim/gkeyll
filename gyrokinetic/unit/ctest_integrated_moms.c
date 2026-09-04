@@ -23,8 +23,7 @@
 #include <gkyl_util.h>
 #include <math.h>
 
-static struct gkyl_array *
-mkarr(bool on_gpu, long nc, long size)
+static struct gkyl_array *mkarr(bool on_gpu, long nc, long size)
 {
   struct gkyl_array *a;
   if (on_gpu)
@@ -34,44 +33,38 @@ mkarr(bool on_gpu, long nc, long size)
   return a;
 }
 
-void
-mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
+void mapc2p(double t, const double *xc, double *GKYL_RESTRICT xp, void *ctx)
 {
   xp[0] = xc[0];
   xp[1] = xc[1];
   xp[2] = xc[2];
 }
 
-void
-bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
+void bfield_func(double t, const double *xc, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
   fout[1] = 0.0;
   fout[2] = 1.0;
 }
 
-void
-eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void eval_density(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 3.0e19;
 }
 
-void
-eval_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void eval_upar(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = 0.0;
 }
 
-void
-eval_vthsq(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void eval_vthsq(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double eV = GKYL_ELEMENTARY_CHARGE;
   double mi = 2.014 * GKYL_PROTON_MASS; // D ion mass
   fout[0] = 150 * eV / mi;
 }
 
-void
-test_2x_option(bool use_gpu)
+void test_2x_option(bool use_gpu)
 {
   int poly_order = 1;
   double eps0 = GKYL_EPSILON0;
@@ -143,7 +136,8 @@ test_2x_option(bool use_gpu)
   struct gkyl_position_map *pmap = gkyl_position_map_null_new();
 
   // Initialize geometry
-  struct gkyl_gk_geometry_inp geometry_input = { .geometry_id = GKYL_GEOMETRY_MAPC2P,
+  struct gkyl_gk_geometry_inp geometry_input = {
+    .geometry_id = GKYL_GEOMETRY_MAPC2P,
     .world = { 0.0 },
     .mapc2p = mapc2p, // mapping of computational to physical space
     .c2p_ctx = 0,
@@ -155,13 +149,14 @@ test_2x_option(bool use_gpu)
     .local_ext = confLocal_ext,
     .global = confLocal,
     .global_ext = confLocal_ext,
-    .basis = confBasis };
+    .basis = confBasis
+  };
 
   int geo_ghost[3] = { 1 };
   geometry_input.geo_grid = gkyl_gk_geometry_augment_grid(confGrid, geometry_input);
   gkyl_cart_modal_serendip(&geometry_input.geo_basis, 3, poly_order);
   gkyl_create_grid_ranges(&geometry_input.geo_grid, geo_ghost, &geometry_input.geo_global_ext,
-    &geometry_input.geo_global);
+                          &geometry_input.geo_global);
   memcpy(&geometry_input.geo_local, &geometry_input.geo_global, sizeof(struct gkyl_range));
   memcpy(&geometry_input.geo_local_ext, &geometry_input.geo_global_ext, sizeof(struct gkyl_range));
 
@@ -208,16 +203,16 @@ test_2x_option(bool use_gpu)
 
   // Maxwellian (or bi-Maxwellian) projection updater.
   struct gkyl_gk_maxwellian_proj_on_basis_inp inp_proj = { .phase_grid = &grid,
-    .conf_basis = &confBasis,
-    .phase_basis = &basis,
-    .conf_range = &confLocal,
-    .conf_range_ext = &confLocal_ext,
-    .vel_range = &vLocal,
-    .gk_geom = gk_geom,
-    .vel_map = gvm,
-    .mass = mi,
-    .bimaxwellian = false,
-    .use_gpu = use_gpu };
+                                                           .conf_basis = &confBasis,
+                                                           .phase_basis = &basis,
+                                                           .conf_range = &confLocal,
+                                                           .conf_range_ext = &confLocal_ext,
+                                                           .vel_range = &vLocal,
+                                                           .gk_geom = gk_geom,
+                                                           .vel_map = gvm,
+                                                           .mass = mi,
+                                                           .bimaxwellian = false,
+                                                           .use_gpu = use_gpu };
   struct gkyl_gk_maxwellian_proj_on_basis *proj_max =
     gkyl_gk_maxwellian_proj_on_basis_inew(&inp_proj);
 
@@ -235,14 +230,15 @@ test_2x_option(bool use_gpu)
   }
 
   // Initialize integrated moment calculator
-  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(&grid, &confBasis,
-    &basis, &confLocal, mi, qi, gvm, gk_geom, NULL, GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu);
+  struct gkyl_dg_updater_moment *mcalc = gkyl_dg_updater_moment_gyrokinetic_new(
+    &grid, &confBasis, &basis, &confLocal, mi, qi, gvm, gk_geom, NULL,
+    GKYL_F_MOMENT_M0M1M2PARM2PERP, true, use_gpu);
 
   int num_mom = gkyl_dg_updater_moment_gyrokinetic_num_mom(mcalc);
 
   struct gkyl_array *marr = mkarr(use_gpu, num_mom, confLocal_ext.volume);
-  struct gkyl_array *marr_host =
-    use_gpu ? marr_host = mkarr(false, marr->ncomp, marr->size) : gkyl_array_acquire(marr);
+  struct gkyl_array *marr_host = use_gpu ? marr_host = mkarr(false, marr->ncomp, marr->size) :
+                                           gkyl_array_acquire(marr);
 
   double *red_integ_diag_global;
 
@@ -257,8 +253,8 @@ test_2x_option(bool use_gpu)
   gkyl_array_reduce_range(red_integ_diag_global, marr, GKYL_SUM, &confLocal);
 
   if (use_gpu)
-    gkyl_cu_memcpy(
-      avals_global, red_integ_diag_global, sizeof(double[2 + vdim]), GKYL_CU_MEMCPY_D2H);
+    gkyl_cu_memcpy(avals_global, red_integ_diag_global, sizeof(double[2 + vdim]),
+                   GKYL_CU_MEMCPY_D2H);
   else
     memcpy(avals_global, red_integ_diag_global, sizeof(double[2 + vdim]));
 
@@ -300,16 +296,14 @@ test_2x_option(bool use_gpu)
   gkyl_position_map_release(pmap);
 }
 
-void
-test_integrated_moms_2x_ho()
+void test_integrated_moms_2x_ho()
 {
   test_2x_option(false);
 }
 
 #ifdef GKYL_HAVE_CUDA
 
-void
-test_integrated_moms_2x_dev()
+void test_integrated_moms_2x_dev()
 {
   test_2x_option(true);
 }
@@ -317,6 +311,6 @@ test_integrated_moms_2x_dev()
 
 TEST_LIST = { { "test_integrated_moms_2x_ho", test_integrated_moms_2x_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "test_integrated_moms_2x_dev", test_integrated_moms_2x_dev },
+              { "test_integrated_moms_2x_dev", test_integrated_moms_2x_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

@@ -14,16 +14,16 @@
 #include <gkyl_util.h>
 #include <assert.h>
 
-GKYL_CU_DH static inline void
-comp_to_phys(int ndim, const double *eta, const double *GKYL_RESTRICT dx,
-  const double *GKYL_RESTRICT xc, double *GKYL_RESTRICT xout)
+GKYL_CU_DH static inline void comp_to_phys(int ndim, const double *eta,
+                                           const double *GKYL_RESTRICT dx,
+                                           const double *GKYL_RESTRICT xc,
+                                           double *GKYL_RESTRICT xout)
 {
   for (int d = 0; d < ndim; ++d)
     xout[d] = 0.5 * dx[d] * eta[d] + xc[d];
 }
 
-static inline void
-copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
+static inline void copy_idx_arrays(int cdim, int pdim, const int *cidx, const int *vidx, int *out)
 {
   for (int i = 0; i < cdim; ++i)
     out[i] = cidx[i];
@@ -65,24 +65,23 @@ struct gkyl_gk_maxwellian_proj_on_basis {
   struct gkyl_array *conf_basis_at_ords; // Configuration-space basis functions at ordinates
 
   struct gkyl_array *fun_at_ords; // function LTE distribution evaluated at
-    // ordinates in a cell.
+  // ordinates in a cell.
 
   int *p2c_qidx; // Mapping between Configuration-space and Phase-space ordinates.
   struct gkyl_array *f_maxwellian_quad; // Array keeping f_lte at phase-space quadrature nodes
   struct gkyl_array *moms_maxwellian_quad; // Array keeping moms_lte (n, V_drift, T/m)
-    // at configuration-space quadrature nodes
+  // at configuration-space quadrature nodes
   struct gkyl_array *expamp_quad; // Array keeping exponential pre-factor
-    // at configuration-space quadrature nodes
+  // at configuration-space quadrature nodes
   struct gkyl_array *bmag_quad; // magnetic field magnitude at configuration-space quadrature nodes
   struct gkyl_array *jacobtot_quad; // total Jacobian at configuration-space quadrature nodes
 
   struct gkyl_gk_maxwellian_moments
     *moments_up; // LTE moment calculation routine for computing density
   struct gkyl_array *num_ratio; // Number density ratio: num_ratio = n_target/n0
-  struct gkyl_dg_bin_op_mem
-    *mem; // bin_op memory to compute ratio and rescale distribution function
+  struct gkyl_dg_bin_op_mem *mem; // bin_op memory to compute ratio and rescale distribution function
 
   struct gkyl_mat_mm_array_mem *phase_nodal_to_modal_mem; // structure of data which converts
-    // stores the info to convert phase
-    // space nodal to modal gkyl arrays
+  // stores the info to convert phase
+  // space nodal to modal gkyl arrays
 };

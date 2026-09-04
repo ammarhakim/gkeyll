@@ -8,74 +8,64 @@ struct gkyl_vec3 {
 };
 
 // new vector with zeros
-static inline struct gkyl_vec3
-gkyl_vec3_zeros()
+static inline struct gkyl_vec3 gkyl_vec3_zeros()
 {
   return (struct gkyl_vec3){ .x = { 0.0, 0.0, 0.0 } };
 }
 
 // new vector with x,y,z components
-static inline struct gkyl_vec3
-gkyl_vec3_new(double x, double y, double z)
+static inline struct gkyl_vec3 gkyl_vec3_new(double x, double y, double z)
 {
   return (struct gkyl_vec3){ .x = { x, y, z } };
 }
 
 // scalar*a
-static inline struct gkyl_vec3
-gkyl_vec3_scale(double scalar, struct gkyl_vec3 a)
+static inline struct gkyl_vec3 gkyl_vec3_scale(double scalar, struct gkyl_vec3 a)
 {
   return (struct gkyl_vec3){ .x = { scalar * a.x[0], scalar * a.x[1], scalar * a.x[2] } };
 }
 
 // a+b
-static inline struct gkyl_vec3
-gkyl_vec3_add(struct gkyl_vec3 a, struct gkyl_vec3 b)
+static inline struct gkyl_vec3 gkyl_vec3_add(struct gkyl_vec3 a, struct gkyl_vec3 b)
 {
   return (struct gkyl_vec3){ .x = { a.x[0] + b.x[0], a.x[1] + b.x[1], a.x[2] + b.x[2] } };
 }
 
 // a-b
-static inline struct gkyl_vec3
-gkyl_vec3_sub(struct gkyl_vec3 a, struct gkyl_vec3 b)
+static inline struct gkyl_vec3 gkyl_vec3_sub(struct gkyl_vec3 a, struct gkyl_vec3 b)
 {
   return (struct gkyl_vec3){ .x = { a.x[0] - b.x[0], a.x[1] - b.x[1], a.x[2] - b.x[2] } };
 }
 
 // |a|
-static inline double
-gkyl_vec3_len(struct gkyl_vec3 a)
+static inline double gkyl_vec3_len(struct gkyl_vec3 a)
 {
   return sqrt(a.x[0] * a.x[0] + a.x[1] * a.x[1] + a.x[2] * a.x[2]);
 }
 
 // normalize a
-static inline struct gkyl_vec3
-gkyl_vec3_norm(struct gkyl_vec3 a)
+static inline struct gkyl_vec3 gkyl_vec3_norm(struct gkyl_vec3 a)
 {
   double len = gkyl_vec3_len(a);
   return (struct gkyl_vec3){ .x = { a.x[0] / len, a.x[1] / len, a.x[2] / len } };
 }
 
 // a \dot b
-static inline double
-gkyl_vec3_dot(struct gkyl_vec3 a, struct gkyl_vec3 b)
+static inline double gkyl_vec3_dot(struct gkyl_vec3 a, struct gkyl_vec3 b)
 {
   return a.x[0] * b.x[0] + a.x[1] * b.x[1] + a.x[2] * b.x[2];
 }
 
 // a \times b
-static inline struct gkyl_vec3
-gkyl_vec3_cross(struct gkyl_vec3 a, struct gkyl_vec3 b)
+static inline struct gkyl_vec3 gkyl_vec3_cross(struct gkyl_vec3 a, struct gkyl_vec3 b)
 {
-  return (
-    struct gkyl_vec3){ .x = { a.x[1] * b.x[2] - a.x[2] * b.x[1], a.x[2] * b.x[0] - a.x[0] * b.x[2],
-                         a.x[0] * b.x[1] - a.x[1] * b.x[0] } };
+  return (struct gkyl_vec3){ .x = { a.x[1] * b.x[2] - a.x[2] * b.x[1],
+                                    a.x[2] * b.x[0] - a.x[0] * b.x[2],
+                                    a.x[0] * b.x[1] - a.x[1] * b.x[0] } };
 }
 
 // a \dot (b \times c)
-static inline double
-gkyl_vec3_triple(struct gkyl_vec3 a, struct gkyl_vec3 b, struct gkyl_vec3 c)
+static inline double gkyl_vec3_triple(struct gkyl_vec3 a, struct gkyl_vec3 b, struct gkyl_vec3 c)
 {
   return gkyl_vec3_dot(a, gkyl_vec3_cross(b, c));
 }
@@ -90,8 +80,8 @@ gkyl_vec3_triple(struct gkyl_vec3 a, struct gkyl_vec3 b, struct gkyl_vec3 c)
  * @param pin Input contravariant vector components
  * @return Cartesian component for @a pin
  */
-static inline struct gkyl_vec3
-gkyl_vec3_polar_con_to_cart(double r, double phi, struct gkyl_vec3 pin)
+static inline struct gkyl_vec3 gkyl_vec3_polar_con_to_cart(double r, double phi,
+                                                           struct gkyl_vec3 pin)
 {
   double c0 = pin.x[0] * cos(phi) - pin.x[1] * sin(phi) * r;
   double c1 = pin.x[0] * sin(phi) + pin.x[1] * cos(phi) * r;
@@ -109,8 +99,8 @@ gkyl_vec3_polar_con_to_cart(double r, double phi, struct gkyl_vec3 pin)
  * @param pin Input contravariant vector components
  * @return Cartesian component for @a pin
  */
-static inline struct gkyl_vec3
-gkyl_vec3_polar_cov_to_cart(double r, double phi, struct gkyl_vec3 pin)
+static inline struct gkyl_vec3 gkyl_vec3_polar_cov_to_cart(double r, double phi,
+                                                           struct gkyl_vec3 pin)
 {
   double c0 = pin.x[0] * cos(phi) - (pin.x[1] * sin(phi)) / r;
   double c1 = pin.x[0] * sin(phi) + (pin.x[1] * cos(phi)) / r;
@@ -128,8 +118,7 @@ gkyl_vec3_polar_cov_to_cart(double r, double phi, struct gkyl_vec3 pin)
  * @param pin Input contravariant vector components
  * @return Cartesian component for @a pin
  */
-static inline struct gkyl_vec3
-gkyl_vec3_polar_con_to_cov(double r, struct gkyl_vec3 pin)
+static inline struct gkyl_vec3 gkyl_vec3_polar_con_to_cov(double r, struct gkyl_vec3 pin)
 {
   double c0 = pin.x[0];
   double c1 = pin.x[1] * r * r;
@@ -141,8 +130,7 @@ gkyl_vec3_polar_con_to_cov(double r, struct gkyl_vec3 pin)
 // of all parameters if all are negative, and zero otherwise.
 
 // minmod(x,y)
-static inline double
-gkyl_minmod_2(double x, double y)
+static inline double gkyl_minmod_2(double x, double y)
 {
   if (x > 0 && y > 0)
     return fmin(x, y);
@@ -152,8 +140,7 @@ gkyl_minmod_2(double x, double y)
 }
 
 // minmod(x,y)
-static inline double
-gkyl_minmod_3(double x, double y, double z)
+static inline double gkyl_minmod_3(double x, double y, double z)
 {
   if (x > 0 && y > 0 && z > 0)
     return fmin(fmin(x, y), z);
@@ -163,8 +150,7 @@ gkyl_minmod_3(double x, double y, double z)
 }
 
 // minmod(x,y,z,w)
-static inline double
-gkyl_minmod_4(double x, double y, double z, double w)
+static inline double gkyl_minmod_4(double x, double y, double z, double w)
 {
   if (x > 0 && y > 0 && z > 0 && w > 0)
     return fmin(fmin(x, y), fmin(z, w));
@@ -174,22 +160,19 @@ gkyl_minmod_4(double x, double y, double z, double w)
 }
 
 // median(x,y,z) returns the value between two others
-static inline double
-gkyl_median(double x, double y, double z)
+static inline double gkyl_median(double x, double y, double z)
 {
   return x + gkyl_minmod_2(y - x, z - x);
 }
 
 // min(x,y,z)
-static inline double
-gkyl_min_3(double x, double y, double z)
+static inline double gkyl_min_3(double x, double y, double z)
 {
   return fmin(x, fmin(y, z));
 }
 
 // max(x,y,z)
-static inline double
-gkyl_max_3(double x, double y, double z)
+static inline double gkyl_max_3(double x, double y, double z)
 {
   return fmax(x, fmax(y, z));
 }
@@ -265,8 +248,8 @@ struct gkyl_root_intervals {
  * @param eps Error to compute integral
  * @return Result of quadrature
  */
-struct gkyl_qr_res gkyl_dbl_exp(
-  double (*func)(double, void *), void *ctx, double a, double b, int n, double eps);
+struct gkyl_qr_res gkyl_dbl_exp(double (*func)(double, void *), void *ctx, double a, double b,
+                                int n, double eps);
 
 /**
  * Compute single real root of a function using Ridders' method. See
@@ -285,7 +268,7 @@ struct gkyl_qr_res gkyl_dbl_exp(
  * @return Result of root finder
  */
 struct gkyl_qr_res gkyl_ridders(double (*func)(double, void *), void *ctx, double x1, double x2,
-  double f1, double f2, int max_iter, double eps);
+                                double f1, double f2, int max_iter, double eps);
 
 /**
  * Compute all simple roots of the low-order polynomial with monomial
@@ -340,8 +323,8 @@ void gkyl_calc_poly_roots(struct gkyl_poly_roots *pr, const double *coeff);
  * @param tol Tolerance of the quartic solve
  * @return Roots of the polynomial
  */
-struct gkyl_root_intervals gkyl_calc_quartic_root_intervals(
-  double coeff[4], double domain[2], double tol);
+struct gkyl_root_intervals gkyl_calc_quartic_root_intervals(double coeff[4], double domain[2],
+                                                            double tol);
 
 /**
  * Refine the result of gkyl_calc_quartic_root_intervals() using bisection search
@@ -377,8 +360,8 @@ void gkyl_refine_root_intervals_bisection(struct gkyl_root_intervals *root_inter
  * @param tol Tolerance of the interval isolation
  * @return Roots of the polynomial
  */
-void gkyl_root_isolation_from_intervals_via_ridders(
-  struct gkyl_root_intervals *root_intervals, double tol);
+void gkyl_root_isolation_from_intervals_via_ridders(struct gkyl_root_intervals *root_intervals,
+                                                    double tol);
 
 /**
  * Release memory for use in polynomial root finder.

@@ -8,8 +8,7 @@
 #include <gkyl_mom_vlasov_sr_priv.h>
 #include <gkyl_util.h>
 
-void
-gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref)
+void gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref)
 {
   struct gkyl_mom_type *momt = container_of(ref, struct gkyl_mom_type, ref_count);
   if (GKYL_IS_CU_ALLOC(momt->flags))
@@ -17,9 +16,8 @@ gkyl_mom_vm_sr_free(const struct gkyl_ref_count *ref)
   gkyl_free(momt);
 }
 
-void
-gkyl_mom_vlasov_sr_set_auxfields(
-  const struct gkyl_mom_type *momt, struct gkyl_mom_vlasov_sr_auxfields auxin)
+void gkyl_mom_vlasov_sr_set_auxfields(const struct gkyl_mom_type *momt,
+                                      struct gkyl_mom_vlasov_sr_auxfields auxin)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_mom_type_is_cu_dev(momt)) {
@@ -32,10 +30,11 @@ gkyl_mom_vlasov_sr_set_auxfields(
   mom_vm_sr->auxfields.gamma = auxin.gamma;
 }
 
-struct gkyl_mom_type *
-gkyl_mom_vlasov_sr_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_distribution_moments mom_type, bool use_gpu)
+struct gkyl_mom_type *gkyl_mom_vlasov_sr_new(const struct gkyl_basis *cbasis,
+                                             const struct gkyl_basis *pbasis,
+                                             const struct gkyl_range *conf_range,
+                                             const struct gkyl_range *vel_range,
+                                             enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 
@@ -131,8 +130,8 @@ gkyl_mom_vlasov_sr_new(const struct gkyl_basis *cbasis, const struct gkyl_basis 
 
 struct gkyl_mom_type *
 gkyl_int_mom_vlasov_sr_new(const struct gkyl_basis *cbasis, const struct gkyl_basis *pbasis,
-  const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
-  enum gkyl_distribution_moments mom_type, bool use_gpu)
+                           const struct gkyl_range *conf_range, const struct gkyl_range *vel_range,
+                           enum gkyl_distribution_moments mom_type, bool use_gpu)
 {
   assert(cbasis->poly_order == pbasis->poly_order);
 

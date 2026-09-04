@@ -12,49 +12,53 @@
 #include <assert.h>
 
 typedef int (*pkpm_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-  const double *vlasov_pkpm_moms, const double *euler_pkpm, const double *p_ij,
-  const double *pkpm_div_ppar);
+                          const double *vlasov_pkpm_moms, const double *euler_pkpm,
+                          const double *p_ij, const double *pkpm_div_ppar);
 
-typedef void (*pkpm_copy_t)(
-  int count, struct gkyl_nmat *x, double *GKYL_RESTRICT prim, double *GKYL_RESTRICT prim_surf);
+typedef void (*pkpm_copy_t)(int count, struct gkyl_nmat *x, double *GKYL_RESTRICT prim,
+                            double *GKYL_RESTRICT prim_surf);
 
 typedef int (*pkpm_u_set_t)(int count, struct gkyl_nmat *A, struct gkyl_nmat *rhs,
-  const double *vlasov_pkpm_moms, const double *euler_pkpm);
+                            const double *vlasov_pkpm_moms, const double *euler_pkpm);
 
 typedef void (*pkpm_u_copy_t)(int count, struct gkyl_nmat *x, double *GKYL_RESTRICT pkpm_u);
 
-typedef void (*pkpm_pressure_t)(
-  const double *bvar, const double *vlasov_pkpm_moms, double *GKYL_RESTRICT p_ij);
+typedef void (*pkpm_pressure_t)(const double *bvar, const double *vlasov_pkpm_moms,
+                                double *GKYL_RESTRICT p_ij);
 
-typedef void (*pkpm_p_force_t)(
-  const double *prim_c, const double *div_b, double *GKYL_RESTRICT pkpm_accel);
+typedef void (*pkpm_p_force_t)(const double *prim_c, const double *div_b,
+                               double *GKYL_RESTRICT pkpm_accel);
 
 typedef void (*pkpm_int_t)(const double *vlasov_pkpm_moms, const double *euler_pkpm,
-  const double *prim, double *GKYL_RESTRICT int_pkpm_vars);
+                           const double *prim, double *GKYL_RESTRICT int_pkpm_vars);
 
 typedef void (*pkpm_source_t)(const double *qmem, const double *vlasov_pkpm_moms,
-  const double *euler_pkpm, double *GKYL_RESTRICT out);
+                              const double *euler_pkpm, double *GKYL_RESTRICT out);
 
 typedef void (*pkpm_io_t)(const double *vlasov_pkpm_moms, const double *euler_pkpm,
-  const double *p_ij, const double *prim, const double *pkpm_accel, double *GKYL_RESTRICT fluid_io,
-  double *GKYL_RESTRICT pkpm_vars_io);
+                          const double *p_ij, const double *prim, const double *pkpm_accel,
+                          double *GKYL_RESTRICT fluid_io, double *GKYL_RESTRICT pkpm_vars_io);
 
 typedef void (*pkpm_accel_t)(const double *dxv, const double *prim_surf_l,
-  const double *prim_surf_c, const double *prim_surf_r, const double *prim_c, const double *bvar_c,
-  const double *nu_c, double *GKYL_RESTRICT pkpm_accel);
+                             const double *prim_surf_c, const double *prim_surf_r,
+                             const double *prim_c, const double *bvar_c, const double *nu_c,
+                             double *GKYL_RESTRICT pkpm_accel);
 
 typedef void (*pkpm_penalization_t)(double tol, bool force_lax, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_cell_geom *geom, const double *vlasov_pkpm_moms_l,
-  const double *vlasov_pkpm_moms_r, const double *p_ij_l, const double *p_ij_r,
-  const double *prim_l, const double *prim_r, const double *euler_pkpm_l,
-  const double *euler_pkpm_r, double *GKYL_RESTRICT pkpm_lax,
-  double *GKYL_RESTRICT pkpm_penalization);
+                                    const struct gkyl_wave_cell_geom *geom,
+                                    const double *vlasov_pkpm_moms_l,
+                                    const double *vlasov_pkpm_moms_r, const double *p_ij_l,
+                                    const double *p_ij_r, const double *prim_l,
+                                    const double *prim_r, const double *euler_pkpm_l,
+                                    const double *euler_pkpm_r, double *GKYL_RESTRICT pkpm_lax,
+                                    double *GKYL_RESTRICT pkpm_penalization);
 
 typedef void (*pkpm_limiter_t)(double limiter_fac, const struct gkyl_wv_eqn *wv_eqn,
-  const struct gkyl_wave_cell_geom *geom, const double *prim_c, const double *vlasov_pkpm_moms_l,
-  const double *vlasov_pkpm_moms_c, const double *vlasov_pkpm_moms_r, const double *p_ij_l,
-  const double *p_ij_c, const double *p_ij_r, double *euler_pkpm_l, double *euler_pkpm_c,
-  double *euler_pkpm_r);
+                               const struct gkyl_wave_cell_geom *geom, const double *prim_c,
+                               const double *vlasov_pkpm_moms_l, const double *vlasov_pkpm_moms_c,
+                               const double *vlasov_pkpm_moms_r, const double *p_ij_l,
+                               const double *p_ij_c, const double *p_ij_r, double *euler_pkpm_l,
+                               double *euler_pkpm_c, double *euler_pkpm_r);
 
 // for use in kernel tables
 typedef struct {
@@ -99,8 +103,7 @@ typedef struct {
 struct gkyl_dg_calc_pkpm_vars {
   struct gkyl_rect_grid conf_grid; // Configuration space grid for cell spacing and cell center
   int cdim; // Configuration space dimensionality
-  int
-    poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
+  int poly_order; // polynomial order (determines whether we solve linear system or use basis_inv method)
   struct gkyl_range mem_range; // Configuration space range for linear solve
 
   const struct gkyl_wv_eqn *wv_eqn; // Wave equation for characteristic limiting of solution
@@ -408,8 +411,8 @@ GKYL_CU_D static const gkyl_dg_pkpm_limiter_kern_list ten_pkpm_limiter_z_kernels
   { NULL, euler_pkpm_limiter_z_3x_ser_p1, NULL, NULL } // 2
 };
 
-GKYL_CU_D static pkpm_set_t
-choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_set_t choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim,
+                                                 int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -424,8 +427,8 @@ choose_pkpm_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_copy_t
-choose_pkpm_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_copy_t choose_pkpm_copy_kern(enum gkyl_basis_type b_type, int cdim,
+                                                   int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -440,8 +443,8 @@ choose_pkpm_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_u_set_t
-choose_pkpm_u_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_u_set_t choose_pkpm_u_set_kern(enum gkyl_basis_type b_type, int cdim,
+                                                     int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -456,8 +459,8 @@ choose_pkpm_u_set_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_u_copy_t
-choose_pkpm_u_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_u_copy_t choose_pkpm_u_copy_kern(enum gkyl_basis_type b_type, int cdim,
+                                                       int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -472,8 +475,8 @@ choose_pkpm_u_copy_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_pressure_t
-choose_pkpm_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_pressure_t choose_pkpm_pressure_kern(enum gkyl_basis_type b_type, int cdim,
+                                                           int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -488,8 +491,8 @@ choose_pkpm_pressure_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_p_force_t
-choose_pkpm_p_force_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_p_force_t choose_pkpm_p_force_kern(enum gkyl_basis_type b_type, int cdim,
+                                                         int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -504,8 +507,8 @@ choose_pkpm_p_force_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_int_t
-choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_int_t choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim,
+                                                 int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -520,8 +523,8 @@ choose_pkpm_int_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_source_t
-choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_source_t choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim,
+                                                       int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -536,8 +539,8 @@ choose_pkpm_source_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_io_t
-choose_pkpm_io_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_io_t choose_pkpm_io_kern(enum gkyl_basis_type b_type, int cdim,
+                                               int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -552,8 +555,8 @@ choose_pkpm_io_kern(enum gkyl_basis_type b_type, int cdim, int poly_order)
   }
 }
 
-GKYL_CU_D static pkpm_accel_t
-choose_pkpm_accel_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_accel_t choose_pkpm_accel_kern(int dir, enum gkyl_basis_type b_type, int cdim,
+                                                     int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:
@@ -612,8 +615,8 @@ choose_pkpm_penalization_kern(int dir, enum gkyl_basis_type b_type, int cdim, in
   }
 }
 
-GKYL_CU_D static pkpm_limiter_t
-choose_pkpm_limiter_kern(int dir, enum gkyl_basis_type b_type, int cdim, int poly_order)
+GKYL_CU_D static pkpm_limiter_t choose_pkpm_limiter_kern(int dir, enum gkyl_basis_type b_type,
+                                                         int cdim, int poly_order)
 {
   switch (b_type) {
   case GKYL_BASIS_MODAL_SERENDIPITY:

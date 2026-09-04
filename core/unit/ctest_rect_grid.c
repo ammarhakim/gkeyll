@@ -4,8 +4,7 @@
 #include <gkyl_rect_grid.h>
 #include <gkyl_util.h>
 
-void
-test_grid_2d_ho()
+void test_grid_2d_ho()
 {
   double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
   int cells[] = { 20, 20 };
@@ -64,8 +63,7 @@ test_grid_2d_ho()
  * Third test: Point on cell boundary, choose lower cell
  * Fourth test: One known index given (simply tests that it is the correct index)
  */
-void
-test_find_cell_1d_ho()
+void test_find_cell_1d_ho()
 {
   double lower[] = { 0.0 }, upper[] = { 5.0 };
   int cells[] = { 5 };
@@ -107,8 +105,7 @@ test_find_cell_1d_ho()
  * Third test: Point on cell corner (same location as second), but pick lower index
  * Fourth test: One index is known 
  */
-void
-test_find_cell_2d_ho()
+void test_find_cell_2d_ho()
 {
   double lower[] = { 0.0, -10.0 }, upper[] = { 5.0, 10.0 };
   int cells[] = { 5, 20 };
@@ -154,8 +151,7 @@ test_find_cell_2d_ho()
  * Third test: Point on just to one side of cell boundary, but pick lower index
  * Fourth test: 2 indecies are known
  */
-void
-test_find_cell_3d_ho()
+void test_find_cell_3d_ho()
 {
   double lower[] = { 0.0, -10.0, 1.3 }, upper[] = { 5.0, 10.0, 2.5 };
   int cells[] = { 5, 20, 100 };
@@ -197,8 +193,7 @@ test_find_cell_3d_ho()
     TEST_CHECK(cell_index[i] == correct_index[i]);
 }
 
-void
-test_grid_io_ho()
+void test_grid_io_ho()
 {
   double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
   int cells[] = { 20, 20 };
@@ -226,8 +221,7 @@ test_grid_io_ho()
 
 int cu_rect_grid_test(const struct gkyl_rect_grid grid);
 
-void
-test_grid_2d_dev()
+void test_grid_2d_dev()
 {
   double lower[] = { 1.0, 1.0 }, upper[] = { 2.5, 5.0 };
   int cells[] = { 20, 20 };
@@ -240,10 +234,12 @@ test_grid_2d_dev()
 
 #endif
 
-TEST_LIST = { { "grid_2d_ho", test_grid_2d_ho }, { "grid_find_cell_1d_ho", test_find_cell_1d_ho },
-  { "grid_find_cell_2d_ho", test_find_cell_2d_ho },
-  { "grid_find_cell_3d_ho", test_find_cell_3d_ho }, { "grid_io_ho", test_grid_io_ho },
+TEST_LIST = { { "grid_2d_ho", test_grid_2d_ho },
+              { "grid_find_cell_1d_ho", test_find_cell_1d_ho },
+              { "grid_find_cell_2d_ho", test_find_cell_2d_ho },
+              { "grid_find_cell_3d_ho", test_find_cell_3d_ho },
+              { "grid_io_ho", test_grid_io_ho },
 #ifdef GKYL_HAVE_CUDA
-  { "grid_2d_dev", test_grid_2d_dev },
+              { "grid_2d_dev", test_grid_2d_dev },
 #endif
-  { NULL, NULL } };
+              { NULL, NULL } };

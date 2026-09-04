@@ -8,10 +8,10 @@
 #include <gkyl_util.h>
 #include <float.h>
 
-void
-gkyl_dg_basis_ops_eval_array_at_coord_comp(const struct gkyl_array *arr, const double *coord,
-  const struct gkyl_basis *basis, const struct gkyl_rect_grid *grid, const struct gkyl_range *rng,
-  double *out)
+void gkyl_dg_basis_ops_eval_array_at_coord_comp(const struct gkyl_array *arr, const double *coord,
+                                                const struct gkyl_basis *basis,
+                                                const struct gkyl_rect_grid *grid,
+                                                const struct gkyl_range *rng, double *out)
 {
 #ifdef GKYL_HAVE_CUDA
   if (gkyl_array_is_cu_dev(arr)) {
@@ -42,8 +42,7 @@ enum dg_basis_op_code { GKYL_DG_BASIS_OP_CUBIC_1D, GKYL_DG_BASIS_OP_CUBIC_2D };
 
 struct gkyl_dg_basis_op_mem {
   enum dg_basis_op_code opcode;
-  union
-  {
+  union {
     // data for GKYL_DG_BASIS_OP_CUBIC_1D
     struct {
       struct gkyl_array *grad1dx;
@@ -66,104 +65,111 @@ struct dg_basis_ops_evalf_ctx {
   struct gkyl_array *cubic; // cubic DG representation
 };
 
-void
-gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *coeff)
+void gkyl_dg_calc_cubic_1d(const double val[2], const double grad[2], double *coeff)
 {
   coeff[0] = 0.7071067811865475 * val[1] - 0.2357022603955158 * grad[1] +
-    0.7071067811865475 * val[0] + 0.2357022603955158 * grad[0];
+             0.7071067811865475 * val[0] + 0.2357022603955158 * grad[0];
   coeff[1] = 0.4898979485566357 * val[1] - 0.08164965809277261 * grad[1] -
-    0.4898979485566357 * val[0] - 0.08164965809277261 * grad[0];
+             0.4898979485566357 * val[0] - 0.08164965809277261 * grad[0];
   coeff[2] = 0.105409255338946 * grad[1] - 0.105409255338946 * grad[0];
   coeff[3] = (-0.05345224838248487 * val[1]) + 0.05345224838248487 * grad[1] +
-    0.05345224838248487 * val[0] + 0.05345224838248487 * grad[0];
+             0.05345224838248487 * val[0] + 0.05345224838248487 * grad[0];
 }
 
-void
-gkyl_dg_calc_cubic_2d(
-  const double f[4], const double fx[4], const double fy[4], const double fxy[4], double *coeff)
+void gkyl_dg_calc_cubic_2d(const double f[4], const double fx[4], const double fy[4],
+                           const double fxy[4], double *coeff)
 {
   coeff[0] = (-0.1666666666666667 * fy[3]) + 0.05555555555555555 * fxy[3] -
-    0.1666666666666667 * fx[3] + 0.5 * f[3] + 0.1666666666666667 * fy[2] -
-    0.05555555555555555 * fxy[2] - 0.1666666666666667 * fx[2] + 0.5 * f[2] -
-    0.1666666666666667 * fy[1] - 0.05555555555555555 * fxy[1] + 0.1666666666666667 * fx[1] +
-    0.5 * f[1] + 0.1666666666666667 * fy[0] + 0.05555555555555555 * fxy[0] +
-    0.1666666666666667 * fx[0] + 0.5 * f[0];
+             0.1666666666666667 * fx[3] + 0.5 * f[3] + 0.1666666666666667 * fy[2] -
+             0.05555555555555555 * fxy[2] - 0.1666666666666667 * fx[2] + 0.5 * f[2] -
+             0.1666666666666667 * fy[1] - 0.05555555555555555 * fxy[1] +
+             0.1666666666666667 * fx[1] + 0.5 * f[1] + 0.1666666666666667 * fy[0] +
+             0.05555555555555555 * fxy[0] + 0.1666666666666667 * fx[0] + 0.5 * f[0];
   coeff[1] = (-0.1154700538379252 * fy[3]) + 0.01924500897298753 * fxy[3] -
-    0.05773502691896259 * fx[3] + 0.3464101615137755 * f[3] + 0.1154700538379252 * fy[2] -
-    0.01924500897298753 * fxy[2] - 0.05773502691896259 * fx[2] + 0.3464101615137755 * f[2] +
-    0.1154700538379252 * fy[1] + 0.01924500897298753 * fxy[1] - 0.05773502691896259 * fx[1] -
-    0.3464101615137755 * f[1] - 0.1154700538379252 * fy[0] - 0.01924500897298753 * fxy[0] -
-    0.05773502691896259 * fx[0] - 0.3464101615137755 * f[0];
+             0.05773502691896259 * fx[3] + 0.3464101615137755 * f[3] + 0.1154700538379252 * fy[2] -
+             0.01924500897298753 * fxy[2] - 0.05773502691896259 * fx[2] +
+             0.3464101615137755 * f[2] + 0.1154700538379252 * fy[1] + 0.01924500897298753 * fxy[1] -
+             0.05773502691896259 * fx[1] - 0.3464101615137755 * f[1] - 0.1154700538379252 * fy[0] -
+             0.01924500897298753 * fxy[0] - 0.05773502691896259 * fx[0] - 0.3464101615137755 * f[0];
   coeff[2] = (-0.05773502691896259 * fy[3]) + 0.01924500897298753 * fxy[3] -
-    0.1154700538379252 * fx[3] + 0.3464101615137755 * f[3] - 0.05773502691896259 * fy[2] +
-    0.01924500897298753 * fxy[2] + 0.1154700538379252 * fx[2] - 0.3464101615137755 * f[2] -
-    0.05773502691896259 * fy[1] - 0.01924500897298753 * fxy[1] + 0.1154700538379252 * fx[1] +
-    0.3464101615137755 * f[1] - 0.05773502691896259 * fy[0] - 0.01924500897298753 * fxy[0] -
-    0.1154700538379252 * fx[0] - 0.3464101615137755 * f[0];
+             0.1154700538379252 * fx[3] + 0.3464101615137755 * f[3] - 0.05773502691896259 * fy[2] +
+             0.01924500897298753 * fxy[2] + 0.1154700538379252 * fx[2] - 0.3464101615137755 * f[2] -
+             0.05773502691896259 * fy[1] - 0.01924500897298753 * fxy[1] +
+             0.1154700538379252 * fx[1] + 0.3464101615137755 * f[1] - 0.05773502691896259 * fy[0] -
+             0.01924500897298753 * fxy[0] - 0.1154700538379252 * fx[0] - 0.3464101615137755 * f[0];
   coeff[3] = (-0.04 * fy[3]) + 0.006666666666666667 * fxy[3] - 0.04 * fx[3] + 0.24 * f[3] -
-    0.04 * fy[2] + 0.006666666666666667 * fxy[2] + 0.04 * fx[2] - 0.24 * f[2] + 0.04 * fy[1] +
-    0.006666666666666667 * fxy[1] - 0.04 * fx[1] - 0.24 * f[1] + 0.04 * fy[0] +
-    0.006666666666666667 * fxy[0] + 0.04 * fx[0] + 0.24 * f[0];
+             0.04 * fy[2] + 0.006666666666666667 * fxy[2] + 0.04 * fx[2] - 0.24 * f[2] +
+             0.04 * fy[1] + 0.006666666666666667 * fxy[1] - 0.04 * fx[1] - 0.24 * f[1] +
+             0.04 * fy[0] + 0.006666666666666667 * fxy[0] + 0.04 * fx[0] + 0.24 * f[0];
   coeff[4] = (-0.02484519974999766 * fxy[3]) + 0.07453559924999298 * fx[3] +
-    0.02484519974999766 * fxy[2] + 0.07453559924999298 * fx[2] + 0.02484519974999766 * fxy[1] -
-    0.07453559924999298 * fx[1] - 0.02484519974999766 * fxy[0] - 0.07453559924999298 * fx[0];
+             0.02484519974999766 * fxy[2] + 0.07453559924999298 * fx[2] +
+             0.02484519974999766 * fxy[1] - 0.07453559924999298 * fx[1] -
+             0.02484519974999766 * fxy[0] - 0.07453559924999298 * fx[0];
   coeff[5] = 0.07453559924999298 * fy[3] - 0.02484519974999766 * fxy[3] -
-    0.07453559924999298 * fy[2] + 0.02484519974999766 * fxy[2] + 0.07453559924999298 * fy[1] +
-    0.02484519974999766 * fxy[1] - 0.07453559924999298 * fy[0] - 0.02484519974999766 * fxy[0];
+             0.07453559924999298 * fy[2] + 0.02484519974999766 * fxy[2] +
+             0.07453559924999298 * fy[1] + 0.02484519974999766 * fxy[1] -
+             0.07453559924999298 * fy[0] - 0.02484519974999766 * fxy[0];
   coeff[6] = (-0.008606629658238702 * fxy[3]) + 0.05163977794943223 * fx[3] -
-    0.008606629658238702 * fxy[2] - 0.05163977794943223 * fx[2] + 0.008606629658238702 * fxy[1] -
-    0.05163977794943223 * fx[1] + 0.008606629658238702 * fxy[0] + 0.05163977794943223 * fx[0];
+             0.008606629658238702 * fxy[2] - 0.05163977794943223 * fx[2] +
+             0.008606629658238702 * fxy[1] - 0.05163977794943223 * fx[1] +
+             0.008606629658238702 * fxy[0] + 0.05163977794943223 * fx[0];
   coeff[7] = 0.05163977794943223 * fy[3] - 0.008606629658238702 * fxy[3] -
-    0.05163977794943223 * fy[2] + 0.008606629658238702 * fxy[2] - 0.05163977794943223 * fy[1] -
-    0.008606629658238702 * fxy[1] + 0.05163977794943223 * fy[0] + 0.008606629658238702 * fxy[0];
-  coeff[8] = 0.01259881576697424 * fy[3] - 0.01259881576697424 * fxy[3] +
-    0.03779644730092272 * fx[3] - 0.03779644730092272 * f[3] - 0.01259881576697424 * fy[2] +
-    0.01259881576697424 * fxy[2] + 0.03779644730092272 * fx[2] - 0.03779644730092272 * f[2] -
-    0.01259881576697424 * fy[1] - 0.01259881576697424 * fxy[1] + 0.03779644730092272 * fx[1] +
-    0.03779644730092272 * f[1] + 0.01259881576697424 * fy[0] + 0.01259881576697424 * fxy[0] +
-    0.03779644730092272 * fx[0] + 0.03779644730092272 * f[0];
-  coeff[9] = 0.03779644730092272 * fy[3] - 0.01259881576697424 * fxy[3] +
-    0.01259881576697424 * fx[3] - 0.03779644730092272 * f[3] + 0.03779644730092272 * fy[2] -
-    0.01259881576697424 * fxy[2] - 0.01259881576697424 * fx[2] + 0.03779644730092272 * f[2] +
-    0.03779644730092272 * fy[1] + 0.01259881576697424 * fxy[1] - 0.01259881576697424 * fx[1] -
-    0.03779644730092272 * f[1] + 0.03779644730092272 * fy[0] + 0.01259881576697424 * fxy[0] +
-    0.01259881576697424 * fx[0] + 0.03779644730092272 * f[0];
+             0.05163977794943223 * fy[2] + 0.008606629658238702 * fxy[2] -
+             0.05163977794943223 * fy[1] - 0.008606629658238702 * fxy[1] +
+             0.05163977794943223 * fy[0] + 0.008606629658238702 * fxy[0];
+  coeff[8] =
+    0.01259881576697424 * fy[3] - 0.01259881576697424 * fxy[3] + 0.03779644730092272 * fx[3] -
+    0.03779644730092272 * f[3] - 0.01259881576697424 * fy[2] + 0.01259881576697424 * fxy[2] +
+    0.03779644730092272 * fx[2] - 0.03779644730092272 * f[2] - 0.01259881576697424 * fy[1] -
+    0.01259881576697424 * fxy[1] + 0.03779644730092272 * fx[1] + 0.03779644730092272 * f[1] +
+    0.01259881576697424 * fy[0] + 0.01259881576697424 * fxy[0] + 0.03779644730092272 * fx[0] +
+    0.03779644730092272 * f[0];
+  coeff[9] =
+    0.03779644730092272 * fy[3] - 0.01259881576697424 * fxy[3] + 0.01259881576697424 * fx[3] -
+    0.03779644730092272 * f[3] + 0.03779644730092272 * fy[2] - 0.01259881576697424 * fxy[2] -
+    0.01259881576697424 * fx[2] + 0.03779644730092272 * f[2] + 0.03779644730092272 * fy[1] +
+    0.01259881576697424 * fxy[1] - 0.01259881576697424 * fx[1] - 0.03779644730092272 * f[1] +
+    0.03779644730092272 * fy[0] + 0.01259881576697424 * fxy[0] + 0.01259881576697424 * fx[0] +
+    0.03779644730092272 * f[0];
   coeff[10] = 0.01111111111111111 * fxy[3] - 0.01111111111111111 * fxy[2] -
-    0.01111111111111111 * fxy[1] + 0.01111111111111111 * fxy[0];
-  coeff[11] = 0.004364357804719848 * fy[3] - 0.004364357804719848 * fxy[3] +
-    0.02618614682831908 * fx[3] - 0.02618614682831908 * f[3] + 0.004364357804719848 * fy[2] -
-    0.004364357804719848 * fxy[2] - 0.02618614682831908 * fx[2] + 0.02618614682831908 * f[2] -
-    0.004364357804719848 * fy[1] - 0.004364357804719848 * fxy[1] + 0.02618614682831908 * fx[1] +
-    0.02618614682831908 * f[1] - 0.004364357804719848 * fy[0] - 0.004364357804719848 * fxy[0] -
-    0.02618614682831908 * fx[0] - 0.02618614682831908 * f[0];
-  coeff[12] = 0.02618614682831908 * fy[3] - 0.004364357804719848 * fxy[3] +
-    0.004364357804719848 * fx[3] - 0.02618614682831908 * f[3] + 0.02618614682831908 * fy[2] -
-    0.004364357804719848 * fxy[2] - 0.004364357804719848 * fx[2] + 0.02618614682831908 * f[2] -
-    0.02618614682831908 * fy[1] - 0.004364357804719848 * fxy[1] + 0.004364357804719848 * fx[1] +
-    0.02618614682831908 * f[1] - 0.02618614682831908 * fy[0] - 0.004364357804719848 * fxy[0] -
-    0.004364357804719848 * fx[0] - 0.02618614682831908 * f[0];
+              0.01111111111111111 * fxy[1] + 0.01111111111111111 * fxy[0];
+  coeff[11] =
+    0.004364357804719848 * fy[3] - 0.004364357804719848 * fxy[3] + 0.02618614682831908 * fx[3] -
+    0.02618614682831908 * f[3] + 0.004364357804719848 * fy[2] - 0.004364357804719848 * fxy[2] -
+    0.02618614682831908 * fx[2] + 0.02618614682831908 * f[2] - 0.004364357804719848 * fy[1] -
+    0.004364357804719848 * fxy[1] + 0.02618614682831908 * fx[1] + 0.02618614682831908 * f[1] -
+    0.004364357804719848 * fy[0] - 0.004364357804719848 * fxy[0] - 0.02618614682831908 * fx[0] -
+    0.02618614682831908 * f[0];
+  coeff[12] =
+    0.02618614682831908 * fy[3] - 0.004364357804719848 * fxy[3] + 0.004364357804719848 * fx[3] -
+    0.02618614682831908 * f[3] + 0.02618614682831908 * fy[2] - 0.004364357804719848 * fxy[2] -
+    0.004364357804719848 * fx[2] + 0.02618614682831908 * f[2] - 0.02618614682831908 * fy[1] -
+    0.004364357804719848 * fxy[1] + 0.004364357804719848 * fx[1] + 0.02618614682831908 * f[1] -
+    0.02618614682831908 * fy[0] - 0.004364357804719848 * fxy[0] - 0.004364357804719848 * fx[0] -
+    0.02618614682831908 * f[0];
   coeff[13] = (-0.00563436169819011 * fy[3]) + 0.00563436169819011 * fxy[3] +
-    0.00563436169819011 * fy[2] - 0.00563436169819011 * fxy[2] + 0.00563436169819011 * fy[1] +
-    0.00563436169819011 * fxy[1] - 0.00563436169819011 * fy[0] - 0.00563436169819011 * fxy[0];
+              0.00563436169819011 * fy[2] - 0.00563436169819011 * fxy[2] +
+              0.00563436169819011 * fy[1] + 0.00563436169819011 * fxy[1] -
+              0.00563436169819011 * fy[0] - 0.00563436169819011 * fxy[0];
   coeff[14] = 0.00563436169819011 * fxy[3] - 0.00563436169819011 * fx[3] +
-    0.00563436169819011 * fxy[2] + 0.00563436169819011 * fx[2] - 0.00563436169819011 * fxy[1] +
-    0.00563436169819011 * fx[1] - 0.00563436169819011 * fxy[0] - 0.00563436169819011 * fx[0];
-  coeff[15] = (-0.002857142857142857 * fy[3]) + 0.002857142857142857 * fxy[3] -
-    0.002857142857142857 * fx[3] + 0.002857142857142857 * f[3] - 0.002857142857142857 * fy[2] +
-    0.002857142857142857 * fxy[2] + 0.002857142857142857 * fx[2] - 0.002857142857142857 * f[2] +
-    0.002857142857142857 * fy[1] + 0.002857142857142857 * fxy[1] - 0.002857142857142857 * fx[1] -
-    0.002857142857142857 * f[1] + 0.002857142857142857 * fy[0] + 0.002857142857142857 * fxy[0] +
-    0.002857142857142857 * fx[0] + 0.002857142857142857 * f[0];
+              0.00563436169819011 * fxy[2] + 0.00563436169819011 * fx[2] -
+              0.00563436169819011 * fxy[1] + 0.00563436169819011 * fx[1] -
+              0.00563436169819011 * fxy[0] - 0.00563436169819011 * fx[0];
+  coeff[15] =
+    (-0.002857142857142857 * fy[3]) + 0.002857142857142857 * fxy[3] - 0.002857142857142857 * fx[3] +
+    0.002857142857142857 * f[3] - 0.002857142857142857 * fy[2] + 0.002857142857142857 * fxy[2] +
+    0.002857142857142857 * fx[2] - 0.002857142857142857 * f[2] + 0.002857142857142857 * fy[1] +
+    0.002857142857142857 * fxy[1] - 0.002857142857142857 * fx[1] - 0.002857142857142857 * f[1] +
+    0.002857142857142857 * fy[0] + 0.002857142857142857 * fxy[0] + 0.002857142857142857 * fx[0] +
+    0.002857142857142857 * f[0];
 }
 
-static inline double
-calc_bilinear_grad_xy(double val[4], double dx[2])
+static inline double calc_bilinear_grad_xy(double val[4], double dx[2])
 {
   return ((val[3] - val[2]) / dx[1] - (val[1] - val[0]) / dx[1]) / dx[0];
 }
 
-gkyl_dg_basis_op_mem *
-gkyl_dg_alloc_cubic_1d(int cells)
+gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_1d(int cells)
 {
   struct gkyl_dg_basis_op_mem *mem = gkyl_malloc(sizeof(*mem));
   mem->opcode = GKYL_DG_BASIS_OP_CUBIC_1D;
@@ -171,8 +177,7 @@ gkyl_dg_alloc_cubic_1d(int cells)
   return mem;
 }
 
-gkyl_dg_basis_op_mem *
-gkyl_dg_alloc_cubic_2d(int cells[2])
+gkyl_dg_basis_op_mem *gkyl_dg_alloc_cubic_2d(int cells[2])
 {
   struct gkyl_dg_basis_op_mem *mem = gkyl_malloc(sizeof(*mem));
   mem->opcode = GKYL_DG_BASIS_OP_CUBIC_2D;
@@ -185,8 +190,7 @@ gkyl_dg_alloc_cubic_2d(int cells[2])
   return mem;
 }
 
-void
-gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
+void gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
 {
   if (mem->opcode == GKYL_DG_BASIS_OP_CUBIC_1D) {
     gkyl_array_release(mem->grad1dx);
@@ -199,9 +203,9 @@ gkyl_dg_basis_op_mem_release(gkyl_dg_basis_op_mem *mem)
   gkyl_free(mem);
 }
 
-void
-gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, double dx,
-  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic)
+void gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, double dx,
+                                           const struct gkyl_array *nodal_vals,
+                                           struct gkyl_array *cubic)
 {
   enum { I, LL, L, R, RR, XE }; // i, i-2, i-1, i+1, i+2 nodes
 
@@ -276,9 +280,9 @@ gkyl_dg_calc_cubic_1d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells, doub
   }
 }
 
-void
-gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2],
-  const struct gkyl_array *nodal_vals, struct gkyl_array *cubic)
+void gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], double dx[2],
+                                           const struct gkyl_array *nodal_vals,
+                                           struct gkyl_array *cubic)
 {
   enum {
     I, // (i,j)
@@ -355,7 +359,7 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
     long nidx = gkyl_range_idx(&nc_range, iter.idx);
 
     if ((iter.idx[0] != ilo) && (iter.idx[0] != iup) && (iter.idx[1] != jlo) &&
-      (iter.idx[1] != jup)) {
+        (iter.idx[1] != jup)) {
       // interior nodes
       const double *val_L = gkyl_array_cfetch(nodal_vals, nidx + offset[L]);
       const double *val_R = gkyl_array_cfetch(nodal_vals, nidx + offset[R]);
@@ -596,11 +600,12 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
 
     double val[4] = { val_I[0], val_T[0], val_R[0], val_RT[0] };
     double gradx[4] = { gradx_I[0] * dx[0] / 2, gradx_T[0] * dx[0] / 2, gradx_R[0] * dx[0] / 2,
-      gradx_RT[0] * dx[0] / 2 };
+                        gradx_RT[0] * dx[0] / 2 };
     double grady[4] = { grady_I[0] * dx[1] / 2, grady_T[0] * dx[1] / 2, grady_R[0] * dx[1] / 2,
-      grady_RT[0] * dx[1] / 2 };
+                        grady_RT[0] * dx[1] / 2 };
     double gradxy[4] = { gradxy_I[0] * dx[0] / 2 * dx[1] / 2, gradxy_T[0] * dx[0] / 2 * dx[1] / 2,
-      gradxy_R[0] * dx[0] / 2 * dx[1] / 2, gradxy_RT[0] * dx[0] / 2 * dx[1] / 2 };
+                         gradxy_R[0] * dx[0] / 2 * dx[1] / 2,
+                         gradxy_RT[0] * dx[0] / 2 * dx[1] / 2 };
 
     long cidx = gkyl_range_idx(&range, iter.idx);
     double *coeff = gkyl_array_fetch(cubic, cidx);
@@ -608,45 +613,43 @@ gkyl_dg_calc_cubic_2d_from_nodal_vals(gkyl_dg_basis_op_mem *mem, int cells[2], d
   }
 }
 
-static double
-eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const double *f)
+static double eval_laplacian_expand_2d_tensor_p3(int dir, const double *z, const double *f)
 {
   const double z0 = z[0];
   const double z1 = z[1];
   if (dir == 0)
     return 131.25 * f[15] * z0 * z1 * z1 * z1 + 22.18529918662356 * f[14] * z1 * z1 * z1 +
-      66.55589755987069 * f[13] * z0 * z1 * z1 + 11.25 * f[10] * z1 * z1 - 78.75 * f[15] * z0 * z1 +
-      34.3693177121688 * f[11] * z0 * z1 - 13.31117951197414 * f[14] * z1 +
-      5.809475019311125 * f[6] * z1 - 22.18529918662356 * f[13] * z0 +
-      19.84313483298443 * f[8] * z0 - 3.75 * f[10] + 3.354101966249685 * f[4];
+           66.55589755987069 * f[13] * z0 * z1 * z1 + 11.25 * f[10] * z1 * z1 -
+           78.75 * f[15] * z0 * z1 + 34.3693177121688 * f[11] * z0 * z1 -
+           13.31117951197414 * f[14] * z1 + 5.809475019311125 * f[6] * z1 -
+           22.18529918662356 * f[13] * z0 + 19.84313483298443 * f[8] * z0 - 3.75 * f[10] +
+           3.354101966249685 * f[4];
 
   if (dir == 1)
     return 131.25 * f[15] * z0 * z0 * z0 * z1 + 66.55589755987069 * f[14] * z0 * z0 * z1 -
-      78.75 * f[15] * z0 * z1 + 34.3693177121688 * f[12] * z0 * z1 -
-      22.18529918662356 * f[14] * z1 + 19.84313483298443 * f[9] * z1 +
-      22.18529918662356 * f[13] * z0 * z0 * z0 + 11.25 * f[10] * z0 * z0 -
-      13.31117951197414 * f[13] * z0 + 5.809475019311125 * f[7] * z0 - 3.75 * f[10] +
-      3.354101966249685 * f[5];
+           78.75 * f[15] * z0 * z1 + 34.3693177121688 * f[12] * z0 * z1 -
+           22.18529918662356 * f[14] * z1 + 19.84313483298443 * f[9] * z1 +
+           22.18529918662356 * f[13] * z0 * z0 * z0 + 11.25 * f[10] * z0 * z0 -
+           13.31117951197414 * f[13] * z0 + 5.809475019311125 * f[7] * z0 - 3.75 * f[10] +
+           3.354101966249685 * f[5];
 
   return 0.0; // can't happen, suppresses warning
 }
 
-static double
-eval_mixedpartial_expand_2d_tensor_p3(const double *z, const double *f)
+static double eval_mixedpartial_expand_2d_tensor_p3(const double *z, const double *f)
 {
   const double z0 = z[0];
   const double z1 = z[1];
   return 196.875 * f[15] * z0 * z0 * z1 * z1 + 66.55589755987069 * f[14] * z0 * z1 * z1 -
-    39.375 * f[15] * z1 * z1 + 17.1846588560844 * f[12] * z1 * z1 +
-    66.55589755987069 * f[13] * z0 * z0 * z1 + 22.5 * f[10] * z0 * z1 -
-    13.31117951197414 * f[13] * z1 + 5.809475019311125 * f[7] * z1 - 39.375 * f[15] * z0 * z0 +
-    17.1846588560844 * f[11] * z0 * z0 - 13.31117951197414 * f[14] * z0 +
-    5.809475019311125 * f[6] * z0 + 7.875 * f[15] - 3.43693177121688 * f[12] -
-    3.43693177121688 * f[11] + 1.5 * f[3];
+         39.375 * f[15] * z1 * z1 + 17.1846588560844 * f[12] * z1 * z1 +
+         66.55589755987069 * f[13] * z0 * z0 * z1 + 22.5 * f[10] * z0 * z1 -
+         13.31117951197414 * f[13] * z1 + 5.809475019311125 * f[7] * z1 - 39.375 * f[15] * z0 * z0 +
+         17.1846588560844 * f[11] * z0 * z0 - 13.31117951197414 * f[14] * z0 +
+         5.809475019311125 * f[6] * z0 + 7.875 * f[15] - 3.43693177121688 * f[12] -
+         3.43693177121688 * f[11] + 1.5 * f[3];
 }
 
-static void
-evalf_free(const struct gkyl_ref_count *rc)
+static void evalf_free(const struct gkyl_ref_count *rc)
 {
   struct gkyl_basis_ops_evalf *evf = container_of(rc, struct gkyl_basis_ops_evalf, ref_count);
 
@@ -657,8 +660,7 @@ evalf_free(const struct gkyl_ref_count *rc)
 }
 
 // function for computing cubic at a specified coordinate
-static void
-eval_cubic(double t, const double *xn, double *fout, void *ctx)
+static void eval_cubic(double t, const double *xn, double *fout, void *ctx)
 {
   struct dg_basis_ops_evalf_ctx *ectx = ctx;
 
@@ -683,8 +685,7 @@ eval_cubic(double t, const double *xn, double *fout, void *ctx)
 }
 
 // function for computing cubic at a specified coordinate
-static void
-eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
+static void eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
 {
   struct dg_basis_ops_evalf_ctx *ectx = ctx;
 
@@ -712,8 +713,7 @@ eval_cubic_wgrad(double t, const double *xn, double *fout, void *ctx)
 }
 
 // function for computing cubic at a specified coordinate
-static void
-eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
+static void eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
 {
   struct dg_basis_ops_evalf_ctx *ectx = ctx;
 
@@ -745,8 +745,8 @@ eval_cubic_wgrad2(double t, const double *xn, double *fout, void *ctx)
   }
 }
 
-struct gkyl_basis_ops_evalf *
-gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid, const struct gkyl_array *nodal_vals)
+struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid,
+                                                         const struct gkyl_array *nodal_vals)
 {
   if (grid->ndim > 2)
     return 0;
@@ -793,14 +793,14 @@ gkyl_dg_basis_ops_evalf_new(const struct gkyl_rect_grid *grid, const struct gkyl
   return evf;
 }
 
-bool
-gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, const char *fname)
+bool gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, const char *fname)
 {
   struct dg_basis_ops_evalf_ctx *ectx = evf->ctx;
 
-  struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(2,
-    (struct gkyl_msgpack_map_elem[]){ { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3 },
-      { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id } });
+  struct gkyl_msgpack_data *mdata = gkyl_msgpack_create(
+    2, (struct gkyl_msgpack_map_elem[]){
+         { .key = "polyOrder", .elem_type = GKYL_MP_INT, .ival = 3 },
+         { .key = "basisType", .elem_type = GKYL_MP_STRING, .cval = ectx->basis.id } });
 
   enum gkyl_array_rio_status status =
     gkyl_grid_sub_array_write(&ectx->grid, &ectx->local, mdata, ectx->cubic, fname);
@@ -809,15 +809,13 @@ gkyl_dg_basis_ops_evalf_write_cubic(const struct gkyl_basis_ops_evalf *evf, cons
   return status == GKYL_ARRAY_RIO_SUCCESS;
 }
 
-struct gkyl_basis_ops_evalf *
-gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf)
+struct gkyl_basis_ops_evalf *gkyl_dg_basis_ops_evalf_acquire(const struct gkyl_basis_ops_evalf *evf)
 {
   gkyl_ref_count_inc(&evf->ref_count);
   return (struct gkyl_basis_ops_evalf *)evf;
 }
 
-void
-gkyl_dg_basis_ops_evalf_release(struct gkyl_basis_ops_evalf *evf)
+void gkyl_dg_basis_ops_evalf_release(struct gkyl_basis_ops_evalf *evf)
 {
   gkyl_ref_count_dec(&evf->ref_count);
 }

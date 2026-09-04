@@ -10,15 +10,13 @@ int cu_array_test_and_flip_sign(struct gkyl_array *arr);
 void set_array_copy_fn(struct gkyl_array_copy_func *fn);
 }
 
-GKYL_CU_DH static void
-buffer_fn_cu(size_t nc, double *out, const double *inp, void *ctx)
+GKYL_CU_DH static void buffer_fn_cu(size_t nc, double *out, const double *inp, void *ctx)
 {
   for (size_t i = 0; i < nc; ++i)
     out[i] = 2 * inp[i];
 }
 
-__global__ void
-ker_cu_array_test_and_flip_sign(struct gkyl_array *arr, int *nfail)
+__global__ void ker_cu_array_test_and_flip_sign(struct gkyl_array *arr, int *nfail)
 {
   *nfail = 0;
 
@@ -34,18 +32,16 @@ ker_cu_array_test_and_flip_sign(struct gkyl_array *arr, int *nfail)
   }
 }
 
-__global__ void
-ker_set_array_copy_fn(struct gkyl_array_copy_func *fn)
+__global__ void ker_set_array_copy_fn(struct gkyl_array_copy_func *fn)
 {
   fn->func = buffer_fn_cu;
   fn->ctx = 0;
 }
 
-int
-cu_array_test_and_flip_sign(struct gkyl_array *arr)
+int cu_array_test_and_flip_sign(struct gkyl_array *arr)
 {
   int *nfail_dev = (int *)gkyl_cu_malloc(sizeof(int));
-  ker_cu_array_test_and_flip_sign<<<1, 1>>>(arr, nfail_dev);
+  ker_cu_array_test_and_flip_sign<<<1, 1> > >(arr, nfail_dev);
 
   int nfail;
   gkyl_cu_memcpy(&nfail, nfail_dev, sizeof(int), GKYL_CU_MEMCPY_D2H);
@@ -54,8 +50,7 @@ cu_array_test_and_flip_sign(struct gkyl_array *arr)
   return nfail;
 }
 
-void
-set_array_copy_fn(struct gkyl_array_copy_func *fn)
+void set_array_copy_fn(struct gkyl_array_copy_func *fn)
 {
-  ker_set_array_copy_fn<<<1, 1>>>(fn);
+  ker_set_array_copy_fn<<<1, 1> > >(fn);
 }

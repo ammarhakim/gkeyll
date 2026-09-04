@@ -13,9 +13,8 @@
 #include <gkyl_proj_on_basis.h>
 #include <gkyl_calc_bmag.h>
 
-void
-test_nonuniform_position_map(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void test_nonuniform_position_map(double t, const double *GKYL_RESTRICT xn,
+                                  double *GKYL_RESTRICT fout, void *ctx)
 {
   double poly_order = 2;
   double z = xn[0];
@@ -29,9 +28,8 @@ test_nonuniform_position_map(
     fout[0] = z;
 }
 
-void
-test_nonuniform_position_map_slope(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void test_nonuniform_position_map_slope(double t, const double *GKYL_RESTRICT xn,
+                                        double *GKYL_RESTRICT fout, void *ctx)
 {
   double poly_order = 2;
   double z = xn[0];
@@ -46,16 +44,14 @@ test_nonuniform_position_map_slope(
     fout[0] = 1.0;
 }
 
-void
-test_identity_position_map(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void test_identity_position_map(double t, const double *GKYL_RESTRICT xn,
+                                double *GKYL_RESTRICT fout, void *ctx)
 {
   fout[0] = xn[0];
 }
 
-void
-test_nonuniform_position_map_3x(
-  double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void test_nonuniform_position_map_3x(double t, const double *GKYL_RESTRICT xn,
+                                     double *GKYL_RESTRICT fout, void *ctx)
 {
   double poly_order = 2;
   double left = 0.25;
@@ -71,8 +67,7 @@ test_nonuniform_position_map_3x(
   }
 }
 
-void
-bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
+void bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, void *ctx)
 {
   double x = xn[0];
   double s = 0.6;
@@ -82,8 +77,7 @@ bmag_func(double t, const double *GKYL_RESTRICT xn, double *GKYL_RESTRICT fout, 
   fout[0] = B;
 }
 
-void
-test_position_map_init_1x_ho()
+void test_position_map_init_1x_ho()
 {
   int cells[] = { 32 };
   int poly_order = 1;
@@ -102,9 +96,9 @@ test_position_map_init_1x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
-                                                 test_nonuniform_position_map,
-                                                 test_nonuniform_position_map },
-    .ctxs = { NULL, NULL, NULL } };
+                                                         test_nonuniform_position_map,
+                                                         test_nonuniform_position_map },
+                                               .ctxs = { NULL, NULL, NULL } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -119,8 +113,7 @@ test_position_map_init_1x_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void
-test_position_map_init_1x_null_ho()
+void test_position_map_init_1x_null_ho()
 {
   int cells[] = { 8 };
   int poly_order = 1;
@@ -166,8 +159,7 @@ test_position_map_init_1x_null_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void
-test_position_map_init_2x_ho()
+void test_position_map_init_2x_ho()
 {
   int cells[] = { 8, 8 };
   int poly_order = 1;
@@ -186,9 +178,9 @@ test_position_map_init_2x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
-                                                 test_nonuniform_position_map,
-                                                 test_nonuniform_position_map },
-    .ctxs = { 0, 0, 0 } };
+                                                         test_nonuniform_position_map,
+                                                         test_nonuniform_position_map },
+                                               .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -203,8 +195,7 @@ test_position_map_init_2x_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void
-test_position_map_init_3x_ho()
+void test_position_map_init_3x_ho()
 {
   int cells[] = { 8, 8, 8 };
   int poly_order = 1;
@@ -223,9 +214,9 @@ test_position_map_init_3x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
-                                                 test_nonuniform_position_map,
-                                                 test_nonuniform_position_map },
-    .ctxs = { 0, 0, 0 } };
+                                                         test_nonuniform_position_map,
+                                                         test_nonuniform_position_map },
+                                               .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -240,8 +231,7 @@ test_position_map_init_3x_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void
-test_position_map_set_ho()
+void test_position_map_set_ho()
 {
   int cells[] = { 8, 8, 8 };
   int poly_order = 1;
@@ -260,9 +250,9 @@ test_position_map_set_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
-                                                 test_nonuniform_position_map,
-                                                 test_nonuniform_position_map },
-    .ctxs = { 0, 0, 0 } };
+                                                         test_nonuniform_position_map,
+                                                         test_nonuniform_position_map },
+                                               .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -281,8 +271,7 @@ test_position_map_set_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void
-test_gkyl_position_map_eval_mc2nu_ho()
+void test_gkyl_position_map_eval_mc2nu_ho()
 {
   int cells[] = { 8, 8, 8 };
   int poly_order = 2;
@@ -301,9 +290,9 @@ test_gkyl_position_map_eval_mc2nu_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
-                                                 test_nonuniform_position_map,
-                                                 test_nonuniform_position_map },
-    .ctxs = { 0, 0, 0 } };
+                                                         test_nonuniform_position_map,
+                                                         test_nonuniform_position_map },
+                                               .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -338,8 +327,7 @@ test_gkyl_position_map_eval_mc2nu_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void
-test_gkyl_position_map_slope_ho()
+void test_gkyl_position_map_slope_ho()
 {
   int cells[] = { 8, 8, 8 };
   int poly_order = 2;
@@ -358,9 +346,9 @@ test_gkyl_position_map_slope_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .maps = { test_nonuniform_position_map,
-                                                 test_nonuniform_position_map,
-                                                 test_nonuniform_position_map },
-    .ctxs = { 0, 0, 0 } };
+                                                         test_nonuniform_position_map,
+                                                         test_nonuniform_position_map },
+                                               .ctxs = { 0, 0, 0 } };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -402,8 +390,7 @@ test_gkyl_position_map_slope_ho()
   gkyl_position_map_release(pos_map);
 }
 
-void
-test_position_polynomial_map_optimize_1x_ho()
+void test_position_polynomial_map_optimize_1x_ho()
 {
   int cells[] = { 64 };
   int poly_order = 1;
@@ -422,7 +409,7 @@ test_position_polynomial_map_optimize_1x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .id = GKYL_PMAP_CONSTANT_DB_POLYNOMIAL,
-    .map_strength = 1.0 };
+                                               .map_strength = 1.0 };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -461,8 +448,7 @@ test_position_polynomial_map_optimize_1x_ho()
   gkyl_array_release(bmag_global);
 }
 
-void
-test_position_map_numeric_optimize_1x_ho()
+void test_position_map_numeric_optimize_1x_ho()
 {
   int cells[] = { 64 };
   int poly_order = 1;
@@ -481,7 +467,7 @@ test_position_map_numeric_optimize_1x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-    .map_strength = 1.0 };
+                                               .map_strength = 1.0 };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -519,8 +505,7 @@ test_position_map_numeric_optimize_1x_ho()
   gkyl_array_release(bmag_global);
 }
 
-void
-test_position_map_numeric_calculate_1x_ho()
+void test_position_map_numeric_calculate_1x_ho()
 {
   int cells[] = { 64 };
   int poly_order = 1;
@@ -539,7 +524,7 @@ test_position_map_numeric_calculate_1x_ho()
   gkyl_cart_modal_serendip(&basis, dim, poly_order);
 
   struct gkyl_position_map_inp pos_map_inp = { .id = GKYL_PMAP_CONSTANT_DB_NUMERIC,
-    .map_strength = 1.0 };
+                                               .map_strength = 1.0 };
 
   struct gkyl_position_map *pos_map = gkyl_position_map_new(
     pos_map_inp, grid, localRange, localRange_ext, localRange, localRange_ext, basis);
@@ -572,7 +557,8 @@ test_position_map_numeric_calculate_1x_ho()
   gkyl_array_release(bmag_global);
 }
 
-TEST_LIST = { { "test_position_map_init_1x_ho", test_position_map_init_1x_ho },
+TEST_LIST = {
+  { "test_position_map_init_1x_ho", test_position_map_init_1x_ho },
   { "test_position_map_init_1x_null_ho", test_position_map_init_1x_null_ho },
   { "test_position_map_init_2x_ho", test_position_map_init_2x_ho },
   { "test_position_map_init_3x_ho", test_position_map_init_3x_ho },
@@ -582,4 +568,5 @@ TEST_LIST = { { "test_position_map_init_1x_ho", test_position_map_init_1x_ho },
   { "test_position_polynomial_map_optimize_1x_ho", test_position_polynomial_map_optimize_1x_ho },
   { "test_position_map_numeric_optimize_1x_ho", test_position_map_numeric_optimize_1x_ho },
   { "test_position_map_numeric_calculate_1x_ho", test_position_map_numeric_calculate_1x_ho },
-  { NULL, NULL } };
+  { NULL, NULL }
+};
