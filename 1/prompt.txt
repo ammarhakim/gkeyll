@@ -1,0 +1,9 @@
+ok, i committed this to another branch for consideration. Now, what if instead of removing a trailing comma in struct assignments, our python script actually added a trailing comma to all struct assignments?
+
+---
+
+Never mind. Could we experiment with removing trailing commas as we have done, and enforcing the Allman curly braces?
+
+---
+
+what do you think it's the best approach to resolve the poisson_bcs asymmetry then?
